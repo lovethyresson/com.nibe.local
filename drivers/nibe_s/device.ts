@@ -187,6 +187,15 @@ const registerByName =
 // Capabilities that used to be custom "*_NIBE" power/energy/current types and have since been
 // migrated to Homey's official measure_power/meter_power/measure_current types (same register,
 // same sub-id, only the capability type prefix changed) so devices show up in Homey's Energy tab.
+//
+// The old measure_power_NIBE/meter_power_NIBE/measure_current_NIBE capability *type* definitions
+// under .homeycompose/capabilities/ must stay in the app even though nothing references them from
+// driver.compose.json anymore: existing devices still have an instance of the old type attached
+// until migrateCapabilities() below runs and removes it, and the SDK can't perform *any* capability
+// operation on a device that has an instance of a completely undeclared type attached (removing the
+// type definition entirely breaks addCapability/removeCapability for every capability on that
+// device, not just the orphaned one). Only delete those type files in a later release, once no
+// in-field device should still be carrying the old capability.
 const capabilityRenames: [string, string][] = [
     ["measure_power_NIBE.i1048_compressor_add_power", "measure_power.i1048_compressor_add_power"],
     ["measure_power_NIBE.i2166_energy_usage", "measure_power.i2166_energy_usage"],
@@ -223,9 +232,8 @@ class NibeSDevice extends Device {
 
     // Energy meter tracking
     private cumulativeEnergy: number = 0; // kWh
-    private lastPowerReading: number = 0; // W
+    private lastPowerReading: number | null = null; // W, null = no previous reading to integrate from yet
     private lastPollTime: number = Date.now();
-    private saveCounter: number = 0; // Counter to periodically save to settings
 
     private fromRegisterValue(register: Register, value: number) {
         if (value >= 32768)
@@ -339,7 +347,7 @@ class NibeSDevice extends Device {
             const i2166Index = registers.findIndex(r => r.address === 2166);
             const currentPower = results[i2166Index];
 
-            if (currentPower !== undefined && this.lastPowerReading !== 0) {
+            if (currentPower !== undefined && this.lastPowerReading !== null) {
                 // Use trapezoidal integration for better accuracy
                 const avgPower = (this.lastPowerReading + currentPower) / 2;
                 const energyDelta = (avgPower * deltaTimeHours) / 1000; // Convert Wh to kWh
@@ -349,12 +357,9 @@ class NibeSDevice extends Device {
                 // Update meter_power capability
                 this.setCapabilityValue('meter_power', this.cumulativeEnergy).catch(this.error);
 
-                // Save to settings every 36 polls (every 3 minutes with 5s polling)
-                this.saveCounter++;
-                if (this.saveCounter >= 36) {
-                    this.setSettings({ cumulativeEnergy: this.cumulativeEnergy }).catch(this.error);
-                    this.saveCounter = 0;
-                }
+                // Persist every poll so a crash/restart loses at most one poll interval's energy,
+                // rather than the previously batched 3-minute window.
+                this.setSettings({ cumulativeEnergy: this.cumulativeEnergy }).catch(this.error);
             }
 
             if (currentPower !== undefined) {
@@ -392,16 +397,24 @@ class NibeSDevice extends Device {
         for (const [oldName, newName] of capabilityRenames) {
             if (!this.hasCapability(oldName))
                 continue;
-            const oldValue = this.getCapabilityValue(oldName);
-            if (!this.hasCapability(newName))
-                await this.addCapability(newName);
-            if (oldValue !== null && oldValue !== undefined)
-                await this.setCapabilityValue(newName, oldValue).catch(this.error);
-            await this.removeCapability(oldName).catch(this.error);
+            try {
+                const oldValue = this.getCapabilityValue(oldName);
+                if (!this.hasCapability(newName))
+                    await this.addCapability(newName);
+                if (oldValue !== null && oldValue !== undefined)
+                    await this.setCapabilityValue(newName, oldValue);
+                await this.removeCapability(oldName);
+            } catch (error) {
+                // Don't let one failed migration abort onInit for the rest of the device -
+                // and don't drop the old capability if we couldn't add/populate its replacement.
+                this.error(`Failed to migrate capability ${oldName} -> ${newName}`, error);
+            }
         }
         for (const name of retiredCapabilities) {
-            if (this.hasCapability(name))
-                await this.removeCapability(name).catch(this.error);
+            if (this.hasCapability(name)) {
+                await this.removeCapability(name).catch((error) =>
+                    this.error(`Failed to remove retired capability ${name}`, error));
+            }
         }
     }
 
@@ -414,7 +427,6 @@ class NibeSDevice extends Device {
         const settings = this.getSettings();
         this.cumulativeEnergy = settings.cumulativeEnergy || 0;
         this.lastPollTime = Date.now();
-        this.saveCounter = 0;
         this.log(`Restored cumulative energy: ${this.cumulativeEnergy} kWh`);
 
         // Ensure meter_power capability exists
@@ -550,7 +562,7 @@ class NibeSDevice extends Device {
             // Reset the energy integration baseline so a connection gap (initial connect or a
             // reconnect after a drop) isn't counted as continuous runtime at whatever power the
             // first poll after reconnecting happens to read.
-            this.lastPowerReading = 0;
+            this.lastPowerReading = null;
             this.lastPollTime = Date.now();
             // Start polling, delay a bit the first time
             setTimeout(() => this.poll(), 200);

@@ -87,6 +87,15 @@ wired into `onInit`) so devices already in the field carry their last value over
 Note that renaming a capability still breaks any saved flow that references the old capability by name — that part
 isn't avoidable, only the value/history loss is.
 
+**Do not delete the old capability's *type* definition (`.homeycompose/capabilities/*.json`) in the same release
+as the rename.** Existing devices still have an instance of the old type attached until `migrateCapabilities()`
+actually runs and removes it — and the SDK refuses to perform *any* `addCapability`/`removeCapability` call on a
+device that has an instance of a completely undeclared capability type attached (not just operations on that one
+capability; the whole device's `onInit` capability handling breaks, with every subsequent Homey RPC error
+confusingly echoing the *first* failure). Keep the old type file declared (even though nothing in
+`driver.compose.json` references it anymore) for at least one release cycle, then delete it later once no in-field
+device should still be carrying that capability.
+
 ### Flow cards are generic, not per-register
 
 Rather than one flow card per register, `driver.flow.compose.json` defines a small set of generic cards

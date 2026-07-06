@@ -1418,6 +1418,26 @@
       "chartType": "spline",
       "icon": "/assets/images/counter.svg"
     },
+    "measure_current_NIBE": {
+      "type": "number",
+      "title": {
+        "en": "A"
+      },
+      "units": {
+        "en": "A"
+      },
+      "insights": true,
+      "desc": {
+        "en": "Current in ampere (A)",
+        "sv": "Ström i ampere (A)"
+      },
+      "chartType": "stepLine",
+      "decimals": 1,
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "icon": "/assets/images/power.svg"
+    },
     "measure_day_NIBE": {
       "type": "number",
       "title": {
@@ -1527,6 +1547,26 @@
       "chartType": "spline",
       "icon": "/assets/images/pump.svg"
     },
+    "measure_power_NIBE": {
+      "type": "number",
+      "title": {
+        "en": "Power"
+      },
+      "units": {
+        "en": "W"
+      },
+      "insights": true,
+      "desc": {
+        "en": "Power in watt (W)",
+        "sv": "Effekt i watt (W)"
+      },
+      "chartType": "stepLine",
+      "decimals": 2,
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "icon": "/assets/images/power.svg"
+    },
     "measure_temperature_NIBE": {
       "type": "number",
       "title": {
@@ -1568,6 +1608,27 @@
       "setable": false,
       "uiComponent": "sensor",
       "icon": "/assets/images/water.svg"
+    },
+    "meter_power_NIBE": {
+      "type": "number",
+      "title": {
+        "en": "Energy",
+        "sv": "Energi"
+      },
+      "decimals": 2,
+      "units": {
+        "en": "kWh"
+      },
+      "desc": {
+        "en": "Energy usage in kilowatt-hour (kWh)",
+        "sv": "Energianvändning i kilowattimmar (kWh)"
+      },
+      "chartType": "spline",
+      "insights": true,
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "icon": "/assets/images/power.svg"
     },
     "target_percentage_NIBE": {
       "type": "number",
