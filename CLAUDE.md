@@ -81,20 +81,26 @@ When adding a new register/capability, you generally need to touch three places 
 `checkConfig()` in `device.ts` runs at device init and logs a mismatch warning if `registers` and the compiled
 `capabilities` array (from `driver.compose.json`) get out of order/sync — check the logs after changes here.
 
-If you rename or drop a capability (e.g. migrating a `_NIBE` type to an official one), add an entry to
-`capabilityRenames`/`retiredCapabilities` near the top of `device.ts` and call `migrateCapabilities()` (already
-wired into `onInit`) so devices already in the field carry their last value over instead of silently losing it.
-Note that renaming a capability still breaks any saved flow that references the old capability by name — that part
-isn't avoidable, only the value/history loss is.
+This app has no other installs beyond the maintainer's own device, so capability renames/removals are currently
+done as a hard cut (change the name in `registers`/`driver.compose.json`, done) rather than a migration — the
+device gets re-paired or manually fixed up if needed. **If that ever changes (the app gets other real users), a
+capability rename needs a proper migration, and there are sharp edges worth knowing before adding one:**
 
-**Do not delete the old capability's *type* definition (`.homeycompose/capabilities/*.json`) in the same release
-as the rename.** Existing devices still have an instance of the old type attached until `migrateCapabilities()`
-actually runs and removes it — and the SDK refuses to perform *any* `addCapability`/`removeCapability` call on a
-device that has an instance of a completely undeclared capability type attached (not just operations on that one
-capability; the whole device's `onInit` capability handling breaks, with every subsequent Homey RPC error
-confusingly echoing the *first* failure). Keep the old type file declared (even though nothing in
-`driver.compose.json` references it anymore) for at least one release cycle, then delete it later once no in-field
-device should still be carrying that capability.
+- **Don't delete a capability *type* definition (`.homeycompose/capabilities/*.json`) in the same release as a
+  rename away from it.** A device that still has an instance of that type attached will have *every* capability
+  operation in `onInit` fail (not just the orphaned one) as soon as the type becomes completely undeclared anywhere
+  in the app — the SDK can't resolve a capability whose type it doesn't know, and every subsequent Homey RPC error
+  in that `onInit` call confusingly echoes the *first* failure. Keep the old type declared for a release or two
+  after devices have had a chance to migrate off it.
+- **`addCapability()` alone does not apply `driver.compose.json`'s per-instance `capabilitiesOptions`** (title,
+  decimals) for official capability types — it only applies the base type's built-in defaults (e.g. `measure_power`
+  defaults to the generic title "Power"). Push the declared options explicitly with `setCapabilityOptions()` right
+  after adding a capability (see `ensureCapabilityOptions()` in `device.ts`, which cheaply skips the call once
+  options already match, since `setCapabilityOptions()` is documented as expensive).
+- **A capability's Insights log display name is snapshotted once, the first time that exact capability ID is ever
+  added, and never changes again** — not via `setCapabilityOptions()`, and not by removing and re-adding the same
+  capability ID (Homey reattaches to the existing log rather than creating a fresh one). If a log was ever created
+  with a wrong/generic name, the only fix is a genuine rename to a brand new capability ID.
 
 ### Flow cards are generic, not per-register
 

@@ -514,7 +514,7 @@
       },
       "class": "other",
       "capabilities": [
-        "meter_power",
+        "meter_power.total",
         "measure_temperature_NIBE.i1_outside",
         "measure_temperature_NIBE.i26_inside",
         "measure_temperature_NIBE.i1017_calculated_supply",
@@ -527,8 +527,8 @@
         "measure_temperature_NIBE.i11_source_out",
         "measure_enum_NIBE.i1028_priority",
         "measure_water_NIBE.i40_flow_sensor",
-        "measure_power.i1048_compressor_add_power",
-        "measure_power.i2166_energy_usage",
+        "measure_power.i1048_compressor_add_power_v2",
+        "measure_power.i2166_energy_usage_v2",
         "measure_temperature_NIBE.i1047_inverter",
         "measure_frequency_NIBE.i1046_compressor",
         "measure_temperature_NIBE.i8_warmwater_top",
@@ -538,7 +538,7 @@
         "measure_percentage_NIBE.h109_returnair_normal",
         "measure_enum_NIBE.i1037_return_fan_step",
         "measure_count_NIBE.i1029_additive_heat_steps",
-        "meter_power.i1027_additive_effect",
+        "meter_power.i1027_additive_effect_v2",
         "measure_hour_NIBE.i1025_additive_usage_total",
         "measure_hour_NIBE.i1069_additive_usage_hotwater",
         "measure_count_NIBE.i1083_compressor_starts",
@@ -553,10 +553,10 @@
         "measure_day_NIBE.h66_periodic_hotwater_interval",
         "measure_count_NIBE.h67_periodic_hotwater_start",
         "measure_minute_NIBE.h92_periodtime_hotwater",
-        "measure_current.h103_fuse",
-        "measure_current.i50_sensor",
-        "measure_current.i48_sensor",
-        "measure_current.i46_sensor",
+        "measure_current.h103_fuse_v2",
+        "measure_current.i50_sensor_v2",
+        "measure_current.i48_sensor_v2",
+        "measure_current.i46_sensor_v2",
         "measure_enum_NIBE.h237_operating_mode",
         "measure_temperature_NIBE.i27_pool",
         "measure_temperature_NIBE.i12_heating_supply",
@@ -583,7 +583,7 @@
         "onoff.h182_enable_cooling"
       ],
       "capabilitiesOptions": {
-        "meter_power": {
+        "meter_power.total": {
           "title": {
             "en": "Total energy consumed",
             "sv": "Total förbrukad energi"
@@ -619,28 +619,28 @@
             "sv": "Periodiskt varmvatten starttid"
           }
         },
-        "measure_current.i46_sensor": {
+        "measure_current.i46_sensor_v2": {
           "decimals": 1,
           "title": {
             "en": "Current sensor BE3 -L3",
             "sv": "Strömsensor BE3 -L3"
           }
         },
-        "measure_current.i48_sensor": {
+        "measure_current.i48_sensor_v2": {
           "decimals": 1,
           "title": {
             "en": "Current sensor BE2 -L2",
             "sv": "Strömsensor BE2 -L2"
           }
         },
-        "measure_current.i50_sensor": {
+        "measure_current.i50_sensor_v2": {
           "decimals": 1,
           "title": {
             "en": "Current sensor BE1 -L1",
             "sv": "Strömsensor BE1 -L1"
           }
         },
-        "measure_current.h103_fuse": {
+        "measure_current.h103_fuse_v2": {
           "decimals": 1,
           "title": {
             "en": "Fuse incoming",
@@ -791,21 +791,21 @@
             "sv": "Periodiskt varmvatten intervall"
           }
         },
-        "meter_power.i1027_additive_effect": {
+        "meter_power.i1027_additive_effect_v2": {
           "decimals": 2,
           "title": {
             "en": "Mode internal additive",
             "sv": "Effekt tillsats"
           }
         },
-        "measure_power.i1048_compressor_add_power": {
+        "measure_power.i1048_compressor_add_power_v2": {
           "decimals": 2,
           "title": {
             "en": "Compressor supplied power",
             "sv": "Kompressor tillförd W"
           }
         },
-        "measure_power.i2166_energy_usage": {
+        "measure_power.i2166_energy_usage_v2": {
           "decimals": 2,
           "title": {
             "en": "Current power",
@@ -1418,26 +1418,6 @@
       "chartType": "spline",
       "icon": "/assets/images/counter.svg"
     },
-    "measure_current_NIBE": {
-      "type": "number",
-      "title": {
-        "en": "A"
-      },
-      "units": {
-        "en": "A"
-      },
-      "insights": true,
-      "desc": {
-        "en": "Current in ampere (A)",
-        "sv": "Ström i ampere (A)"
-      },
-      "chartType": "stepLine",
-      "decimals": 1,
-      "getable": true,
-      "setable": false,
-      "uiComponent": "sensor",
-      "icon": "/assets/images/power.svg"
-    },
     "measure_day_NIBE": {
       "type": "number",
       "title": {
@@ -1547,26 +1527,6 @@
       "chartType": "spline",
       "icon": "/assets/images/pump.svg"
     },
-    "measure_power_NIBE": {
-      "type": "number",
-      "title": {
-        "en": "Power"
-      },
-      "units": {
-        "en": "W"
-      },
-      "insights": true,
-      "desc": {
-        "en": "Power in watt (W)",
-        "sv": "Effekt i watt (W)"
-      },
-      "chartType": "stepLine",
-      "decimals": 2,
-      "getable": true,
-      "setable": false,
-      "uiComponent": "sensor",
-      "icon": "/assets/images/power.svg"
-    },
     "measure_temperature_NIBE": {
       "type": "number",
       "title": {
@@ -1608,27 +1568,6 @@
       "setable": false,
       "uiComponent": "sensor",
       "icon": "/assets/images/water.svg"
-    },
-    "meter_power_NIBE": {
-      "type": "number",
-      "title": {
-        "en": "Energy",
-        "sv": "Energi"
-      },
-      "decimals": 2,
-      "units": {
-        "en": "kWh"
-      },
-      "desc": {
-        "en": "Energy usage in kilowatt-hour (kWh)",
-        "sv": "Energianvändning i kilowattimmar (kWh)"
-      },
-      "chartType": "spline",
-      "insights": true,
-      "getable": true,
-      "setable": false,
-      "uiComponent": "sensor",
-      "icon": "/assets/images/power.svg"
     },
     "target_percentage_NIBE": {
       "type": "number",

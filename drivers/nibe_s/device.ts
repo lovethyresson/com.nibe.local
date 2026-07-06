@@ -92,8 +92,8 @@ const registers: Register[] = [
     {address: 1028, name: "measure_enum_NIBE.i1028_priority",                 direction: Dir.In,  enum: priorityMap}, // Prio
     {address:   40, name: "measure_water_NIBE.i40_flow_sensor",               direction: Dir.In,  scale:  10}, // Flödesgivare (BF1)
     // Rad 7
-    {address: 1048, name: "measure_power.i1048_compressor_add_power",         direction: Dir.In,  scale:   1}, // Kompressor tillförd effekt
-    {address: 2166, name: "measure_power.i2166_energy_usage",                 direction: Dir.In,  scale:   1}, // Momentan använd effekt
+    {address: 1048, name: "measure_power.i1048_compressor_add_power_v2",      direction: Dir.In,  scale:   1}, // Kompressor tillförd effekt
+    {address: 2166, name: "measure_power.i2166_energy_usage_v2",              direction: Dir.In,  scale:   1}, // Momentan använd effekt
     // Rad 8
     {address: 1047, name: "measure_temperature_NIBE.i1047_inverter",          direction: Dir.In,  scale:  10}, // Invertertemperatur
     {address: 1046, name: "measure_frequency_NIBE.i1046_compressor",          direction: Dir.In,  scale:  10}, // Kompressorfrekvens, aktuell
@@ -108,7 +108,7 @@ const registers: Register[] = [
     {address: 1037, name: "measure_enum_NIBE.i1037_return_fan_step",          direction: Dir.In,  enum: returnairMap}, // Fläktläge 1 0-Normal Övrigt 1-4
     // Rad 12 Eltillsats
     {address: 1029, name: "measure_count_NIBE.i1029_additive_heat_steps",     direction: Dir.In,  scale:   1}, // Driftläge intern tillsats
-    {address: 1027, name: "meter_power.i1027_additive_effect",                direction: Dir.In,  scale: 100}, // Effekt intern tillsats
+    {address: 1027, name: "meter_power.i1027_additive_effect_v2",             direction: Dir.In,  scale: 100}, // Effekt intern tillsats
     // Rad 13 Eltillsats statistik
     {address: 1025, name: "measure_hour_NIBE.i1025_additive_usage_total",     direction: Dir.In,  scale:  10}, // Total drifttid tillsats
     {address: 1069, name: "measure_hour_NIBE.i1069_additive_usage_hotwater",  direction: Dir.In,  scale:  10}, // Total varmvatten drifttid tillsats
@@ -131,10 +131,10 @@ const registers: Register[] = [
     {address:   67, name: "measure_count_NIBE.h67_periodic_hotwater_start",   direction: Dir.Out,  scale:   1, noAction: true},  // Periodiskt varmvatten start klockan ** nu returneras sekunder från 00.00 hur visar man tid??
     {address:   92, name: "measure_minute_NIBE.h92_periodtime_hotwater",      direction: Dir.Out,  scale:   1, min: 0, max: 180},  // Periodtid varmvatten minuter
     // Rad 20 Strömförbrukning
-    {address:  103, name: "measure_current.h103_fuse",                        direction: Dir.Out,  scale:   1, noAction: true},  // Säkring inkommande
-    {address:   50, name: "measure_current.i50_sensor",                       direction: Dir.In,   scale:  10},  // Strömavkänare BE1 -L1
-    {address:   48, name: "measure_current.i48_sensor",                       direction: Dir.In,   scale:  10},  // Strömavkänare BE2 -L2
-    {address:   46, name: "measure_current.i46_sensor",                       direction: Dir.In,   scale:  10},  // Strömavkänare BE3 -L3
+    {address:  103, name: "measure_current.h103_fuse_v2",                     direction: Dir.Out,  scale:   1, noAction: true},  // Säkring inkommande
+    {address:   50, name: "measure_current.i50_sensor_v2",                    direction: Dir.In,   scale:  10},  // Strömavkänare BE1 -L1
+    {address:   48, name: "measure_current.i48_sensor_v2",                    direction: Dir.In,   scale:  10},  // Strömavkänare BE2 -L2
+    {address:   46, name: "measure_current.i46_sensor_v2",                    direction: Dir.In,   scale:  10},  // Strömavkänare BE3 -L3
     // Rad 21 Driftläge / pool
     {address: 237, name: "measure_enum_NIBE.h237_operating_mode",             direction: Dir.Out,  enum: modeMap}, // Driftläge
     {address:  27, name: "measure_temperature_NIBE.i27_pool",                 direction: Dir.In,   scale:  10},  // Pooltemperatur
@@ -183,44 +183,6 @@ const registers: Register[] = [
 
 const registerByName =
     Object.fromEntries(registers.map((register: Register) => [register.name, register]));
-
-// Capabilities that used to be custom "*_NIBE" power/energy/current types and have since been
-// migrated to Homey's official measure_power/meter_power/measure_current types (same register,
-// same sub-id, only the capability type prefix changed) so devices show up in Homey's Energy tab.
-//
-// The old measure_power_NIBE/meter_power_NIBE/measure_current_NIBE capability *type* definitions
-// under .homeycompose/capabilities/ must stay in the app even though nothing references them from
-// driver.compose.json anymore: existing devices still have an instance of the old type attached
-// until migrateCapabilities() below runs and removes it, and the SDK can't perform *any* capability
-// operation on a device that has an instance of a completely undeclared type attached (removing the
-// type definition entirely breaks addCapability/removeCapability for every capability on that
-// device, not just the orphaned one). Only delete those type files in a later release, once no
-// in-field device should still be carrying the old capability.
-const capabilityRenames: [string, string][] = [
-    ["measure_power_NIBE.i1048_compressor_add_power", "measure_power.i1048_compressor_add_power"],
-    ["measure_power_NIBE.i2166_energy_usage", "measure_power.i2166_energy_usage"],
-    ["meter_power_NIBE.i1027_additive_effect", "meter_power.i1027_additive_effect"],
-    ["measure_current_NIBE.h103_fuse", "measure_current.h103_fuse"],
-    ["measure_current_NIBE.i50_sensor", "measure_current.i50_sensor"],
-    ["measure_current_NIBE.i48_sensor", "measure_current.i48_sensor"],
-    ["measure_current_NIBE.i46_sensor", "measure_current.i46_sensor"],
-];
-
-// Capabilities that have been removed outright (the "current hour" energy log registers reset
-// every hour, so they never fit the official meter_power's ever-increasing lifetime semantics).
-const retiredCapabilities: string[] = [
-    "meter_power_NIBE.i2283_prod_heat_current_hour",
-    "meter_power_NIBE.i2285_prod_water_current_hour",
-    "meter_power_NIBE.i2287_prod_pool_current_hour",
-    "meter_power_NIBE.i2289_prod_cool_current_hour",
-    "meter_power_NIBE.i2291_used_heat_current_hour",
-    "meter_power_NIBE.i2293_used_water_current_hour",
-    "meter_power_NIBE.i2295_used_pool_current_hour",
-    "meter_power_NIBE.i2297_used_cool_current_hour",
-    "meter_power_NIBE.i2299_extra_heat_current_hour",
-    "meter_power_NIBE.i2301_extra_water_current_hour",
-    "meter_power_NIBE.i2303_extra_pool_current_hour",
-];
 
 const actionSpecs: {[name: string]: any} = Object.fromEntries(actions.map((action: any) => [action.id, action]));
 const conditionSpecs: {[name: string]: any} = Object.fromEntries(conditions.map((cond: any) => [cond.id, cond]));
@@ -343,7 +305,7 @@ class NibeSDevice extends Device {
             const currentTime = Date.now();
             const deltaTimeHours = (currentTime - this.lastPollTime) / (1000 * 60 * 60);
 
-            // Find i2166 (measure_power_NIBE.i2166_energy_usage) in results
+            // Find i2166 (measure_power.i2166_energy_usage_v2) in results
             const i2166Index = registers.findIndex(r => r.address === 2166);
             const currentPower = results[i2166Index];
 
@@ -354,8 +316,8 @@ class NibeSDevice extends Device {
 
                 this.cumulativeEnergy += energyDelta;
 
-                // Update meter_power capability
-                this.setCapabilityValue('meter_power', this.cumulativeEnergy).catch(this.error);
+                // Update meter_power.total capability
+                this.setCapabilityValue('meter_power.total', this.cumulativeEnergy).catch(this.error);
 
                 // Persist every poll so a crash/restart loses at most one poll interval's energy,
                 // rather than the previously batched 3-minute window.
@@ -391,37 +353,22 @@ class NibeSDevice extends Device {
         }
     }
 
-    // Move existing devices from retired/renamed capabilities onto their replacements so
-    // in-field devices don't lose their last known value when a capability type changes.
-    private async migrateCapabilities() {
-        for (const [oldName, newName] of capabilityRenames) {
-            if (!this.hasCapability(oldName))
-                continue;
-            try {
-                const oldValue = this.getCapabilityValue(oldName);
-                if (!this.hasCapability(newName))
-                    await this.addCapability(newName);
-                if (oldValue !== null && oldValue !== undefined)
-                    await this.setCapabilityValue(newName, oldValue);
-                await this.removeCapability(oldName);
-            } catch (error) {
-                // Don't let one failed migration abort onInit for the rest of the device -
-                // and don't drop the old capability if we couldn't add/populate its replacement.
-                this.error(`Failed to migrate capability ${oldName} -> ${newName}`, error);
-            }
-        }
-        for (const name of retiredCapabilities) {
-            if (this.hasCapability(name)) {
-                await this.removeCapability(name).catch((error) =>
-                    this.error(`Failed to remove retired capability ${name}`, error));
-            }
-        }
+    // addCapability() only applies the base capability type's built-in defaults (e.g. official
+    // measure_power capabilities default to the generic title "Power"); the per-instance
+    // title/decimals from driver.compose.json have to be pushed explicitly via
+    // setCapabilityOptions(). getCapabilityOptions() is cheap, so check-and-skip here to avoid
+    // needlessly calling the documented-as-expensive setCapabilityOptions() once already correct.
+    private async ensureCapabilityOptions(name: string, option: any) {
+        if (!option)
+            return;
+        const current = this.getCapabilityOptions(name);
+        if (JSON.stringify(current?.title) === JSON.stringify(option.title))
+            return;
+        await this.setCapabilityOptions(name, option);
     }
 
     async onInit() {
         this.log('NibeSDevice has been initialized');
-
-        await this.migrateCapabilities();
 
         // Restore cumulative energy from settings
         const settings = this.getSettings();
@@ -429,17 +376,20 @@ class NibeSDevice extends Device {
         this.lastPollTime = Date.now();
         this.log(`Restored cumulative energy: ${this.cumulativeEnergy} kWh`);
 
-        // Ensure meter_power capability exists
-        if (!this.hasCapability('meter_power')) {
-            await this.addCapability('meter_power');
+        // Ensure meter_power.total capability exists
+        if (!this.hasCapability('meter_power.total')) {
+            await this.addCapability('meter_power.total');
         }
-        await this.setCapabilityValue('meter_power', this.cumulativeEnergy);
+        await this.ensureCapabilityOptions('meter_power.total', (capabilitiesOptions as any)['meter_power.total']);
+        await this.setCapabilityValue('meter_power.total', this.cumulativeEnergy);
 
         this.checkConfig();
 
         await Promise.all(registers.map(async (register: Register) => {
             if (!this.hasCapability(register.name))
                 await this.addCapability(register.name);
+            await this.ensureCapabilityOptions(register.name, (capabilitiesOptions as any)[register.name])
+                .catch(this.error);
             if (register.direction == Dir.Out) {
                 // Write capability value change to device
                 this.registerCapabilityListener(register.name, async (value) => {
