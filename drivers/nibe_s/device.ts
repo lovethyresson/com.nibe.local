@@ -92,8 +92,8 @@ const registers: Register[] = [
     {address: 1028, name: "measure_enum_NIBE.i1028_priority",                 direction: Dir.In,  enum: priorityMap}, // Prio
     {address:   40, name: "measure_water_NIBE.i40_flow_sensor",               direction: Dir.In,  scale:  10}, // Flödesgivare (BF1)
     // Rad 7
-    {address: 1048, name: "measure_power_NIBE.i1048_compressor_add_power",    direction: Dir.In,  scale:   1}, // Kompressor tillförd effekt
-    {address: 2166, name: "measure_power_NIBE.i2166_energy_usage",            direction: Dir.In,  scale:   1}, // Momentan använd effekt
+    {address: 1048, name: "measure_power.i1048_compressor_add_power",         direction: Dir.In,  scale:   1}, // Kompressor tillförd effekt
+    {address: 2166, name: "measure_power.i2166_energy_usage",                 direction: Dir.In,  scale:   1}, // Momentan använd effekt
     // Rad 8
     {address: 1047, name: "measure_temperature_NIBE.i1047_inverter",          direction: Dir.In,  scale:  10}, // Invertertemperatur
     {address: 1046, name: "measure_frequency_NIBE.i1046_compressor",          direction: Dir.In,  scale:  10}, // Kompressorfrekvens, aktuell
@@ -108,7 +108,7 @@ const registers: Register[] = [
     {address: 1037, name: "measure_enum_NIBE.i1037_return_fan_step",          direction: Dir.In,  enum: returnairMap}, // Fläktläge 1 0-Normal Övrigt 1-4
     // Rad 12 Eltillsats
     {address: 1029, name: "measure_count_NIBE.i1029_additive_heat_steps",     direction: Dir.In,  scale:   1}, // Driftläge intern tillsats
-    {address: 1027, name: "meter_power_NIBE.i1027_additive_effect",           direction: Dir.In,  scale: 100}, // Effekt intern tillsats
+    {address: 1027, name: "meter_power.i1027_additive_effect",                direction: Dir.In,  scale: 100}, // Effekt intern tillsats
     // Rad 13 Eltillsats statistik
     {address: 1025, name: "measure_hour_NIBE.i1025_additive_usage_total",     direction: Dir.In,  scale:  10}, // Total drifttid tillsats
     {address: 1069, name: "measure_hour_NIBE.i1069_additive_usage_hotwater",  direction: Dir.In,  scale:  10}, // Total varmvatten drifttid tillsats
@@ -131,10 +131,10 @@ const registers: Register[] = [
     {address:   67, name: "measure_count_NIBE.h67_periodic_hotwater_start",   direction: Dir.Out,  scale:   1, noAction: true},  // Periodiskt varmvatten start klockan ** nu returneras sekunder från 00.00 hur visar man tid??
     {address:   92, name: "measure_minute_NIBE.h92_periodtime_hotwater",      direction: Dir.Out,  scale:   1, min: 0, max: 180},  // Periodtid varmvatten minuter
     // Rad 20 Strömförbrukning
-    {address:  103, name: "measure_current_NIBE.h103_fuse",                   direction: Dir.Out,  scale:   1, noAction: true},  // Säkring inkommande
-    {address:   50, name: "measure_current_NIBE.i50_sensor",                  direction: Dir.In,   scale:  10},  // Strömavkänare BE1 -L1
-    {address:   48, name: "measure_current_NIBE.i48_sensor",                  direction: Dir.In,   scale:  10},  // Strömavkänare BE2 -L2
-    {address:   46, name: "measure_current_NIBE.i46_sensor",                  direction: Dir.In,   scale:  10},  // Strömavkänare BE3 -L3
+    {address:  103, name: "measure_current.h103_fuse",                        direction: Dir.Out,  scale:   1, noAction: true},  // Säkring inkommande
+    {address:   50, name: "measure_current.i50_sensor",                       direction: Dir.In,   scale:  10},  // Strömavkänare BE1 -L1
+    {address:   48, name: "measure_current.i48_sensor",                       direction: Dir.In,   scale:  10},  // Strömavkänare BE2 -L2
+    {address:   46, name: "measure_current.i46_sensor",                       direction: Dir.In,   scale:  10},  // Strömavkänare BE3 -L3
     // Rad 21 Driftläge / pool
     {address: 237, name: "measure_enum_NIBE.h237_operating_mode",             direction: Dir.Out,  enum: modeMap}, // Driftläge
     {address:  27, name: "measure_temperature_NIBE.i27_pool",                 direction: Dir.In,   scale:  10},  // Pooltemperatur
@@ -146,24 +146,6 @@ const registers: Register[] = [
     {address:   16, name: "measure_temperature_NIBE.i16_suction_gas",         direction: Dir.In,   scale:  10},  // Suggas BT17
     // Rad 24
     {address: 5351, name: "measure_percentage_NIBE.h5351_compressor_min_speed", direction: Dir.Out, scale: 1, min: 2, max: 50}, // Minsta tillåtna hastighet GP1
-
-    // Statistics
-    {address: 2283, name: "meter_power_NIBE.i2283_prod_heat_current_hour",    direction: Dir.In,  scale: 100}, // Energilogg - Producerad energi för värme under senaste timmen
-    {address: 2285, name: "meter_power_NIBE.i2285_prod_water_current_hour",   direction: Dir.In,  scale: 100}, // Energilogg - Producerad energi för varmvatten under senaste timmen
-
-    {address: 2287, name: "meter_power_NIBE.i2287_prod_pool_current_hour",    direction: Dir.In,  scale: 100}, //
-    {address: 2289, name: "meter_power_NIBE.i2289_prod_cool_current_hour",    direction: Dir.In,  scale: 100}, //
-
-    {address: 2291, name: "meter_power_NIBE.i2291_used_heat_current_hour",    direction: Dir.In,  scale: 100}, // Energilogg - Förbrukad energi för värme under senaste timmen
-    {address: 2293, name: "meter_power_NIBE.i2293_used_water_current_hour",   direction: Dir.In,  scale: 100}, // Energilogg - Förbrukad energi för varmvatten under senaste timmen
-
-    {address: 2295, name: "meter_power_NIBE.i2295_used_pool_current_hour",    direction: Dir.In,  scale: 100}, //Energilogg - Förbrukad energi för pool under senaste timmen
-    {address: 2297, name: "meter_power_NIBE.i2297_used_cool_current_hour",    direction: Dir.In,  scale: 100}, //Energilogg - Förbrukad energi för kylning under senaste timmen
-
-    {address: 2299, name: "meter_power_NIBE.i2299_extra_heat_current_hour",   direction: Dir.In,  scale: 100}, // Energilogg - Förbrukad energi av tillsatsvärmaren för värme under senaste timmen
-    {address: 2301, name: "meter_power_NIBE.i2301_extra_water_current_hour",  direction: Dir.In,  scale: 100}, // Energilogg - Förbrukad energi av tillsatsvärmaren för varmvatten under senaste timmen
-
-    {address: 2303, name: "meter_power_NIBE.i2303_extra_pool_current_hour",   direction: Dir.In,  scale: 100}, //Energilogg - Förbrukad energi av tillsatsvärmaren för pool under senaste timmen
 
     // Ej på värdedelen av appen
 
@@ -201,6 +183,35 @@ const registers: Register[] = [
 
 const registerByName =
     Object.fromEntries(registers.map((register: Register) => [register.name, register]));
+
+// Capabilities that used to be custom "*_NIBE" power/energy/current types and have since been
+// migrated to Homey's official measure_power/meter_power/measure_current types (same register,
+// same sub-id, only the capability type prefix changed) so devices show up in Homey's Energy tab.
+const capabilityRenames: [string, string][] = [
+    ["measure_power_NIBE.i1048_compressor_add_power", "measure_power.i1048_compressor_add_power"],
+    ["measure_power_NIBE.i2166_energy_usage", "measure_power.i2166_energy_usage"],
+    ["meter_power_NIBE.i1027_additive_effect", "meter_power.i1027_additive_effect"],
+    ["measure_current_NIBE.h103_fuse", "measure_current.h103_fuse"],
+    ["measure_current_NIBE.i50_sensor", "measure_current.i50_sensor"],
+    ["measure_current_NIBE.i48_sensor", "measure_current.i48_sensor"],
+    ["measure_current_NIBE.i46_sensor", "measure_current.i46_sensor"],
+];
+
+// Capabilities that have been removed outright (the "current hour" energy log registers reset
+// every hour, so they never fit the official meter_power's ever-increasing lifetime semantics).
+const retiredCapabilities: string[] = [
+    "meter_power_NIBE.i2283_prod_heat_current_hour",
+    "meter_power_NIBE.i2285_prod_water_current_hour",
+    "meter_power_NIBE.i2287_prod_pool_current_hour",
+    "meter_power_NIBE.i2289_prod_cool_current_hour",
+    "meter_power_NIBE.i2291_used_heat_current_hour",
+    "meter_power_NIBE.i2293_used_water_current_hour",
+    "meter_power_NIBE.i2295_used_pool_current_hour",
+    "meter_power_NIBE.i2297_used_cool_current_hour",
+    "meter_power_NIBE.i2299_extra_heat_current_hour",
+    "meter_power_NIBE.i2301_extra_water_current_hour",
+    "meter_power_NIBE.i2303_extra_pool_current_hour",
+];
 
 const actionSpecs: {[name: string]: any} = Object.fromEntries(actions.map((action: any) => [action.id, action]));
 const conditionSpecs: {[name: string]: any} = Object.fromEntries(conditions.map((cond: any) => [cond.id, cond]));
@@ -336,8 +347,29 @@ class NibeSDevice extends Device {
         }
     }
 
+    // Move existing devices from retired/renamed capabilities onto their replacements so
+    // in-field devices don't lose their last known value when a capability type changes.
+    private async migrateCapabilities() {
+        for (const [oldName, newName] of capabilityRenames) {
+            if (!this.hasCapability(oldName))
+                continue;
+            const oldValue = this.getCapabilityValue(oldName);
+            if (!this.hasCapability(newName))
+                await this.addCapability(newName);
+            if (oldValue !== null && oldValue !== undefined)
+                await this.setCapabilityValue(newName, oldValue).catch(this.error);
+            await this.removeCapability(oldName).catch(this.error);
+        }
+        for (const name of retiredCapabilities) {
+            if (this.hasCapability(name))
+                await this.removeCapability(name).catch(this.error);
+        }
+    }
+
     async onInit() {
         this.log('NibeSDevice has been initialized');
+
+        await this.migrateCapabilities();
 
         this.checkConfig();
 

@@ -23,8 +23,8 @@
     "measure_enum_NIBE.i1028_priority",
     "measure_water_NIBE.i40_flow_sensor",
 
-    "measure_power_NIBE.i1048_compressor_add_power",
-    "measure_power_NIBE.i2166_energy_usage",
+    "measure_power.i1048_compressor_add_power",
+    "measure_power.i2166_energy_usage",
 
     "measure_temperature_NIBE.i1047_inverter",
     "measure_frequency_NIBE.i1046_compressor",
@@ -39,7 +39,7 @@
     "measure_enum_NIBE.i1037_return_fan_step",
 
     "measure_count_NIBE.i1029_additive_heat_steps",
-    "meter_power_NIBE.i1027_additive_effect",
+    "meter_power.i1027_additive_effect",
 
     "measure_hour_NIBE.i1025_additive_usage_total",
     "measure_hour_NIBE.i1069_additive_usage_hotwater",
@@ -62,11 +62,11 @@
     "measure_count_NIBE.h67_periodic_hotwater_start",
     "measure_minute_NIBE.h92_periodtime_hotwater",
 
-    "measure_current_NIBE.h103_fuse",
-    "measure_current_NIBE.i50_sensor",
+    "measure_current.h103_fuse",
+    "measure_current.i50_sensor",
 
-    "measure_current_NIBE.i48_sensor",
-    "measure_current_NIBE.i46_sensor",
+    "measure_current.i48_sensor",
+    "measure_current.i46_sensor",
 
     "measure_enum_NIBE.h237_operating_mode",
     "measure_temperature_NIBE.i27_pool",
@@ -78,23 +78,6 @@
     "measure_temperature_NIBE.i16_suction_gas",
 
     "measure_percentage_NIBE.h5351_compressor_min_speed",
-
-    "meter_power_NIBE.i2283_prod_heat_current_hour",
-    "meter_power_NIBE.i2285_prod_water_current_hour",
-
-    "meter_power_NIBE.i2287_prod_pool_current_hour",
-    "meter_power_NIBE.i2289_prod_cool_current_hour",
-
-    "meter_power_NIBE.i2291_used_heat_current_hour",
-    "meter_power_NIBE.i2293_used_water_current_hour",
-
-    "meter_power_NIBE.i2295_used_pool_current_hour",
-    "meter_power_NIBE.i2297_used_cool_current_hour",
-
-    "meter_power_NIBE.i2299_extra_heat_current_hour",
-    "meter_power_NIBE.i2301_extra_water_current_hour",
-
-    "meter_power_NIBE.i2303_extra_pool_current_hour",
 
     "target_temperature.h687_pool_start",
     "target_temperature.h689_pool_stop",
@@ -153,25 +136,29 @@
       }
     },
 
-    "measure_current_NIBE.i46_sensor": {
+    "measure_current.i46_sensor": {
+      "decimals": 1,
       "title": {
         "en": "Current sensor BE3 -L3",
         "sv": "Strömsensor BE3 -L3"
       }
     },
-    "measure_current_NIBE.i48_sensor": {
+    "measure_current.i48_sensor": {
+      "decimals": 1,
       "title": {
         "en": "Current sensor BE2 -L2",
         "sv": "Strömsensor BE2 -L2"
       }
     },
-    "measure_current_NIBE.i50_sensor": {
+    "measure_current.i50_sensor": {
+      "decimals": 1,
       "title": {
         "en": "Current sensor BE1 -L1",
         "sv": "Strömsensor BE1 -L1"
       }
     },
-    "measure_current_NIBE.h103_fuse": {
+    "measure_current.h103_fuse": {
+      "decimals": 1,
       "title": {
         "en": "Fuse incoming",
         "sv": "Inkommande säkring"
@@ -334,19 +321,22 @@
       }
     },
 
-    "meter_power_NIBE.i1027_additive_effect": {
+    "meter_power.i1027_additive_effect": {
+      "decimals": 2,
       "title": {
         "en": "Mode internal additive",
         "sv": "Effekt tillsats"
       }
     },
-    "measure_power_NIBE.i1048_compressor_add_power": {
+    "measure_power.i1048_compressor_add_power": {
+      "decimals": 2,
       "title": {
         "en": "Compressor supplied power",
         "sv": "Kompressor tillförd W"
       }
     },
-    "measure_power_NIBE.i2166_energy_usage": {
+    "measure_power.i2166_energy_usage": {
+      "decimals": 2,
       "title": {
         "en": "Current power",
         "sv": "Momentan effekt"
@@ -466,73 +456,6 @@
       "title": {
         "en": "Flow sensor BF1",
         "sv": "Flödesgivare BF1"
-      }
-    },
-
-    "meter_power_NIBE.i2283_prod_heat_current_hour": {
-      "title": {
-        "en": "Energy produced for heat during current hour",
-        "sv": "Producerad energi för värme senaste timmen"
-      }
-    },
-    "meter_power_NIBE.i2285_prod_water_current_hour": {
-      "title": {
-        "en": "Energy produced for hot water during current hour",
-        "sv": "Producerad energi för varmvatten senaste timmen"
-      }
-    },
-    "meter_power_NIBE.i2287_prod_pool_current_hour": {
-      "title": {
-        "en": "Energy produced for pool during current hour",
-        "sv": "Producerad energi för pool senaste timmen"
-      }
-    },
-    "meter_power_NIBE.i2289_prod_cool_current_hour": {
-      "title": {
-        "en": "Energy produced for cooling during current hour",
-        "sv": "Producerad energi för kylning senaste timmen"
-      }
-    },
-    "meter_power_NIBE.i2291_used_heat_current_hour": {
-      "title": {
-        "en": "Energy used for heat during current hour",
-        "sv": "Utnyttjad elenergi för värme senaste timmen"
-      }
-    },
-    "meter_power_NIBE.i2293_used_water_current_hour": {
-      "title": {
-        "en": "Energy used for hot water during current hour",
-        "sv": "Utnyttjad elenergi för varmvatten senaste timmen"
-      }
-    },
-    "meter_power_NIBE.i2295_used_pool_current_hour": {
-      "title": {
-        "en": "Energy used for pool during current hour",
-        "sv": "Utnyttjad elenergi för pool senaste timmen"
-      }
-    },
-    "meter_power_NIBE.i2297_used_cool_current_hour": {
-      "title": {
-        "en": "Energy used for cooling during current hour",
-        "sv": "Utnyttjad elenergi för kylning senaste timmen"
-      }
-    },
-    "meter_power_NIBE.i2299_extra_heat_current_hour": {
-      "title": {
-        "en": "Energy used by additional heater for heat during current hour",
-        "sv": "Utnyttjad elenergi för extra värme senaste timmen"
-      }
-    },
-    "meter_power_NIBE.i2301_extra_water_current_hour": {
-      "title": {
-        "en": "Energy used by additional heater for hot water during current hour",
-        "sv": "Utnyttjad elenergi för extra varmvatten senaste timmen"
-      }
-    },
-    "meter_power_NIBE.i2303_extra_pool_current_hour": {
-      "title": {
-        "en": "Energy used by additional heater for pool during current hour",
-        "sv": "Utnyttjad elenergi för extra poolvärme senaste timmen"
       }
     },
 
