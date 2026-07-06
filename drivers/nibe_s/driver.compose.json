@@ -5,6 +5,8 @@
   },
   "class": "other",
   "capabilities": [
+    "meter_power",
+
     "measure_temperature_NIBE.i1_outside",
     "measure_temperature_NIBE.i26_inside",
 
@@ -104,6 +106,12 @@
     "onoff.h182_enable_cooling"
   ],
   "capabilitiesOptions": {
+    "meter_power": {
+      "title": {
+        "en": "Total energy consumed",
+        "sv": "Total förbrukad energi"
+      }
+    },
 
     "measure_count_NIBE.i1029_additive_heat_steps": {
       "title": {

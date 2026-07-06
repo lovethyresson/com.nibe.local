@@ -221,6 +221,12 @@ class NibeSDevice extends Device {
     private retryInterval: NodeJS.Timeout | null = null;
     private client: ModbusTCPClient | null = null;
 
+    // Energy meter tracking
+    private cumulativeEnergy: number = 0; // kWh
+    private lastPowerReading: number = 0; // W
+    private lastPollTime: number = Date.now();
+    private saveCounter: number = 0; // Counter to periodically save to settings
+
     private fromRegisterValue(register: Register, value: number) {
         if (value >= 32768)
             value -= 65536;
@@ -324,6 +330,38 @@ class NibeSDevice extends Device {
         this.log("Polling");
         this.readRegisters().then((results: any) => {
             this.log(`Got ${registers.length} results`);
+
+            // Update cumulative energy meter using i2166 (current power)
+            const currentTime = Date.now();
+            const deltaTimeHours = (currentTime - this.lastPollTime) / (1000 * 60 * 60);
+
+            // Find i2166 (measure_power_NIBE.i2166_energy_usage) in results
+            const i2166Index = registers.findIndex(r => r.address === 2166);
+            const currentPower = results[i2166Index];
+
+            if (currentPower !== undefined && this.lastPowerReading !== 0) {
+                // Use trapezoidal integration for better accuracy
+                const avgPower = (this.lastPowerReading + currentPower) / 2;
+                const energyDelta = (avgPower * deltaTimeHours) / 1000; // Convert Wh to kWh
+
+                this.cumulativeEnergy += energyDelta;
+
+                // Update meter_power capability
+                this.setCapabilityValue('meter_power', this.cumulativeEnergy).catch(this.error);
+
+                // Save to settings every 36 polls (every 3 minutes with 5s polling)
+                this.saveCounter++;
+                if (this.saveCounter >= 36) {
+                    this.setSettings({ cumulativeEnergy: this.cumulativeEnergy }).catch(this.error);
+                    this.saveCounter = 0;
+                }
+            }
+
+            if (currentPower !== undefined) {
+                this.lastPowerReading = currentPower;
+            }
+            this.lastPollTime = currentTime;
+
             for (let i = 0; i < registers.length; ++i)
                 if (results[i] !== undefined) {
                     this.setValue(registers[i], results[i]);
@@ -336,9 +374,10 @@ class NibeSDevice extends Device {
     }
 
     private checkConfig() {
+        // meter_power is at capabilities[0], so registers start at capabilities[1]
         for (let i = 0; i < registers.length; ++i) {
-            if (registers[i].name != capabilities[i]) {
-                this.log(`Config mismatch: register[${i}](${registers[i].name}) != capabilities[${i}](${capabilities[i]}) `)
+            if (registers[i].name != capabilities[i + 1]) {
+                this.log(`Config mismatch: register[${i}](${registers[i].name}) != capabilities[${i + 1}](${capabilities[i + 1]}) `);
             }
             const option: any = (capabilitiesOptions as any)[registers[i].name];
             if (!option) {
@@ -370,6 +409,19 @@ class NibeSDevice extends Device {
         this.log('NibeSDevice has been initialized');
 
         await this.migrateCapabilities();
+
+        // Restore cumulative energy from settings
+        const settings = this.getSettings();
+        this.cumulativeEnergy = settings.cumulativeEnergy || 0;
+        this.lastPollTime = Date.now();
+        this.saveCounter = 0;
+        this.log(`Restored cumulative energy: ${this.cumulativeEnergy} kWh`);
+
+        // Ensure meter_power capability exists
+        if (!this.hasCapability('meter_power')) {
+            await this.addCapability('meter_power');
+        }
+        await this.setCapabilityValue('meter_power', this.cumulativeEnergy);
 
         this.checkConfig();
 
@@ -495,9 +547,14 @@ class NibeSDevice extends Device {
         socket.on('connect', () => {
             this.setAvailable();
             this.log("Connected");
+            // Reset the energy integration baseline so a connection gap (initial connect or a
+            // reconnect after a drop) isn't counted as continuous runtime at whatever power the
+            // first poll after reconnecting happens to read.
+            this.lastPowerReading = 0;
+            this.lastPollTime = Date.now();
             // Start polling, delay a bit the first time
             setTimeout(() => this.poll(), 200);
-            this.pollInterval = setInterval(() => this.poll(), 15000);
+            this.pollInterval = setInterval(() => this.poll(), 5000);
         });
 
         socket.on('error', (error) => {
@@ -507,14 +564,14 @@ class NibeSDevice extends Device {
 
         // Close socket and retry
         socket.on('close', () => {
-            this.log('Socket closed, retrying in 15 seconds ...');
+            this.log('Socket closed, retrying in 5 seconds ...');
 
             clearInterval(this.pollInterval!);
 
             this.retryInterval = setTimeout(() => {
                 socket.connect({port: 502, host: this.getSettings().address});
                 this.log('Reconnecting now ...');
-            }, 15000);
+            }, 5000);
         });
     }
 
