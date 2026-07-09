@@ -54,6 +54,10 @@ by `device.ts`, `driver.ts` and `detection.ts`). Each entry maps one Nibe Modbus
 - `group` — the feature group the register belongs to (`core`, `heating`, `hotwater`, `pool`, `ventilation`,
   `groundsource`, `electrical`, `diagnostics`, `statistics`). `core` registers are always enabled; the rest follow
   the user's feature selection (see below).
+- `info` — required `{en, sv}` one-liner explaining what the register is; shown under each capability in the
+  pairing/repair features view (deliberately inline here rather than in the locale files so a register is fully
+  described in one place). The view also badges each capability as "Adjustable" vs "Insight only" based on
+  `isAdjustable()` (`Dir.Out` and not `noAction`).
 - `scale` — divide raw register value by this to get the real value (e.g. temperature in tenths of a degree).
 - `enum` — raw value maps to a human-readable string (see `returnairMap`, `priorityMap`, `hotwaterMap`,
   `onetimeincreaseMap`, `booleanMap`, `modeMap` near the top of the file).

@@ -82,7 +82,19 @@ function render() {
             regBox.checked = registerChecked(group, register, checked);
             regBox.dataset.register = register.name;
             regLabel.appendChild(regBox);
-            regLabel.appendChild(document.createTextNode(' ' + register.title));
+            regLabel.appendChild(document.createTextNode(' ' + register.title + ' '));
+
+            var badge = document.createElement('span');
+            badge.className = 'badge ' + (register.adjustable ? 'badge-adjustable' : 'badge-insight');
+            badge.textContent = Homey.__(register.adjustable ? 'pair.badge.adjustable' : 'pair.badge.insight');
+            regLabel.appendChild(badge);
+
+            if (register.description) {
+                var desc = document.createElement('div');
+                desc.className = 'register-desc';
+                desc.textContent = register.description;
+                regLabel.appendChild(desc);
+            }
             details.appendChild(regLabel);
         });
         item.appendChild(details);

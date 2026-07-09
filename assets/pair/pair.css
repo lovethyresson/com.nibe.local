@@ -73,8 +73,35 @@
 
 .register-label {
     display: block;
-    padding: 0.15em 0;
+    padding: 0.3em 0;
     font-size: 0.9em;
+}
+
+.badge {
+    display: inline-block;
+    font-size: 0.72em;
+    line-height: 1.4;
+    padding: 0 0.5em;
+    border-radius: 0.7em;
+    vertical-align: 0.1em;
+    white-space: nowrap;
+}
+
+.badge-adjustable {
+    background: rgba(0, 145, 255, 0.15);
+    color: #0074cc;
+}
+
+.badge-insight {
+    background: rgba(128, 128, 128, 0.18);
+    color: inherit;
+    opacity: 0.75;
+}
+
+.register-desc {
+    font-size: 0.85em;
+    opacity: 0.6;
+    margin: 0.1em 0 0 1.65em;
 }
 
 .features-note {

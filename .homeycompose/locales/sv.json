@@ -3,7 +3,7 @@
   "Hot water": "Varmvatten",
   "Heating": "Värmer",
   "Pool": "Pool",
-  "Cooling":  "Kyler",
+  "Cooling": "Kyler",
   "pair": {
     "title": "Nibe S konfiguration",
     "ok": "OK",
@@ -29,6 +29,10 @@
       "plausible": "verkar finnas",
       "none": "ingen aktivitet upptäckt",
       "unsupported": "stöds inte av pumpen"
+    },
+    "badge": {
+      "adjustable": "Inställbar",
+      "insight": "Endast insikt"
     }
   },
   "groups": {

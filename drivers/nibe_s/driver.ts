@@ -2,7 +2,7 @@ import {Driver} from 'homey';
 import PairSession from "homey/lib/PairSession";
 import net from "net";
 import {capabilitiesOptions} from './driver.compose.json';
-import {Selection, groupIds, isRegisterEnabled, registers} from './registers';
+import {Selection, groupIds, isAdjustable, isRegisterEnabled, registers} from './registers';
 import {DetectionResult, probeHost} from './detection';
 
 class NibeSDriver extends Driver {
@@ -23,7 +23,12 @@ class NibeSDriver extends Driver {
       name: this.homey.__(`groups.${id}`) || id,
       registers: registers
         .filter((register) => register.group === id)
-        .map((register) => ({name: register.name, title: title(register.name)}))
+        .map((register) => ({
+          name: register.name,
+          title: title(register.name),
+          adjustable: isAdjustable(register),
+          description: (register.info as any)[language] || register.info.en
+        }))
     }));
   }
 

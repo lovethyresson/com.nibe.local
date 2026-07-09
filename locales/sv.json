@@ -49,6 +49,10 @@
       "plausible": "verkar finnas",
       "none": "ingen aktivitet upptäckt",
       "unsupported": "stöds inte av pumpen"
+    },
+    "badge": {
+      "adjustable": "Inställbar",
+      "insight": "Endast insikt"
     }
   },
   "groups": {

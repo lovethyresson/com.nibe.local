@@ -3,7 +3,7 @@
   "Hot water": "Hot water",
   "Heating": "Heating",
   "Pool": "Pool",
-  "Cooling":  "Cooling",
+  "Cooling": "Cooling",
   "pair": {
     "title": "Nibe S configuration",
     "ok": "OK",
@@ -29,6 +29,10 @@
       "plausible": "looks present",
       "none": "no activity detected",
       "unsupported": "not supported by the pump"
+    },
+    "badge": {
+      "adjustable": "Adjustable",
+      "insight": "Insight only"
     }
   },
   "groups": {
