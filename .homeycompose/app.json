@@ -1,7 +1,7 @@
 {
   "id": "net.sparud.nibe_s",
   "version": "2.2.0",
-  "compatibility": ">=5.0.0",
+  "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
     "local"

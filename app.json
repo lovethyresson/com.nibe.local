@@ -2,7 +2,7 @@
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "net.sparud.nibe_s",
   "version": "2.2.0",
-  "compatibility": ">=5.0.0",
+  "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
     "local"
@@ -515,34 +515,34 @@
       "class": "other",
       "capabilities": [
         "meter_power.total",
-        "measure_temperature_NIBE.i1_outside",
-        "measure_temperature_NIBE.i26_inside",
-        "measure_temperature_NIBE.i1017_calculated_supply",
-        "measure_temperature_NIBE.i5_heating_supply",
+        "measure_temperature.i1_outside",
+        "measure_temperature.i26_inside",
+        "measure_temperature.i1017_calculated_supply",
+        "measure_temperature.i5_heating_supply",
         "measure_degree_minutes_NIBE.h11_degree_minutes",
-        "measure_temperature_NIBE.i7_heating_return",
+        "measure_temperature.i7_heating_return",
         "measure_percentage_NIBE.i1102_heating_pump",
         "measure_percentage_NIBE.i1104_source_pump",
-        "measure_temperature_NIBE.i10_source_in",
-        "measure_temperature_NIBE.i11_source_out",
+        "measure_temperature.i10_source_in",
+        "measure_temperature.i11_source_out",
         "measure_enum_NIBE.i1028_priority",
-        "measure_water_NIBE.i40_flow_sensor",
+        "measure_water.i40_flow_sensor",
         "measure_power.i1048_compressor_add_power_v2",
         "measure_power.i2166_energy_usage_v2",
-        "measure_temperature_NIBE.i1047_inverter",
-        "measure_frequency_NIBE.i1046_compressor",
-        "measure_temperature_NIBE.i8_warmwater_top",
-        "measure_temperature_NIBE.i9_hot_water",
-        "measure_temperature_NIBE.i19_return_air",
-        "measure_temperature_NIBE.i20_supply_air",
-        "measure_percentage_NIBE.h109_returnair_normal",
+        "measure_temperature.i1047_inverter",
+        "measure_frequency.i1046_compressor",
+        "measure_temperature.i8_warmwater_top",
+        "measure_temperature.i9_hot_water",
+        "measure_temperature.i19_return_air",
+        "measure_temperature.i20_supply_air",
+        "fan_speed.h109_returnair_normal",
         "measure_enum_NIBE.i1037_return_fan_step",
         "measure_count_NIBE.i1029_additive_heat_steps",
         "meter_power.i1027_additive_effect_v2",
         "measure_hour_NIBE.i1025_additive_usage_total",
         "measure_hour_NIBE.i1069_additive_usage_hotwater",
         "measure_count_NIBE.i1083_compressor_starts",
-        "measure_temperature_NIBE.i37_outside_avg",
+        "measure_temperature.i37_outside_avg",
         "measure_hour_NIBE.i1087_compressor_usage_total",
         "measure_hour_NIBE.i1091_compressor_usage_hotwater",
         "measure_count_NIBE.h26_heat_curve",
@@ -558,20 +558,18 @@
         "measure_current.i48_sensor_v2",
         "measure_current.i46_sensor_v2",
         "measure_enum_NIBE.h237_operating_mode",
-        "measure_temperature_NIBE.i27_pool",
-        "measure_temperature_NIBE.i12_heating_supply",
-        "measure_temperature_NIBE.i13_discharge",
-        "measure_temperature_NIBE.i14_liquid_line",
-        "measure_temperature_NIBE.i16_suction_gas",
-        "measure_percentage_NIBE.h5351_compressor_min_speed",
+        "measure_temperature.i27_pool",
+        "measure_temperature.i12_heating_supply",
+        "measure_temperature.i13_discharge",
+        "measure_temperature.i14_liquid_line",
+        "measure_temperature.i16_suction_gas",
+        "pump_setpoint.h5351_compressor_min_speed",
         "target_temperature.h687_pool_start",
         "target_temperature.h689_pool_stop",
         "onoff.h227_nightchill",
         "onoff.h65_periodic_hotwater",
         "onoff.i1828_pool_circulation",
         "onoff.h691_pool_active",
-        "target_percentage_NIBE.h109_returnair_normal",
-        "target_percentage_NIBE.h5351_compressor_min_speed",
         "curve_mode_NIBE.h26_heat_curve",
         "curve_displacement_NIBE.h30_heat_curve_displacement",
         "hotwater_demand_NIBE.h56_hotwater_demand_mode",
@@ -695,7 +693,7 @@
             "sv": "Engångshöjning h"
           }
         },
-        "measure_frequency_NIBE.i1046_compressor": {
+        "measure_frequency.i1046_compressor": {
           "title": {
             "en": "Compressor frequency",
             "sv": "Kompressorfrekvens"
@@ -743,13 +741,15 @@
             "sv": "Köld-pumphastighet GP2"
           }
         },
-        "measure_percentage_NIBE.h109_returnair_normal": {
+        "fan_speed.h109_returnair_normal": {
+          "decimals": 2,
           "title": {
-            "en": "N/A",
+            "en": "Returnair fan speed",
             "sv": "Frånluft fläkthastighet normal"
           }
         },
-        "measure_percentage_NIBE.h5351_compressor_min_speed": {
+        "pump_setpoint.h5351_compressor_min_speed": {
+          "decimals": 2,
           "title": {
             "en": "Compressor min speed GP1",
             "sv": "Minsta tillåtna hastighet GP1"
@@ -812,130 +812,118 @@
             "sv": "Momentan effekt"
           }
         },
-        "measure_temperature_NIBE.i1_outside": {
+        "measure_temperature.i1_outside": {
           "title": {
             "en": "Outside temperature",
             "sv": "Utetemperatur BT1"
           }
         },
-        "measure_temperature_NIBE.i5_heating_supply": {
+        "measure_temperature.i5_heating_supply": {
           "title": {
             "en": "Heating supply",
             "sv": "Framledningstemp.BT2"
           }
         },
-        "measure_temperature_NIBE.i7_heating_return": {
+        "measure_temperature.i7_heating_return": {
           "title": {
             "en": "Heating return",
             "sv": "Returledningstemp.BT3"
           }
         },
-        "measure_temperature_NIBE.i8_warmwater_top": {
+        "measure_temperature.i8_warmwater_top": {
           "title": {
             "en": "Hotwater top BT7",
             "sv": "Varmvatten topp BT7"
           }
         },
-        "measure_temperature_NIBE.i9_hot_water": {
+        "measure_temperature.i9_hot_water": {
           "title": {
             "en": "Hot water",
             "sv": "Varmvatten laddning BT6"
           }
         },
-        "measure_temperature_NIBE.i10_source_in": {
+        "measure_temperature.i10_source_in": {
           "title": {
             "en": "Groundsource medium - in",
             "sv": "Köldbärare in BT10"
           }
         },
-        "measure_temperature_NIBE.i11_source_out": {
+        "measure_temperature.i11_source_out": {
           "title": {
             "en": "Groundsource medium - out",
             "sv": "Köldbärare ut BT11"
           }
         },
-        "measure_temperature_NIBE.i19_return_air": {
+        "measure_temperature.i19_return_air": {
           "title": {
             "en": "N/A",
             "sv": "Frånluft BT20"
           }
         },
-        "measure_temperature_NIBE.i20_supply_air": {
+        "measure_temperature.i20_supply_air": {
           "title": {
             "en": "N/A",
             "sv": "Avluft BT21"
           }
         },
-        "measure_temperature_NIBE.i26_inside": {
+        "measure_temperature.i26_inside": {
           "title": {
             "en": "Room sensor BT50",
             "sv": "Rumstemperatur 1 (BT50)"
           }
         },
-        "measure_temperature_NIBE.i27_pool": {
+        "measure_temperature.i27_pool": {
           "title": {
             "en": "Pool temperature",
             "sv": "Pooltemperatur"
           }
         },
-        "measure_temperature_NIBE.i12_heating_supply": {
+        "measure_temperature.i12_heating_supply": {
           "title": {
             "en": "Heating supply BT12",
             "sv": "Framledning BT12"
           }
         },
-        "measure_temperature_NIBE.i13_discharge": {
+        "measure_temperature.i13_discharge": {
           "title": {
             "en": "Discharge BT14",
             "sv": "Hetgas BT14"
           }
         },
-        "measure_temperature_NIBE.i14_liquid_line": {
+        "measure_temperature.i14_liquid_line": {
           "title": {
             "en": "Liquid line BT15",
             "sv": "Vätskeledning BT15"
           }
         },
-        "measure_temperature_NIBE.i16_suction_gas": {
+        "measure_temperature.i16_suction_gas": {
           "title": {
             "en": "Suction gas BT17",
             "sv": "Suggas BT17"
           }
         },
-        "measure_temperature_NIBE.i37_outside_avg": {
+        "measure_temperature.i37_outside_avg": {
           "title": {
             "en": "Average outside temperature",
             "sv": "Medeltemp.BT1"
           }
         },
-        "measure_temperature_NIBE.i1017_calculated_supply": {
+        "measure_temperature.i1017_calculated_supply": {
           "title": {
             "en": "Calculated supply",
             "sv": "Beräknad framledning"
           }
         },
-        "measure_temperature_NIBE.i1047_inverter": {
+        "measure_temperature.i1047_inverter": {
           "title": {
             "en": "Inverter temperature",
             "sv": "Invertertemperatur"
           }
         },
-        "measure_water_NIBE.i40_flow_sensor": {
+        "measure_water.i40_flow_sensor": {
           "title": {
             "en": "Flow sensor BF1",
             "sv": "Flödesgivare BF1"
-          }
-        },
-        "target_percentage_NIBE.h109_returnair_normal": {
-          "title": {
-            "en": "Returnair normal",
-            "sv": "Frånluft normal"
-          }
-        },
-        "target_percentage_NIBE.h5351_compressor_min_speed": {
-          "title": {
-            "en": "Compressor min speed",
-            "sv": "Minsta tillåtna hastighet GP1 %"
           }
         },
         "target_temperature.h687_pool_start": {
@@ -992,6 +980,9 @@
             "sv": "Tillåt kyla"
           }
         }
+      },
+      "energy": {
+        "meterPowerImportedCapability": "meter_power.total"
       },
       "images": {
         "small": "/assets/images/nibe_small.png",
@@ -1465,21 +1456,6 @@
       "chartType": "spline",
       "icon": "/assets/images/select.svg"
     },
-    "measure_frequency_NIBE": {
-      "type": "number",
-      "title": {
-        "en": "Measure Frequency"
-      },
-      "uiComponent": "sensor",
-      "getable": true,
-      "setable": false,
-      "units": {
-        "en": "Hz"
-      },
-      "insights": true,
-      "chartType": "spline",
-      "icon": "/assets/images/frequency.svg"
-    },
     "measure_hour_NIBE": {
       "type": "number",
       "title": {
@@ -1526,63 +1502,6 @@
       "insights": true,
       "chartType": "spline",
       "icon": "/assets/images/pump.svg"
-    },
-    "measure_temperature_NIBE": {
-      "type": "number",
-      "title": {
-        "en": "Temperature",
-        "sv": "Temperatur"
-      },
-      "units": {
-        "en": "°C"
-      },
-      "insights": true,
-      "desc": {
-        "en": "Temperature in degrees Celsius (°C)",
-        "sv": "Temperatur i grader Celsius (°C)"
-      },
-      "decimals": 2,
-      "chartType": "spline",
-      "getable": true,
-      "setable": false,
-      "uiComponent": "sensor",
-      "icon": "/assets/images/temperature.svg"
-    },
-    "measure_water_NIBE": {
-      "type": "number",
-      "title": {
-        "en": "Water flow",
-        "sv": "Vattenflöde"
-      },
-      "units": {
-        "en": "L/min"
-      },
-      "desc": {
-        "en": "Water flow in liters per minute (L/min)",
-        "sv": "Vattenflöde i liter per minut (L/min)"
-      },
-      "insights": true,
-      "chartType": "stepLine",
-      "decimals": 2,
-      "getable": true,
-      "setable": false,
-      "uiComponent": "sensor",
-      "icon": "/assets/images/water.svg"
-    },
-    "target_percentage_NIBE": {
-      "type": "number",
-      "title": {
-        "en": "Fanspeed",
-        "sv": "Fläkthastighet"
-      },
-      "chartType": "stepLine",
-      "min": 0,
-      "max": 100,
-      "decimals": 0,
-      "units": "%",
-      "getable": true,
-      "setable": true,
-      "uiComponent": "slider"
     },
     "time_of_day_NIBE": {
       "title": {

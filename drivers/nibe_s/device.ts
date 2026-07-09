@@ -74,37 +74,37 @@ interface Register  {
 
 const registers: Register[] = [
     // Rad 1 Temp
-    {address:    1, name: "measure_temperature_NIBE.i1_outside",              direction: Dir.In,  scale:  10}, // Aktuell utetemperatur (BT1)
-    {address:   26, name: "measure_temperature_NIBE.i26_inside",              direction: Dir.In,  scale:  10}, // Rumsensor 1 ionomhus
+    {address:    1, name: "measure_temperature.i1_outside",         direction: Dir.In,  scale:  10}, // Aktuell utetemperatur (BT1)
+    {address:   26, name: "measure_temperature.i26_inside",         direction: Dir.In,  scale:  10}, // Rumsensor 1 ionomhus
     // Rad 2 Framledning
-    {address: 1017, name: "measure_temperature_NIBE.i1017_calculated_supply", direction: Dir.In,  scale:  10}, // Beräknad framledning klimatsystem 1
-    {address:    5, name: "measure_temperature_NIBE.i5_heating_supply",       direction: Dir.In,  scale:  10}, // Framledning (BT2) klimatsystem 1
+    {address: 1017, name: "measure_temperature.i1017_calculated_supply", direction: Dir.In,  scale:  10}, // Beräknad framledning klimatsystem 1
+    {address:    5, name: "measure_temperature.i5_heating_supply",  direction: Dir.In,  scale:  10}, // Framledning (BT2) klimatsystem 1
     // Rad 3
     {address:   11, name: "measure_degree_minutes_NIBE.h11_degree_minutes",   direction: Dir.Out, scale:  10, noAction: true}, // Gradminuter
-    {address:    7, name: "measure_temperature_NIBE.i7_heating_return",       direction: Dir.In,  scale:  10}, // Returledning (BT3)
+    {address:    7, name: "measure_temperature.i7_heating_return",  direction: Dir.In,  scale:  10}, // Returledning (BT3)
     // Rad 4
     {address: 1102, name: "measure_percentage_NIBE.i1102_heating_pump",       direction: Dir.In,  scale:   1}, // Värmebärarpumphastighet (GP1)
     {address: 1104, name: "measure_percentage_NIBE.i1104_source_pump",        direction: Dir.In,  scale:   1}, // Köldbärarpumphastighet (GP2)
     // Rad 5
-    {address:   10, name: "measure_temperature_NIBE.i10_source_in",           direction: Dir.In,  scale:  10}, // Köldbärare in (BT10)
-    {address:   11, name: "measure_temperature_NIBE.i11_source_out",          direction: Dir.In,  scale:  10}, // Köldbärare ut (BT11)
+    {address:   10, name: "measure_temperature.i10_source_in",      direction: Dir.In,  scale:  10}, // Köldbärare in (BT10)
+    {address:   11, name: "measure_temperature.i11_source_out",     direction: Dir.In,  scale:  10}, // Köldbärare ut (BT11)
     // Rad 6
     {address: 1028, name: "measure_enum_NIBE.i1028_priority",                 direction: Dir.In,  enum: priorityMap}, // Prio
-    {address:   40, name: "measure_water_NIBE.i40_flow_sensor",               direction: Dir.In,  scale:  10}, // Flödesgivare (BF1)
+    {address:   40, name: "measure_water.i40_flow_sensor",          direction: Dir.In,  scale:  10}, // Flödesgivare (BF1)
     // Rad 7
     {address: 1048, name: "measure_power.i1048_compressor_add_power_v2",      direction: Dir.In,  scale:   1}, // Kompressor tillförd effekt
     {address: 2166, name: "measure_power.i2166_energy_usage_v2",              direction: Dir.In,  scale:   1}, // Momentan använd effekt
     // Rad 8
-    {address: 1047, name: "measure_temperature_NIBE.i1047_inverter",          direction: Dir.In,  scale:  10}, // Invertertemperatur
-    {address: 1046, name: "measure_frequency_NIBE.i1046_compressor",          direction: Dir.In,  scale:  10}, // Kompressorfrekvens, aktuell
+    {address: 1047, name: "measure_temperature.i1047_inverter",     direction: Dir.In,  scale:  10}, // Invertertemperatur
+    {address: 1046, name: "measure_frequency.i1046_compressor",     direction: Dir.In,  scale:  10}, // Kompressorfrekvens, aktuell
     // Rad 9
-    {address:    8, name: "measure_temperature_NIBE.i8_warmwater_top",        direction: Dir.In,  scale:  10}, // Varmvatten topp (BT7)
-    {address:    9, name: "measure_temperature_NIBE.i9_hot_water",            direction: Dir.In,  scale:  10}, // Varmvatten laddning (BT6)
+    {address:    8, name: "measure_temperature.i8_warmwater_top",   direction: Dir.In,  scale:  10}, // Varmvatten topp (BT7)
+    {address:    9, name: "measure_temperature.i9_hot_water",       direction: Dir.In,  scale:  10}, // Varmvatten laddning (BT6)
     // Rad 10 Frånluft
-    {address:   19, name: "measure_temperature_NIBE.i19_return_air",          direction: Dir.In,  scale:  10}, // Frånluft (AZ10-BT20)
-    {address:   20, name: "measure_temperature_NIBE.i20_supply_air",          direction: Dir.In,  scale:  10}, // Avluft (AZ10-BT21)
+    {address:   19, name: "measure_temperature.i19_return_air",     direction: Dir.In,  scale:  10}, // Frånluft (AZ10-BT20)
+    {address:   20, name: "measure_temperature.i20_supply_air",     direction: Dir.In,  scale:  10}, // Avluft (AZ10-BT21)
     // Rad 11 Frånluft status
-    {address:  109, name: "measure_percentage_NIBE.h109_returnair_normal",    direction: Dir.Out, scale:   1, min: 0, max: 100}, // Frånluft fläkthastighet normal
+    {address:  109, name: "fan_speed.h109_returnair_normal",                  direction: Dir.Out, scale: 100, min: 0, max: 1}, // Frånluft fläkthastighet normal
     {address: 1037, name: "measure_enum_NIBE.i1037_return_fan_step",          direction: Dir.In,  enum: returnairMap}, // Fläktläge 1 0-Normal Övrigt 1-4
     // Rad 12 Eltillsats
     {address: 1029, name: "measure_count_NIBE.i1029_additive_heat_steps",     direction: Dir.In,  scale:   1}, // Driftläge intern tillsats
@@ -114,7 +114,7 @@ const registers: Register[] = [
     {address: 1069, name: "measure_hour_NIBE.i1069_additive_usage_hotwater",  direction: Dir.In,  scale:  10}, // Total varmvatten drifttid tillsats
     // Rad 14 Kompressor utomhus temp avg
     {address: 1083, name: "measure_count_NIBE.i1083_compressor_starts",       direction: Dir.In,  scale:   1}, // Kompressorstarter
-    {address:   37, name: "measure_temperature_NIBE.i37_outside_avg",         direction: Dir.In,  scale:  10}, // BT1 - Average outside temperature -Medeltemperatur (BT1)
+    {address:   37, name: "measure_temperature.i37_outside_avg",    direction: Dir.In,  scale:  10}, // BT1 - Average outside temperature -Medeltemperatur (BT1)
     // Rad 15 Kompressor statistik
     {address: 1087, name: "measure_hour_NIBE.i1087_compressor_usage_total",   direction: Dir.In,  scale:   1}, // Total drifttid kompressor
     {address: 1091, name: "measure_hour_NIBE.i1091_compressor_usage_hotwater",direction: Dir.In,  scale:   1}, // Total drifttid kompressor varmvatten
@@ -137,15 +137,15 @@ const registers: Register[] = [
     {address:   46, name: "measure_current.i46_sensor_v2",                    direction: Dir.In,   scale:  10},  // Strömavkänare BE3 -L3
     // Rad 21 Driftläge / pool
     {address: 237, name: "measure_enum_NIBE.h237_operating_mode",             direction: Dir.Out,  enum: modeMap}, // Driftläge
-    {address:  27, name: "measure_temperature_NIBE.i27_pool",                 direction: Dir.In,   scale:  10},  // Pooltemperatur
+    {address:  27, name: "measure_temperature.i27_pool",            direction: Dir.In,   scale:  10},  // Pooltemperatur
     // Rad 22
-    {address:   12, name: "measure_temperature_NIBE.i12_heating_supply",      direction: Dir.In,   scale:  10},  // Framledning BT12 värme och varmvatten
-    {address:   13, name: "measure_temperature_NIBE.i13_discharge",           direction: Dir.In,   scale:  10},  // Hetgas BT14
+    {address:   12, name: "measure_temperature.i12_heating_supply", direction: Dir.In,   scale:  10},  // Framledning BT12 värme och varmvatten
+    {address:   13, name: "measure_temperature.i13_discharge",      direction: Dir.In,   scale:  10},  // Hetgas BT14
     // Rad 23
-    {address:   14, name: "measure_temperature_NIBE.i14_liquid_line",         direction: Dir.In,   scale:  10},  // Vätskeledning BT15
-    {address:   16, name: "measure_temperature_NIBE.i16_suction_gas",         direction: Dir.In,   scale:  10},  // Suggas BT17
+    {address:   14, name: "measure_temperature.i14_liquid_line",    direction: Dir.In,   scale:  10},  // Vätskeledning BT15
+    {address:   16, name: "measure_temperature.i16_suction_gas",    direction: Dir.In,   scale:  10},  // Suggas BT17
     // Rad 24
-    {address: 5351, name: "measure_percentage_NIBE.h5351_compressor_min_speed", direction: Dir.Out, scale: 1, min: 2, max: 50}, // Minsta tillåtna hastighet GP1
+    {address: 5351, name: "pump_setpoint.h5351_compressor_min_speed",         direction: Dir.Out, scale: 100, min: 0.02, max: 0.5}, // Minsta tillåtna hastighet GP1
 
     // Ej på värdedelen av appen
 
@@ -162,10 +162,6 @@ const registers: Register[] = [
     {address: 1828, name: "onoff.i1828_pool_circulation",                     direction: Dir.In,  bool: true}, // Pool 1 pump status
     {address:  691, name: "onoff.h691_pool_active",                           direction: Dir.Out, bool: true}, //
     
-    // Inställning Frånluftshastighet
-    {address:  109, name: "target_percentage_NIBE.h109_returnair_normal",     direction: Dir.Out, scale: 1},    // Frånluft fläkthastighet normal
-    // Inställning minsta kompressor hastighet GP1
-    {address: 5351, name: "target_percentage_NIBE.h5351_compressor_min_speed", direction: Dir.Out, scale: 1, min: 2, max: 50}, // Minsta tillåtna hastighet GP1
     // Inställning värmekurva
     {address:   26, name: "curve_mode_NIBE.h26_heat_curve",                   direction: Dir.Out, picker: true},  // Värmekurva klimatsystem 1
     {address:   30, name: "curve_displacement_NIBE.h30_heat_curve_displacement", direction: Dir.Out, picker: true},  // Värmeförskjutning klimatsystem 1 RW
