@@ -4,6 +4,7 @@ import net from "net";
 import {capabilitiesOptions} from './driver.compose.json';
 import {Selection, groupIds, isAdjustable, isRegisterEnabled, registers} from './registers';
 import {DetectionResult, probeHost} from './detection';
+import {discoverPumps} from './discovery';
 
 class NibeSDriver extends Driver {
   async onInit() {
@@ -53,6 +54,15 @@ class NibeSDriver extends Driver {
     let ipAddress: string | null = null;
     let detection: DetectionResult | null = null;
     let detectionRunning: Promise<DetectionResult> | null = null;
+
+    session.setHandler('discover', async () => {
+      const localAddress = await this.homey.cloud.getLocalAddress();
+      const alreadyPaired = new Set(this.getDevices().map((device) => String(device.getData().id)));
+      const pumps = await discoverPumps(localAddress, alreadyPaired, (done, total) =>
+        session.emit('discovery_progress', {done, total}).catch(() => {}));
+      this.log('Discovered pumps:', JSON.stringify(pumps));
+      return pumps;
+    });
 
     session.setHandler('ip_address_entered', async (data) => {
       this.log('onPair: ip_address_entered:', data);

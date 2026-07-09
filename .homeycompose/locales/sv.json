@@ -33,6 +33,15 @@
     "badge": {
       "adjustable": "Inställbar",
       "insight": "Endast insikt"
+    },
+    "discover": {
+      "searching": "Söker efter Nibe-värmepumpar i ditt nätverk…",
+      "found": "Välj din värmepump",
+      "none_found": "Ingen värmepump hittades automatiskt. Kontrollera att Modbus TCP är aktiverat på pumpen (meny 7.5.9) eller ange IP-adressen nedan.",
+      "manual": "Eller ange IP-adressen manuellt",
+      "refresh": "Sök igen",
+      "pump": "Nibe värmepump",
+      "outdoor": "Utetemperatur"
     }
   },
   "groups": {

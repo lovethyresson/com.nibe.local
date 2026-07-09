@@ -109,3 +109,31 @@
     opacity: 0.65;
     margin: 1em 0;
 }
+
+.pump-list {
+    margin: 0.5em 0;
+}
+
+.pump-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.75em 1em;
+    margin: 0.5em 0;
+    border: 1px solid rgba(128, 128, 128, 0.35);
+    border-radius: 0.5em;
+    background: rgba(128, 128, 128, 0.08);
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.pump-item:hover {
+    border-color: #0091ff;
+}
+
+.pump-detail {
+    font-size: 0.85em;
+    opacity: 0.65;
+    margin-top: 0.2em;
+}

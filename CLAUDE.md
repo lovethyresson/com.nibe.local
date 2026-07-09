@@ -159,7 +159,8 @@ a free-form value.
 
 ### Pairing & repair (`drivers/nibe_s/driver.ts` + `pair/`/`repair/` views)
 
-Three-step pairing: `ip_address` (IP validated with `net.isIP`, becomes device `data.id` + `address` setting) →
+Three-step pairing: `ip_address` (auto-discovery + manual fallback; the chosen IP becomes device `data.id` +
+`address` setting) →
 `detect` (runs `probeHost()` with a progress bar; skippable) → `features` (group checkboxes pre-checked from the
 recommendation, expandable to per-capability overrides; creates the device with the filtered `capabilities` list
 and the `selection` store value). The repair flow (`onRepair`) reuses the `detect` + `features` views — Homey
@@ -167,6 +168,13 @@ requires repair view HTML to live in `drivers/nibe_s/repair/`, so those files ar
 actual logic is shared in `assets/pair/detect.js` and `assets/pair/features.js` (plus `assets/pair/pair.css`), and
 the views differ only through the `mode` field the driver returns from the `get_context` handler. Keep the
 `pair/` and `repair/` HTML copies identical.
+
+"Discovery" ([drivers/nibe_s/discovery.ts](drivers/nibe_s/discovery.ts)) is a subnet sweep, not a protocol: Modbus
+TCP has no announcement mechanism and Nibe S-series pumps don't advertise via mDNS/SSDP, so the `ip_address` view
+asks the driver to scan the Homey's /24 (from `homey.cloud.getLocalAddress()`) for open port 502 and verifies each
+responder by reading input register 1 (outdoor temperature) — a plausible value marks it as a pump and doubles as
+the label shown in the list. Already-paired IPs are excluded. This only works when Modbus TCP is enabled on the
+pump (menu 7.5.9) and Homey shares the subnet, hence the manual IP field stays.
 
 ### i18n
 

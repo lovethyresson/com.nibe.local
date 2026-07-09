@@ -33,6 +33,15 @@
     "badge": {
       "adjustable": "Adjustable",
       "insight": "Insight only"
+    },
+    "discover": {
+      "searching": "Searching your network for Nibe heat pumps…",
+      "found": "Select your heat pump",
+      "none_found": "No heat pump found automatically. Check that Modbus TCP is enabled on the pump (menu 7.5.9) or enter its IP address below.",
+      "manual": "Or enter the IP address manually",
+      "refresh": "Search again",
+      "pump": "Nibe heat pump",
+      "outdoor": "Outdoor temperature"
     }
   },
   "groups": {
