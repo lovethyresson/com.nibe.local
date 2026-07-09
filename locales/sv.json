@@ -29,6 +29,36 @@
     "ok": "OK",
     "ipaddress": "IP-adress",
     "valid_ip_address": "Mata in en giltig IP-adress (xxx.xxx.xxx.xxx)",
-    "invalid_ipaddress": "Ogiltig IP-adress"
+    "invalid_ipaddress": "Ogiltig IP-adress",
+    "not_connected": "Inte ansluten till värmepumpen",
+    "detect": {
+      "title": "Identifierar funktioner",
+      "intro": "Ansluter till värmepumpen och tittar på vilka värden som ändras. Det tar ungefär en halv minut.",
+      "status": "Läser register",
+      "failed": "Kunde inte läsa från värmepumpen",
+      "retry": "Försök igen",
+      "skip": "Hoppa över identifiering"
+    },
+    "features": {
+      "title": "Välj funktioner",
+      "intro": "Välj vilka funktioner som ska övervakas. Rekommendationerna baseras på vad värmepumpen rapporterade.",
+      "insights_note": "Om en funktion stängs av tas dess värden bort, inklusive Insights-historiken."
+    },
+    "evidence": {
+      "moving": "värden ändras",
+      "plausible": "verkar finnas",
+      "none": "ingen aktivitet upptäckt",
+      "unsupported": "stöds inte av pumpen"
+    }
+  },
+  "groups": {
+    "heating": "Värme",
+    "hotwater": "Varmvatten",
+    "pool": "Pool",
+    "ventilation": "Ventilation (frånluft)",
+    "groundsource": "Köldbärare (berg/mark)",
+    "electrical": "Strömsensorer",
+    "diagnostics": "Köldmediediagnostik",
+    "statistics": "Driftstatistik"
   }
 }

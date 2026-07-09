@@ -43,13 +43,9 @@
                 Homey.alert(err, 'error', () => {
                 });
             } else if (result) {
-                Homey.createDevice(result)
-                    .then(function (result) {
-                        Homey.done();
-                    })
-                    .catch(function (error) {
-                        Homey.alert(err);
-                    });
+                // Device creation happens at the end of the features view;
+                // next up is feature detection.
+                Homey.showView('detect');
             }
         });
     };

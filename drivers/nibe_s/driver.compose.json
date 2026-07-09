@@ -61,10 +61,8 @@
     "measure_enum_NIBE.h65_periodic_hotwater",
     "measure_day_NIBE.h66_periodic_hotwater_interval",
 
-    "measure_count_NIBE.h67_periodic_hotwater_start",
     "measure_minute_NIBE.h92_periodtime_hotwater",
 
-    "measure_current.h103_fuse_v2",
     "measure_current.i50_sensor_v2",
 
     "measure_current.i48_sensor_v2",
@@ -134,13 +132,6 @@
         "sv": "Värmeförskjutning"
       }
     },
-    "measure_count_NIBE.h67_periodic_hotwater_start": {
-      "title": {
-        "en": "Periodic hotwater start time",
-        "sv": "Periodiskt varmvatten starttid"
-      }
-    },
-
     "measure_current.i46_sensor_v2": {
       "decimals": 1,
       "title": {
@@ -162,14 +153,6 @@
         "sv": "Strömsensor BE1 -L1"
       }
     },
-    "measure_current.h103_fuse_v2": {
-      "decimals": 1,
-      "title": {
-        "en": "Fuse incoming",
-        "sv": "Inkommande säkring"
-      }
-    },
-
     "measure_day_NIBE.h66_periodic_hotwater_interval": {
       "title": {
         "en": "Periodic hotwater interval",
@@ -533,6 +516,89 @@
   "pair": [
     {
       "id": "ip_address"
+    },
+    {
+      "id": "detect"
+    },
+    {
+      "id": "features"
+    }
+  ],
+  "repair": [
+    {
+      "id": "detect"
+    },
+    {
+      "id": "features"
+    }
+  ],
+  "settings": [
+    {
+      "type": "group",
+      "label": {
+        "en": "Connection",
+        "sv": "Anslutning"
+      },
+      "children": [
+        {
+          "id": "address",
+          "type": "text",
+          "label": {
+            "en": "IP address",
+            "sv": "IP-adress"
+          },
+          "value": ""
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": {
+        "en": "Device information",
+        "sv": "Enhetsinformation"
+      },
+      "children": [
+        {
+          "id": "fuse_size",
+          "type": "label",
+          "label": {
+            "en": "Fuse incoming",
+            "sv": "Inkommande säkring"
+          },
+          "value": ""
+        },
+        {
+          "id": "periodic_hotwater_start",
+          "type": "label",
+          "label": {
+            "en": "Periodic hot water start time",
+            "sv": "Periodiskt varmvatten starttid"
+          },
+          "value": ""
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": {
+        "en": "Energy",
+        "sv": "Energi"
+      },
+      "children": [
+        {
+          "id": "cumulativeEnergy",
+          "type": "number",
+          "label": {
+            "en": "Total energy consumed (kWh)",
+            "sv": "Total förbrukad energi (kWh)"
+          },
+          "hint": {
+            "en": "Updated automatically from the power readings. Edit only to correct the meter.",
+            "sv": "Uppdateras automatiskt från effektmätningen. Ändra bara för att korrigera mätaren."
+          },
+          "value": 0
+        }
+      ]
     }
   ]
 }

@@ -1,0 +1,84 @@
+/* Shared styles for the detect/features pair & repair views */
+
+.detect-progress {
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(128, 128, 128, 0.25);
+    overflow: hidden;
+    margin: 1.5em 0 0.75em;
+}
+
+.detect-progress .detect-bar {
+    height: 100%;
+    width: 0;
+    border-radius: 3px;
+    background: #0091ff;
+    transition: width 0.4s ease;
+}
+
+.detect-status {
+    text-align: center;
+    opacity: 0.8;
+    min-height: 1.5em;
+}
+
+.detect-error {
+    display: none;
+    color: #e00000;
+    text-align: center;
+    margin: 0.75em 0;
+}
+
+.detect-actions {
+    text-align: center;
+    margin-top: 1.5em;
+}
+
+.detect-actions a {
+    display: inline-block;
+    margin: 0 0.75em;
+}
+
+.feature-group {
+    border-bottom: 1px solid rgba(128, 128, 128, 0.25);
+    padding: 0.6em 0;
+}
+
+.feature-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.feature-label {
+    flex: 1;
+    font-weight: 600;
+}
+
+.evidence {
+    font-size: 0.8em;
+    opacity: 0.65;
+    white-space: nowrap;
+}
+
+.expand {
+    text-decoration: none;
+    padding: 0 0.4em;
+    color: inherit;
+}
+
+.registers {
+    margin: 0.5em 0 0.25em 1.6em;
+}
+
+.register-label {
+    display: block;
+    padding: 0.15em 0;
+    font-size: 0.9em;
+}
+
+.features-note {
+    font-size: 0.8em;
+    opacity: 0.65;
+    margin: 1em 0;
+}

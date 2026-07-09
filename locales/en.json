@@ -29,6 +29,36 @@
     "ok": "OK",
     "ipaddress": "IP address",
     "valid_ip_address": "Enter a valid IP address (xxx.xxx.xxx.xxx)",
-    "invalid_ipaddress": "Invalid IP address"
+    "invalid_ipaddress": "Invalid IP address",
+    "not_connected": "Not connected to the heat pump",
+    "detect": {
+      "title": "Detecting features",
+      "intro": "Connecting to the heat pump and watching which values change. This takes about half a minute.",
+      "status": "Sampling registers",
+      "failed": "Could not read from the heat pump",
+      "retry": "Retry",
+      "skip": "Skip detection"
+    },
+    "features": {
+      "title": "Select features",
+      "intro": "Choose which features to monitor. Recommendations are based on what the heat pump reported.",
+      "insights_note": "Disabling a feature removes its capabilities, including their Insights history."
+    },
+    "evidence": {
+      "moving": "values changing",
+      "plausible": "looks present",
+      "none": "no activity detected",
+      "unsupported": "not supported by the pump"
+    }
+  },
+  "groups": {
+    "heating": "Heating",
+    "hotwater": "Hot water",
+    "pool": "Pool",
+    "ventilation": "Ventilation (exhaust air)",
+    "groundsource": "Ground source (brine)",
+    "electrical": "Current sensors",
+    "diagnostics": "Refrigerant diagnostics",
+    "statistics": "Runtime statistics"
   }
 }
