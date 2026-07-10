@@ -90,6 +90,11 @@ export function recommendGroups(probes: ProbeSamples): Recommendations {
         pool: () =>
             value("onoff.h691_pool_active") === 1
             || inRange("measure_temperature.i27_pool", 5, 45),
+        // Cooling rarely toggles during the short sampling window, so reaching this
+        // fallback at all means the cooling enable register read successfully — i.e.
+        // the pump exposes the cooling accessory. Recommend it regardless of on/off so
+        // its energy can be tracked whenever cooling is even possible.
+        cooling: () => true,
         ventilation: () =>
             inRange("measure_temperature.i19_return_air", 5, 40)
             || inRange("measure_temperature.i20_supply_air", -25, 40),

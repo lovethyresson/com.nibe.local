@@ -48,6 +48,7 @@
     "heating": "Värme",
     "hotwater": "Varmvatten",
     "pool": "Pool",
+    "cooling": "Kyla",
     "ventilation": "Ventilation (frånluft)",
     "groundsource": "Köldbärare (berg/mark)",
     "electrical": "Strömsensorer",

@@ -128,20 +128,16 @@ document.getElementById('save').onclick = function (e) {
         selection.overrides[box.dataset.register] = box.checked;
     });
     Homey.showLoadingOverlay();
-    Homey.emit('selection_done', selection, function (err, result) {
+    Homey.emit('selection_done', selection, function (err) {
         Homey.hideLoadingOverlay();
         if (err) {
             Homey.alert(err.message || String(err), 'error');
         } else if (context.mode === 'repair') {
             Homey.done();
         } else {
-            Homey.createDevice(result)
-                .then(function () {
-                    Homey.done();
-                })
-                .catch(function (error) {
-                    Homey.alert(error.message || String(error), 'error');
-                });
+            // Pairing continues to the device list, which offers the main device plus
+            // one device per detected function (heating/hot water/pool/cooling).
+            Homey.showView('list_my_devices');
         }
     });
 };

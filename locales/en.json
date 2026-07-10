@@ -72,6 +72,7 @@
     "groundsource": "Ground source (brine)",
     "electrical": "Current sensors",
     "diagnostics": "Refrigerant diagnostics",
-    "statistics": "Runtime statistics"
+    "statistics": "Runtime statistics",
+    "cooling": "Cooling"
   }
 }

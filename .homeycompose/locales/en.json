@@ -48,6 +48,7 @@
     "heating": "Heating",
     "hotwater": "Hot water",
     "pool": "Pool",
+    "cooling": "Cooling",
     "ventilation": "Ventilation (exhaust air)",
     "groundsource": "Ground source (brine)",
     "electrical": "Current sensors",

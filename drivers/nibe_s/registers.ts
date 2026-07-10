@@ -54,6 +54,7 @@ export const groupIds = [
     "heating",
     "hotwater",
     "pool",
+    "cooling",
     "ventilation",
     "groundsource",
     "electrical",
@@ -115,9 +116,9 @@ export const registers: Register[] = [
     {address:   40, name: "measure_water.i40_flow_sensor",          direction: Dir.In,  group: "heating",     scale:  10, // Flödesgivare (BF1)
      info: {en: "Heating medium flow (sensor BF1)", sv: "Värmebärarflöde (givare BF1)"}},
     // Rad 7
-    {address: 1048, name: "measure_power.i1048_compressor_add_power_v2",      direction: Dir.In,  group: "core",       scale: 1, // Kompressor tillförd effekt
+    {address: 1048, name: "measure_watt_NIBE.i1048_compressor_add_power",     direction: Dir.In,  group: "core",       scale: 1, // Kompressor tillförd effekt
      info: {en: "Electrical power drawn by the compressor", sv: "Eleffekt som kompressorn drar"}},
-    {address: 2166, name: "measure_power.i2166_energy_usage_v2",              direction: Dir.In,  group: "core",       scale: 1, // Momentan använd effekt
+    {address: 2166, name: "measure_watt_NIBE.i2166_energy_usage",             direction: Dir.In,  group: "core",       scale: 1, // Momentan använd effekt
      info: {en: "Total electrical power used by the pump right now", sv: "Total eleffekt pumpen använder just nu"}},
     // Rad 8
     {address: 1047, name: "measure_temperature.i1047_inverter",     direction: Dir.In,  group: "diagnostics", scale:  10, // Invertertemperatur
@@ -142,7 +143,12 @@ export const registers: Register[] = [
     // Rad 12 Eltillsats
     {address: 1029, name: "measure_count_NIBE.i1029_additive_heat_steps",     direction: Dir.In,  group: "core",       scale: 1, // Driftläge intern tillsats
      info: {en: "Active steps of the internal electric additive heater", sv: "Aktiva steg för intern eltillsats"}},
-    {address: 1027, name: "meter_power.i1027_additive_effect_v2",             direction: Dir.In,  group: "core",       scale: 100, // Effekt intern tillsats
+    // 16-bit raw with scale 100 means the register carries hundredths of a kW (a multi-kW
+    // value in watts wouldn't fit 16 bits), so scale 0.1 converts that to plain watts to
+    // match the other measure_watt_NIBE power registers. Retyped off meter_power so it no
+    // longer counts as a lifetime energy meter — it's an instantaneous power reading, and
+    // keeping any meter_power.* on the main device would pollute Homey's Energy tab.
+    {address: 1027, name: "measure_watt_NIBE.i1027_additive_effect",          direction: Dir.In,  group: "core",       scale: 0.1, // Effekt intern tillsats
      info: {en: "Power from the internal electric additive heater", sv: "Effekt från intern eltillsats"}},
     // Rad 13 Eltillsats statistik
     {address: 1025, name: "measure_hour_NIBE.i1025_additive_usage_total",     direction: Dir.In,  group: "statistics", scale:  10, // Total drifttid tillsats
@@ -244,7 +250,7 @@ export const registers: Register[] = [
      info: {en: "Allow the electric additive heater", sv: "Tillåt eltillsatsen"}},
     {address:  181, name: "onoff.h181_enable_heating",                        direction: Dir.Out, group: "heating",    bool: true, // Tillåt värme
      info: {en: "Allow heating operation", sv: "Tillåt värmedrift"}},
-    {address:  182, name: "onoff.h182_enable_cooling",                        direction: Dir.Out, group: "heating",    bool: true, // Tillåt kyla
+    {address:  182, name: "onoff.h182_enable_cooling",                        direction: Dir.Out, group: "cooling",    bool: true, // Tillåt kyla
      info: {en: "Allow cooling operation", sv: "Tillåt kyldrift"}}
 ];
 

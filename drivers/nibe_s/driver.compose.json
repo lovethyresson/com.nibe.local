@@ -6,6 +6,7 @@
   "class": "other",
   "capabilities": [
     "meter_power.total",
+    "measure_power.active",
 
     "measure_temperature.i1_outside",
     "measure_temperature.i26_inside",
@@ -25,8 +26,8 @@
     "measure_enum_NIBE.i1028_priority",
     "measure_water.i40_flow_sensor",
 
-    "measure_power.i1048_compressor_add_power_v2",
-    "measure_power.i2166_energy_usage_v2",
+    "measure_watt_NIBE.i1048_compressor_add_power",
+    "measure_watt_NIBE.i2166_energy_usage",
 
     "measure_temperature.i1047_inverter",
     "measure_frequency.i1046_compressor",
@@ -41,7 +42,7 @@
     "measure_enum_NIBE.i1037_return_fan_step",
 
     "measure_count_NIBE.i1029_additive_heat_steps",
-    "meter_power.i1027_additive_effect_v2",
+    "measure_watt_NIBE.i1027_additive_effect",
 
     "measure_hour_NIBE.i1025_additive_usage_total",
     "measure_hour_NIBE.i1069_additive_usage_hotwater",
@@ -105,6 +106,13 @@
       "title": {
         "en": "Total energy consumed",
         "sv": "Total förbrukad energi"
+      }
+    },
+    "measure_power.active": {
+      "decimals": 0,
+      "title": {
+        "en": "Power",
+        "sv": "Effekt"
       }
     },
 
@@ -311,22 +319,22 @@
       }
     },
 
-    "meter_power.i1027_additive_effect_v2": {
-      "decimals": 2,
+    "measure_watt_NIBE.i1027_additive_effect": {
+      "decimals": 0,
       "title": {
-        "en": "Mode internal additive",
+        "en": "Internal additive power",
         "sv": "Effekt tillsats"
       }
     },
-    "measure_power.i1048_compressor_add_power_v2": {
-      "decimals": 2,
+    "measure_watt_NIBE.i1048_compressor_add_power": {
+      "decimals": 0,
       "title": {
         "en": "Compressor supplied power",
         "sv": "Kompressor tillförd W"
       }
     },
-    "measure_power.i2166_energy_usage_v2": {
-      "decimals": 2,
+    "measure_watt_NIBE.i2166_energy_usage": {
+      "decimals": 0,
       "title": {
         "en": "Current power",
         "sv": "Momentan effekt"
@@ -522,6 +530,17 @@
     },
     {
       "id": "features"
+    },
+    {
+      "id": "list_my_devices",
+      "template": "list_devices",
+      "navigation": {
+        "next": "add_my_devices"
+      }
+    },
+    {
+      "id": "add_my_devices",
+      "template": "add_devices"
     }
   ],
   "repair": [

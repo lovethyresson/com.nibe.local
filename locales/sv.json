@@ -72,6 +72,7 @@
     "groundsource": "Köldbärare (berg/mark)",
     "electrical": "Strömsensorer",
     "diagnostics": "Köldmediediagnostik",
-    "statistics": "Driftstatistik"
+    "statistics": "Driftstatistik",
+    "cooling": "Kyla"
   }
 }

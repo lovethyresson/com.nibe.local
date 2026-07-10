@@ -1,0 +1,279 @@
+import net from 'net';
+import {ModbusTCPClient} from 'jsmodbus';
+import {Dir, Register, registerByName} from './registers';
+import {Role, priorityToRole} from './roles';
+import {DetectionResult, readNumeric, recommendGroups, sampleRegisters} from './detection';
+
+// A Nibe S-series pump accepts only a single Modbus TCP client, but the app now
+// pairs several logical devices (main + heating/hot water/pool/cooling) that all
+// talk to the same pump. PumpConnection is the one shared connection per pump IP:
+// devices attach/detach, it owns the single socket, one 5 s poll loop over the
+// union of everyone's registers, energy integration/allocation by operating
+// priority, and availability fan-out. It is refcounted — the first attach opens
+// the socket, the last detach tears it down — and independent of device init
+// order (Homey guarantees none).
+
+// A device subscribing to a pump connection. Homey's Device already provides log/error.
+export interface PumpSubscriber {
+    role: Role;
+    wantedRegisters(): Register[];
+    onRegisterRaw(register: Register, raw: number): void;
+    onConnectionUp(): void;
+    onConnectionDown(): void;
+    // Only the function devices implement this — see PumpConnection.allocateEnergy().
+    onEnergy?(deltaKwh: number, watts: number): void;
+}
+
+// The two registers the energy allocator always needs, regardless of which devices
+// are attached: total instantaneous power (integrated into kWh) and operating
+// priority (which decides the bucket).
+const POWER_REGISTER = registerByName["measure_watt_NIBE.i2166_energy_usage"];
+const PRIORITY_REGISTER = registerByName["measure_enum_NIBE.i1028_priority"];
+
+function signed(raw: number): number {
+    return raw >= 32768 ? raw - 65536 : raw;
+}
+
+const connections = new Map<string, PumpConnection>();
+
+export class PumpConnection {
+    private socket: net.Socket;
+    private client: ModbusTCPClient;
+    private subscribers = new Set<PumpSubscriber>();
+    private pollInterval: NodeJS.Timeout | null = null;
+    private retryTimer: NodeJS.Timeout | null = null;
+    private connected = false;
+    private destroyed = false;
+
+    // Energy integrator state (moved out of the old single device). lastPowerReading
+    // is null right after every (re)connect so a connection gap isn't counted as
+    // continuous runtime at whatever power the first poll happens to read.
+    private lastPowerReading: number | null = null;
+    private lastPollTime = Date.now();
+    private loggedUnknownPriority = new Set<number>();
+
+    // Last successfully read raw value per register, so a device that attaches after
+    // the connection is already up gets current values without waiting for a poll.
+    private lastRaw = new Map<string, number>();
+
+    private constructor(private host: string) {
+        this.socket = new net.Socket();
+        this.client = new ModbusTCPClient(this.socket, 1, 5000);
+        this.socket.on('connect', () => this.onConnect());
+        this.socket.on('error', (error) => this.onSocketError(error));
+        this.socket.on('close', () => this.onClose());
+        this.log('Connecting');
+        this.socket.connect({port: 502, host});
+    }
+
+    static get(host: string): PumpConnection {
+        let connection = connections.get(host);
+        if (!connection) {
+            connection = new PumpConnection(host);
+            connections.set(host, connection);
+        }
+        return connection;
+    }
+
+    private log(...args: any[]) {
+        console.log(`[PumpConnection ${this.host}]`, ...args);
+    }
+
+    attach(subscriber: PumpSubscriber) {
+        this.subscribers.add(subscriber);
+        if (this.connected) {
+            subscriber.onConnectionUp();
+            // Replay cached values so a late attach reflects state immediately.
+            for (const register of subscriber.wantedRegisters()) {
+                const raw = this.lastRaw.get(register.name);
+                if (raw !== undefined)
+                    subscriber.onRegisterRaw(register, raw);
+            }
+        } else {
+            subscriber.onConnectionDown();
+        }
+    }
+
+    detach(subscriber: PumpSubscriber) {
+        this.subscribers.delete(subscriber);
+        if (this.subscribers.size === 0)
+            this.destroy();
+    }
+
+    private destroy() {
+        this.log('Last device detached, closing connection');
+        this.destroyed = true;
+        if (this.pollInterval) clearInterval(this.pollInterval);
+        if (this.retryTimer) clearTimeout(this.retryTimer);
+        this.socket.removeAllListeners();
+        this.socket.end();
+        this.socket.destroy();
+        connections.delete(this.host);
+    }
+
+    private onConnect() {
+        this.log('Connected');
+        this.connected = true;
+        this.lastPowerReading = null;
+        this.lastPollTime = Date.now();
+        this.subscribers.forEach((subscriber) => subscriber.onConnectionUp());
+        setTimeout(() => this.poll(), 200);
+        this.pollInterval = setInterval(() => this.poll(), 5000);
+    }
+
+    private onSocketError(error: any) {
+        this.log('Socket error', error?.message ?? error);
+        this.connected = false;
+        this.subscribers.forEach((subscriber) => subscriber.onConnectionDown());
+    }
+
+    private onClose() {
+        this.connected = false;
+        if (this.pollInterval) {
+            clearInterval(this.pollInterval);
+            this.pollInterval = null;
+        }
+        this.subscribers.forEach((subscriber) => subscriber.onConnectionDown());
+        if (this.destroyed)
+            return;
+        this.log('Socket closed, reconnecting in 5 seconds ...');
+        this.retryTimer = setTimeout(() => {
+            if (!this.destroyed)
+                this.socket.connect({port: 502, host: this.host});
+        }, 5000);
+    }
+
+    // The registers to read this cycle: everyone's wanted registers, deduped by name,
+    // plus power+priority which the allocator needs even when no main device is paired.
+    private unionRegisters(): Register[] {
+        const byName = new Map<string, Register>();
+        for (const subscriber of this.subscribers)
+            for (const register of subscriber.wantedRegisters())
+                byName.set(register.name, register);
+        byName.set(POWER_REGISTER.name, POWER_REGISTER);
+        byName.set(PRIORITY_REGISTER.name, PRIORITY_REGISTER);
+        return [...byName.values()];
+    }
+
+    async readRegisterRaw(register: Register): Promise<number | undefined> {
+        return await ((register.direction === Dir.In)
+            ? this.client.readInputRegisters(register.address, 1)
+            : this.client.readHoldingRegisters(register.address, 1))
+            .then((resp: any) => resp.response.body.values[0] as number)
+            .catch(() => undefined);
+    }
+
+    async writeSingleRegister(address: number, raw: number): Promise<boolean> {
+        return await this.client.writeSingleRegister(address, raw)
+            .then(() => true)
+            .catch((reason: any) => {
+                this.log('Error writing register', address, reason?.message ?? reason);
+                return false;
+            });
+    }
+
+    private poll() {
+        if (!this.connected)
+            return;
+        const toPoll = this.unionRegisters();
+        Promise.all(toPoll.map((register) => this.readRegisterRaw(register))).then((raws) => {
+            const rawByName = new Map<string, number>();
+            toPoll.forEach((register, i) => {
+                if (raws[i] !== undefined) {
+                    rawByName.set(register.name, raws[i]!);
+                    this.lastRaw.set(register.name, raws[i]!);
+                }
+            });
+
+            this.allocateEnergy(rawByName);
+
+            for (const subscriber of this.subscribers)
+                for (const register of subscriber.wantedRegisters()) {
+                    const raw = rawByName.get(register.name);
+                    if (raw !== undefined)
+                        subscriber.onRegisterRaw(register, raw);
+                }
+        }).catch((error) => {
+            this.log('Poll failed', error?.message ?? error);
+            this.socket.end(); // triggers 'close' → reconnect
+        });
+    }
+
+    private functionSubscribers(): PumpSubscriber[] {
+        return [...this.subscribers].filter((subscriber) => subscriber.role !== 'main');
+    }
+
+    private deviceForRole(role: Role): PumpSubscriber | undefined {
+        return [...this.subscribers].find((subscriber) => subscriber.role === role);
+    }
+
+    private logUnknownPriority(raw: number) {
+        if (this.loggedUnknownPriority.has(raw))
+            return;
+        this.loggedUnknownPriority.add(raw);
+        this.log(`Unknown priority value ${raw}, charging its energy to heating`);
+    }
+
+    // Integrate total power into a per-function kWh bucket, charged to whichever
+    // function the pump is currently prioritising, and push the live draw (watts) to
+    // the active device and 0 to the others.
+    private allocateEnergy(rawByName: Map<string, number>) {
+        const now = Date.now();
+        const deltaTimeHours = (now - this.lastPollTime) / (1000 * 60 * 60);
+
+        const rawPower = rawByName.get(POWER_REGISTER.name);
+        if (rawPower !== undefined) {
+            const watts = signed(rawPower);
+            const rawPriority = rawByName.get(PRIORITY_REGISTER.name);
+
+            let role: Role = 'heating';
+            if (rawPriority !== undefined) {
+                const mapped = priorityToRole[rawPriority];
+                if (mapped) role = mapped;
+                else this.logUnknownPriority(rawPriority);
+            }
+
+            // Resolve to an attached device, falling back to heating (standby/cooling
+            // already route there by design, so it's the natural catch-all).
+            const target = this.deviceForRole(role) ?? this.deviceForRole('heating');
+            const activeRole = target?.role ?? null;
+
+            const delta = this.lastPowerReading !== null
+                ? ((this.lastPowerReading + watts) / 2) * deltaTimeHours / 1000
+                : 0;
+
+            for (const subscriber of this.functionSubscribers()) {
+                if (activeRole && subscriber.role === activeRole)
+                    subscriber.onEnergy?.(delta, watts);
+                else
+                    subscriber.onEnergy?.(0, 0);
+            }
+
+            if (!target && delta > 0)
+                this.log(`No device for role ${role} (or heating fallback); dropping ${delta.toFixed(5)} kWh`);
+
+            this.lastPowerReading = watts;
+        }
+
+        this.lastPollTime = now;
+    }
+
+    // Re-run feature detection over the live connection (used by repair and by pairing
+    // when a device for this pump already holds the single allowed connection).
+    async probe(onProgress: (pass: number, passes: number) => void): Promise<DetectionResult> {
+        if (!this.connected)
+            throw new Error('Not connected to the heat pump');
+        const probes = await sampleRegisters((register) => readNumeric(this.client, register), onProgress);
+        return {recommendations: recommendGroups(probes)};
+    }
+
+    isConnected(): boolean {
+        return this.connected;
+    }
+}
+
+// Look up an existing connection without creating one — used by pairing to decide
+// whether it must probe over a live device connection instead of opening its own.
+export function existingConnection(host: string): PumpConnection | undefined {
+    return connections.get(host);
+}
