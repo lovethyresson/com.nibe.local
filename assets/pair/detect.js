@@ -1,5 +1,6 @@
 /* Shared by pair/detect.html and repair/detect.html.
- * Runs feature detection via the driver and moves on to the features view. */
+ * Runs feature detection via the driver and moves on: to the device picker when
+ * pairing, or to the per-device feature list when repairing. */
 /* global Homey */
 
 Homey.setTitle(Homey.__('pair.detect.title'));
@@ -8,6 +9,9 @@ var statusEl = document.getElementById('status');
 var barEl = document.getElementById('bar');
 var errorEl = document.getElementById('error');
 var retryEl = document.getElementById('retry');
+
+// Default to the pairing device picker; get_context tells us if we're repairing.
+var nextView = 'devices';
 
 Homey.on('detection_progress', function (progress) {
     var percent = Math.round((progress.pass / progress.passes) * 100);
@@ -29,7 +33,7 @@ function startDetection() {
             retryEl.style.display = 'inline-block';
         } else {
             barEl.style.width = '100%';
-            Homey.showView('features');
+            Homey.showView(nextView);
         }
     });
 }
@@ -41,7 +45,11 @@ retryEl.onclick = function (e) {
 
 document.getElementById('skip').onclick = function (e) {
     e.preventDefault();
-    Homey.showView('features');
+    Homey.showView(nextView);
 };
 
-startDetection();
+Homey.emit('get_context', {}, function (err, ctx) {
+    if (ctx && ctx.mode === 'repair')
+        nextView = 'features';
+    startDetection();
+});

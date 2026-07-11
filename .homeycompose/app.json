@@ -1,44 +1,47 @@
 {
-  "id": "net.sparud.nibe_s",
-  "version": "2.2.0",
+  "id": "com.lovethyresson.nibe-mm",
+  "version": "0.5.0",
   "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
     "local"
   ],
   "name": {
-    "en": "Nibe S-series",
-    "sv": "Nibe S"
+    "en": "Nibe Heatpumps",
+    "sv": "Nibe Värmepumpar"
   },
   "description": {
-    "en": "Measure and control Nibe S-series heaters ",
-    "sv": "Mät och styr Nibe S värmesystem"
+    "en": "Monitor and control Nibe heat pumps directly over your local network (Modbus TCP), with a separate device for each function — heating, hot water, pool and cooling — and per-function energy tracking. No cloud required.",
+    "sv": "Övervaka och styr Nibe värmepumpar direkt över ditt lokala nätverk (Modbus TCP), med en separat enhet för varje funktion — värme, varmvatten, pool och kyla — och energiuppföljning per funktion. Inget moln krävs."
   },
   "category": [
     "climate"
   ],
   "permissions": [],
+  "homepage": "https://github.com/lovethyresson/com.lovethyresson.nibe-mm",
+  "source": "https://github.com/lovethyresson/com.lovethyresson.nibe-mm",
+  "bugs": {
+    "url": "https://github.com/lovethyresson/com.lovethyresson.nibe-mm/issues"
+  },
   "brandColor": "#DD1111",
   "images": {
-    "small": "/assets/images/nibe_app_small.jpg",
-    "large": "/assets/images/nibe_app_large.jpg"
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png",
+    "xlarge": "/assets/images/xlarge.png"
   },
   "author": {
-    "name": "Jan Sparud",
-    "email": "jan@sparud.net"
+    "name": "Love Thyresson",
+    "email": "love@thyresson.se"
   },
   "contributors": {
     "developers": [
       {
+        "name": "Jan Sparud",
+        "email": "jan@sparud.net"
+      },
+      {
         "name": "Kjell Blomberg"
       }
     ]
-  },
-  "contributing": {
-    "donate": {
-      "paypal": {
-        "username": "sparud"
-      }
-    }
   }
 }

@@ -1,11 +1,6 @@
 {
-  "2.0.0": {
-    "en": "Cleaned up code, added many more registers, added flow support."
-  },
-  "2.1.0": {
-    "en": "Many changes to flows, there are now conditions and actions for all relevant values. Old flows may need to be rewritten. The readme is now more informative regarding pre-requesites and installation."
-  },
-  "2.2.0": {
-    "en": "Added flow triggers, changed icon"
+  "0.5.0": {
+    "en": "First release as a local, multi-device app: each pump function (heating, hot water, pool, cooling) pairs as its own device with its own capabilities and energy tracking, allocated by the pump's operating priority. Pairing autodetects pumps on the network and highlights which functions have live data.",
+    "sv": "Första utgåvan som en lokal app med flera enheter: varje funktion (värme, varmvatten, pool, kyla) läggs till som en egen enhet med egna värden och energiuppföljning, fördelad efter värmepumpens driftprioritering. Parkopplingen hittar värmepumpar på nätverket och visar vilka funktioner som har aktiv data."
   }
 }

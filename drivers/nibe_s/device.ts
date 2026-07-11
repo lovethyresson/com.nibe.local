@@ -171,37 +171,12 @@ class NibeSDevice extends Device implements PumpSubscriber {
         }
     }
 
-    // One-time carry-over of the pre-multi-device lifetime energy total. That device
-    // becomes "main" (which no longer meters energy), so its accumulated kWh is moved
-    // onto the heating bucket the first time a heating device initialises. Idempotent
-    // via the main device's energyMigrated store flag.
-    private async absorbLegacyEnergy() {
-        if (this.role !== 'heating' || this.cumulativeEnergy > 0)
-            return;
-        const main = (this.driver.getDevices() as NibeSDevice[]).find((device) =>
-            roleOf(device.getData()) === 'main'
-            && device.getSettings().address === this.host()
-            && !device.getStoreValue('energyMigrated'));
-        if (!main)
-            return;
-        const legacy = main.getSettings().cumulativeEnergy || 0;
-        await main.setStoreValue('energyMigrated', true).catch(this.error);
-        if (legacy > 0) {
-            this.cumulativeEnergy = legacy;
-            await this.setSettings({cumulativeEnergy: legacy}).catch(this.error);
-            await main.setSettings({cumulativeEnergy: 0}).catch(this.error);
-            this.log(`Absorbed ${legacy} kWh from legacy main device`);
-        }
-    }
-
     async onInit() {
         this.role = roleOf(this.getData());
         this.log(`NibeSDevice initialised (role ${this.role})`);
 
-        if (this.role !== 'main') {
+        if (this.role !== 'main')
             this.cumulativeEnergy = this.getSettings().cumulativeEnergy || 0;
-            await this.absorbLegacyEnergy();
-        }
 
         await this.syncCapabilities();
 
@@ -279,7 +254,7 @@ class NibeSDevice extends Device implements PumpSubscriber {
     }
 
     async onDeleted() {
-        this.log('Nibe S-series device has been deleted');
+        this.log('Nibe device has been deleted');
         this.connection?.detach(this);
     }
 }

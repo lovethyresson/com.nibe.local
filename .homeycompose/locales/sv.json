@@ -34,7 +34,18 @@
       "adjustable": "Inställbar",
       "insight": "Endast insikt"
     },
+    "devices": {
+      "title": "Lägg till enheter",
+      "intro": "Varje funktion i din värmepump blir en egen enhet. De vi hittade aktiv data för är förkryssade, men du kan lägga till vilka du vill.",
+      "add": "Lägg till valda enheter",
+      "detected": "Data hittad",
+      "notdetected": "Ingen data",
+      "select_one": "Välj minst en enhet att lägga till.",
+      "main_desc": "Översikt: utetemperatur, driftprioritering och driftläge, samt diagnostik och statistik"
+    },
     "discover": {
+      "title": "Hitta din värmepump",
+      "connecting": "Hittade din värmepump — ansluter…",
       "searching": "Söker efter Nibe-värmepumpar i ditt nätverk…",
       "found": "Välj din värmepump",
       "none_found": "Ingen värmepump hittades automatiskt. Kontrollera att Modbus TCP är aktiverat på pumpen (meny 7.5.9) eller ange IP-adressen nedan.",

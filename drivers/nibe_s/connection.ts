@@ -4,7 +4,7 @@ import {Dir, Register, registerByName} from './registers';
 import {Role, priorityToRole} from './roles';
 import {DetectionResult, readNumeric, recommendGroups, sampleRegisters} from './detection';
 
-// A Nibe S-series pump accepts only a single Modbus TCP client, but the app now
+// A Nibe pump accepts only a single Modbus TCP client, but the app now
 // pairs several logical devices (main + heating/hot water/pool/cooling) that all
 // talk to the same pump. PumpConnection is the one shared connection per pump IP:
 // devices attach/detach, it owns the single socket, one 5 s poll loop over the
@@ -270,6 +270,18 @@ export class PumpConnection {
     isConnected(): boolean {
         return this.connected;
     }
+
+    // Force teardown regardless of refcount (used on app/driver shutdown).
+    shutdown() {
+        this.destroy();
+    }
+}
+
+// Close every open pump connection — called on driver unload so the pump's single
+// Modbus slot is released promptly instead of lingering until it times out.
+export function destroyAllConnections() {
+    for (const connection of [...connections.values()])
+        connection.shutdown();
 }
 
 // Look up an existing connection without creating one — used by pairing to decide

@@ -128,17 +128,14 @@ document.getElementById('save').onclick = function (e) {
         selection.overrides[box.dataset.register] = box.checked;
     });
     Homey.showLoadingOverlay();
+    // This view is used by the repair flow only (pairing uses the device picker);
+    // applying the selection to the device is all that's left.
     Homey.emit('selection_done', selection, function (err) {
         Homey.hideLoadingOverlay();
-        if (err) {
+        if (err)
             Homey.alert(err.message || String(err), 'error');
-        } else if (context.mode === 'repair') {
+        else
             Homey.done();
-        } else {
-            // Pairing continues to the device list, which offers the main device plus
-            // one device per detected function (heating/hot water/pool/cooling).
-            Homey.showView('list_my_devices');
-        }
     });
 };
 

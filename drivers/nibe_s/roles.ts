@@ -46,8 +46,8 @@ export function extraCapabilities(role: Role): string[] {
     return role === "main" ? [] : [METER_CAPABILITY, ACTIVE_POWER_CAPABILITY];
 }
 
-// Read the role off a device's `data`. The pre-multi-device paired device has no
-// `role` field, so it transparently becomes the "main" device.
+// Read the role off a device's `data`. Defaults to "main" defensively; every device
+// paired by this driver carries an explicit role.
 export function roleOf(data: any): Role {
     return (data?.role ?? "main") as Role;
 }

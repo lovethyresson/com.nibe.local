@@ -1,19 +1,21 @@
-This driver gives access to monitoring and controlling Nibe S-series heaters directly on the local network, not using
-the MyUplink cloud connection. Vital current energy, temperature and flow values are collected and shown.
-It is also possible to set modes, target temperatures etc. All aspects are exposed as flow properties.
+This app monitors and controls Nibe heat pumps directly on your local network over Modbus TCP, without going through
+the MyUplink cloud connection. Current power, energy, temperature and flow values are collected and shown, and you can
+set modes, target temperatures and other settings. All values are also exposed as flow triggers, conditions and actions.
 
-In order to use this driver you need three things:
-- A Nibe S-series heater connected to the same local network as your Homey.
-- You have enabled MODBUS (the communication protocol used by Nibe) in menu 7.5.9.
-- The local IP address of the Nibe to be used in the device installation.
+What makes this app different is that a single physical pump is paired as several devices — one per function
+(heating, hot water, pool and cooling) — each with its own capabilities and its own energy meter. The pump's total
+power draw is allocated to the right function device based on the pump's current operating priority, so you can see,
+for example, how much energy goes to heating versus cooling over a year. A main device carries the shared sensors
+(outdoor temperature, operating priority and mode) and diagnostics. During pairing the app scans your network for
+pumps and highlights which functions have live data, but you can still add any of them.
 
-With this driver you can change many values on your Nibe. Remember that the machine and the way it functions
-is complicated and make sure that you know what you are doing when changing settings. The author of this driver
-provides the app free of charge and can not take responsibility for any problems incurred by such changes.
-The changes are the same as can be done in the MyUplink mobile app but one has to be extra careful when automating
-control.
+To use this app you need:
+- A Nibe heat pump with Modbus TCP enabled (menu 7.5.9), on the same local network as your Homey.
+- The pump's local IP address (pairing can also autodetect it).
+
+With this app you can change many values on your Nibe. The machine and how it operates is complex, so make sure you
+know what you are doing when changing settings. The app is provided free of charge and the authors cannot take
+responsibility for any problems caused by such changes. The changes are the same as can be done in the MyUplink app,
+but be extra careful when automating control.
 
 If a flow action tries to write a value that is out of range the flow will fail with a descriptive error message.
-
-
-

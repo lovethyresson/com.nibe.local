@@ -1,7 +1,7 @@
 {
   "name": {
-    "en": "Nibe S-series direct connection (Modbus)",
-    "sv": "Nibe S-serien direktkopplad (Modbus)"
+    "en": "Nibe heat pump",
+    "sv": "Nibe värmepump"
   },
   "class": "other",
   "capabilities": [
@@ -118,7 +118,7 @@
 
     "measure_count_NIBE.i1029_additive_heat_steps": {
       "title": {
-        "en": "N/A",
+        "en": "Additive heater steps",
         "sv": "Driftläge tillsats"
       }
     },
@@ -227,7 +227,7 @@
     },
     "measure_hour_NIBE.i1069_additive_usage_hotwater": {
       "title": {
-        "en": "N/A",
+        "en": "Additive runtime (hot water)",
         "sv": "Varmvatten drifttid tillsats"
       }
     },
@@ -385,13 +385,13 @@
     },
     "measure_temperature.i19_return_air": {
       "title": {
-        "en": "N/A",
+        "en": "Extract air (BT20)",
         "sv": "Frånluft BT20"
       }
     },
     "measure_temperature.i20_supply_air": {
       "title": {
-        "en": "N/A",
+        "en": "Exhaust air (BT21)",
         "sv": "Avluft BT21"
       }
     },
@@ -518,8 +518,9 @@
     "meterPowerImportedCapability": "meter_power.total"
   },
   "images": {
-    "small": "/assets/images/nibe_small.png",
-    "large": "/assets/images/nibe_large.png"
+    "small": "/drivers/nibe_s/assets/images/small.png",
+    "large": "/drivers/nibe_s/assets/images/large.png",
+    "xlarge": "/drivers/nibe_s/assets/images/xlarge.png"
   },
   "pair": [
     {
@@ -529,18 +530,7 @@
       "id": "detect"
     },
     {
-      "id": "features"
-    },
-    {
-      "id": "list_my_devices",
-      "template": "list_devices",
-      "navigation": {
-        "next": "add_my_devices"
-      }
-    },
-    {
-      "id": "add_my_devices",
-      "template": "add_devices"
+      "id": "devices"
     }
   ],
   "repair": [

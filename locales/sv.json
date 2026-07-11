@@ -61,7 +61,18 @@
       "manual": "Eller ange IP-adressen manuellt",
       "refresh": "Sök igen",
       "pump": "Nibe värmepump",
-      "outdoor": "Utetemperatur"
+      "outdoor": "Utetemperatur",
+      "title": "Hitta din värmepump",
+      "connecting": "Hittade din värmepump — ansluter…"
+    },
+    "devices": {
+      "title": "Lägg till enheter",
+      "intro": "Varje funktion i din värmepump blir en egen enhet. De vi hittade aktiv data för är förkryssade, men du kan lägga till vilka du vill.",
+      "add": "Lägg till valda enheter",
+      "detected": "Data hittad",
+      "notdetected": "Ingen data",
+      "select_one": "Välj minst en enhet att lägga till.",
+      "main_desc": "Översikt: utetemperatur, driftprioritering och driftläge, samt diagnostik och statistik"
     }
   },
   "groups": {

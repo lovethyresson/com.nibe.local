@@ -12,8 +12,8 @@ import {
     energyTitle, extraCapabilities, functionRoles, powerTitle,
     registersForRole, roleGroups, roleNames, roleOf
 } from './roles';
-import {DetectionResult, probeHost} from './detection';
-import {existingConnection} from './connection';
+import {DetectionResult, Recommendations, probeHost} from './detection';
+import {destroyAllConnections, existingConnection} from './connection';
 import {discoverPumps} from './discovery';
 
 const actionSpecs: {[name: string]: any} = Object.fromEntries(actions.map((action: any) => [action.id, action]));
@@ -21,9 +21,14 @@ const conditionSpecs: {[name: string]: any} = Object.fromEntries(conditions.map(
 
 class NibeSDriver extends Driver {
     async onInit() {
-        this.log('Nibe S-Series driver has been initialized');
+        this.log('Nibe heat pump driver has been initialized');
         this.checkConfig();
         this.registerFlows();
+    }
+
+    async onUninit() {
+        // Release the pump's single Modbus slot promptly on app unload.
+        destroyAllConnections();
     }
 
     // The compose capabilities list is the superset of everything any device can have.
@@ -193,22 +198,6 @@ class NibeSDriver extends Driver {
     }
 
     // Narrow a pump-wide selection to just one role's groups, so each device stores and
-    // repairs only what it owns.
-    private static subsetSelection(full: Selection, role: Role): Selection {
-        const roleGroupSet = new Set<GroupId>(roleGroups[role]);
-        const groups: Selection["groups"] = {};
-        for (const id of groupIds)
-            if (roleGroupSet.has(id))
-                groups[id] = full.groups[id] ?? false;
-        const overrides: Selection["overrides"] = {};
-        for (const [name, value] of Object.entries(full.overrides)) {
-            const register = registerByName[name];
-            if (register && roleGroupSet.has(register.group))
-                overrides[name] = value;
-        }
-        return {groups, overrides};
-    }
-
     private extraOption(role: Role, name: string): any {
         if (name === METER_CAPABILITY)
             return {title: energyTitle(role)};
@@ -217,12 +206,25 @@ class NibeSDriver extends Driver {
         return undefined;
     }
 
-    // A Homey pair "device" template for one role of the pump. The main device keeps the
-    // bare-IP data.id so a pre-existing (pre-split) device dedups against it and isn't
-    // offered again; function devices get an "<ip>#<role>" id.
-    private deviceTemplate(ip: string, role: Role, full: Selection) {
+    // A device added at pairing carries its role's full capability set (all of the
+    // role's non-core groups, except those detection proved the pump doesn't have
+    // (e.g. no ventilation/FTX sensors), so a device isn't cluttered with capabilities
+    // that will never carry data. Skipped detection (no recommendations) enables all.
+    // The user can still trim or extend a device later via repair.
+    private static roleSelection(role: Role, recommendations: Recommendations): Selection {
+        const groups: Selection["groups"] = {};
+        for (const id of groupIds)
+            if ((roleGroups[role] as GroupId[]).includes(id))
+                groups[id] = recommendations[id]?.evidence !== 'unsupported';
+        return {groups, overrides: {}};
+    }
+
+    // A Homey pair "device" template for one role of the pump. Each device gets an
+    // "<ip>#<role>" data.id, so re-running pairing on the same pump dedups against the
+    // devices already added and only offers the missing ones.
+    private deviceTemplate(ip: string, role: Role, recommendations: Recommendations) {
         const language = this.homey.i18n.getLanguage();
-        const selection = NibeSDriver.subsetSelection(full, role);
+        const selection = NibeSDriver.roleSelection(role, recommendations);
         const roleRegs = registersForRole(role, selection);
         const options: {[name: string]: any} = {};
         for (const register of roleRegs)
@@ -232,39 +234,75 @@ class NibeSDriver extends Driver {
             options[extra] = this.extraOption(role, extra);
         return {
             name: roleNames[role][language as 'en' | 'sv'] || roleNames[role].en,
-            data: role === 'main' ? {id: ip} : {id: `${ip}#${role}`, role},
+            data: {id: `${ip}#${role}`, role},
             settings: {address: ip},
             store: {selection},
+            icon: `/drivers/nibe_s/assets/${role}.svg`,
             capabilities: [...roleRegs.map((r) => r.name), ...extraCapabilities(role)],
             capabilitiesOptions: options
         };
     }
 
-    // Main is always offered; each function device is offered when any of its groups was
-    // selected in the features view.
-    private buildDevices(ip: string, full: Selection) {
-        const devices = [this.deviceTemplate(ip, 'main', full)];
-        for (const role of functionRoles) {
-            const anySelected = (roleGroups[role] as GroupId[])
-                .some((group) => group !== 'core' && full.groups[group]);
-            if (anySelected)
-                devices.push(this.deviceTemplate(ip, role, full));
-        }
-        return devices;
+    // Short "what's in this device" summary for the pairing device picker.
+    private roleDescription(role: Role): string {
+        if (role === 'main')
+            return this.homey.__('pair.devices.main_desc');
+        return (roleGroups[role] as GroupId[])
+            .filter((group) => group !== 'core')
+            .map((group) => this.homey.__(`groups.${group}`) || group)
+            .join(', ');
+    }
+
+    // All candidate devices for the picker: main plus every function device, each
+    // flagged with whether detection saw live data for it (so the view can highlight
+    // and pre-check them while still letting the user add any). Roles already paired
+    // for this pump are omitted, so re-running pairing only offers the missing ones.
+    private pairingCandidates(ip: string, detection: DetectionResult | null) {
+        const recommendations = detection?.recommendations ?? {};
+        const paired = new Set(this.getDevices().map((device) => String(device.getData().id)));
+        return ([...['main'] as Role[], ...functionRoles])
+            .filter((role) => !paired.has(`${ip}#${role}`))
+            .map((role) => ({
+                role,
+                name: roleNames[role][this.homey.i18n.getLanguage() as 'en' | 'sv'] || roleNames[role].en,
+                description: this.roleDescription(role),
+                detected: role === 'main'
+                    ? true
+                    : (roleGroups[role] as GroupId[])
+                        .some((group) => group !== 'core' && recommendations[group]?.recommended),
+                device: this.deviceTemplate(ip, role, recommendations)
+            }));
     }
 
     async onPair(session: PairSession): Promise<void> {
         let ipAddress: string | null = null;
         let detection: DetectionResult | null = null;
         let detectionRunning: Promise<DetectionResult> | null = null;
-        let pairSelection: Selection | null = null;
 
         session.setHandler('discover', async () => {
             const localAddress = await this.homey.cloud.getLocalAddress();
-            const alreadyPaired = new Set(this.getDevices()
-                .map((device) => String(device.getSettings().address || device.getData().id)));
-            const pumps = await discoverPumps(localAddress, alreadyPaired, (done, total) =>
+            const pairedAddresses = this.getDevices().map((device) => String(device.getSettings().address));
+            // Skip already-paired IPs in the subnet scan: the pump allows only one Modbus
+            // client, so a fresh probe socket to a connected pump is refused anyway.
+            const found = await discoverPumps(localAddress, new Set(pairedAddresses), (done, total) =>
                 session.emit('discovery_progress', {done, total}).catch(() => {}));
+            const byAddress = new Map(found.map((pump) => [pump.address, pump]));
+            // Re-add paired pumps via their existing live connection (which the scan can't
+            // duplicate), so a pump you've already added still shows up and you can pair
+            // more of its function devices.
+            for (const address of new Set(pairedAddresses)) {
+                if (byAddress.has(address))
+                    continue;
+                const connection = existingConnection(address);
+                if (!connection?.isConnected())
+                    continue;
+                const raw = await connection.readRegisterRaw({address: 1, direction: Dir.In} as Register);
+                byAddress.set(address, {
+                    address,
+                    outdoorTemperature: raw === undefined ? undefined : (raw >= 32768 ? raw - 65536 : raw) / 10
+                });
+            }
+            const pumps = [...byAddress.values()];
             this.log('Discovered pumps:', JSON.stringify(pumps));
             return pumps;
         });
@@ -277,11 +315,8 @@ class NibeSDriver extends Driver {
             return true;
         });
 
-        session.setHandler('get_context', async () => ({
-            mode: 'pair',
-            groups: this.groupInfo(),
-            selection: null
-        }));
+        // detect.js reads the mode to decide where to go after detection.
+        session.setHandler('get_context', async () => ({mode: 'pair'}));
 
         session.setHandler('start_detection', async () => {
             if (!detectionRunning) {
@@ -306,15 +341,10 @@ class NibeSDriver extends Driver {
 
         session.setHandler('get_detection', async () => detection);
 
-        session.setHandler('selection_done', async (raw) => {
-            pairSelection = NibeSDriver.cleanSelection(raw);
-            this.log('onPair: selection:', JSON.stringify(pairSelection));
-            return true;
-        });
-
-        // Called by the list_devices pair template; offers main + detected function devices.
-        session.setHandler('list_devices', async () =>
-            this.buildDevices(ipAddress!, pairSelection ?? NibeSDriver.cleanSelection({groups: {}})));
+        // The device-picker view renders these and calls Homey.createDevice() for the
+        // ones the user keeps checked.
+        session.setHandler('get_pairing_devices', async () =>
+            this.pairingCandidates(ipAddress!, detection));
     }
 
     async onRepair(session: PairSession, device: any): Promise<void> {

@@ -58,10 +58,21 @@
       "searching": "Searching your network for Nibe heat pumps…",
       "found": "Select your heat pump",
       "none_found": "No heat pump found automatically. Check that Modbus TCP is enabled on the pump (menu 7.5.9) or enter its IP address below.",
-      "manual": "Or enter the IP address manually",
+      "manual": "Enter the IP address manually",
       "refresh": "Search again",
       "pump": "Nibe heat pump",
-      "outdoor": "Outdoor temperature"
+      "outdoor": "Outdoor temperature",
+      "title": "Find your heat pump",
+      "connecting": "Found your pump — connecting…"
+    },
+    "devices": {
+      "title": "Add devices",
+      "intro": "Each function of your pump becomes its own device. The ones we found live data for are checked, but you can add any of them.",
+      "add": "Add selected devices",
+      "detected": "Data detected",
+      "notdetected": "No data",
+      "select_one": "Select at least one device to add.",
+      "main_desc": "Overview: outdoor temperature, operating priority and mode, plus diagnostics and statistics"
     }
   },
   "groups": {

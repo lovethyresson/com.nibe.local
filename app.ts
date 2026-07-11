@@ -1,11 +1,11 @@
 import Homey from 'homey';
 
-class MyApp extends Homey.App {
+class NibeApp extends Homey.App {
 
   async onInit() {
-    this.log('MyApp has been initialized');
+    this.log('Nibe Heatpumps app has been initialized');
   }
 
 }
 
-module.exports = MyApp;
+module.exports = NibeApp;
