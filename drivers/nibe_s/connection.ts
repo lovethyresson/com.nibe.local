@@ -2,7 +2,7 @@ import net from 'net';
 import {ModbusTCPClient} from 'jsmodbus';
 import {Dir, Register, registerByName} from './registers';
 import {Role, priorityToRole} from './roles';
-import {DetectionResult, readNumeric, recommendGroups, sampleRegisters} from './detection';
+import {DetectionResult, buildDetectionResult, readNumeric, sampleRegisters} from './detection';
 
 // A Nibe pump accepts only a single Modbus TCP client, but the app now
 // pairs several logical devices (main + heating/hot water/pool/cooling) that all
@@ -264,7 +264,7 @@ export class PumpConnection {
         if (!this.connected)
             throw new Error('Not connected to the heat pump');
         const probes = await sampleRegisters((register) => readNumeric(this.client, register), onProgress);
-        return {recommendations: recommendGroups(probes)};
+        return buildDetectionResult(probes);
     }
 
     isConnected(): boolean {

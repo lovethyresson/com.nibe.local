@@ -63,7 +63,8 @@
       "pump": "Nibe heat pump",
       "outdoor": "Outdoor temperature",
       "title": "Find your heat pump",
-      "connecting": "Found your pump — connecting…"
+      "connecting": "Found your pump — connecting…",
+      "confirm": "Found your heat pump — tap to confirm"
     },
     "devices": {
       "title": "Add devices",

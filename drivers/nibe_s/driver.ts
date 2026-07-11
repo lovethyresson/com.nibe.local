@@ -225,7 +225,12 @@ class NibeSDriver extends Driver {
     private deviceTemplate(ip: string, role: Role, recommendations: Recommendations) {
         const language = this.homey.i18n.getLanguage();
         const selection = NibeSDriver.roleSelection(role, recommendations);
-        const roleRegs = registersForRole(role, selection);
+        // Order capabilities by the role's group order (stable within a group) so that,
+        // e.g., the heating device's ventilation/FTX capabilities are grouped together
+        // at the end rather than interleaved with the heating ones.
+        const groupOrder = roleGroups[role] as GroupId[];
+        const roleRegs = registersForRole(role, selection)
+            .sort((a, b) => groupOrder.indexOf(a.group) - groupOrder.indexOf(b.group));
         const options: {[name: string]: any} = {};
         for (const register of roleRegs)
             if ((capabilitiesOptions as any)[register.name])
@@ -259,19 +264,29 @@ class NibeSDriver extends Driver {
     // for this pump are omitted, so re-running pairing only offers the missing ones.
     private pairingCandidates(ip: string, detection: DetectionResult | null) {
         const recommendations = detection?.recommendations ?? {};
+        const samples = detection?.samples ?? {};
         const paired = new Set(this.getDevices().map((device) => String(device.getData().id)));
         return ([...['main'] as Role[], ...functionRoles])
             .filter((role) => !paired.has(`${ip}#${role}`))
-            .map((role) => ({
-                role,
-                name: roleNames[role][this.homey.i18n.getLanguage() as 'en' | 'sv'] || roleNames[role].en,
-                description: this.roleDescription(role),
-                detected: role === 'main'
-                    ? true
-                    : (roleGroups[role] as GroupId[])
-                        .some((group) => group !== 'core' && recommendations[group]?.recommended),
-                device: this.deviceTemplate(ip, role, recommendations)
-            }));
+            .map((role) => {
+                const selection = NibeSDriver.roleSelection(role, recommendations);
+                return {
+                    role,
+                    name: roleNames[role][this.homey.i18n.getLanguage() as 'en' | 'sv'] || roleNames[role].en,
+                    description: this.roleDescription(role),
+                    detected: role === 'main'
+                        ? true
+                        : (roleGroups[role] as GroupId[])
+                            .some((group) => group !== 'core' && recommendations[group]?.recommended),
+                    device: this.deviceTemplate(ip, role, recommendations),
+                    // Per-register detail for the "click to expand" section: which of this
+                    // device's registers actually returned data during detection.
+                    registers: registersForRole(role, selection).map((register) => ({
+                        title: this.regToAutofill(register).name,
+                        detected: samples[register.name]?.read ?? false
+                    }))
+                };
+            });
     }
 
     async onPair(session: PairSession): Promise<void> {
@@ -335,7 +350,7 @@ class NibeSDriver extends Driver {
                     });
             }
             detection = await detectionRunning;
-            this.log('Detection result:', JSON.stringify(detection));
+            this.log('Detection result:', JSON.stringify(detection.recommendations));
             return detection;
         });
 
@@ -368,7 +383,7 @@ class NibeSDriver extends Driver {
                     });
             }
             detection = await detectionRunning;
-            this.log('Repair detection result:', JSON.stringify(detection));
+            this.log('Repair detection result:', JSON.stringify(detection?.recommendations));
             return detection;
         });
 

@@ -1,10 +1,8 @@
 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <path fill="#111111" fill-rule="evenodd" d="M18 24h64a9 9 0 0 1 9 9v34a9 9 0 0 1-9 9H18a9 9 0 0 1-9-9V33a9 9 0 0 1 9-9Zm3 9v34h58V33H21Z"/>
-    <rect x="27" y="40" width="30" height="5" rx="2.5" fill="#111111"/>
-    <rect x="27" y="49" width="30" height="5" rx="2.5" fill="#111111"/>
-    <rect x="27" y="58" width="21" height="5" rx="2.5" fill="#111111"/>
-    <circle cx="67" cy="55" r="8.5" fill="none" stroke="#111111" stroke-width="4"/>
-    <circle cx="67" cy="55" r="2.6" fill="#111111"/>
-    <g fill="none" stroke="#111111" stroke-width="4" stroke-linecap="round">
-      <path d="M31 18c4-4 4-7 0-11"/><path d="M45 18c4-4 4-7 0-11"/><path d="M59 18c4-4 4-7 0-11"/>
-    </g></svg>
+    <!-- Ground-source heat pump cabinet: tall body, dark top panel, centre seam, feet -->
+    <rect x="32" y="10" width="36" height="74" rx="7" fill="none" stroke="#111111" stroke-width="4"/>
+    <path d="M36 12h24a4 4 0 0 1 4 4v7H32v-7a4 4 0 0 1 4-4Z" fill="#111111"/>
+    <line x1="50" y1="27" x2="50" y2="80" stroke="#111111" stroke-width="2.5"/>
+    <rect x="37" y="84" width="7" height="5" rx="1.5" fill="#111111"/>
+    <rect x="56" y="84" width="7" height="5" rx="1.5" fill="#111111"/>
+</svg>

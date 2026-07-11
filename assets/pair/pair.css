@@ -198,6 +198,30 @@ body {
     font-size: 0.9em;
 }
 
+.register-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    font-size: 0.88em;
+    padding: 0.22em 0;
+}
+
+.reg-dot {
+    flex: none;
+    width: 0.55em;
+    height: 0.55em;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.reg-dot-on {
+    background: #1a9e5a;
+}
+
+.reg-dot-off {
+    background: rgba(128, 128, 128, 0.4);
+}
+
 .register-desc {
     font-size: 0.85em;
     opacity: 0.6;

@@ -32,6 +32,16 @@ function render() {
         badge.textContent = Homey.__(candidate.detected ? 'pair.devices.detected' : 'pair.devices.notdetected');
         row.appendChild(badge);
 
+        var hasRegisters = candidate.registers && candidate.registers.length;
+        var expand = null;
+        if (hasRegisters) {
+            expand = document.createElement('a');
+            expand.href = '#';
+            expand.className = 'expand';
+            expand.textContent = '▸';
+            row.appendChild(expand);
+        }
+
         item.appendChild(row);
 
         if (candidate.description) {
@@ -39,6 +49,28 @@ function render() {
             desc.className = 'register-desc';
             desc.textContent = candidate.description;
             item.appendChild(desc);
+        }
+
+        if (hasRegisters) {
+            var details = document.createElement('div');
+            details.className = 'registers';
+            details.style.display = 'none';
+            candidate.registers.forEach(function (reg) {
+                var line = document.createElement('div');
+                line.className = 'register-line';
+                var dot = document.createElement('span');
+                dot.className = 'reg-dot ' + (reg.detected ? 'reg-dot-on' : 'reg-dot-off');
+                line.appendChild(dot);
+                line.appendChild(document.createTextNode(' ' + reg.title));
+                details.appendChild(line);
+            });
+            item.appendChild(details);
+            expand.onclick = function (e) {
+                e.preventDefault();
+                var open = details.style.display !== 'none';
+                details.style.display = open ? 'none' : 'block';
+                expand.textContent = open ? '▸' : '▾';
+            };
         }
 
         list.appendChild(item);

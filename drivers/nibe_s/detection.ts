@@ -28,8 +28,24 @@ export interface GroupRecommendation {
 
 export type Recommendations = Partial<Record<GroupId, GroupRecommendation>>;
 
+export interface RegisterSample {
+    read: boolean;       // was ever read successfully
+    moved: boolean;      // value changed during sampling
+    value?: number;      // last sampled numeric value
+}
+
 export interface DetectionResult {
     recommendations: Recommendations;
+    samples: Record<string, RegisterSample>;
+}
+
+// Bundle the group recommendations with the per-register sample detail (used by the
+// pairing device picker to show which of a device's registers actually had data).
+export function buildDetectionResult(probes: ProbeSamples): DetectionResult {
+    const samples: Record<string, RegisterSample> = {};
+    for (const [name, probe] of Object.entries(probes))
+        samples[name] = {read: probe.reads > 0, moved: probe.moved, value: probe.last};
+    return {recommendations: recommendGroups(probes), samples};
 }
 
 export async function readNumeric(client: ModbusTCPClient, register: Register): Promise<number | undefined> {
@@ -90,11 +106,12 @@ export function recommendGroups(probes: ProbeSamples): Recommendations {
         pool: () =>
             value("onoff.h691_pool_active") === 1
             || inRange("measure_temperature.i27_pool", 5, 45),
-        // Cooling rarely toggles during the short sampling window, so reaching this
-        // fallback at all means the cooling enable register read successfully — i.e.
-        // the pump exposes the cooling accessory. Recommend it regardless of on/off so
-        // its energy can be tracked whenever cooling is even possible.
-        cooling: () => true,
+        // The cooling enable register (h182) reads successfully on essentially every
+        // S-series pump whether or not cooling hardware is fitted, so it can't confirm
+        // cooling support. Only recommend cooling when the pump is actually prioritising
+        // cooling during sampling (priority == 60); otherwise it stays available but
+        // un-checked, so a pump without cooling doesn't get a false match.
+        cooling: () => value("measure_enum_NIBE.i1028_priority") === 60,
         ventilation: () =>
             inRange("measure_temperature.i19_return_air", 5, 40)
             || inRange("measure_temperature.i20_supply_air", -25, 40),
@@ -150,7 +167,7 @@ export async function probeHost(
     });
     try {
         const probes = await sampleRegisters((register) => readNumeric(client, register), onProgress);
-        return {recommendations: recommendGroups(probes)};
+        return buildDetectionResult(probes);
     } finally {
         socket.removeAllListeners();
         socket.end();

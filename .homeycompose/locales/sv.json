@@ -46,6 +46,7 @@
     "discover": {
       "title": "Hitta din värmepump",
       "connecting": "Hittade din värmepump — ansluter…",
+      "confirm": "Hittade din värmepump — tryck för att bekräfta",
       "searching": "Söker efter Nibe-värmepumpar i ditt nätverk…",
       "found": "Välj din värmepump",
       "none_found": "Ingen värmepump hittades automatiskt. Kontrollera att Modbus TCP är aktiverat på pumpen (meny 7.5.9) eller ange IP-adressen nedan.",

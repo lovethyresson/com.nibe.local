@@ -1,5 +1,5 @@
 {
-  "id": "com.lovethyresson.nibe-mm",
+  "id": "com.nibe.local",
   "version": "0.5.0",
   "compatibility": ">=12.4.5",
   "sdk": 3,
@@ -18,10 +18,10 @@
     "climate"
   ],
   "permissions": [],
-  "homepage": "https://github.com/lovethyresson/com.lovethyresson.nibe-mm",
-  "source": "https://github.com/lovethyresson/com.lovethyresson.nibe-mm",
+  "homepage": "https://github.com/lovethyresson/com.nibe.local",
+  "source": "https://github.com/lovethyresson/com.nibe.local",
   "bugs": {
-    "url": "https://github.com/lovethyresson/com.lovethyresson.nibe-mm/issues"
+    "url": "https://github.com/lovethyresson/com.nibe.local/issues"
   },
   "brandColor": "#DD1111",
   "images": {

@@ -63,7 +63,8 @@
       "pump": "Nibe värmepump",
       "outdoor": "Utetemperatur",
       "title": "Hitta din värmepump",
-      "connecting": "Hittade din värmepump — ansluter…"
+      "connecting": "Hittade din värmepump — ansluter…",
+      "confirm": "Hittade din värmepump — tryck för att bekräfta"
     },
     "devices": {
       "title": "Lägg till enheter",

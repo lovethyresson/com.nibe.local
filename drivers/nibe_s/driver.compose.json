@@ -207,8 +207,8 @@
     },
     "measure_enum_NIBE.h697_onetimeincrease_hotwater": {
       "title": {
-        "en": "One-time increase h",
-        "sv": "Engångshöjning h"
+        "en": "One-time increase (status)",
+        "sv": "Engångshöjning (status)"
       }
     },
 
@@ -300,8 +300,8 @@
     },
     "hotwater_increase_NIBE.h697_onetimeincrease_hotwater": {
       "title": {
-        "en": "Hotwater onetime increase",
-        "sv": "Varmvatten engångshöjning"
+        "en": "One-time increase",
+        "sv": "Engångshöjning"
       }
     },
 

@@ -83,14 +83,12 @@ export const roleNames: Record<Role, {en: string; sv: string}> = {
     cooling: {en: "Nibe Cooling", sv: "Nibe Kyla"}
 };
 
-export function energyTitle(role: Role): {en: string; sv: string} {
-    const name = {heating: {en: "heating", sv: "värme"}, hotwater: {en: "hot water", sv: "varmvatten"},
-        pool: {en: "pool", sv: "pool"}, cooling: {en: "cooling", sv: "kyla"}, main: {en: "", sv: ""}}[role];
-    return {en: `Energy (${name.en})`, sv: `Energi (${name.sv})`};
+// Each device carries these separately, so no per-role qualifier is needed — the
+// power title matches the pump's own "Current power" (i2166) for consistency.
+export function energyTitle(_role: Role): {en: string; sv: string} {
+    return {en: "Total Energy", sv: "Total energi"};
 }
 
-export function powerTitle(role: Role): {en: string; sv: string} {
-    const name = {heating: {en: "heating", sv: "värme"}, hotwater: {en: "hot water", sv: "varmvatten"},
-        pool: {en: "pool", sv: "pool"}, cooling: {en: "cooling", sv: "kyla"}, main: {en: "", sv: ""}}[role];
-    return {en: `Power (${name.en})`, sv: `Effekt (${name.sv})`};
+export function powerTitle(_role: Role): {en: string; sv: string} {
+    return {en: "Current power", sv: "Momentan effekt"};
 }

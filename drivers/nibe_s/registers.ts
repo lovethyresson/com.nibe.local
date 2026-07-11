@@ -219,7 +219,7 @@ export const registers: Register[] = [
 
     // On / Off delar på kortet
     // On / Off Nattsvalka
-    {address:  227, name: "onoff.h227_nightchill",                            direction: Dir.Out, group: "ventilation", bool: true, // Nattsvalka 1
+    {address:  227, name: "onoff.h227_nightchill",                            direction: Dir.Out, group: "cooling",     bool: true, // Nattsvalka 1
      info: {en: "Night cooling using the exhaust air fan", sv: "Nattsvalka med hjälp av frånluftsfläkten"}},
     // On / Off Periodiskt varmvatten
     {address:   65, name: "onoff.h65_periodic_hotwater",                      direction: Dir.Out, group: "hotwater",   bool: true, // Periodisk varmvatten
@@ -246,7 +246,7 @@ export const registers: Register[] = [
     {address:   92, name: "hotwater_periodtime_NIBE.h92_periodtime_hotwater", direction: Dir.Out, group: "hotwater",   picker: true, // Periodiskt varmvatten längd i minuter
      info: {en: "Selector for the periodic hot water boost duration", sv: "Väljare för den periodiska varmvattenhöjningens längd"}},
 
-    {address:  180, name: "onoff.h180_enable_addition",                       direction: Dir.Out, group: "core",       bool: true, // Tillåt tillsats
+    {address:  180, name: "onoff.h180_enable_addition",                       direction: Dir.Out, group: "heating",    bool: true, // Tillåt tillsats
      info: {en: "Allow the electric additive heater", sv: "Tillåt eltillsatsen"}},
     {address:  181, name: "onoff.h181_enable_heating",                        direction: Dir.Out, group: "heating",    bool: true, // Tillåt värme
      info: {en: "Allow heating operation", sv: "Tillåt värmedrift"}},

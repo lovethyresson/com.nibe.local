@@ -111,13 +111,11 @@
                 manualEl.open = true;
                 return;
             }
-            if (pumps.length === 1) {
-                // Exactly one pump — no need to make the user pick. Go straight on.
-                statusEl.textContent = Homey.__('pair.discover.connecting');
-                proceedWith(pumps[0].address);
-                return;
-            }
-            statusEl.textContent = Homey.__('pair.discover.found');
+            // Show the found pump(s) with their IP and let the user confirm by tapping,
+            // rather than auto-advancing — so the device and address can be verified.
+            statusEl.textContent = pumps.length === 1
+                ? Homey.__('pair.discover.confirm')
+                : Homey.__('pair.discover.found');
             renderPumps(pumps);
         });
     }

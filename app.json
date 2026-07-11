@@ -1,6 +1,6 @@
 {
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
-  "id": "com.lovethyresson.nibe-mm",
+  "id": "com.nibe.local",
   "version": "0.5.0",
   "compatibility": ">=12.4.5",
   "sdk": 3,
@@ -19,10 +19,10 @@
     "climate"
   ],
   "permissions": [],
-  "homepage": "https://github.com/lovethyresson/com.lovethyresson.nibe-mm",
-  "source": "https://github.com/lovethyresson/com.lovethyresson.nibe-mm",
+  "homepage": "https://github.com/lovethyresson/com.nibe.local",
+  "source": "https://github.com/lovethyresson/com.nibe.local",
   "bugs": {
-    "url": "https://github.com/lovethyresson/com.lovethyresson.nibe-mm/issues"
+    "url": "https://github.com/lovethyresson/com.nibe.local/issues"
   },
   "brandColor": "#DD1111",
   "images": {
@@ -685,8 +685,8 @@
         },
         "measure_enum_NIBE.h697_onetimeincrease_hotwater": {
           "title": {
-            "en": "One-time increase h",
-            "sv": "Engångshöjning h"
+            "en": "One-time increase (status)",
+            "sv": "Engångshöjning (status)"
           }
         },
         "measure_frequency.i1046_compressor": {
@@ -771,8 +771,8 @@
         },
         "hotwater_increase_NIBE.h697_onetimeincrease_hotwater": {
           "title": {
-            "en": "Hotwater onetime increase",
-            "sv": "Varmvatten engångshöjning"
+            "en": "One-time increase",
+            "sv": "Engångshöjning"
           }
         },
         "hotwater_periodtime_NIBE.h92_periodtime_hotwater": {

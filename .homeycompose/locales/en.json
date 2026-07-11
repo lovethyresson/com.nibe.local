@@ -47,6 +47,7 @@
       "title": "Find your heat pump",
       "searching": "Searching your network for Nibe heat pumps…",
       "connecting": "Found your pump — connecting…",
+      "confirm": "Found your heat pump — tap to confirm",
       "found": "Select your heat pump",
       "none_found": "No heat pump found automatically. Check that Modbus TCP is enabled on the pump (menu 7.5.9) or enter its IP address below.",
       "manual": "Enter the IP address manually",
