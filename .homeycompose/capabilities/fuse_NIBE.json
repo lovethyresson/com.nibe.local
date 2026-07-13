@@ -1,0 +1,11 @@
+{
+  "type": "number",
+  "title": { "en": "Fuse", "sv": "Säkring" },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "units": { "en": "A" },
+  "decimals": 0,
+  "insights": false,
+  "icon": "/assets/images/pump.svg"
+}

@@ -13,6 +13,10 @@ var barEl = document.getElementById('bar');
 var errorEl = document.getElementById('error');
 var retryEl = document.getElementById('retry');
 
+// Ensure the fill is visible even if the stylesheet's CSS variable doesn't resolve
+// in the pairing webview (the reason the bar looked empty despite updating).
+barEl.style.background = '#dd1111';
+
 // Default to the pairing device picker; get_context tells us if we're repairing.
 var nextView = 'devices';
 

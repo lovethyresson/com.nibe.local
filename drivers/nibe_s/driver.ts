@@ -10,7 +10,7 @@ import {
 import {
     ACTIVE_POWER_CAPABILITY, METER_CAPABILITY, Role,
     energyTitle, extraCapabilities, functionRoles, powerTitle,
-    registersForRole, roleGroups, roleNames, roleOf, roleRegisters
+    registersForRole, roleClass, roleGroups, roleNames, roleOf, roleRegisters
 } from './roles';
 import {DetectionResult, Recommendations, RegisterSample, probeHost} from './detection';
 import {destroyAllConnections, existingConnection} from './connection';
@@ -250,10 +250,11 @@ class NibeSDriver extends Driver {
             options[extra] = this.extraOption(role, extra);
         return {
             name: roleNames[role][language as 'en' | 'sv'] || roleNames[role].en,
+            class: roleClass[role],
             data: {id: `${ip}#${role}`, role},
             settings: {address: ip},
             store: {selection},
-            icon: `/drivers/nibe_s/assets/${role}.svg`,
+            icon: `/${role}.svg`,
             capabilities: [...roleRegs.map((r) => r.name), ...extraCapabilities(role)],
             capabilitiesOptions: options
         };

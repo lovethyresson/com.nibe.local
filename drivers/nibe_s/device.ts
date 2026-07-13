@@ -1,9 +1,9 @@
 import {Device} from 'homey';
 import {capabilitiesOptions} from './driver.compose.json';
-import {Dir, Register, Selection, staticRegisters} from './registers';
+import {Dir, Register, Selection} from './registers';
 import {
     ACTIVE_POWER_CAPABILITY, METER_CAPABILITY, Role,
-    energyTitle, extraCapabilities, powerTitle, registersForRole, roleOf, roleRegisters
+    energyTitle, extraCapabilities, powerTitle, registersForRole, roleClass, roleOf, roleRegisters
 } from './roles';
 import {PumpConnection, PumpSubscriber} from './connection';
 
@@ -29,6 +29,10 @@ class NibeSDevice extends Device implements PumpSubscriber {
     private fromRegisterValue(register: Register, value: number) {
         if (value >= 32768)
             value -= 65536;
+        // -32768 (0x8000) is Nibe's "value not available" sentinel (e.g. a room sensor
+        // that isn't wired to Modbus). Show it as no value ("-") rather than -3276.8.
+        if (value === -32768)
+            return null;
         if (register.scale)
             return value / register.scale;
         if (register.enum)
@@ -36,7 +40,7 @@ class NibeSDevice extends Device implements PumpSubscriber {
         if (register.picker)
             return "" + value;
         if (register.bool)
-            return value === 1;
+            return value !== (register.offValue ?? 0);
         return value;
     }
 
@@ -50,7 +54,7 @@ class NibeSDevice extends Device implements PumpSubscriber {
         if (register.enum)
             return parseInt(Object.entries(register.enum).filter(pair => pair[1] == value)[0][0]);
         if (register.bool)
-            return value ? 1 : 0;
+            return value ? (register.onValue ?? 1) : (register.offValue ?? 0);
         return value;
     }
 
@@ -157,23 +161,14 @@ class NibeSDevice extends Device implements PumpSubscriber {
         return this.connection.probe(onProgress);
     }
 
-    // Static configuration registers (fuse size etc.) are shown as read-only labels in
-    // the advanced settings instead of capabilities. Main device only.
-    private async updateStaticSettings() {
-        if (!this.connection)
-            return;
-        for (const staticRegister of staticRegisters) {
-            const raw = await this.connection.readRegisterRaw(
-                {address: staticRegister.address, direction: staticRegister.direction} as Register);
-            if (raw !== undefined)
-                await this.setSettings({[staticRegister.settingId]: staticRegister.format(raw)})
-                    .catch(this.error);
-        }
-    }
-
     async onInit() {
         this.role = roleOf(this.getData());
         this.log(`NibeSDevice initialised (role ${this.role})`);
+
+        // Keep the device class in sync (heater/boiler/other) — also fixes up devices
+        // paired before per-role classes existed.
+        if (this.getClass() !== roleClass[this.role])
+            await this.setClass(roleClass[this.role]).catch(this.error);
 
         if (this.role !== 'main')
             this.cumulativeEnergy = this.getSettings().cumulativeEnergy || 0;
@@ -187,7 +182,7 @@ class NibeSDevice extends Device implements PumpSubscriber {
         // every role register (not just the currently enabled ones) so a capability
         // enabled later via repair works without an app restart.
         for (const register of roleRegisters(this.role)) {
-            if (register.direction === Dir.Out) {
+            if (register.direction === Dir.Out && !register.noAction) {
                 this.registerCapabilityListener(register.name, async (value) => {
                     await this.writeRegister(register, value);
                     this.checkTrigger(register, value);
@@ -211,8 +206,6 @@ class NibeSDevice extends Device implements PumpSubscriber {
 
     onConnectionUp() {
         this.setAvailable().catch(this.error);
-        if (this.role === 'main')
-            this.updateStaticSettings().catch(this.error);
     }
 
     onConnectionDown() {

@@ -47,7 +47,7 @@ body {
     height: 100%;
     width: 0;
     border-radius: 3px;
-    background: var(--accent);
+    background: #dd1111;
     transition: width 0.4s ease;
 }
 

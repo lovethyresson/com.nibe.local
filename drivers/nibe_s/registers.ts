@@ -78,6 +78,10 @@ export interface Register  {
     scale?: number
     enum?: Record<number, string>
     bool?: boolean;
+    // For bool registers whose raw on/off values aren't 1/0 (e.g. the "More hot water"
+    // boost writes 2 = one-time increase 1h, 0 = off).
+    onValue?: number;
+    offValue?: number;
     picker?: boolean;
     noAction?: boolean;
     min?: number;
@@ -88,7 +92,7 @@ export const registers: Register[] = [
     // Rad 1 Temp
     {address:    1, name: "measure_temperature.i1_outside",         direction: Dir.In,  group: "core",        scale:  10, // Aktuell utetemperatur (BT1)
      info: {en: "Current outdoor temperature (sensor BT1)", sv: "Aktuell utetemperatur (givare BT1)"}},
-    {address:   26, name: "measure_temperature.i26_inside",         direction: Dir.In,  group: "heating",     scale:  10, // Rumsensor 1 inomhus
+    {address:  111, name: "measure_temperature.i26_inside",         direction: Dir.In,  group: "heating",     scale:  10, // Rumstemperatur (BT50) — reg 111, not 26
      info: {en: "Indoor temperature from room sensor 1 (BT50)", sv: "Inomhustemperatur från rumsgivare 1 (BT50)"}},
     // Rad 2 Framledning
     {address: 1017, name: "measure_temperature.i1017_calculated_supply", direction: Dir.In, group: "heating", scale:  10, // Beräknad framledning klimatsystem 1
@@ -143,6 +147,10 @@ export const registers: Register[] = [
     // Rad 12 Eltillsats
     {address: 1029, name: "measure_count_NIBE.i1029_additive_heat_steps",     direction: Dir.In,  group: "core",       scale: 1, // Driftläge intern tillsats
      info: {en: "Active steps of the internal electric additive heater", sv: "Aktiva steg för intern eltillsats"}},
+    // Incoming main fuse rating (A). Read-only info on the main device (replaces the old
+    // static setting so it only appears there).
+    {address:  103, name: "fuse_NIBE.h103_fuse",                              direction: Dir.Out, group: "core",       scale: 1, noAction: true, // Säkring inkommande (A)
+     info: {en: "Incoming main fuse rating", sv: "Inkommande huvudsäkring"}},
     // 16-bit raw with scale 100 means the register carries hundredths of a kW (a multi-kW
     // value in watts wouldn't fit 16 bits), so scale 0.1 converts that to plain watts to
     // match the other measure_watt_NIBE power registers. Retyped off meter_power so it no
@@ -173,8 +181,11 @@ export const registers: Register[] = [
     // Rad 17 Varmvatten
     {address:   56, name: "measure_enum_NIBE.h56_hotwater_demand_mode",       direction: Dir.Out, group: "hotwater",   enum: hotwaterMap, // Varmvatten behovsläge RW
      info: {en: "Hot water demand mode (small/medium/large/smart)", sv: "Varmvattnets behovsläge (litet/medel/stort/smart)"}},
-    {address:  697, name: "measure_enum_NIBE.h697_onetimeincrease_hotwater",  direction: Dir.Out, group: "hotwater",   enum: onetimeincreaseMap, // Mer varmvatten engångshöjning
-     info: {en: "Temporary one-time hot water boost", sv: "Tillfällig engångshöjning av varmvatten"}},
+    // "More hot water" quick action: on = one-time increase for 1h (raw 2), off = raw 0.
+    // Exposed as the plain `onoff` so it becomes the Hot Water tile's primary toggle;
+    // the duration picker below is the secondary control for the same register.
+    {address:  697, name: "onoff",                                            direction: Dir.Out, group: "hotwater",   bool: true, onValue: 2, offValue: 0, // Mer varmvatten engångshöjning
+     info: {en: "More hot water: a one-time 1-hour boost", sv: "Mer varmvatten: en engångshöjning på 1 timme"}},
     // Rad 18 Periodisk varmvatten höjning
     {address:   65, name: "measure_enum_NIBE.h65_periodic_hotwater",          direction: Dir.Out, group: "hotwater",   enum: booleanMap, // Periodisk varmvatten
      info: {en: "Periodic hot water boost on/off (status)", sv: "Periodisk varmvattenhöjning av/på (status)"}},
@@ -263,25 +274,6 @@ export function isAdjustable(register: Register): boolean {
     return register.direction === Dir.Out && !register.noAction;
 }
 
-// Registers whose values are static configuration rather than something worth
-// monitoring. They are surfaced as read-only labels in the device's advanced
-// settings instead of capabilities.
-export interface StaticRegister {
-    address: number;
-    direction: Dir;
-    settingId: string;
-    format: (raw: number) => string;
-}
-
-export const staticRegisters: StaticRegister[] = [
-    // Säkring inkommande (A)
-    {address: 103, direction: Dir.Out, settingId: "fuse_size", format: (raw) => `${raw} A`},
-    // Periodiskt varmvatten start, sekunder efter midnatt
-    {address:  67, direction: Dir.Out, settingId: "periodic_hotwater_start", format: (raw) => {
-        const pad = (n: number) => String(n).padStart(2, "0");
-        return `${pad(Math.floor(raw / 3600))}:${pad(Math.floor((raw % 3600) / 60))}`;
-    }}
-];
 
 // Convert a raw 16-bit register value to a plain number (sign + scale only, no
 // enum/bool mapping) — used by detection sampling where only numeric movement

@@ -8,6 +8,16 @@ export type Role = "main" | "heating" | "hotwater" | "pool" | "cooling";
 
 export const functionRoles: Role[] = ["heating", "hotwater", "pool", "cooling"];
 
+// Homey device class per role. `heater`/`boiler` give the tile its primary on/off
+// control and dim-when-off state; there's no cooler/pool class so those stay "other".
+export const roleClass: Record<Role, string> = {
+    main: "other",
+    heating: "heater",
+    hotwater: "boiler",
+    pool: "other",
+    cooling: "other"
+};
+
 // Which feature groups belong to each role. Ventilation (FTX) folds into heating
 // rather than getting its own device: its fan runs year-round and its draw is part
 // of the building-heating side. Groups not listed here (core) stay on "main".

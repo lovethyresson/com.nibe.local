@@ -43,6 +43,7 @@
 
     "measure_count_NIBE.i1029_additive_heat_steps",
     "measure_watt_NIBE.i1027_additive_effect",
+    "fuse_NIBE.h103_fuse",
 
     "measure_hour_NIBE.i1025_additive_usage_total",
     "measure_hour_NIBE.i1069_additive_usage_hotwater",
@@ -57,7 +58,7 @@
     "measure_count_NIBE.h30_heat_curve_displacement",
 
     "measure_enum_NIBE.h56_hotwater_demand_mode",
-    "measure_enum_NIBE.h697_onetimeincrease_hotwater",
+    "onoff",
 
     "measure_enum_NIBE.h65_periodic_hotwater",
     "measure_day_NIBE.h66_periodic_hotwater_interval",
@@ -205,10 +206,10 @@
         "sv": "Driftläge"
       }
     },
-    "measure_enum_NIBE.h697_onetimeincrease_hotwater": {
+    "onoff": {
       "title": {
-        "en": "One-time increase (status)",
-        "sv": "Engångshöjning (status)"
+        "en": "More hot water",
+        "sv": "Mer varmvatten"
       }
     },
 
@@ -338,6 +339,12 @@
       "title": {
         "en": "Current power",
         "sv": "Momentan effekt"
+      }
+    },
+    "fuse_NIBE.h103_fuse": {
+      "title": {
+        "en": "Fuse incoming",
+        "sv": "Inkommande säkring"
       }
     },
 
@@ -555,33 +562,6 @@
           "label": {
             "en": "IP address",
             "sv": "IP-adress"
-          },
-          "value": ""
-        }
-      ]
-    },
-    {
-      "type": "group",
-      "label": {
-        "en": "Device information",
-        "sv": "Enhetsinformation"
-      },
-      "children": [
-        {
-          "id": "fuse_size",
-          "type": "label",
-          "label": {
-            "en": "Fuse incoming",
-            "sv": "Inkommande säkring"
-          },
-          "value": ""
-        },
-        {
-          "id": "periodic_hotwater_start",
-          "type": "label",
-          "label": {
-            "en": "Periodic hot water start time",
-            "sv": "Periodiskt varmvatten starttid"
           },
           "value": ""
         }
