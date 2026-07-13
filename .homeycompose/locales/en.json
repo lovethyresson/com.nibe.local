@@ -41,7 +41,8 @@
       "detected": "Data detected",
       "notdetected": "No data",
       "select_one": "Select at least one device to add.",
-      "main_desc": "Overview: outdoor temperature, operating priority and mode, plus diagnostics and statistics"
+      "main_desc": "Overview: outdoor temperature, operating priority and mode, plus diagnostics and statistics",
+      "energy": "Energy"
     },
     "discover": {
       "title": "Find your heat pump",
@@ -57,6 +58,7 @@
     }
   },
   "groups": {
+    "core": "Core sensors",
     "heating": "Heating",
     "hotwater": "Hot water",
     "pool": "Pool",

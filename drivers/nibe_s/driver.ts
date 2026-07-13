@@ -10,9 +10,9 @@ import {
 import {
     ACTIVE_POWER_CAPABILITY, METER_CAPABILITY, Role,
     energyTitle, extraCapabilities, functionRoles, powerTitle,
-    registersForRole, roleGroups, roleNames, roleOf
+    registersForRole, roleGroups, roleNames, roleOf, roleRegisters
 } from './roles';
-import {DetectionResult, Recommendations, probeHost} from './detection';
+import {DetectionResult, Recommendations, RegisterSample, probeHost} from './detection';
 import {destroyAllConnections, existingConnection} from './connection';
 import {discoverPumps} from './discovery';
 
@@ -206,33 +206,44 @@ class NibeSDriver extends Driver {
         return undefined;
     }
 
-    // A device added at pairing carries its role's full capability set (all of the
-    // role's non-core groups, except those detection proved the pump doesn't have
-    // (e.g. no ventilation/FTX sensors), so a device isn't cluttered with capabilities
-    // that will never carry data. Skipped detection (no recommendations) enables all.
-    // The user can still trim or extend a device later via repair.
+    // Default group selection for a freshly paired device: enable the groups detection
+    // recommended (skipped detection → enable all). The device picker lets the user
+    // toggle these per group before adding, and they can change it later via repair.
     private static roleSelection(role: Role, recommendations: Recommendations): Selection {
         const groups: Selection["groups"] = {};
         for (const id of groupIds)
             if ((roleGroups[role] as GroupId[]).includes(id))
-                groups[id] = recommendations[id]?.evidence !== 'unsupported';
+                groups[id] = recommendations[id] ? !!recommendations[id]!.recommended : true;
         return {groups, overrides: {}};
     }
 
     // A Homey pair "device" template for one role of the pump. Each device gets an
     // "<ip>#<role>" data.id, so re-running pairing on the same pump dedups against the
     // devices already added and only offers the missing ones.
-    private deviceTemplate(ip: string, role: Role, recommendations: Recommendations) {
+    private deviceTemplate(ip: string, role: Role, recommendations: Recommendations,
+                           samples: Record<string, RegisterSample>) {
         const language = this.homey.i18n.getLanguage();
         const selection = NibeSDriver.roleSelection(role, recommendations);
+        // Within an enabled group, drop registers that returned no data during detection
+        // so the device doesn't carry dead capabilities (e.g. the FTX air-temperature
+        // sensors on a pump that only exposes the fan-mode register). Recorded as
+        // overrides so they stay off but can be re-enabled later via repair.
+        for (const register of roleRegisters(role)) {
+            if (register.group !== 'core'
+                && selection.groups[register.group]
+                && samples[register.name] && !samples[register.name].read)
+                selection.overrides[register.name] = false;
+        }
         // Order capabilities by the role's group order (stable within a group) so that,
         // e.g., the heating device's ventilation/FTX capabilities are grouped together
         // at the end rather than interleaved with the heating ones.
         const groupOrder = roleGroups[role] as GroupId[];
         const roleRegs = registersForRole(role, selection)
             .sort((a, b) => groupOrder.indexOf(a.group) - groupOrder.indexOf(b.group));
+        // Options for every register the role could carry (not just the default-enabled
+        // ones), so a capability the user enables via the picker still gets its title.
         const options: {[name: string]: any} = {};
-        for (const register of roleRegs)
+        for (const register of roleRegisters(role))
             if ((capabilitiesOptions as any)[register.name])
                 options[register.name] = (capabilitiesOptions as any)[register.name];
         for (const extra of extraCapabilities(role))
@@ -258,6 +269,42 @@ class NibeSDriver extends Driver {
             .join(', ');
     }
 
+    // The feature groups shown (and toggled) under a device in the picker's expand:
+    // each role group plus, for function devices, a fixed "Energy" group listing the
+    // meter/power capabilities. Core and Energy are fixed (always included); the rest
+    // default to whatever detection recommended and can be toggled by the user.
+    private candidateGroups(role: Role, recommendations: Recommendations, samples: Record<string, RegisterSample>) {
+        const lang = this.homey.i18n.getLanguage() as 'en' | 'sv';
+        const groups: any[] = (roleGroups[role] as GroupId[])
+            .map((id) => ({
+                id,
+                name: id === 'core'
+                    ? (this.homey.__('groups.core') || 'Core')
+                    : (this.homey.__(`groups.${id}`) || id),
+                fixed: id === 'core',
+                selected: id === 'core' ? true : !!(recommendations[id] ? recommendations[id]!.recommended : true),
+                caps: registers.filter((register) => register.group === id).map((register) => ({
+                    name: register.name,
+                    title: this.regToAutofill(register).name,
+                    detected: samples[register.name]?.read ?? false
+                }))
+            }))
+            .filter((group) => group.caps.length > 0);
+        if (role !== 'main')
+            groups.push({
+                id: '_energy',
+                name: this.homey.__('pair.devices.energy') || 'Energy',
+                fixed: true,
+                selected: true,
+                caps: extraCapabilities(role).map((cap) => ({
+                    name: cap,
+                    title: (cap === METER_CAPABILITY ? energyTitle(role) : powerTitle(role))[lang],
+                    detected: true
+                }))
+            });
+        return groups;
+    }
+
     // All candidate devices for the picker: main plus every function device, each
     // flagged with whether detection saw live data for it (so the view can highlight
     // and pre-check them while still letting the user add any). Roles already paired
@@ -268,25 +315,18 @@ class NibeSDriver extends Driver {
         const paired = new Set(this.getDevices().map((device) => String(device.getData().id)));
         return ([...['main'] as Role[], ...functionRoles])
             .filter((role) => !paired.has(`${ip}#${role}`))
-            .map((role) => {
-                const selection = NibeSDriver.roleSelection(role, recommendations);
-                return {
-                    role,
-                    name: roleNames[role][this.homey.i18n.getLanguage() as 'en' | 'sv'] || roleNames[role].en,
-                    description: this.roleDescription(role),
-                    detected: role === 'main'
-                        ? true
-                        : (roleGroups[role] as GroupId[])
-                            .some((group) => group !== 'core' && recommendations[group]?.recommended),
-                    device: this.deviceTemplate(ip, role, recommendations),
-                    // Per-register detail for the "click to expand" section: which of this
-                    // device's registers actually returned data during detection.
-                    registers: registersForRole(role, selection).map((register) => ({
-                        title: this.regToAutofill(register).name,
-                        detected: samples[register.name]?.read ?? false
-                    }))
-                };
-            });
+            .map((role) => ({
+                role,
+                name: roleNames[role][this.homey.i18n.getLanguage() as 'en' | 'sv'] || roleNames[role].en,
+                description: this.roleDescription(role),
+                detected: role === 'main'
+                    ? true
+                    : (roleGroups[role] as GroupId[])
+                        .some((group) => group !== 'core' && recommendations[group]?.recommended),
+                device: this.deviceTemplate(ip, role, recommendations, samples),
+                // Feature groups for the "click to expand" section (see candidateGroups).
+                groups: this.candidateGroups(role, recommendations, samples)
+            }));
     }
 
     async onPair(session: PairSession): Promise<void> {

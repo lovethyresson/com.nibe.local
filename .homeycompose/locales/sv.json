@@ -41,7 +41,8 @@
       "detected": "Data hittad",
       "notdetected": "Ingen data",
       "select_one": "Välj minst en enhet att lägga till.",
-      "main_desc": "Översikt: utetemperatur, driftprioritering och driftläge, samt diagnostik och statistik"
+      "main_desc": "Översikt: utetemperatur, driftprioritering och driftläge, samt diagnostik och statistik",
+      "energy": "Energi"
     },
     "discover": {
       "title": "Hitta din värmepump",
@@ -57,6 +58,7 @@
     }
   },
   "groups": {
+    "core": "Grundvärden",
     "heating": "Värme",
     "hotwater": "Varmvatten",
     "pool": "Pool",

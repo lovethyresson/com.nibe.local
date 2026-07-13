@@ -76,7 +76,7 @@ export function roleRegisters(role: Role): Register[] {
 // pairing and on the energy capabilities. Kept here (not in the compose file) because
 // the same capability id (meter_power.total) needs a different title per role device.
 export const roleNames: Record<Role, {en: string; sv: string}> = {
-    main: {en: "Nibe S", sv: "Nibe S"},
+    main: {en: "Nibe Main", sv: "Nibe Main"},
     heating: {en: "Nibe Heating", sv: "Nibe Värme"},
     hotwater: {en: "Nibe Hot Water", sv: "Nibe Varmvatten"},
     pool: {en: "Nibe Pool", sv: "Nibe Pool"},

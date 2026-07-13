@@ -198,6 +198,24 @@ body {
     font-size: 0.9em;
 }
 
+.feature-subgroup {
+    margin: 0.5em 0 0.3em;
+}
+
+.subgroup-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    font-weight: 600;
+    font-size: 0.9em;
+    padding: 0.2em 0;
+}
+
+.feature-subgroup .register-line {
+    margin-left: 1.5em;
+    opacity: 0.85;
+}
+
 .register-line {
     display: flex;
     align-items: center;

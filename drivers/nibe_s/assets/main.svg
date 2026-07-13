@@ -1,8 +1,6 @@
 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <!-- Ground-source heat pump cabinet: tall body, dark top panel, centre seam, feet -->
-    <rect x="32" y="10" width="36" height="74" rx="7" fill="none" stroke="#111111" stroke-width="4"/>
-    <path d="M36 12h24a4 4 0 0 1 4 4v7H32v-7a4 4 0 0 1 4-4Z" fill="#111111"/>
-    <line x1="50" y1="27" x2="50" y2="80" stroke="#111111" stroke-width="2.5"/>
-    <rect x="37" y="84" width="7" height="5" rx="1.5" fill="#111111"/>
-    <rect x="56" y="84" width="7" height="5" rx="1.5" fill="#111111"/>
+    <path d="M20 32 L62 32 L62 90 L20 90 Z" fill="none" stroke="#111111" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M20 32 L36 14 L80 14 L62 32" fill="none" stroke="#111111" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M62 32 L80 14 L80 72 L62 90" fill="none" stroke="#111111" stroke-width="5" stroke-linejoin="round"/>
+    <rect x="29" y="44" width="26" height="17" fill="#111111"/>
 </svg>

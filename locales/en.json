@@ -73,7 +73,8 @@
       "detected": "Data detected",
       "notdetected": "No data",
       "select_one": "Select at least one device to add.",
-      "main_desc": "Overview: outdoor temperature, operating priority and mode, plus diagnostics and statistics"
+      "main_desc": "Overview: outdoor temperature, operating priority and mode, plus diagnostics and statistics",
+      "energy": "Energy"
     }
   },
   "groups": {
@@ -85,6 +86,7 @@
     "electrical": "Current sensors",
     "diagnostics": "Refrigerant diagnostics",
     "statistics": "Runtime statistics",
-    "cooling": "Cooling"
+    "cooling": "Cooling",
+    "core": "Core sensors"
   }
 }
