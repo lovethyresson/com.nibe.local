@@ -4,8 +4,8 @@ A [Homey](https://homey.app/) app that talks **directly to Nibe S-series heat pu
 local network — no MyUplink cloud account required. A single physical pump is paired as **several logical
 devices**, one per function, each with its own capabilities and its own energy meter.
 
-> Forked from [sparud/net.sparud.nibe_s](https://github.com/sparud/net.sparud.nibe_s) (by Jan Sparud, with
-> Kjell Blomberg) and reworked into a local, multi-device app with per-function energy tracking.
+> Forked from [sparud/net.sparud.nibe_s](https://github.com/sparud/net.sparud.nibe_s) (by Jan Sparud) and
+> reworked into a local, multi-device app with per-function energy tracking.
 
 ## Why multiple devices?
 
@@ -56,5 +56,8 @@ Re-run pairing any time to add more function devices to a pump you've already se
 
 - Original app: [Jan Sparud](https://github.com/sparud).
 - Local multi-device rework and per-function energy: Love Thyresson.
+- Register definitions cross-checked against [yozik04/nibe](https://github.com/yozik04/nibe)
+  (GPL-3.0), a per-model Modbus register library for Nibe heat pumps — used as a reference
+  to verify addresses, scales and ranges across the S-series; no code is bundled from it.
 
 Not affiliated with or endorsed by NIBE Energy Systems.

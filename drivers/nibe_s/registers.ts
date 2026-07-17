@@ -169,6 +169,10 @@ export const registers: Register[] = [
     {address:   20, name: "measure_temperature.i20_supply_air",     direction: Dir.In,  group: "ventilation", scale:  10, // Avluft (AZ10-BT21)
      info: {en: "Exhaust air temperature after heat recovery (BT21)", sv: "Avluftstemperatur efter värmeåtervinning (BT21)"}},
     // Rad 11 Frånluft status
+    // scale 100 is a unit conversion, not the register's factor (which is 1): the register
+    // holds a 0..100 percentage, and Homey's official `fan_speed` expects a 0..1 fraction,
+    // so dividing by 100 maps percent -> fraction. Don't "correct" this to 1 against the
+    // open-source datasets — they'd read the raw percent and mis-scale the capability 100x.
     {address:  109, name: "fan_speed.h109_returnair_normal",                  direction: Dir.Out, group: "ventilation", scale: 100, min: 0, max: 1, // Frånluft fläkthastighet normal
      info: {en: "Normal speed of the exhaust air fan", sv: "Frånluftsfläktens normalhastighet"}},
     {address: 1037, name: "measure_enum_NIBE.i1037_return_fan_step",          direction: Dir.In,  group: "ventilation", enum: returnairMap, // Fläktläge 1 0-Normal Övrigt 1-4
@@ -185,6 +189,10 @@ export const registers: Register[] = [
     // match the other measure_watt_NIBE power registers. Retyped off meter_power so it no
     // longer counts as a lifetime energy meter — it's an instantaneous power reading, and
     // keeping any meter_power.* on the main device would pollute Homey's Energy tab.
+    // scale 0.1 is a unit conversion, not the register's factor (which is 100 across every
+    // S-model): the raw value is in units of 0.01 kW, and this capability reports watts, so
+    // raw / 0.1 == raw * 10 == watts. Don't "correct" this to 100 against the open-source
+    // datasets — that would report kW into a watt capability (1000x low).
     {address: 1027, name: "measure_watt_NIBE.i1027_additive_effect",          direction: Dir.In,  group: "core",       scale: 0.1, // Effekt intern tillsats
      info: {en: "Power from the internal electric additive heater", sv: "Effekt från intern eltillsats"}},
     // Rad 13 Eltillsats statistik
@@ -289,9 +297,10 @@ export const registers: Register[] = [
     {address:   92, name: "hotwater_periodtime_NIBE.h92_periodtime_hotwater", direction: Dir.Out, group: "hotwater",   picker: true, // Periodiskt varmvatten längd i minuter
      info: {en: "Selector for the periodic hot water boost duration", sv: "Väljare för den periodiska varmvattenhöjningens längd"}},
 
-    // Setpoints and degree-minute tuning. Ranges are this pump's (S1156/S1255 with the
-    // exhaust-air and pool accessories docked) — the hot water start/stop limits in
-    // particular differ on other S models (S320/S330/S2125 allow up to 70 °C).
+    // Setpoints and degree-minute tuning. Ranges are the maintainer's pump (an S1155) —
+    // the hot water start/stop limits in particular differ on other S models (S320/S330/
+    // S2125 allow up to 70 °C), and the pool/ventilation ranges below come from the manual
+    // rather than hardware, since those accessories aren't docked here to check against.
     {address:   34, name: "target_temperature.h34_min_supply",                direction: Dir.Out, group: "heating",    scale: 10, min: 5, max: 80, // Min framledning klimatsystem 1
      info: {en: "Lowest supply temperature the pump may produce (climate system 1)", sv: "Lägsta framledningstemperatur pumpen får producera (klimatsystem 1)"}},
     {address:   38, name: "target_temperature.h38_max_supply",                direction: Dir.Out, group: "heating",    scale: 10, min: 5, max: 80, // Max framledning klimatsystem 1
@@ -326,8 +335,12 @@ export const registers: Register[] = [
     {address:  197, name: "onoff.h197_alarm_lower_hw_temp",                   direction: Dir.Out, group: "alarm",      bool: true, // Larm vid sänkt VV-temp
      info: {en: "On an alarm, lower the hot water temperature", sv: "Vid larm, sänk varmvattentemperaturen"}},
 
-    {address:  180, name: "onoff.h180_enable_addition",                       direction: Dir.Out, group: "heating",    bool: true, // Tillåt tillsats
-     info: {en: "Allow the electric additive heater", sv: "Tillåt eltillsatsen"}},
+    // The immersion/electric additive heater is a shared resource — it serves heating and
+    // hot water (and electric pool assist), so its on/off lives on "main" alongside the
+    // additive step (i1029) and power (i1027) readouts, not on the heating device. The
+    // per-function permits below (h181 heating, h182 cooling) stay with their function.
+    {address:  180, name: "onoff.h180_enable_addition",                       direction: Dir.Out, group: "core",       bool: true, // Tillåt tillsats
+     info: {en: "Allow the electric immersion/additive heater (heating and hot water)", sv: "Tillåt elpatronen/eltillsatsen (värme och varmvatten)"}},
     {address:  181, name: "onoff.h181_enable_heating",                        direction: Dir.Out, group: "heating",    bool: true, // Tillåt värme
      info: {en: "Allow heating operation", sv: "Tillåt värmedrift"}},
     {address:  182, name: "onoff.h182_enable_cooling",                        direction: Dir.Out, group: "cooling",    bool: true, // Tillåt kyla

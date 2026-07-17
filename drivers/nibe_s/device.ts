@@ -108,8 +108,15 @@ class NibeSDevice extends Device implements PumpSubscriber {
     private async ensureCapabilityOptions(name: string, option: any) {
         if (!option)
             return;
-        const current = this.getCapabilityOptions(name);
-        if (JSON.stringify(current?.title) === JSON.stringify(option.title))
+        const current: any = this.getCapabilityOptions(name) ?? {};
+        // setCapabilityOptions is documented as expensive, so only push when a declared
+        // option actually differs from what's stored. Compare every key we declare
+        // (title, decimals, min/max, uiComponent, insights) rather than just the title —
+        // otherwise a uiComponent/insights change on an already-paired device would be
+        // skipped as long as its title was unchanged, and never take effect.
+        const differs = Object.keys(option).some(
+            (key) => JSON.stringify(current[key]) !== JSON.stringify(option[key]));
+        if (!differs)
             return;
         await this.setCapabilityOptions(name, option);
     }

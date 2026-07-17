@@ -598,6 +598,7 @@
         "en": "Hot water demand mode (small/medium/large/smart).",
         "sv": "Varmvattnets behovsläge (litet/medel/stort/smart)."
       },
+      "$filter": "capabilities=measure_enum_NIBE.h56_hotwater_demand_mode",
       "args": [
         {
           "type": "autocomplete",
@@ -623,6 +624,7 @@
         "en": "Operating mode: auto, manual or additional heat only.",
         "sv": "Driftläge: auto, manuellt eller endast tillsats."
       },
+      "$filter": "capabilities=measure_enum_NIBE.h237_operating_mode",
       "args": [
         {
           "type": "autocomplete",
@@ -819,6 +821,7 @@
         "en": "Hot water demand mode (small/medium/large/smart).",
         "sv": "Varmvattnets behovsläge (litet/medel/stort/smart)."
       },
+      "$filter": "capabilities=measure_enum_NIBE.h56_hotwater_demand_mode",
       "args": [
         {
           "type": "autocomplete",
@@ -844,6 +847,7 @@
         "en": "Operating mode: auto, manual or additional heat only.",
         "sv": "Driftläge: auto, manuellt eller endast tillsats."
       },
+      "$filter": "capabilities=measure_enum_NIBE.h237_operating_mode",
       "args": [
         {
           "type": "autocomplete",
@@ -869,6 +873,7 @@
         "en": "What the pump is producing right now (heating, hot water, pool…).",
         "sv": "Vad pumpen producerar just nu (värme, varmvatten, pool…)."
       },
+      "$filter": "capabilities=measure_enum_NIBE.i1028_priority",
       "args": [
         {
           "type": "autocomplete",
@@ -894,6 +899,7 @@
         "en": "Currently active fan mode.",
         "sv": "Aktivt fläktläge."
       },
+      "$filter": "capabilities=measure_enum_NIBE.i1037_return_fan_step",
       "args": [
         {
           "type": "autocomplete",

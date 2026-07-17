@@ -160,25 +160,26 @@
     "measure_current.i46_sensor_v2": {
       "decimals": 1,
       "title": {
-        "en": "Current sensor BE3 -L3",
-        "sv": "Strömsensor BE3 -L3"
+        "en": "Current sensor L3 (BE3)",
+        "sv": "Strömsensor L3 (BE3)"
       }
     },
     "measure_current.i48_sensor_v2": {
       "decimals": 1,
       "title": {
-        "en": "Current sensor BE2 -L2",
-        "sv": "Strömsensor BE2 -L2"
+        "en": "Current sensor L2 (BE2)",
+        "sv": "Strömsensor L2 (BE2)"
       }
     },
     "measure_current.i50_sensor_v2": {
       "decimals": 1,
       "title": {
-        "en": "Current sensor BE1 -L1",
-        "sv": "Strömsensor BE1 -L1"
+        "en": "Current sensor L1 (BE1)",
+        "sv": "Strömsensor L1 (BE1)"
       }
     },
     "measure_day_NIBE.h66_periodic_hotwater_interval": {
+      "uiComponent": null,
       "title": {
         "en": "Periodic hotwater interval",
         "sv": "Periodiskt varmvatten intervall"
@@ -211,6 +212,7 @@
       }
     },
     "measure_enum_NIBE.h65_periodic_hotwater": {
+      "uiComponent": null,
       "title": {
         "en": "Periodic hot water",
         "sv": "Periodiskt varmvatten"
@@ -262,6 +264,7 @@
     },
 
     "measure_minute_NIBE.h92_periodtime_hotwater": {
+      "uiComponent": null,
       "title": {
         "en": "Period time hotwater",
         "sv": "Periodtid varmvatten"
@@ -270,14 +273,14 @@
 
     "measure_percentage_NIBE.i1102_heating_pump": {
       "title": {
-        "en": "Heating pump",
-        "sv": "Värme-pumphastighet GP1"
+        "en": "Heating pump (GP1)",
+        "sv": "Värme-pumphastighet (GP1)"
       }
     },
     "measure_percentage_NIBE.i1104_source_pump": {
       "title": {
-        "en": "Source pump",
-        "sv": "Köld-pumphastighet GP2"
+        "en": "Source pump (GP2)",
+        "sv": "Köld-pumphastighet (GP2)"
       }
     },
     "fan_speed.h109_returnair_normal": {
@@ -315,6 +318,7 @@
     },
 
     "hotwater_periodtime_NIBE.h92_periodtime_hotwater": {
+      "uiComponent": null,
       "title": {
         "en": "Periodic hotwater length",
         "sv": "Periodiskt varmvatten längd"
@@ -322,6 +326,7 @@
     },
 
     "hotwater_periodic_interval_NIBE.h66_periodic_hw_interval": {
+      "uiComponent": null,
       "title": {
         "en": "Periodic hotwater interval",
         "sv": "Periodiskt varmvatten intervall"
@@ -358,98 +363,98 @@
 
     "measure_temperature.i1_outside": {
       "title": {
-        "en": "Outside temperature",
-        "sv": "Utetemperatur BT1"
+        "en": "Outside temperature (BT1)",
+        "sv": "Utetemperatur (BT1)"
       }
     },
     "measure_temperature.i5_heating_supply": {
       "title": {
-        "en": "Heating supply",
-        "sv": "Framledningstemp.BT2"
+        "en": "Heating supply (BT2)",
+        "sv": "Framledningstemp. (BT2)"
       }
     },
     "measure_temperature.i7_heating_return": {
       "title": {
-        "en": "Heating return",
-        "sv": "Returledningstemp.BT3"
+        "en": "Heating return (BT3)",
+        "sv": "Returledningstemp. (BT3)"
       }
     },
     "measure_temperature.i8_warmwater_top": {
       "title": {
-        "en": "Hotwater top BT7",
-        "sv": "Varmvatten topp BT7"
+        "en": "Hotwater top (BT7)",
+        "sv": "Varmvatten topp (BT7)"
       }
     },
     "measure_temperature.i9_hot_water": {
       "title": {
-        "en": "Hot water",
-        "sv": "Varmvatten laddning BT6"
+        "en": "Hot water charging (BT6)",
+        "sv": "Varmvatten laddning (BT6)"
       }
     },
     "measure_temperature.i10_source_in": {
       "title": {
-        "en": "Groundsource medium - in",
-        "sv": "Köldbärare in BT10"
+        "en": "Groundsource medium - in (BT10)",
+        "sv": "Köldbärare in (BT10)"
       }
     },
     "measure_temperature.i11_source_out": {
       "title": {
-        "en": "Groundsource medium - out",
-        "sv": "Köldbärare ut BT11"
+        "en": "Groundsource medium - out (BT11)",
+        "sv": "Köldbärare ut (BT11)"
       }
     },
     "measure_temperature.i19_return_air": {
       "title": {
         "en": "Extract air (BT20)",
-        "sv": "Frånluft BT20"
+        "sv": "Frånluft (BT20)"
       }
     },
     "measure_temperature.i20_supply_air": {
       "title": {
         "en": "Exhaust air (BT21)",
-        "sv": "Avluft BT21"
+        "sv": "Avluft (BT21)"
       }
     },
     "measure_temperature.i26_inside": {
       "title": {
-        "en": "Room sensor BT50",
+        "en": "Room sensor (BT50)",
         "sv": "Rumstemperatur 1 (BT50)"
       }
     },
     "measure_temperature.i27_pool": {
       "title": {
-        "en": "Pool temperature",
-        "sv": "Pooltemperatur"
+        "en": "Pool temperature (BT51)",
+        "sv": "Pooltemperatur (BT51)"
       }
     },
     "measure_temperature.i12_heating_supply": {
       "title": {
-        "en": "Heating supply BT12",
-        "sv": "Framledning BT12"
+        "en": "Heating supply (BT12)",
+        "sv": "Framledning (BT12)"
       }
     },
     "measure_temperature.i13_discharge": {
       "title": {
-        "en": "Discharge BT14",
-        "sv": "Hetgas BT14"
+        "en": "Discharge (BT14)",
+        "sv": "Hetgas (BT14)"
       }
     },
     "measure_temperature.i14_liquid_line": {
       "title": {
-        "en": "Liquid line BT15",
-        "sv": "Vätskeledning BT15"
+        "en": "Liquid line (BT15)",
+        "sv": "Vätskeledning (BT15)"
       }
     },
     "measure_temperature.i16_suction_gas": {
       "title": {
-        "en": "Suction gas BT17",
-        "sv": "Suggas BT17"
+        "en": "Suction gas (BT17)",
+        "sv": "Suggas (BT17)"
       }
     },
     "measure_temperature.i37_outside_avg": {
       "title": {
-        "en": "Average outside temperature",
-        "sv": "Medeltemp.BT1"
+        "en": "Average outside temperature (BT1)",
+        "sv": "Medeltemp. (BT1)"
       }
     },
     "measure_temperature.i1017_calculated_supply": {
@@ -467,8 +472,8 @@
 
     "measure_water.i40_flow_sensor": {
       "title": {
-        "en": "Flow sensor BF1",
-        "sv": "Flödesgivare BF1"
+        "en": "Flow sensor (BF1)",
+        "sv": "Flödesgivare (BF1)"
       }
     },
 
@@ -490,6 +495,7 @@
       "decimals": 1,
       "min": 5,
       "max": 80,
+      "uiComponent": null,
       "title": {
         "en": "Min supply temperature",
         "sv": "Min framledningstemperatur"
@@ -499,6 +505,7 @@
       "decimals": 1,
       "min": 5,
       "max": 80,
+      "uiComponent": null,
       "title": {
         "en": "Max supply temperature",
         "sv": "Max framledningstemperatur"
@@ -508,6 +515,8 @@
       "decimals": 1,
       "min": -20,
       "max": 40,
+      "uiComponent": null,
+      "insights": false,
       "title": {
         "en": "Auto mode: stop heating above",
         "sv": "Autoläge: stoppa värme över"
@@ -517,6 +526,8 @@
       "decimals": 1,
       "min": -25,
       "max": 40,
+      "uiComponent": null,
+      "insights": false,
       "title": {
         "en": "Auto mode: stop addition above",
         "sv": "Autoläge: stoppa tillsats över"
@@ -556,6 +567,7 @@
       "decimals": 1,
       "min": 5,
       "max": 60,
+      "insights": true,
       "title": {
         "en": "Hot water start temperature",
         "sv": "Varmvatten starttemperatur"
@@ -565,6 +577,7 @@
       "decimals": 1,
       "min": 5,
       "max": 65,
+      "insights": true,
       "title": {
         "en": "Hot water stop temperature",
         "sv": "Varmvatten stopptemperatur"
@@ -609,6 +622,7 @@
       }
     },
     "onoff.h65_periodic_hotwater": {
+      "uiComponent": null,
       "title": {
         "en": "Periodic hotwater",
         "sv": "Periodiskt varmvatten"
@@ -628,7 +642,7 @@
     },
     "onoff.h180_enable_addition": {
       "title": {
-        "en": "Allow additional heating",
+        "en": "Allow immersion heater",
         "sv": "Tillåt elpatron"
       }
     },
