@@ -12,7 +12,7 @@
     <p class="pair-hero-sub detect-status" id="discovery-status"></p>
 </div>
 
-<div class="detect-progress" id="progress" style="display: none"><div class="detect-bar" id="bar"></div></div>
+<div class="detect-progress" id="progress" style="display: none"><div class="detect-bar" id="discovery-bar"></div></div>
 
 <div id="pump-list" class="pump-list"></div>
 
@@ -38,7 +38,7 @@
     var refreshEl = document.getElementById('refresh');
     var manualEl = document.getElementById('manual');
     var progressEl = document.getElementById('progress');
-    var barEl = document.getElementById('bar');
+    var barEl = document.getElementById('discovery-bar');
 
     function proceedWith(ipaddress) {
         Homey.showLoadingOverlay();

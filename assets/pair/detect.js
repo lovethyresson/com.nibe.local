@@ -9,13 +9,13 @@
 Homey.setTitle(Homey.__('pair.detect.title'));
 
 var statusEl = document.getElementById('status');
-var barEl = document.getElementById('bar');
+// Unique id per view: ip_address.html's discovery bar is "discovery-bar" and both
+// detect views use "detect-bar". Homey loads a session's pair views into one shared
+// DOM, so a generic id="bar" here would resolve to the discovery view's (hidden) bar
+// instead of this one — the progress text updated but the fill never moved.
+var barEl = document.getElementById('detect-bar');
 var errorEl = document.getElementById('error');
 var retryEl = document.getElementById('retry');
-
-// Ensure the fill is visible even if the stylesheet's CSS variable doesn't resolve
-// in the pairing webview (the reason the bar looked empty despite updating).
-barEl.style.background = '#dd1111';
 
 // Default to the pairing device picker; get_context tells us if we're repairing.
 var nextView = 'devices';
