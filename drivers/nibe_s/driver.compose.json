@@ -1,7 +1,7 @@
 {
   "name": {
-    "en": "Nibe heat pump",
-    "sv": "Nibe värmepump"
+    "en": "Nibe S-Series",
+    "sv": "Nibe S-Series"
   },
   "class": "other",
   "capabilities": [
@@ -79,10 +79,26 @@
     "measure_temperature.i14_liquid_line",
     "measure_temperature.i16_suction_gas",
 
-    "pump_setpoint.h5351_compressor_min_speed",
-
     "target_temperature.h687_pool_start",
     "target_temperature.h689_pool_stop",
+
+    "target_temperature.h34_min_supply",
+    "target_temperature.h38_max_supply",
+    "target_temperature.h184_auto_stop_heating",
+    "target_temperature.h185_auto_stop_addition",
+    "measure_minute_NIBE.h93_periodtime_heating",
+    "measure_degree_minutes_NIBE.h97_dm_start_compressor",
+    "measure_degree_minutes_NIBE.h679_dm_diff_start_addition",
+    "measure_degree_minutes_NIBE.h18_limit_dm",
+    "measure_degree_minutes_NIBE.h20_cooling_dm",
+    "target_temperature.h59_hotwater_start",
+    "target_temperature.h63_hotwater_stop",
+    "measure_minute_NIBE.h94_periodtime_pool",
+
+    "button.h22_reset_alarm",
+    "onoff.h196_alarm_lower_room_temp",
+    "onoff.h197_alarm_lower_hw_temp",
+    "measure_count_NIBE.h19_holiday_status",
 
     "onoff.h227_nightchill",
     "onoff.h65_periodic_hotwater",
@@ -271,18 +287,10 @@
         "sv": "Frånluft fläkthastighet normal"
       }
     },
-    "pump_setpoint.h5351_compressor_min_speed": {
-      "decimals": 2,
-      "title": {
-        "en": "Compressor min speed GP1",
-        "sv": "Minsta tillåtna hastighet GP1"
-      }
-    },
-
     "curve_mode_NIBE.h26_heat_curve": {
       "title": {
-        "en": "Heatcurve 0-10",
-        "sv": "Värmekurva 0-10"
+        "en": "Heatcurve 0-15",
+        "sv": "Värmekurva 0-15"
       }
     },
 
@@ -475,6 +483,122 @@
       "title": {
         "en": "Pool heat stop",
         "sv": "Poolvärme stop"
+      }
+    },
+
+    "target_temperature.h34_min_supply": {
+      "decimals": 1,
+      "min": 5,
+      "max": 80,
+      "title": {
+        "en": "Min supply temperature",
+        "sv": "Min framledningstemperatur"
+      }
+    },
+    "target_temperature.h38_max_supply": {
+      "decimals": 1,
+      "min": 5,
+      "max": 80,
+      "title": {
+        "en": "Max supply temperature",
+        "sv": "Max framledningstemperatur"
+      }
+    },
+    "target_temperature.h184_auto_stop_heating": {
+      "decimals": 1,
+      "min": -20,
+      "max": 40,
+      "title": {
+        "en": "Auto mode: stop heating above",
+        "sv": "Autoläge: stoppa värme över"
+      }
+    },
+    "target_temperature.h185_auto_stop_addition": {
+      "decimals": 1,
+      "min": -25,
+      "max": 40,
+      "title": {
+        "en": "Auto mode: stop addition above",
+        "sv": "Autoläge: stoppa tillsats över"
+      }
+    },
+    "measure_minute_NIBE.h93_periodtime_heating": {
+      "title": {
+        "en": "Period time heating",
+        "sv": "Periodtid värme"
+      }
+    },
+    "measure_degree_minutes_NIBE.h97_dm_start_compressor": {
+      "title": {
+        "en": "Compressor start degree minutes",
+        "sv": "Startgradminuter kompressor"
+      }
+    },
+    "measure_degree_minutes_NIBE.h679_dm_diff_start_addition": {
+      "title": {
+        "en": "Addition start difference",
+        "sv": "Differens start tillsats"
+      }
+    },
+    "measure_degree_minutes_NIBE.h18_limit_dm": {
+      "title": {
+        "en": "Degree minutes limit",
+        "sv": "Gradminuter begränsning"
+      }
+    },
+    "measure_degree_minutes_NIBE.h20_cooling_dm": {
+      "title": {
+        "en": "Cooling degree minutes",
+        "sv": "Gradminuter kyla"
+      }
+    },
+    "target_temperature.h59_hotwater_start": {
+      "decimals": 1,
+      "min": 5,
+      "max": 60,
+      "title": {
+        "en": "Hot water start temperature",
+        "sv": "Varmvatten starttemperatur"
+      }
+    },
+    "target_temperature.h63_hotwater_stop": {
+      "decimals": 1,
+      "min": 5,
+      "max": 65,
+      "title": {
+        "en": "Hot water stop temperature",
+        "sv": "Varmvatten stopptemperatur"
+      }
+    },
+    "measure_minute_NIBE.h94_periodtime_pool": {
+      "title": {
+        "en": "Period time pool",
+        "sv": "Periodtid pool"
+      }
+    },
+
+    "button.h22_reset_alarm": {
+      "title": {
+        "en": "Reset alarm",
+        "sv": "Återställ larm"
+      }
+    },
+    "onoff.h196_alarm_lower_room_temp": {
+      "title": {
+        "en": "On alarm: lower room temperature",
+        "sv": "Vid larm: sänk rumstemperatur"
+      }
+    },
+    "onoff.h197_alarm_lower_hw_temp": {
+      "title": {
+        "en": "On alarm: lower hot water temperature",
+        "sv": "Vid larm: sänk varmvattentemperatur"
+      }
+    },
+    "measure_count_NIBE.h19_holiday_status": {
+      "title": {
+        "en": "Holiday mode status",
+        "sv": "Semesterläge status"
       }
     },
 

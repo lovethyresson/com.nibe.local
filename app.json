@@ -57,6 +57,10 @@
           "en": "[[register]] changed",
           "sv": "[[register]] ändrades"
         },
+        "hint": {
+          "en": "Fires when the selected register's value changes. Only registers with a fixed set of modes (operating mode, hot water demand, priority, fan mode) can be picked.",
+          "sv": "Utlöses när det valda registrets värde ändras. Bara register med ett fast antal lägen (driftläge, varmvattenbehov, prioritet, fläktläge) kan väljas."
+        },
         "args": [
           {
             "type": "device",
@@ -83,6 +87,10 @@
           "en": "[[register]] turned on",
           "sv": "[[register]] sätts på"
         },
+        "hint": {
+          "en": "Fires when the selected on/off register switches on.",
+          "sv": "Utlöses när det valda av/på-registret slås på."
+        },
         "args": [
           {
             "type": "device",
@@ -108,6 +116,10 @@
         "titleFormatted": {
           "en": "[[register]] turned off",
           "sv": "[[register]] stängs av"
+        },
+        "hint": {
+          "en": "Fires when the selected on/off register switches off.",
+          "sv": "Utlöses när det valda av/på-registret stängs av."
         },
         "args": [
           {
@@ -136,6 +148,10 @@
         "titleFormatted": {
           "en": "Value of [[register]] is [[comparison]] [[value]]",
           "sv": "Värdet på [[register]] är [[comparison]] [[value]]"
+        },
+        "hint": {
+          "en": "Compares any readable numeric register against a value. Useful for readings that have no card of their own, such as degree minutes or compressor frequency.",
+          "sv": "Jämför valfritt läsbart numeriskt register mot ett värde. Användbart för mätvärden utan eget kort, till exempel gradminuter eller kompressorfrekvens."
         },
         "args": [
           {
@@ -188,13 +204,18 @@
       {
         "id": "feature_enabled",
         "title": {
-          "en": "Feature enabled",
-          "sv": "Egenskap påslagen"
+          "en": "A register is on (advanced)",
+          "sv": "Ett register är på (avancerat)"
         },
         "titleFormatted": {
           "en": "[[register]] is !{{enabled|disabled}}",
           "sv": "[[register]] är !{{på|av}}"
         },
+        "hint": {
+          "en": "Checks any on/off register, picked by name. Prefer the device’s own on/off condition cards — this is the escape hatch.",
+          "sv": "Kontrollerar valfritt av/på-register, valt via namn. Använd hellre enhetens egna av/på-villkorskort — det här är reservutgången."
+        },
+        "advanced": true,
         "args": [
           {
             "type": "device",
@@ -214,12 +235,16 @@
       {
         "id": "measure_enum_NIBE.h56_hotwater_demand_mode.enum",
         "title": {
-          "en": "Increase warm water mode",
+          "en": "Hot water demand mode",
           "sv": "Varmvattenbehov"
         },
         "titleFormatted": {
-          "en": "Hotwater demand mode is [[mode]]",
+          "en": "Hot water demand mode is [[mode]]",
           "sv": "Varmvattenbehov är [[mode]]"
+        },
+        "hint": {
+          "en": "Hot water demand mode (small/medium/large/smart).",
+          "sv": "Varmvattnets behovsläge (litet/medel/stort/smart)."
         },
         "args": [
           {
@@ -247,6 +272,10 @@
           "en": "Operating mode is [[mode]]",
           "sv": "Driftläge är [[mode]]"
         },
+        "hint": {
+          "en": "Operating mode: auto, manual or additional heat only.",
+          "sv": "Driftläge: auto, manuellt eller endast tillsats."
+        },
         "args": [
           {
             "type": "device",
@@ -272,6 +301,10 @@
         "titleFormatted": {
           "en": "Priority is [[mode]]",
           "sv": "Prioritet är [[mode]]"
+        },
+        "hint": {
+          "en": "What the pump is producing right now (heating, hot water, pool…).",
+          "sv": "Vad pumpen producerar just nu (värme, varmvatten, pool…)."
         },
         "args": [
           {
@@ -299,6 +332,10 @@
           "en": "Fan mode is [[mode]]",
           "sv": "Fläktläge är [[mode]]"
         },
+        "hint": {
+          "en": "Currently active fan mode.",
+          "sv": "Aktivt fläktläge."
+        },
         "args": [
           {
             "type": "device",
@@ -318,14 +355,606 @@
     ],
     "actions": [
       {
-        "id": "measure_enum_NIBE.h56_hotwater_demand_mode.enum",
+        "id": "measure_count_NIBE.h26_heat_curve.set",
         "title": {
-          "en": "Hotwater demand mode",
-          "sv": "Varmvattenbehov"
+          "en": "Set the heat curve",
+          "sv": "Ställ in värmekurvan"
         },
         "titleFormatted": {
-          "en": "Hotwater demand mode [[mode]]",
-          "sv": "Varmvattenbehov [[mode]]"
+          "en": "Set the heat curve to [[value]]",
+          "sv": "Ställ in värmekurvan till [[value]]"
+        },
+        "hint": {
+          "en": "Heat curve slope for climate system 1. Accepts 0 to 15.",
+          "sv": "Värmekurvans lutning för klimatsystem 1. Tillåter 0 till 15."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_count_NIBE.h26_heat_curve"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde"
+            }
+          }
+        ]
+      },
+      {
+        "id": "measure_count_NIBE.h30_heat_curve_displacement.set",
+        "title": {
+          "en": "Set the heat curve offset",
+          "sv": "Ställ in värmekurvans förskjutning"
+        },
+        "titleFormatted": {
+          "en": "Set the heat curve offset to [[value]]",
+          "sv": "Ställ in värmekurvans förskjutning till [[value]]"
+        },
+        "hint": {
+          "en": "Offset of the heat curve for climate system 1. Accepts -10 to 10.",
+          "sv": "Förskjutning av värmekurvan för klimatsystem 1. Tillåter -10 till 10."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_count_NIBE.h30_heat_curve_displacement"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde"
+            }
+          }
+        ]
+      },
+      {
+        "id": "target_temperature.h34_min_supply.set",
+        "title": {
+          "en": "Set the minimum supply temperature",
+          "sv": "Ställ in lägsta framledningstemperatur"
+        },
+        "titleFormatted": {
+          "en": "Set the minimum supply temperature to [[value]]",
+          "sv": "Ställ in lägsta framledningstemperatur till [[value]]"
+        },
+        "hint": {
+          "en": "Lowest supply temperature the pump may produce (climate system 1). Accepts 5 to 80 °C.",
+          "sv": "Lägsta framledningstemperatur pumpen får producera (klimatsystem 1). Tillåter 5 till 80 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h34_min_supply"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde"
+            }
+          }
+        ]
+      },
+      {
+        "id": "target_temperature.h38_max_supply.set",
+        "title": {
+          "en": "Set the maximum supply temperature",
+          "sv": "Ställ in högsta framledningstemperatur"
+        },
+        "titleFormatted": {
+          "en": "Set the maximum supply temperature to [[value]]",
+          "sv": "Ställ in högsta framledningstemperatur till [[value]]"
+        },
+        "hint": {
+          "en": "Highest supply temperature the pump may produce (climate system 1). Accepts 5 to 80 °C.",
+          "sv": "Högsta framledningstemperatur pumpen får producera (klimatsystem 1). Tillåter 5 till 80 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h38_max_supply"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde"
+            }
+          }
+        ]
+      },
+      {
+        "id": "target_temperature.h184_auto_stop_heating.set",
+        "title": {
+          "en": "Set the outdoor temperature that stops heating",
+          "sv": "Ställ in utetemperaturen som stoppar värmen"
+        },
+        "titleFormatted": {
+          "en": "Set the outdoor temperature that stops heating to [[value]]",
+          "sv": "Ställ in utetemperaturen som stoppar värmen till [[value]]"
+        },
+        "hint": {
+          "en": "Outdoor temperature where automatic mode stops heating. Accepts -20 to 40 °C.",
+          "sv": "Utetemperatur där autoläget stoppar värmen. Tillåter -20 till 40 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h184_auto_stop_heating"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde"
+            }
+          }
+        ]
+      },
+      {
+        "id": "target_temperature.h185_auto_stop_addition.set",
+        "title": {
+          "en": "Set the outdoor temperature that stops the additive heater",
+          "sv": "Ställ in utetemperaturen som stoppar tillsatsen"
+        },
+        "titleFormatted": {
+          "en": "Set the outdoor temperature that stops the additive heater to [[value]]",
+          "sv": "Ställ in utetemperaturen som stoppar tillsatsen till [[value]]"
+        },
+        "hint": {
+          "en": "Outdoor temperature where automatic mode stops the additive heater. Accepts -25 to 40 °C.",
+          "sv": "Utetemperatur där autoläget stoppar tillsatsen. Tillåter -25 till 40 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h185_auto_stop_addition"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde"
+            }
+          }
+        ]
+      },
+      {
+        "id": "measure_minute_NIBE.h93_periodtime_heating.set",
+        "title": {
+          "en": "Set the heating period time",
+          "sv": "Ställ in periodtiden för värme"
+        },
+        "titleFormatted": {
+          "en": "Set the heating period time to [[value]]",
+          "sv": "Ställ in periodtiden för värme till [[value]]"
+        },
+        "hint": {
+          "en": "How long the pump makes heating before switching demand. Accepts 0 to 180 minutes.",
+          "sv": "Hur länge pumpen gör värme innan den byter behov. Tillåter 0 till 180 minuter."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_minute_NIBE.h93_periodtime_heating"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde"
+            }
+          }
+        ]
+      },
+      {
+        "id": "measure_degree_minutes_NIBE.h97_dm_start_compressor.set",
+        "title": {
+          "en": "Set the compressor start degree minutes",
+          "sv": "Ställ in startgradminuter för kompressorn"
+        },
+        "titleFormatted": {
+          "en": "Set the compressor start degree minutes to [[value]]",
+          "sv": "Ställ in startgradminuter för kompressorn till [[value]]"
+        },
+        "hint": {
+          "en": "Degree minutes at which the compressor starts heating. Accepts -1000 to -30 °Cmin.",
+          "sv": "Gradminuter då kompressorn startar värmen. Tillåter -1000 till -30 °Cmin."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_degree_minutes_NIBE.h97_dm_start_compressor"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde"
+            }
+          }
+        ]
+      },
+      {
+        "id": "measure_degree_minutes_NIBE.h679_dm_diff_start_addition.set",
+        "title": {
+          "en": "Set the additive heater start difference",
+          "sv": "Ställ in differensen för tillsatsstart"
+        },
+        "titleFormatted": {
+          "en": "Set the additive heater start difference to [[value]]",
+          "sv": "Ställ in differensen för tillsatsstart till [[value]]"
+        },
+        "hint": {
+          "en": "How many degree minutes below the compressor start the additive heater joins in. Accepts 100 to 2000 °Cmin.",
+          "sv": "Hur många gradminuter under kompressorstarten som tillsatsen går in. Tillåter 100 till 2000 °Cmin."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_degree_minutes_NIBE.h679_dm_diff_start_addition"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde"
+            }
+          }
+        ]
+      },
+      {
+        "id": "measure_degree_minutes_NIBE.h18_limit_dm.set",
+        "title": {
+          "en": "Set the degree minute limit",
+          "sv": "Ställ in gradminutbegränsningen"
+        },
+        "titleFormatted": {
+          "en": "Set the degree minute limit to [[value]]",
+          "sv": "Ställ in gradminutbegränsningen till [[value]]"
+        },
+        "hint": {
+          "en": "Degree minutes limited to the range the pump regulates within. Accepts -3000 to 3000 °Cmin.",
+          "sv": "Gradminuter begränsade till intervallet pumpen reglerar inom. Tillåter -3000 till 3000 °Cmin."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_degree_minutes_NIBE.h18_limit_dm"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde"
+            }
+          }
+        ]
+      },
+      {
+        "id": "measure_degree_minutes_NIBE.h20_cooling_dm.set",
+        "title": {
+          "en": "Set the cooling degree minutes",
+          "sv": "Ställ in gradminuter för kyla"
+        },
+        "titleFormatted": {
+          "en": "Set the cooling degree minutes to [[value]]",
+          "sv": "Ställ in gradminuter för kyla till [[value]]"
+        },
+        "hint": {
+          "en": "Accumulated cooling surplus that decides when cooling starts. Accepts -3000 to 3000 °Cmin.",
+          "sv": "Ackumulerat kylöverskott som avgör när kylan startar. Tillåter -3000 till 3000 °Cmin."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_degree_minutes_NIBE.h20_cooling_dm"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde"
+            }
+          }
+        ]
+      },
+      {
+        "id": "target_temperature.h59_hotwater_start.set",
+        "title": {
+          "en": "Set the hot water start temperature",
+          "sv": "Ställ in varmvattnets starttemperatur"
+        },
+        "titleFormatted": {
+          "en": "Set the hot water start temperature to [[value]]",
+          "sv": "Ställ in varmvattnets starttemperatur till [[value]]"
+        },
+        "hint": {
+          "en": "Tank temperature where hot water charging starts. Accepts 5 to 60 °C.",
+          "sv": "Tanktemperatur där varmvattenladdning startar. Tillåter 5 till 60 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h59_hotwater_start"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde"
+            }
+          }
+        ]
+      },
+      {
+        "id": "target_temperature.h63_hotwater_stop.set",
+        "title": {
+          "en": "Set the hot water stop temperature",
+          "sv": "Ställ in varmvattnets stopptemperatur"
+        },
+        "titleFormatted": {
+          "en": "Set the hot water stop temperature to [[value]]",
+          "sv": "Ställ in varmvattnets stopptemperatur till [[value]]"
+        },
+        "hint": {
+          "en": "Tank temperature where hot water charging stops. Accepts 5 to 65 °C.",
+          "sv": "Tanktemperatur där varmvattenladdning stoppar. Tillåter 5 till 65 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h63_hotwater_stop"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde"
+            }
+          }
+        ]
+      },
+      {
+        "id": "measure_day_NIBE.h66_periodic_hotwater_interval.set",
+        "title": {
+          "en": "Set the days between periodic hot water boosts",
+          "sv": "Ställ in dagar mellan periodiska varmvattenhöjningar"
+        },
+        "titleFormatted": {
+          "en": "Set the days between periodic hot water boosts to [[value]]",
+          "sv": "Ställ in dagar mellan periodiska varmvattenhöjningar till [[value]]"
+        },
+        "hint": {
+          "en": "Days between periodic hot water boosts. Accepts 1 to 90 days.",
+          "sv": "Dagar mellan periodiska varmvattenhöjningar. Tillåter 1 till 90 dagar."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_day_NIBE.h66_periodic_hotwater_interval"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde"
+            }
+          }
+        ]
+      },
+      {
+        "id": "measure_minute_NIBE.h92_periodtime_hotwater.set",
+        "title": {
+          "en": "Set the hot water period time",
+          "sv": "Ställ in periodtiden för varmvatten"
+        },
+        "titleFormatted": {
+          "en": "Set the hot water period time to [[value]]",
+          "sv": "Ställ in periodtiden för varmvatten till [[value]]"
+        },
+        "hint": {
+          "en": "Duration of the periodic hot water boost. Accepts 0 to 180 minutes.",
+          "sv": "Längd på den periodiska varmvattenhöjningen. Tillåter 0 till 180 minuter."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_minute_NIBE.h92_periodtime_hotwater"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde"
+            }
+          }
+        ]
+      },
+      {
+        "id": "measure_minute_NIBE.h94_periodtime_pool.set",
+        "title": {
+          "en": "Set the pool period time",
+          "sv": "Ställ in periodtiden för pool"
+        },
+        "titleFormatted": {
+          "en": "Set the pool period time to [[value]]",
+          "sv": "Ställ in periodtiden för pool till [[value]]"
+        },
+        "hint": {
+          "en": "How long the pump heats the pool before switching demand. Accepts 0 to 180 minutes.",
+          "sv": "Hur länge pumpen värmer poolen innan den byter behov. Tillåter 0 till 180 minuter."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_minute_NIBE.h94_periodtime_pool"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde"
+            }
+          }
+        ]
+      },
+      {
+        "id": "fan_speed.h109_returnair_normal.set",
+        "title": {
+          "en": "Set the normal fan speed",
+          "sv": "Ställ in fläktens normalhastighet"
+        },
+        "titleFormatted": {
+          "en": "Set the normal fan speed to [[value]]",
+          "sv": "Ställ in fläktens normalhastighet till [[value]]"
+        },
+        "hint": {
+          "en": "Normal speed of the exhaust air fan. Accepts 0 to 1, where 1 is full speed.",
+          "sv": "Frånluftsfläktens normalhastighet. Tillåter 0 till 1, där 1 är full hastighet."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=fan_speed.h109_returnair_normal"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde"
+            }
+          }
+        ]
+      },
+      {
+        "id": "target_temperature.h687_pool_start.set",
+        "title": {
+          "en": "Set the pool start temperature",
+          "sv": "Ställ in poolens starttemperatur"
+        },
+        "titleFormatted": {
+          "en": "Set the pool start temperature to [[value]]",
+          "sv": "Ställ in poolens starttemperatur till [[value]]"
+        },
+        "hint": {
+          "en": "Pool temperature where heating starts. Accepts 10 to 35 °C.",
+          "sv": "Pooltemperatur där uppvärmning startar. Tillåter 10 till 35 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h687_pool_start"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde"
+            }
+          }
+        ]
+      },
+      {
+        "id": "target_temperature.h689_pool_stop.set",
+        "title": {
+          "en": "Set the pool stop temperature",
+          "sv": "Ställ in poolens stopptemperatur"
+        },
+        "titleFormatted": {
+          "en": "Set the pool stop temperature to [[value]]",
+          "sv": "Ställ in poolens stopptemperatur till [[value]]"
+        },
+        "hint": {
+          "en": "Pool temperature where heating stops. Accepts 10 to 35 °C.",
+          "sv": "Pooltemperatur där uppvärmning stoppar. Tillåter 10 till 35 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h689_pool_stop"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde"
+            }
+          }
+        ]
+      },
+      {
+        "id": "button.h22_reset_alarm.reset",
+        "title": {
+          "en": "Reset the alarm",
+          "sv": "Återställ larmet"
+        },
+        "hint": {
+          "en": "Acknowledge and reset an active alarm on the pump.",
+          "sv": "Kvittera och återställ ett aktivt larm på pumpen."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=button.h22_reset_alarm"
+          }
+        ]
+      },
+      {
+        "id": "measure_enum_NIBE.h56_hotwater_demand_mode.enum",
+        "title": {
+          "en": "Set the hot water demand mode",
+          "sv": "Ställ in varmvattenbehovet"
+        },
+        "titleFormatted": {
+          "en": "Set the hot water demand mode to [[mode]]",
+          "sv": "Ställ in varmvattenbehovet till [[mode]]"
+        },
+        "hint": {
+          "en": "Hot water demand mode (small/medium/large/smart).",
+          "sv": "Varmvattnets behovsläge (litet/medel/stort/smart)."
         },
         "args": [
           {
@@ -353,6 +982,10 @@
           "en": "Set operating mode [[mode]]",
           "sv": "Ställ in driftläge [[mode]]"
         },
+        "hint": {
+          "en": "Operating mode: auto, manual or additional heat only.",
+          "sv": "Driftläge: auto, manuellt eller endast tillsats."
+        },
         "args": [
           {
             "type": "device",
@@ -372,13 +1005,18 @@
       {
         "id": "set_numeric_value",
         "title": {
-          "en": "Set value",
-          "sv": "Sätt värde"
+          "en": "Set value of a register (advanced)",
+          "sv": "Sätt värdet på ett register (avancerat)"
         },
         "titleFormatted": {
           "en": "Set value of [[register]] to [[value]]",
           "sv": "Sätt värdet på [[register]] till [[value]]"
         },
+        "hint": {
+          "en": "Writes any writable Modbus register, picked by name. Prefer the named cards (\"Set the heat curve to …\") — this is the escape hatch for registers that have none. Values outside the register’s range are rejected.",
+          "sv": "Skriver till valfritt skrivbart Modbus-register, valt via namn. Använd hellre de namngivna korten (\"Ställ in värmekurvan till …\") — det här är reservutgången för register som saknar sådana. Värden utanför registrets intervall avvisas."
+        },
+        "advanced": true,
         "args": [
           {
             "type": "device",
@@ -406,13 +1044,18 @@
       {
         "id": "enable_feature",
         "title": {
-          "en": "Enable feature",
-          "sv": "Slå på egenskap"
+          "en": "Enable a register (advanced)",
+          "sv": "Slå på ett register (avancerat)"
         },
         "titleFormatted": {
           "en": "Enable [[register]]",
           "sv": "Slå på [[register]]"
         },
+        "hint": {
+          "en": "Switches on any writable on/off register, picked by name. Prefer the device’s own on/off cards — this is the escape hatch.",
+          "sv": "Slår på valfritt skrivbart av/på-register, valt via namn. Använd hellre enhetens egna av/på-kort — det här är reservutgången."
+        },
+        "advanced": true,
         "args": [
           {
             "type": "device",
@@ -432,13 +1075,18 @@
       {
         "id": "disable_feature",
         "title": {
-          "en": "Disable feature",
-          "sv": "Stäng av egenskap"
+          "en": "Disable a register (advanced)",
+          "sv": "Stäng av ett register (avancerat)"
         },
         "titleFormatted": {
           "en": "Disable [[register]]",
           "sv": "Stäng av [[register]]"
         },
+        "hint": {
+          "en": "Switches off any writable on/off register, picked by name. Prefer the device’s own on/off cards — this is the escape hatch.",
+          "sv": "Stänger av valfritt skrivbart av/på-register, valt via namn. Använd hellre enhetens egna av/på-kort — det här är reservutgången."
+        },
+        "advanced": true,
         "args": [
           {
             "type": "device",
@@ -460,8 +1108,8 @@
   "drivers": [
     {
       "name": {
-        "en": "Nibe heat pump",
-        "sv": "Nibe värmepump"
+        "en": "Nibe S-Series",
+        "sv": "Nibe S-Series"
       },
       "class": "other",
       "capabilities": [
@@ -514,9 +1162,24 @@
         "measure_temperature.i13_discharge",
         "measure_temperature.i14_liquid_line",
         "measure_temperature.i16_suction_gas",
-        "pump_setpoint.h5351_compressor_min_speed",
         "target_temperature.h687_pool_start",
         "target_temperature.h689_pool_stop",
+        "target_temperature.h34_min_supply",
+        "target_temperature.h38_max_supply",
+        "target_temperature.h184_auto_stop_heating",
+        "target_temperature.h185_auto_stop_addition",
+        "measure_minute_NIBE.h93_periodtime_heating",
+        "measure_degree_minutes_NIBE.h97_dm_start_compressor",
+        "measure_degree_minutes_NIBE.h679_dm_diff_start_addition",
+        "measure_degree_minutes_NIBE.h18_limit_dm",
+        "measure_degree_minutes_NIBE.h20_cooling_dm",
+        "target_temperature.h59_hotwater_start",
+        "target_temperature.h63_hotwater_stop",
+        "measure_minute_NIBE.h94_periodtime_pool",
+        "button.h22_reset_alarm",
+        "onoff.h196_alarm_lower_room_temp",
+        "onoff.h197_alarm_lower_hw_temp",
+        "measure_count_NIBE.h19_holiday_status",
         "onoff.h227_nightchill",
         "onoff.h65_periodic_hotwater",
         "onoff.i1828_pool_circulation",
@@ -693,17 +1356,10 @@
             "sv": "Frånluft fläkthastighet normal"
           }
         },
-        "pump_setpoint.h5351_compressor_min_speed": {
-          "decimals": 2,
-          "title": {
-            "en": "Compressor min speed GP1",
-            "sv": "Minsta tillåtna hastighet GP1"
-          }
-        },
         "curve_mode_NIBE.h26_heat_curve": {
           "title": {
-            "en": "Heatcurve 0-10",
-            "sv": "Värmekurva 0-10"
+            "en": "Heatcurve 0-15",
+            "sv": "Värmekurva 0-15"
           }
         },
         "curve_displacement_NIBE.h30_heat_curve_displacement": {
@@ -887,6 +1543,120 @@
           "title": {
             "en": "Pool heat stop",
             "sv": "Poolvärme stop"
+          }
+        },
+        "target_temperature.h34_min_supply": {
+          "decimals": 1,
+          "min": 5,
+          "max": 80,
+          "title": {
+            "en": "Min supply temperature",
+            "sv": "Min framledningstemperatur"
+          }
+        },
+        "target_temperature.h38_max_supply": {
+          "decimals": 1,
+          "min": 5,
+          "max": 80,
+          "title": {
+            "en": "Max supply temperature",
+            "sv": "Max framledningstemperatur"
+          }
+        },
+        "target_temperature.h184_auto_stop_heating": {
+          "decimals": 1,
+          "min": -20,
+          "max": 40,
+          "title": {
+            "en": "Auto mode: stop heating above",
+            "sv": "Autoläge: stoppa värme över"
+          }
+        },
+        "target_temperature.h185_auto_stop_addition": {
+          "decimals": 1,
+          "min": -25,
+          "max": 40,
+          "title": {
+            "en": "Auto mode: stop addition above",
+            "sv": "Autoläge: stoppa tillsats över"
+          }
+        },
+        "measure_minute_NIBE.h93_periodtime_heating": {
+          "title": {
+            "en": "Period time heating",
+            "sv": "Periodtid värme"
+          }
+        },
+        "measure_degree_minutes_NIBE.h97_dm_start_compressor": {
+          "title": {
+            "en": "Compressor start degree minutes",
+            "sv": "Startgradminuter kompressor"
+          }
+        },
+        "measure_degree_minutes_NIBE.h679_dm_diff_start_addition": {
+          "title": {
+            "en": "Addition start difference",
+            "sv": "Differens start tillsats"
+          }
+        },
+        "measure_degree_minutes_NIBE.h18_limit_dm": {
+          "title": {
+            "en": "Degree minutes limit",
+            "sv": "Gradminuter begränsning"
+          }
+        },
+        "measure_degree_minutes_NIBE.h20_cooling_dm": {
+          "title": {
+            "en": "Cooling degree minutes",
+            "sv": "Gradminuter kyla"
+          }
+        },
+        "target_temperature.h59_hotwater_start": {
+          "decimals": 1,
+          "min": 5,
+          "max": 60,
+          "title": {
+            "en": "Hot water start temperature",
+            "sv": "Varmvatten starttemperatur"
+          }
+        },
+        "target_temperature.h63_hotwater_stop": {
+          "decimals": 1,
+          "min": 5,
+          "max": 65,
+          "title": {
+            "en": "Hot water stop temperature",
+            "sv": "Varmvatten stopptemperatur"
+          }
+        },
+        "measure_minute_NIBE.h94_periodtime_pool": {
+          "title": {
+            "en": "Period time pool",
+            "sv": "Periodtid pool"
+          }
+        },
+        "button.h22_reset_alarm": {
+          "title": {
+            "en": "Reset alarm",
+            "sv": "Återställ larm"
+          }
+        },
+        "onoff.h196_alarm_lower_room_temp": {
+          "title": {
+            "en": "On alarm: lower room temperature",
+            "sv": "Vid larm: sänk rumstemperatur"
+          }
+        },
+        "onoff.h197_alarm_lower_hw_temp": {
+          "title": {
+            "en": "On alarm: lower hot water temperature",
+            "sv": "Vid larm: sänk varmvattentemperatur"
+          }
+        },
+        "measure_count_NIBE.h19_holiday_status": {
+          "title": {
+            "en": "Holiday mode status",
+            "sv": "Semesterläge status"
           }
         },
         "onoff.i1828_pool_circulation": {
@@ -1215,6 +1985,36 @@
           "title": {
             "en": "10"
           }
+        },
+        {
+          "id": "11",
+          "title": {
+            "en": "11"
+          }
+        },
+        {
+          "id": "12",
+          "title": {
+            "en": "12"
+          }
+        },
+        {
+          "id": "13",
+          "title": {
+            "en": "13"
+          }
+        },
+        {
+          "id": "14",
+          "title": {
+            "en": "14"
+          }
+        },
+        {
+          "id": "15",
+          "title": {
+            "en": "15"
+          }
         }
       ],
       "getable": true,
@@ -1279,8 +2079,8 @@
     },
     "hotwater_increase_NIBE": {
       "title": {
-        "en": "Hotwater onetime increase set",
-        "sv": "Ställ in varmvatten engångshöjning"
+        "en": "More hot water",
+        "sv": "Mer varmvatten"
       },
       "type": "enum",
       "values": [
@@ -1294,43 +2094,43 @@
         {
           "id": "2",
           "title": {
-            "en": "2 = Increase 1 h",
-            "sv": "2 = Höjning 1 h"
+            "en": "2 = 2 hours",
+            "sv": "2 = 2 timmar"
           }
         },
         {
           "id": "3",
           "title": {
-            "en": "3 = Increase 3 h",
-            "sv": "3 = Höjning 3 h"
+            "en": "3 = 3 hours",
+            "sv": "3 = 3 timmar"
           }
         },
         {
           "id": "6",
           "title": {
-            "en": "6 = Increase 6 h",
-            "sv": "6 = Höjning 6 h"
+            "en": "6 = 6 hours",
+            "sv": "6 = 6 timmar"
           }
         },
         {
           "id": "12",
           "title": {
-            "en": "12 = Increase 12 h",
-            "sv": "12 = Höjning 12 h"
+            "en": "12 = 12 hours",
+            "sv": "12 = 12 timmar"
           }
         },
         {
           "id": "24",
           "title": {
-            "en": "24 = Increase 24 h",
-            "sv": "24 = Höjning 24 h"
+            "en": "24 = 24 hours",
+            "sv": "24 = 24 timmar"
           }
         },
         {
           "id": "48",
           "title": {
-            "en": "48= = Increase 48 h",
-            "sv": "48 = Höjning 48 h"
+            "en": "48 = 48 hours",
+            "sv": "48 = 48 timmar"
           }
         }
       ],

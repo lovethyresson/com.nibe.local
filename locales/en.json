@@ -14,12 +14,12 @@
   "Large": "Large",
   "Not in use": "Not in use",
   "Smart control": "Smart control",
-  "One-time increase 1h": "Íncrease 1h",
-  "One-time increase 3h": "Increase 3h",
-  "One-time increase 6h": "Íncrease 6h",
-  "One-time increase 12h": "Íncrease 12h",
-  "One-time increase 24h": "Íncrease 24h",
-  "One-time increase 48h": "Íncrease 48h",
+  "2 hours": "2 hours",
+  "3 hours": "3 hours",
+  "6 hours": "6 hours",
+  "12 hours": "12 hours",
+  "24 hours": "24 hours",
+  "48 hours": "48 hours",
   "On": "On",
   "Auto": "Auto",
   "Manual": "Manual",
@@ -87,6 +87,8 @@
     "diagnostics": "Refrigerant diagnostics",
     "statistics": "Runtime statistics",
     "cooling": "Cooling",
-    "core": "Core sensors"
+    "core": "Core sensors",
+    "alarm": "Alarm handling",
+    "energy": "Energy"
   }
 }

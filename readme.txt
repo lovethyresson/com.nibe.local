@@ -16,6 +16,6 @@ To use this app you need:
 With this app you can change many values on your Nibe. The machine and how it operates is complex, so make sure you
 know what you are doing when changing settings. The app is provided free of charge and the authors cannot take
 responsibility for any problems caused by such changes. The changes are the same as can be done in the MyUplink app,
-but be extra careful when automating control.
+and/or in your heatpumps local settings. Be extra careful when automating control.
 
 If a flow action tries to write a value that is out of range the flow will fail with a descriptive error message.

@@ -100,6 +100,12 @@ export function recommendGroups(probes: ProbeSamples): Recommendations {
         heating: () => true,
         diagnostics: () => true,
         statistics: () => true,
+        // Alarm settings exist on every pump and sit still at 0/1, so they never show
+        // "moving" evidence and would otherwise never be recommended.
+        alarm: () => true,
+        // Carries no registers, so it never reaches this fallback (recommendGroups skips
+        // register-less groups) — but the record is total, so it needs an entry.
+        energy: () => true,
         hotwater: () =>
             (value("measure_temperature.i8_warmwater_top") ?? 0) > 20
             || (value("measure_temperature.i9_hot_water") ?? 0) > 20,
@@ -128,6 +134,11 @@ export function recommendGroups(probes: ProbeSamples): Recommendations {
         const groupProbes = registers
             .filter((register) => register.group === groupId)
             .map((register) => probes[register.name]);
+        // A group with no registers (energy) has nothing to detect: leave it out of the
+        // recommendations entirely so callers fall back to their "enabled" default.
+        // Otherwise every() on the empty array returns true and it reads as unsupported.
+        if (groupProbes.length === 0)
+            continue;
         let evidence: Evidence;
         if (groupProbes.every((probe) => probe.reads === 0))
             evidence = "unsupported";

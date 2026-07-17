@@ -41,8 +41,7 @@
       "detected": "Data hittad",
       "notdetected": "Ingen data",
       "select_one": "Välj minst en enhet att lägga till.",
-      "main_desc": "Översikt: utetemperatur, driftprioritering och driftläge, samt diagnostik och statistik",
-      "energy": "Energi"
+      "main_desc": "Översikt: utetemperatur, driftprioritering och driftläge, samt diagnostik och statistik"
     },
     "discover": {
       "title": "Hitta din värmepump",
@@ -66,8 +65,10 @@
     "ventilation": "Ventilation (frånluft)",
     "groundsource": "Köldbärare (berg/mark)",
     "electrical": "Strömsensorer",
+    "alarm": "Larmhantering",
     "diagnostics": "Köldmediediagnostik",
-    "statistics": "Driftstatistik"
+    "statistics": "Driftstatistik",
+    "energy": "Energi"
   },
   "Normal": "Normal",
   "Speed 1": "Steg 1",

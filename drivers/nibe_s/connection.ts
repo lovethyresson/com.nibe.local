@@ -1,6 +1,6 @@
 import net from 'net';
 import {ModbusTCPClient} from 'jsmodbus';
-import {Dir, Register, registerByName} from './registers';
+import {Dir, Register, isPollable, registerByName} from './registers';
 import {Role, priorityToRole} from './roles';
 import {DetectionResult, buildDetectionResult, readNumeric, sampleRegisters} from './detection';
 
@@ -84,7 +84,7 @@ export class PumpConnection {
         if (this.connected) {
             subscriber.onConnectionUp();
             // Replay cached values so a late attach reflects state immediately.
-            for (const register of subscriber.wantedRegisters()) {
+            for (const register of subscriber.wantedRegisters().filter(isPollable)) {
                 const raw = this.lastRaw.get(register.name);
                 if (raw !== undefined)
                     subscriber.onRegisterRaw(register, raw);
@@ -145,10 +145,13 @@ export class PumpConnection {
 
     // The registers to read this cycle: everyone's wanted registers, deduped by name,
     // plus power+priority which the allocator needs even when no main device is paired.
+    // Command registers are skipped — there's nothing to read back. The pump allows
+    // 100 registers/second and 20 per query (Nibe M12676EN); at ~56 registers per 5 s
+    // poll that's ~11/s, so keep an eye on both limits if this list grows or batches.
     private unionRegisters(): Register[] {
         const byName = new Map<string, Register>();
         for (const subscriber of this.subscribers)
-            for (const register of subscriber.wantedRegisters())
+            for (const register of subscriber.wantedRegisters().filter(isPollable))
                 byName.set(register.name, register);
         byName.set(POWER_REGISTER.name, POWER_REGISTER);
         byName.set(PRIORITY_REGISTER.name, PRIORITY_REGISTER);
@@ -188,7 +191,7 @@ export class PumpConnection {
             this.allocateEnergy(rawByName);
 
             for (const subscriber of this.subscribers)
-                for (const register of subscriber.wantedRegisters()) {
+                for (const register of subscriber.wantedRegisters().filter(isPollable)) {
                     const raw = rawByName.get(register.name);
                     if (raw !== undefined)
                         subscriber.onRegisterRaw(register, raw);

@@ -47,14 +47,17 @@ class NibeSDevice extends Device implements PumpSubscriber {
     private toRegisterValue(register: Register, value: any) {
         if (register.picker)
             value = parseInt(value);
+        if (register.enum)
+            value = parseInt(Object.entries(register.enum).filter(pair => pair[1] == value)[0][0]);
+        else if (register.bool)
+            value = value ? (register.onValue ?? 1) : (register.offValue ?? 0);
+        else if (register.scale)
+            value = Math.round(value * register.scale);
+        // Two's complement last, mirroring fromRegisterValue() which undoes it first:
+        // wrapping before scaling would multiply the wrapped value and overflow the
+        // register (-20 °C on a scale-10 register became 655160 rather than 65336).
         if (value < 0)
             value += 65536;
-        if (register.scale)
-            return Math.round(value * register.scale);
-        if (register.enum)
-            return parseInt(Object.entries(register.enum).filter(pair => pair[1] == value)[0][0]);
-        if (register.bool)
-            return value ? (register.onValue ?? 1) : (register.offValue ?? 0);
         return value;
     }
 
@@ -76,6 +79,9 @@ class NibeSDevice extends Device implements PumpSubscriber {
     private turnedOffTrigger = this.homey.flow.getDeviceTriggerCard("capability_turned_off");
 
     private checkTrigger(register: Register, value: any) {
+        // A command register never "turned on" — it was pressed. Nothing to trigger on.
+        if (register.writeOnly)
+            return;
         if (register.bool && value) {
             this.turnedOnTrigger.trigger(this, {}, {register: {id: register.name}, value: value});
         } else if (register.bool && !value) {
@@ -86,7 +92,9 @@ class NibeSDevice extends Device implements PumpSubscriber {
     }
 
     async setValue(register: Register, value: any) {
-        if (!this.hasCapability(register.name))
+        // Command registers have no state to reflect, and their capabilities (Homey's
+        // `button`) are not getable — writing a value to one throws.
+        if (register.writeOnly || !this.hasCapability(register.name))
             return;
         const oldValue = this.getCapabilityValue(register.name);
         await this.setCapabilityValue(register.name, value);
@@ -124,7 +132,7 @@ class NibeSDevice extends Device implements PumpSubscriber {
     private async syncCapabilities() {
         const selection = this.getSelection();
         const roleRegs = registersForRole(this.role, selection);
-        const extras = extraCapabilities(this.role);
+        const extras = extraCapabilities(this.role, selection);
 
         const wanted = new Set<string>([...roleRegs.map((r) => r.name), ...extras]);
         for (const name of this.getCapabilities()) {
@@ -152,6 +160,11 @@ class NibeSDevice extends Device implements PumpSubscriber {
         this.log("Applying selection", JSON.stringify(selection));
         await this.setStoreValue('selection', selection);
         await this.syncCapabilities();
+        // The kWh total keeps accumulating while the meter capability is off (onEnergy
+        // guards only the capability writes), so a meter re-enabled here would read 0
+        // until the next poll charges it. Seed it the way onInit does.
+        if (this.role !== 'main' && this.hasCapability(METER_CAPABILITY))
+            await this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
     }
 
     // Re-run detection over the live connection (used by repair).

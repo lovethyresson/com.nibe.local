@@ -105,16 +105,16 @@ function render() {
     document.getElementById('add').style.display = 'block';
 }
 
-// Rebuild the device to create from the group toggles: core and energy groups are
-// always included; each checked group contributes the capabilities that had data,
-// while its no-data registers are recorded as overrides so they stay off.
+// Rebuild the device to create from the group toggles: the core group is always
+// included; each checked group contributes the capabilities that had data, while its
+// no-data registers are recorded as overrides so they stay off.
 function buildDevice(candidate, index) {
     var device = JSON.parse(JSON.stringify(candidate.device));
     var caps = [];
     var groups = {};
     var overrides = {};
     (candidate.groups || []).forEach(function (g) {
-        if (g.id === '_energy' || g.id === 'core') {
+        if (g.id === 'core') {
             g.caps.forEach(function (c) { caps.push(c.name); });
             return;
         }

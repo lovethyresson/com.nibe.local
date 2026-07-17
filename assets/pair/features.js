@@ -1,8 +1,7 @@
-/* Shared by pair/features.html and repair/features.html.
- * Renders the feature-group checklist (with per-capability overrides) and
- * sends the final selection to the driver. In pair mode the driver answers
- * with a device template to create; in repair mode it applies the selection
- * to the existing device. */
+/* Used by repair/features.html only — pairing picks features per device in the
+ * device picker (devices.js) instead.
+ * Renders the feature-group checklist (with per-capability overrides) and applies
+ * the final selection to the device being repaired. */
 /* global Homey */
 
 Homey.setTitle(Homey.__('pair.features.title'));
@@ -139,8 +138,12 @@ document.getElementById('save').onclick = function (e) {
     });
 };
 
+// render() only runs after get_context and get_detection have both answered, so
+// cover the two round-trips rather than showing an empty page under the title.
+Homey.showLoadingOverlay();
 Homey.emit('get_context', {}, function (err, ctx) {
     if (err) {
+        Homey.hideLoadingOverlay();
         Homey.alert(err.message || String(err), 'error');
         return;
     }
@@ -148,5 +151,6 @@ Homey.emit('get_context', {}, function (err, ctx) {
     Homey.emit('get_detection', {}, function (err2, det) {
         detection = det || null;
         render();
+        Homey.hideLoadingOverlay();
     });
 });

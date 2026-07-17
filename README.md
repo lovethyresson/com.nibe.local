@@ -36,10 +36,9 @@ year. Standby/idle draw is charged to Heating.
 
 ## Pairing
 
-1. Add device → **Nibe Heatpumps**.
-2. **Autodetect** scans your local subnet (using Homey's real netmask) for pumps and, if it finds one, moves on
-   automatically. You can also enter the IP address manually.
-3. **Detection** samples the pump's registers for ~30 s to see which functions are live.
+1. Add device → **Nibe S-Series**.
+2. **Autodetect** scans your local subnet for live devices. You can also enter the IP address manually.
+3. **Detection** samples the device's registers for ~30 s to see which functions are live.
 4. **Device picker** lists all function devices, highlighting the ones data was detected for. Add any or all.
 
 Re-run pairing any time to add more function devices to a pump you've already set up.
@@ -49,26 +48,13 @@ Re-run pairing any time to add more function devices to a pump you've already se
 - Modbus TCP has no discovery protocol and Nibe pumps don't advertise themselves, so "autodetect" is a subnet sweep
   of port 502 verified by reading the outdoor-temperature register.
 - The pump accepts only **one Modbus client**, so run only one integration against it at a time.
-- The **model name is not available over Modbus** — enter it manually in the device's advanced settings if you want
-  it recorded.
 - Changing settings affects a live heating system. The changes are the same ones available in the MyUplink app, but
   be careful when automating them. Provided as-is, with no warranty.
 
-## Development
-
-```bash
-npm install
-npm run build          # tsc
-npx homey app validate # validate app.json / compose
-npx homey app run      # run on a linked Homey
-```
-
-The app is driven by a single register table (`drivers/nibe_s/registers.ts`); see `CLAUDE.md` for an architecture
-overview.
 
 ## Credits
 
-- Original app: [Jan Sparud](https://github.com/sparud) and Kjell Blomberg.
+- Original app: [Jan Sparud](https://github.com/sparud).
 - Local multi-device rework and per-function energy: Love Thyresson.
 
 Not affiliated with or endorsed by NIBE Energy Systems.

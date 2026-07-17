@@ -22,11 +22,11 @@ export const roleClass: Record<Role, string> = {
 // rather than getting its own device: its fan runs year-round and its draw is part
 // of the building-heating side. Groups not listed here (core) stay on "main".
 export const roleGroups: Record<Role, GroupId[]> = {
-    main: ["core", "diagnostics", "statistics", "electrical", "groundsource"],
-    heating: ["heating", "ventilation"],
-    hotwater: ["hotwater"],
-    pool: ["pool"],
-    cooling: ["cooling"]
+    main: ["core", "alarm", "diagnostics", "statistics", "electrical", "groundsource"],
+    heating: ["heating", "ventilation", "energy"],
+    hotwater: ["hotwater", "energy"],
+    pool: ["pool", "energy"],
+    cooling: ["cooling", "energy"]
 };
 
 // Raw value of the priority register (address 1028) → the function device that the
@@ -48,12 +48,25 @@ export const priorityToRole: Record<number, Role> = {
 export const METER_CAPABILITY = "meter_power.total";
 export const ACTIVE_POWER_CAPABILITY = "measure_power.active";
 
+// The energy pair, in the order devices carry it. Exported so the selection plumbing
+// can treat these two names like registers even though they aren't in the table.
+export const ENERGY_CAPABILITIES = [METER_CAPABILITY, ACTIVE_POWER_CAPABILITY];
+
 // Extra (non-register) capabilities a device of this role carries. Only the function
 // devices get the energy pair; main deliberately carries no meter_power.* capability
 // so it never shows up in Homey's Energy tab (the function devices' meters sum to the
 // pump total there instead).
-export function extraCapabilities(role: Role): string[] {
-    return role === "main" ? [] : [METER_CAPABILITY, ACTIVE_POWER_CAPABILITY];
+//
+// The pair follows the "energy" feature group, resolved with the same precedence as
+// isRegisterEnabled(): a per-capability override wins over the group, and a missing
+// selection means enabled.
+export function extraCapabilities(role: Role, selection?: Selection | null): string[] {
+    if (role === "main")
+        return [];
+    if (!selection)
+        return [...ENERGY_CAPABILITIES];
+    return ENERGY_CAPABILITIES.filter((name) =>
+        selection.overrides?.[name] ?? selection.groups?.energy ?? true);
 }
 
 // Read the role off a device's `data`. Defaults to "main" defensively; every device

@@ -2,13 +2,13 @@ import {Driver, FlowCard} from 'homey';
 import PairSession from "homey/lib/PairSession";
 import net from "net";
 import {capabilities, capabilitiesOptions} from './driver.compose.json';
-import {actions, conditions} from './driver.flow.compose.json';
+import {actions, conditions, triggers} from './driver.flow.compose.json';
 import {
-    Dir, GroupId, Register, Selection,
+    Dir, GroupId, Register, RegisterInfo, Selection,
     groupIds, isAdjustable, registerByName, registers
 } from './registers';
 import {
-    ACTIVE_POWER_CAPABILITY, METER_CAPABILITY, Role,
+    ACTIVE_POWER_CAPABILITY, ENERGY_CAPABILITIES, METER_CAPABILITY, Role,
     energyTitle, extraCapabilities, functionRoles, powerTitle,
     registersForRole, roleClass, roleGroups, roleNames, roleOf, roleRegisters
 } from './roles';
@@ -39,6 +39,21 @@ class NibeSDriver extends Driver {
             if (!(capabilitiesOptions as any)[register.name])
                 this.log(`No options for ${register.name}`);
         }
+        // Every flow card carries a hint (the tooltip under its title in the Flow editor).
+        // Homey doesn't require one, so a card added without it fails silently in the UI.
+        for (const card of [...triggers, ...actions, ...conditions] as any[]) {
+            const hint = card.hint;
+            if (!hint?.en || !hint?.sv)
+                this.log(`Flow card ${card.id} is missing a${hint?.en ? ' Swedish' : ''} hint`);
+        }
+        // A writable register with no dedicated card is only reachable from the
+        // Advanced-Flow escape hatches, which is rarely what we want.
+        for (const register of registers) {
+            if (!isAdjustable(register) || register.enum || register.bool || register.picker)
+                continue;
+            if (!actionSpecs[`${register.name}.set`])
+                this.log(`No dedicated "set" flow card for writable register ${register.name}`);
+        }
     }
 
     // Autofill entry (id + localized title) for a register in a flow autocomplete.
@@ -62,6 +77,21 @@ class NibeSDriver extends Driver {
                     .map(this.regToAutofill)
                     .filter((result: any) => result.name.toLowerCase().includes(query.toLowerCase())))
             .registerRunListener(async (args, state) => run(args, state));
+    }
+
+    // Range-check, write and read back a numeric register. Shared by the dedicated
+    // "<capability>.set" cards and the generic set_numeric_value one so the validation
+    // and the write-verify only exist once.
+    private async writeNumeric(device: any, register: Register, value: number) {
+        if (value < register.min! || value > register.max!)
+            throw new Error("The value " + value + " is out of range. Value should be between " +
+                register.min + " and " + register.max + ".");
+        if (!await device.writeRegister(register, value))
+            throw new Error("Could not set value " + value);
+        const newValue = await device.readRegister(register);
+        if (newValue !== value)
+            throw new Error("Failed setting " + value + ", got back value " + newValue);
+        await device.setValue(register, newValue);
     }
 
     // All flow cards are registered once here on the driver (not per device): Homey flow
@@ -94,25 +124,36 @@ class NibeSDriver extends Driver {
             }
         }
 
+        // Dedicated per-register action cards ("Set the heat curve to 5"), scoped to the
+        // devices carrying the capability via $filter in the flow compose file. These are
+        // the standard-Flow way to change a setting; set_numeric_value below is the same
+        // write behind an Advanced-Flow register picker.
+        for (const register of registers) {
+            if (!isAdjustable(register) || !(register.scale! > 0))
+                continue;
+            if (actionSpecs[register.name + ".set"]) {
+                this.homey.flow.getActionCard(register.name + ".set")
+                    .registerRunListener(async (args) => this.writeNumeric(args.device, register, args.value));
+            }
+        }
+
+        // Command registers: one action, no argument, writes the trigger value.
+        for (const register of registers) {
+            if (!register.writeOnly || !actionSpecs[register.name + ".reset"])
+                continue;
+            this.homey.flow.getActionCard(register.name + ".reset")
+                .registerRunListener(async (args) => {
+                    if (!await args.device.writeRegister(register, true))
+                        throw new Error(`Could not write ${register.name}`);
+                });
+        }
+
         this.registerAutofillFlow(this.homey.flow.getActionCard("set_numeric_value"),
             (reg) => reg.direction == Dir.Out && reg.scale! > 0 && !reg.noAction!,
-            async (args: any) => {
-                const register = registerByName[args.register.id];
-                if (args.value < register.min! || args.value > register.max!)
-                    throw new Error("The value " + args.value + " is out of range. Value should be between " +
-                        register.min + " and " + register.max + ".");
-                if (await args.device.writeRegister(register, args.value)) {
-                    const newValue = await args.device.readRegister(register);
-                    if (newValue === args.value)
-                        await args.device.setValue(register, newValue);
-                    else
-                        throw new Error("Failed setting " + args.value + ", got back value " + newValue);
-                } else
-                    throw new Error("Could not set value " + args.value);
-            });
+            async (args: any) => this.writeNumeric(args.device, registerByName[args.register.id], args.value));
 
         this.registerAutofillFlow(this.homey.flow.getActionCard("enable_feature"),
-            (reg) => reg.direction == Dir.Out && reg.bool!,
+            (reg) => reg.direction == Dir.Out && reg.bool! && !reg.writeOnly,
             async (args: any) => {
                 const register = registerByName[args.register.id];
                 if (await args.device.writeRegister(register, true))
@@ -120,7 +161,7 @@ class NibeSDriver extends Driver {
             });
 
         this.registerAutofillFlow(this.homey.flow.getActionCard("disable_feature"),
-            (reg) => reg.direction == Dir.Out && reg.bool!,
+            (reg) => reg.direction == Dir.Out && reg.bool! && !reg.writeOnly,
             async (args: any) => {
                 const register = registerByName[args.register.id];
                 if (await args.device.writeRegister(register, false))
@@ -137,7 +178,7 @@ class NibeSDriver extends Driver {
             });
 
         this.registerAutofillFlow(this.homey.flow.getConditionCard("feature_enabled"),
-            (reg) => reg.bool!,
+            (reg) => reg.bool! && !reg.writeOnly,
             (args: any) => args.device.hasCapability(args.register.id) && args.device.getCapabilityValue(args.register.id));
 
         // Device trigger cards: Homey already scopes trigger() to the firing device, so the
@@ -147,11 +188,11 @@ class NibeSDriver extends Driver {
             (args: any, state: any) => args.register.id === state.register.id);
 
         this.registerAutofillFlow(this.homey.flow.getDeviceTriggerCard("capability_turned_on"),
-            (reg) => reg.bool!,
+            (reg) => reg.bool! && !reg.writeOnly,
             (args: any, state: any) => args.register.id === state.register.id && state.value);
 
         this.registerAutofillFlow(this.homey.flow.getDeviceTriggerCard("capability_turned_off"),
-            (reg) => reg.bool!,
+            (reg) => reg.bool! && !reg.writeOnly,
             (args: any, state: any) => args.register.id === state.register.id && !state.value);
     }
 
@@ -169,14 +210,46 @@ class NibeSDriver extends Driver {
         return ids.map((id) => ({
             id,
             name: this.homey.__(`groups.${id}`) || id,
-            registers: registers
-                .filter((register) => register.group === id)
-                .map((register) => ({
-                    name: register.name,
-                    title: title(register.name),
-                    adjustable: isAdjustable(register),
-                    description: (register.info as any)[language] || register.info.en
-                }))
+            // The energy group carries no registers — its two capabilities are derived by
+            // the connection's allocator — so describe them here to make it togglable like
+            // any other group.
+            registers: id === 'energy'
+                ? this.energyGroupEntries(role, language)
+                : registers
+                    .filter((register) => register.group === id)
+                    .map((register) => ({
+                        name: register.name,
+                        title: title(register.name),
+                        adjustable: isAdjustable(register),
+                        description: (register.info as any)[language] || register.info.en
+                    }))
+        }));
+    }
+
+    // Title of a derived energy capability for a role, in the app's language.
+    private energyCapabilityTitle(role: Role, name: string, lang: 'en' | 'sv'): string {
+        const title = name === METER_CAPABILITY ? energyTitle(role) : powerTitle(role);
+        return title[lang] || title.en;
+    }
+
+    // The two derived energy capabilities, shaped like groupInfo()'s register entries.
+    private energyGroupEntries(role: Role | undefined, language: string) {
+        const lang = language as 'en' | 'sv';
+        const descriptions: Record<string, RegisterInfo> = {
+            [METER_CAPABILITY]: {
+                en: "Energy this function has used, counted up over its lifetime (shows in Homey's Energy tab)",
+                sv: "Energi denna funktion använt, räknat sedan start (visas i Homeys energiflik)"
+            },
+            [ACTIVE_POWER_CAPABILITY]: {
+                en: "Power the pump is drawing right now, when this function is the active one",
+                sv: "Effekt pumpen drar just nu, när denna funktion är den aktiva"
+            }
+        };
+        return ENERGY_CAPABILITIES.map((name) => ({
+            name,
+            title: this.energyCapabilityTitle(role ?? 'heating', name, lang),
+            adjustable: false,
+            description: descriptions[name][lang] || descriptions[name].en
         }));
     }
 
@@ -187,13 +260,20 @@ class NibeSDriver extends Driver {
         for (const id of groupIds)
             groups[id] = !!raw?.groups?.[id];
         const overrides: Selection["overrides"] = {};
+        const keep = (name: string, group: GroupId) => {
+            const override = raw?.overrides?.[name];
+            if (typeof override === "boolean" && override !== groups[group])
+                overrides[name] = override;
+        };
         for (const register of registers) {
             if (register.group === "core")
                 continue; // core registers are always enabled
-            const override = raw?.overrides?.[register.name];
-            if (typeof override === "boolean" && override !== groups[register.group])
-                overrides[register.name] = override;
+            keep(register.name, register.group);
         }
+        // The energy capabilities aren't registers, but the features view renders a
+        // checkbox per capability for them too — honour those the same way.
+        for (const name of ENERGY_CAPABILITIES)
+            keep(name, "energy");
         return {groups, overrides};
     }
 
@@ -246,8 +326,11 @@ class NibeSDriver extends Driver {
         for (const register of roleRegisters(role))
             if ((capabilitiesOptions as any)[register.name])
                 options[register.name] = (capabilitiesOptions as any)[register.name];
-        for (const extra of extraCapabilities(role))
-            options[extra] = this.extraOption(role, extra);
+        // Options for every energy capability the role could carry, not just the
+        // currently selected ones, so one enabled later via repair still gets its title.
+        if (role !== 'main')
+            for (const extra of ENERGY_CAPABILITIES)
+                options[extra] = this.extraOption(role, extra);
         return {
             name: roleNames[role][language as 'en' | 'sv'] || roleNames[role].en,
             class: roleClass[role],
@@ -255,7 +338,7 @@ class NibeSDriver extends Driver {
             settings: {address: ip},
             store: {selection},
             icon: `/${role}.svg`,
-            capabilities: [...roleRegs.map((r) => r.name), ...extraCapabilities(role)],
+            capabilities: [...roleRegs.map((r) => r.name), ...extraCapabilities(role, selection)],
             capabilitiesOptions: options
         };
     }
@@ -270,13 +353,24 @@ class NibeSDriver extends Driver {
             .join(', ');
     }
 
-    // The feature groups shown (and toggled) under a device in the picker's expand:
-    // each role group plus, for function devices, a fixed "Energy" group listing the
-    // meter/power capabilities. Core and Energy are fixed (always included); the rest
-    // default to whatever detection recommended and can be toggled by the user.
+    // The feature groups shown (and toggled) under a device in the picker's expand.
+    // Only core is fixed (always included); everything else — Energy included — defaults
+    // to whatever detection recommended and can be toggled by the user. Energy carries no
+    // registers, so its capabilities are filled in from the derived pair.
     private candidateGroups(role: Role, recommendations: Recommendations, samples: Record<string, RegisterSample>) {
         const lang = this.homey.i18n.getLanguage() as 'en' | 'sv';
-        const groups: any[] = (roleGroups[role] as GroupId[])
+        const capsFor = (id: GroupId) => id === 'energy'
+            ? (role === 'main' ? [] : ENERGY_CAPABILITIES.map((cap) => ({
+                name: cap,
+                title: this.energyCapabilityTitle(role, cap, lang),
+                detected: true
+            })))
+            : registers.filter((register) => register.group === id).map((register) => ({
+                name: register.name,
+                title: this.regToAutofill(register).name,
+                detected: samples[register.name]?.read ?? false
+            }));
+        return (roleGroups[role] as GroupId[])
             .map((id) => ({
                 id,
                 name: id === 'core'
@@ -284,26 +378,9 @@ class NibeSDriver extends Driver {
                     : (this.homey.__(`groups.${id}`) || id),
                 fixed: id === 'core',
                 selected: id === 'core' ? true : !!(recommendations[id] ? recommendations[id]!.recommended : true),
-                caps: registers.filter((register) => register.group === id).map((register) => ({
-                    name: register.name,
-                    title: this.regToAutofill(register).name,
-                    detected: samples[register.name]?.read ?? false
-                }))
+                caps: capsFor(id)
             }))
             .filter((group) => group.caps.length > 0);
-        if (role !== 'main')
-            groups.push({
-                id: '_energy',
-                name: this.homey.__('pair.devices.energy') || 'Energy',
-                fixed: true,
-                selected: true,
-                caps: extraCapabilities(role).map((cap) => ({
-                    name: cap,
-                    title: (cap === METER_CAPABILITY ? energyTitle(role) : powerTitle(role))[lang],
-                    detected: true
-                }))
-            });
-        return groups;
     }
 
     // All candidate devices for the picker: main plus every function device, each

@@ -19,6 +19,8 @@ export const priorityMap = Object({
     60: "Cooling"
 });
 
+// 3 is deliberately absent: Nibe's Modbus manual lists it as "not in use" for
+// register 56, so the pump has no mode 3 to select.
 export const hotwaterMap = Object({
     0: "Small",
     1: "Medium",
@@ -26,14 +28,32 @@ export const hotwaterMap = Object({
     4: "Smart control"
 });
 
+// Menu 2.1 "More hot water" (register 697). Nibe's Modbus manual (M12676EN) omits 697
+// entirely, and the S1155 manual describes menu 2.1 as a fixed list ("Setting range: 3, 6
+// and 12 hours, as well as the modes 'Off' and 'One-time increase'"), which made this look
+// like an enum. It isn't — the register is far less constrained than the menu.
+//
+// Measured against the live S1155 on 2026-07-17: 697 is a plain count of *hours*. Writing
+// N sets holding 225 ("More hot water, number of minutes") to N*60 and input 1078
+// ("More hot water status") to 1. That holds for every N in 1..127 — including 24 and 48,
+// which this pump's menu cannot even select, and odd values like 1, 4, 5, 47 and 100. The
+// register is not validated against the menu list. 0 is Off. It is s8 on the wire, so 128+
+// wraps negative and the pump reads it back as 0.
+//
+// Consequences for the labels below:
+//   - 2 is a *2-hour* boost. It was previously labelled "1h", which was simply wrong.
+//   - No raw value means "One-time increase"; the whole 1..127 space is hour counts,
+//     leaving no room for a sentinel, so that mode is unreachable through this register.
+// The map is therefore a curated picker of useful durations, not the register's domain.
+// Any 1..127 is legal if more are ever wanted.
 export const onetimeincreaseMap = Object({
     0: "Off",
-    2: "One-time increase 1h",
-    3: "One-time increase 3h",
-    6: "One-time increase 6h",
-    12: "One-time increase 12h",
-    24: "One-time increase 24h",
-    48: "One-time increase 48h"
+    2: "2 hours",
+    3: "3 hours",
+    6: "6 hours",
+    12: "12 hours",
+    24: "24 hours",
+    48: "48 hours"
 });
 
 export const booleanMap = Object({
@@ -58,8 +78,13 @@ export const groupIds = [
     "ventilation",
     "groundsource",
     "electrical",
+    "alarm",
     "diagnostics",
-    "statistics"
+    "statistics",
+    // Carries no registers: the energy meter/power pair is derived by the connection's
+    // allocator, not read over Modbus. It's a group so the selection machinery and both
+    // pairing views can toggle it like any other feature.
+    "energy"
 ] as const;
 
 export type GroupId = typeof groupIds[number] | "core";
@@ -84,6 +109,10 @@ export interface Register  {
     offValue?: number;
     picker?: boolean;
     noAction?: boolean;
+    // A command register: writing acts, reading carries no state (e.g. "reset alarm",
+    // where you write 1 to acknowledge and it reads back 0). Never polled, and kept out
+    // of the flow cards that report or toggle a readable state.
+    writeOnly?: boolean;
     min?: number;
     max?: number;
 }
@@ -174,18 +203,20 @@ export const registers: Register[] = [
     {address: 1091, name: "measure_hour_NIBE.i1091_compressor_usage_hotwater",direction: Dir.In,  group: "hotwater",   scale: 1, // Total drifttid kompressor varmvatten
      info: {en: "Compressor runtime spent on hot water", sv: "Kompressorns drifttid för varmvatten"}},
     // Rad 16 Värmekurvor
-    {address:   26, name: "measure_count_NIBE.h26_heat_curve",                direction: Dir.Out, group: "heating",    scale: 1, min: 0, max: 10, // Värmekurva klimatsystem 1
+    {address:   26, name: "measure_count_NIBE.h26_heat_curve",                direction: Dir.Out, group: "heating",    scale: 1, min: 0, max: 15, // Värmekurva klimatsystem 1
      info: {en: "Heat curve slope for climate system 1", sv: "Värmekurvans lutning för klimatsystem 1"}},
     {address:   30, name: "measure_count_NIBE.h30_heat_curve_displacement",   direction: Dir.Out, group: "heating",    scale: 1, min: -10, max: 10, // Värmeförskjutning klimatsystem 1 RW
      info: {en: "Offset of the heat curve for climate system 1", sv: "Förskjutning av värmekurvan för klimatsystem 1"}},
     // Rad 17 Varmvatten
     {address:   56, name: "measure_enum_NIBE.h56_hotwater_demand_mode",       direction: Dir.Out, group: "hotwater",   enum: hotwaterMap, // Varmvatten behovsläge RW
      info: {en: "Hot water demand mode (small/medium/large/smart)", sv: "Varmvattnets behovsläge (litet/medel/stort/smart)"}},
-    // "More hot water" quick action: on = one-time increase for 1h (raw 2), off = raw 0.
+    // "More hot water" quick action: on = raw 2, off = raw 0. Raw 2 is *2 hours*, not the
+    // 1 hour this was labelled as before it was measured (see onetimeincreaseMap). Write
+    // onValue: 1 instead if a 1-hour boost is what's actually wanted.
     // Exposed as the plain `onoff` so it becomes the Hot Water tile's primary toggle;
     // the duration picker below is the secondary control for the same register.
     {address:  697, name: "onoff",                                            direction: Dir.Out, group: "hotwater",   bool: true, onValue: 2, offValue: 0, // Mer varmvatten engångshöjning
-     info: {en: "More hot water: a one-time 1-hour boost", sv: "Mer varmvatten: en engångshöjning på 1 timme"}},
+     info: {en: "More hot water: a one-time 2-hour boost", sv: "Mer varmvatten: en engångshöjning på 2 timmar"}},
     // Rad 18 Periodisk varmvatten höjning
     {address:   65, name: "measure_enum_NIBE.h65_periodic_hotwater",          direction: Dir.Out, group: "hotwater",   enum: booleanMap, // Periodisk varmvatten
      info: {en: "Periodic hot water boost on/off (status)", sv: "Periodisk varmvattenhöjning av/på (status)"}},
@@ -216,10 +247,11 @@ export const registers: Register[] = [
      info: {en: "Refrigerant liquid line temperature (BT15)", sv: "Köldmediets vätskeledningstemperatur (BT15)"}},
     {address:   16, name: "measure_temperature.i16_suction_gas",    direction: Dir.In,  group: "diagnostics", scale:  10, // Suggas BT17
      info: {en: "Refrigerant suction gas temperature (BT17)", sv: "Köldmediets suggastemperatur (BT17)"}},
+    // Writable on paper, but no source documents what its values mean, so it stays a
+    // read-only insight rather than a control we can't label honestly.
+    {address:   19, name: "measure_count_NIBE.h19_holiday_status",            direction: Dir.Out, group: "diagnostics", scale: 1, noAction: true, // Semesterläge status
+     info: {en: "Whether the pump's holiday mode is currently active", sv: "Om pumpens semesterläge är aktivt just nu"}},
     // Rad 24
-    {address: 5351, name: "pump_setpoint.h5351_compressor_min_speed",         direction: Dir.Out, group: "diagnostics", scale: 100, min: 0.02, max: 0.5, // Minsta tillåtna hastighet GP1
-     info: {en: "Lowest allowed speed for the heating medium pump (GP1)", sv: "Minsta tillåtna hastighet för värmebärarpumpen (GP1)"}},
-
     // Ej på värdedelen av appen
 
     // Poolvärme inställningar temp
@@ -257,6 +289,43 @@ export const registers: Register[] = [
     {address:   92, name: "hotwater_periodtime_NIBE.h92_periodtime_hotwater", direction: Dir.Out, group: "hotwater",   picker: true, // Periodiskt varmvatten längd i minuter
      info: {en: "Selector for the periodic hot water boost duration", sv: "Väljare för den periodiska varmvattenhöjningens längd"}},
 
+    // Setpoints and degree-minute tuning. Ranges are this pump's (S1156/S1255 with the
+    // exhaust-air and pool accessories docked) — the hot water start/stop limits in
+    // particular differ on other S models (S320/S330/S2125 allow up to 70 °C).
+    {address:   34, name: "target_temperature.h34_min_supply",                direction: Dir.Out, group: "heating",    scale: 10, min: 5, max: 80, // Min framledning klimatsystem 1
+     info: {en: "Lowest supply temperature the pump may produce (climate system 1)", sv: "Lägsta framledningstemperatur pumpen får producera (klimatsystem 1)"}},
+    {address:   38, name: "target_temperature.h38_max_supply",                direction: Dir.Out, group: "heating",    scale: 10, min: 5, max: 80, // Max framledning klimatsystem 1
+     info: {en: "Highest supply temperature the pump may produce (climate system 1)", sv: "Högsta framledningstemperatur pumpen får producera (klimatsystem 1)"}},
+    {address:  184, name: "target_temperature.h184_auto_stop_heating",        direction: Dir.Out, group: "heating",    scale: 10, min: -20, max: 40, // Auto: stopptemp värme
+     info: {en: "Outdoor temperature where automatic mode stops heating", sv: "Utetemperatur där autoläget stoppar värmen"}},
+    {address:  185, name: "target_temperature.h185_auto_stop_addition",       direction: Dir.Out, group: "heating",    scale: 10, min: -25, max: 40, // Auto: stopptemp tillsats
+     info: {en: "Outdoor temperature where automatic mode stops the additive heater", sv: "Utetemperatur där autoläget stoppar tillsatsen"}},
+    {address:   93, name: "measure_minute_NIBE.h93_periodtime_heating",       direction: Dir.Out, group: "heating",    scale: 1, min: 0, max: 180, // Periodtid värme
+     info: {en: "How long the pump makes heating before switching demand", sv: "Hur länge pumpen gör värme innan den byter behov"}},
+    {address:   97, name: "measure_degree_minutes_NIBE.h97_dm_start_compressor", direction: Dir.Out, group: "heating", scale: 1, min: -1000, max: -30, // Startgradminuter kompressor
+     info: {en: "Degree minutes at which the compressor starts heating", sv: "Gradminuter då kompressorn startar värmen"}},
+    // A difference from h97, not an absolute degree-minute value — hence the positive range.
+    {address:  679, name: "measure_degree_minutes_NIBE.h679_dm_diff_start_addition", direction: Dir.Out, group: "heating", scale: 1, min: 100, max: 2000, // Gradminuter differens start tillsats
+     info: {en: "How many degree minutes below the compressor start the additive heater joins in", sv: "Hur många gradminuter under kompressorstarten som tillsatsen går in"}},
+    {address:   18, name: "measure_degree_minutes_NIBE.h18_limit_dm",         direction: Dir.Out, group: "heating",    scale: 10, min: -3000, max: 3000, // Gradminuter, begränsat värde
+     info: {en: "Degree minutes limited to the range the pump regulates within", sv: "Gradminuter begränsade till intervallet pumpen reglerar inom"}},
+    {address:   20, name: "measure_degree_minutes_NIBE.h20_cooling_dm",       direction: Dir.Out, group: "cooling",    scale: 10, min: -3000, max: 3000, // Gradminuter kyla
+     info: {en: "Accumulated cooling surplus that decides when cooling starts", sv: "Ackumulerat kylöverskott som avgör när kylan startar"}},
+    {address:   59, name: "target_temperature.h59_hotwater_start",            direction: Dir.Out, group: "hotwater",   scale: 10, min: 5, max: 60, // VV starttemperatur
+     info: {en: "Tank temperature where hot water charging starts", sv: "Tanktemperatur där varmvattenladdning startar"}},
+    {address:   63, name: "target_temperature.h63_hotwater_stop",             direction: Dir.Out, group: "hotwater",   scale: 10, min: 5, max: 65, // VV stopptemperatur
+     info: {en: "Tank temperature where hot water charging stops", sv: "Tanktemperatur där varmvattenladdning stoppar"}},
+    {address:   94, name: "measure_minute_NIBE.h94_periodtime_pool",          direction: Dir.Out, group: "pool",       scale: 1, min: 0, max: 180, // Periodtid pool
+     info: {en: "How long the pump heats the pool before switching demand", sv: "Hur länge pumpen värmer poolen innan den byter behov"}},
+
+    // Alarm handling. h22 is a command: write 1 to acknowledge, it reads back 0.
+    {address:   22, name: "button.h22_reset_alarm",                           direction: Dir.Out, group: "alarm",      bool: true, writeOnly: true, noAction: true, // Återställ larm
+     info: {en: "Acknowledge and reset an active alarm on the pump", sv: "Kvittera och återställ ett aktivt larm på pumpen"}},
+    {address:  196, name: "onoff.h196_alarm_lower_room_temp",                 direction: Dir.Out, group: "alarm",      bool: true, // Larm vid sänkt rumstemp
+     info: {en: "On an alarm, lower the room temperature to save the pump", sv: "Vid larm, sänk rumstemperaturen för att skona pumpen"}},
+    {address:  197, name: "onoff.h197_alarm_lower_hw_temp",                   direction: Dir.Out, group: "alarm",      bool: true, // Larm vid sänkt VV-temp
+     info: {en: "On an alarm, lower the hot water temperature", sv: "Vid larm, sänk varmvattentemperaturen"}},
+
     {address:  180, name: "onoff.h180_enable_addition",                       direction: Dir.Out, group: "heating",    bool: true, // Tillåt tillsats
      info: {en: "Allow the electric additive heater", sv: "Tillåt eltillsatsen"}},
     {address:  181, name: "onoff.h181_enable_heating",                        direction: Dir.Out, group: "heating",    bool: true, // Tillåt värme
@@ -272,6 +341,12 @@ export const registerByName =
 // isn't display-only) as opposed to a read-only sensor/insight value.
 export function isAdjustable(register: Register): boolean {
     return register.direction === Dir.Out && !register.noAction;
+}
+
+// Whether a register is worth reading on the poll loop. Command registers carry no
+// state to read back, and their capabilities (e.g. Homey's `button`) reject a value.
+export function isPollable(register: Register): boolean {
+    return !register.writeOnly;
 }
 
 

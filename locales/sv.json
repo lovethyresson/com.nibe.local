@@ -14,12 +14,12 @@
   "Large": "Stort",
   "Not in use": "Används inte",
   "Smart control": "Smart kontrol",
-  "One-time increase 1h": "Höjning 1h",
-  "One-time increase 3h": "Höjning 3h",
-  "One-time increase 6h": "Höjning 6h",
-  "One-time increase 12h": "Höjning 12h",
-  "One-time increase 24h": "Höjning 24h",
-  "One-time increase 48h": "Höjning 48h",
+  "2 hours": "2 timmar",
+  "3 hours": "3 timmar",
+  "6 hours": "6 timmar",
+  "12 hours": "12 timmar",
+  "24 hours": "24 timmar",
+  "48 hours": "48 timmar",
   "On": "På",
   "Auto": "Auto",
   "Manual": "Manuellt",
@@ -87,6 +87,8 @@
     "diagnostics": "Köldmediediagnostik",
     "statistics": "Driftstatistik",
     "cooling": "Kyla",
-    "core": "Grundvärden"
+    "core": "Grundvärden",
+    "alarm": "Larmhantering",
+    "energy": "Energi"
   }
 }

@@ -41,8 +41,7 @@
       "detected": "Data detected",
       "notdetected": "No data",
       "select_one": "Select at least one device to add.",
-      "main_desc": "Overview: outdoor temperature, operating priority and mode, plus diagnostics and statistics",
-      "energy": "Energy"
+      "main_desc": "Overview: outdoor temperature, operating priority and mode, plus diagnostics and statistics"
     },
     "discover": {
       "title": "Find your heat pump",
@@ -66,8 +65,10 @@
     "ventilation": "Ventilation (exhaust air)",
     "groundsource": "Ground source (brine)",
     "electrical": "Current sensors",
+    "alarm": "Alarm handling",
     "diagnostics": "Refrigerant diagnostics",
-    "statistics": "Runtime statistics"
+    "statistics": "Runtime statistics",
+    "energy": "Energy"
   },
   "Normal": "Normal",
   "Speed 1": "Speed 1",
