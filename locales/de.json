@@ -75,7 +75,8 @@
       "select_one": "Wählen Sie mindestens ein Gerät aus.",
       "main_desc": "Übersicht: Außentemperatur, Betriebspriorität und Betriebsmodus sowie Diagnose und Statistik",
       "energy": "Energie"
-    }
+    },
+    "not_settable": "Dies zeigt die Betriebspriorität der Wärmepumpe und kann nicht geschaltet werden."
   },
   "groups": {
     "heating": "Heizung",

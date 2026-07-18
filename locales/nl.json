@@ -75,7 +75,8 @@
       "select_one": "Selecteer minstens één apparaat om toe te voegen.",
       "main_desc": "Overzicht: buitentemperatuur, bedrijfsprioriteit en bedrijfsstand, plus diagnose en statistieken",
       "energy": "Energie"
-    }
+    },
+    "not_settable": "Dit toont de bedrijfsprioriteit van de warmtepomp en kan niet worden geschakeld."
   },
   "groups": {
     "heating": "Verwarming",

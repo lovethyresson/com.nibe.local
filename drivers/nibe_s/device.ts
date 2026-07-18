@@ -2,8 +2,10 @@ import {Device} from 'homey';
 import {capabilitiesOptions} from './driver.compose.json';
 import {Dir, Register, Selection} from './registers';
 import {
-    ACTIVE_POWER_CAPABILITY, METER_CAPABILITY, Role,
-    energyTitle, extraCapabilities, powerTitle, registersForRole, roleClass, roleOf, roleRegisters
+    ACTIVE_POWER_CAPABILITY, METER_CAPABILITY, PRIORITY_RAW_OFF, PRIORITY_REGISTER_NAME,
+    PUMP_ACTIVE_CAPABILITY, Role,
+    energyTitle, extraCapabilities, powerTitle, pumpActiveTitle, registersForRole,
+    roleClass, roleOf, roleRegisters
 } from './roles';
 import {PumpConnection, PumpSubscriber, POLL_SECONDS_DEFAULT, clampPollSeconds} from './connection';
 
@@ -142,6 +144,11 @@ class NibeSDevice extends Device implements PumpSubscriber {
             return {title: energyTitle(this.role)};
         if (name === ACTIVE_POWER_CAPABILITY)
             return {title: powerTitle(this.role), decimals: 0};
+        // Main's on/off reflects the operating priority and cannot be commanded, so it
+        // needs both its own title (the shared compose entry names register 697's "More
+        // hot water") and setable:false to render as state rather than a switch.
+        if (name === PUMP_ACTIVE_CAPABILITY && this.role === 'main')
+            return {title: pumpActiveTitle(), setable: false};
         return undefined;
     }
 
@@ -223,6 +230,20 @@ class NibeSDevice extends Device implements PumpSubscriber {
             }
         }
 
+        // Main's on/off is derived state, not a command. setable:false should keep the
+        // tile from offering a switch, but register a listener anyway: without one a
+        // toggle raises "no capability listener", and this way a stray tap simply snaps
+        // back to whatever the operating priority currently says.
+        if (this.role === 'main') {
+            this.registerCapabilityListener(PUMP_ACTIVE_CAPABILITY, async () => {
+                const raw = this.connection?.lastRawFor(PRIORITY_REGISTER_NAME);
+                const actual = raw === undefined ? false : raw !== PRIORITY_RAW_OFF;
+                setTimeout(() => this.setCapabilityValue(PUMP_ACTIVE_CAPABILITY, actual)
+                    .catch(this.error), 300);
+                throw new Error(this.homey.__('pair.not_settable'));
+            });
+        }
+
         this.connection = PumpConnection.get(this.host());
         this.connection.attach(this);
     }
@@ -242,6 +263,14 @@ class NibeSDevice extends Device implements PumpSubscriber {
 
     onRegisterRaw(register: Register, raw: number) {
         this.setValue(register, this.fromRegisterValue(register, raw)).catch(this.error);
+        // Main has no "powered off" register, so its on/off follows the pump's operating
+        // priority: idle (10) is off, anything it is actively producing is on. An
+        // unrecognised priority counts as on — the pump is doing something we can't name.
+        if (this.role === 'main' && register.name === PRIORITY_REGISTER_NAME
+            && this.hasCapability(PUMP_ACTIVE_CAPABILITY)) {
+            this.setCapabilityValue(PUMP_ACTIVE_CAPABILITY, raw !== PRIORITY_RAW_OFF)
+                .catch(this.error);
+        }
     }
 
     onConnectionUp() {

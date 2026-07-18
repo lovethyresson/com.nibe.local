@@ -54,7 +54,8 @@
       "refresh": "Erneut suchen",
       "pump": "NIBE Wärmepumpe",
       "outdoor": "Außentemperatur"
-    }
+    },
+    "not_settable": "Dies zeigt die Betriebspriorität der Wärmepumpe und kann nicht geschaltet werden."
   },
   "groups": {
     "core": "Basissensoren",

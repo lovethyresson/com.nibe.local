@@ -54,7 +54,8 @@
       "refresh": "Søg igen",
       "pump": "NIBE varmepumpe",
       "outdoor": "Udetemperatur"
-    }
+    },
+    "not_settable": "Dette viser varmepumpens driftsprioritering og kan ikke styres."
   },
   "groups": {
     "core": "Basissensorer",

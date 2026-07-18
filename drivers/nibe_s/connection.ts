@@ -219,6 +219,12 @@ export class PumpConnection {
         return [...byName.values()];
     }
 
+    // Last polled raw value for a register, by capability name. Used by Main's derived
+    // on/off to re-assert the true state if the capability is written to.
+    lastRawFor(name: string): number | undefined {
+        return this.lastRaw.get(name);
+    }
+
     async readRegisterRaw(register: Register): Promise<number | undefined> {
         return await ((register.direction === Dir.In)
             ? this.client.readInputRegisters(register.address, 1)

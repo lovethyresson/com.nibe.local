@@ -54,7 +54,8 @@
       "refresh": "Sök igen",
       "pump": "Nibe värmepump",
       "outdoor": "Utetemperatur"
-    }
+    },
+    "not_settable": "Detta visar värmepumpens driftprioritering och kan inte styras."
   },
   "groups": {
     "core": "Grundvärden",

@@ -75,7 +75,8 @@
       "select_one": "Vælg mindst én enhed, der skal tilføjes.",
       "main_desc": "Oversigt: udetemperatur, driftsprioritering og driftsindstilling samt diagnostik og statistik",
       "energy": "Energi"
-    }
+    },
+    "not_settable": "Dette viser varmepumpens driftsprioritering og kan ikke styres."
   },
   "groups": {
     "heating": "Varme",

@@ -65,9 +65,25 @@ export const ENERGY_CAPABILITIES = [METER_CAPABILITY, ACTIVE_POWER_CAPABILITY];
 // The pair follows the "energy" feature group, resolved with the same precedence as
 // isRegisterEnabled(): a per-capability override wins over the group, and a missing
 // selection means enabled.
+// Main's on/off is not a register: the pump exposes no "powered off" flag, so it is
+// derived from the operating priority — off only while the pump is idle (priority 10),
+// on whenever it is producing heating, hot water, pool or cooling. It reuses the bare
+// `onoff` id because that is what drives a device's on/off state on the tile, which
+// means it shares capabilitiesOptions with the hot water device's register-697 toggle;
+// the per-role title is supplied at runtime (see NibeSDevice.extraOptions).
+export const PUMP_ACTIVE_CAPABILITY = "onoff";
+
+// Register whose value Main's on/off follows, and the raw value meaning "idle".
+export const PRIORITY_REGISTER_NAME = "measure_enum_NIBE.i1028_priority";
+export const PRIORITY_RAW_OFF = 10;
+
+export function pumpActiveTitle(): {en: string; sv: string; de: string; nl: string; no: string; da: string} {
+    return {en: "Active", sv: "Aktiv", de: "Aktiv", nl: "Actief", no: "Aktiv", da: "Aktiv"};
+}
+
 export function extraCapabilities(role: Role, selection?: Selection | null): string[] {
     if (role === "main")
-        return [];
+        return [PUMP_ACTIVE_CAPABILITY];
     if (!selection)
         return [...ENERGY_CAPABILITIES];
     return ENERGY_CAPABILITIES.filter((name) =>

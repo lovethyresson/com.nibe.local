@@ -75,7 +75,8 @@
       "select_one": "Select at least one device to add.",
       "main_desc": "Overview: outdoor temperature, operating priority and mode, plus diagnostics and statistics",
       "energy": "Energy"
-    }
+    },
+    "not_settable": "This reflects the heat pump's operating priority and cannot be switched."
   },
   "groups": {
     "heating": "Heating",

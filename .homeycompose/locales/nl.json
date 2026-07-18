@@ -54,7 +54,8 @@
       "refresh": "Opnieuw zoeken",
       "pump": "NIBE warmtepomp",
       "outdoor": "Buitentemperatuur"
-    }
+    },
+    "not_settable": "Dit toont de bedrijfsprioriteit van de warmtepomp en kan niet worden geschakeld."
   },
   "groups": {
     "core": "Basissensoren",

@@ -54,7 +54,8 @@
       "refresh": "Search again",
       "pump": "Nibe heat pump",
       "outdoor": "Outdoor temperature"
-    }
+    },
+    "not_settable": "This reflects the heat pump's operating priority and cannot be switched."
   },
   "groups": {
     "core": "Core sensors",
