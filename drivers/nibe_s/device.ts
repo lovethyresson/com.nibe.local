@@ -263,7 +263,13 @@ class NibeSDevice extends Device implements PumpSubscriber {
     // setting; the others inherit it (see PumpConnection.desiredPollSeconds) and only
     // matter when no main device is paired.
     pollSeconds(): number {
-        return clampPollSeconds(this.getSettings().pollInterval ?? POLL_SECONDS_DEFAULT);
+        // Devices paired before this setting existed report 0 rather than undefined, and
+        // 0 slips past ?? and then clamps up to the minimum — so a device that had never
+        // seen the setting polled every 5 s instead of the intended 10. Treat anything
+        // non-positive as "not set".
+        const stored = this.getSettings().pollInterval;
+        const seconds = typeof stored === 'number' && stored > 0 ? stored : POLL_SECONDS_DEFAULT;
+        return clampPollSeconds(seconds);
     }
 
     wantedRegisters(): Register[] {
