@@ -1,0 +1,94 @@
+{
+  "Off": "Fra",
+  "Hot water": "Varmtvand",
+  "Heating": "Varme",
+  "Pool": "Pool",
+  "Cooling": "Køling",
+  "Normal": "Normal",
+  "Speed 1": "Trin 1",
+  "Speed 2": "Trin 2",
+  "Speed 3": "Trin 3",
+  "Speed 4": "Trin 4",
+  "Small": "Lille",
+  "Medium": "Middel",
+  "Large": "Stor",
+  "Not in use": "Ikke i brug",
+  "Smart control": "Smart styring",
+  "2 hours": "2 timer",
+  "3 hours": "3 timer",
+  "6 hours": "6 timer",
+  "12 hours": "12 timer",
+  "24 hours": "24 timer",
+  "48 hours": "48 timer",
+  "On": "Til",
+  "Auto": "Auto",
+  "Manual": "Manuel",
+  "Add.heat only": "Kun tilskudsvarme",
+  "pair": {
+    "title": "NIBE S-konfiguration",
+    "ok": "OK",
+    "ipaddress": "IP-adresse",
+    "valid_ip_address": "Indtast en gyldig IP-adresse (xxx.xxx.xxx.xxx)",
+    "invalid_ipaddress": "Ugyldig IP-adresse",
+    "not_connected": "Ikke forbundet til varmepumpen",
+    "detect": {
+      "title": "Registrerer funktioner",
+      "intro": "Opretter forbindelse til varmepumpen og ser, hvilke værdier der ændrer sig. Det tager cirka et halvt minut.",
+      "status": "Aflæser registre",
+      "failed": "Kunne ikke læse fra varmepumpen",
+      "retry": "Prøv igen",
+      "skip": "Spring registrering over"
+    },
+    "features": {
+      "title": "Vælg funktioner",
+      "intro": "Vælg hvilke funktioner der skal overvåges. Anbefalingerne er baseret på det, varmepumpen rapporterede.",
+      "insights_note": "Hvis du deaktiverer en funktion, fjernes dens egenskaber, inklusive deres Insights-historik."
+    },
+    "evidence": {
+      "moving": "værdier ændrer sig",
+      "plausible": "ser ud til at findes",
+      "none": "ingen aktivitet registreret",
+      "unsupported": "understøttes ikke af varmepumpen"
+    },
+    "badge": {
+      "adjustable": "Justerbar",
+      "insight": "Kun visning"
+    },
+    "discover": {
+      "searching": "Søger på netværket efter NIBE varmepumper …",
+      "found": "Vælg din varmepumpe",
+      "none_found": "Der blev ikke fundet en varmepumpe automatisk. Kontrollér, at Modbus TCP er aktiveret på varmepumpen (menu 7.5.9), eller indtast IP-adressen nedenfor.",
+      "manual": "Indtast IP-adressen manuelt",
+      "refresh": "Søg igen",
+      "pump": "NIBE varmepumpe",
+      "outdoor": "Udetemperatur",
+      "title": "Find din varmepumpe",
+      "connecting": "Fandt varmepumpen – opretter forbindelse …",
+      "confirm": "Fandt varmepumpen – tryk for at bekræfte"
+    },
+    "devices": {
+      "title": "Tilføj enheder",
+      "intro": "Hver funktion i varmepumpen bliver en selvstændig enhed. De, vi fandt aktive data for, er markeret, men du kan tilføje dem alle.",
+      "add": "Tilføj valgte enheder",
+      "detected": "Data registreret",
+      "notdetected": "Ingen data",
+      "select_one": "Vælg mindst én enhed, der skal tilføjes.",
+      "main_desc": "Oversigt: udetemperatur, driftsprioritering og driftsindstilling samt diagnostik og statistik",
+      "energy": "Energi"
+    }
+  },
+  "groups": {
+    "heating": "Varme",
+    "hotwater": "Varmtvand",
+    "pool": "Pool",
+    "ventilation": "Ventilation (udsugningsluft)",
+    "groundsource": "Jordvarme (brine)",
+    "electrical": "Strømfølere",
+    "diagnostics": "Kølemiddeldiagnostik",
+    "statistics": "Driftstidsstatistik",
+    "cooling": "Køling",
+    "core": "Basissensorer",
+    "alarm": "Alarmhåndtering",
+    "energy": "Energi"
+  }
+}

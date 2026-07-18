@@ -1,0 +1,78 @@
+{
+  "Off": "Uit",
+  "Hot water": "Warmtapwater",
+  "Heating": "Verwarming",
+  "Pool": "Zwembad",
+  "Cooling": "Koeling",
+  "pair": {
+    "title": "NIBE S-configuratie",
+    "ok": "OK",
+    "ipaddress": "IP-adres",
+    "valid_ip_address": "Voer een geldig IP-adres in (xxx.xxx.xxx.xxx)",
+    "invalid_ipaddress": "Ongeldig IP-adres",
+    "not_connected": "Geen verbinding met de warmtepomp",
+    "detect": {
+      "title": "Functies detecteren",
+      "intro": "Er wordt verbinding gemaakt met de warmtepomp en gekeken welke waarden veranderen. Dit duurt ongeveer een halve minuut.",
+      "status": "Registers uitlezen",
+      "failed": "Kan niet uitlezen van de warmtepomp",
+      "retry": "Opnieuw proberen",
+      "skip": "Detectie overslaan"
+    },
+    "features": {
+      "title": "Functies selecteren",
+      "intro": "Kies welke functies je wilt bewaken. De aanbevelingen zijn gebaseerd op wat de warmtepomp heeft gemeld.",
+      "insights_note": "Als je een functie uitschakelt, worden de bijbehorende mogelijkheden verwijderd, inclusief hun Insights-geschiedenis."
+    },
+    "evidence": {
+      "moving": "waarden veranderen",
+      "plausible": "lijkt aanwezig",
+      "none": "geen activiteit gedetecteerd",
+      "unsupported": "niet ondersteund door de warmtepomp"
+    },
+    "badge": {
+      "adjustable": "Instelbaar",
+      "insight": "Alleen weergave"
+    },
+    "devices": {
+      "title": "Apparaten toevoegen",
+      "intro": "Elke functie van je warmtepomp wordt een eigen apparaat. De functies waarvoor live data is gevonden, zijn aangevinkt, maar je kunt ze allemaal toevoegen.",
+      "add": "Geselecteerde apparaten toevoegen",
+      "detected": "Data gedetecteerd",
+      "notdetected": "Geen data",
+      "select_one": "Selecteer minstens één apparaat om toe te voegen.",
+      "main_desc": "Overzicht: buitentemperatuur, bedrijfsprioriteit en bedrijfsstand, plus diagnose en statistieken"
+    },
+    "discover": {
+      "title": "Zoek je warmtepomp",
+      "searching": "Je netwerk wordt doorzocht op NIBE warmtepompen…",
+      "connecting": "Warmtepomp gevonden — verbinding maken…",
+      "confirm": "Warmtepomp gevonden — tik om te bevestigen",
+      "found": "Selecteer je warmtepomp",
+      "none_found": "Er is automatisch geen warmtepomp gevonden. Controleer of Modbus TCP is ingeschakeld op de warmtepomp (menu 7.5.9) of voer hieronder het IP-adres in.",
+      "manual": "Voer het IP-adres handmatig in",
+      "refresh": "Opnieuw zoeken",
+      "pump": "NIBE warmtepomp",
+      "outdoor": "Buitentemperatuur"
+    }
+  },
+  "groups": {
+    "core": "Basissensoren",
+    "heating": "Verwarming",
+    "hotwater": "Warmtapwater",
+    "pool": "Zwembad",
+    "cooling": "Koeling",
+    "ventilation": "Ventilatie (afvoerlucht)",
+    "groundsource": "Bodemenergie (brine)",
+    "electrical": "Stroomsensoren",
+    "alarm": "Alarmafhandeling",
+    "diagnostics": "Koudemiddeldiagnose",
+    "statistics": "Bedrijfstijdstatistieken",
+    "energy": "Energie"
+  },
+  "Normal": "Normaal",
+  "Speed 1": "Stand 1",
+  "Speed 2": "Stand 2",
+  "Speed 3": "Stand 3",
+  "Speed 4": "Stand 4"
+}

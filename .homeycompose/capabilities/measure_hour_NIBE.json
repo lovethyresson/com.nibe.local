@@ -1,14 +1,25 @@
 {
-    "type": "number",
-    "title": { "en": "Measure Hour" },
-    "uiComponent": "sensor",
-    "getable": true,
-    "setable": false,
-    "units": { 
-        "en": "Hours",
-        "sv": "Timmar"
-    },
-    "insights": true,
-    "chartType": "spline",
-    "icon": "/assets/images/time.svg"
-  }
+  "type": "number",
+  "title": {
+    "en": "Measure Hour",
+    "de": "Stunden",
+    "nl": "Uren",
+    "no": "Timer",
+    "da": "Timer",
+    "sv": "Timmar"
+  },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "units": {
+    "en": "Hours",
+    "sv": "Timmar",
+    "de": "Stunden",
+    "nl": "uren",
+    "no": "timer",
+    "da": "timer"
+  },
+  "insights": true,
+  "chartType": "spline",
+  "icon": "/assets/images/time.svg"
+}

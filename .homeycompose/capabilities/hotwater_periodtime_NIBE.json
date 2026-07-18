@@ -1,36 +1,56 @@
 {
   "title": {
     "en": "Periodic hotwater length set",
-    "sv": "Ställ in längd periodiskt varmvatten"
+    "sv": "Ställ in längd periodiskt varmvatten",
+    "de": "Dauer periodische Erhöhung einstellen",
+    "nl": "Duur periodiek warmtapwater instellen",
+    "no": "Still inn varighet periodisk varmtvann",
+    "da": "Indstil varighed periodisk varmtvand"
   },
   "type": "enum",
   "values": [
     {
       "id": "30",
       "title": {
-        "en":  "30 = Minutes",
-        "sv":  "30 = Minuter"
+        "en": "30 = Minutes",
+        "sv": "30 = Minuter",
+        "de": "30 = Minuten",
+        "nl": "30 = minuten",
+        "no": "30 = minutter",
+        "da": "30 = minutter"
       }
     },
     {
       "id": "45",
       "title": {
-        "en":  "45 = Minutes",
-        "sv":  "45 = Minuter"
+        "en": "45 = Minutes",
+        "sv": "45 = Minuter",
+        "de": "45 = Minuten",
+        "nl": "45 = minuten",
+        "no": "45 = minutter",
+        "da": "45 = minutter"
       }
     },
     {
       "id": "60",
       "title": {
-        "en":  "60 = Minutes",
-        "sv":  "60 = Minuter"
+        "en": "60 = Minutes",
+        "sv": "60 = Minuter",
+        "de": "60 = Minuten",
+        "nl": "60 = minuten",
+        "no": "60 = minutter",
+        "da": "60 = minutter"
       }
     },
     {
       "id": "120",
       "title": {
-        "en":  "120 = Minutes",
-        "sv":  "120 = Minuter"
+        "en": "120 = Minutes",
+        "sv": "120 = Minuter",
+        "de": "120 = Minuten",
+        "nl": "120 = minuten",
+        "no": "120 = minutter",
+        "da": "120 = minutter"
       }
     }
   ],

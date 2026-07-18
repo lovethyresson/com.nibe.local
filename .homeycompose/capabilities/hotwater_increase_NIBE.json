@@ -1,7 +1,11 @@
 {
   "title": {
     "en": "More hot water",
-    "sv": "Mer varmvatten"
+    "sv": "Mer varmvatten",
+    "de": "Mehr Brauchwasser",
+    "nl": "Meer warmtapwater",
+    "no": "Mer varmtvann",
+    "da": "Mere varmtvand"
   },
   "type": "enum",
   "values": [
@@ -9,49 +13,77 @@
       "id": "0",
       "title": {
         "en": "0 = Off",
-        "sv": "0 = Av"
+        "sv": "0 = Av",
+        "de": "0 = Aus",
+        "nl": "0 = Uit",
+        "no": "0 = Av",
+        "da": "0 = Fra"
       }
     },
     {
       "id": "2",
       "title": {
         "en": "2 = 2 hours",
-        "sv": "2 = 2 timmar"
+        "sv": "2 = 2 timmar",
+        "de": "2 = 2 Stunden",
+        "nl": "2 = 2 uur",
+        "no": "2 = 2 timer",
+        "da": "2 = 2 timer"
       }
     },
     {
       "id": "3",
       "title": {
         "en": "3 = 3 hours",
-        "sv": "3 = 3 timmar"
+        "sv": "3 = 3 timmar",
+        "de": "3 = 3 Stunden",
+        "nl": "3 = 3 uur",
+        "no": "3 = 3 timer",
+        "da": "3 = 3 timer"
       }
     },
     {
       "id": "6",
       "title": {
         "en": "6 = 6 hours",
-        "sv": "6 = 6 timmar"
+        "sv": "6 = 6 timmar",
+        "de": "6 = 6 Stunden",
+        "nl": "6 = 6 uur",
+        "no": "6 = 6 timer",
+        "da": "6 = 6 timer"
       }
     },
     {
       "id": "12",
       "title": {
         "en": "12 = 12 hours",
-        "sv": "12 = 12 timmar"
+        "sv": "12 = 12 timmar",
+        "de": "12 = 12 Stunden",
+        "nl": "12 = 12 uur",
+        "no": "12 = 12 timer",
+        "da": "12 = 12 timer"
       }
     },
     {
       "id": "24",
       "title": {
         "en": "24 = 24 hours",
-        "sv": "24 = 24 timmar"
+        "sv": "24 = 24 timmar",
+        "de": "24 = 24 Stunden",
+        "nl": "24 = 24 uur",
+        "no": "24 = 24 timer",
+        "da": "24 = 24 timer"
       }
     },
     {
       "id": "48",
       "title": {
         "en": "48 = 48 hours",
-        "sv": "48 = 48 timmar"
+        "sv": "48 = 48 timmar",
+        "de": "48 = 48 Stunden",
+        "nl": "48 = 48 uur",
+        "no": "48 = 48 timer",
+        "da": "48 = 48 timer"
       }
     }
   ],
