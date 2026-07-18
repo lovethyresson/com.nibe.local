@@ -30,10 +30,11 @@
   "homepage": "https://github.com/lovethyresson/com.nibe.local",
   "source": "https://github.com/lovethyresson/com.nibe.local",
   "support": "https://github.com/lovethyresson/com.nibe.local/issues",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/lovethyresson/com.nibe.local/issues"
   },
-  "brandColor": "#16324B",
+  "brandColor": "#174E56",
   "images": {
     "small": "/assets/images/small.png",
     "large": "/assets/images/large.png",
