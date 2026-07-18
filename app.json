@@ -8,20 +8,15 @@
     "local"
   ],
   "name": {
-    "en": "Nibe Heatpumps",
-    "sv": "Nibe Värmepumpar",
-    "de": "NIBE Wärmepumpen",
-    "nl": "NIBE warmtepompen",
-    "no": "NIBE varmepumper",
-    "da": "NIBE varmepumper"
+    "en": "Nibe Live"
   },
   "description": {
-    "en": "Monitor and control Nibe heat pumps directly over your local network (Modbus TCP), with a separate device for each function — heating, hot water, pool and cooling — and per-function energy tracking. No cloud required.",
-    "sv": "Övervaka och styr Nibe värmepumpar direkt över ditt lokala nätverk (Modbus TCP), med en separat enhet för varje funktion — värme, varmvatten, pool och kyla — och energiuppföljning per funktion. Inget moln krävs.",
-    "de": "Überwachen und steuern Sie NIBE Wärmepumpen direkt über Ihr lokales Netzwerk (Modbus TCP) – mit einem eigenen Gerät für jede Funktion: Heizung, Brauchwasser, Pool und Kühlung, jeweils mit eigener Energieerfassung. Ohne Cloud.",
-    "nl": "Bewaak en bedien NIBE warmtepompen rechtstreeks via je lokale netwerk (Modbus TCP), met een apart apparaat voor elke functie — verwarming, warmtapwater, zwembad en koeling — en energieregistratie per functie. Geen cloud nodig.",
-    "no": "Overvåk og styr NIBE varmepumper direkte over det lokale nettverket (Modbus TCP), med en egen enhet for hver funksjon — varme, varmtvann, basseng og kjøling — og energioppfølging per funksjon. Ingen sky nødvendig.",
-    "da": "Overvåg og styr NIBE varmepumper direkte via dit lokale netværk (Modbus TCP), med en separat enhed til hver funktion — varme, varmtvand, pool og køling — og energiregistrering pr. funktion. Ingen cloud påkrævet."
+    "en": "Local Nibe control, with per-function energy split",
+    "sv": "Lokal styrning av Nibe, med energi uppdelad per funktion",
+    "de": "Lokale NIBE-Steuerung, mit Energie pro Funktion aufgeteilt",
+    "nl": "Lokale NIBE-bediening, met energie per functie gesplitst",
+    "no": "Lokal styring av NIBE, med energi fordelt per funksjon",
+    "da": "Lokal styring af NIBE, med energi fordelt pr. funktion"
   },
   "category": [
     "climate"
