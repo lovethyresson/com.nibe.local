@@ -10,12 +10,12 @@
     "en": "Nibe Live"
   },
   "description": {
-    "en": "Local Nibe control, with per-function energy split",
-    "sv": "Lokal styrning av Nibe, med energi uppdelad per funktion",
-    "de": "Lokale NIBE-Steuerung, mit Energie pro Funktion aufgeteilt",
-    "nl": "Lokale NIBE-bediening, met energie per functie gesplitst",
-    "no": "Lokal styring av NIBE, med energi fordelt per funksjon",
-    "da": "Lokal styring af NIBE, med energi fordelt pr. funktion"
+    "en": "Local Nibe control, split into the devices you actually automate",
+    "sv": "Lokal styrning av Nibe, uppdelad i de enheter du faktiskt automatiserar",
+    "de": "Lokale NIBE-Steuerung, aufgeteilt in die Geräte, die Sie wirklich automatisieren",
+    "nl": "Lokale NIBE-bediening, opgesplitst in de apparaten die je echt automatiseert",
+    "no": "Lokal styring av Nibe, delt opp i enhetene du faktisk automatiserer",
+    "da": "Lokal styring af Nibe, opdelt i de enheder du faktisk automatiserer"
   },
   "category": [
     "climate"
