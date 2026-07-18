@@ -1,44 +1,54 @@
 {
-  "id": "net.sparud.nibe_s",
-  "version": "2.2.0",
-  "compatibility": ">=5.0.0",
+  "id": "com.nibe.local",
+  "version": "0.9.0",
+  "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
     "local"
   ],
   "name": {
-    "en": "Nibe S-series",
-    "sv": "Nibe S"
+    "en": "Nibe Heatpumps",
+    "sv": "Nibe Värmepumpar",
+    "de": "NIBE Wärmepumpen",
+    "nl": "NIBE warmtepompen",
+    "no": "NIBE varmepumper",
+    "da": "NIBE varmepumper"
   },
   "description": {
-    "en": "Measure and control Nibe S-series heaters ",
-    "sv": "Mät och styr Nibe S värmesystem"
+    "en": "Monitor and control Nibe heat pumps directly over your local network (Modbus TCP), with a separate device for each function — heating, hot water, pool and cooling — and per-function energy tracking. No cloud required.",
+    "sv": "Övervaka och styr Nibe värmepumpar direkt över ditt lokala nätverk (Modbus TCP), med en separat enhet för varje funktion — värme, varmvatten, pool och kyla — och energiuppföljning per funktion. Inget moln krävs.",
+    "de": "Überwachen und steuern Sie NIBE Wärmepumpen direkt über Ihr lokales Netzwerk (Modbus TCP) – mit einem eigenen Gerät für jede Funktion: Heizung, Brauchwasser, Pool und Kühlung, jeweils mit eigener Energieerfassung. Ohne Cloud.",
+    "nl": "Bewaak en bedien NIBE warmtepompen rechtstreeks via je lokale netwerk (Modbus TCP), met een apart apparaat voor elke functie — verwarming, warmtapwater, zwembad en koeling — en energieregistratie per functie. Geen cloud nodig.",
+    "no": "Overvåk og styr NIBE varmepumper direkte over det lokale nettverket (Modbus TCP), med en egen enhet for hver funksjon — varme, varmtvann, basseng og kjøling — og energioppfølging per funksjon. Ingen sky nødvendig.",
+    "da": "Overvåg og styr NIBE varmepumper direkte via dit lokale netværk (Modbus TCP), med en separat enhed til hver funktion — varme, varmtvand, pool og køling — og energiregistrering pr. funktion. Ingen cloud påkrævet."
   },
   "category": [
     "climate"
   ],
   "permissions": [],
-  "brandColor": "#DD1111",
+  "homepage": "https://github.com/lovethyresson/com.nibe.local",
+  "source": "https://github.com/lovethyresson/com.nibe.local",
+  "support": "https://github.com/lovethyresson/com.nibe.local/issues",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lovethyresson/com.nibe.local/issues"
+  },
+  "brandColor": "#174E56",
   "images": {
-    "small": "/assets/images/nibe_app_small.jpg",
-    "large": "/assets/images/nibe_app_large.jpg"
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png",
+    "xlarge": "/assets/images/xlarge.png"
   },
   "author": {
-    "name": "Jan Sparud",
-    "email": "jan@sparud.net"
+    "name": "Love Thyresson",
+    "email": "love@thyresson.se"
   },
   "contributors": {
     "developers": [
       {
-        "name": "Kjell Blomberg"
+        "name": "Jan Sparud",
+        "email": "jan@sparud.net"
       }
     ]
-  },
-  "contributing": {
-    "donate": {
-      "paypal": {
-        "username": "sparud"
-      }
-    }
   }
 }

@@ -1,0 +1,310 @@
+/* Shared styles for the pair & repair views */
+
+:root {
+    /* Matches brandColor in .homeycompose/app.json */
+    --accent: #16324B;
+    --surface: rgba(128, 128, 128, 0.06);
+    --surface-border: rgba(128, 128, 128, 0.26);
+}
+
+body {
+    max-width: 34em;
+    margin: 0 auto;
+}
+
+/* ---- hero header (discovery view) ---- */
+
+.pair-hero {
+    text-align: center;
+    padding: 1.1em 0 0.3em;
+}
+
+.pair-hero-icon {
+    font-size: 2.4em;
+    line-height: 1;
+}
+
+/* Inline SVG line icons rather than emoji: emoji render differently per platform
+   (♨️ comes out red on iOS) and clashed with the app's flat navy/white icon set.
+   Sized in em so they follow the container's font-size, and stroked in currentColor
+   so they follow the light/dark theme. */
+.pair-hero-icon svg,
+.pump-glyph svg {
+    width: 1em;
+    height: 1em;
+    display: block;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.pair-hero-icon svg {
+    margin: 0 auto;
+    opacity: 0.85;
+}
+
+.pair-hero-title {
+    font-size: 1.15em;
+    font-weight: 700;
+    margin-top: 0.3em;
+}
+
+.pair-hero-sub {
+    margin-top: 0.35em;
+}
+
+/* ---- detection progress ---- */
+
+.detect-progress {
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(128, 128, 128, 0.25);
+    overflow: hidden;
+    margin: 1.5em 0 0.75em;
+}
+
+.detect-progress .detect-bar {
+    height: 100%;
+    width: 0;
+    border-radius: 3px;
+    background: var(--accent);
+    transition: width 0.4s ease;
+}
+
+.detect-status {
+    text-align: center;
+    opacity: 0.8;
+    min-height: 1.4em;
+}
+
+.detect-error {
+    display: none;
+    color: var(--accent);
+    text-align: center;
+    margin: 0.75em 0;
+}
+
+.detect-actions {
+    text-align: center;
+    margin-top: 1.25em;
+}
+
+.detect-actions a,
+.pair-link {
+    display: inline-block;
+    margin: 0 0.75em;
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.9em;
+}
+
+/* ---- discovered pump list ---- */
+
+.pump-list {
+    margin: 0.5em 0;
+}
+
+.pump-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8em;
+    width: 100%;
+    text-align: left;
+    padding: 0.85em 1em;
+    margin: 0.6em 0;
+    border: 1px solid var(--surface-border);
+    border-radius: 12px;
+    background: var(--surface);
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.05s ease;
+}
+
+.pump-item:hover {
+    border-color: var(--accent);
+    background: rgba(221, 17, 17, 0.06);
+}
+
+.pump-item:active {
+    transform: scale(0.99);
+}
+
+.pump-glyph {
+    font-size: 1.6em;
+    line-height: 1;
+}
+
+.pump-body {
+    flex: 1;
+}
+
+.pump-detail {
+    font-size: 0.85em;
+    opacity: 0.65;
+    margin-top: 0.15em;
+}
+
+.pump-chevron {
+    font-size: 1.5em;
+    opacity: 0.35;
+}
+
+/* ---- manual IP entry ---- */
+
+.pair-manual {
+    margin-top: 1em;
+    border-top: 1px solid rgba(128, 128, 128, 0.2);
+    padding-top: 0.9em;
+}
+
+.pair-manual summary {
+    cursor: pointer;
+    opacity: 0.8;
+    font-size: 0.9em;
+    text-align: center;
+    list-style: none;
+}
+
+.pair-manual summary::-webkit-details-marker {
+    display: none;
+}
+
+.pair-manual .homey-form-group {
+    margin-top: 0.9em;
+}
+
+/* ---- feature / device cards ---- */
+
+.feature-group {
+    border: 1px solid var(--surface-border);
+    border-radius: 12px;
+    background: var(--surface);
+    padding: 0.8em 1em;
+    margin: 0.6em 0;
+}
+
+.feature-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.feature-label {
+    flex: 1;
+    font-weight: 600;
+}
+
+.evidence {
+    font-size: 0.8em;
+    opacity: 0.65;
+    white-space: nowrap;
+}
+
+.expand {
+    text-decoration: none;
+    padding: 0 0.4em;
+    color: inherit;
+    opacity: 0.6;
+}
+
+.registers {
+    margin: 0.5em 0 0.25em 1.6em;
+}
+
+.register-label {
+    display: block;
+    padding: 0.3em 0;
+    font-size: 0.9em;
+}
+
+.feature-subgroup {
+    margin: 0.5em 0 0.3em;
+}
+
+.subgroup-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    font-weight: 600;
+    font-size: 0.9em;
+    padding: 0.2em 0;
+}
+
+.feature-subgroup .register-line {
+    margin-left: 1.5em;
+    opacity: 0.85;
+}
+
+.register-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    font-size: 0.88em;
+    padding: 0.22em 0;
+}
+
+.reg-dot {
+    flex: none;
+    width: 0.55em;
+    height: 0.55em;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.reg-dot-on {
+    background: #1a9e5a;
+}
+
+.reg-dot-off {
+    background: rgba(128, 128, 128, 0.4);
+}
+
+.register-desc {
+    font-size: 0.85em;
+    opacity: 0.6;
+    margin: 0.35em 0 0 0.1em;
+}
+
+.features-note {
+    font-size: 0.8em;
+    opacity: 0.65;
+    margin: 1em 0;
+    text-align: center;
+}
+
+/* ---- badges ---- */
+
+.badge {
+    display: inline-block;
+    font-size: 0.72em;
+    line-height: 1.5;
+    padding: 0 0.6em;
+    border-radius: 0.8em;
+    vertical-align: 0.1em;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.badge-detected {
+    background: rgba(26, 158, 90, 0.16);
+    color: #1a9e5a;
+}
+
+.badge-nodata {
+    background: rgba(128, 128, 128, 0.18);
+    opacity: 0.7;
+}
+
+.badge-adjustable {
+    background: rgba(0, 145, 255, 0.15);
+    color: #0074cc;
+}
+
+.badge-insight {
+    background: rgba(128, 128, 128, 0.18);
+    color: inherit;
+    opacity: 0.75;
+}

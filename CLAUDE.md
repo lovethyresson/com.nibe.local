@@ -41,16 +41,23 @@ Homey's compose build step merges these into `app.json`. Run `homey app build`/`
 
 ### The register table is the core abstraction
 
-Everything in this app — capabilities, polling, flow cards, read/write behavior — is driven by a single array,
-`registers: Register[]`, defined at the top of [drivers/nibe_s/device.ts](drivers/nibe_s/device.ts). Each entry maps
-one Nibe Modbus register to one Homey capability:
+Everything in this app — capabilities, polling, flow cards, read/write behavior, feature detection — is driven by a
+single array, `registers: Register[]`, defined in [drivers/nibe_s/registers.ts](drivers/nibe_s/registers.ts) (shared
+by `device.ts`, `driver.ts` and `detection.ts`). Each entry maps one Nibe Modbus register to one Homey capability:
 
 ```ts
-{ address: 1, name: "measure_temperature_NIBE.i1_outside", direction: Dir.In, scale: 10 }
+{ address: 1, name: "measure_temperature.i1_outside", direction: Dir.In, group: "core", scale: 10 }
 ```
 
 - `direction: Dir.In` → Modbus *input* register (read-only, sensor data). `Dir.Out` → Modbus *holding* register
   (read/write, settings). This maps to `readInputRegisters` vs `readHoldingRegisters`/`writeSingleRegister`.
+- `group` — the feature group the register belongs to (`core`, `heating`, `hotwater`, `pool`, `ventilation`,
+  `groundsource`, `electrical`, `diagnostics`, `statistics`). `core` registers are always enabled; the rest follow
+  the user's feature selection (see below).
+- `info` — required `{en, sv}` one-liner explaining what the register is; shown under each capability in the
+  pairing/repair features view (deliberately inline here rather than in the locale files so a register is fully
+  described in one place). The view also badges each capability as "Adjustable" vs "Insight only" based on
+  `isAdjustable()` (`Dir.Out` and not `noAction`).
 - `scale` — divide raw register value by this to get the real value (e.g. temperature in tenths of a degree).
 - `enum` — raw value maps to a human-readable string (see `returnairMap`, `priorityMap`, `hotwaterMap`,
   `onetimeincreaseMap`, `booleanMap`, `modeMap` near the top of the file).
@@ -73,13 +80,35 @@ that resets periodically instead of counting up for the device's lifetime — Ho
 monotonically increasing counters).
 
 When adding a new register/capability, you generally need to touch three places kept in sync:
-1. Add the `Register` entry in `drivers/nibe_s/device.ts`.
+1. Add the `Register` entry (with a `group`) in `drivers/nibe_s/registers.ts`.
 2. Add the capability name to `drivers/nibe_s/driver.compose.json` (`capabilities` array + `capabilitiesOptions`).
 3. If it's a new capability *type* that isn't an existing official Homey type or `*_NIBE` type, add a definition
    under `.homeycompose/capabilities/`.
 
-`checkConfig()` in `device.ts` runs at device init and logs a mismatch warning if `registers` and the compiled
-`capabilities` array (from `driver.compose.json`) get out of order/sync — check the logs after changes here.
+`checkConfig()` in `device.ts` runs at device init and logs a warning for any register missing from the compiled
+`capabilities` array or `capabilitiesOptions` (from `driver.compose.json`) — check the logs after changes here.
+The compose `capabilities` array is the *superset* of what a device can have; each actual device carries only the
+subset matching its feature selection.
+
+### Feature selection, detection and static registers
+
+Devices don't get all capabilities — the user picks feature groups (plus optional per-capability overrides) during
+pairing, and can change the selection later via the device's **repair** flow (device menu → Repair):
+
+- The selection is stored on the device as store value `selection` (`{ groups: {heating: true, ...},
+  overrides: {"cap.name": bool} }`). `isRegisterEnabled()` in `registers.ts` resolves it; **a missing selection
+  means everything enabled**, which is both the upgrade path for pre-existing devices and the "skip detection"
+  default.
+- `syncCapabilities()` in `device.ts` reconciles the device's capabilities with the selection at `onInit` and after
+  repair — it also removes capabilities that no longer exist in the register table at all, so dropping a register
+  from the table is self-cleaning on running devices.
+- [drivers/nibe_s/detection.ts](drivers/nibe_s/detection.ts) samples every register 5× over ~30s and recommends
+  groups whose registers *moved* (or, failing that, read plausible non-zero values — e.g. pool temp in a sane
+  range). `probeHost()` opens its own short-lived socket for pairing; repair reuses the device's live connection via
+  `device.probeForDetection()`.
+- Static configuration registers (fuse size, periodic hot water start time) are **not** capabilities — they're in
+  `staticRegisters` in `registers.ts` and get written to read-only `label` settings (declared in
+  `driver.compose.json` `settings`) once per connect via `updateStaticSettings()`.
 
 This app has no other installs beyond the maintainer's own device, so capability renames/removals are currently
 done as a hard cut (change the name in `registers`/`driver.compose.json`, done) rather than a migration — the
@@ -108,7 +137,8 @@ Rather than one flow card per register, `driver.flow.compose.json` defines a sma
 (`set_numeric_value`, `enable_feature`, `disable_feature`, `numeric_value_comparison`, `feature_enabled`,
 `capability_changed`/`capability_turned_on`/`capability_turned_off`) that take a `register` autocomplete argument.
 `registerAutofillFlow()` in `device.ts` wires each card's autocomplete listener (filtered by a predicate over
-`Register`, e.g. "only `Dir.Out` + numeric") and its run listener. Enum registers instead get dedicated per-register
+`Register`, e.g. "only `Dir.Out` + numeric", always AND-ed with the device's current feature selection) and its run
+listener. Enum registers instead get dedicated per-register
 action/condition cards named `<capability_name>.enum` (registered dynamically in `onInit`, driven by
 `actionSpecs`/`conditionSpecs` built from the flow compose file), since enums need a `mode` autocomplete rather than
 a free-form value.
@@ -117,19 +147,34 @@ a free-form value.
 
 - One shared module-level `net.Socket()` — connects on `onInit` to `getSettings().address` (the IP entered during
   pairing), port 502 (Modbus).
-- On `connect`: device marked available, polls all registers every 15s (`poll()` → `readRegisters()` →
-  `setValue()` per register), with an initial delayed poll.
-- On `close`: device marked unavailable-ish (via the `error`/`close` handlers), auto-reconnects after 15s via
+- On `connect`: device marked available, polls the currently *enabled* registers every 5s (`poll()` →
+  `readRegisters()` → `setValue()` per register), with an initial delayed poll and a one-shot
+  `updateStaticSettings()`.
+- On `close`: device marked unavailable-ish (via the `error`/`close` handlers), auto-reconnects after 5s via
   `retryInterval`.
 - `setValue()` writes the capability and fires the relevant trigger (`checkTrigger`) only when the value actually
   changed.
 - Writable capabilities get a `registerCapabilityListener` that writes to the Modbus register and re-triggers flow
   cards.
 
-### Pairing (`drivers/nibe_s/driver.ts` + `drivers/nibe_s/pair/ip_address.html`)
+### Pairing & repair (`drivers/nibe_s/driver.ts` + `pair/`/`repair/` views)
 
-Custom pairing flow: user enters the Nibe's local IP address (validated with `net.isIP`), which becomes both the
-device `data.id` and the `address` setting used to open the Modbus connection.
+Three-step pairing: `ip_address` (auto-discovery + manual fallback; the chosen IP becomes device `data.id` +
+`address` setting) →
+`detect` (runs `probeHost()` with a progress bar; skippable) → `features` (group checkboxes pre-checked from the
+recommendation, expandable to per-capability overrides; creates the device with the filtered `capabilities` list
+and the `selection` store value). The repair flow (`onRepair`) reuses the `detect` + `features` views — Homey
+requires repair view HTML to live in `drivers/nibe_s/repair/`, so those files are copies of the `pair/` ones; the
+actual logic is shared in `assets/pair/detect.js` and `assets/pair/features.js` (plus `assets/pair/pair.css`), and
+the views differ only through the `mode` field the driver returns from the `get_context` handler. Keep the
+`pair/` and `repair/` HTML copies identical.
+
+"Discovery" ([drivers/nibe_s/discovery.ts](drivers/nibe_s/discovery.ts)) is a subnet sweep, not a protocol: Modbus
+TCP has no announcement mechanism and Nibe S-series pumps don't advertise via mDNS/SSDP, so the `ip_address` view
+asks the driver to scan the Homey's /24 (from `homey.cloud.getLocalAddress()`) for open port 502 and verifies each
+responder by reading input register 1 (outdoor temperature) — a plausible value marks it as a pump and doubles as
+the label shown in the list. Already-paired IPs are excluded. This only works when Modbus TCP is enabled on the
+pump (menu 7.5.9) and Homey shares the subnet, hence the manual IP field stays.
 
 ### i18n
 

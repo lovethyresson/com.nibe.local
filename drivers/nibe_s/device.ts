@@ -1,278 +1,77 @@
-import {Device, DiscoveryResult, FlowCard} from 'homey';
-import net, {SocketConnectOpts, TcpSocketConnectOpts} from 'net';
-import modbus, {ModbusTCPClient} from 'jsmodbus';
-import {capabilities, capabilitiesOptions} from './driver.compose.json';
-import {triggers, conditions, actions} from './driver.flow.compose.json';
-import fs from 'fs'
+import {Device} from 'homey';
+import {capabilitiesOptions} from './driver.compose.json';
+import {Dir, Register, Selection} from './registers';
+import {
+    ACTIVE_POWER_CAPABILITY, METER_CAPABILITY, Role,
+    energyTitle, extraCapabilities, powerTitle, registersForRole, roleClass, roleOf, roleRegisters
+} from './roles';
+import {PumpConnection, PumpSubscriber} from './connection';
 
-const socket = new net.Socket();
+// One logical function of the physical pump (see roles.ts). All devices share a
+// single PumpConnection per pump IP; this class is just the Homey-facing subscriber:
+// it maps its role's registers to capabilities, and — for function roles — keeps the
+// energy bucket the connection's allocator feeds it.
+class NibeSDevice extends Device implements PumpSubscriber {
+    role: Role = 'main';
+    private connection: PumpConnection | null = null;
 
-const Input = "input";
-const Output = "output";
+    // Energy bucket (function roles only). Charged by the connection's allocator.
+    private cumulativeEnergy = 0;
 
-enum Dir {
-    In,
-    Out
-}
+    private host(): string {
+        return this.getSettings().address;
+    }
 
-const returnairMap = Object({
-    0: "Normal",
-    1: "Speed 1",
-    2: "Speed 2",
-    3: "Speed 3",
-    4: "Speed 4"
-});
-
-const priorityMap = Object({
-    10: "Off",
-    20: "Hot water",
-    30: "Heating",
-    40: "Pool",
-    60: "Cooling"
-});
-
-const hotwaterMap = Object({
-    0: "Small",
-    1: "Medium",
-    2: "Large",
-    4: "Smart control"
-});
-
-const onetimeincreaseMap = Object({
-    0: "Off",
-    2: "One-time increase 1h",
-    3: "One-time increase 3h",
-    6: "One-time increase 6h",
-    12: "One-time increase 12h",
-    24: "One-time increase 24h",
-    48: "One-time increase 48h"
-});
-
-const booleanMap = Object({
-    0: "Off",
-    1: "On"
-});
-
-const modeMap = Object({
-    0: "Auto",
-    1: "Manual",
-    2: "Additional heat only"
-});
-
-interface Register  {
-    address: number;
-    name: string;
-    direction: Dir;
-    scale?: number
-    enum?: Record<number, string>
-    bool?: boolean;
-    picker?: boolean;
-    noAction?: boolean;
-    min?: number;
-    max?: number;
-}
-
-const registers: Register[] = [
-    // Rad 1 Temp
-    {address:    1, name: "measure_temperature_NIBE.i1_outside",              direction: Dir.In,  scale:  10}, // Aktuell utetemperatur (BT1)
-    {address:   26, name: "measure_temperature_NIBE.i26_inside",              direction: Dir.In,  scale:  10}, // Rumsensor 1 ionomhus
-    // Rad 2 Framledning
-    {address: 1017, name: "measure_temperature_NIBE.i1017_calculated_supply", direction: Dir.In,  scale:  10}, // Beräknad framledning klimatsystem 1
-    {address:    5, name: "measure_temperature_NIBE.i5_heating_supply",       direction: Dir.In,  scale:  10}, // Framledning (BT2) klimatsystem 1
-    // Rad 3
-    {address:   11, name: "measure_degree_minutes_NIBE.h11_degree_minutes",   direction: Dir.Out, scale:  10, noAction: true}, // Gradminuter
-    {address:    7, name: "measure_temperature_NIBE.i7_heating_return",       direction: Dir.In,  scale:  10}, // Returledning (BT3)
-    // Rad 4
-    {address: 1102, name: "measure_percentage_NIBE.i1102_heating_pump",       direction: Dir.In,  scale:   1}, // Värmebärarpumphastighet (GP1)
-    {address: 1104, name: "measure_percentage_NIBE.i1104_source_pump",        direction: Dir.In,  scale:   1}, // Köldbärarpumphastighet (GP2)
-    // Rad 5
-    {address:   10, name: "measure_temperature_NIBE.i10_source_in",           direction: Dir.In,  scale:  10}, // Köldbärare in (BT10)
-    {address:   11, name: "measure_temperature_NIBE.i11_source_out",          direction: Dir.In,  scale:  10}, // Köldbärare ut (BT11)
-    // Rad 6
-    {address: 1028, name: "measure_enum_NIBE.i1028_priority",                 direction: Dir.In,  enum: priorityMap}, // Prio
-    {address:   40, name: "measure_water_NIBE.i40_flow_sensor",               direction: Dir.In,  scale:  10}, // Flödesgivare (BF1)
-    // Rad 7
-    {address: 1048, name: "measure_power.i1048_compressor_add_power_v2",      direction: Dir.In,  scale:   1}, // Kompressor tillförd effekt
-    {address: 2166, name: "measure_power.i2166_energy_usage_v2",              direction: Dir.In,  scale:   1}, // Momentan använd effekt
-    // Rad 8
-    {address: 1047, name: "measure_temperature_NIBE.i1047_inverter",          direction: Dir.In,  scale:  10}, // Invertertemperatur
-    {address: 1046, name: "measure_frequency_NIBE.i1046_compressor",          direction: Dir.In,  scale:  10}, // Kompressorfrekvens, aktuell
-    // Rad 9
-    {address:    8, name: "measure_temperature_NIBE.i8_warmwater_top",        direction: Dir.In,  scale:  10}, // Varmvatten topp (BT7)
-    {address:    9, name: "measure_temperature_NIBE.i9_hot_water",            direction: Dir.In,  scale:  10}, // Varmvatten laddning (BT6)
-    // Rad 10 Frånluft
-    {address:   19, name: "measure_temperature_NIBE.i19_return_air",          direction: Dir.In,  scale:  10}, // Frånluft (AZ10-BT20)
-    {address:   20, name: "measure_temperature_NIBE.i20_supply_air",          direction: Dir.In,  scale:  10}, // Avluft (AZ10-BT21)
-    // Rad 11 Frånluft status
-    {address:  109, name: "measure_percentage_NIBE.h109_returnair_normal",    direction: Dir.Out, scale:   1, min: 0, max: 100}, // Frånluft fläkthastighet normal
-    {address: 1037, name: "measure_enum_NIBE.i1037_return_fan_step",          direction: Dir.In,  enum: returnairMap}, // Fläktläge 1 0-Normal Övrigt 1-4
-    // Rad 12 Eltillsats
-    {address: 1029, name: "measure_count_NIBE.i1029_additive_heat_steps",     direction: Dir.In,  scale:   1}, // Driftläge intern tillsats
-    {address: 1027, name: "meter_power.i1027_additive_effect_v2",             direction: Dir.In,  scale: 100}, // Effekt intern tillsats
-    // Rad 13 Eltillsats statistik
-    {address: 1025, name: "measure_hour_NIBE.i1025_additive_usage_total",     direction: Dir.In,  scale:  10}, // Total drifttid tillsats
-    {address: 1069, name: "measure_hour_NIBE.i1069_additive_usage_hotwater",  direction: Dir.In,  scale:  10}, // Total varmvatten drifttid tillsats
-    // Rad 14 Kompressor utomhus temp avg
-    {address: 1083, name: "measure_count_NIBE.i1083_compressor_starts",       direction: Dir.In,  scale:   1}, // Kompressorstarter
-    {address:   37, name: "measure_temperature_NIBE.i37_outside_avg",         direction: Dir.In,  scale:  10}, // BT1 - Average outside temperature -Medeltemperatur (BT1)
-    // Rad 15 Kompressor statistik
-    {address: 1087, name: "measure_hour_NIBE.i1087_compressor_usage_total",   direction: Dir.In,  scale:   1}, // Total drifttid kompressor
-    {address: 1091, name: "measure_hour_NIBE.i1091_compressor_usage_hotwater",direction: Dir.In,  scale:   1}, // Total drifttid kompressor varmvatten
-    // Rad 16 Värmekurvor
-    {address:   26, name: "measure_count_NIBE.h26_heat_curve",                direction: Dir.Out, scale:   1, min: 0, max: 10}, // Värmekurva klimatsystem 1
-    {address:   30, name: "measure_count_NIBE.h30_heat_curve_displacement",   direction: Dir.Out, scale:   1, min: -10, max: 10}, // Värmeförskjutning klimatsystem 1 RW
-    // Rad 17 Varmvatten
-    {address:   56, name: "measure_enum_NIBE.h56_hotwater_demand_mode",       direction: Dir.Out, enum: hotwaterMap}, // Varmvatten behovsläge RW
-    {address:  697, name: "measure_enum_NIBE.h697_onetimeincrease_hotwater",  direction: Dir.Out,  enum: onetimeincreaseMap}, // Mer varmvatten engångshöjning 
-    // Rad 18 Periodisk varmvatten höjning
-    {address:   65, name: "measure_enum_NIBE.h65_periodic_hotwater",          direction: Dir.Out,  enum: booleanMap}, // Periodisk varmvatten
-    {address:   66, name: "measure_day_NIBE.h66_periodic_hotwater_interval",  direction: Dir.Out,  scale:   1, min: 1, max: 90},  // Periodiskt varmvatten intervall i dagar
-    // Rad 19 Periodisk varmvatten höjning fortsättning
-    {address:   67, name: "measure_count_NIBE.h67_periodic_hotwater_start",   direction: Dir.Out,  scale:   1, noAction: true},  // Periodiskt varmvatten start klockan ** nu returneras sekunder från 00.00 hur visar man tid??
-    {address:   92, name: "measure_minute_NIBE.h92_periodtime_hotwater",      direction: Dir.Out,  scale:   1, min: 0, max: 180},  // Periodtid varmvatten minuter
-    // Rad 20 Strömförbrukning
-    {address:  103, name: "measure_current.h103_fuse_v2",                     direction: Dir.Out,  scale:   1, noAction: true},  // Säkring inkommande
-    {address:   50, name: "measure_current.i50_sensor_v2",                    direction: Dir.In,   scale:  10},  // Strömavkänare BE1 -L1
-    {address:   48, name: "measure_current.i48_sensor_v2",                    direction: Dir.In,   scale:  10},  // Strömavkänare BE2 -L2
-    {address:   46, name: "measure_current.i46_sensor_v2",                    direction: Dir.In,   scale:  10},  // Strömavkänare BE3 -L3
-    // Rad 21 Driftläge / pool
-    {address: 237, name: "measure_enum_NIBE.h237_operating_mode",             direction: Dir.Out,  enum: modeMap}, // Driftläge
-    {address:  27, name: "measure_temperature_NIBE.i27_pool",                 direction: Dir.In,   scale:  10},  // Pooltemperatur
-    // Rad 22
-    {address:   12, name: "measure_temperature_NIBE.i12_heating_supply",      direction: Dir.In,   scale:  10},  // Framledning BT12 värme och varmvatten
-    {address:   13, name: "measure_temperature_NIBE.i13_discharge",           direction: Dir.In,   scale:  10},  // Hetgas BT14
-    // Rad 23
-    {address:   14, name: "measure_temperature_NIBE.i14_liquid_line",         direction: Dir.In,   scale:  10},  // Vätskeledning BT15
-    {address:   16, name: "measure_temperature_NIBE.i16_suction_gas",         direction: Dir.In,   scale:  10},  // Suggas BT17
-    // Rad 24
-    {address: 5351, name: "measure_percentage_NIBE.h5351_compressor_min_speed", direction: Dir.Out, scale: 1, min: 2, max: 50}, // Minsta tillåtna hastighet GP1
-
-    // Ej på värdedelen av appen
-
-    // Poolvärme inställningar temp
-    {address:  687, name: "target_temperature.h687_pool_start",               direction: Dir.Out, scale:  10, min: 10, max: 35}, //
-    {address:  689, name: "target_temperature.h689_pool_stop",                direction: Dir.Out, scale:  10, min: 10, max: 35}, //
-
-    // On / Off delar på kortet
-    // On / Off Nattsvalka
-    {address:  227, name: "onoff.h227_nightchill",                            direction: Dir.Out, bool: true}, // Nattsvalka 1
-    // On / Off Periodiskt varmvatten
-    {address:   65, name: "onoff.h65_periodic_hotwater",                      direction: Dir.Out, bool: true}, // Periodisk varmvatten
-
-    {address: 1828, name: "onoff.i1828_pool_circulation",                     direction: Dir.In,  bool: true}, // Pool 1 pump status
-    {address:  691, name: "onoff.h691_pool_active",                           direction: Dir.Out, bool: true}, //
-    
-    // Inställning Frånluftshastighet
-    {address:  109, name: "target_percentage_NIBE.h109_returnair_normal",     direction: Dir.Out, scale: 1},    // Frånluft fläkthastighet normal
-    // Inställning minsta kompressor hastighet GP1
-    {address: 5351, name: "target_percentage_NIBE.h5351_compressor_min_speed", direction: Dir.Out, scale: 1, min: 2, max: 50}, // Minsta tillåtna hastighet GP1
-    // Inställning värmekurva
-    {address:   26, name: "curve_mode_NIBE.h26_heat_curve",                   direction: Dir.Out, picker: true},  // Värmekurva klimatsystem 1
-    {address:   30, name: "curve_displacement_NIBE.h30_heat_curve_displacement", direction: Dir.Out, picker: true},  // Värmeförskjutning klimatsystem 1 RW
-    // Inställning varmvatten
-    {address:   56, name: "hotwater_demand_NIBE.h56_hotwater_demand_mode",    direction: Dir.Out, picker: true},  // Varmvatten behovsläge RW 0 = small, 1 = medium, 2 = large, 3 = not in use, 4 = Smart control
-    {address:  697, name: "hotwater_increase_NIBE.h697_onetimeincrease_hotwater", direction: Dir.Out, picker: true}, // Mer varmvatten engångshöjning 0 = Från, 2 = Engångshöjning, 3 = 3 timmar, 6 = 6 timmar, 12 = 12 timmar, 24 = timmar, 48 = 48 Timmar
-        // Inställning Periodiskt varmvatten
-    {address:   66, name: "hotwater_periodic_interval_NIBE.h66_periodic_hw_interval", direction: Dir.Out, picker: true},  // Periodiskt varmvatten intervall i dagar
-    {address:   92, name: "hotwater_periodtime_NIBE.h92_periodtime_hotwater", direction: Dir.Out, picker: true},   // Periodiskt varmvatten längd i minuter
-
-    {address:  180, name: "onoff.h180_enable_addition",                       direction: Dir.Out, bool: true}, // Tillåt tillsats
-    {address:  181, name: "onoff.h181_enable_heating",                        direction: Dir.Out, bool: true}, // Tillåt värme
-    {address:  182, name: "onoff.h182_enable_cooling",                        direction: Dir.Out, bool: true} // Tillåt kyla
-];
-
-const registerByName =
-    Object.fromEntries(registers.map((register: Register) => [register.name, register]));
-
-const actionSpecs: {[name: string]: any} = Object.fromEntries(actions.map((action: any) => [action.id, action]));
-const conditionSpecs: {[name: string]: any} = Object.fromEntries(conditions.map((cond: any) => [cond.id, cond]));
-
-class NibeSDevice extends Device {
-    private pollInterval: NodeJS.Timeout | null = null;
-    private retryInterval: NodeJS.Timeout | null = null;
-    private client: ModbusTCPClient | null = null;
-
-    // Energy meter tracking
-    private cumulativeEnergy: number = 0; // kWh
-    private lastPowerReading: number | null = null; // W, null = no previous reading to integrate from yet
-    private lastPollTime: number = Date.now();
+    private getSelection(): Selection | null {
+        return (this.getStoreValue('selection') ?? null) as Selection | null;
+    }
 
     private fromRegisterValue(register: Register, value: number) {
         if (value >= 32768)
             value -= 65536;
+        // -32768 (0x8000) is Nibe's "value not available" sentinel (e.g. a room sensor
+        // that isn't wired to Modbus). Show it as no value ("-") rather than -3276.8.
+        if (value === -32768)
+            return null;
         if (register.scale)
             return value / register.scale;
         if (register.enum)
             return this.homey.__(register.enum[value]) || register.enum[value];
         if (register.picker)
-            return ""+ value;
+            return "" + value;
         if (register.bool)
-            return value === 1;
+            return value !== (register.offValue ?? 0);
         return value;
     }
 
     private toRegisterValue(register: Register, value: any) {
         if (register.picker)
             value = parseInt(value);
+        if (register.enum)
+            value = parseInt(Object.entries(register.enum).filter(pair => pair[1] == value)[0][0]);
+        else if (register.bool)
+            value = value ? (register.onValue ?? 1) : (register.offValue ?? 0);
+        else if (register.scale)
+            value = Math.round(value * register.scale);
+        // Two's complement last, mirroring fromRegisterValue() which undoes it first:
+        // wrapping before scaling would multiply the wrapped value and overflow the
+        // register (-20 °C on a scale-10 register became 655160 rather than 65336).
         if (value < 0)
             value += 65536;
-        if (register.scale)
-            return Math.round(value * register.scale);
-        if (register.enum)
-            return parseInt(Object.entries(register.enum).filter(pair => pair[1] == value)[0][0]);
-        if (register.bool)
-            return value ? 1 : 0;
         return value;
     }
 
-    private async readRegister(register: Register) {
-        return await ((register.direction === Dir.In)
-            ? this.client!.readInputRegisters(register.address, 1)
-            : this.client!.readHoldingRegisters(register.address, 1))
-        .then((resp) =>
-            this.fromRegisterValue(register, resp.response.body.values[0]))
-        .catch((reason: any) =>
-            undefined
-        );
+    async readRegister(register: Register): Promise<any> {
+        if (!this.connection)
+            return undefined;
+        const raw = await this.connection.readRegisterRaw(register);
+        return raw === undefined ? undefined : this.fromRegisterValue(register, raw);
     }
 
-    private async readRegisters() {
-        return await Promise.all(registers.map((register) =>
-            this.readRegister(register))
-        );
-    }
-
-    private async writeRegister(register: Register, value: any) {
-        return await this.client!.writeSingleRegister(register.address, this.toRegisterValue(register, value))
-            .then(result => {
-                this.log("Wrote", JSON.stringify(result));
-                return true;
-            }).catch((reason: any) => {
-                this.log("Error writing to register", reason);
-                return false;
-            });
-    }
-
-    // Create an autofill object for a register
-    private regToAutofill = (register: Register) => {
-        const option: any = (capabilitiesOptions as any)[register.name];
-        return {
-            id: register.name,
-            name: option.title[this.homey.i18n.getLanguage()] || option.title["en"]
-        };
-    };
-
-    private registerAutofillFlow(flow: FlowCard, registerFilter: (reg: Register) => boolean, cond: (args: any, state: any) => any) {
-        return flow
-            .registerArgumentAutocompleteListener(
-                "register",
-                async (query, args) =>
-                    registers
-                        .filter((reg) => registerFilter(reg))
-                        .map(this.regToAutofill)
-                        .filter((result: any) => result.name.toLowerCase().includes(query.toLowerCase()))
-            )
-            .registerRunListener(async (args, state) => cond(args, state));
+    async writeRegister(register: Register, value: any): Promise<boolean> {
+        if (!this.connection)
+            return false;
+        return await this.connection.writeSingleRegister(register.address, this.toRegisterValue(register, value));
     }
 
     private capabilityChangedTrigger = this.homey.flow.getDeviceTriggerCard("capability_changed");
@@ -280,8 +79,11 @@ class NibeSDevice extends Device {
     private turnedOffTrigger = this.homey.flow.getDeviceTriggerCard("capability_turned_off");
 
     private checkTrigger(register: Register, value: any) {
+        // A command register never "turned on" — it was pressed. Nothing to trigger on.
+        if (register.writeOnly)
+            return;
         if (register.bool && value) {
-            this.turnedOnTrigger.trigger(this, {}, {register: { id: register.name}, value: value});
+            this.turnedOnTrigger.trigger(this, {}, {register: {id: register.name}, value: value});
         } else if (register.bool && !value) {
             this.turnedOffTrigger.trigger(this, {}, {register: {id: register.name}, value: value});
         } else if (register.enum) {
@@ -290,265 +92,183 @@ class NibeSDevice extends Device {
     }
 
     async setValue(register: Register, value: any) {
+        // Command registers have no state to reflect, and their capabilities (Homey's
+        // `button`) are not getable — writing a value to one throws.
+        if (register.writeOnly || !this.hasCapability(register.name))
+            return;
         const oldValue = this.getCapabilityValue(register.name);
         await this.setCapabilityValue(register.name, value);
         if (oldValue !== value)
             this.checkTrigger(register, value);
     }
 
-    private poll() {
-        this.log("Polling");
-        this.readRegisters().then((results: any) => {
-            this.log(`Got ${registers.length} results`);
-
-            // Update cumulative energy meter using i2166 (current power)
-            const currentTime = Date.now();
-            const deltaTimeHours = (currentTime - this.lastPollTime) / (1000 * 60 * 60);
-
-            // Find i2166 (measure_power.i2166_energy_usage_v2) in results
-            const i2166Index = registers.findIndex(r => r.address === 2166);
-            const currentPower = results[i2166Index];
-
-            if (currentPower !== undefined && this.lastPowerReading !== null) {
-                // Use trapezoidal integration for better accuracy
-                const avgPower = (this.lastPowerReading + currentPower) / 2;
-                const energyDelta = (avgPower * deltaTimeHours) / 1000; // Convert Wh to kWh
-
-                this.cumulativeEnergy += energyDelta;
-
-                // Update meter_power.total capability
-                this.setCapabilityValue('meter_power.total', this.cumulativeEnergy).catch(this.error);
-
-                // Persist every poll so a crash/restart loses at most one poll interval's energy,
-                // rather than the previously batched 3-minute window.
-                this.setSettings({ cumulativeEnergy: this.cumulativeEnergy }).catch(this.error);
-            }
-
-            if (currentPower !== undefined) {
-                this.lastPowerReading = currentPower;
-            }
-            this.lastPollTime = currentTime;
-
-            for (let i = 0; i < registers.length; ++i)
-                if (results[i] !== undefined) {
-                    this.setValue(registers[i], results[i]);
-                }
-        }).catch((error) => {
-            this.log(error);
-            socket.end();
-            this.setUnavailable();
-        });
-    }
-
-    private checkConfig() {
-        // meter_power is at capabilities[0], so registers start at capabilities[1]
-        for (let i = 0; i < registers.length; ++i) {
-            if (registers[i].name != capabilities[i + 1]) {
-                this.log(`Config mismatch: register[${i}](${registers[i].name}) != capabilities[${i + 1}](${capabilities[i + 1]}) `);
-            }
-            const option: any = (capabilitiesOptions as any)[registers[i].name];
-            if (!option) {
-                this.log(`No options for ${registers[i].name}`);
-            }
-        }
-    }
-
-    // addCapability() only applies the base capability type's built-in defaults (e.g. official
-    // measure_power capabilities default to the generic title "Power"); the per-instance
-    // title/decimals from driver.compose.json have to be pushed explicitly via
-    // setCapabilityOptions(). getCapabilityOptions() is cheap, so check-and-skip here to avoid
-    // needlessly calling the documented-as-expensive setCapabilityOptions() once already correct.
+    // addCapability() only applies the base capability type's built-in defaults; the
+    // per-instance title/decimals have to be pushed explicitly. getCapabilityOptions()
+    // is cheap, so check-and-skip to avoid the documented-as-expensive set call.
     private async ensureCapabilityOptions(name: string, option: any) {
         if (!option)
             return;
-        const current = this.getCapabilityOptions(name);
-        if (JSON.stringify(current?.title) === JSON.stringify(option.title))
+        const current: any = this.getCapabilityOptions(name) ?? {};
+        // setCapabilityOptions is documented as expensive, so only push when a declared
+        // option actually differs from what's stored. Compare every key we declare
+        // (title, decimals, min/max, uiComponent, insights) rather than just the title —
+        // otherwise a uiComponent/insights change on an already-paired device would be
+        // skipped as long as its title was unchanged, and never take effect.
+        const differs = Object.keys(option).some(
+            (key) => JSON.stringify(current[key]) !== JSON.stringify(option[key]));
+        if (!differs)
             return;
         await this.setCapabilityOptions(name, option);
     }
 
-    async onInit() {
-        this.log('NibeSDevice has been initialized');
+    // Per-instance options for the two non-register energy capabilities. The same
+    // capability id (meter_power.total) needs a role-specific title per device, which
+    // the shared compose file can't express, so it's supplied here.
+    private extraOptions(name: string): any {
+        if (name === METER_CAPABILITY)
+            return {title: energyTitle(this.role)};
+        if (name === ACTIVE_POWER_CAPABILITY)
+            return {title: powerTitle(this.role), decimals: 0};
+        return undefined;
+    }
 
-        // Restore cumulative energy from settings
-        const settings = this.getSettings();
-        this.cumulativeEnergy = settings.cumulativeEnergy || 0;
-        this.lastPollTime = Date.now();
-        this.log(`Restored cumulative energy: ${this.cumulativeEnergy} kWh`);
+    // Reconcile the device's capabilities with its role + feature selection: drop
+    // capabilities no longer wanted (disabled, or belonging to another role, or a
+    // register that left the table), add the wanted ones. Register capabilities in
+    // table order so newly added ones land sensibly; energy extras go last.
+    private async syncCapabilities() {
+        const selection = this.getSelection();
+        const roleRegs = registersForRole(this.role, selection);
+        const extras = extraCapabilities(this.role, selection);
 
-        // Ensure meter_power.total capability exists
-        if (!this.hasCapability('meter_power.total')) {
-            await this.addCapability('meter_power.total');
+        const wanted = new Set<string>([...roleRegs.map((r) => r.name), ...extras]);
+        for (const name of this.getCapabilities()) {
+            if (!wanted.has(name)) {
+                this.log(`Removing capability ${name}`);
+                await this.removeCapability(name).catch(this.error);
+            }
         }
-        await this.ensureCapabilityOptions('meter_power.total', (capabilitiesOptions as any)['meter_power.total']);
-        await this.setCapabilityValue('meter_power.total', this.cumulativeEnergy);
 
-        this.checkConfig();
-
-        await Promise.all(registers.map(async (register: Register) => {
+        for (const register of roleRegs) {
             if (!this.hasCapability(register.name))
-                await this.addCapability(register.name);
+                await this.addCapability(register.name).catch(this.error);
             await this.ensureCapabilityOptions(register.name, (capabilitiesOptions as any)[register.name])
                 .catch(this.error);
-            if (register.direction == Dir.Out) {
-                // Write capability value change to device
+        }
+        for (const extra of extras) {
+            if (!this.hasCapability(extra))
+                await this.addCapability(extra).catch(this.error);
+            await this.ensureCapabilityOptions(extra, this.extraOptions(extra)).catch(this.error);
+        }
+    }
+
+    // Called from the repair flow when the user changes this device's feature selection.
+    async applySelection(selection: Selection) {
+        this.log("Applying selection", JSON.stringify(selection));
+        await this.setStoreValue('selection', selection);
+        await this.syncCapabilities();
+        // The kWh total keeps accumulating while the meter capability is off (onEnergy
+        // guards only the capability writes), so a meter re-enabled here would read 0
+        // until the next poll charges it. Seed it the way onInit does.
+        if (this.role !== 'main' && this.hasCapability(METER_CAPABILITY))
+            await this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
+    }
+
+    // Re-run detection over the live connection (used by repair).
+    async probeForDetection(onProgress: (pass: number, passes: number) => void) {
+        if (!this.connection || !this.getAvailable())
+            throw new Error(this.homey.__("pair.not_connected"));
+        return this.connection.probe(onProgress);
+    }
+
+    async onInit() {
+        this.role = roleOf(this.getData());
+        this.log(`NibeSDevice initialised (role ${this.role})`);
+
+        // Keep the device class in sync (heater/boiler/other) — also fixes up devices
+        // paired before per-role classes existed.
+        if (this.getClass() !== roleClass[this.role])
+            await this.setClass(roleClass[this.role]).catch(this.error);
+
+        if (this.role !== 'main')
+            this.cumulativeEnergy = this.getSettings().cumulativeEnergy || 0;
+
+        await this.syncCapabilities();
+
+        if (this.role !== 'main' && this.hasCapability(METER_CAPABILITY))
+            await this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
+
+        // Writable capabilities of this role get a Modbus write listener. Registered for
+        // every role register (not just the currently enabled ones) so a capability
+        // enabled later via repair works without an app restart.
+        for (const register of roleRegisters(this.role)) {
+            if (register.direction === Dir.Out && !register.noAction) {
                 this.registerCapabilityListener(register.name, async (value) => {
                     await this.writeRegister(register, value);
                     this.checkTrigger(register, value);
                 });
-                // Flow controls for enums
-                if (register.enum && actionSpecs[register.name + ".enum"]) {
-                    this.homey.flow.getActionCard(register.name + ".enum")
-                        .registerArgumentAutocompleteListener(
-                            "mode",
-                            async (query, args) =>
-                                Object.entries(register.enum as any).map((parts: any) => {
-                                    return {
-                                        id: parts[1],
-                                        name:  this.homey.__(parts[1]) || parts[1]
-                                    }
-                                }).filter((result: any) => result.name.toLowerCase().includes(query.toLowerCase()))
-                        )
-                        .registerRunListener(async (args, state) => {""
-                            if (await this.writeRegister(register, args.mode.id))
-                                await this.setValue(register, args.mode.id);
-                        });
-                }
             }
-            if (register.enum && conditionSpecs[register.name + ".enum"]) {
-                this.homey.flow.getConditionCard(register.name + ".enum")
-                    .registerArgumentAutocompleteListener(
-                        "mode",
-                        async (query, args) =>
-                            Object.entries(register.enum as any).map((parts: any) => {
-                                return {
-                                    id: parts[1],
-                                    name:  this.homey.__(parts[1]) || parts[1]
-                                }
-                            }).filter((result: any) => result.name.toLowerCase().includes(query.toLowerCase()))
-                    )
-                    .registerRunListener(async (args, state) => {
-                        return this.getCapabilityValue(register.name) === args.mode.name;
-                    });
-            }
-        }));
-        
-        // Flow control for setting values of numeric registers
-        this.registerAutofillFlow(this.homey.flow.getActionCard("set_numeric_value"),
-            (reg) => reg.direction == Dir.Out && reg.scale! > 0  && !reg.noAction!,
-            async (args: any, state: any) => {
-                const register = registerByName[args.register.id];
-                if (args.value < register.min! || args.value > register.max!)
-                    throw new Error("The value " + args.value + " is out of range. Value should be between " +
-                        register.min + " and " + register.max + ".");
-                if (await this.writeRegister(register, args.value)) {
-                    const newValue = await this.readRegister(register);
-                    if (newValue === args.value)
-                        await this.setValue(register, newValue);
-                    else
-                        throw new Error("Failed setting " + args.value + ", got back value " + newValue);
-                } else
-                    throw new Error("Could not set value " + args.value);
-            }
-        );
+        }
 
-        // Flow control for enabling boolean registers
-        this.registerAutofillFlow(this.homey.flow.getActionCard("enable_feature"),
-            (reg) => reg.direction == Dir.Out && reg.bool!,
-            async (args: any, state: any) => {
-                const register = registerByName[args.register.id];
-                if (await this.writeRegister(register, true))
-                    await this.setValue(register, await this.readRegister(register));
-            }
-        );
-
-        // Flow control for disabling boolean registers
-        this.registerAutofillFlow(this.homey.flow.getActionCard("disable_feature"),
-            (reg) => reg.direction == Dir.Out && reg.bool!,
-            async (args: any, state: any) => {
-                const register = registerByName[args.register.id];
-                if (await this.writeRegister(register, false))
-                    await this.setValue(register, await this.readRegister(register));
-            }
-        );
-
-        // Flow condition for numeric comparisons
-        this.registerAutofillFlow(this.homey.flow.getConditionCard("numeric_value_comparison"),
-            (reg) => reg.scale! > 0,
-            (args: any, state: any) => {
-                const capabilityValue = this.getCapabilityValue(args.register.id);
-                return args.comparison === "<" ? capabilityValue < args.value : capabilityValue > args.value;
-            }
-        );
-
-        this.registerAutofillFlow(this.homey.flow.getConditionCard("feature_enabled"),
-            (reg) => reg.bool!,
-            (args: any, state: any) => this.getCapabilityValue(args.register.id)
-        );
-
-        this.registerAutofillFlow(this.capabilityChangedTrigger,
-            (reg) => reg.enum != undefined,
-            (args: any, state: any) => args.device === this && args.register.id === state.register.id
-        );
-
-        this.registerAutofillFlow(this.turnedOnTrigger,
-            (reg) => reg.bool!,
-            (args: any, state: any) => args.device === this && args.register.id === state.register.id && state.value
-        );
-
-        this.registerAutofillFlow(this.turnedOffTrigger,
-            (reg) => reg.bool!,
-            (args: any, state: any) => args.device === this && args.register.id === state.register.id && !state.value
-        );
-
-        this.client = new ModbusTCPClient(socket, 1, 5000);
-        clearInterval(this.pollInterval!);
-        this.log("Connecting");
-        socket.connect({port: 502, host: this.getSettings().address});
-
-        socket.on('connect', () => {
-            this.setAvailable();
-            this.log("Connected");
-            // Reset the energy integration baseline so a connection gap (initial connect or a
-            // reconnect after a drop) isn't counted as continuous runtime at whatever power the
-            // first poll after reconnecting happens to read.
-            this.lastPowerReading = null;
-            this.lastPollTime = Date.now();
-            // Start polling, delay a bit the first time
-            setTimeout(() => this.poll(), 200);
-            this.pollInterval = setInterval(() => this.poll(), 5000);
-        });
-
-        socket.on('error', (error) => {
-            this.log(error);
-            this.setUnavailable();
-        })
-
-        // Close socket and retry
-        socket.on('close', () => {
-            this.log('Socket closed, retrying in 5 seconds ...');
-
-            clearInterval(this.pollInterval!);
-
-            this.retryInterval = setTimeout(() => {
-                socket.connect({port: 502, host: this.getSettings().address});
-                this.log('Reconnecting now ...');
-            }, 5000);
-        });
+        this.connection = PumpConnection.get(this.host());
+        this.connection.attach(this);
     }
 
-    async onAdded() {
-        this.log('MyDevice has been added');
-        clearInterval(this.pollInterval!);
-        clearInterval(this.retryInterval!);
+    // ---- PumpSubscriber ----
+
+    wantedRegisters(): Register[] {
+        return registersForRole(this.role, this.getSelection());
+    }
+
+    onRegisterRaw(register: Register, raw: number) {
+        this.setValue(register, this.fromRegisterValue(register, raw)).catch(this.error);
+    }
+
+    onConnectionUp() {
+        this.setAvailable().catch(this.error);
+    }
+
+    onConnectionDown() {
+        this.setUnavailable().catch(this.error);
+    }
+
+    onEnergy(deltaKwh: number, watts: number) {
+        if (deltaKwh) {
+            this.cumulativeEnergy += deltaKwh;
+            if (this.hasCapability(METER_CAPABILITY))
+                this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
+            // Persist every poll so a crash/restart loses at most one interval's energy.
+            this.setSettings({cumulativeEnergy: this.cumulativeEnergy}).catch(this.error);
+        }
+        if (this.hasCapability(ACTIVE_POWER_CAPABILITY))
+            this.setCapabilityValue(ACTIVE_POWER_CAPABILITY, watts).catch(this.error);
+    }
+
+    // ---- lifecycle ----
+
+    async onSettings({newSettings, changedKeys}: {
+        oldSettings: {[key: string]: any}, newSettings: {[key: string]: any}, changedKeys: string[]
+    }) {
+        if (changedKeys.includes('cumulativeEnergy')) {
+            this.cumulativeEnergy = newSettings.cumulativeEnergy || 0;
+            if (this.hasCapability(METER_CAPABILITY))
+                this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
+        }
+        if (changedKeys.includes('address')) {
+            this.log(`Address changed to ${newSettings.address}, reconnecting`);
+            this.connection?.detach(this);
+            this.connection = PumpConnection.get(newSettings.address);
+            this.connection.attach(this);
+        }
+    }
+
+    async onUninit() {
+        this.connection?.detach(this);
     }
 
     async onDeleted() {
-        this.log('Nibe S-series device has been deleted');
-        clearInterval(this.pollInterval!);
-        clearInterval(this.retryInterval!);
-        socket.removeAllListeners();
-        socket.end();
+        this.log('Nibe device has been deleted');
+        this.connection?.detach(this);
     }
 }
 

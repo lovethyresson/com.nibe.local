@@ -2,57 +2,135 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../../../assets/styles.css">
+    <link rel="stylesheet" href="../../../assets/pair/pair.css">
 </head>
 <body>
 
-<!--
-<header class="homey-header">
-    <p class="homey-subtitle" data-i18n="pair.legacy.subtitle">
-    </p>
-</header>
--->
+<div class="pair-hero">
+    <div class="pair-hero-icon"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M20 48 50 24l30 24"/><path d="M28 46v28h44V46"/><path d="M42 66c0-6 8-6 8-12s-8-6-8-12M58 66c0-6 8-6 8-12s-8-6-8-12" stroke-width="5"/></svg></div>
+    <div class="pair-hero-title" data-i18n="pair.discover.title"></div>
+    <p class="pair-hero-sub detect-status" id="discovery-status"></p>
+</div>
 
-<form class="homey-form">
-    <fieldset class="homey-form-fieldset">
+<div class="detect-progress" id="progress" style="display: none"><div class="detect-bar" id="discovery-bar"></div></div>
+
+<div id="pump-list" class="pump-list"></div>
+
+<div class="detect-actions">
+    <a href="#" id="refresh" class="pair-link" style="display: none" data-i18n="pair.discover.refresh"></a>
+</div>
+
+<details id="manual" class="pair-manual">
+    <summary data-i18n="pair.discover.manual"></summary>
+    <form class="homey-form">
         <div class="homey-form-group">
-            <label class="homey-form-label" for="ipaddress" data-i18n="pair.ipaddress"></label>
-            <div class="input_ip_address">
-                <input class="homey-form-input " id="ipaddress" type="text" maxlength="15" value="192.168.1.">
-            </div>
+            <input class="homey-form-input" id="ipaddress" type="text" maxlength="15" placeholder="192.168.1.100">
         </div>
-    </fieldset>
-
-    <button class="homey-button-primary-full"
-            id="submit"
-            data-i18n="pair.ok"
-    ></button>
-</form>
+        <button class="homey-button-primary-full" id="submit" data-i18n="pair.ok"></button>
+    </form>
+</details>
 
 <script type="text/javascript">
     Homey.setTitle(Homey.__('pair.title'));
 
-    document.getElementById('submit').onclick = (e) => {
-        e.preventDefault();
-        Homey.showLoadingOverlay();
-        const ipaddress = document.getElementById("ipaddress").value;
+    var statusEl = document.getElementById('discovery-status');
+    var listEl = document.getElementById('pump-list');
+    var refreshEl = document.getElementById('refresh');
+    var manualEl = document.getElementById('manual');
+    var progressEl = document.getElementById('progress');
+    var barEl = document.getElementById('discovery-bar');
 
-        Homey.emit('ip_address_entered', { ipaddress }, (err, result) => {
+    function proceedWith(ipaddress) {
+        Homey.showLoadingOverlay();
+        Homey.emit('ip_address_entered', { ipaddress }, function (err, result) {
             Homey.hideLoadingOverlay();
             if (err) {
-                Homey.alert(err, 'error', () => {
-                });
+                Homey.alert((err && err.message) || String(err), 'error', function () {});
             } else if (result) {
-                Homey.createDevice(result)
-                    .then(function (result) {
-                        Homey.done();
-                    })
-                    .catch(function (error) {
-                        Homey.alert(err);
-                    });
+                Homey.showView('detect');
             }
         });
+    }
+
+    Homey.on('discovery_progress', function (progress) {
+        barEl.style.width = Math.round((progress.done / progress.total) * 100) + '%';
+    });
+
+    function renderPumps(pumps) {
+        listEl.innerHTML = '';
+        pumps.forEach(function (pump) {
+            var item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'pump-item';
+
+            var glyph = document.createElement('span');
+            glyph.className = 'pump-glyph';
+            glyph.innerHTML = '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M20 48 50 24l30 24"/><path d="M28 46v28h44V46"/><path d="M42 66c0-6 8-6 8-12s-8-6-8-12M58 66c0-6 8-6 8-12s-8-6-8-12" stroke-width="5"/></svg>';
+            item.appendChild(glyph);
+
+            var body = document.createElement('span');
+            body.className = 'pump-body';
+            var name = document.createElement('strong');
+            name.textContent = Homey.__('pair.discover.pump');
+            body.appendChild(name);
+            var addr = document.createElement('div');
+            addr.className = 'pump-detail';
+            addr.textContent = pump.address
+                + (typeof pump.outdoorTemperature === 'number'
+                    ? '  ·  ' + Homey.__('pair.discover.outdoor') + ' ' + pump.outdoorTemperature + ' °C'
+                    : '');
+            body.appendChild(addr);
+            item.appendChild(body);
+
+            var chev = document.createElement('span');
+            chev.className = 'pump-chevron';
+            chev.textContent = '›';
+            item.appendChild(chev);
+
+            item.onclick = function (e) {
+                e.preventDefault();
+                proceedWith(pump.address);
+            };
+            listEl.appendChild(item);
+        });
+    }
+
+    function discover() {
+        refreshEl.style.display = 'none';
+        manualEl.style.display = 'none';
+        listEl.innerHTML = '';
+        progressEl.style.display = 'block';
+        barEl.style.width = '3%';
+        statusEl.textContent = Homey.__('pair.discover.searching');
+        Homey.emit('discover', {}, function (err, pumps) {
+            progressEl.style.display = 'none';
+            refreshEl.style.display = 'inline-block';
+            manualEl.style.display = 'block';
+            if (err || !pumps || !pumps.length) {
+                statusEl.textContent = Homey.__('pair.discover.none_found');
+                manualEl.open = true;
+                return;
+            }
+            // Show the found pump(s) with their IP and let the user confirm by tapping,
+            // rather than auto-advancing — so the device and address can be verified.
+            statusEl.textContent = pumps.length === 1
+                ? Homey.__('pair.discover.confirm')
+                : Homey.__('pair.discover.found');
+            renderPumps(pumps);
+        });
+    }
+
+    refreshEl.onclick = function (e) {
+        e.preventDefault();
+        discover();
     };
+
+    document.getElementById('submit').onclick = function (e) {
+        e.preventDefault();
+        proceedWith(document.getElementById('ipaddress').value);
+    };
+
+    discover();
 </script>
 </body>
 </html>

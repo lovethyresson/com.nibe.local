@@ -14,12 +14,12 @@
   "Large": "Large",
   "Not in use": "Not in use",
   "Smart control": "Smart control",
-  "One-time increase 1h": "Íncrease 1h",
-  "One-time increase 3h": "Increase 3h",
-  "One-time increase 6h": "Íncrease 6h",
-  "One-time increase 12h": "Íncrease 12h",
-  "One-time increase 24h": "Íncrease 24h",
-  "One-time increase 48h": "Íncrease 48h",
+  "2 hours": "2 hours",
+  "3 hours": "3 hours",
+  "6 hours": "6 hours",
+  "12 hours": "12 hours",
+  "24 hours": "24 hours",
+  "48 hours": "48 hours",
   "On": "On",
   "Auto": "Auto",
   "Manual": "Manual",
@@ -29,6 +29,66 @@
     "ok": "OK",
     "ipaddress": "IP address",
     "valid_ip_address": "Enter a valid IP address (xxx.xxx.xxx.xxx)",
-    "invalid_ipaddress": "Invalid IP address"
+    "invalid_ipaddress": "Invalid IP address",
+    "not_connected": "Not connected to the heat pump",
+    "detect": {
+      "title": "Detecting features",
+      "intro": "Connecting to the heat pump and watching which values change. This takes about half a minute.",
+      "status": "Sampling registers",
+      "failed": "Could not read from the heat pump",
+      "retry": "Retry",
+      "skip": "Skip detection"
+    },
+    "features": {
+      "title": "Select features",
+      "intro": "Choose which features to monitor. Recommendations are based on what the heat pump reported.",
+      "insights_note": "Disabling a feature removes its capabilities, including their Insights history."
+    },
+    "evidence": {
+      "moving": "values changing",
+      "plausible": "looks present",
+      "none": "no activity detected",
+      "unsupported": "not supported by the pump"
+    },
+    "badge": {
+      "adjustable": "Adjustable",
+      "insight": "Insight only"
+    },
+    "discover": {
+      "searching": "Searching your network for Nibe heat pumps…",
+      "found": "Select your heat pump",
+      "none_found": "No heat pump found automatically. Check that Modbus TCP is enabled on the pump (menu 7.5.9) or enter its IP address below.",
+      "manual": "Enter the IP address manually",
+      "refresh": "Search again",
+      "pump": "Nibe heat pump",
+      "outdoor": "Outdoor temperature",
+      "title": "Find your heat pump",
+      "connecting": "Found your pump — connecting…",
+      "confirm": "Found your heat pump — tap to confirm"
+    },
+    "devices": {
+      "title": "Add devices",
+      "intro": "Each function of your pump becomes its own device. The ones we found live data for are checked, but you can add any of them.",
+      "add": "Add selected devices",
+      "detected": "Data detected",
+      "notdetected": "No data",
+      "select_one": "Select at least one device to add.",
+      "main_desc": "Overview: outdoor temperature, operating priority and mode, plus diagnostics and statistics",
+      "energy": "Energy"
+    }
+  },
+  "groups": {
+    "heating": "Heating",
+    "hotwater": "Hot water",
+    "pool": "Pool",
+    "ventilation": "Ventilation (exhaust air)",
+    "groundsource": "Ground source (brine)",
+    "electrical": "Current sensors",
+    "diagnostics": "Refrigerant diagnostics",
+    "statistics": "Runtime statistics",
+    "cooling": "Cooling",
+    "core": "Core sensors",
+    "alarm": "Alarm handling",
+    "energy": "Energy"
   }
 }

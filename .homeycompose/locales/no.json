@@ -1,0 +1,78 @@
+{
+  "Off": "Av",
+  "Hot water": "Varmtvann",
+  "Heating": "Varme",
+  "Pool": "Basseng",
+  "Cooling": "Kjøling",
+  "pair": {
+    "title": "NIBE S-konfigurasjon",
+    "ok": "OK",
+    "ipaddress": "IP-adresse",
+    "valid_ip_address": "Angi en gyldig IP-adresse (xxx.xxx.xxx.xxx)",
+    "invalid_ipaddress": "Ugyldig IP-adresse",
+    "not_connected": "Ikke tilkoblet varmepumpen",
+    "detect": {
+      "title": "Oppdager funksjoner",
+      "intro": "Kobler til varmepumpen og ser hvilke verdier som endrer seg. Dette tar omtrent et halvt minutt.",
+      "status": "Leser registre",
+      "failed": "Kunne ikke lese fra varmepumpen",
+      "retry": "Prøv igjen",
+      "skip": "Hopp over oppdagelse"
+    },
+    "features": {
+      "title": "Velg funksjoner",
+      "intro": "Velg hvilke funksjoner som skal overvåkes. Anbefalingene er basert på det varmepumpen rapporterte.",
+      "insights_note": "Hvis du deaktiverer en funksjon, fjernes egenskapene dens, inkludert Insights-historikken."
+    },
+    "evidence": {
+      "moving": "verdier endrer seg",
+      "plausible": "ser ut til å finnes",
+      "none": "ingen aktivitet oppdaget",
+      "unsupported": "støttes ikke av varmepumpen"
+    },
+    "badge": {
+      "adjustable": "Justerbar",
+      "insight": "Kun visning"
+    },
+    "devices": {
+      "title": "Legg til enheter",
+      "intro": "Hver funksjon i varmepumpen blir en egen enhet. De vi fant aktive data for, er avkrysset, men du kan legge til alle.",
+      "add": "Legg til valgte enheter",
+      "detected": "Data oppdaget",
+      "notdetected": "Ingen data",
+      "select_one": "Velg minst én enhet som skal legges til.",
+      "main_desc": "Oversikt: utetemperatur, driftsprioritering og driftsmodus, samt diagnostikk og statistikk"
+    },
+    "discover": {
+      "title": "Finn varmepumpen din",
+      "searching": "Søker i nettverket etter NIBE varmepumper …",
+      "connecting": "Fant varmepumpen – kobler til …",
+      "confirm": "Fant varmepumpen – trykk for å bekrefte",
+      "found": "Velg varmepumpen din",
+      "none_found": "Ingen varmepumpe ble funnet automatisk. Kontroller at Modbus TCP er aktivert på varmepumpen (meny 7.5.9), eller angi IP-adressen nedenfor.",
+      "manual": "Angi IP-adressen manuelt",
+      "refresh": "Søk igjen",
+      "pump": "NIBE varmepumpe",
+      "outdoor": "Utetemperatur"
+    }
+  },
+  "groups": {
+    "core": "Basissensorer",
+    "heating": "Varme",
+    "hotwater": "Varmtvann",
+    "pool": "Basseng",
+    "cooling": "Kjøling",
+    "ventilation": "Ventilasjon (avtrekksluft)",
+    "groundsource": "Bergvarme (kollektor)",
+    "electrical": "Strømfølere",
+    "alarm": "Alarmhåndtering",
+    "diagnostics": "Kjølemediediagnostikk",
+    "statistics": "Driftstidsstatistikk",
+    "energy": "Energi"
+  },
+  "Normal": "Normal",
+  "Speed 1": "Trinn 1",
+  "Speed 2": "Trinn 2",
+  "Speed 3": "Trinn 3",
+  "Speed 4": "Trinn 4"
+}

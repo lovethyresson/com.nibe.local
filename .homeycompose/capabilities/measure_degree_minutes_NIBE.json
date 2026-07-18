@@ -2,14 +2,23 @@
   "type": "number",
   "title": {
     "en": "Degree minutes",
-    "sv": "Gradminuter"
+    "sv": "Gradminuter",
+    "de": "Gradminuten",
+    "nl": "Graadminuten",
+    "no": "Gradminutter",
+    "da": "Gradminutter"
   },
   "uiComponent": "sensor",
   "chartType": "spline",
   "getable": true,
   "setable": false,
   "units": {
-    "en": "°Cmin"
+    "en": "°Cmin",
+    "de": "°Cmin",
+    "nl": "°Cmin",
+    "no": "°Cmin",
+    "da": "°Cmin",
+    "sv": "°Cmin"
   },
   "icon": "/assets/images/degree_minutes.svg",
   "insights": true

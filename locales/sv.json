@@ -14,12 +14,12 @@
   "Large": "Stort",
   "Not in use": "Används inte",
   "Smart control": "Smart kontrol",
-  "One-time increase 1h": "Höjning 1h",
-  "One-time increase 3h": "Höjning 3h",
-  "One-time increase 6h": "Höjning 6h",
-  "One-time increase 12h": "Höjning 12h",
-  "One-time increase 24h": "Höjning 24h",
-  "One-time increase 48h": "Höjning 48h",
+  "2 hours": "2 timmar",
+  "3 hours": "3 timmar",
+  "6 hours": "6 timmar",
+  "12 hours": "12 timmar",
+  "24 hours": "24 timmar",
+  "48 hours": "48 timmar",
   "On": "På",
   "Auto": "Auto",
   "Manual": "Manuellt",
@@ -29,6 +29,66 @@
     "ok": "OK",
     "ipaddress": "IP-adress",
     "valid_ip_address": "Mata in en giltig IP-adress (xxx.xxx.xxx.xxx)",
-    "invalid_ipaddress": "Ogiltig IP-adress"
+    "invalid_ipaddress": "Ogiltig IP-adress",
+    "not_connected": "Inte ansluten till värmepumpen",
+    "detect": {
+      "title": "Identifierar funktioner",
+      "intro": "Ansluter till värmepumpen och tittar på vilka värden som ändras. Det tar ungefär en halv minut.",
+      "status": "Läser register",
+      "failed": "Kunde inte läsa från värmepumpen",
+      "retry": "Försök igen",
+      "skip": "Hoppa över identifiering"
+    },
+    "features": {
+      "title": "Välj funktioner",
+      "intro": "Välj vilka funktioner som ska övervakas. Rekommendationerna baseras på vad värmepumpen rapporterade.",
+      "insights_note": "Om en funktion stängs av tas dess värden bort, inklusive Insights-historiken."
+    },
+    "evidence": {
+      "moving": "värden ändras",
+      "plausible": "verkar finnas",
+      "none": "ingen aktivitet upptäckt",
+      "unsupported": "stöds inte av pumpen"
+    },
+    "badge": {
+      "adjustable": "Inställbar",
+      "insight": "Endast insikt"
+    },
+    "discover": {
+      "searching": "Söker efter Nibe-värmepumpar i ditt nätverk…",
+      "found": "Välj din värmepump",
+      "none_found": "Ingen värmepump hittades automatiskt. Kontrollera att Modbus TCP är aktiverat på pumpen (meny 7.5.9) eller ange IP-adressen nedan.",
+      "manual": "Eller ange IP-adressen manuellt",
+      "refresh": "Sök igen",
+      "pump": "Nibe värmepump",
+      "outdoor": "Utetemperatur",
+      "title": "Hitta din värmepump",
+      "connecting": "Hittade din värmepump — ansluter…",
+      "confirm": "Hittade din värmepump — tryck för att bekräfta"
+    },
+    "devices": {
+      "title": "Lägg till enheter",
+      "intro": "Varje funktion i din värmepump blir en egen enhet. De vi hittade aktiv data för är förkryssade, men du kan lägga till vilka du vill.",
+      "add": "Lägg till valda enheter",
+      "detected": "Data hittad",
+      "notdetected": "Ingen data",
+      "select_one": "Välj minst en enhet att lägga till.",
+      "main_desc": "Översikt: utetemperatur, driftprioritering och driftläge, samt diagnostik och statistik",
+      "energy": "Energi"
+    }
+  },
+  "groups": {
+    "heating": "Värme",
+    "hotwater": "Varmvatten",
+    "pool": "Pool",
+    "ventilation": "Ventilation (frånluft)",
+    "groundsource": "Köldbärare (berg/mark)",
+    "electrical": "Strömsensorer",
+    "diagnostics": "Köldmediediagnostik",
+    "statistics": "Driftstatistik",
+    "cooling": "Kyla",
+    "core": "Grundvärden",
+    "alarm": "Larmhantering",
+    "energy": "Energi"
   }
 }

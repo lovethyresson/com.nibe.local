@@ -1,46 +1,56 @@
 {
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
-  "id": "net.sparud.nibe_s",
-  "version": "2.2.0",
-  "compatibility": ">=5.0.0",
+  "id": "com.nibe.local",
+  "version": "0.9.0",
+  "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
     "local"
   ],
   "name": {
-    "en": "Nibe S-series",
-    "sv": "Nibe S"
+    "en": "Nibe Heatpumps",
+    "sv": "Nibe Värmepumpar",
+    "de": "NIBE Wärmepumpen",
+    "nl": "NIBE warmtepompen",
+    "no": "NIBE varmepumper",
+    "da": "NIBE varmepumper"
   },
   "description": {
-    "en": "Measure and control Nibe S-series heaters ",
-    "sv": "Mät och styr Nibe S värmesystem"
+    "en": "Monitor and control Nibe heat pumps directly over your local network (Modbus TCP), with a separate device for each function — heating, hot water, pool and cooling — and per-function energy tracking. No cloud required.",
+    "sv": "Övervaka och styr Nibe värmepumpar direkt över ditt lokala nätverk (Modbus TCP), med en separat enhet för varje funktion — värme, varmvatten, pool och kyla — och energiuppföljning per funktion. Inget moln krävs.",
+    "de": "Überwachen und steuern Sie NIBE Wärmepumpen direkt über Ihr lokales Netzwerk (Modbus TCP) – mit einem eigenen Gerät für jede Funktion: Heizung, Brauchwasser, Pool und Kühlung, jeweils mit eigener Energieerfassung. Ohne Cloud.",
+    "nl": "Bewaak en bedien NIBE warmtepompen rechtstreeks via je lokale netwerk (Modbus TCP), met een apart apparaat voor elke functie — verwarming, warmtapwater, zwembad en koeling — en energieregistratie per functie. Geen cloud nodig.",
+    "no": "Overvåk og styr NIBE varmepumper direkte over det lokale nettverket (Modbus TCP), med en egen enhet for hver funksjon — varme, varmtvann, basseng og kjøling — og energioppfølging per funksjon. Ingen sky nødvendig.",
+    "da": "Overvåg og styr NIBE varmepumper direkte via dit lokale netværk (Modbus TCP), med en separat enhed til hver funktion — varme, varmtvand, pool og køling — og energiregistrering pr. funktion. Ingen cloud påkrævet."
   },
   "category": [
     "climate"
   ],
   "permissions": [],
-  "brandColor": "#DD1111",
+  "homepage": "https://github.com/lovethyresson/com.nibe.local",
+  "source": "https://github.com/lovethyresson/com.nibe.local",
+  "support": "https://github.com/lovethyresson/com.nibe.local/issues",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lovethyresson/com.nibe.local/issues"
+  },
+  "brandColor": "#174E56",
   "images": {
-    "small": "/assets/images/nibe_app_small.jpg",
-    "large": "/assets/images/nibe_app_large.jpg"
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png",
+    "xlarge": "/assets/images/xlarge.png"
   },
   "author": {
-    "name": "Jan Sparud",
-    "email": "jan@sparud.net"
+    "name": "Love Thyresson",
+    "email": "love@thyresson.se"
   },
   "contributors": {
     "developers": [
       {
-        "name": "Kjell Blomberg"
+        "name": "Jan Sparud",
+        "email": "jan@sparud.net"
       }
     ]
-  },
-  "contributing": {
-    "donate": {
-      "paypal": {
-        "username": "sparud"
-      }
-    }
   },
   "flow": {
     "triggers": [
@@ -48,11 +58,27 @@
         "id": "capability_changed",
         "title": {
           "en": "Register changed",
-          "sv": "Registervärde ändrades"
+          "sv": "Registervärde ändrades",
+          "de": "Register geändert",
+          "nl": "Register gewijzigd",
+          "no": "Register endret",
+          "da": "Register ændret"
         },
         "titleFormatted": {
           "en": "[[register]] changed",
-          "sv": "[[register]] ändrades"
+          "sv": "[[register]] ändrades",
+          "de": "[[register]] geändert",
+          "nl": "[[register]] gewijzigd",
+          "no": "[[register]] endret",
+          "da": "[[register]] ændret"
+        },
+        "hint": {
+          "en": "Fires when the selected register's value changes. Only registers with a fixed set of modes (operating mode, hot water demand, priority, fan mode) can be picked.",
+          "sv": "Utlöses när det valda registrets värde ändras. Bara register med ett fast antal lägen (driftläge, varmvattenbehov, prioritet, fläktläge) kan väljas.",
+          "de": "Wird ausgelöst, wenn sich der Wert des gewählten Registers ändert. Es können nur Register mit einer festen Auswahl an Modi gewählt werden (Betriebsmodus, Brauchwasserbedarf, Betriebspriorität, Lüfterstufe).",
+          "nl": "Wordt geactiveerd wanneer de waarde van het gekozen register verandert. Alleen registers met een vaste set standen kunnen worden gekozen (bedrijfsstand, warmtapwaterbehoefte, bedrijfsprioriteit, ventilatorstand).",
+          "no": "Utløses når verdien til det valgte registeret endrer seg. Kun registre med et fast sett moduser kan velges (driftsmodus, varmtvannsbehov, driftsprioritering, viftetrinn).",
+          "da": "Udløses, når værdien for det valgte register ændrer sig. Kun registre med et fast sæt indstillinger kan vælges (driftsindstilling, varmtvandsbehov, driftsprioritering, ventilatortrin)."
         },
         "args": [
           {
@@ -65,7 +91,11 @@
             "name": "register",
             "title": {
               "en": "Register",
-              "sv": "Register"
+              "sv": "Register",
+              "de": "Register",
+              "nl": "Register",
+              "no": "Register",
+              "da": "Register"
             }
           }
         ]
@@ -74,11 +104,27 @@
         "id": "capability_turned_on",
         "title": {
           "en": "Register turned on",
-          "sv": "Registervärde sätts på"
+          "sv": "Registervärde sätts på",
+          "de": "Register eingeschaltet",
+          "nl": "Register ingeschakeld",
+          "no": "Register slått på",
+          "da": "Register tændt"
         },
         "titleFormatted": {
           "en": "[[register]] turned on",
-          "sv": "[[register]] sätts på"
+          "sv": "[[register]] sätts på",
+          "de": "[[register]] eingeschaltet",
+          "nl": "[[register]] ingeschakeld",
+          "no": "[[register]] slått på",
+          "da": "[[register]] tændt"
+        },
+        "hint": {
+          "en": "Fires when the selected on/off register switches on.",
+          "sv": "Utlöses när det valda av/på-registret slås på.",
+          "de": "Wird ausgelöst, wenn das gewählte Ein/Aus-Register einschaltet.",
+          "nl": "Wordt geactiveerd wanneer het gekozen aan/uit-register inschakelt.",
+          "no": "Utløses når det valgte på/av-registeret slås på.",
+          "da": "Udløses, når det valgte til/fra-register tændes."
         },
         "args": [
           {
@@ -91,7 +137,11 @@
             "name": "register",
             "title": {
               "en": "Register",
-              "sv": "Register"
+              "sv": "Register",
+              "de": "Register",
+              "nl": "Register",
+              "no": "Register",
+              "da": "Register"
             }
           }
         ]
@@ -100,11 +150,27 @@
         "id": "capability_turned_off",
         "title": {
           "en": "Register turned off",
-          "sv": "Registervärde stängs på"
+          "sv": "Registervärde stängs på",
+          "de": "Register ausgeschaltet",
+          "nl": "Register uitgeschakeld",
+          "no": "Register slått av",
+          "da": "Register slukket"
         },
         "titleFormatted": {
           "en": "[[register]] turned off",
-          "sv": "[[register]] stängs av"
+          "sv": "[[register]] stängs av",
+          "de": "[[register]] ausgeschaltet",
+          "nl": "[[register]] uitgeschakeld",
+          "no": "[[register]] slått av",
+          "da": "[[register]] slukket"
+        },
+        "hint": {
+          "en": "Fires when the selected on/off register switches off.",
+          "sv": "Utlöses när det valda av/på-registret stängs av.",
+          "de": "Wird ausgelöst, wenn das gewählte Ein/Aus-Register ausschaltet.",
+          "nl": "Wordt geactiveerd wanneer het gekozen aan/uit-register uitschakelt.",
+          "no": "Utløses når det valgte på/av-registeret slås av.",
+          "da": "Udløses, når det valgte til/fra-register slukkes."
         },
         "args": [
           {
@@ -117,7 +183,11 @@
             "name": "register",
             "title": {
               "en": "Register",
-              "sv": "Register"
+              "sv": "Register",
+              "de": "Register",
+              "nl": "Register",
+              "no": "Register",
+              "da": "Register"
             }
           }
         ]
@@ -128,11 +198,27 @@
         "id": "numeric_value_comparison",
         "title": {
           "en": "Value comparison",
-          "sv": "Värdejämförelse"
+          "sv": "Värdejämförelse",
+          "de": "Wertvergleich",
+          "nl": "Waardevergelijking",
+          "no": "Verdisammenligning",
+          "da": "Værdisammenligning"
         },
         "titleFormatted": {
           "en": "Value of [[register]] is [[comparison]] [[value]]",
-          "sv": "Värdet på [[register]] är [[comparison]] [[value]]"
+          "sv": "Värdet på [[register]] är [[comparison]] [[value]]",
+          "de": "Wert von [[register]] ist [[comparison]] [[value]]",
+          "nl": "Waarde van [[register]] is [[comparison]] [[value]]",
+          "no": "Verdien av [[register]] er [[comparison]] [[value]]",
+          "da": "Værdien af [[register]] er [[comparison]] [[value]]"
+        },
+        "hint": {
+          "en": "Compares any readable numeric register against a value. Useful for readings that have no card of their own, such as degree minutes or compressor frequency.",
+          "sv": "Jämför valfritt läsbart numeriskt register mot ett värde. Användbart för mätvärden utan eget kort, till exempel gradminuter eller kompressorfrekvens.",
+          "de": "Vergleicht ein beliebiges lesbares numerisches Register mit einem Wert. Nützlich für Messwerte ohne eigene Karte, etwa Gradminuten oder Verdichterfrequenz.",
+          "nl": "Vergelijkt een willekeurig uitleesbaar numeriek register met een waarde. Handig voor metingen zonder eigen kaart, zoals graadminuten of compressorfrequentie.",
+          "no": "Sammenligner et hvilket som helst lesbart numerisk register med en verdi. Nyttig for målinger uten eget kort, som gradminutter eller kompressorfrekvens.",
+          "da": "Sammenligner et vilkårligt læsbart numerisk register med en værdi. Nyttigt til målinger uden eget kort, såsom gradminutter eller kompressorfrekvens."
         },
         "args": [
           {
@@ -145,7 +231,11 @@
             "name": "register",
             "title": {
               "en": "Register",
-              "sv": "Register"
+              "sv": "Register",
+              "de": "Register",
+              "nl": "Register",
+              "no": "Register",
+              "da": "Register"
             }
           },
           {
@@ -153,21 +243,33 @@
             "name": "comparison",
             "title": {
               "en": "Comparison",
-              "sv": "Jämförelse"
+              "sv": "Jämförelse",
+              "de": "Vergleich",
+              "nl": "Vergelijking",
+              "no": "Sammenligning",
+              "da": "Sammenligning"
             },
             "values": [
               {
                 "id": "<",
                 "title": {
                   "en": "less than",
-                  "sv": "mindre än"
+                  "sv": "mindre än",
+                  "de": "kleiner als",
+                  "nl": "kleiner dan",
+                  "no": "mindre enn",
+                  "da": "mindre end"
                 }
               },
               {
                 "id": ">",
                 "title": {
                   "en": "greater than",
-                  "sv": "större än"
+                  "sv": "större än",
+                  "de": "größer als",
+                  "nl": "groter dan",
+                  "no": "større enn",
+                  "da": "større end"
                 }
               }
             ]
@@ -177,7 +279,11 @@
             "name": "value",
             "title": {
               "en": "Value",
-              "sv": "Värde"
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
             }
           }
         ]
@@ -185,13 +291,30 @@
       {
         "id": "feature_enabled",
         "title": {
-          "en": "Feature enabled",
-          "sv": "Egenskap påslagen"
+          "en": "A register is on (advanced)",
+          "sv": "Ett register är på (avancerat)",
+          "de": "Ein Register ist eingeschaltet (erweitert)",
+          "nl": "Een register is ingeschakeld (geavanceerd)",
+          "no": "Et register er på (avansert)",
+          "da": "Et register er tændt (avanceret)"
         },
         "titleFormatted": {
           "en": "[[register]] is !{{enabled|disabled}}",
-          "sv": "[[register]] är !{{på|av}}"
+          "sv": "[[register]] är !{{på|av}}",
+          "de": "[[register]] ist !{{aktiviert|deaktiviert}}",
+          "nl": "[[register]] is !{{ingeschakeld|uitgeschakeld}}",
+          "no": "[[register]] er !{{aktivert|deaktivert}}",
+          "da": "[[register]] er !{{aktiveret|deaktiveret}}"
         },
+        "hint": {
+          "en": "Checks any on/off register, picked by name. Prefer the device’s own on/off condition cards — this is the escape hatch.",
+          "sv": "Kontrollerar valfritt av/på-register, valt via namn. Använd hellre enhetens egna av/på-villkorskort — det här är reservutgången.",
+          "de": "Prüft ein beliebiges Ein/Aus-Register, ausgewählt über den Namen. Bevorzugen Sie die eigenen Ein/Aus-Bedingungskarten des Geräts – dies ist die Ausweichlösung.",
+          "nl": "Controleert een willekeurig aan/uit-register, gekozen op naam. Gebruik bij voorkeur de eigen aan/uit-voorwaardekaarten van het apparaat — dit is de noodoplossing.",
+          "no": "Sjekker et hvilket som helst på/av-register, valgt ved navn. Bruk helst enhetens egne på/av-betingelseskort – dette er nødløsningen.",
+          "da": "Kontrollerer et vilkårligt til/fra-register, valgt ved navn. Brug helst enhedens egne til/fra-betingelseskort – dette er nødløsningen."
+        },
+        "advanced": true,
         "args": [
           {
             "type": "device",
@@ -203,7 +326,11 @@
             "name": "register",
             "title": {
               "en": "Register",
-              "sv": "Register"
+              "sv": "Register",
+              "de": "Register",
+              "nl": "Register",
+              "no": "Register",
+              "da": "Register"
             }
           }
         ]
@@ -211,25 +338,45 @@
       {
         "id": "measure_enum_NIBE.h56_hotwater_demand_mode.enum",
         "title": {
-          "en": "Increase warm water mode",
-          "sv": "Varmvattenbehov"
+          "en": "Hot water demand mode",
+          "sv": "Varmvattenbehov",
+          "de": "Brauchwasserbedarf",
+          "nl": "Warmtapwaterbehoefte",
+          "no": "Varmtvannsbehov",
+          "da": "Varmtvandsbehov"
         },
         "titleFormatted": {
-          "en": "Hotwater demand mode is [[mode]]",
-          "sv": "Varmvattenbehov är [[mode]]"
+          "en": "Hot water demand mode is [[mode]]",
+          "sv": "Varmvattenbehov är [[mode]]",
+          "de": "Brauchwasserbedarf ist [[mode]]",
+          "nl": "Warmtapwaterbehoefte is [[mode]]",
+          "no": "Varmtvannsbehov er [[mode]]",
+          "da": "Varmtvandsbehov er [[mode]]"
+        },
+        "hint": {
+          "en": "Hot water demand mode (small/medium/large/smart).",
+          "sv": "Varmvattnets behovsläge (litet/medel/stort/smart).",
+          "de": "Brauchwasserbedarf (klein/mittel/groß/smart).",
+          "nl": "Warmtapwaterbehoefte (klein/gemiddeld/groot/smart).",
+          "no": "Varmtvannsbehov (liten/middels/stor/smart).",
+          "da": "Varmtvandsbehov (lille/middel/stor/smart)."
         },
         "args": [
           {
             "type": "device",
             "name": "device",
-            "filter": "driver_id=nibe_s"
+            "filter": "driver_id=nibe_s&capabilities=measure_enum_NIBE.h56_hotwater_demand_mode"
           },
           {
             "type": "autocomplete",
             "name": "mode",
             "title": {
               "en": "Mode",
-              "sv": "Läge"
+              "sv": "Läge",
+              "de": "Modus",
+              "nl": "Stand",
+              "no": "Modus",
+              "da": "Indstilling"
             }
           }
         ]
@@ -238,50 +385,44 @@
         "id": "measure_enum_NIBE.h237_operating_mode.enum",
         "title": {
           "en": "Operating mode",
-          "sv": "Driftläge"
+          "sv": "Driftläge",
+          "de": "Betriebsmodus",
+          "nl": "Bedrijfsstand",
+          "no": "Driftsmodus",
+          "da": "Driftsindstilling"
         },
         "titleFormatted": {
           "en": "Operating mode is [[mode]]",
-          "sv": "Driftläge är [[mode]]"
+          "sv": "Driftläge är [[mode]]",
+          "de": "Betriebsmodus ist [[mode]]",
+          "nl": "Bedrijfsstand is [[mode]]",
+          "no": "Driftsmodus er [[mode]]",
+          "da": "Driftsindstilling er [[mode]]"
+        },
+        "hint": {
+          "en": "Operating mode: auto, manual or additional heat only.",
+          "sv": "Driftläge: auto, manuellt eller endast tillsats.",
+          "de": "Betriebsmodus: Auto, Manuell oder nur Zusatzheizung.",
+          "nl": "Bedrijfsstand: auto, handmatig of alleen bijverwarming.",
+          "no": "Driftsmodus: auto, manuell eller kun tilleggsvarme.",
+          "da": "Driftsindstilling: auto, manuel eller kun tilskudsvarme."
         },
         "args": [
           {
             "type": "device",
             "name": "device",
-            "filter": "driver_id=nibe_s"
+            "filter": "driver_id=nibe_s&capabilities=measure_enum_NIBE.h237_operating_mode"
           },
           {
             "type": "autocomplete",
             "name": "mode",
             "title": {
               "en": "Mode",
-              "sv": "Läge"
-            }
-          }
-        ]
-      },
-      {
-        "id": "measure_enum_NIBE.h697_onetimeincrease_hotwater.enum",
-        "title": {
-          "en": "Increase warm water mode",
-          "sv": "Tillstånd för ökat varmvatten"
-        },
-        "titleFormatted": {
-          "en": "Increase warm water mode is [[mode]]",
-          "sv": "Tillstånd för ökning av varmvatten är [[mode]]"
-        },
-        "args": [
-          {
-            "type": "device",
-            "name": "device",
-            "filter": "driver_id=nibe_s"
-          },
-          {
-            "type": "autocomplete",
-            "name": "mode",
-            "title": {
-              "en": "Mode",
-              "sv": "Läge"
+              "sv": "Läge",
+              "de": "Modus",
+              "nl": "Stand",
+              "no": "Modus",
+              "da": "Indstilling"
             }
           }
         ]
@@ -290,24 +431,44 @@
         "id": "measure_enum_NIBE.i1028_priority.enum",
         "title": {
           "en": "Priority",
-          "sv": "Prioritet"
+          "sv": "Prioritet",
+          "de": "Betriebspriorität",
+          "nl": "Bedrijfsprioriteit",
+          "no": "Driftsprioritering",
+          "da": "Driftsprioritering"
         },
         "titleFormatted": {
           "en": "Priority is [[mode]]",
-          "sv": "Prioritet är [[mode]]"
+          "sv": "Prioritet är [[mode]]",
+          "de": "Betriebspriorität ist [[mode]]",
+          "nl": "Bedrijfsprioriteit is [[mode]]",
+          "no": "Driftsprioritering er [[mode]]",
+          "da": "Driftsprioritering er [[mode]]"
+        },
+        "hint": {
+          "en": "What the pump is producing right now (heating, hot water, pool…).",
+          "sv": "Vad pumpen producerar just nu (värme, varmvatten, pool…).",
+          "de": "Was die Wärmepumpe gerade erzeugt (Heizung, Brauchwasser, Pool …).",
+          "nl": "Wat de warmtepomp op dit moment produceert (verwarming, warmtapwater, zwembad…).",
+          "no": "Hva varmepumpen produserer akkurat nå (varme, varmtvann, basseng …).",
+          "da": "Hvad varmepumpen producerer lige nu (varme, varmtvand, pool …)."
         },
         "args": [
           {
             "type": "device",
             "name": "device",
-            "filter": "driver_id=nibe_s"
+            "filter": "driver_id=nibe_s&capabilities=measure_enum_NIBE.i1028_priority"
           },
           {
             "type": "autocomplete",
             "name": "mode",
             "title": {
               "en": "Mode",
-              "sv": "Läge"
+              "sv": "Läge",
+              "de": "Modus",
+              "nl": "Stand",
+              "no": "Modus",
+              "da": "Indstilling"
             }
           }
         ]
@@ -316,24 +477,44 @@
         "id": "measure_enum_NIBE.i1037_return_fan_step.enum",
         "title": {
           "en": "Fan mode",
-          "sv": "Fläktläge"
+          "sv": "Fläktläge",
+          "de": "Lüfterstufe",
+          "nl": "Ventilatorstand",
+          "no": "Viftetrinn",
+          "da": "Ventilatortrin"
         },
         "titleFormatted": {
           "en": "Fan mode is [[mode]]",
-          "sv": "Fläktläge är [[mode]]"
+          "sv": "Fläktläge är [[mode]]",
+          "de": "Lüfterstufe ist [[mode]]",
+          "nl": "Ventilatorstand is [[mode]]",
+          "no": "Viftetrinn er [[mode]]",
+          "da": "Ventilatortrin er [[mode]]"
+        },
+        "hint": {
+          "en": "Currently active fan mode.",
+          "sv": "Aktivt fläktläge.",
+          "de": "Aktuell aktive Lüfterstufe.",
+          "nl": "Momenteel actieve ventilatorstand.",
+          "no": "Aktivt viftetrinn.",
+          "da": "Aktivt ventilatortrin."
         },
         "args": [
           {
             "type": "device",
             "name": "device",
-            "filter": "driver_id=nibe_s"
+            "filter": "driver_id=nibe_s&capabilities=measure_enum_NIBE.i1037_return_fan_step"
           },
           {
             "type": "autocomplete",
             "name": "mode",
             "title": {
               "en": "Mode",
-              "sv": "Läge"
+              "sv": "Läge",
+              "de": "Modus",
+              "nl": "Stand",
+              "no": "Modus",
+              "da": "Indstilling"
             }
           }
         ]
@@ -341,27 +522,947 @@
     ],
     "actions": [
       {
-        "id": "measure_enum_NIBE.h56_hotwater_demand_mode.enum",
+        "id": "measure_count_NIBE.h26_heat_curve.set",
         "title": {
-          "en": "Hotwater demand mode",
-          "sv": "Varmvattenbehov"
+          "en": "Set the heat curve",
+          "sv": "Ställ in värmekurvan",
+          "de": "Heizkurve einstellen",
+          "nl": "Stooklijn instellen",
+          "no": "Still inn varmekurven",
+          "da": "Indstil varmekurven"
         },
         "titleFormatted": {
-          "en": "Hotwater demand mode [[mode]]",
-          "sv": "Varmvattenbehov [[mode]]"
+          "en": "Set the heat curve to [[value]]",
+          "sv": "Ställ in värmekurvan till [[value]]",
+          "de": "Heizkurve auf [[value]] setzen",
+          "nl": "Stooklijn instellen op [[value]]",
+          "no": "Sett varmekurven til [[value]]",
+          "da": "Indstil varmekurven til [[value]]"
+        },
+        "hint": {
+          "en": "Heat curve slope for climate system 1. Accepts 0 to 15.",
+          "sv": "Värmekurvans lutning för klimatsystem 1. Tillåter 0 till 15.",
+          "de": "Steilheit der Heizkurve für Klimatisierungssystem 1. Bereich: 0 bis 15.",
+          "nl": "Steilheid van de stooklijn voor klimaatsysteem 1. Bereik: 0 tot 15.",
+          "no": "Helningen på varmekurven for klimasystem 1. Område: 0 til 15.",
+          "da": "Varmekurvens hældning for klimasystem 1. Område: 0 til 15."
         },
         "args": [
           {
             "type": "device",
             "name": "device",
-            "filter": "driver_id=nibe_s"
+            "filter": "driver_id=nibe_s&capabilities=measure_count_NIBE.h26_heat_curve"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "measure_count_NIBE.h30_heat_curve_displacement.set",
+        "title": {
+          "en": "Set the heat curve offset",
+          "sv": "Ställ in värmekurvans förskjutning",
+          "de": "Parallelverschiebung einstellen",
+          "nl": "Verschuiving stooklijn instellen",
+          "no": "Still inn varmeforskyvningen",
+          "da": "Indstil varmeforskydningen"
+        },
+        "titleFormatted": {
+          "en": "Set the heat curve offset to [[value]]",
+          "sv": "Ställ in värmekurvans förskjutning till [[value]]",
+          "de": "Parallelverschiebung auf [[value]] setzen",
+          "nl": "Verschuiving stooklijn instellen op [[value]]",
+          "no": "Sett varmeforskyvningen til [[value]]",
+          "da": "Indstil varmeforskydningen til [[value]]"
+        },
+        "hint": {
+          "en": "Offset of the heat curve for climate system 1. Accepts -10 to 10.",
+          "sv": "Förskjutning av värmekurvan för klimatsystem 1. Tillåter -10 till 10.",
+          "de": "Parallelverschiebung der Heizkurve für Klimatisierungssystem 1. Bereich: -10 bis 10.",
+          "nl": "Verschuiving van de stooklijn voor klimaatsysteem 1. Bereik: -10 tot 10.",
+          "no": "Forskyvning av varmekurven for klimasystem 1. Område: -10 til 10.",
+          "da": "Forskydning af varmekurven for klimasystem 1. Område: -10 til 10."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_count_NIBE.h30_heat_curve_displacement"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "target_temperature.h34_min_supply.set",
+        "title": {
+          "en": "Set the minimum supply temperature",
+          "sv": "Ställ in lägsta framledningstemperatur",
+          "de": "Min. Vorlauftemperatur einstellen",
+          "nl": "Min. aanvoertemperatuur instellen",
+          "no": "Still inn min. turledningstemperatur",
+          "da": "Indstil min. fremløbstemperatur"
+        },
+        "titleFormatted": {
+          "en": "Set the minimum supply temperature to [[value]]",
+          "sv": "Ställ in lägsta framledningstemperatur till [[value]]",
+          "de": "Min. Vorlauftemperatur auf [[value]] setzen",
+          "nl": "Min. aanvoertemperatuur instellen op [[value]]",
+          "no": "Sett min. turledningstemperatur til [[value]]",
+          "da": "Indstil min. fremløbstemperatur til [[value]]"
+        },
+        "hint": {
+          "en": "Lowest supply temperature the pump may produce (climate system 1). Accepts 5 to 80 °C.",
+          "sv": "Lägsta framledningstemperatur pumpen får producera (klimatsystem 1). Tillåter 5 till 80 °C.",
+          "de": "Niedrigste Vorlauftemperatur, die die Wärmepumpe erzeugen darf (Klimatisierungssystem 1). Bereich: 5 bis 80 °C.",
+          "nl": "Laagste aanvoertemperatuur die de warmtepomp mag produceren (klimaatsysteem 1). Bereik: 5 tot 80 °C.",
+          "no": "Laveste turledningstemperatur varmepumpen kan produsere (klimasystem 1). Område: 5 til 80 °C.",
+          "da": "Laveste fremløbstemperatur, varmepumpen må producere (klimasystem 1). Område: 5 til 80 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h34_min_supply"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "target_temperature.h38_max_supply.set",
+        "title": {
+          "en": "Set the maximum supply temperature",
+          "sv": "Ställ in högsta framledningstemperatur",
+          "de": "Max. Vorlauftemperatur einstellen",
+          "nl": "Max. aanvoertemperatuur instellen",
+          "no": "Still inn maks. turledningstemperatur",
+          "da": "Indstil maks. fremløbstemperatur"
+        },
+        "titleFormatted": {
+          "en": "Set the maximum supply temperature to [[value]]",
+          "sv": "Ställ in högsta framledningstemperatur till [[value]]",
+          "de": "Max. Vorlauftemperatur auf [[value]] setzen",
+          "nl": "Max. aanvoertemperatuur instellen op [[value]]",
+          "no": "Sett maks. turledningstemperatur til [[value]]",
+          "da": "Indstil maks. fremløbstemperatur til [[value]]"
+        },
+        "hint": {
+          "en": "Highest supply temperature the pump may produce (climate system 1). Accepts 5 to 80 °C.",
+          "sv": "Högsta framledningstemperatur pumpen får producera (klimatsystem 1). Tillåter 5 till 80 °C.",
+          "de": "Höchste Vorlauftemperatur, die die Wärmepumpe erzeugen darf (Klimatisierungssystem 1). Bereich: 5 bis 80 °C.",
+          "nl": "Hoogste aanvoertemperatuur die de warmtepomp mag produceren (klimaatsysteem 1). Bereik: 5 tot 80 °C.",
+          "no": "Høyeste turledningstemperatur varmepumpen kan produsere (klimasystem 1). Område: 5 til 80 °C.",
+          "da": "Højeste fremløbstemperatur, varmepumpen må producere (klimasystem 1). Område: 5 til 80 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h38_max_supply"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "target_temperature.h184_auto_stop_heating.set",
+        "title": {
+          "en": "Set the outdoor temperature that stops heating",
+          "sv": "Ställ in utetemperaturen som stoppar värmen",
+          "de": "Außentemperatur zum Heizungsstopp einstellen",
+          "nl": "Buitentemperatuur voor stoppen verwarming instellen",
+          "no": "Still inn utetemperatur som stopper varmen",
+          "da": "Indstil udetemperatur, der stopper varmen"
+        },
+        "titleFormatted": {
+          "en": "Set the outdoor temperature that stops heating to [[value]]",
+          "sv": "Ställ in utetemperaturen som stoppar värmen till [[value]]",
+          "de": "Außentemperatur zum Heizungsstopp auf [[value]] setzen",
+          "nl": "Buitentemperatuur voor stoppen verwarming instellen op [[value]]",
+          "no": "Sett utetemperatur som stopper varmen til [[value]]",
+          "da": "Indstil udetemperatur, der stopper varmen, til [[value]]"
+        },
+        "hint": {
+          "en": "Outdoor temperature where automatic mode stops heating. Accepts -20 to 40 °C.",
+          "sv": "Utetemperatur där autoläget stoppar värmen. Tillåter -20 till 40 °C.",
+          "de": "Außentemperatur, bei der der Auto-Modus die Heizung stoppt. Bereich: -20 bis 40 °C.",
+          "nl": "Buitentemperatuur waarbij de autostand de verwarming stopt. Bereik: -20 tot 40 °C.",
+          "no": "Utetemperatur der automodus stopper varmen. Område: -20 til 40 °C.",
+          "da": "Udetemperatur, hvor autotilstand stopper varmen. Område: -20 til 40 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h184_auto_stop_heating"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "target_temperature.h185_auto_stop_addition.set",
+        "title": {
+          "en": "Set the outdoor temperature that stops the additive heater",
+          "sv": "Ställ in utetemperaturen som stoppar tillsatsen",
+          "de": "Außentemperatur zum Stopp der Zusatzheizung einstellen",
+          "nl": "Buitentemperatuur voor stoppen bijverwarming instellen",
+          "no": "Still inn utetemperatur som stopper tilleggsvarmen",
+          "da": "Indstil udetemperatur, der stopper tilskudsvarmen"
+        },
+        "titleFormatted": {
+          "en": "Set the outdoor temperature that stops the additive heater to [[value]]",
+          "sv": "Ställ in utetemperaturen som stoppar tillsatsen till [[value]]",
+          "de": "Außentemperatur zum Stopp der Zusatzheizung auf [[value]] setzen",
+          "nl": "Buitentemperatuur voor stoppen bijverwarming instellen op [[value]]",
+          "no": "Sett utetemperatur som stopper tilleggsvarmen til [[value]]",
+          "da": "Indstil udetemperatur, der stopper tilskudsvarmen, til [[value]]"
+        },
+        "hint": {
+          "en": "Outdoor temperature where automatic mode stops the additive heater. Accepts -25 to 40 °C.",
+          "sv": "Utetemperatur där autoläget stoppar tillsatsen. Tillåter -25 till 40 °C.",
+          "de": "Außentemperatur, bei der der Auto-Modus die Zusatzheizung stoppt. Bereich: -25 bis 40 °C.",
+          "nl": "Buitentemperatuur waarbij de autostand de bijverwarming stopt. Bereik: -25 tot 40 °C.",
+          "no": "Utetemperatur der automodus stopper tilleggsvarmen. Område: -25 til 40 °C.",
+          "da": "Udetemperatur, hvor autotilstand stopper tilskudsvarmen. Område: -25 til 40 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h185_auto_stop_addition"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "measure_minute_NIBE.h93_periodtime_heating.set",
+        "title": {
+          "en": "Set the heating period time",
+          "sv": "Ställ in periodtiden för värme",
+          "de": "Periodendauer Heizung einstellen",
+          "nl": "Periodetijd verwarming instellen",
+          "no": "Still inn periodetid varme",
+          "da": "Indstil periodetid varme"
+        },
+        "titleFormatted": {
+          "en": "Set the heating period time to [[value]]",
+          "sv": "Ställ in periodtiden för värme till [[value]]",
+          "de": "Periodendauer Heizung auf [[value]] setzen",
+          "nl": "Periodetijd verwarming instellen op [[value]]",
+          "no": "Sett periodetid varme til [[value]]",
+          "da": "Indstil periodetid varme til [[value]]"
+        },
+        "hint": {
+          "en": "How long the pump makes heating before switching demand. Accepts 0 to 180 minutes.",
+          "sv": "Hur länge pumpen gör värme innan den byter behov. Tillåter 0 till 180 minuter.",
+          "de": "Wie lange die Wärmepumpe heizt, bevor sie den Bedarf wechselt. Bereich: 0 bis 180 Minuten.",
+          "nl": "Hoe lang de warmtepomp verwarmt voordat de vraag wisselt. Bereik: 0 tot 180 minuten.",
+          "no": "Hvor lenge varmepumpen lager varme før den bytter behov. Område: 0 til 180 minutter.",
+          "da": "Hvor længe varmepumpen laver varme, før den skifter behov. Område: 0 til 180 minutter."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_minute_NIBE.h93_periodtime_heating"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "measure_degree_minutes_NIBE.h97_dm_start_compressor.set",
+        "title": {
+          "en": "Set the compressor start degree minutes",
+          "sv": "Ställ in startgradminuter för kompressorn",
+          "de": "Startgradminuten Verdichter einstellen",
+          "nl": "Startgraadminuten compressor instellen",
+          "no": "Still inn startgradminutter kompressor",
+          "da": "Indstil startgradminutter kompressor"
+        },
+        "titleFormatted": {
+          "en": "Set the compressor start degree minutes to [[value]]",
+          "sv": "Ställ in startgradminuter för kompressorn till [[value]]",
+          "de": "Startgradminuten Verdichter auf [[value]] setzen",
+          "nl": "Startgraadminuten compressor instellen op [[value]]",
+          "no": "Sett startgradminutter kompressor til [[value]]",
+          "da": "Indstil startgradminutter kompressor til [[value]]"
+        },
+        "hint": {
+          "en": "Degree minutes at which the compressor starts heating. Accepts -1000 to -30 °Cmin.",
+          "sv": "Gradminuter då kompressorn startar värmen. Tillåter -1000 till -30 °Cmin.",
+          "de": "Gradminuten, bei denen der Verdichter mit dem Heizen beginnt. Bereich: -1000 bis -30 °Cmin.",
+          "nl": "Graadminuten waarbij de compressor begint te verwarmen. Bereik: -1000 tot -30 °Cmin.",
+          "no": "Gradminutter der kompressoren starter varmeproduksjonen. Område: -1000 til -30 °Cmin.",
+          "da": "Gradminutter, hvor kompressoren starter varmeproduktionen. Område: -1000 til -30 °Cmin."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_degree_minutes_NIBE.h97_dm_start_compressor"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "measure_degree_minutes_NIBE.h679_dm_diff_start_addition.set",
+        "title": {
+          "en": "Set the additive heater start difference",
+          "sv": "Ställ in differensen för tillsatsstart",
+          "de": "Differenz Start Zusatzheizung einstellen",
+          "nl": "Verschil start bijverwarming instellen",
+          "no": "Still inn differanse start tilleggsvarme",
+          "da": "Indstil difference start tilskudsvarme"
+        },
+        "titleFormatted": {
+          "en": "Set the additive heater start difference to [[value]]",
+          "sv": "Ställ in differensen för tillsatsstart till [[value]]",
+          "de": "Differenz Start Zusatzheizung auf [[value]] setzen",
+          "nl": "Verschil start bijverwarming instellen op [[value]]",
+          "no": "Sett differanse start tilleggsvarme til [[value]]",
+          "da": "Indstil difference start tilskudsvarme til [[value]]"
+        },
+        "hint": {
+          "en": "How many degree minutes below the compressor start the additive heater joins in. Accepts 100 to 2000 °Cmin.",
+          "sv": "Hur många gradminuter under kompressorstarten som tillsatsen går in. Tillåter 100 till 2000 °Cmin.",
+          "de": "Wie viele Gradminuten unterhalb des Verdichterstarts die Zusatzheizung zuschaltet. Bereich: 100 bis 2000 °Cmin.",
+          "nl": "Hoeveel graadminuten onder de compressorstart de bijverwarming inschakelt. Bereik: 100 tot 2000 °Cmin.",
+          "no": "Hvor mange gradminutter under kompressorstarten tilleggsvarmen kobles inn. Område: 100 til 2000 °Cmin.",
+          "da": "Hvor mange gradminutter under kompressorstarten tilskudsvarmen kobles ind. Område: 100 til 2000 °Cmin."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_degree_minutes_NIBE.h679_dm_diff_start_addition"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "measure_degree_minutes_NIBE.h18_limit_dm.set",
+        "title": {
+          "en": "Set the degree minute limit",
+          "sv": "Ställ in gradminutbegränsningen",
+          "de": "Gradminutenbegrenzung einstellen",
+          "nl": "Graadminutenbegrenzing instellen",
+          "no": "Still inn gradminuttbegrensning",
+          "da": "Indstil gradminutbegrænsning"
+        },
+        "titleFormatted": {
+          "en": "Set the degree minute limit to [[value]]",
+          "sv": "Ställ in gradminutbegränsningen till [[value]]",
+          "de": "Gradminutenbegrenzung auf [[value]] setzen",
+          "nl": "Graadminutenbegrenzing instellen op [[value]]",
+          "no": "Sett gradminuttbegrensning til [[value]]",
+          "da": "Indstil gradminutbegrænsning til [[value]]"
+        },
+        "hint": {
+          "en": "Degree minutes limited to the range the pump regulates within. Accepts -3000 to 3000 °Cmin.",
+          "sv": "Gradminuter begränsade till intervallet pumpen reglerar inom. Tillåter -3000 till 3000 °Cmin.",
+          "de": "Gradminuten, begrenzt auf den Regelbereich der Wärmepumpe. Bereich: -3000 bis 3000 °Cmin.",
+          "nl": "Graadminuten, begrensd tot het regelbereik van de warmtepomp. Bereik: -3000 tot 3000 °Cmin.",
+          "no": "Gradminutter begrenset til området varmepumpen regulerer innenfor. Område: -3000 til 3000 °Cmin.",
+          "da": "Gradminutter begrænset til det område, varmepumpen regulerer inden for. Område: -3000 til 3000 °Cmin."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_degree_minutes_NIBE.h18_limit_dm"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "measure_degree_minutes_NIBE.h20_cooling_dm.set",
+        "title": {
+          "en": "Set the cooling degree minutes",
+          "sv": "Ställ in gradminuter för kyla",
+          "de": "Gradminuten Kühlung einstellen",
+          "nl": "Graadminuten koeling instellen",
+          "no": "Still inn gradminutter kjøling",
+          "da": "Indstil gradminutter køling"
+        },
+        "titleFormatted": {
+          "en": "Set the cooling degree minutes to [[value]]",
+          "sv": "Ställ in gradminuter för kyla till [[value]]",
+          "de": "Gradminuten Kühlung auf [[value]] setzen",
+          "nl": "Graadminuten koeling instellen op [[value]]",
+          "no": "Sett gradminutter kjøling til [[value]]",
+          "da": "Indstil gradminutter køling til [[value]]"
+        },
+        "hint": {
+          "en": "Accumulated cooling surplus that decides when cooling starts. Accepts -3000 to 3000 °Cmin.",
+          "sv": "Ackumulerat kylöverskott som avgör när kylan startar. Tillåter -3000 till 3000 °Cmin.",
+          "de": "Akkumulierter Kühlüberschuss, der bestimmt, wann die Kühlung startet. Bereich: -3000 bis 3000 °Cmin.",
+          "nl": "Opgebouwd koeloverschot dat bepaalt wanneer de koeling start. Bereik: -3000 tot 3000 °Cmin.",
+          "no": "Akkumulert kjøleoverskudd som avgjør når kjølingen starter. Område: -3000 til 3000 °Cmin.",
+          "da": "Akkumuleret køleoverskud, der afgør, hvornår kølingen starter. Område: -3000 til 3000 °Cmin."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_degree_minutes_NIBE.h20_cooling_dm"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "target_temperature.h59_hotwater_start.set",
+        "title": {
+          "en": "Set the hot water start temperature",
+          "sv": "Ställ in varmvattnets starttemperatur",
+          "de": "Brauchwasser-Starttemperatur einstellen",
+          "nl": "Starttemperatuur warmtapwater instellen",
+          "no": "Still inn starttemperatur varmtvann",
+          "da": "Indstil starttemperatur varmtvand"
+        },
+        "titleFormatted": {
+          "en": "Set the hot water start temperature to [[value]]",
+          "sv": "Ställ in varmvattnets starttemperatur till [[value]]",
+          "de": "Brauchwasser-Starttemperatur auf [[value]] setzen",
+          "nl": "Starttemperatuur warmtapwater instellen op [[value]]",
+          "no": "Sett starttemperatur varmtvann til [[value]]",
+          "da": "Indstil starttemperatur varmtvand til [[value]]"
+        },
+        "hint": {
+          "en": "Tank temperature where hot water charging starts. Accepts 5 to 60 °C.",
+          "sv": "Tanktemperatur där varmvattenladdning startar. Tillåter 5 till 60 °C.",
+          "de": "Speichertemperatur, bei der die Brauchwasserladung startet. Bereich: 5 bis 60 °C.",
+          "nl": "Tanktemperatuur waarbij het laden van warmtapwater start. Bereik: 5 tot 60 °C.",
+          "no": "Tanktemperatur der varmtvannsladingen starter. Område: 5 til 60 °C.",
+          "da": "Tanktemperatur, hvor varmtvandsladningen starter. Område: 5 til 60 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h59_hotwater_start"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "target_temperature.h63_hotwater_stop.set",
+        "title": {
+          "en": "Set the hot water stop temperature",
+          "sv": "Ställ in varmvattnets stopptemperatur",
+          "de": "Brauchwasser-Stopptemperatur einstellen",
+          "nl": "Stoptemperatuur warmtapwater instellen",
+          "no": "Still inn stopptemperatur varmtvann",
+          "da": "Indstil stoptemperatur varmtvand"
+        },
+        "titleFormatted": {
+          "en": "Set the hot water stop temperature to [[value]]",
+          "sv": "Ställ in varmvattnets stopptemperatur till [[value]]",
+          "de": "Brauchwasser-Stopptemperatur auf [[value]] setzen",
+          "nl": "Stoptemperatuur warmtapwater instellen op [[value]]",
+          "no": "Sett stopptemperatur varmtvann til [[value]]",
+          "da": "Indstil stoptemperatur varmtvand til [[value]]"
+        },
+        "hint": {
+          "en": "Tank temperature where hot water charging stops. Accepts 5 to 65 °C.",
+          "sv": "Tanktemperatur där varmvattenladdning stoppar. Tillåter 5 till 65 °C.",
+          "de": "Speichertemperatur, bei der die Brauchwasserladung stoppt. Bereich: 5 bis 65 °C.",
+          "nl": "Tanktemperatuur waarbij het laden van warmtapwater stopt. Bereik: 5 tot 65 °C.",
+          "no": "Tanktemperatur der varmtvannsladingen stopper. Område: 5 til 65 °C.",
+          "da": "Tanktemperatur, hvor varmtvandsladningen stopper. Område: 5 til 65 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h63_hotwater_stop"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "measure_day_NIBE.h66_periodic_hotwater_interval.set",
+        "title": {
+          "en": "Set the days between periodic hot water boosts",
+          "sv": "Ställ in dagar mellan periodiska varmvattenhöjningar",
+          "de": "Intervall der periodischen Erhöhung einstellen",
+          "nl": "Interval periodieke warmtapwaterverhoging instellen",
+          "no": "Still inn intervall for periodisk varmtvann",
+          "da": "Indstil interval for periodisk varmtvand"
+        },
+        "titleFormatted": {
+          "en": "Set the days between periodic hot water boosts to [[value]]",
+          "sv": "Ställ in dagar mellan periodiska varmvattenhöjningar till [[value]]",
+          "de": "Intervall der periodischen Erhöhung auf [[value]] setzen",
+          "nl": "Interval periodieke warmtapwaterverhoging instellen op [[value]]",
+          "no": "Sett intervall for periodisk varmtvann til [[value]]",
+          "da": "Indstil interval for periodisk varmtvand til [[value]]"
+        },
+        "hint": {
+          "en": "Days between periodic hot water boosts. Accepts 1 to 90 days.",
+          "sv": "Dagar mellan periodiska varmvattenhöjningar. Tillåter 1 till 90 dagar.",
+          "de": "Tage zwischen den periodischen Brauchwassererhöhungen. Bereich: 1 bis 90 Tage.",
+          "nl": "Dagen tussen de periodieke warmtapwaterverhogingen. Bereik: 1 tot 90 dagen.",
+          "no": "Dager mellom de periodiske varmtvannshevingene. Område: 1 til 90 dager.",
+          "da": "Dage mellem de periodiske varmtvandsforøgelser. Område: 1 til 90 dage."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_day_NIBE.h66_periodic_hotwater_interval"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "measure_minute_NIBE.h92_periodtime_hotwater.set",
+        "title": {
+          "en": "Set the hot water period time",
+          "sv": "Ställ in periodtiden för varmvatten",
+          "de": "Periodendauer Brauchwasser einstellen",
+          "nl": "Periodetijd warmtapwater instellen",
+          "no": "Still inn periodetid varmtvann",
+          "da": "Indstil periodetid varmtvand"
+        },
+        "titleFormatted": {
+          "en": "Set the hot water period time to [[value]]",
+          "sv": "Ställ in periodtiden för varmvatten till [[value]]",
+          "de": "Periodendauer Brauchwasser auf [[value]] setzen",
+          "nl": "Periodetijd warmtapwater instellen op [[value]]",
+          "no": "Sett periodetid varmtvann til [[value]]",
+          "da": "Indstil periodetid varmtvand til [[value]]"
+        },
+        "hint": {
+          "en": "Duration of the periodic hot water boost. Accepts 0 to 180 minutes.",
+          "sv": "Längd på den periodiska varmvattenhöjningen. Tillåter 0 till 180 minuter.",
+          "de": "Dauer der periodischen Brauchwassererhöhung. Bereich: 0 bis 180 Minuten.",
+          "nl": "Duur van de periodieke warmtapwaterverhoging. Bereik: 0 tot 180 minuten.",
+          "no": "Varighet på den periodiske varmtvannshevingen. Område: 0 til 180 minutter.",
+          "da": "Varighed af den periodiske varmtvandsforøgelse. Område: 0 til 180 minutter."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_minute_NIBE.h92_periodtime_hotwater"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "measure_minute_NIBE.h94_periodtime_pool.set",
+        "title": {
+          "en": "Set the pool period time",
+          "sv": "Ställ in periodtiden för pool",
+          "de": "Periodendauer Pool einstellen",
+          "nl": "Periodetijd zwembad instellen",
+          "no": "Still inn periodetid basseng",
+          "da": "Indstil periodetid pool"
+        },
+        "titleFormatted": {
+          "en": "Set the pool period time to [[value]]",
+          "sv": "Ställ in periodtiden för pool till [[value]]",
+          "de": "Periodendauer Pool auf [[value]] setzen",
+          "nl": "Periodetijd zwembad instellen op [[value]]",
+          "no": "Sett periodetid basseng til [[value]]",
+          "da": "Indstil periodetid pool til [[value]]"
+        },
+        "hint": {
+          "en": "How long the pump heats the pool before switching demand. Accepts 0 to 180 minutes.",
+          "sv": "Hur länge pumpen värmer poolen innan den byter behov. Tillåter 0 till 180 minuter.",
+          "de": "Wie lange die Wärmepumpe den Pool beheizt, bevor sie den Bedarf wechselt. Bereich: 0 bis 180 Minuten.",
+          "nl": "Hoe lang de warmtepomp het zwembad verwarmt voordat de vraag wisselt. Bereik: 0 tot 180 minuten.",
+          "no": "Hvor lenge varmepumpen varmer bassenget før den bytter behov. Område: 0 til 180 minutter.",
+          "da": "Hvor længe varmepumpen opvarmer poolen, før den skifter behov. Område: 0 til 180 minutter."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_minute_NIBE.h94_periodtime_pool"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "fan_speed.h109_returnair_normal.set",
+        "title": {
+          "en": "Set the normal fan speed",
+          "sv": "Ställ in fläktens normalhastighet",
+          "de": "Normale Lüfterdrehzahl einstellen",
+          "nl": "Normale ventilatorsnelheid instellen",
+          "no": "Still inn normal viftehastighet",
+          "da": "Indstil normal ventilatorhastighed"
+        },
+        "titleFormatted": {
+          "en": "Set the normal fan speed to [[value]]",
+          "sv": "Ställ in fläktens normalhastighet till [[value]]",
+          "de": "Normale Lüfterdrehzahl auf [[value]] setzen",
+          "nl": "Normale ventilatorsnelheid instellen op [[value]]",
+          "no": "Sett normal viftehastighet til [[value]]",
+          "da": "Indstil normal ventilatorhastighed til [[value]]"
+        },
+        "hint": {
+          "en": "Normal speed of the exhaust air fan. Accepts 0 to 1, where 1 is full speed.",
+          "sv": "Frånluftsfläktens normalhastighet. Tillåter 0 till 1, där 1 är full hastighet.",
+          "de": "Normaldrehzahl des Abluftventilators. Bereich: 0 bis 1, wobei 1 der vollen Drehzahl entspricht.",
+          "nl": "Normale snelheid van de afvoerluchtventilator. Bereik: 0 tot 1, waarbij 1 volle snelheid is.",
+          "no": "Normal hastighet på avtrekksviften. Område: 0 til 1, der 1 er full hastighet.",
+          "da": "Normal hastighed for udsugningsventilatoren. Område: 0 til 1, hvor 1 er fuld hastighed."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=fan_speed.h109_returnair_normal"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "target_temperature.h687_pool_start.set",
+        "title": {
+          "en": "Set the pool start temperature",
+          "sv": "Ställ in poolens starttemperatur",
+          "de": "Pool-Starttemperatur einstellen",
+          "nl": "Starttemperatuur zwembad instellen",
+          "no": "Still inn starttemperatur basseng",
+          "da": "Indstil starttemperatur pool"
+        },
+        "titleFormatted": {
+          "en": "Set the pool start temperature to [[value]]",
+          "sv": "Ställ in poolens starttemperatur till [[value]]",
+          "de": "Pool-Starttemperatur auf [[value]] setzen",
+          "nl": "Starttemperatuur zwembad instellen op [[value]]",
+          "no": "Sett starttemperatur basseng til [[value]]",
+          "da": "Indstil starttemperatur pool til [[value]]"
+        },
+        "hint": {
+          "en": "Pool temperature where heating starts. Accepts 10 to 35 °C.",
+          "sv": "Pooltemperatur där uppvärmning startar. Tillåter 10 till 35 °C.",
+          "de": "Pooltemperatur, bei der die Beheizung startet. Bereich: 10 bis 35 °C.",
+          "nl": "Zwembadtemperatuur waarbij de verwarming start. Bereik: 10 tot 35 °C.",
+          "no": "Bassengtemperatur der oppvarmingen starter. Område: 10 til 35 °C.",
+          "da": "Pooltemperatur, hvor opvarmningen starter. Område: 10 til 35 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h687_pool_start"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "target_temperature.h689_pool_stop.set",
+        "title": {
+          "en": "Set the pool stop temperature",
+          "sv": "Ställ in poolens stopptemperatur",
+          "de": "Pool-Stopptemperatur einstellen",
+          "nl": "Stoptemperatuur zwembad instellen",
+          "no": "Still inn stopptemperatur basseng",
+          "da": "Indstil stoptemperatur pool"
+        },
+        "titleFormatted": {
+          "en": "Set the pool stop temperature to [[value]]",
+          "sv": "Ställ in poolens stopptemperatur till [[value]]",
+          "de": "Pool-Stopptemperatur auf [[value]] setzen",
+          "nl": "Stoptemperatuur zwembad instellen op [[value]]",
+          "no": "Sett stopptemperatur basseng til [[value]]",
+          "da": "Indstil stoptemperatur pool til [[value]]"
+        },
+        "hint": {
+          "en": "Pool temperature where heating stops. Accepts 10 to 35 °C.",
+          "sv": "Pooltemperatur där uppvärmning stoppar. Tillåter 10 till 35 °C.",
+          "de": "Pooltemperatur, bei der die Beheizung stoppt. Bereich: 10 bis 35 °C.",
+          "nl": "Zwembadtemperatuur waarbij de verwarming stopt. Bereik: 10 tot 35 °C.",
+          "no": "Bassengtemperatur der oppvarmingen stopper. Område: 10 til 35 °C.",
+          "da": "Pooltemperatur, hvor opvarmningen stopper. Område: 10 til 35 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h689_pool_stop"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "button.h22_reset_alarm.reset",
+        "title": {
+          "en": "Reset the alarm",
+          "sv": "Återställ larmet",
+          "de": "Alarm zurücksetzen",
+          "nl": "Alarm resetten",
+          "no": "Tilbakestill alarmen",
+          "da": "Nulstil alarmen"
+        },
+        "hint": {
+          "en": "Acknowledge and reset an active alarm on the pump.",
+          "sv": "Kvittera och återställ ett aktivt larm på pumpen.",
+          "de": "Einen aktiven Alarm der Wärmepumpe quittieren und zurücksetzen.",
+          "nl": "Een actief alarm van de warmtepomp bevestigen en resetten.",
+          "no": "Kvitter og tilbakestill en aktiv alarm på varmepumpen.",
+          "da": "Kvittér og nulstil en aktiv alarm på varmepumpen."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=button.h22_reset_alarm"
+          }
+        ]
+      },
+      {
+        "id": "measure_enum_NIBE.h56_hotwater_demand_mode.enum",
+        "title": {
+          "en": "Set the hot water demand mode",
+          "sv": "Ställ in varmvattenbehovet",
+          "de": "Brauchwasserbedarf einstellen",
+          "nl": "Warmtapwaterbehoefte instellen",
+          "no": "Still inn varmtvannsbehov",
+          "da": "Indstil varmtvandsbehov"
+        },
+        "titleFormatted": {
+          "en": "Set the hot water demand mode to [[mode]]",
+          "sv": "Ställ in varmvattenbehovet till [[mode]]",
+          "de": "Brauchwasserbedarf auf [[mode]] einstellen",
+          "nl": "Warmtapwaterbehoefte instellen op [[mode]]",
+          "no": "Still inn varmtvannsbehov til [[mode]]",
+          "da": "Indstil varmtvandsbehov til [[mode]]"
+        },
+        "hint": {
+          "en": "Hot water demand mode (small/medium/large/smart).",
+          "sv": "Varmvattnets behovsläge (litet/medel/stort/smart).",
+          "de": "Brauchwasserbedarf (klein/mittel/groß/smart).",
+          "nl": "Warmtapwaterbehoefte (klein/gemiddeld/groot/smart).",
+          "no": "Varmtvannsbehov (liten/middels/stor/smart).",
+          "da": "Varmtvandsbehov (lille/middel/stor/smart)."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_enum_NIBE.h56_hotwater_demand_mode"
           },
           {
             "type": "autocomplete",
             "name": "mode",
             "title": {
               "en": "Mode",
-              "sv": "Läge"
+              "sv": "Läge",
+              "de": "Modus",
+              "nl": "Stand",
+              "no": "Modus",
+              "da": "Indstilling"
             }
           }
         ]
@@ -370,50 +1471,44 @@
         "id": "measure_enum_NIBE.h237_operating_mode.enum",
         "title": {
           "en": "Set operating mode",
-          "sv": "Ställ in driftläge"
+          "sv": "Ställ in driftläge",
+          "de": "Betriebsmodus einstellen",
+          "nl": "Bedrijfsstand instellen",
+          "no": "Still inn driftsmodus",
+          "da": "Indstil driftsindstilling"
         },
         "titleFormatted": {
           "en": "Set operating mode [[mode]]",
-          "sv": "Ställ in driftläge [[mode]]"
+          "sv": "Ställ in driftläge [[mode]]",
+          "de": "Betriebsmodus [[mode]] einstellen",
+          "nl": "Bedrijfsstand instellen op [[mode]]",
+          "no": "Still inn driftsmodus [[mode]]",
+          "da": "Indstil driftsindstilling [[mode]]"
+        },
+        "hint": {
+          "en": "Operating mode: auto, manual or additional heat only.",
+          "sv": "Driftläge: auto, manuellt eller endast tillsats.",
+          "de": "Betriebsmodus: Auto, Manuell oder nur Zusatzheizung.",
+          "nl": "Bedrijfsstand: auto, handmatig of alleen bijverwarming.",
+          "no": "Driftsmodus: auto, manuell eller kun tilleggsvarme.",
+          "da": "Driftsindstilling: auto, manuel eller kun tilskudsvarme."
         },
         "args": [
           {
             "type": "device",
             "name": "device",
-            "filter": "driver_id=nibe_s"
+            "filter": "driver_id=nibe_s&capabilities=measure_enum_NIBE.h237_operating_mode"
           },
           {
             "type": "autocomplete",
             "name": "mode",
             "title": {
               "en": "Mode",
-              "sv": "Läge"
-            }
-          }
-        ]
-      },
-      {
-        "id": "measure_enum_NIBE.h697_onetimeincrease_hotwater.enum",
-        "title": {
-          "en": "Increase warm water ",
-          "sv": "Öka varmvatten"
-        },
-        "titleFormatted": {
-          "en": "Increase warm water [[mode]]",
-          "sv": "Ökning av varmvatten [[mode]]"
-        },
-        "args": [
-          {
-            "type": "device",
-            "name": "device",
-            "filter": "driver_id=nibe_s"
-          },
-          {
-            "type": "autocomplete",
-            "name": "mode",
-            "title": {
-              "en": "Mode",
-              "sv": "Läge"
+              "sv": "Läge",
+              "de": "Modus",
+              "nl": "Stand",
+              "no": "Modus",
+              "da": "Indstilling"
             }
           }
         ]
@@ -421,13 +1516,30 @@
       {
         "id": "set_numeric_value",
         "title": {
-          "en": "Set value",
-          "sv": "Sätt värde"
+          "en": "Set value of a register (advanced)",
+          "sv": "Sätt värdet på ett register (avancerat)",
+          "de": "Registerwert setzen (erweitert)",
+          "nl": "Registerwaarde instellen (geavanceerd)",
+          "no": "Sett verdi for et register (avansert)",
+          "da": "Indstil værdi for et register (avanceret)"
         },
         "titleFormatted": {
           "en": "Set value of [[register]] to [[value]]",
-          "sv": "Sätt värdet på [[register]] till [[value]]"
+          "sv": "Sätt värdet på [[register]] till [[value]]",
+          "de": "[[register]] auf [[value]] setzen",
+          "nl": "[[register]] instellen op [[value]]",
+          "no": "Sett [[register]] til [[value]]",
+          "da": "Indstil [[register]] til [[value]]"
         },
+        "hint": {
+          "en": "Writes any writable Modbus register, picked by name. Prefer the named cards (\"Set the heat curve to …\") — this is the escape hatch for registers that have none. Values outside the register’s range are rejected.",
+          "sv": "Skriver till valfritt skrivbart Modbus-register, valt via namn. Använd hellre de namngivna korten (\"Ställ in värmekurvan till …\") — det här är reservutgången för register som saknar sådana. Värden utanför registrets intervall avvisas.",
+          "de": "Beschreibt ein beliebiges beschreibbares Modbus-Register, ausgewählt über den Namen. Bevorzugen Sie die benannten Karten („Heizkurve auf … setzen“) – dies ist die Ausweichlösung für Register ohne eigene Karte. Werte außerhalb des Registerbereichs werden abgelehnt.",
+          "nl": "Schrijft naar een willekeurig beschrijfbaar Modbus-register, gekozen op naam. Gebruik bij voorkeur de benoemde kaarten (\"Stooklijn instellen op …\") — dit is de noodoplossing voor registers zonder eigen kaart. Waarden buiten het bereik van het register worden geweigerd.",
+          "no": "Skriver til et hvilket som helst skrivbart Modbus-register, valgt ved navn. Bruk helst de navngitte kortene («Sett varmekurven til …») – dette er nødløsningen for registre uten eget kort. Verdier utenfor registerets område avvises.",
+          "da": "Skriver til et vilkårligt skrivbart Modbus-register, valgt ved navn. Brug helst de navngivne kort (»Indstil varmekurven til …«) – dette er nødløsningen for registre uden eget kort. Værdier uden for registerets område afvises."
+        },
+        "advanced": true,
         "args": [
           {
             "type": "device",
@@ -439,7 +1551,11 @@
             "name": "register",
             "title": {
               "en": "Register",
-              "sv": "Register"
+              "sv": "Register",
+              "de": "Register",
+              "nl": "Register",
+              "no": "Register",
+              "da": "Register"
             }
           },
           {
@@ -447,7 +1563,11 @@
             "name": "value",
             "title": {
               "en": "Value",
-              "sv": "Värde"
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
             }
           }
         ]
@@ -455,13 +1575,30 @@
       {
         "id": "enable_feature",
         "title": {
-          "en": "Enable feature",
-          "sv": "Slå på egenskap"
+          "en": "Enable a register (advanced)",
+          "sv": "Slå på ett register (avancerat)",
+          "de": "Register einschalten (erweitert)",
+          "nl": "Register inschakelen (geavanceerd)",
+          "no": "Slå på et register (avansert)",
+          "da": "Tænd et register (avanceret)"
         },
         "titleFormatted": {
           "en": "Enable [[register]]",
-          "sv": "Slå på [[register]]"
+          "sv": "Slå på [[register]]",
+          "de": "[[register]] einschalten",
+          "nl": "[[register]] inschakelen",
+          "no": "Slå på [[register]]",
+          "da": "Tænd [[register]]"
         },
+        "hint": {
+          "en": "Switches on any writable on/off register, picked by name. Prefer the device’s own on/off cards — this is the escape hatch.",
+          "sv": "Slår på valfritt skrivbart av/på-register, valt via namn. Använd hellre enhetens egna av/på-kort — det här är reservutgången.",
+          "de": "Schaltet ein beliebiges beschreibbares Ein/Aus-Register ein, ausgewählt über den Namen. Bevorzugen Sie die eigenen Ein/Aus-Karten des Geräts – dies ist die Ausweichlösung.",
+          "nl": "Schakelt een willekeurig beschrijfbaar aan/uit-register in, gekozen op naam. Gebruik bij voorkeur de eigen aan/uit-kaarten van het apparaat — dit is de noodoplossing.",
+          "no": "Slår på et hvilket som helst skrivbart på/av-register, valgt ved navn. Bruk helst enhetens egne på/av-kort – dette er nødløsningen.",
+          "da": "Tænder et vilkårligt skrivbart til/fra-register, valgt ved navn. Brug helst enhedens egne til/fra-kort – dette er nødløsningen."
+        },
+        "advanced": true,
         "args": [
           {
             "type": "device",
@@ -473,7 +1610,11 @@
             "name": "register",
             "title": {
               "en": "Register",
-              "sv": "Register"
+              "sv": "Register",
+              "de": "Register",
+              "nl": "Register",
+              "no": "Register",
+              "da": "Register"
             }
           }
         ]
@@ -481,13 +1622,30 @@
       {
         "id": "disable_feature",
         "title": {
-          "en": "Disable feature",
-          "sv": "Stäng av egenskap"
+          "en": "Disable a register (advanced)",
+          "sv": "Stäng av ett register (avancerat)",
+          "de": "Register ausschalten (erweitert)",
+          "nl": "Register uitschakelen (geavanceerd)",
+          "no": "Slå av et register (avansert)",
+          "da": "Sluk et register (avanceret)"
         },
         "titleFormatted": {
           "en": "Disable [[register]]",
-          "sv": "Stäng av [[register]]"
+          "sv": "Stäng av [[register]]",
+          "de": "[[register]] ausschalten",
+          "nl": "[[register]] uitschakelen",
+          "no": "Slå av [[register]]",
+          "da": "Sluk [[register]]"
         },
+        "hint": {
+          "en": "Switches off any writable on/off register, picked by name. Prefer the device’s own on/off cards — this is the escape hatch.",
+          "sv": "Stänger av valfritt skrivbart av/på-register, valt via namn. Använd hellre enhetens egna av/på-kort — det här är reservutgången.",
+          "de": "Schaltet ein beliebiges beschreibbares Ein/Aus-Register aus, ausgewählt über den Namen. Bevorzugen Sie die eigenen Ein/Aus-Karten des Geräts – dies ist die Ausweichlösung.",
+          "nl": "Schakelt een willekeurig beschrijfbaar aan/uit-register uit, gekozen op naam. Gebruik bij voorkeur de eigen aan/uit-kaarten van het apparaat — dit is de noodoplossing.",
+          "no": "Slår av et hvilket som helst skrivbart på/av-register, valgt ved navn. Bruk helst enhetens egne på/av-kort – dette er nødløsningen.",
+          "da": "Slukker et vilkårligt skrivbart til/fra-register, valgt ved navn. Brug helst enhedens egne til/fra-kort – dette er nødløsningen."
+        },
+        "advanced": true,
         "args": [
           {
             "type": "device",
@@ -499,7 +1657,11 @@
             "name": "register",
             "title": {
               "en": "Register",
-              "sv": "Register"
+              "sv": "Register",
+              "de": "Register",
+              "nl": "Register",
+              "no": "Register",
+              "da": "Register"
             }
           }
         ]
@@ -509,69 +1671,86 @@
   "drivers": [
     {
       "name": {
-        "en": "Nibe S-series direct connection (Modbus)",
-        "sv": "Nibe S-serien direktkopplad (Modbus)"
+        "en": "Nibe S-Series",
+        "sv": "Nibe S-Series",
+        "de": "Nibe S-Series",
+        "nl": "Nibe S-Series",
+        "no": "Nibe S-Series",
+        "da": "Nibe S-Series"
       },
       "class": "other",
       "capabilities": [
         "meter_power.total",
-        "measure_temperature_NIBE.i1_outside",
-        "measure_temperature_NIBE.i26_inside",
-        "measure_temperature_NIBE.i1017_calculated_supply",
-        "measure_temperature_NIBE.i5_heating_supply",
+        "measure_power",
+        "measure_temperature.i1_outside",
+        "measure_temperature.i26_inside",
+        "measure_temperature.i1017_calculated_supply",
+        "measure_temperature.i5_heating_supply",
         "measure_degree_minutes_NIBE.h11_degree_minutes",
-        "measure_temperature_NIBE.i7_heating_return",
+        "measure_temperature.i7_heating_return",
         "measure_percentage_NIBE.i1102_heating_pump",
         "measure_percentage_NIBE.i1104_source_pump",
-        "measure_temperature_NIBE.i10_source_in",
-        "measure_temperature_NIBE.i11_source_out",
+        "measure_temperature.i10_source_in",
+        "measure_temperature.i11_source_out",
         "measure_enum_NIBE.i1028_priority",
-        "measure_water_NIBE.i40_flow_sensor",
-        "measure_power.i1048_compressor_add_power_v2",
-        "measure_power.i2166_energy_usage_v2",
-        "measure_temperature_NIBE.i1047_inverter",
-        "measure_frequency_NIBE.i1046_compressor",
-        "measure_temperature_NIBE.i8_warmwater_top",
-        "measure_temperature_NIBE.i9_hot_water",
-        "measure_temperature_NIBE.i19_return_air",
-        "measure_temperature_NIBE.i20_supply_air",
-        "measure_percentage_NIBE.h109_returnair_normal",
+        "measure_water.i40_flow_sensor",
+        "measure_watt_NIBE.i1048_compressor_add_power",
+        "measure_watt_NIBE.i2166_energy_usage",
+        "measure_temperature.i1047_inverter",
+        "measure_frequency.i1046_compressor",
+        "measure_temperature.i8_warmwater_top",
+        "measure_temperature.i9_hot_water",
+        "measure_temperature.i19_return_air",
+        "measure_temperature.i20_supply_air",
+        "fan_speed.h109_returnair_normal",
         "measure_enum_NIBE.i1037_return_fan_step",
         "measure_count_NIBE.i1029_additive_heat_steps",
-        "meter_power.i1027_additive_effect_v2",
+        "measure_watt_NIBE.i1027_additive_effect",
+        "fuse_NIBE.h103_fuse",
         "measure_hour_NIBE.i1025_additive_usage_total",
         "measure_hour_NIBE.i1069_additive_usage_hotwater",
         "measure_count_NIBE.i1083_compressor_starts",
-        "measure_temperature_NIBE.i37_outside_avg",
+        "measure_temperature.i37_outside_avg",
         "measure_hour_NIBE.i1087_compressor_usage_total",
         "measure_hour_NIBE.i1091_compressor_usage_hotwater",
         "measure_count_NIBE.h26_heat_curve",
         "measure_count_NIBE.h30_heat_curve_displacement",
         "measure_enum_NIBE.h56_hotwater_demand_mode",
-        "measure_enum_NIBE.h697_onetimeincrease_hotwater",
+        "onoff",
         "measure_enum_NIBE.h65_periodic_hotwater",
         "measure_day_NIBE.h66_periodic_hotwater_interval",
-        "measure_count_NIBE.h67_periodic_hotwater_start",
         "measure_minute_NIBE.h92_periodtime_hotwater",
-        "measure_current.h103_fuse_v2",
         "measure_current.i50_sensor_v2",
         "measure_current.i48_sensor_v2",
         "measure_current.i46_sensor_v2",
         "measure_enum_NIBE.h237_operating_mode",
-        "measure_temperature_NIBE.i27_pool",
-        "measure_temperature_NIBE.i12_heating_supply",
-        "measure_temperature_NIBE.i13_discharge",
-        "measure_temperature_NIBE.i14_liquid_line",
-        "measure_temperature_NIBE.i16_suction_gas",
-        "measure_percentage_NIBE.h5351_compressor_min_speed",
+        "measure_temperature.i27_pool",
+        "measure_temperature.i12_heating_supply",
+        "measure_temperature.i13_discharge",
+        "measure_temperature.i14_liquid_line",
+        "measure_temperature.i16_suction_gas",
         "target_temperature.h687_pool_start",
         "target_temperature.h689_pool_stop",
+        "target_temperature.h34_min_supply",
+        "target_temperature.h38_max_supply",
+        "target_temperature.h184_auto_stop_heating",
+        "target_temperature.h185_auto_stop_addition",
+        "measure_minute_NIBE.h93_periodtime_heating",
+        "measure_degree_minutes_NIBE.h97_dm_start_compressor",
+        "measure_degree_minutes_NIBE.h679_dm_diff_start_addition",
+        "measure_degree_minutes_NIBE.h18_limit_dm",
+        "measure_degree_minutes_NIBE.h20_cooling_dm",
+        "target_temperature.h59_hotwater_start",
+        "target_temperature.h63_hotwater_stop",
+        "measure_minute_NIBE.h94_periodtime_pool",
+        "button.h22_reset_alarm",
+        "onoff.h196_alarm_lower_room_temp",
+        "onoff.h197_alarm_lower_hw_temp",
+        "measure_count_NIBE.h19_holiday_status",
         "onoff.h227_nightchill",
         "onoff.h65_periodic_hotwater",
         "onoff.i1828_pool_circulation",
         "onoff.h691_pool_active",
-        "target_percentage_NIBE.h109_returnair_normal",
-        "target_percentage_NIBE.h5351_compressor_min_speed",
         "curve_mode_NIBE.h26_heat_curve",
         "curve_displacement_NIBE.h30_heat_curve_displacement",
         "hotwater_demand_NIBE.h56_hotwater_demand_mode",
@@ -586,420 +1765,937 @@
         "meter_power.total": {
           "title": {
             "en": "Total energy consumed",
-            "sv": "Total förbrukad energi"
+            "sv": "Total förbrukad energi",
+            "de": "Gesamter Energieverbrauch",
+            "nl": "Totaal energieverbruik",
+            "no": "Totalt energiforbruk",
+            "da": "Samlet energiforbrug"
+          }
+        },
+        "measure_power": {
+          "decimals": 0,
+          "title": {
+            "en": "Power",
+            "sv": "Effekt",
+            "de": "Leistung",
+            "nl": "Vermogen",
+            "no": "Effekt",
+            "da": "Effekt"
           }
         },
         "measure_count_NIBE.i1029_additive_heat_steps": {
           "title": {
-            "en": "N/A",
-            "sv": "Driftläge tillsats"
+            "en": "Additive heater steps",
+            "sv": "Driftläge tillsats",
+            "de": "Stufen der Zusatzheizung",
+            "nl": "Stappen bijverwarming",
+            "no": "Trinn tilleggsvarme",
+            "da": "Trin tilskudsvarme"
           }
         },
         "measure_count_NIBE.i1083_compressor_starts": {
           "title": {
             "en": "Compressor starts",
-            "sv": "Kompressorstarter"
+            "sv": "Kompressorstarter",
+            "de": "Verdichterstarts",
+            "nl": "Compressorstarts",
+            "no": "Kompressorstarter",
+            "da": "Kompressorstarter"
           }
         },
         "measure_count_NIBE.h26_heat_curve": {
+          "uiComponent": null,
           "title": {
-            "en": "Heatcurve",
-            "sv": "Värmekurva"
+            "en": "Heat curve",
+            "sv": "Värmekurva",
+            "de": "Heizkurve",
+            "nl": "Stooklijn",
+            "no": "Varmekurve",
+            "da": "Varmekurve"
           }
         },
         "measure_count_NIBE.h30_heat_curve_displacement": {
+          "uiComponent": null,
           "title": {
-            "en": "Heatcurve displacement",
-            "sv": "Värmeförskjutning"
-          }
-        },
-        "measure_count_NIBE.h67_periodic_hotwater_start": {
-          "title": {
-            "en": "Periodic hotwater start time",
-            "sv": "Periodiskt varmvatten starttid"
+            "en": "Heat curve displacement",
+            "sv": "Värmeförskjutning",
+            "de": "Parallelverschiebung",
+            "nl": "Verschuiving stooklijn",
+            "no": "Varmeforskyvning",
+            "da": "Varmeforskydning"
           }
         },
         "measure_current.i46_sensor_v2": {
           "decimals": 1,
           "title": {
-            "en": "Current sensor BE3 -L3",
-            "sv": "Strömsensor BE3 -L3"
+            "en": "Current sensor L3 (BE3)",
+            "sv": "Strömsensor L3 (BE3)",
+            "de": "Stromsensor L3 (BE3)",
+            "nl": "Stroomsensor L3 (BE3)",
+            "no": "Strømføler L3 (BE3)",
+            "da": "Strømføler L3 (BE3)"
           }
         },
         "measure_current.i48_sensor_v2": {
           "decimals": 1,
           "title": {
-            "en": "Current sensor BE2 -L2",
-            "sv": "Strömsensor BE2 -L2"
+            "en": "Current sensor L2 (BE2)",
+            "sv": "Strömsensor L2 (BE2)",
+            "de": "Stromsensor L2 (BE2)",
+            "nl": "Stroomsensor L2 (BE2)",
+            "no": "Strømføler L2 (BE2)",
+            "da": "Strømføler L2 (BE2)"
           }
         },
         "measure_current.i50_sensor_v2": {
           "decimals": 1,
           "title": {
-            "en": "Current sensor BE1 -L1",
-            "sv": "Strömsensor BE1 -L1"
-          }
-        },
-        "measure_current.h103_fuse_v2": {
-          "decimals": 1,
-          "title": {
-            "en": "Fuse incoming",
-            "sv": "Inkommande säkring"
+            "en": "Current sensor L1 (BE1)",
+            "sv": "Strömsensor L1 (BE1)",
+            "de": "Stromsensor L1 (BE1)",
+            "nl": "Stroomsensor L1 (BE1)",
+            "no": "Strømføler L1 (BE1)",
+            "da": "Strømføler L1 (BE1)"
           }
         },
         "measure_day_NIBE.h66_periodic_hotwater_interval": {
+          "uiComponent": null,
           "title": {
             "en": "Periodic hotwater interval",
-            "sv": "Periodiskt varmvatten intervall"
+            "sv": "Periodiskt varmvatten intervall",
+            "de": "Intervall periodische Erhöhung",
+            "nl": "Interval periodiek warmtapwater",
+            "no": "Intervall periodisk varmtvann",
+            "da": "Interval periodisk varmtvand"
           }
         },
         "measure_degree_minutes_NIBE.h11_degree_minutes": {
           "title": {
             "en": "Degree minutes",
-            "sv": "Gradminuter"
+            "sv": "Gradminuter",
+            "de": "Gradminuten",
+            "nl": "Graadminuten",
+            "no": "Gradminutter",
+            "da": "Gradminutter"
           }
         },
         "measure_enum_NIBE.i1028_priority": {
           "title": {
             "en": "Priority",
-            "sv": "Driftprioritering"
+            "sv": "Driftprioritering",
+            "de": "Betriebspriorität",
+            "nl": "Bedrijfsprioriteit",
+            "no": "Driftsprioritering",
+            "da": "Driftsprioritering"
           }
         },
         "measure_enum_NIBE.i1037_return_fan_step": {
           "title": {
             "en": "Return fan step",
-            "sv": "Frånluft fläkthastighet"
+            "sv": "Frånluft fläkthastighet",
+            "de": "Abluftventilator-Stufe",
+            "nl": "Stand afvoerluchtventilator",
+            "no": "Viftetrinn avtrekk",
+            "da": "Ventilatortrin udsugning"
           }
         },
         "measure_enum_NIBE.h56_hotwater_demand_mode": {
           "title": {
             "en": "Hotwaterdemand",
-            "sv": "Varmvattenbehov"
+            "sv": "Varmvattenbehov",
+            "de": "Brauchwasserbedarf",
+            "nl": "Warmtapwaterbehoefte",
+            "no": "Varmtvannsbehov",
+            "da": "Varmtvandsbehov"
           }
         },
         "measure_enum_NIBE.h65_periodic_hotwater": {
+          "uiComponent": null,
           "title": {
             "en": "Periodic hot water",
-            "sv": "Periodiskt varmvatten"
+            "sv": "Periodiskt varmvatten",
+            "de": "Periodische Erhöhung",
+            "nl": "Periodiek warmtapwater",
+            "no": "Periodisk varmtvann",
+            "da": "Periodisk varmtvand"
           }
         },
         "measure_enum_NIBE.h237_operating_mode": {
           "title": {
             "en": "Operating mode",
-            "sv": "Driftläge"
+            "sv": "Driftläge",
+            "de": "Betriebsmodus",
+            "nl": "Bedrijfsstand",
+            "no": "Driftsmodus",
+            "da": "Driftsindstilling"
           }
         },
-        "measure_enum_NIBE.h697_onetimeincrease_hotwater": {
+        "onoff": {
           "title": {
-            "en": "One-time increase h",
-            "sv": "Engångshöjning h"
+            "en": "More hot water",
+            "sv": "Mer varmvatten",
+            "de": "Mehr Brauchwasser",
+            "nl": "Meer warmtapwater",
+            "no": "Mer varmtvann",
+            "da": "Mere varmtvand"
           }
         },
-        "measure_frequency_NIBE.i1046_compressor": {
+        "measure_frequency.i1046_compressor": {
           "title": {
             "en": "Compressor frequency",
-            "sv": "Kompressorfrekvens"
+            "sv": "Kompressorfrekvens",
+            "de": "Verdichterfrequenz",
+            "nl": "Compressorfrequentie",
+            "no": "Kompressorfrekvens",
+            "da": "Kompressorfrekvens"
           }
         },
         "measure_hour_NIBE.i1025_additive_usage_total": {
           "title": {
             "en": "Total additive duration",
-            "sv": "Total drifttid tillsats"
+            "sv": "Total drifttid tillsats",
+            "de": "Gesamtlaufzeit Zusatzheizung",
+            "nl": "Totale bedrijfstijd bijverwarming",
+            "no": "Total driftstid tilleggsvarme",
+            "da": "Samlet driftstid tilskudsvarme"
           }
         },
         "measure_hour_NIBE.i1069_additive_usage_hotwater": {
           "title": {
-            "en": "N/A",
-            "sv": "Varmvatten drifttid tillsats"
+            "en": "Additive runtime (hot water)",
+            "sv": "Varmvatten drifttid tillsats",
+            "de": "Laufzeit Zusatzheizung (Brauchwasser)",
+            "nl": "Bedrijfstijd bijverwarming (warmtapwater)",
+            "no": "Driftstid tilleggsvarme (varmtvann)",
+            "da": "Driftstid tilskudsvarme (varmtvand)"
           }
         },
         "measure_hour_NIBE.i1087_compressor_usage_total": {
           "title": {
             "en": "Total compressor duration",
-            "sv": "Total drifttid kompressor"
+            "sv": "Total drifttid kompressor",
+            "de": "Gesamtlaufzeit Verdichter",
+            "nl": "Totale bedrijfstijd compressor",
+            "no": "Total driftstid kompressor",
+            "da": "Samlet driftstid kompressor"
           }
         },
         "measure_hour_NIBE.i1091_compressor_usage_hotwater": {
           "title": {
             "en": "Total compressor duration hotwater",
-            "sv": "Total timmar värme"
+            "sv": "Total timmar värme",
+            "de": "Verdichterlaufzeit Brauchwasser",
+            "nl": "Bedrijfstijd compressor warmtapwater",
+            "no": "Driftstid kompressor varmtvann",
+            "da": "Driftstid kompressor varmtvand"
           }
         },
         "measure_minute_NIBE.h92_periodtime_hotwater": {
+          "uiComponent": null,
           "title": {
             "en": "Period time hotwater",
-            "sv": "Periodtid varmvatten"
+            "sv": "Periodtid varmvatten",
+            "de": "Periodendauer Brauchwasser",
+            "nl": "Periodetijd warmtapwater",
+            "no": "Periodetid varmtvann",
+            "da": "Periodetid varmtvand"
           }
         },
         "measure_percentage_NIBE.i1102_heating_pump": {
           "title": {
-            "en": "Heating pump",
-            "sv": "Värme-pumphastighet GP1"
+            "en": "Heating pump (GP1)",
+            "sv": "Värme-pumphastighet (GP1)",
+            "de": "Heizungsumwälzpumpe (GP1)",
+            "nl": "Verwarmingspomp (GP1)",
+            "no": "Varmebærerpumpe (GP1)",
+            "da": "Varmebærerpumpe (GP1)"
           }
         },
         "measure_percentage_NIBE.i1104_source_pump": {
           "title": {
-            "en": "Source pump",
-            "sv": "Köld-pumphastighet GP2"
+            "en": "Source pump (GP2)",
+            "sv": "Köld-pumphastighet (GP2)",
+            "de": "Kollektorpumpe (GP2)",
+            "nl": "Bronpomp (GP2)",
+            "no": "Kollektorpumpe (GP2)",
+            "da": "Brinepumpe (GP2)"
           }
         },
-        "measure_percentage_NIBE.h109_returnair_normal": {
+        "fan_speed.h109_returnair_normal": {
+          "decimals": 2,
           "title": {
-            "en": "N/A",
-            "sv": "Frånluft fläkthastighet normal"
-          }
-        },
-        "measure_percentage_NIBE.h5351_compressor_min_speed": {
-          "title": {
-            "en": "Compressor min speed GP1",
-            "sv": "Minsta tillåtna hastighet GP1"
+            "en": "Returnair fan speed",
+            "sv": "Frånluft fläkthastighet normal",
+            "de": "Abluftventilator Drehzahl",
+            "nl": "Ventilatorsnelheid afvoerlucht",
+            "no": "Viftehastighet avtrekk",
+            "da": "Ventilatorhastighed udsugning"
           }
         },
         "curve_mode_NIBE.h26_heat_curve": {
           "title": {
-            "en": "Heatcurve 0-10",
-            "sv": "Värmekurva 0-10"
+            "en": "Heat curve",
+            "sv": "Värmekurva",
+            "de": "Heizkurve",
+            "nl": "Stooklijn",
+            "no": "Varmekurve",
+            "da": "Varmekurve"
           }
         },
         "curve_displacement_NIBE.h30_heat_curve_displacement": {
           "title": {
-            "en": "Displacement -10 - +10",
-            "sv": "Kurvförskjutning -10 - +10"
+            "en": "Heat curve displacement",
+            "sv": "Värmeförskjutning",
+            "de": "Parallelverschiebung",
+            "nl": "Verschuiving stooklijn",
+            "no": "Varmeforskyvning",
+            "da": "Varmeforskydning"
           }
         },
         "hotwater_demand_NIBE.h56_hotwater_demand_mode": {
           "title": {
             "en": "Hotwater demand",
-            "sv": "Varmvatten behov"
+            "sv": "Varmvatten behov",
+            "de": "Brauchwasserbedarf",
+            "nl": "Warmtapwaterbehoefte",
+            "no": "Varmtvannsbehov",
+            "da": "Varmtvandsbehov"
           }
         },
         "hotwater_increase_NIBE.h697_onetimeincrease_hotwater": {
+          "uiComponent": null,
           "title": {
-            "en": "Hotwater onetime increase",
-            "sv": "Varmvatten engångshöjning"
+            "en": "One-time increase",
+            "sv": "Engångshöjning",
+            "de": "Einmalige Erhöhung",
+            "nl": "Eenmalige verhoging",
+            "no": "Engangsheving",
+            "da": "Engangsforøgelse"
           }
         },
         "hotwater_periodtime_NIBE.h92_periodtime_hotwater": {
+          "uiComponent": null,
           "title": {
             "en": "Periodic hotwater length",
-            "sv": "Periodiskt varmvatten längd"
+            "sv": "Periodiskt varmvatten längd",
+            "de": "Dauer periodische Erhöhung",
+            "nl": "Duur periodiek warmtapwater",
+            "no": "Varighet periodisk varmtvann",
+            "da": "Varighed periodisk varmtvand"
           }
         },
         "hotwater_periodic_interval_NIBE.h66_periodic_hw_interval": {
+          "uiComponent": null,
           "title": {
             "en": "Periodic hotwater interval",
-            "sv": "Periodiskt varmvatten intervall"
+            "sv": "Periodiskt varmvatten intervall",
+            "de": "Intervall periodische Erhöhung",
+            "nl": "Interval periodiek warmtapwater",
+            "no": "Intervall periodisk varmtvann",
+            "da": "Interval periodisk varmtvand"
           }
         },
-        "meter_power.i1027_additive_effect_v2": {
-          "decimals": 2,
+        "measure_watt_NIBE.i1027_additive_effect": {
+          "decimals": 0,
           "title": {
-            "en": "Mode internal additive",
-            "sv": "Effekt tillsats"
+            "en": "Internal additive power",
+            "sv": "Effekt tillsats",
+            "de": "Leistung interne Zusatzheizung",
+            "nl": "Vermogen interne bijverwarming",
+            "no": "Effekt intern tilleggsvarme",
+            "da": "Effekt intern tilskudsvarme"
           }
         },
-        "measure_power.i1048_compressor_add_power_v2": {
-          "decimals": 2,
+        "measure_watt_NIBE.i1048_compressor_add_power": {
+          "decimals": 0,
           "title": {
             "en": "Compressor supplied power",
-            "sv": "Kompressor tillförd W"
+            "sv": "Kompressor tillförd W",
+            "de": "Zugeführte Verdichterleistung",
+            "nl": "Toegevoerd compressorvermogen",
+            "no": "Tilført kompressoreffekt",
+            "da": "Tilført kompressoreffekt"
           }
         },
-        "measure_power.i2166_energy_usage_v2": {
-          "decimals": 2,
+        "measure_watt_NIBE.i2166_energy_usage": {
+          "decimals": 0,
           "title": {
             "en": "Current power",
-            "sv": "Momentan effekt"
+            "sv": "Momentan effekt",
+            "de": "Aktuelle Leistung",
+            "nl": "Actueel vermogen",
+            "no": "Momentan effekt",
+            "da": "Aktuel effekt"
           }
         },
-        "measure_temperature_NIBE.i1_outside": {
+        "fuse_NIBE.h103_fuse": {
           "title": {
-            "en": "Outside temperature",
-            "sv": "Utetemperatur BT1"
+            "en": "Fuse incoming",
+            "sv": "Inkommande säkring",
+            "de": "Sicherung (Hausanschluss)",
+            "nl": "Hoofdzekering",
+            "no": "Inngående sikring",
+            "da": "Indgående sikring"
           }
         },
-        "measure_temperature_NIBE.i5_heating_supply": {
+        "measure_temperature.i1_outside": {
           "title": {
-            "en": "Heating supply",
-            "sv": "Framledningstemp.BT2"
+            "en": "Outside temperature (BT1)",
+            "sv": "Utetemperatur (BT1)",
+            "de": "Außentemperatur (BT1)",
+            "nl": "Buitentemperatuur (BT1)",
+            "no": "Utetemperatur (BT1)",
+            "da": "Udetemperatur (BT1)"
           }
         },
-        "measure_temperature_NIBE.i7_heating_return": {
+        "measure_temperature.i5_heating_supply": {
           "title": {
-            "en": "Heating return",
-            "sv": "Returledningstemp.BT3"
+            "en": "Heating supply (BT2)",
+            "sv": "Framledningstemp. (BT2)",
+            "de": "Vorlauftemperatur (BT2)",
+            "nl": "Aanvoertemperatuur (BT2)",
+            "no": "Turledningstemperatur (BT2)",
+            "da": "Fremløbstemperatur (BT2)"
           }
         },
-        "measure_temperature_NIBE.i8_warmwater_top": {
+        "measure_temperature.i7_heating_return": {
           "title": {
-            "en": "Hotwater top BT7",
-            "sv": "Varmvatten topp BT7"
+            "en": "Heating return (BT3)",
+            "sv": "Returledningstemp. (BT3)",
+            "de": "Rücklauftemperatur (BT3)",
+            "nl": "Retourtemperatuur (BT3)",
+            "no": "Returtemperatur (BT3)",
+            "da": "Returtemperatur (BT3)"
           }
         },
-        "measure_temperature_NIBE.i9_hot_water": {
+        "measure_temperature.i8_warmwater_top": {
           "title": {
-            "en": "Hot water",
-            "sv": "Varmvatten laddning BT6"
+            "en": "Hotwater top (BT7)",
+            "sv": "Varmvatten topp (BT7)",
+            "de": "Brauchwasser oben (BT7)",
+            "nl": "Warmtapwater boven (BT7)",
+            "no": "Varmtvann topp (BT7)",
+            "da": "Varmtvand top (BT7)"
           }
         },
-        "measure_temperature_NIBE.i10_source_in": {
+        "measure_temperature.i9_hot_water": {
           "title": {
-            "en": "Groundsource medium - in",
-            "sv": "Köldbärare in BT10"
+            "en": "Hot water charging (BT6)",
+            "sv": "Varmvatten laddning (BT6)",
+            "de": "Brauchwasserladung (BT6)",
+            "nl": "Warmtapwaterlading (BT6)",
+            "no": "Varmtvannslading (BT6)",
+            "da": "Varmtvandsladning (BT6)"
           }
         },
-        "measure_temperature_NIBE.i11_source_out": {
+        "measure_temperature.i10_source_in": {
           "title": {
-            "en": "Groundsource medium - out",
-            "sv": "Köldbärare ut BT11"
+            "en": "Groundsource medium - in (BT10)",
+            "sv": "Köldbärare in (BT10)",
+            "de": "Kollektor ein (BT10)",
+            "nl": "Brine in (BT10)",
+            "no": "Kollektor inn (BT10)",
+            "da": "Brine ind (BT10)"
           }
         },
-        "measure_temperature_NIBE.i19_return_air": {
+        "measure_temperature.i11_source_out": {
           "title": {
-            "en": "N/A",
-            "sv": "Frånluft BT20"
+            "en": "Groundsource medium - out (BT11)",
+            "sv": "Köldbärare ut (BT11)",
+            "de": "Kollektor aus (BT11)",
+            "nl": "Brine uit (BT11)",
+            "no": "Kollektor ut (BT11)",
+            "da": "Brine ud (BT11)"
           }
         },
-        "measure_temperature_NIBE.i20_supply_air": {
+        "measure_temperature.i19_return_air": {
           "title": {
-            "en": "N/A",
-            "sv": "Avluft BT21"
+            "en": "Extract air (BT20)",
+            "sv": "Frånluft (BT20)",
+            "de": "Abluft (BT20)",
+            "nl": "Afvoerlucht (BT20)",
+            "no": "Avtrekksluft (BT20)",
+            "da": "Udsugningsluft (BT20)"
           }
         },
-        "measure_temperature_NIBE.i26_inside": {
+        "measure_temperature.i20_supply_air": {
           "title": {
-            "en": "Room sensor BT50",
-            "sv": "Rumstemperatur 1 (BT50)"
+            "en": "Exhaust air (BT21)",
+            "sv": "Avluft (BT21)",
+            "de": "Fortluft (BT21)",
+            "nl": "Ventilatielucht (BT21)",
+            "no": "Avluft (BT21)",
+            "da": "Afkastluft (BT21)"
           }
         },
-        "measure_temperature_NIBE.i27_pool": {
+        "measure_temperature.i26_inside": {
           "title": {
-            "en": "Pool temperature",
-            "sv": "Pooltemperatur"
+            "en": "Room sensor (BT50)",
+            "sv": "Rumstemperatur 1 (BT50)",
+            "de": "Raumfühler (BT50)",
+            "nl": "Ruimtevoeler (BT50)",
+            "no": "Romføler (BT50)",
+            "da": "Rumføler (BT50)"
           }
         },
-        "measure_temperature_NIBE.i12_heating_supply": {
+        "measure_temperature.i27_pool": {
           "title": {
-            "en": "Heating supply BT12",
-            "sv": "Framledning BT12"
+            "en": "Pool temperature (BT51)",
+            "sv": "Pooltemperatur (BT51)",
+            "de": "Pooltemperatur (BT51)",
+            "nl": "Zwembadtemperatuur (BT51)",
+            "no": "Bassengtemperatur (BT51)",
+            "da": "Pooltemperatur (BT51)"
           }
         },
-        "measure_temperature_NIBE.i13_discharge": {
+        "measure_temperature.i12_heating_supply": {
           "title": {
-            "en": "Discharge BT14",
-            "sv": "Hetgas BT14"
+            "en": "Heating supply (BT12)",
+            "sv": "Framledning (BT12)",
+            "de": "Kondensator-Vorlauf (BT12)",
+            "nl": "Condensor aanvoer (BT12)",
+            "no": "Kondensator turledning (BT12)",
+            "da": "Kondensator fremløb (BT12)"
           }
         },
-        "measure_temperature_NIBE.i14_liquid_line": {
+        "measure_temperature.i13_discharge": {
           "title": {
-            "en": "Liquid line BT15",
-            "sv": "Vätskeledning BT15"
+            "en": "Discharge (BT14)",
+            "sv": "Hetgas (BT14)",
+            "de": "Heißgas (BT14)",
+            "nl": "Heetgas (BT14)",
+            "no": "Varmgass (BT14)",
+            "da": "Varm gas (BT14)"
           }
         },
-        "measure_temperature_NIBE.i16_suction_gas": {
+        "measure_temperature.i14_liquid_line": {
           "title": {
-            "en": "Suction gas BT17",
-            "sv": "Suggas BT17"
+            "en": "Liquid line (BT15)",
+            "sv": "Vätskeledning (BT15)",
+            "de": "Flüssigkeitsleitung (BT15)",
+            "nl": "Vloeistofleiding (BT15)",
+            "no": "Væskeledning (BT15)",
+            "da": "Væskeledning (BT15)"
           }
         },
-        "measure_temperature_NIBE.i37_outside_avg": {
+        "measure_temperature.i16_suction_gas": {
           "title": {
-            "en": "Average outside temperature",
-            "sv": "Medeltemp.BT1"
+            "en": "Suction gas (BT17)",
+            "sv": "Suggas (BT17)",
+            "de": "Sauggas (BT17)",
+            "nl": "Zuiggas (BT17)",
+            "no": "Sugegass (BT17)",
+            "da": "Sugegas (BT17)"
           }
         },
-        "measure_temperature_NIBE.i1017_calculated_supply": {
+        "measure_temperature.i37_outside_avg": {
+          "title": {
+            "en": "Average outside temperature (BT1)",
+            "sv": "Medeltemp. (BT1)",
+            "de": "Mittlere Außentemperatur (BT1)",
+            "nl": "Gemiddelde buitentemperatuur (BT1)",
+            "no": "Gjennomsnittlig utetemperatur (BT1)",
+            "da": "Gennemsnitlig udetemperatur (BT1)"
+          }
+        },
+        "measure_temperature.i1017_calculated_supply": {
           "title": {
             "en": "Calculated supply",
-            "sv": "Beräknad framledning"
+            "sv": "Beräknad framledning",
+            "de": "Berechneter Vorlauf",
+            "nl": "Berekende aanvoer",
+            "no": "Beregnet turledning",
+            "da": "Beregnet fremløb"
           }
         },
-        "measure_temperature_NIBE.i1047_inverter": {
+        "measure_temperature.i1047_inverter": {
           "title": {
             "en": "Inverter temperature",
-            "sv": "Invertertemperatur"
+            "sv": "Invertertemperatur",
+            "de": "Invertertemperatur",
+            "nl": "Invertertemperatuur",
+            "no": "Invertertemperatur",
+            "da": "Invertertemperatur"
           }
         },
-        "measure_water_NIBE.i40_flow_sensor": {
+        "measure_water.i40_flow_sensor": {
           "title": {
-            "en": "Flow sensor BF1",
-            "sv": "Flödesgivare BF1"
-          }
-        },
-        "target_percentage_NIBE.h109_returnair_normal": {
-          "title": {
-            "en": "Returnair normal",
-            "sv": "Frånluft normal"
-          }
-        },
-        "target_percentage_NIBE.h5351_compressor_min_speed": {
-          "title": {
-            "en": "Compressor min speed",
-            "sv": "Minsta tillåtna hastighet GP1 %"
+            "en": "Flow sensor (BF1)",
+            "sv": "Flödesgivare (BF1)",
+            "de": "Volumenstromsensor (BF1)",
+            "nl": "Debietmeter (BF1)",
+            "no": "Strømningsføler (BF1)",
+            "da": "Flowmåler (BF1)"
           }
         },
         "target_temperature.h687_pool_start": {
           "title": {
             "en": "Pool heat start",
-            "sv": "Poolvärme start"
+            "sv": "Poolvärme start",
+            "de": "Poolheizung Start",
+            "nl": "Start zwembadverwarming",
+            "no": "Start bassengvarme",
+            "da": "Start poolopvarmning"
           }
         },
         "target_temperature.h689_pool_stop": {
           "title": {
             "en": "Pool heat stop",
-            "sv": "Poolvärme stop"
+            "sv": "Poolvärme stop",
+            "de": "Poolheizung Stopp",
+            "nl": "Stop zwembadverwarming",
+            "no": "Stopp bassengvarme",
+            "da": "Stop poolopvarmning"
+          }
+        },
+        "target_temperature.h34_min_supply": {
+          "decimals": 1,
+          "min": 5,
+          "max": 80,
+          "uiComponent": null,
+          "title": {
+            "en": "Min supply temperature",
+            "sv": "Min framledningstemperatur",
+            "de": "Min. Vorlauftemperatur",
+            "nl": "Min. aanvoertemperatuur",
+            "no": "Min. turledningstemperatur",
+            "da": "Min. fremløbstemperatur"
+          }
+        },
+        "target_temperature.h38_max_supply": {
+          "decimals": 1,
+          "min": 5,
+          "max": 80,
+          "uiComponent": null,
+          "title": {
+            "en": "Max supply temperature",
+            "sv": "Max framledningstemperatur",
+            "de": "Max. Vorlauftemperatur",
+            "nl": "Max. aanvoertemperatuur",
+            "no": "Maks. turledningstemperatur",
+            "da": "Maks. fremløbstemperatur"
+          }
+        },
+        "target_temperature.h184_auto_stop_heating": {
+          "decimals": 1,
+          "min": -20,
+          "max": 40,
+          "uiComponent": null,
+          "insights": false,
+          "title": {
+            "en": "Auto mode: stop heating above",
+            "sv": "Autoläge: stoppa värme över",
+            "de": "Auto-Modus: Heizung stoppen über",
+            "nl": "Autostand: verwarming stoppen boven",
+            "no": "Automodus: stopp varme over",
+            "da": "Autotilstand: stop varme over"
+          }
+        },
+        "target_temperature.h185_auto_stop_addition": {
+          "decimals": 1,
+          "min": -25,
+          "max": 40,
+          "uiComponent": null,
+          "insights": false,
+          "title": {
+            "en": "Auto mode: stop addition above",
+            "sv": "Autoläge: stoppa tillsats över",
+            "de": "Auto-Modus: Zusatzheizung stoppen über",
+            "nl": "Autostand: bijverwarming stoppen boven",
+            "no": "Automodus: stopp tilleggsvarme over",
+            "da": "Autotilstand: stop tilskudsvarme over"
+          }
+        },
+        "measure_minute_NIBE.h93_periodtime_heating": {
+          "title": {
+            "en": "Period time heating",
+            "sv": "Periodtid värme",
+            "de": "Periodendauer Heizung",
+            "nl": "Periodetijd verwarming",
+            "no": "Periodetid varme",
+            "da": "Periodetid varme"
+          }
+        },
+        "measure_degree_minutes_NIBE.h97_dm_start_compressor": {
+          "title": {
+            "en": "Compressor start degree minutes",
+            "sv": "Startgradminuter kompressor",
+            "de": "Startgradminuten Verdichter",
+            "nl": "Startgraadminuten compressor",
+            "no": "Startgradminutter kompressor",
+            "da": "Startgradminutter kompressor"
+          }
+        },
+        "measure_degree_minutes_NIBE.h679_dm_diff_start_addition": {
+          "title": {
+            "en": "Addition start difference",
+            "sv": "Differens start tillsats",
+            "de": "Differenz Start Zusatzheizung",
+            "nl": "Verschil start bijverwarming",
+            "no": "Differanse start tilleggsvarme",
+            "da": "Difference start tilskudsvarme"
+          }
+        },
+        "measure_degree_minutes_NIBE.h18_limit_dm": {
+          "title": {
+            "en": "Degree minutes limit",
+            "sv": "Gradminuter begränsning",
+            "de": "Gradminuten begrenzt",
+            "nl": "Graadminuten begrensd",
+            "no": "Gradminutter begrenset",
+            "da": "Gradminutter begrænset"
+          }
+        },
+        "measure_degree_minutes_NIBE.h20_cooling_dm": {
+          "title": {
+            "en": "Cooling degree minutes",
+            "sv": "Gradminuter kyla",
+            "de": "Gradminuten Kühlung",
+            "nl": "Graadminuten koeling",
+            "no": "Gradminutter kjøling",
+            "da": "Gradminutter køling"
+          }
+        },
+        "target_temperature.h59_hotwater_start": {
+          "decimals": 1,
+          "min": 5,
+          "max": 60,
+          "insights": true,
+          "title": {
+            "en": "Hot water start temperature",
+            "sv": "Varmvatten starttemperatur",
+            "de": "Brauchwasser Starttemperatur",
+            "nl": "Starttemperatuur warmtapwater",
+            "no": "Starttemperatur varmtvann",
+            "da": "Starttemperatur varmtvand"
+          }
+        },
+        "target_temperature.h63_hotwater_stop": {
+          "decimals": 1,
+          "min": 5,
+          "max": 65,
+          "insights": true,
+          "title": {
+            "en": "Hot water stop temperature",
+            "sv": "Varmvatten stopptemperatur",
+            "de": "Brauchwasser Stopptemperatur",
+            "nl": "Stoptemperatuur warmtapwater",
+            "no": "Stopptemperatur varmtvann",
+            "da": "Stoptemperatur varmtvand"
+          }
+        },
+        "measure_minute_NIBE.h94_periodtime_pool": {
+          "title": {
+            "en": "Period time pool",
+            "sv": "Periodtid pool",
+            "de": "Periodendauer Pool",
+            "nl": "Periodetijd zwembad",
+            "no": "Periodetid basseng",
+            "da": "Periodetid pool"
+          }
+        },
+        "button.h22_reset_alarm": {
+          "uiComponent": null,
+          "title": {
+            "en": "Reset alarm",
+            "sv": "Återställ larm",
+            "de": "Alarm zurücksetzen",
+            "nl": "Alarm resetten",
+            "no": "Tilbakestill alarm",
+            "da": "Nulstil alarm"
+          }
+        },
+        "onoff.h196_alarm_lower_room_temp": {
+          "uiComponent": null,
+          "title": {
+            "en": "On alarm: lower room temperature",
+            "sv": "Vid larm: sänk rumstemperatur",
+            "de": "Bei Alarm: Raumtemperatur senken",
+            "nl": "Bij alarm: ruimtetemperatuur verlagen",
+            "no": "Ved alarm: senk romtemperatur",
+            "da": "Ved alarm: sænk rumtemperatur"
+          }
+        },
+        "onoff.h197_alarm_lower_hw_temp": {
+          "uiComponent": null,
+          "title": {
+            "en": "On alarm: lower hot water temperature",
+            "sv": "Vid larm: sänk varmvattentemperatur",
+            "de": "Bei Alarm: Brauchwassertemperatur senken",
+            "nl": "Bij alarm: warmtapwatertemperatuur verlagen",
+            "no": "Ved alarm: senk varmtvannstemperatur",
+            "da": "Ved alarm: sænk varmtvandstemperatur"
+          }
+        },
+        "measure_count_NIBE.h19_holiday_status": {
+          "title": {
+            "en": "Holiday mode status",
+            "sv": "Semesterläge status",
+            "de": "Status Urlaubsmodus",
+            "nl": "Status vakantiestand",
+            "no": "Status feriemodus",
+            "da": "Status ferietilstand"
           }
         },
         "onoff.i1828_pool_circulation": {
           "title": {
             "en": "Pool circulation on",
-            "sv": "Poolcirkulation på"
+            "sv": "Poolcirkulation på",
+            "de": "Poolzirkulation ein",
+            "nl": "Zwembadcirculatie aan",
+            "no": "Bassengsirkulasjon på",
+            "da": "Poolcirkulation til"
           }
         },
         "onoff.h65_periodic_hotwater": {
+          "uiComponent": null,
           "title": {
             "en": "Periodic hotwater",
-            "sv": "Periodiskt varmvatten"
+            "sv": "Periodiskt varmvatten",
+            "de": "Periodische Erhöhung",
+            "nl": "Periodiek warmtapwater",
+            "no": "Periodisk varmtvann",
+            "da": "Periodisk varmtvand"
           }
         },
         "onoff.h227_nightchill": {
           "title": {
             "en": "Nightchill",
-            "sv": "Nattsvalka"
+            "sv": "Nattsvalka",
+            "de": "Nachtkühlung",
+            "nl": "Nachtkoeling",
+            "no": "Nattkjøling",
+            "da": "Natkøling"
           }
         },
         "onoff.h691_pool_active": {
           "title": {
             "en": "Pool heating",
-            "sv": "Poolvärme"
+            "sv": "Poolvärme",
+            "de": "Poolheizung",
+            "nl": "Zwembadverwarming",
+            "no": "Bassengvarme",
+            "da": "Poolopvarmning"
           }
         },
         "onoff.h180_enable_addition": {
           "title": {
-            "en": "Allow additional heating",
-            "sv": "Tillåt elpatron"
+            "en": "Allow immersion heater",
+            "sv": "Tillåt elpatron",
+            "de": "Zusatzheizung zulassen",
+            "nl": "Bijverwarming toestaan",
+            "no": "Tillat tilleggsvarme",
+            "da": "Tillad tilskudsvarme"
           }
         },
         "onoff.h181_enable_heating": {
           "title": {
             "en": "Allow heating",
-            "sv": "Tillåt värme"
+            "sv": "Tillåt värme",
+            "de": "Heizung zulassen",
+            "nl": "Verwarming toestaan",
+            "no": "Tillat varme",
+            "da": "Tillad varme"
           }
         },
         "onoff.h182_enable_cooling": {
           "title": {
             "en": "Allow cooling",
-            "sv": "Tillåt kyla"
+            "sv": "Tillåt kyla",
+            "de": "Kühlung zulassen",
+            "nl": "Koeling toestaan",
+            "no": "Tillat kjøling",
+            "da": "Tillad køling"
           }
         }
       },
+      "energy": {
+        "meterPowerImportedCapability": "meter_power.total"
+      },
       "images": {
-        "small": "/assets/images/nibe_small.png",
-        "large": "/assets/images/nibe_large.png"
+        "small": "/drivers/nibe_s/assets/images/small.png",
+        "large": "/drivers/nibe_s/assets/images/large.png",
+        "xlarge": "/drivers/nibe_s/assets/images/xlarge.png"
       },
       "pair": [
         {
           "id": "ip_address"
+        },
+        {
+          "id": "detect"
+        },
+        {
+          "id": "devices"
+        }
+      ],
+      "repair": [
+        {
+          "id": "detect"
+        },
+        {
+          "id": "features"
+        }
+      ],
+      "settings": [
+        {
+          "type": "group",
+          "label": {
+            "en": "Connection",
+            "sv": "Anslutning",
+            "de": "Verbindung",
+            "nl": "Verbinding",
+            "no": "Tilkobling",
+            "da": "Forbindelse"
+          },
+          "children": [
+            {
+              "id": "address",
+              "type": "text",
+              "label": {
+                "en": "IP address",
+                "sv": "IP-adress",
+                "de": "IP-Adresse",
+                "nl": "IP-adres",
+                "no": "IP-adresse",
+                "da": "IP-adresse"
+              },
+              "value": ""
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "label": {
+            "en": "Energy",
+            "sv": "Energi",
+            "de": "Energie",
+            "nl": "Energie",
+            "no": "Energi",
+            "da": "Energi"
+          },
+          "children": [
+            {
+              "id": "cumulativeEnergy",
+              "type": "number",
+              "label": {
+                "en": "Total energy consumed (kWh)",
+                "sv": "Total förbrukad energi (kWh)",
+                "de": "Gesamter Energieverbrauch (kWh)",
+                "nl": "Totaal energieverbruik (kWh)",
+                "no": "Totalt energiforbruk (kWh)",
+                "da": "Samlet energiforbrug (kWh)"
+              },
+              "hint": {
+                "en": "Updated automatically from the power readings. Edit only to correct the meter.",
+                "sv": "Uppdateras automatiskt från effektmätningen. Ändra bara för att korrigera mätaren.",
+                "de": "Wird automatisch aus den Leistungswerten aktualisiert. Nur bearbeiten, um den Zähler zu korrigieren.",
+                "nl": "Wordt automatisch bijgewerkt op basis van de vermogensmetingen. Bewerk alleen om de meterstand te corrigeren.",
+                "no": "Oppdateres automatisk fra effektmålingene. Rediger kun for å korrigere måleren.",
+                "da": "Opdateres automatisk ud fra effektmålingerne. Redigér kun for at korrigere måleren."
+              },
+              "value": 0
+            }
+          ]
         }
       ],
       "id": "nibe_s"
@@ -1009,134 +2705,243 @@
     "curve_displacement_NIBE": {
       "title": {
         "en": "Heatcurve displacement",
-        "sv": "Ställ in kurvförskjutning"
+        "sv": "Ställ in kurvförskjutning",
+        "de": "Parallelverschiebung",
+        "nl": "Verschuiving stooklijn",
+        "no": "Varmeforskyvning",
+        "da": "Varmeforskydning"
       },
       "type": "enum",
       "values": [
         {
           "id": "-10",
           "title": {
-            "en": "-10"
+            "en": "-10",
+            "de": "-10",
+            "nl": "-10",
+            "no": "-10",
+            "da": "-10",
+            "sv": "-10"
           }
         },
         {
           "id": "-9",
           "title": {
-            "en": "-9"
+            "en": "-9",
+            "de": "-9",
+            "nl": "-9",
+            "no": "-9",
+            "da": "-9",
+            "sv": "-9"
           }
         },
         {
           "id": "-8",
           "title": {
-            "en": "-8"
+            "en": "-8",
+            "de": "-8",
+            "nl": "-8",
+            "no": "-8",
+            "da": "-8",
+            "sv": "-8"
           }
         },
         {
           "id": "-7",
           "title": {
-            "en": "-7"
+            "en": "-7",
+            "de": "-7",
+            "nl": "-7",
+            "no": "-7",
+            "da": "-7",
+            "sv": "-7"
           }
         },
         {
           "id": "-6",
           "title": {
-            "en": "-6"
+            "en": "-6",
+            "de": "-6",
+            "nl": "-6",
+            "no": "-6",
+            "da": "-6",
+            "sv": "-6"
           }
         },
         {
           "id": "-5",
           "title": {
-            "en": "-5"
+            "en": "-5",
+            "de": "-5",
+            "nl": "-5",
+            "no": "-5",
+            "da": "-5",
+            "sv": "-5"
           }
         },
         {
           "id": "-4",
           "title": {
-            "en": "-4"
+            "en": "-4",
+            "de": "-4",
+            "nl": "-4",
+            "no": "-4",
+            "da": "-4",
+            "sv": "-4"
           }
         },
         {
           "id": "-3",
           "title": {
-            "en": "-3"
+            "en": "-3",
+            "de": "-3",
+            "nl": "-3",
+            "no": "-3",
+            "da": "-3",
+            "sv": "-3"
           }
         },
         {
           "id": "-2",
           "title": {
-            "en": "-2"
+            "en": "-2",
+            "de": "-2",
+            "nl": "-2",
+            "no": "-2",
+            "da": "-2",
+            "sv": "-2"
           }
         },
         {
           "id": "-1",
           "title": {
-            "en": "-1"
+            "en": "-1",
+            "de": "-1",
+            "nl": "-1",
+            "no": "-1",
+            "da": "-1",
+            "sv": "-1"
           }
         },
         {
           "id": "0",
           "title": {
-            "en": "0"
+            "en": "0",
+            "de": "0",
+            "nl": "0",
+            "no": "0",
+            "da": "0",
+            "sv": "0"
           }
         },
         {
           "id": "1",
           "title": {
-            "en": "1"
+            "en": "1",
+            "de": "1",
+            "nl": "1",
+            "no": "1",
+            "da": "1",
+            "sv": "1"
           }
         },
         {
           "id": "2",
           "title": {
-            "en": "2"
+            "en": "2",
+            "de": "2",
+            "nl": "2",
+            "no": "2",
+            "da": "2",
+            "sv": "2"
           }
         },
         {
           "id": "3",
           "title": {
-            "en": "3"
+            "en": "3",
+            "de": "3",
+            "nl": "3",
+            "no": "3",
+            "da": "3",
+            "sv": "3"
           }
         },
         {
           "id": "4",
           "title": {
-            "en": "4"
+            "en": "4",
+            "de": "4",
+            "nl": "4",
+            "no": "4",
+            "da": "4",
+            "sv": "4"
           }
         },
         {
           "id": "5",
           "title": {
-            "en": "5"
+            "en": "5",
+            "de": "5",
+            "nl": "5",
+            "no": "5",
+            "da": "5",
+            "sv": "5"
           }
         },
         {
           "id": "6",
           "title": {
-            "en": "6"
+            "en": "6",
+            "de": "6",
+            "nl": "6",
+            "no": "6",
+            "da": "6",
+            "sv": "6"
           }
         },
         {
           "id": "7",
           "title": {
-            "en": "7"
+            "en": "7",
+            "de": "7",
+            "nl": "7",
+            "no": "7",
+            "da": "7",
+            "sv": "7"
           }
         },
         {
           "id": "8",
           "title": {
-            "en": "8"
+            "en": "8",
+            "de": "8",
+            "nl": "8",
+            "no": "8",
+            "da": "8",
+            "sv": "8"
           }
         },
         {
           "id": "9",
           "title": {
-            "en": "9"
+            "en": "9",
+            "de": "9",
+            "nl": "9",
+            "no": "9",
+            "da": "9",
+            "sv": "9"
           }
         },
         {
           "id": "10",
           "title": {
-            "en": "10"
+            "en": "10",
+            "de": "10",
+            "nl": "10",
+            "no": "10",
+            "da": "10",
+            "sv": "10"
           }
         }
       ],
@@ -1147,74 +2952,188 @@
     "curve_mode_NIBE": {
       "title": {
         "en": "Heatcurve set",
-        "sv": "Ställ in värmekurva"
+        "sv": "Ställ in värmekurva",
+        "de": "Heizkurve einstellen",
+        "nl": "Stooklijn instellen",
+        "no": "Still inn varmekurve",
+        "da": "Indstil varmekurve"
       },
       "type": "enum",
       "values": [
         {
           "id": "0",
           "title": {
-            "en": "0"
+            "en": "0",
+            "de": "0",
+            "nl": "0",
+            "no": "0",
+            "da": "0",
+            "sv": "0"
           }
         },
         {
           "id": "1",
           "title": {
-            "en": "1"
+            "en": "1",
+            "de": "1",
+            "nl": "1",
+            "no": "1",
+            "da": "1",
+            "sv": "1"
           }
         },
         {
           "id": "2",
           "title": {
-            "en": "2"
+            "en": "2",
+            "de": "2",
+            "nl": "2",
+            "no": "2",
+            "da": "2",
+            "sv": "2"
           }
         },
         {
           "id": "3",
           "title": {
-            "en": "3"
+            "en": "3",
+            "de": "3",
+            "nl": "3",
+            "no": "3",
+            "da": "3",
+            "sv": "3"
           }
         },
         {
           "id": "4",
           "title": {
-            "en": "4"
+            "en": "4",
+            "de": "4",
+            "nl": "4",
+            "no": "4",
+            "da": "4",
+            "sv": "4"
           }
         },
         {
           "id": "5",
           "title": {
-            "en": "5"
+            "en": "5",
+            "de": "5",
+            "nl": "5",
+            "no": "5",
+            "da": "5",
+            "sv": "5"
           }
         },
         {
           "id": "6",
           "title": {
-            "en": "6"
+            "en": "6",
+            "de": "6",
+            "nl": "6",
+            "no": "6",
+            "da": "6",
+            "sv": "6"
           }
         },
         {
           "id": "7",
           "title": {
-            "en": "7"
+            "en": "7",
+            "de": "7",
+            "nl": "7",
+            "no": "7",
+            "da": "7",
+            "sv": "7"
           }
         },
         {
           "id": "8",
           "title": {
-            "en": "8"
+            "en": "8",
+            "de": "8",
+            "nl": "8",
+            "no": "8",
+            "da": "8",
+            "sv": "8"
           }
         },
         {
           "id": "9",
           "title": {
-            "en": "9"
+            "en": "9",
+            "de": "9",
+            "nl": "9",
+            "no": "9",
+            "da": "9",
+            "sv": "9"
           }
         },
         {
           "id": "10",
           "title": {
-            "en": "10"
+            "en": "10",
+            "de": "10",
+            "nl": "10",
+            "no": "10",
+            "da": "10",
+            "sv": "10"
+          }
+        },
+        {
+          "id": "11",
+          "title": {
+            "en": "11",
+            "de": "11",
+            "nl": "11",
+            "no": "11",
+            "da": "11",
+            "sv": "11"
+          }
+        },
+        {
+          "id": "12",
+          "title": {
+            "en": "12",
+            "de": "12",
+            "nl": "12",
+            "no": "12",
+            "da": "12",
+            "sv": "12"
+          }
+        },
+        {
+          "id": "13",
+          "title": {
+            "en": "13",
+            "de": "13",
+            "nl": "13",
+            "no": "13",
+            "da": "13",
+            "sv": "13"
+          }
+        },
+        {
+          "id": "14",
+          "title": {
+            "en": "14",
+            "de": "14",
+            "nl": "14",
+            "no": "14",
+            "da": "14",
+            "sv": "14"
+          }
+        },
+        {
+          "id": "15",
+          "title": {
+            "en": "15",
+            "de": "15",
+            "nl": "15",
+            "no": "15",
+            "da": "15",
+            "sv": "15"
           }
         }
       ],
@@ -1222,10 +3141,39 @@
       "setable": true,
       "uiComponent": "picker"
     },
+    "fuse_NIBE": {
+      "type": "number",
+      "title": {
+        "en": "Fuse",
+        "sv": "Säkring",
+        "de": "Sicherung",
+        "nl": "Zekering",
+        "no": "Sikring",
+        "da": "Sikring"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "units": {
+        "en": "A",
+        "de": "A",
+        "nl": "A",
+        "no": "A",
+        "da": "A",
+        "sv": "A"
+      },
+      "decimals": 0,
+      "insights": false,
+      "icon": "/assets/images/pump.svg"
+    },
     "hotwater_demand_NIBE": {
       "title": {
         "en": "Hotwater demand set",
-        "sv": "Ställ in varmvattenbehov"
+        "sv": "Ställ in varmvattenbehov",
+        "de": "Brauchwasserbedarf einstellen",
+        "nl": "Warmtapwaterbehoefte instellen",
+        "no": "Still inn varmtvannsbehov",
+        "da": "Indstil varmtvandsbehov"
       },
       "type": "enum",
       "values": [
@@ -1233,28 +3181,44 @@
           "id": "0",
           "title": {
             "en": "0 = Small",
-            "sv": "0 = Litet"
+            "sv": "0 = Litet",
+            "de": "0 = Klein",
+            "nl": "0 = Klein",
+            "no": "0 = Liten",
+            "da": "0 = Lille"
           }
         },
         {
           "id": "1",
           "title": {
             "en": "1 = Medium",
-            "sv": "1 = Medel"
+            "sv": "1 = Medel",
+            "de": "1 = Mittel",
+            "nl": "1 = Gemiddeld",
+            "no": "1 = Middels",
+            "da": "1 = Middel"
           }
         },
         {
           "id": "2",
           "title": {
             "en": "2 = Large",
-            "sv": "2 = Stort"
+            "sv": "2 = Stort",
+            "de": "2 = Groß",
+            "nl": "2 = Groot",
+            "no": "2 = Stor",
+            "da": "2 = Stor"
           }
         },
         {
           "id": "4",
           "title": {
             "en": "4 = Smart control",
-            "sv": "4 = Smart kontrol"
+            "sv": "4 = Smart kontrol",
+            "de": "4 = Smart Control",
+            "nl": "4 = Smart control",
+            "no": "4 = Smart styring",
+            "da": "4 = Smart styring"
           }
         }
       ],
@@ -1264,8 +3228,12 @@
     },
     "hotwater_increase_NIBE": {
       "title": {
-        "en": "Hotwater onetime increase set",
-        "sv": "Ställ in varmvatten engångshöjning"
+        "en": "More hot water",
+        "sv": "Mer varmvatten",
+        "de": "Mehr Brauchwasser",
+        "nl": "Meer warmtapwater",
+        "no": "Mer varmtvann",
+        "da": "Mere varmtvand"
       },
       "type": "enum",
       "values": [
@@ -1273,49 +3241,77 @@
           "id": "0",
           "title": {
             "en": "0 = Off",
-            "sv": "0 = Av"
+            "sv": "0 = Av",
+            "de": "0 = Aus",
+            "nl": "0 = Uit",
+            "no": "0 = Av",
+            "da": "0 = Fra"
           }
         },
         {
           "id": "2",
           "title": {
-            "en": "2 = Increase 1 h",
-            "sv": "2 = Höjning 1 h"
+            "en": "2 = 2 hours",
+            "sv": "2 = 2 timmar",
+            "de": "2 = 2 Stunden",
+            "nl": "2 = 2 uur",
+            "no": "2 = 2 timer",
+            "da": "2 = 2 timer"
           }
         },
         {
           "id": "3",
           "title": {
-            "en": "3 = Increase 3 h",
-            "sv": "3 = Höjning 3 h"
+            "en": "3 = 3 hours",
+            "sv": "3 = 3 timmar",
+            "de": "3 = 3 Stunden",
+            "nl": "3 = 3 uur",
+            "no": "3 = 3 timer",
+            "da": "3 = 3 timer"
           }
         },
         {
           "id": "6",
           "title": {
-            "en": "6 = Increase 6 h",
-            "sv": "6 = Höjning 6 h"
+            "en": "6 = 6 hours",
+            "sv": "6 = 6 timmar",
+            "de": "6 = 6 Stunden",
+            "nl": "6 = 6 uur",
+            "no": "6 = 6 timer",
+            "da": "6 = 6 timer"
           }
         },
         {
           "id": "12",
           "title": {
-            "en": "12 = Increase 12 h",
-            "sv": "12 = Höjning 12 h"
+            "en": "12 = 12 hours",
+            "sv": "12 = 12 timmar",
+            "de": "12 = 12 Stunden",
+            "nl": "12 = 12 uur",
+            "no": "12 = 12 timer",
+            "da": "12 = 12 timer"
           }
         },
         {
           "id": "24",
           "title": {
-            "en": "24 = Increase 24 h",
-            "sv": "24 = Höjning 24 h"
+            "en": "24 = 24 hours",
+            "sv": "24 = 24 timmar",
+            "de": "24 = 24 Stunden",
+            "nl": "24 = 24 uur",
+            "no": "24 = 24 timer",
+            "da": "24 = 24 timer"
           }
         },
         {
           "id": "48",
           "title": {
-            "en": "48= = Increase 48 h",
-            "sv": "48 = Höjning 48 h"
+            "en": "48 = 48 hours",
+            "sv": "48 = 48 timmar",
+            "de": "48 = 48 Stunden",
+            "nl": "48 = 48 uur",
+            "no": "48 = 48 timer",
+            "da": "48 = 48 timer"
           }
         }
       ],
@@ -1326,7 +3322,11 @@
     "hotwater_periodic_interval_NIBE": {
       "title": {
         "en": "Periodic hotwater interval set",
-        "sv": "Ställ in intervall periodiskt varmvatten"
+        "sv": "Ställ in intervall periodiskt varmvatten",
+        "de": "Intervall periodische Erhöhung einstellen",
+        "nl": "Interval periodiek warmtapwater instellen",
+        "no": "Still inn intervall periodisk varmtvann",
+        "da": "Indstil interval periodisk varmtvand"
       },
       "type": "enum",
       "values": [
@@ -1334,28 +3334,44 @@
           "id": "7",
           "title": {
             "en": "7 = Days",
-            "sv": "7 = Dagar"
+            "sv": "7 = Dagar",
+            "de": "7 = Tage",
+            "nl": "7 = dagen",
+            "no": "7 = dager",
+            "da": "7 = dage"
           }
         },
         {
           "id": "14",
           "title": {
             "en": "14 = Days",
-            "sv": "14 = Dagar"
+            "sv": "14 = Dagar",
+            "de": "14 = Tage",
+            "nl": "14 = dagen",
+            "no": "14 = dager",
+            "da": "14 = dage"
           }
         },
         {
           "id": "21",
           "title": {
             "en": "21 = Days",
-            "sv": "21 = Dagar"
+            "sv": "21 = Dagar",
+            "de": "21 = Tage",
+            "nl": "21 = dagen",
+            "no": "21 = dager",
+            "da": "21 = dage"
           }
         },
         {
           "id": "28",
           "title": {
             "en": "28 = Days",
-            "sv": "28 = Dagar"
+            "sv": "28 = Dagar",
+            "de": "28 = Tage",
+            "nl": "28 = dagen",
+            "no": "28 = dager",
+            "da": "28 = dage"
           }
         }
       ],
@@ -1366,7 +3382,11 @@
     "hotwater_periodtime_NIBE": {
       "title": {
         "en": "Periodic hotwater length set",
-        "sv": "Ställ in längd periodiskt varmvatten"
+        "sv": "Ställ in längd periodiskt varmvatten",
+        "de": "Dauer periodische Erhöhung einstellen",
+        "nl": "Duur periodiek warmtapwater instellen",
+        "no": "Still inn varighet periodisk varmtvann",
+        "da": "Indstil varighed periodisk varmtvand"
       },
       "type": "enum",
       "values": [
@@ -1374,28 +3394,44 @@
           "id": "30",
           "title": {
             "en": "30 = Minutes",
-            "sv": "30 = Minuter"
+            "sv": "30 = Minuter",
+            "de": "30 = Minuten",
+            "nl": "30 = minuten",
+            "no": "30 = minutter",
+            "da": "30 = minutter"
           }
         },
         {
           "id": "45",
           "title": {
             "en": "45 = Minutes",
-            "sv": "45 = Minuter"
+            "sv": "45 = Minuter",
+            "de": "45 = Minuten",
+            "nl": "45 = minuten",
+            "no": "45 = minutter",
+            "da": "45 = minutter"
           }
         },
         {
           "id": "60",
           "title": {
             "en": "60 = Minutes",
-            "sv": "60 = Minuter"
+            "sv": "60 = Minuter",
+            "de": "60 = Minuten",
+            "nl": "60 = minuten",
+            "no": "60 = minutter",
+            "da": "60 = minutter"
           }
         },
         {
           "id": "120",
           "title": {
             "en": "120 = Minutes",
-            "sv": "120 = Minuter"
+            "sv": "120 = Minuter",
+            "de": "120 = Minuten",
+            "nl": "120 = minuten",
+            "no": "120 = minutter",
+            "da": "120 = minutter"
           }
         }
       ],
@@ -1406,13 +3442,23 @@
     "measure_count_NIBE": {
       "type": "number",
       "title": {
-        "en": "Measure Count"
+        "en": "Measure Count",
+        "de": "Zähler",
+        "nl": "Teller",
+        "no": "Teller",
+        "da": "Tæller",
+        "sv": "Räknare"
       },
       "uiComponent": "sensor",
       "getable": true,
       "setable": false,
       "units": {
-        "en": ""
+        "en": "",
+        "de": "",
+        "nl": "",
+        "no": "",
+        "da": "",
+        "sv": ""
       },
       "insights": true,
       "chartType": "spline",
@@ -1421,14 +3467,23 @@
     "measure_day_NIBE": {
       "type": "number",
       "title": {
-        "en": "Measure Day"
+        "en": "Measure Day",
+        "de": "Tage",
+        "nl": "Dagen",
+        "no": "Dager",
+        "da": "Dage",
+        "sv": "Dagar"
       },
       "uiComponent": "sensor",
       "getable": true,
       "setable": false,
       "units": {
         "en": "Days",
-        "sv": "Dagar"
+        "sv": "Dagar",
+        "de": "Tage",
+        "nl": "dagen",
+        "no": "dager",
+        "da": "dage"
       },
       "insights": true,
       "chartType": "spline",
@@ -1438,14 +3493,23 @@
       "type": "number",
       "title": {
         "en": "Degree minutes",
-        "sv": "Gradminuter"
+        "sv": "Gradminuter",
+        "de": "Gradminuten",
+        "nl": "Graadminuten",
+        "no": "Gradminutter",
+        "da": "Gradminutter"
       },
       "uiComponent": "sensor",
       "chartType": "spline",
       "getable": true,
       "setable": false,
       "units": {
-        "en": "°Cmin"
+        "en": "°Cmin",
+        "de": "°Cmin",
+        "nl": "°Cmin",
+        "no": "°Cmin",
+        "da": "°Cmin",
+        "sv": "°Cmin"
       },
       "icon": "/assets/images/degree_minutes.svg",
       "insights": true
@@ -1453,44 +3517,48 @@
     "measure_enum_NIBE": {
       "type": "string",
       "title": {
-        "en": "Measure enum"
+        "en": "Measure enum",
+        "de": "Modus",
+        "nl": "Stand",
+        "no": "Modus",
+        "da": "Indstilling",
+        "sv": "Läge"
       },
       "uiComponent": "sensor",
       "getable": true,
       "setable": false,
       "units": {
-        "en": ""
+        "en": "",
+        "de": "",
+        "nl": "",
+        "no": "",
+        "da": "",
+        "sv": ""
       },
       "insights": true,
       "chartType": "spline",
       "icon": "/assets/images/select.svg"
     },
-    "measure_frequency_NIBE": {
-      "type": "number",
-      "title": {
-        "en": "Measure Frequency"
-      },
-      "uiComponent": "sensor",
-      "getable": true,
-      "setable": false,
-      "units": {
-        "en": "Hz"
-      },
-      "insights": true,
-      "chartType": "spline",
-      "icon": "/assets/images/frequency.svg"
-    },
     "measure_hour_NIBE": {
       "type": "number",
       "title": {
-        "en": "Measure Hour"
+        "en": "Measure Hour",
+        "de": "Stunden",
+        "nl": "Uren",
+        "no": "Timer",
+        "da": "Timer",
+        "sv": "Timmar"
       },
       "uiComponent": "sensor",
       "getable": true,
       "setable": false,
       "units": {
         "en": "Hours",
-        "sv": "Timmar"
+        "sv": "Timmar",
+        "de": "Stunden",
+        "nl": "uren",
+        "no": "timer",
+        "da": "timer"
       },
       "insights": true,
       "chartType": "spline",
@@ -1499,14 +3567,23 @@
     "measure_minute_NIBE": {
       "type": "number",
       "title": {
-        "en": "Measure Minute"
+        "en": "Measure Minute",
+        "de": "Minuten",
+        "nl": "Minuten",
+        "no": "Minutter",
+        "da": "Minutter",
+        "sv": "Minuter"
       },
       "uiComponent": "sensor",
       "getable": true,
       "setable": false,
       "units": {
         "en": "Minutes",
-        "sv": "Minuter"
+        "sv": "Minuter",
+        "de": "Minuten",
+        "nl": "minuten",
+        "no": "minutter",
+        "da": "minutter"
       },
       "insights": true,
       "chartType": "spline",
@@ -1515,134 +3592,162 @@
     "measure_percentage_NIBE": {
       "type": "number",
       "title": {
-        "en": "Measure percentage"
+        "en": "Measure percentage",
+        "de": "Prozent",
+        "nl": "Percentage",
+        "no": "Prosent",
+        "da": "Procent",
+        "sv": "Procent"
       },
       "uiComponent": "sensor",
       "getable": true,
       "setable": false,
       "units": {
-        "en": "%"
+        "en": "%",
+        "de": "%",
+        "nl": "%",
+        "no": "%",
+        "da": "%",
+        "sv": "%"
       },
       "insights": true,
       "chartType": "spline",
       "icon": "/assets/images/pump.svg"
     },
-    "measure_temperature_NIBE": {
+    "measure_watt_NIBE": {
       "type": "number",
       "title": {
-        "en": "Temperature",
-        "sv": "Temperatur"
+        "en": "Power",
+        "sv": "Effekt",
+        "de": "Leistung",
+        "nl": "Vermogen",
+        "no": "Effekt",
+        "da": "Effekt"
       },
-      "units": {
-        "en": "°C"
-      },
-      "insights": true,
-      "desc": {
-        "en": "Temperature in degrees Celsius (°C)",
-        "sv": "Temperatur i grader Celsius (°C)"
-      },
-      "decimals": 2,
-      "chartType": "spline",
+      "uiComponent": "sensor",
       "getable": true,
       "setable": false,
-      "uiComponent": "sensor",
-      "icon": "/assets/images/temperature.svg"
-    },
-    "measure_water_NIBE": {
-      "type": "number",
-      "title": {
-        "en": "Water flow",
-        "sv": "Vattenflöde"
-      },
       "units": {
-        "en": "L/min"
+        "en": "W",
+        "de": "W",
+        "nl": "W",
+        "no": "W",
+        "da": "W",
+        "sv": "W"
       },
-      "desc": {
-        "en": "Water flow in liters per minute (L/min)",
-        "sv": "Vattenflöde i liter per minut (L/min)"
-      },
-      "insights": true,
-      "chartType": "stepLine",
-      "decimals": 2,
-      "getable": true,
-      "setable": false,
-      "uiComponent": "sensor",
-      "icon": "/assets/images/water.svg"
-    },
-    "target_percentage_NIBE": {
-      "type": "number",
-      "title": {
-        "en": "Fanspeed",
-        "sv": "Fläkthastighet"
-      },
-      "chartType": "stepLine",
-      "min": 0,
-      "max": 100,
       "decimals": 0,
-      "units": "%",
-      "getable": true,
-      "setable": true,
-      "uiComponent": "slider"
+      "insights": true,
+      "chartType": "spline",
+      "icon": "/assets/images/pump.svg"
     },
     "time_of_day_NIBE": {
       "title": {
         "en": "Time of day",
-        "sv": "Klockslag"
+        "sv": "Klockslag",
+        "de": "Uhrzeit",
+        "nl": "Tijdstip",
+        "no": "Klokkeslett",
+        "da": "Klokkeslæt"
       },
       "type": "enum",
       "values": [
         {
           "id": "0",
           "title": {
-            "en": "00:00"
+            "en": "00:00",
+            "de": "00:00",
+            "nl": "00:00",
+            "no": "00:00",
+            "da": "00:00",
+            "sv": "00:00"
           }
         },
         {
           "id": "900",
           "title": {
-            "en": "00:15"
+            "en": "00:15",
+            "de": "00:15",
+            "nl": "00:15",
+            "no": "00:15",
+            "da": "00:15",
+            "sv": "00:15"
           }
         },
         {
           "id": "1800",
           "title": {
-            "en": "00:30"
+            "en": "00:30",
+            "de": "00:30",
+            "nl": "00:30",
+            "no": "00:30",
+            "da": "00:30",
+            "sv": "00:30"
           }
         },
         {
           "id": "2700",
           "title": {
-            "en": "00:45"
+            "en": "00:45",
+            "de": "00:45",
+            "nl": "00:45",
+            "no": "00:45",
+            "da": "00:45",
+            "sv": "00:45"
           }
         },
         {
           "id": "3600",
           "title": {
-            "en": "01:00"
+            "en": "01:00",
+            "de": "01:00",
+            "nl": "01:00",
+            "no": "01:00",
+            "da": "01:00",
+            "sv": "01:00"
           }
         },
         {
           "id": "4500",
           "title": {
-            "en": "01:15"
+            "en": "01:15",
+            "de": "01:15",
+            "nl": "01:15",
+            "no": "01:15",
+            "da": "01:15",
+            "sv": "01:15"
           }
         },
         {
           "id": "5400",
           "title": {
-            "en": "01:35"
+            "en": "01:35",
+            "de": "01:35",
+            "nl": "01:35",
+            "no": "01:35",
+            "da": "01:35",
+            "sv": "01:35"
           }
         },
         {
           "id": "6300",
           "title": {
-            "en": "01:45"
+            "en": "01:45",
+            "de": "01:45",
+            "nl": "01:45",
+            "no": "01:45",
+            "da": "01:45",
+            "sv": "01:45"
           }
         },
         {
           "id": "7200",
           "title": {
-            "en": "02:00"
+            "en": "02:00",
+            "de": "02:00",
+            "nl": "02:00",
+            "no": "02:00",
+            "da": "02:00",
+            "sv": "02:00"
           }
         }
       ],

@@ -1,0 +1,94 @@
+{
+  "Off": "Aus",
+  "Hot water": "Brauchwasser",
+  "Heating": "Heizung",
+  "Pool": "Pool",
+  "Cooling": "Kühlung",
+  "Normal": "Normal",
+  "Speed 1": "Stufe 1",
+  "Speed 2": "Stufe 2",
+  "Speed 3": "Stufe 3",
+  "Speed 4": "Stufe 4",
+  "Small": "Klein",
+  "Medium": "Mittel",
+  "Large": "Groß",
+  "Not in use": "Nicht verwendet",
+  "Smart control": "Smart Control",
+  "2 hours": "2 Stunden",
+  "3 hours": "3 Stunden",
+  "6 hours": "6 Stunden",
+  "12 hours": "12 Stunden",
+  "24 hours": "24 Stunden",
+  "48 hours": "48 Stunden",
+  "On": "Ein",
+  "Auto": "Auto",
+  "Manual": "Manuell",
+  "Add.heat only": "Nur Zusatzheizung",
+  "pair": {
+    "title": "NIBE S Konfiguration",
+    "ok": "OK",
+    "ipaddress": "IP-Adresse",
+    "valid_ip_address": "Geben Sie eine gültige IP-Adresse ein (xxx.xxx.xxx.xxx)",
+    "invalid_ipaddress": "Ungültige IP-Adresse",
+    "not_connected": "Keine Verbindung zur Wärmepumpe",
+    "detect": {
+      "title": "Funktionen werden erkannt",
+      "intro": "Verbindung zur Wärmepumpe wird hergestellt und beobachtet, welche Werte sich ändern. Dies dauert etwa eine halbe Minute.",
+      "status": "Register werden abgefragt",
+      "failed": "Die Wärmepumpe konnte nicht gelesen werden",
+      "retry": "Erneut versuchen",
+      "skip": "Erkennung überspringen"
+    },
+    "features": {
+      "title": "Funktionen auswählen",
+      "intro": "Wählen Sie, welche Funktionen überwacht werden sollen. Die Empfehlungen basieren auf den Rückmeldungen der Wärmepumpe.",
+      "insights_note": "Wird eine Funktion deaktiviert, werden ihre Fähigkeiten entfernt – einschließlich des Insights-Verlaufs."
+    },
+    "evidence": {
+      "moving": "Werte ändern sich",
+      "plausible": "scheint vorhanden",
+      "none": "keine Aktivität erkannt",
+      "unsupported": "von der Wärmepumpe nicht unterstützt"
+    },
+    "badge": {
+      "adjustable": "Einstellbar",
+      "insight": "Nur Anzeige"
+    },
+    "discover": {
+      "searching": "Das Netzwerk wird nach NIBE Wärmepumpen durchsucht …",
+      "found": "Wärmepumpe auswählen",
+      "none_found": "Es wurde automatisch keine Wärmepumpe gefunden. Prüfen Sie, ob Modbus TCP an der Wärmepumpe aktiviert ist (Menü 7.5.9), oder geben Sie die IP-Adresse unten ein.",
+      "manual": "IP-Adresse manuell eingeben",
+      "refresh": "Erneut suchen",
+      "pump": "NIBE Wärmepumpe",
+      "outdoor": "Außentemperatur",
+      "title": "Wärmepumpe suchen",
+      "connecting": "Wärmepumpe gefunden – Verbindung wird hergestellt …",
+      "confirm": "Wärmepumpe gefunden – zum Bestätigen tippen"
+    },
+    "devices": {
+      "title": "Geräte hinzufügen",
+      "intro": "Jede Funktion Ihrer Wärmepumpe wird zu einem eigenen Gerät. Die Funktionen, für die Live-Daten gefunden wurden, sind ausgewählt – Sie können aber alle hinzufügen.",
+      "add": "Ausgewählte Geräte hinzufügen",
+      "detected": "Daten erkannt",
+      "notdetected": "Keine Daten",
+      "select_one": "Wählen Sie mindestens ein Gerät aus.",
+      "main_desc": "Übersicht: Außentemperatur, Betriebspriorität und Betriebsmodus sowie Diagnose und Statistik",
+      "energy": "Energie"
+    }
+  },
+  "groups": {
+    "heating": "Heizung",
+    "hotwater": "Brauchwasser",
+    "pool": "Pool",
+    "ventilation": "Lüftung (Abluft)",
+    "groundsource": "Erdwärme (Kollektor)",
+    "electrical": "Stromsensoren",
+    "diagnostics": "Kältemittel-Diagnose",
+    "statistics": "Laufzeitstatistik",
+    "cooling": "Kühlung",
+    "core": "Basissensoren",
+    "alarm": "Alarmbehandlung",
+    "energy": "Energie"
+  }
+}
