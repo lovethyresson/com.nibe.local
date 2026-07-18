@@ -5,7 +5,7 @@ import {capabilities, capabilitiesOptions} from './driver.compose.json';
 import {actions, conditions, triggers} from './driver.flow.compose.json';
 import {
     Dir, GroupId, Register, RegisterInfo, Selection,
-    groupIds, isAdjustable, registerByName, registers
+    groupIds, isAdjustable, isSelectableRegister, registerByName, registers
 } from './registers';
 import {
     ACTIVE_POWER_CAPABILITY, ENERGY_CAPABILITIES, METER_CAPABILITY, Role,
@@ -216,7 +216,7 @@ class NibeSDriver extends Driver {
             registers: id === 'energy'
                 ? this.energyGroupEntries(role, language)
                 : registers
-                    .filter((register) => register.group === id)
+                    .filter((register) => register.group === id && isSelectableRegister(register))
                     .map((register) => ({
                         name: register.name,
                         title: title(register.name),
@@ -309,7 +309,10 @@ class NibeSDriver extends Driver {
         // sensors on a pump that only exposes the fan-mode register). Recorded as
         // overrides so they stay off but can be re-enabled later via repair.
         for (const register of roleRegisters(role)) {
+            // Only the primary of a picker/sensor pair carries an override — the picker
+            // resolves through it (see isRegisterEnabled), so writing both would be noise.
             if (register.group !== 'core'
+                && isSelectableRegister(register)
                 && selection.groups[register.group]
                 && samples[register.name] && !samples[register.name].read)
                 selection.overrides[register.name] = false;
@@ -365,7 +368,7 @@ class NibeSDriver extends Driver {
                 title: this.energyCapabilityTitle(role, cap, lang),
                 detected: true
             })))
-            : registers.filter((register) => register.group === id).map((register) => ({
+            : registers.filter((register) => register.group === id && isSelectableRegister(register)).map((register) => ({
                 name: register.name,
                 title: this.regToAutofill(register).name,
                 detected: samples[register.name]?.read ?? false
@@ -451,25 +454,41 @@ class NibeSDriver extends Driver {
         // detect.js reads the mode to decide where to go after detection.
         session.setHandler('get_context', async () => ({mode: 'pair'}));
 
+        // Detection takes longer than Homey's ~30s pairing RPC timeout (5 passes with 6s
+        // gaps, plus a read of every register per pass), so this handler only *starts* the
+        // probe and returns immediately; completion is reported with detection_done /
+        // detection_failed events. Awaiting the probe here instead made the view fail with
+        // a spurious "Timeout after 30000ms" while the probe was still running, and only
+        // appeared to work on retry because that re-awaited the already-resolved promise.
         session.setHandler('start_detection', async () => {
-            if (!detectionRunning) {
-                const onProgress = (pass: number, passes: number) =>
-                    session.emit('detection_progress', {pass, passes}).catch(() => {});
-                // If a device for this IP already holds the single allowed connection
-                // (e.g. adding another logical device later), probe over it — opening a
-                // second socket would be refused by the pump.
-                const live = existingConnection(ipAddress!);
-                detectionRunning = (live && live.isConnected()
-                    ? live.probe(onProgress)
-                    : probeHost(ipAddress!, onProgress))
-                    .catch((error) => {
-                        detectionRunning = null; // allow the view's retry button to try again
-                        throw error;
-                    });
+            if (detection) {
+                session.emit('detection_done', {}).catch(() => {});
+                return true;
             }
-            detection = await detectionRunning;
-            this.log('Detection result:', JSON.stringify(detection.recommendations));
-            return detection;
+            if (detectionRunning)
+                return true;
+            const onProgress = (pass: number, passes: number) =>
+                session.emit('detection_progress', {pass, passes}).catch(() => {});
+            // If a device for this IP already holds the single allowed connection
+            // (e.g. adding another logical device later), probe over it — opening a
+            // second socket would be refused by the pump.
+            const live = existingConnection(ipAddress!);
+            detectionRunning = live && live.isConnected()
+                ? live.probe(onProgress)
+                : probeHost(ipAddress!, onProgress);
+            detectionRunning
+                .then((result) => {
+                    detection = result;
+                    this.log('Detection result:', JSON.stringify(result.recommendations));
+                    session.emit('detection_done', {}).catch(() => {});
+                })
+                .catch((error) => {
+                    detectionRunning = null; // allow the view's retry button to try again
+                    this.error('Detection failed', error);
+                    session.emit('detection_failed',
+                        {message: error?.message ?? String(error)}).catch(() => {});
+                });
+            return true;
         });
 
         session.setHandler('get_detection', async () => detection);
@@ -491,18 +510,30 @@ class NibeSDriver extends Driver {
             selection: (device.getStoreValue('selection') ?? null) as Selection | null
         }));
 
+        // Starts the probe and returns immediately; see the pairing handler for why the
+        // result comes back as an event rather than this call's return value.
         session.setHandler('start_detection', async () => {
-            if (!detectionRunning) {
-                detectionRunning = device.probeForDetection((pass: number, passes: number) =>
-                    session.emit('detection_progress', {pass, passes}).catch(() => {}))
-                    .catch((error: any) => {
-                        detectionRunning = null; // allow the view's retry button to try again
-                        throw error;
-                    });
+            if (detection) {
+                session.emit('detection_done', {}).catch(() => {});
+                return true;
             }
-            detection = await detectionRunning;
-            this.log('Repair detection result:', JSON.stringify(detection?.recommendations));
-            return detection;
+            if (detectionRunning)
+                return true;
+            detectionRunning = device.probeForDetection((pass: number, passes: number) =>
+                session.emit('detection_progress', {pass, passes}).catch(() => {}));
+            detectionRunning!
+                .then((result: DetectionResult) => {
+                    detection = result;
+                    this.log('Repair detection result:', JSON.stringify(result?.recommendations));
+                    session.emit('detection_done', {}).catch(() => {});
+                })
+                .catch((error: any) => {
+                    detectionRunning = null; // allow the view's retry button to try again
+                    this.error('Repair detection failed', error);
+                    session.emit('detection_failed',
+                        {message: error?.message ?? String(error)}).catch(() => {});
+                });
+            return true;
         });
 
         session.setHandler('get_detection', async () => detection);

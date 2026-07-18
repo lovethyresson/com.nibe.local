@@ -35,20 +35,28 @@ function showError(message) {
     retryEl.style.display = 'inline-block';
 }
 
+// Detection runs longer than Homey's ~30s RPC timeout, so start_detection only kicks
+// it off — the outcome arrives as a detection_done / detection_failed event. Waiting on
+// the emit callback instead reported a spurious timeout while the probe was still running.
 function startDetection() {
     errorEl.style.display = 'none';
     retryEl.style.display = 'none';
     barEl.style.width = '3%';
     statusEl.textContent = Homey.__('pair.detect.status');
     Homey.emit('start_detection', {}, function (err) {
-        if (err) {
+        if (err)
             showError((err && err.message) || String(err));
-            return;
-        }
-        barEl.style.width = '100%';
-        Homey.showView(nextView);
     });
 }
+
+Homey.on('detection_done', function () {
+    barEl.style.width = '100%';
+    Homey.showView(nextView);
+});
+
+Homey.on('detection_failed', function (data) {
+    showError(data && data.message);
+});
 
 retryEl.onclick = function (e) {
     e.preventDefault();

@@ -383,10 +383,32 @@ export interface Selection {
     overrides: Record<string, boolean>;
 }
 
+// A `picker: true` register is a second representation of the same Modbus register as a
+// non-picker twin at the same address: the settable control alongside the read-only,
+// insights-logging sensor. Both are wanted (an enum picker can't be graphed and a sensor
+// can't be set), but they are one thing to the user — so the feature lists show a single
+// row per Modbus register and the picker follows its twin's selection instead of carrying
+// an override of its own. Without that, unchecking the sensor would leave the picker
+// enabled via the group default and the two would drift apart.
+const pickerPrimary: Record<string, string> = {};
+for (const register of registers) {
+    if (!register.picker)
+        continue;
+    const twin = registers.find((other) => other.address === register.address && !other.picker);
+    if (twin)
+        pickerPrimary[register.name] = twin.name;
+}
+
+// Registers offered in the pairing/repair feature lists — one row per Modbus register.
+export function isSelectableRegister(register: Register): boolean {
+    return !pickerPrimary[register.name];
+}
+
 export function isRegisterEnabled(register: Register, selection: Selection | null | undefined): boolean {
     if (register.group === "core" || !selection)
         return true;
-    return selection.overrides?.[register.name]
+    const key = pickerPrimary[register.name] ?? register.name;
+    return selection.overrides?.[key]
         ?? selection.groups?.[register.group]
         ?? true;
 }

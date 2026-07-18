@@ -146,14 +146,16 @@
       }
     },
     "measure_count_NIBE.h26_heat_curve": {
+      "uiComponent": null,
       "title": {
-        "en": "Heatcurve",
+        "en": "Heat curve",
         "sv": "Värmekurva"
       }
     },
     "measure_count_NIBE.h30_heat_curve_displacement": {
+      "uiComponent": null,
       "title": {
-        "en": "Heatcurve displacement",
+        "en": "Heat curve displacement",
         "sv": "Värmeförskjutning"
       }
     },
@@ -292,15 +294,15 @@
     },
     "curve_mode_NIBE.h26_heat_curve": {
       "title": {
-        "en": "Heatcurve 0-15",
-        "sv": "Värmekurva 0-15"
+        "en": "Heat curve",
+        "sv": "Värmekurva"
       }
     },
 
     "curve_displacement_NIBE.h30_heat_curve_displacement": {
       "title": {
-        "en": "Displacement -10 - +10",
-        "sv": "Kurvförskjutning -10 - +10"
+        "en": "Heat curve displacement",
+        "sv": "Värmeförskjutning"
       }
     },
 
@@ -311,6 +313,7 @@
       }
     },
     "hotwater_increase_NIBE.h697_onetimeincrease_hotwater": {
+      "uiComponent": null,
       "title": {
         "en": "One-time increase",
         "sv": "Engångshöjning"
@@ -591,18 +594,21 @@
     },
 
     "button.h22_reset_alarm": {
+      "uiComponent": null,
       "title": {
         "en": "Reset alarm",
         "sv": "Återställ larm"
       }
     },
     "onoff.h196_alarm_lower_room_temp": {
+      "uiComponent": null,
       "title": {
         "en": "On alarm: lower room temperature",
         "sv": "Vid larm: sänk rumstemperatur"
       }
     },
     "onoff.h197_alarm_lower_hw_temp": {
+      "uiComponent": null,
       "title": {
         "en": "On alarm: lower hot water temperature",
         "sv": "Vid larm: sänk varmvattentemperatur"
