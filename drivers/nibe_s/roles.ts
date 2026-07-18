@@ -8,10 +8,13 @@ export type Role = "main" | "heating" | "hotwater" | "pool" | "cooling";
 
 export const functionRoles: Role[] = ["heating", "hotwater", "pool", "cooling"];
 
-// Homey device class per role. `heater`/`boiler` give the tile its primary on/off
-// control and dim-when-off state; there's no cooler/pool class so those stay "other".
+// Homey device class per role. The class drives how the tile renders — `heater`/
+// `boiler`/`heatpump` give it a primary on/off control and the dim-when-off state,
+// while "other" renders as a plain sensor device. Main is the pump itself, so it takes
+// `heatpump`: with class "other" its derived on/off state had nothing to render into.
+// There's no cooler/pool class, so those stay "other".
 export const roleClass: Record<Role, string> = {
-    main: "other",
+    main: "heatpump",
     heating: "heater",
     hotwater: "boiler",
     pool: "other",

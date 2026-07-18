@@ -20,6 +20,10 @@ class NibeSDevice extends Device implements PumpSubscriber {
     // Energy bucket (function roles only). Charged by the connection's allocator.
     private cumulativeEnergy = 0;
 
+    // Last derived on/off for the main device, so the transition is logged once rather
+    // than on every poll.
+    private lastPumpActive: boolean | null = null;
+
     private host(): string {
         return this.getSettings().address;
     }
@@ -268,8 +272,12 @@ class NibeSDevice extends Device implements PumpSubscriber {
         // unrecognised priority counts as on — the pump is doing something we can't name.
         if (this.role === 'main' && register.name === PRIORITY_REGISTER_NAME
             && this.hasCapability(PUMP_ACTIVE_CAPABILITY)) {
-            this.setCapabilityValue(PUMP_ACTIVE_CAPABILITY, raw !== PRIORITY_RAW_OFF)
-                .catch(this.error);
+            const active = raw !== PRIORITY_RAW_OFF;
+            if (active !== this.lastPumpActive) {
+                this.lastPumpActive = active;
+                this.log(`Priority ${raw} -> ${active ? 'active' : 'idle'}`);
+            }
+            this.setCapabilityValue(PUMP_ACTIVE_CAPABILITY, active).catch(this.error);
         }
     }
 
