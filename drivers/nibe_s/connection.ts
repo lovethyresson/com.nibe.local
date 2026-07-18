@@ -13,6 +13,24 @@ import {DetectionResult, buildDetectionResult, readNumeric, sampleRegisters} fro
 // the socket, the last detach tears it down — and independent of device init
 // order (Homey guarantees none).
 
+// Poll interval bounds, in seconds. The floor is set by the pump, the ceiling by the
+// energy split. Reads are one Modbus request per register (not batched) fired as one
+// burst, and Nibe M12676EN allows 100 registers/second: a fully populated pump polls
+// ~77 registers, so 5 s is ~15/s — roughly 6x under the limit and enough time for the
+// burst to land. Above 60 s the per-function energy split degrades, because
+// allocateEnergy() charges a whole interval to whichever function was prioritised at
+// the sampling instant, so any priority change in between is misattributed.
+export const POLL_SECONDS_MIN = 5;
+export const POLL_SECONDS_MAX = 60;
+export const POLL_SECONDS_DEFAULT = 10;
+
+export function clampPollSeconds(seconds: any): number {
+    const n = Number(seconds);
+    if (!Number.isFinite(n))
+        return POLL_SECONDS_DEFAULT;
+    return Math.min(POLL_SECONDS_MAX, Math.max(POLL_SECONDS_MIN, Math.round(n)));
+}
+
 // A device subscribing to a pump connection. Homey's Device already provides log/error.
 export interface PumpSubscriber {
     role: Role;
@@ -20,6 +38,9 @@ export interface PumpSubscriber {
     onRegisterRaw(register: Register, raw: number): void;
     onConnectionUp(): void;
     onConnectionDown(): void;
+    // Poll interval this device asks for, in seconds. The main device's value wins (see
+    // desiredPollSeconds); the rest only matter when no main device is paired.
+    pollSeconds(): number;
     // Only the function devices implement this — see PumpConnection.allocateEnergy().
     onEnergy?(deltaKwh: number, watts: number): void;
 }
@@ -41,6 +62,11 @@ export class PumpConnection {
     private client: ModbusTCPClient;
     private subscribers = new Set<PumpSubscriber>();
     private pollInterval: NodeJS.Timeout | null = null;
+    private pollSeconds = POLL_SECONDS_DEFAULT;
+    // Guards against overlapping polls: a cycle is a burst of one Modbus request per
+    // register, and at a short interval (or on a slow pump) the next tick can arrive
+    // before the previous burst has landed. Without this the bursts would stack.
+    private polling = false;
     private retryTimer: NodeJS.Timeout | null = null;
     private connected = false;
     private destroyed = false;
@@ -81,6 +107,9 @@ export class PumpConnection {
 
     attach(subscriber: PumpSubscriber) {
         this.subscribers.add(subscriber);
+        // Attaching can change who owns the interval (a main device taking over) or the
+        // lowest requested value, so re-evaluate before replaying cached values.
+        this.refreshPollInterval();
         if (this.connected) {
             subscriber.onConnectionUp();
             // Replay cached values so a late attach reflects state immediately.
@@ -98,6 +127,8 @@ export class PumpConnection {
         this.subscribers.delete(subscriber);
         if (this.subscribers.size === 0)
             this.destroy();
+        else
+            this.refreshPollInterval(); // the main device may have just left
     }
 
     private destroy() {
@@ -111,14 +142,44 @@ export class PumpConnection {
         connections.delete(this.host);
     }
 
+    // The interval to run at: the main device owns the setting and the function devices
+    // inherit it, so the pump is polled once at one rate no matter how many devices are
+    // paired. Falls back to the lowest requested value when no main device is paired
+    // (adding one later takes over), and to the default when nothing is attached.
+    private desiredPollSeconds(): number {
+        const main = [...this.subscribers].find((subscriber) => subscriber.role === 'main');
+        if (main)
+            return clampPollSeconds(main.pollSeconds());
+        const asked = [...this.subscribers].map((subscriber) => clampPollSeconds(subscriber.pollSeconds()));
+        return asked.length ? Math.min(...asked) : POLL_SECONDS_DEFAULT;
+    }
+
+    // Restart the timer if the wanted interval changed. Called when devices attach or
+    // detach (which can change who owns the setting) and from the settings handler.
+    refreshPollInterval() {
+        const wanted = this.desiredPollSeconds();
+        if (wanted === this.pollSeconds && this.pollInterval)
+            return;
+        this.pollSeconds = wanted;
+        if (!this.connected)
+            return;
+        if (this.pollInterval)
+            clearInterval(this.pollInterval);
+        this.log(`Polling every ${wanted} s`);
+        this.pollInterval = setInterval(() => this.poll(), wanted * 1000);
+    }
+
     private onConnect() {
         this.log('Connected');
         this.connected = true;
         this.lastPowerReading = null;
         this.lastPollTime = Date.now();
+        this.polling = false;
         this.subscribers.forEach((subscriber) => subscriber.onConnectionUp());
         setTimeout(() => this.poll(), 200);
-        this.pollInterval = setInterval(() => this.poll(), 5000);
+        this.pollSeconds = this.desiredPollSeconds();
+        this.log(`Polling every ${this.pollSeconds} s`);
+        this.pollInterval = setInterval(() => this.poll(), this.pollSeconds * 1000);
     }
 
     private onSocketError(error: any) {
@@ -176,8 +237,9 @@ export class PumpConnection {
     }
 
     private poll() {
-        if (!this.connected)
+        if (!this.connected || this.polling)
             return;
+        this.polling = true;
         const toPoll = this.unionRegisters();
         Promise.all(toPoll.map((register) => this.readRegisterRaw(register))).then((raws) => {
             const rawByName = new Map<string, number>();
@@ -199,6 +261,8 @@ export class PumpConnection {
         }).catch((error) => {
             this.log('Poll failed', error?.message ?? error);
             this.socket.end(); // triggers 'close' → reconnect
+        }).finally(() => {
+            this.polling = false;
         });
     }
 

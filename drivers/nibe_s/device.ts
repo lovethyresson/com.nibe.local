@@ -5,7 +5,7 @@ import {
     ACTIVE_POWER_CAPABILITY, METER_CAPABILITY, Role,
     energyTitle, extraCapabilities, powerTitle, registersForRole, roleClass, roleOf, roleRegisters
 } from './roles';
-import {PumpConnection, PumpSubscriber} from './connection';
+import {PumpConnection, PumpSubscriber, POLL_SECONDS_DEFAULT, clampPollSeconds} from './connection';
 
 // One logical function of the physical pump (see roles.ts). All devices share a
 // single PumpConnection per pump IP; this class is just the Homey-facing subscriber:
@@ -216,6 +216,13 @@ class NibeSDevice extends Device implements PumpSubscriber {
 
     // ---- PumpSubscriber ----
 
+    // Polling rate this device asks the shared connection for. The main device owns the
+    // setting; the others inherit it (see PumpConnection.desiredPollSeconds) and only
+    // matter when no main device is paired.
+    pollSeconds(): number {
+        return clampPollSeconds(this.getSettings().pollInterval ?? POLL_SECONDS_DEFAULT);
+    }
+
     wantedRegisters(): Register[] {
         return registersForRole(this.role, this.getSelection());
     }
@@ -254,11 +261,35 @@ class NibeSDevice extends Device implements PumpSubscriber {
             if (this.hasCapability(METER_CAPABILITY))
                 this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
         }
+        if (changedKeys.includes('pollInterval')) {
+            const seconds = clampPollSeconds(newSettings.pollInterval);
+            this.log(`Poll interval set to ${seconds} s`);
+            // Homey renders the driver's settings form on every device, so this field
+            // appears on all five. Keep them in sync rather than leaving four copies
+            // that look editable but are ignored: write the value to the siblings on
+            // this pump (only where it differs, so the cascade stops after one round).
+            this.syncPollIntervalToSiblings(seconds).catch(this.error);
+            this.connection?.refreshPollInterval();
+        }
         if (changedKeys.includes('address')) {
             this.log(`Address changed to ${newSettings.address}, reconnecting`);
             this.connection?.detach(this);
             this.connection = PumpConnection.get(newSettings.address);
             this.connection.attach(this);
+        }
+    }
+
+    // Mirror the poll interval onto the other devices of the same pump. Guarded on the
+    // value actually differing, so the resulting onSettings on each sibling is a no-op
+    // and this doesn't recurse.
+    private async syncPollIntervalToSiblings(seconds: number) {
+        const host = this.host();
+        for (const device of this.driver.getDevices() as any[]) {
+            if (device === this || device.getSettings?.().address !== host)
+                continue;
+            if (clampPollSeconds(device.getSettings().pollInterval) === seconds)
+                continue;
+            await device.setSettings({pollInterval: seconds}).catch(this.error);
         }
     }
 

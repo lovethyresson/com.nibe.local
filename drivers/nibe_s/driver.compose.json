@@ -1025,6 +1025,45 @@
           "value": 0
         }
       ]
+    },
+    {
+      "type": "group",
+      "label": {
+        "en": "Advanced",
+        "sv": "Avancerat",
+        "de": "Erweitert",
+        "nl": "Geavanceerd",
+        "no": "Avansert",
+        "da": "Avanceret"
+      },
+      "children": [
+        {
+          "id": "pollInterval",
+          "type": "number",
+          "label": {
+            "en": "Poll interval (seconds)",
+            "sv": "Avläsningsintervall (sekunder)",
+            "de": "Abfrageintervall (Sekunden)",
+            "nl": "Uitleesinterval (seconden)",
+            "no": "Avlesningsintervall (sekunder)",
+            "da": "Aflæsningsinterval (sekunder)"
+          },
+          "hint": {
+            "en": "How often the heat pump is read. Set this on the Nibe Main device; the other devices follow it. Lower is more responsive but puts more load on the pump; above roughly a minute the per-function energy split gets less accurate.",
+            "sv": "Hur ofta värmepumpen läses av. Ställ in detta på enheten Nibe Main; övriga enheter följer den. Lägre värde ger snabbare uppdatering men belastar värmepumpen mer; över ungefär en minut blir energifördelningen per funktion mindre exakt.",
+            "de": "Wie oft die Wärmepumpe abgefragt wird. Stellen Sie dies am Gerät Nibe Main ein; die übrigen Geräte übernehmen den Wert. Ein kleinerer Wert reagiert schneller, belastet die Wärmepumpe aber stärker; oberhalb von etwa einer Minute wird die Energieaufteilung pro Funktion ungenauer.",
+            "nl": "Hoe vaak de warmtepomp wordt uitgelezen. Stel dit in op het apparaat Nibe Main; de overige apparaten volgen die waarde. Lager reageert sneller maar belast de warmtepomp meer; boven ongeveer een minuut wordt de energieverdeling per functie minder nauwkeurig.",
+            "no": "Hvor ofte varmepumpen leses av. Angi dette på enheten Nibe Main; de øvrige enhetene følger den. Lavere gir raskere oppdatering, men belaster varmepumpen mer; over omtrent ett minutt blir energifordelingen per funksjon mindre nøyaktig.",
+            "da": "Hvor ofte varmepumpen aflæses. Indstil dette på enheden Nibe Main; de øvrige enheder følger den. Lavere giver hurtigere opdatering, men belaster varmepumpen mere; over cirka et minut bliver energifordelingen pr. funktion mindre nøjagtig."
+          },
+          "value": 10,
+          "min": 5,
+          "max": 60,
+          "units": {
+            "en": "s"
+          }
+        }
+      ]
     }
   ]
 }
