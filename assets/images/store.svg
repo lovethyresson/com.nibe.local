@@ -1,9 +1,38 @@
 <svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg">
-    <!-- Source for the app store images (small/large/xlarge.png). Replaces the red
-         artwork inherited from the fork. Keep in sync with brandColor. -->
-    <rect width="200" height="140" fill="#174E56"/>
-    <g transform="translate(40,10) scale(1.2)">
-        <g fill="#ffffff"><rect x="18" y="18" width="28" height="28" rx="5"/><rect x="54" y="18" width="28" height="28" rx="5"/><rect x="18" y="54" width="28" height="28" rx="5"/><rect x="54" y="54" width="28" height="28" rx="5"/></g>
-        <g transform="translate(22,22) scale(0.2)"><path d="M40 20 a10 10 0 0 1 20 0 v40 a18 18 0 1 1 -20 0 Z" fill="none" stroke="#174E56" stroke-width="5" stroke-linejoin="round"/><circle cx="50" cy="76" r="12" fill="#174E56"/><rect x="45" y="42" width="10" height="34" fill="#174E56"/></g><g transform="translate(58,22) scale(0.2)"><path d="M50 10 C66 38 71 50 71 57 A21 21 0 0 1 29 57 C29 50 34 38 50 10 Z" fill="#174E56"/><path d="M22 86 c9-8 19-8 28 0 s19 8 28 0" fill="none" stroke="#174E56" stroke-width="5" stroke-linecap="round"/></g><g transform="translate(22,58) scale(0.2)"><path d="M28 34 a8 8 0 0 1 16 0 v30 a14 14 0 1 1 -16 0 Z" fill="none" stroke="#174E56" stroke-width="5" stroke-linejoin="round"/><circle cx="36" cy="76" r="9.5" fill="#174E56"/><rect x="32" y="62" width="8" height="14" fill="#174E56"/><g stroke="#174E56" stroke-width="4.5" stroke-linecap="round"><line x1="72" y1="18" x2="72" y2="50"/><line x1="58" y1="26" x2="86" y2="42"/><line x1="86" y1="26" x2="58" y2="42"/></g></g><g transform="translate(58,58) scale(0.2)"><g fill="none" stroke="#174E56" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M36 12 L36 60"/><path d="M54 12 L54 60"/><path d="M36 24 L54 24"/><path d="M36 36 L54 36"/><path d="M36 48 L54 48"/><path d="M12 76 c11-10 23-10 34 0 s23 10 34 0"/><path d="M12 88 c11-10 23-10 34 0 s23 10 34 0"/></g></g>
+    <!-- Source for the app store images (small/large/xlarge.png), rendered with sharp.
+         The four pump functions sit in a row so the landscape format is used rather
+         than fought, over a teal gradient with soft contour lines suggesting flow.
+         The dark field is deliberate: the Homey store page is white, so a light image
+         would lose its edges. Keep the colours in sync with brandColor. -->
+    <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1f6b76"/>
+            <stop offset="1" stop-color="#0d353d"/>
+        </linearGradient>
+        <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.30"/>
+        </filter>
+    </defs>
+
+    <rect width="200" height="140" fill="url(#bg)"/>
+
+    <g fill="none" stroke="#ffffff" stroke-opacity="0.13" stroke-width="2.4">
+        <path d="M-10 34 C40 14 70 54 110 34 S180 14 210 34"/>
+        <path d="M-10 54 C40 34 70 74 110 54 S180 34 210 54"/>
+        <path d="M-10 74 C40 54 70 94 110 74 S180 54 210 74"/>
+        <path d="M-10 94 C40 74 70 114 110 94 S180 74 210 94"/>
+        <path d="M-10 114 C40 94 70 134 110 114 S180 94 210 114"/>
+        <path d="M-10 134 C40 114 70 154 110 134 S180 114 210 134"/>
     </g>
+
+    <g filter="url(#shadow)" fill="#ffffff">
+        <rect x="14" y="51" width="38" height="38" rx="7.6"/>
+        <rect x="58" y="51" width="38" height="38" rx="7.6"/>
+        <rect x="102" y="51" width="38" height="38" rx="7.6"/>
+        <rect x="146" y="51" width="38" height="38" rx="7.6"/>
+    </g>
+    <g transform="translate(20.08,57.08) scale(0.2584)"><path d="M40 20 a10 10 0 0 1 20 0 v40 a18 18 0 1 1 -20 0 Z" fill="none" stroke="#174E56" stroke-width="5" stroke-linejoin="round"/><circle cx="50" cy="76" r="12" fill="#174E56"/><rect x="45" y="42" width="10" height="34" fill="#174E56"/></g>
+    <g transform="translate(64.08,57.08) scale(0.2584)"><path d="M50 10 C66 38 71 50 71 57 A21 21 0 0 1 29 57 C29 50 34 38 50 10 Z" fill="#174E56"/><path d="M22 86 c9-8 19-8 28 0 s19 8 28 0" fill="none" stroke="#174E56" stroke-width="5" stroke-linecap="round"/></g>
+    <g transform="translate(108.08,57.08) scale(0.2584)"><path d="M28 34 a8 8 0 0 1 16 0 v30 a14 14 0 1 1 -16 0 Z" fill="none" stroke="#174E56" stroke-width="5" stroke-linejoin="round"/><circle cx="36" cy="76" r="9.5" fill="#174E56"/><rect x="32" y="62" width="8" height="14" fill="#174E56"/><g stroke="#174E56" stroke-width="4.5" stroke-linecap="round"><line x1="72" y1="18" x2="72" y2="50"/><line x1="58" y1="26" x2="86" y2="42"/><line x1="86" y1="26" x2="58" y2="42"/></g></g>
+    <g transform="translate(152.08,57.08) scale(0.2584)"><g fill="none" stroke="#174E56" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M36 12 L36 60"/><path d="M54 12 L54 60"/><path d="M36 24 L54 24"/><path d="M36 36 L54 36"/><path d="M36 48 L54 48"/><path d="M12 76 c11-10 23-10 34 0 s23 10 34 0"/><path d="M12 88 c11-10 23-10 34 0 s23 10 34 0"/></g></g>
 </svg>
