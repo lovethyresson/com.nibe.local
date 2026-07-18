@@ -24,7 +24,8 @@
   "permissions": [],
   "homepage": "https://github.com/lovethyresson/com.nibe.local",
   "source": "https://github.com/lovethyresson/com.nibe.local",
-  "support": "https://github.com/lovethyresson/com.nibe.local/issues",
+  "support": "https://community.homey.app/t/app-pro-nibe-live-local-nibe-control-split-into-the-devices-you-actually-automate/157330",
+  "homeyCommunityTopicId": 157330,
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/lovethyresson/com.nibe.local/issues"
