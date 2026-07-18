@@ -1,6 +1,6 @@
 {
   "id": "com.nibe.local",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
