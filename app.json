@@ -94,6 +94,48 @@
               "da": "Register"
             }
           }
+        ],
+        "tokens": [
+          {
+            "name": "value",
+            "type": "string",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            },
+            "example": {
+              "en": "Hot water",
+              "sv": "Varmvatten",
+              "de": "Brauchwasser",
+              "nl": "Warmtapwater",
+              "no": "Varmtvann",
+              "da": "Varmtvand"
+            }
+          },
+          {
+            "name": "register",
+            "type": "string",
+            "title": {
+              "en": "Register",
+              "sv": "Register",
+              "de": "Register",
+              "nl": "Register",
+              "no": "Register",
+              "da": "Register"
+            },
+            "example": {
+              "en": "Hot water demand",
+              "sv": "Varmvattenbehov",
+              "de": "Brauchwasserbedarf",
+              "nl": "Warmtapwaterbehoefte",
+              "no": "Varmtvannsbehov",
+              "da": "Varmtvandsbehov"
+            }
+          }
         ]
       },
       {
@@ -140,6 +182,28 @@
               "da": "Register"
             }
           }
+        ],
+        "tokens": [
+          {
+            "name": "register",
+            "type": "string",
+            "title": {
+              "en": "Register",
+              "sv": "Register",
+              "de": "Register",
+              "nl": "Register",
+              "no": "Register",
+              "da": "Register"
+            },
+            "example": {
+              "en": "Hot water demand",
+              "sv": "Varmvattenbehov",
+              "de": "Brauchwasserbedarf",
+              "nl": "Warmtapwaterbehoefte",
+              "no": "Varmtvannsbehov",
+              "da": "Varmtvandsbehov"
+            }
+          }
         ]
       },
       {
@@ -184,6 +248,28 @@
               "nl": "Register",
               "no": "Register",
               "da": "Register"
+            }
+          }
+        ],
+        "tokens": [
+          {
+            "name": "register",
+            "type": "string",
+            "title": {
+              "en": "Register",
+              "sv": "Register",
+              "de": "Register",
+              "nl": "Register",
+              "no": "Register",
+              "da": "Register"
+            },
+            "example": {
+              "en": "Hot water demand",
+              "sv": "Varmvattenbehov",
+              "de": "Brauchwasserbedarf",
+              "nl": "Warmtapwaterbehoefte",
+              "no": "Varmtvannsbehov",
+              "da": "Varmtvandsbehov"
             }
           }
         ]

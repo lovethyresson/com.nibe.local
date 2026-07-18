@@ -78,16 +78,29 @@ class NibeSDevice extends Device implements PumpSubscriber {
     private turnedOnTrigger = this.homey.flow.getDeviceTriggerCard("capability_turned_on");
     private turnedOffTrigger = this.homey.flow.getDeviceTriggerCard("capability_turned_off");
 
+    // Human-readable capability title, for the `register` Flow token. Falls back through
+    // the app language, English, then the raw capability name.
+    private registerTitle(register: Register): string {
+        const option: any = (capabilitiesOptions as any)[register.name];
+        const language = this.homey.i18n.getLanguage();
+        return option?.title?.[language] || option?.title?.en || register.name;
+    }
+
     private checkTrigger(register: Register, value: any) {
         // A command register never "turned on" — it was pressed. Nothing to trigger on.
         if (register.writeOnly)
             return;
+        // The second argument is the card's Flow tokens (what shows up under "This Flow"
+        // downstream); the third is trigger state, only used to match the card's register
+        // argument. Passing {} left every Nibe trigger contributing nothing to the flow.
+        const name = this.registerTitle(register);
+        const state = {register: {id: register.name}, value: value};
         if (register.bool && value) {
-            this.turnedOnTrigger.trigger(this, {}, {register: {id: register.name}, value: value});
+            this.turnedOnTrigger.trigger(this, {register: name}, state);
         } else if (register.bool && !value) {
-            this.turnedOffTrigger.trigger(this, {}, {register: {id: register.name}, value: value});
+            this.turnedOffTrigger.trigger(this, {register: name}, state);
         } else if (register.enum) {
-            this.capabilityChangedTrigger.trigger(this, {}, {register: {id: register.name}, value: value});
+            this.capabilityChangedTrigger.trigger(this, {value: `${value}`, register: name}, state);
         }
     }
 
