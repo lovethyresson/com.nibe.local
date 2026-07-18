@@ -1857,7 +1857,7 @@
         "measure_day_NIBE.h66_periodic_hotwater_interval": {
           "uiComponent": null,
           "title": {
-            "en": "Periodic hotwater interval",
+            "en": "Periodic hot water interval",
             "sv": "Periodiskt varmvatten intervall",
             "de": "Intervall periodische Erhöhung",
             "nl": "Interval periodiek warmtapwater",
@@ -1897,13 +1897,14 @@
         },
         "measure_enum_NIBE.h56_hotwater_demand_mode": {
           "title": {
-            "en": "Hotwaterdemand",
+            "en": "Hot water demand",
             "sv": "Varmvattenbehov",
             "de": "Brauchwasserbedarf",
             "nl": "Warmtapwaterbehoefte",
             "no": "Varmtvannsbehov",
             "da": "Varmtvandsbehov"
-          }
+          },
+          "uiComponent": null
         },
         "measure_enum_NIBE.h65_periodic_hotwater": {
           "uiComponent": null,
@@ -1978,7 +1979,7 @@
         },
         "measure_hour_NIBE.i1091_compressor_usage_hotwater": {
           "title": {
-            "en": "Total compressor duration hotwater",
+            "en": "Compressor runtime (hot water)",
             "sv": "Total timmar värme",
             "de": "Verdichterlaufzeit Brauchwasser",
             "nl": "Bedrijfstijd compressor warmtapwater",
@@ -1989,7 +1990,7 @@
         "measure_minute_NIBE.h92_periodtime_hotwater": {
           "uiComponent": null,
           "title": {
-            "en": "Period time hotwater",
+            "en": "Hot water period time",
             "sv": "Periodtid varmvatten",
             "de": "Periodendauer Brauchwasser",
             "nl": "Periodetijd warmtapwater",
@@ -2050,7 +2051,7 @@
         },
         "hotwater_demand_NIBE.h56_hotwater_demand_mode": {
           "title": {
-            "en": "Hotwater demand",
+            "en": "Hot water demand",
             "sv": "Varmvatten behov",
             "de": "Brauchwasserbedarf",
             "nl": "Warmtapwaterbehoefte",
@@ -2072,7 +2073,7 @@
         "hotwater_periodtime_NIBE.h92_periodtime_hotwater": {
           "uiComponent": null,
           "title": {
-            "en": "Periodic hotwater length",
+            "en": "Periodic hot water length",
             "sv": "Periodiskt varmvatten längd",
             "de": "Dauer periodische Erhöhung",
             "nl": "Duur periodiek warmtapwater",
@@ -2083,7 +2084,7 @@
         "hotwater_periodic_interval_NIBE.h66_periodic_hw_interval": {
           "uiComponent": null,
           "title": {
-            "en": "Periodic hotwater interval",
+            "en": "Periodic hot water interval",
             "sv": "Periodiskt varmvatten intervall",
             "de": "Intervall periodische Erhöhung",
             "nl": "Interval periodiek warmtapwater",
@@ -2166,7 +2167,7 @@
         },
         "measure_temperature.i8_warmwater_top": {
           "title": {
-            "en": "Hotwater top (BT7)",
+            "en": "Hot water top (BT7)",
             "sv": "Varmvatten topp (BT7)",
             "de": "Brauchwasser oben (BT7)",
             "nl": "Warmtapwater boven (BT7)",
@@ -2546,7 +2547,7 @@
         "onoff.h65_periodic_hotwater": {
           "uiComponent": null,
           "title": {
-            "en": "Periodic hotwater",
+            "en": "Periodic hot water",
             "sv": "Periodiskt varmvatten",
             "de": "Periodische Erhöhung",
             "nl": "Periodiek warmtapwater",
