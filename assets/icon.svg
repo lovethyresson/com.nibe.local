@@ -1,8 +1,15 @@
 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <!-- Four-tile grid (one tile per pump function) with each function's icon, in the
+         brandColor. Homey renders this on brandColor, so the icons are that colour and
+         must be kept in sync with brandColor in .homeycompose/app.json. -->
     <g fill="#ffffff">
-        <rect x="18" y="18" width="28" height="28" rx="5"/>
-        <rect x="54" y="18" width="28" height="28" rx="5"/>
-        <rect x="18" y="54" width="28" height="28" rx="5"/>
-        <rect x="54" y="54" width="28" height="28" rx="5"/>
+        <rect x='18' y='18' width='28' height='28' rx='5'/>
+        <rect x='54' y='18' width='28' height='28' rx='5'/>
+        <rect x='18' y='54' width='28' height='28' rx='5'/>
+        <rect x='54' y='54' width='28' height='28' rx='5'/>
     </g>
+    <g transform='translate(22,22) scale(0.2)'><path d="M40 20 a10 10 0 0 1 20 0 v40 a18 18 0 1 1 -20 0 Z" fill="none" stroke="#174E56" stroke-width="5" stroke-linejoin="round"/><circle cx="50" cy="76" r="12" fill="#174E56"/><rect x="45" y="42" width="10" height="34" fill="#174E56"/></g>
+    <g transform='translate(58,22) scale(0.2)'><path d="M50 10 C66 38 71 50 71 57 A21 21 0 0 1 29 57 C29 50 34 38 50 10 Z" fill="#174E56"/><path d="M22 86 c9-8 19-8 28 0 s19 8 28 0" fill="none" stroke="#174E56" stroke-width="5" stroke-linecap="round"/></g>
+    <g transform='translate(22,58) scale(0.2)'><path d="M28 34 a8 8 0 0 1 16 0 v30 a14 14 0 1 1 -16 0 Z" fill="none" stroke="#174E56" stroke-width="5" stroke-linejoin="round"/><circle cx="36" cy="76" r="9.5" fill="#174E56"/><rect x="32" y="62" width="8" height="14" fill="#174E56"/><g stroke="#174E56" stroke-width="4.5" stroke-linecap="round"><line x1="72" y1="18" x2="72" y2="50"/><line x1="58" y1="26" x2="86" y2="42"/><line x1="86" y1="26" x2="58" y2="42"/></g></g>
+    <g transform='translate(58,58) scale(0.2)'><g fill="none" stroke="#174E56" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M36 12 L36 60"/><path d="M54 12 L54 60"/><path d="M36 24 L54 24"/><path d="M36 36 L54 36"/><path d="M36 48 L54 48"/><path d="M12 76 c11-10 23-10 34 0 s23 10 34 0"/><path d="M12 88 c11-10 23-10 34 0 s23 10 34 0"/></g></g>
 </svg>
