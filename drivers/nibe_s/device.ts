@@ -148,11 +148,16 @@ class NibeSDevice extends Device implements PumpSubscriber {
             return {title: energyTitle(this.role)};
         if (name === ACTIVE_POWER_CAPABILITY)
             return {title: powerTitle(this.role), decimals: 0};
-        // Main's on/off reflects the operating priority and cannot be commanded, so it
-        // needs both its own title (the shared compose entry names register 697's "More
-        // hot water") and setable:false to render as state rather than a switch.
+        // Main's on/off reflects the operating priority and cannot be commanded. It needs
+        // its own title (the shared compose entry names register 697's "More hot water")
+        // and uiComponent:null to drop the switch. `setable: false` was tried first and is
+        // not honoured — it left the toggle in place and, being outside Homey's settings
+        // schema, risks the stored flag rejecting our own setCapabilityValue writes.
+        // setable is restored to true on purpose: an earlier build stored `false` here,
+        // and since the options are merged rather than replaced, omitting it would leave
+        // that stale flag on already-paired devices.
         if (name === PUMP_ACTIVE_CAPABILITY && this.role === 'main')
-            return {title: pumpActiveTitle(), setable: false};
+            return {title: pumpActiveTitle(), uiComponent: null, setable: true};
         return undefined;
     }
 
@@ -277,7 +282,8 @@ class NibeSDevice extends Device implements PumpSubscriber {
                 this.lastPumpActive = active;
                 this.log(`Priority ${raw} -> ${active ? 'active' : 'idle'}`);
             }
-            this.setCapabilityValue(PUMP_ACTIVE_CAPABILITY, active).catch(this.error);
+            this.setCapabilityValue(PUMP_ACTIVE_CAPABILITY, active)
+                .catch((error) => this.error(`Could not set ${PUMP_ACTIVE_CAPABILITY}`, error));
         }
     }
 
