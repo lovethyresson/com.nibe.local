@@ -45,8 +45,13 @@ export const priorityToRole: Record<number, Role> = {
 // live power draw (W, non-zero only on the currently active function). Neither is a
 // Modbus register — they are derived in the connection's energy allocator — so they
 // are excluded from the register-table reconciliation in syncCapabilities().
+// The meter may carry a sub-capability id because the manifest's `energy` block points
+// Homey at it explicitly (meterPowerImportedCapability). Live power has no such setting —
+// Homey's real-time consumption reads the *base* `measure_power` id — so this must stay
+// un-suffixed. As "measure_power.active" it rendered a value on the tile but never showed
+// up in the device tab's energy card.
 export const METER_CAPABILITY = "meter_power.total";
-export const ACTIVE_POWER_CAPABILITY = "measure_power.active";
+export const ACTIVE_POWER_CAPABILITY = "measure_power";
 
 // The energy pair, in the order devices carry it. Exported so the selection plumbing
 // can treat these two names like registers even though they aren't in the table.

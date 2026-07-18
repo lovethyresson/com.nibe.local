@@ -1111,7 +1111,7 @@
       "class": "other",
       "capabilities": [
         "meter_power.total",
-        "measure_power.active",
+        "measure_power",
         "measure_temperature.i1_outside",
         "measure_temperature.i26_inside",
         "measure_temperature.i1017_calculated_supply",
@@ -1198,7 +1198,7 @@
             "sv": "Total förbrukad energi"
           }
         },
-        "measure_power.active": {
+        "measure_power": {
           "decimals": 0,
           "title": {
             "en": "Power",
