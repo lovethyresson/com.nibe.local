@@ -266,8 +266,10 @@ class NibeSDriver extends Driver {
     // Everything shown under the Energy group for a role: the production/consumption or
     // produced-energy registers pinned to this device, the derived allocator pair (used +
     // live power, function devices only), and the rolling COP. `samples`, when given (the
-    // pairing picker), sets `detected` from live data; the derived pair and COP are always
-    // considered detected.
+    // pairing picker), sets `detected` from live data. The derived pair and COP have no
+    // register of their own, so they inherit the group's data presence: detected only when
+    // this role actually read some energy data — otherwise a device without that function
+    // (e.g. Pool on a pump with no pool) would show its energy sub-items as "detected".
     private energyGroupEntries(role: Role | undefined, language: string,
                                samples?: Record<string, RegisterSample>) {
         const lang = language as 'en' | 'sv';
@@ -286,6 +288,8 @@ class NibeSDriver extends Driver {
                 detected: samples ? (samples[register.name]?.read ?? false) : true
             });
         }
+        // Derived pair + COP inherit whether any real energy register for this role read.
+        const hasEnergyData = samples ? entries.some((e) => e.detected) : true;
         if (role && role !== 'main' && role !== 'solar') {
             const descriptions: Record<string, RegisterInfo> = {
                 [METER_CAPABILITY]: {
@@ -303,7 +307,7 @@ class NibeSDriver extends Driver {
                     title: this.energyCapabilityTitle(role, name, lang),
                     adjustable: false,
                     description: descriptions[name][lang] || descriptions[name].en,
-                    detected: true
+                    detected: hasEnergyData
                 });
         }
         entries.push({
@@ -313,7 +317,7 @@ class NibeSDriver extends Driver {
             description: lang === 'sv'
                 ? "Verkningsgrad (COP) senaste 30 dagarna: levererad energi delat med använd"
                 : "Efficiency (COP) over the last 30 days: delivered energy divided by energy used",
-            detected: true
+            detected: hasEnergyData
         });
         return entries;
     }
