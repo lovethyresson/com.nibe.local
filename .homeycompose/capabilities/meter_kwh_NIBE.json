@@ -1,0 +1,26 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Energy",
+    "sv": "Energi",
+    "de": "Energie",
+    "nl": "Energie",
+    "no": "Energi",
+    "da": "Energi"
+  },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "decimals": 0,
+  "units": {
+    "en": "kWh",
+    "sv": "kWh",
+    "de": "kWh",
+    "nl": "kWh",
+    "no": "kWh",
+    "da": "kWh"
+  },
+  "insights": true,
+  "chartType": "stepLine",
+  "icon": "/assets/images/store.svg"
+}

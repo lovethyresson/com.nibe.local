@@ -69,7 +69,8 @@
     "alarm": "Larmhantering",
     "diagnostics": "Köldmediediagnostik",
     "statistics": "Driftstatistik",
-    "energy": "Energi"
+    "energy": "Energi",
+    "solar": "Solceller / PV"
   },
   "Normal": "Normal",
   "Speed 1": "Steg 1",

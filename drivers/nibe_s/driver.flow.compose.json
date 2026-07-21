@@ -380,6 +380,48 @@
       ]
     },
     {
+      "id": "target_temperature.h183_auto_start_cooling.set",
+      "title": {
+        "en": "Set the outdoor temperature that starts cooling",
+        "sv": "Ställ in utetemperaturen som startar kylan",
+        "de": "Außentemperatur zum Kühlungsstart einstellen",
+        "nl": "Buitentemperatuur voor starten koeling instellen",
+        "no": "Still inn utetemperatur som starter kjølingen",
+        "da": "Indstil udetemperatur, der starter køling"
+      },
+      "titleFormatted": {
+        "en": "Set the outdoor temperature that starts cooling to [[value]]",
+        "sv": "Ställ in utetemperaturen som startar kylan till [[value]]",
+        "de": "Außentemperatur zum Kühlungsstart auf [[value]] setzen",
+        "nl": "Buitentemperatuur voor starten koeling instellen op [[value]]",
+        "no": "Sett utetemperatur som starter kjølingen til [[value]]",
+        "da": "Indstil udetemperatur, der starter køling, til [[value]]"
+      },
+      "hint": {
+        "en": "Outdoor temperature where automatic mode starts cooling. Accepts -20 to 40 °C.",
+        "sv": "Utetemperatur där autoläget startar kylan. Tillåter -20 till 40 °C.",
+        "de": "Außentemperatur, bei der der Auto-Modus die Kühlung startet. Bereich: -20 bis 40 °C.",
+        "nl": "Buitentemperatuur waarbij de autostand de koeling start. Bereik: -20 tot 40 °C.",
+        "no": "Utetemperatur der automodus starter kjølingen. Område: -20 til 40 °C.",
+        "da": "Udetemperatur, hvor autotilstand starter køling. Område: -20 til 40 °C."
+      },
+      "$filter": "capabilities=target_temperature.h183_auto_start_cooling",
+      "args": [
+        {
+          "type": "number",
+          "name": "value",
+          "title": {
+            "en": "Value",
+            "sv": "Värde",
+            "de": "Wert",
+            "nl": "Waarde",
+            "no": "Verdi",
+            "da": "Værdi"
+          }
+        }
+      ]
+    },
+    {
       "id": "target_temperature.h184_auto_stop_heating.set",
       "title": {
         "en": "Set the outdoor temperature that stops heating",

@@ -1,6 +1,6 @@
 import net from 'net';
 import {ModbusTCPClient} from 'jsmodbus';
-import {Dir, GroupId, groupIds, Register, registers, toNumericValue} from './registers';
+import {Dir, GroupId, groupIds, Register, registers, combineRaw, toNumericValue} from './registers';
 
 // Samples all registers a few times over ~half a minute and recommends which
 // feature groups are worth monitoring: a group whose registers move is clearly
@@ -49,10 +49,11 @@ export function buildDetectionResult(probes: ProbeSamples): DetectionResult {
 }
 
 export async function readNumeric(client: ModbusTCPClient, register: Register): Promise<number | undefined> {
+    const count = register.size === 32 ? 2 : 1;
     return await ((register.direction === Dir.In)
-        ? client.readInputRegisters(register.address, 1)
-        : client.readHoldingRegisters(register.address, 1))
-        .then((resp: any) => toNumericValue(register, resp.response.body.values[0]))
+        ? client.readInputRegisters(register.address, count)
+        : client.readHoldingRegisters(register.address, count))
+        .then((resp: any) => toNumericValue(register, combineRaw(resp.response.body.values as number[], register.size)))
         .catch(() => undefined);
 }
 
@@ -103,8 +104,8 @@ export function recommendGroups(probes: ProbeSamples): Recommendations {
         // Alarm settings exist on every pump and sit still at 0/1, so they never show
         // "moving" evidence and would otherwise never be recommended.
         alarm: () => true,
-        // Carries no registers, so it never reaches this fallback (recommendGroups skips
-        // register-less groups) — but the record is total, so it needs an entry.
+        // The energy meters increment continuously, so a live pump usually shows movement;
+        // default to recommended when they happen not to move during the sampling window.
         energy: () => true,
         hotwater: () =>
             (value("measure_temperature.i8_warmwater_top") ?? 0) > 20
@@ -126,7 +127,12 @@ export function recommendGroups(probes: ProbeSamples): Recommendations {
             || inRange("measure_temperature.i11_source_out", -15, 25),
         electrical: () =>
             ["measure_current.i50_sensor_v2", "measure_current.i48_sensor_v2", "measure_current.i46_sensor_v2"]
-                .some((name) => (value(name) ?? 0) > 0)
+                .some((name) => (value(name) ?? 0) > 0),
+        // Photovoltaic accessory (EME 20): both registers read a flat 0 when it isn't
+        // fitted, so only recommend when one shows real power/energy.
+        solar: () =>
+            (value("measure_power") ?? 0) > 0
+            || (value("meter_power.solar") ?? 0) > 0
     };
 
     const recommendations: Recommendations = {};
@@ -134,7 +140,7 @@ export function recommendGroups(probes: ProbeSamples): Recommendations {
         const groupProbes = registers
             .filter((register) => register.group === groupId)
             .map((register) => probes[register.name]);
-        // A group with no registers (energy) has nothing to detect: leave it out of the
+        // A group with no registers has nothing to detect: leave it out of the
         // recommendations entirely so callers fall back to their "enabled" default.
         // Otherwise every() on the empty array returns true and it reads as unsupported.
         if (groupProbes.length === 0)

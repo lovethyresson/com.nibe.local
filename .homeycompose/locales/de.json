@@ -69,7 +69,8 @@
     "alarm": "Alarmbehandlung",
     "diagnostics": "Kältemittel-Diagnose",
     "statistics": "Laufzeitstatistik",
-    "energy": "Energie"
+    "energy": "Energie",
+    "solar": "Solar / PV"
   },
   "Normal": "Normal",
   "Speed 1": "Stufe 1",

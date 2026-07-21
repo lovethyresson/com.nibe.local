@@ -90,6 +90,7 @@
     "cooling": "Koeling",
     "core": "Basissensoren",
     "alarm": "Alarmafhandeling",
-    "energy": "Energie"
+    "energy": "Energie",
+    "solar": "Zonne-energie / PV"
   }
 }

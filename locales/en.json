@@ -90,6 +90,7 @@
     "cooling": "Cooling",
     "core": "Core sensors",
     "alarm": "Alarm handling",
-    "energy": "Energy"
+    "energy": "Energy",
+    "solar": "Solar / PV"
   }
 }

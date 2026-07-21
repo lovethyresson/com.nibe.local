@@ -11,6 +11,23 @@
   "capabilities": [
     "meter_power.total",
     "measure_power",
+    "measure_cop_NIBE.total",
+    "measure_cop_NIBE.rolling",
+    "meter_kwh_NIBE.i3821_total_production",
+    "meter_kwh_NIBE.i3823_total_consumption",
+    "meter_kwh_NIBE.i1577_heating_produced",
+    "meter_kwh_NIBE.i1575_hotwater_produced",
+    "meter_kwh_NIBE.i1581_pool_produced",
+    "meter_kwh_NIBE.i1579_cooling_produced",
+    "measure_count_NIBE.i1975_alarm",
+    "onoff.i1100_compressor_status",
+    "meter_kwh_NIBE.i398_pulse_energy",
+    "meter_power.solar",
+    "measure_temperature.i87_outgoing_hotwater",
+    "measure_temperature.i174_hw_comfort_return",
+    "measure_temperature.i175_hw_comfort_heater",
+    "onoff.i1063_hw_circulation",
+    "target_temperature.h183_auto_start_cooling",
     "measure_temperature.i1_outside",
     "measure_temperature.i26_inside",
     "measure_temperature.i1017_calculated_supply",
@@ -308,6 +325,169 @@
         "nl": "Totale bedrijfstijd compressor",
         "no": "Total driftstid kompressor",
         "da": "Samlet driftstid kompressor"
+      }
+    },
+    "meter_kwh_NIBE.i3821_total_production": {
+      "decimals": 0,
+      "title": {
+        "en": "Total energy produced",
+        "sv": "Total producerad energi",
+        "de": "Erzeugte Gesamtenergie",
+        "nl": "Totaal geproduceerde energie",
+        "no": "Total produsert energi",
+        "da": "Samlet produceret energi"
+      }
+    },
+    "meter_kwh_NIBE.i3823_total_consumption": {
+      "decimals": 0,
+      "title": {
+        "en": "Total energy consumed",
+        "sv": "Total förbrukad energi",
+        "de": "Verbrauchte Gesamtenergie",
+        "nl": "Totaal verbruikte energie",
+        "no": "Totalt energiforbruk",
+        "da": "Samlet energiforbrug"
+      }
+    },
+    "meter_kwh_NIBE.i1577_heating_produced": {
+      "decimals": 0,
+      "title": {
+        "en": "Energy delivered (heating)",
+        "sv": "Levererad energi (värme)",
+        "de": "Gelieferte Energie (Heizung)",
+        "nl": "Geleverde energie (verwarming)",
+        "no": "Levert energi (varme)",
+        "da": "Leveret energi (varme)"
+      }
+    },
+    "meter_kwh_NIBE.i1575_hotwater_produced": {
+      "decimals": 0,
+      "title": {
+        "en": "Energy delivered (hot water)",
+        "sv": "Levererad energi (varmvatten)",
+        "de": "Gelieferte Energie (Brauchwasser)",
+        "nl": "Geleverde energie (warmtapwater)",
+        "no": "Levert energi (varmtvann)",
+        "da": "Leveret energi (varmt vand)"
+      }
+    },
+    "meter_kwh_NIBE.i1581_pool_produced": {
+      "decimals": 0,
+      "title": {
+        "en": "Energy delivered (pool)",
+        "sv": "Levererad energi (pool)",
+        "de": "Gelieferte Energie (Pool)",
+        "nl": "Geleverde energie (zwembad)",
+        "no": "Levert energi (basseng)",
+        "da": "Leveret energi (pool)"
+      }
+    },
+    "meter_kwh_NIBE.i1579_cooling_produced": {
+      "decimals": 0,
+      "title": {
+        "en": "Energy delivered (cooling)",
+        "sv": "Levererad energi (kyla)",
+        "de": "Gelieferte Energie (Kühlung)",
+        "nl": "Geleverde energie (koeling)",
+        "no": "Levert energi (kjøling)",
+        "da": "Leveret energi (køling)"
+      }
+    },
+    "measure_count_NIBE.i1975_alarm": {
+      "title": {
+        "en": "Alarm code",
+        "sv": "Larmkod",
+        "de": "Alarmcode",
+        "nl": "Alarmcode",
+        "no": "Alarmkode",
+        "da": "Alarmkode"
+      }
+    },
+    "onoff.i1100_compressor_status": {
+      "title": {
+        "en": "Compressor running",
+        "sv": "Kompressor igång",
+        "de": "Verdichter läuft",
+        "nl": "Compressor draait",
+        "no": "Kompressor går",
+        "da": "Kompressor kører"
+      }
+    },
+    "meter_kwh_NIBE.i398_pulse_energy": {
+      "decimals": 0,
+      "title": {
+        "en": "Pulse meter energy (BE6)",
+        "sv": "Pulsmätarenergi (BE6)",
+        "de": "Impulszähler-Energie (BE6)",
+        "nl": "Pulsmeter energie (BE6)",
+        "no": "Pulsmålerenergi (BE6)",
+        "da": "Pulsmålerenergi (BE6)"
+      }
+    },
+    "meter_power.solar": {
+      "decimals": 1,
+      "title": {
+        "en": "Solar energy generated",
+        "sv": "Genererad solenergi",
+        "de": "Erzeugte Solarenergie",
+        "nl": "Opgewekte zonne-energie",
+        "no": "Generert solenergi",
+        "da": "Genereret solenergi"
+      }
+    },
+    "measure_temperature.i87_outgoing_hotwater": {
+      "title": {
+        "en": "Outgoing hot water (BT70)",
+        "sv": "Utgående varmvatten (BT70)",
+        "de": "Warmwasser Vorlauf (BT70)",
+        "nl": "Uitgaand warmtapwater (BT70)",
+        "no": "Utgående varmtvann (BT70)",
+        "da": "Udgående varmt vand (BT70)"
+      }
+    },
+    "measure_temperature.i174_hw_comfort_return": {
+      "title": {
+        "en": "HW circulation return (BT82)",
+        "sv": "VV-cirkulation retur (BT82)",
+        "de": "BW-Zirkulation Rücklauf (BT82)",
+        "nl": "WW-circulatie retour (BT82)",
+        "no": "VV-sirkulasjon retur (BT82)",
+        "da": "VV-cirkulation retur (BT82)"
+      }
+    },
+    "measure_temperature.i175_hw_comfort_heater": {
+      "title": {
+        "en": "HW comfort heater (BT83)",
+        "sv": "VV komfortvärmare (BT83)",
+        "de": "BW Komfortheizer (BT83)",
+        "nl": "WW comfortverwarmer (BT83)",
+        "no": "VV komfortvarmer (BT83)",
+        "da": "VV komfortvarmer (BT83)"
+      }
+    },
+    "onoff.i1063_hw_circulation": {
+      "title": {
+        "en": "Hot water circulation",
+        "sv": "Varmvattencirkulation",
+        "de": "Brauchwasserzirkulation",
+        "nl": "Warmtapwatercirculatie",
+        "no": "Varmtvannssirkulasjon",
+        "da": "Varmtvandscirkulation"
+      }
+    },
+    "target_temperature.h183_auto_start_cooling": {
+      "decimals": 1,
+      "min": -20,
+      "max": 40,
+      "uiComponent": null,
+      "insights": false,
+      "title": {
+        "en": "Auto mode: start cooling above",
+        "sv": "Autoläge: starta kyla över",
+        "de": "Auto-Modus: Kühlung starten über",
+        "nl": "Autostand: koeling starten boven",
+        "no": "Automodus: start kjøling over",
+        "da": "Autotilstand: start køling over"
       }
     },
     "measure_hour_NIBE.i1091_compressor_usage_hotwater": {
@@ -1063,6 +1243,45 @@
           "units": {
             "en": "s"
           }
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": {
+        "en": "Heat pump",
+        "sv": "Värmepump",
+        "de": "Wärmepumpe",
+        "nl": "Warmtepomp",
+        "no": "Varmepumpe",
+        "da": "Varmepumpe"
+      },
+      "children": [
+        {
+          "id": "firmware",
+          "type": "label",
+          "label": {
+            "en": "Firmware version",
+            "sv": "Firmware-version",
+            "de": "Firmware-Version",
+            "nl": "Firmwareversie",
+            "no": "Firmware-versjon",
+            "da": "Firmwareversion"
+          },
+          "value": ""
+        },
+        {
+          "id": "heatpump_type",
+          "type": "label",
+          "label": {
+            "en": "Heat pump type code",
+            "sv": "Värmepumpstypkod",
+            "de": "Wärmepumpen-Typcode",
+            "nl": "Warmtepomp-typecode",
+            "no": "Varmepumpe-typekode",
+            "da": "Varmepumpe-typekode"
+          },
+          "value": ""
         }
       ]
     }

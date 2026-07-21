@@ -90,6 +90,7 @@
     "cooling": "Køling",
     "core": "Basissensorer",
     "alarm": "Alarmhåndtering",
-    "energy": "Energi"
+    "energy": "Energi",
+    "solar": "Solceller / PV"
   }
 }

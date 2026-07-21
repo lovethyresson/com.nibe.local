@@ -8,11 +8,11 @@ import {
     groupIds, isAdjustable, isSelectableRegister, registerByName, registers
 } from './registers';
 import {
-    ACTIVE_POWER_CAPABILITY, ENERGY_CAPABILITIES, METER_CAPABILITY, Role,
-    energyTitle, extraCapabilities, functionRoles, powerTitle,
-    registersForRole, roleClass, roleGroups, roleNames, roleOf, roleRegisters
+    ACTIVE_POWER_CAPABILITY, ENERGY_CAPABILITIES, FUNCTION_COP_CAPABILITY, METER_CAPABILITY,
+    Role, TOTAL_COP_CAPABILITY, allRoles, energyTitle, extraCapabilities, functionRoles,
+    powerTitle, registersForRole, roleClass, roleGroups, roleNames, roleOf, roleRegisters
 } from './roles';
-import {DetectionResult, Recommendations, RegisterSample, probeHost} from './detection';
+import {DetectionResult, PROBE_PASSES, Recommendations, RegisterSample, probeHost} from './detection';
 import {destroyAllConnections, existingConnection} from './connection';
 import {discoverPumps} from './discovery';
 
@@ -21,9 +21,19 @@ const conditionSpecs: {[name: string]: any} = Object.fromEntries(conditions.map(
 
 class NibeSDriver extends Driver {
     async onInit() {
-        this.log('Nibe heat pump driver has been initialized');
+        this.log(`Driver initialised — app v${(this.homey.manifest as any).version}, `
+            + `${registers.length} registers, ${this.getDevices().length} paired device(s)`);
         this.checkConfig();
         this.registerFlows();
+    }
+
+    // Compact "group:evidence" list for the pairing/repair logs — makes a user's log dump
+    // show at a glance what detection saw for each feature group.
+    private recommendationSummary(recs: Recommendations): string {
+        return groupIds
+            .map((id) => recs[id] ? `${id}:${recs[id]!.evidence}${recs[id]!.recommended ? '(rec)' : ''}` : null)
+            .filter(Boolean)
+            .join(' ') || '(none)';
     }
 
     async onUninit() {
@@ -216,7 +226,9 @@ class NibeSDriver extends Driver {
             registers: id === 'energy'
                 ? this.energyGroupEntries(role, language)
                 : registers
-                    .filter((register) => register.group === id && isSelectableRegister(register))
+                    .filter((register) => register.group === id
+                        && (!register.role || register.role === role)
+                        && isSelectableRegister(register))
                     .map((register) => ({
                         name: register.name,
                         title: title(register.name),
@@ -232,25 +244,78 @@ class NibeSDriver extends Driver {
         return title[lang] || title.en;
     }
 
-    // The two derived energy capabilities, shaped like groupInfo()'s register entries.
-    private energyGroupEntries(role: Role | undefined, language: string) {
-        const lang = language as 'en' | 'sv';
-        const descriptions: Record<string, RegisterInfo> = {
-            [METER_CAPABILITY]: {
-                en: "Energy this function has used, counted up over its lifetime (shows in Homey's Energy tab)",
-                sv: "Energi denna funktion använt, räknat sedan start (visas i Homeys energiflik)"
-            },
-            [ACTIVE_POWER_CAPABILITY]: {
-                en: "Power the pump is drawing right now, when this function is the active one",
-                sv: "Effekt pumpen drar just nu, när denna funktion är den aktiva"
-            }
+    // Compose title for a capability, in the app's language.
+    private capabilityTitle(name: string, language: string): string {
+        const option: any = (capabilitiesOptions as any)[name];
+        return option?.title?.[language] || option?.title?.en || name;
+    }
+
+    // Rolling-COP display title per role (matches device.ts extraOptions).
+    private copDisplayTitle(role: Role | undefined, lang: 'en' | 'sv'): string {
+        const titles: Record<string, {en: string; sv: string}> = {
+            main: {en: "Total COP (30-day)", sv: "Total COP (30 dagar)"},
+            heating: {en: "Heating COP (30-day)", sv: "Värme COP (30 dagar)"},
+            hotwater: {en: "Hot water COP (30-day)", sv: "Varmvatten COP (30 dagar)"},
+            pool: {en: "Pool COP (30-day)", sv: "Pool COP (30 dagar)"},
+            cooling: {en: "Cooling COP (30-day)", sv: "Kyla COP (30 dagar)"}
         };
-        return ENERGY_CAPABILITIES.map((name) => ({
-            name,
-            title: this.energyCapabilityTitle(role ?? 'heating', name, lang),
+        const t = titles[role ?? 'heating'] ?? {en: "COP (30-day)", sv: "COP (30 dagar)"};
+        return t[lang] || t.en;
+    }
+
+    // Everything shown under the Energy group for a role: the production/consumption or
+    // produced-energy registers pinned to this device, the derived allocator pair (used +
+    // live power, function devices only), and the rolling COP. `samples`, when given (the
+    // pairing picker), sets `detected` from live data; the derived pair and COP are always
+    // considered detected.
+    private energyGroupEntries(role: Role | undefined, language: string,
+                               samples?: Record<string, RegisterSample>) {
+        const lang = language as 'en' | 'sv';
+        const entries: {name: string; title: string; adjustable: boolean;
+                        description: string; detected: boolean}[] = [];
+        for (const register of registers) {
+            if (register.group !== 'energy' || !isSelectableRegister(register))
+                continue;
+            if (register.role && register.role !== role)
+                continue;
+            entries.push({
+                name: register.name,
+                title: this.capabilityTitle(register.name, language),
+                adjustable: isAdjustable(register),
+                description: (register.info as any)[language] || register.info.en,
+                detected: samples ? (samples[register.name]?.read ?? false) : true
+            });
+        }
+        if (role && role !== 'main' && role !== 'solar') {
+            const descriptions: Record<string, RegisterInfo> = {
+                [METER_CAPABILITY]: {
+                    en: "Electricity this function has used since the device was added (Homey Energy tab)",
+                    sv: "El denna funktion använt sedan enheten lades till (Homeys energiflik)"
+                },
+                [ACTIVE_POWER_CAPABILITY]: {
+                    en: "Power the pump is drawing right now, when this function is the active one",
+                    sv: "Effekt pumpen drar just nu, när denna funktion är den aktiva"
+                }
+            };
+            for (const name of ENERGY_CAPABILITIES)
+                entries.push({
+                    name,
+                    title: this.energyCapabilityTitle(role, name, lang),
+                    adjustable: false,
+                    description: descriptions[name][lang] || descriptions[name].en,
+                    detected: true
+                });
+        }
+        entries.push({
+            name: role === 'main' ? TOTAL_COP_CAPABILITY : FUNCTION_COP_CAPABILITY,
+            title: this.copDisplayTitle(role, lang),
             adjustable: false,
-            description: descriptions[name][lang] || descriptions[name].en
-        }));
+            description: lang === 'sv'
+                ? "Verkningsgrad (COP) senaste 30 dagarna: levererad energi delat med använd"
+                : "Efficiency (COP) over the last 30 days: delivered energy divided by energy used",
+            detected: true
+        });
+        return entries;
     }
 
     // Build the {groups, overrides} selection from what the features view sends,
@@ -331,7 +396,7 @@ class NibeSDriver extends Driver {
                 options[register.name] = (capabilitiesOptions as any)[register.name];
         // Options for every energy capability the role could carry, not just the
         // currently selected ones, so one enabled later via repair still gets its title.
-        if (role !== 'main')
+        if (functionRoles.includes(role))
             for (const extra of ENERGY_CAPABILITIES)
                 options[extra] = this.extraOption(role, extra);
         return {
@@ -363,16 +428,17 @@ class NibeSDriver extends Driver {
     private candidateGroups(role: Role, recommendations: Recommendations, samples: Record<string, RegisterSample>) {
         const lang = this.homey.i18n.getLanguage() as 'en' | 'sv';
         const capsFor = (id: GroupId) => id === 'energy'
-            ? (role === 'main' ? [] : ENERGY_CAPABILITIES.map((cap) => ({
-                name: cap,
-                title: this.energyCapabilityTitle(role, cap, lang),
-                detected: true
-            })))
-            : registers.filter((register) => register.group === id && isSelectableRegister(register)).map((register) => ({
-                name: register.name,
-                title: this.regToAutofill(register).name,
-                detected: samples[register.name]?.read ?? false
-            }));
+            ? this.energyGroupEntries(role, lang, samples)
+                .map((entry) => ({name: entry.name, title: entry.title, detected: entry.detected}))
+            : registers
+                .filter((register) => register.group === id
+                    && (!register.role || register.role === role)
+                    && isSelectableRegister(register))
+                .map((register) => ({
+                    name: register.name,
+                    title: this.regToAutofill(register).name,
+                    detected: samples[register.name]?.read ?? false
+                }));
         return (roleGroups[role] as GroupId[])
             .map((id) => ({
                 id,
@@ -394,16 +460,21 @@ class NibeSDriver extends Driver {
         const recommendations = detection?.recommendations ?? {};
         const samples = detection?.samples ?? {};
         const paired = new Set(this.getDevices().map((device) => String(device.getData().id)));
-        return ([...['main'] as Role[], ...functionRoles])
+        return allRoles
             .filter((role) => !paired.has(`${ip}#${role}`))
             .map((role) => ({
                 role,
                 name: roleNames[role][this.homey.i18n.getLanguage() as 'en' | 'sv'] || roleNames[role].en,
                 description: this.roleDescription(role),
+                // A device is "present" based on its function-specific groups only. `energy`
+                // is universal (every pump has the meters, which move), so it must NOT count
+                // toward per-device detection — otherwise Pool/Cooling pre-check on pumps
+                // without that hardware just because the energy group is recommended.
                 detected: role === 'main'
                     ? true
                     : (roleGroups[role] as GroupId[])
-                        .some((group) => group !== 'core' && recommendations[group]?.recommended),
+                        .some((group) => group !== 'core' && group !== 'energy'
+                            && recommendations[group]?.recommended),
                 device: this.deviceTemplate(ip, role, recommendations, samples),
                 // Feature groups for the "click to expand" section (see candidateGroups).
                 groups: this.candidateGroups(role, recommendations, samples)
@@ -411,6 +482,7 @@ class NibeSDriver extends Driver {
     }
 
     async onPair(session: PairSession): Promise<void> {
+        this.log('onPair: pairing session started');
         let ipAddress: string | null = null;
         let detection: DetectionResult | null = null;
         let detectionRunning: Promise<DetectionResult> | null = null;
@@ -418,6 +490,7 @@ class NibeSDriver extends Driver {
         session.setHandler('discover', async () => {
             const localAddress = await this.homey.cloud.getLocalAddress();
             const pairedAddresses = this.getDevices().map((device) => String(device.getSettings().address));
+            this.log(`onPair discover: scanning subnet from ${localAddress}, skipping ${pairedAddresses.length} paired IP(s)`);
             // Skip already-paired IPs in the subnet scan: the pump allows only one Modbus
             // client, so a fresh probe socket to a connected pump is refused anyway.
             const found = await discoverPumps(localAddress, new Set(pairedAddresses), (done, total) =>
@@ -439,7 +512,7 @@ class NibeSDriver extends Driver {
                 });
             }
             const pumps = [...byAddress.values()];
-            this.log('Discovered pumps:', JSON.stringify(pumps));
+            this.log(`onPair discover: found ${pumps.length} pump(s):`, JSON.stringify(pumps));
             return pumps;
         });
 
@@ -473,18 +546,24 @@ class NibeSDriver extends Driver {
             // (e.g. adding another logical device later), probe over it — opening a
             // second socket would be refused by the pump.
             const live = existingConnection(ipAddress!);
-            detectionRunning = live && live.isConnected()
-                ? live.probe(onProgress)
+            const viaLive = !!(live && live.isConnected());
+            this.log(`onPair detection: starting for ${ipAddress} via `
+                + `${viaLive ? 'existing live connection' : 'new probe socket'} `
+                + `(${registers.length} registers × ${PROBE_PASSES} passes)`);
+            detectionRunning = viaLive
+                ? live!.probe(onProgress)
                 : probeHost(ipAddress!, onProgress);
             detectionRunning
                 .then((result) => {
                     detection = result;
-                    this.log('Detection result:', JSON.stringify(result.recommendations));
+                    const read = Object.values(result.samples).filter((s) => s.read).length;
+                    this.log(`onPair detection done: ${read}/${registers.length} registers responded — `
+                        + this.recommendationSummary(result.recommendations));
                     session.emit('detection_done', {}).catch(() => {});
                 })
                 .catch((error) => {
                     detectionRunning = null; // allow the view's retry button to try again
-                    this.error('Detection failed', error);
+                    this.error('onPair detection failed', error);
                     session.emit('detection_failed',
                         {message: error?.message ?? String(error)}).catch(() => {});
                 });
@@ -495,12 +574,19 @@ class NibeSDriver extends Driver {
 
         // The device-picker view renders these and calls Homey.createDevice() for the
         // ones the user keeps checked.
-        session.setHandler('get_pairing_devices', async () =>
-            this.pairingCandidates(ipAddress!, detection));
+        session.setHandler('get_pairing_devices', async () => {
+            const candidates = this.pairingCandidates(ipAddress!, detection);
+            this.log(`onPair get_pairing_devices: offering ${candidates.length} device(s) —`,
+                candidates.map((c) => `${c.role}${c.detected ? '*' : ''}`).join(', '),
+                detection ? '' : '(detection skipped → all enabled)');
+            return candidates;
+        });
     }
 
     async onRepair(session: PairSession, device: any): Promise<void> {
         const role = roleOf(device.getData());
+        this.log(`onRepair: started for role ${role} —`,
+            JSON.stringify(device.getStoreValue('selection') ?? null));
         let detection: DetectionResult | null = null;
         let detectionRunning: Promise<DetectionResult> | null = null;
 
@@ -524,12 +610,14 @@ class NibeSDriver extends Driver {
             detectionRunning!
                 .then((result: DetectionResult) => {
                     detection = result;
-                    this.log('Repair detection result:', JSON.stringify(result?.recommendations));
+                    const read = Object.values(result.samples).filter((s) => s.read).length;
+                    this.log(`onRepair detection done: ${read} registers responded — `
+                        + this.recommendationSummary(result.recommendations));
                     session.emit('detection_done', {}).catch(() => {});
                 })
                 .catch((error: any) => {
                     detectionRunning = null; // allow the view's retry button to try again
-                    this.error('Repair detection failed', error);
+                    this.error('onRepair detection failed', error);
                     session.emit('detection_failed',
                         {message: error?.message ?? String(error)}).catch(() => {});
                 });

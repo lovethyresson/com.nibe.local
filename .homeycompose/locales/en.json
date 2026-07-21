@@ -69,7 +69,8 @@
     "alarm": "Alarm handling",
     "diagnostics": "Refrigerant diagnostics",
     "statistics": "Runtime statistics",
-    "energy": "Energy"
+    "energy": "Energy",
+    "solar": "Solar / PV"
   },
   "Normal": "Normal",
   "Speed 1": "Speed 1",

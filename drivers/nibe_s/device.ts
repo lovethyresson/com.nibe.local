@@ -1,11 +1,12 @@
 import {Device} from 'homey';
 import {capabilitiesOptions} from './driver.compose.json';
-import {Dir, Register, Selection} from './registers';
+import {Dir, Register, Selection, isUnavailableRaw, signedValue} from './registers';
 import {
-    ACTIVE_POWER_CAPABILITY, METER_CAPABILITY, PRIORITY_RAW_OFF, PRIORITY_REGISTER_NAME,
-    PUMP_ACTIVE_CAPABILITY, Role,
-    energyTitle, extraCapabilities, powerTitle, pumpActiveTitle, registersForRole,
-    roleClass, roleOf, roleRegisters
+    ACTIVE_POWER_CAPABILITY, FUNCTION_COP_CAPABILITY, METER_CAPABILITY, PRIORITY_RAW_OFF,
+    PRIORITY_REGISTER_NAME, PUMP_ACTIVE_CAPABILITY, Role,
+    SOLAR_METER_CAPABILITY, TOTAL_CONSUMPTION_REGISTER, TOTAL_COP_CAPABILITY,
+    TOTAL_PRODUCTION_REGISTER, energyTitle, extraCapabilities, functionRoles, powerTitle,
+    producedRegisterForRole, pumpActiveTitle, registersForRole, roleClass, roleOf, roleRegisters
 } from './roles';
 import {PumpConnection, PumpSubscriber, POLL_SECONDS_DEFAULT, clampPollSeconds} from './connection';
 
@@ -32,13 +33,24 @@ class NibeSDevice extends Device implements PumpSubscriber {
         return (this.getStoreValue('selection') ?? null) as Selection | null;
     }
 
-    private fromRegisterValue(register: Register, value: number) {
-        if (value >= 32768)
-            value -= 65536;
-        // -32768 (0x8000) is Nibe's "value not available" sentinel (e.g. a room sensor
+    // Compact enabled-groups (+ overrides) summary for the init log, so a user's log dump
+    // shows which features this device is configured for.
+    private enabledGroupsSummary(): string {
+        const selection = this.getSelection();
+        if (!selection)
+            return 'all (no selection stored)';
+        const on = Object.entries(selection.groups).filter(([, v]) => v).map(([g]) => g);
+        const overrides = Object.entries(selection.overrides ?? {});
+        return (on.join(',') || 'none')
+            + (overrides.length ? ` | overrides: ${overrides.map(([k, v]) => `${k}=${v}`).join(',')}` : '');
+    }
+
+    private fromRegisterValue(register: Register, raw: number) {
+        // 0x8000 / 0x80000000 is Nibe's "value not available" sentinel (e.g. a room sensor
         // that isn't wired to Modbus). Show it as no value ("-") rather than -3276.8.
-        if (value === -32768)
+        if (isUnavailableRaw(raw, register.size))
             return null;
+        let value = signedValue(raw, register.size);
         if (register.scale)
             return value / register.scale;
         if (register.enum)
@@ -125,9 +137,22 @@ class NibeSDevice extends Device implements PumpSubscriber {
     // per-instance title/decimals have to be pushed explicitly. getCapabilityOptions()
     // is cheap, so check-and-skip to avoid the documented-as-expensive set call.
     private async ensureCapabilityOptions(name: string, option: any) {
-        if (!option)
+        if (!option || !this.hasCapability(name))
             return;
-        const current: any = this.getCapabilityOptions(name) ?? {};
+        // getCapabilityOptions() throws "Invalid Capability" when the capability id isn't in
+        // the *installed* app manifest — even though the device carries the instance. This
+        // happens right after a new capability *type* is added but the Homey hasn't had a
+        // clean (re)install: `homey app run` hot-reloads code but doesn't register new
+        // capability definitions. Skip quietly (one log line, not an onInit stack trace);
+        // the options apply themselves after a clean reinstall.
+        let current: any;
+        try {
+            current = this.getCapabilityOptions(name) ?? {};
+        } catch (error) {
+            this.log(`Skipping options for ${name} — ${(error as Error).message}; `
+                + `a new capability type needs a clean app reinstall to register`);
+            return;
+        }
         // setCapabilityOptions is documented as expensive, so only push when a declared
         // option actually differs from what's stored. Compare every key we declare
         // (title, decimals, min/max, uiComponent, insights) rather than just the title —
@@ -137,7 +162,8 @@ class NibeSDevice extends Device implements PumpSubscriber {
             (key) => JSON.stringify(current[key]) !== JSON.stringify(option[key]));
         if (!differs)
             return;
-        await this.setCapabilityOptions(name, option);
+        await this.setCapabilityOptions(name, option)
+            .catch((error) => this.log(`Could not set options for ${name} — ${error?.message ?? error}`));
     }
 
     // Per-instance options for the two non-register energy capabilities. The same
@@ -158,7 +184,82 @@ class NibeSDevice extends Device implements PumpSubscriber {
         // that stale flag on already-paired devices.
         if (name === PUMP_ACTIVE_CAPABILITY && this.role === 'main')
             return {title: pumpActiveTitle(), uiComponent: null, setable: true};
+        if (name === TOTAL_COP_CAPABILITY)
+            return {title: {en: "Total COP (30-day)", sv: "Total COP (30 dagar)"}, decimals: 2};
+        if (name === FUNCTION_COP_CAPABILITY) {
+            const titles: Partial<Record<Role, {en: string; sv: string}>> = {
+                heating: {en: "Heating COP (30-day)", sv: "Värme COP (30 dagar)"},
+                hotwater: {en: "Hot water COP (30-day)", sv: "Varmvatten COP (30 dagar)"},
+                pool: {en: "Pool COP (30-day)", sv: "Pool COP (30 dagar)"},
+                cooling: {en: "Cooling COP (30-day)", sv: "Kyla COP (30 dagar)"}
+            };
+            return {title: titles[this.role] ?? {en: "COP (30-day)", sv: "COP (30 dagar)"}, decimals: 2};
+        }
         return undefined;
+    }
+
+    // ---- Rolling 30-day COP -------------------------------------------------------------
+    // COP is produced/used over a trailing window rather than lifetime, so it tracks the
+    // season instead of sitting at the flat all-time average. Both inputs are the *raw*
+    // cumulative counters (pre-baseline; the baseline cancels in a delta): production/
+    // consumption (3821/3823) for main, the function's produced register / allocator used
+    // energy for a function device. Snapshots of the counters are kept in the device store
+    // and COP = (now − ~30-days-ago) produced / used.
+    private static readonly COP_WINDOW_MS = 30 * 24 * 3600 * 1000;
+    private static readonly COP_SNAPSHOT_MS = 6 * 3600 * 1000; // snapshot at most every 6h
+    private copProduced: number | null = null;
+    private copUsed: number | null = null;
+
+    private copCapability(): string | null {
+        if (this.role === 'main')
+            return TOTAL_COP_CAPABILITY;
+        return functionRoles.includes(this.role) ? FUNCTION_COP_CAPABILITY : null;
+    }
+
+    private updateRollingCop() {
+        const capability = this.copCapability();
+        if (!capability || !this.hasCapability(capability))
+            return;
+        if (this.copProduced === null || this.copUsed === null)
+            return;
+        const now = Date.now();
+        const samples: {t: number; p: number; u: number}[] = this.getStoreValue('copSamples') ?? [];
+        const last = samples[samples.length - 1];
+        let changed = false;
+        if (!last || now - last.t >= NibeSDevice.COP_SNAPSHOT_MS) {
+            samples.push({t: now, p: this.copProduced, u: this.copUsed});
+            changed = true;
+        }
+        // Keep one snapshot just older than the window (the COP reference) plus everything
+        // inside it; drop the rest.
+        while (samples.length > 2 && now - samples[1].t > NibeSDevice.COP_WINDOW_MS) {
+            samples.shift();
+            changed = true;
+        }
+        if (changed)
+            this.setStoreValue('copSamples', samples).catch(this.error);
+        // Reference = oldest snapshot still within the window (or the oldest we have while
+        // history is still building up toward 30 days).
+        const reference = samples.find((s) => now - s.t <= NibeSDevice.COP_WINDOW_MS) ?? samples[0];
+        const producedDelta = this.copProduced - reference.p;
+        const usedDelta = this.copUsed - reference.u;
+        if (usedDelta > 0.1) {
+            const cop = Math.round((producedDelta / usedDelta) * 100) / 100;
+            this.setCapabilityValue(capability, cop).catch(this.error);
+        }
+    }
+
+    // A cumulative counter's value relative to the first one seen after pairing, so energy
+    // reads "since added". The baseline is persisted so the figure is stable across
+    // restarts.
+    private applyBaseline(register: Register, value: number): number {
+        const key = `baseline.${register.name}`;
+        let baseline = this.getStoreValue(key);
+        if (typeof baseline !== 'number') {
+            baseline = value;
+            this.setStoreValue(key, baseline).catch(this.error);
+        }
+        return value - baseline;
     }
 
     // Reconcile the device's capabilities with its role + feature selection: drop
@@ -212,17 +313,26 @@ class NibeSDevice extends Device implements PumpSubscriber {
 
     async onInit() {
         this.role = roleOf(this.getData());
-        this.log(`NibeSDevice initialised (role ${this.role})`);
+        this.log(`Device init: role ${this.role}, host ${this.host()}, groups [${this.enabledGroupsSummary()}]`);
 
         // Keep the device class in sync (heater/boiler/other) — also fixes up devices
         // paired before per-role classes existed.
         if (this.getClass() !== roleClass[this.role])
             await this.setClass(roleClass[this.role]).catch(this.error);
 
-        if (this.role !== 'main')
+        // Solar reports generation to Homey's Energy tab: declare its cumulative meter as
+        // exported energy (production), overriding the driver's consumption energy config.
+        if (this.role === 'solar')
+            await this.setEnergy({meterPowerExportedCapability: SOLAR_METER_CAPABILITY}).catch(this.error);
+
+        if (functionRoles.includes(this.role)) {
             this.cumulativeEnergy = this.getSettings().cumulativeEnergy || 0;
+            this.copUsed = this.cumulativeEnergy; // seed the rolling-COP used side
+        }
 
         await this.syncCapabilities();
+        this.log(`Device capabilities synced: ${this.getCapabilities().length} — `
+            + this.getCapabilities().join(', '));
 
         if (this.role !== 'main' && this.hasCapability(METER_CAPABILITY))
             await this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
@@ -277,7 +387,27 @@ class NibeSDevice extends Device implements PumpSubscriber {
     }
 
     onRegisterRaw(register: Register, raw: number) {
-        this.setValue(register, this.fromRegisterValue(register, raw)).catch(this.error);
+        const rawValue = this.fromRegisterValue(register, raw);
+        // Relative counters (energy) display as "since added"; keep the raw (pre-baseline)
+        // value for COP, which uses deltas where the baseline cancels anyway.
+        const value = register.relative && typeof rawValue === 'number'
+            ? this.applyBaseline(register, rawValue)
+            : rawValue;
+        this.setValue(register, value).catch(this.error);
+        // Feed the rolling COP source counters.
+        const rawScaled = typeof rawValue === 'number' ? rawValue : null;
+        if (this.role === 'main') {
+            if (register.name === TOTAL_PRODUCTION_REGISTER) {
+                this.copProduced = rawScaled;
+                this.updateRollingCop();
+            } else if (register.name === TOTAL_CONSUMPTION_REGISTER) {
+                this.copUsed = rawScaled;
+                this.updateRollingCop();
+            }
+        } else if (register.name === producedRegisterForRole[this.role]) {
+            this.copProduced = rawScaled;
+            this.updateRollingCop();
+        }
         // Main has no "powered off" register, so its on/off follows the pump's operating
         // priority: idle (10) is off, anything it is actively producing is on. An
         // unrecognised priority counts as on — the pump is doing something we can't name.
@@ -295,6 +425,31 @@ class NibeSDevice extends Device implements PumpSubscriber {
 
     onConnectionUp() {
         this.setAvailable().catch(this.error);
+        if (this.role === 'main')
+            this.updatePumpInfo().catch(this.error);
+    }
+
+    // Read the pump's identity once per connect and surface it: firmware (register 1496)
+    // and heat-pump type code (1497). Not capabilities — static info — so they go to the
+    // read-only "Heat pump" settings labels, written to every device on this pump so each
+    // shows them, and to the log for support ("send me your logs"). This is the whole of
+    // "model info": no fingerprint classifier, per the architecture decision.
+    private async updatePumpInfo() {
+        if (!this.connection)
+            return;
+        const type = await this.connection.readRegisterRaw({address: 1497, direction: Dir.In} as Register);
+        const firmware = await this.connection.readRegisterRaw({address: 1496, direction: Dir.In} as Register);
+        this.log(`Pump info: heat-pump type ${type ?? '?'}, firmware ${firmware ?? '?'}`);
+        const info: {firmware?: string; heatpump_type?: string} = {};
+        if (typeof firmware === 'number')
+            info.firmware = String(firmware);
+        if (typeof type === 'number')
+            info.heatpump_type = String(type);
+        if (!Object.keys(info).length)
+            return;
+        for (const device of this.driver.getDevices() as any[])
+            if (device.getSettings?.().address === this.host())
+                await device.setSettings(info).catch(this.error);
     }
 
     onConnectionDown() {
@@ -309,6 +464,9 @@ class NibeSDevice extends Device implements PumpSubscriber {
             // Persist every poll so a crash/restart loses at most one interval's energy.
             this.setSettings({cumulativeEnergy: this.cumulativeEnergy}).catch(this.error);
         }
+        // Used side of this function's rolling COP is the allocator's cumulative energy.
+        this.copUsed = this.cumulativeEnergy;
+        this.updateRollingCop();
         if (this.hasCapability(ACTIVE_POWER_CAPABILITY))
             this.setCapabilityValue(ACTIVE_POWER_CAPABILITY, watts).catch(this.error);
     }

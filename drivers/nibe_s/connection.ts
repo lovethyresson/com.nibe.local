@@ -1,7 +1,7 @@
 import net from 'net';
 import {ModbusTCPClient} from 'jsmodbus';
-import {Dir, Register, isPollable, registerByName} from './registers';
-import {Role, priorityToRole} from './roles';
+import {Dir, Register, combineRaw, isPollable, registerByName} from './registers';
+import {Role, functionRoles, priorityToRole} from './roles';
 import {DetectionResult, buildDetectionResult, readNumeric, sampleRegisters} from './detection';
 
 // A Nibe pump accepts only a single Modbus TCP client, but the app now
@@ -226,10 +226,11 @@ export class PumpConnection {
     }
 
     async readRegisterRaw(register: Register): Promise<number | undefined> {
+        const count = register.size === 32 ? 2 : 1;
         return await ((register.direction === Dir.In)
-            ? this.client.readInputRegisters(register.address, 1)
-            : this.client.readHoldingRegisters(register.address, 1))
-            .then((resp: any) => resp.response.body.values[0] as number)
+            ? this.client.readInputRegisters(register.address, count)
+            : this.client.readHoldingRegisters(register.address, count))
+            .then((resp: any) => combineRaw(resp.response.body.values as number[], register.size))
             .catch(() => undefined);
     }
 
@@ -272,8 +273,11 @@ export class PumpConnection {
         });
     }
 
+    // Devices that receive an energy allocation each poll — the heat-producing functions
+    // only. Explicitly excludes 'main' and 'solar' (solar is a producer with its own
+    // measure_power register; charging it the pump's draw would clobber its generation).
     private functionSubscribers(): PumpSubscriber[] {
-        return [...this.subscribers].filter((subscriber) => subscriber.role !== 'main');
+        return [...this.subscribers].filter((subscriber) => functionRoles.includes(subscriber.role));
     }
 
     private deviceForRole(role: Role): PumpSubscriber | undefined {

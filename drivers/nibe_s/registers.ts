@@ -1,3 +1,5 @@
+import type {Role} from './roles';
+
 export enum Dir {
     In,
     Out
@@ -78,6 +80,7 @@ export const groupIds = [
     "ventilation",
     "groundsource",
     "electrical",
+    "solar",
     "alarm",
     "diagnostics",
     "statistics",
@@ -101,6 +104,21 @@ export interface Register  {
     group: GroupId;
     info: RegisterInfo;
     scale?: number
+    // Register width in bits. Omitted/16 = a single Modbus word; 32 = a u32/s32 value
+    // spanning two consecutive words (low word first, see combineRaw). Nibe's energy and
+    // lifetime-counter registers are 32-bit.
+    size?: 16 | 32;
+    // A lifetime cumulative counter displayed relative to its value when the device was
+    // paired ("since added") rather than as the pump's all-time total. The device captures
+    // the first observed value as a baseline (persisted) and subtracts it, so every energy
+    // figure in the app reads consistently since-pairing and the per-function meters
+    // reconcile with the totals.
+    relative?: boolean;
+    // Pins a register to one device even though its group is shared across several roles.
+    // Used for the per-function energy meters, which live in the shared "energy" group (so
+    // they show up under Energy, and toggle with it) but must each land on their own
+    // function device — e.g. the heating produced-energy meter only on the heating device.
+    role?: Role;
     enum?: Record<number, string>
     bool?: boolean;
     // For bool registers whose raw on/off values aren't 1/0 (e.g. the "More hot water"
@@ -149,9 +167,9 @@ export const registers: Register[] = [
     {address:   40, name: "measure_water.i40_flow_sensor",          direction: Dir.In,  group: "heating",     scale:  10, // Flödesgivare (BF1)
      info: {en: "Heating medium flow (sensor BF1)", sv: "Värmebärarflöde (givare BF1)"}},
     // Rad 7
-    {address: 1048, name: "measure_watt_NIBE.i1048_compressor_add_power",     direction: Dir.In,  group: "core",       scale: 1, // Kompressor tillförd effekt
+    {address: 1048, name: "measure_watt_NIBE.i1048_compressor_add_power",     direction: Dir.In,  group: "energy", role: "main", scale: 1, // Kompressor tillförd effekt
      info: {en: "Electrical power drawn by the compressor", sv: "Eleffekt som kompressorn drar"}},
-    {address: 2166, name: "measure_watt_NIBE.i2166_energy_usage",             direction: Dir.In,  group: "core",       scale: 1, // Momentan använd effekt
+    {address: 2166, name: "measure_watt_NIBE.i2166_energy_usage",             direction: Dir.In,  group: "energy", role: "main", scale: 1, // Momentan använd effekt
      info: {en: "Total electrical power used by the pump right now", sv: "Total eleffekt pumpen använder just nu"}},
     // Rad 8
     {address: 1047, name: "measure_temperature.i1047_inverter",     direction: Dir.In,  group: "diagnostics", scale:  10, // Invertertemperatur
@@ -193,21 +211,43 @@ export const registers: Register[] = [
     // S-model): the raw value is in units of 0.01 kW, and this capability reports watts, so
     // raw / 0.1 == raw * 10 == watts. Don't "correct" this to 100 against the open-source
     // datasets — that would report kW into a watt capability (1000x low).
-    {address: 1027, name: "measure_watt_NIBE.i1027_additive_effect",          direction: Dir.In,  group: "core",       scale: 0.1, // Effekt intern tillsats
+    {address: 1027, name: "measure_watt_NIBE.i1027_additive_effect",          direction: Dir.In,  group: "energy", role: "main", scale: 0.1, // Effekt intern tillsats
      info: {en: "Power from the internal electric additive heater", sv: "Effekt från intern eltillsats"}},
     // Rad 13 Eltillsats statistik
-    {address: 1025, name: "measure_hour_NIBE.i1025_additive_usage_total",     direction: Dir.In,  group: "statistics", scale:  10, // Total drifttid tillsats
+    {address: 1025, name: "measure_hour_NIBE.i1025_additive_usage_total",     direction: Dir.In,  group: "statistics", scale:  10, size: 32, // Total drifttid tillsats (s32)
      info: {en: "Total runtime of the additive heater", sv: "Total drifttid för tillsatsen"}},
     {address: 1069, name: "measure_hour_NIBE.i1069_additive_usage_hotwater",  direction: Dir.In,  group: "hotwater",   scale:  10, // Total varmvatten drifttid tillsats
      info: {en: "Additive heater runtime spent on hot water", sv: "Tillsatsens drifttid för varmvatten"}},
     // Rad 14 Kompressor utomhus temp avg
-    {address: 1083, name: "measure_count_NIBE.i1083_compressor_starts",       direction: Dir.In,  group: "statistics", scale: 1, // Kompressorstarter
+    {address: 1083, name: "measure_count_NIBE.i1083_compressor_starts",       direction: Dir.In,  group: "statistics", scale: 1, size: 32, // Kompressorstarter (s32)
      info: {en: "Number of compressor starts", sv: "Antal kompressorstarter"}},
     {address:   37, name: "measure_temperature.i37_outside_avg",    direction: Dir.In,  group: "statistics",  scale:  10, // BT1 - Average outside temperature -Medeltemperatur (BT1)
      info: {en: "Average outdoor temperature (BT1)", sv: "Medelutetemperatur (BT1)"}},
     // Rad 15 Kompressor statistik
-    {address: 1087, name: "measure_hour_NIBE.i1087_compressor_usage_total",   direction: Dir.In,  group: "statistics", scale: 1, // Total drifttid kompressor
+    {address: 1087, name: "measure_hour_NIBE.i1087_compressor_usage_total",   direction: Dir.In,  group: "statistics", scale: 1, size: 32, // Total drifttid kompressor (s32)
      info: {en: "Total compressor runtime", sv: "Total drifttid för kompressorn"}},
+    // Lifetime cumulative energy counters (u32, tenths of a kWh). Deliberately a custom
+    // meter_kwh_NIBE type, not Homey's meter_power: the function devices already report
+    // consumption to the Energy tab via meter_power.total, so a second meter_power here
+    // would double-count. These feed the derived total COP (production / consumption) on
+    // the main device — see TOTAL_COP_CAPABILITY in roles.ts.
+    {address: 3821, name: "meter_kwh_NIBE.i3821_total_production",            direction: Dir.In,  group: "energy", role: "main", scale: 10, size: 32, relative: true, // Tot. production
+     info: {en: "Heat energy the pump has delivered since this device was added", sv: "Levererad värmeenergi sedan enheten lades till"}},
+    {address: 3823, name: "meter_kwh_NIBE.i3823_total_consumption",           direction: Dir.In,  group: "energy", role: "main", scale: 10, size: 32, relative: true, // Tot. consumption
+     info: {en: "Electricity the pump has consumed since this device was added", sv: "Elförbrukning sedan enheten lades till"}},
+    // Per-function delivered energy (u32, tenths of kWh), shown since pairing like the
+    // totals above. incl-additive for heating/hot water (fair for COP, which is charged the
+    // additive heater's electricity too); pool/cooling only exist compressor-only. Each
+    // lands on its function device via its group and, with that device's used energy from
+    // the allocator, drives the device's rolling COP (see producedRegisterForRole).
+    {address: 1577, name: "meter_kwh_NIBE.i1577_heating_produced",           direction: Dir.In,  group: "energy", role: "heating",  scale: 10, size: 32, relative: true, // Heating, incl. int. add.
+     info: {en: "Heat energy delivered to heating (incl. electric additive)", sv: "Levererad värmeenergi till värme (inkl. eltillsats)"}},
+    {address: 1575, name: "meter_kwh_NIBE.i1575_hotwater_produced",          direction: Dir.In,  group: "energy", role: "hotwater", scale: 10, size: 32, relative: true, // Hot water, incl. int. add.
+     info: {en: "Heat energy delivered to hot water (incl. electric additive)", sv: "Levererad värmeenergi till varmvatten (inkl. eltillsats)"}},
+    {address: 1581, name: "meter_kwh_NIBE.i1581_pool_produced",              direction: Dir.In,  group: "energy", role: "pool",     scale: 10, size: 32, relative: true, // Pool, compressor only
+     info: {en: "Heat energy delivered to the pool", sv: "Levererad värmeenergi till poolen"}},
+    {address: 1579, name: "meter_kwh_NIBE.i1579_cooling_produced",           direction: Dir.In,  group: "energy", role: "cooling",  scale: 10, size: 32, relative: true, // Cooling, compressor only
+     info: {en: "Cooling energy delivered", sv: "Levererad kylenergi"}},
     {address: 1091, name: "measure_hour_NIBE.i1091_compressor_usage_hotwater",direction: Dir.In,  group: "hotwater",   scale: 1, // Total drifttid kompressor varmvatten
      info: {en: "Compressor runtime spent on hot water", sv: "Kompressorns drifttid för varmvatten"}},
     // Rad 16 Värmekurvor
@@ -344,7 +384,38 @@ export const registers: Register[] = [
     {address:  181, name: "onoff.h181_enable_heating",                        direction: Dir.Out, group: "heating",    bool: true, // Tillåt värme
      info: {en: "Allow heating operation", sv: "Tillåt värmedrift"}},
     {address:  182, name: "onoff.h182_enable_cooling",                        direction: Dir.Out, group: "cooling",    bool: true, // Tillåt kyla
-     info: {en: "Allow cooling operation", sv: "Tillåt kyldrift"}}
+     info: {en: "Allow cooling operation", sv: "Tillåt kyldrift"}},
+
+    // ---- Offer-all expansion (specs verified against yozik04 s1155_s1255.csv) ----
+    // Alarm code (0 = no alarm), a read-only insight beside the reset/alarm-action controls.
+    {address: 1975, name: "measure_count_NIBE.i1975_alarm",                   direction: Dir.In,  group: "alarm",       scale: 1, // Alarm number
+     info: {en: "Active alarm code (0 = no alarm)", sv: "Aktiv larmkod (0 = inget larm)"}},
+    // Compressor running status (read-only on/off).
+    {address: 1100, name: "onoff.i1100_compressor_status",                    direction: Dir.In,  group: "diagnostics", bool: true, // Compressor status
+     info: {en: "Whether the compressor is running", sv: "Om kompressorn är igång"}},
+    // External pulse energy meter BE6 — only present if such a meter is wired to the pump.
+    {address:  398, name: "meter_kwh_NIBE.i398_pulse_energy",                 direction: Dir.In,  group: "electrical",  scale: 100, size: 32, // Pulse energy meter (BE6)
+     info: {en: "Energy counted by an external pulse meter (BE6)", sv: "Energi räknad av extern pulsmätare (BE6)"}},
+    // Photovoltaic / self-consumption accessory (EME 20), on its own `solarpanel`-class
+    // device. Mapped to Homey's official energy capabilities so it reports generation to the
+    // Energy tab: measure_power = current generation (W), meter_power.solar = cumulative
+    // generation (declared as exported via setEnergy). Both read 0 without the accessory.
+    {address: 2176, name: "measure_power",                                    direction: Dir.In,  group: "solar",       scale: 1, size: 32, // Current power (EME 20)
+     info: {en: "Solar power generated right now (EME 20)", sv: "Soleffekt som genereras just nu (EME 20)"}},
+    {address: 2180, name: "meter_power.solar",                                direction: Dir.In,  group: "solar",       scale: 10, size: 32, relative: true, // Total energy (EME 20)
+     info: {en: "Solar energy generated since this device was added (EME 20)", sv: "Genererad solenergi sedan enheten lades till (EME 20)"}},
+    // Hot water circulation accessory (BT70/BT82/BT83 + GP11). Absent → reads except/0.
+    {address:   87, name: "measure_temperature.i87_outgoing_hotwater",  direction: Dir.In, group: "hotwater", scale: 10, // Outgoing hot water (BT70)
+     info: {en: "Outgoing hot water temperature (BT70)", sv: "Utgående varmvattentemperatur (BT70)"}},
+    {address:  174, name: "measure_temperature.i174_hw_comfort_return", direction: Dir.In, group: "hotwater", scale: 10, // Hot water comfort return (BT82)
+     info: {en: "Hot water circulation return temperature (BT82)", sv: "Returtemperatur varmvattencirkulation (BT82)"}},
+    {address:  175, name: "measure_temperature.i175_hw_comfort_heater", direction: Dir.In, group: "hotwater", scale: 10, // Hot water comfort heater (BT83)
+     info: {en: "Hot water comfort heater temperature (BT83)", sv: "Temperatur varmvattenkomfortvärmare (BT83)"}},
+    {address: 1063, name: "onoff.i1063_hw_circulation",                       direction: Dir.In,  group: "hotwater",    bool: true, // Hot water circulation (GP11)
+     info: {en: "Whether the hot water circulation pump is running", sv: "Om varmvattencirkulationspumpen är igång"}},
+    // Auto-mode cooling start temperature (sibling of h184/h185); holding register 183.
+    {address:  183, name: "target_temperature.h183_auto_start_cooling",       direction: Dir.Out, group: "cooling",     scale: 10, min: -20, max: 40, // Auto mode, start temp cooling
+     info: {en: "Outdoor temperature where automatic mode starts cooling", sv: "Utetemperatur där autoläget startar kylan"}}
 ];
 
 export const registerByName =
@@ -363,13 +434,33 @@ export function isPollable(register: Register): boolean {
 }
 
 
-// Convert a raw 16-bit register value to a plain number (sign + scale only, no
-// enum/bool mapping) — used by detection sampling where only numeric movement
-// and plausibility matter.
+// Combine the words of a Modbus read into one raw integer. A 32-bit register is read
+// as two words, low word first (register N = low 16 bits, N+1 = high 16 bits) — verified
+// against the live pump; big-endian word order yields garbage.
+export function combineRaw(values: number[], size?: number): number {
+    return size === 32 ? values[1] * 65536 + values[0] : values[0];
+}
+
+// Two's-complement decode of a raw register value for its width. 16-bit is the default;
+// 32-bit spans two words. Everything is treated as signed (matching the 16-bit path);
+// the u32 energy counters stay far below 2^31 so this is lossless for them.
+export function signedValue(raw: number, size?: number): number {
+    if (size === 32)
+        return raw >= 0x80000000 ? raw - 0x100000000 : raw;
+    return raw >= 32768 ? raw - 65536 : raw;
+}
+
+// Nibe's "value not available" sentinel (all-ones top bit): 0x8000 for 16-bit, 0x80000000
+// for 32-bit. Checked on the raw (pre-sign) value.
+export function isUnavailableRaw(raw: number, size?: number): boolean {
+    return raw === (size === 32 ? 0x80000000 : 0x8000);
+}
+
+// Convert a raw register value to a plain number (sign + scale only, no enum/bool
+// mapping) — used by detection sampling where only numeric movement and plausibility
+// matter.
 export function toNumericValue(register: Register, raw: number): number {
-    let value = raw;
-    if (value >= 32768)
-        value -= 65536;
+    const value = signedValue(raw, register.size);
     if (register.scale)
         return value / register.scale;
     return value;

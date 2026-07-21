@@ -69,7 +69,8 @@
     "alarm": "Alarmhåndtering",
     "diagnostics": "Kjølemediediagnostikk",
     "statistics": "Driftstidsstatistikk",
-    "energy": "Energi"
+    "energy": "Energi",
+    "solar": "Sol / PV"
   },
   "Normal": "Normal",
   "Speed 1": "Trinn 1",

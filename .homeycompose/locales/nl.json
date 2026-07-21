@@ -69,7 +69,8 @@
     "alarm": "Alarmafhandeling",
     "diagnostics": "Koudemiddeldiagnose",
     "statistics": "Bedrijfstijdstatistieken",
-    "energy": "Energie"
+    "energy": "Energie",
+    "solar": "Zonne-energie / PV"
   },
   "Normal": "Normaal",
   "Speed 1": "Stand 1",

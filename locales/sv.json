@@ -90,6 +90,7 @@
     "cooling": "Kyla",
     "core": "Grundvärden",
     "alarm": "Larmhantering",
-    "energy": "Energi"
+    "energy": "Energi",
+    "solar": "Solceller / PV"
   }
 }
