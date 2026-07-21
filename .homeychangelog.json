@@ -15,5 +15,8 @@
   },
   "0.9.3": {
     "en": "Added polling frequency to advanced settings."
+  },
+  "0.9.4": {
+    "en": "Rewrite pairing logic. Added support for PV. Added support for produced energy. Added support for COP values (rolling 30-days) per device."
   }
 }
