@@ -234,13 +234,15 @@ export class PumpConnection {
             .catch(() => undefined);
     }
 
-    async writeSingleRegister(address: number, raw: number): Promise<boolean> {
-        return await this.client.writeSingleRegister(address, raw)
-            .then(() => true)
-            .catch((reason: any) => {
-                this.log('Error writing register', address, reason?.message ?? reason);
-                return false;
-            });
+    // Throws on failure (rather than swallowing) so the write error reaches the user who
+    // triggered it, instead of only appearing in the log.
+    async writeSingleRegister(address: number, raw: number): Promise<void> {
+        try {
+            await this.client.writeSingleRegister(address, raw);
+        } catch (reason: any) {
+            this.log('Error writing register', address, reason?.message ?? reason);
+            throw reason;
+        }
     }
 
     private poll() {
@@ -273,11 +275,13 @@ export class PumpConnection {
         });
     }
 
-    // Devices that receive an energy allocation each poll — the heat-producing functions
-    // only. Explicitly excludes 'main' and 'solar' (solar is a producer with its own
-    // measure_power register; charging it the pump's draw would clobber its generation).
-    private functionSubscribers(): PumpSubscriber[] {
-        return [...this.subscribers].filter((subscriber) => functionRoles.includes(subscriber.role));
+    // Devices that receive an energy allocation each poll: the heat-producing functions
+    // (their active draw) plus 'main' (the standby/idle draw, allocated when priority is
+    // Off). Excludes 'solar' — a producer whose measure_power is its own generation, which
+    // charging the pump's draw would clobber.
+    private energySubscribers(): PumpSubscriber[] {
+        return [...this.subscribers].filter((subscriber) =>
+            functionRoles.includes(subscriber.role) || subscriber.role === 'main');
     }
 
     private deviceForRole(role: Role): PumpSubscriber | undefined {
@@ -288,7 +292,7 @@ export class PumpConnection {
         if (this.loggedUnknownPriority.has(raw))
             return;
         this.loggedUnknownPriority.add(raw);
-        this.log(`Unknown priority value ${raw}, charging its energy to heating`);
+        this.log(`Unknown priority value ${raw}, charging its energy to Main (standby)`);
     }
 
     // Integrate total power into a per-function kWh bucket, charged to whichever
@@ -303,23 +307,26 @@ export class PumpConnection {
             const watts = signed(rawPower);
             const rawPriority = rawByName.get(PRIORITY_REGISTER.name);
 
-            let role: Role = 'heating';
+            // Default (and unknown-priority fallback) is 'main' = standby: an idle or
+            // unattributable draw is charged to Main, not to a function whose COP it would
+            // distort.
+            let role: Role = 'main';
             if (rawPriority !== undefined) {
                 const mapped = priorityToRole[rawPriority];
                 if (mapped) role = mapped;
                 else this.logUnknownPriority(rawPriority);
             }
 
-            // Resolve to an attached device, falling back to heating (standby/cooling
-            // already route there by design, so it's the natural catch-all).
-            const target = this.deviceForRole(role) ?? this.deviceForRole('heating');
+            // Resolve to an attached device, falling back to Main (which always exists when
+            // energy is being tracked, and is the standby catch-all).
+            const target = this.deviceForRole(role) ?? this.deviceForRole('main');
             const activeRole = target?.role ?? null;
 
             const delta = this.lastPowerReading !== null
                 ? ((this.lastPowerReading + watts) / 2) * deltaTimeHours / 1000
                 : 0;
 
-            for (const subscriber of this.functionSubscribers()) {
+            for (const subscriber of this.energySubscribers()) {
                 if (activeRole && subscriber.role === activeRole)
                     subscriber.onEnergy?.(delta, watts);
                 else
@@ -327,7 +334,7 @@ export class PumpConnection {
             }
 
             if (!target && delta > 0)
-                this.log(`No device for role ${role} (or heating fallback); dropping ${delta.toFixed(5)} kWh`);
+                this.log(`No device for role ${role} (or Main fallback); dropping ${delta.toFixed(5)} kWh`);
 
             this.lastPowerReading = watts;
         }

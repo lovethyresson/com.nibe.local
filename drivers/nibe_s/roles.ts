@@ -40,12 +40,14 @@ export const roleGroups: Record<Role, GroupId[]> = {
     solar: ["solar"]
 };
 
-// Raw value of the priority register (address 1028) → the function device that the
-// pump's current energy use is charged to. 10 (Off/standby, dominated by the
-// year-round ventilation fan) rolls into heating; 60 (Cooling) gets its own bucket
-// so heating vs cooling can be compared over a year.
+// Raw value of the priority register (address 1028) → the device the pump's current
+// energy use is charged to. 10 (Off/standby — circulation pumps, electronics, the
+// year-round ventilation fan) goes to Main as "standby energy" rather than polluting a
+// function: charging idle draw to Heating made Heating's COP meaningless (used energy
+// with no heat produced). An unrecognised priority also falls back to Main/standby (see
+// allocateEnergy), since an unattributable draw shouldn't distort a function's COP.
 export const priorityToRole: Record<number, Role> = {
-    10: "heating",
+    10: "main",
     20: "hotwater",
     30: "heating",
     40: "pool",
@@ -68,10 +70,11 @@ export const ACTIVE_POWER_CAPABILITY = "measure_power";
 // can treat these two names like registers even though they aren't in the table.
 export const ENERGY_CAPABILITIES = [METER_CAPABILITY, ACTIVE_POWER_CAPABILITY];
 
-// Extra (non-register) capabilities a device of this role carries. Only the function
-// devices get the energy pair; main deliberately carries no meter_power.* capability
-// so it never shows up in Homey's Energy tab (the function devices' meters sum to the
-// pump total there instead).
+// Extra (non-register) capabilities a device of this role carries. Function devices get
+// the energy pair for their active draw; main gets it too, but its slice is the pump's
+// standby/idle draw (allocated when priority is Off). Together — functions (active) +
+// main (standby) — the meter_power.total meters still sum to the pump total in Homey's
+// Energy tab, just sliced more honestly than folding idle into Heating.
 //
 // The pair follows the "energy" feature group, resolved with the same precedence as
 // isRegisterEnabled(): a per-capability override wins over the group, and a missing
@@ -119,10 +122,12 @@ export function extraCapabilities(role: Role, selection?: Selection | null): str
     if (role === "solar")
         return [];
     if (role === "main") {
-        // Total COP lives in the energy group (with the production/consumption meters).
+        // Main carries the energy pair too, but its slice is standby/idle draw (allocated
+        // when the pump priority is Off) — titled "Standby energy"/"Standby power". Plus the
+        // Total COP. All live in the energy group.
         const energyOn = selection?.groups?.energy ?? true;
         return energyOn
-            ? [PUMP_ACTIVE_CAPABILITY, TOTAL_COP_CAPABILITY]
+            ? [PUMP_ACTIVE_CAPABILITY, ...ENERGY_CAPABILITIES, TOTAL_COP_CAPABILITY]
             : [PUMP_ACTIVE_CAPABILITY];
     }
     if (!selection)
@@ -184,10 +189,14 @@ export const SOLAR_METER_CAPABILITY = "meter_power.solar";
 // The Homey Energy-tab meter for a function = electricity this function has used since the
 // device was added (from the allocator). Titled "Energy used" to read clearly next to the
 // "Energy delivered" produced meter and the rolling COP on the same device.
-export function energyTitle(_role: Role): {en: string; sv: string} {
-    return {en: "Energy used", sv: "Använd energi"};
+export function energyTitle(role: Role): {en: string; sv: string} {
+    return role === 'main'
+        ? {en: "Standby energy", sv: "Standby-energi"}
+        : {en: "Energy used", sv: "Använd energi"};
 }
 
-export function powerTitle(_role: Role): {en: string; sv: string} {
-    return {en: "Current power", sv: "Momentan effekt"};
+export function powerTitle(role: Role): {en: string; sv: string} {
+    return role === 'main'
+        ? {en: "Standby power", sv: "Standby-effekt"}
+        : {en: "Current power", sv: "Momentan effekt"};
 }

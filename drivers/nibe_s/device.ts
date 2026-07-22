@@ -86,10 +86,17 @@ class NibeSDevice extends Device implements PumpSubscriber {
         return raw === undefined ? undefined : this.fromRegisterValue(register, raw);
     }
 
-    async writeRegister(register: Register, value: any): Promise<boolean> {
+    async writeRegister(register: Register, value: any): Promise<void> {
         if (!this.connection)
-            return false;
-        return await this.connection.writeSingleRegister(register.address, this.toRegisterValue(register, value));
+            throw new Error('Not connected to the heat pump');
+        try {
+            await this.connection.writeSingleRegister(register.address, this.toRegisterValue(register, value));
+        } catch (error: any) {
+            // Surface a clear, user-facing message instead of failing silently. The pump
+            // rejects some writes contextually (e.g. hot-water registers when hot water is
+            // turned off) as a Modbus exception — the user needs to see that, not just the log.
+            throw new Error(`Could not set "${this.registerTitle(register)}": ${error?.message ?? error}`);
+        }
     }
 
     private capabilityChangedTrigger = this.homey.flow.getDeviceTriggerCard("capability_changed");
@@ -299,8 +306,9 @@ class NibeSDevice extends Device implements PumpSubscriber {
         await this.syncCapabilities();
         // The kWh total keeps accumulating while the meter capability is off (onEnergy
         // guards only the capability writes), so a meter re-enabled here would read 0
-        // until the next poll charges it. Seed it the way onInit does.
-        if (this.role !== 'main' && this.hasCapability(METER_CAPABILITY))
+        // until the next poll charges it. Seed it the way onInit does (main included, for
+        // its standby meter).
+        if (this.hasCapability(METER_CAPABILITY))
             await this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
     }
 
@@ -325,16 +333,19 @@ class NibeSDevice extends Device implements PumpSubscriber {
         if (this.role === 'solar')
             await this.setEnergy({meterPowerExportedCapability: SOLAR_METER_CAPABILITY}).catch(this.error);
 
-        if (functionRoles.includes(this.role)) {
+        // Function devices track their used energy here; main tracks its standby energy —
+        // both stored in the "cumulativeEnergy" setting. Only function devices feed it into
+        // a rolling COP (main's COP comes from the pump's own counters, not the allocator).
+        if (functionRoles.includes(this.role) || this.role === 'main')
             this.cumulativeEnergy = this.getSettings().cumulativeEnergy || 0;
+        if (functionRoles.includes(this.role))
             this.copUsed = this.cumulativeEnergy; // seed the rolling-COP used side
-        }
 
         await this.syncCapabilities();
         this.log(`Device capabilities synced: ${this.getCapabilities().length} — `
             + this.getCapabilities().join(', '));
 
-        if (this.role !== 'main' && this.hasCapability(METER_CAPABILITY))
+        if (this.hasCapability(METER_CAPABILITY))
             await this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
 
         // Writable capabilities of this role get a Modbus write listener. Registered for
@@ -343,6 +354,7 @@ class NibeSDevice extends Device implements PumpSubscriber {
         for (const register of roleRegisters(this.role)) {
             if (register.direction === Dir.Out && !register.noAction) {
                 this.registerCapabilityListener(register.name, async (value) => {
+                    this.log(`Manual set ${register.name} = ${value}`);
                     await this.writeRegister(register, value);
                     this.checkTrigger(register, value);
                 });
@@ -464,9 +476,13 @@ class NibeSDevice extends Device implements PumpSubscriber {
             // Persist every poll so a crash/restart loses at most one interval's energy.
             this.setSettings({cumulativeEnergy: this.cumulativeEnergy}).catch(this.error);
         }
-        // Used side of this function's rolling COP is the allocator's cumulative energy.
-        this.copUsed = this.cumulativeEnergy;
-        this.updateRollingCop();
+        // Only function devices feed the allocator's cumulative energy into a rolling COP.
+        // Main receives standby energy here but its Total COP comes from the pump's own
+        // production/consumption counters (set in onRegisterRaw), so don't touch copUsed.
+        if (functionRoles.includes(this.role)) {
+            this.copUsed = this.cumulativeEnergy;
+            this.updateRollingCop();
+        }
         if (this.hasCapability(ACTIVE_POWER_CAPABILITY))
             this.setCapabilityValue(ACTIVE_POWER_CAPABILITY, watts).catch(this.error);
     }

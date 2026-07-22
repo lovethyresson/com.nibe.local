@@ -88,6 +88,11 @@
     "measure_degree_minutes_NIBE.h20_cooling_dm",
     "target_temperature.h59_hotwater_start",
     "target_temperature.h63_hotwater_stop",
+    "target_temperature.h60_hotwater_start_small",
+    "target_temperature.h64_hotwater_stop_small",
+    "target_temperature.h58_hotwater_start_large",
+    "target_temperature.h62_hotwater_stop_large",
+    "onoff.h195_enable_hotwater",
     "measure_minute_NIBE.h94_periodtime_pool",
     "button.h22_reset_alarm",
     "onoff.h196_alarm_lower_room_temp",
@@ -972,12 +977,12 @@
       "max": 60,
       "insights": true,
       "title": {
-        "en": "Hot water start temperature",
-        "sv": "Varmvatten starttemperatur",
-        "de": "Brauchwasser Starttemperatur",
-        "nl": "Starttemperatuur warmtapwater",
-        "no": "Starttemperatur varmtvann",
-        "da": "Starttemperatur varmtvand"
+        "en": "Hot water start (Medium)",
+        "sv": "Varmvatten start (Medel)",
+        "de": "Brauchwasser Start (Mittel)",
+        "nl": "Warmtapwater start (Medium)",
+        "no": "Varmtvann start (Medium)",
+        "da": "Varmt vand start (Medium)"
       }
     },
     "target_temperature.h63_hotwater_stop": {
@@ -986,12 +991,78 @@
       "max": 65,
       "insights": true,
       "title": {
-        "en": "Hot water stop temperature",
-        "sv": "Varmvatten stopptemperatur",
-        "de": "Brauchwasser Stopptemperatur",
-        "nl": "Stoptemperatuur warmtapwater",
-        "no": "Stopptemperatur varmtvann",
-        "da": "Stoptemperatur varmtvand"
+        "en": "Hot water stop (Medium)",
+        "sv": "Varmvatten stopp (Medel)",
+        "de": "Brauchwasser Stopp (Mittel)",
+        "nl": "Warmtapwater stop (Medium)",
+        "no": "Varmtvann stopp (Medium)",
+        "da": "Varmt vand stop (Medium)"
+      }
+    },
+    "target_temperature.h60_hotwater_start_small": {
+      "decimals": 1,
+      "min": 5,
+      "max": 55,
+      "insights": true,
+      "title": {
+        "en": "Hot water start (Small)",
+        "sv": "Varmvatten start (Litet)",
+        "de": "Brauchwasser Start (Klein)",
+        "nl": "Warmtapwater start (Klein)",
+        "no": "Varmtvann start (Lite)",
+        "da": "Varmt vand start (Lille)"
+      }
+    },
+    "target_temperature.h64_hotwater_stop_small": {
+      "decimals": 1,
+      "min": 5,
+      "max": 60,
+      "insights": true,
+      "title": {
+        "en": "Hot water stop (Small)",
+        "sv": "Varmvatten stopp (Litet)",
+        "de": "Brauchwasser Stopp (Klein)",
+        "nl": "Warmtapwater stop (Klein)",
+        "no": "Varmtvann stopp (Lite)",
+        "da": "Varmt vand stop (Lille)"
+      }
+    },
+    "target_temperature.h58_hotwater_start_large": {
+      "decimals": 1,
+      "min": 5,
+      "max": 70,
+      "insights": true,
+      "title": {
+        "en": "Hot water start (Large)",
+        "sv": "Varmvatten start (Stort)",
+        "de": "Brauchwasser Start (Groß)",
+        "nl": "Warmtapwater start (Groot)",
+        "no": "Varmtvann start (Stor)",
+        "da": "Varmt vand start (Stor)"
+      }
+    },
+    "target_temperature.h62_hotwater_stop_large": {
+      "decimals": 1,
+      "min": 5,
+      "max": 70,
+      "insights": true,
+      "title": {
+        "en": "Hot water stop (Large)",
+        "sv": "Varmvatten stopp (Stort)",
+        "de": "Brauchwasser Stopp (Groß)",
+        "nl": "Warmtapwater stop (Groot)",
+        "no": "Varmtvann stopp (Stor)",
+        "da": "Varmt vand stop (Stor)"
+      }
+    },
+    "onoff.h195_enable_hotwater": {
+      "title": {
+        "en": "Allow hot water",
+        "sv": "Tillåt varmvatten",
+        "de": "Brauchwasser zulassen",
+        "nl": "Warmtapwater toestaan",
+        "no": "Tillat varmtvann",
+        "da": "Tillad varmt vand"
       }
     },
     "measure_minute_NIBE.h94_periodtime_pool": {

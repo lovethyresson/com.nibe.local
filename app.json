@@ -1156,6 +1156,190 @@
         ]
       },
       {
+        "id": "target_temperature.h60_hotwater_start_small.set",
+        "title": {
+          "en": "Set the hot water start temperature (Small)",
+          "sv": "Ställ in varmvattnets starttemperatur (Litet)",
+          "de": "Brauchwasser-Starttemperatur einstellen (Klein)",
+          "nl": "Starttemperatuur warmtapwater instellen (Klein)",
+          "no": "Still inn starttemperatur varmtvann (Lite)",
+          "da": "Indstil starttemperatur varmt vand (Lille)"
+        },
+        "titleFormatted": {
+          "en": "Set the hot water start temperature (Small) to [[value]]",
+          "sv": "Ställ in varmvattnets starttemperatur (Litet) till [[value]]",
+          "de": "Brauchwasser-Starttemperatur (Klein) auf [[value]] setzen",
+          "nl": "Starttemperatuur warmtapwater (Klein) instellen op [[value]]",
+          "no": "Sett starttemperatur varmtvann (Lite) til [[value]]",
+          "da": "Indstil starttemperatur varmt vand (Lille) til [[value]]"
+        },
+        "hint": {
+          "en": "Charging start temperature for the Small demand mode. Accepts 5 to 55 °C.",
+          "sv": "Starttemperatur för behovsläget Litet. Tillåter 5 till 55 °C.",
+          "de": "Ladestart-Temperatur für den Modus Klein. Bereich: 5 bis 55 °C.",
+          "nl": "Laadstart-temperatuur voor de modus Klein. Bereik: 5 tot 55 °C.",
+          "no": "Ladestarttemperatur for modus Lite. Område: 5 til 55 °C.",
+          "da": "Ladestarttemperatur for tilstanden Lille. Område: 5 til 55 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h60_hotwater_start_small"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "target_temperature.h64_hotwater_stop_small.set",
+        "title": {
+          "en": "Set the hot water stop temperature (Small)",
+          "sv": "Ställ in varmvattnets stopptemperatur (Litet)",
+          "de": "Brauchwasser-Stopptemperatur einstellen (Klein)",
+          "nl": "Stoptemperatuur warmtapwater instellen (Klein)",
+          "no": "Still inn stopptemperatur varmtvann (Lite)",
+          "da": "Indstil stoptemperatur varmt vand (Lille)"
+        },
+        "titleFormatted": {
+          "en": "Set the hot water stop temperature (Small) to [[value]]",
+          "sv": "Ställ in varmvattnets stopptemperatur (Litet) till [[value]]",
+          "de": "Brauchwasser-Stopptemperatur (Klein) auf [[value]] setzen",
+          "nl": "Stoptemperatuur warmtapwater (Klein) instellen op [[value]]",
+          "no": "Sett stopptemperatur varmtvann (Lite) til [[value]]",
+          "da": "Indstil stoptemperatur varmt vand (Lille) til [[value]]"
+        },
+        "hint": {
+          "en": "Charging stop temperature for the Small demand mode. Accepts 5 to 60 °C.",
+          "sv": "Stopptemperatur för behovsläget Litet. Tillåter 5 till 60 °C.",
+          "de": "Ladestopp-Temperatur für den Modus Klein. Bereich: 5 bis 60 °C.",
+          "nl": "Laadstop-temperatuur voor de modus Klein. Bereik: 5 tot 60 °C.",
+          "no": "Ladestopptemperatur for modus Lite. Område: 5 til 60 °C.",
+          "da": "Ladestoptemperatur for tilstanden Lille. Område: 5 til 60 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h64_hotwater_stop_small"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "target_temperature.h58_hotwater_start_large.set",
+        "title": {
+          "en": "Set the hot water start temperature (Large)",
+          "sv": "Ställ in varmvattnets starttemperatur (Stort)",
+          "de": "Brauchwasser-Starttemperatur einstellen (Groß)",
+          "nl": "Starttemperatuur warmtapwater instellen (Groot)",
+          "no": "Still inn starttemperatur varmtvann (Stor)",
+          "da": "Indstil starttemperatur varmt vand (Stor)"
+        },
+        "titleFormatted": {
+          "en": "Set the hot water start temperature (Large) to [[value]]",
+          "sv": "Ställ in varmvattnets starttemperatur (Stort) till [[value]]",
+          "de": "Brauchwasser-Starttemperatur (Groß) auf [[value]] setzen",
+          "nl": "Starttemperatuur warmtapwater (Groot) instellen op [[value]]",
+          "no": "Sett starttemperatur varmtvann (Stor) til [[value]]",
+          "da": "Indstil starttemperatur varmt vand (Stor) til [[value]]"
+        },
+        "hint": {
+          "en": "Charging start temperature for the Large demand mode. Accepts 5 to 70 °C.",
+          "sv": "Starttemperatur för behovsläget Stort. Tillåter 5 till 70 °C.",
+          "de": "Ladestart-Temperatur für den Modus Groß. Bereich: 5 bis 70 °C.",
+          "nl": "Laadstart-temperatuur voor de modus Groot. Bereik: 5 tot 70 °C.",
+          "no": "Ladestarttemperatur for modus Stor. Område: 5 til 70 °C.",
+          "da": "Ladestarttemperatur for tilstanden Stor. Område: 5 til 70 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h58_hotwater_start_large"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
+        "id": "target_temperature.h62_hotwater_stop_large.set",
+        "title": {
+          "en": "Set the hot water stop temperature (Large)",
+          "sv": "Ställ in varmvattnets stopptemperatur (Stort)",
+          "de": "Brauchwasser-Stopptemperatur einstellen (Groß)",
+          "nl": "Stoptemperatuur warmtapwater instellen (Groot)",
+          "no": "Still inn stopptemperatur varmtvann (Stor)",
+          "da": "Indstil stoptemperatur varmt vand (Stor)"
+        },
+        "titleFormatted": {
+          "en": "Set the hot water stop temperature (Large) to [[value]]",
+          "sv": "Ställ in varmvattnets stopptemperatur (Stort) till [[value]]",
+          "de": "Brauchwasser-Stopptemperatur (Groß) auf [[value]] setzen",
+          "nl": "Stoptemperatuur warmtapwater (Groot) instellen op [[value]]",
+          "no": "Sett stopptemperatur varmtvann (Stor) til [[value]]",
+          "da": "Indstil stoptemperatur varmt vand (Stor) til [[value]]"
+        },
+        "hint": {
+          "en": "Charging stop temperature for the Large demand mode. Accepts 5 to 70 °C.",
+          "sv": "Stopptemperatur för behovsläget Stort. Tillåter 5 till 70 °C.",
+          "de": "Ladestopp-Temperatur für den Modus Groß. Bereich: 5 bis 70 °C.",
+          "nl": "Laadstop-temperatuur voor de modus Groot. Bereik: 5 tot 70 °C.",
+          "no": "Ladestopptemperatur for modus Stor. Område: 5 til 70 °C.",
+          "da": "Ladestoptemperatur for tilstanden Stor. Område: 5 til 70 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h62_hotwater_stop_large"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
         "id": "target_temperature.h59_hotwater_start.set",
         "title": {
           "en": "Set the hot water start temperature",
@@ -1887,6 +2071,11 @@
         "measure_degree_minutes_NIBE.h20_cooling_dm",
         "target_temperature.h59_hotwater_start",
         "target_temperature.h63_hotwater_stop",
+        "target_temperature.h60_hotwater_start_small",
+        "target_temperature.h64_hotwater_stop_small",
+        "target_temperature.h58_hotwater_start_large",
+        "target_temperature.h62_hotwater_stop_large",
+        "onoff.h195_enable_hotwater",
         "measure_minute_NIBE.h94_periodtime_pool",
         "button.h22_reset_alarm",
         "onoff.h196_alarm_lower_room_temp",
@@ -2771,12 +2960,12 @@
           "max": 60,
           "insights": true,
           "title": {
-            "en": "Hot water start temperature",
-            "sv": "Varmvatten starttemperatur",
-            "de": "Brauchwasser Starttemperatur",
-            "nl": "Starttemperatuur warmtapwater",
-            "no": "Starttemperatur varmtvann",
-            "da": "Starttemperatur varmtvand"
+            "en": "Hot water start (Medium)",
+            "sv": "Varmvatten start (Medel)",
+            "de": "Brauchwasser Start (Mittel)",
+            "nl": "Warmtapwater start (Medium)",
+            "no": "Varmtvann start (Medium)",
+            "da": "Varmt vand start (Medium)"
           }
         },
         "target_temperature.h63_hotwater_stop": {
@@ -2785,12 +2974,78 @@
           "max": 65,
           "insights": true,
           "title": {
-            "en": "Hot water stop temperature",
-            "sv": "Varmvatten stopptemperatur",
-            "de": "Brauchwasser Stopptemperatur",
-            "nl": "Stoptemperatuur warmtapwater",
-            "no": "Stopptemperatur varmtvann",
-            "da": "Stoptemperatur varmtvand"
+            "en": "Hot water stop (Medium)",
+            "sv": "Varmvatten stopp (Medel)",
+            "de": "Brauchwasser Stopp (Mittel)",
+            "nl": "Warmtapwater stop (Medium)",
+            "no": "Varmtvann stopp (Medium)",
+            "da": "Varmt vand stop (Medium)"
+          }
+        },
+        "target_temperature.h60_hotwater_start_small": {
+          "decimals": 1,
+          "min": 5,
+          "max": 55,
+          "insights": true,
+          "title": {
+            "en": "Hot water start (Small)",
+            "sv": "Varmvatten start (Litet)",
+            "de": "Brauchwasser Start (Klein)",
+            "nl": "Warmtapwater start (Klein)",
+            "no": "Varmtvann start (Lite)",
+            "da": "Varmt vand start (Lille)"
+          }
+        },
+        "target_temperature.h64_hotwater_stop_small": {
+          "decimals": 1,
+          "min": 5,
+          "max": 60,
+          "insights": true,
+          "title": {
+            "en": "Hot water stop (Small)",
+            "sv": "Varmvatten stopp (Litet)",
+            "de": "Brauchwasser Stopp (Klein)",
+            "nl": "Warmtapwater stop (Klein)",
+            "no": "Varmtvann stopp (Lite)",
+            "da": "Varmt vand stop (Lille)"
+          }
+        },
+        "target_temperature.h58_hotwater_start_large": {
+          "decimals": 1,
+          "min": 5,
+          "max": 70,
+          "insights": true,
+          "title": {
+            "en": "Hot water start (Large)",
+            "sv": "Varmvatten start (Stort)",
+            "de": "Brauchwasser Start (Groß)",
+            "nl": "Warmtapwater start (Groot)",
+            "no": "Varmtvann start (Stor)",
+            "da": "Varmt vand start (Stor)"
+          }
+        },
+        "target_temperature.h62_hotwater_stop_large": {
+          "decimals": 1,
+          "min": 5,
+          "max": 70,
+          "insights": true,
+          "title": {
+            "en": "Hot water stop (Large)",
+            "sv": "Varmvatten stopp (Stort)",
+            "de": "Brauchwasser Stopp (Groß)",
+            "nl": "Warmtapwater stop (Groot)",
+            "no": "Varmtvann stopp (Stor)",
+            "da": "Varmt vand stop (Stor)"
+          }
+        },
+        "onoff.h195_enable_hotwater": {
+          "title": {
+            "en": "Allow hot water",
+            "sv": "Tillåt varmvatten",
+            "de": "Brauchwasser zulassen",
+            "nl": "Warmtapwater toestaan",
+            "no": "Tillat varmtvann",
+            "da": "Tillad varmt vand"
           }
         },
         "measure_minute_NIBE.h94_periodtime_pool": {

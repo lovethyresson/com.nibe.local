@@ -360,10 +360,22 @@ export const registers: Register[] = [
      info: {en: "Degree minutes limited to the range the pump regulates within", sv: "Gradminuter begränsade till intervallet pumpen reglerar inom"}},
     {address:   20, name: "measure_degree_minutes_NIBE.h20_cooling_dm",       direction: Dir.Out, group: "cooling",    scale: 10, min: -3000, max: 3000, // Gradminuter kyla
      info: {en: "Accumulated cooling surplus that decides when cooling starts", sv: "Ackumulerat kylöverskott som avgör när kylan startar"}},
-    {address:   59, name: "target_temperature.h59_hotwater_start",            direction: Dir.Out, group: "hotwater",   scale: 10, min: 5, max: 60, // VV starttemperatur
-     info: {en: "Tank temperature where hot water charging starts", sv: "Tanktemperatur där varmvattenladdning startar"}},
-    {address:   63, name: "target_temperature.h63_hotwater_stop",             direction: Dir.Out, group: "hotwater",   scale: 10, min: 5, max: 65, // VV stopptemperatur
-     info: {en: "Tank temperature where hot water charging stops", sv: "Tanktemperatur där varmvattenladdning stoppar"}},
+    // Hot water start/stop come as three pairs, one per demand mode (register 56):
+    // Small = low (60/64), Medium = normal (59/63), Large = high (58/62). The active mode
+    // picks which pair the pump uses. All three are exposed so any mode is editable, and
+    // ordered Small → Medium → Large so they read in that order in the UI.
+    {address:   60, name: "target_temperature.h60_hotwater_start_small",      direction: Dir.Out, group: "hotwater",   scale: 10, min: 5, max: 55, // Start HW low (Small)
+     info: {en: "Charging start temperature for the Small demand mode", sv: "Starttemperatur för behovsläget Litet"}},
+    {address:   64, name: "target_temperature.h64_hotwater_stop_small",       direction: Dir.Out, group: "hotwater",   scale: 10, min: 5, max: 60, // Stop HW low (Small)
+     info: {en: "Charging stop temperature for the Small demand mode", sv: "Stopptemperatur för behovsläget Litet"}},
+    {address:   59, name: "target_temperature.h59_hotwater_start",            direction: Dir.Out, group: "hotwater",   scale: 10, min: 5, max: 60, // VV starttemperatur (Medium/normal)
+     info: {en: "Charging start temperature for the Medium demand mode", sv: "Starttemperatur för behovsläget Medel"}},
+    {address:   63, name: "target_temperature.h63_hotwater_stop",             direction: Dir.Out, group: "hotwater",   scale: 10, min: 5, max: 65, // VV stopptemperatur (Medium/normal)
+     info: {en: "Charging stop temperature for the Medium demand mode", sv: "Stopptemperatur för behovsläget Medel"}},
+    {address:   58, name: "target_temperature.h58_hotwater_start_large",      direction: Dir.Out, group: "hotwater",   scale: 10, min: 5, max: 70, // Start HW high (Large)
+     info: {en: "Charging start temperature for the Large demand mode", sv: "Starttemperatur för behovsläget Stort"}},
+    {address:   62, name: "target_temperature.h62_hotwater_stop_large",       direction: Dir.Out, group: "hotwater",   scale: 10, min: 5, max: 70, // Stop HW high (Large)
+     info: {en: "Charging stop temperature for the Large demand mode", sv: "Stopptemperatur för behovsläget Stort"}},
     {address:   94, name: "measure_minute_NIBE.h94_periodtime_pool",          direction: Dir.Out, group: "pool",       scale: 1, min: 0, max: 180, // Periodtid pool
      info: {en: "How long the pump heats the pool before switching demand", sv: "Hur länge pumpen värmer poolen innan den byter behov"}},
 
@@ -385,6 +397,13 @@ export const registers: Register[] = [
      info: {en: "Allow heating operation", sv: "Tillåt värmedrift"}},
     {address:  182, name: "onoff.h182_enable_cooling",                        direction: Dir.Out, group: "cooling",    bool: true, // Tillåt kyla
      info: {en: "Allow cooling operation", sv: "Tillåt kyldrift"}},
+    // Master hot-water permit (Nibe's own on/off for hot water). OFF disables ALL hot
+    // water: the pump then blocks the demand-mode (56) and "More hot water" (697) registers
+    // entirely (Modbus "Illegal Function" on read and write), so the boost can't be used
+    // either. For "auto off, manual boost only" keep this ON and set the active mode's start
+    // temperature very low instead.
+    {address:  195, name: "onoff.h195_enable_hotwater",                       direction: Dir.Out, group: "hotwater",   bool: true, // Tillåt varmvatten
+     info: {en: "Allow hot water. Off disables all hot water, including the More hot water boost", sv: "Tillåt varmvatten. Av stänger av allt varmvatten, även engångshöjningen"}},
 
     // ---- Offer-all expansion (specs verified against yozik04 s1155_s1255.csv) ----
     // Alarm code (0 = no alarm), a read-only insight beside the reset/alarm-action controls.

@@ -93,11 +93,11 @@ class NibeSDriver extends Driver {
     // "<capability>.set" cards and the generic set_numeric_value one so the validation
     // and the write-verify only exist once.
     private async writeNumeric(device: any, register: Register, value: number) {
+        this.log(`Flow: ${device.getName()} set ${register.name} = ${value}`);
         if (value < register.min! || value > register.max!)
             throw new Error("The value " + value + " is out of range. Value should be between " +
                 register.min + " and " + register.max + ".");
-        if (!await device.writeRegister(register, value))
-            throw new Error("Could not set value " + value);
+        await device.writeRegister(register, value); // throws (shown to the user) on failure
         const newValue = await device.readRegister(register);
         if (newValue !== value)
             throw new Error("Failed setting " + value + ", got back value " + newValue);
@@ -121,8 +121,9 @@ class NibeSDriver extends Driver {
                 this.homey.flow.getActionCard(register.name + ".enum")
                     .registerArgumentAutocompleteListener("mode", async (query) => enumOptions(query))
                     .registerRunListener(async (args) => {
-                        if (await args.device.writeRegister(register, args.mode.id))
-                            await args.device.setValue(register, args.mode.id);
+                        this.log(`Flow: ${args.device.getName()} set ${register.name} = ${args.mode.name}`);
+                        await args.device.writeRegister(register, args.mode.id);
+                        await args.device.setValue(register, args.mode.id);
                     });
             }
             if (conditionSpecs[register.name + ".enum"]) {
@@ -153,8 +154,8 @@ class NibeSDriver extends Driver {
                 continue;
             this.homey.flow.getActionCard(register.name + ".reset")
                 .registerRunListener(async (args) => {
-                    if (!await args.device.writeRegister(register, true))
-                        throw new Error(`Could not write ${register.name}`);
+                    this.log(`Flow: ${args.device.getName()} reset ${register.name}`);
+                    await args.device.writeRegister(register, true); // throws (shown to the user) on failure
                 });
         }
 
@@ -166,16 +167,18 @@ class NibeSDriver extends Driver {
             (reg) => reg.direction == Dir.Out && reg.bool! && !reg.writeOnly,
             async (args: any) => {
                 const register = registerByName[args.register.id];
-                if (await args.device.writeRegister(register, true))
-                    await args.device.setValue(register, await args.device.readRegister(register));
+                this.log(`Flow: ${args.device.getName()} enable ${register.name}`);
+                await args.device.writeRegister(register, true);
+                await args.device.setValue(register, await args.device.readRegister(register));
             });
 
         this.registerAutofillFlow(this.homey.flow.getActionCard("disable_feature"),
             (reg) => reg.direction == Dir.Out && reg.bool! && !reg.writeOnly,
             async (args: any) => {
                 const register = registerByName[args.register.id];
-                if (await args.device.writeRegister(register, false))
-                    await args.device.setValue(register, await args.device.readRegister(register));
+                this.log(`Flow: ${args.device.getName()} disable ${register.name}`);
+                await args.device.writeRegister(register, false);
+                await args.device.setValue(register, await args.device.readRegister(register));
             });
 
         this.registerAutofillFlow(this.homey.flow.getConditionCard("numeric_value_comparison"),
@@ -290,13 +293,20 @@ class NibeSDriver extends Driver {
         }
         // Derived pair + COP inherit whether any real energy register for this role read.
         const hasEnergyData = samples ? entries.some((e) => e.detected) : true;
-        if (role && role !== 'main' && role !== 'solar') {
+        if (role && role !== 'solar') {
+            const isMain = role === 'main';
             const descriptions: Record<string, RegisterInfo> = {
-                [METER_CAPABILITY]: {
+                [METER_CAPABILITY]: isMain ? {
+                    en: "Electricity used while the pump is idle (standby draw), since the device was added",
+                    sv: "El som används när pumpen står i standby, sedan enheten lades till"
+                } : {
                     en: "Electricity this function has used since the device was added (Homey Energy tab)",
                     sv: "El denna funktion använt sedan enheten lades till (Homeys energiflik)"
                 },
-                [ACTIVE_POWER_CAPABILITY]: {
+                [ACTIVE_POWER_CAPABILITY]: isMain ? {
+                    en: "Power the pump is drawing right now while idle (standby)",
+                    sv: "Effekt pumpen drar just nu i standby"
+                } : {
                     en: "Power the pump is drawing right now, when this function is the active one",
                     sv: "Effekt pumpen drar just nu, när denna funktion är den aktiva"
                 }
@@ -400,7 +410,7 @@ class NibeSDriver extends Driver {
                 options[register.name] = (capabilitiesOptions as any)[register.name];
         // Options for every energy capability the role could carry, not just the
         // currently selected ones, so one enabled later via repair still gets its title.
-        if (functionRoles.includes(role))
+        if (functionRoles.includes(role) || role === 'main')
             for (const extra of ENERGY_CAPABILITIES)
                 options[extra] = this.extraOption(role, extra);
         return {

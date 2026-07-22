@@ -16,7 +16,7 @@ automate separately. This app pairs each as its own Homey device:
 
 | Device | What it carries |
 | --- | --- |
-| **Main** | The pump itself: outdoor temperature, operating priority and mode, diagnostics, runtime statistics, phase currents, ground-source (brine) temperatures, alarm code, compressor status — plus **total energy produced/consumed** and **Total COP**, and the pump's firmware/type in settings. |
+| **Main** | The pump itself: outdoor temperature, operating priority and mode, diagnostics, runtime statistics, phase currents, ground-source (brine) temperatures, alarm code, compressor status — plus **total energy produced/consumed**, **Total COP**, **standby energy** (idle draw), and the pump's firmware/type in settings. |
 | **Heating** | Heat curve, supply/return temperatures, degree minutes, ventilation (if fitted) — plus **energy used**, **energy delivered**, and **Heating COP**. |
 | **Hot Water** | Hot-water temperatures, demand mode, one-time boosts, periodic hot water, circulation (if fitted) — plus **energy used**, **energy delivered**, and **Hot Water COP**. |
 | **Pool** | Pool temperature, start/stop setpoints, pump status — plus **energy used**, **energy delivered**, and **Pool COP**. |
@@ -27,6 +27,52 @@ You choose which devices (and which features within them) to add during pairing,
 selection later via the device's **Repair** flow. Devices/features your pump doesn't have are offered but
 left unchecked.
 
+## How each device works
+
+### Main — the pump itself
+- **Operating priority** — what the pump is doing *right now* (heating / hot water / pool / cooling / idle).
+- **Operating mode** — Auto / Manual / Add-heat only.
+- **Total energy** produced and consumed, and **Total COP** (see below).
+- **Standby energy** and **Standby power** — the pump's idle/parasitic draw (charged here instead of to a
+  function); this is Main's only entry in Homey's Energy tab.
+- **Power** — current total draw, plus compressor and internal-additive power.
+- **Diagnostics** — refrigerant temps (discharge, liquid line, suction gas), inverter temp, compressor
+  frequency; **statistics** — compressor starts and runtime, additive runtime; **phase currents**;
+  **ground-source** brine in/out.
+- **Alarm code** + reset, **compressor status**.
+- **Allow immersion heater** — the electric additive heater is shared between heating and hot water, so its
+  permit and its power/step readouts live here, not on a function device.
+- Fuse rating; pump **firmware version** and **type code** in settings.
+
+### Heating
+- **Heat curve** (slope) and **offset**, as numeric values and as dropdown selectors.
+- Supply/return and calculated-supply temperatures, flow, heating-pump speed.
+- **Min/max supply**, and the **degree-minute** thresholds that start the compressor and the additive heater.
+- **Auto stop** outdoor temperatures for heating and for the additive heater.
+- **Allow heating** toggle. Exhaust-air **ventilation (FTX)** folds in here if fitted.
+- Energy **used** + **delivered** + **Heating COP**.
+
+### Hot Water
+- **Demand mode** — Small / Medium / Large / Smart control.
+- **Start/stop temperatures for each of the three modes** (Small, Medium, Large) — see the quirk below.
+- **Allow hot water** — the master on/off. Off disables *all* hot water (see quirks — it also
+  blocks the manual boost).
+- **More hot water** — a timed one-time boost (only usable while hot water is allowed).
+- **Periodic hot water** — a scheduled anti-legionella charge every N days.
+- Hot-water-circulation temperatures if that accessory is fitted.
+- Energy **used** + **delivered** + **Hot Water COP**.
+
+### Pool
+- Pool temperature, start/stop setpoints, pool-pump status, period time, **Allow pool**.
+- Energy **used** + **delivered** + **Pool COP**.
+
+### Cooling
+- **Allow cooling**, night cooling, auto start/stop-cooling outdoor temperatures, cooling degree minutes.
+- Energy **used** + **delivered** + **Cooling COP**.
+
+### Solar
+- Current generation and total generated, reported to Homey's Energy tab as **production**.
+
 ## Energy & efficiency (COP)
 
 This is the heart of the app. Three related things, all measured **since you added the device** so the numbers
@@ -35,7 +81,10 @@ across devices reconcile:
 - **Energy used** (electricity in). The pump reports one *total* instantaneous power draw and its current
   *operating priority* (heating / hot water / pool / cooling / idle). Every poll the app integrates that power
   into kWh and charges it to whichever function is active — so each function device gets its own consumption
-  meter and appears individually in Homey's **Energy** tab. (Idle/standby draw is charged to Heating.)
+  meter and appears individually in Homey's **Energy** tab. **Idle/standby draw** (circulation, electronics,
+  year-round ventilation) is charged to **Main as "Standby energy"**, not to a function — so Heating's used
+  energy (and COP) isn't polluted by the pump just sitting there. Functions (active) + Main (standby) still
+  sum to the pump's true total in the Energy tab.
 - **Energy delivered** (heat out). Read directly from the pump's per-function delivered-energy counters — so
   this is *measured*, not attributed. Main also shows the pump's own **total** produced and consumed counters.
 - **COP** (coefficient of performance = heat delivered ÷ electricity used), computed over a **rolling 30-day
@@ -55,6 +104,39 @@ time-attributed by operating priority — a good estimate — whereas **delivere
 If the EME 20 accessory is present, Solar pairs as its own `solarpanel`-class device and reports current
 generation (W) and cumulative generation (kWh) as **production** in Homey's Energy tab — separate from the
 pump's consumption.
+
+## Modes & quirks worth knowing
+
+- **Hot water has three temperature pairs — one per demand mode.** Nibe keeps separate start/stop
+  temperatures for Small (low), Medium (normal) and Large (high), and the current **demand mode** selects
+  which pair is actually used. So editing "Hot water start (Medium)" only affects Medium — it does nothing
+  while the mode is set to Small or Large. All three pairs are editable in the app.
+- **Allow hot water is all-or-nothing.** Turning it off disables *all* hot water — and the pump then blocks
+  the demand-mode and "More hot water" registers entirely (Modbus "Illegal Function"), so the manual boost
+  can't be used either. For an **"auto off, manual boost only"** setup, keep Allow hot water **on** and set
+  the *active* demand mode's **start temperature very low** (e.g. 5 °C) so automatic charging never triggers,
+  while **More hot water** still works on demand.
+- **"More hot water" is a *timed* boost.** The one-time increase raises the target for a number of hours (the
+  simple toggle is a 2-hour boost; the duration selector offers 2/3/6/12/24/48 h). It only works while hot
+  water is allowed.
+- **Periodic hot water** is a separate scheduled high-temperature charge every N days (legionella
+  prevention), independent of the demand mode.
+- **The electric additive (immersion) heater is shared** between heating and hot water, so its permit and its
+  power/step readouts live on **Main**, not on the Heating device.
+- **Degree minutes** are the running heating deficit that drives the compressor: once low enough the
+  compressor starts, and a further threshold brings in the additive heater. Shown on the Heating device.
+- **Operating mode (Auto / Manual / Add-heat only)** on Main governs the whole pump; some manual-only
+  settings (e.g. forced pump speeds) only take effect in Manual.
+- **Energy is attributed, delivered is measured.** Used energy is charged to whichever function the pump is
+  prioritising at each poll; **idle draw goes to Main as "Standby energy"** (so it doesn't wreck a function's
+  COP — dividing real delivered energy by idle-inflated used energy gave nonsense). Delivered energy comes
+  from the pump's own per-function counters, so *used* is a good estimate and *delivered*/*Total COP* are exact.
+- **Energy figures are "since pairing."** Counters are baselined when you add the device, so per-device
+  numbers reconcile with each other — they won't match the pump's lifetime totals in MyUplink.
+- **One Modbus client.** The pump accepts a single Modbus TCP connection at a time; don't run another
+  integration against it simultaneously.
+- **Offer-all pairing.** Registers your model or accessories don't have are still offered, just left
+  unchecked (detection saw no data). Adding one that isn't present does no harm — it simply reads nothing.
 
 ## Works across the S-series
 

@@ -716,6 +716,146 @@
       ]
     },
     {
+      "id": "target_temperature.h60_hotwater_start_small.set",
+      "title": {
+        "en": "Set the hot water start temperature (Small)",
+        "sv": "Ställ in varmvattnets starttemperatur (Litet)",
+        "de": "Brauchwasser-Starttemperatur einstellen (Klein)",
+        "nl": "Starttemperatuur warmtapwater instellen (Klein)",
+        "no": "Still inn starttemperatur varmtvann (Lite)",
+        "da": "Indstil starttemperatur varmt vand (Lille)"
+      },
+      "titleFormatted": {
+        "en": "Set the hot water start temperature (Small) to [[value]]",
+        "sv": "Ställ in varmvattnets starttemperatur (Litet) till [[value]]",
+        "de": "Brauchwasser-Starttemperatur (Klein) auf [[value]] setzen",
+        "nl": "Starttemperatuur warmtapwater (Klein) instellen op [[value]]",
+        "no": "Sett starttemperatur varmtvann (Lite) til [[value]]",
+        "da": "Indstil starttemperatur varmt vand (Lille) til [[value]]"
+      },
+      "hint": {
+        "en": "Charging start temperature for the Small demand mode. Accepts 5 to 55 °C.",
+        "sv": "Starttemperatur för behovsläget Litet. Tillåter 5 till 55 °C.",
+        "de": "Ladestart-Temperatur für den Modus Klein. Bereich: 5 bis 55 °C.",
+        "nl": "Laadstart-temperatuur voor de modus Klein. Bereik: 5 tot 55 °C.",
+        "no": "Ladestarttemperatur for modus Lite. Område: 5 til 55 °C.",
+        "da": "Ladestarttemperatur for tilstanden Lille. Område: 5 til 55 °C."
+      },
+      "$filter": "capabilities=target_temperature.h60_hotwater_start_small",
+      "args": [
+        {
+          "type": "number",
+          "name": "value",
+          "title": {"en": "Value", "sv": "Värde", "de": "Wert", "nl": "Waarde", "no": "Verdi", "da": "Værdi"}
+        }
+      ]
+    },
+    {
+      "id": "target_temperature.h64_hotwater_stop_small.set",
+      "title": {
+        "en": "Set the hot water stop temperature (Small)",
+        "sv": "Ställ in varmvattnets stopptemperatur (Litet)",
+        "de": "Brauchwasser-Stopptemperatur einstellen (Klein)",
+        "nl": "Stoptemperatuur warmtapwater instellen (Klein)",
+        "no": "Still inn stopptemperatur varmtvann (Lite)",
+        "da": "Indstil stoptemperatur varmt vand (Lille)"
+      },
+      "titleFormatted": {
+        "en": "Set the hot water stop temperature (Small) to [[value]]",
+        "sv": "Ställ in varmvattnets stopptemperatur (Litet) till [[value]]",
+        "de": "Brauchwasser-Stopptemperatur (Klein) auf [[value]] setzen",
+        "nl": "Stoptemperatuur warmtapwater (Klein) instellen op [[value]]",
+        "no": "Sett stopptemperatur varmtvann (Lite) til [[value]]",
+        "da": "Indstil stoptemperatur varmt vand (Lille) til [[value]]"
+      },
+      "hint": {
+        "en": "Charging stop temperature for the Small demand mode. Accepts 5 to 60 °C.",
+        "sv": "Stopptemperatur för behovsläget Litet. Tillåter 5 till 60 °C.",
+        "de": "Ladestopp-Temperatur für den Modus Klein. Bereich: 5 bis 60 °C.",
+        "nl": "Laadstop-temperatuur voor de modus Klein. Bereik: 5 tot 60 °C.",
+        "no": "Ladestopptemperatur for modus Lite. Område: 5 til 60 °C.",
+        "da": "Ladestoptemperatur for tilstanden Lille. Område: 5 til 60 °C."
+      },
+      "$filter": "capabilities=target_temperature.h64_hotwater_stop_small",
+      "args": [
+        {
+          "type": "number",
+          "name": "value",
+          "title": {"en": "Value", "sv": "Värde", "de": "Wert", "nl": "Waarde", "no": "Verdi", "da": "Værdi"}
+        }
+      ]
+    },
+    {
+      "id": "target_temperature.h58_hotwater_start_large.set",
+      "title": {
+        "en": "Set the hot water start temperature (Large)",
+        "sv": "Ställ in varmvattnets starttemperatur (Stort)",
+        "de": "Brauchwasser-Starttemperatur einstellen (Groß)",
+        "nl": "Starttemperatuur warmtapwater instellen (Groot)",
+        "no": "Still inn starttemperatur varmtvann (Stor)",
+        "da": "Indstil starttemperatur varmt vand (Stor)"
+      },
+      "titleFormatted": {
+        "en": "Set the hot water start temperature (Large) to [[value]]",
+        "sv": "Ställ in varmvattnets starttemperatur (Stort) till [[value]]",
+        "de": "Brauchwasser-Starttemperatur (Groß) auf [[value]] setzen",
+        "nl": "Starttemperatuur warmtapwater (Groot) instellen op [[value]]",
+        "no": "Sett starttemperatur varmtvann (Stor) til [[value]]",
+        "da": "Indstil starttemperatur varmt vand (Stor) til [[value]]"
+      },
+      "hint": {
+        "en": "Charging start temperature for the Large demand mode. Accepts 5 to 70 °C.",
+        "sv": "Starttemperatur för behovsläget Stort. Tillåter 5 till 70 °C.",
+        "de": "Ladestart-Temperatur für den Modus Groß. Bereich: 5 bis 70 °C.",
+        "nl": "Laadstart-temperatuur voor de modus Groot. Bereik: 5 tot 70 °C.",
+        "no": "Ladestarttemperatur for modus Stor. Område: 5 til 70 °C.",
+        "da": "Ladestarttemperatur for tilstanden Stor. Område: 5 til 70 °C."
+      },
+      "$filter": "capabilities=target_temperature.h58_hotwater_start_large",
+      "args": [
+        {
+          "type": "number",
+          "name": "value",
+          "title": {"en": "Value", "sv": "Värde", "de": "Wert", "nl": "Waarde", "no": "Verdi", "da": "Værdi"}
+        }
+      ]
+    },
+    {
+      "id": "target_temperature.h62_hotwater_stop_large.set",
+      "title": {
+        "en": "Set the hot water stop temperature (Large)",
+        "sv": "Ställ in varmvattnets stopptemperatur (Stort)",
+        "de": "Brauchwasser-Stopptemperatur einstellen (Groß)",
+        "nl": "Stoptemperatuur warmtapwater instellen (Groot)",
+        "no": "Still inn stopptemperatur varmtvann (Stor)",
+        "da": "Indstil stoptemperatur varmt vand (Stor)"
+      },
+      "titleFormatted": {
+        "en": "Set the hot water stop temperature (Large) to [[value]]",
+        "sv": "Ställ in varmvattnets stopptemperatur (Stort) till [[value]]",
+        "de": "Brauchwasser-Stopptemperatur (Groß) auf [[value]] setzen",
+        "nl": "Stoptemperatuur warmtapwater (Groot) instellen op [[value]]",
+        "no": "Sett stopptemperatur varmtvann (Stor) til [[value]]",
+        "da": "Indstil stoptemperatur varmt vand (Stor) til [[value]]"
+      },
+      "hint": {
+        "en": "Charging stop temperature for the Large demand mode. Accepts 5 to 70 °C.",
+        "sv": "Stopptemperatur för behovsläget Stort. Tillåter 5 till 70 °C.",
+        "de": "Ladestopp-Temperatur für den Modus Groß. Bereich: 5 bis 70 °C.",
+        "nl": "Laadstop-temperatuur voor de modus Groot. Bereik: 5 tot 70 °C.",
+        "no": "Ladestopptemperatur for modus Stor. Område: 5 til 70 °C.",
+        "da": "Ladestoptemperatur for tilstanden Stor. Område: 5 til 70 °C."
+      },
+      "$filter": "capabilities=target_temperature.h62_hotwater_stop_large",
+      "args": [
+        {
+          "type": "number",
+          "name": "value",
+          "title": {"en": "Value", "sv": "Värde", "de": "Wert", "nl": "Waarde", "no": "Verdi", "da": "Værdi"}
+        }
+      ]
+    },
+    {
       "id": "target_temperature.h59_hotwater_start.set",
       "title": {
         "en": "Set the hot water start temperature",
