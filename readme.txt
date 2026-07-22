@@ -21,5 +21,5 @@ and/or in your heatpumps local settings. Be extra careful when automating contro
 If a flow action tries to write a value that is out of range the flow will fail with a descriptive error message.
 
 Credits: based on the original app by Jan Sparud. Register definitions
-were cross-checked against the yozik04/nibe register library (https://github.com/yozik04/nibe,
-GPL-3.0) to verify addresses and scaling across the Nibe S-series.
+were cross-checked against the yozik04/nibe register library (GPL-3.0) to verify
+addresses and scaling across the Nibe S-series.

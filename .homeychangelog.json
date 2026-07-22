@@ -21,5 +21,8 @@
   },
   "0.9.5": {
     "en": "Hot water on/off plus per-mode start/stop temperatures, and idle draw is now tracked as standby energy on the Main device for cleaner per-function COP."
+  },
+  "0.9.6": {
+    "en": "New app icon and store imagery, plus a refreshed pairing flow with animated search and detection icons and NIBE-red progress bars."
   }
 }

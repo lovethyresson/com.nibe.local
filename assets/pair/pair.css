@@ -1,8 +1,8 @@
 /* Shared styles for the pair & repair views */
 
 :root {
-    /* Matches brandColor in .homeycompose/app.json */
-    --accent: #16324B;
+    /* NIBE red — matches brandColor in .homeycompose/app.json and the app icon */
+    --accent: #D81E28;
     --surface: rgba(128, 128, 128, 0.06);
     --surface-border: rgba(128, 128, 128, 0.26);
 }
@@ -43,6 +43,36 @@ body {
 .pair-hero-icon svg {
     margin: 0 auto;
     opacity: 0.85;
+}
+
+/* ---- animated hero icons (respects reduced-motion) ----
+   --search: the magnifying glass drifts in a small orbit while the subnet sweep runs.
+   --detect: the broadcast arcs light up inner→outer, radiating from the sensor dot. */
+@media (prefers-reduced-motion: no-preference) {
+    .pair-hero-icon--search svg {
+        animation: hero-scan 3s ease-in-out infinite;
+        will-change: transform;
+    }
+
+    @keyframes hero-scan {
+        0%, 100% { transform: translate(-1.5px, -1px); }
+        25%      { transform: translate(1.5px, -1px); }
+        50%      { transform: translate(1.5px, 1.5px); }
+        75%      { transform: translate(-1.5px, 1.5px); }
+    }
+
+    .pair-hero-icon--detect svg path {
+        animation: hero-emit 1.8s ease-in-out infinite;
+    }
+    .pair-hero-icon--detect svg path:nth-of-type(1) { animation-delay: 0s; }
+    .pair-hero-icon--detect svg path:nth-of-type(2) { animation-delay: 0.25s; }
+    .pair-hero-icon--detect svg path:nth-of-type(3) { animation-delay: 0.5s; }
+
+    @keyframes hero-emit {
+        0%, 100% { opacity: 0.25; }
+        30%      { opacity: 1; }
+        60%      { opacity: 0.25; }
+    }
 }
 
 .pair-hero-title {
@@ -125,7 +155,7 @@ body {
 
 .pump-item:hover {
     border-color: var(--accent);
-    background: rgba(221, 17, 17, 0.06);
+    background: rgba(216, 30, 40, 0.06);
 }
 
 .pump-item:active {

@@ -1,6 +1,6 @@
 {
   "id": "com.nibe.local",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
@@ -29,7 +29,7 @@
   "bugs": {
     "url": "https://github.com/lovethyresson/com.nibe.local/issues"
   },
-  "brandColor": "#174E56",
+  "brandColor": "#D81E28",
   "images": {
     "small": "/assets/images/small.png",
     "large": "/assets/images/large.png",

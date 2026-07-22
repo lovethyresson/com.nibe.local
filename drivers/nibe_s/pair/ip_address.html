@@ -7,7 +7,7 @@
 <body>
 
 <div class="pair-hero">
-    <div class="pair-hero-icon"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="43" cy="43" r="24"/><line x1="60" y1="60" x2="80" y2="80"/></svg></div>
+    <div class="pair-hero-icon pair-hero-icon--search"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="43" cy="43" r="24"/><line x1="60" y1="60" x2="80" y2="80"/></svg></div>
     <div class="pair-hero-title" data-i18n="pair.discover.title"></div>
     <p class="pair-hero-sub detect-status" id="discovery-status"></p>
 </div>
@@ -65,7 +65,7 @@
 
             var glyph = document.createElement('span');
             glyph.className = 'pump-glyph';
-            glyph.innerHTML = '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M20 48 50 24l30 24"/><path d="M28 46v28h44V46"/><path d="M42 66c0-6 8-6 8-12s-8-6-8-12M58 66c0-6 8-6 8-12s-8-6-8-12" stroke-width="5"/></svg>';
+            glyph.innerHTML = '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="13" y="31" width="74" height="44" rx="8"/><circle cx="39" cy="53" r="14"/><circle cx="39" cy="53" r="2.6" fill="currentColor" stroke="none"/><path d="M39 53V41M39 53l10 6M39 53l-9 7" stroke-width="4.5"/><path d="M61 45h14M61 53h14M61 61h14" stroke-width="4.5"/></svg>';
             item.appendChild(glyph);
 
             var body = document.createElement('span');
