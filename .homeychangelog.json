@@ -18,5 +18,8 @@
   },
   "0.9.4": {
     "en": "Rewrite pairing logic. Added support for PV. Added support for produced energy. Added support for COP values (rolling 30-days) per device."
+  },
+  "0.9.5": {
+    "en": "Hot water on/off plus per-mode start/stop temperatures, and idle draw is now tracked as standby energy on the Main device for cleaner per-function COP."
   }
 }
