@@ -1,0 +1,19 @@
+# Headless test harness for the shared engine (lib/). Runs the pure-logic unit tests and the
+# in-process Modbus-simulator integration tests — no Homey hardware and no live pump needed.
+#
+#   docker build -f Dockerfile.test -t nibe-tests .
+#   docker run --rm nibe-tests
+#
+# The Modbus "simulator" is an in-process jsmodbus TCP server (see test/integration.modbus.
+# test.ts), so there is no separate service to orchestrate. These tests validate our engine
+# against a fake pump we seed; the real pump's register semantics/scales and a gateway's
+# address offset still require the live S1155 run and the F beta.
+FROM node:20-slim
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY tsconfig.json ./
+COPY lib ./lib
+COPY drivers ./drivers
+COPY test ./test
+CMD ["npm", "test"]

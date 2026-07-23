@@ -1,2 +1,5 @@
 /dev/
 /tasks/
+/test/
+/Dockerfile.test
+/.dockerignore

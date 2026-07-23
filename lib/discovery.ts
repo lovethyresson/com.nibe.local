@@ -3,12 +3,11 @@ import os from 'os';
 import {ModbusTCPClient} from 'jsmodbus';
 
 // Modbus TCP has no discovery protocol, and Nibe pumps don't announce themselves
-// via mDNS/SSDP, so pairing "discovery" is a sweep of the local subnet for open
-// port 502. Every responder is verified by reading input register 1 (outdoor
-// temperature) — a plausible answer means it is almost certainly the pump, and
-// the value doubles as a recognizable label in the pairing UI. Requires Modbus
-// TCP to be enabled on the pump (menu 7.5.9) and Homey to be on the same subnet;
-// manual IP entry remains the fallback.
+// via mDNS/SSDP, so pairing "discovery" is a sweep of the local subnet for an open
+// Modbus port. Every responder is verified by reading the model's probe register
+// (outdoor temperature) — a plausible answer means it is almost certainly the pump, and
+// the value doubles as a recognizable label in the pairing UI. Requires the Modbus port
+// to be reachable and Homey to be on the same subnet; manual IP entry remains the fallback.
 
 // Largest subnet we're willing to sweep. A /24 is 254 hosts; /22 is ~1022. Below
 // that (e.g. a /16 with 65k hosts) a full sweep would take far too long, so we
@@ -21,19 +20,29 @@ export interface DiscoveredPump {
     outdoorTemperature?: number;
 }
 
-const MODBUS_PORT = 502;
+// The Modbus transport + probe register to verify a responder is a pump. `probeAddress`
+// is the on-the-wire PDU address (the caller applies any model address offset).
+export interface DiscoveryOptions {
+    port: number;
+    unitId: number;
+    probeAddress: number;
+    scale: number;
+    min: number;
+    max: number;
+}
+
 const CONNECT_TIMEOUT_MS = 750;
 const READ_TIMEOUT_MS = 2000;
 const BATCH_SIZE = 51; // 254 hosts / 51 ≈ 5 progress updates
 
-async function tryHost(host: string): Promise<DiscoveredPump | null> {
+async function tryHost(host: string, options: DiscoveryOptions): Promise<DiscoveredPump | null> {
     return new Promise((resolve) => {
         const socket = new net.Socket();
         // The client must be constructed before connecting: jsmodbus marks itself
         // connected by catching the socket's 'connect' event, so a client created
         // inside the connect handler never registers as connected and every read
         // fails with "no connection to modbus server".
-        const client = new ModbusTCPClient(socket, 1, READ_TIMEOUT_MS);
+        const client = new ModbusTCPClient(socket, options.unitId, READ_TIMEOUT_MS);
         let settled = false;
         const finish = (result: DiscoveredPump | null) => {
             if (settled)
@@ -47,21 +56,21 @@ async function tryHost(host: string): Promise<DiscoveredPump | null> {
         socket.once('error', () => finish(null));
         socket.once('connect', () => {
             socket.setTimeout(0);
-            client.readInputRegisters(1, 1)
+            client.readInputRegisters(options.probeAddress, 1)
                 .then((resp: any) => {
                     let raw = resp.response.body.values[0];
                     if (raw >= 32768)
                         raw -= 65536;
-                    const temperature = raw / 10;
-                    // Anything with port 502 open that answers this read is Modbus,
+                    const temperature = raw / options.scale;
+                    // Anything with the Modbus port open that answers this read is Modbus,
                     // but only a sane outdoor temperature makes it a likely Nibe.
-                    finish(temperature > -60 && temperature < 60
+                    finish(temperature > options.min && temperature < options.max
                         ? {address: host, outdoorTemperature: temperature}
                         : null);
                 })
                 .catch(() => finish(null));
         });
-        socket.connect({port: MODBUS_PORT, host});
+        socket.connect({port: options.port, host});
     });
 }
 
@@ -127,6 +136,7 @@ function subnetHosts(localIp: string): string[] {
 export async function discoverPumps(
     localAddress: string,
     exclude: Set<string>,
+    options: DiscoveryOptions,
     onProgress?: (done: number, total: number) => void
 ): Promise<DiscoveredPump[]> {
     // localAddress from ManagerCloud.getLocalAddress() looks like "192.168.1.5:80".
@@ -135,7 +145,7 @@ export async function discoverPumps(
     const found: DiscoveredPump[] = [];
     for (let i = 0; i < hosts.length; i += BATCH_SIZE) {
         const batch = hosts.slice(i, i + BATCH_SIZE);
-        const results = await Promise.all(batch.map(tryHost));
+        const results = await Promise.all(batch.map((host) => tryHost(host, options)));
         for (const result of results)
             if (result)
                 found.push(result);

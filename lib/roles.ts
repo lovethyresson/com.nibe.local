@@ -1,9 +1,10 @@
-import {GroupId, Register, Selection, isRegisterEnabled, registers} from './registers';
+import {GroupId, Register, Selection, isRegisterEnabled} from './registers';
+import type {ModelProfile} from './profile';
 
 // A paired Homey device represents one logical function of the physical pump.
 // "main" owns the core sensors (outdoor temp, priority, operating mode) plus the
 // diagnostic/statistic groups; the rest each carry one function's capabilities
-// and its slice of the pump's energy use.
+// and its slice of the pump's energy use. Shared across every pump model.
 export type Role = "main" | "heating" | "hotwater" | "pool" | "cooling" | "solar";
 
 // The heat-producing function devices: each carries a slice of the pump's energy use
@@ -40,20 +41,6 @@ export const roleGroups: Record<Role, GroupId[]> = {
     solar: ["solar"]
 };
 
-// Raw value of the priority register (address 1028) → the device the pump's current
-// energy use is charged to. 10 (Off/standby — circulation pumps, electronics, the
-// year-round ventilation fan) goes to Main as "standby energy" rather than polluting a
-// function: charging idle draw to Heating made Heating's COP meaningless (used energy
-// with no heat produced). An unrecognised priority also falls back to Main/standby (see
-// allocateEnergy), since an unattributable draw shouldn't distort a function's COP.
-export const priorityToRole: Record<number, Role> = {
-    10: "main",
-    20: "hotwater",
-    30: "heating",
-    40: "pool",
-    60: "cooling"
-};
-
 // The register names of the software energy meter (kWh, per function device) and the
 // live power draw (W, non-zero only on the currently active function). Neither is a
 // Modbus register — they are derived in the connection's energy allocator — so they
@@ -61,8 +48,7 @@ export const priorityToRole: Record<number, Role> = {
 // The meter may carry a sub-capability id because the manifest's `energy` block points
 // Homey at it explicitly (meterPowerImportedCapability). Live power has no such setting —
 // Homey's real-time consumption reads the *base* `measure_power` id — so this must stay
-// un-suffixed. As "measure_power.active" it rendered a value on the tile but never showed
-// up in the device tab's energy card.
+// un-suffixed.
 export const METER_CAPABILITY = "meter_power.total";
 export const ACTIVE_POWER_CAPABILITY = "measure_power";
 
@@ -70,73 +56,60 @@ export const ACTIVE_POWER_CAPABILITY = "measure_power";
 // can treat these two names like registers even though they aren't in the table.
 export const ENERGY_CAPABILITIES = [METER_CAPABILITY, ACTIVE_POWER_CAPABILITY];
 
-// Extra (non-register) capabilities a device of this role carries. Function devices get
-// the energy pair for their active draw; main gets it too, but its slice is the pump's
-// standby/idle draw (allocated when priority is Off). Together — functions (active) +
-// main (standby) — the meter_power.total meters still sum to the pump total in Homey's
-// Energy tab, just sliced more honestly than folding idle into Heating.
-//
-// The pair follows the "energy" feature group, resolved with the same precedence as
-// isRegisterEnabled(): a per-capability override wins over the group, and a missing
-// selection means enabled.
 // Main's on/off is not a register: the pump exposes no "powered off" flag, so it is
-// derived from the operating priority — off only while the pump is idle (priority 10),
-// on whenever it is producing heating, hot water, pool or cooling. It reuses the bare
-// `onoff` id because that is what drives a device's on/off state on the tile, which
-// means it shares capabilitiesOptions with the hot water device's register-697 toggle;
-// the per-role title is supplied at runtime (see NibeSDevice.extraOptions).
+// derived from the operating priority. It reuses the bare `onoff` id because that is what
+// drives a device's on/off state on the tile; the per-role title is supplied at runtime.
 export const PUMP_ACTIVE_CAPABILITY = "onoff";
 
-// Register whose value Main's on/off follows, and the raw value meaning "idle".
-export const PRIORITY_REGISTER_NAME = "measure_enum_NIBE.i1028_priority";
-export const PRIORITY_RAW_OFF = 10;
-
-// Rolling 30-day COP, computed on the device from the deltas of two cumulative counters
-// over the window (so it moves through the season rather than sitting at the flat lifetime
-// average). Not Modbus registers — computed — so, like the energy pair, they are "extras"
-// outside the register-table reconciliation.
-//   - main: Total COP = production (3821) / consumption (3823), rides the statistics group.
-//   - function devices: <Function> COP = that function's produced register / its used
-//     energy from the allocator, rides the energy group.
+// Rolling 30-day COP capability ids (values computed on the device from cumulative-counter
+// deltas). Not Modbus registers — computed — so, like the energy pair, they are "extras".
 export const TOTAL_COP_CAPABILITY = "measure_cop_NIBE.total";
 export const FUNCTION_COP_CAPABILITY = "measure_cop_NIBE.rolling";
-export const TOTAL_PRODUCTION_REGISTER = "meter_kwh_NIBE.i3821_total_production";
-export const TOTAL_CONSUMPTION_REGISTER = "meter_kwh_NIBE.i3823_total_consumption";
 
-// The delivered-energy register whose (rolling) delta is the COP numerator for each
-// function device. The denominator is that device's allocator used-energy.
-export const producedRegisterForRole: Partial<Record<Role, string>> = {
-    heating: "meter_kwh_NIBE.i1577_heating_produced",
-    hotwater: "meter_kwh_NIBE.i1575_hotwater_produced",
-    pool: "meter_kwh_NIBE.i1581_pool_produced",
-    cooling: "meter_kwh_NIBE.i1579_cooling_produced"
-};
+// The solar device's cumulative-generation meter, declared as exported energy via
+// setEnergy() so Homey's Energy tab counts it as production, not consumption.
+export const SOLAR_METER_CAPABILITY = "meter_power.solar";
 
 export function pumpActiveTitle(): {en: string; sv: string; de: string; nl: string; no: string; da: string} {
     return {en: "Active", sv: "Aktiv", de: "Aktiv", nl: "Actief", no: "Aktiv", da: "Aktiv"};
 }
 
-export function extraCapabilities(role: Role, selection?: Selection | null): string[] {
+export function extraCapabilities(profile: ModelProfile, role: Role, selection?: Selection | null): string[] {
     // Solar carries only its two Modbus registers (measure_power + meter_power.solar) — no
     // allocator energy pair and no COP.
     if (role === "solar")
         return [];
+    // A COP/energy extra is only meaningful if the pump exposes the source registers it is
+    // derived from. On S all are present (identical to before); on a fixed-speed F with no
+    // consumed-power source they drop out cleanly.
+    const hasConsumedPower = profile.role.powerSources.length > 0;
+    const hasTotalCounters = !!profile.role.totalProductionRegister
+        && !!profile.role.totalConsumptionRegister;
     if (role === "main") {
         // Main carries the energy pair too, but its slice is standby/idle draw (allocated
         // when the pump priority is Off) — titled "Idle energy"/"Idle power". Plus the
         // Total COP. All live in the energy group.
-        const energyOn = selection?.groups?.energy ?? true;
-        return energyOn
-            ? [PUMP_ACTIVE_CAPABILITY, ...ENERGY_CAPABILITIES, TOTAL_COP_CAPABILITY]
-            : [PUMP_ACTIVE_CAPABILITY];
+        const energyOn = (selection?.groups?.energy ?? true) && hasConsumedPower;
+        const caps = [PUMP_ACTIVE_CAPABILITY];
+        if (energyOn)
+            caps.push(...ENERGY_CAPABILITIES);
+        if ((selection?.groups?.energy ?? true) && hasTotalCounters)
+            caps.push(TOTAL_COP_CAPABILITY);
+        return caps;
     }
+    if (!hasConsumedPower)
+        return [];
     if (!selection)
         return [...ENERGY_CAPABILITIES, FUNCTION_COP_CAPABILITY];
     const energyCaps = ENERGY_CAPABILITIES.filter((name) =>
         selection.overrides?.[name] ?? selection.groups?.energy ?? true);
     // Rolling COP needs the used energy (from the allocator, energy group) alongside the
-    // function's produced register — offer it whenever the energy pair is present.
-    return energyCaps.length ? [...energyCaps, FUNCTION_COP_CAPABILITY] : energyCaps;
+    // function's produced register — offer it whenever the energy pair is present and the
+    // function has a produced register.
+    const hasProduced = !!profile.role.producedRegisterForRole[role];
+    return energyCaps.length && hasProduced
+        ? [...energyCaps, FUNCTION_COP_CAPABILITY]
+        : energyCaps;
 }
 
 // Read the role off a device's `data`. Defaults to "main" defensively; every device
@@ -150,27 +123,26 @@ export function groupsForRole(role: Role): GroupId[] {
 }
 
 // Registers this role is responsible for, filtered by the user's feature selection.
-// Replaces the old device-wide enabledRegisters(): drives capability sync, polling
-// and flow-card autocompletes so each device only ever touches its own registers.
-export function registersForRole(role: Role, selection: Selection | null | undefined): Register[] {
+// Drives capability sync, polling and flow-card autocompletes so each device only ever
+// touches its own registers.
+export function registersForRole(profile: ModelProfile, role: Role, selection: Selection | null | undefined): Register[] {
     const groups = new Set<GroupId>(roleGroups[role]);
-    return registers.filter((register) =>
+    return profile.registers.filter((register) =>
         groups.has(register.group)
         && (!register.role || register.role === role)
-        && isRegisterEnabled(register, selection));
+        && isRegisterEnabled(register, selection, profile.pickerPrimary));
 }
 
 // All registers of a role regardless of selection — used to register capability
 // listeners up front so a capability enabled later via repair works without a restart.
-export function roleRegisters(role: Role): Register[] {
+export function roleRegisters(profile: ModelProfile, role: Role): Register[] {
     const groups = new Set<GroupId>(roleGroups[role]);
-    return registers.filter((register) =>
+    return profile.registers.filter((register) =>
         groups.has(register.group) && (!register.role || register.role === role));
 }
 
-// Suggested device names and per-instance energy/power capability titles, shown in
-// pairing and on the energy capabilities. Kept here (not in the compose file) because
-// the same capability id (meter_power.total) needs a different title per role device.
+// Suggested device names, shown in pairing. Generic across models (the driver name
+// distinguishes S from F).
 export const roleNames: Record<Role, {en: string; sv: string}> = {
     main: {en: "Nibe Main", sv: "Nibe Main"},
     heating: {en: "Nibe Heating", sv: "Nibe Värme"},
@@ -180,12 +152,6 @@ export const roleNames: Record<Role, {en: string; sv: string}> = {
     solar: {en: "Nibe Solar", sv: "Nibe Solceller"}
 };
 
-// The solar device's cumulative-generation meter, declared as exported energy via
-// setEnergy() so Homey's Energy tab counts it as production, not consumption.
-export const SOLAR_METER_CAPABILITY = "meter_power.solar";
-
-// Each device carries these separately, so no per-role qualifier is needed — the
-// power title matches the pump's own "Current power" (i2166) for consistency.
 // The Homey Energy-tab meter for a function = electricity this function has used since the
 // device was added (from the allocator). Titled "Energy used" to read clearly next to the
 // "Energy delivered" produced meter and the rolling COP on the same device.

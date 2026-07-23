@@ -1,12 +1,12 @@
 import net from 'net';
 import {ModbusTCPClient} from 'jsmodbus';
-import {Dir, GroupId, groupIds, Register, registers, combineRaw, toNumericValue} from './registers';
+import {Dir, GroupId, groupIds, Register, combineRaw, toNumericValue} from './registers';
+import type {ModelProfile} from './profile';
 
 // Samples all registers a few times over ~half a minute and recommends which
 // feature groups are worth monitoring: a group whose registers move is clearly
 // live, and groups that don't move in such a short window fall back to
-// plausibility checks on the values themselves (e.g. a pool temperature stuck
-// at exactly 0 usually means there is no pool sensor).
+// plausibility checks on the values themselves (from the model profile).
 
 export const PROBE_PASSES = 5;
 export const PROBE_INTERVAL_MS = 6000;
@@ -39,34 +39,44 @@ export interface DetectionResult {
     samples: Record<string, RegisterSample>;
 }
 
+// The PDU address to put on the wire for a register, applying the model's address offset
+// (S = identity; F may subtract a ModbusManager base).
+export function pduAddress(register: Register, profile: ModelProfile): number {
+    return profile.addressBase ? register.address - profile.addressBase : register.address;
+}
+
 // Bundle the group recommendations with the per-register sample detail (used by the
 // pairing device picker to show which of a device's registers actually had data).
-export function buildDetectionResult(probes: ProbeSamples): DetectionResult {
+export function buildDetectionResult(profile: ModelProfile, probes: ProbeSamples): DetectionResult {
     const samples: Record<string, RegisterSample> = {};
     for (const [name, probe] of Object.entries(probes))
         samples[name] = {read: probe.reads > 0, moved: probe.moved, value: probe.last};
-    return {recommendations: recommendGroups(probes), samples};
+    return {recommendations: recommendGroups(profile, probes), samples};
 }
 
-export async function readNumeric(client: ModbusTCPClient, register: Register): Promise<number | undefined> {
+export async function readNumeric(
+    client: ModbusTCPClient, register: Register, profile: ModelProfile
+): Promise<number | undefined> {
     const count = register.size === 32 ? 2 : 1;
+    const address = pduAddress(register, profile);
     return await ((register.direction === Dir.In)
-        ? client.readInputRegisters(register.address, count)
-        : client.readHoldingRegisters(register.address, count))
+        ? client.readInputRegisters(address, count)
+        : client.readHoldingRegisters(address, count))
         .then((resp: any) => toNumericValue(register, combineRaw(resp.response.body.values as number[], register.size)))
         .catch(() => undefined);
 }
 
 export async function sampleRegisters(
+    profile: ModelProfile,
     read: (register: Register) => Promise<number | undefined>,
     onProgress: (pass: number, passes: number) => void,
     passes: number = PROBE_PASSES,
     intervalMs: number = PROBE_INTERVAL_MS
 ): Promise<ProbeSamples> {
     const probes: ProbeSamples = Object.fromEntries(
-        registers.map((register) => [register.name, {reads: 0, moved: false}]));
+        profile.registers.map((register) => [register.name, {reads: 0, moved: false}]));
     for (let pass = 0; pass < passes; ++pass) {
-        for (const register of registers) {
+        for (const register of profile.registers) {
             const value = await read(register);
             if (value === undefined)
                 continue;
@@ -83,7 +93,7 @@ export async function sampleRegisters(
     return probes;
 }
 
-export function recommendGroups(probes: ProbeSamples): Recommendations {
+export function recommendGroups(profile: ModelProfile, probes: ProbeSamples): Recommendations {
     const value = (name: string) => {
         const probe = probes[name];
         return probe && probe.reads > 0 ? probe.last : undefined;
@@ -93,51 +103,11 @@ export function recommendGroups(probes: ProbeSamples): Recommendations {
         // Exactly 0 is what a missing sensor typically reads, so don't count it
         return v !== undefined && v !== 0 && v > min && v < max;
     };
-
-    // Fallbacks for groups where nothing moved during the sampling window.
-    // Heating, diagnostics and statistics apply to every pump, so they default
-    // to recommended; the rest depend on optional accessories/sensors.
-    const plausible: Record<Exclude<GroupId, "core">, () => boolean> = {
-        heating: () => true,
-        diagnostics: () => true,
-        statistics: () => true,
-        // Alarm settings exist on every pump and sit still at 0/1, so they never show
-        // "moving" evidence and would otherwise never be recommended.
-        alarm: () => true,
-        // The energy meters increment continuously, so a live pump usually shows movement;
-        // default to recommended when they happen not to move during the sampling window.
-        energy: () => true,
-        hotwater: () =>
-            (value("measure_temperature.i8_warmwater_top") ?? 0) > 20
-            || (value("measure_temperature.i9_hot_water") ?? 0) > 20,
-        pool: () =>
-            value("onoff.h691_pool_active") === 1
-            || inRange("measure_temperature.i27_pool", 5, 45),
-        // The cooling enable register (h182) reads successfully on essentially every
-        // S-series pump whether or not cooling hardware is fitted, so it can't confirm
-        // cooling support. Only recommend cooling when the pump is actually prioritising
-        // cooling during sampling (priority == 60); otherwise it stays available but
-        // un-checked, so a pump without cooling doesn't get a false match.
-        cooling: () => value("measure_enum_NIBE.i1028_priority") === 60,
-        ventilation: () =>
-            inRange("measure_temperature.i19_return_air", 5, 40)
-            || inRange("measure_temperature.i20_supply_air", -25, 40),
-        groundsource: () =>
-            inRange("measure_temperature.i10_source_in", -15, 25)
-            || inRange("measure_temperature.i11_source_out", -15, 25),
-        electrical: () =>
-            ["measure_current.i50_sensor_v2", "measure_current.i48_sensor_v2", "measure_current.i46_sensor_v2"]
-                .some((name) => (value(name) ?? 0) > 0),
-        // Photovoltaic accessory (EME 20): both registers read a flat 0 when it isn't
-        // fitted, so only recommend when one shows real power/energy.
-        solar: () =>
-            (value("measure_power") ?? 0) > 0
-            || (value("meter_power.solar") ?? 0) > 0
-    };
+    const helpers = {value, inRange};
 
     const recommendations: Recommendations = {};
     for (const groupId of groupIds) {
-        const groupProbes = registers
+        const groupProbes = profile.registers
             .filter((register) => register.group === groupId)
             .map((register) => probes[register.name]);
         // A group with no registers has nothing to detect: leave it out of the
@@ -145,12 +115,13 @@ export function recommendGroups(probes: ProbeSamples): Recommendations {
         // Otherwise every() on the empty array returns true and it reads as unsupported.
         if (groupProbes.length === 0)
             continue;
+        const plausible = profile.detection.plausible[groupId];
         let evidence: Evidence;
         if (groupProbes.every((probe) => probe.reads === 0))
             evidence = "unsupported";
         else if (groupProbes.some((probe) => probe.moved))
             evidence = "moving";
-        else if (plausible[groupId]())
+        else if (plausible && plausible(helpers))
             evidence = "plausible";
         else
             evidence = "none";
@@ -162,14 +133,16 @@ export function recommendGroups(probes: ProbeSamples): Recommendations {
     return recommendations;
 }
 
-// Standalone probe used during pairing, before any device (and its Modbus
-// connection) exists. Opens its own short-lived connection to the pump.
+// Standalone probe used during pairing, before any device (and its Modbus connection)
+// exists. Opens its own short-lived connection to the pump on the given transport.
 export async function probeHost(
+    profile: ModelProfile,
     host: string,
+    transport: {port: number; unitId: number},
     onProgress: (pass: number, passes: number) => void
 ): Promise<DetectionResult> {
     const socket = new net.Socket();
-    const client = new ModbusTCPClient(socket, 1, 5000);
+    const client = new ModbusTCPClient(socket, transport.unitId, 5000);
     await new Promise<void>((resolve, reject) => {
         socket.setTimeout(10000, () => {
             socket.destroy();
@@ -180,11 +153,11 @@ export async function probeHost(
             resolve();
         });
         socket.once('error', (error) => reject(error));
-        socket.connect({port: 502, host});
+        socket.connect({port: transport.port, host});
     });
     try {
-        const probes = await sampleRegisters((register) => readNumeric(client, register), onProgress);
-        return buildDetectionResult(probes);
+        const probes = await sampleRegisters(profile, (register) => readNumeric(client, register, profile), onProgress);
+        return buildDetectionResult(profile, probes);
     } finally {
         socket.removeAllListeners();
         socket.end();

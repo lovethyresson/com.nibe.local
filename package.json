@@ -4,7 +4,8 @@
   "main": "app.ts",
   "scripts": {
     "build": "tsc",
-    "lint": "eslint --ext .js,.ts --ignore-path .gitignore ."
+    "lint": "eslint --ext .js,.ts --ignore-path .gitignore .",
+    "test": "node --import tsx --test test/*.test.ts"
   },
   "devDependencies": {
     "@tsconfig/node12": "^1.0.11",
@@ -12,6 +13,7 @@
     "@types/node": "^18.15.11",
     "eslint": "^7.32.0",
     "eslint-config-athom": "^3.1.1",
+    "tsx": "^4.23.1",
     "typescript": "^5.0.4"
   },
   "dependencies": {
