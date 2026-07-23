@@ -24,5 +24,8 @@
   },
   "0.9.6": {
     "en": "New app icon and store imagery, plus a refreshed pairing flow with animated search and detection icons and NIBE-red progress bars."
+  },
+  "0.9.7": {
+    "en": "Fixed inflated Idle energy: a function's electricity is no longer mis-charged to Main when its device briefly fails to load. Renamed the Main device's \"Standby energy/power\" to \"Idle energy/power\", added the operating priority as an Insight, and fixed the energy meter icon."
   }
 }
