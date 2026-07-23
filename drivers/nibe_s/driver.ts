@@ -297,15 +297,15 @@ class NibeSDriver extends Driver {
             const isMain = role === 'main';
             const descriptions: Record<string, RegisterInfo> = {
                 [METER_CAPABILITY]: isMain ? {
-                    en: "Electricity used while the pump is idle (standby draw), since the device was added",
-                    sv: "El som används när pumpen står i standby, sedan enheten lades till"
+                    en: "Electricity used while the pump is idle, since the device was added",
+                    sv: "El som används när pumpen går på tomgång, sedan enheten lades till"
                 } : {
                     en: "Electricity this function has used since the device was added (Homey Energy tab)",
                     sv: "El denna funktion använt sedan enheten lades till (Homeys energiflik)"
                 },
                 [ACTIVE_POWER_CAPABILITY]: isMain ? {
-                    en: "Power the pump is drawing right now while idle (standby)",
-                    sv: "Effekt pumpen drar just nu i standby"
+                    en: "Power the pump is drawing right now while idle",
+                    sv: "Effekt pumpen drar just nu på tomgång"
                 } : {
                     en: "Power the pump is drawing right now, when this function is the active one",
                     sv: "Effekt pumpen drar just nu, när denna funktion är den aktiva"

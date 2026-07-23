@@ -341,38 +341,48 @@ class NibeSDevice extends Device implements PumpSubscriber {
         if (functionRoles.includes(this.role))
             this.copUsed = this.cumulativeEnergy; // seed the rolling-COP used side
 
-        await this.syncCapabilities();
-        this.log(`Device capabilities synced: ${this.getCapabilities().length} — `
-            + this.getCapabilities().join(', '));
+        // Capability setup can fail on an individual device (a capability RPC error, a
+        // stale capability type, etc.). Catch it so onInit still reaches attach() below:
+        // a throw here used to leave the device unsubscribed from the pump connection, and
+        // the allocator then silently charged its draw to Main/idle instead of its own
+        // meter — the root cause of the inflated "idle energy".
+        try {
+            await this.syncCapabilities();
+            this.log(`Device capabilities synced: ${this.getCapabilities().length} — `
+                + this.getCapabilities().join(', '));
 
-        if (this.hasCapability(METER_CAPABILITY))
-            await this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
+            if (this.hasCapability(METER_CAPABILITY))
+                await this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
 
-        // Writable capabilities of this role get a Modbus write listener. Registered for
-        // every role register (not just the currently enabled ones) so a capability
-        // enabled later via repair works without an app restart.
-        for (const register of roleRegisters(this.role)) {
-            if (register.direction === Dir.Out && !register.noAction) {
-                this.registerCapabilityListener(register.name, async (value) => {
-                    this.log(`Manual set ${register.name} = ${value}`);
-                    await this.writeRegister(register, value);
-                    this.checkTrigger(register, value);
+            // Writable capabilities of this role get a Modbus write listener. Registered for
+            // every role register (not just the currently enabled ones) so a capability
+            // enabled later via repair works without an app restart.
+            for (const register of roleRegisters(this.role)) {
+                if (register.direction === Dir.Out && !register.noAction) {
+                    this.registerCapabilityListener(register.name, async (value) => {
+                        this.log(`Manual set ${register.name} = ${value}`);
+                        await this.writeRegister(register, value);
+                        this.checkTrigger(register, value);
+                    });
+                }
+            }
+
+            // Main's on/off is derived state, not a command. setable:false should keep the
+            // tile from offering a switch, but register a listener anyway: without one a
+            // toggle raises "no capability listener", and this way a stray tap simply snaps
+            // back to whatever the operating priority currently says.
+            if (this.role === 'main') {
+                this.registerCapabilityListener(PUMP_ACTIVE_CAPABILITY, async () => {
+                    const raw = this.connection?.lastRawFor(PRIORITY_REGISTER_NAME);
+                    const actual = raw === undefined ? false : raw !== PRIORITY_RAW_OFF;
+                    setTimeout(() => this.setCapabilityValue(PUMP_ACTIVE_CAPABILITY, actual)
+                        .catch(this.error), 300);
+                    throw new Error(this.homey.__('pair.not_settable'));
                 });
             }
-        }
-
-        // Main's on/off is derived state, not a command. setable:false should keep the
-        // tile from offering a switch, but register a listener anyway: without one a
-        // toggle raises "no capability listener", and this way a stray tap simply snaps
-        // back to whatever the operating priority currently says.
-        if (this.role === 'main') {
-            this.registerCapabilityListener(PUMP_ACTIVE_CAPABILITY, async () => {
-                const raw = this.connection?.lastRawFor(PRIORITY_REGISTER_NAME);
-                const actual = raw === undefined ? false : raw !== PRIORITY_RAW_OFF;
-                setTimeout(() => this.setCapabilityValue(PUMP_ACTIVE_CAPABILITY, actual)
-                    .catch(this.error), 300);
-                throw new Error(this.homey.__('pair.not_settable'));
-            });
+        } catch (err) {
+            this.error('Capability setup failed in onInit; attaching to the pump anyway so '
+                + 'this device still receives its energy allocation', err);
         }
 
         this.connection = PumpConnection.get(this.host());

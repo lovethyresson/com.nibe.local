@@ -1,0 +1,6 @@
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <!-- Monochrome capability icon for meter_kwh_NIBE (energy in kWh). Single filled
+         path, transparent background, so Homey's icon mask recolours it cleanly
+         (a filled-background SVG renders as a solid block — see the old store.svg). -->
+    <path d="M13 2 L4 14 h6 l-1 8 9 -12 h-6 z"/>
+</svg>
