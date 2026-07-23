@@ -1,0 +1,26 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Priority (value)",
+    "sv": "Prioritet (värde)",
+    "de": "Priorität (Wert)",
+    "nl": "Prioriteit (waarde)",
+    "no": "Prioritet (verdi)",
+    "da": "Prioritet (værdi)"
+  },
+  "uiComponent": null,
+  "getable": true,
+  "setable": false,
+  "decimals": 0,
+  "units": {
+    "en": "",
+    "sv": "",
+    "de": "",
+    "nl": "",
+    "no": "",
+    "da": ""
+  },
+  "insights": true,
+  "chartType": "stepLine",
+  "icon": "/assets/images/select.svg"
+}

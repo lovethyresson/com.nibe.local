@@ -77,6 +77,13 @@ export class PumpConnection {
     private lastPowerReading: number | null = null;
     private lastPollTime = Date.now();
     private loggedUnknownPriority = new Set<number>();
+    // Diagnostic: last raw priority we logged a transition for, so the log shows every
+    // change (not just idle<->active flips) with its mapped role and the live draw —
+    // used to discover which raw code a producing pump actually reports per function.
+    private lastLoggedPriority: number | undefined = undefined;
+    // Throttle (per role) for the "function device missing, charging to Main" warning, so
+    // a persistent misattribution re-surfaces periodically without spamming every poll.
+    private lastMissingRoleWarn = new Map<Role, number>();
 
     // Last successfully read raw value per register, so a device that attaches after
     // the connection is already up gets current values without waiting for a poll.
@@ -295,6 +302,18 @@ export class PumpConnection {
         this.log(`Unknown priority value ${raw}, charging its energy to Main (standby)`);
     }
 
+    // The pump is producing <role> but no device of that role is attached, so its draw is
+    // being charged to Main (idle) — misattribution that otherwise leaves no trace. Logged
+    // at most once per 5 min per role so a persistent case keeps reminding without spamming.
+    private warnMissingRoleDevice(role: Role, watts: number) {
+        const now = Date.now();
+        if (now - (this.lastMissingRoleWarn.get(role) ?? 0) < 5 * 60 * 1000)
+            return;
+        this.lastMissingRoleWarn.set(role, now);
+        this.log(`No '${role}' device attached; charging its ${watts}W draw to Main (idle) `
+            + `instead — energy misattributed. Is the ${role} device paired and available?`);
+    }
+
     // Integrate total power into a per-function kWh bucket, charged to whichever
     // function the pump is currently prioritising, and push the live draw (watts) to
     // the active device and 0 to the others.
@@ -317,10 +336,27 @@ export class PumpConnection {
                 else this.logUnknownPriority(rawPriority);
             }
 
+            // Diagnostic: dump every priority change with the code, where it's charged,
+            // and the live draw — so a "heating while priority reads X" cycle reveals X.
+            if (rawPriority !== this.lastLoggedPriority) {
+                const mapped = rawPriority !== undefined ? priorityToRole[rawPriority] : undefined;
+                this.log(`Priority change: raw=${rawPriority} -> role=${role}`
+                    + `${mapped ? '' : ' (UNMAPPED)'} draw=${watts}W`);
+                this.lastLoggedPriority = rawPriority;
+            }
+
             // Resolve to an attached device, falling back to Main (which always exists when
             // energy is being tracked, and is the standby catch-all).
-            const target = this.deviceForRole(role) ?? this.deviceForRole('main');
+            const wanted = this.deviceForRole(role);
+            const target = wanted ?? this.deviceForRole('main');
             const activeRole = target?.role ?? null;
+
+            // A function role that resolved but whose device isn't attached silently dumps
+            // its draw into Main (idle) — this is exactly the bug that inflated idle energy
+            // when the Heating device wasn't subscribed. Warn loudly (throttled) rather than
+            // charge it to idle without a trace.
+            if (!wanted && role !== 'main')
+                this.warnMissingRoleDevice(role, watts);
 
             const delta = this.lastPowerReading !== null
                 ? ((this.lastPowerReading + watts) / 2) * deltaTimeHours / 1000

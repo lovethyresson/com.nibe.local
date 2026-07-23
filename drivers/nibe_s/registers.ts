@@ -164,6 +164,10 @@ export const registers: Register[] = [
     // Rad 6
     {address: 1028, name: "measure_enum_NIBE.i1028_priority",                 direction: Dir.In,  group: "core",       enum: priorityMap, // Prio
      info: {en: "What the pump is producing right now (heating, hot water, pool…)", sv: "Vad pumpen producerar just nu (värme, varmvatten, pool…)"}},
+    // Same register 1028 as the enum above, kept as a raw number so it can be logged in
+    // Insights (the enum is a string capability Homey can't chart). Hidden from the tile.
+    {address: 1028, name: "measure_priority_NIBE.i1028_priority_value",       direction: Dir.In,  group: "core",       noAction: true, // Prio (raw)
+     info: {en: "Raw operating-priority code (10 off, 20 hot water, 30 heating, 40 pool, 60 cooling), logged over time", sv: "Rå driftprioritetskod (10 av, 20 varmvatten, 30 värme, 40 pool, 60 kyla), loggas över tid"}},
     {address:   40, name: "measure_water.i40_flow_sensor",          direction: Dir.In,  group: "heating",     scale:  10, // Flödesgivare (BF1)
      info: {en: "Heating medium flow (sensor BF1)", sv: "Värmebärarflöde (givare BF1)"}},
     // Rad 7

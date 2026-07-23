@@ -128,9 +128,14 @@ pump's consumption.
 - **Operating mode (Auto / Manual / Add-heat only)** on Main governs the whole pump; some manual-only
   settings (e.g. forced pump speeds) only take effect in Manual.
 - **Energy is attributed, delivered is measured.** Used energy is charged to whichever function the pump is
-  prioritising at each poll; **idle draw goes to Main as "Standby energy"** (so it doesn't wreck a function's
+  prioritising at each poll; **idle draw goes to Main as "Idle energy"** (so it doesn't wreck a function's
   COP — dividing real delivered energy by idle-inflated used energy gave nonsense). Delivered energy comes
   from the pump's own per-function counters, so *used* is a good estimate and *delivered*/*Total COP* are exact.
+- **Unpaired functions fold into Main.** The draw is only charged to a function device if that device exists.
+  If you haven't paired the Heating, Hot Water, Pool or Cooling device, the energy the pump uses while
+  producing *that* function is attributed to **Main** instead (it lands in Main's Idle energy). So pair every
+  function you want metered on its own — otherwise its consumption quietly folds into Main. (The app logs a
+  warning when this happens, so a *missing* device doesn't go unnoticed.)
 - **Energy figures are "since pairing."** Counters are baselined when you add the device, so per-device
   numbers reconcile with each other — they won't match the pump's lifetime totals in MyUplink.
 - **One Modbus client.** The pump accepts a single Modbus TCP connection at a time; don't run another

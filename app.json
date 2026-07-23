@@ -2022,6 +2022,7 @@
         "measure_temperature.i10_source_in",
         "measure_temperature.i11_source_out",
         "measure_enum_NIBE.i1028_priority",
+        "measure_priority_NIBE.i1028_priority_value",
         "measure_water.i40_flow_sensor",
         "measure_watt_NIBE.i1048_compressor_add_power",
         "measure_watt_NIBE.i2166_energy_usage",
@@ -2221,6 +2222,16 @@
             "nl": "Bedrijfsprioriteit",
             "no": "Driftsprioritering",
             "da": "Driftsprioritering"
+          }
+        },
+        "measure_priority_NIBE.i1028_priority_value": {
+          "title": {
+            "en": "Priority (value)",
+            "sv": "Driftprioritering (värde)",
+            "de": "Betriebspriorität (Wert)",
+            "nl": "Bedrijfsprioriteit (waarde)",
+            "no": "Driftsprioritering (verdi)",
+            "da": "Driftsprioritering (værdi)"
           }
         },
         "measure_enum_NIBE.i1037_return_fan_step": {
@@ -4282,6 +4293,32 @@
       "chartType": "spline",
       "icon": "/assets/images/pump.svg"
     },
+    "measure_priority_NIBE": {
+      "type": "number",
+      "title": {
+        "en": "Priority (value)",
+        "sv": "Prioritet (värde)",
+        "de": "Priorität (Wert)",
+        "nl": "Prioriteit (waarde)",
+        "no": "Prioritet (verdi)",
+        "da": "Prioritet (værdi)"
+      },
+      "uiComponent": null,
+      "getable": true,
+      "setable": false,
+      "decimals": 0,
+      "units": {
+        "en": "",
+        "sv": "",
+        "de": "",
+        "nl": "",
+        "no": "",
+        "da": ""
+      },
+      "insights": true,
+      "chartType": "stepLine",
+      "icon": "/assets/images/select.svg"
+    },
     "measure_watt_NIBE": {
       "type": "number",
       "title": {
@@ -4332,7 +4369,7 @@
       },
       "insights": true,
       "chartType": "stepLine",
-      "icon": "/assets/images/store.svg"
+      "icon": "/assets/images/energy.svg"
     },
     "time_of_day_NIBE": {
       "title": {

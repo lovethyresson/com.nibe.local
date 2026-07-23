@@ -39,6 +39,7 @@
     "measure_temperature.i10_source_in",
     "measure_temperature.i11_source_out",
     "measure_enum_NIBE.i1028_priority",
+    "measure_priority_NIBE.i1028_priority_value",
     "measure_water.i40_flow_sensor",
     "measure_watt_NIBE.i1048_compressor_add_power",
     "measure_watt_NIBE.i2166_energy_usage",
@@ -238,6 +239,16 @@
         "nl": "Bedrijfsprioriteit",
         "no": "Driftsprioritering",
         "da": "Driftsprioritering"
+      }
+    },
+    "measure_priority_NIBE.i1028_priority_value": {
+      "title": {
+        "en": "Priority (value)",
+        "sv": "Driftprioritering (värde)",
+        "de": "Betriebspriorität (Wert)",
+        "nl": "Bedrijfsprioriteit (waarde)",
+        "no": "Driftsprioritering (verdi)",
+        "da": "Driftsprioritering (værdi)"
       }
     },
     "measure_enum_NIBE.i1037_return_fan_step": {

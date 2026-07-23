@@ -123,7 +123,7 @@ export function extraCapabilities(role: Role, selection?: Selection | null): str
         return [];
     if (role === "main") {
         // Main carries the energy pair too, but its slice is standby/idle draw (allocated
-        // when the pump priority is Off) — titled "Standby energy"/"Standby power". Plus the
+        // when the pump priority is Off) — titled "Idle energy"/"Idle power". Plus the
         // Total COP. All live in the energy group.
         const energyOn = selection?.groups?.energy ?? true;
         return energyOn
@@ -191,12 +191,12 @@ export const SOLAR_METER_CAPABILITY = "meter_power.solar";
 // "Energy delivered" produced meter and the rolling COP on the same device.
 export function energyTitle(role: Role): {en: string; sv: string} {
     return role === 'main'
-        ? {en: "Standby energy", sv: "Standby-energi"}
+        ? {en: "Idle energy", sv: "Tomgångsenergi"}
         : {en: "Energy used", sv: "Använd energi"};
 }
 
 export function powerTitle(role: Role): {en: string; sv: string} {
     return role === 'main'
-        ? {en: "Standby power", sv: "Standby-effekt"}
+        ? {en: "Idle power", sv: "Tomgångseffekt"}
         : {en: "Current power", sv: "Momentan effekt"};
 }
