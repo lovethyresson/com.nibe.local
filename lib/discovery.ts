@@ -127,7 +127,7 @@ function subnetHosts(localIp: string): string[] {
     const hosts: string[] = [];
     for (let h = network + 1; h < broadcast; ++h)
         hosts.push(intToIp(h >>> 0));
-    console.log(`[discovery] local ${localIp}, detected prefix ${detected ?? 'unknown'}`
+    console.log(`${new Date().toISOString()} [discovery] local ${localIp}, detected prefix ${detected ?? 'unknown'}`
         + `${clamped ? ` (clamped to /${prefix})` : ''}; scanning ${intToIp(network)}/${prefix}`
         + ` — ${hosts.length} hosts (${hosts[0]}…${hosts[hosts.length - 1]})`);
     return hosts;

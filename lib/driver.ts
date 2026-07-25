@@ -7,8 +7,8 @@ import {
 } from './registers';
 import {
     ACTIVE_POWER_CAPABILITY, ENERGY_CAPABILITIES, FUNCTION_COP_CAPABILITY, METER_CAPABILITY,
-    Role, TOTAL_COP_CAPABILITY, allRoles, energyTitle, extraCapabilities, functionRoles,
-    powerTitle, registersForRole, roleClass, roleGroups, roleNames, roleOf, roleRegisters
+    Role, TOTAL_COP_CAPABILITY, allRoles, energyTitle, extraCapabilities, extraCapabilityOptions,
+    functionRoles, powerTitle, registersForRole, roleClass, roleGroups, roleNames, roleOf, roleRegisters
 } from './roles';
 import type {ModelProfile} from './profile';
 import {DetectionResult, PROBE_PASSES, Recommendations, RegisterSample, probeHost} from './detection';
@@ -26,10 +26,21 @@ export abstract class NibePumpDriver extends Driver {
     private actionSpecs: {[name: string]: any} = {};
     private conditionSpecs: {[name: string]: any} = {};
 
+    // Verbose logging, off unless one of this driver's devices has "Debug logging" enabled
+    // (Advanced settings). Pairing/repair, Flow actions and manual changes always log.
+    protected debugEnabled(): boolean {
+        return (this.getDevices() as any[]).some((device) => device.getSettings?.().debugLogging);
+    }
+
+    protected debug(...args: any[]) {
+        if (this.debugEnabled())
+            this.log(...args);
+    }
+
     async onInit() {
         this.actionSpecs = Object.fromEntries(this.profile.compose.actions.map((a: any) => [a.id, a]));
         this.conditionSpecs = Object.fromEntries(this.profile.compose.conditions.map((c: any) => [c.id, c]));
-        this.log(`Driver initialised — app v${(this.homey.manifest as any).version}, `
+        this.debug(`Driver initialised — app v${(this.homey.manifest as any).version}, `
             + `${this.profile.registers.length} registers, ${this.getDevices().length} paired device(s)`);
         this.checkConfig();
         this.registerFlows();
@@ -55,21 +66,28 @@ export abstract class NibePumpDriver extends Driver {
         const {capabilities} = this.profile.compose;
         for (const register of this.profile.registers) {
             if (!capabilities.includes(register.name))
-                this.log(`Config mismatch: register ${register.name} missing from driver.compose.json capabilities`);
+                this.debug(`Config mismatch: register ${register.name} missing from driver.compose.json capabilities`);
             if (!this.options(register.name))
-                this.log(`No options for ${register.name}`);
+                this.debug(`No options for ${register.name}`);
         }
         for (const card of [...this.profile.compose.triggers, ...this.profile.compose.actions,
                             ...this.profile.compose.conditions] as any[]) {
             const hint = card.hint;
             if (!hint?.en || !hint?.sv)
-                this.log(`Flow card ${card.id} is missing a${hint?.en ? ' Swedish' : ''} hint`);
+                this.debug(`Flow card ${card.id} is missing a${hint?.en ? ' Swedish' : ''} hint`);
         }
         for (const register of this.profile.registers) {
             if (!isAdjustable(register) || register.enum || register.bool || register.picker)
                 continue;
             if (!this.actionSpecs[`${register.name}.set`])
-                this.log(`No dedicated "set" flow card for writable register ${register.name}`);
+                this.debug(`No dedicated "set" flow card for writable register ${register.name}`);
+        }
+        // Writable on/off registers should each have a dedicated ".onoff" card.
+        for (const register of this.profile.registers) {
+            if (register.direction !== Dir.Out || !register.bool || register.writeOnly)
+                continue;
+            if (!this.actionSpecs[`${register.name}.onoff`])
+                this.debug(`No dedicated "onoff" flow card for writable on/off register ${register.name}`);
         }
     }
 
@@ -149,6 +167,23 @@ export abstract class NibePumpDriver extends Driver {
                 .registerRunListener(async (args) => {
                     this.log(`Flow: ${args.device.getName()} reset ${register.name}`);
                     await args.device.writeRegister(register, true);
+                });
+        }
+
+        // Dedicated per-register on/off cards ("More hot water – On/Off"), a named counterpart
+        // to the generic enable/disable-feature cards, matching the dedicated numeric ".set"
+        // cards. The `state` dropdown carries id "on"/"off".
+        for (const register of this.profile.registers) {
+            if (register.direction !== Dir.Out || !register.bool || register.writeOnly)
+                continue;
+            if (!this.actionSpecs[register.name + ".onoff"])
+                continue;
+            this.homey.flow.getActionCard(register.name + ".onoff")
+                .registerRunListener(async (args) => {
+                    const on = (args.state?.id ?? args.state) === 'on';
+                    this.log(`Flow: ${args.device.getName()} set ${register.name} = ${on}`);
+                    await args.device.writeRegister(register, on);
+                    await args.device.setValue(register, await args.device.readRegister(register));
                 });
         }
 
@@ -327,14 +362,6 @@ export abstract class NibePumpDriver extends Driver {
         return {groups, overrides};
     }
 
-    private extraOption(role: Role, name: string): any {
-        if (name === METER_CAPABILITY)
-            return {title: energyTitle(role)};
-        if (name === ACTIVE_POWER_CAPABILITY)
-            return {title: powerTitle(role), decimals: 0};
-        return undefined;
-    }
-
     private static roleSelection(role: Role, recommendations: Recommendations): Selection {
         const groups: Selection["groups"] = {};
         for (const id of groupIds)
@@ -361,9 +388,14 @@ export abstract class NibePumpDriver extends Driver {
         for (const register of roleRegisters(this.profile, role))
             if (this.options(register.name))
                 options[register.name] = this.options(register.name);
-        if (functionRoles.includes(role) || role === 'main')
-            for (const extra of ENERGY_CAPABILITIES)
-                options[extra] = this.extraOption(role, extra);
+        // Options for every extra capability the role could carry (energy pair, COP, main's
+        // on/off) so each is created with its role-specific title — otherwise
+        // getCapabilityOptions() throws "Invalid Capability" for the COP sensors on first init.
+        for (const extra of extraCapabilities(this.profile, role, null)) {
+            const opt = extraCapabilityOptions(role, extra);
+            if (opt)
+                options[extra] = opt;
+        }
         // Only carry port/unit-id into the device settings when the model actually uses them
         // (F pairing entered them) — keeps S device settings unchanged (just {address}).
         const settings: {address: string; port?: number; unitId?: number} = {address: ip};
@@ -371,6 +403,13 @@ export abstract class NibePumpDriver extends Driver {
             settings.port = transport.port;
         if (transport?.unitId)
             settings.unitId = transport.unitId;
+        // Homey uses the first onoff-family capability as the tile's on/off, so put this role's
+        // designated primary on/off (its enable register, or Main's bare `onoff`) first.
+        const caps = [...roleRegs.map((r) => r.name), ...extraCapabilities(this.profile, role, selection)];
+        const primary = this.profile.role.primaryOnoff?.[role];
+        const orderedCaps = primary && caps.includes(primary)
+            ? [primary, ...caps.filter((name) => name !== primary)]
+            : caps;
         return {
             name: roleNames[role][language as 'en' | 'sv'] || roleNames[role].en,
             class: roleClass[role],
@@ -378,7 +417,7 @@ export abstract class NibePumpDriver extends Driver {
             settings,
             store: {selection},
             icon: `/${role}.svg`,
-            capabilities: [...roleRegs.map((r) => r.name), ...extraCapabilities(this.profile, role, selection)],
+            capabilities: orderedCaps,
             capabilitiesOptions: options
         };
     }

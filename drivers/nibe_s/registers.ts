@@ -198,9 +198,10 @@ export const registers: Register[] = [
     // "More hot water" quick action: on = raw 2, off = raw 0. Raw 2 is *2 hours*, not the
     // 1 hour this was labelled as before it was measured (see onetimeincreaseMap). Write
     // onValue: 1 instead if a 1-hour boost is what's actually wanted.
-    // Exposed as the plain `onoff` so it becomes the Hot Water tile's primary toggle;
-    // the duration picker below is the secondary control for the same register.
-    {address:  697, name: "onoff",                                            direction: Dir.Out, group: "hotwater",   bool: true, onValue: 2, offValue: 0, // Mer varmvatten engångshöjning
+    // A sub-id `onoff.*` (a row toggle), not the bare `onoff` — the bare id is now the
+    // device's derived Active state (the tile on/off follows operating priority for every
+    // role device); the duration picker below is the secondary control for the same register.
+    {address:  697, name: "boolean_NIBE.h697_more_hotwater",                         direction: Dir.Out, group: "hotwater",   bool: true, onValue: 2, offValue: 0, // Mer varmvatten engångshöjning
      info: {en: "More hot water: a one-time 2-hour boost", sv: "Mer varmvatten: en engångshöjning på 2 timmar"}},
     // Rad 18 Periodisk varmvatten höjning
     {address:   65, name: "measure_enum_NIBE.h65_periodic_hotwater",          direction: Dir.Out, group: "hotwater",   enum: booleanMap, // Periodisk varmvatten
@@ -247,13 +248,13 @@ export const registers: Register[] = [
 
     // On / Off delar på kortet
     // On / Off Nattsvalka
-    {address:  227, name: "onoff.h227_nightchill",                            direction: Dir.Out, group: "cooling",     bool: true, // Nattsvalka 1
+    {address:  227, name: "boolean_NIBE.h227_nightchill",                            direction: Dir.Out, group: "cooling",     bool: true, // Nattsvalka 1
      info: {en: "Night cooling using the exhaust air fan", sv: "Nattsvalka med hjälp av frånluftsfläkten"}},
     // On / Off Periodiskt varmvatten
-    {address:   65, name: "onoff.h65_periodic_hotwater",                      direction: Dir.Out, group: "hotwater",   bool: true, // Periodisk varmvatten
+    {address:   65, name: "boolean_NIBE.h65_periodic_hotwater",                      direction: Dir.Out, group: "hotwater",   bool: true, // Periodisk varmvatten
      info: {en: "Enable the periodic hot water boost", sv: "Aktivera periodisk varmvattenhöjning"}},
 
-    {address: 1828, name: "onoff.i1828_pool_circulation",                     direction: Dir.In,  group: "pool",       bool: true, // Pool 1 pump status
+    {address: 1828, name: "boolean_NIBE.i1828_pool_circulation",                     direction: Dir.In,  group: "pool",       bool: true, // Pool 1 pump status
      info: {en: "Whether the pool pump is circulating", sv: "Om poolpumpen cirkulerar"}},
     {address:  691, name: "onoff.h691_pool_active",                           direction: Dir.Out, group: "pool",       bool: true,
      info: {en: "Enable pool heating", sv: "Aktivera poolvärme"}},
@@ -319,16 +320,16 @@ export const registers: Register[] = [
     // Alarm handling. h22 is a command: write 1 to acknowledge, it reads back 0.
     {address:   22, name: "button.h22_reset_alarm",                           direction: Dir.Out, group: "alarm",      bool: true, writeOnly: true, noAction: true, // Återställ larm
      info: {en: "Acknowledge and reset an active alarm on the pump", sv: "Kvittera och återställ ett aktivt larm på pumpen"}},
-    {address:  196, name: "onoff.h196_alarm_lower_room_temp",                 direction: Dir.Out, group: "alarm",      bool: true, // Larm vid sänkt rumstemp
+    {address:  196, name: "boolean_NIBE.h196_alarm_lower_room_temp",                 direction: Dir.Out, group: "alarm",      bool: true, // Larm vid sänkt rumstemp
      info: {en: "On an alarm, lower the room temperature to save the pump", sv: "Vid larm, sänk rumstemperaturen för att skona pumpen"}},
-    {address:  197, name: "onoff.h197_alarm_lower_hw_temp",                   direction: Dir.Out, group: "alarm",      bool: true, // Larm vid sänkt VV-temp
+    {address:  197, name: "boolean_NIBE.h197_alarm_lower_hw_temp",                   direction: Dir.Out, group: "alarm",      bool: true, // Larm vid sänkt VV-temp
      info: {en: "On an alarm, lower the hot water temperature", sv: "Vid larm, sänk varmvattentemperaturen"}},
 
     // The immersion/electric additive heater is a shared resource — it serves heating and
     // hot water (and electric pool assist), so its on/off lives on "main" alongside the
     // additive step (i1029) and power (i1027) readouts, not on the heating device. The
     // per-function permits below (h181 heating, h182 cooling) stay with their function.
-    {address:  180, name: "onoff.h180_enable_addition",                       direction: Dir.Out, group: "core",       bool: true, // Tillåt tillsats
+    {address:  180, name: "boolean_NIBE.h180_enable_addition",                       direction: Dir.Out, group: "core",       bool: true, // Tillåt tillsats
      info: {en: "Allow the electric immersion/additive heater (heating and hot water)", sv: "Tillåt elpatronen/eltillsatsen (värme och varmvatten)"}},
     {address:  181, name: "onoff.h181_enable_heating",                        direction: Dir.Out, group: "heating",    bool: true, // Tillåt värme
      info: {en: "Allow heating operation", sv: "Tillåt värmedrift"}},
@@ -344,10 +345,15 @@ export const registers: Register[] = [
 
     // ---- Offer-all expansion (specs verified against yozik04 s1155_s1255.csv) ----
     // Alarm code (0 = no alarm), a read-only insight beside the reset/alarm-action controls.
-    {address: 1975, name: "measure_count_NIBE.i1975_alarm",                   direction: Dir.In,  group: "alarm",       scale: 1, // Alarm number
+    // The pump's alarm *number*. Deliberately mapped to the string `alarm_text_NIBE` rather
+    // than a numeric capability: the device turns the code into text via lib/alarms.ts (and
+    // also drives the derived `alarm_generic` flag), and a numeric capability would make Homey
+    // auto-generate "Alarm code becomes greater/less than" flow triggers, which are meaningless
+    // for an unordered fault code. `noAction` because it is read-only.
+    {address: 1975, name: "alarm_text_NIBE",                                  direction: Dir.In,  group: "alarm",       noAction: true, // Alarm number
      info: {en: "Active alarm code (0 = no alarm)", sv: "Aktiv larmkod (0 = inget larm)"}},
     // Compressor running status (read-only on/off).
-    {address: 1100, name: "onoff.i1100_compressor_status",                    direction: Dir.In,  group: "diagnostics", bool: true, // Compressor status
+    {address: 1100, name: "boolean_NIBE.i1100_compressor_status",                    direction: Dir.In,  group: "diagnostics", bool: true, // Compressor status
      info: {en: "Whether the compressor is running", sv: "Om kompressorn är igång"}},
     // External pulse energy meter BE6 — only present if such a meter is wired to the pump.
     {address:  398, name: "meter_kwh_NIBE.i398_pulse_energy",                 direction: Dir.In,  group: "electrical",  scale: 100, size: 32, // Pulse energy meter (BE6)
@@ -367,7 +373,7 @@ export const registers: Register[] = [
      info: {en: "Hot water circulation return temperature (BT82)", sv: "Returtemperatur varmvattencirkulation (BT82)"}},
     {address:  175, name: "measure_temperature.i175_hw_comfort_heater", direction: Dir.In, group: "hotwater", scale: 10, // Hot water comfort heater (BT83)
      info: {en: "Hot water comfort heater temperature (BT83)", sv: "Temperatur varmvattenkomfortvärmare (BT83)"}},
-    {address: 1063, name: "onoff.i1063_hw_circulation",                       direction: Dir.In,  group: "hotwater",    bool: true, // Hot water circulation (GP11)
+    {address: 1063, name: "boolean_NIBE.i1063_hw_circulation",                       direction: Dir.In,  group: "hotwater",    bool: true, // Hot water circulation (GP11)
      info: {en: "Whether the hot water circulation pump is running", sv: "Om varmvattencirkulationspumpen är igång"}},
     // Auto-mode cooling start temperature (sibling of h184/h185); holding register 183.
     {address:  183, name: "target_temperature.h183_auto_start_cooling",       direction: Dir.Out, group: "cooling",     scale: 10, min: -20, max: 40, // Auto mode, start temp cooling

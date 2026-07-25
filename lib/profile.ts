@@ -1,4 +1,5 @@
-import {GroupId, Register, buildPickerPrimary, buildRegisterByName} from './registers';
+import {Dir, GroupId, Register, buildPickerPrimary, buildRegisterByName} from './registers';
+import type {AlarmSeries} from './alarms';
 import type {Role} from './roles';
 
 // Everything that differs between pump models (S vs F). The engine (connection, detection,
@@ -36,6 +37,59 @@ export interface RoleConfig {
 
     // Raw priority value → the device its energy is charged to.
     priorityToRole: Record<number, Role>;
+
+    // The capability that is each role device's primary on/off (the tile control). Function
+    // roles map to their "Allow X" enable register (Allow heating, Allow hot water, …) so the
+    // tile turns that function on/off; Main maps to the bare `onoff` (pinned ON — the pump is
+    // always operating). Listed first in the pairing template so Homey uses it as the tile
+    // on/off. Roles without an entry have no dedicated on/off control.
+    primaryOnoff?: Partial<Record<Role, string>>;
+
+    // Registers to reset (write their off value) when the raw operating priority transitions
+    // between specific values — e.g. clear the one-time "More hot water" boost once the pump
+    // leaves hot water (20) for idle (10), so the toggle doesn't stay on after it's delivered.
+    resetOnPriorityChange?: {from: number; to: number; register: string}[];
+}
+
+// Text in both supported languages, following the same {en, sv} convention the register table
+// uses for `info`.
+export interface LocalizedText {
+    en: string;
+    sv: string;
+}
+
+// One register read to work out *why* the pump changed what it is producing. Never a
+// capability — these exist only to be interpreted.
+export interface ReasonInput {
+    address: number;
+    direction: Dir;
+    scale?: number;
+    size?: 16 | 32;
+}
+
+export interface ReasonContext {
+    // Raw priority codes before and after the change, and the roles they map to.
+    from?: number;
+    to?: number;
+    role: Role;
+    previousRole?: Role;
+    // A named input's value, scaled and sign-corrected; undefined if it didn't read (accessory
+    // not fitted, register absent on this model) — every rule must tolerate that.
+    v(id: string): number | undefined;
+}
+
+// Nibe exposes no "why did it do that" register — the control logic is internal. But the
+// *inputs* to the decision are readable (degree minutes against the compressor start
+// threshold, tank temperature against the hot-water start point, outdoor temperature against
+// the heating cut-off), so a model can reconstruct the reason and state it in a sentence.
+//
+// The engine reads `inputs` on demand at the moment of a change — not every poll, so this
+// costs nothing steady-state — and passes them to `explain()`. All the pump semantics live in
+// `explain()`; the engine knows nothing about degree minutes. Returning undefined means "no
+// better explanation than the priority change itself" and the reason is simply omitted.
+export interface ReasonConfig {
+    inputs: Record<string, ReasonInput>;
+    explain(context: ReasonContext): LocalizedText | undefined;
 }
 
 export interface DiscoveryProbe {
@@ -66,6 +120,16 @@ export interface ModelProfile {
     // read-only "Heat pump" settings labels. Addresses are model-specific (S: 1497/1496);
     // omitted on models where they aren't known → the info step is skipped.
     pumpInfo?: {typeAddress?: number; firmwareAddress?: number};
+
+    // The register carrying the pump's alarm *number*, plus WHICH numbering scheme it uses.
+    // S and F number their alarms differently (the same code means different things), so the
+    // series must be named explicitly — see lib/alarms.ts. When set, the main device gains a
+    // derived alarm flag, a text description and an "alarm occurred" trigger.
+    alarm?: {registerName: string; series: AlarmSeries};
+
+    // How this model explains a change of operating priority — the registers to read and the
+    // rules that turn them into a sentence. See ReasonConfig.
+    reason?: ReasonConfig;
 
     detection: {
         // Fallback per-group heuristics for when nothing moved during the sampling window.

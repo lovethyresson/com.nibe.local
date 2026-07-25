@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script type="text/javascript" src="/homey.js" data-origin="settings"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+           margin: 0; padding: 16px; color: #1a1a1a; background: #f5f5f7; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .lead { color: #666; font-size: 13px; margin: 0 0 16px; line-height: 1.45; }
+    .empty { background: #fff; border-radius: 10px; padding: 24px 16px; text-align: center;
+             color: #888; font-size: 14px; }
+    .alarm { background: #fff; border-radius: 10px; margin-bottom: 8px; overflow: hidden;
+             box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+    .head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer;
+            user-select: none; }
+    .head:hover { background: #fafafa; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #d81e28; flex: 0 0 auto; }
+    .txt { flex: 1 1 auto; min-width: 0; }
+    .title { font-size: 14px; font-weight: 600; line-height: 1.3; word-break: break-word; }
+    .meta { font-size: 12px; color: #888; margin-top: 2px; }
+    .chev { color: #bbb; font-size: 12px; flex: 0 0 auto; transition: transform .15s; }
+    .alarm.open .chev { transform: rotate(90deg); }
+    .body { display: none; padding: 0 14px 14px; border-top: 1px solid #eee; }
+    .alarm.open .body { display: block; }
+    .body h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em;
+               color: #888; margin: 14px 0 6px; }
+    .advice { font-size: 13px; line-height: 1.5; white-space: pre-wrap; margin: 0; }
+    .none { font-size: 13px; color: #888; margin: 0; }
+    .orig { margin-top: 10px; }
+    .orig summary { font-size: 13px; color: #d81e28; cursor: pointer; }
+    .orig .advice { margin-top: 8px; }
+    a { color: #d81e28; }
+    .foot { margin-top: 16px; font-size: 12px; color: #888; line-height: 1.5; }
+    .btn { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 8px 14px;
+           font-size: 13px; cursor: pointer; }
+    .btn:hover { background: #fafafa; }
+  </style>
+</head>
+<body>
+  <h1 id="h-title">Alarms</h1>
+  <p class="lead" id="h-lead"></p>
+
+  <div id="list"></div>
+
+  <p class="foot" id="foot"></p>
+  <button class="btn" id="clear" style="display:none"></button>
+
+<script type="text/javascript">
+  // Strings kept here (not in the app locales) because a settings page is plain HTML served
+  // outside Homey's i18n pipeline; it only knows the language Homey passes to onHomeyReady.
+  var T = {
+    en: { title: 'Alarms', lead: 'Alarms reported by your Nibe heat pump, newest first. Tap one for the cause and what to do about it.',
+          empty: 'No alarms recorded. This log is kept by the app while it runs — the pump only exposes its <em>current</em> alarm over Modbus, so anything before the app was installed is not shown. The pump keeps its own longer history in menu 3.4, and menu 7.9.2 can export it to USB.',
+          cause: 'Cause and suggested action', none: 'NIBE publishes no further detail for this code.',
+          source: 'Descriptions from NIBE’s alarm code database', clear: 'Clear history',
+          confirm: 'Clear the alarm history?', showOriginal: 'Show NIBE\u2019s original guidance (Swedish)' },
+    sv: { title: 'Larm', lead: 'Larm som din Nibe-värmepump rapporterat, senaste först. Tryck på ett larm för orsak och åtgärd.',
+          empty: 'Inga larm registrerade. Loggen förs av appen medan den kör — värmepumpen exponerar bara sitt <em>aktuella</em> larm via Modbus, så allt före installationen saknas. Värmepumpen har en egen längre historik i meny 3.4, och meny 7.9.2 kan exportera den till USB.',
+          cause: 'Orsak och åtgärd', none: 'NIBE publicerar ingen mer information för den här koden.',
+          source: 'Beskrivningar från NIBE:s larmkodsdatabas', clear: 'Rensa historik',
+          confirm: 'Rensa larmhistoriken?', showOriginal: '' },
+    de: { title: 'Alarme', lead: 'Von Ihrer Nibe-Wärmepumpe gemeldete Alarme, neueste zuerst. Tippen Sie auf einen Alarm für Ursache und Abhilfe.',
+          empty: 'Keine Alarme aufgezeichnet. Dieses Protokoll führt die App, solange sie läuft — die Wärmepumpe gibt über Modbus nur ihren <em>aktuellen</em> Alarm aus, alles davor fehlt. Die Wärmepumpe selbst führt eine längere Historie in Menü 3.4, und Menü 7.9.2 kann sie auf USB exportieren.',
+          cause: 'Ursache und empfohlene Maßnahme', none: 'NIBE veröffentlicht zu diesem Code keine weiteren Angaben.',
+          source: 'Beschreibungen aus NIBEs Alarmcode-Datenbank', clear: 'Verlauf löschen',
+          confirm: 'Alarmverlauf löschen?', showOriginal: 'NIBEs Originalhinweis anzeigen (Schwedisch)' },
+    nl: { title: 'Alarmen', lead: 'Alarmen die je Nibe-warmtepomp heeft gemeld, nieuwste eerst. Tik op een alarm voor de oorzaak en wat je eraan kunt doen.',
+          empty: 'Geen alarmen vastgelegd. Dit logboek houdt de app bij zolang die draait — de warmtepomp geeft via Modbus alleen het <em>huidige</em> alarm door, dus alles daarvoor ontbreekt. De warmtepomp zelf bewaart een langere historie in menu 3.4, en menu 7.9.2 kan die naar USB exporteren.',
+          cause: 'Oorzaak en aanbevolen actie', none: 'NIBE publiceert geen verdere informatie voor deze code.',
+          source: 'Omschrijvingen uit NIBE\'s alarmcodedatabase', clear: 'Geschiedenis wissen',
+          confirm: 'Alarmgeschiedenis wissen?', showOriginal: 'NIBE\u2019s originele toelichting tonen (Zweeds)' },
+    no: { title: 'Alarmer', lead: 'Alarmer som varmepumpen din har rapportert, nyeste først. Trykk på en alarm for årsak og tiltak.',
+          empty: 'Ingen alarmer registrert. Loggen føres av appen mens den kjører — varmepumpen eksponerer bare den <em>gjeldende</em> alarmen over Modbus, så alt før installasjonen mangler. Varmepumpen har sin egen lengre historikk i meny 3.4, og meny 7.9.2 kan eksportere den til USB.',
+          cause: 'Årsak og tiltak', none: 'NIBE publiserer ingen mer informasjon for denne koden.',
+          source: 'Beskrivelser fra NIBEs alarmkodedatabase', clear: 'Tøm historikk',
+          confirm: 'Tømme alarmhistorikken?', showOriginal: 'Vis NIBEs originalveiledning (svensk)' },
+    da: { title: 'Alarmer', lead: 'Alarmer som din Nibe-varmepumpe har rapporteret, nyeste først. Tryk på en alarm for årsag og handling.',
+          empty: 'Ingen alarmer registreret. Loggen føres af appen, mens den kører — varmepumpen viser kun sin <em>aktuelle</em> alarm via Modbus, så alt før installationen mangler. Varmepumpen har sin egen længere historik i menu 3.4, og menu 7.9.2 kan eksportere den til USB.',
+          cause: 'Årsag og anbefalet handling', none: 'NIBE offentliggør ikke yderligere information for denne kode.',
+          source: 'Beskrivelser fra NIBEs alarmkodedatabase', clear: 'Ryd historik',
+          confirm: 'Ryd alarmhistorikken?', showOriginal: 'Vis NIBEs originalvejledning (svensk)' }
+  };
+  var t = T.en;
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function when(ts) {
+    // sv-SE formats as 2026-07-27 09:15 — unambiguous and sorts naturally.
+    try { return new Date(ts).toLocaleString('sv-SE', {dateStyle: 'short', timeStyle: 'short'}); }
+    catch (e) { return new Date(ts).toISOString().slice(0, 16).replace('T', ' '); }
+  }
+
+  function render(history) {
+    var list = document.getElementById('list');
+    var clear = document.getElementById('clear');
+    if (!history || !history.length) {
+      list.innerHTML = '<div class="empty">' + t.empty + '</div>';
+      clear.style.display = 'none';
+      return;
+    }
+    clear.style.display = '';
+    list.innerHTML = history.map(function (a, i) {
+      // NIBE publishes the cause/action text in Swedish only. Swedish users get it inline;
+      // everyone else must opt in, so the UI never silently falls back from their language
+      // to Swedish — the English summary and link are always what they see first.
+      var advice;
+      if (!a.advice) {
+        advice = '<p class="none">' + t.none + '</p>';
+      } else if (!t.showOriginal) {
+        advice = '<p class="advice">' + esc(a.advice) + '</p>';
+      } else {
+        advice = '<p class="none">' + t.none + '</p>'
+          + '<details class="orig"><summary>' + t.showOriginal + '</summary>'
+          + '<p class="advice">' + esc(a.advice) + '</p></details>';
+      }
+      return '<div class="alarm" data-i="' + i + '">'
+        + '<div class="head"><span class="dot"></span><span class="txt">'
+        + '<div class="title">' + esc(a.text) + '</div>'
+        + '<div class="meta">' + esc(when(a.t)) + (a.device ? ' &middot; ' + esc(a.device) : '') + '</div>'
+        + '</span><span class="chev">&#9656;</span></div>'
+        + '<div class="body"><h3>' + t.cause + '</h3>' + advice
+        + '<p class="meta" style="margin-top:12px"><a href="' + esc(a.source || 'https://www.nibe.eu/sv-se/support/larmkoder')
+        + '" target="_blank" rel="noopener">' + t.source + ' &rarr;</a></p>'
+        + '</div></div>';
+    }).join('');
+    Array.prototype.forEach.call(list.querySelectorAll('.head'), function (h) {
+      h.addEventListener('click', function () { h.parentNode.classList.toggle('open'); });
+    });
+  }
+
+  function onHomeyReady(Homey) {
+    var lang = (Homey.getLanguage && Homey.getLanguage()) || 'en';
+    t = T[lang] || T.en;
+    document.getElementById('h-title').textContent = t.title;
+    document.getElementById('h-lead').textContent = t.lead;
+    document.getElementById('clear').textContent = t.clear;
+
+    Homey.get('alarmHistory', function (err, history) {
+      if (err) return Homey.alert(err);
+      render(history || []);
+      Homey.ready();
+    });
+
+    // Keep the page live if an alarm arrives while it is open.
+    Homey.on('settings.set', function (key) {
+      if (key !== 'alarmHistory') return;
+      Homey.get('alarmHistory', function (err, h) { if (!err) render(h || []); });
+    });
+
+    document.getElementById('clear').addEventListener('click', function () {
+      Homey.confirm(t.confirm, null, function (err, ok) {
+        if (err || !ok) return;
+        Homey.set('alarmHistory', [], function () { render([]); });
+      });
+    });
+  }
+</script>
+</body>
+</html>

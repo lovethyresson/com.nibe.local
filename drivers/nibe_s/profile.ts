@@ -1,4 +1,5 @@
 import {registers} from './registers';
+import {sReason} from './reason';
 import {makeProfile} from '../../lib/profile';
 import {capabilities, capabilitiesOptions} from './driver.compose.json';
 import {actions, conditions, triggers} from './driver.flow.compose.json';
@@ -22,7 +23,22 @@ export const sProfile = makeProfile({
             pool: "meter_kwh_NIBE.i1581_pool_produced",
             cooling: "meter_kwh_NIBE.i1579_cooling_produced"
         },
-        priorityToRole: {10: "main", 20: "hotwater", 30: "heating", 40: "pool", 60: "cooling"}
+        priorityToRole: {10: "main", 20: "hotwater", 30: "heating", 40: "pool", 60: "cooling"},
+        // Each function device's tile on/off IS that function's enable register — so turning a
+        // device off disables that function on the pump. Main's on/off is the bare `onoff`,
+        // pinned ON (the pump is always operating).
+        primaryOnoff: {
+            main: "onoff",
+            heating: "onoff.h181_enable_heating",
+            hotwater: "onoff.h195_enable_hotwater",
+            pool: "onoff.h691_pool_active",
+            cooling: "onoff.h182_enable_cooling"
+        },
+        // Clear the "More hot water" one-time boost (697) once the pump has delivered it and
+        // returns from hot water (priority 20) to idle (10), so the toggle doesn't linger on.
+        resetOnPriorityChange: [
+            {from: 20, to: 10, register: "boolean_NIBE.h697_more_hotwater"}
+        ]
     },
 
     // S-series speaks native Modbus TCP on port 502, unit id 1, with 1-based register ids
@@ -31,6 +47,14 @@ export const sProfile = makeProfile({
 
     // Model/firmware input registers (menu labels), read once per connect.
     pumpInfo: {typeAddress: 1497, firmwareAddress: 1496},
+
+    // Register 1975 "Alarm number" carries a bare code. S-series numbering — NOT the same as
+    // the F-series scheme (see lib/alarms.ts); 438 means different things on the two.
+    alarm: {registerName: "alarm_text_NIBE", series: "s"},
+
+    // How a change of operating priority is explained — see reason.ts, which holds the S
+    // control semantics (degree minutes, hot-water start/stop bands, outdoor cut-offs).
+    reason: sReason,
 
     detection: {
         // Verify a Modbus responder is a pump by reading input register 1 (outdoor temp).

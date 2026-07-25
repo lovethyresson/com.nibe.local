@@ -5,7 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 A Homey (smart home platform) app that talks directly to Nibe S-series heat pumps over Modbus TCP on the local
-network (bypassing Nibe's MyUplink cloud). It is a fork of https://github.com/sparud/net.sparud.nibe_s with
+network (bypassing Nibe's MyUplink cloud). It is a fork of [Jan Sparud's Nibe S-series
+app](https://github.com/sparud/net.sparud.nibe_s) with
 cumulative energy consumption added. Homey SDK v3, written in TypeScript.
 
 ## Commands

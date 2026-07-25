@@ -19,14 +19,15 @@
     "meter_kwh_NIBE.i1575_hotwater_produced",
     "meter_kwh_NIBE.i1581_pool_produced",
     "meter_kwh_NIBE.i1579_cooling_produced",
-    "measure_count_NIBE.i1975_alarm",
-    "onoff.i1100_compressor_status",
+    "alarm_generic",
+    "alarm_text_NIBE",
+    "boolean_NIBE.i1100_compressor_status",
     "meter_kwh_NIBE.i398_pulse_energy",
     "meter_power.solar",
     "measure_temperature.i87_outgoing_hotwater",
     "measure_temperature.i174_hw_comfort_return",
     "measure_temperature.i175_hw_comfort_heater",
-    "onoff.i1063_hw_circulation",
+    "boolean_NIBE.i1063_hw_circulation",
     "target_temperature.h183_auto_start_cooling",
     "measure_temperature.i1_outside",
     "measure_temperature.i26_inside",
@@ -64,6 +65,7 @@
     "measure_count_NIBE.h30_heat_curve_displacement",
     "measure_enum_NIBE.h56_hotwater_demand_mode",
     "onoff",
+    "boolean_NIBE.h697_more_hotwater",
     "measure_enum_NIBE.h65_periodic_hotwater",
     "measure_day_NIBE.h66_periodic_hotwater_interval",
     "measure_minute_NIBE.h92_periodtime_hotwater",
@@ -96,12 +98,12 @@
     "onoff.h195_enable_hotwater",
     "measure_minute_NIBE.h94_periodtime_pool",
     "button.h22_reset_alarm",
-    "onoff.h196_alarm_lower_room_temp",
-    "onoff.h197_alarm_lower_hw_temp",
+    "boolean_NIBE.h196_alarm_lower_room_temp",
+    "boolean_NIBE.h197_alarm_lower_hw_temp",
     "measure_count_NIBE.h19_holiday_status",
-    "onoff.h227_nightchill",
-    "onoff.h65_periodic_hotwater",
-    "onoff.i1828_pool_circulation",
+    "boolean_NIBE.h227_nightchill",
+    "boolean_NIBE.h65_periodic_hotwater",
+    "boolean_NIBE.i1828_pool_circulation",
     "onoff.h691_pool_active",
     "curve_mode_NIBE.h26_heat_curve",
     "curve_displacement_NIBE.h30_heat_curve_displacement",
@@ -109,7 +111,7 @@
     "hotwater_increase_NIBE.h697_onetimeincrease_hotwater",
     "hotwater_periodic_interval_NIBE.h66_periodic_hw_interval",
     "hotwater_periodtime_NIBE.h92_periodtime_hotwater",
-    "onoff.h180_enable_addition",
+    "boolean_NIBE.h180_enable_addition",
     "onoff.h181_enable_heating",
     "onoff.h182_enable_cooling"
   ],
@@ -253,8 +255,8 @@
     },
     "measure_enum_NIBE.i1037_return_fan_step": {
       "title": {
-        "en": "Return fan step",
-        "sv": "Frånluft fläkthastighet",
+        "en": "Extract air fan mode",
+        "sv": "Frånluft fläktläge",
         "de": "Abluftventilator-Stufe",
         "nl": "Stand afvoerluchtventilator",
         "no": "Viftetrinn avtrekk",
@@ -295,6 +297,16 @@
     },
     "onoff": {
       "title": {
+        "en": "On",
+        "sv": "På",
+        "de": "Ein",
+        "nl": "Aan",
+        "no": "På",
+        "da": "Til"
+      }
+    },
+    "boolean_NIBE.h697_more_hotwater": {
+      "title": {
         "en": "More hot water",
         "sv": "Mer varmvatten",
         "de": "Mehr Brauchwasser",
@@ -315,7 +327,7 @@
     },
     "measure_hour_NIBE.i1025_additive_usage_total": {
       "title": {
-        "en": "Total additive duration",
+        "en": "Total additive runtime",
         "sv": "Total drifttid tillsats",
         "de": "Gesamtlaufzeit Zusatzheizung",
         "nl": "Totale bedrijfstijd bijverwarming",
@@ -325,17 +337,17 @@
     },
     "measure_hour_NIBE.i1069_additive_usage_hotwater": {
       "title": {
-        "en": "Additive runtime (hot water)",
-        "sv": "Varmvatten drifttid tillsats",
-        "de": "Laufzeit Zusatzheizung (Brauchwasser)",
-        "nl": "Bedrijfstijd bijverwarming (warmtapwater)",
-        "no": "Driftstid tilleggsvarme (varmtvann)",
-        "da": "Driftstid tilskudsvarme (varmtvand)"
+        "en": "Additive runtime",
+        "sv": "Drifttid tillsats",
+        "de": "Laufzeit Zusatzheizung",
+        "nl": "Bedrijfstijd bijverwarming",
+        "no": "Driftstid tilleggsvarme",
+        "da": "Driftstid tilskudsvarme"
       }
     },
     "measure_hour_NIBE.i1087_compressor_usage_total": {
       "title": {
-        "en": "Total compressor duration",
+        "en": "Total compressor runtime",
         "sv": "Total drifttid kompressor",
         "de": "Gesamtlaufzeit Verdichter",
         "nl": "Totale bedrijfstijd compressor",
@@ -368,58 +380,51 @@
     "meter_kwh_NIBE.i1577_heating_produced": {
       "decimals": 0,
       "title": {
-        "en": "Energy delivered (heating)",
-        "sv": "Levererad energi (värme)",
-        "de": "Gelieferte Energie (Heizung)",
-        "nl": "Geleverde energie (verwarming)",
-        "no": "Levert energi (varme)",
-        "da": "Leveret energi (varme)"
+        "en": "Energy delivered",
+        "sv": "Levererad energi",
+        "de": "Gelieferte Energie",
+        "nl": "Geleverde energie",
+        "no": "Levert energi",
+        "da": "Leveret energi"
       }
     },
     "meter_kwh_NIBE.i1575_hotwater_produced": {
       "decimals": 0,
       "title": {
-        "en": "Energy delivered (hot water)",
-        "sv": "Levererad energi (varmvatten)",
-        "de": "Gelieferte Energie (Brauchwasser)",
-        "nl": "Geleverde energie (warmtapwater)",
-        "no": "Levert energi (varmtvann)",
-        "da": "Leveret energi (varmt vand)"
+        "en": "Energy delivered",
+        "sv": "Levererad energi",
+        "de": "Gelieferte Energie",
+        "nl": "Geleverde energie",
+        "no": "Levert energi",
+        "da": "Leveret energi"
       }
     },
     "meter_kwh_NIBE.i1581_pool_produced": {
       "decimals": 0,
       "title": {
-        "en": "Energy delivered (pool)",
-        "sv": "Levererad energi (pool)",
-        "de": "Gelieferte Energie (Pool)",
-        "nl": "Geleverde energie (zwembad)",
-        "no": "Levert energi (basseng)",
-        "da": "Leveret energi (pool)"
+        "en": "Energy delivered",
+        "sv": "Levererad energi",
+        "de": "Gelieferte Energie",
+        "nl": "Geleverde energie",
+        "no": "Levert energi",
+        "da": "Leveret energi"
       }
     },
     "meter_kwh_NIBE.i1579_cooling_produced": {
       "decimals": 0,
       "title": {
-        "en": "Energy delivered (cooling)",
-        "sv": "Levererad energi (kyla)",
-        "de": "Gelieferte Energie (Kühlung)",
-        "nl": "Geleverde energie (koeling)",
-        "no": "Levert energi (kjøling)",
-        "da": "Leveret energi (køling)"
+        "en": "Energy delivered",
+        "sv": "Levererad energi",
+        "de": "Gelieferte Energie",
+        "nl": "Geleverde energie",
+        "no": "Levert energi",
+        "da": "Leveret energi"
       }
     },
-    "measure_count_NIBE.i1975_alarm": {
-      "title": {
-        "en": "Alarm code",
-        "sv": "Larmkod",
-        "de": "Alarmcode",
-        "nl": "Alarmcode",
-        "no": "Alarmkode",
-        "da": "Alarmkode"
-      }
-    },
-    "onoff.i1100_compressor_status": {
+    "boolean_NIBE.i1100_compressor_status": {
+      "setable": false,
+      "getable": true,
+      "uiComponent": "sensor",
       "title": {
         "en": "Compressor running",
         "sv": "Kompressor igång",
@@ -463,25 +468,28 @@
     },
     "measure_temperature.i174_hw_comfort_return": {
       "title": {
-        "en": "HW circulation return (BT82)",
-        "sv": "VV-cirkulation retur (BT82)",
-        "de": "BW-Zirkulation Rücklauf (BT82)",
-        "nl": "WW-circulatie retour (BT82)",
-        "no": "VV-sirkulasjon retur (BT82)",
-        "da": "VV-cirkulation retur (BT82)"
+        "en": "Hot water circulation return (BT82)",
+        "sv": "Varmvattencirkulation retur (BT82)",
+        "de": "Brauchwasserzirkulation Rücklauf (BT82)",
+        "nl": "Warmtapwatercirculatie retour (BT82)",
+        "no": "Varmtvannssirkulasjon retur (BT82)",
+        "da": "Varmtvandscirkulation retur (BT82)"
       }
     },
     "measure_temperature.i175_hw_comfort_heater": {
       "title": {
-        "en": "HW comfort heater (BT83)",
-        "sv": "VV komfortvärmare (BT83)",
-        "de": "BW Komfortheizer (BT83)",
-        "nl": "WW comfortverwarmer (BT83)",
-        "no": "VV komfortvarmer (BT83)",
-        "da": "VV komfortvarmer (BT83)"
+        "en": "Hot water comfort heater (BT83)",
+        "sv": "Varmvatten komfortvärmare (BT83)",
+        "de": "Brauchwasser Komfortheizer (BT83)",
+        "nl": "Warmtapwater comfortverwarmer (BT83)",
+        "no": "Varmtvann komfortvarmer (BT83)",
+        "da": "Varmt vand komfortvarmer (BT83)"
       }
     },
-    "onoff.i1063_hw_circulation": {
+    "boolean_NIBE.i1063_hw_circulation": {
+      "setable": false,
+      "getable": true,
+      "uiComponent": "sensor",
       "title": {
         "en": "Hot water circulation",
         "sv": "Varmvattencirkulation",
@@ -508,12 +516,12 @@
     },
     "measure_hour_NIBE.i1091_compressor_usage_hotwater": {
       "title": {
-        "en": "Compressor runtime (hot water)",
-        "sv": "Total timmar värme",
-        "de": "Verdichterlaufzeit Brauchwasser",
-        "nl": "Bedrijfstijd compressor warmtapwater",
-        "no": "Driftstid kompressor varmtvann",
-        "da": "Driftstid kompressor varmtvand"
+        "en": "Compressor runtime",
+        "sv": "Drifttid kompressor",
+        "de": "Verdichterlaufzeit",
+        "nl": "Bedrijfstijd compressor",
+        "no": "Driftstid kompressor",
+        "da": "Driftstid kompressor"
       }
     },
     "measure_minute_NIBE.h92_periodtime_hotwater": {
@@ -550,7 +558,7 @@
     "fan_speed.h109_returnair_normal": {
       "decimals": 2,
       "title": {
-        "en": "Returnair fan speed",
+        "en": "Extract air fan speed",
         "sv": "Frånluft fläkthastighet normal",
         "de": "Abluftventilator Drehzahl",
         "nl": "Ventilatorsnelheid afvoerlucht",
@@ -716,7 +724,7 @@
     },
     "measure_temperature.i10_source_in": {
       "title": {
-        "en": "Groundsource medium - in (BT10)",
+        "en": "Brine in (BT10)",
         "sv": "Köldbärare in (BT10)",
         "de": "Kollektor ein (BT10)",
         "nl": "Brine in (BT10)",
@@ -726,7 +734,7 @@
     },
     "measure_temperature.i11_source_out": {
       "title": {
-        "en": "Groundsource medium - out (BT11)",
+        "en": "Brine out (BT11)",
         "sv": "Köldbärare ut (BT11)",
         "de": "Kollektor aus (BT11)",
         "nl": "Brine uit (BT11)",
@@ -1097,7 +1105,7 @@
         "da": "Nulstil alarm"
       }
     },
-    "onoff.h196_alarm_lower_room_temp": {
+    "boolean_NIBE.h196_alarm_lower_room_temp": {
       "uiComponent": null,
       "title": {
         "en": "On alarm: lower room temperature",
@@ -1108,7 +1116,7 @@
         "da": "Ved alarm: sænk rumtemperatur"
       }
     },
-    "onoff.h197_alarm_lower_hw_temp": {
+    "boolean_NIBE.h197_alarm_lower_hw_temp": {
       "uiComponent": null,
       "title": {
         "en": "On alarm: lower hot water temperature",
@@ -1129,17 +1137,20 @@
         "da": "Status ferietilstand"
       }
     },
-    "onoff.i1828_pool_circulation": {
+    "boolean_NIBE.i1828_pool_circulation": {
+      "setable": false,
+      "getable": true,
+      "uiComponent": "sensor",
       "title": {
-        "en": "Pool circulation on",
-        "sv": "Poolcirkulation på",
-        "de": "Poolzirkulation ein",
-        "nl": "Zwembadcirculatie aan",
-        "no": "Bassengsirkulasjon på",
-        "da": "Poolcirkulation til"
+        "en": "Pool circulation",
+        "sv": "Poolcirkulation",
+        "de": "Poolzirkulation",
+        "nl": "Zwembadcirculatie",
+        "no": "Bassengsirkulasjon",
+        "da": "Poolcirkulation"
       }
     },
-    "onoff.h65_periodic_hotwater": {
+    "boolean_NIBE.h65_periodic_hotwater": {
       "uiComponent": null,
       "title": {
         "en": "Periodic hot water",
@@ -1150,9 +1161,9 @@
         "da": "Periodisk varmtvand"
       }
     },
-    "onoff.h227_nightchill": {
+    "boolean_NIBE.h227_nightchill": {
       "title": {
-        "en": "Nightchill",
+        "en": "Night cooling",
         "sv": "Nattsvalka",
         "de": "Nachtkühlung",
         "nl": "Nachtkoeling",
@@ -1170,7 +1181,7 @@
         "da": "Poolopvarmning"
       }
     },
-    "onoff.h180_enable_addition": {
+    "boolean_NIBE.h180_enable_addition": {
       "title": {
         "en": "Allow immersion heater",
         "sv": "Tillåt elpatron",
@@ -1198,6 +1209,26 @@
         "nl": "Koeling toestaan",
         "no": "Tillat kjøling",
         "da": "Tillad køling"
+      }
+    },
+    "alarm_generic": {
+      "title": {
+        "en": "Alarm active",
+        "sv": "Larm aktivt",
+        "de": "Alarm aktiv",
+        "nl": "Alarm actief",
+        "no": "Alarm aktivt",
+        "da": "Alarm aktivt"
+      }
+    },
+    "alarm_text_NIBE": {
+      "title": {
+        "en": "Alarm",
+        "sv": "Larm",
+        "de": "Alarm",
+        "nl": "Alarm",
+        "no": "Alarm",
+        "da": "Alarm"
       }
     }
   },
@@ -1325,6 +1356,23 @@
           "units": {
             "en": "s"
           }
+        },
+        {
+          "id": "debugLogging",
+          "type": "checkbox",
+          "label": {
+            "en": "Debug logging",
+            "sv": "Felsökningsloggning",
+            "de": "Debug-Protokollierung",
+            "nl": "Debug-logboek",
+            "no": "Feilsøkingslogg",
+            "da": "Fejlsøgningslog"
+          },
+          "hint": {
+            "en": "Log polling, connection and energy-allocation detail. Normally the app only logs pairing, Flow actions and manual changes. Turn this on when troubleshooting or before sending logs for support.",
+            "sv": "Logga avläsning, anslutning och energifördelning i detalj. Normalt loggas bara parkoppling, flödeskort och manuella ändringar. Slå på vid felsökning eller innan du skickar loggar för support."
+          },
+          "value": false
         }
       ]
     },
@@ -1362,6 +1410,40 @@
             "nl": "Warmtepomp-typecode",
             "no": "Varmepumpe-typekode",
             "da": "Varmepumpe-typekode"
+          },
+          "value": ""
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": {
+        "en": "Alarms",
+        "sv": "Larm",
+        "de": "Alarme",
+        "nl": "Alarmen",
+        "no": "Alarmer",
+        "da": "Alarmer"
+      },
+      "children": [
+        {
+          "id": "alarm_log",
+          "type": "label",
+          "label": {
+            "en": "Latest alarm",
+            "sv": "Senaste larmet",
+            "de": "Letzter Alarm",
+            "nl": "Laatste alarm",
+            "no": "Siste alarm",
+            "da": "Seneste alarm"
+          },
+          "hint": {
+            "en": "The most recent alarm reported by the heat pump. For the full history — with NIBE's cause and suggested action for each alarm — open this app's own settings: Homey app → More → Apps → Nibe Live → Configure.",
+            "sv": "Det senaste larmet som värmepumpen rapporterat. För hela historiken — med NIBE:s orsak och åtgärd för varje larm — öppna appens egna inställningar: Homey-appen → Mer → Appar → Nibe Live → Konfigurera.",
+            "de": "Der jüngste von der Wärmepumpe gemeldete Alarm. Die vollständige Historie — mit NIBEs Ursache und empfohlener Maßnahme je Alarm — finden Sie in den Einstellungen dieser App: Homey-App → Mehr → Apps → Nibe Live → Konfigurieren.",
+            "nl": "Het meest recente alarm van de warmtepomp. De volledige historie — met NIBE's oorzaak en aanbevolen actie per alarm — vind je in de instellingen van deze app: Homey-app → Meer → Apps → Nibe Live → Configureren.",
+            "no": "Den nyeste alarmen varmepumpen har rapportert. Hele historikken — med NIBEs årsak og tiltak for hver alarm — finner du i appens egne innstillinger: Homey-appen → Mer → Apper → Nibe Live → Konfigurer.",
+            "da": "Den seneste alarm som varmepumpen har rapporteret. Hele historikken — med NIBEs årsag og anbefalede handling for hver alarm — finder du i appens egne indstillinger: Homey-appen → Mere → Apps → Nibe Live → Konfigurer."
           },
           "value": ""
         }

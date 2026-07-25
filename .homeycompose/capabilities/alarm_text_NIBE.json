@@ -1,0 +1,24 @@
+{
+  "type": "string",
+  "title": {
+    "en": "Alarm",
+    "sv": "Larm",
+    "de": "Alarm",
+    "nl": "Alarm",
+    "no": "Alarm",
+    "da": "Alarm"
+  },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "units": {
+    "en": "",
+    "sv": "",
+    "de": "",
+    "nl": "",
+    "no": "",
+    "da": ""
+  },
+  "insights": false,
+  "icon": "/assets/images/select.svg"
+}

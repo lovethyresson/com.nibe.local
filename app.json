@@ -1,7 +1,7 @@
 {
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "com.nibe.local",
-  "version": "0.9.7",
+  "version": "0.9.8",
   "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
@@ -50,6 +50,162 @@
   },
   "flow": {
     "triggers": [
+      {
+        "id": "alarm_occurred",
+        "title": {
+          "en": "An alarm occurred",
+          "sv": "Ett larm inträffade",
+          "de": "Ein Alarm ist aufgetreten",
+          "nl": "Er is een alarm opgetreden",
+          "no": "Et alarm oppsto",
+          "da": "Der opstod en alarm"
+        },
+        "hint": {
+          "en": "Fires when the heat pump reports a new alarm. Use the alarm description token to see what happened.",
+          "sv": "Utlöses när värmepumpen rapporterar ett nytt larm. Använd larmbeskrivningen som tagg för att se vad som hänt.",
+          "de": "Wird ausgelöst, wenn die Wärmepumpe einen neuen Alarm meldet. Über das Tag mit der Alarmbeschreibung sehen Sie, was passiert ist.",
+          "nl": "Wordt geactiveerd wanneer de warmtepomp een nieuw alarm meldt. Gebruik de tag met de alarmomschrijving om te zien wat er is gebeurd.",
+          "no": "Utløses når varmepumpen rapporterer en ny alarm. Bruk taggen med alarmbeskrivelsen for å se hva som skjedde.",
+          "da": "Udløses når varmepumpen rapporterer en ny alarm. Brug tagget med alarmbeskrivelsen for at se, hvad der skete."
+        },
+        "tokens": [
+          {
+            "name": "description",
+            "type": "string",
+            "title": {
+              "en": "Alarm",
+              "sv": "Larm",
+              "de": "Alarm",
+              "nl": "Alarm",
+              "no": "Alarm",
+              "da": "Alarm"
+            },
+            "example": {
+              "en": "438: Lost connection to wireless device",
+              "sv": "438: Tappad anslutning till trådlös enhet",
+              "de": "438: Lost connection to wireless device",
+              "nl": "438: Lost connection to wireless device",
+              "no": "438: Lost connection to wireless device",
+              "da": "438: Lost connection to wireless device"
+            }
+          },
+          {
+            "name": "code",
+            "type": "number",
+            "title": {
+              "en": "Alarm code",
+              "sv": "Larmkod",
+              "de": "Alarmcode",
+              "nl": "Alarmcode",
+              "no": "Alarmkode",
+              "da": "Alarmkode"
+            },
+            "example": {
+              "en": "438",
+              "sv": "438",
+              "de": "438",
+              "nl": "438",
+              "no": "438",
+              "da": "438"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=alarm_generic"
+          }
+        ]
+      },
+      {
+        "id": "priority_changed",
+        "title": {
+          "en": "Operating priority changed",
+          "sv": "Driftprioriteringen ändrades",
+          "de": "Betriebspriorität hat sich geändert",
+          "nl": "Bedrijfsprioriteit gewijzigd",
+          "no": "Driftsprioriteringen endret seg",
+          "da": "Driftsprioriteringen ændrede sig"
+        },
+        "hint": {
+          "en": "Fires when the heat pump switches what it is producing (hot water, heating, pool, cooling, off). The reason token explains why in plain language — which threshold the pump actually reached, with the numbers behind it.",
+          "sv": "Utlöses när värmepumpen byter vad den producerar (varmvatten, värme, pool, kyla, av). Orsakstaggen förklarar varför på vanlig svenska — vilken gräns pumpen faktiskt nådde, med siffrorna bakom.",
+          "de": "Wird ausgelöst, wenn die Wärmepumpe wechselt, was sie erzeugt (Warmwasser, Heizung, Pool, Kühlung, aus). Das Tag „Grund\" erklärt in verständlicher Sprache, warum.",
+          "nl": "Wordt geactiveerd wanneer de warmtepomp wisselt wat hij produceert (warm water, verwarming, zwembad, koeling, uit). De tag met de reden legt in gewone taal uit waarom.",
+          "no": "Utløses når varmepumpen bytter hva den produserer (varmtvann, varme, basseng, kjøling, av). Årsakstaggen forklarer på vanlig språk hvorfor.",
+          "da": "Udløses når varmepumpen skifter, hvad den producerer (varmt vand, varme, pool, køling, fra). Tagget med årsagen forklarer i almindeligt sprog hvorfor."
+        },
+        "tokens": [
+          {
+            "name": "priority",
+            "type": "string",
+            "title": {
+              "en": "Priority",
+              "sv": "Prioritering",
+              "de": "Priorität",
+              "nl": "Prioriteit",
+              "no": "Prioritering",
+              "da": "Prioritering"
+            },
+            "example": {
+              "en": "Heating",
+              "sv": "Värme",
+              "de": "Heizung",
+              "nl": "Verwarming",
+              "no": "Varme",
+              "da": "Varme"
+            }
+          },
+          {
+            "name": "previous",
+            "type": "string",
+            "title": {
+              "en": "Previous priority",
+              "sv": "Föregående prioritering",
+              "de": "Vorherige Priorität",
+              "nl": "Vorige prioriteit",
+              "no": "Forrige prioritering",
+              "da": "Forrige prioritering"
+            },
+            "example": {
+              "en": "Off",
+              "sv": "Av",
+              "de": "Aus",
+              "nl": "Uit",
+              "no": "Av",
+              "da": "Fra"
+            }
+          },
+          {
+            "name": "reason",
+            "type": "string",
+            "title": {
+              "en": "Reason",
+              "sv": "Orsak",
+              "de": "Grund",
+              "nl": "Reden",
+              "no": "Årsak",
+              "da": "Årsag"
+            },
+            "example": {
+              "en": "The house fell behind on heat: degree minutes are down to -60, at or past the -60 threshold that starts the compressor.",
+              "sv": "Huset kom efter på värme: gradminuterna är nere på -60, vid eller förbi gränsen -60 som startar kompressorn.",
+              "de": "The house fell behind on heat: degree minutes are down to -60, at or past the -60 threshold that starts the compressor.",
+              "nl": "The house fell behind on heat: degree minutes are down to -60, at or past the -60 threshold that starts the compressor.",
+              "no": "The house fell behind on heat: degree minutes are down to -60, at or past the -60 threshold that starts the compressor.",
+              "da": "The house fell behind on heat: degree minutes are down to -60, at or past the -60 threshold that starts the compressor."
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_enum_NIBE.i1028_priority"
+          }
+        ]
+      },
       {
         "id": "capability_changed",
         "title": {
@@ -1826,6 +1982,666 @@
         ]
       },
       {
+        "id": "boolean_NIBE.h697_more_hotwater.onoff",
+        "title": {
+          "en": "More hot water",
+          "sv": "Mer varmvatten",
+          "de": "Mehr Brauchwasser",
+          "nl": "Meer warmtapwater",
+          "no": "Mer varmtvann",
+          "da": "Mere varmtvand"
+        },
+        "titleFormatted": {
+          "en": "More hot water – [[state]]",
+          "sv": "Mer varmvatten – [[state]]",
+          "de": "Mehr Brauchwasser – [[state]]",
+          "nl": "Meer warmtapwater – [[state]]",
+          "no": "Mer varmtvann – [[state]]",
+          "da": "Mere varmtvand – [[state]]"
+        },
+        "hint": {
+          "en": "More hot water: a one-time 2-hour boost",
+          "sv": "Mer varmvatten: en engångshöjning på 2 timmar"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=boolean_NIBE.h697_more_hotwater"
+          },
+          {
+            "type": "dropdown",
+            "name": "state",
+            "title": {
+              "en": "State",
+              "sv": "Läge",
+              "de": "Zustand",
+              "nl": "Status",
+              "no": "Tilstand",
+              "da": "Tilstand"
+            },
+            "values": [
+              {
+                "id": "on",
+                "title": {
+                  "en": "On",
+                  "sv": "På",
+                  "de": "Ein",
+                  "nl": "Aan",
+                  "no": "På",
+                  "da": "Til"
+                }
+              },
+              {
+                "id": "off",
+                "title": {
+                  "en": "Off",
+                  "sv": "Av",
+                  "de": "Aus",
+                  "nl": "Uit",
+                  "no": "Av",
+                  "da": "Fra"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "boolean_NIBE.h227_nightchill.onoff",
+        "title": {
+          "en": "Night cooling",
+          "sv": "Nattsvalka",
+          "de": "Nachtkühlung",
+          "nl": "Nachtkoeling",
+          "no": "Nattkjøling",
+          "da": "Natkøling"
+        },
+        "titleFormatted": {
+          "en": "Night cooling – [[state]]",
+          "sv": "Nattsvalka – [[state]]",
+          "de": "Nachtkühlung – [[state]]",
+          "nl": "Nachtkoeling – [[state]]",
+          "no": "Nattkjøling – [[state]]",
+          "da": "Natkøling – [[state]]"
+        },
+        "hint": {
+          "en": "Night cooling using the exhaust air fan",
+          "sv": "Nattsvalka med hjälp av frånluftsfläkten"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=boolean_NIBE.h227_nightchill"
+          },
+          {
+            "type": "dropdown",
+            "name": "state",
+            "title": {
+              "en": "State",
+              "sv": "Läge",
+              "de": "Zustand",
+              "nl": "Status",
+              "no": "Tilstand",
+              "da": "Tilstand"
+            },
+            "values": [
+              {
+                "id": "on",
+                "title": {
+                  "en": "On",
+                  "sv": "På",
+                  "de": "Ein",
+                  "nl": "Aan",
+                  "no": "På",
+                  "da": "Til"
+                }
+              },
+              {
+                "id": "off",
+                "title": {
+                  "en": "Off",
+                  "sv": "Av",
+                  "de": "Aus",
+                  "nl": "Uit",
+                  "no": "Av",
+                  "da": "Fra"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "boolean_NIBE.h65_periodic_hotwater.onoff",
+        "title": {
+          "en": "Periodic hot water",
+          "sv": "Periodiskt varmvatten",
+          "de": "Periodische Erhöhung",
+          "nl": "Periodiek warmtapwater",
+          "no": "Periodisk varmtvann",
+          "da": "Periodisk varmtvand"
+        },
+        "titleFormatted": {
+          "en": "Periodic hot water – [[state]]",
+          "sv": "Periodiskt varmvatten – [[state]]",
+          "de": "Periodische Erhöhung – [[state]]",
+          "nl": "Periodiek warmtapwater – [[state]]",
+          "no": "Periodisk varmtvann – [[state]]",
+          "da": "Periodisk varmtvand – [[state]]"
+        },
+        "hint": {
+          "en": "Enable the periodic hot water boost",
+          "sv": "Aktivera periodisk varmvattenhöjning"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=boolean_NIBE.h65_periodic_hotwater"
+          },
+          {
+            "type": "dropdown",
+            "name": "state",
+            "title": {
+              "en": "State",
+              "sv": "Läge",
+              "de": "Zustand",
+              "nl": "Status",
+              "no": "Tilstand",
+              "da": "Tilstand"
+            },
+            "values": [
+              {
+                "id": "on",
+                "title": {
+                  "en": "On",
+                  "sv": "På",
+                  "de": "Ein",
+                  "nl": "Aan",
+                  "no": "På",
+                  "da": "Til"
+                }
+              },
+              {
+                "id": "off",
+                "title": {
+                  "en": "Off",
+                  "sv": "Av",
+                  "de": "Aus",
+                  "nl": "Uit",
+                  "no": "Av",
+                  "da": "Fra"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "onoff.h691_pool_active.onoff",
+        "title": {
+          "en": "Pool heating",
+          "sv": "Poolvärme",
+          "de": "Poolheizung",
+          "nl": "Zwembadverwarming",
+          "no": "Bassengvarme",
+          "da": "Poolopvarmning"
+        },
+        "titleFormatted": {
+          "en": "Pool heating – [[state]]",
+          "sv": "Poolvärme – [[state]]",
+          "de": "Poolheizung – [[state]]",
+          "nl": "Zwembadverwarming – [[state]]",
+          "no": "Bassengvarme – [[state]]",
+          "da": "Poolopvarmning – [[state]]"
+        },
+        "hint": {
+          "en": "Enable pool heating",
+          "sv": "Aktivera poolvärme"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=onoff.h691_pool_active"
+          },
+          {
+            "type": "dropdown",
+            "name": "state",
+            "title": {
+              "en": "State",
+              "sv": "Läge",
+              "de": "Zustand",
+              "nl": "Status",
+              "no": "Tilstand",
+              "da": "Tilstand"
+            },
+            "values": [
+              {
+                "id": "on",
+                "title": {
+                  "en": "On",
+                  "sv": "På",
+                  "de": "Ein",
+                  "nl": "Aan",
+                  "no": "På",
+                  "da": "Til"
+                }
+              },
+              {
+                "id": "off",
+                "title": {
+                  "en": "Off",
+                  "sv": "Av",
+                  "de": "Aus",
+                  "nl": "Uit",
+                  "no": "Av",
+                  "da": "Fra"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "boolean_NIBE.h196_alarm_lower_room_temp.onoff",
+        "title": {
+          "en": "On alarm: lower room temperature",
+          "sv": "Vid larm: sänk rumstemperatur",
+          "de": "Bei Alarm: Raumtemperatur senken",
+          "nl": "Bij alarm: ruimtetemperatuur verlagen",
+          "no": "Ved alarm: senk romtemperatur",
+          "da": "Ved alarm: sænk rumtemperatur"
+        },
+        "titleFormatted": {
+          "en": "On alarm: lower room temperature – [[state]]",
+          "sv": "Vid larm: sänk rumstemperatur – [[state]]",
+          "de": "Bei Alarm: Raumtemperatur senken – [[state]]",
+          "nl": "Bij alarm: ruimtetemperatuur verlagen – [[state]]",
+          "no": "Ved alarm: senk romtemperatur – [[state]]",
+          "da": "Ved alarm: sænk rumtemperatur – [[state]]"
+        },
+        "hint": {
+          "en": "On an alarm, lower the room temperature to save the pump",
+          "sv": "Vid larm, sänk rumstemperaturen för att skona pumpen"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=boolean_NIBE.h196_alarm_lower_room_temp"
+          },
+          {
+            "type": "dropdown",
+            "name": "state",
+            "title": {
+              "en": "State",
+              "sv": "Läge",
+              "de": "Zustand",
+              "nl": "Status",
+              "no": "Tilstand",
+              "da": "Tilstand"
+            },
+            "values": [
+              {
+                "id": "on",
+                "title": {
+                  "en": "On",
+                  "sv": "På",
+                  "de": "Ein",
+                  "nl": "Aan",
+                  "no": "På",
+                  "da": "Til"
+                }
+              },
+              {
+                "id": "off",
+                "title": {
+                  "en": "Off",
+                  "sv": "Av",
+                  "de": "Aus",
+                  "nl": "Uit",
+                  "no": "Av",
+                  "da": "Fra"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "boolean_NIBE.h197_alarm_lower_hw_temp.onoff",
+        "title": {
+          "en": "On alarm: lower hot water temperature",
+          "sv": "Vid larm: sänk varmvattentemperatur",
+          "de": "Bei Alarm: Brauchwassertemperatur senken",
+          "nl": "Bij alarm: warmtapwatertemperatuur verlagen",
+          "no": "Ved alarm: senk varmtvannstemperatur",
+          "da": "Ved alarm: sænk varmtvandstemperatur"
+        },
+        "titleFormatted": {
+          "en": "On alarm: lower hot water temperature – [[state]]",
+          "sv": "Vid larm: sänk varmvattentemperatur – [[state]]",
+          "de": "Bei Alarm: Brauchwassertemperatur senken – [[state]]",
+          "nl": "Bij alarm: warmtapwatertemperatuur verlagen – [[state]]",
+          "no": "Ved alarm: senk varmtvannstemperatur – [[state]]",
+          "da": "Ved alarm: sænk varmtvandstemperatur – [[state]]"
+        },
+        "hint": {
+          "en": "On an alarm, lower the hot water temperature",
+          "sv": "Vid larm, sänk varmvattentemperaturen"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=boolean_NIBE.h197_alarm_lower_hw_temp"
+          },
+          {
+            "type": "dropdown",
+            "name": "state",
+            "title": {
+              "en": "State",
+              "sv": "Läge",
+              "de": "Zustand",
+              "nl": "Status",
+              "no": "Tilstand",
+              "da": "Tilstand"
+            },
+            "values": [
+              {
+                "id": "on",
+                "title": {
+                  "en": "On",
+                  "sv": "På",
+                  "de": "Ein",
+                  "nl": "Aan",
+                  "no": "På",
+                  "da": "Til"
+                }
+              },
+              {
+                "id": "off",
+                "title": {
+                  "en": "Off",
+                  "sv": "Av",
+                  "de": "Aus",
+                  "nl": "Uit",
+                  "no": "Av",
+                  "da": "Fra"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "boolean_NIBE.h180_enable_addition.onoff",
+        "title": {
+          "en": "Allow immersion heater",
+          "sv": "Tillåt elpatron",
+          "de": "Zusatzheizung zulassen",
+          "nl": "Bijverwarming toestaan",
+          "no": "Tillat tilleggsvarme",
+          "da": "Tillad tilskudsvarme"
+        },
+        "titleFormatted": {
+          "en": "Allow immersion heater – [[state]]",
+          "sv": "Tillåt elpatron – [[state]]",
+          "de": "Zusatzheizung zulassen – [[state]]",
+          "nl": "Bijverwarming toestaan – [[state]]",
+          "no": "Tillat tilleggsvarme – [[state]]",
+          "da": "Tillad tilskudsvarme – [[state]]"
+        },
+        "hint": {
+          "en": "Allow the electric immersion/additive heater (heating and hot water)",
+          "sv": "Tillåt elpatronen/eltillsatsen (värme och varmvatten)"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=boolean_NIBE.h180_enable_addition"
+          },
+          {
+            "type": "dropdown",
+            "name": "state",
+            "title": {
+              "en": "State",
+              "sv": "Läge",
+              "de": "Zustand",
+              "nl": "Status",
+              "no": "Tilstand",
+              "da": "Tilstand"
+            },
+            "values": [
+              {
+                "id": "on",
+                "title": {
+                  "en": "On",
+                  "sv": "På",
+                  "de": "Ein",
+                  "nl": "Aan",
+                  "no": "På",
+                  "da": "Til"
+                }
+              },
+              {
+                "id": "off",
+                "title": {
+                  "en": "Off",
+                  "sv": "Av",
+                  "de": "Aus",
+                  "nl": "Uit",
+                  "no": "Av",
+                  "da": "Fra"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "onoff.h181_enable_heating.onoff",
+        "title": {
+          "en": "Allow heating",
+          "sv": "Tillåt värme",
+          "de": "Heizung zulassen",
+          "nl": "Verwarming toestaan",
+          "no": "Tillat varme",
+          "da": "Tillad varme"
+        },
+        "titleFormatted": {
+          "en": "Allow heating – [[state]]",
+          "sv": "Tillåt värme – [[state]]",
+          "de": "Heizung zulassen – [[state]]",
+          "nl": "Verwarming toestaan – [[state]]",
+          "no": "Tillat varme – [[state]]",
+          "da": "Tillad varme – [[state]]"
+        },
+        "hint": {
+          "en": "Allow heating operation",
+          "sv": "Tillåt värmedrift"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=onoff.h181_enable_heating"
+          },
+          {
+            "type": "dropdown",
+            "name": "state",
+            "title": {
+              "en": "State",
+              "sv": "Läge",
+              "de": "Zustand",
+              "nl": "Status",
+              "no": "Tilstand",
+              "da": "Tilstand"
+            },
+            "values": [
+              {
+                "id": "on",
+                "title": {
+                  "en": "On",
+                  "sv": "På",
+                  "de": "Ein",
+                  "nl": "Aan",
+                  "no": "På",
+                  "da": "Til"
+                }
+              },
+              {
+                "id": "off",
+                "title": {
+                  "en": "Off",
+                  "sv": "Av",
+                  "de": "Aus",
+                  "nl": "Uit",
+                  "no": "Av",
+                  "da": "Fra"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "onoff.h182_enable_cooling.onoff",
+        "title": {
+          "en": "Allow cooling",
+          "sv": "Tillåt kyla",
+          "de": "Kühlung zulassen",
+          "nl": "Koeling toestaan",
+          "no": "Tillat kjøling",
+          "da": "Tillad køling"
+        },
+        "titleFormatted": {
+          "en": "Allow cooling – [[state]]",
+          "sv": "Tillåt kyla – [[state]]",
+          "de": "Kühlung zulassen – [[state]]",
+          "nl": "Koeling toestaan – [[state]]",
+          "no": "Tillat kjøling – [[state]]",
+          "da": "Tillad køling – [[state]]"
+        },
+        "hint": {
+          "en": "Allow cooling operation",
+          "sv": "Tillåt kyldrift"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=onoff.h182_enable_cooling"
+          },
+          {
+            "type": "dropdown",
+            "name": "state",
+            "title": {
+              "en": "State",
+              "sv": "Läge",
+              "de": "Zustand",
+              "nl": "Status",
+              "no": "Tilstand",
+              "da": "Tilstand"
+            },
+            "values": [
+              {
+                "id": "on",
+                "title": {
+                  "en": "On",
+                  "sv": "På",
+                  "de": "Ein",
+                  "nl": "Aan",
+                  "no": "På",
+                  "da": "Til"
+                }
+              },
+              {
+                "id": "off",
+                "title": {
+                  "en": "Off",
+                  "sv": "Av",
+                  "de": "Aus",
+                  "nl": "Uit",
+                  "no": "Av",
+                  "da": "Fra"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "onoff.h195_enable_hotwater.onoff",
+        "title": {
+          "en": "Allow hot water",
+          "sv": "Tillåt varmvatten",
+          "de": "Brauchwasser zulassen",
+          "nl": "Warmtapwater toestaan",
+          "no": "Tillat varmtvann",
+          "da": "Tillad varmt vand"
+        },
+        "titleFormatted": {
+          "en": "Allow hot water – [[state]]",
+          "sv": "Tillåt varmvatten – [[state]]",
+          "de": "Brauchwasser zulassen – [[state]]",
+          "nl": "Warmtapwater toestaan – [[state]]",
+          "no": "Tillat varmtvann – [[state]]",
+          "da": "Tillad varmt vand – [[state]]"
+        },
+        "hint": {
+          "en": "Allow hot water. Off disables all hot water, including the More hot water boost",
+          "sv": "Tillåt varmvatten. Av stänger av allt varmvatten, även engångshöjningen"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=onoff.h195_enable_hotwater"
+          },
+          {
+            "type": "dropdown",
+            "name": "state",
+            "title": {
+              "en": "State",
+              "sv": "Läge",
+              "de": "Zustand",
+              "nl": "Status",
+              "no": "Tilstand",
+              "da": "Tilstand"
+            },
+            "values": [
+              {
+                "id": "on",
+                "title": {
+                  "en": "On",
+                  "sv": "På",
+                  "de": "Ein",
+                  "nl": "Aan",
+                  "no": "På",
+                  "da": "Til"
+                }
+              },
+              {
+                "id": "off",
+                "title": {
+                  "en": "Off",
+                  "sv": "Av",
+                  "de": "Aus",
+                  "nl": "Uit",
+                  "no": "Av",
+                  "da": "Fra"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
         "id": "set_numeric_value",
         "title": {
           "en": "Set value of a register (advanced)",
@@ -2002,14 +2818,15 @@
         "meter_kwh_NIBE.i1575_hotwater_produced",
         "meter_kwh_NIBE.i1581_pool_produced",
         "meter_kwh_NIBE.i1579_cooling_produced",
-        "measure_count_NIBE.i1975_alarm",
-        "onoff.i1100_compressor_status",
+        "alarm_generic",
+        "alarm_text_NIBE",
+        "boolean_NIBE.i1100_compressor_status",
         "meter_kwh_NIBE.i398_pulse_energy",
         "meter_power.solar",
         "measure_temperature.i87_outgoing_hotwater",
         "measure_temperature.i174_hw_comfort_return",
         "measure_temperature.i175_hw_comfort_heater",
-        "onoff.i1063_hw_circulation",
+        "boolean_NIBE.i1063_hw_circulation",
         "target_temperature.h183_auto_start_cooling",
         "measure_temperature.i1_outside",
         "measure_temperature.i26_inside",
@@ -2047,6 +2864,7 @@
         "measure_count_NIBE.h30_heat_curve_displacement",
         "measure_enum_NIBE.h56_hotwater_demand_mode",
         "onoff",
+        "boolean_NIBE.h697_more_hotwater",
         "measure_enum_NIBE.h65_periodic_hotwater",
         "measure_day_NIBE.h66_periodic_hotwater_interval",
         "measure_minute_NIBE.h92_periodtime_hotwater",
@@ -2079,12 +2897,12 @@
         "onoff.h195_enable_hotwater",
         "measure_minute_NIBE.h94_periodtime_pool",
         "button.h22_reset_alarm",
-        "onoff.h196_alarm_lower_room_temp",
-        "onoff.h197_alarm_lower_hw_temp",
+        "boolean_NIBE.h196_alarm_lower_room_temp",
+        "boolean_NIBE.h197_alarm_lower_hw_temp",
         "measure_count_NIBE.h19_holiday_status",
-        "onoff.h227_nightchill",
-        "onoff.h65_periodic_hotwater",
-        "onoff.i1828_pool_circulation",
+        "boolean_NIBE.h227_nightchill",
+        "boolean_NIBE.h65_periodic_hotwater",
+        "boolean_NIBE.i1828_pool_circulation",
         "onoff.h691_pool_active",
         "curve_mode_NIBE.h26_heat_curve",
         "curve_displacement_NIBE.h30_heat_curve_displacement",
@@ -2092,7 +2910,7 @@
         "hotwater_increase_NIBE.h697_onetimeincrease_hotwater",
         "hotwater_periodic_interval_NIBE.h66_periodic_hw_interval",
         "hotwater_periodtime_NIBE.h92_periodtime_hotwater",
-        "onoff.h180_enable_addition",
+        "boolean_NIBE.h180_enable_addition",
         "onoff.h181_enable_heating",
         "onoff.h182_enable_cooling"
       ],
@@ -2236,8 +3054,8 @@
         },
         "measure_enum_NIBE.i1037_return_fan_step": {
           "title": {
-            "en": "Return fan step",
-            "sv": "Frånluft fläkthastighet",
+            "en": "Extract air fan mode",
+            "sv": "Frånluft fläktläge",
             "de": "Abluftventilator-Stufe",
             "nl": "Stand afvoerluchtventilator",
             "no": "Viftetrinn avtrekk",
@@ -2278,6 +3096,16 @@
         },
         "onoff": {
           "title": {
+            "en": "On",
+            "sv": "På",
+            "de": "Ein",
+            "nl": "Aan",
+            "no": "På",
+            "da": "Til"
+          }
+        },
+        "boolean_NIBE.h697_more_hotwater": {
+          "title": {
             "en": "More hot water",
             "sv": "Mer varmvatten",
             "de": "Mehr Brauchwasser",
@@ -2298,7 +3126,7 @@
         },
         "measure_hour_NIBE.i1025_additive_usage_total": {
           "title": {
-            "en": "Total additive duration",
+            "en": "Total additive runtime",
             "sv": "Total drifttid tillsats",
             "de": "Gesamtlaufzeit Zusatzheizung",
             "nl": "Totale bedrijfstijd bijverwarming",
@@ -2308,17 +3136,17 @@
         },
         "measure_hour_NIBE.i1069_additive_usage_hotwater": {
           "title": {
-            "en": "Additive runtime (hot water)",
-            "sv": "Varmvatten drifttid tillsats",
-            "de": "Laufzeit Zusatzheizung (Brauchwasser)",
-            "nl": "Bedrijfstijd bijverwarming (warmtapwater)",
-            "no": "Driftstid tilleggsvarme (varmtvann)",
-            "da": "Driftstid tilskudsvarme (varmtvand)"
+            "en": "Additive runtime",
+            "sv": "Drifttid tillsats",
+            "de": "Laufzeit Zusatzheizung",
+            "nl": "Bedrijfstijd bijverwarming",
+            "no": "Driftstid tilleggsvarme",
+            "da": "Driftstid tilskudsvarme"
           }
         },
         "measure_hour_NIBE.i1087_compressor_usage_total": {
           "title": {
-            "en": "Total compressor duration",
+            "en": "Total compressor runtime",
             "sv": "Total drifttid kompressor",
             "de": "Gesamtlaufzeit Verdichter",
             "nl": "Totale bedrijfstijd compressor",
@@ -2351,58 +3179,51 @@
         "meter_kwh_NIBE.i1577_heating_produced": {
           "decimals": 0,
           "title": {
-            "en": "Energy delivered (heating)",
-            "sv": "Levererad energi (värme)",
-            "de": "Gelieferte Energie (Heizung)",
-            "nl": "Geleverde energie (verwarming)",
-            "no": "Levert energi (varme)",
-            "da": "Leveret energi (varme)"
+            "en": "Energy delivered",
+            "sv": "Levererad energi",
+            "de": "Gelieferte Energie",
+            "nl": "Geleverde energie",
+            "no": "Levert energi",
+            "da": "Leveret energi"
           }
         },
         "meter_kwh_NIBE.i1575_hotwater_produced": {
           "decimals": 0,
           "title": {
-            "en": "Energy delivered (hot water)",
-            "sv": "Levererad energi (varmvatten)",
-            "de": "Gelieferte Energie (Brauchwasser)",
-            "nl": "Geleverde energie (warmtapwater)",
-            "no": "Levert energi (varmtvann)",
-            "da": "Leveret energi (varmt vand)"
+            "en": "Energy delivered",
+            "sv": "Levererad energi",
+            "de": "Gelieferte Energie",
+            "nl": "Geleverde energie",
+            "no": "Levert energi",
+            "da": "Leveret energi"
           }
         },
         "meter_kwh_NIBE.i1581_pool_produced": {
           "decimals": 0,
           "title": {
-            "en": "Energy delivered (pool)",
-            "sv": "Levererad energi (pool)",
-            "de": "Gelieferte Energie (Pool)",
-            "nl": "Geleverde energie (zwembad)",
-            "no": "Levert energi (basseng)",
-            "da": "Leveret energi (pool)"
+            "en": "Energy delivered",
+            "sv": "Levererad energi",
+            "de": "Gelieferte Energie",
+            "nl": "Geleverde energie",
+            "no": "Levert energi",
+            "da": "Leveret energi"
           }
         },
         "meter_kwh_NIBE.i1579_cooling_produced": {
           "decimals": 0,
           "title": {
-            "en": "Energy delivered (cooling)",
-            "sv": "Levererad energi (kyla)",
-            "de": "Gelieferte Energie (Kühlung)",
-            "nl": "Geleverde energie (koeling)",
-            "no": "Levert energi (kjøling)",
-            "da": "Leveret energi (køling)"
+            "en": "Energy delivered",
+            "sv": "Levererad energi",
+            "de": "Gelieferte Energie",
+            "nl": "Geleverde energie",
+            "no": "Levert energi",
+            "da": "Leveret energi"
           }
         },
-        "measure_count_NIBE.i1975_alarm": {
-          "title": {
-            "en": "Alarm code",
-            "sv": "Larmkod",
-            "de": "Alarmcode",
-            "nl": "Alarmcode",
-            "no": "Alarmkode",
-            "da": "Alarmkode"
-          }
-        },
-        "onoff.i1100_compressor_status": {
+        "boolean_NIBE.i1100_compressor_status": {
+          "setable": false,
+          "getable": true,
+          "uiComponent": "sensor",
           "title": {
             "en": "Compressor running",
             "sv": "Kompressor igång",
@@ -2446,25 +3267,28 @@
         },
         "measure_temperature.i174_hw_comfort_return": {
           "title": {
-            "en": "HW circulation return (BT82)",
-            "sv": "VV-cirkulation retur (BT82)",
-            "de": "BW-Zirkulation Rücklauf (BT82)",
-            "nl": "WW-circulatie retour (BT82)",
-            "no": "VV-sirkulasjon retur (BT82)",
-            "da": "VV-cirkulation retur (BT82)"
+            "en": "Hot water circulation return (BT82)",
+            "sv": "Varmvattencirkulation retur (BT82)",
+            "de": "Brauchwasserzirkulation Rücklauf (BT82)",
+            "nl": "Warmtapwatercirculatie retour (BT82)",
+            "no": "Varmtvannssirkulasjon retur (BT82)",
+            "da": "Varmtvandscirkulation retur (BT82)"
           }
         },
         "measure_temperature.i175_hw_comfort_heater": {
           "title": {
-            "en": "HW comfort heater (BT83)",
-            "sv": "VV komfortvärmare (BT83)",
-            "de": "BW Komfortheizer (BT83)",
-            "nl": "WW comfortverwarmer (BT83)",
-            "no": "VV komfortvarmer (BT83)",
-            "da": "VV komfortvarmer (BT83)"
+            "en": "Hot water comfort heater (BT83)",
+            "sv": "Varmvatten komfortvärmare (BT83)",
+            "de": "Brauchwasser Komfortheizer (BT83)",
+            "nl": "Warmtapwater comfortverwarmer (BT83)",
+            "no": "Varmtvann komfortvarmer (BT83)",
+            "da": "Varmt vand komfortvarmer (BT83)"
           }
         },
-        "onoff.i1063_hw_circulation": {
+        "boolean_NIBE.i1063_hw_circulation": {
+          "setable": false,
+          "getable": true,
+          "uiComponent": "sensor",
           "title": {
             "en": "Hot water circulation",
             "sv": "Varmvattencirkulation",
@@ -2491,12 +3315,12 @@
         },
         "measure_hour_NIBE.i1091_compressor_usage_hotwater": {
           "title": {
-            "en": "Compressor runtime (hot water)",
-            "sv": "Total timmar värme",
-            "de": "Verdichterlaufzeit Brauchwasser",
-            "nl": "Bedrijfstijd compressor warmtapwater",
-            "no": "Driftstid kompressor varmtvann",
-            "da": "Driftstid kompressor varmtvand"
+            "en": "Compressor runtime",
+            "sv": "Drifttid kompressor",
+            "de": "Verdichterlaufzeit",
+            "nl": "Bedrijfstijd compressor",
+            "no": "Driftstid kompressor",
+            "da": "Driftstid kompressor"
           }
         },
         "measure_minute_NIBE.h92_periodtime_hotwater": {
@@ -2533,7 +3357,7 @@
         "fan_speed.h109_returnair_normal": {
           "decimals": 2,
           "title": {
-            "en": "Returnair fan speed",
+            "en": "Extract air fan speed",
             "sv": "Frånluft fläkthastighet normal",
             "de": "Abluftventilator Drehzahl",
             "nl": "Ventilatorsnelheid afvoerlucht",
@@ -2699,7 +3523,7 @@
         },
         "measure_temperature.i10_source_in": {
           "title": {
-            "en": "Groundsource medium - in (BT10)",
+            "en": "Brine in (BT10)",
             "sv": "Köldbärare in (BT10)",
             "de": "Kollektor ein (BT10)",
             "nl": "Brine in (BT10)",
@@ -2709,7 +3533,7 @@
         },
         "measure_temperature.i11_source_out": {
           "title": {
-            "en": "Groundsource medium - out (BT11)",
+            "en": "Brine out (BT11)",
             "sv": "Köldbärare ut (BT11)",
             "de": "Kollektor aus (BT11)",
             "nl": "Brine uit (BT11)",
@@ -3080,7 +3904,7 @@
             "da": "Nulstil alarm"
           }
         },
-        "onoff.h196_alarm_lower_room_temp": {
+        "boolean_NIBE.h196_alarm_lower_room_temp": {
           "uiComponent": null,
           "title": {
             "en": "On alarm: lower room temperature",
@@ -3091,7 +3915,7 @@
             "da": "Ved alarm: sænk rumtemperatur"
           }
         },
-        "onoff.h197_alarm_lower_hw_temp": {
+        "boolean_NIBE.h197_alarm_lower_hw_temp": {
           "uiComponent": null,
           "title": {
             "en": "On alarm: lower hot water temperature",
@@ -3112,17 +3936,20 @@
             "da": "Status ferietilstand"
           }
         },
-        "onoff.i1828_pool_circulation": {
+        "boolean_NIBE.i1828_pool_circulation": {
+          "setable": false,
+          "getable": true,
+          "uiComponent": "sensor",
           "title": {
-            "en": "Pool circulation on",
-            "sv": "Poolcirkulation på",
-            "de": "Poolzirkulation ein",
-            "nl": "Zwembadcirculatie aan",
-            "no": "Bassengsirkulasjon på",
-            "da": "Poolcirkulation til"
+            "en": "Pool circulation",
+            "sv": "Poolcirkulation",
+            "de": "Poolzirkulation",
+            "nl": "Zwembadcirculatie",
+            "no": "Bassengsirkulasjon",
+            "da": "Poolcirkulation"
           }
         },
-        "onoff.h65_periodic_hotwater": {
+        "boolean_NIBE.h65_periodic_hotwater": {
           "uiComponent": null,
           "title": {
             "en": "Periodic hot water",
@@ -3133,9 +3960,9 @@
             "da": "Periodisk varmtvand"
           }
         },
-        "onoff.h227_nightchill": {
+        "boolean_NIBE.h227_nightchill": {
           "title": {
-            "en": "Nightchill",
+            "en": "Night cooling",
             "sv": "Nattsvalka",
             "de": "Nachtkühlung",
             "nl": "Nachtkoeling",
@@ -3153,7 +3980,7 @@
             "da": "Poolopvarmning"
           }
         },
-        "onoff.h180_enable_addition": {
+        "boolean_NIBE.h180_enable_addition": {
           "title": {
             "en": "Allow immersion heater",
             "sv": "Tillåt elpatron",
@@ -3181,6 +4008,26 @@
             "nl": "Koeling toestaan",
             "no": "Tillat kjøling",
             "da": "Tillad køling"
+          }
+        },
+        "alarm_generic": {
+          "title": {
+            "en": "Alarm active",
+            "sv": "Larm aktivt",
+            "de": "Alarm aktiv",
+            "nl": "Alarm actief",
+            "no": "Alarm aktivt",
+            "da": "Alarm aktivt"
+          }
+        },
+        "alarm_text_NIBE": {
+          "title": {
+            "en": "Alarm",
+            "sv": "Larm",
+            "de": "Alarm",
+            "nl": "Alarm",
+            "no": "Alarm",
+            "da": "Alarm"
           }
         }
       },
@@ -3308,6 +4155,23 @@
               "units": {
                 "en": "s"
               }
+            },
+            {
+              "id": "debugLogging",
+              "type": "checkbox",
+              "label": {
+                "en": "Debug logging",
+                "sv": "Felsökningsloggning",
+                "de": "Debug-Protokollierung",
+                "nl": "Debug-logboek",
+                "no": "Feilsøkingslogg",
+                "da": "Fejlsøgningslog"
+              },
+              "hint": {
+                "en": "Log polling, connection and energy-allocation detail. Normally the app only logs pairing, Flow actions and manual changes. Turn this on when troubleshooting or before sending logs for support.",
+                "sv": "Logga avläsning, anslutning och energifördelning i detalj. Normalt loggas bara parkoppling, flödeskort och manuella ändringar. Slå på vid felsökning eller innan du skickar loggar för support."
+              },
+              "value": false
             }
           ]
         },
@@ -3349,12 +4213,85 @@
               "value": ""
             }
           ]
+        },
+        {
+          "type": "group",
+          "label": {
+            "en": "Alarms",
+            "sv": "Larm",
+            "de": "Alarme",
+            "nl": "Alarmen",
+            "no": "Alarmer",
+            "da": "Alarmer"
+          },
+          "children": [
+            {
+              "id": "alarm_log",
+              "type": "label",
+              "label": {
+                "en": "Latest alarm",
+                "sv": "Senaste larmet",
+                "de": "Letzter Alarm",
+                "nl": "Laatste alarm",
+                "no": "Siste alarm",
+                "da": "Seneste alarm"
+              },
+              "hint": {
+                "en": "The most recent alarm reported by the heat pump. For the full history — with NIBE's cause and suggested action for each alarm — open this app's own settings: Homey app → More → Apps → Nibe Live → Configure.",
+                "sv": "Det senaste larmet som värmepumpen rapporterat. För hela historiken — med NIBE:s orsak och åtgärd för varje larm — öppna appens egna inställningar: Homey-appen → Mer → Appar → Nibe Live → Konfigurera.",
+                "de": "Der jüngste von der Wärmepumpe gemeldete Alarm. Die vollständige Historie — mit NIBEs Ursache und empfohlener Maßnahme je Alarm — finden Sie in den Einstellungen dieser App: Homey-App → Mehr → Apps → Nibe Live → Konfigurieren.",
+                "nl": "Het meest recente alarm van de warmtepomp. De volledige historie — met NIBE's oorzaak en aanbevolen actie per alarm — vind je in de instellingen van deze app: Homey-app → Meer → Apps → Nibe Live → Configureren.",
+                "no": "Den nyeste alarmen varmepumpen har rapportert. Hele historikken — med NIBEs årsak og tiltak for hver alarm — finner du i appens egne innstillinger: Homey-appen → Mer → Apper → Nibe Live → Konfigurer.",
+                "da": "Den seneste alarm som varmepumpen har rapporteret. Hele historikken — med NIBEs årsag og anbefalede handling for hver alarm — finder du i appens egne indstillinger: Homey-appen → Mere → Apps → Nibe Live → Konfigurer."
+              },
+              "value": ""
+            }
+          ]
         }
       ],
       "id": "nibe_s"
     }
   ],
   "capabilities": {
+    "alarm_text_NIBE": {
+      "type": "string",
+      "title": {
+        "en": "Alarm",
+        "sv": "Larm",
+        "de": "Alarm",
+        "nl": "Alarm",
+        "no": "Alarm",
+        "da": "Alarm"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "units": {
+        "en": "",
+        "sv": "",
+        "de": "",
+        "nl": "",
+        "no": "",
+        "da": ""
+      },
+      "insights": false,
+      "icon": "/assets/images/select.svg"
+    },
+    "boolean_NIBE": {
+      "type": "boolean",
+      "title": {
+        "en": "Switch",
+        "sv": "Brytare",
+        "de": "Schalter",
+        "nl": "Schakelaar",
+        "no": "Bryter",
+        "da": "Kontakt"
+      },
+      "uiComponent": "toggle",
+      "getable": true,
+      "setable": true,
+      "insights": true
+    },
     "curve_displacement_NIBE": {
       "title": {
         "en": "Heatcurve displacement",

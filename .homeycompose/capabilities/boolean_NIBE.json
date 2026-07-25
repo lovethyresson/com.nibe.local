@@ -1,0 +1,15 @@
+{
+  "type": "boolean",
+  "title": {
+    "en": "Switch",
+    "sv": "Brytare",
+    "de": "Schalter",
+    "nl": "Schakelaar",
+    "no": "Bryter",
+    "da": "Kontakt"
+  },
+  "uiComponent": "toggle",
+  "getable": true,
+  "setable": true,
+  "insights": true
+}

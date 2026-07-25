@@ -5,7 +5,7 @@ local network — no MyUplink cloud account required. A single physical pump is 
 devices**, one per function, each with its own capabilities, its own energy meters, and its own **efficiency
 (COP)**.
 
-> Forked from [sparud/net.sparud.nibe_s](https://github.com/sparud/net.sparud.nibe_s) (by Jan Sparud) and
+> Forked from [Jan Sparud's Nibe S-series app](https://github.com/sparud/net.sparud.nibe_s) and
 > reworked into a local, multi-device app with per-function energy tracking, delivered-energy and COP
 > readings, a Solar/PV device, and broad S-series coverage.
 
@@ -16,7 +16,7 @@ automate separately. This app pairs each as its own Homey device:
 
 | Device | What it carries |
 | --- | --- |
-| **Main** | The pump itself: outdoor temperature, operating priority and mode, diagnostics, runtime statistics, phase currents, ground-source (brine) temperatures, alarm code, compressor status — plus **total energy produced/consumed**, **Total COP**, **standby energy** (idle draw), and the pump's firmware/type in settings. |
+| **Main** | The pump itself: outdoor temperature, operating priority and mode, diagnostics, runtime statistics, phase currents, ground-source (brine) temperatures, **alarms with readable descriptions**, compressor status — plus **total energy produced/consumed**, **Total COP**, **idle energy** (standby draw), and the pump's firmware/type in settings. |
 | **Heating** | Heat curve, supply/return temperatures, degree minutes, ventilation (if fitted) — plus **energy used**, **energy delivered**, and **Heating COP**. |
 | **Hot Water** | Hot-water temperatures, demand mode, one-time boosts, periodic hot water, circulation (if fitted) — plus **energy used**, **energy delivered**, and **Hot Water COP**. |
 | **Pool** | Pool temperature, start/stop setpoints, pump status — plus **energy used**, **energy delivered**, and **Pool COP**. |
@@ -30,16 +30,21 @@ left unchecked.
 ## How each device works
 
 ### Main — the pump itself
-- **Operating priority** — what the pump is doing *right now* (heating / hot water / pool / cooling / idle).
+- **Operating priority** — what the pump is doing *right now* (heating / hot water / pool / cooling / idle),
+  plus a Flow trigger that fires on every switch and explains **why** in plain language. See
+  [Flow cards](#flow-cards).
 - **Operating mode** — Auto / Manual / Add-heat only.
 - **Total energy** produced and consumed, and **Total COP** (see below).
-- **Standby energy** and **Standby power** — the pump's idle/parasitic draw (charged here instead of to a
+- **Idle energy** and **Idle power** — the pump's idle/parasitic draw (charged here instead of to a
   function); this is Main's only entry in Homey's Energy tab.
 - **Power** — current total draw, plus compressor and internal-additive power.
 - **Diagnostics** — refrigerant temps (discharge, liquid line, suction gas), inverter temp, compressor
   frequency; **statistics** — compressor starts and runtime, additive runtime; **phase currents**;
   **ground-source** brine in/out.
-- **Alarm code** + reset, **compressor status**.
+- **Alarms** — an alarm indicator plus the fault in plain language ("438: Lost connection to wireless
+  device"), a **reset** button, a Flow trigger when a new alarm appears, the latest alarm in the device's
+  settings, and the full history in the app's own **Alarms** settings page. See [Alarms](#alarms).
+- **Compressor status**.
 - **Allow immersion heater** — the electric additive heater is shared between heating and hot water, so its
   permit and its power/step readouts live here, not on a function device.
 - Fuse rating; pump **firmware version** and **type code** in settings.
@@ -82,7 +87,7 @@ across devices reconcile:
   *operating priority* (heating / hot water / pool / cooling / idle). Every poll the app integrates that power
   into kWh and charges it to whichever function is active — so each function device gets its own consumption
   meter and appears individually in Homey's **Energy** tab. **Idle/standby draw** (circulation, electronics,
-  year-round ventilation) is charged to **Main as "Standby energy"**, not to a function — so Heating's used
+  year-round ventilation) is charged to **Main as "Idle energy"**, not to a function — so Heating's used
   energy (and COP) isn't polluted by the pump just sitting there. Functions (active) + Main (standby) still
   sum to the pump's true total in the Energy tab.
 - **Energy delivered** (heat out). Read directly from the pump's per-function delivered-energy counters — so
@@ -143,6 +148,52 @@ pump's consumption.
 - **Offer-all pairing.** Registers your model or accessories don't have are still offered, just left
   unchecked (detection saw no data). Adding one that isn't present does no harm — it simply reads nothing.
 
+## Alarms
+
+The pump reports faults as a bare **number**: register 1975 carries a code like `438` and nothing else.
+Neither Nibe's Modbus register documentation nor the open-source register libraries map those numbers to
+text, so the app ships **NIBE's own alarm-code database** — all **467 S-series codes**, generated by
+`dev/fetch-alarms.mjs` and including NIBE's cause/suggested-action text.
+
+> **The S- and F-series number their alarms differently, and it matters.** 301 codes appear in both lists
+> and **300 of them mean different things** — `438` is "lost connection to wireless device" on S but
+> "temporarily overheated inverter" on F; `163` is "incorrect phase sequence" on S but "high condenser in
+> temperature" on F. Each driver is pinned to its own table.
+
+The alarm register is deliberately surfaced as **text, not a number**: a numeric capability would make Homey
+auto-generate "Alarm code becomes greater/less than" Flow triggers, which are meaningless for an unordered
+fault code.
+
+On the **Main** device:
+
+- **Alarm active** — Homey's standard `alarm_generic` capability, so the pump gets native alarm treatment in
+  the UI and works with Homey's built-in alarm Flow cards.
+- **Alarm** — the fault in plain language: `438: Lost connection to wireless device` /
+  `438: Tappad anslutning till trådlös enhet`, or `No alarm`.
+- **An alarm occurred** — a Flow trigger carrying the description *and* the numeric code as tags, so a push
+  notification can say what actually happened rather than just a number.
+- **Reset alarm** — acknowledges an active alarm on the pump.
+- **Latest alarm** — an at-a-glance line in the device's settings, pointing to the page below.
+- **The app's "Alarms" settings page** — the full history, where each entry expands to NIBE's cause and
+  suggested action, with a link to the source. (Homey device settings can only render a flat label, so the
+  interactive view lives in the app's own settings.)
+
+A code that isn't in the table still reads as `Alarm <n>` rather than blank, so a newer or model-specific
+fault is never silently swallowed.
+
+**Languages:** the alarm capabilities, Flow cards and the Alarms settings page are localized into all six
+app languages. The **fault descriptions themselves are Swedish and English only** — NIBE publishes this
+database on nibe.eu in Swedish alone, with no official edition in the other languages, so Swedish is NIBE's
+own wording, English is our translation, and German/Dutch/Norwegian/Danish fall back to English rather than
+to an unverifiable machine translation. **The fallback is always English, never Swedish**: NIBE's
+cause/action text exists only in Swedish, so a Swedish user sees it inline while everyone else gets the
+English summary plus an explicit, localized "show NIBE's original guidance (Swedish)" disclosure — the UI
+never silently hands you a language you didn't ask for.
+
+**Where the pump keeps more:** Modbus exposes only the *current* alarm number, so the app's log starts when
+you install it. The pump itself keeps the 10 most recent alarms in **menu 3.4**, and **menu 7.9.2** can
+export the extended alarm log to USB.
+
 ## Works across the S-series
 
 The app drives everything from a single register table that is the **union** of the S-series models
@@ -172,8 +223,33 @@ Re-run pairing any time to add more function devices to a pump you've already se
 ## Flow cards
 
 Generic, register-driven cards rather than one per sensor: set any writable value, enable/disable a feature,
-compare a reading, and triggers for when a value changes or a toggle flips. Enum settings (hot-water mode,
-operating mode, …) get their own dedicated cards.
+compare a reading, and triggers for when a value changes or a toggle flips. On top of those, dedicated cards
+where a named card is clearer: every numeric setting has a **"set …"** action, every switch has its own
+**on/off** action, enum settings (hot-water mode, operating mode, …) get their own cards, and there is an
+**"An alarm occurred"** trigger with the alarm description as a tag.
+
+**"Operating priority changed"** fires on the Main device whenever the pump switches what it is producing
+(hot water → heating → off → …), with the new and previous priority as tags plus a **reason** tag that says
+*why*, in plain language:
+
+> The house fell behind on heat: degree minutes are down to -60, at or past the -60 threshold that starts
+> the compressor. The supply line is 34.2 °C against a calculated 35.1 °C.
+
+> Hot water ran down to 43.6 °C, reaching the 44.0 °C start point for Medium demand.
+
+> The house has caught up on heat — degree minutes are back to 0 (the compressor restarts at -60). Heating
+> stays off anyway while it is 17.3 °C outside (the limit is 17.0 °C).
+
+Nibe publishes no "why did it do that" register — the control logic is internal — but the decision comes
+down to a handful of readable comparisons (degree minutes against the compressor start threshold, the tank
+against its demand-mode start point, the outdoor cut-off), so the app reads those at the moment of the
+change and reports the one that actually fired, with the numbers that justify it. It mentions the electric
+addition or an SG Ready price signal only when they are genuinely affecting the outcome. The same sentence
+is appended to the `Priority change:` entry in the app log when **Debug logging** is on.
+
+Each device's **on/off is a real control**: on a function device it is that function's *Allow* register
+(Allow heating / hot water / pool / cooling), so turning the device off disables that function on the pump.
+Main is always on — the pump has no whole-unit on/off; its equivalent is the **operating mode**.
 
 ## Notes & limitations
 
@@ -182,6 +258,11 @@ operating mode, …) get their own dedicated cards.
 - The pump accepts only **one Modbus client**, so run only one integration against it at a time.
 - COP and the rolling window build up over time; expect the first useful readings after the pump has run
   through some heating/hot-water cycles.
+- The **alarm log** is the app's own record, covering the time it has been running — Modbus exposes only the
+  *current* alarm number, not the pump's internal alarm history, so it can't be backfilled.
+- Logging is deliberately quiet: by default only pairing, Flow actions, manual changes, alarms and errors are
+  logged. Turn on **Debug logging** (device settings → Advanced) for polling, connection and energy detail
+  before collecting logs for support.
 - Changing settings affects a live heating system. The changes are the same ones available in the MyUplink
   app, but be careful when automating them. Provided as-is, with no warranty.
 
@@ -193,5 +274,7 @@ operating mode, …) get their own dedicated cards.
 - Register definitions cross-checked against [yozik04/nibe](https://github.com/yozik04/nibe)
   (GPL-3.0), a per-model Modbus register library for Nibe heat pumps — used as a reference
   to verify addresses, scales and ranges across the S-series; no code is bundled from it.
+- Alarm-code descriptions transcribed from NIBE's own published alarm list ("Alarm overzicht", nibe.eu,
+  November 2018), which is the only source that maps the alarm register's numbers to text.
 
 Not affiliated with or endorsed by NIBE Energy Systems.

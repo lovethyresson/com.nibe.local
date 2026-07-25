@@ -12,7 +12,23 @@ function groupChecked(deviceIndex, groupId) {
     return box ? box.checked : true;
 }
 
-function renderGroup(deviceIndex, group) {
+// Keep a device's feature-group checkboxes in step with its own checkbox: unchecked device →
+// every group off and disabled; checked device → groups restored to their recommended state
+// (core fixed-on). Feature groups are never checked while the device itself isn't.
+function syncGroups(deviceIndex, deviceChecked) {
+    document.querySelectorAll('input[data-device="' + deviceIndex + '"][data-group]').forEach(function (box) {
+        var fixed = box.dataset.fixed === '1';
+        if (deviceChecked) {
+            box.checked = fixed || box.dataset.recommended === '1';
+            box.disabled = fixed;
+        } else {
+            box.checked = false;
+            box.disabled = true;
+        }
+    });
+}
+
+function renderGroup(deviceIndex, group, deviceChecked) {
     var wrap = document.createElement('div');
     wrap.className = 'feature-subgroup';
 
@@ -20,11 +36,14 @@ function renderGroup(deviceIndex, group) {
     head.className = 'subgroup-head';
     var box = document.createElement('input');
     box.type = 'checkbox';
-    box.checked = group.selected || group.fixed;
     box.dataset.device = deviceIndex;
     box.dataset.group = group.id;
-    if (group.fixed)
-        box.disabled = true;
+    box.dataset.recommended = group.selected ? '1' : '';
+    box.dataset.fixed = group.fixed ? '1' : '';
+    // A feature group is only ever checked when its device is checked (core is then fixed-on).
+    // Toggling the device box syncs these (see syncGroups).
+    box.checked = deviceChecked && (group.selected || group.fixed);
+    box.disabled = group.fixed || !deviceChecked;
     head.appendChild(box);
     head.appendChild(document.createTextNode(' ' + group.name));
     wrap.appendChild(head);
@@ -57,6 +76,8 @@ function render() {
         toggle.type = 'checkbox';
         toggle.checked = candidate.detected; // pre-check the devices we saw data for
         toggle.dataset.index = index;
+        // The device's groups follow its checkbox: never checked while the device isn't.
+        toggle.onchange = function () { syncGroups(index, toggle.checked); };
         label.appendChild(toggle);
         label.appendChild(document.createTextNode(' ' + candidate.name));
         row.appendChild(label);
@@ -89,7 +110,7 @@ function render() {
             details.className = 'registers';
             details.style.display = 'none';
             groups.forEach(function (g) {
-                details.appendChild(renderGroup(index, g));
+                details.appendChild(renderGroup(index, g, candidate.detected));
             });
             item.appendChild(details);
             expand.onclick = function (e) {
