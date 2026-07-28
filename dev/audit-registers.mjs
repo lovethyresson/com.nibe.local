@@ -20,6 +20,15 @@ try {
     process.exit(1);
 }
 
+// The profile is optional: it only feeds the engine-critical check below, and loading it pulls
+// in the compose JSON, so a partial build shouldn't take the whole audit down.
+let profile;
+try {
+    ({sProfile: profile} = require(join(root, '.homeybuild/drivers/nibe_s/profile.js')));
+} catch {
+    console.error('(profile not loadable — skipping the engine-critical register check)');
+}
+
 const csvDir = join(here, 'csv');
 let files;
 try {
@@ -33,7 +42,23 @@ if (!files.length) {
     process.exit(1);
 }
 
-// address -> model -> {in, hold} title
+// The CSVs ship two different encodings of the "Size of variable" column. The older exports
+// (s1155_s1255, s1156_s1256, s735) spell the type out — u8/s8/u16/s16/u32/s32. The newer ones
+// (s320_s325, s330_s332, s2125) use a numeric code instead. The mapping below was derived by
+// comparing registers that appear in both styles: 1028 Priority is u8 there / 4 here, register
+// 1 (outdoor temp) is s16 / 2, and 1575 (hot water energy) is u32 / 6.
+const SIZE_CODES = {1: 's8', 2: 's16', 3: 's32', 4: 'u8', 5: 'u16', 6: 'u32'};
+
+// Register width in bits, or undefined when the column is blank/unrecognised.
+function bitsOf(raw) {
+    const cell = (raw ?? '').trim();
+    if (!cell || cell === '-') return undefined;
+    const type = SIZE_CODES[cell] ?? cell;
+    const m = /^[us](8|16|32)$/.exec(type);
+    return m ? Number(m[1]) : undefined;
+}
+
+// address -> model -> {in, hold} title, plus {inBits, holdBits}
 const map = {};
 const models = [];
 for (const f of files) {
@@ -44,8 +69,14 @@ for (const f of files) {
         if (c.length < 3 || !c[2]) continue;
         const [title, type, addr] = c;
         (map[addr] ??= {})[model] ??= {};
-        if (type === 'MODBUS_INPUT_REGISTER') map[addr][model].in = title.trim();
-        if (type === 'MODBUS_HOLDING_REGISTER') map[addr][model].hold = title.trim();
+        if (type === 'MODBUS_INPUT_REGISTER') {
+            map[addr][model].in = title.trim();
+            map[addr][model].inBits = bitsOf(c[5]);
+        }
+        if (type === 'MODBUS_HOLDING_REGISTER') {
+            map[addr][model].hold = title.trim();
+            map[addr][model].holdBits = bitsOf(c[5]);
+        }
     }
 }
 models.sort();
@@ -96,3 +127,71 @@ console.log(`\n=== Registers in the CSVs but not mapped in registers.ts `
 for (const r of shown)
     console.log(`  ${String(r.addr).padEnd(6)} ${r.kind.padEnd(4)} ${r.title}  [${r.count}/${models.length}]`);
 console.log(`  ${shown.length} shown / ${rows.length} total unmapped.`);
+
+// 3) Per-model coverage (mapped in registers.ts, absent from a model's CSV).
+//
+// This is the check that was missing when the app shipped with register 2166 "Instantaneous
+// used power" as its ONLY power source: 2166 does not exist on S320/S325, S330/S332 or S2125,
+// so on those models the energy allocator had nothing to integrate and every per-function
+// meter and COP stayed empty. The old audit only looked the other way (CSV -> app), so
+// nothing flagged it. A register absent on some models is normal and expected for a superset
+// table — what matters is knowing WHICH, especially for anything the engine depends on.
+const kindOf = (r) => (r.direction === 0 ? 'in' : 'hold');
+console.log(`\n=== Per-model coverage: app registers absent from each model ===`);
+const absentByModel = {};
+for (const m of models)
+    absentByModel[m] = registers.filter((r) => !map[String(r.address)]?.[m]?.[kindOf(r)]);
+for (const m of models)
+    console.log(`  ${m.padEnd(16)} ${String(absentByModel[m].length).padStart(3)} / ${registers.length} absent`);
+for (const m of models) {
+    if (!absentByModel[m].length) continue;
+    console.log(`\n  --- ${m} ---`);
+    for (const r of absentByModel[m])
+        console.log(`    ${String(r.address).padEnd(6)} ${kindOf(r).padEnd(4)} ${r.name}`);
+}
+
+// Registers the engine cannot work without get called out separately: losing one of these on
+// a model is a silent feature outage, not a missing sensor.
+const role = profile?.role ?? {};
+const critical = [
+    ...(role.powerSources ?? []).flat(),
+    role.priorityRegisterName,
+    role.totalProductionRegister,
+    role.totalConsumptionRegister,
+    ...Object.values(role.producedRegisterForRole ?? {}),
+    ...Object.values(role.primaryOnoff ?? {})
+].filter((name) => name && name !== 'onoff');
+console.log(`\n=== Engine-critical registers missing per model ===`);
+let criticalHits = 0;
+for (const name of [...new Set(critical)]) {
+    const reg = registers.find((r) => r.name === name);
+    if (!reg) continue;
+    const missing = models.filter((m) => !map[String(reg.address)]?.[m]?.[kindOf(reg)]);
+    if (!missing.length) continue;
+    criticalHits++;
+    console.log(`  ${String(reg.address).padEnd(6)} ${name}\n      absent on: ${missing.join(', ')}`);
+}
+console.log(criticalHits
+    ? `  ${criticalHits} engine-critical register(s) unavailable on some models — each needs a`
+      + ` fallback, or the\n  feature it drives must be detected as unsupported (see extraCapabilities).`
+    : '  none — every engine-critical register exists on all models');
+
+// 4) Declared width cross-check. Modbus reads whole 16-bit words, so u8/s8/u16/s16 all sit in
+// the app's default 16-bit register; only 32-bit values span two words and must carry
+// `size: 32`. Getting this wrong silently truncates a counter to its low word.
+console.log(`\n=== Declared size vs CSV width ===`);
+let widthIssues = 0;
+for (const r of registers) {
+    const declared = r.size === 32 ? 32 : 16;
+    for (const m of models) {
+        const bits = map[String(r.address)]?.[m]?.[kindOf(r) === 'in' ? 'inBits' : 'holdBits'];
+        if (bits === undefined) continue;
+        const expected = bits === 32 ? 32 : 16;
+        if (expected === declared) continue;
+        widthIssues++;
+        console.log(`  MISMATCH ${String(r.address).padEnd(6)} ${r.name}: `
+            + `declared ${declared}-bit, ${m} says ${bits}-bit`);
+    }
+}
+console.log(widthIssues ? `  ${widthIssues} mismatch(es) — a 32-bit value read as 16-bit truncates.`
+    : '  none — every mapped register matches the CSV width on every model');

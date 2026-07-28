@@ -94,8 +94,31 @@ export class PumpConnection {
     // connection is already up gets current values without waiting for a poll.
     private lastRaw = new Map<string, number>();
 
+    // Registers that are not answering, keyed by capability name. readRegisterRaw() swallows
+    // read errors by design (a superset register table means "absent on this model" is normal,
+    // not exceptional) — but swallowing it *silently* is how a model shipped with its only
+    // power source register missing and nothing in the log said so.
+    //
+    // The map's lifetime is the connection object, i.e. one app start. That is deliberate: a
+    // register missing on this model fails on the very first poll, long before anyone thinks
+    // to switch on debug logging, so "first failure" has to mean "first since the app started"
+    // — otherwise the one line that explains everything has already scrolled past unrecorded.
+    private readFailures = new Map<string, {address: number; since: number; count: number; reported: boolean}>();
+    private recoveredReads: string[] = [];
+
+    // Whether the last poll had a usable power reading, so the transition is logged once
+    // instead of every poll. Undefined until the first allocateEnergy().
+    private powerAvailable: boolean | undefined = undefined;
+
     // Model-specific registers the energy allocator needs, resolved from the profile.
+    // Alternative source groups in preference order; the registers within a group are summed,
+    // and the first group that reads is the one used (see RoleConfig.powerSources).
+    private readonly powerGroups: Register[][];
+    // Every power register across all groups — what the poll loop must fetch, since which
+    // group is usable isn't known until the values come back.
     private readonly powerRegisters: Register[];
+    // Which group answered last, so a change of source is logged rather than silently swapped.
+    private activePowerGroup: number | undefined = undefined;
     private readonly priorityRegister?: Register;
     // The pump's own cumulative consumption counter (S: register 3823), when the model has
     // one. Only present on models that expose it — F derives consumption from power registers
@@ -122,9 +145,12 @@ export class PumpConnection {
     private static readonly SHADOW_B_GAIN = 0.2;            // k: fraction of error corrected per poll
 
     private constructor(private host: string, private profile: ModelProfile, private transport: Transport) {
-        this.powerRegisters = profile.role.powerSources
-            .map((name) => profile.registerByName[name])
-            .filter((register): register is Register => !!register);
+        this.powerGroups = profile.role.powerSources
+            .map((group) => group
+                .map((name) => profile.registerByName[name])
+                .filter((register): register is Register => !!register))
+            .filter((group) => group.length > 0);
+        this.powerRegisters = this.powerGroups.flat();
         this.priorityRegister = profile.role.priorityRegisterName
             ? profile.registerByName[profile.role.priorityRegisterName]
             : undefined;
@@ -165,7 +191,77 @@ export class PumpConnection {
     private debugOn = false;
 
     refreshDebug() {
-        this.debugOn = [...this.subscribers].some((subscriber) => subscriber.debugEnabled?.() ?? false);
+        const on = [...this.subscribers].some((subscriber) => subscriber.debugEnabled?.() ?? false);
+        const turnedOn = on && !this.debugOn;
+        this.debugOn = on;
+        // Someone just switched debug logging on — almost always *after* the thing they are
+        // chasing already happened. Restate the standing read failures so the log they are
+        // about to send actually contains them.
+        if (turnedOn)
+            this.logStandingFailures();
+    }
+
+    private logStandingFailures() {
+        if (!this.readFailures.size) {
+            this.log('Debug logging on — every polled register is reading.');
+            return;
+        }
+        const list = [...this.readFailures.entries()].map(([name, failure]) =>
+            `${failure.address} ${name} (${failure.count}× since ${new Date(failure.since).toISOString()})`);
+        this.log(`Debug logging on — ${list.length} register(s) still not reading: ${list.join(', ')}`);
+    }
+
+    // Record the outcome of one register read. Reporting is batched into reportReadFailures()
+    // so a model that legitimately lacks 20 of the superset's registers produces one line
+    // rather than twenty.
+    private noteRead(register: Register, ok: boolean) {
+        // The `__reason.*` inputs are read on demand at a priority change, in a burst, and are
+        // best-effort by contract — explain() is written to degrade when one is missing, and
+        // several are for functions this pump may not have (pool, cooling). A miss there is
+        // neither news nor evidence that the register is absent, so don't report it as such.
+        if (register.name?.startsWith('__'))
+            return;
+        // updatePumpInfo() reads bare address-only registers, which carry no capability name —
+        // key those by address so they can't collide.
+        const key = register.name ?? `@${register.address}`;
+        const failure = this.readFailures.get(key);
+        if (ok) {
+            if (!failure)
+                return;
+            this.readFailures.delete(key);
+            if (failure.reported)
+                this.recoveredReads.push(`${failure.address} ${key}`);
+            return;
+        }
+        if (failure)
+            failure.count += 1;
+        else
+            this.readFailures.set(key,
+                {address: register.address, since: Date.now(), count: 1, reported: false});
+    }
+
+    // One line per poll covering everything that started failing since the last one. Logged
+    // un-gated: this is the difference between a diagnosable report and a forum thread, and
+    // it must land whether or not debug logging happens to be on.
+    private reportReadFailures(pollHealthy: boolean) {
+        // Nothing read at all: the socket is going down, not 94 registers vanishing at once.
+        // Stay quiet — the entries clear themselves as each register succeeds again, and
+        // anything genuinely absent is still unreported and gets its line on the next good poll.
+        if (!pollHealthy)
+            return;
+        const fresh = [...this.readFailures.entries()].filter(([, failure]) => !failure.reported);
+        if (fresh.length) {
+            for (const [, failure] of fresh)
+                failure.reported = true;
+            this.log(`${fresh.length} register(s) did not read (first failure since app start): `
+                + fresh.map(([name, failure]) => `${failure.address} ${name}`).join(', ')
+                + ' — absent on this pump model, or unsupported by its firmware.');
+        }
+        if (this.recoveredReads.length) {
+            this.log(`${this.recoveredReads.length} register(s) reading again: `
+                + this.recoveredReads.join(', '));
+            this.recoveredReads = [];
+        }
     }
 
     private debug(...args: any[]) {
@@ -362,8 +458,22 @@ export class PumpConnection {
         return await ((register.direction === Dir.In)
             ? this.client.readInputRegisters(address, count)
             : this.client.readHoldingRegisters(address, count))
-            .then((resp: any) => combineRaw(resp.response.body.values as number[], register.size))
-            .catch(() => undefined);
+            .then((resp: any) => {
+                const raw = combineRaw(resp.response.body.values as number[], register.size);
+                // A pump can answer without returning a usable value — a short or empty value
+                // array yields undefined (16-bit) or NaN (32-bit, missing high word). That is
+                // a failed read, not a reading of zero, and must not be scored as a success.
+                if (raw === undefined || Number.isNaN(raw)) {
+                    this.noteRead(register, false);
+                    return undefined;
+                }
+                this.noteRead(register, true);
+                return raw;
+            })
+            .catch(() => {
+                this.noteRead(register, false);
+                return undefined;
+            });
     }
 
     // Throws on failure (rather than swallowing) so the write error reaches the user who
@@ -393,6 +503,7 @@ export class PumpConnection {
                 }
             });
 
+            this.reportReadFailures(rawByName.size > 0);
             this.allocateEnergy(rawByName);
 
             // Profile reset rules on priority transitions (e.g. clear "More hot water" once the
@@ -487,18 +598,59 @@ export class PumpConnection {
     // converted to watts via its scale (S: one whole-unit register; inverter F: compressor +
     // electric addition). Returns null when the model has no power source or none read.
     private totalWatts(rawByName: Map<string, number>): number | null {
-        if (this.powerRegisters.length === 0)
-            return null;
-        let watts = 0;
-        let any = false;
-        for (const register of this.powerRegisters) {
-            const raw = rawByName.get(register.name);
-            if (raw === undefined)
+        // Resolved per poll rather than latched at connect or frozen at pairing: detection is
+        // skippable, the connection is shared by every device of this pump, and a stored
+        // choice would go stale on a firmware change. The preference order makes this stable
+        // in practice — a pump either has the preferred register or it never does.
+        for (let group = 0; group < this.powerGroups.length; ++group) {
+            let watts = 0;
+            let any = false;
+            for (const register of this.powerGroups[group]) {
+                const raw = rawByName.get(register.name);
+                if (raw === undefined)
+                    continue;
+                any = true;
+                watts += signedValue(raw, register.size) / (register.scale || 1);
+            }
+            if (!any)
                 continue;
-            any = true;
-            watts += signedValue(raw, register.size) / (register.scale || 1);
+            this.notePowerGroup(group);
+            return watts;
         }
-        return any ? watts : null;
+        return null;
+    }
+
+    private notePowerGroup(group: number) {
+        if (group === this.activePowerGroup)
+            return;
+        const previous = this.activePowerGroup;
+        this.activePowerGroup = group;
+        const names = this.powerGroups[group].map((r) => `${r.address} ${r.name}`).join(' + ');
+        this.log(previous === undefined
+            ? `Energy allocator power source: ${names}.`
+            : `Energy allocator power source changed to ${names}.`);
+    }
+
+    // A null power reading disables the whole energy path — no allocation, no per-function
+    // meter, no per-function COP — and used to do so in complete silence. It is not an
+    // exotic case: register 2166 is the only power source declared for S, and it does not
+    // exist on S320/S325, S330/S332 or S2125, so every VVM/split install lands here. Logged
+    // un-gated on transition, because the user who needs this line has not enabled debug
+    // logging yet.
+    private notePowerAvailability(available: boolean) {
+        // A model that declares no power source at all (fixed-speed F) is meant to skip the
+        // allocator — that is configuration, not a fault, so say nothing.
+        if (this.powerRegisters.length === 0 || available === this.powerAvailable)
+            return;
+        this.powerAvailable = available;
+        // The recovery case is already covered by notePowerGroup(), which names the source
+        // that answered — so only the failure needs saying here.
+        if (available)
+            return;
+        const sources = this.powerRegisters.map((r) => `${r.address} ${r.name}`).join(', ');
+        this.log(`No power reading from any candidate source (${sources}) — the pump's electrical draw cannot be `
+                + `measured, so per-function energy and every COP will stay empty. This register `
+                + `is absent on some S models (S320/S325, S330/S332, S2125).`);
     }
 
     // Integrate total power into a per-function kWh bucket, charged to whichever function the
@@ -509,6 +661,7 @@ export class PumpConnection {
         const deltaTimeHours = (now - this.lastPollTime) / (1000 * 60 * 60);
 
         const watts = this.totalWatts(rawByName);
+        this.notePowerAvailability(watts !== null);
         if (watts !== null) {
             const rawPriority = this.priorityRegister
                 ? rawByName.get(this.priorityRegister.name)

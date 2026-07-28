@@ -20,6 +20,14 @@ cooling and off, a flow trigger fires with a reason in plain language — for ex
 minutes are back to 0". Nibe has no register that says why the pump acted, but the comparisons behind the
 decision are readable, so the app checks them at the moment of the change and reports the one that applied.
 
+Not every pump exposes the same values. During pairing the app checks which registers actually report data
+on your particular pump and only offers the values it can really produce, so you do not end up with device
+fields that stay blank forever. Where a model is missing a register the app can work around, it does — the
+split models (S2125, VVM S320/S325, S330/S332) report the pump's power draw differently from the
+all-in-one units, and per-function energy and COP work on both. A few things genuinely cannot be worked
+around: those same split models do not expose a hot water on/off setting over Modbus, so that switch is
+not available there.
+
 To use this app you need:
 - A Nibe heat pump with Modbus TCP enabled (menu 7.5.9), on the same local network as your Homey.
 - The pump's local IP address (pairing can also autodetect it).

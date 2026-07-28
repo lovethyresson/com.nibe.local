@@ -85,7 +85,56 @@ export function pumpActiveTitle(): {en: string; sv: string; de: string; nl: stri
     return {en: "On", sv: "På", de: "Ein", nl: "Aan", no: "På", da: "Til"};
 }
 
+// Which derived energy/COP capabilities this pump can actually produce a value for, given
+// which registers answered during detection. `read(name)` reports whether a register was read
+// (callers pass `() => true` when there is no detection data, preserving the "assume
+// everything" default used throughout the selection machinery).
+//
+// This exists because "is the energy group supported?" is not one question. The group's
+// registers have different dependencies, and on an S320 most of them read while the one the
+// energy pair actually needs — the power source — does not. Detection used to ask only
+// whether *any* energy register read, so it offered the energy pair and the COP on hardware
+// that can never populate them, and the devices were created carrying capabilities that
+// stayed permanently empty.
+export function extraCapabilitySupport(
+    profile: ModelProfile, role: Role,
+    sample: (name: string) => {read: boolean; moved: boolean; value?: number} | undefined
+): Record<string, boolean> {
+    const read = (name: string) => sample(name)?.read ?? false;
+    // The pump's electrical draw. Everything the allocator produces depends on it.
+    //
+    // Stricter than a plain "did it answer": a power register that answers every read and
+    // sits at exactly zero throughout the sampling window is not wired up on this pump. That
+    // is not hypothetical — register 2727 "Current power" answers 31/31 reads on an S1155 and
+    // stays at 0 straight through a 3.3 kW compressor run, because it belongs to the external
+    // energy-meter accessory. Same reasoning as `inRange`'s "exactly 0 means missing sensor".
+    const usablePower = (name: string) => {
+        const probe = sample(name);
+        return !!probe?.read && (probe.moved || (probe.value ?? 0) !== 0);
+    };
+    const powerOk = profile.role.powerSources.some((group) => group.some(usablePower));
+    // The lifetime counters behind Main's Total COP — deliberately independent of the power
+    // source, which is why Total COP still works on a model with no readable power register.
+    const {totalProductionRegister, totalConsumptionRegister} = profile.role;
+    const totalsOk = !!totalProductionRegister && !!totalConsumptionRegister
+        && read(totalProductionRegister) && read(totalConsumptionRegister);
+    // A function's COP needs the used energy (allocator → power source) and its own delivered
+    // energy counter.
+    const produced = profile.role.producedRegisterForRole[role];
+    return {
+        [METER_CAPABILITY]: powerOk,
+        [ACTIVE_POWER_CAPABILITY]: powerOk,
+        [TOTAL_COP_CAPABILITY]: totalsOk,
+        [FUNCTION_COP_CAPABILITY]: powerOk && !!produced && read(produced)
+    };
+}
+
 export function extraCapabilities(profile: ModelProfile, role: Role, selection?: Selection | null): string[] {
+    // The energy-group extras all follow the same rule: an explicit per-capability override
+    // wins, then the group toggle, then "on". A missing selection means everything is enabled
+    // (the upgrade path for devices paired before selections existed).
+    const enabled = (name: string) =>
+        selection?.overrides?.[name] ?? selection?.groups?.energy ?? true;
     // Solar carries only its two Modbus registers (measure_power + meter_power.solar) — no
     // allocator energy pair and no COP.
     if (role === "solar")
@@ -100,15 +149,14 @@ export function extraCapabilities(profile: ModelProfile, role: Role, selection?:
         // Main carries the energy pair too, but its slice is standby/idle draw (allocated
         // when the pump priority is Off) — titled "Idle energy"/"Idle power". Plus the
         // Total COP. All live in the energy group.
-        const energyOn = (selection?.groups?.energy ?? true) && hasConsumedPower;
         const caps = [PUMP_ACTIVE_CAPABILITY];
         // Derived alarm state + description, riding the alarm group (where the alarm
         // register itself lives), when the model declares an alarm register.
         if (profile.alarm && (selection?.groups?.alarm ?? true))
             caps.push(...ALARM_CAPABILITIES);
-        if (energyOn)
-            caps.push(...ENERGY_CAPABILITIES);
-        if ((selection?.groups?.energy ?? true) && hasTotalCounters)
+        if (hasConsumedPower)
+            caps.push(...ENERGY_CAPABILITIES.filter(enabled));
+        if (hasTotalCounters && enabled(TOTAL_COP_CAPABILITY))
             caps.push(TOTAL_COP_CAPABILITY);
         return caps;
     }
@@ -117,15 +165,12 @@ export function extraCapabilities(profile: ModelProfile, role: Role, selection?:
     // power source and the energy selection.
     if (!hasConsumedPower)
         return [];
-    const energyCaps = !selection
-        ? [...ENERGY_CAPABILITIES]
-        : ENERGY_CAPABILITIES.filter((name) =>
-            selection.overrides?.[name] ?? selection.groups?.energy ?? true);
+    const energyCaps = ENERGY_CAPABILITIES.filter(enabled);
     // Rolling COP needs the used energy (from the allocator, energy group) alongside the
     // function's produced register — offer it whenever the energy pair is present and the
     // function has a produced register.
     const hasProduced = !!profile.role.producedRegisterForRole[role];
-    return energyCaps.length && hasProduced
+    return energyCaps.length && hasProduced && enabled(FUNCTION_COP_CAPABILITY)
         ? [...energyCaps, FUNCTION_COP_CAPABILITY]
         : energyCaps;
 }
@@ -146,7 +191,8 @@ export function groupsForRole(role: Role): GroupId[] {
 export function registersForRole(profile: ModelProfile, role: Role, selection: Selection | null | undefined): Register[] {
     const groups = new Set<GroupId>(roleGroups[role]);
     return profile.registers.filter((register) =>
-        groups.has(register.group)
+        !register.internal
+        && groups.has(register.group)
         && (!register.role || register.role === role)
         && isRegisterEnabled(register, selection, profile.pickerPrimary));
 }
@@ -156,7 +202,7 @@ export function registersForRole(profile: ModelProfile, role: Role, selection: S
 export function roleRegisters(profile: ModelProfile, role: Role): Register[] {
     const groups = new Set<GroupId>(roleGroups[role]);
     return profile.registers.filter((register) =>
-        groups.has(register.group) && (!register.role || register.role === role));
+        !register.internal && groups.has(register.group) && (!register.role || register.role === role));
 }
 
 // Suggested device names, shown in pairing. Generic across models (the driver name

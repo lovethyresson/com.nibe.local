@@ -28,16 +28,30 @@ interface Pump {
     close: () => Promise<void>;
 }
 
-async function startPump(): Promise<Pump> {
-    const input = Buffer.alloc(REG_BYTES);
-    const holding = Buffer.alloc(REG_BYTES);
+// `registerCount` bounds the served address space. Reading past it makes jsmodbus answer with
+// an empty value array — the closest this harness gets to a real pump's "no such register on
+// this model", which is what the read-failure reporting exists for.
+async function startPump(registerCount = 0x10000): Promise<Pump> {
+    const input = Buffer.alloc(registerCount * 2);
+    const holding = Buffer.alloc(registerCount * 2);
     const server = new net.Server();
     new ModbusTCPServer(server, {input, holding});
+    // server.close() only fires once every accepted socket is gone, so a test that closes the
+    // pump while a connection is still attached would hang until its timeout.
+    const sockets = new Set<net.Socket>();
+    server.on('connection', (socket) => {
+        sockets.add(socket);
+        socket.on('close', () => sockets.delete(socket));
+    });
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
     const port = (server.address() as net.AddressInfo).port;
     return {
         port, input, holding,
-        close: () => new Promise<void>((resolve) => server.close(() => resolve()))
+        close: () => new Promise<void>((resolve) => {
+            sockets.forEach((socket) => socket.destroy());
+            sockets.clear();
+            server.close(() => resolve());
+        })
     };
 }
 
@@ -161,7 +175,7 @@ test('energy allocator sums power sources and charges the prioritised function',
             role: {
                 priorityRegisterName: 'priority',
                 priorityRawOff: 10,
-                powerSources: ['compr_power', 'add_power'],
+                powerSources: [['compr_power', 'add_power']],
                 producedRegisterForRole: {},
                 priorityToRole: {10: 'main', 30: 'heating'}
             },
@@ -252,7 +266,7 @@ test('reconciliation monitor tracks the pump counter without touching live meter
             role: {
                 priorityRegisterName: 'priority',
                 priorityRawOff: 10,
-                powerSources: ['power'],
+                powerSources: [['power']],
                 totalConsumptionRegister: 'consumed',
                 producedRegisterForRole: {},
                 priorityToRole: {10: 'main', 30: 'heating'}
@@ -296,14 +310,14 @@ test('the priority-change log and the subscriber carry the model\'s explanation'
         const priority = reg({address: 600, name: 'priority'});
         seed(pump.input, 500, 1500);
         seed(pump.input, 600, 10);                 // idle to begin with
-        seed(pump.holding, 11, 65536 - 600);       // degree minutes -60.0 (scale 10, signed)
+        seed(pump.holding, 11, -600, 32);          // degree minutes -60.0 (s32, scale 10, signed)
         seed(pump.holding, 97, 65536 - 60);        // compressor starts at -60
 
         const profile = makeProfile({
             registers: [power, priority],
             role: {
                 priorityRegisterName: 'priority', priorityRawOff: 10,
-                powerSources: ['power'], producedRegisterForRole: {},
+                powerSources: [['power']], producedRegisterForRole: {},
                 priorityToRole: {10: 'main', 30: 'heating'}
             },
             transport: {port: 502, unitId: 1},
@@ -363,5 +377,182 @@ test('the priority-change log and the subscriber carry the model\'s explanation'
     } finally {
         console.log = realLog;
         await pump.close();
+    }
+});
+
+// ---------------------------------------------------------------------------------------
+// Power-source fallback and read-failure visibility. Both exist because of one bug: register
+// 2166 is the only power source declared for S, it does not exist on S320/S325, S330/S332 or
+// S2125, and nothing anywhere said so — the allocator just silently did nothing and every
+// per-function meter and COP stayed empty.
+// ---------------------------------------------------------------------------------------
+
+// The pumps below are started with a bounded address space; a register past that edge reads
+// as nothing at all, which is what a real pump does for a register its model doesn't have.
+const SERVED_REGISTERS = 1000;
+const ABSENT_ADDRESS = 5000;
+
+test('the allocator falls back to the next power source when the preferred one is absent',
+     {timeout: 20000}, async () => {
+    const pump = await startPump(SERVED_REGISTERS);
+    try {
+        const preferred = reg({address: ABSENT_ADDRESS, name: 'preferred', scale: 1, size: 32});
+        // 32-bit values span two words, so the fallback occupies 520 AND 521 — priority has
+        // to sit clear of it or it lands in the high word.
+        const fallback = reg({address: 520, name: 'fallback', scale: 0.1, size: 32});
+        const priority = reg({address: 522, name: 'priority'});
+        seed(pump.input, 520, 250, 32);   // 250 / 0.1 = 2500 W
+        seed(pump.input, 522, 30);        // heating
+
+        const profile = makeProfile({
+            registers: [preferred, fallback, priority],
+            role: {
+                priorityRegisterName: 'priority', priorityRawOff: 10,
+                powerSources: [['preferred'], ['fallback']],
+                producedRegisterForRole: {}, priorityToRole: {10: 'main', 30: 'heating'}
+            },
+            transport: {port: 502, unitId: 1},
+            detection: {plausible: {}, discoveryProbe: {address: 1, scale: 10, min: -60, max: 60}},
+            compose: {capabilities: [], capabilitiesOptions: {}, actions: [], conditions: [], triggers: []}
+        });
+
+        const heating = new FakeSub('heating', []);
+        const connection = PumpConnection.get('127.0.0.1', profile, {port: pump.port, unitId: 1});
+        connection.attach(heating);
+        try {
+            await heating.whenUp();
+            await new Promise((r) => setTimeout(r, 11000));
+            const charged = heating.energy.filter((e) => e.watts > 0);
+            assert.ok(charged.length > 0, 'the fallback source must keep the allocator running');
+            assert.equal(charged[charged.length - 1].watts, 2500, 'watts come from the fallback alone');
+            assert.ok(charged.some((e) => e.kwh > 0), 'and energy still accrues');
+        } finally {
+            connection.shutdown();
+        }
+    } finally {
+        await pump.close();
+    }
+});
+
+test('a pump carrying both power sources uses the preferred one, never their sum',
+     {timeout: 20000}, async () => {
+    const pump = await startPump();
+    try {
+        // An S1155 has 2166 *and* the energy-log register. Summing them would double-count.
+        const preferred = reg({address: 530, name: 'preferred', scale: 1, size: 32});
+        const fallback = reg({address: 532, name: 'fallback', scale: 0.1, size: 32});
+        const priority = reg({address: 534, name: 'priority'});
+        seed(pump.input, 530, 1800, 32);  // 1800 W
+        seed(pump.input, 532, 190, 32);   // 1900 W — close but not equal, so a sum is obvious
+        seed(pump.input, 534, 30);
+
+        const profile = makeProfile({
+            registers: [preferred, fallback, priority],
+            role: {
+                priorityRegisterName: 'priority', priorityRawOff: 10,
+                powerSources: [['preferred'], ['fallback']],
+                producedRegisterForRole: {}, priorityToRole: {10: 'main', 30: 'heating'}
+            },
+            transport: {port: 502, unitId: 1},
+            detection: {plausible: {}, discoveryProbe: {address: 1, scale: 10, min: -60, max: 60}},
+            compose: {capabilities: [], capabilitiesOptions: {}, actions: [], conditions: [], triggers: []}
+        });
+
+        const heating = new FakeSub('heating', []);
+        const connection = PumpConnection.get('127.0.0.1', profile, {port: pump.port, unitId: 1});
+        connection.attach(heating);
+        try {
+            await heating.whenUp();
+            await new Promise((r) => setTimeout(r, 11000));
+            const charged = heating.energy.filter((e) => e.watts > 0);
+            assert.ok(charged.length > 0);
+            assert.equal(charged[charged.length - 1].watts, 1800,
+                'the preferred source wins outright — 3700 would mean both were summed');
+        } finally {
+            connection.shutdown();
+        }
+    } finally {
+        await pump.close();
+    }
+});
+
+test('a register that never reads is reported once per app start, and restated when debug goes on',
+     {timeout: 25000}, async () => {
+    const pump = await startPump(SERVED_REGISTERS);
+    const logs: string[] = [];
+    const realLog = console.log;
+    console.log = (...args: any[]) => { logs.push(args.join(' ')); };
+    try {
+        const good = reg({address: 540, name: 'good_reg', scale: 1});
+        const missing = reg({address: ABSENT_ADDRESS, name: 'missing_reg', scale: 1, size: 32});
+        seed(pump.input, 540, 100);
+
+        const profile = tinyProfile([good, missing]);
+        const sub = new FakeSub('main', [good, missing]);
+        const connection = PumpConnection.get('127.0.0.1', profile, {port: pump.port, unitId: 1});
+        connection.attach(sub);
+        try {
+            await sub.whenUp();
+            // Long enough for several polls (5 s floor), so "once per app start" is a real claim.
+            await new Promise((r) => setTimeout(r, 12000));
+
+            const reports = logs.filter((l) => l.includes('did not read (first failure since app start)'));
+            assert.equal(reports.length, 1, `expected exactly one first-failure report, got ${reports.length}`);
+            assert.ok(reports[0].includes('missing_reg'), 'the report must name the register');
+            assert.ok(!reports[0].includes('good_reg'), 'a register that reads must not be listed');
+            assert.ok(!reports[0].includes('__'), 'on-demand reason inputs are best-effort, not failures');
+
+            // Debug logging is switched on *after* the fact — the usual order of events when a
+            // user is asked for logs. The standing failure has to be restated, or the one line
+            // that explains their problem is already gone.
+            assert.ok(!logs.some((l) => l.includes('still not reading')), 'nothing restated yet');
+            sub.debug = true;
+            connection.refreshDebug();
+            const restated = logs.filter((l) => l.includes('still not reading'));
+            assert.equal(restated.length, 1, 'turning debug on must restate standing failures');
+            assert.ok(restated[0].includes('missing_reg'));
+        } finally {
+            connection.shutdown();
+        }
+    } finally {
+        console.log = realLog;
+        await pump.close();
+    }
+});
+
+test('a poll where nothing reads at all is not blamed on the registers',
+     {timeout: 30000}, async () => {
+    // A server that accepts the connection and then never answers: every read times out on
+    // the same poll. That is a connection problem, and reporting it as "N registers do not
+    // exist on this model" would be actively misleading.
+    const sockets: net.Socket[] = [];
+    const server = new net.Server((socket) => { sockets.push(socket); });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+    const port = (server.address() as net.AddressInfo).port;
+
+    const logs: string[] = [];
+    const realLog = console.log;
+    console.log = (...args: any[]) => { logs.push(args.join(' ')); };
+    try {
+        const a = reg({address: 550, name: 'reg_a', scale: 1});
+        const b = reg({address: 551, name: 'reg_b', scale: 1});
+        const profile = tinyProfile([a, b]);
+        const sub = new FakeSub('main', [a, b]);
+        const connection = PumpConnection.get('127.0.0.1', profile, {port, unitId: 1});
+        connection.attach(sub);
+        try {
+            await sub.whenUp();
+            // The jsmodbus client gives up on a request after 5 s, so this covers a full poll
+            // in which every single read failed.
+            await new Promise((r) => setTimeout(r, 14000));
+            assert.ok(!logs.some((l) => l.includes('did not read (first failure since app start)')),
+                'a total loss is a connection problem and must not be blamed on the registers');
+        } finally {
+            connection.shutdown();
+        }
+    } finally {
+        console.log = realLog;
+        sockets.forEach((s) => s.destroy());
+        await new Promise<void>((resolve) => server.close(() => resolve()));
     }
 });

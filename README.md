@@ -203,6 +203,48 @@ address means the same thing on every S-model — verified by cross-checking all
 one table is safe.) The pump's firmware version and type code are read on connect and shown in the Main
 device's settings, which is handy for support.
 
+**"Absent registers just drop out" is only true when nothing depends on them.** The energy allocator needs
+*one* register — the pump's instantaneous power draw, 2166 — and that register does not exist on
+S320/S325, S330/S332 or S2125. With no power reading the allocator was skipped wholesale, so on those
+models every per-function energy meter and every COP stayed permanently empty, in complete silence. Three
+things came out of that:
+
+- **Power sources are an ordered fallback list**, not one register. Each entry is a group whose registers
+  are summed (an inverter F needs compressor + electric addition); the first group that actually reads
+  wins. S prefers 2166 and falls back to the energy log's 2305 — the two must not be summed, since a pump
+  can carry both.
+- **Detection asks whether a value is real, not merely present.** Register 2727 "Current power" looked like
+  the obvious fallback — right title, right units, on all six models — but a live S1155 answers all 31 of 31
+  reads with a flat zero straight through a 3.3 kW compressor run, because it belongs to the EME 20
+  accessory. So a power source must have *moved or read non-zero* during detection to count, the same
+  standard the `inRange` heuristics already applied to sensors.
+- **`dev/audit-registers.mjs` checks both directions.** It used to list registers in the CSVs but not the
+  app; it now also reports which mapped registers are absent per model, calls out **engine-critical** ones
+  (power sources, priority, energy counters, each role's primary on/off) separately, and cross-checks every
+  declared width against the CSVs. That last check immediately found seven registers read as 16-bit that
+  NIBE documents as 32-bit — one of which, the hot-water additional-heat hour counter, would have wrapped
+  at 6553.5 h because it counts *tenths* of an hour.
+
+Known model gaps that have no fallback: register 195 "Hot water permitted" is absent on **S2125,
+S320/S325, S330/S332 and S735**, so the Hot Water device on those pumps has no on/off control — the pump
+does not expose that setting over Modbus. Cooling and pool delivered-energy counters (1579/1581) are
+likewise missing on several models, which removes that function's COP but nothing else.
+
+## When something has no data
+
+Every value in the app comes from a register, and a register your pump doesn't implement simply never
+answers. That used to be invisible — reads were swallowed and the capability sat blank forever. Now:
+
+- The **first time** a register fails, it is named in the app log with its address, batched into one line
+  per poll. Scoped to the app start, not to the process's whole life, because a register missing on your
+  model fails on the very first poll — long before anyone thinks to turn on debug logging.
+- If **no** power source reads at all, the log says so explicitly and states the consequence, rather than
+  leaving you to work out why the energy figures never move.
+- Turning on **Debug logging** (Advanced settings) restates everything still failing, so a log you send for
+  support contains the cause even though it happened hours before you enabled it. It also logs which
+  register each capability was mapped to at pairing — including what the *derived* ones (Energy used,
+  Current power, the COP sensors) are computed from, which is otherwise unknowable from the outside.
+
 ## Requirements
 
 - A Nibe S-series heat pump on the same local network as your Homey.

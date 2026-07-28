@@ -80,7 +80,7 @@ export const registers: Register[] = [
     {address:    5, name: "measure_temperature.i5_heating_supply",  direction: Dir.In,  group: "heating",     scale:  10, // Framledning (BT2) klimatsystem 1
      info: {en: "Actual heating supply line temperature (BT2)", sv: "Verklig framledningstemperatur (BT2)"}},
     // Rad 3
-    {address:   11, name: "measure_degree_minutes_NIBE.h11_degree_minutes",   direction: Dir.Out, group: "heating", scale: 10, noAction: true, // Gradminuter
+    {address:   11, name: "measure_degree_minutes_NIBE.h11_degree_minutes",   direction: Dir.Out, group: "heating", scale: 10, size: 32, noAction: true, // Gradminuter (s32)
      info: {en: "Accumulated heating deficit that decides when the compressor starts", sv: "Ackumulerat värmeunderskott som avgör när kompressorn startar"}},
     {address:    7, name: "measure_temperature.i7_heating_return",  direction: Dir.In,  group: "heating",     scale:  10, // Returledning (BT3)
      info: {en: "Heating return line temperature (BT3)", sv: "Returledningstemperatur (BT3)"}},
@@ -106,8 +106,25 @@ export const registers: Register[] = [
     // Rad 7
     {address: 1048, name: "measure_watt_NIBE.i1048_compressor_add_power",     direction: Dir.In,  group: "energy", role: "main", scale: 1, // Kompressor tillförd effekt
      info: {en: "Electrical power drawn by the compressor", sv: "Eleffekt som kompressorn drar"}},
-    {address: 2166, name: "measure_watt_NIBE.i2166_energy_usage",             direction: Dir.In,  group: "energy", role: "main", scale: 1, // Momentan använd effekt
+    {address: 2166, name: "measure_watt_NIBE.i2166_energy_usage",             direction: Dir.In,  group: "energy", role: "main", scale: 1, size: 32, // Momentan använd effekt (u32)
      info: {en: "Total electrical power used by the pump right now", sv: "Total eleffekt pumpen använder just nu"}},
+    // Fallback power source for the energy allocator on models with no 2166 — it does not
+    // exist on S320/S325, S330/S332 or S2125, and without a power reading the allocator is
+    // skipped entirely, leaving every per-function meter and COP permanently empty.
+    //
+    // `internal`: the allocator already republishes its power source as `measure_power`, so
+    // this must not become a third visible copy of the same number on models that have both.
+    // Verified against a live S1155 (2026-07-28) alongside 2166 over a hot-water cycle: it is
+    // an *averaged* reading, so it lags on the compressor ramp (920 W vs 1621 W) and overruns
+    // on the way down — but the integral is what the allocator uses, and over the run that came
+    // to 0.1293 kWh against 2166's 0.1311 kWh (1.4%). The CSV's "kWh" unit is wrong: this is
+    // kW/100, hence scale 0.1, exactly like 1027 below.
+    //
+    // Register 2727 "Current power" was the other candidate and is NOT usable: it answered
+    // every read but sat at a flat zero through a 3.3 kW compressor run, tracking the EME 20
+    // accessory registers (2176/2178) rather than the pump.
+    {address: 2305, name: "measure_watt_NIBE.i2305_energylog_power",          direction: Dir.In,  group: "energy", role: "main", scale: 0.1, size: 32, internal: true, // Energilogg momentan förbrukning
+     info: {en: "Total electrical power used by the pump right now (energy log, averaged)", sv: "Total eleffekt pumpen använder just nu (energilogg, medelvärde)"}},
     // Rad 8
     {address: 1047, name: "measure_temperature.i1047_inverter",     direction: Dir.In,  group: "diagnostics", scale:  10, // Invertertemperatur
      info: {en: "Temperature of the compressor inverter", sv: "Temperatur på kompressorns inverter"}},
@@ -153,7 +170,7 @@ export const registers: Register[] = [
     // Rad 13 Eltillsats statistik
     {address: 1025, name: "measure_hour_NIBE.i1025_additive_usage_total",     direction: Dir.In,  group: "statistics", scale:  10, size: 32, // Total drifttid tillsats (s32)
      info: {en: "Total runtime of the additive heater", sv: "Total drifttid för tillsatsen"}},
-    {address: 1069, name: "measure_hour_NIBE.i1069_additive_usage_hotwater",  direction: Dir.In,  group: "hotwater",   scale:  10, // Total varmvatten drifttid tillsats
+    {address: 1069, name: "measure_hour_NIBE.i1069_additive_usage_hotwater",  direction: Dir.In,  group: "hotwater",   scale:  10, size: 32, // Total varmvatten drifttid tillsats (s32, tiondels timmar)
      info: {en: "Additive heater runtime spent on hot water", sv: "Tillsatsens drifttid för varmvatten"}},
     // Rad 14 Kompressor utomhus temp avg
     {address: 1083, name: "measure_count_NIBE.i1083_compressor_starts",       direction: Dir.In,  group: "statistics", scale: 1, size: 32, // Kompressorstarter (s32)
@@ -185,7 +202,7 @@ export const registers: Register[] = [
      info: {en: "Heat energy delivered to the pool", sv: "Levererad värmeenergi till poolen"}},
     {address: 1579, name: "meter_kwh_NIBE.i1579_cooling_produced",           direction: Dir.In,  group: "energy", role: "cooling",  scale: 10, size: 32, relative: true, // Cooling, compressor only
      info: {en: "Cooling energy delivered", sv: "Levererad kylenergi"}},
-    {address: 1091, name: "measure_hour_NIBE.i1091_compressor_usage_hotwater",direction: Dir.In,  group: "hotwater",   scale: 1, // Total drifttid kompressor varmvatten
+    {address: 1091, name: "measure_hour_NIBE.i1091_compressor_usage_hotwater",direction: Dir.In,  group: "hotwater",   scale: 1, size: 32, // Total drifttid kompressor varmvatten (s32)
      info: {en: "Compressor runtime spent on hot water", sv: "Kompressorns drifttid för varmvatten"}},
     // Rad 16 Värmekurvor
     {address:   26, name: "measure_count_NIBE.h26_heat_curve",                direction: Dir.Out, group: "heating",    scale: 1, min: 0, max: 15, // Värmekurva klimatsystem 1
@@ -212,11 +229,11 @@ export const registers: Register[] = [
     {address:   92, name: "measure_minute_NIBE.h92_periodtime_hotwater",      direction: Dir.Out, group: "hotwater",   scale: 1, min: 0, max: 180, // Periodtid varmvatten minuter
      info: {en: "Duration of the periodic hot water boost", sv: "Längd på den periodiska varmvattenhöjningen"}},
     // Rad 20 Strömförbrukning
-    {address:   50, name: "measure_current.i50_sensor_v2",                    direction: Dir.In,  group: "electrical", scale: 10, // Strömavkänare BE1 -L1
+    {address:   50, name: "measure_current.i50_sensor_v2",                    direction: Dir.In,  group: "electrical", scale: 10, size: 32, // Strömavkänare BE1 -L1 (u32)
      info: {en: "Current on phase L1 (sensor BE1)", sv: "Ström på fas L1 (givare BE1)"}},
-    {address:   48, name: "measure_current.i48_sensor_v2",                    direction: Dir.In,  group: "electrical", scale: 10, // Strömavkänare BE2 -L2
+    {address:   48, name: "measure_current.i48_sensor_v2",                    direction: Dir.In,  group: "electrical", scale: 10, size: 32, // Strömavkänare BE2 -L2 (u32)
      info: {en: "Current on phase L2 (sensor BE2)", sv: "Ström på fas L2 (givare BE2)"}},
-    {address:   46, name: "measure_current.i46_sensor_v2",                    direction: Dir.In,  group: "electrical", scale: 10, // Strömavkänare BE3 -L3
+    {address:   46, name: "measure_current.i46_sensor_v2",                    direction: Dir.In,  group: "electrical", scale: 10, size: 32, // Strömavkänare BE3 -L3 (u32)
      info: {en: "Current on phase L3 (sensor BE3)", sv: "Ström på fas L3 (givare BE3)"}},
     // Rad 21 Driftläge / pool
     {address:  237, name: "measure_enum_NIBE.h237_operating_mode",            direction: Dir.Out, group: "core",       enum: modeMap, // Driftläge

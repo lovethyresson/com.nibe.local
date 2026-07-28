@@ -39,7 +39,9 @@ const dm = (n: number) => String(Math.round(n));
 export const sReason: ReasonConfig = {
     inputs: {
         // Heating: degree minutes and the thresholds they are compared against.
-        dm:              {address:   11, direction: Dir.Out, scale: 10},
+        // s32 — must match the register table's declaration, or the same register decodes
+        // differently depending on whether it arrives via the poll loop or this path.
+        dm:              {address:   11, direction: Dir.Out, scale: 10, size: 32},
         dmStart:         {address:   97, direction: Dir.Out},
         dmAddDiff:       {address:  679, direction: Dir.Out},
         calcSupply:      {address: 1017, direction: Dir.In,  scale: 10},

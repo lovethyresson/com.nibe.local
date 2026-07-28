@@ -8,7 +8,8 @@ import {
 import {makeProfile} from '../lib/profile';
 import {
     registersForRole, roleRegisters, extraCapabilities, extraCapabilityOptions,
-    roleGroups, allRoles, functionRoles
+    extraCapabilitySupport, roleGroups, allRoles, functionRoles,
+    ACTIVE_POWER_CAPABILITY, FUNCTION_COP_CAPABILITY, METER_CAPABILITY, TOTAL_COP_CAPABILITY
 } from '../lib/roles';
 import type {Role} from '../lib/roles';
 import {sReason} from '../drivers/nibe_s/reason';
@@ -124,8 +125,25 @@ test('every register name is unique', () => {
 
 test('every register is present in the compose capabilities superset', () => {
     const caps = new Set(sProfile.compose.capabilities);
-    for (const r of registers)
+    // Internal registers are engine infrastructure with no capability — see Register.internal.
+    for (const r of registers.filter((r) => !r.internal))
         assert.ok(caps.has(r.name), `missing from compose.capabilities: ${r.name}`);
+});
+
+test('internal registers are polled but never surface as capabilities', () => {
+    const internal = registers.filter((r) => r.internal);
+    assert.ok(internal.length > 0, 'expected at least the energy-log power fallback');
+    const caps = new Set(sProfile.compose.capabilities);
+    for (const r of internal) {
+        assert.ok(!caps.has(r.name), `${r.name} is internal and must not be a capability`);
+        assert.ok(isPollable(r), `${r.name} must still be polled — the allocator reads it`);
+        assert.ok(!isSelectableRegister(r, sProfile.pickerPrimary),
+            `${r.name} must not be offered in the features view`);
+        // Not on any device, under any selection.
+        for (const role of allRoles)
+            assert.ok(!registersForRole(sProfile, role, null).some((x) => x.name === r.name),
+                `${r.name} leaked onto the ${role} device`);
+    }
 });
 
 test('every register has bilingual info and a sane scale/size', () => {
@@ -274,14 +292,103 @@ test('primaryOnoff maps each function to its enable register and Main to the bar
 });
 
 test('role config sanity: power source scale yields watts, roles cover all functions', () => {
-    // S: single whole-unit power register, scale 1 (raw already watts)
-    assert.deepEqual(sProfile.role.powerSources, ['measure_watt_NIBE.i2166_energy_usage']);
+    // S: alternative single-register sources in preference order. 2166 is the instantaneous
+    // whole-unit draw (scale 1 = raw already watts); 2305 is the energy log's averaged
+    // reading in kW/100 (scale 0.1 → watts), used on the models with no 2166.
+    assert.deepEqual(sProfile.role.powerSources, [
+        ['measure_watt_NIBE.i2166_energy_usage'],
+        ['measure_watt_NIBE.i2305_energylog_power']
+    ]);
     assert.equal(sProfile.registerByName['measure_watt_NIBE.i2166_energy_usage'].scale, 1);
+    assert.equal(sProfile.registerByName['measure_watt_NIBE.i2305_energylog_power'].scale, 0.1);
+    // Every candidate must exist in the table and be readable, or the fallback is a no-op.
+    for (const group of sProfile.role.powerSources)
+        for (const name of group)
+            assert.ok(sProfile.registerByName[name], `power source ${name} is not in the register table`);
     for (const role of functionRoles)
         assert.ok(sProfile.role.producedRegisterForRole[role], `no produced register for ${role}`);
     // every role has a group list
     for (const role of allRoles)
         assert.ok(roleGroups[role].length > 0);
+});
+
+// ---------------------------------------------------------------------------------------
+// Which derived energy/COP capabilities a pump can actually populate. The regression this
+// guards: an S320/S2125 has no register 2166, so the allocator has no power reading and the
+// energy pair and per-function COP can never hold a value — but detection used to offer them
+// anyway because *other* energy-group registers read fine.
+// ---------------------------------------------------------------------------------------
+
+const POWER_2166 = 'measure_watt_NIBE.i2166_energy_usage';
+const POWER_2305 = 'measure_watt_NIBE.i2305_energylog_power';
+const HEATING_PRODUCED = 'meter_kwh_NIBE.i1577_heating_produced';
+
+// A sample accessor over a set of "these registers did not answer" names; everything else
+// read and moved.
+const samplesExcept = (absent: string[], flatZero: string[] = []) => (name: string) =>
+    absent.includes(name) ? undefined
+        : {read: true, moved: !flatZero.includes(name), value: flatZero.includes(name) ? 0 : 42};
+
+test('extraCapabilitySupport: each derived capability follows the registers it needs', () => {
+    // Everything reads — an S1155.
+    const all = extraCapabilitySupport(sProfile, 'heating', samplesExcept([]));
+    assert.equal(all[METER_CAPABILITY], true);
+    assert.equal(all[ACTIVE_POWER_CAPABILITY], true);
+    assert.equal(all[FUNCTION_COP_CAPABILITY], true);
+
+    // An S320/S2125: no 2166 at all, but the energy log's 2305 answers → still supported,
+    // because the allocator falls back to it.
+    const viaFallback = extraCapabilitySupport(sProfile, 'heating', samplesExcept([POWER_2166]));
+    assert.equal(viaFallback[METER_CAPABILITY], true, 'the fallback power source keeps energy alive');
+    assert.equal(viaFallback[FUNCTION_COP_CAPABILITY], true);
+
+    // Neither power source usable → the whole allocator-derived set drops out.
+    const noPower = extraCapabilitySupport(sProfile, 'heating', samplesExcept([POWER_2166, POWER_2305]));
+    assert.equal(noPower[METER_CAPABILITY], false, 'energy pair needs a power source');
+    assert.equal(noPower[ACTIVE_POWER_CAPABILITY], false);
+    assert.equal(noPower[FUNCTION_COP_CAPABILITY], false, 'function COP needs the used energy');
+
+    // Main's Total COP comes straight off the lifetime counters, so it survives that — which
+    // is exactly why an S320 shows a Total COP while every per-function COP stays empty.
+    const mainNoPower = extraCapabilitySupport(sProfile, 'main', samplesExcept([POWER_2166, POWER_2305]));
+    assert.equal(mainNoPower[TOTAL_COP_CAPABILITY], true);
+
+    // A missing produced counter kills only that function's COP, not the energy pair.
+    const noProduced = extraCapabilitySupport(sProfile, 'heating', samplesExcept([HEATING_PRODUCED]));
+    assert.equal(noProduced[FUNCTION_COP_CAPABILITY], false);
+    assert.equal(noProduced[METER_CAPABILITY], true);
+});
+
+test('extraCapabilitySupport: a power register that answers but is always zero is not usable', () => {
+    // Register 2727 on a live S1155 answers every read and sits at zero through a 3.3 kW
+    // compressor run, because it belongs to the external energy-meter accessory. "It replied"
+    // is therefore not enough evidence to build the energy capabilities on.
+    const flatZero = extraCapabilitySupport(sProfile, 'heating',
+        samplesExcept([POWER_2166], [POWER_2305]));
+    assert.equal(flatZero[METER_CAPABILITY], false, 'a flat-zero power register must not count');
+    assert.equal(flatZero[FUNCTION_COP_CAPABILITY], false);
+
+    // But a register that reads zero *and moves* is a real reading that happens to be idle.
+    const movedThroughZero = extraCapabilitySupport(sProfile, 'heating',
+        (name) => (name === POWER_2166 ? undefined : {read: true, moved: true, value: 0}));
+    assert.equal(movedThroughZero[METER_CAPABILITY], true);
+});
+
+test('extraCapabilities honours a per-capability override for the COP sensors', () => {
+    const selection = (overrides: Record<string, boolean>) =>
+        ({groups: {energy: true, heating: true}, overrides});
+
+    assert.ok(extraCapabilities(sProfile, 'heating', selection({})).includes(FUNCTION_COP_CAPABILITY));
+    const off = extraCapabilities(sProfile, 'heating', selection({[FUNCTION_COP_CAPABILITY]: false}));
+    assert.ok(!off.includes(FUNCTION_COP_CAPABILITY), 'the override must switch the COP off');
+    assert.ok(off.includes(METER_CAPABILITY), 'without disturbing the energy pair');
+
+    const mainOff = extraCapabilities(sProfile, 'main', selection({[TOTAL_COP_CAPABILITY]: false}));
+    assert.ok(!mainOff.includes(TOTAL_COP_CAPABILITY));
+    // Main's energy pair honours overrides the same way (it previously ignored them).
+    const mainNoMeter = extraCapabilities(sProfile, 'main', selection({[METER_CAPABILITY]: false}));
+    assert.ok(!mainNoMeter.includes(METER_CAPABILITY));
+    assert.ok(mainNoMeter.includes(ACTIVE_POWER_CAPABILITY), 'only the overridden one drops');
 });
 
 // ---------------------------------------------------------------------------------------
@@ -465,5 +572,22 @@ test('reason: both languages are always produced, and neither leaks the other', 
                 `${lang} explanation for ${previous} -> ${role} has an unresolved value`);
         }
         assert.notEqual(reason!.en, reason!.sv, `${previous} -> ${role} was not translated`);
+    }
+});
+
+test('reason inputs are synthetic names, kept out of every capability path', () => {
+    // They are read on demand at a priority change and are best-effort by contract — explain()
+    // degrades when one is missing, and several cover functions a given pump may not have. The
+    // `__` prefix is what keeps them out of the capability table and out of read-failure
+    // reporting, so a missing pool sensor is not announced as a broken register.
+    const names = Object.keys(sReason.inputs);
+    assert.ok(names.length > 0);
+    const caps = new Set(sProfile.compose.capabilities);
+    for (const id of names) {
+        const synthetic = `__reason.${id}`;
+        assert.ok(synthetic.startsWith('__'), `${synthetic} must be namespaced as synthetic`);
+        assert.ok(!caps.has(synthetic), `${synthetic} must never be a capability`);
+        assert.ok(!registers.some((r) => r.name === synthetic),
+            `${synthetic} must not appear in the register table`);
     }
 });

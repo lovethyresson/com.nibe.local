@@ -8,7 +8,8 @@ import {
 import {
     ACTIVE_POWER_CAPABILITY, ENERGY_CAPABILITIES, FUNCTION_COP_CAPABILITY, METER_CAPABILITY,
     Role, TOTAL_COP_CAPABILITY, allRoles, energyTitle, extraCapabilities, extraCapabilityOptions,
-    functionRoles, powerTitle, registersForRole, roleClass, roleGroups, roleNames, roleOf, roleRegisters
+    extraCapabilitySupport, functionRoles, powerTitle, registersForRole, roleClass, roleGroups,
+    roleNames, roleOf, roleRegisters
 } from './roles';
 import type {ModelProfile} from './profile';
 import {DetectionResult, PROBE_PASSES, Recommendations, RegisterSample, probeHost} from './detection';
@@ -65,6 +66,10 @@ export abstract class NibePumpDriver extends Driver {
     private checkConfig() {
         const {capabilities} = this.profile.compose;
         for (const register of this.profile.registers) {
+            // Internal registers are engine infrastructure with no capability — nothing to
+            // declare in the compose file, so they are not a config mismatch.
+            if (register.internal)
+                continue;
             if (!capabilities.includes(register.name))
                 this.debug(`Config mismatch: register ${register.name} missing from driver.compose.json capabilities`);
             if (!this.options(register.name))
@@ -302,7 +307,14 @@ export abstract class NibePumpDriver extends Driver {
                 detected: samples ? (samples[register.name]?.read ?? false) : true
             });
         }
-        const hasEnergyData = samples ? entries.some((e) => e.detected) : true;
+        // Each derived capability is gated on the registers *it* needs, not on the energy group
+        // as a whole — see extraCapabilitySupport(). Without samples everything is assumed
+        // supported, matching the rest of the no-detection path.
+        const support = role
+            ? extraCapabilitySupport(this.profile, role,
+                (name) => (samples ? samples[name] : {read: true, moved: true}))
+            : {};
+        const supported = (name: string) => (samples ? (support[name] ?? false) : true);
         if (role && role !== 'solar') {
             const isMain = role === 'main';
             const descriptions: Record<string, RegisterInfo> = {
@@ -327,17 +339,18 @@ export abstract class NibePumpDriver extends Driver {
                     title: this.energyCapabilityTitle(role, name, lang),
                     adjustable: false,
                     description: descriptions[name][lang] || descriptions[name].en,
-                    detected: hasEnergyData
+                    detected: supported(name)
                 });
         }
+        const copName = role === 'main' ? TOTAL_COP_CAPABILITY : FUNCTION_COP_CAPABILITY;
         entries.push({
-            name: role === 'main' ? TOTAL_COP_CAPABILITY : FUNCTION_COP_CAPABILITY,
+            name: copName,
             title: this.copDisplayTitle(role, lang),
             adjustable: false,
             description: lang === 'sv'
                 ? "Verkningsgrad (COP) senaste 30 dagarna: levererad energi delat med använd"
                 : "Efficiency (COP) over the last 30 days: delivered energy divided by energy used",
-            detected: hasEnergyData
+            detected: supported(copName)
         });
         return entries;
     }
@@ -357,7 +370,10 @@ export abstract class NibePumpDriver extends Driver {
                 continue;
             keep(register.name, register.group);
         }
-        for (const name of ENERGY_CAPABILITIES)
+        // The derived energy/COP capabilities are toggled like registers in the features view,
+        // so their overrides have to survive the round trip too — otherwise repair silently
+        // re-enables a COP the pump has no registers for.
+        for (const name of [...ENERGY_CAPABILITIES, TOTAL_COP_CAPABILITY, FUNCTION_COP_CAPABILITY])
             keep(name, "energy");
         return {groups, overrides};
     }
@@ -380,6 +396,17 @@ export abstract class NibePumpDriver extends Driver {
                 && selection.groups[register.group]
                 && samples[register.name] && !samples[register.name].read)
                 selection.overrides[register.name] = false;
+        }
+        // Same rule for the derived energy/COP capabilities, which have no register of their
+        // own: turn one off when the registers it is computed from didn't answer. Otherwise a
+        // pump whose power source register is absent (S320/S325, S330/S332, S2125 have no
+        // 2166) is paired carrying "Energy used", "Current power" and a COP that can never
+        // hold a value. Re-running detection via repair re-enables them if that changes.
+        if (Object.keys(samples).length) {
+            const support = extraCapabilitySupport(this.profile, role, (name) => samples[name]);
+            for (const name of extraCapabilities(this.profile, role, null))
+                if (support[name] === false)
+                    selection.overrides[name] = false;
         }
         const groupOrder = roleGroups[role] as GroupId[];
         const roleRegs = registersForRole(this.profile, role, selection)
@@ -410,6 +437,7 @@ export abstract class NibePumpDriver extends Driver {
         const orderedCaps = primary && caps.includes(primary)
             ? [primary, ...caps.filter((name) => name !== primary)]
             : caps;
+        this.logCapabilityMapping(role, orderedCaps, selection, samples);
         return {
             name: roleNames[role][language as 'en' | 'sv'] || roleNames[role].en,
             class: roleClass[role],
@@ -420,6 +448,52 @@ export abstract class NibePumpDriver extends Driver {
             capabilities: orderedCaps,
             capabilitiesOptions: options
         };
+    }
+
+    // What each capability on the device about to be created is actually reading, and what was
+    // left off and why. Most capabilities are one register and the name says so, but the
+    // derived ones — the energy pair and the COP sensors — have no register at all, and that
+    // is precisely where a pump that can't populate them looks identical to one that can.
+    private logCapabilityMapping(role: Role, caps: string[], selection: Selection,
+                                 samples: Record<string, RegisterSample>) {
+        if (!this.debugEnabled())
+            return;
+        const detail = (name: string): string => {
+            const register = this.profile.registerByName[name];
+            if (register) {
+                const probe = samples[name];
+                const state = !probe ? 'not sampled'
+                    : probe.read ? `read${probe.moved ? ', moved' : `, steady at ${probe.value ?? '?'}`}`
+                        : 'NO READ';
+                const kind = register.direction === Dir.In ? 'input' : 'holding';
+                return `${kind} ${register.address} (${state})`;
+            }
+            // The derived ones: name the registers they are computed from, since that is what
+            // determines whether they can ever hold a value.
+            const {powerSources, totalProductionRegister, totalConsumptionRegister} = this.profile.role;
+            const power = powerSources.flat().join(' | ') || 'none declared';
+            if (name === METER_CAPABILITY || name === ACTIVE_POWER_CAPABILITY)
+                return `derived by the energy allocator from power source ${power}`;
+            if (name === TOTAL_COP_CAPABILITY)
+                return `derived from ${totalProductionRegister} / ${totalConsumptionRegister}`;
+            if (name === FUNCTION_COP_CAPABILITY)
+                return `derived from ${this.profile.role.producedRegisterForRole[role]} `
+                    + `and the allocator's used energy (power source ${power})`;
+            return 'derived (no register)';
+        };
+
+        this.debug(`Pairing ${role}: ${caps.length} capabilities`);
+        for (const name of caps)
+            this.debug(`    ${name}  <-  ${detail(name)}`);
+        const off = Object.entries(selection.overrides ?? {})
+            .filter(([, enabled]) => !enabled)
+            .map(([name]) => name);
+        if (off.length)
+            this.debug(`  left off (nothing read during detection): ${off.join(', ')}`);
+        const groupsOff = Object.entries(selection.groups)
+            .filter(([, on]) => !on).map(([id]) => id);
+        if (groupsOff.length)
+            this.debug(`  feature groups not selected: ${groupsOff.join(', ')}`);
     }
 
     private roleDescription(role: Role): string {

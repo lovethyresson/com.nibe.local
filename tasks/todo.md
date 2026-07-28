@@ -170,3 +170,72 @@ All four rejection points fixed; validates at publish level.
 3. App image: NIBE S2125 lifestyle photo cropped to 10:7 (balanced framing).
 4. Driver image: NIBE S-Series family on white, fully distinct from the app image.
 Assets rasterized via headless Chrome (exact opaque dims) + sips downscale. Not committed / not published.
+
+---
+
+# S2125 / VVM S320 energy support + silent-failure visibility
+
+Plan: `~/.claude/plans/breezy-nibbling-zebra.md` (approved 2026-07-28)
+
+Trigger: forum report — S2125 + VVM S320, heating/hot water/cooling COP and "Energy used"
+never populate.
+
+Root cause: register 2166 "Instantaneous used power" was the only declared power source, and
+it does not exist on S320/S325, S330/S332 or S2125. `totalWatts()` returned null, so
+`allocateEnergy()` was skipped wholesale, `onEnergy` never fired, and every per-function meter
+and COP stayed empty — silently.
+
+- [x] A1. Per-register read-failure tracking scoped to app start, batched into one un-gated
+      line per poll, restated when debug logging is switched on afterwards
+- [x] A2. Un-gated log when no power source reads at all, naming registers and consequence
+- [x] A2b. `readRegisterRaw` now scores a short/empty value array as a failed read, not a zero
+- [x] B1. Audit: per-model coverage (app → CSV) + engine-critical register list
+- [x] B2. Audit: size-column parsing (both encodings) + declared-width cross-check
+- [x] B3. dev/README.md documents both, incl. the numeric size-code mapping
+- [x] C. Energy/COP extras gated per-capability on the registers each needs, overrides honoured
+      in `extraCapabilities` and preserved through `cleanSelection`
+- [x] D1. Register 2305 added as an `internal` register (new `Register.internal` flag)
+- [x] D2. `powerSources: string[][]` — ordered alternative groups, each summed, first that reads wins
+- [x] D3. Per-poll resolution in `totalWatts()` + source logged on change
+- [x] Debug log of capability → register mapping at pairing (incl. what the derived ones read)
+- [x] 56 tests pass, tsc clean, `homey app validate --level publish` green
+
+## Review
+
+**Probe settled the register choice.** 2727 "Current power" looked ideal on paper (all six
+models, right units) but reads a flat zero through a 3.3 kW compressor run on a live S1155 —
+it belongs to the EME 20 accessory. 2305 "Energy log – Current power consumption" tracks 2166
+and integrates to within 1.4% (0.1293 vs 0.1311 kWh over 5 min). It is an averaged value, so
+it lags on transients; that is fine for the allocator, which only uses the integral.
+
+**Detection now applies the lesson.** The power-source check is "answered **and** (moved or
+non-zero)", not just "answered" — 2727 would have passed the old test.
+
+**2305 is `internal`.** The allocator already republishes its power source as `measure_power`,
+so a visible capability would be a third copy of the same number on S1155.
+
+Not done / follow-ups:
+- Version bump + `.homeychangelog.json` entry (release decision, left to the maintainer).
+  Should mention re-pairing for S320/S2125 users and that register 195 "Hot water permitted"
+  is absent on S320/S325 and S2125, so those pumps get no Hot Water tile on/off.
+- `npm run lint` fails repo-wide on pre-existing style (4-space vs athom's 2); untouched files
+  fail identically. No new rule classes introduced by this change.
+- [x] Register widths corrected — the new audit check found seven registers declared 16-bit
+      that Nibe documents as 32-bit. All are now `size: 32` and the check reports none.
+
+      **1069** was the live risk: s32 with division factor 10, so its raw value counts
+      *tenths* of an hour and a 16-bit read wrapped at **6553.5 h**, not 65535 h — an order
+      of magnitude sooner than the sibling counters. The rest (11 degree minutes, 46/48/50
+      current sensors, 1091 compressor hot-water hours, 2166 instantaneous power) were latent
+      only: below 65536 the low word alone decodes identically, which is why nothing ever
+      surfaced. Declared anyway so the width check stays at zero and remains a usable
+      tripwire rather than permanent noise.
+
+      Safe because all seven are documented at the same width on every model that carries
+      them, and no neighbouring address is a separate register. 2166 read as 32-bit is also
+      empirically confirmed — `dev/probe-power.mjs` read it that way against the live S1155
+      and returned correct watts (43 W idle → 3308 W under load).
+
+      `reason.ts`'s `dm` input (address 11) was updated in step: it reads the same register
+      through a separate path, and leaving it 16-bit would have decoded it differently
+      depending on the route.

@@ -71,6 +71,13 @@ export interface Register  {
     // where you write 1 to acknowledge and it reads back 0). Never polled, and kept out
     // of the flow cards that report or toggle a readable state.
     writeOnly?: boolean;
+    // Engine infrastructure: polled and used by the connection (an energy allocator power
+    // source, say), but never exposed as a capability, offered in the features view, or
+    // expected in the compose file. Use this when a register's value already reaches the
+    // user by another route — the allocator republishes its power source as `measure_power`,
+    // so a fallback source would otherwise put a third copy of the same number on the tile.
+    // Still sampled by detection, which is what decides whether it is usable on this model.
+    internal?: boolean;
     min?: number;
     max?: number;
 }
@@ -155,8 +162,9 @@ export function buildPickerPrimary(registers: Register[]): Record<string, string
 }
 
 // Registers offered in the pairing/repair feature lists — one row per Modbus register.
+// Internal registers have no capability, so there is nothing to offer.
 export function isSelectableRegister(register: Register, pickerPrimary: Record<string, string>): boolean {
-    return !pickerPrimary[register.name];
+    return !pickerPrimary[register.name] && !register.internal;
 }
 
 export function isRegisterEnabled(

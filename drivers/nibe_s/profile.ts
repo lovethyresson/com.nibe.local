@@ -13,8 +13,13 @@ export const sProfile = makeProfile({
     role: {
         priorityRegisterName: "measure_enum_NIBE.i1028_priority",
         priorityRawOff: 10,
-        // S exposes a single whole-unit instantaneous power register (watts).
-        powerSources: ["measure_watt_NIBE.i2166_energy_usage"],
+        // Preferred first: 2166 is the instantaneous whole-unit draw, but it only exists on
+        // S1155/S1255, S1156/S1256 and S735. S320/S325, S330/S332 and S2125 fall through to
+        // the energy log's averaged reading — see the note on 2305 in registers.ts.
+        powerSources: [
+            ["measure_watt_NIBE.i2166_energy_usage"],
+            ["measure_watt_NIBE.i2305_energylog_power"]
+        ],
         totalProductionRegister: "meter_kwh_NIBE.i3821_total_production",
         totalConsumptionRegister: "meter_kwh_NIBE.i3823_total_consumption",
         producedRegisterForRole: {

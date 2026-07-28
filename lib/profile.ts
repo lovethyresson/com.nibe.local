@@ -21,11 +21,18 @@ export interface RoleConfig {
     priorityRegisterName?: string;
     priorityRawOff: number;
 
-    // Register name(s) whose values (watts) are summed each poll to get the pump's total
-    // instantaneous power, which the allocator integrates into per-function kWh. One register
-    // on S (whole-unit power); a derived sum on inverter F (compressor + electric addition);
-    // empty on fixed-speed F → the allocator is skipped and the energy/COP extras drop out.
-    powerSources: string[];
+    // How to read the pump's total instantaneous power (watts), which the allocator
+    // integrates into per-function kWh. Ordered list of *alternative* source groups: the
+    // registers within one group are summed (inverter F needs compressor + electric
+    // addition), and the first group that actually reads wins.
+    //
+    // Alternatives rather than one flat list because no single register works across the
+    // range: S1155/S1255, S1156/S1256 and S735 expose 2166, while S320/S325, S330/S332 and
+    // S2125 do not and must fall back to the energy log's 2305. A pump can carry both, so
+    // summing them all would double-count — hence "first group that reads", not "sum".
+    //
+    // Empty on fixed-speed F → the allocator is skipped and the energy/COP extras drop out.
+    powerSources: string[][];
 
     // Lifetime cumulative production/consumption counters feeding main's Total COP. Absent on
     // models that don't expose them → main carries no Total COP.
