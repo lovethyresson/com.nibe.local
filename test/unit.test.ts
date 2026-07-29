@@ -13,7 +13,7 @@ import {
 } from '../lib/roles';
 import type {Role} from '../lib/roles';
 import {sReason} from '../drivers/nibe_s/reason';
-import {recommendGroups, ProbeSamples} from '../lib/detection';
+import {buildDetectionResult, recommendGroups, ProbeSamples} from '../lib/detection';
 import {alarmAdvice, alarmDescription, alarmEntry} from '../lib/alarms';
 import alarmCodes from '../lib/alarm-codes.json';
 import {sProfile} from '../drivers/nibe_s/profile';
@@ -53,6 +53,30 @@ test('toNumericValue: sign + scale, no enum/bool mapping', () => {
     assert.equal(toNumericValue(reg(10), 65516), -2);
     assert.equal(toNumericValue(reg(), 42), 42);
     assert.equal(toNumericValue(reg(10, 32), 1439070), 143907);
+    // The "value not available" sentinel is a read that carried nothing, not a number. Decoded
+    // naively it becomes a plausible -3276.8, which is how unfitted sensors (BT70/BT82/BT83)
+    // used to survive detection and arrive as capabilities that render "-" forever.
+    assert.equal(toNumericValue(reg(10), 0x8000), undefined);
+    assert.equal(toNumericValue(reg(10, 32), 0x80000000), undefined);
+    // A 32-bit register whose value happens to be 0x8000 is a real reading, not the sentinel.
+    assert.equal(toNumericValue(reg(10, 32), 0x8000), 3276.8);
+});
+
+test('detection: a sensor answering "not available" does not count as read', () => {
+    // The hot water circulation accessory (BT70/BT82/BT83) is absent on most pumps. Its
+    // registers exist on the model, so the pump answers — with the sentinel. Detection must
+    // treat that as no data, or pairing hands the user capabilities that can never fill in.
+    const bt70 = 'measure_temperature.i87_outgoing_hotwater';
+    const bt82 = 'measure_temperature.i174_hw_comfort_return';
+    const bt83 = 'measure_temperature.i175_hw_comfort_heater';
+    for (const name of [bt70, bt82, bt83])
+        assert.ok(sProfile.registerByName[name], `${name} missing from the register table`);
+
+    // sampleRegisters skips undefined readings, so an all-sentinel register ends at reads: 0.
+    const sampled = probes({[bt70]: {reads: 0}});
+    assert.equal(sampled[bt70].reads, 0);
+    assert.equal(buildDetectionResult(sProfile, sampled).samples[bt70].read, false,
+        'an unavailable sensor must be reported as not read, so pairing drops it');
 });
 
 test('isAdjustable / isPollable', () => {

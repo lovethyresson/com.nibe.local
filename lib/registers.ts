@@ -119,7 +119,15 @@ export function isUnavailableRaw(raw: number, size?: number): boolean {
 // Convert a raw register value to a plain number (sign + scale only, no enum/bool
 // mapping) — used by detection sampling where only numeric movement and plausibility
 // matter.
-export function toNumericValue(register: Register, raw: number): number {
+export function toNumericValue(register: Register, raw: number): number | undefined {
+    // Nibe answers a read for a sensor that isn't fitted with the "value not available"
+    // sentinel rather than an error, so the read *succeeds* and carries nothing. Decoding it
+    // as a number yields a plausible-looking -3276.8 (0x8000 at scale 10), which is how the
+    // hot-water circulation sensors (BT70/BT82/BT83) survived detection and arrived as
+    // capabilities that render "-" forever: the runtime path checks the sentinel and the
+    // detection path did not. Undefined here means "did not read", which is the truth.
+    if (isUnavailableRaw(raw, register.size))
+        return undefined;
     const value = signedValue(raw, register.size);
     if (register.scale)
         return value / register.scale;

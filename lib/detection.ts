@@ -62,7 +62,15 @@ export async function readNumeric(
     return await ((register.direction === Dir.In)
         ? client.readInputRegisters(address, count)
         : client.readHoldingRegisters(address, count))
-        .then((resp: any) => toNumericValue(register, combineRaw(resp.response.body.values as number[], register.size)))
+        .then((resp: any) => {
+            const raw = combineRaw(resp.response.body.values as number[], register.size);
+            // A short or empty value array yields undefined (16-bit) or NaN (32-bit, missing
+            // high word). Like the not-available sentinel that toNumericValue screens out,
+            // that is a read which carried nothing — not a reading of zero.
+            if (raw === undefined || Number.isNaN(raw))
+                return undefined;
+            return toNumericValue(register, raw);
+        })
         .catch(() => undefined);
 }
 
