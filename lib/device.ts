@@ -1,5 +1,5 @@
 import {Device} from 'homey';
-import {Dir, Register, Selection, isUnavailableRaw, signedValue} from './registers';
+import {Dir, Register, Selection, isPollable, isUnavailableRaw, signedValue} from './registers';
 import {
     ACTIVE_POWER_CAPABILITY, ALARM_ACTIVE_CAPABILITY, ALARM_TEXT_CAPABILITY,
     FUNCTION_COP_CAPABILITY, METER_CAPABILITY,
@@ -495,7 +495,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.role === 'main' && this.hasCapability(PUMP_ACTIVE_CAPABILITY))
             this.setCapabilityValue(PUMP_ACTIVE_CAPABILITY, true).catch(this.error);
         if (this.role === 'main')
-            this.updatePumpInfo().catch(this.error);
+            this.updatePumpInfo()
+                .then(() => this.dumpRegisters('connected'))
+                .catch(this.error);
     }
 
     // Read the pump's identity once per connect and surface it to the read-only "Heat pump"
@@ -559,6 +561,67 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             + `decide which functions its own energy totals include.`);
     }
 
+    // A one-shot read of every register the model knows about, logged when debug logging is on.
+    //
+    // Nearly every problem in this app's history has been "the pump doesn't report what we
+    // assumed", and each one cost two or three round-trips with a user to establish something
+    // the pump could have said in one. This turns a support thread into a single report.
+    //
+    // Deliberately ignores the user's feature selection: what matters is what the *pump* can
+    // report, not what this device happens to display, and a register missing from the
+    // selection is exactly the kind of thing worth seeing.
+    //
+    // Raw and decoded values are both printed, because the decode is as likely to be wrong as
+    // the reading. Every decode bug found so far — the 0x8000 "not available" sentinel
+    // rendering as a plausible -3276.8, register 2727 sitting at zero while the compressor
+    // pulled 3.3 kW, 32-bit counters read as 16-bit — is obvious with both and invisible with
+    // only the decoded value.
+    private dumping = false;
+
+    async dumpRegisters(reason: string) {
+        // Main only. The debug setting is mirrored onto every device of the pump, so without
+        // this each of the five would dump and the pump would field 500 reads at once.
+        if (this.role !== 'main' || !this.connection || !this.debugEnabled() || this.dumping)
+            return;
+        this.dumping = true;
+        try {
+            const all = this.profile.registers.filter(isPollable);
+            const enabled = new Set(registersForRole(this.profile, this.role, this.getSelection())
+                .map((r) => r.name));
+            const byGroup = new Map<string, string[]>();
+            let answered = 0;
+            // Sequential rather than Promise.all: this runs alongside the poll loop, and a
+            // burst of 100 concurrent reads is a poor thing to do to a pump that permits one
+            // client. A hundred sequential reads take about a second.
+            for (const register of all) {
+                const raw = await this.connection.readRegisterRaw(register, false);
+                const value = raw === undefined ? undefined : this.fromRegisterValue(register, raw);
+                if (raw !== undefined)
+                    answered += 1;
+                const shown = raw === undefined ? 'no answer'
+                    : `${value === null ? 'n/a' : value} (raw ${raw})`;
+                // `internal` registers are engine infrastructure with no capability, so they
+                // are never "enabled" — say so rather than implying the user switched them off.
+                const mark = register.internal ? ' [internal]'
+                    : enabled.has(register.name) ? '' : ' [off]';
+                const list = byGroup.get(register.group) ?? [];
+                list.push(`${register.address} ${register.name}=${shown}${mark}`);
+                byGroup.set(register.group, list);
+            }
+            // Grouped into a dozen long lines rather than a hundred short ones: a diagnostic
+            // report is a rolling buffer of unknown size, and fewer lines survive it better.
+            this.log(`Register dump (${reason}) — ${answered}/${all.length} answered. `
+                + `Every register this model knows, ignoring the feature selection; `
+                + `[off] marks one this device is not currently showing.`);
+            for (const [group, lines] of byGroup)
+                this.log(`  ${group}: ${lines.join(' | ')}`);
+        } catch (error) {
+            this.error('Register dump failed', error);
+        } finally {
+            this.dumping = false;
+        }
+    }
+
     onConnectionDown() {
         this.setUnavailable().catch(this.error);
     }
@@ -601,6 +664,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             // covers the whole pump, and refresh the shared connection's own verbosity.
             this.syncToSiblings('debugLogging', on).catch(this.error);
             this.connection?.refreshDebug();
+            // Dump again on enable, not only at connect. A diagnostic report is a rolling
+            // buffer, so a dump written at startup is the first thing an hour of debug output
+            // pushes out — toggling debug off and on just before submitting puts a fresh one
+            // at the end, where a tail keeps it.
+            if (on)
+                this.dumpRegisters('debug logging enabled').catch(this.error);
         }
         if (changedKeys.includes('address')) {
             this.log(`Address changed to ${newSettings.address}, reconnecting`);

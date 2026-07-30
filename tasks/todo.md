@@ -238,6 +238,24 @@ measurable rather than guessed.
 - [ ] Rough magnitude of the error, and his exact model (the log says 2166 and 1100 absent,
       so S320/S325, S330/S332 or S2125).
 
+## 0.9.11 — register dump on debug (shipped)
+
+Turning on Debug logging now dumps every register the model knows: raw and decoded, including
+ones the feature selection has switched off. The pattern this fixes is that nearly every bug so
+far was "the pump doesn't report what we assumed", and each cost two or three round-trips with
+a user to establish something the pump could have said once.
+
+Decisions worth keeping: Main only (the debug setting mirrors onto all five devices, so
+otherwise the pump fields 500 concurrent reads); sequential reads, ~1 s for 101 registers, on a
+pump that permits a single client; grouped into ~13 long lines rather than 101 short ones; and
+emitted **both** at connect and on debug-enable, because a diagnostic report is a rolling
+buffer of undocumented size and a dump written at startup is the first thing an hour of debug
+output pushes out.
+
+- [ ] **Unverified:** Homey does not document any size/line/time limit on diagnostic reports —
+      checked the SDK full-text export, the sitemap and the community threads. Send yourself a
+      report from the S1155 with debug on and confirm the dump arrives intact and where it sits.
+
 ## Also in 0.9.10
 
 - [x] Un-gate the two silent-misattribution warnings — `logUnknownPriority` and

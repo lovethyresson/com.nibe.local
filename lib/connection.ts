@@ -452,7 +452,12 @@ export class PumpConnection {
         return this.profile.addressBase ? register.address - this.profile.addressBase : register.address;
     }
 
-    async readRegisterRaw(register: Register): Promise<number | undefined> {
+    // `track` records the outcome for the read-failure report. Pass false for deliberate
+    // one-off probes of registers the poll loop never touches — the register dump reads the
+    // whole table, and its misses are the expected answer to a question we chose to ask, not
+    // faults. Without this a dump adds a second "N registers did not read" line naming things
+    // the dump has already printed as "no answer", which reads like new breakage.
+    async readRegisterRaw(register: Register, track = true): Promise<number | undefined> {
         const count = register.size === 32 ? 2 : 1;
         const address = this.pduAddress(register);
         return await ((register.direction === Dir.In)
@@ -464,14 +469,14 @@ export class PumpConnection {
                 // array yields undefined (16-bit) or NaN (32-bit, missing high word). That is
                 // a failed read, not a reading of zero, and must not be scored as a success.
                 if (raw === undefined || Number.isNaN(raw)) {
-                    this.noteRead(register, false);
+                    if (track) this.noteRead(register, false);
                     return undefined;
                 }
-                this.noteRead(register, true);
+                if (track) this.noteRead(register, true);
                 return raw;
             })
             .catch(() => {
-                this.noteRead(register, false);
+                if (track) this.noteRead(register, false);
                 return undefined;
             });
     }
