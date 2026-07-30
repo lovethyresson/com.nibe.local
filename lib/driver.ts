@@ -240,6 +240,28 @@ export abstract class NibePumpDriver extends Driver {
             (args: any, state: any) => args.register.id === state.register.id && !state.value);
     }
 
+    // Capabilities this pump cannot populate, according to a fresh detection pass: registers
+    // that did not answer, plus the derived energy/COP extras whose sources didn't.
+    //
+    // Pairing reaches the same conclusion server-side in deviceTemplate(). Repair cannot: its
+    // checkboxes start from the device's *stored* selection, which was decided by an earlier
+    // detection pass — so without this, a correction to detection could never reach a device
+    // that already exists, and a capability wrongly added once stayed forever.
+    private unsupportedCapabilities(role: Role, detection: DetectionResult): string[] {
+        const names = roleRegisters(this.profile, role)
+            .filter((register) => register.group !== 'core'
+                && isSelectableRegister(register, this.profile.pickerPrimary)
+                && detection.samples[register.name]
+                && !detection.samples[register.name].read)
+            .map((register) => register.name);
+        const support = extraCapabilitySupport(this.profile, role,
+            (name) => detection.samples[name]);
+        for (const name of extraCapabilities(this.profile, role, null))
+            if (support[name] === false)
+                names.push(name);
+        return names;
+    }
+
     private groupInfo(role?: Role) {
         const language = this.homey.i18n.getLanguage();
         const title = (name: string) => {
@@ -705,7 +727,15 @@ export abstract class NibePumpDriver extends Driver {
             return true;
         });
 
-        session.setHandler('get_detection', async () => detection);
+        // Repair hands the view the unsupported list alongside the samples, so a register the
+        // pump has just told us it cannot report arrives unticked rather than pre-checked
+        // purely because it is already on the device.
+        session.setHandler('get_detection', async () => {
+            const result = detection as DetectionResult | null;
+            return result
+                ? {...result, unsupported: this.unsupportedCapabilities(role, result)}
+                : null;
+        });
 
         session.setHandler('selection_done', async (raw) => {
             const selection = this.cleanSelection(raw);

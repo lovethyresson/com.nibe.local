@@ -52,7 +52,8 @@
     },
     "badge": {
       "adjustable": "Adjustable",
-      "insight": "Insight only"
+      "insight": "Insight only",
+      "nodata": "No data"
     },
     "discover": {
       "searching": "Searching your network for Nibe heat pumps…",
@@ -76,7 +77,8 @@
       "main_desc": "Overview: outdoor temperature, operating priority and mode, plus diagnostics and statistics",
       "energy": "Energy"
     },
-    "not_settable": "This reflects the heat pump's operating priority and cannot be switched."
+    "not_settable": "This reflects the heat pump's operating priority and cannot be switched.",
+    "nodata_hint": "This pump did not report a value for this during the check. Turning it on will add a field that stays empty."
   },
   "groups": {
     "heating": "Heating",

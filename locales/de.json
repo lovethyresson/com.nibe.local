@@ -52,7 +52,8 @@
     },
     "badge": {
       "adjustable": "Einstellbar",
-      "insight": "Nur Anzeige"
+      "insight": "Nur Anzeige",
+      "nodata": "Keine Daten"
     },
     "discover": {
       "searching": "Das Netzwerk wird nach NIBE Wärmepumpen durchsucht …",
@@ -76,7 +77,8 @@
       "main_desc": "Übersicht: Außentemperatur, Betriebspriorität und Betriebsmodus sowie Diagnose und Statistik",
       "energy": "Energie"
     },
-    "not_settable": "Dies zeigt die Betriebspriorität der Wärmepumpe und kann nicht geschaltet werden."
+    "not_settable": "Dies zeigt die Betriebspriorität der Wärmepumpe und kann nicht geschaltet werden.",
+    "nodata_hint": "Diese Wärmepumpe hat bei der Prüfung keinen Wert dafür gemeldet. Wenn Sie es aktivieren, erhalten Sie ein Feld, das leer bleibt."
   },
   "groups": {
     "heating": "Heizung",

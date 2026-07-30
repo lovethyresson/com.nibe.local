@@ -19,10 +19,24 @@ function groupChecked(group) {
     return true;
 }
 
+function unsupported(register) {
+    return !!(detection && detection.unsupported
+        && detection.unsupported.indexOf(register.name) !== -1);
+}
+
 function registerChecked(group, register, checked) {
     var overrides = context.selection && context.selection.overrides;
+    // An explicit stored override is a deliberate choice the user made last time, so it wins
+    // outright. cleanSelection() only records an override when it *differs* from its group,
+    // so its presence really does mean "the user decided this one", not "this was the default".
     if (overrides && typeof overrides[register.name] === 'boolean')
         return overrides[register.name];
+    // Otherwise a fresh detection pass may veto: a register the pump did not answer for
+    // cannot ever hold a value, so don't pre-tick it just because its group is on. Repair
+    // starts from the stored selection, so without this a capability added before detection
+    // knew better would stay ticked and be re-applied every time.
+    if (checked && unsupported(register))
+        return false;
     return checked;
 }
 
@@ -87,6 +101,14 @@ function render() {
             badge.className = 'badge ' + (register.adjustable ? 'badge-adjustable' : 'badge-insight');
             badge.textContent = Homey.__(register.adjustable ? 'pair.badge.adjustable' : 'pair.badge.insight');
             regLabel.appendChild(badge);
+
+            // Say why a box arrived unticked, rather than letting it look like a glitch.
+            if (unsupported(register)) {
+                var noData = document.createElement('span');
+                noData.className = 'badge badge-nodata';
+                noData.textContent = Homey.__('pair.devices.notdetected');
+                regLabel.appendChild(noData);
+            }
 
             if (register.description) {
                 var desc = document.createElement('div');

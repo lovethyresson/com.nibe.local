@@ -52,7 +52,8 @@
     },
     "badge": {
       "adjustable": "Instelbaar",
-      "insight": "Alleen weergave"
+      "insight": "Alleen weergave",
+      "nodata": "Geen data"
     },
     "discover": {
       "searching": "Je netwerk wordt doorzocht op NIBE warmtepompen…",
@@ -76,7 +77,8 @@
       "main_desc": "Overzicht: buitentemperatuur, bedrijfsprioriteit en bedrijfsstand, plus diagnose en statistieken",
       "energy": "Energie"
     },
-    "not_settable": "Dit toont de bedrijfsprioriteit van de warmtepomp en kan niet worden geschakeld."
+    "not_settable": "Dit toont de bedrijfsprioriteit van de warmtepomp en kan niet worden geschakeld.",
+    "nodata_hint": "Deze warmtepomp gaf hiervoor geen waarde door tijdens de controle. Als je dit aanzet, krijg je een veld dat leeg blijft."
   },
   "groups": {
     "heating": "Verwarming",

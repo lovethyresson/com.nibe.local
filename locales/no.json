@@ -52,7 +52,8 @@
     },
     "badge": {
       "adjustable": "Justerbar",
-      "insight": "Kun visning"
+      "insight": "Kun visning",
+      "nodata": "Ingen data"
     },
     "discover": {
       "searching": "Søker i nettverket etter NIBE varmepumper …",
@@ -76,7 +77,8 @@
       "main_desc": "Oversikt: utetemperatur, driftsprioritering og driftsmodus, samt diagnostikk og statistikk",
       "energy": "Energi"
     },
-    "not_settable": "Dette viser varmepumpens driftsprioritering og kan ikke styres."
+    "not_settable": "Dette viser varmepumpens driftsprioritering og kan ikke styres.",
+    "nodata_hint": "Varmepumpen rapporterte ingen verdi for dette under kontrollen. Slår du det på, får du et felt som forblir tomt."
   },
   "groups": {
     "heating": "Varme",
