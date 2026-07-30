@@ -19,7 +19,18 @@ Plan: `~/.claude/plans/i-d-like-a-review-hidden-pony.md` (approved 2026-07-23)
 - [ ] 1d GATE (live): **needs user** — `homey app run` on S1155 @ 10.136.1.93; confirm 5 role devices, polling, energy/COP, a flow, repair
 - note: `npm run lint` is a pre-existing dead signal on this repo (athom config not wired to TS parser — fails on untouched app.ts too); not a Phase 1 blocker
 
-## Phase 2 — Add `nibe_f` driver (after gate)
+## Phase 2 — Add `nibe_f` driver — PAUSED, and expect to re-plan rather than resume
+
+Parked deliberately (2026-07-30): S-series comes first, and it is not finished — per-function
+attribution is still wrong on split models (see 0.9.10/0.9.11 below). When F does come back it
+should start from a fresh plan rather than this checklist. The engine has moved a long way
+since this was written — ordered power-source fallbacks, detection that requires a register to
+be *usable* and not merely present, per-capability support gating, the register dump — and the
+F design was drawn up before any of that existed. The `feature/nibe-f-series` branch has been
+deleted; its Phase 1 work (the `lib/` extraction) is all in main, so nothing is lost.
+
+The items below are kept as a record of what was intended, not as a plan to pick up:
+
 - [ ] 2a. F register table + profile + compose + pair/repair + locales + assets
 - [ ] 2b. Energy/COP: native produced meters + summed powerSources; fixed-speed degrade
 - [ ] 2c. Generalize `dev/audit-registers.mjs` to both tables
