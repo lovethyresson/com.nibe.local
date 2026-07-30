@@ -615,3 +615,27 @@ test('reason inputs are synthetic names, kept out of every capability path', () 
             `${synthetic} must not appear in the register table`);
     }
 });
+
+test('energy-log inclusion settings are declared, and are diagnostics rather than capabilities', () => {
+    // Whether cooling or hot water counts toward the pump's own energy totals is a setting on
+    // the pump (Nibe: eMbHolding_eU8EnergyLogSettingsInc*), so two identical models can report
+    // different totals. The app reads these once per connect and logs them, because a support
+    // log showing the energy figures without them cannot explain the figures.
+    const settings = sProfile.energyLogSettings ?? [];
+    const byLabel = Object.fromEntries(settings.map((s) => [s.label, s.address]));
+    assert.equal(byLabel['cooling'], 3095, 'IncCooling is the one that explains cooling totals');
+    assert.equal(byLabel['pool 1'], 3093);
+    // Only flags some S-model actually exposes belong here. IncHW (3092) and IncPool2 (3094)
+    // are in Nibe's master symbol list but on none of the six S-series maps, so listing them
+    // would add a permanent "unavailable" to every log line and tell nobody anything.
+    assert.equal(settings.length, 2, 'do not list flags no S-model exposes');
+
+    for (const setting of settings) {
+        // Never a capability: no register may claim these addresses, or they would show on a
+        // tile and be offered during pairing.
+        assert.ok(!registers.some((r) => r.address === setting.address),
+            `${setting.label} (${setting.address}) must not be in the register table`);
+        assert.ok(!sProfile.compose.capabilities.some((c) => c.includes(String(setting.address))),
+            `${setting.label} (${setting.address}) must not be a capability`);
+    }
+});

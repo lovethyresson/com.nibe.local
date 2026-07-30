@@ -575,11 +575,18 @@ export class PumpConnection {
             });
     }
 
+    // A priority code the model doesn't map means this pump is producing something the app
+    // cannot name, and every watt of it is charged to Main as standby. That is a functional
+    // fault — the user sees idle energy climbing while their heating or hot water device sits
+    // near zero — so it is logged un-gated, like a missing power source. Once per code.
     private logUnknownPriority(raw: number) {
         if (this.loggedUnknownPriority.has(raw))
             return;
         this.loggedUnknownPriority.add(raw);
-        this.debug(`Unknown priority value ${raw}, charging its energy to Main (standby)`);
+        const known = Object.entries(this.profile.role.priorityToRole)
+            .map(([code, role]) => `${code}=${role}`).join(', ');
+        this.log(`Unknown operating-priority value ${raw} — its energy is being charged to Main `
+            + `(idle), so per-function energy will read low. Known codes for this model: ${known}.`);
     }
 
     // The pump is producing <role> but no device of that role is attached, so its draw is
@@ -590,7 +597,10 @@ export class PumpConnection {
         if (now - (this.lastMissingRoleWarn.get(role) ?? 0) < 5 * 60 * 1000)
             return;
         this.lastMissingRoleWarn.set(role, now);
-        this.debug(`No '${role}' device attached; charging its ${watts}W draw to Main (idle) `
+        // Un-gated for the same reason as an unknown priority code: the visible symptom is
+        // idle energy climbing while a function device reads near zero, and nothing else in
+        // the log would say why.
+        this.log(`No '${role}' device attached; charging its ${watts}W draw to Main (idle) `
             + `instead — energy misattributed. Is the ${role} device paired and available?`);
     }
 

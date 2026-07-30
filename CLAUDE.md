@@ -13,12 +13,28 @@ cumulative energy consumption added. Homey SDK v3, written in TypeScript.
 
 - `npm run build` — compile TypeScript (`tsc`).
 - `npm run lint` — ESLint over `.js`/`.ts` using the `athom` config (`eslint-config-athom`).
+- `npm test` — `node --test` over `test/*.test.ts` via `tsx`. Unit tests for the decode helpers, register-table
+  invariants, role/selection logic and the alarm tables, plus integration tests that run the real
+  `PumpConnection` against an in-process `jsmodbus` fake pump (`test/integration.modbus.test.ts`). The fake pump
+  can be given a bounded address space so reads past the edge behave like a register a model doesn't have.
 - `homey app run` — run the app on a local/linked Homey for live testing (requires the `homey` CLI, `npm i -g homey`,
-  and `homey login`). This project has no automated test suite; verification is manual via `homey app run` against a
-  real or virtual Nibe device.
+  and `homey login`). Tests cover the logic; anything about a *real* pump's register behaviour still has to be
+  verified against hardware.
 - `homey app validate` — validate `app.json`/compose files before publishing.
 
-There is no test framework configured in this repo.
+`npm run lint` fails repo-wide on pre-existing style (the codebase is 4-space, `eslint-config-athom` wants 2);
+untouched files fail identically, so it is not a useful signal on a change.
+
+### Releasing
+
+Four things move together, and the last one is easy to forget:
+
+1. `version` in `.homeycompose/app.json` **and** `package.json`.
+2. `homey app build` to regenerate `app.json` (never hand-edit its version).
+3. A user-facing entry in `.homeychangelog.json` — English and Swedish, written for a pump owner, not a developer.
+4. A row in the **Releases** table in `README.md` — the engineering view: what changed and why it mattered.
+
+Verify with `npm test`, `npx homey app validate --level publish`.
 
 ## Architecture
 

@@ -128,6 +128,17 @@ export interface ModelProfile {
     // omitted on models where they aren't known → the info step is skipped.
     pumpInfo?: {typeAddress?: number; firmwareAddress?: number};
 
+    // Pump-side settings that change what the energy figures MEAN rather than what they are,
+    // read once per connect and logged. Never capabilities — nobody wants to see these on a
+    // tile, but without them a support log cannot explain the numbers above it.
+    //
+    // The S-series energy log has per-function *inclusion* flags (Nibe's own symbol names are
+    // `eMbHolding_eU8EnergyLogSettingsIncCooling` and friends), so whether cooling or hot
+    // water counts toward the pump's own totals is configured on the pump. Two identical
+    // models can therefore report different totals, and the CSVs give these addresses no
+    // title at all — they appear only as `id:12391` — so there is no chance of guessing them.
+    energyLogSettings?: {label: string; address: number}[];
+
     // The register carrying the pump's alarm *number*, plus WHICH numbering scheme it uses.
     // S and F number their alarms differently (the same code means different things), so the
     // series must be named explicitly — see lib/alarms.ts. When set, the main device gains a

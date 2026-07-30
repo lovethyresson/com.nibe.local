@@ -308,6 +308,28 @@ Main is always on — the pump has no whole-unit on/off; its equivalent is the *
 - Changing settings affects a live heating system. The changes are the same ones available in the MyUplink
   app, but be careful when automating them. Provided as-is, with no warranty.
 
+## Releases
+
+Newest first. The user-facing wording lives in `.homeychangelog.json` (shown in the Homey app store);
+this table is the engineering view — what changed and, where it matters, why.
+
+| Version | Highlights |
+|---|---|
+| **0.9.10** | Diagnostics for energy that looks wrong. An operating-priority code the model doesn't map, or a function whose device isn't paired, silently booked that function's electricity as idle on Main — both are now logged plainly instead of only under debug. On models that expose it, the pump's energy-log inclusion settings (menu 3.1) are reported, since they're configured on the pump and change what the totals mean. Optional lookups (firmware, those settings) no longer masquerade as failed registers. Store description shortened per Homey app review. |
+| **0.9.9** | Per-function energy and COP on the split models. Register 2166 doesn't exist on S320/S325, S330/S332 or S2125, so the allocator was skipped wholesale and every per-function meter and COP stayed empty in silence. Power sources became an ordered fallback list (2166 → 2305, first that reads wins, never summed). Read failures and missing power sources are logged; detection learned that a register *answering* isn't a register *working*; repair lets a fresh detection pass un-tick capabilities; seven registers documented as 32-bit were being read as 16-bit. |
+| **0.9.8** | Alarms in plain language with NIBE's own cause/action text, an Alarms settings page and an "alarm occurred" trigger. Each device's on/off became its "Allow" function; Main pinned on. Debug-logging switch. Operating-priority-changed trigger with a plain-language reason. **Breaking — re-pair required.** |
+| **0.9.7** | Fixed idle-energy misattribution: a device whose capability setup threw in `onInit` never subscribed to the pump, so the allocator charged its draw to Main. |
+| **0.9.6** | New app icon and store imagery after the v0.9.5 store rejection, plus a refreshed pairing flow (animated search/detection icons, NIBE-red progress bars). |
+| **0.9.5** | Hot water on/off and per-mode start/stop temperatures. Idle draw tracked as standby energy on Main, so per-function COP stops absorbing it. Write errors surfaced to the user instead of swallowed. |
+| **0.9.4** | Pairing logic rewritten. PV/Solar support, per-function produced energy, and rolling 30-day COP per device — the release that made the energy features real. |
+| **0.9.3** | Polling frequency exposed in advanced settings. |
+| **0.9.2** | Fixed images. |
+| **0.9.1** | New app name, fixed icons. |
+| **0.9.0** | First release on the Homey App Store. |
+
+> **Keep this current.** Add a row here as part of every release, alongside the version bump in
+> `.homeycompose/app.json` + `package.json` and the user-facing entry in `.homeychangelog.json`.
+
 ## Credits
 
 - Original app: [Jan Sparud](https://github.com/sparud).

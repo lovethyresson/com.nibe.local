@@ -505,11 +505,18 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (!this.connection || !this.profile.pumpInfo)
             return;
         const {typeAddress, firmwareAddress} = this.profile.pumpInfo;
+        // Synthetic `__` names: these are optional one-shot info reads, not capabilities, and
+        // a model that doesn't publish them is normal. The prefix keeps them out of the
+        // read-failure report (which otherwise announced them as broken registers, and printed
+        // the address twice — "1496 @1496" — because an unnamed register is keyed by address).
         const type = typeAddress === undefined ? undefined
-            : await this.connection.readRegisterRaw({address: typeAddress, direction: Dir.In} as Register);
+            : await this.connection.readRegisterRaw(
+                {address: typeAddress, name: '__pumpinfo.type', direction: Dir.In} as Register);
         const firmware = firmwareAddress === undefined ? undefined
-            : await this.connection.readRegisterRaw({address: firmwareAddress, direction: Dir.In} as Register);
+            : await this.connection.readRegisterRaw(
+                {address: firmwareAddress, name: '__pumpinfo.firmware', direction: Dir.In} as Register);
         this.debug(`Pump info: heat-pump type ${type ?? '?'}, firmware ${firmware ?? '?'}`);
+        await this.logEnergyLogSettings();
         const info: {firmware?: string; heatpump_type?: string} = {};
         if (typeof firmware === 'number')
             info.firmware = String(firmware);
@@ -520,6 +527,36 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         for (const device of this.driver.getDevices() as any[])
             if (device.getSettings?.().address === this.host())
                 await device.setSettings(info).catch(this.error);
+    }
+
+    // Which functions the pump counts toward its own energy log and totals. This is a setting
+    // on the pump, not a property of the model, so the same figures can mean different things
+    // on two identical units — and a support log that shows the numbers without showing this
+    // cannot explain them. Read once per connect alongside the model info.
+    //
+    // Absence is expected and model-dependent (cooling exists on S320/S2125 but not S1155), so
+    // a register that doesn't answer reports as "n/a" rather than being treated as a fault.
+    private async logEnergyLogSettings() {
+        const settings = this.profile.energyLogSettings;
+        if (!this.connection || !settings?.length)
+            return;
+        const parts: string[] = [];
+        for (const setting of settings) {
+            const raw = await this.connection.readRegisterRaw({
+                address: setting.address,
+                name: `__energylog.${setting.label}`,
+                direction: Dir.Out
+            } as Register);
+            if (raw !== undefined)
+                parts.push(`${setting.label}=${raw ? 'yes' : 'NO'}`);
+        }
+        // Most models expose none of these (only S320/S325 and S1156/S1256 have the pool flag,
+        // only S320/S325 and S2125 the cooling one), and a line reading "n/a, n/a, n/a, n/a" on
+        // every startup would be pure noise. Say nothing rather than nothing at length.
+        if (!parts.length)
+            return;
+        this.debug(`Energy log counts: ${parts.join(', ')} — pump settings (menu 3.1) that `
+            + `decide which functions its own energy totals include.`);
     }
 
     onConnectionDown() {
