@@ -147,6 +147,18 @@ with no heating demand), so "idle" is not a separate bucket in the pump's own ac
 The classifier has been corrected to tell a bucket from a previous-hour report by whether the
 value changes *during* the hour, not merely whether it drops at `:00`.
 
+### Cross-confirmed on a second model — Nibe S735 (external, 2026-08-01)
+
+Independent verification on a Nibe **S735** (Henrik's rig — same pump on Modbus + MyUplink). Full
+write-up: [`s735-energylog-verification.md`](s735-energylog-verification.md).
+- Block present; `2291`/`2293`/`2285` classify **PREVIOUS HOUR**; pool/cooling absent (as on S1155).
+- Per-function *used* validated on a **1.24 kWh** boost-forced hot-water cycle — matched the
+  live-power integral, `produced`-vs-Δ`3821`, and a sane COP (2.86). Standby-into-heating confirmed.
+- **New caveat:** `3821`/`3823` were found to **lag** the per-function `:00` publication — see the
+  idle-subtraction step below.
+- Method worth reusing: **hot-water boost overrides Smart Price Adaptation**, so a cycle can be
+  forced on demand instead of waiting for a natural one (or for Erik).
+
 ## Design that follows
 
 Per-function **used** energy comes from the log, counted on each hourly step; **not** from the
@@ -161,6 +173,14 @@ because it is the pump's own arithmetic.
 - [ ] Main's idle energy becomes Δ3823 minus the sum of the per-function figures, so the whole
       set reconciles with the pump by construction. Note the standby-in-heating finding above
       before assuming idle should be non-zero.
+      ⚠️ **S735 caveat (2026-08-01):** `3821`/`3823` do **not** advance in lockstep with the
+      per-function `:00` step. On a verified 1.24 kWh cycle the boundary-sampled Δ`3823` was only
+      0.10 kWh (this subtraction would compute *negative* idle), yet the window totals reconciled —
+      the counters register the completed cycle's energy late/out of phase with the log. Count
+      `3823` on *its own* settling, not the shared boundary. See
+      [`s735-energylog-verification.md`](s735-energylog-verification.md).
+- [ ] Characterise `3821`/`3823` update timing vs the per-function `:00` step before building
+      idle-by-subtraction — log the counters per-sample across a cycle + boundary (S735 shows a lag).
 - [ ] Keep the allocator for models where the block does not read; gate on it via the existing
       `extraCapabilitySupport` machinery.
 - [ ] Per-function energy now updates once an hour, up to an hour late. Fine for a cumulative
