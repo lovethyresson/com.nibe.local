@@ -210,10 +210,23 @@ export const registers: Register[] = [
     // moved 1.00 kWh for the entire unit.
     //
     // CRITICAL: these report the PREVIOUS COMPLETED HOUR. They are static within the hour and
-    // step at :00 — verified on a live S1155, where 2293 sat at 0.00 right through a hot-water
-    // cycle, jumped to 1.99 at 08:00, held 1.99 for 59 minutes, then stepped to 0.13 at 09:00.
-    // Count the value when it steps; never difference it within the hour. There is no
-    // current-hour variant on any S model.
+    // step at :00, so count the value when it steps and never difference it within the hour.
+    //
+    // The evidence, and its limits. On a live S1155: 2293 sat at 0.00 right through a hot-water
+    // cycle, jumped to 1.99 at 08:00, held 1.99 for 59 minutes, then stepped to 0.13 at 09:00 —
+    // sampled every 30 s. A later 3.5 h run polling every 5 s saw steps only at 10:00:13,
+    // 11:00:11 and 12:00:09. Since the step logging is change-driven rather than scheduled, a
+    // mid-hour update would have been logged with a mid-hour timestamp; none was.
+    //
+    // But that is one pump, one model, one cycle, and only four of these registers have ever
+    // been *seen* to step (2283/2285/2291/2293). The additional-heat pair read a flat zero
+    // throughout, and cooling/pool never answered at all, so their cadence is unobserved. The
+    // change-driven logging keeps testing this claim for free: anything stepping at a timestamp
+    // that is not :00 will say so.
+    //
+    // Separately established, and firmer: there is no current-HOUR variant. Every title
+    // containing "hour" across all six model maps says "past hour", and Nibe's published symbol
+    // list has no input registers in this range at all.
     //
     // Nibe's published register list has no input registers in this range at all (it predates
     // the block, as it predates 3821/3823), so the CSV titles and live observation are all the

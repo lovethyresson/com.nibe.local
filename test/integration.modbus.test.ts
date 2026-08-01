@@ -647,7 +647,7 @@ test('internal registers are polled even though no subscriber wants them, and st
     }
 });
 
-test('the meter is steered onto the pump\'s hourly figure without ever going backwards',
+test('each function is handed the pump\'s own hourly figure, without the meter being touched',
      {timeout: 40000}, async () => {
     // The allocator is good at *when* and bad at *how much* — measured crediting hot water with
     // 1.37 kWh on a day the pump's own counter moved 1.00 kWh for the whole unit. The pump's
@@ -699,13 +699,11 @@ test('the meter is steered onto the pump\'s hourly figure without ever going bac
             assert.equal(hw.hours[hw.hours.length - 1].used, 0.40,
                 'and it must be that role\'s own kWh for the hour, straight from the pump');
 
-            // The meter itself must only ever move forward, whatever the correction does.
-            let previous = -1;
-            for (const e of hw.energy) {
+            // Observation only: the meter must be untouched by this. Every increment stays
+            // non-negative and nothing scales it, because the size of the attribution error is
+            // still being measured rather than corrected.
+            for (const e of hw.energy)
                 assert.ok(e.kwh >= 0, `a negative increment (${e.kwh}) would rewind the meter`);
-                previous = e.kwh;
-            }
-            assert.ok(previous >= 0);
         } finally {
             connection.shutdown();
         }

@@ -681,6 +681,7 @@ export class PumpConnection {
             if (main && pending && dUsed !== undefined)
                 main.onEnergyLogHour?.(Math.max(0, dUsed - pending.used), undefined);
 
+            this.hourAllocation.clear();
             this.pendingSplit = {
                 hour,
                 used: sumOf((label) => label.includes('used') || label.startsWith('add.heat')),
@@ -688,6 +689,36 @@ export class PumpConnection {
             };
             this.totalsAtLastStep = {produced, used};
         }
+    }
+
+    // ---- Within-hour attribution trace (diagnostic only) ---------------------------------
+    // The hourly comparison against the pump's own books gives the SIZE of any attribution
+    // error. It cannot give the mechanism, and the candidates need opposite fixes: excess
+    // accrued during the compressor cycle points at the allocator charging overheads (pumps,
+    // fans, electronics) to whichever function is prioritised, while excess accrued during idle
+    // points at standby being charged to a function instead of Main, and excess at transitions
+    // points at lag. A single endpoint per hour cannot tell those apart.
+    //
+    // So trace where the hour's energy accrues — but only while the pump is actually drawing,
+    // which is where the question lives and which keeps an idle night near-silent.
+    private static readonly TRACE_INTERVAL_MS = 5 * 60 * 1000;
+    private static readonly TRACE_MIN_WATTS = 100;
+    private hourAllocation = new Map<Role, number>();
+    private lastTraceAt = 0;
+
+    private traceAllocation(role: Role, delta: number, watts: number) {
+        if (delta > 0)
+            this.hourAllocation.set(role, (this.hourAllocation.get(role) ?? 0) + delta);
+        const now = Date.now();
+        if (watts < PumpConnection.TRACE_MIN_WATTS
+            || now - this.lastTraceAt < PumpConnection.TRACE_INTERVAL_MS)
+            return;
+        this.lastTraceAt = now;
+        const split = [...this.hourAllocation.entries()]
+            .filter(([, kwh]) => kwh > 0.001)
+            .map(([r, kwh]) => `${r} ${kwh.toFixed(3)}`).join(', ') || 'nothing yet';
+        this.debug(`Attribution so far this hour: ${split} kWh — drawing ${watts} W right now, `
+            + `charged to ${role}.`);
     }
 
     private energySubscribers(): PumpSubscriber[] {
@@ -885,6 +916,8 @@ export class PumpConnection {
                 else
                     subscriber.onEnergy?.(0, 0);
             }
+            if (activeRole)
+                this.traceAllocation(activeRole, delta, watts);
 
             if (!target && delta > 0)
                 this.debug(`No device for role ${role} (or Main fallback); dropping ${delta.toFixed(5)} kWh`);
