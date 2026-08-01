@@ -605,7 +605,17 @@ test('internal registers are polled even though no subscriber wants them, and st
             assert.ok(!logs.some((l) => l.includes('the pump\'s own figures')),
                 'the first reading is a baseline and must not be reported as a step');
 
-            // Now the hour rolls over.
+            // The first step aligns the counters on a real :00 boundary and is not reported:
+            // the app connected part-way through that hour, so the pump's figure and the
+            // counter delta would cover different spans.
+            seed(pump.input, 702, 50, 32);
+            await new Promise((r) => setTimeout(r, 7000));
+            assert.ok(logs.some((l) => l.includes('stepped for the first time')),
+                'the first step must align the counters rather than be reported');
+            assert.ok(!logs.some((l) => l.includes('the pump\'s own figures')),
+                'and must not produce a comparison line');
+
+            // Now a full hour, with both sides covering the same span.
             seed(pump.input, 702, 13, 32);       // 0.13 kWh for the next completed hour
             await new Promise((r) => setTimeout(r, 7000));
             const steps = logs.filter((l) => l.includes('the pump\'s own figures'));

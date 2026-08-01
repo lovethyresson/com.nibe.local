@@ -549,6 +549,7 @@ export class PumpConnection {
     // we did not watch, so it is recorded as the baseline and not reported as a step.
     private lastEnergyLog = new Map<string, number>();
     private energyLogStarted = false;
+    private firstStepSeen = false;
     // The pump's lifetime counters as they stood at the previous hourly step, so each logged
     // hour can carry its own total alongside the per-function split. Without this the split is
     // unverifiable from the log alone — you would need a second source to know what it should
@@ -592,6 +593,20 @@ export class PumpConnection {
             this.totalsAtLastStep = {produced, used};
             this.debug(`Energy log baseline recorded for ${this.lastEnergyLog.size} register(s) `
                 + `— steps will be reported from the next completed hour.`);
+            return;
+        }
+        if (stepped.length && !this.firstStepSeen) {
+            // The first step after startup is not comparable. The pump's figure covers the whole
+            // hour it reports, but the lifetime counters were only sampled from whenever the app
+            // connected — part-way through it. Reporting the two side by side would show the
+            // split exceeding the total for reasons that have nothing to do with the pump. Use
+            // this step to anchor the counters on a true :00 boundary instead; every line from
+            // here on has both sides covering exactly the same hour.
+            this.firstStepSeen = true;
+            this.totalsAtLastStep = {produced, used};
+            this.debug('Energy log stepped for the first time — the app connected part-way '
+                + 'through that hour, so it is used to align the counters rather than reported. '
+                + 'Full hours follow.');
             return;
         }
         if (stepped.length) {
