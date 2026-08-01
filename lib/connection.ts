@@ -549,6 +549,11 @@ export class PumpConnection {
     // we did not watch, so it is recorded as the baseline and not reported as a step.
     private lastEnergyLog = new Map<string, number>();
     private energyLogStarted = false;
+    // The pump's lifetime counters as they stood at the previous hourly step, so each logged
+    // hour can carry its own total alongside the per-function split. Without this the split is
+    // unverifiable from the log alone — you would need a second source to know what it should
+    // add up to, which is exactly the round trip this logging exists to avoid.
+    private totalsAtLastStep: {produced?: number; used?: number} = {};
 
     // The pump publishes its own per-function energy for each completed hour. Report each step
     // once, as one line covering the whole hour, so a support log shows what the pump itself
@@ -571,16 +576,36 @@ export class PumpConnection {
             if (previous !== undefined && value !== previous && this.energyLogStarted)
                 stepped.push(`${entry.label}=${value}`);
         }
+        // The pump's own lifetime counters, read the same poll, so the line carries what the
+        // per-function figures should add up to.
+        const totalNow = (name?: string) => {
+            const register = name ? this.profile.registerByName[name] : undefined;
+            const raw = register ? rawByName.get(register.name) : undefined;
+            return raw === undefined || isUnavailableRaw(raw, register!.size)
+                ? undefined : signedValue(raw, register!.size) / (register!.scale || 1);
+        };
+        const produced = totalNow(this.profile.role.totalProductionRegister);
+        const used = totalNow(this.profile.role.totalConsumptionRegister);
+
         if (!this.energyLogStarted) {
             this.energyLogStarted = true;
+            this.totalsAtLastStep = {produced, used};
             this.debug(`Energy log baseline recorded for ${this.lastEnergyLog.size} register(s) `
                 + `— steps will be reported from the next completed hour.`);
             return;
         }
-        if (stepped.length)
-            // The value that appears at HH:00 describes the hour that just ended.
+        if (stepped.length) {
+            const delta = (now?: number, then?: number) =>
+                now === undefined || then === undefined ? '?' : (now - then).toFixed(2);
+            // The value that appears at HH:00 describes the hour that just ended, so the
+            // counters' movement since the previous step covers exactly the same hour.
             this.debug(`Energy log — the pump's own figures for the hour ending `
-                + `${new Date().toISOString().slice(11, 13)}:00 UTC: ${stepped.join(', ')} kWh`);
+                + `${new Date().toISOString().slice(11, 13)}:00 UTC: ${stepped.join(', ')} kWh `
+                + `| same hour from the lifetime counters: used `
+                + `${delta(used, this.totalsAtLastStep.used)}, produced `
+                + `${delta(produced, this.totalsAtLastStep.produced)} kWh`);
+            this.totalsAtLastStep = {produced, used};
+        }
     }
 
     private energySubscribers(): PumpSubscriber[] {

@@ -572,9 +572,15 @@ test('internal registers are polled even though no subscriber wants them, and st
         seed(pump.input, 700, 42);
         seed(pump.input, 702, 199, 32);          // 1.99 kWh for the completed hour
 
+        const totalUsed = reg({address: 704, name: 'tot_used', scale: 10, size: 32});
+        const totalProduced = reg({address: 706, name: 'tot_produced', scale: 10, size: 32});
+        seed(pump.input, 704, 1000, 32);         // 100.0 kWh
+        seed(pump.input, 706, 3000, 32);         // 300.0 kWh
+
         const profile = makeProfile({
-            registers: [visible, logUsed],
-            role: {priorityRawOff: 10, powerSources: [], producedRegisterForRole: {}, priorityToRole: {}},
+            registers: [visible, logUsed, totalUsed, totalProduced],
+            role: {priorityRawOff: 10, powerSources: [], producedRegisterForRole: {}, priorityToRole: {},
+                   totalConsumptionRegister: 'tot_used', totalProductionRegister: 'tot_produced'},
             transport: {port: 502, unitId: 1},
             energyLog: [{name: 'log_used', label: 'hot water used'}],
             detection: {plausible: {}, discoveryProbe: {address: 1, scale: 10, min: -60, max: 60}},
@@ -606,6 +612,10 @@ test('internal registers are polled even though no subscriber wants them, and st
             assert.equal(steps.length, 1, 'exactly one line per step');
             assert.ok(steps[0].includes('hot water used=0.13'),
                 `expected the stepped value, got: ${steps[0]}`);
+            // Each hour must carry the lifetime counters' movement over the SAME hour, or the
+            // per-function split cannot be checked from the log alone.
+            assert.ok(steps[0].includes('same hour from the lifetime counters'),
+                `expected the reconciliation figures, got: ${steps[0]}`);
         } finally {
             connection.shutdown();
         }
