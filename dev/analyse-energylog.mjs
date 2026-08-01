@@ -33,7 +33,10 @@ try {
     process.exit(1);
 }
 
-const HOUR_LINE = /hour ending (\d{2}):00 UTC: (.+?) kWh \| same hour from the lifetime counters: used ([-\d.?]+), produced ([-\d.?]+)/;
+// Matches both log formats: the original single line carrying same-hour counters, and the
+// current pair (split line + a separate reconciliation line comparing one step back).
+const HOUR_LINE = /hour ending (\d{2}):00 UTC: (.+?)(?: kWh \| same hour from the lifetime counters: used ([-\d.?]+), produced ([-\d.?]+)| kWh\s*$)/;
+const RECON_LINE = /Energy log reconciliation — the (\d{2}):00 hour: split used ([\d.]+) vs counter ([\d.]+).*?produced ([\d.]+) vs ([\d.]+)/;
 const PRIORITY = /Priority change: raw=(\S+) -> role=(\w+)/;
 const RECONCILE = /Energy reconciliation after ([\d.]+) h — pump\(\d+\)=([\d.]+) kWh \| trapezoid=([\d.]+) \(([-\d.]+)%\)/;
 
@@ -51,6 +54,14 @@ for (const line of text.split('\n')) {
 
     const r = RECONCILE.exec(line);
     if (r) reconcile = {hours: +r[1], pump: +r[2], trapezoid: +r[3], drift: +r[4]};
+
+    // The app now emits the reconciliation itself, already aligned. Prefer it when present.
+    const rc = RECON_LINE.exec(line);
+    if (rc) {
+        const row = hours.find((h) => h.hour === rc[1]);
+        if (row) { row.usedTotal = Number(rc[3]); row.producedTotal = Number(rc[5]); row.preAligned = true; }
+        continue;
+    }
 
     const m = HOUR_LINE.exec(line);
     if (!m) continue;
@@ -70,8 +81,8 @@ for (const line of text.split('\n')) {
         parts,
         usedSplit: sum((l) => l.includes('used') || l.startsWith('add.heat')),
         producedSplit: sum((l) => l.includes('produced')),
-        usedTotal: m[3] === '?' ? null : Number(m[3]),
-        producedTotal: m[4] === '?' ? null : Number(m[4])
+        usedTotal: !m[3] || m[3] === '?' ? null : Number(m[3]),
+        producedTotal: !m[4] || m[4] === '?' ? null : Number(m[4])
     });
 }
 
@@ -87,6 +98,24 @@ if (!hours.length) {
     process.exit(0);
 }
 
+// The pump's lifetime counters LAG its own energy log by about an hour. Measured on a live
+// S1155: the log booked 1.44 kWh of hot water at 11:00 while 3823 had not moved at all, then
+// 3823 gained 1.40 over the following hour. Compared same-hour that reads 1.44 vs 0.00 and
+// looks catastrophic; compared one step apart it reads 1.44 vs 1.40, which is the counter's
+// 0.1 kWh quantisation. So try both alignments and report whichever actually fits, rather than
+// assuming — the assumption is what made the first version of this script wrong.
+function align(hours, lag) {
+    const out = [];
+    for (let i = 0; i + lag < hours.length; ++i)
+        out.push({
+            hour: hours[i].hour,
+            usedSplit: hours[i].usedSplit, producedSplit: hours[i].producedSplit,
+            usedTotal: hours[i + lag].usedTotal, producedTotal: hours[i + lag].producedTotal,
+            parts: hours[i].parts
+        });
+    return out;
+}
+
 const pct = (a, b) => (b === null || b === 0 ? null : ((a - b) / b) * 100);
 const fmt = (v, w = 6) => (v === null ? '—' : v.toFixed(2)).padStart(w);
 const fmtPct = (v) => (v === null ? '     —' : `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`.padStart(6));
@@ -96,11 +125,30 @@ console.log(`Energy-log reconciliation — ${hours.length} completed hour(s) fro
 if (priorities.length)
     console.log(`Functions seen running: ${[...new Set(priorities)].join(', ')}`);
 console.log('='.repeat(78));
+// Pick the alignment that fits the busy hours, where the comparison is actually meaningful.
+const busyErr = (rows) => {
+    const busy = rows.filter((r) => (r.usedTotal ?? 0) >= 0.5 || (r.usedSplit ?? 0) >= 0.5);
+    if (!busy.length) return null;
+    const errs = busy.map((r) => pct(r.usedSplit, r.usedTotal)).filter((x) => x !== null);
+    return errs.length ? errs.reduce((a, b) => a + Math.abs(b), 0) / errs.length : null;
+};
+// If the app already aligned them, trust that and do not shift again.
+const preAligned = hours.some((h) => h.preAligned);
+const sameHour = align(hours, 0);
+const lagged = align(hours, 1);
+const eSame = busyErr(sameHour);
+const eLag = busyErr(lagged);
+const useLag = !preAligned && eLag !== null && (eSame === null || eLag < eSame);
+const rows = useLag ? lagged : sameHour;
+console.log(useLag
+    ? `\nAlignment: counters lag the log by one hour (same-hour fit ${eSame === null ? 'n/a' : eSame.toFixed(0) + '%'}, `
+      + `lagged fit ${eLag.toFixed(1)}%). Each split is compared with the counter movement reported one step later.`
+    : `\nAlignment: same hour${eSame === null ? '' : ` (fit ${eSame.toFixed(1)}%)`}.`);
 console.log('\n  hour   used(split) used(pump)   Δ%     prod(split) prod(pump)   Δ%   breakdown');
 console.log('  ' + '-'.repeat(74));
 
 const errs = {used: [], produced: []};
-for (const h of hours) {
+for (const h of rows) {
     const du = pct(h.usedSplit, h.usedTotal);
     const dp = pct(h.producedSplit, h.producedTotal);
     if (du !== null) errs.used.push(du);
@@ -136,7 +184,7 @@ if (!u) {
     console.log();
     // The counters step in 0.1 kWh, so a quiet hour of ~0.1 kWh is ±50% on quantisation alone.
     // Judge on the busy hours; that is where the pump's own attribution is actually exercised.
-    const busy = hours.filter((h) => (h.usedTotal ?? 0) >= 0.5);
+    const busy = rows.filter((h) => (h.usedTotal ?? 0) >= 0.5);
     if (!busy.length)
         console.log('  CAUTION: no hour used 0.5 kWh or more. The lifetime counters step in 0.1 kWh,\n'
             + '  so quiet hours are dominated by quantisation and prove very little. Run again\n'

@@ -622,10 +622,22 @@ test('internal registers are polled even though no subscriber wants them, and st
             assert.equal(steps.length, 1, 'exactly one line per step');
             assert.ok(steps[0].includes('hot water used=0.13'),
                 `expected the stepped value, got: ${steps[0]}`);
-            // Each hour must carry the lifetime counters' movement over the SAME hour, or the
-            // per-function split cannot be checked from the log alone.
-            assert.ok(steps[0].includes('same hour from the lifetime counters'),
-                `expected the reconciliation figures, got: ${steps[0]}`);
+            // The counters lag the log by about an hour, so the reconciliation compares one
+            // step back. With only one reported hour so far there is nothing to reconcile yet.
+            assert.ok(!logs.some((l) => l.includes('Energy log reconciliation')),
+                'nothing to reconcile against until a second hour lands');
+
+            // A second hour: now the first hour's split can be checked against the counter
+            // movement measured over it.
+            seed(pump.input, 702, 7, 32);
+            seed(pump.input, 704, 1013, 32);     // counters advance by 1.3 kWh
+            await new Promise((r) => setTimeout(r, 7000));
+            const recon = logs.filter((l) => l.includes('Energy log reconciliation'));
+            assert.equal(recon.length, 1, 'one reconciliation line once a previous hour exists');
+            assert.ok(recon[0].includes('split used 0.13'),
+                `expected the previous hour's split, got: ${recon[0]}`);
+            assert.ok(recon[0].includes('one step back'),
+                'the line must say why it compares one step back');
         } finally {
             connection.shutdown();
         }

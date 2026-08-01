@@ -407,10 +407,16 @@ export class PumpConnection {
             byName.set(register.name, register);
         if (this.priorityRegister)
             byName.set(this.priorityRegister.name, this.priorityRegister);
-        // The reconciliation monitor needs the pump's consumption counter every poll, even when
-        // no device selected that capability.
-        if (this.consumptionRegister)
-            byName.set(this.consumptionRegister.name, this.consumptionRegister);
+        // The reconciliation monitors need the pump's own totals every poll, even when no device
+        // selected those capabilities — consumption for the shadow monitor, and both for the
+        // energy-log reconciliation. Relying on Main happening to carry them as capabilities
+        // would make the comparison vanish the moment a user unticked one during pairing.
+        for (const name of [this.profile.role.totalConsumptionRegister,
+                            this.profile.role.totalProductionRegister]) {
+            const register = name ? this.profile.registerByName[name] : undefined;
+            if (register && isPollable(register))
+                byName.set(register.name, register);
+        }
         // Internal registers have no capability, so no subscriber ever asks for them — but they
         // are engine infrastructure and have to be read. The energy log lives here.
         for (const register of this.profile.registers)
@@ -555,6 +561,9 @@ export class PumpConnection {
     // unverifiable from the log alone — you would need a second source to know what it should
     // add up to, which is exactly the round trip this logging exists to avoid.
     private totalsAtLastStep: {produced?: number; used?: number} = {};
+    // The previous step's per-function totals, held back so they can be reconciled against the
+    // counter movement measured at the NEXT step — the counters lag the log by about an hour.
+    private pendingSplit: {hour: string; used: number; produced: number} | undefined;
 
     // The pump publishes its own per-function energy for each completed hour. Report each step
     // once, as one line covering the whole hour, so a support log shows what the pump itself
@@ -566,6 +575,7 @@ export class PumpConnection {
         if (!entries?.length)
             return;
         const stepped: string[] = [];
+        const values = new Map<string, number>();
         for (const entry of entries) {
             const register = this.profile.registerByName[entry.name];
             const raw = register ? rawByName.get(entry.name) : undefined;
@@ -574,11 +584,17 @@ export class PumpConnection {
             const value = signedValue(raw, register!.size) / (register!.scale || 1);
             const previous = this.lastEnergyLog.get(entry.name);
             this.lastEnergyLog.set(entry.name, value);
+            values.set(entry.label, value);
             if (previous !== undefined && value !== previous && this.energyLogStarted)
                 stepped.push(`${entry.label}=${value}`);
         }
-        // The pump's own lifetime counters, read the same poll, so the line carries what the
-        // per-function figures should add up to.
+        // Sum the per-function figures by side. Anything the additional heater used is
+        // electricity, so it belongs on the used side.
+        const sumOf = (pick: (label: string) => boolean) =>
+            [...values.entries()].filter(([label]) => pick(label))
+                .reduce((acc, [, v]) => acc + v, 0);
+
+        // The pump's own lifetime counters, read the same poll.
         const totalNow = (name?: string) => {
             const register = name ? this.profile.registerByName[name] : undefined;
             const raw = register ? rawByName.get(register.name) : undefined;
@@ -610,15 +626,36 @@ export class PumpConnection {
             return;
         }
         if (stepped.length) {
-            const delta = (now?: number, then?: number) =>
-                now === undefined || then === undefined ? '?' : (now - then).toFixed(2);
-            // The value that appears at HH:00 describes the hour that just ended, so the
-            // counters' movement since the previous step covers exactly the same hour.
-            this.debug(`Energy log — the pump's own figures for the hour ending `
-                + `${new Date().toISOString().slice(11, 13)}:00 UTC: ${stepped.join(', ')} kWh `
-                + `| same hour from the lifetime counters: used `
-                + `${delta(used, this.totalsAtLastStep.used)}, produced `
-                + `${delta(produced, this.totalsAtLastStep.produced)} kWh`);
+            const hour = `${new Date().toISOString().slice(11, 13)}:00`;
+            this.debug(`Energy log — the pump's own figures for the hour ending ${hour} UTC: `
+                + `${stepped.join(', ')} kWh`);
+
+            // The lifetime counters lag the log by about an hour: measured on a live S1155, the
+            // log booked 1.44 kWh of hot water at 11:00 while 3823 had not moved at all, and
+            // 3823 then gained 1.40 over the following hour. So the counter movement measured
+            // now reconciles the split reported at the PREVIOUS step, not this one. Comparing
+            // them same-hour reads 1.44 against 0.00 and looks catastrophic; comparing them one
+            // step apart reads 1.44 against 1.40, which is the counter's 0.1 kWh quantisation.
+            const dUsed = used !== undefined && this.totalsAtLastStep.used !== undefined
+                ? used - this.totalsAtLastStep.used : undefined;
+            const dProduced = produced !== undefined && this.totalsAtLastStep.produced !== undefined
+                ? produced - this.totalsAtLastStep.produced : undefined;
+            const pending = this.pendingSplit;
+            if (pending && dUsed !== undefined && dProduced !== undefined) {
+                const err = (split: number, counter: number) =>
+                    counter === 0 ? (split === 0 ? 'exact' : 'counter still at 0')
+                        : `${(((split - counter) / counter) * 100).toFixed(1)}%`;
+                this.debug(`Energy log reconciliation — the ${pending.hour} hour: `
+                    + `split used ${pending.used.toFixed(2)} vs counter ${dUsed.toFixed(2)} `
+                    + `(${err(pending.used, dUsed)}), produced ${pending.produced.toFixed(2)} vs `
+                    + `${dProduced.toFixed(2)} (${err(pending.produced, dProduced)}). `
+                    + `Compared one step back because the lifetime counters lag the log.`);
+            }
+            this.pendingSplit = {
+                hour,
+                used: sumOf((label) => label.includes('used') || label.startsWith('add.heat')),
+                produced: sumOf((label) => label.includes('produced'))
+            };
             this.totalsAtLastStep = {produced, used};
         }
     }
