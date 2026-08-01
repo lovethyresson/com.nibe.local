@@ -55,6 +55,11 @@ export interface PumpSubscriber {
     // measure nothing. Devices need this to know their used-energy series has a hole in it —
     // without it they cannot tell "this function used nothing" from "we were not looking".
     onEnergyUnavailable?(): void;
+    // The pump has published its own accounting for a completed hour. `used` and `produced` are
+    // this role's kWh for that hour, straight from the pump's books — the figures myUplink
+    // shows. Devices steer their live-integrated meter onto these rather than replacing it, so
+    // sub-hour timing survives for tariffs while the total converges on the pump's.
+    onEnergyLogHour?(used: number | undefined, produced: number | undefined): void;
     // Whether this device wants verbose logging (its "Debug logging" setting). The connection
     // is shared, so it logs verbosely when *any* attached device asks for it.
     debugEnabled?(): boolean;
@@ -651,6 +656,31 @@ export class PumpConnection {
                     + `${dProduced.toFixed(2)} (${err(pending.produced, dProduced)}). `
                     + `Compared one step back because the lifetime counters lag the log.`);
             }
+            // Hand each function its own hour. The log is prompt at :00 — it is the lifetime
+            // counters that lag — so these need no shifting and can drive the meters directly.
+            const perRole = new Map<Role, {used?: number; produced?: number}>();
+            for (const entry of entries) {
+                const value = values.get(entry.label);
+                if (value === undefined)
+                    continue;
+                const slot = perRole.get(entry.role) ?? {};
+                // Several entries can feed one side (a function's own use plus whatever the
+                // additional heater drew for it), so accumulate rather than overwrite.
+                slot[entry.flow] = (slot[entry.flow] ?? 0) + value;
+                perRole.set(entry.role, slot);
+            }
+            for (const subscriber of this.subscribers) {
+                const slot = perRole.get(subscriber.role);
+                if (slot)
+                    subscriber.onEnergyLogHour?.(slot.used, slot.produced);
+            }
+            // Main's share is what the pump attributed to no function at all — real standby,
+            // and the reason idle stays broken out. Uses the counter delta, which lags, so it
+            // describes the previous hour; that is what `pendingSplit` is holding.
+            const main = [...this.subscribers].find((s) => s.role === 'main');
+            if (main && pending && dUsed !== undefined)
+                main.onEnergyLogHour?.(Math.max(0, dUsed - pending.used), undefined);
+
             this.pendingSplit = {
                 hour,
                 used: sumOf((label) => label.includes('used') || label.startsWith('add.heat')),

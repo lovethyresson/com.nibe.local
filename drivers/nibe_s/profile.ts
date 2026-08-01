@@ -71,17 +71,17 @@ export const sProfile = makeProfile({
     // Watched and logged each time they step at :00. Ordered used-then-produced so a logged
     // hour reads as a COP left to right.
     energyLog: [
-        {name: "meter_kwh_NIBE.i2291_log_used_heating", label: "heating used"},
-        {name: "meter_kwh_NIBE.i2283_log_produced_heating", label: "heating produced"},
-        {name: "meter_kwh_NIBE.i2293_log_used_hotwater", label: "hot water used"},
-        {name: "meter_kwh_NIBE.i2285_log_produced_hotwater", label: "hot water produced"},
-        {name: "meter_kwh_NIBE.i2297_log_used_cooling", label: "cooling used"},
-        {name: "meter_kwh_NIBE.i2289_log_produced_cooling", label: "cooling produced"},
-        {name: "meter_kwh_NIBE.i2295_log_used_pool", label: "pool used"},
-        {name: "meter_kwh_NIBE.i2287_log_produced_pool", label: "pool produced"},
-        {name: "meter_kwh_NIBE.i2299_log_add_heating", label: "add.heat heating"},
-        {name: "meter_kwh_NIBE.i2301_log_add_hotwater", label: "add.heat hot water"},
-        {name: "meter_kwh_NIBE.i2303_log_add_pool", label: "add.heat pool"}
+        {name: "meter_kwh_NIBE.i2291_log_used_heating",      label: "heating used",       role: "heating",  flow: "used"},
+        {name: "meter_kwh_NIBE.i2299_log_add_heating",       label: "add.heat heating",   role: "heating",  flow: "used"},
+        {name: "meter_kwh_NIBE.i2283_log_produced_heating",  label: "heating produced",   role: "heating",  flow: "produced"},
+        {name: "meter_kwh_NIBE.i2293_log_used_hotwater",     label: "hot water used",     role: "hotwater", flow: "used"},
+        {name: "meter_kwh_NIBE.i2301_log_add_hotwater",      label: "add.heat hot water", role: "hotwater", flow: "used"},
+        {name: "meter_kwh_NIBE.i2285_log_produced_hotwater", label: "hot water produced", role: "hotwater", flow: "produced"},
+        {name: "meter_kwh_NIBE.i2297_log_used_cooling",      label: "cooling used",       role: "cooling",  flow: "used"},
+        {name: "meter_kwh_NIBE.i2289_log_produced_cooling",  label: "cooling produced",   role: "cooling",  flow: "produced"},
+        {name: "meter_kwh_NIBE.i2295_log_used_pool",         label: "pool used",          role: "pool",     flow: "used"},
+        {name: "meter_kwh_NIBE.i2303_log_add_pool",          label: "add.heat pool",      role: "pool",     flow: "used"},
+        {name: "meter_kwh_NIBE.i2287_log_produced_pool",     label: "pool produced",      role: "pool",     flow: "produced"}
     ],
 
     // Register 1975 "Alarm number" carries a bare code. S-series numbering — NOT the same as

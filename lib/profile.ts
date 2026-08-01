@@ -146,7 +146,16 @@ export interface ModelProfile {
     // This is currently observation only. It is the evidence for moving per-function energy off
     // the estimating allocator (measured attributing 1.37 kWh to hot water on a day the pump
     // booked 1.00 kWh for the whole unit) and onto the pump's own books, which match myUplink.
-    energyLog?: {name: string; label: string}[];
+    energyLog?: {
+        name: string;
+        label: string;
+        // Which device the figure belongs to, and which side of its COP. `used` is electricity
+        // (including anything the additional heater drew for that function); `produced` is heat
+        // or cooling delivered. The engine groups by these to steer each function's meter onto
+        // the pump's own books.
+        role: Role;
+        flow: 'used' | 'produced';
+    }[];
 
     // The register carrying the pump's alarm *number*, plus WHICH numbering scheme it uses.
     // S and F number their alarms differently (the same code means different things), so the

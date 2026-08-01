@@ -646,3 +646,70 @@ test('internal registers are polled even though no subscriber wants them, and st
         await pump.close();
     }
 });
+
+test('the meter is steered onto the pump\'s hourly figure without ever going backwards',
+     {timeout: 40000}, async () => {
+    // The allocator is good at *when* and bad at *how much* — measured crediting hot water with
+    // 1.37 kWh on a day the pump's own counter moved 1.00 kWh for the whole unit. The pump's
+    // hourly log is the reverse. So integrate live for the shape and correct onto the pump's
+    // figure for the level, rather than stepping the meter once an hour (which would price a
+    // whole hour into one interval, an hour late).
+    const pump = await startPump();
+    try {
+        const power = reg({address: 800, name: 'power', scale: 1});
+        const priority = reg({address: 802, name: 'priority'});
+        const logUsed = reg({address: 804, name: 'log_hw_used', scale: 100, size: 32, internal: true});
+        seed(pump.input, 800, 3600);            // 3600 W -> 1 kWh/h integrated
+        seed(pump.input, 802, 20);              // hot water
+        seed(pump.input, 804, 10, 32);          // pump says 0.10 kWh for the completed hour
+
+        const profile = makeProfile({
+            registers: [power, priority, logUsed],
+            role: {
+                priorityRegisterName: 'priority', priorityRawOff: 10,
+                powerSources: [['power']], producedRegisterForRole: {},
+                priorityToRole: {10: 'main', 20: 'hotwater'}
+            },
+            transport: {port: 502, unitId: 1},
+            energyLog: [{name: 'log_hw_used', label: 'hot water used', role: 'hotwater', flow: 'used'}],
+            detection: {plausible: {}, discoveryProbe: {address: 1, scale: 10, min: -60, max: 60}},
+            compose: {capabilities: [], capabilitiesOptions: {}, actions: [], conditions: [], triggers: []}
+        });
+
+        // A subscriber that mirrors the device's correction so the arithmetic can be observed.
+        class EnergySub extends FakeSub {
+            total = 0;
+            hours: {used?: number}[] = [];
+            onEnergy(kwh: number, watts: number) { super.onEnergy(kwh, watts); this.total += kwh; }
+            onEnergyLogHour(used?: number) { this.hours.push({used}); }
+        }
+        const hw = new EnergySub('hotwater', []);
+        hw.debug = true;
+        const connection = PumpConnection.get('127.0.0.1', profile, {port: pump.port, unitId: 1});
+        connection.attach(hw);
+        try {
+            await hw.whenUp();
+            await new Promise((r) => setTimeout(r, 7000));   // baseline poll
+            seed(pump.input, 804, 25, 32);                   // first step: aligns, not reported
+            await new Promise((r) => setTimeout(r, 7000));
+            seed(pump.input, 804, 40, 32);                   // a real completed hour: 0.40 kWh
+            await new Promise((r) => setTimeout(r, 7000));
+
+            assert.ok(hw.hours.length >= 1, 'the function must be handed its own hourly figure');
+            assert.equal(hw.hours[hw.hours.length - 1].used, 0.40,
+                'and it must be that role\'s own kWh for the hour, straight from the pump');
+
+            // The meter itself must only ever move forward, whatever the correction does.
+            let previous = -1;
+            for (const e of hw.energy) {
+                assert.ok(e.kwh >= 0, `a negative increment (${e.kwh}) would rewind the meter`);
+                previous = e.kwh;
+            }
+            assert.ok(previous >= 0);
+        } finally {
+            connection.shutdown();
+        }
+    } finally {
+        await pump.close();
+    }
+});

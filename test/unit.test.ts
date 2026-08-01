@@ -674,3 +674,24 @@ test('compressor-only produced counters are mapped as internal', () => {
         assert.equal(register.size, 32);
     }
 });
+
+test('every energy-log entry names a real role and side, and both sides exist per function', () => {
+    // The engine groups these by role to steer each function's meter onto the pump's own books,
+    // so a wrong role silently sends one function's energy to another device.
+    const entries = sProfile.energyLog ?? [];
+    for (const e of entries) {
+        assert.ok(allRoles.includes(e.role), `${e.name} names an unknown role ${e.role}`);
+        assert.ok(e.role !== 'main' && e.role !== 'solar',
+            `${e.name}: the log is per function; main's share is the residual, not a register`);
+        assert.ok(e.flow === 'used' || e.flow === 'produced', `${e.name} has no side`);
+    }
+    // Heating and hot water must have both sides on every model, or their COP loses a half.
+    for (const role of ['heating', 'hotwater'])
+        for (const flow of ['used', 'produced'])
+            assert.ok(entries.some((e) => e.role === role && e.flow === flow),
+                `no ${flow} entry for ${role}`);
+    // Additional-heat entries are electricity, so they must be on the used side — putting one
+    // on produced would inflate that function's COP.
+    for (const e of entries.filter((x) => x.label.startsWith('add.heat')))
+        assert.equal(e.flow, 'used', `${e.name} is electricity the additional heater drew`);
+});

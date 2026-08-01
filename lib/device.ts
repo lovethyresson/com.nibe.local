@@ -697,9 +697,64 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.lastProducedSeen = null;
     }
 
+    // ---- Steering the meter onto the pump's own books ------------------------------------
+    // The allocator is good at *when* energy was used and bad at *how much*: measured against
+    // myUplink on an S1155, it credited hot water with 1.37 kWh on a day the pump's own counter
+    // moved 1.00 kWh for the whole unit. The pump's hourly energy log is the reverse — its own
+    // books, so exact, but published once an hour for the hour that just ended.
+    //
+    // Taking the hourly figure directly would misprice under dynamic tariffs: a whole hour of
+    // energy would land in one interval, an hour late, and hour-to-hour spot prices routinely
+    // swing several fold. Homey's history is append-only, so the only lever is to correct
+    // *forward*: keep integrating live for the shape, and bleed the accumulated error away over
+    // the following hour so the running total converges on the pump's.
+    //
+    // This is the strategy that has been shadowing the live meters as "B" — 1.3% against the
+    // pump's counter on an S1155 where plain integration drifted +75.2%, and 0.0% hour after
+    // hour over 28 h on an S320.
+    private energyError = 0;      // kWh we have booked in excess of the pump (negative = short)
+    private lastEnergyAt = Date.now();
+    private bookedThisHour = 0;   // what we have added since the last hourly figure landed
+    private usingPumpEnergy = false;
+
+    onEnergyLogHour(used: number | undefined, _produced: number | undefined) {
+        if (used === undefined)
+            return;
+        // A wildly different figure means a misread or misscaled register, not a real
+        // discrepancy — steering onto it would wreck the meter. Ignore it and say so.
+        const booked = this.bookedThisHour;
+        this.bookedThisHour = 0;
+        if (booked > 0.05 && (used > booked * 5 || used < booked / 5)) {
+            this.log(`Ignoring the pump's hourly figure of ${used} kWh: we measured `
+                + `${booked.toFixed(3)} kWh over the same hour, and a gap that size means a bad `
+                + `reading rather than a real difference.`);
+            return;
+        }
+        if (!this.usingPumpEnergy) {
+            this.usingPumpEnergy = true;
+            this.log(`Energy for this function now follows the pump's own hourly figures; the `
+                + `live reading is steered onto them rather than replaced, so short-interval `
+                + `timing is kept.`);
+        }
+        this.energyError += booked - used;
+        // The COP needs no separate treatment: its denominator is `cumulativeEnergy`, which is
+        // now steered onto the pump's own hourly figures, and its numerator is the produced
+        // accumulator that already advances in lockstep with it. Both converge on the pump.
+    }
+
     onEnergy(deltaKwh: number, watts: number) {
         this.allocationLive = true;
         if (deltaKwh) {
+            // Bleed the error off over an hour, in proportion to elapsed time so the rate is
+            // independent of poll interval. Clamped at zero: a meter that goes backwards reads
+            // as a reset to Homey, so an over-booked meter pauses instead of rewinding.
+            const seconds = Math.max(0, (Date.now() - this.lastEnergyAt) / 1000);
+            this.lastEnergyAt = Date.now();
+            const bleed = this.energyError * Math.min(1, seconds / 3600);
+            const corrected = Math.max(0, deltaKwh - bleed);
+            this.energyError -= (deltaKwh - corrected);
+            deltaKwh = corrected;
+            this.bookedThisHour += deltaKwh;
             this.cumulativeEnergy += deltaKwh;
             if (this.hasCapability(METER_CAPABILITY))
                 this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
