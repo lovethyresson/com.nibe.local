@@ -72,7 +72,11 @@ export const registers: Register[] = [
     // Rad 1 Temp
     {address:    1, name: "measure_temperature.i1_outside",         direction: Dir.In,  group: "core",        scale:  10, // Aktuell utetemperatur (BT1)
      info: {en: "Current outdoor temperature (sensor BT1)", sv: "Aktuell utetemperatur (givare BT1)"}},
-    {address:  111, name: "measure_temperature.i26_inside",         direction: Dir.In,  group: "heating",     scale:  10, // Rumstemperatur (BT50) — reg 111, not 26
+    {address:  111, name: "measure_temperature.i26_inside",         direction: Dir.In,  group: "heating",     scale:  10,
+     // BT50 room sensor: register 111 on S1155, but 26 on S735 (where 111 reads "not available").
+     // Plausibility-gated fallback (see Register.altAddresses): try 111, else 26, taking the first
+     // that reads a sane room temperature. Model-agnostic — no per-model register map.
+     altAddresses: [26], fallbackMin: -10, fallbackMax: 50,
      info: {en: "Indoor temperature from room sensor 1 (BT50)", sv: "Inomhustemperatur från rumsgivare 1 (BT50)"}},
     // Rad 2 Framledning
     {address: 1017, name: "measure_temperature.i1017_calculated_supply", direction: Dir.In, group: "heating", scale:  10, // Beräknad framledning klimatsystem 1

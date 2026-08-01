@@ -1,6 +1,6 @@
 import net from 'net';
 import {ModbusTCPClient} from 'jsmodbus';
-import {Dir, Register, combineRaw, isPollable, isUnavailableRaw, signedValue} from './registers';
+import {Dir, Register, combineRaw, isPollable, isUnavailableRaw, signedValue, toNumericValue} from './registers';
 import {Role, functionRoles} from './roles';
 import type {LocalizedText, ModelProfile} from './profile';
 import {DetectionResult, buildDetectionResult, readNumeric, sampleRegisters} from './detection';
@@ -448,8 +448,38 @@ export class PumpConnection {
         return reason.explain({from, to, role, previousRole, v: (id) => values.get(id)});
     }
 
-    private pduAddress(register: Register): number {
-        return this.profile.addressBase ? register.address - this.profile.addressBase : register.address;
+    // Read one register at an explicit logical address (the model's address offset is applied
+    // here at the wire boundary). Returns the combined raw value, or undefined on error / short
+    // read. No failure tracking — readRegisterRaw scores the register as a whole, since a register
+    // with fallback alternates only "fails" when none of its addresses read.
+    private async readRawAt(address: number, direction: Dir, size?: 16 | 32): Promise<number | undefined> {
+        const count = size === 32 ? 2 : 1;
+        const pdu = this.profile.addressBase ? address - this.profile.addressBase : address;
+        return await ((direction === Dir.In)
+            ? this.client.readInputRegisters(pdu, count)
+            : this.client.readHoldingRegisters(pdu, count))
+            .then((resp: any) => {
+                // A pump can answer without a usable value — a short/empty array yields undefined
+                // (16-bit) or NaN (32-bit, missing high word). That is a failed read, not a zero.
+                const raw = combineRaw(resp.response.body.values as number[], size);
+                return raw === undefined || Number.isNaN(raw) ? undefined : raw;
+            })
+            .catch(() => undefined);
+    }
+
+    // Whether a raw value is usable for a register: not the "not available" sentinel and, when the
+    // register declares a fallback band, within it. Decides when to fall back to alternates.
+    private isPlausibleRaw(register: Register, raw: number | undefined): boolean {
+        if (raw === undefined || isUnavailableRaw(raw, register.size))
+            return false;
+        const value = toNumericValue(register, raw);
+        if (value === undefined)
+            return false;
+        if (register.fallbackMin !== undefined && value < register.fallbackMin)
+            return false;
+        if (register.fallbackMax !== undefined && value > register.fallbackMax)
+            return false;
+        return true;
     }
 
     // `track` records the outcome for the read-failure report. Pass false for deliberate
@@ -458,27 +488,22 @@ export class PumpConnection {
     // faults. Without this a dump adds a second "N registers did not read" line naming things
     // the dump has already printed as "no answer", which reads like new breakage.
     async readRegisterRaw(register: Register, track = true): Promise<number | undefined> {
-        const count = register.size === 32 ? 2 : 1;
-        const address = this.pduAddress(register);
-        return await ((register.direction === Dir.In)
-            ? this.client.readInputRegisters(address, count)
-            : this.client.readHoldingRegisters(address, count))
-            .then((resp: any) => {
-                const raw = combineRaw(resp.response.body.values as number[], register.size);
-                // A pump can answer without returning a usable value — a short or empty value
-                // array yields undefined (16-bit) or NaN (32-bit, missing high word). That is
-                // a failed read, not a reading of zero, and must not be scored as a success.
-                if (raw === undefined || Number.isNaN(raw)) {
-                    if (track) this.noteRead(register, false);
-                    return undefined;
+        let raw = await this.readRawAt(register.address, register.direction, register.size);
+        // Plausibility-gated fallback: when the primary address reads nothing usable (the sentinel
+        // or a value outside the declared band), try the register's alternate addresses in order
+        // and take the first plausible one. Registers without altAddresses are unaffected. See
+        // Register.altAddresses (e.g. BT50 room sensor: reg 111 on S1155, reg 26 on S735).
+        if (register.altAddresses && !this.isPlausibleRaw(register, raw)) {
+            for (const alt of register.altAddresses) {
+                const altRaw = await this.readRawAt(alt, register.direction, register.size);
+                if (this.isPlausibleRaw(register, altRaw)) {
+                    raw = altRaw;
+                    break;
                 }
-                if (track) this.noteRead(register, true);
-                return raw;
-            })
-            .catch(() => {
-                if (track) this.noteRead(register, false);
-                return undefined;
-            });
+            }
+        }
+        if (track) this.noteRead(register, raw !== undefined);
+        return raw;
     }
 
     // Throws on failure (rather than swallowing) so the write error reaches the user who

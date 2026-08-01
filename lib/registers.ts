@@ -78,6 +78,15 @@ export interface Register  {
     // so a fallback source would otherwise put a third copy of the same number on the tile.
     // Still sampled by detection, which is what decides whether it is usable on this model.
     internal?: boolean;
+    // Alternate addresses to try when the primary reads the "not available" sentinel or a value
+    // outside [fallbackMin, fallbackMax]. The first alternate whose decoded value is plausible is
+    // used in the primary's place. Alternates must be the same quantity/direction/size/scale as
+    // this register. A model-agnostic, plausibility-gated fallback (same spirit as powerSources)
+    // for a sensor that lives at different registers on different models — e.g. the BT50 room
+    // sensor is register 111 on S1155 but 26 on S735 — without a per-model register map.
+    altAddresses?: number[];
+    fallbackMin?: number;
+    fallbackMax?: number;
     min?: number;
     max?: number;
 }
