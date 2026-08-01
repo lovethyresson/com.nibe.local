@@ -101,26 +101,56 @@ Hot water alone claims 37% more than the pump says the whole unit used — on th
 2166 exists and the allocator is supposed to work. Register-sourced figures match myUplink;
 derived ones cannot. Users check against myUplink, so cumulative energy must come from the pump.
 
-## Step 1 — observe + stop the bleeding (0.9.12) ✅
+## Step 1 — observe + stop the bleeding (0.9.12) ✅ shipped to main, not published
 - [x] COP numerator advances only while the allocator can measure. The old pairing divided the
       pump's always-running counter by an app-accumulated series: 40 ÷ 2.64 = 15.15, reported as
-      14.96; cooling 14 ÷ 1.4 = 10.0 vs 10.17. Main (3821/3823) untouched — two pump counters
-      that advance together, which is exactly the symmetry the function roles lacked.
+      14.96; cooling 14 ÷ 1.4 = 10.0 vs 10.17. Main (3821/3823) untouched.
 - [x] Poisoned `copSamples` discarded on upgrade rather than migrated.
-- [x] Energy log 2283–2303 + compressor-only 1583/1585 mapped as `internal`; the poll loop now
-      reads internal registers (nothing asks for them, but the engine needs them).
-- [x] Each hourly step logged under debug, once per step, with the baseline reading suppressed.
-- [ ] **Gate for step 2:** does the energy log populate on an S320-class pump? `cooling=NO`
-      governs this very block, so Erik's cooling device could get nothing. Never observed on
-      that hardware. Same trap 2727 set.
+- [x] Energy log 2283–2303 + compressor-only 1583/1585 mapped `internal`; the poll loop now
+      reads internal registers, and force-polls **both** lifetime counters (it previously forced
+      only consumption, so the produced half of any reconciliation depended on Main happening to
+      carry 3821 as a capability).
+- [x] Each hourly step logged, with the startup reading taken as a baseline and the first step
+      used to align the counters on a real `:00`.
+- [x] `dev/analyse-energylog.mjs` — hour-by-hour reconciliation from a log alone.
 
-## Steps 2–4 — see the plan file
-Promote the shadow "B feed-forward" corrector from whole-pump diagnostic to per-function live
-(integrate for correct sub-hour timing → 15-minute tariffs; correct onto the pump's hourly
-figure for the correct total). Then COP onto the hourly pair. Then document which figures match
-myUplink and why.
+## What the live run established (2026-08-01)
 
-**Do not step the meter on the hourly value**: it would lump an hour into one interval *and*
-land an hour late, mispricing under dynamic tariffs. Homey history is append-only, so forward
-correction is the only lever.
+**The gate is passed.** On the S1155 with a forced hot-water cycle, the pump's own per-function
+split against its own totals: hour 11:00 used **1.44 vs 1.40 (+2.9%)**, produced **4.77 vs 4.80
+(−0.6%)**. The counters step in 0.1 kWh, so that *is* the quantisation floor. For contrast the
+allocator over the same run: **+75.2%**, while shadow strategy B tracked **1.3%**.
 
+**The counters lag the energy log by about an hour.** At 11:00 the log had booked 1.44 kWh while
+3823 had not moved at all; 3823 caught up over the next hour. Same-hour comparison reads
+1.44 vs 0.00 and looks catastrophic — both the log line and the analyser got this wrong first
+time. The log is the timelier source as well as the finer one, so it is what corrections target.
+
+**CSV presence ≠ the pump serves it.** 2289/2297 (cooling) are listed for the S1155 and return
+"no answer" on the actual unit — so per-function fallback is needed regardless of Erik's pump,
+which removes `cooling=NO` as a blocker.
+
+**No current-hour register exists.** Every "hour" title across all six maps says *past* hour;
+Nibe's symbol list has no input registers in 2280–2420; the myUplink Homey device has no hourly
+capabilities; and 2293 held exactly 1.99 for 59 minutes before stepping. The pump's menu 3.1
+shows a filling current-hour bar, so the data exists internally but is not published.
+
+**Rejected: a user-facing "real-time vs volume" toggle.** It asks users a question they cannot
+answer, one mode is known to disagree with myUplink by 37%, and it doubles the code paths. The
+2166-vs-2305 difference is already abstracted by the `powerSources` chain — there is one path.
+
+**Rejected: stepping the meter hourly.** The dominant error is not lost intra-hour resolution
+but being a full hour late, and hour-to-hour spot swings are 2–5× while intra-hour ones are
+small. Homey history is append-only, so forward correction is the only lever.
+
+## Step 2 — see the plan file
+Integrate live for the shape, correct onto the pump's hourly figure for the level. Time-based
+gain, clamped so no meter can decrease, per-function fallback to plain integration. COP from the
+hourly pair. **Idle stays broken out**, derived as `counter delta − Σ(functions)` — hour 10:00
+showed every function at 0.00 while the counters moved 0.10 kWh, so the residual is real, and
+taking it that way makes Σ(functions) + idle ≡ the pump's total by construction.
+
+## Next: soak before asking anyone
+Run 0.9.12 on the S1155 for **24 h+** with debug on, then `node dev/analyse-energylog.mjs`,
+compare Main's 3823 against the myUplink device via Homey MCP, and watch the COP rebuild toward
+2–4. Only then is it worth publishing or asking users for logs.
