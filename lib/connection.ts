@@ -51,6 +51,10 @@ export interface PumpSubscriber {
     pollSeconds(): number;
     // Only the function devices implement this — see PumpConnection.allocateEnergy().
     onEnergy?(deltaKwh: number, watts: number): void;
+    // Called instead of onEnergy on a poll where no power source read, so the allocator could
+    // measure nothing. Devices need this to know their used-energy series has a hole in it —
+    // without it they cannot tell "this function used nothing" from "we were not looking".
+    onEnergyUnavailable?(): void;
     // Whether this device wants verbose logging (its "Debug logging" setting). The connection
     // is shared, so it logs verbosely when *any* attached device asks for it.
     debugEnabled?(): boolean;
@@ -407,6 +411,11 @@ export class PumpConnection {
         // no device selected that capability.
         if (this.consumptionRegister)
             byName.set(this.consumptionRegister.name, this.consumptionRegister);
+        // Internal registers have no capability, so no subscriber ever asks for them — but they
+        // are engine infrastructure and have to be read. The energy log lives here.
+        for (const register of this.profile.registers)
+            if (register.internal && isPollable(register))
+                byName.set(register.name, register);
         return [...byName.values()];
     }
 
@@ -509,6 +518,7 @@ export class PumpConnection {
             });
 
             this.reportReadFailures(rawByName.size > 0);
+            this.reportEnergyLogSteps(rawByName);
             this.allocateEnergy(rawByName);
 
             // Profile reset rules on priority transitions (e.g. clear "More hot water" once the
@@ -532,6 +542,45 @@ export class PumpConnection {
         }).finally(() => {
             this.polling = false;
         });
+    }
+
+    // Last seen value of each energy-log register, so a step can be told from a steady reading.
+    // Undefined until the first poll — the value standing when the app starts describes an hour
+    // we did not watch, so it is recorded as the baseline and not reported as a step.
+    private lastEnergyLog = new Map<string, number>();
+    private energyLogStarted = false;
+
+    // The pump publishes its own per-function energy for each completed hour. Report each step
+    // once, as one line covering the whole hour, so a support log shows what the pump itself
+    // booked next to what the allocator estimated. Observation only for now — nothing depends
+    // on these values yet, which is the point: they have never been seen on an S320-class pump,
+    // and `cooling=NO` governs this very block.
+    private reportEnergyLogSteps(rawByName: Map<string, number>) {
+        const entries = this.profile.energyLog;
+        if (!entries?.length)
+            return;
+        const stepped: string[] = [];
+        for (const entry of entries) {
+            const register = this.profile.registerByName[entry.name];
+            const raw = register ? rawByName.get(entry.name) : undefined;
+            if (raw === undefined || isUnavailableRaw(raw, register!.size))
+                continue;
+            const value = signedValue(raw, register!.size) / (register!.scale || 1);
+            const previous = this.lastEnergyLog.get(entry.name);
+            this.lastEnergyLog.set(entry.name, value);
+            if (previous !== undefined && value !== previous && this.energyLogStarted)
+                stepped.push(`${entry.label}=${value}`);
+        }
+        if (!this.energyLogStarted) {
+            this.energyLogStarted = true;
+            this.debug(`Energy log baseline recorded for ${this.lastEnergyLog.size} register(s) `
+                + `— steps will be reported from the next completed hour.`);
+            return;
+        }
+        if (stepped.length)
+            // The value that appears at HH:00 describes the hour that just ended.
+            this.debug(`Energy log — the pump's own figures for the hour ending `
+                + `${new Date().toISOString().slice(11, 13)}:00 UTC: ${stepped.join(', ')} kWh`);
     }
 
     private energySubscribers(): PumpSubscriber[] {
@@ -677,6 +726,11 @@ export class PumpConnection {
 
         const watts = this.totalWatts(rawByName);
         this.notePowerAvailability(watts !== null);
+        if (watts === null)
+            // Tell the energy subscribers their series has a gap here, rather than leaving them
+            // to assume the last reading still holds.
+            for (const subscriber of this.energySubscribers())
+                subscriber.onEnergyUnavailable?.();
         if (watts !== null) {
             const rawPriority = this.priorityRegister
                 ? rawByName.get(this.priorityRegister.name)

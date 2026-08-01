@@ -556,3 +556,61 @@ test('a poll where nothing reads at all is not blamed on the registers',
         await new Promise<void>((resolve) => server.close(() => resolve()));
     }
 });
+
+test('internal registers are polled even though no subscriber wants them, and steps are logged',
+     {timeout: 30000}, async () => {
+    // Internal registers have no capability, so they never appear in wantedRegisters() — but the
+    // energy log lives here and has to be read. This test is the reason the poll loop gained an
+    // explicit pass over profile.registers.
+    const pump = await startPump();
+    const logs: string[] = [];
+    const realLog = console.log;
+    console.log = (...args: any[]) => { logs.push(args.join(' ')); };
+    try {
+        const visible = reg({address: 700, name: 'visible', scale: 1});
+        const logUsed = reg({address: 702, name: 'log_used', scale: 100, size: 32, internal: true});
+        seed(pump.input, 700, 42);
+        seed(pump.input, 702, 199, 32);          // 1.99 kWh for the completed hour
+
+        const profile = makeProfile({
+            registers: [visible, logUsed],
+            role: {priorityRawOff: 10, powerSources: [], producedRegisterForRole: {}, priorityToRole: {}},
+            transport: {port: 502, unitId: 1},
+            energyLog: [{name: 'log_used', label: 'hot water used'}],
+            detection: {plausible: {}, discoveryProbe: {address: 1, scale: 10, min: -60, max: 60}},
+            compose: {capabilities: [], capabilitiesOptions: {}, actions: [], conditions: [], triggers: []}
+        });
+
+        // The subscriber asks for `visible` only — the internal register must still be read.
+        const sub = new FakeSub('main', [visible]);
+        sub.debug = true;
+        const connection = PumpConnection.get('127.0.0.1', profile, {port: pump.port, unitId: 1});
+        connection.attach(sub);
+        try {
+            await sub.whenUp();
+            await new Promise((r) => setTimeout(r, 7000));
+            assert.equal(connection.lastRawFor('log_used'), 199,
+                'an internal register must be polled despite no subscriber wanting it');
+            assert.ok(!sub.raws.some((r) => r.name === 'log_used'),
+                'but it must never be dispatched to a device as a capability value');
+
+            // The value standing at startup describes an hour nobody watched, so it is a
+            // baseline, not a step.
+            assert.ok(!logs.some((l) => l.includes('the pump\'s own figures')),
+                'the first reading is a baseline and must not be reported as a step');
+
+            // Now the hour rolls over.
+            seed(pump.input, 702, 13, 32);       // 0.13 kWh for the next completed hour
+            await new Promise((r) => setTimeout(r, 7000));
+            const steps = logs.filter((l) => l.includes('the pump\'s own figures'));
+            assert.equal(steps.length, 1, 'exactly one line per step');
+            assert.ok(steps[0].includes('hot water used=0.13'),
+                `expected the stepped value, got: ${steps[0]}`);
+        } finally {
+            connection.shutdown();
+        }
+    } finally {
+        console.log = realLog;
+        await pump.close();
+    }
+});

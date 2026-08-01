@@ -639,3 +639,38 @@ test('energy-log inclusion settings are declared, and are diagnostics rather tha
             `${setting.label} (${setting.address}) must not be a capability`);
     }
 });
+
+test('the energy log is declared internal, resolves, and is never a capability', () => {
+    // These are the pump's own per-function hourly figures — the intended replacement for the
+    // allocator's estimate, which was measured attributing 1.37 kWh to hot water on a day the
+    // pump booked 1.00 kWh for the whole unit.
+    const entries = sProfile.energyLog ?? [];
+    assert.ok(entries.length >= 8, 'expected the produced/used pairs plus additional heat');
+    const caps = new Set(sProfile.compose.capabilities);
+    for (const entry of entries) {
+        const register = sProfile.registerByName[entry.name];
+        assert.ok(register, `${entry.name} is not in the register table`);
+        assert.equal(register.internal, true, `${entry.name} must be internal, never a capability`);
+        assert.ok(!caps.has(entry.name), `${entry.name} must not be in the compose capabilities`);
+        // div=100 in Nibe's tables, 32-bit. Getting either wrong silently scales every hour.
+        assert.equal(register.scale, 100, `${entry.name} is kWh/100`);
+        assert.equal(register.size, 32, `${entry.name} is a 32-bit value`);
+    }
+    // Both halves of a COP must be present for at least heating and hot water on every model.
+    for (const label of ['heating used', 'heating produced', 'hot water used', 'hot water produced'])
+        assert.ok(entries.some((e) => e.label === label), `missing ${label}`);
+});
+
+test('compressor-only produced counters are mapped as internal', () => {
+    // Mapped to test whether 3821 tracks compressor-only output: the per-function counters
+    // overshoot it by +0.99% on an S320 and +0.54% on an S1155 that has neither cooling nor
+    // pool, so cooling exclusion cannot be the explanation.
+    for (const name of ['meter_kwh_NIBE.i1583_hotwater_produced_compressor',
+                        'meter_kwh_NIBE.i1585_heating_produced_compressor']) {
+        const register = sProfile.registerByName[name];
+        assert.ok(register, `${name} missing`);
+        assert.equal(register.internal, true);
+        assert.equal(register.scale, 10);
+        assert.equal(register.size, 32);
+    }
+});

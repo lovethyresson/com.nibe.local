@@ -195,6 +195,52 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private copProduced: number | null = null;
     private copUsed: number | null = null;
 
+    // ---- Keeping the COP's two halves over the same span ---------------------------------
+    // A function's COP divides delivered energy by electricity used. Those came from sources
+    // that measure different spans of time: the produced counter is the pump's own and runs
+    // whether or not we are watching, while `cumulativeEnergy` only advances when the app is
+    // running AND a power source reads. Divide one by the other and the ratio is inflated by
+    // however long the pump ran unobserved.
+    //
+    // That is not theoretical. On a pump with no register 2166 the allocator measured nothing
+    // at all until the 2305 fallback shipped, so weeks of produced energy met hours of measured
+    // consumption: 40 kWh / 2.64 kWh = 15.15, reported as a hot water "COP" of 14.96. Cooling
+    // came out at 10.17 the same way.
+    //
+    // So the numerator gets its own accumulator that only advances on polls where the allocator
+    // could measure — the same condition the denominator already obeys. `lastProducedSeen`
+    // resets whenever measurement stops (including app restart, since it starts null), which is
+    // what keeps energy accrued during a blind stretch from ever being counted.
+    //
+    // Main is deliberately untouched: it divides 3821 by 3823, two pump counters that advance
+    // together, and that symmetry is exactly what the function roles lack.
+    private copProducedAccum = 0;
+    private persistedProducedAccum = 0;
+    private lastProducedSeen: number | null = null;
+    private allocationLive = false;
+
+    // First run on a version that has the accumulator: the stored copSamples pair an absolute
+    // pump counter with an app-accumulated series and cannot be reconciled with it, so they are
+    // discarded rather than migrated. The COP goes blank and rebuilds within a day or two —
+    // better than continuing to publish a number we know to be wrong.
+    private async loadCopAccumulator() {
+        const stored = this.getStoreValue('copProducedAccum');
+        if (typeof stored === 'number') {
+            this.copProducedAccum = stored;
+            this.persistedProducedAccum = stored;
+            return;
+        }
+        this.copProducedAccum = 0;
+        this.persistedProducedAccum = 0;
+        await this.setStoreValue('copProducedAccum', 0).catch(this.error);
+        if ((this.getStoreValue('copSamples') ?? []).length) {
+            this.log('Discarding COP history: it was measured against the pump\'s own counter, '
+                + 'which keeps running while the app cannot. The COP will rebuild over the next '
+                + 'day or two.');
+            await this.setStoreValue('copSamples', []).catch(this.error);
+        }
+    }
+
     private copCapability(): string | null {
         if (this.role === 'main')
             return TOTAL_COP_CAPABILITY;
@@ -297,8 +343,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
         if (functionRoles.includes(this.role) || this.role === 'main')
             this.cumulativeEnergy = this.getSettings().cumulativeEnergy || 0;
-        if (functionRoles.includes(this.role))
+        if (functionRoles.includes(this.role)) {
             this.copUsed = this.cumulativeEnergy;
+            await this.loadCopAccumulator();
+        }
 
         // Capability setup can fail on an individual device (a capability RPC error, a
         // stale capability type, etc.). Catch it so onInit still reaches attach() below:
@@ -407,7 +455,22 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 this.updateRollingCop();
             }
         } else if (register.name === producedRegisterForRole[this.role]) {
-            this.copProduced = rawScaled;
+            // Advance the numerator only across intervals the allocator could measure, so it
+            // covers the same span as `cumulativeEnergy`. A negative step (counter reset) is
+            // ignored rather than propagated.
+            if (rawScaled !== null) {
+                if (this.allocationLive && this.lastProducedSeen !== null) {
+                    this.copProducedAccum += Math.max(0, rawScaled - this.lastProducedSeen);
+                    // Persist in 0.01 kWh steps rather than every poll: an ungraceful restart
+                    // then loses at most that much, which moves the COP by nothing.
+                    if (this.copProducedAccum - this.persistedProducedAccum >= 0.01) {
+                        this.persistedProducedAccum = this.copProducedAccum;
+                        this.setStoreValue('copProducedAccum', this.copProducedAccum).catch(this.error);
+                    }
+                }
+                this.lastProducedSeen = rawScaled;
+            }
+            this.copProduced = this.copProducedAccum;
             this.updateRollingCop();
         }
     }
@@ -626,7 +689,16 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.setUnavailable().catch(this.error);
     }
 
+    // No power source read this poll, so nothing could be measured. Drop the produced reference
+    // so the energy the pump delivers during the blind stretch is never added to the COP
+    // numerator — the denominator cannot see it either.
+    onEnergyUnavailable() {
+        this.allocationLive = false;
+        this.lastProducedSeen = null;
+    }
+
     onEnergy(deltaKwh: number, watts: number) {
+        this.allocationLive = true;
         if (deltaKwh) {
             this.cumulativeEnergy += deltaKwh;
             if (this.hasCapability(METER_CAPABILITY))

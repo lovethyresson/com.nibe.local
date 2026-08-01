@@ -139,6 +139,15 @@ export interface ModelProfile {
     // title at all — they appear only as `id:12391` — so there is no chance of guessing them.
     energyLogSettings?: {label: string; address: number}[];
 
+    // The pump's own per-function hourly energy accounting. Each entry names an `internal`
+    // register that reports the PREVIOUS COMPLETED HOUR: static within the hour, stepping at
+    // :00. The engine watches for the step and logs it — never differences it within the hour.
+    //
+    // This is currently observation only. It is the evidence for moving per-function energy off
+    // the estimating allocator (measured attributing 1.37 kWh to hot water on a day the pump
+    // booked 1.00 kWh for the whole unit) and onto the pump's own books, which match myUplink.
+    energyLog?: {name: string; label: string}[];
+
     // The register carrying the pump's alarm *number*, plus WHICH numbering scheme it uses.
     // S and F number their alarms differently (the same code means different things), so the
     // series must be named explicitly — see lib/alarms.ts. When set, the main device gains a

@@ -202,6 +202,54 @@ export const registers: Register[] = [
      info: {en: "Heat energy delivered to the pool", sv: "Levererad värmeenergi till poolen"}},
     {address: 1579, name: "meter_kwh_NIBE.i1579_cooling_produced",           direction: Dir.In,  group: "energy", role: "cooling",  scale: 10, size: 32, relative: true, // Cooling, compressor only
      info: {en: "Cooling energy delivered", sv: "Levererad kylenergi"}},
+
+    // ---- The pump's own energy accounting (Nibe "Energy log") -------------------------------
+    // All `internal`: polled and logged, never capabilities. These exist so the app can stop
+    // *estimating* per-function energy and start reading what the pump itself booked — the
+    // allocator was measured attributing 1.37 kWh to hot water on a day the pump's own counter
+    // moved 1.00 kWh for the entire unit.
+    //
+    // CRITICAL: these report the PREVIOUS COMPLETED HOUR. They are static within the hour and
+    // step at :00 — verified on a live S1155, where 2293 sat at 0.00 right through a hot-water
+    // cycle, jumped to 1.99 at 08:00, held 1.99 for 59 minutes, then stepped to 0.13 at 09:00.
+    // Count the value when it steps; never difference it within the hour. There is no
+    // current-hour variant on any S model.
+    //
+    // Nibe's published register list has no input registers in this range at all (it predates
+    // the block, as it predates 3821/3823), so the CSV titles and live observation are all the
+    // documentation there is. div=100 -> scale 100.
+    {address: 2283, name: "meter_kwh_NIBE.i2283_log_produced_heating",       direction: Dir.In,  group: "energy", role: "main", scale: 100, size: 32, internal: true, // Energy log - produced heating, past hour
+     info: {en: "Heat delivered to heating in the last completed hour", sv: "Levererad värme till värme senaste hela timmen"}},
+    {address: 2285, name: "meter_kwh_NIBE.i2285_log_produced_hotwater",      direction: Dir.In,  group: "energy", role: "main", scale: 100, size: 32, internal: true,
+     info: {en: "Heat delivered to hot water in the last completed hour", sv: "Levererad värme till varmvatten senaste hela timmen"}},
+    {address: 2287, name: "meter_kwh_NIBE.i2287_log_produced_pool",          direction: Dir.In,  group: "energy", role: "main", scale: 100, size: 32, internal: true,
+     info: {en: "Heat delivered to the pool in the last completed hour", sv: "Levererad värme till poolen senaste hela timmen"}},
+    {address: 2289, name: "meter_kwh_NIBE.i2289_log_produced_cooling",       direction: Dir.In,  group: "energy", role: "main", scale: 100, size: 32, internal: true,
+     info: {en: "Cooling delivered in the last completed hour", sv: "Levererad kyla senaste hela timmen"}},
+    {address: 2291, name: "meter_kwh_NIBE.i2291_log_used_heating",           direction: Dir.In,  group: "energy", role: "main", scale: 100, size: 32, internal: true,
+     info: {en: "Electricity used for heating in the last completed hour", sv: "El använd till värme senaste hela timmen"}},
+    {address: 2293, name: "meter_kwh_NIBE.i2293_log_used_hotwater",          direction: Dir.In,  group: "energy", role: "main", scale: 100, size: 32, internal: true,
+     info: {en: "Electricity used for hot water in the last completed hour", sv: "El använd till varmvatten senaste hela timmen"}},
+    {address: 2295, name: "meter_kwh_NIBE.i2295_log_used_pool",              direction: Dir.In,  group: "energy", role: "main", scale: 100, size: 32, internal: true,
+     info: {en: "Electricity used for the pool in the last completed hour", sv: "El använd till poolen senaste hela timmen"}},
+    {address: 2297, name: "meter_kwh_NIBE.i2297_log_used_cooling",           direction: Dir.In,  group: "energy", role: "main", scale: 100, size: 32, internal: true,
+     info: {en: "Electricity used for cooling in the last completed hour", sv: "El använd till kyla senaste hela timmen"}},
+    {address: 2299, name: "meter_kwh_NIBE.i2299_log_add_heating",            direction: Dir.In,  group: "energy", role: "main", scale: 100, size: 32, internal: true,
+     info: {en: "Additional heat used for heating in the last completed hour", sv: "Tillsatsvärme till värme senaste hela timmen"}},
+    {address: 2301, name: "meter_kwh_NIBE.i2301_log_add_hotwater",           direction: Dir.In,  group: "energy", role: "main", scale: 100, size: 32, internal: true,
+     info: {en: "Additional heat used for hot water in the last completed hour", sv: "Tillsatsvärme till varmvatten senaste hela timmen"}},
+    {address: 2303, name: "meter_kwh_NIBE.i2303_log_add_pool",               direction: Dir.In,  group: "energy", role: "main", scale: 100, size: 32, internal: true,
+     info: {en: "Additional heat used for the pool in the last completed hour", sv: "Tillsatsvärme till poolen senaste hela timmen"}},
+
+    // Compressor-only delivered energy, alongside the "including additional heat" counters
+    // above. Mapped to test whether 3821 tracks compressor-only output: the per-function
+    // counters overshoot it by +0.99% (S320) and +0.54% (S1155, which has neither cooling nor
+    // pool), so cooling exclusion is not the explanation. Subtracting these from 1575/1577
+    // also gives the additional-heat share per function.
+    {address: 1583, name: "meter_kwh_NIBE.i1583_hotwater_produced_compressor", direction: Dir.In, group: "energy", role: "main", scale: 10, size: 32, internal: true,
+     info: {en: "Heat delivered to hot water by the compressor alone", sv: "Levererad värme till varmvatten enbart från kompressorn"}},
+    {address: 1585, name: "meter_kwh_NIBE.i1585_heating_produced_compressor",  direction: Dir.In, group: "energy", role: "main", scale: 10, size: 32, internal: true,
+     info: {en: "Heat delivered to heating by the compressor alone", sv: "Levererad värme till värme enbart från kompressorn"}},
     {address: 1091, name: "measure_hour_NIBE.i1091_compressor_usage_hotwater",direction: Dir.In,  group: "hotwater",   scale: 1, size: 32, // Total drifttid kompressor varmvatten (s32)
      info: {en: "Compressor runtime spent on hot water", sv: "Kompressorns drifttid för varmvatten"}},
     // Rad 16 Värmekurvor
