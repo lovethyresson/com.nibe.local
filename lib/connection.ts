@@ -737,7 +737,9 @@ export class PumpConnection {
             if (main && pending && dUsed !== undefined)
                 main.onEnergyLogHour?.(Math.max(0, dUsed - pending.used), undefined);
 
+            this.reportShadowSource(perRole);
             this.hourAllocation.clear();
+            this.shadowHourAllocation.clear();
             this.pendingSplit = {
                 hour,
                 used: sumOf((label) => label.includes('used') || label.startsWith('add.heat')),
@@ -775,6 +777,74 @@ export class PumpConnection {
             .map(([r, kwh]) => `${r} ${kwh.toFixed(3)}`).join(', ') || 'nothing yet';
         this.debug(`Attribution so far this hour: ${split} kWh — drawing ${watts} W right now, `
             + `charged to ${role}.`);
+    }
+
+    // ---- Shadow power source (diagnostic) ----
+    //
+    // Only meaningful on a pump that carries more than one power source, which is exactly the
+    // situation that lets us answer a question we otherwise cannot: how much does the *choice*
+    // of power register skew the per-function split?
+    //
+    // 2166 is instantaneous; 2305 is the energy log's averaged reading, and models with no 2166
+    // (S320/S325, S330/S332, S2125) run on it. Measured side by side on a live S1155 over one
+    // hot-water cycle, 2305's integral came to 0.1293 kWh against 2166's 0.1311 — 1.4% — so a
+    // pump's TOTAL is right either way. But averaging lags the compressor ramp (920 W against
+    // 2166's 1621 W) and overruns on the way down, and the allocator charges every poll to
+    // whichever function the priority register named at that instant. After a switch, an
+    // averaged signal is still carrying the *previous* function's power. Total preserved, split
+    // skewed — and a single-function run cannot show it, which is why the July comparison
+    // (integrals over one uninterrupted cycle) did not answer this.
+    //
+    // So: run the fallback source through the same trapezoid and the same role, accumulate per
+    // hour, and print it beside the real one against the pump's own books. The live meters never
+    // see this. Debug-gated at the reporting end; the arithmetic is a few adds per poll.
+    private shadowHourAllocation = new Map<Role, number>();
+    private lastShadowWatts: number | null = null;
+
+    private trackShadowSource(role: Role | null, rawByName: Map<string, number>,
+                              deltaTimeHours: number) {
+        // Nothing to shadow unless a fallback exists AND the preferred source is the one
+        // actually in use — on a pump that only has 2305, group 1 *is* the real source and
+        // shadowing it would just restate the live figure.
+        if (this.powerGroups.length < 2 || this.activePowerGroup !== 0)
+            return;
+        const watts = this.groupWatts(1, rawByName);
+        if (watts === null) {
+            // Same rule as the real integrator: a gap must not be integrated across.
+            this.lastShadowWatts = null;
+            return;
+        }
+        if (this.lastShadowWatts !== null && role) {
+            const delta = ((this.lastShadowWatts + watts) / 2) * deltaTimeHours / 1000;
+            if (delta > 0)
+                this.shadowHourAllocation.set(role, (this.shadowHourAllocation.get(role) ?? 0) + delta);
+        }
+        this.lastShadowWatts = watts;
+    }
+
+    // One line per function at each :00, comparing both power sources against the figure the
+    // pump booked itself. `perRole` carries the pump's own hourly split.
+    private reportShadowSource(perRole: Map<Role, {used?: number; produced?: number}>) {
+        if (this.powerGroups.length < 2 || this.activePowerGroup !== 0
+            || this.shadowHourAllocation.size === 0)
+            return;
+        const label = (group: number) =>
+            this.powerGroups[group].map((r) => r.address).join('+');
+        const off = (ours: number, pump: number) =>
+            pump === 0 ? 'pump booked nothing' : `${(((ours - pump) / pump) * 100).toFixed(1)}%`;
+        for (const [role, slot] of perRole) {
+            const pump = slot.used;
+            if (pump === undefined)
+                continue;
+            const real = this.hourAllocation.get(role) ?? 0;
+            const shadow = this.shadowHourAllocation.get(role) ?? 0;
+            if (pump === 0 && real < 0.01 && shadow < 0.01)
+                continue;
+            this.debug(`Power-source comparison — ${role} last hour: pump ${pump.toFixed(3)}, `
+                + `${label(0)} ${real.toFixed(3)} (${off(real, pump)}), `
+                + `${label(1)} ${shadow.toFixed(3)} (${off(shadow, pump)}) kWh. `
+                + `What the split would look like on a model that has only ${label(1)}.`);
+        }
     }
 
     private energySubscribers(): PumpSubscriber[] {
@@ -861,21 +931,27 @@ export class PumpConnection {
         // choice would go stale on a firmware change. The preference order makes this stable
         // in practice — a pump either has the preferred register or it never does.
         for (let group = 0; group < this.powerGroups.length; ++group) {
-            let watts = 0;
-            let any = false;
-            for (const register of this.powerGroups[group]) {
-                const raw = rawByName.get(register.name);
-                if (raw === undefined)
-                    continue;
-                any = true;
-                watts += signedValue(raw, register.size) / (register.scale || 1);
-            }
-            if (!any)
+            const watts = this.groupWatts(group, rawByName);
+            if (watts === null)
                 continue;
             this.notePowerGroup(group);
             return watts;
         }
         return null;
+    }
+
+    // The summed reading of one power group, or null when none of its registers answered.
+    private groupWatts(group: number, rawByName: Map<string, number>): number | null {
+        let watts = 0;
+        let any = false;
+        for (const register of this.powerGroups[group] ?? []) {
+            const raw = rawByName.get(register.name);
+            if (raw === undefined)
+                continue;
+            any = true;
+            watts += signedValue(raw, register.size) / (register.scale || 1);
+        }
+        return any ? watts : null;
     }
 
     private notePowerGroup(group: number) {
@@ -974,6 +1050,7 @@ export class PumpConnection {
             }
             if (activeRole)
                 this.traceAllocation(activeRole, delta, watts);
+            this.trackShadowSource(activeRole, rawByName, deltaTimeHours);
 
             if (!target && delta > 0)
                 this.debug(`No device for role ${role} (or Main fallback); dropping ${delta.toFixed(5)} kWh`);
