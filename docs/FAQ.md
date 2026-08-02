@@ -30,15 +30,40 @@ The capability is titled "Total energy consumed" on every device, which is misle
 Homey applies capability titles per capability, not per device, and renaming it would orphan the Insights
 history. It's a known wart, not a miscalculation.
 
-### Why is per-function energy slightly off from the pump's own figures?
+### How does the app work out how much electricity heating, hot water and cooling each used?
 
-The pump publishes **one** total power figure and separately says what it's currently doing. It does not
-meter electricity per function. So the app integrates total power and charges it to whichever function is
-active at each poll — measured at **under 1% off** over an instrumented hot-water cycle, but attributed
-rather than metered.
+Your pump has one electricity meter, not four. What it does publish is its **total power right now** and
+**what it is currently working on**. So every few seconds the app asks both questions, works out the energy
+used since it last asked, and puts all of it on whichever function the pump named. Standby goes to Main.
 
-Delivered heat is the opposite: the pump *does* keep per-function counters for that, so delivered energy is
-read directly and is exact.
+Because each moment is charged to exactly one function, the four devices always add up to the pump's real
+total — that's what Homey's Energy tab shows.
+
+Delivered heat works the other way round: the pump *does* count that per function, so those figures are read
+straight off the pump and are exact.
+
+### Why not use the pump's own per-function energy figures instead?
+
+The pump does keep them — but it publishes them **once an hour, for the hour that just ended**. That's too
+late to be useful for the thing most people want it for:
+
+- **Electricity pricing moves faster than that.** With hourly or 15-minute tariffs, knowing at 15:00 what hot
+  water cost between 14:00 and 15:00 puts the cost in the wrong price slot. Homey can't go back and rewrite an
+  hour that has already passed, so being late can never be repaired afterwards.
+- **There'd be no live power reading at all.** The pump publishes no "right now" figure per function, so the
+  power shown on each device tile would simply not exist.
+- **Everything would move in hourly steps** rather than while things are actually happening.
+
+So the app uses the live method — and then checks itself against the pump's hourly figures every hour, which
+is the best of both: timely numbers, continuously audited against the pump's own books.
+
+**How well does that hold up?** On a measured hot-water cycle the app came within **1%** of the pump's own
+figure. That is the reason it's left alone rather than nudged toward the hourly numbers.
+
+**What you give up.** Per-function electricity is a very good estimate, not a meter reading, so it won't tie
+out to the last decimal against myUplink. And if Homey restarts or loses contact with the pump, the
+electricity used while it wasn't watching is never counted — the pump kept counting, the app couldn't. Both
+are the price of having numbers that arrive while they still matter.
 
 ### I compared for ten minutes and it's wildly wrong.
 
