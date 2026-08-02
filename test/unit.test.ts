@@ -695,3 +695,29 @@ test('every energy-log entry names a real role and side, and both sides exist pe
     for (const e of entries.filter((x) => x.label.startsWith('add.heat')))
         assert.equal(e.flow, 'used', `${e.name} is electricity the additional heater drew`);
 });
+
+test('a Modbus write failure explains itself instead of saying "see response body"', async () => {
+    const {describeModbusError, safeJson} = await import('../lib/connection');
+    // jsmodbus reports every exception as "A Modbus Exception Occurred - See Response Body" and
+    // the body was previously discarded, leaving no way to tell an out-of-range value from a
+    // register the pump refuses in its current state.
+    const exception = (code: number) =>
+        ({message: 'A Modbus Exception Occurred - See Response Body', response: {body: {code}}});
+    assert.match(describeModbusError(exception(3)).summary, /Illegal data value/);
+    assert.equal(describeModbusError(exception(3)).code, 3);
+    assert.match(describeModbusError(exception(2)).summary, /no such register/);
+    assert.match(describeModbusError(exception(6)).summary, /busy/);
+    // An unknown code must still name the number rather than falling back to the useless message.
+    assert.match(describeModbusError(exception(99)).summary, /99/);
+    // Non-exception failures keep their own meaning.
+    assert.match(describeModbusError({err: 'Timeout'}).summary, /did not answer in time/);
+    assert.equal(describeModbusError({message: 'socket closed'}).summary, 'socket closed');
+
+    // The raw error is dumped verbatim alongside, so nothing is lost — including shapes that
+    // would defeat a naive JSON.stringify.
+    const circular: any = {response: {body: {code: 3}}};
+    circular.self = circular;
+    assert.match(safeJson(circular), /"code": 3/);
+    assert.match(safeJson(circular), /circular/);
+    assert.match(safeJson(new Error('boom')), /boom/);
+});

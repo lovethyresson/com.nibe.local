@@ -70,6 +70,56 @@ export interface PumpSubscriber {
                       role: Role, reason: LocalizedText | undefined): void;
 }
 
+// Modbus exception codes (MODBUS Application Protocol v1.1b, section 7). jsmodbus surfaces
+// these only as "A Modbus Exception Occurred - See Response Body", so without decoding them a
+// failed write says nothing at all about why it failed.
+const MODBUS_EXCEPTIONS: Record<number, string> = {
+    1: 'Illegal function — the pump does not support writing this register',
+    2: 'Illegal data address — no such register on this model',
+    3: 'Illegal data value — the value is outside the range the pump accepts',
+    4: 'Server device failure — the pump hit an error carrying out the request',
+    5: 'Acknowledge — accepted but still processing',
+    6: 'Server device busy — the pump is busy; retry later',
+    8: 'Memory parity error',
+    10: 'Gateway path unavailable',
+    11: 'Gateway target device failed to respond'
+};
+
+// Everything an error carries, without throwing on circular references or losing an Error's
+// non-enumerable message/stack — a diagnostic that swallows the diagnosis is worse than none.
+export function safeJson(value: unknown): string {
+    const seen = new WeakSet();
+    try {
+        return JSON.stringify(value, (_key, v) => {
+            if (v instanceof Error)
+                return {name: v.name, message: v.message, stack: v.stack};
+            if (typeof v === 'object' && v !== null) {
+                if (seen.has(v as object))
+                    return '[circular]';
+                seen.add(v as object);
+            }
+            return typeof v === 'bigint' ? v.toString() : v;
+        }, 2) ?? String(value);
+    } catch (error: any) {
+        return `[unserialisable: ${error?.message ?? error}]`;
+    }
+}
+
+// Pull the Modbus exception code out of a jsmodbus rejection and say what it means. The shape
+// varies by failure mode (exception response, timeout, socket error), so probe rather than assume.
+export function describeModbusError(reason: any): {summary: string; code?: number} {
+    const code: number | undefined =
+        reason?.response?.body?.code ?? reason?.body?.code ?? reason?.code;
+    const known = typeof code === 'number' ? MODBUS_EXCEPTIONS[code] : undefined;
+    if (known)
+        return {summary: `Modbus exception ${code}: ${known}`, code};
+    if (typeof code === 'number')
+        return {summary: `Modbus exception ${code} (not in the standard table)`, code};
+    if (reason?.err === 'Timeout' || /timeout/i.test(reason?.message ?? ''))
+        return {summary: 'the pump did not answer in time'};
+    return {summary: reason?.message ?? String(reason)};
+}
+
 const connections = new Map<string, PumpConnection>();
 
 export class PumpConnection {
@@ -509,8 +559,14 @@ export class PumpConnection {
         try {
             await this.client.writeSingleRegister(pdu, raw);
         } catch (reason: any) {
-            this.log('Error writing register', address, reason?.message ?? reason);
-            throw reason;
+            const detail = describeModbusError(reason);
+            // The whole error, verbatim, after the readable summary. jsmodbus says "A Modbus
+            // Exception Occurred - See Response Body" and then we used to throw the body away,
+            // which left a write failure with literally no way to tell an out-of-range value
+            // from a register the pump refuses in its current state.
+            this.log(`Error writing register ${address} (value ${raw}): ${detail.summary}`,
+                '\n  raw error:', safeJson(reason));
+            throw new Error(detail.summary);
         }
     }
 
