@@ -150,6 +150,27 @@ hourly pair. **Idle stays broken out**, derived as `counter delta − Σ(functio
 showed every function at 0.00 while the counters moved 0.10 kWh, so the residual is real, and
 taking it that way makes Σ(functions) + idle ≡ the pump's total by construction.
 
+## External verification — Nibe S735 (Henrik / halderex)
+
+Independent run on a **third model**, using our own probe unmodified:
+[`todo-halderex.md`](todo-halderex.md), full write-up
+[`s735-energylog-verification.md`](s735-energylog-verification.md).
+
+Confirms previous-hour semantics and per-function accuracy on a **1.24 kWh** cycle (three-way
+corroborated, implied COP 2.86) — a much stronger data point than our own 0.13 kWh one. Also
+confirms the counter lag independently.
+
+**It corrects us on standby.** The S735 shows 2291 at 0.05–0.06 kWh/h through pure standby, so
+standby *does* fold into heating. Our S1155 hour 10:00 (all functions 0.00, counters +0.10) looked
+like evidence for a real residual, but the S1155 idles at ~10 W — 0.01 kWh/h, below the log's
+resolution — and that 0.10 was one quantisation tick covering several hours. So the earlier note in
+this file claiming the residual is real was wrong, and **idle-by-subtraction is doubly
+questionable**: the lag makes a per-hour subtraction go negative on a real cycle, and the residual
+may be near zero anyway.
+
+Method worth stealing: **hot-water boost overrides Smart Price Adaptation**, so a cycle can be
+forced on demand rather than waited for.
+
 ## Next: soak before asking anyone
 Run 0.9.12 on the S1155 for **24 h+** with debug on, then `node dev/analyse-energylog.mjs`,
 compare Main's 3823 against the myUplink device via Homey MCP, and watch the COP rebuild toward
