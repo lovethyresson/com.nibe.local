@@ -35,8 +35,9 @@ left unchecked.
   [Flow cards](#flow-cards).
 - **Operating mode** — Auto / Manual / Add-heat only.
 - **Total energy** produced and consumed, and **Total COP** (see below).
-- **Idle energy** and **Idle power** — the pump's idle/parasitic draw (charged here instead of to a
-  function); this is Main's only entry in Homey's Energy tab.
+- **Energy consumed** and **Power** — on Main these are the pump's idle/parasitic draw (charged here rather
+  than to a function), not the whole pump's; the true total is the sum across all your Nibe devices. This is
+  Main's only entry in Homey's Energy tab.
 - **Power** — current total draw, plus compressor and internal-additive power.
 - **Diagnostics** — refrigerant temps (discharge, liquid line, suction gas), inverter temp, compressor
   frequency; **statistics** — compressor starts and runtime, additive runtime; **phase currents**;
@@ -87,9 +88,9 @@ across devices reconcile:
   *operating priority* (heating / hot water / pool / cooling / idle). Every poll the app integrates that power
   into kWh and charges it to whichever function is active — so each function device gets its own consumption
   meter and appears individually in Homey's **Energy** tab. **Idle/standby draw** (circulation, electronics,
-  year-round ventilation) is charged to **Main as "Idle energy"**, not to a function — so Heating's used
-  energy (and COP) isn't polluted by the pump just sitting there. Functions (active) + Main (standby) still
-  sum to the pump's true total in the Energy tab.
+  year-round ventilation) is charged to **Main**, not to a function — so Heating's used energy (and COP)
+  isn't polluted by the pump just sitting there. Functions (active) + Main (standby) still sum to the pump's
+  true total in the Energy tab.
 - **Energy delivered** (heat out). Read directly from the pump's per-function delivered-energy counters — so
   this is *measured*, not attributed. Main also shows the pump's own **total** produced and consumed counters.
 - **COP** (coefficient of performance = heat delivered ÷ electricity used), computed over a **rolling 30-day
@@ -104,11 +105,25 @@ Because the pump exposes only a single *total* consumption figure, per-function 
 time-attributed by operating priority — a good estimate — whereas **delivered** energy and both sides of the
 **Total COP** are read from the pump's own counters directly.
 
+> **The full mechanism, with diagrams, lives in
+> [`docs/energy-attribution.md`](docs/energy-attribution.md)** — how a watt gets assigned to one device, why
+> the two COP derivations differ, and how accurate the attribution has actually measured (−0.8% on an
+> instrumented hot-water cycle). That file is kept current with each release.
+
 ### Solar / PV
 
 If the EME 20 accessory is present, Solar pairs as its own `solarpanel`-class device and reports current
 generation (W) and cumulative generation (kWh) as **production** in Homey's Energy tab — separate from the
 pump's consumption.
+
+## Does it match myUplink?
+
+Temperatures, states and settings: yes, exactly — same registers, no arithmetic. Energy totals: no, and
+deliberately so. Counters are baselined at pairing, Main holds the *remainder* rather than the pump's total,
+and per-function consumption is attributed rather than metered.
+
+**[docs/FAQ.md](docs/FAQ.md)** answers this properly, along with blank COP, short-window comparisons that
+look alarming, missing capabilities and Modbus write errors.
 
 ## Modes & quirks worth knowing
 
@@ -133,8 +148,8 @@ pump's consumption.
 - **Operating mode (Auto / Manual / Add-heat only)** on Main governs the whole pump; some manual-only
   settings (e.g. forced pump speeds) only take effect in Manual.
 - **Energy is attributed, delivered is measured.** Used energy is charged to whichever function the pump is
-  prioritising at each poll; **idle draw goes to Main as "Idle energy"** (so it doesn't wreck a function's
-  COP — dividing real delivered energy by idle-inflated used energy gave nonsense). Delivered energy comes
+  prioritising at each poll; **idle draw goes to Main** (so it doesn't wreck a function's COP — dividing
+  real delivered energy by idle-inflated used energy gave nonsense). Delivered energy comes
   from the pump's own per-function counters, so *used* is a good estimate and *delivered*/*Total COP* are exact.
 - **Unpaired functions fold into Main.** The draw is only charged to a function device if that device exists.
   If you haven't paired the Heating, Hot Water, Pool or Cooling device, the energy the pump uses while
@@ -262,6 +277,12 @@ answers. That used to be invisible — reads were swallowed and the capability s
 Re-run pairing any time to add more function devices to a pump you've already set up, or use a device's
 **Repair** flow to change its feature selection later.
 
+Detection also settles **where** a register lives: a few of them sit at a different address on some models,
+and one — room temperature on the S735 — answers at its documented address with a permanent "no value" while
+the real reading sits at an undocumented one. Detection tries the alternates, keeps whichever actually reads,
+and stores the answer with the device. **[docs/pairing.md](docs/pairing.md)** has the flow as a diagram, what
+detection decides, and how to pick a resolved address up on a device you already paired (run Repair).
+
 ## Flow cards
 
 Generic, register-driven cards rather than one per sensor: set any writable value, enable/disable a feature,
@@ -315,7 +336,7 @@ this table is the engineering view — what changed and, where it matters, why.
 
 | Version | Highlights |
 |---|---|
-| **0.9.12** | Per-function COP was dividing two different spans of time: the delivered-heat counter is the pump's own and runs unobserved, while the electricity side only advances when the app is running *and* a power source reads. On a pump with no register 2166 that meant weeks of heat ÷ hours of measured electricity — 40 ÷ 2.64 = a reported "COP" of 14.96. The numerator now advances only in lockstep with the denominator; poisoned history is discarded rather than migrated. Also maps the pump's own hourly per-function energy log (2283–2303) and the compressor-only counters (1583/1585) as internal registers, logged but not yet relied on. |
+| **0.9.12** | Per-function COP was dividing two different spans of time: the delivered-heat counter is the pump's own and runs unobserved, while the electricity side only advances when the app is running *and* a power source reads. On a pump with no register 2166 that meant weeks of heat ÷ hours of measured electricity — 40 ÷ 2.64 = a reported "COP" of 14.96. The numerator now advances only in lockstep with the denominator; poisoned history is discarded rather than migrated. Maps the pump's own hourly per-function energy log (2283–2303) and the compressor-only counters (1583/1585) as internal registers, and reconciles the allocator against them every hour — **measurement only, no correction**: an instrumented 2.35 kWh hot-water cycle came in at −0.8%, so the corrector that earlier evidence seemed to justify was backed out (the +37% that motivated it was an artefact of comparing against a counter that lags an hour and quantises to 0.1 kWh). Registers can now declare alternate addresses, resolved once during detection and stored with the selection: room temperature answers only as the not-available sentinel at 111 on the S735 while undocumented 26 carries the real value, and pump speed / night cooling / the pulse meter relocate on other models. Mechanism and evidence from [halderex's PRs](https://github.com/lovethyresson/com.nibe.local/pull/3). Energy and pairing logic documented with diagrams under [`docs/`](docs/). |
 | **0.9.11** | Enabling Debug logging dumps every register the model knows — raw *and* decoded, including ones the feature selection has switched off. Nearly every bug found so far was "the pump doesn't report what we assumed", each costing several round-trips with a user; this makes one report enough. Main only (the debug setting mirrors to all five devices), sequential reads, grouped into a dozen long lines rather than a hundred short ones, and re-emitted on debug-enable so it lands at the end of a rolling buffer rather than the start. |
 | **0.9.10** | Diagnostics for energy that looks wrong. An operating-priority code the model doesn't map, or a function whose device isn't paired, silently booked that function's electricity as idle on Main — both are now logged plainly instead of only under debug. On models that expose it, the pump's energy-log inclusion settings (menu 3.1) are reported, since they're configured on the pump and change what the totals mean. Optional lookups (firmware, those settings) no longer masquerade as failed registers. Store description shortened per Homey app review. |
 | **0.9.9** | Per-function energy and COP on the split models. Register 2166 doesn't exist on S320/S325, S330/S332 or S2125, so the allocator was skipped wholesale and every per-function meter and COP stayed empty in silence. Power sources became an ordered fallback list (2166 → 2305, first that reads wins, never summed). Read failures and missing power sources are logged; detection learned that a register *answering* isn't a register *working*; repair lets a fresh detection pass un-tick capabilities; seven registers documented as 32-bit were being read as 16-bit. |

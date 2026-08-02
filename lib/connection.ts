@@ -1041,9 +1041,9 @@ export class PumpConnection {
     async probe(onProgress: (pass: number, passes: number) => void): Promise<DetectionResult> {
         if (!this.connected)
             throw new Error('Not connected to the heat pump');
-        const probes = await sampleRegisters(this.profile,
+        const {probes, addresses} = await sampleRegisters(this.profile,
             (register) => readNumeric(this.client, register, this.profile), onProgress);
-        return buildDetectionResult(this.profile, probes);
+        return buildDetectionResult(this.profile, probes, addresses);
     }
 
     isConnected(): boolean {

@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 
 import {
     Dir, combineRaw, signedValue, isUnavailableRaw, toNumericValue, isAdjustable, isPollable,
-    buildPickerPrimary, buildRegisterByName, isSelectableRegister, isRegisterEnabled, Register
+    buildPickerPrimary, buildRegisterByName, isSelectableRegister, isRegisterEnabled, Register,
+    resolvedAddress
 } from '../lib/registers';
 import {makeProfile} from '../lib/profile';
 import {
@@ -13,7 +14,7 @@ import {
 } from '../lib/roles';
 import type {Role} from '../lib/roles';
 import {sReason} from '../drivers/nibe_s/reason';
-import {buildDetectionResult, recommendGroups, ProbeSamples} from '../lib/detection';
+import {buildDetectionResult, recommendGroups, sampleRegisters, ProbeSamples} from '../lib/detection';
 import {alarmAdvice, alarmDescription, alarmEntry} from '../lib/alarms';
 import alarmCodes from '../lib/alarm-codes.json';
 import {sProfile} from '../drivers/nibe_s/profile';
@@ -720,4 +721,93 @@ test('a Modbus write failure explains itself instead of saying "see response bod
     assert.match(safeJson(circular), /"code": 3/);
     assert.match(safeJson(circular), /circular/);
     assert.match(safeJson(new Error('boom')), /boom/);
+});
+
+// ---- Registers that live at a different address on some models ----
+
+// Drive sampleRegisters with a fake pump: `answers` maps an address to the value that
+// address returns, and anything else reads as nothing (the model doesn't implement it, or
+// answers with the sentinel — both arrive here as undefined).
+function sampleAgainst(answers: Record<number, number | undefined>) {
+    return sampleRegisters(
+        sProfile,
+        async (register: Register) => answers[register.address],
+        () => {},
+        1,
+        0
+    );
+}
+
+const INSIDE = 'measure_temperature.i26_inside';
+
+test('alternates: a register empty at its own address resolves to the one that answers', async () => {
+    // The S735 case: BT50 is documented at 111 and answers only with the sentinel there,
+    // while undocumented input 26 carries the real room temperature.
+    const inside = sProfile.registerByName[INSIDE];
+    assert.equal(inside.address, 111, 'primary must stay 111 so the models where it works are untouched');
+    assert.deepEqual(inside.altAddresses, [26]);
+
+    const {probes, addresses} = await sampleAgainst({26: 22.5});
+    assert.equal(addresses[INSIDE], 26, 'the alternate that answered must be recorded');
+    // Folded into the probe, or pairing drops the capability as "no data" and the resolution
+    // never gets used — the gap that lost the room-temperature tile on a fresh S735 pair.
+    assert.equal(probes[INSIDE].reads, 1);
+    assert.equal(probes[INSIDE].last, 22.5);
+    assert.equal(buildDetectionResult(sProfile, probes, addresses).samples[INSIDE].read, true);
+});
+
+test('alternates: a primary that answers is never second-guessed', async () => {
+    // The S1155 reads 111 correctly. Even with a plausible value sitting at 26, resolution
+    // must not fire — otherwise a working model silently changes which register it reads.
+    const {probes, addresses} = await sampleAgainst({111: 21.0, 26: 22.5});
+    assert.equal(addresses[INSIDE], undefined);
+    assert.equal(probes[INSIDE].last, 21.0);
+});
+
+test('alternates: an implausible reading is rejected rather than accepted', async () => {
+    // The 2727 trap: an address can answer with something that merely decodes as a number.
+    // A room sensor reading a flat 0 is a dead sensor, and 0 is outside the declared band.
+    const {addresses} = await sampleAgainst({26: 0});
+    assert.equal(addresses[INSIDE], undefined, 'a flat zero must not be taken as 0 °C');
+
+    // But 0 *is* data for a meter that has counted nothing, so that band admits it.
+    const pulse = 'meter_kwh_NIBE.i398_pulse_energy';
+    const resolved = (await sampleAgainst({396: 0})).addresses;
+    assert.equal(resolved[pulse], 396);
+});
+
+test('alternates: every declaration is well formed and unambiguous', () => {
+    const byDirection = new Map<string, string>();
+    for (const register of registers)
+        byDirection.set(`${register.direction}@${register.address}`, register.name);
+    for (const register of registers) {
+        if (!register.altAddresses?.length)
+            continue;
+        // A band is what stops an undocumented address being accepted on the strength of
+        // answering, so it is not optional.
+        assert.ok(register.altPlausible, `${register.name} declares alternates without a band`);
+        assert.ok(register.altPlausible!.min < register.altPlausible!.max,
+            `${register.name} has an inverted band`);
+        for (const address of register.altAddresses) {
+            assert.notEqual(address, register.address,
+                `${register.name} lists its own address as an alternate`);
+            // An alternate that is another register's primary in the same direction would make
+            // two capabilities read the same quantity without anyone noticing.
+            const clash = byDirection.get(`${register.direction}@${address}`);
+            assert.ok(clash === undefined || clash === register.name,
+                `${register.name} alternate ${address} collides with ${clash}`);
+        }
+    }
+});
+
+test('alternates: the resolved address is what reads and writes actually use', () => {
+    const selection = {groups: {heating: true}, overrides: {}, addresses: {[INSIDE]: 26}};
+    const resolved = registersForRole(sProfile, 'heating', selection)
+        .find((r) => r.name === INSIDE);
+    assert.equal(resolved?.address, 26, 'polling and the dump must follow the resolution');
+    // The table itself is untouched — resolution is per device, not a global mutation.
+    assert.equal(sProfile.registerByName[INSIDE].address, 111);
+    // Writes resolve at call time from the same map.
+    assert.equal(resolvedAddress(sProfile.registerByName[INSIDE], selection), 26);
+    assert.equal(resolvedAddress(sProfile.registerByName[INSIDE], null), 111);
 });

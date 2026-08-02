@@ -78,8 +78,39 @@ export interface Register  {
     // so a fallback source would otherwise put a third copy of the same number on the tile.
     // Still sampled by detection, which is what decides whether it is usable on this model.
     internal?: boolean;
+    // Addresses to fall back to, in order, when this register carries no usable value on a
+    // model. Two different situations need this, and only one of them is predictable from
+    // Nibe's register maps:
+    //   (a) relocation — the register genuinely lives elsewhere on some models, e.g. heating
+    //       medium pump speed at 1636 instead of 1102 on the S330/S332. The primary simply
+    //       does not answer there.
+    //   (b) present but dead — the address is listed for the model and answers, but always
+    //       with the not-available sentinel, while the real value sits at another address.
+    //       Room temperature on the S735 is this: 111 is documented and empty, 26 is not
+    //       documented for that model and reads correctly.
+    // Case (b) is why a model-code lookup table cannot solve this and a live read must:
+    // only reading the pump finds it. Resolved once during detection (pairing/repair), never
+    // per poll — `Selection.addresses` records what won.
+    altAddresses?: number[];
+    // The band a candidate must read within to be accepted, required alongside altAddresses.
+    // Guards against an undocumented address answering with something that merely decodes as
+    // a number — register 2727 answered 31 of 31 reads and was flat zero throughout a 3.3 kW
+    // run, which is how it nearly became the energy allocator's power source.
+    // Choose bounds that make a dead reading implausible: an indoor sensor uses 5..40 rather
+    // than -10..50 precisely so a disconnected sensor's 0 falls outside. Where 0 is genuine
+    // data (a pulse meter that has counted nothing yet) let the band include it.
+    altPlausible?: {min: number; max: number};
     min?: number;
     max?: number;
+}
+
+// Whether a value read from a candidate address is good enough to accept as this register's
+// real source. A register without a band never resolves to an alternate.
+export function isPlausibleAlt(register: Register, value: number | undefined): boolean {
+    const band = register.altPlausible;
+    if (!band || value === undefined)
+        return false;
+    return value >= band.min && value <= band.max;
 }
 
 // A register the user can change from Homey (writable holding register that
@@ -140,6 +171,33 @@ export function toNumericValue(register: Register, raw: number): number | undefi
 export interface Selection {
     groups: Partial<Record<GroupId, boolean>>;
     overrides: Record<string, boolean>;
+    // Register name → the address detection actually found the value at, recorded only when
+    // it wasn't the register's own. Absent for every register on every model that doesn't
+    // relocate, which is nearly all of them. A device paired before this existed has no entry
+    // and reads the primary exactly as it did — running Repair re-runs detection and fills
+    // this in.
+    addresses?: Record<string, number>;
+}
+
+// The address to actually put on the wire for a register, honouring what detection resolved.
+export function resolvedAddress(register: Register, selection: Selection | null | undefined): number {
+    return selection?.addresses?.[register.name] ?? register.address;
+}
+
+// Rewrite a list of registers onto their resolved addresses. Returns the originals untouched
+// when nothing was resolved, so the common case allocates nothing.
+export function withResolvedAddresses(
+    registers: Register[], selection: Selection | null | undefined
+): Register[] {
+    const addresses = selection?.addresses;
+    if (!addresses)
+        return registers;
+    return registers.map((register) => {
+        const address = addresses[register.name];
+        return address === undefined || address === register.address
+            ? register
+            : {...register, address};
+    });
 }
 
 // ---- Catalog helpers (derived from a specific register table) ------------------------

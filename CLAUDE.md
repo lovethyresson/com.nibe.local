@@ -33,6 +33,12 @@ Four things move together, and the last one is easy to forget:
 2. `homey app build` to regenerate `app.json` (never hand-edit its version).
 3. A user-facing entry in `.homeychangelog.json` — English and Swedish, written for a pump owner, not a developer.
 4. A row in the **Releases** table in `README.md` — the engineering view: what changed and why it mattered.
+5. `docs/energy-attribution.md` if the release touched attribution, the power sources, the role mapping or
+   the COP accumulators — it is the source of truth for that logic, carries the diagrams, and states which
+   version it was last verified against. Bump that line even when nothing else in it changed. Add a Q to
+   `docs/FAQ.md` if the release changes something a user would otherwise write in to ask about.
+
+Per release, not per build — these are documentation, not generated artifacts.
 
 Verify with `npm test`, `npx homey app validate --level publish`.
 

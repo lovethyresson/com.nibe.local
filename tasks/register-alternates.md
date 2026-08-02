@@ -1,7 +1,11 @@
 # Registers that live somewhere else on some models
 
-**Status: parked.** Land the per-function energy work first. This file exists so we can pick the
-thread up without re-deriving it — everything below is already established.
+**Status: done, 0.9.12.** Implemented as described below — resolution at detection, stored in the
+device's selection as `addresses`. Live reference is [`docs/pairing.md`](../docs/pairing.md); this
+file is kept as the reasoning trail (why not a model-code table, why the band matters).
+
+Not carried over: PR #3's runtime per-read fallback, superseded by resolving once at detection.
+Still open — reply to PR #3 crediting the mechanism.
 
 Prompted by [PR #3](https://github.com/lovethyresson/com.nibe.local/pull/3) (halderex): on his
 S735 the room-temperature tile is empty because register **111** returns the not-available
@@ -85,12 +89,19 @@ The mechanism he wrote is good and follows `powerSources`; these are the gaps.
   (2727 answered 31/31 reads and was always zero), consider whether 0 should be excluded — noting
   a genuinely 0 °C room is possible.
 
-## When we pick it up
+## How it landed
 
-1. Add `altAddresses` + plausibility band to `Register` (lib/registers.ts).
-2. Resolve during `sampleRegisters`/`buildDetectionResult` (lib/detection.ts) and record the
-   chosen address in the device's stored selection.
-3. Runtime reads the resolved address; no per-poll probing.
-4. Populate the four documented relocations plus BT50.
-5. Surface the resolution in the register dump, so a support log shows which address won.
-6. Reply to PR #3 with the above, crediting the mechanism.
+1. ✅ `altAddresses` + `altPlausible` band on `Register` (lib/registers.ts).
+2. ✅ Resolved by `resolveAlternates()` after sampling (lib/detection.ts), carried through
+   `DetectionResult.addresses` into the device's stored selection.
+3. ✅ Reads resolve in `registersForRole()`; writes resolve at call time in `writeRegister()`,
+   so a repair that moves a register doesn't need a restart. No per-poll probing.
+4. ✅ All four populated: 111→26, 1102→1636, 227→2955, 398→396.
+5. ✅ The register dump marks a resolved register `[was <primary>]`.
+6. ⬜ Reply to PR #3.
+
+On the four review findings above: the detection gap is closed by construction; 26-vs-111 was
+decided by keeping 111 primary and only falling back when it reads nothing at all; the S735's
+undocumented 26 is guarded by the band rather than trusted; and the "band accepts exactly 0"
+problem is solved per register rather than globally — room temperature uses 5..40 so a dead
+sensor's 0 falls outside, while the pulse meter's band includes 0 because there it is data.

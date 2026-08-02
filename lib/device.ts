@@ -1,5 +1,8 @@
 import {Device} from 'homey';
-import {Dir, Register, Selection, isPollable, isUnavailableRaw, signedValue} from './registers';
+import {
+    Dir, Register, Selection, isPollable, isUnavailableRaw, resolvedAddress, signedValue,
+    withResolvedAddresses
+} from './registers';
 import {
     ACTIVE_POWER_CAPABILITY, ALARM_ACTIVE_CAPABILITY, ALARM_TEXT_CAPABILITY,
     FUNCTION_COP_CAPABILITY, METER_CAPABILITY,
@@ -113,11 +116,16 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         return raw === undefined ? undefined : this.fromRegisterValue(register, raw);
     }
 
+    // The address is resolved here rather than baked into the register when the capability
+    // listener was created: listeners are registered once at init, but a repair can re-run
+    // detection and move a relocated register, and reading the selection at write time picks
+    // that up without a restart.
     async writeRegister(register: Register, value: any): Promise<void> {
         if (!this.connection)
             throw new Error('Not connected to the heat pump');
         try {
-            await this.connection.writeSingleRegister(register.address, this.toRegisterValue(register, value));
+            const address = resolvedAddress(register, this.getSelection());
+            await this.connection.writeSingleRegister(address, this.toRegisterValue(register, value));
         } catch (error: any) {
             // Surface a clear, user-facing message instead of failing silently.
             throw new Error(`Could not set "${this.registerTitle(register)}": ${error?.message ?? error}`);
@@ -648,9 +656,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             return;
         this.dumping = true;
         try {
-            const all = this.profile.registers.filter(isPollable);
-            const enabled = new Set(registersForRole(this.profile, this.role, this.getSelection())
+            const selection = this.getSelection();
+            const all = withResolvedAddresses(this.profile.registers.filter(isPollable), selection);
+            const enabled = new Set(registersForRole(this.profile, this.role, selection)
                 .map((r) => r.name));
+            const primary = new Map(this.profile.registers.map((r) => [r.name, r.address]));
             const byGroup = new Map<string, string[]>();
             let answered = 0;
             // Sequential rather than Promise.all: this runs alongside the poll loop, and a
@@ -667,8 +677,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 // are never "enabled" — say so rather than implying the user switched them off.
                 const mark = register.internal ? ' [internal]'
                     : enabled.has(register.name) ? '' : ' [off]';
+                // Say so when detection put this register somewhere other than its own address,
+                // so a support log answers "which address is it actually reading?" outright.
+                const moved = primary.get(register.name);
+                const from = moved !== undefined && moved !== register.address ? ` [was ${moved}]` : '';
                 const list = byGroup.get(register.group) ?? [];
-                list.push(`${register.address} ${register.name}=${shown}${mark}`);
+                list.push(`${register.address} ${register.name}=${shown}${mark}${from}`);
                 byGroup.set(register.group, list);
             }
             // Grouped into a dozen long lines rather than a hundred short ones: a diagnostic

@@ -1,6 +1,6 @@
 import net from 'net';
 import {ModbusTCPClient} from 'jsmodbus';
-import {Dir, GroupId, groupIds, Register, combineRaw, toNumericValue} from './registers';
+import {Dir, GroupId, groupIds, Register, combineRaw, isPlausibleAlt, toNumericValue} from './registers';
 import type {ModelProfile} from './profile';
 
 // Samples all registers a few times over ~half a minute and recommends which
@@ -37,6 +37,14 @@ export interface RegisterSample {
 export interface DetectionResult {
     recommendations: Recommendations;
     samples: Record<string, RegisterSample>;
+    // Register name → the alternate address its value was actually found at. Only registers
+    // that relocated appear here; it is stored on the device as part of the selection.
+    addresses: Record<string, number>;
+}
+
+export interface ProbeResult {
+    probes: ProbeSamples;
+    addresses: Record<string, number>;
 }
 
 // The PDU address to put on the wire for a register, applying the model's address offset
@@ -47,11 +55,13 @@ export function pduAddress(register: Register, profile: ModelProfile): number {
 
 // Bundle the group recommendations with the per-register sample detail (used by the
 // pairing device picker to show which of a device's registers actually had data).
-export function buildDetectionResult(profile: ModelProfile, probes: ProbeSamples): DetectionResult {
+export function buildDetectionResult(
+    profile: ModelProfile, probes: ProbeSamples, addresses: Record<string, number> = {}
+): DetectionResult {
     const samples: Record<string, RegisterSample> = {};
     for (const [name, probe] of Object.entries(probes))
         samples[name] = {read: probe.reads > 0, moved: probe.moved, value: probe.last};
-    return {recommendations: recommendGroups(profile, probes), samples};
+    return {recommendations: recommendGroups(profile, probes), samples, addresses};
 }
 
 export async function readNumeric(
@@ -80,7 +90,7 @@ export async function sampleRegisters(
     onProgress: (pass: number, passes: number) => void,
     passes: number = PROBE_PASSES,
     intervalMs: number = PROBE_INTERVAL_MS
-): Promise<ProbeSamples> {
+): Promise<ProbeResult> {
     const probes: ProbeSamples = Object.fromEntries(
         profile.registers.map((register) => [register.name, {reads: 0, moved: false}]));
     for (let pass = 0; pass < passes; ++pass) {
@@ -98,7 +108,46 @@ export async function sampleRegisters(
         if (pass < passes - 1)
             await new Promise((resolve) => setTimeout(resolve, intervalMs));
     }
-    return probes;
+    return {probes, addresses: await resolveAlternates(profile, read, probes)};
+}
+
+// Try the declared alternates for any register whose own address produced nothing usable
+// across the whole sampling run, and record the first that reads inside the register's
+// plausibility band.
+//
+// The trigger is deliberately "the primary never read at all", which covers both a register
+// the model doesn't implement (no answer) and one it implements but leaves empty (the
+// not-available sentinel, which toNumericValue already turns into undefined). A primary that
+// answers with a real value is never second-guessed, so a model where nothing moved cannot
+// regress.
+//
+// Runs once after sampling rather than inside the pass loop: one extra read per alternate per
+// pairing, and only for the handful of registers that declare any.
+async function resolveAlternates(
+    profile: ModelProfile,
+    read: (register: Register) => Promise<number | undefined>,
+    probes: ProbeSamples
+): Promise<Record<string, number>> {
+    const addresses: Record<string, number> = {};
+    for (const register of profile.registers) {
+        const probe = probes[register.name];
+        if (!register.altAddresses?.length || !probe || probe.reads > 0)
+            continue;
+        for (const address of register.altAddresses) {
+            const value = await read({...register, address});
+            if (!isPlausibleAlt(register, value))
+                continue;
+            addresses[register.name] = address;
+            // Fold the successful read into the probe. Without this the capability is dropped
+            // as "no data" during pairing and the fallback never gets used at runtime — the
+            // reason a fresh pair on an S735 lost its room-temperature tile even though the
+            // value was sitting at a readable address the whole time.
+            probe.reads = 1;
+            probe.last = value;
+            break;
+        }
+    }
+    return addresses;
 }
 
 export function recommendGroups(profile: ModelProfile, probes: ProbeSamples): Recommendations {
@@ -164,8 +213,9 @@ export async function probeHost(
         socket.connect({port: transport.port, host});
     });
     try {
-        const probes = await sampleRegisters(profile, (register) => readNumeric(client, register, profile), onProgress);
-        return buildDetectionResult(profile, probes);
+        const {probes, addresses} = await sampleRegisters(
+            profile, (register) => readNumeric(client, register, profile), onProgress);
+        return buildDetectionResult(profile, probes, addresses);
     } finally {
         socket.removeAllListeners();
         socket.end();

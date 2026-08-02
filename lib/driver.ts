@@ -377,7 +377,10 @@ export abstract class NibePumpDriver extends Driver {
         return entries;
     }
 
-    private cleanSelection(raw: any): Selection {
+    // `addresses` comes from detection, not from the view: which address a register lives at
+    // is a fact about the pump, not a choice, so it is stamped in server-side. A repair that
+    // skipped detection passes the device's existing map through unchanged.
+    private cleanSelection(raw: any, addresses?: Record<string, number>): Selection {
         const groups: Selection["groups"] = {};
         for (const id of groupIds)
             groups[id] = !!raw?.groups?.[id];
@@ -397,7 +400,10 @@ export abstract class NibePumpDriver extends Driver {
         // re-enables a COP the pump has no registers for.
         for (const name of [...ENERGY_CAPABILITIES, TOTAL_COP_CAPABILITY, FUNCTION_COP_CAPABILITY])
             keep(name, "energy");
-        return {groups, overrides};
+        const selection: Selection = {groups, overrides};
+        if (addresses && Object.keys(addresses).length)
+            selection.addresses = addresses;
+        return selection;
     }
 
     private static roleSelection(role: Role, recommendations: Recommendations): Selection {
@@ -409,9 +415,14 @@ export abstract class NibePumpDriver extends Driver {
     }
 
     private deviceTemplate(ip: string, role: Role, recommendations: Recommendations,
-                           samples: Record<string, RegisterSample>, transport?: PairTransport) {
+                           samples: Record<string, RegisterSample>, transport?: PairTransport,
+                           addresses: Record<string, number> = {}) {
         const language = this.homey.i18n.getLanguage();
         const selection = NibePumpDriver.roleSelection(role, recommendations);
+        // Where detection found a register at one of its alternate addresses, record it on the
+        // device so the runtime reads that address instead of the one in the table.
+        if (Object.keys(addresses).length)
+            selection.addresses = addresses;
         for (const register of roleRegisters(this.profile, role)) {
             if (register.group !== 'core'
                 && isSelectableRegister(register, this.profile.pickerPrimary)
@@ -569,7 +580,8 @@ export abstract class NibePumpDriver extends Driver {
                     : (roleGroups[role] as GroupId[])
                         .some((group) => group !== 'core' && group !== 'energy'
                             && recommendations[group]?.recommended),
-                device: this.deviceTemplate(ip, role, recommendations, samples, transport),
+                device: this.deviceTemplate(ip, role, recommendations, samples, transport,
+                                            detection?.addresses ?? {}),
                 groups: this.candidateGroups(role, recommendations, samples)
             }));
     }
@@ -738,7 +750,9 @@ export abstract class NibePumpDriver extends Driver {
         });
 
         session.setHandler('selection_done', async (raw) => {
-            const selection = this.cleanSelection(raw);
+            const resolved = (detection as DetectionResult | null)?.addresses
+                ?? (device.getStoreValue('selection') as Selection | null)?.addresses;
+            const selection = this.cleanSelection(raw, resolved);
             this.log('onRepair: selection:', JSON.stringify(selection));
             await device.applySelection(selection);
             return true;

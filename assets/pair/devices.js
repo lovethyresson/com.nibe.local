@@ -151,7 +151,14 @@ function buildDevice(candidate, index) {
     });
     device.capabilities = caps;
     device.store = device.store || {};
+    // Carry the resolved register addresses through. Detection put them on the template and
+    // they are not a user choice, so rebuilding the selection from the checkboxes must not
+    // drop them — without this a relocated register would silently fall back to the address
+    // its model doesn't implement.
+    var resolved = device.store.selection && device.store.selection.addresses;
     device.store.selection = { groups: groups, overrides: overrides };
+    if (resolved)
+        device.store.selection.addresses = resolved;
     return device;
 }
 

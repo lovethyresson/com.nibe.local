@@ -72,7 +72,14 @@ export const registers: Register[] = [
     // Rad 1 Temp
     {address:    1, name: "measure_temperature.i1_outside",         direction: Dir.In,  group: "core",        scale:  10, // Aktuell utetemperatur (BT1)
      info: {en: "Current outdoor temperature (sensor BT1)", sv: "Aktuell utetemperatur (givare BT1)"}},
+    // BT50 is documented at 111 on all six model maps, but on the S735 it answers with the
+    // not-available sentinel forever while input 26 ("Roomsensor 1-1", listed on every model
+    // *except* the S735) reads the real room temperature. Reported by halderex with an S735
+    // on both Modbus and MyUplink. 111 stays primary so the models where it works are
+    // untouched. The band is 5..40 rather than something wider so that a disconnected sensor
+    // reading a flat 0 is rejected instead of accepted as 0 °C.
     {address:  111, name: "measure_temperature.i26_inside",         direction: Dir.In,  group: "heating",     scale:  10, // Rumstemperatur (BT50) — reg 111, not 26
+     altAddresses: [26], altPlausible: {min: 5, max: 40},
      info: {en: "Indoor temperature from room sensor 1 (BT50)", sv: "Inomhustemperatur från rumsgivare 1 (BT50)"}},
     // Rad 2 Framledning
     {address: 1017, name: "measure_temperature.i1017_calculated_supply", direction: Dir.In, group: "heating", scale:  10, // Beräknad framledning klimatsystem 1
@@ -85,7 +92,11 @@ export const registers: Register[] = [
     {address:    7, name: "measure_temperature.i7_heating_return",  direction: Dir.In,  group: "heating",     scale:  10, // Returledning (BT3)
      info: {en: "Heating return line temperature (BT3)", sv: "Returledningstemperatur (BT3)"}},
     // Rad 4
+    // Relocated to 1636 on the S330/S332, which do not list 1102 at all (the S2125 and
+    // S320/S325 list both). A percentage, so the band is the full 0..100 — 0 is a pump that
+    // is simply not running, which is real data rather than a dead read.
     {address: 1102, name: "measure_percentage_NIBE.i1102_heating_pump",       direction: Dir.In, group: "heating",     scale: 1, // Värmebärarpumphastighet (GP1)
+     altAddresses: [1636], altPlausible: {min: 0, max: 100},
      info: {en: "Heating medium pump speed (GP1)", sv: "Värmebärarpumpens hastighet (GP1)"}},
     {address: 1104, name: "measure_percentage_NIBE.i1104_source_pump",        direction: Dir.In, group: "groundsource", scale: 1, // Köldbärarpumphastighet (GP2)
      info: {en: "Brine pump speed (GP2)", sv: "Köldbärarpumpens hastighet (GP2)"}},
@@ -326,7 +337,10 @@ export const registers: Register[] = [
 
     // On / Off delar på kortet
     // On / Off Nattsvalka
+    // Relocated to 2955 on the S2125 and S330/S332 (the S320/S325 list both). A 0/1 flag, so
+    // the band admits exactly those two values; writes follow the resolved address too.
     {address:  227, name: "boolean_NIBE.h227_nightchill",                            direction: Dir.Out, group: "cooling",     bool: true, // Nattsvalka 1
+     altAddresses: [2955], altPlausible: {min: 0, max: 1},
      info: {en: "Night cooling using the exhaust air fan", sv: "Nattsvalka med hjälp av frånluftsfläkten"}},
     // On / Off Periodiskt varmvatten
     {address:   65, name: "boolean_NIBE.h65_periodic_hotwater",                      direction: Dir.Out, group: "hotwater",   bool: true, // Periodisk varmvatten
@@ -434,7 +448,10 @@ export const registers: Register[] = [
     {address: 1100, name: "boolean_NIBE.i1100_compressor_status",                    direction: Dir.In,  group: "diagnostics", bool: true, // Compressor status
      info: {en: "Whether the compressor is running", sv: "Om kompressorn är igång"}},
     // External pulse energy meter BE6 — only present if such a meter is wired to the pump.
+    // Relocated to 396 on the S320/S325. A meter that has counted nothing yet genuinely reads
+    // 0, so the band includes it — unlike the room sensor, 0 here is data, not a dead read.
     {address:  398, name: "meter_kwh_NIBE.i398_pulse_energy",                 direction: Dir.In,  group: "electrical",  scale: 100, size: 32, // Pulse energy meter (BE6)
+     altAddresses: [396], altPlausible: {min: 0, max: 1_000_000},
      info: {en: "Energy counted by an external pulse meter (BE6)", sv: "Energi räknad av extern pulsmätare (BE6)"}},
     // Photovoltaic / self-consumption accessory (EME 20), on its own `solarpanel`-class
     // device. Mapped to Homey's official energy capabilities so it reports generation to the

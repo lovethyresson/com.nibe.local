@@ -1,4 +1,4 @@
-import {GroupId, Register, Selection, isRegisterEnabled} from './registers';
+import {GroupId, Register, Selection, isRegisterEnabled, withResolvedAddresses} from './registers';
 import type {ModelProfile} from './profile';
 
 // A paired Homey device represents one logical function of the physical pump.
@@ -188,13 +188,18 @@ export function groupsForRole(role: Role): GroupId[] {
 // Registers this role is responsible for, filtered by the user's feature selection.
 // Drives capability sync, polling and flow-card autocompletes so each device only ever
 // touches its own registers.
+// Registers come back on their *resolved* addresses, so polling, the register dump and the
+// flow autocompletes all follow a relocated register without knowing it moved. Writes resolve
+// separately, at the moment of the write (see NibePumpDevice.writeRegister) — a capability
+// listener is registered once at init and closes over its register, so resolving there would
+// keep writing to the old address after a repair changed it.
 export function registersForRole(profile: ModelProfile, role: Role, selection: Selection | null | undefined): Register[] {
     const groups = new Set<GroupId>(roleGroups[role]);
-    return profile.registers.filter((register) =>
+    return withResolvedAddresses(profile.registers.filter((register) =>
         !register.internal
         && groups.has(register.group)
         && (!register.role || register.role === role)
-        && isRegisterEnabled(register, selection, profile.pickerPrimary));
+        && isRegisterEnabled(register, selection, profile.pickerPrimary)), selection);
 }
 
 // All registers of a role regardless of selection — used to register capability
