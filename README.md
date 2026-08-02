@@ -358,6 +358,11 @@ this table is the engineering view — what changed and, where it matters, why.
 - Original app: [Jan Sparud](https://github.com/sparud).
 - Local multi-device rework, per-function energy, delivered-energy/COP, Solar device and S-series coverage:
   Love Thyresson.
+- [Henrik Aldermo (halderex)](https://github.com/halderex) — independent verification of the per-function
+  energy log on a Nibe S735 (against MyUplink on the same hardware), which corrected our reading of both
+  standby attribution and the lifetime counters' timing; and the register-fallback mechanism behind
+  [alternate address resolution](docs/pairing.md), found via a room-temperature sensor that reads at an
+  undocumented address on the S735.
 - Register definitions cross-checked against [yozik04/nibe](https://github.com/yozik04/nibe)
   (GPL-3.0), a per-model Modbus register library for Nibe heat pumps — used as a reference
   to verify addresses, scales and ranges across the S-series; no code is bundled from it.
