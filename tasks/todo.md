@@ -171,6 +171,15 @@ may be near zero anyway.
 Method worth stealing: **hot-water boost overrides Smart Price Adaptation**, so a cycle can be
 forced on demand rather than waited for.
 
+## Parked: registers that live elsewhere on some models
+
+[`register-alternates.md`](register-alternates.md) — prompted by PR #3 (BT50 reads the sentinel on
+an S735; the value is at register 26). Two distinct problems: documented *relocations*
+(1102→1636, 227→2955, 398→396) and undocumented *present-but-dead* registers, which is what BT50
+actually is. Decision recorded: **alternates resolved at detection**, not a model check — the
+reasoning, the PR review findings, and the steps to take are all in that file. Deliberately parked
+until the energy work lands.
+
 ## Next: soak before asking anyone
 Run 0.9.12 on the S1155 for **24 h+** with debug on, then `node dev/analyse-energylog.mjs`,
 compare Main's 3823 against the myUplink device via Homey MCP, and watch the COP rebuild toward
