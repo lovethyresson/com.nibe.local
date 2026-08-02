@@ -171,6 +171,38 @@ may be near zero anyway.
 Method worth stealing: **hot-water boost overrides Smart Price Adaptation**, so a cycle can be
 forced on demand rather than waited for.
 
+## RESOLVED (2026-08-02): the allocator is accurate — no corrector needed
+
+Measured directly on an instrumented, boost-forced hot-water cycle, fully bracketed inside one
+hour on the S1155:
+
+```
+the pump booked 2.35 kWh for this function last hour,
+the allocator credited 2.332 kWh (ratio 1.008, we are -0.8% low)
+```
+
+The within-hour trace shows a smooth accumulation (0.232 → 0.506 → 0.741 → … → 2.118 kWh) tracking
+the compressor from 3422 W down to 2148 W and back — no jumps, no misattribution at the priority
+transition, no leakage between functions. Main took 0.003 kWh of standby and nothing more. That
+hour's COP: 6.91 / 2.35 = **2.94**.
+
+**The 37% figure is dead.** It came from one 24 h myUplink comparison whose reference (3823) lags
+about an hour and steps in 0.1 kWh — measured over a window containing a single cycle. Henrik hit
+the identical failure independently on the S735, where the same comparison produced a false 1140%.
+Three measurements now agree the real error is small: -5.3% (shadow monitor, 24 h), -6.5% (my
+reconstruction), **-0.8% (direct)**.
+
+**Consequences:**
+- No corrector. No gain, no feed-forward, no debt — the whole of "step 2" is unnecessary.
+- Per-function energy stays on the allocator. It already agrees with the pump's own books.
+- **Erik's bug is already fixed by 0.9.12** — his COP 14.96 was the baseline asymmetry (a produced
+  counter that ran while the allocator could not measure), not attribution. The lockstep
+  accumulator fixes it.
+- Keep the instrumentation. It is cheap, silent when idle, and it is what produced this answer.
+
+Remaining open, and now clearly separate from attribution: whether 3821/3823 honour the `Inc*`
+flags, and the +0.99%/+0.54% produced-counter residual. Neither blocks anything.
+
 ## Parked: registers that live elsewhere on some models
 
 [`register-alternates.md`](register-alternates.md) — prompted by PR #3 (BT50 reads the sentinel on
