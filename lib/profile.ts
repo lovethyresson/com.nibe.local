@@ -34,6 +34,13 @@ export interface RoleConfig {
     // Empty on fixed-speed F → the allocator is skipped and the energy/COP extras drop out.
     powerSources: string[][];
 
+    // Registers worth logging while the pump winds down after it stops prioritising a function
+    // — compressor power first. Diagnostic only: the priority register says what the pump is
+    // *prioritising*, not what it is *doing*, and the gap between the two is where energy gets
+    // misattributed. Names are resolved against registerByName and quietly skipped if absent,
+    // so a model that declares none simply gets no trace.
+    windDownSignals?: string[];
+
     // Lifetime cumulative production/consumption counters feeding main's Total COP. Absent on
     // models that don't expose them → main carries no Total COP.
     totalProductionRegister?: string;

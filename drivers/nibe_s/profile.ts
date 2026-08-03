@@ -20,6 +20,15 @@ export const sProfile = makeProfile({
             ["measure_watt_NIBE.i2166_energy_usage"],
             ["measure_watt_NIBE.i2305_energylog_power"]
         ],
+        // Compressor power leads the list because it is in the `energy` group, which the
+        // allocator cannot run without — the frequency and status registers say the same thing
+        // but live in `diagnostics`, which a user can switch off.
+        windDownSignals: [
+            "measure_watt_NIBE.i1048_compressor_add_power",
+            "measure_watt_NIBE.i1027_additive_effect",
+            "measure_frequency.i1046_compressor",
+            "boolean_NIBE.i1100_compressor_status"
+        ],
         totalProductionRegister: "meter_kwh_NIBE.i3821_total_production",
         totalConsumptionRegister: "meter_kwh_NIBE.i3823_total_consumption",
         producedRegisterForRole: {
