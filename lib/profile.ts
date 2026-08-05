@@ -174,6 +174,13 @@ export interface ModelProfile {
     // rules that turn them into a sentence. See ReasonConfig.
     reason?: ReasonConfig;
 
+    // Old register name → its current name, for registers this model has renamed since release.
+    // A stored selection is keyed by register name, so without this a rename loses the device's
+    // per-capability override and — worse — the alternate address detection resolved for it. Kept
+    // as model data rather than a migration script because it is a fact about this register table.
+    // See migrateSelection() in lib/registers.ts.
+    renamedRegisters?: Record<string, string>;
+
     detection: {
         // Fallback per-group heuristics for when nothing moved during the sampling window.
         plausible: Partial<Record<Exclude<GroupId, "core">, (helpers: PlausibleHelpers) => boolean>>;

@@ -100,6 +100,17 @@ export interface Register  {
     // than -10..50 precisely so a disconnected sensor's 0 falls outside. Where 0 is genuine
     // data (a pulse meter that has counted nothing yet) let the band include it.
     altPlausible?: {min: number; max: number};
+    // The band this register's OWN value must fall in for the capability to be offered at all.
+    // Distinct from altPlausible, which vets a candidate *address*: this vets the value found at
+    // the address the register already has, and a register outside its band is treated exactly
+    // like one that never answered — not offered during pairing, flagged unsupported at repair.
+    //
+    // For registers a pump answers even when the underlying function is not configured. The
+    // desired-room-temperature setpoint is the case in point: unconfigured zones read a flat 0
+    // rather than the not-available sentinel, so without a band a pump whose room sensor does not
+    // control heating would present a thermostat dial reading 0 °C. Same reasoning as `inRange`'s
+    // and `usablePower`'s "an exact zero means the thing isn't wired up", applied per register.
+    plausible?: {min: number; max: number};
     min?: number;
     max?: number;
 }
@@ -111,6 +122,15 @@ export function isPlausibleAlt(register: Register, value: number | undefined): b
     if (!band || value === undefined)
         return false;
     return value >= band.min && value <= band.max;
+}
+
+// Whether a value read at the register's own address is worth offering as a capability. A
+// register that declares no band always is — this must not quietly filter the whole table.
+export function isPlausibleValue(register: Register | undefined, value: number | undefined): boolean {
+    const band = register?.plausible;
+    if (!band)
+        return true;
+    return value !== undefined && value >= band.min && value <= band.max;
 }
 
 // A register the user can change from Homey (writable holding register that
@@ -130,6 +150,25 @@ export function isPollable(register: Register): boolean {
 // against the live pump; big-endian word order yields garbage.
 export function combineRaw(values: number[], size?: number): number {
     return size === 32 ? values[1] * 65536 + values[0] : values[0];
+}
+// A raw value split into the words a WRITE puts on the wire — high word first, which is NOT the
+// order combineRaw() reads them back in. That asymmetry is the pump's, not a bug here, and it was
+// measured rather than assumed. On a live S735, writing the 32-bit setpoint 2505:
+//
+//   FC16 [220, 0]  (low word first, i.e. mirroring the read order)  -> accepted, value unchanged
+//   FC16 [0, 220]  (high word first)                                -> accepted, value took effect
+//   FC06 220 at 2505, and FC06 at 2506                              -> accepted, value unchanged
+//
+// So the pump answers every one of these without a Modbus exception and silently discards three of
+// them: a 32-bit register takes one two-word FC16 write assembled big-endian, and nothing else.
+// Reads of the same register return the value in the *first* word. Verified twice, restoring the
+// original value in between; n=1 register on one model, since 2505 is currently the only writable
+// 32-bit register in any table.
+//
+// Plain arithmetic rather than shifts because JS bitwise operators coerce to *signed* 32 bits,
+// which is the wrong shape for a value that is unsigned by the time it reaches here.
+export function splitRawForWrite(raw: number, size?: number): number[] {
+    return size === 32 ? [Math.floor(raw / 65536), raw % 65536] : [raw];
 }
 
 // Two's-complement decode of a raw register value for its width. 16-bit is the default;
@@ -182,6 +221,45 @@ export interface Selection {
 // The address to actually put on the wire for a register, honouring what detection resolved.
 export function resolvedAddress(register: Register, selection: Selection | null | undefined): number {
     return selection?.addresses?.[register.name] ?? register.address;
+}
+
+// Carry a stored selection across a register RENAME. Both maps in a Selection are keyed by
+// register name, so renaming a register silently orphans that register's entries: its per-capability
+// override reverts to the group default, and — the one that actually breaks a pump — its resolved
+// alternate address is lost, sending the read back to a primary that answers with the not-available
+// sentinel. On an S735 that is exactly the room-temperature register, so a rename without this would
+// leave the renamed capability empty until the owner happened to run Repair.
+//
+// Returns the same object when there is nothing to carry, so devices on models that never renamed
+// anything neither allocate nor re-save. Idempotent: applying it to an already-migrated selection
+// finds no old keys and changes nothing.
+export function migrateSelection(
+    selection: Selection, renames: Record<string, string> | undefined
+): Selection {
+    const pairs = Object.entries(renames ?? {})
+        .filter(([from]) => selection.overrides?.[from] !== undefined
+            || selection.addresses?.[from] !== undefined);
+    if (!pairs.length)
+        return selection;
+    const migrated: Selection = {
+        ...selection,
+        overrides: {...selection.overrides},
+        ...(selection.addresses ? {addresses: {...selection.addresses}} : {})
+    };
+    for (const [from, to] of pairs) {
+        // The new name wins if it somehow already has a value — a re-run must never undo itself.
+        if (migrated.overrides[from] !== undefined) {
+            if (migrated.overrides[to] === undefined)
+                migrated.overrides[to] = migrated.overrides[from];
+            delete migrated.overrides[from];
+        }
+        if (migrated.addresses?.[from] !== undefined) {
+            if (migrated.addresses[to] === undefined)
+                migrated.addresses[to] = migrated.addresses[from];
+            delete migrated.addresses[from];
+        }
+    }
+    return migrated;
 }
 
 // Rewrite a list of registers onto their resolved addresses. Returns the originals untouched

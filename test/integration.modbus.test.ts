@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import net from 'net';
 import {ModbusTCPServer} from 'jsmodbus';
 
-import {Dir, Register} from '../lib/registers';
+import {Dir, Register, splitRawForWrite} from '../lib/registers';
 import {LocalizedText, makeProfile, ModelProfile} from '../lib/profile';
 import {PumpConnection, PumpSubscriber, Transport, inLanguage} from '../lib/connection';
 import {Role} from '../lib/roles';
@@ -133,6 +133,35 @@ test('writeSingleRegister lands in the holding buffer', {timeout: 15000}, async 
         await withConnection(profile, {port: pump.port, unitId: 1}, new FakeSub('main', []), async (c) => {
             await c.writeSingleRegister(300, 455);
             assert.equal(pump.holding.readUInt16BE(300 * 2), 455);
+        });
+    } finally {
+        await pump.close();
+    }
+});
+
+test('a 32-bit register is written as one FC16 request, high word first', {timeout: 15000}, async () => {
+    // The S-series desired-room-temperature register (2505) is s32 and the first writable 32-bit
+    // register in any table — FC06 would have carried only one of its two words, and a real S735
+    // ignores such a write without reporting an error.
+    //
+    // This asserts what lands on the wire rather than reading the value back: the fake pump is a
+    // plain buffer, so it cannot reproduce the real pump's read/write asymmetry (writes assembled
+    // high word first, reads returned low word first). The wire bytes are the part worth pinning
+    // here; the asymmetry itself is measured against hardware and pinned in the unit tests.
+    const pump = await startPump();
+    try {
+        const target = reg({address: 2505, name: 'target_temperature', direction: Dir.Out,
+            scale: 10, size: 32});
+        const profile = tinyProfile([target]);
+        await withConnection(profile, {port: pump.port, unitId: 1}, new FakeSub('main', []), async (c) => {
+            await c.writeMultipleRegisters(2505, splitRawForWrite(220, 32));   // 22.0 °C
+            assert.equal(pump.holding.readUInt16BE(2505 * 2), 0, 'high word goes first');
+            assert.equal(pump.holding.readUInt16BE(2506 * 2), 220, 'low word goes second');
+
+            // A value with a non-zero high word, so a one-word write would be obvious.
+            await c.writeMultipleRegisters(2505, splitRawForWrite(70000, 32));
+            assert.equal(pump.holding.readUInt16BE(2505 * 2), 1);
+            assert.equal(pump.holding.readUInt16BE(2506 * 2), 4464);
         });
     } finally {
         await pump.close();

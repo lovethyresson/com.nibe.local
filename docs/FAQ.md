@@ -128,6 +128,47 @@ below 55 °C.
 This is worth knowing if you use the "automatic off, manual boost only" setup described in the README: your
 demand mode's stop temperature controls nothing during a boost.
 
+## Room temperature and the thermostat
+
+### What does the "Room temperature" control actually change?
+
+Exactly what **menu 1.1** on the pump changes, and nothing else — it is the same setting, so moving the
+slider in Homey and turning the dial on the pump are two ways of writing one value. (If you also use
+myUplink, it is what that calls "Room setpoint".) The app reads it back every poll, so if you change it on
+the pump the tile follows within seconds.
+
+How the pump *uses* it depends on your installation. With a room sensor set to control heating (pump menu
+1.3.3, sensor assigned to a zone with "Värme" ticked), the pump regulates towards that temperature using the
+sensor. Without one, the heat curve is what governs, and the pump may not offer a room setpoint at all — in
+which case the app doesn't show the control either (see below).
+
+### My heating device has no room temperature control.
+
+Then your pump answered with no usable setpoint when the app looked. Pumps report a flat `0` for a zone that
+isn't set up, and a thermostat reading 0 °C would be worse than none, so the control is only added when the
+pump reports a sensible value (5–35 °C). Everything else is unaffected: the room sensor reading is still
+shown, and the device still appears in Homey's Climate view.
+
+If you have since configured a room sensor or zone on the pump, run **Repair** on the device (device menu →
+Repair) — that re-runs detection and picks the control up.
+
+### Why does the pump show up in Homey's Climate view now?
+
+Because the room sensor reading is published as the device's own temperature rather than as one of its many
+named temperatures. Homey's Climate feature only looks at a device's main temperature, which is why the pump
+used to contribute nothing to it even though the value was there all along.
+
+One consequence worth knowing: **it is the room sensor (BT50) that Climate sees**, not the outdoor sensor.
+Outdoor temperature is still available on the Main device, deliberately as a named value — publishing it as
+a main temperature would make Homey treat the pump's cupboard as an outdoor-cold room and drag the average
+of whatever zone the device sits in.
+
+### A Flow that used the room temperature stopped working.
+
+The room-temperature register changed name in 0.9.13 (that rename is what makes Homey see it at all). Open
+the Flow, pick the register again from the dropdown, and save. Its Insights history also starts fresh from
+that release — the old graph is still there under the previous name, it just doesn't continue.
+
 ## Setup and connectivity
 
 ### Can I run this and myUplink at the same time?

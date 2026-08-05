@@ -1,7 +1,7 @@
 import {Device} from 'homey';
 import {
-    Dir, Register, Selection, isPollable, isUnavailableRaw, resolvedAddress, signedValue,
-    withResolvedAddresses
+    Dir, Register, Selection, isPollable, isUnavailableRaw, migrateSelection, resolvedAddress,
+    signedValue, splitRawForWrite, withResolvedAddresses
 } from './registers';
 import {
     ACTIVE_POWER_CAPABILITY, ALARM_ACTIVE_CAPABILITY, ALARM_TEXT_CAPABILITY,
@@ -68,6 +68,20 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         return (this.getStoreValue('selection') ?? null) as Selection | null;
     }
 
+    // One-shot, idempotent: rewrite the stored selection's keys for registers this model renamed.
+    // A device with no stored selection has everything enabled and nothing to carry.
+    private async migrateRenamedRegisters() {
+        const selection = this.getSelection();
+        if (!selection)
+            return;
+        const migrated = migrateSelection(selection, this.profile.renamedRegisters);
+        if (migrated === selection)
+            return;
+        this.log('Migrating stored selection onto renamed registers: '
+            + Object.entries(this.profile.renamedRegisters ?? {}).map(([f, t]) => `${f} -> ${t}`).join(', '));
+        await this.setStoreValue('selection', migrated).catch(this.error);
+    }
+
     private enabledGroupsSummary(): string {
         const selection = this.getSelection();
         if (!selection)
@@ -103,9 +117,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             value = value ? (register.onValue ?? 1) : (register.offValue ?? 0);
         else if (register.scale)
             value = Math.round(value * register.scale);
-        // Two's complement last, mirroring fromRegisterValue() which undoes it first.
+        // Two's complement last, mirroring fromRegisterValue() which undoes it first — and sized
+        // like signedValue() is, since a negative 32-bit value wraps at 2^32, not 2^16.
         if (value < 0)
-            value += 65536;
+            value += register.size === 32 ? 0x100000000 : 65536;
         return value;
     }
 
@@ -125,7 +140,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             throw new Error('Not connected to the heat pump');
         try {
             const address = resolvedAddress(register, this.getSelection());
-            await this.connection.writeSingleRegister(address, this.toRegisterValue(register, value));
+            const raw = this.toRegisterValue(register, value);
+            const words = splitRawForWrite(raw, register.size);
+            // One FC16 request for a 32-bit register, the plain FC06 for everything else.
+            await (words.length > 1
+                ? this.connection.writeMultipleRegisters(address, words)
+                : this.connection.writeSingleRegister(address, raw));
         } catch (error: any) {
             // Surface a clear, user-facing message instead of failing silently.
             throw new Error(`Could not set "${this.registerTitle(register)}": ${error?.message ?? error}`);
@@ -339,6 +359,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     async onInit() {
         this.role = roleOf(this.getData());
+        // Before anything reads the selection: carry it across any register this model has renamed,
+        // so an upgraded device keeps its overrides and its detection-resolved addresses.
+        await this.migrateRenamedRegisters();
         this.debug(`Device init: role ${this.role}, host ${this.host()}, groups [${this.enabledGroupsSummary()}]`);
 
         if (this.getClass() !== roleClass[this.role]) {

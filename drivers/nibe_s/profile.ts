@@ -101,6 +101,12 @@ export const sProfile = makeProfile({
     // control semantics (degree minutes, hot-water start/stop bands, outdoor cut-offs).
     reason: sReason,
 
+    // Room temperature moved from a sub-capability to the bare `measure_temperature` so Homey's
+    // Climate feature and the thermostat tile can see it. The S735 resolves that register to its
+    // alternate address 26, and that resolution is stored per register NAME — so the rename has to
+    // be declared here or an upgraded S735 loses its room temperature.
+    renamedRegisters: {"measure_temperature.i26_inside": "measure_temperature"},
+
     detection: {
         // Verify a Modbus responder is a pump by reading input register 1 (outdoor temp).
         discoveryProbe: {address: 1, scale: 10, min: -60, max: 60},

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {
     Dir, combineRaw, signedValue, isUnavailableRaw, toNumericValue, isAdjustable, isPollable,
     buildPickerPrimary, buildRegisterByName, isSelectableRegister, isRegisterEnabled, Register,
-    resolvedAddress
+    resolvedAddress, splitRawForWrite, migrateSelection
 } from '../lib/registers';
 import {makeProfile} from '../lib/profile';
 import {
@@ -204,6 +204,109 @@ test('registersForRole partitions by role groups', () => {
     const heatProduced = 'meter_kwh_NIBE.i1577_heating_produced';
     assert.ok(heating.some((r) => r.name === heatProduced));
     assert.ok(!registersForRole(sProfile, 'hotwater', null).some((r) => r.name === heatProduced));
+});
+
+test('the heating device carries the bare capability pair Homey Climate needs', () => {
+    // Homey's Climate feature and its thermostat tile key on the ROOT capability ids: a device
+    // exposing only `measure_temperature.something` is skipped by Climate entirely, and promoting
+    // just one of the two leaves the tile as separate sensor rows instead of a dial. Measured on a
+    // Homey Pro. So these two names are a contract with the platform, not a naming preference —
+    // this test exists to stop a future tidy-up dotting them back into the house convention.
+    const heating = registersForRole(sProfile, 'heating', null);
+    const room = heating.find((r) => r.name === 'measure_temperature');
+    const target = heating.find((r) => r.name === 'target_temperature');
+    assert.ok(room, 'root measure_temperature must live on the heating device');
+    assert.ok(target, 'root target_temperature must live on the heating device');
+    // The dial has to be writable, or it renders as a read-only reading.
+    assert.equal(target!.direction, Dir.Out);
+    assert.ok(!target!.noAction, 'the setpoint must stay adjustable');
+    // The setpoint is the pump's own desired room temperature (menu 1.1 / zone 1), s32 ÷10.
+    assert.equal(target!.address, 2505);
+    assert.equal(target!.size, 32);
+    assert.equal(target!.scale, 10);
+    // No other role may claim them — two devices offering the same root pair would give Homey two
+    // competing thermostats for one pump.
+    for (const role of allRoles.filter((r) => r !== 'heating'))
+        assert.ok(!registersForRole(sProfile, role, null)
+            .some((r) => r.name === 'measure_temperature' || r.name === 'target_temperature'),
+        `${role} must not carry the root climate pair`);
+});
+
+test('a 32-bit write puts the high word first — deliberately NOT the read order', () => {
+    // This asymmetry is the whole point of the test, and it is measured, not deduced: on a live
+    // S735 the desired-room-temperature register (2505) accepted a low-word-first FC16 write and
+    // silently ignored it, while the same value written high word first took effect. See the note
+    // on splitRawForWrite(). If a future tidy-up "fixes" this to match combineRaw, the dial goes
+    // back to looking like it works while changing nothing on the pump — so pin it.
+    assert.deepEqual(splitRawForWrite(220, 32), [0, 220], '22.0 °C goes out as [high, low]');
+    assert.deepEqual(splitRawForWrite(220), [220], '16-bit registers keep the single-word write');
+    assert.deepEqual(splitRawForWrite(70000, 32), [1, 4464]);
+    assert.deepEqual(splitRawForWrite(0x100000000 - 600, 32), [65535, 64936]);
+
+    // Reading uses the opposite order, so the words have to be swapped to round-trip. Spelling
+    // that out is the clearest statement of what the pump does.
+    for (const raw of [0, 220, 70000, 0xffffffff, 0x100000000 - 600]) {
+        const written = splitRawForWrite(raw, 32);
+        assert.equal(combineRaw([...written].reverse(), 32), raw, `round trip failed for ${raw}`);
+        // Only meaningful where the two words actually differ — 0 and 0xffffffff are palindromes.
+        if (written[0] !== written[1])
+            assert.notDeepEqual(written, [raw % 65536, Math.floor(raw / 65536)],
+                'the write order must differ from the read order');
+    }
+    assert.equal(signedValue(combineRaw([...splitRawForWrite(0x100000000 - 600, 32)].reverse(), 32), 32), -600);
+});
+
+test('a register outside its declared value band is treated as not read', async () => {
+    // The thermostat setpoint answers on every S pump, but a pump whose zone 1 is not set up
+    // answers with a flat 0 — a value, not the sentinel — which would surface as a 0 °C dial.
+    const TARGET = 'target_temperature';
+    assert.deepEqual(sProfile.registerByName[TARGET].plausible, {min: 5, max: 35});
+
+    const offered = async (raw: Record<number, number>) =>
+        buildDetectionResult(sProfile, (await sampleAgainst(raw)).probes).samples[TARGET]?.read;
+
+    assert.equal(await offered({2505: 22}), true, 'a configured zone offers the dial');
+    assert.equal(await offered({2505: 0}), false, 'a flat zero must not become a 0 °C thermostat');
+    assert.equal(await offered({}), false, 'a pump that never answers offers nothing');
+
+    // A register with no band is unaffected — the gate must not quietly filter the whole table.
+    const room = buildDetectionResult(sProfile, (await sampleAgainst({26: 0, 111: 0})).probes);
+    assert.equal(sProfile.registerByName['measure_temperature'].plausible, undefined);
+    assert.equal(room.samples['measure_temperature'].read, true);
+});
+
+test('migrateSelection carries a stored selection across a register rename', () => {
+    const renames = {'measure_temperature.i26_inside': 'measure_temperature'};
+    const stored = {
+        groups: {heating: true},
+        overrides: {'measure_temperature.i26_inside': false, 'onoff.h181_enable_heating': true},
+        addresses: {'measure_temperature.i26_inside': 26, 'boolean_NIBE.h227_nightchill': 2955}
+    };
+    const migrated = migrateSelection(stored, renames);
+    // The resolved alternate address is the one that matters: lose it on an S735 and the renamed
+    // capability reads 111, which answers only with the not-available sentinel.
+    assert.equal(migrated.addresses!['measure_temperature'], 26);
+    assert.equal(migrated.addresses!['measure_temperature.i26_inside'], undefined);
+    assert.equal(migrated.overrides['measure_temperature'], false);
+    assert.equal(migrated.overrides['measure_temperature.i26_inside'], undefined);
+    // Everything else is untouched.
+    assert.equal(migrated.overrides['onoff.h181_enable_heating'], true);
+    assert.equal(migrated.addresses!['boolean_NIBE.h227_nightchill'], 2955);
+    assert.deepEqual(migrated.groups, {heating: true});
+    // Idempotent, and the stored object is never mutated in place.
+    assert.deepEqual(migrateSelection(migrated, renames), migrated);
+    assert.equal(stored.addresses['measure_temperature.i26_inside'], 26);
+});
+
+test('migrateSelection leaves a selection with nothing to carry exactly as it was', () => {
+    // Same object back, so a device on a model that never renamed anything neither allocates nor
+    // re-saves its store on every init.
+    const untouched = {groups: {heating: true}, overrides: {}, addresses: {}};
+    assert.equal(migrateSelection(untouched, {'a': 'b'}), untouched);
+    assert.equal(migrateSelection(untouched, undefined), untouched);
+    // A selection predating the addresses map must not gain one.
+    const noAddresses = {groups: {}, overrides: {'old': true}};
+    assert.equal(migrateSelection(noAddresses, {'old': 'new'}).addresses, undefined);
 });
 
 test('roleRegisters ignores selection; registersForRole honours it', () => {
@@ -738,7 +841,7 @@ function sampleAgainst(answers: Record<number, number | undefined>) {
     );
 }
 
-const INSIDE = 'measure_temperature.i26_inside';
+const INSIDE = 'measure_temperature';
 
 test('alternates: a register empty at its own address resolves to the one that answers', async () => {
     // The S735 case: BT50 is documented at 111 and answers only with the sentinel there,

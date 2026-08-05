@@ -78,9 +78,44 @@ export const registers: Register[] = [
     // on both Modbus and MyUplink. 111 stays primary so the models where it works are
     // untouched. The band is 5..40 rather than something wider so that a disconnected sensor
     // reading a flat 0 is rejected instead of accepted as 0 °C.
-    {address:  111, name: "measure_temperature.i26_inside",         direction: Dir.In,  group: "heating",     scale:  10, // Rumstemperatur (BT50) — reg 111, not 26
+    //
+    // The name is the BARE `measure_temperature`, not a `.iNN_` sub-capability, and that is
+    // load-bearing rather than a style slip. Homey's built-in Climate feature and its thermostat
+    // tile both key on the root capability id: measured live on a Homey Pro, every Climate-eligible
+    // device carries a root `measure_temperature`, and a device exposing only dotted temperatures
+    // is skipped entirely — which is why this device used to contribute nothing to Climate. The
+    // tile is built from the matching root pair with `target_temperature` below; promote only one
+    // of the two and it degrades into separate sensor rows. Same reasoning as `measure_power` in
+    // the solar block: an official root id is what makes Homey's own features see the device.
+    {address:  111, name: "measure_temperature",                    direction: Dir.In,  group: "heating",     scale:  10, // Rumstemperatur (BT50) — reg 111, not 26
      altAddresses: [26], altPlausible: {min: 5, max: 40},
      info: {en: "Indoor temperature from room sensor 1 (BT50)", sv: "Inomhustemperatur från rumsgivare 1 (BT50)"}},
+    // The temperature the pump is aiming the house at — menu 1.1, and what MyUplink calls "Room
+    // setpoint" (parameter 47751). Nibe's own CSVs name it only on the S735 ("Desired room
+    // temperature for zone 1"); on the other five S models the same register is present but
+    // untitled (`id:12801`), which is presumably why it has been missing from this table.
+    //
+    // Verified on a live S735 (halderex, 2026-08-05) three ways at once: the register read 22.0,
+    // the pump's own display read 22.0, and MyUplink's 47751 read 22.0. The obvious candidate,
+    // holding 206 "Room sensor set point value climate system 1", is NOT this setting — it sat at
+    // its untouched 20.0 default on the same pump, as did its companion flag 202 "Use room sensor"
+    // (0) even though the pump's menu 1.3.3 visibly had BT50 assigned to control heating. The
+    // S-series is zone-based; the 199..210 climate-system block does not describe it, and no
+    // zone-level sensor flag exists anywhere in the map (a live sweep of 2400-2700 found none).
+    // Do not "fix" this to 206.
+    //
+    // s32 rather than the usual s16 — the first writable 32-bit register in the table, which is
+    // what the FC16 write path in PumpConnection exists for. Also note holding 30 (heat curve
+    // offset) answers ILLEGAL FUNCTION on an S735: on this generation the offset was replaced by
+    // this desired-temperature setting, so on such a pump this register is the heating lever.
+    //
+    // The band is what keeps this honest on a pump where zone 1 is not set up: unconfigured zones
+    // answer with a flat 0 rather than the not-available sentinel (2507..2584, zones 2-40, all read
+    // 0 on the S735 this was measured on), and without it such a pump would be offered a thermostat
+    // dial reading 0 °C. Room temperature is promoted either way, so Homey Climate still works.
+    {address: 2505, name: "target_temperature",                     direction: Dir.Out, group: "heating",     scale:  10, size: 32, min: 5, max: 35, // Önskad rumstemperatur zon 1
+     plausible: {min: 5, max: 35},
+     info: {en: "The room temperature the pump aims for (menu 1.1, zone 1)", sv: "Rumstemperaturen pumpen siktar på (meny 1.1, zon 1)"}},
     // Rad 2 Framledning
     {address: 1017, name: "measure_temperature.i1017_calculated_supply", direction: Dir.In, group: "heating", scale:  10, // Beräknad framledning klimatsystem 1
      info: {en: "Supply temperature the pump is aiming for (climate system 1)", sv: "Framledningstemperatur pumpen siktar på (klimatsystem 1)"}},

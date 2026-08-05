@@ -578,6 +578,22 @@ export class PumpConnection {
         }
     }
 
+    // The 32-bit sibling of writeSingleRegister: one FC16 request carrying both words, low word
+    // first — the write-side mirror of combineRaw()'s read order. It has to be a single request
+    // rather than two FC06 writes, because half of a 32-bit setpoint arriving on its own is a
+    // value the pump would briefly act on.
+    async writeMultipleRegisters(address: number, words: number[]): Promise<void> {
+        const pdu = this.profile.addressBase ? address - this.profile.addressBase : address;
+        try {
+            await this.client.writeMultipleRegisters(pdu, words);
+        } catch (reason: any) {
+            const detail = describeModbusError(reason);
+            this.log(`Error writing register ${address} (values ${words.join(', ')}): ${detail.summary}`,
+                '\n  raw error:', safeJson(reason));
+            throw new Error(detail.summary);
+        }
+    }
+
     private poll() {
         if (!this.connected || this.polling)
             return;
