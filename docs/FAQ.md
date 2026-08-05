@@ -158,10 +158,24 @@ Because the room sensor reading is published as the device's own temperature rat
 named temperatures. Homey's Climate feature only looks at a device's main temperature, which is why the pump
 used to contribute nothing to it even though the value was there all along.
 
-One consequence worth knowing: **it is the room sensor (BT50) that Climate sees**, not the outdoor sensor.
-Outdoor temperature is still available on the Main device, deliberately as a named value — publishing it as
-a main temperature would make Homey treat the pump's cupboard as an outdoor-cold room and drag the average
-of whatever zone the device sits in.
+The **Main** device reports to Climate too, using the outdoor sensor (BT1). That is genuinely useful — the
+pump's own outdoor reading is what its heating decisions are based on — but it comes with a catch worth
+knowing.
+
+### The pump is dragging my indoor temperature down.
+
+Homey reads a device's main temperature as the ambient temperature of **the zone the device sits in**. Main
+reports outdoor temperature, so if it sits in an indoor zone it pulls that zone's average — and the home
+average with it — toward the weather.
+
+Two ways to fix it, both in Homey rather than the app:
+
+- **Move Nibe Main to an outdoor zone.** The reading then lands where it belongs and the indoor zones are
+  left alone. This is the recommended one.
+- **Turn off "Include in Climate"** in the device's settings, if you would rather Main didn't count at all.
+
+The heating device is unaffected either way — it reports the room sensor, which is a genuine indoor
+temperature and belongs in the average.
 
 ### A Flow that used the room temperature stopped working.
 

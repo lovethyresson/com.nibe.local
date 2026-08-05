@@ -232,6 +232,34 @@ test('the heating device carries the bare capability pair Homey Climate needs', 
         `${role} must not carry the root climate pair`);
 });
 
+test('Main publishes a Climate temperature mirrored from a real register', () => {
+    // Two devices of the same pump each carry a bare `measure_temperature`, because Homey Climate
+    // reads exactly that: heating reports the room sensor, Main the outdoor sensor. Main's is a
+    // mirror rather than a register, since a register's name IS its capability id and the name is
+    // already taken.
+    assert.equal(sProfile.climateRegister, 'measure_temperature.i1_outside');
+    assert.ok(sProfile.registerByName[sProfile.climateRegister!], 'the mirrored register must exist');
+    assert.ok(extraCapabilities(sProfile, 'main', null).includes('measure_temperature'));
+    // It is a mirror, not a second table entry — nothing named `measure_temperature` may sit in
+    // Main's own groups, or the two would fight over one capability id on one device.
+    assert.ok(!registersForRole(sProfile, 'main', null).some((r) => r.name === 'measure_temperature'));
+    // Only Main mirrors; the heating device gets its own from the register table.
+    for (const role of allRoles.filter((r) => r !== 'main'))
+        assert.ok(!extraCapabilities(sProfile, role, null).includes('measure_temperature'),
+            `${role} must not mirror a climate temperature`);
+    // The title has to be role-specific — the compose file's entry for this id says "Room sensor",
+    // which would be plainly wrong on Main.
+    assert.equal(extraCapabilityOptions('main', 'measure_temperature')?.title?.en,
+        'Outdoor temperature');
+    // Switching off the group the source register lives in takes the mirror with it, rather than
+    // leaving a stale reading frozen on the tile. (Outdoor is `core`, so use a model whose
+    // climate register sits in a switchable group to prove the rule.)
+    const switchable = makeProfile({...sProfile, climateRegister: 'measure_temperature.i37_outside_avg'});
+    assert.ok(extraCapabilities(switchable, 'main', null).includes('measure_temperature'));
+    assert.ok(!extraCapabilities(switchable, 'main', {groups: {statistics: false}, overrides: {}})
+        .includes('measure_temperature'));
+});
+
 test('a 32-bit write puts the high word first — deliberately NOT the read order', () => {
     // This asymmetry is the whole point of the test, and it is measured, not deduced: on a live
     // S735 the desired-room-temperature register (2505) accepted a low-word-first FC16 write and
@@ -316,10 +344,11 @@ test('roleRegisters ignores selection; registersForRole honours it', () => {
 });
 
 test('extraCapabilities: Main carries the bare onoff (pinned on); functions do not', () => {
-    // Main: pinned-on bare onoff + derived alarm flag + energy pair + total COP.
+    // Main: pinned-on bare onoff + the Climate temperature mirrored off the outdoor sensor +
+    // derived alarm flag + energy pair + total COP.
     // (alarm_text_NIBE is not here — it's the alarm *register's* own capability.)
     const main = extraCapabilities(sProfile, 'main', null);
-    assert.deepEqual(main, ['onoff', 'alarm_generic',
+    assert.deepEqual(main, ['onoff', 'measure_temperature', 'alarm_generic',
         'meter_power.total', 'measure_power', 'measure_cop_NIBE.total']);
     // Function devices: NO bare onoff (their tile on/off is the real "Allow X" register) —
     // just the energy pair + rolling COP.
@@ -330,7 +359,7 @@ test('extraCapabilities: Main carries the bare onoff (pinned on); functions do n
     // Main keeps its on/off (and the alarm pair, which rides the alarm group) when energy is
     // off; functions have no extras then.
     assert.deepEqual(extraCapabilities(sProfile, 'main', {groups: {energy: false}, overrides: {}}),
-        ['onoff', 'alarm_generic']);
+        ['onoff', 'measure_temperature', 'alarm_generic']);
     assert.deepEqual(extraCapabilities(sProfile, 'heating', {groups: {energy: false}, overrides: {}}), []);
 });
 

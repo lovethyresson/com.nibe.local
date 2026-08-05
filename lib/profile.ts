@@ -174,6 +174,12 @@ export interface ModelProfile {
     // rules that turn them into a sentence. See ReasonConfig.
     reason?: ReasonConfig;
 
+    // The register whose value Main publishes as its bare `measure_temperature`, which is what
+    // Homey's Climate view reads off a device. Omitted → Main carries no climate temperature and
+    // contributes nothing to Climate. See CLIMATE_TEMPERATURE_CAPABILITY in lib/roles.ts for why
+    // this is a mirror rather than a second register, and for the zone-average trade it carries.
+    climateRegister?: string;
+
     // Old register name → its current name, for registers this model has renamed since release.
     // A stored selection is keyed by register name, so without this a rename loses the device's
     // per-capability override and — worse — the alternate address detection resolved for it. Kept

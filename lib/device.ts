@@ -5,6 +5,7 @@ import {
 } from './registers';
 import {
     ACTIVE_POWER_CAPABILITY, ALARM_ACTIVE_CAPABILITY, ALARM_TEXT_CAPABILITY,
+    CLIMATE_TEMPERATURE_CAPABILITY,
     FUNCTION_COP_CAPABILITY, METER_CAPABILITY,
     PUMP_ACTIVE_CAPABILITY, Role, SOLAR_METER_CAPABILITY, TOTAL_COP_CAPABILITY,
     extraCapabilities, extraCapabilityOptions, functionRoles,
@@ -179,6 +180,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     async setValue(register: Register, value: any) {
+        // Publish the model's climate register into the bare `measure_temperature` Homey Climate
+        // reads. Only Main carries that capability, and only its own source register feeds it, so
+        // the hasCapability() check is what keeps this a no-op everywhere else. Done before the
+        // early return below because it is a separate capability with its own presence test.
+        if (register.name === this.profile.climateRegister
+            && this.hasCapability(CLIMATE_TEMPERATURE_CAPABILITY))
+            await this.setCapabilityValue(CLIMATE_TEMPERATURE_CAPABILITY, value).catch(this.error);
         if (register.writeOnly || !this.hasCapability(register.name))
             return;
         const oldValue = this.getCapabilityValue(register.name);

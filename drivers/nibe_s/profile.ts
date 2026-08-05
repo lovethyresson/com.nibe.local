@@ -101,6 +101,12 @@ export const sProfile = makeProfile({
     // control semantics (degree minutes, hot-water start/stop bands, outdoor cut-offs).
     reason: sReason,
 
+    // What Main reports to Homey Climate: the outdoor sensor (BT1). Every S model has it, it is
+    // in `core` so it is never switched off, and it is the one temperature on Main that describes
+    // a place rather than a pipe — the alternatives (inverter, hot gas, suction gas) would be
+    // nonsense as a room reading.
+    climateRegister: "measure_temperature.i1_outside",
+
     // Room temperature moved from a sub-capability to the bare `measure_temperature` so Homey's
     // Climate feature and the thermostat tile can see it. The S735 resolves that register to its
     // alternate address 26, and that resolution is stored per register NAME — so the rename has to

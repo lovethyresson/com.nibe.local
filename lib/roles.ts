@@ -76,6 +76,19 @@ export const SOLAR_METER_CAPABILITY = "meter_power.solar";
 // `alarm_generic` is derived from the same register — Homey's official alarm boolean, so the
 // pump gets native alarm treatment in the UI and works with Homey's built-in alarm Flow cards
 // — and being derived, it's an "extra".
+// Homey's Climate view reads a device's BARE `measure_temperature` and treats it as the ambient
+// temperature of the zone the device sits in. The heating device already owns that id for the room
+// sensor, and a register's name IS its capability id, so Main cannot simply declare a second one —
+// it mirrors the register named by the model's `climateRegister` into this derived capability.
+//
+// On Main that register is the outdoor sensor, which is worth being explicit about: a device
+// reporting outdoor temperature pulls the average of whatever zone it sits in. That is a
+// deliberate trade rather than an oversight — the owner can move Main to an outdoor zone, and
+// Homey's per-device "Include in Climate" toggle can drop it from the calculation entirely. That
+// toggle only appears on devices carrying this capability, so publishing it is also what gives
+// the owner the choice.
+export const CLIMATE_TEMPERATURE_CAPABILITY = "measure_temperature";
+
 export const ALARM_ACTIVE_CAPABILITY = "alarm_generic";
 export const ALARM_TEXT_CAPABILITY = "alarm_text_NIBE";
 export const ALARM_CAPABILITIES = [ALARM_ACTIVE_CAPABILITY];
@@ -150,6 +163,15 @@ export function extraCapabilities(profile: ModelProfile, role: Role, selection?:
         // when the pump priority is Off) — titled "Idle energy"/"Idle power". Plus the
         // Total COP. All live in the energy group.
         const caps = [PUMP_ACTIVE_CAPABILITY];
+        // The temperature Homey Climate reads off this device, mirrored from a real register
+        // (see CLIMATE_TEMPERATURE_CAPABILITY). It follows the group its source register lives
+        // in, so switching that group off takes the mirror with it rather than freezing a stale
+        // reading on the tile.
+        const climate = profile.climateRegister
+            ? profile.registerByName[profile.climateRegister]
+            : undefined;
+        if (climate && isRegisterEnabled(climate, selection ?? null, profile.pickerPrimary))
+            caps.push(CLIMATE_TEMPERATURE_CAPABILITY);
         // Derived alarm state + description, riding the alarm group (where the alarm
         // register itself lives), when the model declares an alarm register.
         if (profile.alarm && (selection?.groups?.alarm ?? true))
@@ -248,6 +270,9 @@ export function extraCapabilityOptions(role: Role, name: string): any {
         return {title: powerTitle(role), decimals: 0};
     if (name === PUMP_ACTIVE_CAPABILITY)
         return {title: pumpActiveTitle(), uiComponent: null, setable: true};
+    if (name === CLIMATE_TEMPERATURE_CAPABILITY)
+        return {title: {en: "Outdoor temperature", sv: "Utetemperatur", de: "Außentemperatur",
+                        nl: "Buitentemperatuur", no: "Utetemperatur", da: "Udetemperatur"}};
     if (name === ALARM_ACTIVE_CAPABILITY)
         return {title: {en: "Alarm active", sv: "Larm aktivt", de: "Alarm aktiv",
                         nl: "Alarm actief", no: "Alarm aktivt", da: "Alarm aktivt"}};
