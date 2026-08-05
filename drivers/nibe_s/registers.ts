@@ -378,6 +378,19 @@ export const registers: Register[] = [
     // A sub-id `onoff.*` (a row toggle), not the bare `onoff` — the bare id is now the
     // device's derived Active state (the tile on/off follows operating priority for every
     // role device); the duration picker below is the secondary control for the same register.
+    // The two registers 697 drives, polled but never shown: they are how we find out what the
+    // pump writes when a one-time increase is started from its OWN menu 2.1.
+    //
+    // 697 is a plain hour count (1..127, 0 = off) — see the note on onetimeincreaseMap above —
+    // which leaves no value meaning "one-time increase", the separate mode NIBE's menu offers
+    // alongside the 3/6/12-hour durations. So every boost this app has ever triggered has been a
+    // *timed* one, and the mode that is supposed to bring in the immersion heater may simply not
+    // be reachable over Modbus. Watching 225 and 1078 while the pump starts one itself is what
+    // settles that: if 697 lands on a value outside 1..127, the sentinel exists after all.
+    {address:  225, name: "__more_hotwater_minutes",                                 direction: Dir.Out, group: "hotwater",  scale: 1, internal: true, // Mer varmvatten (antal minuter)
+     info: {en: "Minutes of boost remaining, written by the pump when More hot water starts", sv: "Återstående minuter av höjningen, skrivs av värmepumpen när Mer varmvatten startar"}},
+    {address: 1078, name: "__more_hotwater_status",                                  direction: Dir.In,  group: "hotwater",  scale: 1, internal: true, // Mer varmvatten status
+     info: {en: "Whether a hot water boost is currently running, as the pump sees it", sv: "Om en varmvattenhöjning pågår, sett från värmepumpen"}},
     {address:  697, name: "boolean_NIBE.h697_more_hotwater",                         direction: Dir.Out, group: "hotwater",   bool: true, onValue: 2, offValue: 0, // Mer varmvatten engångshöjning
      info: {en: "More hot water: a one-time 2-hour boost", sv: "Mer varmvatten: en engångshöjning på 2 timmar"}},
     // Rad 18 Periodisk varmvatten höjning
