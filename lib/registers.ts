@@ -125,6 +125,27 @@ export function isPollable(register: Register): boolean {
     return !register.writeOnly;
 }
 
+// The set of values an enum capability will accept, or undefined when it accepts anything.
+// `types` is the app manifest's `capabilities` block — the merged definitions Homey itself
+// validates against, so this cannot drift from what the platform enforces.
+//
+// This exists because a picker capability is a CURATED MENU while the register behind it has a
+// wider domain. The S table already says as much about the one-time hot water boost ("a curated
+// picker of useful durations, not the register's domain"), and the consequence shows up at
+// runtime: hot water period time is register 92, range 0..180, with a menu of 30/45/60/120 — so a
+// pump reporting 0 makes Homey reject the value, once per poll, forever.
+//
+// Takes the capability *instance* id (`type.suffix`); built-in types are absent from the app
+// manifest and non-enum types declare no values, both of which mean "no restriction".
+export function permittedCapabilityValues(
+    types: Record<string, any> | undefined, capabilityId: string
+): Set<string> | undefined {
+    const definition = types?.[capabilityId.split('.')[0]];
+    if (!definition || definition.type !== 'enum' || !Array.isArray(definition.values))
+        return undefined;
+    return new Set<string>(definition.values.map((value: any) => `${value.id}`));
+}
+
 // Combine the words of a Modbus read into one raw integer. A 32-bit register is read
 // as two words, low word first (register N = low 16 bits, N+1 = high 16 bits) — verified
 // against the live pump; big-endian word order yields garbage.

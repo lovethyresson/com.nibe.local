@@ -1,7 +1,7 @@
-import {Device} from 'homey';
+import {Device, manifest} from 'homey';
 import {
-    Dir, Register, Selection, isPollable, isUnavailableRaw, resolvedAddress, signedValue,
-    withResolvedAddresses
+    Dir, Register, Selection, isPollable, isUnavailableRaw, permittedCapabilityValues,
+    resolvedAddress, signedValue, withResolvedAddresses
 } from './registers';
 import {
     ACTIVE_POWER_CAPABILITY, ALARM_ACTIVE_CAPABILITY, ALARM_TEXT_CAPABILITY,
@@ -158,8 +158,44 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         }
     }
 
+    // A value the pump reports that its capability will not accept. Homey rejects anything outside
+    // an enum capability's declared ids, and the poll would offer the same value again every few
+    // seconds — so one unlucky pump setting turns into a stack trace per poll, drowning the log
+    // that is this app's main support tool (and the capability ends up blank either way).
+    //
+    // Reported once per capability per app start, like a register that never reads: the point is
+    // to say which value the pump had, so the menu can be extended if it should have been there.
+    private valueRejected = new Set<string>();
+
+    private isPublishable(register: Register, value: any): boolean {
+        // `null` is the not-available sentinel deliberately clearing a tile — always allowed.
+        // `undefined` means an enum register read a raw its map has no entry for.
+        if (value === null)
+            return true;
+        if (value === undefined) {
+            this.noteUnpublishable(register, value, 'the register table has no mapping for it');
+            return false;
+        }
+        const permitted = permittedCapabilityValues(manifest?.capabilities, register.name);
+        if (!permitted || permitted.has(`${value}`))
+            return true;
+        this.noteUnpublishable(register, value,
+            `the capability only accepts ${[...permitted].join(', ')}`);
+        return false;
+    }
+
+    private noteUnpublishable(register: Register, value: any, why: string) {
+        if (this.valueRejected.has(register.name))
+            return;
+        this.valueRejected.add(register.name);
+        this.log(`Not publishing ${register.name} = ${value} (register ${register.address}): ${why}.`
+            + ' The capability stays empty rather than the pump being reported wrongly.');
+    }
+
     async setValue(register: Register, value: any) {
         if (register.writeOnly || !this.hasCapability(register.name))
+            return;
+        if (!this.isPublishable(register, value))
             return;
         const oldValue = this.getCapabilityValue(register.name);
         await this.setCapabilityValue(register.name, value);

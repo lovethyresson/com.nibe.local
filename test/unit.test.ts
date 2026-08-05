@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {
     Dir, combineRaw, signedValue, isUnavailableRaw, toNumericValue, isAdjustable, isPollable,
     buildPickerPrimary, buildRegisterByName, isSelectableRegister, isRegisterEnabled, Register,
-    resolvedAddress
+    resolvedAddress, permittedCapabilityValues
 } from '../lib/registers';
 import {makeProfile} from '../lib/profile';
 import {
@@ -19,6 +19,7 @@ import {alarmAdvice, alarmDescription, alarmEntry} from '../lib/alarms';
 import alarmCodes from '../lib/alarm-codes.json';
 import {sProfile} from '../drivers/nibe_s/profile';
 import {registers} from '../drivers/nibe_s/registers';
+import appManifest from '../app.json';
 
 // ---------------------------------------------------------------------------------------
 // Decode helpers — the raw Modbus → value maths. These are the load-bearing bits the
@@ -78,6 +79,59 @@ test('detection: a sensor answering "not available" does not count as read', () 
     assert.equal(sampled[bt70].reads, 0);
     assert.equal(buildDetectionResult(sProfile, sampled).samples[bt70].read, false,
         'an unavailable sensor must be reported as not read, so pairing drops it');
+});
+
+test('permittedCapabilityValues reads an enum capability\'s menu, and nothing else', () => {
+    const types = appManifest.capabilities as Record<string, any>;
+    // A picker instance resolves through its type, not its full id.
+    assert.deepEqual(permittedCapabilityValues(types, 'hotwater_periodtime_NIBE.h92_periodtime_hotwater'),
+        new Set(['30', '45', '60', '120']));
+    // Non-enum types restrict nothing — the enum *registers* publish translated strings through
+    // `measure_enum_NIBE`, which is a plain string capability, so a translation must never be
+    // mistaken for an out-of-range value.
+    assert.equal(permittedCapabilityValues(types, 'measure_enum_NIBE.i1028_priority'), undefined);
+    // Built-in Homey types aren't in the app manifest at all.
+    assert.equal(permittedCapabilityValues(types, 'target_temperature.h34_min_supply'), undefined);
+    assert.equal(permittedCapabilityValues(types, 'measure_power'), undefined);
+    assert.equal(permittedCapabilityValues(undefined, 'anything'), undefined);
+});
+
+test('pickers: every one has a menu, and the ones narrower than their register are known', () => {
+    const types = appManifest.capabilities as Record<string, any>;
+    const pickers = registers.filter((r) => r.picker);
+    assert.ok(pickers.length > 0);
+
+    // The guard can only protect a picker whose capability actually declares a menu.
+    for (const picker of pickers)
+        assert.ok(permittedCapabilityValues(types, picker.name),
+            `${picker.name} is a picker with no enum values to validate against`);
+
+    // Where the menu is narrower than the register's own range, the pump can legitimately report
+    // a value the capability refuses — which is the bug this guard exists for. Assert the list of
+    // such registers explicitly: a new curated picker should be a deliberate decision, and a menu
+    // that gets completed should drop off this list.
+    const curated = pickers.filter((picker) => {
+        const menu = permittedCapabilityValues(types, picker.name)!;
+        const twin = registers.find((r) => r.address === picker.address && !r.picker);
+        if (!twin || twin.min === undefined || twin.max === undefined)
+            return false;
+        for (let value = twin.min; value <= twin.max; ++value)
+            if (!menu.has(`${value}`))
+                return true;
+        return false;
+    }).map((picker) => picker.name);
+
+    assert.deepEqual(curated.sort(), [
+        // Register 66, days between periodic charges: menu 7/14/21/28, register 1..90.
+        'hotwater_periodic_interval_NIBE.h66_periodic_hw_interval',
+        // Register 92, hot water period time: menu 30/45/60/120, register 0..180. An S735 was
+        // found reporting 0, which is what surfaced this whole class of failure.
+        'hotwater_periodtime_NIBE.h92_periodtime_hotwater'
+    ]);
+
+    // The specific reading that broke: 0 is a value register 92 can hold and the menu refuses.
+    const menu = permittedCapabilityValues(types, 'hotwater_periodtime_NIBE.h92_periodtime_hotwater')!;
+    assert.ok(!menu.has('0'), 'if 0 is ever added to the menu, this guard stops mattering for it');
 });
 
 test('isAdjustable / isPollable', () => {
