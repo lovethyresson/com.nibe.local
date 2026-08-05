@@ -58,6 +58,9 @@ export const sReason: ReasonConfig = {
         hwStopMedium:    {address:   63, direction: Dir.Out, scale: 10},
         hwStartLarge:    {address:   58, direction: Dir.Out, scale: 10},
         hwStopLarge:     {address:   62, direction: Dir.Out, scale: 10},
+        // The stop point a boost charges to, which is none of the three above. Absent on
+        // S330/S332, so every use of it has to tolerate undefined.
+        hwStopIncrease:  {address:   61, direction: Dir.Out, scale: 10},
         moreHotwater:    {address:  697, direction: Dir.Out},
         periodicHw:      {address:   65, direction: Dir.Out},
         // Cooling and pool.
@@ -180,11 +183,35 @@ function explainRole(role: string, previousRole: string | undefined,
 
     // role === 'main' — the pump went idle. Say what it just finished, since "nothing to do"
     // on its own explains nothing.
-    if (previousRole === 'hotwater')
-        return hw !== undefined && hwStop !== undefined
-            ? {en: `The tank is charged: hot water reached ${e(hw)} °C, its ${e(hwStop)} °C stop point.`,
-               sv: `Tanken är laddad: varmvattnet nådde ${s(hw)} °C, stopptemperaturen ${s(hwStop)} °C.`}
-            : {en: 'Hot water charging finished.', sv: 'Varmvattenladdningen är klar.'};
+    if (previousRole === 'hotwater') {
+        if (hw === undefined || hwStop === undefined)
+            return {en: 'Hot water charging finished.', sv: 'Varmvattenladdningen är klar.'};
+        // A charge that ended *above* the demand mode's stop point was not stopped by it — a
+        // boost was running, and boosts charge to their own setpoint (register 61). Measured
+        // on an S1155 in demand mode Small: mode stop 48.0, tank stopped at 54.6-55.0 °C,
+        // which is register 61's value and not Large's 58.0 either. Naming the mode's stop
+        // point here would state a number that demonstrably did not apply.
+        //
+        // Inferred from the temperature rather than from the boost registers on purpose: 697
+        // is cleared on this very transition (resetOnPriorityChange) and 1078 follows the
+        // pump, so both are unreliable at the moment this runs. The reading contradicting the
+        // claim is the evidence, and it needs no state.
+        const boostStop = v('hwStopIncrease');
+        if (hw > hwStop + 0.5)
+            return boostStop !== undefined
+                ? {en: `The tank is charged: hot water reached ${e(hw)} °C. A boost was running, `
+                      + `so it charged to the ${e(boostStop)} °C boost stop point rather than `
+                      + `${mode.en}'s ${e(hwStop)} °C.`,
+                   sv: `Tanken är laddad: varmvattnet nådde ${s(hw)} °C. En höjning pågick, så den `
+                      + `laddade till höjningens stopptemperatur ${s(boostStop)} °C i stället för `
+                      + `${mode.sv.toLowerCase()}s ${s(hwStop)} °C.`}
+                : {en: `The tank is charged: hot water reached ${e(hw)} °C, past ${mode.en}'s `
+                      + `${e(hwStop)} °C stop point — a boost was running.`,
+                   sv: `Tanken är laddad: varmvattnet nådde ${s(hw)} °C, förbi ${mode.sv.toLowerCase()}s `
+                      + `stopptemperatur ${s(hwStop)} °C — en höjning pågick.`};
+        return {en: `The tank is charged: hot water reached ${e(hw)} °C, its ${e(hwStop)} °C stop point.`,
+                sv: `Tanken är laddad: varmvattnet nådde ${s(hw)} °C, stopptemperaturen ${s(hwStop)} °C.`};
+    }
 
     if (previousRole === 'heating')
         return degreeMinutes !== undefined

@@ -404,6 +404,17 @@ export const registers: Register[] = [
      info: {en: "Charging stop temperature for the Medium demand mode", sv: "Stopptemperatur för behovsläget Medel"}},
     {address:   58, name: "target_temperature.h58_hotwater_start_large",      direction: Dir.Out, group: "hotwater",   scale: 10, min: 5, max: 70, // Start HW high (Large)
      info: {en: "Charging start temperature for the Large demand mode", sv: "Starttemperatur för behovsläget Stort"}},
+    // The stop temperature a *boost* charges to, and it is not any of the three demand-mode
+    // stop points above. Nibe titles it "periodic increase" (the anti-legionella charge), but
+    // measured on an S1155 with demand mode Small: mode stop 48.0, Large stop 58.0, and two
+    // manual "More hot water" boosts both stopped at 54.6-55.0 °C — this register's default of
+    // 55.0. So the one-time boost appears to use it too. Surfaced because the number that
+    // actually stops a boost was previously nowhere in the app, and the obvious guess (the
+    // active mode's stop point) is wrong. Absent on S330/S332, where it simply drops out.
+    // Range is the pump's own: it cannot be set below 55 °C.
+    {address:   61, name: "target_temperature.h61_hotwater_stop_increase",    direction: Dir.Out, group: "hotwater",   scale: 10, min: 55, max: 70, // Stopptemp. VV periodisk höjning
+     info: {en: "Stop temperature for a hot water boost — both the periodic anti-legionella charge and, on the evidence we have, the manual \"More hot water\" boost. Not the same as the demand mode's stop temperature.",
+            sv: "Stopptemperatur för en varmvattenhöjning — både den periodiska legionellakörningen och, enligt det vi mätt, den manuella \"Mer varmvatten\". Inte samma som behovslägets stopptemperatur."}},
     {address:   62, name: "target_temperature.h62_hotwater_stop_large",       direction: Dir.Out, group: "hotwater",   scale: 10, min: 5, max: 70, // Stop HW high (Large)
      info: {en: "Charging stop temperature for the Large demand mode", sv: "Stopptemperatur för behovsläget Stort"}},
     {address:   94, name: "measure_minute_NIBE.h94_periodtime_pool",          direction: Dir.Out, group: "pool",       scale: 1, min: 0, max: 180, // Periodtid pool

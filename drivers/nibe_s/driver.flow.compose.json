@@ -1028,6 +1028,48 @@
       ]
     },
     {
+      "id": "target_temperature.h61_hotwater_stop_increase.set",
+      "title": {
+        "en": "Set the hot water stop temperature (boost)",
+        "sv": "Ställ in varmvattnets stopptemperatur (höjning)",
+        "de": "Brauchwasser-Stopptemperatur einstellen (Erhöhung)",
+        "nl": "Stoptemperatuur warmtapwater instellen (verhoging)",
+        "no": "Still inn stopptemperatur varmtvann (økning)",
+        "da": "Indstil stoptemperatur varmt vand (forøgelse)"
+      },
+      "titleFormatted": {
+        "en": "Set the hot water stop temperature (boost) to [[value]]",
+        "sv": "Ställ in varmvattnets stopptemperatur (höjning) till [[value]]",
+        "de": "Brauchwasser-Stopptemperatur (Erhöhung) auf [[value]] setzen",
+        "nl": "Stoptemperatuur warmtapwater (verhoging) instellen op [[value]]",
+        "no": "Sett stopptemperatur varmtvann (økning) til [[value]]",
+        "da": "Indstil stoptemperatur varmt vand (forøgelse) til [[value]]"
+      },
+      "hint": {
+        "en": "Stop temperature a hot water boost charges to — the periodic anti-legionella charge, and the manual \"More hot water\" boost. This is not the active demand mode's stop temperature. Accepts 55 to 70 °C.",
+        "sv": "Stopptemperatur som en varmvattenhöjning laddar till — den periodiska legionellakörningen och den manuella \"Mer varmvatten\". Detta är inte det aktiva behovslägets stopptemperatur. Tillåter 55 till 70 °C.",
+        "de": "Stopptemperatur einer Brauchwasser-Erhöhung — periodische Legionellenschaltung und manuelle Erhöhung. Nicht die Stopptemperatur des aktiven Bedarfsmodus. Bereich: 55 bis 70 °C.",
+        "nl": "Stoptemperatuur van een warmtapwaterverhoging — de periodieke legionellalading en de handmatige verhoging. Niet de stoptemperatuur van de actieve vraagmodus. Bereik: 55 tot 70 °C.",
+        "no": "Stopptemperatur for en varmtvannsøkning — den periodiske legionellakjøringen og den manuelle økningen. Ikke stopptemperaturen for aktiv behovsmodus. Område: 55 til 70 °C.",
+        "da": "Stoptemperatur for en varmtvandsforøgelse — den periodiske legionellakørsel og den manuelle forøgelse. Ikke det aktive behovstilstands stoptemperatur. Område: 55 til 70 °C."
+      },
+      "$filter": "capabilities=target_temperature.h61_hotwater_stop_increase",
+      "args": [
+        {
+          "type": "number",
+          "name": "value",
+          "title": {
+            "en": "Value",
+            "sv": "Värde",
+            "de": "Wert",
+            "nl": "Waarde",
+            "no": "Verdi",
+            "da": "Værdi"
+          }
+        }
+      ]
+    },
+    {
       "id": "target_temperature.h59_hotwater_start.set",
       "title": {
         "en": "Set the hot water start temperature",

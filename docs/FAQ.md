@@ -112,6 +112,22 @@ advanced when the app could measure — so a numerator covering months was divid
 hours. Both sides now advance over identical intervals. The affected history is discarded rather than
 migrated, so COP is blank for a while after upgrading and then rebuilds correctly.
 
+### Why does a hot water boost heat past my stop temperature?
+
+Because a boost does not use the stop temperature of the demand mode you have selected. It charges to its
+own, higher setpoint — shown in the app as **Hot water stop (boost)**, and adjustable there.
+
+Measured on an S1155 with demand mode **Small** (stop 48 °C): two manual "More hot water" boosts both ran to
+**54.6–55.0 °C**, which is the boost setpoint's default of 55 °C. It isn't the Large mode's stop point either,
+which was set to 58 °C on that pump.
+
+The same setpoint governs the periodic anti-legionella charge — Nibe's own name for the register is "stop
+temperature HW periodic increase", and the manual boost appears to share it. The pump will not let it be set
+below 55 °C.
+
+This is worth knowing if you use the "automatic off, manual boost only" setup described in the README: your
+demand mode's stop temperature controls nothing during a boost.
+
 ## Setup and connectivity
 
 ### Can I run this and myUplink at the same time?

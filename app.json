@@ -1499,6 +1499,52 @@
         ]
       },
       {
+        "id": "target_temperature.h61_hotwater_stop_increase.set",
+        "title": {
+          "en": "Set the hot water stop temperature (boost)",
+          "sv": "Ställ in varmvattnets stopptemperatur (höjning)",
+          "de": "Brauchwasser-Stopptemperatur einstellen (Erhöhung)",
+          "nl": "Stoptemperatuur warmtapwater instellen (verhoging)",
+          "no": "Still inn stopptemperatur varmtvann (økning)",
+          "da": "Indstil stoptemperatur varmt vand (forøgelse)"
+        },
+        "titleFormatted": {
+          "en": "Set the hot water stop temperature (boost) to [[value]]",
+          "sv": "Ställ in varmvattnets stopptemperatur (höjning) till [[value]]",
+          "de": "Brauchwasser-Stopptemperatur (Erhöhung) auf [[value]] setzen",
+          "nl": "Stoptemperatuur warmtapwater (verhoging) instellen op [[value]]",
+          "no": "Sett stopptemperatur varmtvann (økning) til [[value]]",
+          "da": "Indstil stoptemperatur varmt vand (forøgelse) til [[value]]"
+        },
+        "hint": {
+          "en": "Stop temperature a hot water boost charges to — the periodic anti-legionella charge, and the manual \"More hot water\" boost. This is not the active demand mode's stop temperature. Accepts 55 to 70 °C.",
+          "sv": "Stopptemperatur som en varmvattenhöjning laddar till — den periodiska legionellakörningen och den manuella \"Mer varmvatten\". Detta är inte det aktiva behovslägets stopptemperatur. Tillåter 55 till 70 °C.",
+          "de": "Stopptemperatur einer Brauchwasser-Erhöhung — periodische Legionellenschaltung und manuelle Erhöhung. Nicht die Stopptemperatur des aktiven Bedarfsmodus. Bereich: 55 bis 70 °C.",
+          "nl": "Stoptemperatuur van een warmtapwaterverhoging — de periodieke legionellalading en de handmatige verhoging. Niet de stoptemperatuur van de actieve vraagmodus. Bereik: 55 tot 70 °C.",
+          "no": "Stopptemperatur for en varmtvannsøkning — den periodiske legionellakjøringen og den manuelle økningen. Ikke stopptemperaturen for aktiv behovsmodus. Område: 55 til 70 °C.",
+          "da": "Stoptemperatur for en varmtvandsforøgelse — den periodiske legionellakørsel og den manuelle forøgelse. Ikke det aktive behovstilstands stoptemperatur. Område: 55 til 70 °C."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h61_hotwater_stop_increase"
+          },
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value",
+              "sv": "Värde",
+              "de": "Wert",
+              "nl": "Waarde",
+              "no": "Verdi",
+              "da": "Værdi"
+            }
+          }
+        ]
+      },
+      {
         "id": "target_temperature.h59_hotwater_start.set",
         "title": {
           "en": "Set the hot water start temperature",
@@ -2897,6 +2943,7 @@
         "target_temperature.h64_hotwater_stop_small",
         "target_temperature.h58_hotwater_start_large",
         "target_temperature.h62_hotwater_stop_large",
+        "target_temperature.h61_hotwater_stop_increase",
         "onoff.h195_enable_hotwater",
         "measure_minute_NIBE.h94_periodtime_pool",
         "button.h22_reset_alarm",
@@ -3874,6 +3921,20 @@
             "nl": "Warmtapwater stop (Groot)",
             "no": "Varmtvann stopp (Stor)",
             "da": "Varmt vand stop (Stor)"
+          }
+        },
+        "target_temperature.h61_hotwater_stop_increase": {
+          "decimals": 1,
+          "min": 55,
+          "max": 70,
+          "insights": true,
+          "title": {
+            "en": "Hot water stop (boost)",
+            "sv": "Varmvatten stopp (höjning)",
+            "de": "Brauchwasser Stopp (Erhöhung)",
+            "nl": "Warmtapwater stop (verhoging)",
+            "no": "Varmtvann stopp (økning)",
+            "da": "Varmt vand stop (forøgelse)"
           }
         },
         "onoff.h195_enable_hotwater": {
