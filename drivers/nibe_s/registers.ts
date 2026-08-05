@@ -419,8 +419,12 @@ export const registers: Register[] = [
      info: {en: "Refrigerant suction gas temperature (BT17)", sv: "Köldmediets suggastemperatur (BT17)"}},
     // Writable on paper, but no source documents what its values mean, so it stays a
     // read-only insight rather than a control we can't label honestly.
-    {address:   19, name: "measure_count_NIBE.h19_holiday_status",            direction: Dir.Out, group: "diagnostics", scale: 1, noAction: true, // Semesterläge status
-     info: {en: "Whether the pump's holiday mode is currently active", sv: "Om pumpens semesterläge är aktivt just nu"}},
+    // Register 19 "Holiday function status" is deliberately not mapped. Nibe documents no value
+    // mapping for it on any of the six models (s8, min=0 max=0 — their notation for "undocumented
+    // range"), and nothing in the Home Assistant community documents one either. The only
+    // observation we have is -1 on a live S1155 with holiday mode off, which is not enough to say
+    // what any other value means. Shown as a raw count it was a number nobody could interpret.
+    // Map it if and when someone reads it with holiday mode actually on.
     // Rad 24
     // Ej på värdedelen av appen
 
@@ -499,24 +503,29 @@ export const registers: Register[] = [
      info: {en: "Charging stop temperature for the Medium demand mode", sv: "Stopptemperatur för behovsläget Medel"}},
     {address:   58, name: "target_temperature.h58_hotwater_start_large",      direction: Dir.Out, group: "hotwater",   scale: 10, min: 5, max: 70, // Start HW high (Large)
      info: {en: "Charging start temperature for the Large demand mode", sv: "Starttemperatur för behovsläget Stort"}},
-    // Nibe's setpoint for the *periodic* anti-legionella charge. Surfaced because a boost
-    // demonstrably ignores the demand mode's stop temperature and the number that governs it
-    // was otherwise nowhere in the app — but note what we do NOT know.
-    //
-    // Measured on an S1155, demand mode Small (stop 48.0), immersion heater off: two manual
-    // "More hot water" boosts ended at 54.6 and 55.0 °C while this register read 62.0 and
-    // Large read 58.0. So neither this register nor any demand-mode stop point explains where
-    // they stopped, and two runs ending at *different* temperatures points to the compressor's
-    // practical ceiling rather than a setpoint at all — a setpoint repeats exactly.
-    //
-    // Its floor is 55 °C, which is at or above that ceiling, so on a pump with the immersion
-    // heater disabled this register may never be the binding limit. Testing it properly needs
-    // the immersion heater enabled.
-    {address:   61, name: "target_temperature.h61_hotwater_stop_increase",    direction: Dir.Out, group: "hotwater",   scale: 10, min: 55, max: 70, // Stopptemp. VV periodisk höjning
-     info: {en: "Stop temperature for the periodic anti-legionella hot water charge. A boost ignores the demand mode's stop temperature, but reaching this one may need the immersion heater — the compressor alone tops out below it.",
-            sv: "Stopptemperatur för den periodiska legionellakörningen. En höjning struntar i behovslägets stopptemperatur, men för att nå den här kan elpatronen behövas — kompressorn ensam når inte dit."}},
     {address:   62, name: "target_temperature.h62_hotwater_stop_large",       direction: Dir.Out, group: "hotwater",   scale: 10, min: 5, max: 70, // Stop HW high (Large)
      info: {en: "Charging stop temperature for the Large demand mode", sv: "Stopptemperatur för behovsläget Stort"}},
+    // Kept last, after all three demand modes. The flow-card autocompletes and the pairing lists
+    // are ordered by this table, so a boost sitting between "start (Large)" and "stop (Large)"
+    // broke the start/stop pairing the reader is following down the list.
+    //
+    // Nibe's setpoint for the *periodic* anti-legionella charge, and named only for that. It is
+    // NOT what a manual "More hot water" boost aims at, and neither is anything else we have
+    // been able to identify. On the maintainer's S1155, demand mode Small (stop 48.0):
+    //
+    //   this register 60.0, Large 58.0  ->  boost stopped at 58.1   (looked like Large)
+    //   this register 60.0, Large 66.0  ->  boost stopped at 58.6   (so it was not Large)
+    //
+    // Earlier boosts stopped at 53.4, 54.6 and 55.0. Five runs, five different temperatures, no
+    // setpoint they correspond to — that is a compressor ceiling, not a target. The 58.x pair
+    // happened with the ground loop at 21 °C, which is about as easy as this machine gets;
+    // expect lower in winter, where a charge more often ends on alarm 215 instead.
+    //
+    // Its floor is 55 °C, and the top of its 55..70 range needs the immersion heater — which is
+    // exactly what the periodic charge is for.
+    {address:   61, name: "target_temperature.h61_hotwater_stop_periodic",    direction: Dir.Out, group: "hotwater",   scale: 10, min: 55, max: 70, // Stopptemp. VV periodisk höjning
+     info: {en: "Stop temperature for the periodic anti-legionella hot water charge. Reaching it usually needs the immersion heater — a compressor alone tops out in the high 50s, and lower still when the ground loop is cold.",
+            sv: "Stopptemperatur för den periodiska legionellakörningen. För att nå den behövs oftast elpatronen — en kompressor ensam når knappt 60 °C, och lägre än så när köldbärarkretsen är kall."}},
     {address:   94, name: "measure_minute_NIBE.h94_periodtime_pool",          direction: Dir.Out, group: "pool",       scale: 1, min: 0, max: 180, // Periodtid pool
      info: {en: "How long the pump heats the pool before switching demand", sv: "Hur länge pumpen värmer poolen innan den byter behov"}},
 

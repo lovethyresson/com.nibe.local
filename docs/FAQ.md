@@ -116,82 +116,48 @@ migrated, so COP is blank for a while after upgrading and then rebuilds correctl
 
 ### Why does a hot water boost heat past my stop temperature?
 
-Because a boost ignores the stop temperature of the demand mode you have selected. That much is certain:
-measured on an S1155 in demand mode **Small** (stop 48 °C), two manual "More hot water" boosts both ran well
-past it, to **54.6 and 55.0 °C**.
+Because a boost ignores the stop temperature of the demand mode you have selected. That much is measured: on
+an S1155 in demand mode Small (stop 48 °C), boosts ran to 53.4, 54.6, 55.0, 58.1 and 58.6 °C — always well
+past it.
 
-**What actually stops the boost is less clear than it looks.** Those two runs ended at *different*
-temperatures, which is the signature of a physical ceiling rather than a setpoint — a setpoint repeats
-exactly. On that pump the immersion heater was disabled, and the compressor alone cannot push a tank much
-past the mid-50s. Neither the Large mode's stop point (58 °C on that pump) nor the pump's own documented
-boost setpoint (62 °C) explains where they stopped.
+**What a boost aims for is not something we can tell you**, and it is not for want of trying. It is not the
+periodic charge's setpoint (that register read 60 while a boost stopped at 58.1), and it is not the Large
+mode's stop point either (set to 66, a boost stopped at 58.6).
 
-The app exposes that documented setpoint as **Hot water stop (boost)** — Nibe's own name for it is "stop
-temperature HW periodic increase", and it governs the periodic anti-legionella charge. Its minimum is 55 °C,
-which is around where a compressor-only pump tops out anyway, so **on a pump with the immersion heater off it
-may never be the limit that actually binds.**
+What the numbers do look like is the compressor running out of road rather than meeting any target — see the
+next question.
 
-Practical upshot if you use the "automatic off, manual boost only" setup from the README: your demand mode's
-stop temperature controls nothing during a boost, and how hot the tank actually gets is set by what the
-compressor can manage — not by a number you can dial in, unless the immersion heater is enabled.
+### My boost stops well short of what I set. Why?
 
-## Indoor temperature
+Because the compressor has a hard ceiling, and on a boost you are usually asking for something above it.
 
-### Can I set my indoor temperature from Homey?
+To put heat *into* a 58 °C tank the refrigerant has to condense several degrees hotter still, and a heat
+pump's compressor cannot push past a certain condensing temperature. Compressor-only, expect roughly
+**55–62 °C** in the tank — and where in that band you land moves with conditions:
 
-Yes, from **0.9.13**. The Heating device has an **Indoor temperature** control that writes the same setting
-the myUplink app writes, so the two always agree — and it runs on your local network at the normal 5-second
-poll rather than through the cloud.
+- **How cold the source is.** The five runs above span 53.4 to 58.6 °C on the same pump in the same week. The
+  best of them happened with the ground loop at 21 °C, about as easy as this machine will ever have it. Expect
+  less in winter.
+- **Protective cut-outs.** When it cannot manage the heat the pump throttles the compressor right down, and if
+  that is not enough it ends the charge on a **high condenser temperature** alarm. Seeing that on hot water in
+  winter is the machine protecting itself, not a fault.
 
-Its range is **5–35 °C**. Nibe's own register documentation says 5–30, but the pump demonstrably accepts 35,
-so the app follows the pump rather than the paperwork.
+**Above that ceiling you need the immersion heater** — which is a separate setting, see below. It is also why
+the periodic anti-legionella charge has its own stop temperature with a 55 °C floor: 60–70 °C is not
+compressor territory at all.
 
-### Why do I still need the myUplink app, then?
+### The immersion heater is on, so why isn't it helping hot water?
 
-Two things, and only two, that Modbus does not expose:
+There are two separate permits, and the obvious one is the wrong one:
 
-- **Away / holiday mode.** The pump publishes whether holiday mode is *active* but offers no way to switch it
-  on. You can get most of the effect from a Flow — drop the indoor temperature and set hot water to Small.
-- **Schedules.** Menu 6 is not on Modbus at all. Homey Flows do the same job and rather more.
+- **Allow additional heat** on the Heating device is Nibe's "Permit additional heat, *heating*". It does
+  nothing for hot water.
+- **Additional heat for hot water** on the Hot Water device is the one that matters, and it is **off from the
+  factory**.
 
-Everything else you'd open myUplink for — indoor temperature, zones, hot water, curves, modes — is local.
-
-### I set a temperature and nothing happened.
-
-Check **Room sensor regulation active** on the Heating device. On older firmware that switch is what enables
-room-sensor control at all, and with it off the pump ignores the setpoint and follows the heat curve alone.
-The app shows it read-only so you can see the reason rather than guess at it.
-
-### Which sensor is my indoor temperature actually coming from?
-
-Pairing and Repair now tell you outright, under the Indoor temperature row: *Using: climate system 1 average
-— 23.5*. If more than one sensor reports a plausible temperature, it becomes a list to choose from instead,
-showing what each one currently reads so you can tell them apart.
-
-To change it later, run **Repair** on the Heating device (device menu → Repair) and pick again.
-
-### Is that BT50, the wired room sensor?
-
-Not necessarily, and on many pumps not at all. Nibe's register documentation labels this value "BT50", but
-what it really reports is the *average for climate system 1* — which on current firmware comes from whatever
-sensors the zone uses, including wireless room units. The maintainer's own pump has no wired room sensor
-fitted whatsoever and still gets a correct reading. That's why the app names the source rather than claiming
-a particular sensor.
-
-### The room temperature was blank before I updated.
-
-That was a bug, fixed in 0.9.13. The app read register 111, believing it was the room sensor; it is climate
-system *6*, and on most pumps it is empty. Climate system 1 is register 116. Run **Repair** on the Heating
-device after updating so it picks up the corrected register.
-
-### Where did "Additional heat" go?
-
-It's called **immersion heater** (Swedish: *elpatron*) everywhere now — Nibe's own mix of "additional heat",
-"additive heat" and "add. heat" for one piece of hardware was the single most confusing thing in the app.
-
-Two switches keep their names because they are *not* the immersion heater: **Allow heating** and **Allow hot
-water** are the master permits for those functions. **Allow immersion heater** (heating) and **Allow immersion
-heater, hot water** are the separate electric-heat permits.
+Even with both on, the pump may still decline. In **Auto** operating mode it blocks additional heat above an
+outdoor-temperature limit ("additional heat stop temperature", commonly 5 °C), so on a mild day it will let
+the compressor work alone regardless of what you have permitted.
 
 ## Setup and connectivity
 

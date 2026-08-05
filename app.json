@@ -1499,36 +1499,36 @@
         ]
       },
       {
-        "id": "target_temperature.h61_hotwater_stop_increase.set",
+        "id": "target_temperature.h61_hotwater_stop_periodic.set",
         "title": {
-          "en": "Set the hot water stop temperature (boost)",
-          "sv": "Ställ in varmvattnets stopptemperatur (höjning)",
-          "de": "Brauchwasser-Stopptemperatur einstellen (Erhöhung)",
-          "nl": "Stoptemperatuur warmtapwater instellen (verhoging)",
-          "no": "Still inn stopptemperatur varmtvann (økning)",
-          "da": "Indstil stoptemperatur varmt vand (forøgelse)"
+          "en": "Set the periodic hot water stop temperature",
+          "sv": "Ställ in stopptemperatur för periodiskt varmvatten",
+          "de": "Stopptemperatur für periodisches Brauchwasser einstellen",
+          "nl": "Stoptemperatuur periodiek warmtapwater instellen",
+          "no": "Still inn stopptemperatur for periodisk varmtvann",
+          "da": "Indstil stoptemperatur for periodisk varmt vand"
         },
         "titleFormatted": {
-          "en": "Set the hot water stop temperature (boost) to [[value]]",
-          "sv": "Ställ in varmvattnets stopptemperatur (höjning) till [[value]]",
-          "de": "Brauchwasser-Stopptemperatur (Erhöhung) auf [[value]] setzen",
-          "nl": "Stoptemperatuur warmtapwater (verhoging) instellen op [[value]]",
-          "no": "Sett stopptemperatur varmtvann (økning) til [[value]]",
-          "da": "Indstil stoptemperatur varmt vand (forøgelse) til [[value]]"
+          "en": "Set the periodic hot water stop temperature to [[value]]",
+          "sv": "Ställ in stopptemperatur för periodiskt varmvatten till [[value]]",
+          "de": "Stopptemperatur für periodisches Brauchwasser auf [[value]] setzen",
+          "nl": "Stoptemperatuur periodiek warmtapwater instellen op [[value]]",
+          "no": "Sett stopptemperatur for periodisk varmtvann til [[value]]",
+          "da": "Indstil stoptemperatur for periodisk varmt vand til [[value]]"
         },
         "hint": {
-          "en": "Stop temperature for the periodic anti-legionella hot water charge. A boost ignores the demand mode's stop temperature; reaching this one may need the immersion heater, since the compressor alone tops out below it. Accepts 55 to 70 °C.",
-          "sv": "Stopptemperatur för den periodiska legionellakörningen. En höjning struntar i behovslägets stopptemperatur; för att nå den här kan elpatronen behövas, eftersom kompressorn ensam inte når dit. Tillåter 55 till 70 °C.",
-          "de": "Stopptemperatur der periodischen Legionellenschaltung. Eine Erhöhung ignoriert die Stopptemperatur des Bedarfsmodus; dieser Wert kann den Elektroheizstab erfordern. Bereich: 55 bis 70 °C.",
-          "nl": "Stoptemperatuur van de periodieke legionellalading. Een verhoging negeert de stoptemperatuur van de vraagmodus; hiervoor kan het elektrische element nodig zijn. Bereik: 55 tot 70 °C.",
-          "no": "Stopptemperatur for den periodiske legionellakjøringen. En økning ignorerer behovsmodusens stopptemperatur; å nå denne kan kreve elkolben. Område: 55 til 70 °C.",
-          "da": "Stoptemperatur for den periodiske legionellakørsel. En forøgelse ignorerer behovstilstandens stoptemperatur; at nå denne kan kræve elpatronen. Område: 55 til 70 °C."
+          "en": "Stop temperature for the periodic anti-legionella charge. Reaching it usually needs the immersion heater — a compressor alone tops out in the high 50s. Accepts 55 to 70 °C.",
+          "sv": "Stopptemperatur för den periodiska legionellakörningen. För att nå den behövs oftast elpatronen — en kompressor ensam når knappt 60 °C. Tillåter 55 till 70 °C.",
+          "de": "Stopptemperatur der periodischen Legionellenschaltung. Erfordert meist den Elektroheizstab. Bereich: 55 bis 70 °C.",
+          "nl": "Stoptemperatuur van de periodieke legionellalading. Vereist meestal het elektrische element. Bereik: 55 tot 70 °C.",
+          "no": "Stopptemperatur for den periodiske legionellakjøringen. Krever som regel elkolben. Område: 55 til 70 °C.",
+          "da": "Stoptemperatur for den periodiske legionellakørsel. Kræver som regel elpatronen. Område: 55 til 70 °C."
         },
         "args": [
           {
             "type": "device",
             "name": "device",
-            "filter": "driver_id=nibe_s&capabilities=target_temperature.h61_hotwater_stop_increase"
+            "filter": "driver_id=nibe_s&capabilities=target_temperature.h61_hotwater_stop_periodic"
           },
           {
             "type": "number",
@@ -3018,11 +3018,10 @@
         "target_temperature.h64_hotwater_stop_small",
         "target_temperature.h58_hotwater_start_large",
         "target_temperature.h62_hotwater_stop_large",
-        "target_temperature.h61_hotwater_stop_increase",
+        "target_temperature.h61_hotwater_stop_periodic",
         "onoff.h195_enable_hotwater",
         "measure_minute_NIBE.h94_periodtime_pool",
         "button.h22_reset_alarm",
-        "measure_count_NIBE.h19_holiday_status",
         "boolean_NIBE.h227_nightchill",
         "boolean_NIBE.h710_hw_additional_heat",
         "boolean_NIBE.h65_periodic_hotwater",
@@ -3700,6 +3699,7 @@
           }
         },
         "target_temperature.h2505_zone1_setpoint": {
+          "uiComponent": "sensor",
           "decimals": 1,
           "min": 5,
           "max": 35,
@@ -4029,18 +4029,18 @@
             "da": "Varmt vand stop (Stor)"
           }
         },
-        "target_temperature.h61_hotwater_stop_increase": {
+        "target_temperature.h61_hotwater_stop_periodic": {
           "decimals": 1,
           "min": 55,
           "max": 70,
           "insights": true,
           "title": {
-            "en": "Hot water stop (boost)",
-            "sv": "Varmvatten stopp (höjning)",
-            "de": "Brauchwasser Stopp (Erhöhung)",
-            "nl": "Warmtapwater stop (verhoging)",
-            "no": "Varmtvann stopp (økning)",
-            "da": "Varmt vand stop (forøgelse)"
+            "en": "Hot water stop (periodic)",
+            "sv": "Varmvatten stopp (periodisk)",
+            "de": "Brauchwasser Stopp (periodisch)",
+            "nl": "Warmtapwater stop (periodiek)",
+            "no": "Varmtvann stopp (periodisk)",
+            "da": "Varmt vand stop (periodisk)"
           }
         },
         "onoff.h195_enable_hotwater": {
@@ -4072,16 +4072,6 @@
             "nl": "Alarm resetten",
             "no": "Tilbakestill alarm",
             "da": "Nulstil alarm"
-          }
-        },
-        "measure_count_NIBE.h19_holiday_status": {
-          "title": {
-            "en": "Holiday mode status",
-            "sv": "Semesterläge status",
-            "de": "Status Urlaubsmodus",
-            "nl": "Status vakantiestand",
-            "no": "Status feriemodus",
-            "da": "Status ferietilstand"
           }
         },
         "boolean_NIBE.i1828_pool_circulation": {

@@ -100,11 +100,10 @@
     "target_temperature.h64_hotwater_stop_small",
     "target_temperature.h58_hotwater_start_large",
     "target_temperature.h62_hotwater_stop_large",
-    "target_temperature.h61_hotwater_stop_increase",
+    "target_temperature.h61_hotwater_stop_periodic",
     "onoff.h195_enable_hotwater",
     "measure_minute_NIBE.h94_periodtime_pool",
     "button.h22_reset_alarm",
-    "measure_count_NIBE.h19_holiday_status",
     "boolean_NIBE.h227_nightchill",
     "boolean_NIBE.h710_hw_additional_heat",
     "boolean_NIBE.h65_periodic_hotwater",
@@ -782,6 +781,7 @@
       }
     },
     "target_temperature.h2505_zone1_setpoint": {
+      "uiComponent": "sensor",
       "decimals": 1,
       "min": 5,
       "max": 35,
@@ -1111,18 +1111,18 @@
         "da": "Varmt vand stop (Stor)"
       }
     },
-    "target_temperature.h61_hotwater_stop_increase": {
+    "target_temperature.h61_hotwater_stop_periodic": {
       "decimals": 1,
       "min": 55,
       "max": 70,
       "insights": true,
       "title": {
-        "en": "Hot water stop (boost)",
-        "sv": "Varmvatten stopp (höjning)",
-        "de": "Brauchwasser Stopp (Erhöhung)",
-        "nl": "Warmtapwater stop (verhoging)",
-        "no": "Varmtvann stopp (økning)",
-        "da": "Varmt vand stop (forøgelse)"
+        "en": "Hot water stop (periodic)",
+        "sv": "Varmvatten stopp (periodisk)",
+        "de": "Brauchwasser Stopp (periodisch)",
+        "nl": "Warmtapwater stop (periodiek)",
+        "no": "Varmtvann stopp (periodisk)",
+        "da": "Varmt vand stop (periodisk)"
       }
     },
     "onoff.h195_enable_hotwater": {
@@ -1154,16 +1154,6 @@
         "nl": "Alarm resetten",
         "no": "Tilbakestill alarm",
         "da": "Nulstil alarm"
-      }
-    },
-    "measure_count_NIBE.h19_holiday_status": {
-      "title": {
-        "en": "Holiday mode status",
-        "sv": "Semesterläge status",
-        "de": "Status Urlaubsmodus",
-        "nl": "Status vakantiestand",
-        "no": "Status feriemodus",
-        "da": "Status ferietilstand"
       }
     },
     "boolean_NIBE.i1828_pool_circulation": {
