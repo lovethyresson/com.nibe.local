@@ -57,8 +57,10 @@ late to be useful for the thing most people want it for:
 So the app uses the live method — and then checks itself against the pump's hourly figures every hour, which
 is the best of both: timely numbers, continuously audited against the pump's own books.
 
-**How well does that hold up?** On a measured hot-water cycle the app came within **1%** of the pump's own
-figure. That is the reason it's left alone rather than nudged toward the hourly numbers.
+**How well does that hold up?** Within about **1%** of the pump's own hourly figure on measured hot-water
+cycles, across two different pump models. That is the reason it's left alone rather than nudged toward the
+hourly numbers — and since the pump's hourly figures have been measured to be exactly what myUplink shows,
+it is also roughly how close to myUplink you should expect to land.
 
 **What you give up.** Per-function electricity is a very good estimate, not a meter reading, so it won't tie
 out to the last decimal against myUplink. And if Homey restarts or loses contact with the pump, the

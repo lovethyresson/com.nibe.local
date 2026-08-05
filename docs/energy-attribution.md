@@ -4,7 +4,7 @@
 that touches attribution, the power sources, the role mapping or the COP accumulators — not on every build.
 The [README](../README.md) links here and carries the user-facing summary.
 
-Last verified against the code: **0.9.12**.
+Last verified against the code: **0.9.13**.
 
 ## The problem
 
@@ -19,7 +19,7 @@ pump keeps real counters for heat out, just not for electricity in.
 
 ```mermaid
 flowchart TD
-    A["Poll the pump — every 5 s, one shared socket"] --> B{"Instantaneous power<br/>register 2166, else 2305"}
+    A["Poll the pump — every 5 s, one shared socket"] --> B{"Total power<br/>register 2305, else 2166"}
     B -- "neither answers" --> X["Nothing is attributed<br/>meters hold, COP accumulators pause"]
     B -- "watts" --> C{"Operating priority<br/>register 1028"}
     C -- "10 / unknown code" --> M["Main"]
@@ -35,8 +35,8 @@ flowchart TD
     P -- "yes" --> D
     M --> D["kWh for this interval<br/>mean of the last two power readings × elapsed time"]
     D --> E["Credited to that one device<br/>every other device is told 0 W and 0 kWh"]
-    E --> F["Energy used<br/>meter_power.total"]
-    E --> G["Current power<br/>measure_power"]
+    E --> F["Energy used — meter_power.total<br/>integrated from 2305"]
+    E --> G["Current power — measure_power<br/>read from 2166, else 2305"]
 ```
 
 The load-bearing property is the **winner-takes-all** step. Nothing is split proportionally and nothing is
@@ -47,9 +47,11 @@ estimated, so the sum across the paired devices is the pump's own total *by cons
   "the whole pump" — the whole pump is the sum of all five.
 - **An unpaired function quietly folds into Main.** The app logs a warning the first time this happens per
   app start, so it doesn't go unnoticed, but the energy still lands on Main.
-- **If neither power register answers, nobody is charged.** The meters stand still rather than guessing. On
-  split models (S320/S325, S330/S332, S2125) register 2166 does not exist, which is why 2305 is the fallback;
-  before 0.9.9 those models silently showed no energy data at all.
+- **If neither power register answers, nobody is charged.** The meters stand still rather than guessing.
+- **The power source is 2305, the energy log's own reading**, with 2166 as fallback. 2305 exists on every
+  S-series model, so all of them now integrate the same register — before 0.9.13 an S1155 used 2166 and an
+  S2125 used 2305, giving them different error characteristics for no good reason. See below for why 2305
+  won on measurement.
 - **Interval length doesn't matter.** The trapezoid uses the actual elapsed time, so a slow poll or a
   reconnect gap integrates correctly rather than dropping energy.
 
@@ -113,6 +115,40 @@ Three separate reasons, all deliberate:
 | Total produced / consumed, Main | pump counters 3821/3823 | the pump's own figure |
 | Total COP, Main | 3821 ÷ 3823 | both sides the pump's own |
 | Per-function COP | pump counter ÷ attributed meter | one side attributed |
+
+## Why 2305 rather than 2166
+
+Measured against the pump's own per-function hourly figures, on two models:
+
+| | 2166 | 2305 |
+|---|---|---|
+| S1155 hot water ×3 | −3.3%, −2.9%, −3.0% | 0.0%, +0.8%, +0.1% |
+| S735 hot water ×2 | −8.5%, −5.0% | −0.1%, +3.1% |
+| S1155 heating ×3 | −0.8%, −4.2%, −3.0% | +1.6%, −2.6%, −3.0% |
+| S735 idle | 10 W — misses the exhaust-air fan | 50 W — matches the pump's books |
+
+2166 runs consistently low on hot water on both models, and on an exhaust-air unit it does not see the
+continuously-running fan at all, understating standby several-fold.
+
+**Those percentages are what a user sees.** halderex measured Modbus 2293 against myUplink parameter 25138 on
+the same S735 in the same hour — **0.930 vs 0.93, exact**. The energy log is not merely *like* what myUplink
+publishes, it *is* the same accounting. So aligning to the log aligns to the app users check us against.
+
+A corollary worth keeping for support: if a per-function figure disagrees with myUplink, that is an
+attribution problem on our side, not two meters disagreeing. There is no longer a "different sources" excuse.
+
+**The live tile does not use 2305.** The two are different jobs, and Homey keeps them separate: the driver
+declares `meterPowerImportedCapability`, so totals come from the meter and `measure_power` is display only —
+Homey never derives one from the other, so nothing is made inconsistent by sourcing them apart.
+
+2305's lag costs nothing over an hour but everything on a tile: measured on a ramp it read **920 W where 2166
+read 1621 W**, so a tile fed from it would show about half the real draw through every compressor start. So
+the meter integrates 2305 and the tile reads 2166, with 2305 as the tile's fallback — a pump without 2166
+(S2125, S320/S325, S330/S332) gets exactly what it had before.
+
+One residual nothing explains: on one S1155 heating hour both registers read *identically* (0.398) and both
+sat 3% below the pump's book. Two sources agreeing with each other and disagreeing with the log is a
+different phenomenon from the hot-water deficit.
 
 ## How accurate the attribution actually is
 

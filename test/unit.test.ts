@@ -317,12 +317,14 @@ test('primaryOnoff maps each function to its enable register and Main to the bar
 });
 
 test('role config sanity: power source scale yields watts, roles cover all functions', () => {
-    // S: alternative single-register sources in preference order. 2166 is the instantaneous
-    // whole-unit draw (scale 1 = raw already watts); 2305 is the energy log's averaged
-    // reading in kW/100 (scale 0.1 → watts), used on the models with no 2166.
+    // S: alternative single-register sources in preference order. 2305 leads because it exists
+    // on every model and integrates to the pump's own hourly books (which halderex measured to
+    // be exactly what myUplink publishes); 2166 is the instantaneous whole-unit draw, present on
+    // three models, and runs ~3% low on hot water. Scales differ: 2166 is already watts
+    // (scale 1), 2305 is kW/100 (scale 0.1 → watts).
     assert.deepEqual(sProfile.role.powerSources, [
-        ['measure_watt_NIBE.i2166_energy_usage'],
-        ['measure_watt_NIBE.i2305_energylog_power']
+        ['measure_watt_NIBE.i2305_energylog_power'],
+        ['measure_watt_NIBE.i2166_energy_usage']
     ]);
     assert.equal(sProfile.registerByName['measure_watt_NIBE.i2166_energy_usage'].scale, 1);
     assert.equal(sProfile.registerByName['measure_watt_NIBE.i2305_energylog_power'].scale, 0.1);

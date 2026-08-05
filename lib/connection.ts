@@ -173,6 +173,8 @@ export class PumpConnection {
     // Alternative source groups in preference order; the registers within a group are summed,
     // and the first group that reads is the one used (see RoleConfig.powerSources).
     private readonly powerGroups: Register[][];
+    // Optional second chain for the live tile only — see ModelProfile.displayPowerSources.
+    private readonly displayGroups: Register[][];
     // Every power register across all groups — what the poll loop must fetch, since which
     // group is usable isn't known until the values come back.
     private readonly powerRegisters: Register[];
@@ -209,7 +211,12 @@ export class PumpConnection {
                 .map((name) => profile.registerByName[name])
                 .filter((register): register is Register => !!register))
             .filter((group) => group.length > 0);
-        this.powerRegisters = this.powerGroups.flat();
+        this.displayGroups = (profile.role.displayPowerSources ?? [])
+            .map((group) => group
+                .map((name) => profile.registerByName[name])
+                .filter((register): register is Register => !!register))
+            .filter((group) => group.length > 0);
+        this.powerRegisters = [...this.powerGroups, ...this.displayGroups].flat();
         this.priorityRegister = profile.role.priorityRegisterName
             ? profile.registerByName[profile.role.priorityRegisterName]
             : undefined;
@@ -1096,11 +1103,23 @@ export class PumpConnection {
         return null;
     }
 
+    // What the tiles should show, which is not always what the meters integrate. Falls back to
+    // the metered figure so a tile is never blanker than the meter is.
+    private displayWatts(rawByName: Map<string, number>, fallback: number): number {
+        for (let group = 0; group < this.displayGroups.length; ++group) {
+            const watts = this.groupWatts(group, rawByName, this.displayGroups);
+            if (watts !== null)
+                return watts;
+        }
+        return fallback;
+    }
+
     // The summed reading of one power group, or null when none of its registers answered.
-    private groupWatts(group: number, rawByName: Map<string, number>): number | null {
+    private groupWatts(group: number, rawByName: Map<string, number>,
+                       groups: Register[][] = this.powerGroups): number | null {
         let watts = 0;
         let any = false;
-        for (const register of this.powerGroups[group] ?? []) {
+        for (const register of groups[group] ?? []) {
             const raw = rawByName.get(register.name);
             if (raw === undefined)
                 continue;
@@ -1198,9 +1217,12 @@ export class PumpConnection {
                 ? ((this.lastPowerReading + watts) / 2) * deltaTimeHours / 1000
                 : 0;
 
+            // The meter gets `delta` (integrated from the metered source); the tile gets the
+            // display source, which reacts faster. Separate on purpose — see displayPowerSources.
+            const shown = this.displayWatts(rawByName, watts);
             for (const subscriber of this.energySubscribers()) {
                 if (activeRole && subscriber.role === activeRole)
-                    subscriber.onEnergy?.(delta, watts);
+                    subscriber.onEnergy?.(delta, shown);
                 else
                     subscriber.onEnergy?.(0, 0);
             }

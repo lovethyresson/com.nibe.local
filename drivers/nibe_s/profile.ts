@@ -13,10 +13,37 @@ export const sProfile = makeProfile({
     role: {
         priorityRegisterName: "measure_enum_NIBE.i1028_priority",
         priorityRawOff: 10,
-        // Preferred first: 2166 is the instantaneous whole-unit draw, but it only exists on
-        // S1155/S1255, S1156/S1256 and S735. S320/S325, S330/S332 and S2125 fall through to
-        // the energy log's averaged reading — see the note on 2305 in registers.ts.
+        // 2305 first, on measurement. It is the energy log's own power reading, it exists as an
+        // input register on ALL six model maps, and integrating it reproduces the pump's hourly
+        // books; 2166 is the instantaneous whole-unit draw and exists on only three models.
+        //
+        // Measured against the pump's own per-function figures, S1155 and S735:
+        //
+        //   hot water  2166  -3.3% -2.9% -3.0% -8.5% -5.0%   2305  0.0% +0.8% +0.1% -0.1% +3.1%
+        //   heating    2166  -0.8% -4.2% -3.0%               2305  +1.6% -2.6% -3.0%
+        //
+        // 2166 runs consistently ~3% low on hot water on both models, and misses standby draw
+        // entirely on exhaust-air units (S735 idle: 2166 10 W, 2305 50 W — it does not see the
+        // continuously-running fan). halderex then measured Modbus 2293 against myUplink 25138
+        // on the same pump in the same hour: 0.930 vs 0.93, exact. So the energy log IS what
+        // myUplink publishes, which makes those percentages the error a user actually sees when
+        // they compare us against the app they already trust.
+        //
+        // Used for the live `measure_power` too, not just the meter, so Homey's Energy tab
+        // cannot show a live figure that fails to integrate to its own total. 2305 lags a ramp
+        // more than 2166 does, which for a heat pump costs nothing worth having.
+        //
+        // 2166 stays as the fallback for a pump where 2305 is dead, and stays visible in its own
+        // right as "Total power" — it is a real reading, just not the one to bill against.
         powerSources: [
+            ["measure_watt_NIBE.i2305_energylog_power"],
+            ["measure_watt_NIBE.i2166_energy_usage"]
+        ],
+        // The tile reads 2166 where it exists: it is the unfiltered instantaneous draw, and the
+        // lag that costs 2305 nothing over an hour makes it show roughly half the real power
+        // through a compressor start. Models without 2166 fall through to 2305 and simply get
+        // the same figure the meter integrates, which is what they had before.
+        displayPowerSources: [
             ["measure_watt_NIBE.i2166_energy_usage"],
             ["measure_watt_NIBE.i2305_energylog_power"]
         ],

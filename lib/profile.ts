@@ -34,6 +34,23 @@ export interface RoleConfig {
     // Empty on fixed-speed F → the allocator is skipped and the energy/COP extras drop out.
     powerSources: string[][];
 
+    // Where the *live* power figure on each tile comes from, when that should not be the same
+    // register the meters integrate. Both jobs used one chain until 0.9.13, which forced a
+    // choice between a meter that matches the pump's books and a tile that reacts.
+    //
+    // They are different jobs. Homey is told which capability is the meter
+    // (`meterPowerImportedCapability`), so it never derives the total from the live figure or
+    // checks one against the other — nothing is made inconsistent by sourcing them separately.
+    //
+    // On S the meter integrates 2305, whose lag is irrelevant over an hour and whose total
+    // matches myUplink, while the tile reads 2166, which is unfiltered: measured on a ramp,
+    // 2305 said 920 W where 2166 said 1621 W, so a tile on 2305 would show about half the real
+    // draw through every compressor start.
+    //
+    // Omitted → the tile uses whatever the meter is integrating. Falls back to that per poll
+    // too, if none of these answer.
+    displayPowerSources?: string[][];
+
     // Registers worth logging while the pump winds down after it stops prioritising a function
     // — compressor power first. Diagnostic only: the priority register says what the pump is
     // *prioritising*, not what it is *doing*, and the gap between the two is where energy gets
