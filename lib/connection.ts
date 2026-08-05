@@ -866,12 +866,30 @@ export class PumpConnection {
             this.powerGroups[group].map((r) => r.address).join('+');
         const off = (ours: number, pump: number) =>
             pump === 0 ? 'pump booked nothing' : `${(((ours - pump) / pump) * 100).toFixed(1)}%`;
-        for (const [role, slot] of perRole) {
-            const pump = slot.used;
-            if (pump === undefined)
-                continue;
+        // Every role either source credited, not just the ones the pump's log names — Main is
+        // the one that matters and the log has no line for it. halderex measured 2166 reading
+        // 10 W against 2305's 50 W while idle on an S735, because 2166 does not see the
+        // continuously-running exhaust-air fan (issue #4). Whether our pump shows the same gap
+        // is not answerable without printing standby, and it decides whether that finding is a
+        // property of 2166 or of exhaust-air models.
+        const roles = new Set<Role>([...perRole.keys(),
+            ...this.hourAllocation.keys(), ...this.shadowHourAllocation.keys()]);
+        for (const role of roles) {
+            const pump = perRole.get(role)?.used;
             const real = this.hourAllocation.get(role) ?? 0;
             const shadow = this.shadowHourAllocation.get(role) ?? 0;
+            if (pump === undefined) {
+                if (real < 0.001 && shadow < 0.001)
+                    continue;
+                // No line in the pump's log to score against — which is not the same as the
+                // energy being unattributed. An exhaust-air pump books its idle draw under
+                // *heating*, so read this against the heating row rather than alone.
+                this.debug(`Power-source comparison — ${role} last hour: `
+                    + `${label(0)} ${real.toFixed(3)}, ${label(1)} ${shadow.toFixed(3)} kWh. `
+                    + `The pump's log has no line for this role — compare with heating before `
+                    + `calling it unattributed.`);
+                continue;
+            }
             if (pump === 0 && real < 0.01 && shadow < 0.01)
                 continue;
             this.debug(`Power-source comparison — ${role} last hour: pump ${pump.toFixed(3)}, `
