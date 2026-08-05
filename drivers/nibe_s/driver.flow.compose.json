@@ -1046,12 +1046,12 @@
         "da": "Indstil stoptemperatur varmt vand (forøgelse) til [[value]]"
       },
       "hint": {
-        "en": "Stop temperature a hot water boost charges to — the periodic anti-legionella charge, and the manual \"More hot water\" boost. This is not the active demand mode's stop temperature. Accepts 55 to 70 °C.",
-        "sv": "Stopptemperatur som en varmvattenhöjning laddar till — den periodiska legionellakörningen och den manuella \"Mer varmvatten\". Detta är inte det aktiva behovslägets stopptemperatur. Tillåter 55 till 70 °C.",
-        "de": "Stopptemperatur einer Brauchwasser-Erhöhung — periodische Legionellenschaltung und manuelle Erhöhung. Nicht die Stopptemperatur des aktiven Bedarfsmodus. Bereich: 55 bis 70 °C.",
-        "nl": "Stoptemperatuur van een warmtapwaterverhoging — de periodieke legionellalading en de handmatige verhoging. Niet de stoptemperatuur van de actieve vraagmodus. Bereik: 55 tot 70 °C.",
-        "no": "Stopptemperatur for en varmtvannsøkning — den periodiske legionellakjøringen og den manuelle økningen. Ikke stopptemperaturen for aktiv behovsmodus. Område: 55 til 70 °C.",
-        "da": "Stoptemperatur for en varmtvandsforøgelse — den periodiske legionellakørsel og den manuelle forøgelse. Ikke det aktive behovstilstands stoptemperatur. Område: 55 til 70 °C."
+        "en": "Stop temperature for the periodic anti-legionella hot water charge. A boost ignores the demand mode's stop temperature; reaching this one may need the immersion heater, since the compressor alone tops out below it. Accepts 55 to 70 °C.",
+        "sv": "Stopptemperatur för den periodiska legionellakörningen. En höjning struntar i behovslägets stopptemperatur; för att nå den här kan elpatronen behövas, eftersom kompressorn ensam inte når dit. Tillåter 55 till 70 °C.",
+        "de": "Stopptemperatur der periodischen Legionellenschaltung. Eine Erhöhung ignoriert die Stopptemperatur des Bedarfsmodus; dieser Wert kann den Elektroheizstab erfordern. Bereich: 55 bis 70 °C.",
+        "nl": "Stoptemperatuur van de periodieke legionellalading. Een verhoging negeert de stoptemperatuur van de vraagmodus; hiervoor kan het elektrische element nodig zijn. Bereik: 55 tot 70 °C.",
+        "no": "Stopptemperatur for den periodiske legionellakjøringen. En økning ignorerer behovsmodusens stopptemperatur; å nå denne kan kreve elkolben. Område: 55 til 70 °C.",
+        "da": "Stoptemperatur for den periodiske legionellakørsel. En forøgelse ignorerer behovstilstandens stoptemperatur; at nå denne kan kræve elpatronen. Område: 55 til 70 °C."
       },
       "$filter": "capabilities=target_temperature.h61_hotwater_stop_increase",
       "args": [

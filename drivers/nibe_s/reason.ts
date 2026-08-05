@@ -187,28 +187,17 @@ function explainRole(role: string, previousRole: string | undefined,
         if (hw === undefined || hwStop === undefined)
             return {en: 'Hot water charging finished.', sv: 'Varmvattenladdningen är klar.'};
         // A charge that ended *above* the demand mode's stop point was not stopped by it — a
-        // boost was running, and boosts charge to their own setpoint (register 61). Measured
-        // on an S1155 in demand mode Small: mode stop 48.0, tank stopped at 54.6-55.0 °C,
-        // which is register 61's value and not Large's 58.0 either. Naming the mode's stop
-        // point here would state a number that demonstrably did not apply.
-        //
-        // Inferred from the temperature rather than from the boost registers on purpose: 697
-        // is cleared on this very transition (resetOnPriorityChange) and 1078 follows the
-        // pump, so both are unreliable at the moment this runs. The reading contradicting the
-        // claim is the evidence, and it needs no state.
-        const boostStop = v('hwStopIncrease');
+        // boost was running. What DID stop it is not something we can name: measured on an
+        // S1155 with the immersion heater off, two boosts ended at 54.6 and 55.0 °C while
+        // register 61 (the documented boost setpoint) read 62.0 and Large read 58.0. Two runs
+        // ending at *different* temperatures point to a compressor ceiling rather than a
+        // setpoint — a setpoint gives the same number every time. So state what happened and
+        // stop there, rather than naming a limit that may not have been the operative one.
         if (hw > hwStop + 0.5)
-            return boostStop !== undefined
-                ? {en: `The tank is charged: hot water reached ${e(hw)} °C. A boost was running, `
-                      + `so it charged to the ${e(boostStop)} °C boost stop point rather than `
-                      + `${mode.en}'s ${e(hwStop)} °C.`,
-                   sv: `Tanken är laddad: varmvattnet nådde ${s(hw)} °C. En höjning pågick, så den `
-                      + `laddade till höjningens stopptemperatur ${s(boostStop)} °C i stället för `
-                      + `${mode.sv.toLowerCase()}s ${s(hwStop)} °C.`}
-                : {en: `The tank is charged: hot water reached ${e(hw)} °C, past ${mode.en}'s `
-                      + `${e(hwStop)} °C stop point — a boost was running.`,
-                   sv: `Tanken är laddad: varmvattnet nådde ${s(hw)} °C, förbi ${mode.sv.toLowerCase()}s `
-                      + `stopptemperatur ${s(hwStop)} °C — en höjning pågick.`};
+            return {en: `The tank is charged: hot water reached ${e(hw)} °C — past ${mode.en}'s `
+                      + `${e(hwStop)} °C stop point, because a boost was running.`,
+                    sv: `Tanken är laddad: varmvattnet nådde ${s(hw)} °C — förbi ${mode.sv.toLowerCase()}s `
+                      + `stopptemperatur ${s(hwStop)} °C, eftersom en höjning pågick.`};
         return {en: `The tank is charged: hot water reached ${e(hw)} °C, its ${e(hwStop)} °C stop point.`,
                 sv: `Tanken är laddad: varmvattnet nådde ${s(hw)} °C, stopptemperaturen ${s(hwStop)} °C.`};
     }

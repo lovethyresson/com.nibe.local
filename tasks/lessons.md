@@ -60,3 +60,42 @@ non-zero)" rather than "answered", so the app applies the same standard.
 unit. Before depending on one, sample it live against a known-good reference while the thing it
 measures is actually happening — and treat a flat zero across a window where the value should
 have moved as a failure, not as data.
+
+## The pump is the user's to probe — write the script, don't try to run it
+
+**2026-08-05.** Asked to verify the room-temperature registers against the live S1155, I tried to
+connect to 10.136.1.93:502 from an inline Node script. It failed `EHOSTUNREACH`. `ping` and
+`nc -z 10.136.1.93 502` both succeeded from the same shell, so I read that as a sandbox block and
+re-ran with the sandbox disabled. Same failure. The user cut it off: "I need to run it, you can't,
+we've been through this."
+
+Three round-trips spent rediscovering a constraint that was already established, and one needless
+sandbox escalation on a machine that was never going to connect.
+
+**Rule:** anything that talks to the pump gets written as a `dev/*.mjs` script and handed over as a
+command to run. One connection attempt is acceptable as a check; a second is not. `ping`/`nc`
+succeeding says nothing about whether the app's own stack can reach it — don't use that as evidence
+to retry, and never escalate `dangerouslyDisableSandbox` to chase it.
+
+**Corollary:** a probe the user runs blind is worth more when it interprets itself. `--expect 35`
+(name the registers matching a value the user just set in the myUplink app) and `--watch` (print
+only what moved) turn a wall of numbers into an answer, and cost one round-trip instead of several.
+
+## jsmodbus goes online off the socket's `connect` event — build the client first
+
+**2026-08-05.** `dev/probe-room.mjs` printed "connected to 10.136.1.93:502" and then failed every
+single read with "no connection to modbus server". The socket really was open; the client was not.
+`ModbusTCPClient` marks itself online by listening for the socket's own `connect` event, and the
+probe constructed the client *after* awaiting that event — so it never fired for the client and it
+stayed offline forever. `lib/detection.ts:201` has always had the right order (socket, then client,
+then connect); a helper that returned an already-connected socket quietly broke it.
+
+The failure mode is nasty because the error text blames the network for what is a construction-order
+bug, and the user burned a round-trip on the pump running the broken script.
+
+**Rule:** `new ModbusTCPClient(socket, ...)` goes immediately after `new net.Socket()` and always
+before `socket.connect()`. Never write a helper that connects a socket and hands it back bare.
+
+**Corollary:** every probe should assert one register that cannot fail (input 1, outdoor temperature,
+exists on all six S models) and abort loudly if it does. A column of identical errors reads like a
+finding about the pump when it is a finding about the probe.

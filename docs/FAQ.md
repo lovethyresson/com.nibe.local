@@ -114,19 +114,24 @@ migrated, so COP is blank for a while after upgrading and then rebuilds correctl
 
 ### Why does a hot water boost heat past my stop temperature?
 
-Because a boost does not use the stop temperature of the demand mode you have selected. It charges to its
-own, higher setpoint — shown in the app as **Hot water stop (boost)**, and adjustable there.
+Because a boost ignores the stop temperature of the demand mode you have selected. That much is certain:
+measured on an S1155 in demand mode **Small** (stop 48 °C), two manual "More hot water" boosts both ran well
+past it, to **54.6 and 55.0 °C**.
 
-Measured on an S1155 with demand mode **Small** (stop 48 °C): two manual "More hot water" boosts both ran to
-**54.6–55.0 °C**, which is the boost setpoint's default of 55 °C. It isn't the Large mode's stop point either,
-which was set to 58 °C on that pump.
+**What actually stops the boost is less clear than it looks.** Those two runs ended at *different*
+temperatures, which is the signature of a physical ceiling rather than a setpoint — a setpoint repeats
+exactly. On that pump the immersion heater was disabled, and the compressor alone cannot push a tank much
+past the mid-50s. Neither the Large mode's stop point (58 °C on that pump) nor the pump's own documented
+boost setpoint (62 °C) explains where they stopped.
 
-The same setpoint governs the periodic anti-legionella charge — Nibe's own name for the register is "stop
-temperature HW periodic increase", and the manual boost appears to share it. The pump will not let it be set
-below 55 °C.
+The app exposes that documented setpoint as **Hot water stop (boost)** — Nibe's own name for it is "stop
+temperature HW periodic increase", and it governs the periodic anti-legionella charge. Its minimum is 55 °C,
+which is around where a compressor-only pump tops out anyway, so **on a pump with the immersion heater off it
+may never be the limit that actually binds.**
 
-This is worth knowing if you use the "automatic off, manual boost only" setup described in the README: your
-demand mode's stop temperature controls nothing during a boost.
+Practical upshot if you use the "automatic off, manual boost only" setup from the README: your demand mode's
+stop temperature controls nothing during a boost, and how hot the tank actually gets is set by what the
+compressor can manage — not by a number you can dial in, unless the immersion heater is enabled.
 
 ## Setup and connectivity
 
