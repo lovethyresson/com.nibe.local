@@ -47,7 +47,17 @@ this is where the knowledge belongs. It also means:
 
 **User choice stays the narrow case:** offer it only when several candidates read plausibly *and*
 genuinely differ in meaning — e.g. 26 is "Roomsensor 1-1" while 111 is "Room average temp. clim.
-system 6", which are not the same quantity in a multi-zone house. Nobody can usefully be asked
+system 6", which are not the same quantity in a multi-zone house.
+
+> **Built in 0.9.13, as `sources`.** See [`docs/pairing.md`](../docs/pairing.md). Two things this
+> file got wrong, both found by probing the live pump rather than re-reading the CSVs:
+>
+> - **111 was never BT50.** It is climate system 6. Climate system 1 is **116**, which this note
+>   does not mention at all — so the whole 111-vs-26 framing was a choice between two wrong
+>   answers, and on the maintainer's own S1155 the capability was resolving to nothing.
+> - **One live candidate is not a choice.** The narrow case above is right about *when to ask*, but
+>   the address still has to be recorded when only one candidate answers, or the S735 goes on
+>   reading a dead 116. `resolveSources()` returns the two separately for that reason. Nobody can usefully be asked
 whether their pulse meter is at 396 or 398.
 
 ## Why not a model check

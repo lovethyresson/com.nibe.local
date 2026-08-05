@@ -1945,6 +1945,72 @@
       ]
     },
     {
+      "id": "boolean_NIBE.h710_hw_additional_heat.onoff",
+      "title": {
+        "en": "Turn additional heat for hot water on or off",
+        "sv": "Slå på eller av tillsatsvärme för varmvatten",
+        "de": "Zusatzheizung für Brauchwasser ein-/ausschalten",
+        "nl": "Bijverwarming voor warmtapwater aan- of uitzetten",
+        "no": "Slå tilleggsvarme for varmtvann på eller av",
+        "da": "Tænd eller sluk tilskudsvarme til varmt vand"
+      },
+      "titleFormatted": {
+        "en": "Additional heat for hot water – [[state]]",
+        "sv": "Tillsatsvärme för varmvatten – [[state]]",
+        "de": "Zusatzheizung für Brauchwasser – [[state]]",
+        "nl": "Bijverwarming voor warmtapwater – [[state]]",
+        "no": "Tilleggsvarme for varmtvann – [[state]]",
+        "da": "Tilskudsvarme til varmt vand – [[state]]"
+      },
+      "hint": {
+        "en": "Lets the electric additional heat assist hot water charging. Off by default, and separate from \"Allow immersion heater\", which covers heating only. Without it the compressor charges alone and stops where it can go no higher.",
+        "sv": "Låter eltillsatsen hjälpa till vid varmvattenladdning. Av från fabrik, och skild från \"Tillåt elpatron\" som bara gäller värme. Utan den laddar kompressorn ensam och stannar där den inte kommer högre.",
+        "de": "Lässt die elektrische Zusatzheizung die Brauchwasserladung unterstützen. Standardmäßig aus und getrennt von der Freigabe für die Heizung.",
+        "nl": "Laat de elektrische bijverwarming het laden van warmtapwater ondersteunen. Standaard uit en los van de vrijgave voor verwarming.",
+        "no": "Lar den elektriske tilleggsvarmen hjelpe til med varmtvannsladingen. Av som standard, og atskilt fra tillatelsen for varme.",
+        "da": "Lader den elektriske tilskudsvarme hjælpe med varmtvandsopladning. Slukket som standard og adskilt fra tilladelsen til varme."
+      },
+      "$filter": "capabilities=boolean_NIBE.h710_hw_additional_heat",
+      "args": [
+        {
+          "type": "dropdown",
+          "name": "state",
+          "title": {
+            "en": "State",
+            "sv": "Läge",
+            "de": "Zustand",
+            "nl": "Status",
+            "no": "Tilstand",
+            "da": "Tilstand"
+          },
+          "values": [
+            {
+              "id": "on",
+              "title": {
+                "en": "On",
+                "sv": "På",
+                "de": "Ein",
+                "nl": "Aan",
+                "no": "På",
+                "da": "Til"
+              }
+            },
+            {
+              "id": "off",
+              "title": {
+                "en": "Off",
+                "sv": "Av",
+                "de": "Aus",
+                "nl": "Uit",
+                "no": "Av",
+                "da": "Fra"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "onoff.h181_enable_heating.onoff",
       "title": {
         "en": "Allow heating",

@@ -559,6 +559,26 @@ export class PumpConnection {
             });
     }
 
+    // Write a register at its own width. A 32-bit register spans two words and must be written
+    // as both, low word first, mirroring how combineRaw reads them back.
+    //
+    // Writing only the low word is not a harmless shortcut: it leaves whatever was in the high
+    // word, so it silently produces the right answer for small positive values (whose high word
+    // is already 0) and a wrong one for anything negative or above 65535. The zone setpoints are
+    // 5.0..35.0 and would have "worked" indefinitely on the accident that 350 fits in one word.
+    async writeRegisterValue(register: Register, raw: number): Promise<void> {
+        const address = register.address;
+        if (register.size !== 32) {
+            await this.writeSingleRegister(address, raw);
+            return;
+        }
+        // Two's complement across both words, so a negative value writes 0xFFFF high rather
+        // than being truncated to a large positive one.
+        const encoded = raw < 0 ? raw + 0x100000000 : raw;
+        await this.writeMultipleRegisters(address,
+            [encoded & 0xFFFF, Math.floor(encoded / 65536) & 0xFFFF]);
+    }
+
     // Throws on failure (rather than swallowing) so the write error reaches the user who
     // triggered it. `address` is the register's logical address; the model offset is applied
     // here at the wire boundary.
@@ -573,6 +593,20 @@ export class PumpConnection {
             // which left a write failure with literally no way to tell an out-of-range value
             // from a register the pump refuses in its current state.
             this.log(`Error writing register ${address} (value ${raw}): ${detail.summary}`,
+                '\n  raw error:', safeJson(reason));
+            throw new Error(detail.summary);
+        }
+    }
+
+    // The two-word form, for 32-bit registers. Same error handling as the single-word write:
+    // throws with a readable summary rather than swallowing.
+    async writeMultipleRegisters(address: number, values: number[]): Promise<void> {
+        const pdu = this.profile.addressBase ? address - this.profile.addressBase : address;
+        try {
+            await this.client.writeMultipleRegisters(pdu, values);
+        } catch (reason: any) {
+            const detail = describeModbusError(reason);
+            this.log(`Error writing register ${address} (values ${values.join(', ')}): ${detail.summary}`,
                 '\n  raw error:', safeJson(reason));
             throw new Error(detail.summary);
         }

@@ -1,6 +1,8 @@
 import net from 'net';
 import {ModbusTCPClient} from 'jsmodbus';
-import {Dir, GroupId, groupIds, Register, combineRaw, isPlausibleAlt, toNumericValue} from './registers';
+import {
+    Dir, GroupId, groupIds, Register, RegisterInfo, combineRaw, isPlausibleAlt, toNumericValue
+} from './registers';
 import type {ModelProfile} from './profile';
 
 // Samples all registers a few times over ~half a minute and recommends which
@@ -34,17 +36,34 @@ export interface RegisterSample {
     value?: number;      // last sampled numeric value
 }
 
+// One candidate source for a register that declares `sources`, as offered to the user.
+export interface SourceChoice {
+    address: number;
+    label: RegisterInfo;
+    value?: number;      // what it read, so the view can show the user what they're choosing between
+}
+
+// Register name → the candidates that actually carried a plausible value on this pump, in
+// declared order. Only registers with more than one live candidate are worth asking about, so
+// single-candidate entries are dropped before this leaves detection.
+export type SourceChoices = Record<string, SourceChoice[]>;
+
 export interface DetectionResult {
     recommendations: Recommendations;
     samples: Record<string, RegisterSample>;
     // Register name → the alternate address its value was actually found at. Only registers
     // that relocated appear here; it is stored on the device as part of the selection.
     addresses: Record<string, number>;
+    // Register name → the several live candidates the user must choose between. Unlike
+    // `addresses` this is a question, not an answer: the view turns each entry into a radio
+    // group and the pick lands back in `addresses`.
+    choices: SourceChoices;
 }
 
 export interface ProbeResult {
     probes: ProbeSamples;
     addresses: Record<string, number>;
+    choices: SourceChoices;
 }
 
 // The PDU address to put on the wire for a register, applying the model's address offset
@@ -56,12 +75,15 @@ export function pduAddress(register: Register, profile: ModelProfile): number {
 // Bundle the group recommendations with the per-register sample detail (used by the
 // pairing device picker to show which of a device's registers actually had data).
 export function buildDetectionResult(
-    profile: ModelProfile, probes: ProbeSamples, addresses: Record<string, number> = {}
+    profile: ModelProfile,
+    probes: ProbeSamples,
+    addresses: Record<string, number> = {},
+    choices: SourceChoices = {}
 ): DetectionResult {
     const samples: Record<string, RegisterSample> = {};
     for (const [name, probe] of Object.entries(probes))
         samples[name] = {read: probe.reads > 0, moved: probe.moved, value: probe.last};
-    return {recommendations: recommendGroups(profile, probes), samples, addresses};
+    return {recommendations: recommendGroups(profile, probes), samples, addresses, choices};
 }
 
 export async function readNumeric(
@@ -108,7 +130,56 @@ export async function sampleRegisters(
         if (pass < passes - 1)
             await new Promise((resolve) => setTimeout(resolve, intervalMs));
     }
-    return {probes, addresses: await resolveAlternates(profile, read, probes)};
+    // Sources first: a register that declares them has its own address among the candidates, so
+    // resolving them can populate a probe that the sampling run left empty, and resolveAlternates
+    // must see that before deciding the primary "produced nothing at all".
+    const sources = await resolveSources(profile, read, probes);
+    const alternates = await resolveAlternates(profile, read, probes);
+    return {probes, addresses: {...sources.addresses, ...alternates}, choices: sources.choices};
+}
+
+// Probe every candidate a `sources` register declares and keep the ones carrying a plausible
+// value. Unlike resolveAlternates this runs whatever the primary did, because the question isn't
+// "did the primary fail" but "is there more than one true answer on this pump".
+//
+// Returns two different things, and conflating them is a bug worth naming:
+//   - `addresses` — the first live candidate, recorded for EVERY register with at least one. This
+//     is what the runtime reads. It matters most in the single-candidate case: an S735 where the
+//     primary 116 is dead and only 26 answers has no choice to offer, but still must not go on
+//     reading 116.
+//   - `choices` — only registers with TWO OR MORE live candidates. One candidate is not a choice,
+//     and asking about it would put a pointless radio group in the pairing view.
+async function resolveSources(
+    profile: ModelProfile,
+    read: (register: Register) => Promise<number | undefined>,
+    probes: ProbeSamples
+): Promise<{addresses: Record<string, number>; choices: SourceChoices}> {
+    const addresses: Record<string, number> = {};
+    const choices: SourceChoices = {};
+    for (const register of profile.registers) {
+        if (!register.sources?.length)
+            continue;
+        const live: SourceChoice[] = [];
+        for (const source of register.sources) {
+            const value = await read({...register, address: source.address});
+            if (isPlausibleAlt(register, value))
+                live.push({address: source.address, label: source.label, value});
+        }
+        if (!live.length)
+            continue;
+        addresses[register.name] = live[0].address;
+        // Fold the winning read into the probe, exactly as resolveAlternates does: without it a
+        // register whose own address is dead reads as "no data" and the capability is dropped
+        // during pairing, so the choice would never reach the user.
+        const probe = probes[register.name];
+        if (probe && probe.reads === 0) {
+            probe.reads = 1;
+            probe.last = live[0].value;
+        }
+        if (live.length > 1)
+            choices[register.name] = live;
+    }
+    return {addresses, choices};
 }
 
 // Try the declared alternates for any register whose own address produced nothing usable
@@ -213,9 +284,9 @@ export async function probeHost(
         socket.connect({port: transport.port, host});
     });
     try {
-        const {probes, addresses} = await sampleRegisters(
+        const {probes, addresses, choices} = await sampleRegisters(
             profile, (register) => readNumeric(client, register, profile), onProgress);
-        return buildDetectionResult(profile, probes, addresses);
+        return buildDetectionResult(profile, probes, addresses, choices);
     } finally {
         socket.removeAllListeners();
         socket.end();

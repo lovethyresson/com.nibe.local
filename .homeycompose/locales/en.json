@@ -34,6 +34,9 @@
       "adjustable": "Adjustable",
       "insight": "Insight only"
     },
+    "sources": {
+      "prompt": "More than one sensor can report this. Pick the one that should regulate:"
+    },
     "devices": {
       "title": "Add devices",
       "intro": "Each function of your pump becomes its own device. The ones we found live data for are checked, but you can add any of them.",
@@ -60,6 +63,7 @@
   "groups": {
     "core": "Core sensors",
     "heating": "Heating",
+    "zones": "Extra zones",
     "hotwater": "Hot water",
     "pool": "Pool",
     "cooling": "Cooling",

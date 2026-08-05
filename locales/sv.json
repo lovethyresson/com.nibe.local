@@ -78,7 +78,10 @@
       "energy": "Energi"
     },
     "not_settable": "Detta visar värmepumpens driftprioritering och kan inte styras.",
-    "nodata_hint": "Värmepumpen rapporterade inget värde för detta vid kontrollen. Slår du på den får du ett fält som förblir tomt."
+    "nodata_hint": "Värmepumpen rapporterade inget värde för detta vid kontrollen. Slår du på den får du ett fält som förblir tomt.",
+    "sources": {
+      "prompt": "Fler än en givare kan rapportera detta. Välj den som ska reglera:"
+    }
   },
   "groups": {
     "heating": "Värme",
@@ -93,6 +96,7 @@
     "core": "Grundvärden",
     "alarm": "Larmhantering",
     "energy": "Energi",
-    "solar": "Solceller / PV"
+    "solar": "Solceller / PV",
+    "zones": "Extra zoner"
   }
 }

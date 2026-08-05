@@ -72,15 +72,29 @@ export const registers: Register[] = [
     // Rad 1 Temp
     {address:    1, name: "measure_temperature.i1_outside",         direction: Dir.In,  group: "core",        scale:  10, // Aktuell utetemperatur (BT1)
      info: {en: "Current outdoor temperature (sensor BT1)", sv: "Aktuell utetemperatur (givare BT1)"}},
-    // BT50 is documented at 111 on all six model maps, but on the S735 it answers with the
-    // not-available sentinel forever while input 26 ("Roomsensor 1-1", listed on every model
-    // *except* the S735) reads the real room temperature. Reported by halderex with an S735
-    // on both Modbus and MyUplink. 111 stays primary so the models where it works are
-    // untouched. The band is 5..40 rather than something wider so that a disconnected sensor
-    // reading a flat 0 is rejected instead of accepted as 0 °C.
-    {address:  111, name: "measure_temperature.i26_inside",         direction: Dir.In,  group: "heating",     scale:  10, // Rumstemperatur (BT50) — reg 111, not 26
-     altAddresses: [26], altPlausible: {min: 5, max: 40},
-     info: {en: "Indoor temperature from room sensor 1 (BT50)", sv: "Inomhustemperatur från rumsgivare 1 (BT50)"}},
+    // Indoor temperature has three candidate addresses that are NOT the same quantity, which is
+    // why this uses `sources` (user picks) rather than `altAddresses` (detection picks silently):
+    //   116 — "Room average temp. clim. system 1 (BT50)", the value that regulates. All six model
+    //         CSVs agree this is climate system 1.
+    //   111 — "Room average temp. clim. system 6". This was the primary until 0.9.13, on the
+    //         mistaken reading that the CSVs put BT50 there. On the maintainer's S1155 it returns
+    //         the not-available sentinel, so the capability resolved to nothing at all.
+    //    26 — "Roomsensor 1-1", one individual sensor rather than a system average. Listed on
+    //         every model except the S735, where it is undocumented and yet the only one that
+    //         answers (halderex, on both Modbus and MyUplink).
+    // In a multi-zone house more than one of these is alive and they genuinely differ, so the
+    // pump cannot decide — see docs/pairing.md. The band is 5..40 rather than something wider so
+    // that a disconnected sensor reading a flat 0 is rejected instead of accepted as 0 °C.
+    // The capability name keeps its historical `i26_` prefix: renaming it would orphan the
+    // Insights log, whose display name is snapshotted on first creation and never changes.
+    {address:  116, name: "measure_temperature.i26_inside",         direction: Dir.In,  group: "heating",     scale:  10, // Rumstemperatur (BT50) klimatsystem 1
+     altPlausible: {min: 5, max: 40},
+     sources: [
+         {address: 116, label: {en: "Climate system 1 average (BT50)", sv: "Medelvärde klimatsystem 1 (BT50)"}},
+         {address: 111, label: {en: "Climate system 6 average (BT50)", sv: "Medelvärde klimatsystem 6 (BT50)"}},
+         {address:  26, label: {en: "Room sensor 1-1 (single sensor)", sv: "Rumsgivare 1-1 (enskild givare)"}}
+     ],
+     info: {en: "Indoor temperature used to regulate climate system 1", sv: "Inomhustemperatur som reglerar klimatsystem 1"}},
     // Rad 2 Framledning
     {address: 1017, name: "measure_temperature.i1017_calculated_supply", direction: Dir.In, group: "heating", scale:  10, // Beräknad framledning klimatsystem 1
      info: {en: "Supply temperature the pump is aiming for (climate system 1)", sv: "Framledningstemperatur pumpen siktar på (klimatsystem 1)"}},
@@ -161,8 +175,12 @@ export const registers: Register[] = [
     {address: 1037, name: "measure_enum_NIBE.i1037_return_fan_step",          direction: Dir.In,  group: "ventilation", enum: returnairMap, // Fläktläge 1 0-Normal Övrigt 1-4
      info: {en: "Currently active fan mode", sv: "Aktivt fläktläge"}},
     // Rad 12 Eltillsats
-    {address: 1029, name: "measure_count_NIBE.i1029_additive_heat_steps",     direction: Dir.In,  group: "core",       scale: 1, // Driftläge intern tillsats
-     info: {en: "Active steps of the internal electric additive heater", sv: "Aktiva steg för intern eltillsats"}},
+    // Nibe's title is "Operating mode internal add. heat" — a mode, not a step count. It was
+    // mapped as "active steps", which was an invented meaning: the Swedish comment on this very
+    // line already said driftläge. Exposed as a flag because that is the question a user has
+    // ("is the immersion heater running?") and the mode's non-zero values are undocumented.
+    {address: 1029, name: "boolean_NIBE.i1029_additive_heat_active",          direction: Dir.In,  group: "core",       bool: true, // Driftläge intern tillsats
+     info: {en: "Whether the internal electric additional heat is running", sv: "Om den interna eltillsatsen är igång"}},
     // Incoming main fuse rating (A). Read-only info on the main device (replaces the old
     // static setting so it only appears there).
     {address:  103, name: "fuse_NIBE.h103_fuse",                              direction: Dir.Out, group: "core",       scale: 1, noAction: true, // Säkring inkommande (A)
@@ -281,6 +299,44 @@ export const registers: Register[] = [
      info: {en: "Heat curve slope for climate system 1", sv: "Värmekurvans lutning för klimatsystem 1"}},
     {address:   30, name: "measure_count_NIBE.h30_heat_curve_displacement",   direction: Dir.Out, group: "heating",    scale: 1, min: -10, max: 10, // Värmeförskjutning klimatsystem 1 RW
      info: {en: "Offset of the heat curve for climate system 1", sv: "Förskjutning av värmekurvan för klimatsystem 1"}},
+    // Rad 16b Rumstemperatur (zoner)
+    //
+    // The indoor setpoint. This is the register the myUplink app writes when you set an indoor
+    // temperature — verified on a live S1155 (fw 1036) by setting 35 °C then 28 °C in the iOS app
+    // and sweeping all 2065 registers: 2505 was the only one of them to follow, both times.
+    // Writing it drives real demand rather than just storing a number — after the change degree
+    // minutes went -14.6 -> -339.1 and the compressor started.
+    //
+    // NOT registers 206/205/204/203 ("Room sensor set point value climate system N") or 55
+    // ("External adjustment with room sensor"), which look like the obvious candidates and are
+    // legacy on zone firmware: they sit at their factory default with "Use room sensor" off, and
+    // holding 2503 "External setting for adjustment migrated" reads 1. Exposing them would give
+    // the user a temperature control that silently does nothing.
+    //
+    // Nibe's CSVs title this family only `id:12801`..`id:12840` — holding 2505..2583, step 2,
+    // s32 — which is why searching the register maps for "zone" finds nothing but the
+    // `Zone N affected by ECS1` flags at 2119..2158. Those flags are how a zone is detected:
+    // an unconfigured zone reads 0 here rather than its documented default of 20.
+    //
+    // The CSV documents min 50 / max 300 (5.0..30.0 °C) and is WRONG — the live register held
+    // 350. Clamping to 30 would reject a setting the pump itself accepts, so the band is 5..35.
+    {address: 2505, name: "target_temperature.h2505_zone1_setpoint",          direction: Dir.Out, group: "heating",    scale: 10, size: 32, min: 5, max: 35, // Rumstemperatur börvärde zon 1
+     info: {en: "Indoor temperature setpoint (zone 1)", sv: "Börvärde för inomhustemperatur (zon 1)"}},
+    // Zones 2-4. Same family, one zone per two registers. Left at four rather than the full
+    // forty on purpose: multi-zone houses are rare, every entry costs a capability instance in
+    // driver.compose.json, and tasks/todo.md's policy for accessory registers is to add them when
+    // a user asks rather than to build a pipeline. Extending is mechanical — 2511 is zone 5.
+    {address: 2507, name: "target_temperature.h2507_zone2_setpoint",          direction: Dir.Out, group: "zones",      scale: 10, size: 32, min: 5, max: 35, // Rumstemperatur börvärde zon 2
+     info: {en: "Indoor temperature setpoint (zone 2)", sv: "Börvärde för inomhustemperatur (zon 2)"}},
+    {address: 2509, name: "target_temperature.h2509_zone3_setpoint",          direction: Dir.Out, group: "zones",      scale: 10, size: 32, min: 5, max: 35, // Rumstemperatur börvärde zon 3
+     info: {en: "Indoor temperature setpoint (zone 3)", sv: "Börvärde för inomhustemperatur (zon 3)"}},
+    {address: 2511, name: "target_temperature.h2511_zone4_setpoint",          direction: Dir.Out, group: "zones",      scale: 10, size: 32, min: 5, max: 35, // Rumstemperatur börvärde zon 4
+     info: {en: "Indoor temperature setpoint (zone 4)", sv: "Börvärde för inomhustemperatur (zon 4)"}},
+    // Why the setpoint above may appear to do nothing. On zone firmware this reads 0 and room
+    // control runs through the zones; on older firmware it is what enables room-sensor
+    // regulation at all. Read-only either way — writing it is the legacy path.
+    {address:  202, name: "boolean_NIBE.h202_use_room_sensor",                direction: Dir.Out, group: "heating",    bool: true, noAction: true, // Använd rumsgivare klimatsystem 1
+     info: {en: "Whether room sensor regulation is switched on for climate system 1", sv: "Om rumsgivarreglering är påslagen för klimatsystem 1"}},
     // Rad 17 Varmvatten
     {address:   56, name: "measure_enum_NIBE.h56_hotwater_demand_mode",       direction: Dir.Out, group: "hotwater",   enum: hotwaterMap, // Varmvatten behovsläge RW
      info: {en: "Hot water demand mode (small/medium/large/smart)", sv: "Varmvattnets behovsläge (litet/medel/stort/smart)"}},
@@ -293,6 +349,13 @@ export const registers: Register[] = [
     {address:  697, name: "boolean_NIBE.h697_more_hotwater",                         direction: Dir.Out, group: "hotwater",   bool: true, onValue: 2, offValue: 0, // Mer varmvatten engångshöjning
      info: {en: "More hot water: a one-time 2-hour boost", sv: "Mer varmvatten: en engångshöjning på 2 timmar"}},
     // Rad 18 Periodisk varmvatten höjning
+    // The hot water half of additional heat, and the reason a manual boost can stall below its
+    // setpoint. Register 180 is titled "Permit additional heat, HEATING" and there is no hot
+    // water equivalent — 710 is it, and it defaults to 0 (off). Measured on an S1155: with 180
+    // enabled and 710 untouched, a boost ran the compressor alone to 53.4 °C and stopped, with
+    // 1027 (additive power) flat at 0 W the whole time. Absent on S2125, S320/S325 and S735.
+    {address:  710, name: "boolean_NIBE.h710_hw_additional_heat",             direction: Dir.Out, group: "hotwater",   bool: true, // Tillsatsvärme varmvattenkomfort
+     info: {en: "Let the electric additional heat assist hot water. Off by default — without it the compressor charges alone and stops where it can go no higher, which can be well below the target.", sv: "Låt eltillsatsen hjälpa till med varmvattnet. Av från fabrik — utan den laddar kompressorn ensam och stannar där den inte kommer högre, vilket kan vara långt under målet."}},
     {address:   65, name: "measure_enum_NIBE.h65_periodic_hotwater",          direction: Dir.Out, group: "hotwater",   enum: booleanMap, // Periodisk varmvatten
      info: {en: "Periodic hot water boost on/off (status)", sv: "Periodisk varmvattenhöjning av/på (status)"}},
     {address:   66, name: "measure_day_NIBE.h66_periodic_hotwater_interval",  direction: Dir.Out, group: "hotwater",   scale: 1, min: 1, max: 90, // Periodiskt varmvatten intervall i dagar
@@ -438,7 +501,7 @@ export const registers: Register[] = [
     // additive step (i1029) and power (i1027) readouts, not on the heating device. The
     // per-function permits below (h181 heating, h182 cooling) stay with their function.
     {address:  180, name: "boolean_NIBE.h180_enable_addition",                       direction: Dir.Out, group: "core",       bool: true, // Tillåt tillsats
-     info: {en: "Allow the electric immersion/additive heater (heating and hot water)", sv: "Tillåt elpatronen/eltillsatsen (värme och varmvatten)"}},
+     info: {en: "Allow additional heat for HEATING. Hot water has its own separate switch — this one does not affect it.", sv: "Tillåt tillsatsvärme för VÄRME. Varmvatten har en egen inställning — den här påverkar inte den."}},
     {address:  181, name: "onoff.h181_enable_heating",                        direction: Dir.Out, group: "heating",    bool: true, // Tillåt värme
      info: {en: "Allow heating operation", sv: "Tillåt värmedrift"}},
     {address:  182, name: "onoff.h182_enable_cooling",                        direction: Dir.Out, group: "cooling",    bool: true, // Tillåt kyla

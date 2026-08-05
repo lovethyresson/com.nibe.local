@@ -134,7 +134,16 @@ export const sProfile = makeProfile({
                     .some((name) => (value(name) ?? 0) > 0),
             solar: ({value}) =>
                 (value("measure_power") ?? 0) > 0
-                || (value("meter_power.solar") ?? 0) > 0
+                || (value("meter_power.solar") ?? 0) > 0,
+            // Zones 2-4. Their setpoint registers ANSWER on a single-zone pump — they just read
+            // 0 instead of the documented default of 20 — so "the register responded" is not
+            // evidence a zone exists and `inRange` is the only safe test. Verified on a live
+            // S1155: zone 1 held the real setpoint while 2507..2583 all read a flat 0.
+            zones: ({inRange}) =>
+                ["target_temperature.h2507_zone2_setpoint",
+                    "target_temperature.h2509_zone3_setpoint",
+                    "target_temperature.h2511_zone4_setpoint"]
+                    .some((name) => inRange(name, 5, 35))
         }
     },
 

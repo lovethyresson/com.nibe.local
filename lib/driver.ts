@@ -12,7 +12,9 @@ import {
     roleNames, roleOf, roleRegisters
 } from './roles';
 import type {ModelProfile} from './profile';
-import {DetectionResult, PROBE_PASSES, Recommendations, RegisterSample, probeHost} from './detection';
+import {
+    DetectionResult, PROBE_PASSES, Recommendations, RegisterSample, SourceChoices, probeHost
+} from './detection';
 import {Transport, destroyAllConnections, existingConnection} from './connection';
 import {DiscoveryOptions, discoverPumps} from './discovery';
 
@@ -377,9 +379,15 @@ export abstract class NibePumpDriver extends Driver {
         return entries;
     }
 
-    // `addresses` comes from detection, not from the view: which address a register lives at
-    // is a fact about the pump, not a choice, so it is stamped in server-side. A repair that
+    // `addresses` is mostly detection's answer rather than the user's: which address a register
+    // lives at is normally a fact about the pump, stamped in server-side, and a repair that
     // skipped detection passes the device's existing map through unchanged.
+    //
+    // The exception is a `sources` register, where several addresses carry plausible but
+    // different values and only the user can say which one they mean. Those arrive in
+    // `raw.sources` from the view and are layered on top, but only for registers that actually
+    // declare sources and only for an address that register actually offers — the view is
+    // untrusted input, and a bad address here would silently point polling at a wrong register.
     private cleanSelection(raw: any, addresses?: Record<string, number>): Selection {
         const groups: Selection["groups"] = {};
         for (const id of groupIds)
@@ -400,9 +408,17 @@ export abstract class NibePumpDriver extends Driver {
         // re-enables a COP the pump has no registers for.
         for (const name of [...ENERGY_CAPABILITIES, TOTAL_COP_CAPABILITY, FUNCTION_COP_CAPABILITY])
             keep(name, "energy");
+        const resolved: Record<string, number> = {...addresses};
+        for (const register of this.profile.registers) {
+            if (!register.sources?.length)
+                continue;
+            const chosen = Number(raw?.sources?.[register.name]);
+            if (register.sources.some((source) => source.address === chosen))
+                resolved[register.name] = chosen;
+        }
         const selection: Selection = {groups, overrides};
-        if (addresses && Object.keys(addresses).length)
-            selection.addresses = addresses;
+        if (Object.keys(resolved).length)
+            selection.addresses = resolved;
         return selection;
     }
 
@@ -565,6 +581,25 @@ export abstract class NibePumpDriver extends Driver {
             .filter((group) => group.caps.length > 0);
     }
 
+    // The source choices belonging to one role, localised for the view. Each entry becomes a
+    // radio group under that capability's row; a register whose candidates all read the same
+    // thing never gets here, because detection only reports two or more live candidates.
+    private choicesForRole(role: Role, choices: SourceChoices) {
+        const language = this.homey.i18n.getLanguage() as 'en' | 'sv';
+        const mine = new Set(roleRegisters(this.profile, role).map((register) => register.name));
+        const entries: Record<string, {address: number; label: string; value?: number}[]> = {};
+        for (const [name, sources] of Object.entries(choices)) {
+            if (!mine.has(name))
+                continue;
+            entries[name] = sources.map((source) => ({
+                address: source.address,
+                label: source.label[language] || source.label.en,
+                value: source.value
+            }));
+        }
+        return entries;
+    }
+
     private pairingCandidates(ip: string, detection: DetectionResult | null, transport?: PairTransport) {
         const recommendations = detection?.recommendations ?? {};
         const samples = detection?.samples ?? {};
@@ -582,7 +617,10 @@ export abstract class NibePumpDriver extends Driver {
                             && recommendations[group]?.recommended),
                 device: this.deviceTemplate(ip, role, recommendations, samples, transport,
                                             detection?.addresses ?? {}),
-                groups: this.candidateGroups(role, recommendations, samples)
+                groups: this.candidateGroups(role, recommendations, samples),
+                // Only the choices for registers this role owns — the heating device asks which
+                // sensor its indoor temperature comes from, and no other role should.
+                choices: this.choicesForRole(role, detection?.choices ?? {})
             }));
     }
 
@@ -745,7 +783,13 @@ export abstract class NibePumpDriver extends Driver {
         session.setHandler('get_detection', async () => {
             const result = detection as DetectionResult | null;
             return result
-                ? {...result, unsupported: this.unsupportedCapabilities(role, result)}
+                ? {
+                    ...result,
+                    unsupported: this.unsupportedCapabilities(role, result),
+                    // Overwrite the raw choices with the role-filtered, localised form the view
+                    // expects — same shape the pairing flow hands over in `pairingCandidates`.
+                    choices: this.choicesForRole(role, result.choices)
+                }
                 : null;
         });
 

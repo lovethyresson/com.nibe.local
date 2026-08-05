@@ -298,6 +298,26 @@ body {
     margin: 0.35em 0 0 0.1em;
 }
 
+/* "Which sensor should regulate?" — offered only when detection found several live candidates
+   that mean different things. Indented under the capability it belongs to, so it reads as part
+   of that row rather than as a new setting. */
+.register-sources {
+    margin: 0.4em 0 0.6em 1.6em;
+    padding-left: 0.7em;
+    border-left: 2px solid rgba(128, 128, 128, 0.25);
+}
+
+.register-sources .register-desc {
+    margin-top: 0;
+}
+
+.source-option {
+    display: block;
+    font-size: 0.9em;
+    margin: 0.3em 0 0 0.1em;
+    cursor: pointer;
+}
+
 .features-note {
     font-size: 0.8em;
     opacity: 0.65;

@@ -67,10 +67,44 @@ Currently declared:
 
 | register | primary | alternate | on |
 |---|---|---|---|
-| room temperature (BT50) | 111 | 26 | S735 |
 | heating medium pump speed (GP1) | 1102 | 1636 | S330/S332 |
 | night cooling 1 | 227 | 2955 | S2125, S330/S332 |
 | pulse energy meter (BE6) | 398 | 396 | S320/S325 |
+
+## Sources — when the pump cannot decide and the user must
+
+`altAddresses` answers "where does this register live". It resolves silently because there is only ever one
+right answer. **`sources` is the other case: several addresses all carry plausible values, and they are
+different quantities.** No amount of probing settles which one the user means, so detection asks.
+
+Indoor temperature is the example, and the reason this exists:
+
+| address | what it actually is |
+|---|---|
+| **116** | Room average temp. clim. system 1 (BT50) — the value that regulates |
+| 111 | Room average temp. clim. system **6** — a different climate system |
+| 26 | Roomsensor 1-1 — one individual sensor, not a system average |
+
+In a one-zone house only 116 answers and there is nothing to ask. In a house with a wired BT50 *and* zone
+sensors, two or three of these are alive at once and genuinely differ. Until 0.9.13 the table declared 111 as
+the primary on the mistaken reading that the CSVs put BT50 there — on the maintainer's own S1155 that returns
+the sentinel, so the capability resolved to nothing at all.
+
+How it behaves:
+
+- **every** candidate is probed, whatever the register's own address did — the question isn't "did the primary
+  fail" but "is there more than one true answer here";
+- candidates passing `altPlausible` are kept in declared order, and the register's own address must be listed
+  first because it is the default;
+- **one live candidate is not a choice.** It is recorded in `addresses` and no question is shown — this is what
+  keeps the S735 working, where only 26 answers;
+- **two or more** become a radio group under that capability, in both the pairing device picker
+  (`assets/pair/devices.js`) and the repair features view (`assets/pair/features.js`). Each option shows what
+  that address actually read, because "23.5" vs "18.1" is the only thing that distinguishes them to a human.
+
+The pick lands in the same `Selection.addresses` map as a resolved alternate, so reads, writes and flow
+autocompletes need no special handling. `cleanSelection()` accepts an address only if the register declares
+`sources` and actually offers it — the view is untrusted input.
 
 ### Choosing a band
 
@@ -84,9 +118,13 @@ There is no universal "reject exactly 0" rule, because whether 0 is data depends
 
 ### Where the answer is kept
 
-In the device's stored `selection`, as `addresses`, alongside the group and per-capability choices. It is
-**not** a user choice and never round-trips through the pairing view — the driver stamps it in server-side,
-and the picker carries it through untouched when it rebuilds the selection from the checkboxes.
+In the device's stored `selection`, as `addresses`, alongside the group and per-capability choices. Both
+mechanisms write here, and they differ in who decides:
+
+- an **alternate** is not a user choice and never round-trips through the view — the driver stamps it in
+  server-side, and the picker carries it through untouched when it rebuilds the selection from the checkboxes;
+- a **source** is the user's pick, and is recorded even when it happens to be the register's own address, so
+  "they chose the default" stays distinguishable from "they were never asked".
 
 At runtime it is applied in exactly two places:
 

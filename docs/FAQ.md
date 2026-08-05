@@ -133,6 +133,47 @@ Practical upshot if you use the "automatic off, manual boost only" setup from th
 stop temperature controls nothing during a boost, and how hot the tank actually gets is set by what the
 compressor can manage — not by a number you can dial in, unless the immersion heater is enabled.
 
+## Indoor temperature
+
+### Can I set my indoor temperature from Homey?
+
+Yes, from **0.9.13**. The Heating device has an **Indoor temperature** control that writes the same setting
+the myUplink app writes, so the two always agree — and it runs on your local network at the normal 5-second
+poll rather than through the cloud.
+
+Its range is **5–35 °C**. Nibe's own register documentation says 5–30, but the pump demonstrably accepts 35,
+so the app follows the pump rather than the paperwork.
+
+### Why do I still need the myUplink app, then?
+
+Two things, and only two, that Modbus does not expose:
+
+- **Away / holiday mode.** The pump publishes whether holiday mode is *active* but offers no way to switch it
+  on. You can get most of the effect from a Flow — drop the indoor temperature and set hot water to Small.
+- **Schedules.** Menu 6 is not on Modbus at all. Homey Flows do the same job and rather more.
+
+Everything else you'd open myUplink for — indoor temperature, zones, hot water, curves, modes — is local.
+
+### I set a temperature and nothing happened.
+
+Check **Room sensor regulation active** on the Heating device. On older firmware that switch is what enables
+room-sensor control at all, and with it off the pump ignores the setpoint and follows the heat curve alone.
+The app shows it read-only so you can see the reason rather than guess at it.
+
+### My pump has several room sensors. Which one does Homey use?
+
+Whichever you picked. When more than one sensor reports a plausible indoor temperature, pairing shows a
+short list — a climate-system average, or an individual sensor — with what each one currently reads, and you
+choose the one that should regulate. If only one is alive you're not asked.
+
+To change it later, run **Repair** on the Heating device (device menu → Repair) and pick again.
+
+### The room temperature was blank before I updated.
+
+That was a bug, fixed in 0.9.13. The app read register 111, believing it was the BT50 room sensor; it is
+climate system *6*, and on most pumps it is empty. Climate system 1 is register 116. Run **Repair** on the
+Heating device after updating so it picks up the corrected register.
+
 ## Setup and connectivity
 
 ### Can I run this and myUplink at the same time?

@@ -125,7 +125,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             throw new Error('Not connected to the heat pump');
         try {
             const address = resolvedAddress(register, this.getSelection());
-            await this.connection.writeSingleRegister(address, this.toRegisterValue(register, value));
+            await this.connection.writeRegisterValue(
+                {...register, address}, this.toRegisterValue(register, value));
         } catch (error: any) {
             // Surface a clear, user-facing message instead of failing silently.
             throw new Error(`Could not set "${this.registerTitle(register)}": ${error?.message ?? error}`);

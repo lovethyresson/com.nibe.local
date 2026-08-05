@@ -740,15 +740,21 @@ function sampleAgainst(answers: Record<number, number | undefined>) {
 
 const INSIDE = 'measure_temperature.i26_inside';
 
-test('alternates: a register empty at its own address resolves to the one that answers', async () => {
-    // The S735 case: BT50 is documented at 111 and answers only with the sentinel there,
-    // while undocumented input 26 carries the real room temperature.
+test('sources: indoor temperature offers the three candidates, 116 first', () => {
+    // Verified on a live S1155 (fw 1036): 116 is climate system 1 and carries the real value,
+    // 111 is climate system 6 and returns the sentinel, 26 is a single sensor and excepts.
     const inside = sProfile.registerByName[INSIDE];
-    assert.equal(inside.address, 111, 'primary must stay 111 so the models where it works are untouched');
-    assert.deepEqual(inside.altAddresses, [26]);
+    assert.equal(inside.address, 116, 'climate system 1 is 116 on all six model maps');
+    assert.deepEqual(inside.sources?.map((s) => s.address), [116, 111, 26]);
+    assert.equal(inside.altAddresses, undefined, 'sources replaces the silent-fallback path');
+});
 
-    const {probes, addresses} = await sampleAgainst({26: 22.5});
-    assert.equal(addresses[INSIDE], 26, 'the alternate that answered must be recorded');
+test('sources: only one candidate alive resolves silently, with no question for the user', async () => {
+    // The S735 case: 116 and 111 are dead, 26 carries the room temperature. There is nothing to
+    // ask — but the address must still be recorded, or the device goes on reading a dead 116.
+    const {probes, addresses, choices} = await sampleAgainst({26: 22.5});
+    assert.equal(addresses[INSIDE], 26, 'the only live candidate must be recorded');
+    assert.equal(choices[INSIDE], undefined, 'one candidate is not a choice');
     // Folded into the probe, or pairing drops the capability as "no data" and the resolution
     // never gets used — the gap that lost the room-temperature tile on a fresh S735 pair.
     assert.equal(probes[INSIDE].reads, 1);
@@ -756,21 +762,51 @@ test('alternates: a register empty at its own address resolves to the one that a
     assert.equal(buildDetectionResult(sProfile, probes, addresses).samples[INSIDE].read, true);
 });
 
-test('alternates: a primary that answers is never second-guessed', async () => {
-    // The S1155 reads 111 correctly. Even with a plausible value sitting at 26, resolution
-    // must not fire — otherwise a working model silently changes which register it reads.
-    const {probes, addresses} = await sampleAgainst({111: 21.0, 26: 22.5});
+test('sources: several live candidates become a question, defaulting to the first', async () => {
+    // A house with both a climate-system average and a single room sensor. These are different
+    // quantities, so the pump cannot choose and detection must hand the decision up.
+    const {addresses, choices} = await sampleAgainst({116: 21.0, 26: 22.5});
+    assert.equal(addresses[INSIDE], 116, 'the default is the first live candidate, in declared order');
+    assert.deepEqual(choices[INSIDE].map((c) => c.address), [116, 26]);
+    // The view shows each candidate's reading — without the numbers there is no way to tell a
+    // system average from a single sensor.
+    assert.deepEqual(choices[INSIDE].map((c) => c.value), [21.0, 22.5]);
+    assert.ok(choices[INSIDE][0].label.en && choices[INSIDE][0].label.sv, 'candidates are bilingual');
+});
+
+test('sources: an implausible candidate is not offered', async () => {
+    // The 2727 trap again: 26 answering with a flat 0 is a dead sensor, not 0 °C, so the user
+    // must not be asked to choose it — and with only 116 alive there is no question at all.
+    const {addresses, choices} = await sampleAgainst({116: 21.0, 26: 0});
+    assert.equal(addresses[INSIDE], 116);
+    assert.equal(choices[INSIDE], undefined);
+});
+
+test('sources: no live candidate leaves the register alone', async () => {
+    const {addresses, choices} = await sampleAgainst({});
     assert.equal(addresses[INSIDE], undefined);
-    assert.equal(probes[INSIDE].last, 21.0);
+    assert.equal(choices[INSIDE], undefined);
+});
+
+test('sources: every declaration is well formed', () => {
+    for (const register of registers) {
+        if (!register.sources?.length)
+            continue;
+        assert.ok(register.altPlausible,
+            `${register.name} declares sources without a band to judge them by`);
+        assert.equal(register.sources[0].address, register.address,
+            `${register.name} must list its own address first — it is the default`);
+        assert.equal(new Set(register.sources.map((s) => s.address)).size, register.sources.length,
+            `${register.name} lists a candidate address twice`);
+        for (const source of register.sources)
+            assert.ok(source.label.en && source.label.sv,
+                `${register.name} candidate ${source.address} is missing a label`);
+    }
 });
 
 test('alternates: an implausible reading is rejected rather than accepted', async () => {
-    // The 2727 trap: an address can answer with something that merely decodes as a number.
-    // A room sensor reading a flat 0 is a dead sensor, and 0 is outside the declared band.
-    const {addresses} = await sampleAgainst({26: 0});
-    assert.equal(addresses[INSIDE], undefined, 'a flat zero must not be taken as 0 °C');
-
-    // But 0 *is* data for a meter that has counted nothing, so that band admits it.
+    // 0 *is* data for a meter that has counted nothing, so that band admits it — unlike the
+    // room-sensor band, which treats a flat 0 as a dead sensor.
     const pulse = 'meter_kwh_NIBE.i398_pulse_energy';
     const resolved = (await sampleAgainst({396: 0})).addresses;
     assert.equal(resolved[pulse], 396);
@@ -806,8 +842,62 @@ test('alternates: the resolved address is what reads and writes actually use', (
         .find((r) => r.name === INSIDE);
     assert.equal(resolved?.address, 26, 'polling and the dump must follow the resolution');
     // The table itself is untouched — resolution is per device, not a global mutation.
-    assert.equal(sProfile.registerByName[INSIDE].address, 111);
+    assert.equal(sProfile.registerByName[INSIDE].address, 116);
     // Writes resolve at call time from the same map.
     assert.equal(resolvedAddress(sProfile.registerByName[INSIDE], selection), 26);
-    assert.equal(resolvedAddress(sProfile.registerByName[INSIDE], null), 111);
+    assert.equal(resolvedAddress(sProfile.registerByName[INSIDE], null), 116);
+});
+
+// ---- Zone setpoints ----
+
+test('the indoor setpoint is the zone register, not the legacy room-sensor one', () => {
+    // Verified on a live S1155 (fw 1036): setting 35 °C then 28 °C in the myUplink app moved
+    // holding 2505 both times, and it was the only register out of 2065 to follow. Registers
+    // 206/55 sat at their factory default throughout — they are legacy on zone firmware, and
+    // exposing them would give the user a control that silently does nothing.
+    const setpoint = sProfile.registerByName['target_temperature.h2505_zone1_setpoint'];
+    assert.ok(setpoint, 'zone 1 setpoint must exist');
+    assert.equal(setpoint.address, 2505);
+    assert.equal(setpoint.direction, Dir.Out);
+    assert.equal(setpoint.size, 32, 'the zone family is s32 — a 16-bit read returns garbage');
+    assert.equal(setpoint.scale, 10);
+    assert.equal(setpoint.group, 'heating', 'zone 1 is the single-zone case, not an extra');
+
+    // The CSV documents max 300 (30.0 °C) and is wrong: the live register held 350. Clamping to
+    // 30 would reject a value the pump itself accepts.
+    assert.equal(setpoint.max, 35);
+    assert.equal(setpoint.min, 5);
+
+    for (const legacy of [206, 205, 204, 203, 55, 54, 53])
+        assert.ok(!registers.some((r) => r.direction === Dir.Out && r.address === legacy),
+            `legacy room-sensor register ${legacy} must not be exposed as a control`);
+});
+
+test('zones 2-4 are their own group so a single-zone pump does not carry dead controls', () => {
+    const extras = ['target_temperature.h2507_zone2_setpoint',
+        'target_temperature.h2509_zone3_setpoint',
+        'target_temperature.h2511_zone4_setpoint'];
+    for (const name of extras) {
+        const zone = sProfile.registerByName[name];
+        assert.ok(zone, `${name} must exist`);
+        assert.equal(zone.group, 'zones');
+        assert.equal(zone.size, 32);
+    }
+    // The zone family is one zone per two registers, ascending.
+    assert.deepEqual(extras.map((n) => sProfile.registerByName[n].address), [2507, 2509, 2511]);
+    // The heating device owns them, so the setpoints land next to the temperature they drive.
+    assert.ok((roleGroups.heating as string[]).includes('zones'));
+});
+
+test('zones are recommended on evidence of a real setpoint, never on the register answering', () => {
+    // The trap this guards: on a single-zone S1155 registers 2507..2583 all ANSWER — they just
+    // read a flat 0 instead of their documented default of 20. Recommending on "it responded"
+    // would give every ordinary house three phantom zones.
+    const answered = (value: number): ProbeSamples => Object.fromEntries(
+        sProfile.registers.map((r) => [r.name,
+            {reads: 1, moved: false, last: r.group === 'zones' ? value : 0}]));
+
+    assert.equal(recommendGroups(sProfile, answered(0)).zones?.recommended, false,
+        'a flat zero is an unconfigured zone, not a zone set to 0 °C');
+    assert.equal(recommendGroups(sProfile, answered(21)).zones?.recommended, true);
 });

@@ -40,6 +40,66 @@ function registerChecked(group, register, checked) {
     return checked;
 }
 
+// The candidate sources detection found alive for a register, or null when there is nothing to
+// ask. Detection only reports a register here when two or more candidates read plausibly, so the
+// mere presence of an entry means the question is real.
+function sourcesFor(register) {
+    var choices = detection && detection.choices;
+    return (choices && choices[register.name] && choices[register.name].length > 1)
+        ? choices[register.name]
+        : null;
+}
+
+// Which candidate starts selected: the address this device already reads, if it is still one of
+// the offered candidates, otherwise the first live one. A stored address that is no longer
+// offered means the pump changed under the device, and falling back beats preselecting nothing.
+function selectedSource(register, sources) {
+    var addresses = context.selection && context.selection.addresses;
+    var stored = addresses && addresses[register.name];
+    for (var i = 0; i < sources.length; i++)
+        if (sources[i].address === stored)
+            return stored;
+    return sources[0].address;
+}
+
+// A radio group under the capability's row, one option per live candidate. Each option shows what
+// that address actually read, because "23.5 °C" versus "18.1 °C" is the only thing that lets
+// somebody tell a climate-system average from a single sensor in a house that has both.
+function renderSources(register, parent) {
+    var sources = sourcesFor(register);
+    if (!sources)
+        return;
+    var chosen = selectedSource(register, sources);
+
+    var box = document.createElement('div');
+    box.className = 'register-sources';
+
+    var prompt = document.createElement('div');
+    prompt.className = 'register-desc';
+    prompt.textContent = Homey.__('pair.sources.prompt');
+    box.appendChild(prompt);
+
+    sources.forEach(function (source) {
+        var option = document.createElement('label');
+        option.className = 'source-option';
+        var radio = document.createElement('input');
+        radio.type = 'radio';
+        // One radio group per register, keyed by name so several can coexist on the page.
+        radio.name = 'source:' + register.name;
+        radio.value = String(source.address);
+        radio.checked = source.address === chosen;
+        radio.dataset.source = register.name;
+        option.appendChild(radio);
+
+        var text = ' ' + source.label;
+        if (source.value !== undefined && source.value !== null)
+            text += ' — ' + source.value;
+        option.appendChild(document.createTextNode(text));
+        box.appendChild(option);
+    });
+    parent.appendChild(box);
+}
+
 function evidenceText(group) {
     if (!detection || !detection.recommendations || !detection.recommendations[group.id])
         return '';
@@ -117,6 +177,9 @@ function render() {
                 regLabel.appendChild(desc);
             }
             details.appendChild(regLabel);
+            // Outside the <label>: a click anywhere in a label toggles its checkbox, so nesting
+            // the radios there would untick the capability every time you pick a source.
+            renderSources(register, details);
         });
         item.appendChild(details);
 
@@ -147,6 +210,10 @@ document.getElementById('save').onclick = function (e) {
     });
     document.querySelectorAll('input[data-register]').forEach(function (box) {
         selection.overrides[box.dataset.register] = box.checked;
+    });
+    selection.sources = {};
+    document.querySelectorAll('input[data-source]:checked').forEach(function (radio) {
+        selection.sources[radio.dataset.source] = Number(radio.value);
     });
     Homey.showLoadingOverlay();
     // This view is used by the repair flow only (pairing uses the device picker);

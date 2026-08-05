@@ -28,7 +28,53 @@ function syncGroups(deviceIndex, deviceChecked) {
     });
 }
 
-function renderGroup(deviceIndex, group, deviceChecked) {
+// A radio group for a capability whose value can come from several live registers that mean
+// different things (indoor temperature is the case: climate-system average vs a single sensor).
+// Detection only reports a register here when two or more candidates answered plausibly, so an
+// entry always represents a real question. Each option shows what that address actually read —
+// without the numbers there is no way to tell the candidates apart.
+function renderSources(deviceIndex, candidate, capName, parent) {
+    var choices = candidate.choices || {};
+    var sources = choices[capName];
+    if (!sources || sources.length < 2)
+        return;
+    // The device template already carries detection's default (the first live candidate), so
+    // preselect that rather than assuming index 0 twice over.
+    var selection = candidate.device && candidate.device.store && candidate.device.store.selection;
+    var stored = selection && selection.addresses && selection.addresses[capName];
+
+    var box = document.createElement('div');
+    box.className = 'register-sources';
+
+    var prompt = document.createElement('div');
+    prompt.className = 'register-desc';
+    prompt.textContent = Homey.__('pair.sources.prompt');
+    box.appendChild(prompt);
+
+    var matched = sources.some(function (s) { return s.address === stored; });
+    sources.forEach(function (source, i) {
+        var option = document.createElement('label');
+        option.className = 'source-option';
+        var radio = document.createElement('input');
+        radio.type = 'radio';
+        // Scoped by device index as well as name: the same register can appear under more than
+        // one candidate device on the page, and they must not share a radio group.
+        radio.name = 'source:' + deviceIndex + ':' + capName;
+        radio.value = String(source.address);
+        radio.checked = matched ? source.address === stored : i === 0;
+        radio.dataset.device = deviceIndex;
+        radio.dataset.source = capName;
+        option.appendChild(radio);
+        var text = ' ' + source.label;
+        if (source.value !== undefined && source.value !== null)
+            text += ' — ' + source.value;
+        option.appendChild(document.createTextNode(text));
+        box.appendChild(option);
+    });
+    parent.appendChild(box);
+}
+
+function renderGroup(deviceIndex, candidate, group, deviceChecked) {
     var wrap = document.createElement('div');
     wrap.className = 'feature-subgroup';
 
@@ -56,6 +102,7 @@ function renderGroup(deviceIndex, group, deviceChecked) {
         line.appendChild(dot);
         line.appendChild(document.createTextNode(' ' + c.title));
         wrap.appendChild(line);
+        renderSources(deviceIndex, candidate, c.name, wrap);
     });
     return wrap;
 }
@@ -110,7 +157,7 @@ function render() {
             details.className = 'registers';
             details.style.display = 'none';
             groups.forEach(function (g) {
-                details.appendChild(renderGroup(index, g, candidate.detected));
+                details.appendChild(renderGroup(index, candidate, g, candidate.detected));
             });
             item.appendChild(details);
             expand.onclick = function (e) {
@@ -159,6 +206,15 @@ function buildDevice(candidate, index) {
     device.store.selection = { groups: groups, overrides: overrides };
     if (resolved)
         device.store.selection.addresses = resolved;
+    // Where the user was offered a choice of source, their pick overrides detection's default.
+    // Layered on top of `resolved` rather than replacing it: the two write to the same map but
+    // cover different registers, and dropping the detection-resolved ones would undo relocation.
+    document.querySelectorAll('input[data-source]:checked').forEach(function (radio) {
+        if (Number(radio.dataset.device) !== index)
+            return;
+        device.store.selection.addresses = device.store.selection.addresses || {};
+        device.store.selection.addresses[radio.dataset.source] = Number(radio.value);
+    });
     return device;
 }
 

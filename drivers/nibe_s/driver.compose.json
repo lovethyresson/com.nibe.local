@@ -31,6 +31,11 @@
     "target_temperature.h183_auto_start_cooling",
     "measure_temperature.i1_outside",
     "measure_temperature.i26_inside",
+    "target_temperature.h2505_zone1_setpoint",
+    "target_temperature.h2507_zone2_setpoint",
+    "target_temperature.h2509_zone3_setpoint",
+    "target_temperature.h2511_zone4_setpoint",
+    "boolean_NIBE.h202_use_room_sensor",
     "measure_temperature.i1017_calculated_supply",
     "measure_temperature.i5_heating_supply",
     "measure_degree_minutes_NIBE.h11_degree_minutes",
@@ -52,7 +57,7 @@
     "measure_temperature.i20_supply_air",
     "fan_speed.h109_returnair_normal",
     "measure_enum_NIBE.i1037_return_fan_step",
-    "measure_count_NIBE.i1029_additive_heat_steps",
+    "boolean_NIBE.i1029_additive_heat_active",
     "measure_watt_NIBE.i1027_additive_effect",
     "fuse_NIBE.h103_fuse",
     "measure_hour_NIBE.i1025_additive_usage_total",
@@ -103,6 +108,7 @@
     "boolean_NIBE.h197_alarm_lower_hw_temp",
     "measure_count_NIBE.h19_holiday_status",
     "boolean_NIBE.h227_nightchill",
+    "boolean_NIBE.h710_hw_additional_heat",
     "boolean_NIBE.h65_periodic_hotwater",
     "boolean_NIBE.i1828_pool_circulation",
     "onoff.h691_pool_active",
@@ -138,14 +144,15 @@
         "da": "Effekt"
       }
     },
-    "measure_count_NIBE.i1029_additive_heat_steps": {
+    "boolean_NIBE.i1029_additive_heat_active": {
+      "insights": true,
       "title": {
-        "en": "Additive heater steps",
-        "sv": "Driftläge tillsats",
-        "de": "Stufen der Zusatzheizung",
-        "nl": "Stappen bijverwarming",
-        "no": "Trinn tilleggsvarme",
-        "da": "Trin tilskudsvarme"
+        "en": "Additional heat active",
+        "sv": "Tillsatsvärme aktiv",
+        "de": "Zusatzheizung aktiv",
+        "nl": "Bijverwarming actief",
+        "no": "Tilleggsvarme aktiv",
+        "da": "Tilskudsvarme aktiv"
       }
     },
     "measure_count_NIBE.i1083_compressor_starts": {
@@ -633,12 +640,12 @@
     "measure_watt_NIBE.i1027_additive_effect": {
       "decimals": 0,
       "title": {
-        "en": "Internal additive power",
-        "sv": "Effekt tillsats",
-        "de": "Leistung interne Zusatzheizung",
-        "nl": "Vermogen interne bijverwarming",
-        "no": "Effekt intern tilleggsvarme",
-        "da": "Effekt intern tilskudsvarme"
+        "en": "Additional heat power",
+        "sv": "Tillsatsvärme effekt",
+        "de": "Zusatzheizung Leistung",
+        "nl": "Bijverwarming vermogen",
+        "no": "Tilleggsvarme effekt",
+        "da": "Tilskudsvarme effekt"
       }
     },
     "measure_watt_NIBE.i1048_compressor_add_power": {
@@ -655,12 +662,12 @@
     "measure_watt_NIBE.i2166_energy_usage": {
       "decimals": 0,
       "title": {
-        "en": "Current power",
-        "sv": "Momentan effekt",
-        "de": "Aktuelle Leistung",
-        "nl": "Actueel vermogen",
-        "no": "Momentan effekt",
-        "da": "Aktuel effekt"
+        "en": "Total power",
+        "sv": "Total effekt",
+        "de": "Gesamtleistung",
+        "nl": "Totaal vermogen",
+        "no": "Total effekt",
+        "da": "Samlet effekt"
       }
     },
     "fuse_NIBE.h103_fuse": {
@@ -771,6 +778,74 @@
         "nl": "Ruimtevoeler (BT50)",
         "no": "Romføler (BT50)",
         "da": "Rumføler (BT50)"
+      }
+    },
+    "target_temperature.h2505_zone1_setpoint": {
+      "decimals": 1,
+      "min": 5,
+      "max": 35,
+      "insights": true,
+      "title": {
+        "en": "Indoor temperature",
+        "sv": "Inomhustemperatur",
+        "de": "Raumtemperatur",
+        "nl": "Binnentemperatuur",
+        "no": "Innetemperatur",
+        "da": "Indendørstemperatur"
+      }
+    },
+    "target_temperature.h2507_zone2_setpoint": {
+      "decimals": 1,
+      "min": 5,
+      "max": 35,
+      "insights": true,
+      "title": {
+        "en": "Indoor temperature (zone 2)",
+        "sv": "Inomhustemperatur (zon 2)",
+        "de": "Raumtemperatur (Zone 2)",
+        "nl": "Binnentemperatuur (zone 2)",
+        "no": "Innetemperatur (sone 2)",
+        "da": "Indendørstemperatur (zone 2)"
+      }
+    },
+    "target_temperature.h2509_zone3_setpoint": {
+      "decimals": 1,
+      "min": 5,
+      "max": 35,
+      "insights": true,
+      "title": {
+        "en": "Indoor temperature (zone 3)",
+        "sv": "Inomhustemperatur (zon 3)",
+        "de": "Raumtemperatur (Zone 3)",
+        "nl": "Binnentemperatuur (zone 3)",
+        "no": "Innetemperatur (sone 3)",
+        "da": "Indendørstemperatur (zone 3)"
+      }
+    },
+    "target_temperature.h2511_zone4_setpoint": {
+      "decimals": 1,
+      "min": 5,
+      "max": 35,
+      "insights": true,
+      "title": {
+        "en": "Indoor temperature (zone 4)",
+        "sv": "Inomhustemperatur (zon 4)",
+        "de": "Raumtemperatur (Zone 4)",
+        "nl": "Binnentemperatuur (zone 4)",
+        "no": "Innetemperatur (sone 4)",
+        "da": "Indendørstemperatur (zone 4)"
+      }
+    },
+    "boolean_NIBE.h202_use_room_sensor": {
+      "uiComponent": null,
+      "insights": false,
+      "title": {
+        "en": "Room sensor regulation active",
+        "sv": "Rumsgivarreglering aktiv",
+        "de": "Raumfühlerregelung aktiv",
+        "nl": "Ruimtevoelerregeling actief",
+        "no": "Romfølerregulering aktiv",
+        "da": "Rumfølerregulering aktiv"
       }
     },
     "measure_temperature.i27_pool": {
@@ -1174,6 +1249,17 @@
         "nl": "Periodiek warmtapwater",
         "no": "Periodisk varmtvann",
         "da": "Periodisk varmtvand"
+      }
+    },
+    "boolean_NIBE.h710_hw_additional_heat": {
+      "insights": true,
+      "title": {
+        "en": "Additional heat for hot water",
+        "sv": "Tillsatsvärme för varmvatten",
+        "de": "Zusatzheizung für Brauchwasser",
+        "nl": "Bijverwarming voor warmtapwater",
+        "no": "Tilleggsvarme for varmtvann",
+        "da": "Tilskudsvarme til varmt vand"
       }
     },
     "boolean_NIBE.h227_nightchill": {

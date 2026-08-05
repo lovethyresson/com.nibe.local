@@ -78,7 +78,10 @@
       "energy": "Energy"
     },
     "not_settable": "This reflects the heat pump's operating priority and cannot be switched.",
-    "nodata_hint": "This pump did not report a value for this during the check. Turning it on will add a field that stays empty."
+    "nodata_hint": "This pump did not report a value for this during the check. Turning it on will add a field that stays empty.",
+    "sources": {
+      "prompt": "More than one sensor can report this. Pick the one that should regulate:"
+    }
   },
   "groups": {
     "heating": "Heating",
@@ -93,6 +96,7 @@
     "core": "Core sensors",
     "alarm": "Alarm handling",
     "energy": "Energy",
-    "solar": "Solar / PV"
+    "solar": "Solar / PV",
+    "zones": "Extra zones"
   }
 }

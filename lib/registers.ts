@@ -14,6 +14,10 @@ export enum Dir {
 // vocabulary across every pump model.
 export const groupIds = [
     "heating",
+    // Per-zone room setpoints. Separate from "heating" because a zone that isn't configured
+    // still answers on the wire (reading 0 rather than its documented default), so offering
+    // them unconditionally would give every single-zone house a row of dead controls.
+    "zones",
     "hotwater",
     "pool",
     "cooling",
@@ -100,6 +104,21 @@ export interface Register  {
     // than -10..50 precisely so a disconnected sensor's 0 falls outside. Where 0 is genuine
     // data (a pulse meter that has counted nothing yet) let the band include it.
     altPlausible?: {min: number; max: number};
+    // Candidate addresses that answer the same user-facing question but are genuinely different
+    // quantities on the wire, so the pump cannot decide between them and the user must.
+    //
+    // This is NOT altAddresses. Alternates are a fallback for a primary that carries nothing, and
+    // detection resolves them silently because there is only ever one right answer. Sources are
+    // the case register-alternates.md scoped and left unbuilt: several candidates read plausibly
+    // *and* mean different things. Indoor temperature is the example — 116 is climate system 1's
+    // average, 111 is climate system 6's, and 26 is one individual sensor. In a house with more
+    // than one of them alive, which one "the indoor temperature" means is a preference, not a fact.
+    //
+    // Every candidate is probed during detection; those reading inside altPlausible are offered in
+    // declared order, and the user's pick is stored in Selection.addresses like any resolved
+    // address, so reads, writes and flow autocompletes need no special handling. Requires
+    // altPlausible. The register's own `address` should be the first-choice candidate.
+    sources?: {address: number; label: RegisterInfo}[];
     min?: number;
     max?: number;
 }
@@ -171,11 +190,15 @@ export function toNumericValue(register: Register, raw: number): number | undefi
 export interface Selection {
     groups: Partial<Record<GroupId, boolean>>;
     overrides: Record<string, boolean>;
-    // Register name → the address detection actually found the value at, recorded only when
-    // it wasn't the register's own. Absent for every register on every model that doesn't
-    // relocate, which is nearly all of them. A device paired before this existed has no entry
-    // and reads the primary exactly as it did — running Repair re-runs detection and fills
-    // this in.
+    // Register name → the address this device actually reads it at. Two things write here and
+    // they behave differently:
+    //   - altAddresses, resolved silently by detection, recorded only when the winner wasn't the
+    //     register's own address. Absent for nearly every register on nearly every model.
+    //   - sources, chosen by the user in the pairing/repair view. Recorded even when it *is* the
+    //     register's own address, because "the user picked the default" and "the user was never
+    //     asked" must stay distinguishable across a re-pair.
+    // A device paired before this existed has no entry and reads the primary exactly as it did —
+    // running Repair re-runs detection and fills this in.
     addresses?: Record<string, number>;
 }
 

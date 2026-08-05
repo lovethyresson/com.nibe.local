@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import net from 'net';
 import {ModbusTCPServer} from 'jsmodbus';
 
-import {Dir, Register} from '../lib/registers';
+import {Dir, Register, signedValue} from '../lib/registers';
 import {LocalizedText, makeProfile, ModelProfile} from '../lib/profile';
 import {PumpConnection, PumpSubscriber, Transport, inLanguage} from '../lib/connection';
 import {Role} from '../lib/roles';
@@ -133,6 +133,49 @@ test('writeSingleRegister lands in the holding buffer', {timeout: 15000}, async 
         await withConnection(profile, {port: pump.port, unitId: 1}, new FakeSub('main', []), async (c) => {
             await c.writeSingleRegister(300, 455);
             assert.equal(pump.holding.readUInt16BE(300 * 2), 455);
+        });
+    } finally {
+        await pump.close();
+    }
+});
+
+test('a 32-bit register is written as both words, low word first', {timeout: 15000}, async () => {
+    const pump = await startPump();
+    try {
+        // The zone setpoint's shape: s32, scale 10. Writing only the low word would look correct
+        // here (215 fits in one word) while leaving whatever was in the high word behind, so the
+        // test seeds the high word with rubbish first and requires it to be cleared.
+        const setpoint = reg({address: 400, name: 'zone_setpoint', direction: Dir.Out, size: 32, scale: 10});
+        pump.holding.writeUInt16BE(0xBEEF, 401 * 2);
+        const profile = tinyProfile([setpoint]);
+        await withConnection(profile, {port: pump.port, unitId: 1}, new FakeSub('main', []), async (c) => {
+            await c.writeRegisterValue(setpoint, 215);
+            assert.equal(pump.holding.readUInt16BE(400 * 2), 215, 'low word carries the value');
+            assert.equal(pump.holding.readUInt16BE(401 * 2), 0, 'high word must be cleared, not left as it was');
+            // And it reads back through the normal path as the same number.
+            assert.equal(await c.readRegisterRaw(setpoint), 215);
+        });
+    } finally {
+        await pump.close();
+    }
+});
+
+test('a negative 32-bit write is two-s complement across both words', {timeout: 15000}, async () => {
+    const pump = await startPump();
+    try {
+        // Degree minutes is the register this protects: s32 and genuinely negative. Truncating
+        // to the low word would write 0xFEA2 alone and read back as +65186 rather than -350.
+        const dm = reg({address: 500, name: 'degree_minutes', direction: Dir.Out, size: 32, scale: 10});
+        const profile = tinyProfile([dm]);
+        await withConnection(profile, {port: pump.port, unitId: 1}, new FakeSub('main', []), async (c) => {
+            await c.writeRegisterValue(dm, -3500);
+            assert.equal(pump.holding.readUInt16BE(501 * 2), 0xFFFF, 'high word must carry the sign');
+            assert.equal(pump.holding.readUInt16BE(500 * 2), (0x10000 - 3500) & 0xFFFF);
+            // readRegisterRaw returns the unsigned 32-bit word pair; signedValue turns it back
+            // into -3500, which is what the capability actually shows.
+            const raw = await c.readRegisterRaw(dm);
+            assert.equal(raw, 0x100000000 - 3500);
+            assert.equal(signedValue(raw!, 32), -3500);
         });
     } finally {
         await pump.close();

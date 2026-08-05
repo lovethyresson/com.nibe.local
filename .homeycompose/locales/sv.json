@@ -34,6 +34,9 @@
       "adjustable": "Inställbar",
       "insight": "Endast insikt"
     },
+    "sources": {
+      "prompt": "Fler än en givare kan rapportera detta. Välj den som ska reglera:"
+    },
     "devices": {
       "title": "Lägg till enheter",
       "intro": "Varje funktion i din värmepump blir en egen enhet. De vi hittade aktiv data för är förkryssade, men du kan lägga till vilka du vill.",
@@ -60,6 +63,7 @@
   "groups": {
     "core": "Grundvärden",
     "heating": "Värme",
+    "zones": "Extra zoner",
     "hotwater": "Varmvatten",
     "pool": "Pool",
     "cooling": "Kyla",
