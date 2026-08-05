@@ -624,6 +624,8 @@ export class PumpConnection {
     // we did not watch, so it is recorded as the baseline and not reported as a step.
     private lastEnergyLog = new Map<string, number>();
     private energyLogStarted = false;
+    // UTC hour of the last report, so an hour whose figures happen to repeat still closes.
+    private lastReportedHour: number | null = null;
     private firstStepSeen = false;
     // The pump's lifetime counters as they stood at the previous hourly step, so each logged
     // hour can carry its own total alongside the per-function split. Without this the split is
@@ -643,6 +645,27 @@ export class PumpConnection {
         const entries = this.profile.energyLog;
         if (!entries?.length)
             return;
+        // Two triggers, and the second one exists because the first is not sufficient.
+        //
+        // A value *change* is the precise trigger: it fires exactly when the pump publishes,
+        // so both sides of the comparison cover the same hour with no drift. But two
+        // consecutive hours can book identical figures — a quiet summer night books 0 to
+        // everything, hour after hour — and then nothing changes, nothing fires, and the
+        // accumulators run on into the next hour while the pump's figure still describes one.
+        // The next report then compares two hours of ours against one of theirs.
+        //
+        // Found by halderex on an S735 (issue #4), where three of nine hours were skipped. Our
+        // own S1155 log has the same gaps: 16:00, then 19:00, then 21:00. It corrupts only the
+        // diagnostics — the meters never read these figures — but the diagnostics are what the
+        // 2166-vs-2305 decision rests on, so it matters now.
+        //
+        // So: clock rollover is the safety net, held a minute past the hour to let the pump
+        // publish before we look.
+        const now = new Date();
+        const nowHour = now.getUTCHours();
+        const rolled = this.lastReportedHour !== null
+            && nowHour !== this.lastReportedHour
+            && now.getUTCMinutes() >= 1;
         const stepped: string[] = [];
         const values = new Map<string, number>();
         for (const entry of entries) {
@@ -675,12 +698,13 @@ export class PumpConnection {
 
         if (!this.energyLogStarted) {
             this.energyLogStarted = true;
+            this.lastReportedHour = nowHour;
             this.totalsAtLastStep = {produced, used};
             this.debug(`Energy log baseline recorded for ${this.lastEnergyLog.size} register(s) `
                 + `— steps will be reported from the next completed hour.`);
             return;
         }
-        if (stepped.length && !this.firstStepSeen) {
+        if ((stepped.length || rolled) && !this.firstStepSeen) {
             // The first step after startup is not comparable. The pump's figure covers the whole
             // hour it reports, but the lifetime counters were only sampled from whenever the app
             // connected — part-way through it. Reporting the two side by side would show the
@@ -688,16 +712,18 @@ export class PumpConnection {
             // this step to anchor the counters on a true :00 boundary instead; every line from
             // here on has both sides covering exactly the same hour.
             this.firstStepSeen = true;
+            this.lastReportedHour = nowHour;
             this.totalsAtLastStep = {produced, used};
             this.debug('Energy log stepped for the first time — the app connected part-way '
                 + 'through that hour, so it is used to align the counters rather than reported. '
                 + 'Full hours follow.');
             return;
         }
-        if (stepped.length) {
-            const hour = `${new Date().toISOString().slice(11, 13)}:00`;
+        if (stepped.length || rolled) {
+            this.lastReportedHour = nowHour;
+            const hour = `${now.toISOString().slice(11, 13)}:00`;
             this.debug(`Energy log — the pump's own figures for the hour ending ${hour} UTC: `
-                + `${stepped.join(', ')} kWh`);
+                + `${stepped.length ? stepped.join(', ') : 'unchanged from last hour'} kWh`);
 
             // The lifetime counters lag the log by about an hour: measured on a live S1155, the
             // log booked 1.44 kWh of hot water at 11:00 while 3823 had not moved at all, and

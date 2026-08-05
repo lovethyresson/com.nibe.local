@@ -98,6 +98,12 @@ const lastLog = new Map();
 let logBaselined = false;
 let firstStepSeen = false;
 let lastRole = null;
+// UTC hour of the last summary. A value *change* is the precise trigger — it fires exactly
+// when the pump publishes — but two consecutive hours can book identical figures (a quiet
+// night books 0 to everything), and then nothing changes, nothing fires, and the accumulators
+// run into the next hour while the pump's figure still describes one. Reported by halderex,
+// who lost 3 of 9 hours to it. Clock rollover is the safety net.
+let lastReportedHour = null;
 
 function integrate(nowWatts, src, role, dtHours) {
     const previous = last[src];
@@ -110,7 +116,7 @@ function integrate(nowWatts, src, role, dtHours) {
     last[src] = nowWatts;
 }
 
-function reportHour() {
+function reportHour(stepped = true) {
     const perRole = {};
     for (const reg of LOG) {
         const value = lastLog.get(reg.addr);
@@ -118,16 +124,21 @@ function reportHour() {
             perRole[reg.role] = (perRole[reg.role] ?? 0) + value;
     }
     const hour = new Date().toISOString().slice(11, 13) + ':00';
-    console.log(`\n===== hour ending ${hour} UTC =====`);
+    console.log(`\n===== hour ending ${hour} UTC =====`
+        + (stepped ? '' : '   (figures unchanged from the previous hour)'));
     const roles = new Set([...Object.keys(perRole), ...Object.keys(acc[2166]), ...Object.keys(acc[2305])]);
     for (const role of roles) {
         const pump = perRole[role];
         const a = acc[2166][role] ?? 0;
         const b = acc[2305][role] ?? 0;
         if (pump === undefined) {
-            // standby has no entry in the pump's books at all — it books nothing to "no
-            // function", so there is nothing to compare against. Shown, never scored.
-            console.log(`  ${role.padEnd(9)} pump —      2166 ${a.toFixed(3)}  2305 ${b.toFixed(3)}  (pump books no standby)`);
+            // The pump's log has no "standby" line, so there is nothing to score against
+            // directly — but that does NOT mean the energy is unaccounted for. On an
+            // exhaust-air model the continuous fan draw is booked under *heating*, which is
+            // why an idle hour there shows heating at 0.05-0.06 kWh while we book it here.
+            // Compare this against the heating row above before calling it unattributed.
+            console.log(`  ${role.padEnd(9)} pump —      2166 ${a.toFixed(3)}  2305 ${b.toFixed(3)}  `
+                + `(no standby line in the pump's log — check the heating row)`);
             continue;
         }
         const off = (ours) => (pump === 0
@@ -180,21 +191,31 @@ async function sample() {
         if (previous !== undefined && value !== previous)
             stepped = true;
     }
+    const nowDate = new Date();
+    const nowHour = nowDate.getUTCHours();
+    const rolled = lastReportedHour !== null
+        && nowHour !== lastReportedHour
+        && nowDate.getUTCMinutes() >= 1;
+
     if (!logBaselined) {
         logBaselined = true;
+        lastReportedHour = nowHour;
         return;
     }
-    if (stepped && !firstStepSeen) {
+    if ((stepped || rolled) && !firstStepSeen) {
         // The first step covers an hour this script only saw part of, so it cannot be compared.
         // Use it to align on a real boundary; every hour after this one is whole.
         firstStepSeen = true;
+        lastReportedHour = nowHour;
         acc[2166] = {};
         acc[2305] = {};
         console.log('\n--- aligned on a real :00 boundary; full hours follow ---\n');
         return;
     }
-    if (stepped)
-        reportHour();
+    if (stepped || rolled) {
+        lastReportedHour = nowHour;
+        reportHour(stepped);
+    }
 }
 
 socket.on('error', (error) => {
