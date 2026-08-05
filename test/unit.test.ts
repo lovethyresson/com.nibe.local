@@ -889,6 +889,24 @@ test('zones 2-4 are their own group so a single-zone pump does not carry dead co
     assert.ok((roleGroups.heating as string[]).includes('zones'));
 });
 
+test('a noAction register is never offered as something a Flow can write', () => {
+    // These mirror the autocomplete predicates in lib/driver.ts. The bool cards originally
+    // checked only writeOnly, which would have put "Room sensor regulation active" — a legacy
+    // register the app reads for context and must never write — into enable/disable Flows.
+    const numericAction = (r: Register) => r.direction === Dir.Out && r.scale! > 0 && !r.noAction;
+    const boolAction = (r: Register) => r.direction === Dir.Out && r.bool! && !r.writeOnly && !r.noAction;
+
+    for (const register of registers.filter((r) => r.noAction)) {
+        assert.ok(!numericAction(register), `${register.name} is writable via set_numeric_value`);
+        assert.ok(!boolAction(register), `${register.name} is writable via enable/disable_feature`);
+    }
+
+    // The read-side condition card is deliberately unaffected: asking whether the flag is on is
+    // exactly what it is exposed for.
+    const readCondition = (r: Register) => r.bool! && !r.writeOnly;
+    assert.ok(readCondition(sProfile.registerByName['boolean_NIBE.h202_use_room_sensor']));
+});
+
 test('zones are recommended on evidence of a real setpoint, never on the register answering', () => {
     // The trap this guards: on a single-zone S1155 registers 2507..2583 all ANSWER — they just
     // read a flat 0 instead of their documented default of 20. Recommending on "it responded"

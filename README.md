@@ -46,8 +46,9 @@ left unchecked.
   device"), a **reset** button, a Flow trigger when a new alarm appears, the latest alarm in the device's
   settings, and the full history in the app's own **Alarms** settings page. See [Alarms](#alarms).
 - **Compressor status**.
-- **Allow immersion heater** — the electric additive heater is shared between heating and hot water, so its
-  permit and its power/step readouts live here, not on a function device.
+- **Additional heat power**, **Additional heat active** and total additive runtime — the immersion heater is
+  one piece of hardware with one set of readings, so those live here. Its *permits* do not: heating and hot
+  water each have their own, on their own device (see below).
 - Fuse rating; pump **firmware version** and **type code** in settings.
 
 ### Heating
@@ -56,6 +57,8 @@ left unchecked.
 - **Min/max supply**, and the **degree-minute** thresholds that start the compressor and the additive heater.
 - **Auto stop** outdoor temperatures for heating and for the additive heater.
 - **Allow heating** toggle. Exhaust-air **ventilation (FTX)** folds in here if fitted.
+- **Allow additional heat** — Nibe's permit is heating-only ("Permit additional heat, heating"), so it lives
+  here rather than on Main. It does **not** affect hot water, which has its own switch.
 - Energy **used** + **delivered** + **Heating COP**.
 
 ### Hot Water
@@ -65,6 +68,9 @@ left unchecked.
   blocks the manual boost).
 - **More hot water** — a timed one-time boost (only usable while hot water is allowed).
 - **Periodic hot water** — a scheduled anti-legionella charge every N days.
+- **Additional heat for hot water** — separate from the heating permit, and **off from the factory**. Without
+  it the compressor charges the tank alone and stops where it can go no higher, which on a ground-source pump
+  can be well below the temperature you asked for. Not present on S2125, S320/S325 or S735.
 - Hot-water-circulation temperatures if that accessory is fitted.
 - Energy **used** + **delivered** + **Hot Water COP**.
 

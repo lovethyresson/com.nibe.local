@@ -198,8 +198,12 @@ export abstract class NibePumpDriver extends Driver {
             (reg) => reg.direction == Dir.Out && reg.scale! > 0 && !reg.noAction!,
             async (args: any) => this.writeNumeric(args.device, this.profile.registerByName[args.register.id], args.value));
 
+        // `noAction` excludes a register from every generic write card, not just the numeric one:
+        // it marks a holding register the app reads for context but must never write. Without
+        // that check the "Room sensor regulation active" flag — legacy on zone firmware, where
+        // writing it does nothing useful — would be offered as something to switch.
         this.registerAutofillFlow(this.homey.flow.getActionCard("enable_feature"),
-            (reg) => reg.direction == Dir.Out && reg.bool! && !reg.writeOnly,
+            (reg) => reg.direction == Dir.Out && reg.bool! && !reg.writeOnly && !reg.noAction,
             async (args: any) => {
                 const register = this.profile.registerByName[args.register.id];
                 this.log(`Flow: ${args.device.getName()} enable ${register.name}`);
@@ -208,7 +212,7 @@ export abstract class NibePumpDriver extends Driver {
             });
 
         this.registerAutofillFlow(this.homey.flow.getActionCard("disable_feature"),
-            (reg) => reg.direction == Dir.Out && reg.bool! && !reg.writeOnly,
+            (reg) => reg.direction == Dir.Out && reg.bool! && !reg.writeOnly && !reg.noAction,
             async (args: any) => {
                 const register = this.profile.registerByName[args.register.id];
                 this.log(`Flow: ${args.device.getName()} disable ${register.name}`);

@@ -500,7 +500,12 @@ export const registers: Register[] = [
     // hot water (and electric pool assist), so its on/off lives on "main" alongside the
     // additive step (i1029) and power (i1027) readouts, not on the heating device. The
     // per-function permits below (h181 heating, h182 cooling) stay with their function.
-    {address:  180, name: "boolean_NIBE.h180_enable_addition",                       direction: Dir.Out, group: "core",       bool: true, // Tillåt tillsats
+    // On the Heating device, not Main: 180 is Nibe's "Permit additional heat, HEATING" and hot
+    // water has its own separate switch (710). Keeping both on Main is what made an owner
+    // enable this one and reasonably expect a hot water boost to use it. The permits belong
+    // with the function they govern; the shared hardware's readouts — additional heat power,
+    // active, total runtime — stay on Main, because there is one heater and one set of numbers.
+    {address:  180, name: "boolean_NIBE.h180_enable_addition",                       direction: Dir.Out, group: "heating",    bool: true, // Tillåt tillsats
      info: {en: "Allow additional heat for HEATING. Hot water has its own separate switch — this one does not affect it.", sv: "Tillåt tillsatsvärme för VÄRME. Varmvatten har en egen inställning — den här påverkar inte den."}},
     {address:  181, name: "onoff.h181_enable_heating",                        direction: Dir.Out, group: "heating",    bool: true, // Tillåt värme
      info: {en: "Allow heating operation", sv: "Tillåt värmedrift"}},

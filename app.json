@@ -3757,6 +3757,7 @@
         "boolean_NIBE.h202_use_room_sensor": {
           "uiComponent": null,
           "insights": false,
+          "setable": false,
           "title": {
             "en": "Room sensor regulation active",
             "sv": "Rumsgivarreglering aktiv",
