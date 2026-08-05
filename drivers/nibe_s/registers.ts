@@ -510,16 +510,19 @@ export const registers: Register[] = [
     // broke the start/stop pairing the reader is following down the list.
     //
     // Nibe's setpoint for the *periodic* anti-legionella charge, and named only for that. It is
-    // NOT what a manual "More hot water" boost aims at, and neither is anything else we have
-    // been able to identify. On the maintainer's S1155, demand mode Small (stop 48.0):
+    // not what a manual "More hot water" boost aims at: this register read 60.0 while a boost
+    // stopped at 58.1 °C.
     //
-    //   this register 60.0, Large 58.0  ->  boost stopped at 58.1   (looked like Large)
-    //   this register 60.0, Large 66.0  ->  boost stopped at 58.6   (so it was not Large)
+    // What a boost DOES target is most likely the Large (luxury) stop point — NIBE's manuals
+    // describe menu 2.1 as temporarily raising the pump to luxury hot water, and say luxury uses
+    // the immersion heater alongside the compressor. Our measurements cannot confirm it, because
+    // additional heat for hot water is blocked on the test pump, so every boost ends at the
+    // compressor's ceiling rather than at a setpoint: 53.4, 54.6, 55.0, then 58.1 with Large at
+    // 58.0 and 58.6 with Large at 66.0. The second of those looks like a refutation and is not —
+    // the ceiling binds first, so the test is simply silent.
     //
-    // Earlier boosts stopped at 53.4, 54.6 and 55.0. Five runs, five different temperatures, no
-    // setpoint they correspond to — that is a compressor ceiling, not a target. The 58.x pair
-    // happened with the ground loop at 21 °C, which is about as easy as this machine gets;
-    // expect lower in winter, where a charge more often ends on alarm 215 instead.
+    // To settle it, set Large BELOW the ceiling (say 54) and run a boost: stopping there proves
+    // the target, and unlike every attempt so far the compressor can definitely reach it.
     //
     // Its floor is 55 °C, and the top of its 55..70 range needs the immersion heater — which is
     // exactly what the periodic charge is for.

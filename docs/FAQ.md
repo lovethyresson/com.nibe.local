@@ -116,16 +116,20 @@ migrated, so COP is blank for a while after upgrading and then rebuilds correctl
 
 ### Why does a hot water boost heat past my stop temperature?
 
-Because a boost ignores the stop temperature of the demand mode you have selected. That much is measured: on
-an S1155 in demand mode Small (stop 48 °C), boosts ran to 53.4, 54.6, 55.0, 58.1 and 58.6 °C — always well
-past it.
+Because a boost ignores the demand mode you have selected. NIBE's manuals describe "More hot water" (menu
+2.1) as temporarily raising the pump to its **luxury** hot water mode — called **Large** on the S-series —
+and they note that luxury mode uses the **immersion heater alongside the compressor**.
 
-**What a boost aims for is not something we can tell you**, and it is not for want of trying. It is not the
-periodic charge's setpoint (that register read 60 while a boost stopped at 58.1), and it is not the Large
-mode's stop point either (set to 66, a boost stopped at 58.6).
+Measured on an S1155 in demand mode Small (stop 48 °C), boosts ran to 53.4, 54.6, 55.0, 58.1 and 58.6 °C:
+always well past Small's setting.
 
-What the numbers do look like is the compressor running out of road rather than meeting any target — see the
-next question.
+**Our own measurements can't confirm which setpoint it targets**, because on that pump additional heat for hot
+water is blocked, so every boost ends where the compressor gives up rather than where the setting is. With
+Large at 58 a boost stopped at 58.1; with Large at 66 it stopped at 58.6 — the second is the ceiling, not the
+target, so it neither confirms nor refutes Large.
+
+If you want to influence how hot a boost gets, **Hot water stop (Large)** is the setting to try — and see the
+next two questions for why it may not be what limits you.
 
 ### My boost stops well short of what I set. Why?
 
