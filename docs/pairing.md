@@ -81,11 +81,16 @@ Indoor temperature is the example, and the reason this exists:
 
 | address | what it actually is |
 |---|---|
-| **116** | Room average temp. clim. system 1 (BT50) — the value that regulates |
+| **116** | Room average temp. clim. system 1 — the value that regulates, from whichever sensors the zone uses |
 | 111 | Room average temp. clim. system **6** — a different climate system |
-| 26 | Roomsensor 1-1 — one individual sensor, not a system average |
+| 26 | Roomsensor 1-1 — one individual wired sensor, not a system average |
 
-In a one-zone house only 116 answers and there is nothing to ask. In a house with a wired BT50 *and* zone
+**Nibe's CSV calls 116 "(BT50)" and that is legacy wording, not a fact.** The maintainer's S1155 has no wired
+room sensor at all — 26/25/24 all answer with a Modbus exception and "Use room sensor CS1" reads 0 — yet 116
+reports a real, independently moving value, because it comes from the wireless room unit assigned to the zone.
+So the app never says BT50 to the user.
+
+In a one-zone house only 116 answers and there is nothing to ask. In a house with a wired sensor *and* zone
 sensors, two or three of these are alive at once and genuinely differ. Until 0.9.13 the table declared 111 as
 the primary on the mistaken reading that the CSVs put BT50 there — on the maintainer's own S1155 that returns
 the sentinel, so the capability resolved to nothing at all.
@@ -96,8 +101,10 @@ How it behaves:
   fail" but "is there more than one true answer here";
 - candidates passing `altPlausible` are kept in declared order, and the register's own address must be listed
   first because it is the default;
-- **one live candidate is not a choice.** It is recorded in `addresses` and no question is shown — this is what
-  keeps the S735 working, where only 26 answers;
+- **one live candidate is not a choice**, but it is still *stated* — the view prints "Using: climate system 1
+  average — 23.5" rather than leaving a bare "Indoor temperature" that says nothing about where the number
+  comes from. The address is recorded in `addresses` either way, which is what keeps the S735 working, where
+  only 26 answers;
 - **two or more** become a radio group under that capability, in both the pairing device picker
   (`assets/pair/devices.js`) and the repair features view (`assets/pair/features.js`). Each option shows what
   that address actually read, because "23.5" vs "18.1" is the only thing that distinguishes them to a human.

@@ -749,12 +749,14 @@ test('sources: indoor temperature offers the three candidates, 116 first', () =>
     assert.equal(inside.altAddresses, undefined, 'sources replaces the silent-fallback path');
 });
 
-test('sources: only one candidate alive resolves silently, with no question for the user', async () => {
+test('sources: one live candidate is reported as an answer, not asked as a question', async () => {
     // The S735 case: 116 and 111 are dead, 26 carries the room temperature. There is nothing to
-    // ask — but the address must still be recorded, or the device goes on reading a dead 116.
+    // ask — but the address must still be recorded, or the device goes on reading a dead 116,
+    // and the single candidate is still reported so the view can name the sensor in use.
     const {probes, addresses, choices} = await sampleAgainst({26: 22.5});
     assert.equal(addresses[INSIDE], 26, 'the only live candidate must be recorded');
-    assert.equal(choices[INSIDE], undefined, 'one candidate is not a choice');
+    assert.equal(choices[INSIDE].length, 1, 'the sensor in use is still named');
+    assert.equal(choices[INSIDE][0].address, 26);
     // Folded into the probe, or pairing drops the capability as "no data" and the resolution
     // never gets used — the gap that lost the room-temperature tile on a fresh S735 pair.
     assert.equal(probes[INSIDE].reads, 1);
@@ -776,10 +778,10 @@ test('sources: several live candidates become a question, defaulting to the firs
 
 test('sources: an implausible candidate is not offered', async () => {
     // The 2727 trap again: 26 answering with a flat 0 is a dead sensor, not 0 °C, so the user
-    // must not be asked to choose it — and with only 116 alive there is no question at all.
+    // must not be asked to choose it — leaving 116 as the sole answer rather than a question.
     const {addresses, choices} = await sampleAgainst({116: 21.0, 26: 0});
     assert.equal(addresses[INSIDE], 116);
-    assert.equal(choices[INSIDE], undefined);
+    assert.deepEqual(choices[INSIDE].map((c) => c.address), [116]);
 });
 
 test('sources: no live candidate leaves the register alone', async () => {
@@ -850,6 +852,20 @@ test('alternates: the resolved address is what reads and writes actually use', (
 
 // ---- Zone setpoints ----
 
+test('the indoor setpoint is read-only, because the pump discards writes to it', () => {
+    // Measured on a live S1155 (fw 1036): a Modbus write to 2505 is ACKed and discarded — FC6 and
+    // FC16, re-read immediately, after 3 s, and again minutes later on a fresh connection. It is
+    // not the 32-bit write path (holding 843 written identically TOOK, 1 -> 0 -> 1) and not Smart
+    // Price Adaption (still discarded with SPA off). Shipping it as settable would give the user a
+    // slider that silently snaps back.
+    const setpoint = sProfile.registerByName['target_temperature.h2505_zone1_setpoint'];
+    assert.equal(setpoint.noAction, true, 'the pump refuses writes here — see dev/probe-room.mjs --write');
+    const options = (sProfile.compose.capabilitiesOptions as Record<string, any>)[setpoint.name];
+    assert.equal(options.setable, false, 'target_temperature is setable by default; this instance must not be');
+    // noAction already keeps it out of the generic write cards; assert it rather than assume.
+    assert.ok(!isAdjustable(setpoint));
+});
+
 test('the indoor setpoint is the zone register, not the legacy room-sensor one', () => {
     // Verified on a live S1155 (fw 1036): setting 35 °C then 28 °C in the myUplink app moved
     // holding 2505 both times, and it was the only register out of 2065 to follow. Registers
@@ -873,20 +889,43 @@ test('the indoor setpoint is the zone register, not the legacy room-sensor one',
             `legacy room-sensor register ${legacy} must not be exposed as a control`);
 });
 
-test('zones 2-4 are their own group so a single-zone pump does not carry dead controls', () => {
-    const extras = ['target_temperature.h2507_zone2_setpoint',
-        'target_temperature.h2509_zone3_setpoint',
-        'target_temperature.h2511_zone4_setpoint'];
-    for (const name of extras) {
-        const zone = sProfile.registerByName[name];
-        assert.ok(zone, `${name} must exist`);
-        assert.equal(zone.group, 'zones');
-        assert.equal(zone.size, 32);
-    }
-    // The zone family is one zone per two registers, ascending.
-    assert.deepEqual(extras.map((n) => sProfile.registerByName[n].address), [2507, 2509, 2511]);
-    // The heating device owns them, so the setpoints land next to the temperature they drive.
-    assert.ok((roleGroups.heating as string[]).includes('zones'));
+test('zones 2-40 are deliberately not mapped', () => {
+    // A setpoint alone is not zone support: without per-zone temperatures and names it is a row
+    // of anonymous sliders, and on a single-zone pump every one of them answers anyway. Zone 1
+    // is the single-zone case and lives in `heating`; the rest wait for the whole zone model.
+    for (const address of [2507, 2509, 2511, 2513])
+        assert.ok(!registers.some((r) => r.address === address),
+            `zone register ${address} is mapped without the rest of the zone model`);
+    assert.equal(sProfile.registerByName['target_temperature.h2505_zone1_setpoint'].group, 'heating');
+});
+
+test('everything the indoor climate is judged by sits on the Heating device', () => {
+    // The setting "only heat below X" is meaningless next to nothing to compare it against, and
+    // splitting the threshold from the outdoor average across two devices is what made it
+    // unreadable. Outdoor, outdoor average, indoor and the thresholds all belong to one device.
+    for (const name of ['measure_temperature.i1_outside', 'measure_temperature.i37_outside_avg',
+        'measure_temperature.i26_inside', 'target_temperature.h184_auto_stop_heating',
+        'target_temperature.h2505_zone1_setpoint'])
+        assert.equal(sProfile.registerByName[name].group, 'heating', `${name} is not on Heating`);
+
+    const onHeating = new Set(roleRegisters(sProfile, 'heating').map((r) => r.name));
+    assert.ok(onHeating.has('measure_temperature.i37_outside_avg'));
+    assert.ok(!roleRegisters(sProfile, 'main').some((r) => r.name.includes('outside')));
+});
+
+test('pairing does not offer install-time or duplicate rows', () => {
+    // The raw priority number is the same register as the enum, kept only so Insights can chart
+    // it; offering it as a separate row to tick is noise about an implementation detail.
+    const priority = 'measure_priority_NIBE.i1028_priority_value';
+    assert.equal(sProfile.pickerPrimary[priority], 'measure_enum_NIBE.i1028_priority');
+    assert.ok(!isSelectableRegister(sProfile.registerByName[priority], sProfile.pickerPrimary));
+    // ...but it is still a real capability that gets polled and logged.
+    assert.ok(sProfile.compose.capabilities.includes(priority));
+
+    // The alarm-action settings are pump configuration that matters only during a fault.
+    for (const address of [196, 197])
+        assert.ok(!registers.some((r) => r.direction === Dir.Out && r.address === address),
+            `alarm-action register ${address} is back in the table`);
 });
 
 test('a noAction register is never offered as something a Flow can write', () => {
@@ -907,15 +946,43 @@ test('a noAction register is never offered as something a Flow can write', () =>
     assert.ok(readCondition(sProfile.registerByName['boolean_NIBE.h202_use_room_sensor']));
 });
 
-test('zones are recommended on evidence of a real setpoint, never on the register answering', () => {
-    // The trap this guards: on a single-zone S1155 registers 2507..2583 all ANSWER — they just
-    // read a flat 0 instead of their documented default of 20. Recommending on "it responded"
-    // would give every ordinary house three phantom zones.
-    const answered = (value: number): ProbeSamples => Object.fromEntries(
-        sProfile.registers.map((r) => [r.name,
-            {reads: 1, moved: false, last: r.group === 'zones' ? value : 0}]));
+test('immersion heater wording is used consistently, and not on the master permits', () => {
+    const options = sProfile.compose.capabilitiesOptions as Record<string, any>;
+    const en = (name: string) => options[name]?.title?.en ?? '';
+    const sv = (name: string) => options[name]?.title?.sv ?? '';
 
-    assert.equal(recommendGroups(sProfile, answered(0)).zones?.recommended, false,
-        'a flat zero is an unconfigured zone, not a zone set to 0 °C');
-    assert.equal(recommendGroups(sProfile, answered(21)).zones?.recommended, true);
+    // Nibe's own "additional heat" / "tillsatsvärme" wording is what users found confusing.
+    for (const [name] of Object.entries(options))
+        assert.ok(!/addition|additive|tillsats/i.test(`${en(name)} ${sv(name)}`),
+            `${name} still uses additional-heat wording: "${en(name)}" / "${sv(name)}"`);
+
+    // 181 and 195 are the master permits — Nibe calls them "Permit heating" and "Hot water
+    // permitted". Relabelling either as an immersion-heater switch would sit it next to the
+    // real one (180) and invite turning off the wrong thing.
+    for (const name of ['onoff.h181_enable_heating', 'onoff.h195_enable_hotwater'])
+        assert.ok(!/immersion|elpatron/i.test(`${en(name)} ${sv(name)}`),
+            `${name} must not be labelled as the immersion heater`);
+});
+
+test('every picker declares exactly the values its capability offers', () => {
+    // A picker is a curated shortlist; the register's domain is wider. Homey throws on an enum
+    // value it was never told about, and the throw repeats every poll for as long as the pump
+    // holds that value — an S1155 sitting at 27 days of periodic hot water filled the log with
+    // "Invalid enum capability ... Expected: 7,14,21,28". setValue() screens against
+    // `pickerValues`, so a drift between that list and the capability JSON silently reopens the
+    // hole. The JSON is the source of truth; this test is what stops the copy rotting.
+    const fs = require('fs') as typeof import('fs');
+    for (const register of registers) {
+        if (!register.picker)
+            continue;
+        assert.ok(register.pickerValues,
+            `${register.name} is a picker without pickerValues — it can be handed a value it cannot show`);
+        const type = register.name.split('.')[0];
+        const declared = JSON.parse(
+            fs.readFileSync(`.homeycompose/capabilities/${type}.json`, 'utf8'));
+        assert.deepEqual(
+            register.pickerValues!.map(String),
+            declared.values.map((v: any) => v.id),
+            `${register.name} is out of step with ${type}.json`);
+    }
 });

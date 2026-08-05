@@ -40,14 +40,11 @@ function registerChecked(group, register, checked) {
     return checked;
 }
 
-// The candidate sources detection found alive for a register, or null when there is nothing to
-// ask. Detection only reports a register here when two or more candidates read plausibly, so the
-// mere presence of an entry means the question is real.
+// The candidates detection found alive for a register, or null when it declares none.
 function sourcesFor(register) {
     var choices = detection && detection.choices;
-    return (choices && choices[register.name] && choices[register.name].length > 1)
-        ? choices[register.name]
-        : null;
+    var sources = choices && choices[register.name];
+    return (sources && sources.length) ? sources : null;
 }
 
 // Which candidate starts selected: the address this device already reads, if it is still one of
@@ -62,9 +59,11 @@ function selectedSource(register, sources) {
     return sources[0].address;
 }
 
-// A radio group under the capability's row, one option per live candidate. Each option shows what
-// that address actually read, because "23.5 °C" versus "18.1 °C" is the only thing that lets
-// somebody tell a climate-system average from a single sensor in a house that has both.
+// What sensor this capability is actually reading. With one live candidate that is a statement
+// ("Using: climate system 1 average — 23.5"); with several it becomes a radio group, because
+// they are different quantities and only the user knows which one they mean. Either way the
+// sensor is named — "Indoor temperature" alone tells you nothing about where it comes from,
+// which is what made pairing confusing.
 function renderSources(register, parent) {
     var sources = sourcesFor(register);
     if (!sources)
@@ -73,6 +72,17 @@ function renderSources(register, parent) {
 
     var box = document.createElement('div');
     box.className = 'register-sources';
+
+    if (sources.length === 1) {
+        var only = document.createElement('div');
+        only.className = 'register-desc';
+        only.textContent = Homey.__('pair.sources.using') + ' ' + sources[0].label
+            + (sources[0].value === undefined || sources[0].value === null
+                ? '' : ' — ' + sources[0].value);
+        box.appendChild(only);
+        parent.appendChild(box);
+        return;
+    }
 
     var prompt = document.createElement('div');
     prompt.className = 'register-desc';

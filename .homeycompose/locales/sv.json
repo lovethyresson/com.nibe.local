@@ -35,7 +35,8 @@
       "insight": "Endast insikt"
     },
     "sources": {
-      "prompt": "Fler än en givare kan rapportera detta. Välj den som ska reglera:"
+      "prompt": "Fler än en givare kan rapportera detta. Välj den som ska reglera:",
+      "using": "Använder:"
     },
     "devices": {
       "title": "Lägg till enheter",
@@ -63,7 +64,6 @@
   "groups": {
     "core": "Grundvärden",
     "heating": "Värme",
-    "zones": "Extra zoner",
     "hotwater": "Varmvatten",
     "pool": "Pool",
     "cooling": "Kyla",
@@ -80,5 +80,8 @@
   "Speed 1": "Steg 1",
   "Speed 2": "Steg 2",
   "Speed 3": "Steg 3",
-  "Speed 4": "Steg 4"
+  "Speed 4": "Steg 4",
+  "Auto": "Auto",
+  "Manual": "Manuellt",
+  "Immersion heater only": "Endast elpatron"
 }

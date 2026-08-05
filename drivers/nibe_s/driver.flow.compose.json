@@ -610,24 +610,24 @@
     {
       "id": "target_temperature.h185_auto_stop_addition.set",
       "title": {
-        "en": "Set the outdoor temperature that stops the additive heater",
-        "sv": "Ställ in utetemperaturen som stoppar tillsatsen",
+        "en": "Set the outdoor temperature that stops the immersion heater",
+        "sv": "Ställ in utetemperaturen som stoppar elpatronen",
         "de": "Außentemperatur zum Stopp der Zusatzheizung einstellen",
         "nl": "Buitentemperatuur voor stoppen bijverwarming instellen",
         "no": "Still inn utetemperatur som stopper tilleggsvarmen",
         "da": "Indstil udetemperatur, der stopper tilskudsvarmen"
       },
       "titleFormatted": {
-        "en": "Set the outdoor temperature that stops the additive heater to [[value]]",
-        "sv": "Ställ in utetemperaturen som stoppar tillsatsen till [[value]]",
+        "en": "Set the outdoor temperature that stops the immersion heater to [[value]]",
+        "sv": "Ställ in utetemperaturen som stoppar elpatronen till [[value]]",
         "de": "Außentemperatur zum Stopp der Zusatzheizung auf [[value]] setzen",
         "nl": "Buitentemperatuur voor stoppen bijverwarming instellen op [[value]]",
         "no": "Sett utetemperatur som stopper tilleggsvarmen til [[value]]",
         "da": "Indstil udetemperatur, der stopper tilskudsvarmen, til [[value]]"
       },
       "hint": {
-        "en": "Outdoor temperature where automatic mode stops the additive heater. Accepts -25 to 40 °C.",
-        "sv": "Utetemperatur där autoläget stoppar tillsatsen. Tillåter -25 till 40 °C.",
+        "en": "Outdoor temperature where automatic mode stops the immersion heater. Accepts -25 to 40 °C.",
+        "sv": "Utetemperatur där autoläget stoppar elpatronen. Tillåter -25 till 40 °C.",
         "de": "Außentemperatur, bei der der Auto-Modus die Zusatzheizung stoppt. Bereich: -25 bis 40 °C.",
         "nl": "Buitentemperatuur waarbij de autostand de bijverwarming stopt. Bereik: -25 tot 40 °C.",
         "no": "Utetemperatur der automodus stopper tilleggsvarmen. Område: -25 til 40 °C.",
@@ -736,24 +736,24 @@
     {
       "id": "measure_degree_minutes_NIBE.h679_dm_diff_start_addition.set",
       "title": {
-        "en": "Set the additive heater start difference",
-        "sv": "Ställ in differensen för tillsatsstart",
+        "en": "Set the immersion heater start difference",
+        "sv": "Ställ in differensen för elpatronstart",
         "de": "Differenz Start Zusatzheizung einstellen",
         "nl": "Verschil start bijverwarming instellen",
         "no": "Still inn differanse start tilleggsvarme",
         "da": "Indstil difference start tilskudsvarme"
       },
       "titleFormatted": {
-        "en": "Set the additive heater start difference to [[value]]",
-        "sv": "Ställ in differensen för tillsatsstart till [[value]]",
+        "en": "Set the immersion heater start difference to [[value]]",
+        "sv": "Ställ in differensen för elpatronstart till [[value]]",
         "de": "Differenz Start Zusatzheizung auf [[value]] setzen",
         "nl": "Verschil start bijverwarming instellen op [[value]]",
         "no": "Sett differanse start tilleggsvarme til [[value]]",
         "da": "Indstil difference start tilskudsvarme til [[value]]"
       },
       "hint": {
-        "en": "How many degree minutes below the compressor start the additive heater joins in. Accepts 100 to 2000 °Cmin.",
-        "sv": "Hur många gradminuter under kompressorstarten som tillsatsen går in. Tillåter 100 till 2000 °Cmin.",
+        "en": "How many degree minutes below the compressor start the immersion heater joins in. Accepts 100 to 2000 °Cmin.",
+        "sv": "Hur många gradminuter under kompressorstarten som elpatronen går in. Tillåter 100 till 2000 °Cmin.",
         "de": "Wie viele Gradminuten unterhalb des Verdichterstarts die Zusatzheizung zuschaltet. Bereich: 100 bis 2000 °Cmin.",
         "nl": "Hoeveel graadminuten onder de compressorstart de bijverwarming inschakelt. Bereik: 100 tot 2000 °Cmin.",
         "no": "Hvor mange gradminutter under kompressorstarten tilleggsvarmen kobles inn. Område: 100 til 2000 °Cmin.",
@@ -1487,8 +1487,8 @@
         "da": "Indstil driftsindstilling [[mode]]"
       },
       "hint": {
-        "en": "Operating mode: auto, manual or additional heat only.",
-        "sv": "Driftläge: auto, manuellt eller endast tillsats.",
+        "en": "Operating mode: auto, manual or immersion heater only.",
+        "sv": "Driftläge: auto, manuellt eller endast elpatron.",
         "de": "Betriebsmodus: Auto, Manuell oder nur Zusatzheizung.",
         "nl": "Bedrijfsstand: auto, handmatig of alleen bijverwarming.",
         "no": "Driftsmodus: auto, manuell eller kun tilleggsvarme.",
@@ -1901,8 +1901,8 @@
         "da": "Tillad tilskudsvarme – [[state]]"
       },
       "hint": {
-        "en": "Allow the electric immersion/additive heater (heating and hot water)",
-        "sv": "Tillåt elpatronen/eltillsatsen (värme och varmvatten)"
+        "en": "Allow the electric immersion heater for heating. Hot water has its own separate switch.",
+        "sv": "Tillåt elpatronen för värme. Varmvatten har en egen separat inställning."
       },
       "$filter": "capabilities=boolean_NIBE.h180_enable_addition",
       "args": [
@@ -1947,24 +1947,24 @@
     {
       "id": "boolean_NIBE.h710_hw_additional_heat.onoff",
       "title": {
-        "en": "Turn additional heat for hot water on or off",
-        "sv": "Slå på eller av tillsatsvärme för varmvatten",
+        "en": "Allow the immersion heater for hot water",
+        "sv": "Tillåt elpatronen för varmvatten",
         "de": "Zusatzheizung für Brauchwasser ein-/ausschalten",
         "nl": "Bijverwarming voor warmtapwater aan- of uitzetten",
         "no": "Slå tilleggsvarme for varmtvann på eller av",
         "da": "Tænd eller sluk tilskudsvarme til varmt vand"
       },
       "titleFormatted": {
-        "en": "Additional heat for hot water – [[state]]",
-        "sv": "Tillsatsvärme för varmvatten – [[state]]",
+        "en": "Immersion heater, hot water – [[state]]",
+        "sv": "Elpatron, varmvatten – [[state]]",
         "de": "Zusatzheizung für Brauchwasser – [[state]]",
         "nl": "Bijverwarming voor warmtapwater – [[state]]",
         "no": "Tilleggsvarme for varmtvann – [[state]]",
         "da": "Tilskudsvarme til varmt vand – [[state]]"
       },
       "hint": {
-        "en": "Lets the electric additional heat assist hot water charging. Off by default, and separate from \"Allow immersion heater\", which covers heating only. Without it the compressor charges alone and stops where it can go no higher.",
-        "sv": "Låter eltillsatsen hjälpa till vid varmvattenladdning. Av från fabrik, och skild från \"Tillåt elpatron\" som bara gäller värme. Utan den laddar kompressorn ensam och stannar där den inte kommer högre.",
+        "en": "Lets the immersion heater assist hot water charging. Off by default, and separate from \"Allow immersion heater\", which covers heating only. Without it the compressor charges alone and stops where it can go no higher.",
+        "sv": "Låter elpatronen hjälpa till vid varmvattenladdning. Av från fabrik, och skild från \"Tillåt elpatron\" som bara gäller värme. Utan den laddar kompressorn ensam och stannar där den inte kommer högre.",
         "de": "Lässt die elektrische Zusatzheizung die Brauchwasserladung unterstützen. Standardmäßig aus und getrennt von der Freigabe für die Heizung.",
         "nl": "Laat de elektrische bijverwarming het laden van warmtapwater ondersteunen. Standaard uit en los van de vrijgave voor verwarming.",
         "no": "Lar den elektriske tilleggsvarmen hjelpe til med varmtvannsladingen. Av som standard, og atskilt fra tillatelsen for varme.",
@@ -2528,8 +2528,8 @@
         "da": "Driftsindstilling er [[mode]]"
       },
       "hint": {
-        "en": "Operating mode: auto, manual or additional heat only.",
-        "sv": "Driftläge: auto, manuellt eller endast tillsats.",
+        "en": "Operating mode: auto, manual or immersion heater only.",
+        "sv": "Driftläge: auto, manuellt eller endast elpatron.",
         "de": "Betriebsmodus: Auto, Manuell oder nur Zusatzheizung.",
         "nl": "Bedrijfsstand: auto, handmatig of alleen bijverwarming.",
         "no": "Driftsmodus: auto, manuell eller kun tilleggsvarme.",

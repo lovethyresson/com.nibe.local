@@ -14,10 +14,6 @@ export enum Dir {
 // vocabulary across every pump model.
 export const groupIds = [
     "heating",
-    // Per-zone room setpoints. Separate from "heating" because a zone that isn't configured
-    // still answers on the wire (reading 0 rather than its documented default), so offering
-    // them unconditionally would give every single-zone house a row of dead controls.
-    "zones",
     "hotwater",
     "pool",
     "cooling",
@@ -70,6 +66,20 @@ export interface Register  {
     onValue?: number;
     offValue?: number;
     picker?: boolean;
+    // The values the picker capability actually offers. Required alongside `picker`, because a
+    // picker is a curated shortlist and the register's real domain is usually far wider —
+    // periodic hot water accepts 1..90 days while the picker lists 7/14/21/28. Homey rejects an
+    // enum value it does not declare, so a pump holding 27 makes every poll throw
+    // "Invalid enum capability ... Expected: 7,14,21,28". Kept here rather than read from the
+    // capability JSON because that file lives outside the TypeScript root; a unit test asserts
+    // the two never drift apart.
+    pickerValues?: number[];
+    // A second capability on the same Modbus register as another entry, existing only for a
+    // technical reason the user shouldn't have to reason about — e.g. the operating priority is
+    // an enum for the tile *and* a plain number so Insights can chart it, since Homey can't graph
+    // a string capability. Like `picker` it collapses to one row in the pairing/repair lists and
+    // follows its twin's selection; unlike `picker` it does not change how the value decodes.
+    secondary?: boolean;
     noAction?: boolean;
     // A command register: writing acts, reading carries no state (e.g. "reset alarm",
     // where you write 1 to acknowledge and it reads back 0). Never polled, and kept out
@@ -231,19 +241,23 @@ export function buildRegisterByName(registers: Register[]): Record<string, Regis
     return Object.fromEntries(registers.map((register) => [register.name, register]));
 }
 
-// A `picker: true` register is a second representation of the same Modbus register as a
-// non-picker twin at the same address: the settable control alongside the read-only,
-// insights-logging sensor. Both are wanted (an enum picker can't be graphed and a sensor
-// can't be set), but they are one thing to the user — so the feature lists show a single
-// row per Modbus register and the picker follows its twin's selection instead of carrying
-// an override of its own. Without that, unchecking the sensor would leave the picker
-// enabled via the group default and the two would drift apart.
+// A `picker: true` or `secondary: true` register is a second representation of the same Modbus
+// register as a plain twin at the same address: the settable control alongside the read-only,
+// insights-logging sensor, or a numeric copy of an enum so Insights can chart it. Both are
+// wanted (an enum picker can't be graphed and a sensor can't be set), but they are one thing to
+// the user — so the feature lists show a single row per Modbus register and the companion
+// follows its twin's selection instead of carrying an override of its own. Without that,
+// unchecking the sensor would leave the companion enabled via the group default and the two
+// would drift apart.
 export function buildPickerPrimary(registers: Register[]): Record<string, string> {
     const pickerPrimary: Record<string, string> = {};
+    const isCompanion = (register: Register) => !!(register.picker || register.secondary);
     for (const register of registers) {
-        if (!register.picker)
+        if (!isCompanion(register))
             continue;
-        const twin = registers.find((other) => other.address === register.address && !other.picker);
+        const twin = registers.find((other) =>
+            other.address === register.address && other.direction === register.direction
+            && !isCompanion(other));
         if (twin)
             pickerPrimary[register.name] = twin.name;
     }

@@ -36,8 +36,22 @@ function syncGroups(deviceIndex, deviceChecked) {
 function renderSources(deviceIndex, candidate, capName, parent) {
     var choices = candidate.choices || {};
     var sources = choices[capName];
-    if (!sources || sources.length < 2)
+    if (!sources || !sources.length)
         return;
+    // One live candidate is not a choice — but it is still worth naming, so "Indoor temperature"
+    // doesn't leave you guessing which sensor the pump is regulating on.
+    if (sources.length === 1) {
+        var only = document.createElement('div');
+        only.className = 'register-sources';
+        var text = document.createElement('div');
+        text.className = 'register-desc';
+        text.textContent = Homey.__('pair.sources.using') + ' ' + sources[0].label
+            + (sources[0].value === undefined || sources[0].value === null
+                ? '' : ' — ' + sources[0].value);
+        only.appendChild(text);
+        parent.appendChild(only);
+        return;
+    }
     // The device template already carries detection's default (the first live candidate), so
     // preselect that rather than assuming index 0 twice over.
     var selection = candidate.device && candidate.device.store && candidate.device.store.selection;

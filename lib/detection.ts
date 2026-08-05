@@ -44,8 +44,10 @@ export interface SourceChoice {
 }
 
 // Register name → the candidates that actually carried a plausible value on this pump, in
-// declared order. Only registers with more than one live candidate are worth asking about, so
-// single-candidate entries are dropped before this leaves detection.
+// declared order. A single-candidate entry is kept: it is not a question, but the view still
+// states which sensor was picked. "Indoor temperature" is meaningless on a pump that could be
+// reading a climate-system average or one wired sensor, and staying silent about it was the
+// thing that made pairing confusing.
 export type SourceChoices = Record<string, SourceChoice[]>;
 
 export interface DetectionResult {
@@ -147,8 +149,9 @@ export async function sampleRegisters(
 //     is what the runtime reads. It matters most in the single-candidate case: an S735 where the
 //     primary 116 is dead and only 26 answers has no choice to offer, but still must not go on
 //     reading 116.
-//   - `choices` — only registers with TWO OR MORE live candidates. One candidate is not a choice,
-//     and asking about it would put a pointless radio group in the pairing view.
+//   - `choices` — every register with at least one live candidate. Two or more is a question and
+//     the view renders a radio group; exactly one is an answer, and the view states it as plain
+//     text rather than as a control nobody can change.
 async function resolveSources(
     profile: ModelProfile,
     read: (register: Register) => Promise<number | undefined>,
@@ -176,8 +179,7 @@ async function resolveSources(
             probe.reads = 1;
             probe.last = live[0].value;
         }
-        if (live.length > 1)
-            choices[register.name] = live;
+        choices[register.name] = live;
     }
     return {addresses, choices};
 }

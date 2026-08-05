@@ -35,7 +35,7 @@ export const roleClass: Record<Role, string> = {
 // of the building-heating side. Groups not listed here (core) stay on "main".
 export const roleGroups: Record<Role, GroupId[]> = {
     main: ["core", "alarm", "diagnostics", "statistics", "electrical", "groundsource", "energy"],
-    heating: ["heating", "zones", "ventilation", "energy"],
+    heating: ["heating", "ventilation", "energy"],
     hotwater: ["hotwater", "energy"],
     pool: ["pool", "energy"],
     cooling: ["cooling", "energy"],

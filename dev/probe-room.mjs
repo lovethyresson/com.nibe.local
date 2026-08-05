@@ -24,7 +24,25 @@
 // The pump accepts a single Modbus client, so the running Homey app loses its connection while
 // this runs (it reconnects by itself afterwards).
 //
+// --write settles a different question: does the pump ACCEPT a Modbus write to the zone setpoint,
+// and by which function code? The app writes 32-bit registers with FC16 (write multiple), because
+// the low word alone would leave the high word behind. If the pump only honours FC6 (write single)
+// there, the write throws, Homey reverts the capability, and the setpoint appears to "snap back"
+// to its old value with no obvious error. This tries FC6 and FC16 in turn and reports which took.
+//
+//   THIS WRITES TO YOUR HEAT PUMP. It sets the zone 1 indoor setpoint to the value you give and
+//   leaves it there — it does not restore the previous value, because a failed restore would be
+//   worse than a known one. Note down your current setting first.
+//
 //   node dev/probe-room.mjs [host] [--watch] [--interval 10] [--expect 35]
+//   node dev/probe-room.mjs --write 21.5                              # zone 1 setpoint (2505)
+//   node dev/probe-room.mjs --register 66 --width 16 --divisor 1 --write 27   # harmless control
+//   node dev/probe-room.mjs --register 843 --width 16 --divisor 1 --write 0   # SPA off
+//   node dev/probe-room.mjs --scan 5960 6010                           # find undocumented ones
+//
+// Establish a control FIRST. If a register the app already writes successfully (heat curve, 26)
+// reports TOOK while 2505 reports ACKED BUT DISCARDED, then Modbus writes work on this pump and
+// 2505 specifically is protected. If the control is also discarded, the problem is broader.
 
 import net from 'net';
 import {createRequire} from 'module';
@@ -43,6 +61,26 @@ const intervalMs = flag('interval', 10) * 1000;
 // The temperature you set in the myUplink app before running, so a matching register can be
 // called out by name instead of you having to scan the column.
 const expect = flag('expect', undefined);
+// Value in °C to write, and which holding register to write it to. Defaults to the zone 1
+// setpoint. 2505 turned out to ACK writes and discard them (see the header), so being able to
+// point this at 206, 55 or anything else without editing the file is the whole point.
+const write = flag('write', undefined);
+const target = flag('register', 2505);
+// --scan FROM TO reads every holding register in a range, whether or not the CSV lists it.
+// probe-sweep.mjs can't do this: it walks the model CSV, so a register the export predates is
+// invisible to it — which is exactly the situation for the external-sensor family added in
+// firmware 2.22.12. The three outcomes are all meaningful and must stay distinct:
+//   value      the register exists and carries data
+//   sentinel   the register EXISTS but is empty — this is how an unfed "external reading of
+//              value X" register answers, and it is NOT the same as absent
+//   exception  the register is not implemented on this model
+const scanFrom = flag('scan', undefined);
+const scanTo = (() => {
+    const i = argv.indexOf('--scan');
+    return i >= 0 && argv[i + 2] && !argv[i + 2].startsWith('--') ? Number(argv[i + 2]) : undefined;
+})();
+const width = flag('width', target === 2505 ? 32 : 16);
+const divisor = flag('divisor', 10);
 
 // address, label, divisor. Everything here is a single 16-bit word.
 const INPUT = [
@@ -79,6 +117,16 @@ const HOLDING = [
     [1102, 'Smart home room control',                        1],
     [19,   'Holiday function status',                        1],
     [26,   'Heating curve CS1 — sanity check',               1],
+    // Feeding a room temperature INTO the pump. Nibe added this family in firmware 2.22.12
+    // (2023-08-30) and Home Assistant uses it on the SMO S40 from FW 4.2.4: write 1 to the
+    // "activated" register, then the temperature to the one after it, and the pump treats it as
+    // BT50. The S1156/S1256 CSV lists 5986/5987 for BT50; the S1155/S1255 export predates the
+    // feature and lists only the BT68/BT69 pair at 6003-6006 — which is why 6003 is read here as
+    // a control. If 6003 answers and 5986 excepts, the family exists but not for BT50.
+    [5986, 'External reading of BT50 activated (S1156 CSV)',  1],
+    [5987, 'External reading of value BT50 (S1156 CSV)',     10],
+    [6003, 'External reading of BT68 activated — control',    1],
+    [6004, 'External reading of value BT68 — control',       10],
 ];
 
 const SENTINEL = 0x8000;
@@ -210,7 +258,84 @@ if (sanity.error) {
     process.exit(1);
 }
 
+if (scanFrom !== undefined && scanTo !== undefined) {
+    console.log(`\n=== SCAN: holding ${scanFrom}..${scanTo} ===`);
+    for (let address = scanFrom; address <= scanTo; ++address) {
+        const {raw, error} = await readOne(client, 'holding', address);
+        if (error)
+            continue;                                 // not implemented — the common case, stay quiet
+        console.log(String(address).padStart(6),
+            raw === SENTINEL ? 'EXISTS, empty (sentinel)' : `= ${raw}`);
+        await new Promise((resolve) => setTimeout(resolve, 30));
+    }
+    console.log('(registers that answered with a Modbus exception are omitted)');
+    socket.end();
+    socket.destroy();
+    process.exit(0);
+}
+
 report(previous);
+
+if (write !== undefined) {
+    // The 5..35 sanity band applies to the zone setpoint only. Once --register can point
+    // anywhere, a fixed temperature range would refuse perfectly valid writes — `--register 843
+    // --write 0` (turn Smart Price Adaption off) being the one we most need.
+    if (target === 2505 && !(write >= 5 && write <= 35)) {
+        console.error(`\nRefusing to write ${write} °C to the zone setpoint — outside 5..35.`);
+        socket.end();
+        socket.destroy();
+        process.exit(1);
+    }
+    const raw = Math.round(write * divisor);
+    const readBack = async () => {
+        const response = await client.readHoldingRegisters(target, width === 32 ? 2 : 1);
+        const values = response.response.body.values;
+        const combined = width === 32 ? values[1] * 65536 + values[0] : values[0];
+        return combined / divisor;
+    };
+    // A write the pump ACKs and then discards looks identical to a successful one until you
+    // read back a moment later — register 2505 does exactly this. Re-read after a pause as
+    // well as immediately, so "accepted" is never reported for a value that didn't stick.
+    const settle = 3000;
+
+    console.log(`\n=== WRITE TEST: holding ${target} (${width}-bit, ÷${divisor}) -> ${write} ===`);
+    console.log(`before: ${await readBack()}`);
+
+    // FC6 first: one word. Correct only while the high word is already 0, which it is for
+    // 5.0..35.0 — this is exactly the accident the app's width-aware write exists to avoid
+    // relying on. Here it is a probe, not a strategy.
+    const attempt = async (label, send) => {
+        let result;
+        try {
+            await send();
+            const immediate = await readBack();
+            await new Promise((resolve) => setTimeout(resolve, settle));
+            const settled = await readBack();
+            result = settled === write
+                ? `TOOK — reads back ${settled}`
+                : `ACKED BUT DISCARDED — immediately ${immediate}, after ${settle / 1000}s ${settled} `
+                    + `(wanted ${write})`;
+        } catch (error) {
+            const body = error?.response?.body;
+            result = `REJECTED — ${body ? JSON.stringify(body) : (error?.message ?? String(error))}`;
+        }
+        console.log(`  ${label}: ${result}`);
+    };
+
+    await attempt('FC6  writeSingleRegister    ',
+        () => client.writeSingleRegister(target, raw));
+    if (width === 32)
+        await attempt('FC16 writeMultipleRegisters',
+            () => client.writeMultipleRegisters(target,
+                [raw & 0xFFFF, Math.floor(raw / 65536) & 0xFFFF]));
+
+    console.log('\n  TOOK                 the register is genuinely writable over Modbus.');
+    console.log('  ACKED BUT DISCARDED  the pump accepts the write and its own controller');
+    console.log('                       overwrites it — the same way register 11 (degree');
+    console.log('                       minutes) behaves. Not a bug in the app.');
+    console.log('  REJECTED             the pump refused it outright, with the exception shown.');
+    console.log(`\nHolding ${target} is now ${await readBack()} — set it back yourself if you need to.`);
+}
 
 if (watch) {
     console.log(`\nWatching every ${intervalMs / 1000}s. Change the temperature in the myUplink `

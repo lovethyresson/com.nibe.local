@@ -65,17 +65,25 @@ export const booleanMap = Object({
 export const modeMap = Object({
     0: "Auto",
     1: "Manual",
-    2: "Additional heat only"
+    2: "Immersion heater only"
 });
 
 export const registers: Register[] = [
     // Rad 1 Temp
-    {address:    1, name: "measure_temperature.i1_outside",         direction: Dir.In,  group: "core",        scale:  10, // Aktuell utetemperatur (BT1)
+    // Outdoor temperature lives with heating rather than on Main. It is only ever interesting
+    // against something heating owns — the heat curve it drives, and the outdoor average the
+    // summer cut-off (184) compares against — and splitting the threshold from the temperature
+    // it is judged by across two devices is what made that setting unreadable.
+    {address:    1, name: "measure_temperature.i1_outside",         direction: Dir.In,  group: "heating",     scale:  10, // Aktuell utetemperatur (BT1)
      info: {en: "Current outdoor temperature (sensor BT1)", sv: "Aktuell utetemperatur (givare BT1)"}},
     // Indoor temperature has three candidate addresses that are NOT the same quantity, which is
     // why this uses `sources` (user picks) rather than `altAddresses` (detection picks silently):
-    //   116 — "Room average temp. clim. system 1 (BT50)", the value that regulates. All six model
-    //         CSVs agree this is climate system 1.
+    //   116 — "Room average temp. clim. system 1", the value that regulates. All six model CSVs
+    //         agree this is climate system 1. Nibe's CSV titles it "(BT50)", which is legacy
+    //         wording and wrong on zone firmware: the maintainer's S1155 has NO wired room
+    //         sensor at all (26/25/24 all answer with a Modbus exception, and "Use room sensor
+    //         CS1" reads 0), yet 116 reports a real, independently moving value — it is coming
+    //         from the wireless room unit assigned to the zone. So don't say BT50 to the user.
     //   111 — "Room average temp. clim. system 6". This was the primary until 0.9.13, on the
     //         mistaken reading that the CSVs put BT50 there. On the maintainer's S1155 it returns
     //         the not-available sentinel, so the capability resolved to nothing at all.
@@ -90,9 +98,9 @@ export const registers: Register[] = [
     {address:  116, name: "measure_temperature.i26_inside",         direction: Dir.In,  group: "heating",     scale:  10, // Rumstemperatur (BT50) klimatsystem 1
      altPlausible: {min: 5, max: 40},
      sources: [
-         {address: 116, label: {en: "Climate system 1 average (BT50)", sv: "Medelvärde klimatsystem 1 (BT50)"}},
-         {address: 111, label: {en: "Climate system 6 average (BT50)", sv: "Medelvärde klimatsystem 6 (BT50)"}},
-         {address:  26, label: {en: "Room sensor 1-1 (single sensor)", sv: "Rumsgivare 1-1 (enskild givare)"}}
+         {address: 116, label: {en: "Climate system 1 average — wired or wireless room sensors", sv: "Medelvärde klimatsystem 1 — trådade eller trådlösa rumsgivare"}},
+         {address: 111, label: {en: "Climate system 6 average", sv: "Medelvärde klimatsystem 6"}},
+         {address:  26, label: {en: "Room sensor 1-1 — one wired sensor only", sv: "Rumsgivare 1-1 — endast en trådad givare"}}
      ],
      info: {en: "Indoor temperature used to regulate climate system 1", sv: "Inomhustemperatur som reglerar klimatsystem 1"}},
     // Rad 2 Framledning
@@ -123,8 +131,11 @@ export const registers: Register[] = [
     {address: 1028, name: "measure_enum_NIBE.i1028_priority",                 direction: Dir.In,  group: "core",       enum: priorityMap, // Prio
      info: {en: "What the pump is producing right now (heating, hot water, pool…)", sv: "Vad pumpen producerar just nu (värme, varmvatten, pool…)"}},
     // Same register 1028 as the enum above, kept as a raw number so it can be logged in
-    // Insights (the enum is a string capability Homey can't chart). Hidden from the tile.
-    {address: 1028, name: "measure_priority_NIBE.i1028_priority_value",       direction: Dir.In,  group: "core",       noAction: true, // Prio (raw)
+    // Insights (the enum is a string capability Homey can't chart). Hidden from the tile, and
+    // `secondary` keeps it out of the pairing/repair lists too: it is one register with two
+    // representations, and offering the user a separate "Priority (value)" row to tick is noise
+    // about an implementation detail.
+    {address: 1028, name: "measure_priority_NIBE.i1028_priority_value",       direction: Dir.In,  group: "core",       noAction: true, secondary: true, // Prio (raw)
      info: {en: "Raw operating-priority code (10 off, 20 hot water, 30 heating, 40 pool, 60 cooling), logged over time", sv: "Rå driftprioritetskod (10 av, 20 varmvatten, 30 värme, 40 pool, 60 kyla), loggas över tid"}},
     {address:   40, name: "measure_water.i40_flow_sensor",          direction: Dir.In,  group: "heating",     scale:  10, // Flödesgivare (BF1)
      info: {en: "Heating medium flow (sensor BF1)", sv: "Värmebärarflöde (givare BF1)"}},
@@ -204,8 +215,10 @@ export const registers: Register[] = [
     // Rad 14 Kompressor utomhus temp avg
     {address: 1083, name: "measure_count_NIBE.i1083_compressor_starts",       direction: Dir.In,  group: "statistics", scale: 1, size: 32, // Kompressorstarter (s32)
      info: {en: "Number of compressor starts", sv: "Antal kompressorstarter"}},
-    {address:   37, name: "measure_temperature.i37_outside_avg",    direction: Dir.In,  group: "statistics",  scale:  10, // BT1 - Average outside temperature -Medeltemperatur (BT1)
-     info: {en: "Average outdoor temperature (BT1)", sv: "Medelutetemperatur (BT1)"}},
+    // In "heating" rather than "statistics": this is the value register 184 is compared against,
+    // so it belongs beside the setting it decides, not in a statistics list on another device.
+    {address:   37, name: "measure_temperature.i37_outside_avg",    direction: Dir.In,  group: "heating",     scale:  10, // BT1 - Average outside temperature -Medeltemperatur (BT1)
+     info: {en: "Average outdoor temperature — what the heating cut-off is judged against", sv: "Medelutetemperatur — det som värmestoppet jämförs mot"}},
     // Rad 15 Kompressor statistik
     {address: 1087, name: "measure_hour_NIBE.i1087_compressor_usage_total",   direction: Dir.In,  group: "statistics", scale: 1, size: 32, // Total drifttid kompressor (s32)
      info: {en: "Total compressor runtime", sv: "Total drifttid för kompressorn"}},
@@ -277,11 +290,11 @@ export const registers: Register[] = [
     {address: 2297, name: "meter_kwh_NIBE.i2297_log_used_cooling",           direction: Dir.In,  group: "energy", role: "main", scale: 100, size: 32, internal: true,
      info: {en: "Electricity used for cooling in the last completed hour", sv: "El använd till kyla senaste hela timmen"}},
     {address: 2299, name: "meter_kwh_NIBE.i2299_log_add_heating",            direction: Dir.In,  group: "energy", role: "main", scale: 100, size: 32, internal: true,
-     info: {en: "Additional heat used for heating in the last completed hour", sv: "Tillsatsvärme till värme senaste hela timmen"}},
+     info: {en: "Immersion heater energy used for heating in the last completed hour", sv: "Elpatronens energi till värme senaste hela timmen"}},
     {address: 2301, name: "meter_kwh_NIBE.i2301_log_add_hotwater",           direction: Dir.In,  group: "energy", role: "main", scale: 100, size: 32, internal: true,
-     info: {en: "Additional heat used for hot water in the last completed hour", sv: "Tillsatsvärme till varmvatten senaste hela timmen"}},
+     info: {en: "Immersion heater energy used for hot water in the last completed hour", sv: "Elpatronens energi till varmvatten senaste hela timmen"}},
     {address: 2303, name: "meter_kwh_NIBE.i2303_log_add_pool",               direction: Dir.In,  group: "energy", role: "main", scale: 100, size: 32, internal: true,
-     info: {en: "Additional heat used for the pool in the last completed hour", sv: "Tillsatsvärme till poolen senaste hela timmen"}},
+     info: {en: "Immersion heater energy used for the pool in the last completed hour", sv: "Elpatronens energi till poolen senaste hela timmen"}},
 
     // Compressor-only delivered energy, alongside the "including additional heat" counters
     // above. Mapped to test whether 3821 tracks compressor-only output: the per-function
@@ -320,18 +333,37 @@ export const registers: Register[] = [
     //
     // The CSV documents min 50 / max 300 (5.0..30.0 °C) and is WRONG — the live register held
     // 350. Clamping to 30 would reject a setting the pump itself accepts, so the band is 5..35.
-    {address: 2505, name: "target_temperature.h2505_zone1_setpoint",          direction: Dir.Out, group: "heating",    scale: 10, size: 32, min: 5, max: 35, // Rumstemperatur börvärde zon 1
-     info: {en: "Indoor temperature setpoint (zone 1)", sv: "Börvärde för inomhustemperatur (zon 1)"}},
-    // Zones 2-4. Same family, one zone per two registers. Left at four rather than the full
-    // forty on purpose: multi-zone houses are rare, every entry costs a capability instance in
-    // driver.compose.json, and tasks/todo.md's policy for accessory registers is to add them when
-    // a user asks rather than to build a pipeline. Extending is mechanical — 2511 is zone 5.
-    {address: 2507, name: "target_temperature.h2507_zone2_setpoint",          direction: Dir.Out, group: "zones",      scale: 10, size: 32, min: 5, max: 35, // Rumstemperatur börvärde zon 2
-     info: {en: "Indoor temperature setpoint (zone 2)", sv: "Börvärde för inomhustemperatur (zon 2)"}},
-    {address: 2509, name: "target_temperature.h2509_zone3_setpoint",          direction: Dir.Out, group: "zones",      scale: 10, size: 32, min: 5, max: 35, // Rumstemperatur börvärde zon 3
-     info: {en: "Indoor temperature setpoint (zone 3)", sv: "Börvärde för inomhustemperatur (zon 3)"}},
-    {address: 2511, name: "target_temperature.h2511_zone4_setpoint",          direction: Dir.Out, group: "zones",      scale: 10, size: 32, min: 5, max: 35, // Rumstemperatur börvärde zon 4
-     info: {en: "Indoor temperature setpoint (zone 4)", sv: "Börvärde för inomhustemperatur (zon 4)"}},
+    //
+    // READ-ONLY (`noAction`), and that is a measured fact rather than caution. The pump ACKs a
+    // Modbus write to 2505 and discards it — verified with FC6 and FC16, re-read immediately and
+    // after 3 s, and again minutes later in a fresh connection. It is not the app's 32-bit write:
+    // holding 843 written the same way TOOK (1 -> 0 -> 1). It is not Smart Price Adaption either:
+    // the write was still discarded with SPA switched off. The register mirrors the setpoint
+    // perfectly — it tracked the myUplink app through 35.0, 28.0 and 22.5 — but the pump does not
+    // accept it as an input. So this shows what the indoor setpoint IS; to change it, use the heat
+    // curve offset (register 30), which is what actually regulates a pump with no room-sensor
+    // control enabled. Do not make this settable again without re-running
+    // `node dev/probe-room.mjs --write <value>` and seeing TOOK.
+    {address: 2505, name: "target_temperature.h2505_zone1_setpoint",          direction: Dir.Out, group: "heating",    scale: 10, size: 32, min: 5, max: 35, noAction: true, // Rumstemperatur börvärde zon 1
+     info: {en: "Indoor temperature the pump is aiming for (read-only — the pump refuses Modbus writes here)", sv: "Inomhustemperatur pumpen siktar på (skrivskyddad — pumpen tar inte emot Modbus-skrivningar)"}},
+    // Zones 2-40 exist at 2507..2583 (step 2, same shape) but are deliberately NOT mapped. A
+    // setpoint on its own is not zone support: without per-zone temperatures and names it is a
+    // row of anonymous sliders, and on a single-zone pump they all answer anyway (reading a flat
+    // 0 rather than their documented default). Add them together with the rest of the zone model
+    // or not at all.
+    //
+    // Smart Price Adaption. Worth having as a setting in its own right, and it is also the prime
+    // suspect for why writes to the zone setpoint (2505) are accepted and then discarded: SPA
+    // recomputes the indoor setpoint from the electricity price, so an external write is
+    // overwritten by the pump's own controller within a poll — the same way register 11's degree
+    // minutes are. `1918` is what SPA is doing right now, so the influence is visible rather than
+    // mysterious.
+    {address:  843, name: "boolean_NIBE.h843_spa_activated",                   direction: Dir.Out, group: "heating",    bool: true, // Aktiverad (Smart prisanpassning)
+     info: {en: "Smart Price Adaption — shift consumption towards cheaper hours", sv: "Smart prisanpassning — flytta förbrukningen mot billigare timmar"}},
+    {address:  845, name: "measure_count_NIBE.h845_spa_heating_influence",     direction: Dir.Out, group: "heating",    scale: 1, min: 1, max: 10, // Prisanpassning värme grad av påverkan
+     info: {en: "How strongly the electricity price is allowed to move the indoor temperature (1-10)", sv: "Hur mycket elpriset får påverka inomhustemperaturen (1-10)"}},
+    {address: 1918, name: "measure_count_NIBE.i1918_spa_status",              direction: Dir.In,  group: "heating",    scale: 1, noAction: true, // Driftläge (Smart prisanpassning)
+     info: {en: "What Smart Price Adaption is doing right now", sv: "Vad smart prisanpassning gör just nu"}},
     // Why the setpoint above may appear to do nothing. On zone firmware this reads 0 and room
     // control runs through the zones; on older firmware it is what enables room-sensor
     // regulation at all. Read-only either way — writing it is the legacy path.
@@ -415,19 +447,19 @@ export const registers: Register[] = [
      info: {en: "Enable pool heating", sv: "Aktivera poolvärme"}},
 
     // Inställning värmekurva
-    {address:   26, name: "curve_mode_NIBE.h26_heat_curve",                   direction: Dir.Out, group: "heating",    picker: true, // Värmekurva klimatsystem 1
+    {address:   26, name: "curve_mode_NIBE.h26_heat_curve",                   direction: Dir.Out, group: "heating",    picker: true, pickerValues: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], // Värmekurva klimatsystem 1
      info: {en: "Selector for the heat curve slope (0–10)", sv: "Väljare för värmekurvans lutning (0–10)"}},
-    {address:   30, name: "curve_displacement_NIBE.h30_heat_curve_displacement", direction: Dir.Out, group: "heating", picker: true, // Värmeförskjutning klimatsystem 1 RW
+    {address:   30, name: "curve_displacement_NIBE.h30_heat_curve_displacement", direction: Dir.Out, group: "heating", picker: true, pickerValues: [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // Värmeförskjutning klimatsystem 1 RW
      info: {en: "Selector for the heat curve offset (−10…+10)", sv: "Väljare för kurvförskjutning (−10…+10)"}},
     // Inställning varmvatten
-    {address:   56, name: "hotwater_demand_NIBE.h56_hotwater_demand_mode",    direction: Dir.Out, group: "hotwater",   picker: true, // Varmvatten behovsläge RW 0 = small, 1 = medium, 2 = large, 3 = not in use, 4 = Smart control
+    {address:   56, name: "hotwater_demand_NIBE.h56_hotwater_demand_mode",    direction: Dir.Out, group: "hotwater",   picker: true, pickerValues: [0, 1, 2, 4], // Varmvatten behovsläge RW 0 = small, 1 = medium, 2 = large, 3 = not in use, 4 = Smart control
      info: {en: "Selector for the hot water demand mode", sv: "Väljare för varmvattnets behovsläge"}},
-    {address:  697, name: "hotwater_increase_NIBE.h697_onetimeincrease_hotwater", direction: Dir.Out, group: "hotwater", picker: true, // Mer varmvatten engångshöjning 0 = Från, 2 = Engångshöjning, 3 = 3 timmar, 6 = 6 timmar, 12 = 12 timmar, 24 = timmar, 48 = 48 Timmar
+    {address:  697, name: "hotwater_increase_NIBE.h697_onetimeincrease_hotwater", direction: Dir.Out, group: "hotwater", picker: true, pickerValues: [0, 2, 3, 6, 12, 24, 48], // Mer varmvatten engångshöjning 0 = Från, 2 = Engångshöjning, 3 = 3 timmar, 6 = 6 timmar, 12 = 12 timmar, 24 = timmar, 48 = 48 Timmar
      info: {en: "Selector for a one-time hot water boost", sv: "Väljare för engångshöjning av varmvatten"}},
         // Inställning Periodiskt varmvatten
-    {address:   66, name: "hotwater_periodic_interval_NIBE.h66_periodic_hw_interval", direction: Dir.Out, group: "hotwater", picker: true, // Periodiskt varmvatten intervall i dagar
+    {address:   66, name: "hotwater_periodic_interval_NIBE.h66_periodic_hw_interval", direction: Dir.Out, group: "hotwater", picker: true, pickerValues: [7, 14, 21, 28], // Periodiskt varmvatten intervall i dagar
      info: {en: "Selector for days between periodic hot water boosts", sv: "Väljare för dagar mellan periodiska varmvattenhöjningar"}},
-    {address:   92, name: "hotwater_periodtime_NIBE.h92_periodtime_hotwater", direction: Dir.Out, group: "hotwater",   picker: true, // Periodiskt varmvatten längd i minuter
+    {address:   92, name: "hotwater_periodtime_NIBE.h92_periodtime_hotwater", direction: Dir.Out, group: "hotwater",   picker: true, pickerValues: [30, 45, 60, 120], // Periodiskt varmvatten längd i minuter
      info: {en: "Selector for the periodic hot water boost duration", sv: "Väljare för den periodiska varmvattenhöjningens längd"}},
 
     // Setpoints and degree-minute tuning. Ranges are the maintainer's pump (an S1155) —
@@ -491,10 +523,10 @@ export const registers: Register[] = [
     // Alarm handling. h22 is a command: write 1 to acknowledge, it reads back 0.
     {address:   22, name: "button.h22_reset_alarm",                           direction: Dir.Out, group: "alarm",      bool: true, writeOnly: true, noAction: true, // Återställ larm
      info: {en: "Acknowledge and reset an active alarm on the pump", sv: "Kvittera och återställ ett aktivt larm på pumpen"}},
-    {address:  196, name: "boolean_NIBE.h196_alarm_lower_room_temp",                 direction: Dir.Out, group: "alarm",      bool: true, // Larm vid sänkt rumstemp
-     info: {en: "On an alarm, lower the room temperature to save the pump", sv: "Vid larm, sänk rumstemperaturen för att skona pumpen"}},
-    {address:  197, name: "boolean_NIBE.h197_alarm_lower_hw_temp",                   direction: Dir.Out, group: "alarm",      bool: true, // Larm vid sänkt VV-temp
-     info: {en: "On an alarm, lower the hot water temperature", sv: "Vid larm, sänk varmvattentemperaturen"}},
+    // Registers 196/197 ("on an alarm, lower the room / hot water temperature") are deliberately
+    // not mapped. They are install-time pump configuration that fires only during a fault, so
+    // they earn a permanent row in every user's pairing list for something nobody automates.
+    // Set them on the pump if you want them.
 
     // The immersion/electric additive heater is a shared resource — it serves heating and
     // hot water (and electric pool assist), so its on/off lives on "main" alongside the

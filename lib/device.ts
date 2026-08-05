@@ -159,9 +159,29 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         }
     }
 
+    // Pickers whose current pump value is outside the shortlist they offer, so the warning is
+    // logged once per register rather than on every poll.
+    private unlistedPickerValues = new Set<string>();
+
     async setValue(register: Register, value: any) {
         if (register.writeOnly || !this.hasCapability(register.name))
             return;
+        // A picker offers a curated shortlist; the register's domain is wider. Homey rejects an
+        // enum value it was never told about, and the resulting throw happens on every poll for
+        // as long as the pump holds that value. Leave the picker alone instead — none of its
+        // options describe the truth — and say so once. The numeric twin of the same register
+        // carries the real value, so nothing is actually hidden from the user.
+        if (register.picker && register.pickerValues
+            && !register.pickerValues.map(String).includes(String(value))) {
+            if (!this.unlistedPickerValues.has(register.name)) {
+                this.unlistedPickerValues.add(register.name);
+                this.log(`Register ${register.address} reads ${value}, which "${register.name}" `
+                    + `does not offer (${register.pickerValues.join(', ')}). Leaving that picker `
+                    + `unset — the pump accepts values this shortlist does not list.`);
+            }
+            return;
+        }
+        this.unlistedPickerValues.delete(register.name);
         const oldValue = this.getCapabilityValue(register.name);
         await this.setCapabilityValue(register.name, value);
         if (oldValue !== value)

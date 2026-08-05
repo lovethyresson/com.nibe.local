@@ -32,9 +32,9 @@
     "measure_temperature.i1_outside",
     "measure_temperature.i26_inside",
     "target_temperature.h2505_zone1_setpoint",
-    "target_temperature.h2507_zone2_setpoint",
-    "target_temperature.h2509_zone3_setpoint",
-    "target_temperature.h2511_zone4_setpoint",
+    "boolean_NIBE.h843_spa_activated",
+    "measure_count_NIBE.h845_spa_heating_influence",
+    "measure_count_NIBE.i1918_spa_status",
     "boolean_NIBE.h202_use_room_sensor",
     "measure_temperature.i1017_calculated_supply",
     "measure_temperature.i5_heating_supply",
@@ -104,8 +104,6 @@
     "onoff.h195_enable_hotwater",
     "measure_minute_NIBE.h94_periodtime_pool",
     "button.h22_reset_alarm",
-    "boolean_NIBE.h196_alarm_lower_room_temp",
-    "boolean_NIBE.h197_alarm_lower_hw_temp",
     "measure_count_NIBE.h19_holiday_status",
     "boolean_NIBE.h227_nightchill",
     "boolean_NIBE.h710_hw_additional_heat",
@@ -147,12 +145,12 @@
     "boolean_NIBE.i1029_additive_heat_active": {
       "insights": true,
       "title": {
-        "en": "Additional heat active",
-        "sv": "Tillsatsvärme aktiv",
-        "de": "Zusatzheizung aktiv",
-        "nl": "Bijverwarming actief",
-        "no": "Tilleggsvarme aktiv",
-        "da": "Tilskudsvarme aktiv"
+        "en": "Immersion heater active",
+        "sv": "Elpatron aktiv",
+        "de": "Heizstab aktiv",
+        "nl": "Elektrisch element actief",
+        "no": "Elkolbe aktiv",
+        "da": "Elpatron aktiv"
       }
     },
     "measure_count_NIBE.i1083_compressor_starts": {
@@ -335,22 +333,22 @@
     },
     "measure_hour_NIBE.i1025_additive_usage_total": {
       "title": {
-        "en": "Total additive runtime",
-        "sv": "Total drifttid tillsats",
-        "de": "Gesamtlaufzeit Zusatzheizung",
-        "nl": "Totale bedrijfstijd bijverwarming",
-        "no": "Total driftstid tilleggsvarme",
-        "da": "Samlet driftstid tilskudsvarme"
+        "en": "Immersion heater runtime, total",
+        "sv": "Elpatronens drifttid, totalt",
+        "de": "Heizstab-Laufzeit, gesamt",
+        "nl": "Draaiuren elektrisch element, totaal",
+        "no": "Elkolbens driftstid, totalt",
+        "da": "Elpatronens driftstid, i alt"
       }
     },
     "measure_hour_NIBE.i1069_additive_usage_hotwater": {
       "title": {
-        "en": "Additive runtime",
-        "sv": "Drifttid tillsats",
-        "de": "Laufzeit Zusatzheizung",
-        "nl": "Bedrijfstijd bijverwarming",
-        "no": "Driftstid tilleggsvarme",
-        "da": "Driftstid tilskudsvarme"
+        "en": "Immersion heater runtime, hot water",
+        "sv": "Elpatronens drifttid, varmvatten",
+        "de": "Heizstab-Laufzeit, Brauchwasser",
+        "nl": "Draaiuren elektrisch element, warmtapwater",
+        "no": "Elkolbens driftstid, varmtvann",
+        "da": "Elpatronens driftstid, varmt vand"
       }
     },
     "measure_hour_NIBE.i1087_compressor_usage_total": {
@@ -514,12 +512,12 @@
       "uiComponent": null,
       "insights": false,
       "title": {
-        "en": "Auto mode: start cooling above",
-        "sv": "Autoläge: starta kyla över",
-        "de": "Auto-Modus: Kühlung starten über",
-        "nl": "Autostand: koeling starten boven",
-        "no": "Automodus: start kjøling over",
-        "da": "Autotilstand: start køling over"
+        "en": "Only cool above (outdoor average)",
+        "sv": "Kyl endast över (utemedeltemp)",
+        "de": "Nur kühlen über (Außen-Mittelwert)",
+        "nl": "Alleen koelen boven (buitengemiddelde)",
+        "no": "Kjøl kun over (utemiddeltemp)",
+        "da": "Køl kun over (udemiddeltemp)"
       }
     },
     "measure_hour_NIBE.i1091_compressor_usage_hotwater": {
@@ -639,17 +637,19 @@
     },
     "measure_watt_NIBE.i1027_additive_effect": {
       "decimals": 0,
+      "insights": true,
       "title": {
-        "en": "Additional heat power",
-        "sv": "Tillsatsvärme effekt",
-        "de": "Zusatzheizung Leistung",
-        "nl": "Bijverwarming vermogen",
-        "no": "Tilleggsvarme effekt",
-        "da": "Tilskudsvarme effekt"
+        "en": "Immersion heater power",
+        "sv": "Elpatronens effekt",
+        "de": "Heizstableistung",
+        "nl": "Vermogen elektrisch element",
+        "no": "Elkolbens effekt",
+        "da": "Elpatronens effekt"
       }
     },
     "measure_watt_NIBE.i1048_compressor_add_power": {
       "decimals": 0,
+      "insights": true,
       "title": {
         "en": "Compressor supplied power",
         "sv": "Kompressor tillförd W",
@@ -661,6 +661,7 @@
     },
     "measure_watt_NIBE.i2166_energy_usage": {
       "decimals": 0,
+      "insights": true,
       "title": {
         "en": "Total power",
         "sv": "Total effekt",
@@ -772,20 +773,6 @@
     },
     "measure_temperature.i26_inside": {
       "title": {
-        "en": "Room sensor (BT50)",
-        "sv": "Rumstemperatur 1 (BT50)",
-        "de": "Raumfühler (BT50)",
-        "nl": "Ruimtevoeler (BT50)",
-        "no": "Romføler (BT50)",
-        "da": "Rumføler (BT50)"
-      }
-    },
-    "target_temperature.h2505_zone1_setpoint": {
-      "decimals": 1,
-      "min": 5,
-      "max": 35,
-      "insights": true,
-      "title": {
         "en": "Indoor temperature",
         "sv": "Inomhustemperatur",
         "de": "Raumtemperatur",
@@ -794,46 +781,19 @@
         "da": "Indendørstemperatur"
       }
     },
-    "target_temperature.h2507_zone2_setpoint": {
+    "target_temperature.h2505_zone1_setpoint": {
       "decimals": 1,
       "min": 5,
       "max": 35,
       "insights": true,
+      "setable": false,
       "title": {
-        "en": "Indoor temperature (zone 2)",
-        "sv": "Inomhustemperatur (zon 2)",
-        "de": "Raumtemperatur (Zone 2)",
-        "nl": "Binnentemperatuur (zone 2)",
-        "no": "Innetemperatur (sone 2)",
-        "da": "Indendørstemperatur (zone 2)"
-      }
-    },
-    "target_temperature.h2509_zone3_setpoint": {
-      "decimals": 1,
-      "min": 5,
-      "max": 35,
-      "insights": true,
-      "title": {
-        "en": "Indoor temperature (zone 3)",
-        "sv": "Inomhustemperatur (zon 3)",
-        "de": "Raumtemperatur (Zone 3)",
-        "nl": "Binnentemperatuur (zone 3)",
-        "no": "Innetemperatur (sone 3)",
-        "da": "Indendørstemperatur (zone 3)"
-      }
-    },
-    "target_temperature.h2511_zone4_setpoint": {
-      "decimals": 1,
-      "min": 5,
-      "max": 35,
-      "insights": true,
-      "title": {
-        "en": "Indoor temperature (zone 4)",
-        "sv": "Inomhustemperatur (zon 4)",
-        "de": "Raumtemperatur (Zone 4)",
-        "nl": "Binnentemperatuur (zone 4)",
-        "no": "Innetemperatur (sone 4)",
-        "da": "Indendørstemperatur (zone 4)"
+        "en": "Indoor temperature setpoint",
+        "sv": "Börvärde inomhustemperatur",
+        "de": "Raumtemperatur-Sollwert",
+        "nl": "Streefwaarde binnentemperatuur",
+        "no": "Settpunkt innetemperatur",
+        "da": "Settpunkt indendørstemperatur"
       }
     },
     "boolean_NIBE.h202_use_room_sensor": {
@@ -901,12 +861,12 @@
     },
     "measure_temperature.i37_outside_avg": {
       "title": {
-        "en": "Average outside temperature (BT1)",
-        "sv": "Medeltemp. (BT1)",
-        "de": "Mittlere Außentemperatur (BT1)",
-        "nl": "Gemiddelde buitentemperatuur (BT1)",
-        "no": "Gjennomsnittlig utetemperatur (BT1)",
-        "da": "Gennemsnitlig udetemperatur (BT1)"
+        "en": "Average outdoor temperature",
+        "sv": "Medelutetemperatur",
+        "de": "Mittlere Außentemperatur",
+        "nl": "Gemiddelde buitentemperatuur",
+        "no": "Gjennomsnittlig utetemperatur",
+        "da": "Gennemsnitlig udetemperatur"
       }
     },
     "measure_temperature.i1017_calculated_supply": {
@@ -994,12 +954,12 @@
       "uiComponent": null,
       "insights": false,
       "title": {
-        "en": "Auto mode: stop heating above",
-        "sv": "Autoläge: stoppa värme över",
-        "de": "Auto-Modus: Heizung stoppen über",
-        "nl": "Autostand: verwarming stoppen boven",
-        "no": "Automodus: stopp varme over",
-        "da": "Autotilstand: stop varme over"
+        "en": "Only heat below (outdoor average)",
+        "sv": "Värm endast under (utemedeltemp)",
+        "de": "Nur heizen unter (Außen-Mittelwert)",
+        "nl": "Alleen verwarmen onder (buitengemiddelde)",
+        "no": "Varm kun under (utemiddeltemp)",
+        "da": "Varm kun under (udemiddeltemp)"
       }
     },
     "target_temperature.h185_auto_stop_addition": {
@@ -1009,12 +969,12 @@
       "uiComponent": null,
       "insights": false,
       "title": {
-        "en": "Auto mode: stop addition above",
-        "sv": "Autoläge: stoppa tillsats över",
-        "de": "Auto-Modus: Zusatzheizung stoppen über",
-        "nl": "Autostand: bijverwarming stoppen boven",
-        "no": "Automodus: stopp tilleggsvarme over",
-        "da": "Autotilstand: stop tilskudsvarme over"
+        "en": "Only use immersion heater below (outdoor average)",
+        "sv": "Använd elpatron endast under (utemedeltemp)",
+        "de": "Heizstab nur nutzen unter (Außen-Mittelwert)",
+        "nl": "Elektrisch element alleen onder (buitengemiddelde)",
+        "no": "Bruk elkolbe kun under (utemiddeltemp)",
+        "da": "Brug kun elpatron under (udemiddeltemp)"
       }
     },
     "measure_minute_NIBE.h93_periodtime_heating": {
@@ -1039,12 +999,12 @@
     },
     "measure_degree_minutes_NIBE.h679_dm_diff_start_addition": {
       "title": {
-        "en": "Addition start difference",
-        "sv": "Differens start tillsats",
-        "de": "Differenz Start Zusatzheizung",
-        "nl": "Verschil start bijverwarming",
-        "no": "Differanse start tilleggsvarme",
-        "da": "Difference start tilskudsvarme"
+        "en": "Immersion heater start difference",
+        "sv": "Differens start elpatron",
+        "de": "Startdifferenz Heizstab",
+        "nl": "Startverschil elektrisch element",
+        "no": "Startdifferanse elkolbe",
+        "da": "Startdifference elpatron"
       }
     },
     "measure_degree_minutes_NIBE.h18_limit_dm": {
@@ -1196,28 +1156,6 @@
         "da": "Nulstil alarm"
       }
     },
-    "boolean_NIBE.h196_alarm_lower_room_temp": {
-      "uiComponent": null,
-      "title": {
-        "en": "On alarm: lower room temperature",
-        "sv": "Vid larm: sänk rumstemperatur",
-        "de": "Bei Alarm: Raumtemperatur senken",
-        "nl": "Bij alarm: ruimtetemperatuur verlagen",
-        "no": "Ved alarm: senk romtemperatur",
-        "da": "Ved alarm: sænk rumtemperatur"
-      }
-    },
-    "boolean_NIBE.h197_alarm_lower_hw_temp": {
-      "uiComponent": null,
-      "title": {
-        "en": "On alarm: lower hot water temperature",
-        "sv": "Vid larm: sänk varmvattentemperatur",
-        "de": "Bei Alarm: Brauchwassertemperatur senken",
-        "nl": "Bij alarm: warmtapwatertemperatuur verlagen",
-        "no": "Ved alarm: senk varmtvannstemperatur",
-        "da": "Ved alarm: sænk varmtvandstemperatur"
-      }
-    },
     "measure_count_NIBE.h19_holiday_status": {
       "title": {
         "en": "Holiday mode status",
@@ -1255,12 +1193,12 @@
     "boolean_NIBE.h710_hw_additional_heat": {
       "insights": true,
       "title": {
-        "en": "Additional heat for hot water",
-        "sv": "Tillsatsvärme för varmvatten",
-        "de": "Zusatzheizung für Brauchwasser",
-        "nl": "Bijverwarming voor warmtapwater",
-        "no": "Tilleggsvarme for varmtvann",
-        "da": "Tilskudsvarme til varmt vand"
+        "en": "Allow immersion heater, hot water",
+        "sv": "Tillåt elpatron, varmvatten",
+        "de": "Heizstab freigeben, Brauchwasser",
+        "nl": "Elektrisch element toestaan, warmtapwater",
+        "no": "Tillat elkolbe, varmtvann",
+        "da": "Tillad elpatron, varmt vand"
       }
     },
     "boolean_NIBE.h227_nightchill": {
@@ -1331,6 +1269,41 @@
         "nl": "Alarm",
         "no": "Alarm",
         "da": "Alarm"
+      }
+    },
+    "boolean_NIBE.h843_spa_activated": {
+      "insights": true,
+      "title": {
+        "en": "Smart Price Adaption",
+        "sv": "Smart prisanpassning",
+        "de": "Smart Price Adaption",
+        "nl": "Smart Price Adaption",
+        "no": "Smart pristilpasning",
+        "da": "Smart pristilpasning"
+      }
+    },
+    "measure_count_NIBE.h845_spa_heating_influence": {
+      "uiComponent": null,
+      "min": 1,
+      "max": 10,
+      "title": {
+        "en": "Price influence on heating (1-10)",
+        "sv": "Prispåverkan på värmen (1-10)",
+        "de": "Preiseinfluss auf die Heizung (1-10)",
+        "nl": "Prijsinvloed op verwarming (1-10)",
+        "no": "Prispåvirkning på varmen (1-10)",
+        "da": "Prispåvirkning på varmen (1-10)"
+      }
+    },
+    "measure_count_NIBE.i1918_spa_status": {
+      "uiComponent": null,
+      "title": {
+        "en": "Smart Price Adaption status",
+        "sv": "Status smart prisanpassning",
+        "de": "Status Smart Price Adaption",
+        "nl": "Status Smart Price Adaption",
+        "no": "Status smart pristilpasning",
+        "da": "Status smart pristilpasning"
       }
     }
   },

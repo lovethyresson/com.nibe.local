@@ -35,7 +35,8 @@
       "insight": "Insight only"
     },
     "sources": {
-      "prompt": "More than one sensor can report this. Pick the one that should regulate:"
+      "prompt": "More than one sensor can report this. Pick the one that should regulate:",
+      "using": "Using:"
     },
     "devices": {
       "title": "Add devices",
@@ -63,7 +64,6 @@
   "groups": {
     "core": "Core sensors",
     "heating": "Heating",
-    "zones": "Extra zones",
     "hotwater": "Hot water",
     "pool": "Pool",
     "cooling": "Cooling",
@@ -80,5 +80,8 @@
   "Speed 1": "Speed 1",
   "Speed 2": "Speed 2",
   "Speed 3": "Speed 3",
-  "Speed 4": "Speed 4"
+  "Speed 4": "Speed 4",
+  "Auto": "Auto",
+  "Manual": "Manual",
+  "Immersion heater only": "Immersion heater only"
 }

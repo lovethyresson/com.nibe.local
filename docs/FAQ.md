@@ -160,19 +160,36 @@ Check **Room sensor regulation active** on the Heating device. On older firmware
 room-sensor control at all, and with it off the pump ignores the setpoint and follows the heat curve alone.
 The app shows it read-only so you can see the reason rather than guess at it.
 
-### My pump has several room sensors. Which one does Homey use?
+### Which sensor is my indoor temperature actually coming from?
 
-Whichever you picked. When more than one sensor reports a plausible indoor temperature, pairing shows a
-short list — a climate-system average, or an individual sensor — with what each one currently reads, and you
-choose the one that should regulate. If only one is alive you're not asked.
+Pairing and Repair now tell you outright, under the Indoor temperature row: *Using: climate system 1 average
+— 23.5*. If more than one sensor reports a plausible temperature, it becomes a list to choose from instead,
+showing what each one currently reads so you can tell them apart.
 
 To change it later, run **Repair** on the Heating device (device menu → Repair) and pick again.
 
+### Is that BT50, the wired room sensor?
+
+Not necessarily, and on many pumps not at all. Nibe's register documentation labels this value "BT50", but
+what it really reports is the *average for climate system 1* — which on current firmware comes from whatever
+sensors the zone uses, including wireless room units. The maintainer's own pump has no wired room sensor
+fitted whatsoever and still gets a correct reading. That's why the app names the source rather than claiming
+a particular sensor.
+
 ### The room temperature was blank before I updated.
 
-That was a bug, fixed in 0.9.13. The app read register 111, believing it was the BT50 room sensor; it is
-climate system *6*, and on most pumps it is empty. Climate system 1 is register 116. Run **Repair** on the
-Heating device after updating so it picks up the corrected register.
+That was a bug, fixed in 0.9.13. The app read register 111, believing it was the room sensor; it is climate
+system *6*, and on most pumps it is empty. Climate system 1 is register 116. Run **Repair** on the Heating
+device after updating so it picks up the corrected register.
+
+### Where did "Additional heat" go?
+
+It's called **immersion heater** (Swedish: *elpatron*) everywhere now — Nibe's own mix of "additional heat",
+"additive heat" and "add. heat" for one piece of hardware was the single most confusing thing in the app.
+
+Two switches keep their names because they are *not* the immersion heater: **Allow heating** and **Allow hot
+water** are the master permits for those functions. **Allow immersion heater** (heating) and **Allow immersion
+heater, hot water** are the separate electric-heat permits.
 
 ## Setup and connectivity
 
