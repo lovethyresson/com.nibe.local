@@ -31,6 +31,15 @@ export const roleClass: Record<Role, string> = {
     // capabilities" — and the class is the remaining discriminator for the tile. Heating is the
     // only role that carries the pair, so it is the only one that changes.
     heating: "thermostat",
+    // Deliberately NOT a thermostat, unlike heating and pool. `waterheater` is exactly what a
+    // Nibe DHW tank is (Swedish "Varmvattenberedare"), and the alternatives are the wrong
+    // appliance: `boiler` is a furnace, `heater` a radiator.
+    //
+    // The cost is that this class renders no on/off state, so the tile does not grey out when
+    // "Allow hot water" is off the way heating's does. Making it a thermostat would fix that —
+    // that is what gives the other two their dimming — but a thermostat needs one honest target
+    // to mirror, and hot water has three stop temperatures whose relevance depends on the demand
+    // mode. Mirroring any one of them is wrong in the other two modes. Correct class, no dial.
     hotwater: "waterheater",
     // Also a thermostat: it measures a temperature and controls it. Its root capability pair is
     // mirrored from the pool temperature and stop setpoint (see `mirrors` in the S profile),
