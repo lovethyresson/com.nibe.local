@@ -139,43 +139,48 @@ test('writeSingleRegister lands in the holding buffer', {timeout: 15000}, async 
     }
 });
 
-test('a 32-bit register is written as both words, low word first', {timeout: 15000}, async () => {
+// A real pump does NOT round-trip a 32-bit write through this harness's model of memory. It
+// accepts one FC16 request assembled HIGH word first and then reads the value back LOW word
+// first — measured on halderex's S735 (PR #5) and on the maintainer's S1155, where the other
+// three shapes (FC16 low-first, FC6 at either word) are ACKed and silently discarded. jsmodbus's
+// server is a flat buffer and cannot reproduce that asymmetry, so these tests pin what goes ON
+// THE WIRE. Asserting a read-back here would only test the fake pump, and asserting the read
+// order would re-introduce the exact bug: this code sent [low, high] and the setpoint was
+// written off as unwritable because three of four shapes look identical from the client side.
+test('a 32-bit write puts the high word first on the wire', {timeout: 15000}, async () => {
     const pump = await startPump();
     try {
-        // The zone setpoint's shape: s32, scale 10. Writing only the low word would look correct
-        // here (215 fits in one word) while leaving whatever was in the high word behind, so the
-        // test seeds the high word with rubbish first and requires it to be cleared.
+        // The zone setpoint's shape: s32, scale 10. Both words are seeded with rubbish so the
+        // test cannot pass by leaving either of them untouched.
         const setpoint = reg({address: 400, name: 'zone_setpoint', direction: Dir.Out, size: 32, scale: 10});
+        pump.holding.writeUInt16BE(0xBEEF, 400 * 2);
         pump.holding.writeUInt16BE(0xBEEF, 401 * 2);
         const profile = tinyProfile([setpoint]);
         await withConnection(profile, {port: pump.port, unitId: 1}, new FakeSub('main', []), async (c) => {
             await c.writeRegisterValue(setpoint, 215);
-            assert.equal(pump.holding.readUInt16BE(400 * 2), 215, 'low word carries the value');
-            assert.equal(pump.holding.readUInt16BE(401 * 2), 0, 'high word must be cleared, not left as it was');
-            // And it reads back through the normal path as the same number.
-            assert.equal(await c.readRegisterRaw(setpoint), 215);
+            assert.equal(pump.holding.readUInt16BE(400 * 2), 0, 'first word on the wire is the HIGH word');
+            assert.equal(pump.holding.readUInt16BE(401 * 2), 215, 'second word on the wire is the LOW word');
         });
     } finally {
         await pump.close();
     }
 });
 
-test('a negative 32-bit write is two-s complement across both words', {timeout: 15000}, async () => {
+test('a negative 32-bit write is two-s complement, high word first', {timeout: 15000}, async () => {
     const pump = await startPump();
     try {
-        // Degree minutes is the register this protects: s32 and genuinely negative. Truncating
-        // to the low word would write 0xFEA2 alone and read back as +65186 rather than -350.
+        // Degree minutes is the register this protects: s32 and genuinely negative. Truncating to
+        // one word would send 0xF254 alone, which the pump would read as +62036.
         const dm = reg({address: 500, name: 'degree_minutes', direction: Dir.Out, size: 32, scale: 10});
         const profile = tinyProfile([dm]);
         await withConnection(profile, {port: pump.port, unitId: 1}, new FakeSub('main', []), async (c) => {
             await c.writeRegisterValue(dm, -3500);
-            assert.equal(pump.holding.readUInt16BE(501 * 2), 0xFFFF, 'high word must carry the sign');
-            assert.equal(pump.holding.readUInt16BE(500 * 2), (0x10000 - 3500) & 0xFFFF);
-            // readRegisterRaw returns the unsigned 32-bit word pair; signedValue turns it back
-            // into -3500, which is what the capability actually shows.
-            const raw = await c.readRegisterRaw(dm);
-            assert.equal(raw, 0x100000000 - 3500);
-            assert.equal(signedValue(raw!, 32), -3500);
+            const encoded = 0x100000000 - 3500;
+            assert.equal(pump.holding.readUInt16BE(500 * 2), Math.floor(encoded / 65536),
+                'high word first, carrying the sign');
+            assert.equal(pump.holding.readUInt16BE(501 * 2), encoded % 65536);
+            // The decode side is unchanged and still low-word-first — that is the asymmetry.
+            assert.equal(signedValue(encoded, 32), -3500);
         });
     } finally {
         await pump.close();
