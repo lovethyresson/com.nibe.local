@@ -41,7 +41,8 @@ What is in it:
 
 Before publishing:
 
-- [ ] push (30 commits on `feature/room-control`, no upstream set, ahead of `main`)
+- [x] push — `feature/room-control` and `main` both at `f71d36f` on origin, fast-forwarded
+      (no merge commit). Gate on that exact tree: 90/90 tests, `validate --level publish` clean
 - [ ] `homey app publish`
 - [ ] reply to [issue #4](https://github.com/lovethyresson/com.nibe.local/issues/4) — halderex's
       myUplink cross-check measured the energy log against parameter 25138 on the same pump in the
