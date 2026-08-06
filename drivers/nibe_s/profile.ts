@@ -47,6 +47,88 @@ export const sProfile = makeProfile({
             ["measure_watt_NIBE.i2166_energy_usage"],
             ["measure_watt_NIBE.i2305_energylog_power"]
         ],
+        // Reading order per device. Temperatures first, most relevant first, then the settings
+        // that act on them, then the slower/rarer stuff. See ModelProfile.displayOrder.
+        displayOrder: {
+            heating: [
+                // what the room is doing, and what it is being asked to do
+                "measure_temperature",
+                "target_temperature",
+                "measure_temperature.i1_outside",
+                "measure_temperature.i37_outside_avg",
+                // the water that heats it
+                "measure_temperature.i1017_calculated_supply",
+                "measure_temperature.i5_heating_supply",
+                "measure_temperature.i7_heating_return",
+                "measure_temperature.i12_heating_supply",
+                "measure_water.i40_flow_sensor",
+                "measure_percentage_NIBE.i1102_heating_pump",
+                // the curve that decides the supply temperature
+                "curve_mode_NIBE.h26_heat_curve",
+                "measure_count_NIBE.h26_heat_curve",
+                "curve_displacement_NIBE.h30_heat_curve_displacement",
+                "measure_count_NIBE.h30_heat_curve_displacement",
+                "target_temperature.h34_min_supply",
+                "target_temperature.h38_max_supply",
+                // when it is allowed to run at all
+                "target_temperature.h184_auto_stop_heating",
+                "target_temperature.h185_auto_stop_addition",
+                "measure_minute_NIBE.h93_periodtime_heating",
+                // degree minutes: the deficit and its thresholds
+                "measure_degree_minutes_NIBE.h11_degree_minutes",
+                "measure_degree_minutes_NIBE.h97_dm_start_compressor",
+                "measure_degree_minutes_NIBE.h679_dm_diff_start_addition",
+                "measure_degree_minutes_NIBE.h18_limit_dm",
+                // room-sensor regulation and price control, rarely touched
+                "boolean_NIBE.h202_use_room_sensor",
+                "boolean_NIBE.h843_spa_activated",
+                "measure_count_NIBE.h845_spa_heating_influence",
+                "measure_count_NIBE.i1918_spa_status"
+            ],
+            hotwater: [
+                "measure_temperature.i9_hot_water",
+                "measure_temperature.i8_warmwater_top",
+                // the mode in force, and the boost
+                "hotwater_demand_NIBE.h56_hotwater_demand_mode",
+                "measure_enum_NIBE.h56_hotwater_demand_mode",
+                "boolean_NIBE.h697_more_hotwater",
+                "hotwater_increase_NIBE.h697_onetimeincrease_hotwater",
+                // the setpoints, paired start/stop per mode
+                "target_temperature.h60_hotwater_start_small",
+                "target_temperature.h64_hotwater_stop_small",
+                "target_temperature.h59_hotwater_start",
+                "target_temperature.h63_hotwater_stop",
+                "target_temperature.h58_hotwater_start_large",
+                "target_temperature.h62_hotwater_stop_large",
+                // the periodic anti-legionella charge
+                "boolean_NIBE.h65_periodic_hotwater",
+                "measure_enum_NIBE.h65_periodic_hotwater",
+                "hotwater_periodic_interval_NIBE.h66_periodic_hw_interval",
+                "measure_day_NIBE.h66_periodic_hotwater_interval",
+                "target_temperature.h61_hotwater_stop_periodic",
+                "hotwater_periodtime_NIBE.h92_periodtime_hotwater",
+                "measure_minute_NIBE.h92_periodtime_hotwater",
+                // runtimes, then the circulation accessory most pumps do not have
+                "measure_hour_NIBE.i1091_compressor_usage_hotwater",
+                "measure_hour_NIBE.i1069_additive_usage_hotwater",
+                "boolean_NIBE.i1063_hw_circulation",
+                "measure_temperature.i87_outgoing_hotwater",
+                "measure_temperature.i174_hw_comfort_return",
+                "measure_temperature.i175_hw_comfort_heater"
+            ],
+            pool: [
+                "measure_temperature.i27_pool",
+                "target_temperature.h687_pool_start",
+                "target_temperature.h689_pool_stop",
+                "measure_minute_NIBE.h94_periodtime_pool",
+                "boolean_NIBE.i1828_pool_circulation"
+            ],
+            cooling: [
+                "target_temperature.h183_auto_start_cooling",
+                "measure_degree_minutes_NIBE.h20_cooling_dm",
+                "boolean_NIBE.h227_nightchill"
+            ]
+        },
         // Compressor power leads the list because it is in the `energy` group, which the
         // allocator cannot run without — the frequency and status registers say the same thing
         // but live in `diagnostics`, which a user can switch off.
@@ -127,6 +209,67 @@ export const sProfile = makeProfile({
     // How a change of operating priority is explained — see reason.ts, which holds the S
     // control semantics (degree minutes, hot-water start/stop bands, outdoor cut-offs).
     reason: sReason,
+
+    // The pool device is a thermostat too: it measures a temperature and controls it. It cannot
+    // own the bare `measure_temperature` / `target_temperature` ids, because a register's name is
+    // its capability id and heating's room temperature and setpoint already hold them — so the
+    // values are mirrored instead. See `mirrors` on ModelProfile.
+    //
+    // Pool has TWO setpoints where a thermostat dial has one: the pump heats until 689 (stop) and
+    // restarts at 687 (start). `stop` is the honest reading of "the temperature you want the pool
+    // at", and `start` stays visible as its own capability. The validator is what stops the dial
+    // — now a single gesture — inverting the band.
+    mirrors: [
+        {
+            role: "pool",
+            capability: "measure_temperature",
+            register: "measure_temperature.i27_pool",
+            options: {
+                title: {en: "Pool temperature", sv: "Pooltemperatur", de: "Pooltemperatur",
+                        nl: "Zwembadtemperatuur", no: "Bassengtemperatur", da: "Pooltemperatur"}
+            }
+        },
+        {
+            role: "pool",
+            capability: "target_temperature",
+            register: "target_temperature.h689_pool_stop",
+            writable: true,
+            // Range kept identical to the source register (10..35), NOT Nibe's documented
+            // 5.5..80.0 for holding 689. Widening it here would let the dial set a value the
+            // generic "set numeric value" flow card then refuses — the two must agree. Whether
+            // the register's own band should be widened toward Nibe's is a separate question.
+            options: {
+                decimals: 1, min: 10, max: 35, step: 0.5, insights: true,
+                title: {en: "Pool target temperature", sv: "Börvärde pooltemperatur",
+                        de: "Pool-Solltemperatur", nl: "Streefwaarde zwembadtemperatuur",
+                        no: "Settpunkt bassengtemperatur", da: "Settpunkt pooltemperatur"}
+            },
+            validate: (value, read) => {
+                const start = read("target_temperature.h687_pool_start");
+                if (typeof start === "number" && value <= start)
+                    return {
+                        en: `Pool heating stops at this temperature and restarts at ${start} °C, `
+                            + `so it has to stay above ${start} °C. Lower the pool start `
+                            + `temperature first.`,
+                        sv: `Poolvärmen stoppar vid den här temperaturen och startar om vid `
+                            + `${start} °C, så den måste ligga över ${start} °C. Sänk `
+                            + `poolens starttemperatur först.`
+                    };
+                return undefined;
+            }
+        }
+    ],
+
+    // Room temperature and the indoor setpoint moved from sub-capabilities to the bare
+    // `measure_temperature` / `target_temperature` so Homey's Climate feature and the thermostat
+    // tile can see them. Both resolutions are stored per register NAME, so without this an
+    // upgraded device loses them: on an S735 that is the alternate address 26 (room temperature
+    // would go back to the sentinel at the primary), and on an S1155 it is the user's choice
+    // among 116/111/26.
+    renamedRegisters: {
+        "measure_temperature.i26_inside": "measure_temperature",
+        "target_temperature.h2505_zone1_setpoint": "target_temperature"
+    },
 
     detection: {
         // Verify a Modbus responder is a pump by reading input register 1 (outdoor temp).

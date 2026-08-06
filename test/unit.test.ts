@@ -1090,3 +1090,18 @@ test('a register that is both picker and enum decodes to the picker id, not the 
     assert.deepEqual(mode.pickerValues, Object.keys(mode.enum!).map(Number),
         'picker ids must match the enum map exactly');
 });
+
+test('every name in displayOrder is a real register the role actually carries', () => {
+    // The order lives in the profile rather than in the register table, so it can drift: a
+    // renamed or removed register leaves a dead string behind that silently orders nothing, and
+    // the capability it was meant to place quietly falls to the end of its group instead.
+    const order = sProfile.role.displayOrder ?? {};
+    for (const [role, names] of Object.entries(order)) {
+        const carried = new Set(registersForRole(sProfile, role as Role, null).map((r) => r.name));
+        assert.equal(new Set(names).size, names!.length, `${role} lists a name twice`);
+        for (const name of names!) {
+            assert.ok(sProfile.registerByName[name], `${role}: "${name}" is not a register`);
+            assert.ok(carried.has(name), `${role}: "${name}" is not carried by that role`);
+        }
+    }
+});

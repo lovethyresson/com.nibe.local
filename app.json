@@ -3638,12 +3638,12 @@
           "max": 35,
           "insights": true,
           "title": {
-            "en": "Room temperature",
-            "sv": "Rumstemperatur",
-            "de": "Raumtemperatur",
-            "nl": "Kamertemperatuur",
-            "no": "Romtemperatur",
-            "da": "Rumtemperatur"
+            "en": "Target indoor temperature",
+            "sv": "Önskad inomhustemperatur",
+            "de": "Soll-Innentemperatur",
+            "nl": "Gewenste binnentemperatuur",
+            "no": "Ønsket innetemperatur",
+            "da": "Ønsket indetemperatur"
           },
           "step": 0.5
         },

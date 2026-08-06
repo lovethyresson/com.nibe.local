@@ -461,9 +461,18 @@ export abstract class NibePumpDriver extends Driver {
                 if (support[name] === false)
                     selection.overrides[name] = false;
         }
+        // Group first, then the model's declared reading order within it. Anything the model does
+        // not name keeps its table position, after everything named — so an unlisted register
+        // lands at the end of its group rather than somewhere arbitrary.
         const groupOrder = roleGroups[role] as GroupId[];
+        const declared = this.profile.role.displayOrder?.[role] ?? [];
+        const rank = (name: string) => {
+            const at = declared.indexOf(name);
+            return at === -1 ? Number.MAX_SAFE_INTEGER : at;
+        };
         const roleRegs = registersForRole(this.profile, role, selection)
-            .sort((a, b) => groupOrder.indexOf(a.group) - groupOrder.indexOf(b.group));
+            .sort((a, b) => groupOrder.indexOf(a.group) - groupOrder.indexOf(b.group)
+                || rank(a.name) - rank(b.name));
         const options: {[name: string]: any} = {};
         for (const register of roleRegisters(this.profile, role))
             if (this.options(register.name))

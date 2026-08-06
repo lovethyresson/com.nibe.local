@@ -51,6 +51,18 @@ export interface RoleConfig {
     // too, if none of these answer.
     displayPowerSources?: string[][];
 
+    // The order capabilities appear in on each device, as a list of register names per role.
+    //
+    // Kept here rather than by reordering the register table, because entries there carry long
+    // comment blocks explaining what was measured and why, and moving lines would orphan them
+    // from the registers they document. This is the one place the intended reading order is
+    // legible end to end.
+    //
+    // Anything not listed keeps its table position, after everything that is listed — so a new
+    // register appears at the end of its group rather than in an arbitrary spot, and the list
+    // never has to be exhaustive.
+    displayOrder?: Partial<Record<Role, string[]>>;
+
     // Registers worth logging while the pump winds down after it stops prioritising a function
     // — compressor power first. Diagnostic only: the priority register says what the pump is
     // *prioritising*, not what it is *doing*, and the gap between the two is where energy gets
@@ -131,6 +143,26 @@ export interface DiscoveryProbe {
     max: number;
 }
 
+// One bare capability on one role, carrying the value of a register that has its own name.
+// See `mirrors` on ModelProfile for why this exists rather than a second register.
+export interface CapabilityMirror {
+    role: Role;
+    // The bare Homey capability id to publish under, e.g. "target_temperature".
+    capability: string;
+    // The register whose value it mirrors. Must belong to this role, or the mirror never fills.
+    register: string;
+    // Per-instance options. Needed because capabilitiesOptions in the compose file is keyed by
+    // capability id alone, so a root id shared with another role would otherwise inherit that
+    // role's title — a pool dial labelled "Room temperature".
+    options: any;
+    // Writes to the mirror are forwarded to the source register. Omit for a read-only mirror.
+    writable?: boolean;
+    // Rejects a write before it reaches the pump, with a message for the user. For a setpoint
+    // that is one half of a hysteresis band, where the tile's dial makes an invalid value a
+    // single gesture away.
+    validate?: (value: number, read: (register: string) => any) => LocalizedText | undefined;
+}
+
 export interface ModelProfile {
     registers: Register[];
     registerByName: Record<string, Register>;
@@ -190,6 +222,26 @@ export interface ModelProfile {
     // How this model explains a change of operating priority — the registers to read and the
     // rules that turn them into a sentence. See ReasonConfig.
     reason?: ReasonConfig;
+
+    // Bare capabilities fed from a register that already has a name of its own.
+    //
+    // Homey's thermostat tile and its Climate view key on the ROOT capability ids
+    // (`measure_temperature`, `target_temperature`). In this app a register's name *is* its
+    // capability id and names are unique across the table, so those ids can only ever belong to
+    // one register — heating's. Any other device that wants the same treatment has to publish a
+    // copy under the root id, which is what this is: not a second register, not a second poll,
+    // just the same value surfaced twice on one device.
+    //
+    // A writable mirror also carries the write back to its source register, so the dial on the
+    // tile and the named capability underneath stay one setting.
+    mirrors?: CapabilityMirror[];
+
+    // Old register name → its current name, for registers this model has renamed since release.
+    // A stored selection is keyed by register name, so without this a rename loses the device's
+    // per-capability override and — worse — the address detection resolved for it. Kept as model
+    // data rather than a one-off migration script, because it is a fact about this register table.
+    // See migrateSelection() in lib/registers.ts.
+    renamedRegisters?: Record<string, string>;
 
     detection: {
         // Fallback per-group heuristics for when nothing moved during the sampling window.
