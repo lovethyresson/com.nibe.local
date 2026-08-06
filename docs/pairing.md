@@ -207,6 +207,21 @@ Run the device's **Repair** flow (device menu → Repair). It re-runs detection 
 rewrites the selection. A device that has never been repaired keeps reading the primary address, exactly as
 before — resolution never happens behind the user's back on a running device.
 
+## Capability order — the picker decides it, not the manifest
+
+A device renders its **stored** capability array, in order. That array is written once, at pairing, from
+what the features view submits — so `candidateGroups()` in `driver.ts`, which builds the per-group lists the
+picker shows, is what fixes the order. `deviceTemplate` and the order in `driver.compose.json` do not reach
+a paired device; the picker's list overwrites both. Both places sort by `displayOrder` for that role, and
+both need to, but only the picker's ordering is observable.
+
+One hardware caveat: on a Homey Pro 2023 the Web API is
+[reported](https://community.homey.app/t/capability-order-and-what-capability-page-to-display-first/90491)
+to list standard capability types ahead of custom ones regardless of declared order. That has not been
+observed on this app's devices — an S1155 Heating device renders `measure_degree_minutes_NIBE` in its
+declared position among the temperatures — but it is the first thing to suspect if an order looks
+regrouped rather than random. There is no way to control which capability tab opens first.
+
 ## Credits
 
 The fallback mechanism, and the S735 evidence behind the room-temperature case, come from

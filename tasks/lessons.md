@@ -99,3 +99,92 @@ before `socket.connect()`. Never write a helper that connects a socket and hands
 **Corollary:** every probe should assert one register that cannot fail (input 1, outdoor temperature,
 exists on all six S models) and abort loudly if it does. A column of identical errors reads like a
 finding about the pump when it is a finding about the probe.
+
+## Search the Home Assistant community before building against a register
+
+**2026-08-05.** I built an indoor-temperature setpoint on holding 2505, verified it against Nibe's CSVs, an
+in-process fake pump and read-only live probes, and reported it working. It wasn't. The pump ACKs Modbus
+writes to the setpoint and silently discards them, so the control would have snapped back for every user.
+When the live write test finally showed it, I was about to write the whole feature off — the user stopped me:
+"Stop. Do some research online first before discarding this."
+
+Ten minutes of searching produced what days of probing had not.
+[home-assistant/core#154450](https://github.com/home-assistant/core/issues/154450): an S735 owner with the
+identical symptom — writes to 206 land, readback changes, heating does not react, myUplink works within
+minutes. And #155175: the external-BT50 injection registers 5986/5987, added in firmware 2.22.12 and absent
+from every model CSV we ship. Neither fact is derivable from Nibe's documentation at all.
+
+**Rule:** before adding a register or designing a feature around one, search
+`site:community.home-assistant.io nibe <topic>`, the `home-assistant/core` issue tracker, and the community
+integrations. Do it at design time, not after the implementation fails. A matching report from another owner
+is evidence on a par with a live probe — cite it in the code comment, as `registers.ts` now does for 2505.
+
+**Corollary:** Nibe's CSVs describe which registers *exist*. They say nothing about which ones the controller
+*honours*. "Holding register, documented min/max/default" implied writable to me, and for the setpoint that
+was simply false.
+
+## A write that is ACKed is not a write that landed — enumerate the shape space
+
+**2026-08-06.** I concluded the indoor setpoint (holding 2505) was read-only, shipped it that way, wrote a
+FAQ entry and a release note asserting it, and told the user their only route was the myUplink cloud API.
+All wrong. halderex found it in PR #5: the pump accepts exactly one shape — a two-word FC16 request
+assembled **HIGH word first** — and silently discards everything else. Reproduced afterwards on the
+maintainer's S1155:
+
+```
+FC16 [high, low]        -> TOOK
+FC16 [low, high]        -> ACKed, discarded   <- what this app was sending
+FC6 at the address      -> ACKed, discarded
+FC6 at address + 1      -> ACKed, discarded
+```
+
+**The trap is that three of four shapes ACK.** A partial matrix is indistinguishable from a register the
+pump refuses to write, so "I tried two shapes and neither stuck" is not evidence of read-only — it is no
+evidence at all. My probe tested FC6 and FC16-low-first and I read the result as a property of the register
+rather than of my request.
+
+**Nibe reads 32-bit registers low-word-first and writes them high-word-first.** Read order does not imply
+write order. The plausible explanation is that the write handler parses a standard big-endian 32-bit value
+while the read path presents Nibe's own little-endian word order — but that is a hypothesis; what is
+measured is the table above, on two models (S735, S1155) for one register.
+
+**Rules:**
+- Before calling a holding register unwritable, try the whole shape space: {FC6, FC16} × {word orders} ×
+  {each word's address}. Restore the original between attempts so no shape inherits another's success.
+- Always read back after writing, and after a delay — an ACK means the request was well-formed, nothing more.
+- Never let a read path's byte/word order imply the write path's. Assert them separately.
+- A fake-pump harness that is flat memory **cannot** model this asymmetry. Test what goes on the wire; a
+  round-trip assertion there tests the harness, not the pump. Ours asserted the round trip and passed
+  happily while the app wrote the one order the pump ignores.
+
+## When a setting has no effect, find the second writer before blaming the platform
+
+**2026-08-06.** Capability display order was ignored. I added `displayOrder` to the profile, sorted
+`deviceTemplate` by it, reordered `driver.compose.json`, verified the generated `app.json` carried the new
+order — and a fresh pair still came out in raw register-table order. I was one step from concluding that
+Homey does not honour the manifest and writing that into the docs.
+
+It honours it. A **second code path** was overwriting the result: `candidateGroups()` builds the pairing
+picker's per-group capability lists straight from the register table, and the features view assigns those to
+`device.capabilities`. The picker's list is what the device stores, and the stored array is what renders.
+Everything upstream of it was dead code as far as ordering went.
+
+Two failures, and the second is the expensive one:
+
+- **I verified the artifact I control, not the value that ends up in place.** `app.json` was correct at every
+  check. The device's stored array — one API read away, and the thing actually rendered — was not, and that
+  read is what identified the writer.
+- **I was about to attribute my own bug to the platform.** "The framework ignores this" is the most
+  self-serving explanation available and needs the most evidence, not the least. The user asked twice —
+  "have you checked the homey forums?", and earlier "again, check HA … stop, do your research first" — and
+  both times the outside source settled in minutes what I had been inferring for far longer. The forum
+  thread confirmed order *is* respected, which is what turned the search back onto our own code.
+
+**Rules:**
+- Before concluding a platform ignores a setting, grep for every place that writes the same field. A
+  declared value that never lands usually has a second author, not an indifferent reader.
+- Assert on the end state on the device, not on the generated file. `homey api devices get-device` shows what
+  was really stored.
+- Search the vendor's forum *before* the third failed hypothesis, not after. Twice now the answer was
+  published and one search away — Nibe's register list for the additional-heat permit, this thread for
+  capability order.
