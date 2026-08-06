@@ -392,15 +392,15 @@ export const registers: Register[] = [
     // A sub-id `onoff.*` (a row toggle), not the bare `onoff` — the bare id is now the
     // device's derived Active state (the tile on/off follows operating priority for every
     // role device); the duration picker below is the secondary control for the same register.
-    // The pump's "blocked" flags, polled but not shown, because we do not yet know which is
-    // which. A schedule (menu 6) can stop hot water charging outright, and nothing in the app
-    // could say so: settings all correct, no competing demand, pump idle, tank 20 °C below its
-    // start point — and no explanation available anywhere in the register set we read.
+    // The pump's "blocked" flags — polled, and now known NOT to answer the question they were
+    // added for. Tested 2026-08-06 with a schedule actively blocking hot water and additional
+    // heat: tank at 44.5 °C against a 52 °C start point, hot water permitted, pump idle at 10 W,
+    // and all four of these read 0.
     //
-    // The map offers three registers titled simply "Blocked" plus an external-blocking flag,
-    // with no indication of which function each covers. Rather than assign meanings by guessing,
-    // they are polled so the register dump shows them: whoever next has a schedule active can
-    // read off which flag moves, and only then are they worth naming and surfacing.
+    // So a schedule block (menu 6) really is invisible over Modbus — that is measured now, not
+    // assumed, and this comment exists so nobody adds these again hoping otherwise. They stay
+    // because they may still report something on an installation with a real external blocking
+    // signal wired in, which this pump does not have.
     {address: 1058, name: "__blocked_external",                                      direction: Dir.In,  group: "core",      scale: 1, internal: true, // Extern blockering
      info: {en: "External blocking flag, function unconfirmed", sv: "Extern blockeringsflagga, funktion obekräftad"}},
     {address: 1059, name: "__blocked_1059",                                          direction: Dir.In,  group: "core",      scale: 1, internal: true, // Blockerad
