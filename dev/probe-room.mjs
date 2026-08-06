@@ -301,9 +301,34 @@ if (write !== undefined) {
     console.log(`\n=== WRITE TEST: holding ${target} (${width}-bit, ÷${divisor}) -> ${write} ===`);
     console.log(`before: ${await readBack()}`);
 
-    // FC6 first: one word. Correct only while the high word is already 0, which it is for
-    // 5.0..35.0 — this is exactly the accident the app's width-aware write exists to avoid
-    // relying on. Here it is a probe, not a strategy.
+    // Every shape the pump might accept, tried in turn. This exists because concluding "2505 is
+    // read-only" from FC6 + FC16-low-word-first was wrong: halderex measured on an S735 that the
+    // pump takes exactly ONE shape — a two-word FC16 assembled HIGH word first, the opposite of
+    // the order it reads in (PR #5). Every other shape is ACKed and silently discarded, so a
+    // partial matrix looks identical to a read-only register. Test them all or conclude nothing.
+    //
+    // The original value is restored between attempts, so each starts from the same place and a
+    // later shape can't inherit an earlier one's success.
+    const original = await readBack();
+    const restoreOriginal = async () => {
+        // Restore with whatever shape works; if none does, the register never changed anyway.
+        for (const words of [[Math.floor(rawOf(original) / 65536), rawOf(original) % 65536],
+            [rawOf(original) % 65536, Math.floor(rawOf(original) / 65536)]]) {
+            try {
+                if (width === 32)
+                    await client.writeMultipleRegisters(target, words);
+                else
+                    await client.writeSingleRegister(target, rawOf(original));
+                if (await readBack() === original)
+                    return;
+            } catch { /* try the next shape */ }
+        }
+    };
+    function rawOf(value) {
+        const r = Math.round(value * divisor);
+        return r < 0 ? r + 0x100000000 : r;
+    }
+
     const attempt = async (label, send) => {
         let result;
         try {
@@ -320,21 +345,32 @@ if (write !== undefined) {
             result = `REJECTED — ${body ? JSON.stringify(body) : (error?.message ?? String(error))}`;
         }
         console.log(`  ${label}: ${result}`);
+        await restoreOriginal();
     };
 
-    await attempt('FC6  writeSingleRegister    ',
-        () => client.writeSingleRegister(target, raw));
-    if (width === 32)
-        await attempt('FC16 writeMultipleRegisters',
-            () => client.writeMultipleRegisters(target,
-                [raw & 0xFFFF, Math.floor(raw / 65536) & 0xFFFF]));
+    const lo = raw % 65536;
+    const hi = Math.floor(raw / 65536);
+    if (width === 32) {
+        // High word first is the one halderex measured as working. Tried first so a run that
+        // succeeds says so before touching the shapes already known to be discarded.
+        await attempt('FC16 [high, low]  (halderex order)',
+            () => client.writeMultipleRegisters(target, [hi, lo]));
+        await attempt('FC16 [low, high]  (read order)    ',
+            () => client.writeMultipleRegisters(target, [lo, hi]));
+        await attempt(`FC6  single word at ${target}       `,
+            () => client.writeSingleRegister(target, lo));
+        await attempt(`FC6  single word at ${target + 1}       `,
+            () => client.writeSingleRegister(target + 1, hi));
+    } else {
+        await attempt('FC6  writeSingleRegister          ',
+            () => client.writeSingleRegister(target, raw));
+    }
 
-    console.log('\n  TOOK                 the register is genuinely writable over Modbus.');
-    console.log('  ACKED BUT DISCARDED  the pump accepts the write and its own controller');
-    console.log('                       overwrites it — the same way register 11 (degree');
-    console.log('                       minutes) behaves. Not a bug in the app.');
+    console.log('\n  TOOK                 that shape genuinely writes the register.');
+    console.log('  ACKED BUT DISCARDED  the pump accepts the request and ignores it. NOT evidence');
+    console.log('                       the register is read-only — only that this shape is wrong.');
     console.log('  REJECTED             the pump refused it outright, with the exception shown.');
-    console.log(`\nHolding ${target} is now ${await readBack()} — set it back yourself if you need to.`);
+    console.log(`\nHolding ${target} restored to ${await readBack()} (was ${original}).`);
 }
 
 if (watch) {
