@@ -1,7 +1,31 @@
 # dev/ — maintainer tools (not shipped)
 
-This directory is excluded from the built Homey app (see `.homeyignore`) and is only for
-working on `registers.ts`.
+This directory is excluded from the built Homey app (see `.homeyignore`). Two of the tools here
+are about `registers.ts`; the rest are **probes** — read-only scripts that answer one question
+each against a live pump, written when reasoning from the register table had already produced a
+wrong answer.
+
+## The probes
+
+Each script's header states the question it answers and what was believed before it was written,
+so start there rather than here. All of them take a host (default `10.136.1.93`) and open their
+own Modbus connection — **the pump accepts a single client, so a running `homey app run` loses
+its connection while a probe runs** and reconnects by itself afterwards.
+
+| script | the question |
+|---|---|
+| `probe-room.mjs` | which registers carry indoor temperature and its setpoint — and which *write shape* the pump accepts |
+| `probe-immersion.mjs` | why the immersion heater never fires during hot water charging |
+| `probe-power.mjs` | what input 2727 "Current power" actually reports |
+| `probe-power-split.mjs` | should per-function energy integrate 2166 or 2305 |
+| `probe-energylog.mjs` | what the energy-log block (2283-2305) means, and can it replace the allocator |
+| `analyse-energylog.mjs` | hour by hour, does the pump's own per-function split add up to its own total (reads a `homey app run` log, not the pump) |
+
+**Why these are probes and not registers.** A probe reads things the app has no reason to poll —
+configuration, permits, ladders, alternate addresses. Adding a register to answer a one-off
+question puts a permanent capability on every user's device to settle a question that was asked
+once. Three of the six above refuted a hypothesis that had already been argued from the CSVs and
+sounded right; that is what they are for.
 
 ## audit-registers.mjs
 
