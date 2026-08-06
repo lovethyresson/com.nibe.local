@@ -1,13 +1,13 @@
 import {Device} from 'homey';
 import {
-    Dir, Register, Selection, isPollable, isUnavailableRaw, resolvedAddress, signedValue,
-    withResolvedAddresses
+    Dir, Register, Selection, isPollable, isUnavailableRaw, migrateSelection, resolvedAddress,
+    signedValue, withResolvedAddresses
 } from './registers';
 import {
     ACTIVE_POWER_CAPABILITY, ALARM_ACTIVE_CAPABILITY, ALARM_TEXT_CAPABILITY,
     FUNCTION_COP_CAPABILITY, METER_CAPABILITY,
     PUMP_ACTIVE_CAPABILITY, Role, SOLAR_METER_CAPABILITY, TOTAL_COP_CAPABILITY,
-    extraCapabilities, extraCapabilityOptions, functionRoles,
+    extraCapabilities, extraCapabilityOptions, functionRoles, mirrorOptions, mirrorsForRole,
     registersForRole, roleClass, roleOf, roleRegisters
 } from './roles';
 import {ALARM_SOURCE_URL, alarmAdvice, alarmDescription} from './alarms';
@@ -68,6 +68,21 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         return (this.getStoreValue('selection') ?? null) as Selection | null;
     }
 
+    // One-shot and idempotent: rewrite the stored selection's keys for registers this model has
+    // renamed. A device with no stored selection has everything enabled and nothing to carry.
+    private async migrateRenamedRegisters() {
+        const selection = this.getSelection();
+        if (!selection)
+            return;
+        const migrated = migrateSelection(selection, this.profile.renamedRegisters);
+        if (migrated === selection)
+            return;
+        this.log('Migrating stored selection onto renamed registers: '
+            + Object.entries(this.profile.renamedRegisters ?? {})
+                .map(([from, to]) => `${from} -> ${to}`).join(', '));
+        await this.setStoreValue('selection', migrated).catch(this.error);
+    }
+
     private enabledGroupsSummary(): string {
         const selection = this.getSelection();
         if (!selection)
@@ -103,9 +118,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             value = value ? (register.onValue ?? 1) : (register.offValue ?? 0);
         else if (register.scale)
             value = Math.round(value * register.scale);
-        // Two's complement last, mirroring fromRegisterValue() which undoes it first.
+        // Two's complement last, mirroring fromRegisterValue() which undoes it first — and sized
+        // like signedValue() is, because a negative 32-bit value wraps at 2^32, not 2^16. Getting
+        // this wrong encodes -350 as a small positive that the splitter then writes with a zero
+        // high word, so the pump receives +65186.
         if (value < 0)
-            value += 65536;
+            value += register.size === 32 ? 0x100000000 : 65536;
         return value;
     }
 
@@ -125,6 +143,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             throw new Error('Not connected to the heat pump');
         try {
             const address = resolvedAddress(register, this.getSelection());
+            this.recentWrites.set(register.name, {value, at: Date.now()});
             await this.connection.writeRegisterValue(
                 {...register, address}, this.toRegisterValue(register, value));
         } catch (error: any) {
@@ -163,7 +182,45 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     // logged once per register rather than on every poll.
     private unlistedPickerValues = new Set<string>();
 
+    // Values this app has just written, so the poll that reads them back is not mistaken for the
+    // pump acting on its own. The timestamp lets an entry expire rather than suppressing a
+    // genuine later change that happens to land on the same value.
+    private recentWrites = new Map<string, {value: any; at: number}>();
+    private static readonly WRITE_ECHO_MS = 30_000;
+
+    // Publish a register's value into any bare capability mirroring it (the thermostat tile and
+    // Homey's Climate view read root ids, which the register itself cannot own — see `mirrors`
+    // on ModelProfile). Separate capabilities with their own presence test, so this runs before
+    // setValue()'s early return for a register this device doesn't carry.
+    private async publishMirrors(register: Register, value: any) {
+        for (const mirror of mirrorsForRole(this.profile, this.role)) {
+            if (mirror.register !== register.name || !this.hasCapability(mirror.capability))
+                continue;
+            await this.setCapabilityValue(mirror.capability, value).catch(this.error);
+        }
+    }
+
+    // A settable register that changed without this app writing it was changed by something
+    // else: the pump's own schedule, its front panel, or myUplink. None of those are readable
+    // over Modbus, and their absence from the log is what let a blocking schedule hide for a
+    // day — every setting read correct, and nothing recorded that the pump had overridden them.
+    //
+    // Writes from Homey are already attributed at their own call sites ("Manual set …" from a
+    // tile, "Flow: … set …" from a Flow card), so this is the third case and the only one the
+    // app can otherwise not see.
+    private noteExternalChange(register: Register, oldValue: any, value: any) {
+        if (register.direction !== Dir.Out || oldValue === null || oldValue === undefined)
+            return;
+        const ours = this.recentWrites.get(register.name);
+        if (ours && ours.value === value && Date.now() - ours.at < NibePumpDevice.WRITE_ECHO_MS)
+            return;
+        this.log(`Pump-side change: ${this.registerTitle(register)} (register ${register.address}) `
+            + `went ${oldValue} -> ${value}, not set from Homey. A schedule, the pump's own panel `
+            + `or myUplink can do this.`);
+    }
+
     async setValue(register: Register, value: any) {
+        await this.publishMirrors(register, value);
         if (register.writeOnly || !this.hasCapability(register.name))
             return;
         // A picker offers a curated shortlist; the register's domain is wider. Homey rejects an
@@ -184,8 +241,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.unlistedPickerValues.delete(register.name);
         const oldValue = this.getCapabilityValue(register.name);
         await this.setCapabilityValue(register.name, value);
-        if (oldValue !== value)
+        if (oldValue !== value) {
+            this.noteExternalChange(register, oldValue, value);
             this.checkTrigger(register, value);
+        }
     }
 
     private async ensureCapabilityOptions(name: string, option: any) {
@@ -215,7 +274,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     // Per-instance options for the non-register energy/COP capabilities (same capability id,
     // role-specific title — which the shared compose file can't express).
     private extraOptions(name: string): any {
-        return extraCapabilityOptions(this.role, name);
+        return mirrorOptions(this.profile, this.role, name)
+            ?? extraCapabilityOptions(this.role, name);
     }
 
     // ---- Rolling 30-day COP -------------------------------------------------------------
@@ -360,6 +420,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     async onInit() {
         this.role = roleOf(this.getData());
+        // Before anything reads the selection: carry it across any register this model has
+        // renamed, so an upgraded device keeps its overrides and its resolved addresses.
+        await this.migrateRenamedRegisters();
         this.debug(`Device init: role ${this.role}, host ${this.host()}, groups [${this.enabledGroupsSummary()}]`);
 
         if (this.getClass() !== roleClass[this.role]) {
@@ -398,6 +461,27 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                         this.checkTrigger(register, value);
                     });
                 }
+            }
+
+            // A writable mirror is the same setting as its source register, reached through the
+            // bare capability the thermostat tile renders. Forward the write, then update the
+            // source capability too so the tile's dial and the named row underneath never
+            // disagree while waiting for the next poll.
+            for (const mirror of mirrorsForRole(this.profile, this.role)) {
+                const source = this.profile.registerByName[mirror.register];
+                if (!mirror.writable || !source || !this.hasCapability(mirror.capability))
+                    continue;
+                this.registerCapabilityListener(mirror.capability, async (value) => {
+                    // Validated before the write, not after: the tile makes an invalid value one
+                    // gesture away, and the pump would accept a crossed band without complaint.
+                    const problem = mirror.validate?.(value,
+                        (name) => this.getCapabilityValue(name));
+                    if (problem)
+                        throw new Error(inLanguage(problem, this.homey.i18n.getLanguage()));
+                    this.log(`Manual set ${mirror.capability} (${mirror.register}) = ${value}`);
+                    await this.writeRegister(source, value);
+                    await this.setValue(source, value);
+                });
             }
 
             // Main's on/off is the bare `onoff`, pinned ON (the pump is always operating; there
