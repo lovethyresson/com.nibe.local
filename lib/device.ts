@@ -191,6 +191,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     // genuine later change that happens to land on the same value.
     private recentWrites = new Map<string, {value: any; at: number}>();
     private static readonly WRITE_ECHO_MS = 30_000;
+    // At most one pump-side line per register per this interval.
+    private lastExternalNote = new Map<string, number>();
+    private static readonly EXTERNAL_NOTE_MS = 10 * 60 * 1000;
 
     // Publish a register's value into any bare capability mirroring it (the thermostat tile and
     // Homey's Climate view read root ids, which the register itself cannot own — see `mirrors`
@@ -215,9 +218,20 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private noteExternalChange(register: Register, oldValue: any, value: any) {
         if (register.direction !== Dir.Out || oldValue === null || oldValue === undefined)
             return;
+        // `noAction` marks a holding register that is a reading rather than a setting — Nibe puts
+        // degree minutes in one — and nobody "changed" those, the pump just recomputed them.
+        if (register.noAction)
+            return;
         const ours = this.recentWrites.get(register.name);
         if (ours && ours.value === value && Date.now() - ours.at < NibePumpDevice.WRITE_ECHO_MS)
             return;
+        // Rate limit whatever is left. A register that turns out to move on its own would
+        // otherwise flood the log with one line per poll: degree minutes and its limit twin
+        // produced a line a minute each until this was added, drowning the events worth seeing.
+        const lastSaid = this.lastExternalNote.get(register.name) ?? 0;
+        if (Date.now() - lastSaid < NibePumpDevice.EXTERNAL_NOTE_MS)
+            return;
+        this.lastExternalNote.set(register.name, Date.now());
         this.log(`Pump-side change: ${this.registerTitle(register)} (register ${register.address}) `
             + `went ${oldValue} -> ${value}, not set from Homey. A schedule, the pump's own panel `
             + `or myUplink can do this.`);
