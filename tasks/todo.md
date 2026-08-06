@@ -8,10 +8,18 @@ commits and in the **Releases** table in [`README.md`](../README.md), the durabl
 
 Built, tested and validated at publish level. Not published.
 
-**It breaks.** Capability names change and several capabilities are removed, so **Repair is
-needed on every Nibe device**, not just Heating. Flows pointing at a renamed setting must have it
-picked again, and their Insights history starts fresh. This is stated in the changelog in both
-languages.
+**It breaks, and that is measured rather than assumed.** Against 0.9.12 the compose capability
+set goes 105 -> 102: **15 removed, 12 added**, several of them renames of the same register onto
+a new type (`boolean_NIBE.i1063_hw_circulation` -> `status_NIBE.i1063_hw_circulation`,
+`measure_enum_NIBE.h237_operating_mode` -> `operating_mode_NIBE.h237_operating_mode`,
+`measure_temperature.i26_inside` -> root `measure_temperature`). So **Repair is needed on every
+Nibe device**, not just Heating. Flows pointing at a renamed setting must have it picked again,
+and their Insights history starts fresh. Stated in the changelog in both languages.
+
+The publish-time trap in `CLAUDE.md` — deleting a capability *type* in the same release as a
+rename away from it, which breaks every capability operation in `onInit` — is checked and clear:
+two type files were added (`operating_mode_NIBE`, `status_NIBE`) and none deleted, so every
+orphaned instance still resolves.
 
 What is in it:
 
@@ -23,8 +31,13 @@ What is in it:
 - six capabilities that showed one setting twice collapse to one each
 - three crash classes fixed: read-only registers offered as switches, a picker handed a value
   outside its list, and a picker that also carried an enum decoding to the label
-- capabilities have a declared reading order per device
+- capabilities have a declared reading order per device — applied to the list the pairing picker
+  submits, which is what a device stores and renders; ordering the manifest alone did nothing
+- the Hot Water tile follows "Allow hot water" again. A tile's on/off appearance *is* its quick
+  action, so pinning "More hot water" to that slot had silently cost it the state
 - pump-side changes are logged, so a schedule or a panel edit is visible rather than silent
+- indoor setpoint (2505) writable, room sensor resolved at pairing, Pool a thermostat, Smart
+  Price Adaption exposed — mechanism and evidence from halderex's PR #5
 
 Before publishing:
 
