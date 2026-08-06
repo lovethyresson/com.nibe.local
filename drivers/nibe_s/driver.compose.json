@@ -21,13 +21,13 @@
     "meter_kwh_NIBE.i1579_cooling_produced",
     "alarm_generic",
     "alarm_text_NIBE",
-    "boolean_NIBE.i1100_compressor_status",
+    "status_NIBE.i1100_compressor_status",
     "meter_kwh_NIBE.i398_pulse_energy",
     "meter_power.solar",
     "measure_temperature.i87_outgoing_hotwater",
     "measure_temperature.i174_hw_comfort_return",
     "measure_temperature.i175_hw_comfort_heater",
-    "boolean_NIBE.i1063_hw_circulation",
+    "status_NIBE.i1063_hw_circulation",
     "target_temperature.h183_auto_start_cooling",
     "measure_temperature.i1_outside",
     "measure_temperature",
@@ -57,7 +57,7 @@
     "measure_temperature.i20_supply_air",
     "fan_speed.h109_returnair_normal",
     "measure_enum_NIBE.i1037_return_fan_step",
-    "boolean_NIBE.i1029_additive_heat_active",
+    "status_NIBE.i1029_additive_heat_active",
     "measure_watt_NIBE.i1027_additive_effect",
     "fuse_NIBE.h103_fuse",
     "measure_hour_NIBE.i1025_additive_usage_total",
@@ -68,10 +68,6 @@
     "measure_hour_NIBE.i1091_compressor_usage_hotwater",
     "onoff",
     "boolean_NIBE.h697_more_hotwater",
-    "measure_count_NIBE.h846_spa_hotwater",
-    "measure_count_NIBE.h902_spa_hotwater_influence",
-    "measure_count_NIBE.i1915_spa_hotwater_mode",
-    "boolean_NIBE.h762_hotwater_sg_ready",
     "measure_current.i50_sensor_v2",
     "measure_current.i48_sensor_v2",
     "measure_current.i46_sensor_v2",
@@ -104,7 +100,7 @@
     "button.h22_reset_alarm",
     "boolean_NIBE.h227_nightchill",
     "boolean_NIBE.h65_periodic_hotwater",
-    "boolean_NIBE.i1828_pool_circulation",
+    "status_NIBE.i1828_pool_circulation",
     "onoff.h691_pool_active",
     "curve_mode_NIBE.h26_heat_curve",
     "curve_displacement_NIBE.h30_heat_curve_displacement",
@@ -138,8 +134,7 @@
         "da": "Effekt"
       }
     },
-    "boolean_NIBE.i1029_additive_heat_active": {
-      "uiComponent": "sensor",
+    "status_NIBE.i1029_additive_heat_active": {
       "insights": true,
       "title": {
         "en": "Immersion heater active",
@@ -261,7 +256,8 @@
         "nl": "Meer warmtapwater",
         "no": "Mer varmtvann",
         "da": "Mere varmtvand"
-      }
+      },
+      "uiQuickAction": true
     },
     "measure_frequency.i1046_compressor": {
       "title": {
@@ -369,8 +365,7 @@
         "da": "Leveret energi"
       }
     },
-    "boolean_NIBE.i1100_compressor_status": {
-      "uiComponent": "sensor",
+    "status_NIBE.i1100_compressor_status": {
       "setable": false,
       "getable": true,
       "title": {
@@ -434,8 +429,7 @@
         "da": "Varmt vand komfortvarmer (BT83)"
       }
     },
-    "boolean_NIBE.i1063_hw_circulation": {
-      "uiComponent": "sensor",
+    "status_NIBE.i1063_hw_circulation": {
       "setable": false,
       "getable": true,
       "title": {
@@ -1087,8 +1081,7 @@
         "da": "Nulstil alarm"
       }
     },
-    "boolean_NIBE.i1828_pool_circulation": {
-      "uiComponent": "sensor",
+    "status_NIBE.i1828_pool_circulation": {
       "setable": false,
       "getable": true,
       "title": {
@@ -1214,53 +1207,6 @@
         "nl": "Status Smart Price Adaption",
         "no": "Status smart pristilpasning",
         "da": "Status smart pristilpasning"
-      }
-    },
-    "measure_count_NIBE.h846_spa_hotwater": {
-      "insights": true,
-      "title": {
-        "en": "Smart price adaptation (hot water)",
-        "sv": "Smart prisanpassning (varmvatten)",
-        "de": "Smart price adaptation (hot water)",
-        "nl": "Smart price adaptation (hot water)",
-        "no": "Smart prisanpassning (varmvatten)",
-        "da": "Smart prisanpassning (varmvatten)"
-      },
-      "decimals": 0
-    },
-    "measure_count_NIBE.h902_spa_hotwater_influence": {
-      "insights": true,
-      "title": {
-        "en": "Smart price influence (hot water)",
-        "sv": "Prispåverkan (varmvatten)",
-        "de": "Smart price influence (hot water)",
-        "nl": "Smart price influence (hot water)",
-        "no": "Prispåverkan (varmvatten)",
-        "da": "Prispåverkan (varmvatten)"
-      },
-      "decimals": 0
-    },
-    "measure_count_NIBE.i1915_spa_hotwater_mode": {
-      "insights": true,
-      "title": {
-        "en": "Smart price mode now (hot water)",
-        "sv": "Prisstyrt läge nu (varmvatten)",
-        "de": "Smart price mode now (hot water)",
-        "nl": "Smart price mode now (hot water)",
-        "no": "Prisstyrt läge nu (varmvatten)",
-        "da": "Prisstyrt läge nu (varmvatten)"
-      },
-      "decimals": 0
-    },
-    "boolean_NIBE.h762_hotwater_sg_ready": {
-      "insights": true,
-      "title": {
-        "en": "SG Ready affects hot water",
-        "sv": "SG Ready påverkar varmvatten",
-        "de": "SG Ready affects hot water",
-        "nl": "SG Ready affects hot water",
-        "no": "SG Ready påverkar varmvatten",
-        "da": "SG Ready påverkar varmvatten"
       }
     }
   },

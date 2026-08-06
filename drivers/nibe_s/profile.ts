@@ -105,7 +105,7 @@ export const sProfile = makeProfile({
                 // runtimes, then the circulation accessory most pumps do not have
                 "measure_hour_NIBE.i1091_compressor_usage_hotwater",
                 "measure_hour_NIBE.i1069_additive_usage_hotwater",
-                "boolean_NIBE.i1063_hw_circulation",
+                "status_NIBE.i1063_hw_circulation",
                 "measure_temperature.i87_outgoing_hotwater",
                 "measure_temperature.i174_hw_comfort_return",
                 "measure_temperature.i175_hw_comfort_heater"
@@ -115,7 +115,7 @@ export const sProfile = makeProfile({
                 "target_temperature.h687_pool_start",
                 "target_temperature.h689_pool_stop",
                 "measure_minute_NIBE.h94_periodtime_pool",
-                "boolean_NIBE.i1828_pool_circulation"
+                "status_NIBE.i1828_pool_circulation"
             ],
             cooling: [
                 "target_temperature.h183_auto_start_cooling",
@@ -123,15 +123,6 @@ export const sProfile = makeProfile({
                 "boolean_NIBE.h227_nightchill"
             ]
         },
-        // Compressor power leads the list because it is in the `energy` group, which the
-        // allocator cannot run without — the frequency and status registers say the same thing
-        // but live in `diagnostics`, which a user can switch off.
-        windDownSignals: [
-            "measure_watt_NIBE.i1048_compressor_add_power",
-            "measure_watt_NIBE.i1027_additive_effect",
-            "measure_frequency.i1046_compressor",
-            "boolean_NIBE.i1100_compressor_status"
-        ],
         totalProductionRegister: "meter_kwh_NIBE.i3821_total_production",
         totalConsumptionRegister: "meter_kwh_NIBE.i3823_total_consumption",
         producedRegisterForRole: {

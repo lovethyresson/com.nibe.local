@@ -1,0 +1,15 @@
+{
+  "type": "boolean",
+  "title": {
+    "en": "Status",
+    "sv": "Status",
+    "de": "Status",
+    "nl": "Status",
+    "no": "Status",
+    "da": "Status"
+  },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": true
+}

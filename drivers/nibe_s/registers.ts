@@ -199,7 +199,7 @@ export const registers: Register[] = [
     // mapped as "active steps", which was an invented meaning: the Swedish comment on this very
     // line already said driftläge. Exposed as a flag because that is the question a user has
     // ("is the immersion heater running?") and the mode's non-zero values are undocumented.
-    {address: 1029, name: "boolean_NIBE.i1029_additive_heat_active",          direction: Dir.In,  group: "core",       bool: true, // Driftläge intern tillsats
+    {address: 1029, name: "status_NIBE.i1029_additive_heat_active",          direction: Dir.In,  group: "core",       bool: true, // Driftläge intern tillsats
      info: {en: "Whether the internal electric additional heat is running", sv: "Om den interna eltillsatsen är igång"}},
     // Incoming main fuse rating (A). Read-only info on the main device (replaces the old
     // static setting so it only appears there).
@@ -378,58 +378,6 @@ export const registers: Register[] = [
     // regulation at all. Read-only either way — writing it is the legacy path.
     {address:  202, name: "boolean_NIBE.h202_use_room_sensor",                direction: Dir.Out, group: "heating",    bool: true, noAction: true, // Använd rumsgivare klimatsystem 1
      info: {en: "Whether room sensor regulation is switched on for climate system 1", sv: "Om rumsgivarreglering är påslagen för klimatsystem 1"}},
-    // "More hot water" quick action: on = raw 2, off = raw 0. Raw 2 is *2 hours*, not the
-    // 1 hour this was labelled as before it was measured (see onetimeincreaseMap). Write
-    // onValue: 1 instead if a 1-hour boost is what's actually wanted.
-    // A sub-id `onoff.*` (a row toggle), not the bare `onoff` — the bare id is now the
-    // device's derived Active state (the tile on/off follows operating priority for every
-    // role device); the duration picker below is the secondary control for the same register.
-    // The pump's "blocked" flags — polled, and now known NOT to answer the question they were
-    // added for. Tested 2026-08-06 with a schedule actively blocking hot water and additional
-    // heat: tank at 44.5 °C against a 52 °C start point, hot water permitted, pump idle at 10 W,
-    // and all four of these read 0.
-    //
-    // So a schedule block (menu 6) really is invisible over Modbus — that is measured now, not
-    // assumed, and this comment exists so nobody adds these again hoping otherwise. They stay
-    // because they may still report something on an installation with a real external blocking
-    // signal wired in, which this pump does not have.
-    {address: 1058, name: "__blocked_external",                                      direction: Dir.In,  group: "core",      scale: 1, internal: true, // Extern blockering
-     info: {en: "External blocking flag, function unconfirmed", sv: "Extern blockeringsflagga, funktion obekräftad"}},
-    {address: 1059, name: "__blocked_1059",                                          direction: Dir.In,  group: "core",      scale: 1, internal: true, // Blockerad
-     info: {en: "One of the pump's blocked flags, which function it covers is unconfirmed", sv: "En av värmepumpens blockeringsflaggor, vilken funktion den gäller är obekräftat"}},
-    {address: 1131, name: "__blocked_1131",                                          direction: Dir.In,  group: "core",      scale: 1, internal: true, // Blockerad
-     info: {en: "One of the pump's blocked flags, which function it covers is unconfirmed", sv: "En av värmepumpens blockeringsflaggor, vilken funktion den gäller är obekräftat"}},
-    {address: 1132, name: "__blocked_1132",                                          direction: Dir.In,  group: "core",      scale: 1, internal: true, // Blockerad
-     info: {en: "One of the pump's blocked flags, which function it covers is unconfirmed", sv: "En av värmepumpens blockeringsflaggor, vilken funktion den gäller är obekräftat"}},
-    // Smart Price Adaptation and SG Ready, the two things that can make the pump ignore a hot
-    // water start temperature it would otherwise act on. Added after a tank sat at 32 °C against
-    // a 52 °C start point with the pump idle and nothing in the app able to say why: none of
-    // these were read, so the app could show every setting as correct and still not explain the
-    // behaviour.
-    //
-    // Value meanings beyond "0 = off" are not documented in the register map, so they are
-    // exposed as plain numbers rather than invented enums.
-    {address:  846, name: "measure_count_NIBE.h846_spa_hotwater",                    direction: Dir.Out, group: "hotwater",  scale: 1, min: 0, max: 4, // (SPA) varmvatten aktiverad
-     info: {en: "Smart Price Adaptation for hot water. When on, the pump may let the tank cool well past its start temperature and charge later, when electricity is cheaper.", sv: "Smart prisanpassning för varmvatten. När den är på kan värmepumpen låta tanken svalna långt förbi starttemperaturen och ladda senare, när elen är billigare."}},
-    {address:  902, name: "measure_count_NIBE.h902_spa_hotwater_influence",           direction: Dir.Out, group: "hotwater",  scale: 1, min: 1, max: 4, // (SPA) varmvatten påverkansgrad
-     info: {en: "How strongly Smart Price Adaptation is allowed to shift hot water charging", sv: "Hur mycket smart prisanpassning får förskjuta varmvattenladdningen"}},
-    {address: 1915, name: "measure_count_NIBE.i1915_spa_hotwater_mode",               direction: Dir.In,  group: "hotwater",  scale: 1, noAction: true, // Varmvattenkomfortläge (SPA)
-     info: {en: "The hot water mode Smart Price Adaptation is currently imposing", sv: "Varmvattenläget som smart prisanpassning för tillfället tvingar fram"}},
-    {address:  762, name: "boolean_NIBE.h762_hotwater_sg_ready",                      direction: Dir.Out, group: "hotwater",  bool: true, // Varmvatten (SG Ready)
-     info: {en: "Whether SG Ready signals are allowed to affect hot water charging", sv: "Om SG Ready-signaler får påverka varmvattenladdningen"}},
-    // The two registers 697 drives, polled but never shown: they are how we find out what the
-    // pump writes when a one-time increase is started from its OWN menu 2.1.
-    //
-    // 697 is a plain hour count (1..127, 0 = off) — see the note on onetimeincreaseMap above —
-    // which leaves no value meaning "one-time increase", the separate mode NIBE's menu offers
-    // alongside the 3/6/12-hour durations. So every boost this app has ever triggered has been a
-    // *timed* one, and the mode that is supposed to bring in the immersion heater may simply not
-    // be reachable over Modbus. Watching 225 and 1078 while the pump starts one itself is what
-    // settles that: if 697 lands on a value outside 1..127, the sentinel exists after all.
-    {address:  225, name: "__more_hotwater_minutes",                                 direction: Dir.Out, group: "hotwater",  scale: 1, internal: true, // Mer varmvatten (antal minuter)
-     info: {en: "Minutes of boost remaining, written by the pump when More hot water starts", sv: "Återstående minuter av höjningen, skrivs av värmepumpen när Mer varmvatten startar"}},
-    {address: 1078, name: "__more_hotwater_status",                                  direction: Dir.In,  group: "hotwater",  scale: 1, internal: true, // Mer varmvatten status
-     info: {en: "Whether a hot water boost is currently running, as the pump sees it", sv: "Om en varmvattenhöjning pågår, sett från värmepumpen"}},
     {address:  697, name: "boolean_NIBE.h697_more_hotwater",                         direction: Dir.Out, group: "hotwater",   bool: true, onValue: 2, offValue: 0, // Mer varmvatten engångshöjning
      info: {en: "More hot water: a one-time 2-hour boost", sv: "Mer varmvatten: en engångshöjning på 2 timmar"}},
     // Rad 20 Strömförbrukning
@@ -482,7 +430,7 @@ export const registers: Register[] = [
     {address:   65, name: "boolean_NIBE.h65_periodic_hotwater",                      direction: Dir.Out, group: "hotwater",   bool: true, // Periodisk varmvatten
      info: {en: "Enable the periodic hot water boost", sv: "Aktivera periodisk varmvattenhöjning"}},
 
-    {address: 1828, name: "boolean_NIBE.i1828_pool_circulation",                     direction: Dir.In,  group: "pool",       bool: true, // Pool 1 pump status
+    {address: 1828, name: "status_NIBE.i1828_pool_circulation",                     direction: Dir.In,  group: "pool",       bool: true, // Pool 1 pump status
      info: {en: "Whether the pool pump is circulating", sv: "Om poolpumpen cirkulerar"}},
     {address:  691, name: "onoff.h691_pool_active",                           direction: Dir.Out, group: "pool",       bool: true,
      info: {en: "Enable pool heating", sv: "Aktivera poolvärme"}},
@@ -615,7 +563,7 @@ export const registers: Register[] = [
     {address: 1975, name: "alarm_text_NIBE",                                  direction: Dir.In,  group: "alarm",       noAction: true, // Alarm number
      info: {en: "Active alarm code (0 = no alarm)", sv: "Aktiv larmkod (0 = inget larm)"}},
     // Compressor running status (read-only on/off).
-    {address: 1100, name: "boolean_NIBE.i1100_compressor_status",                    direction: Dir.In,  group: "diagnostics", bool: true, // Compressor status
+    {address: 1100, name: "status_NIBE.i1100_compressor_status",                    direction: Dir.In,  group: "diagnostics", bool: true, // Compressor status
      info: {en: "Whether the compressor is running", sv: "Om kompressorn är igång"}},
     // External pulse energy meter BE6 — only present if such a meter is wired to the pump.
     // Relocated to 396 on the S320/S325. A meter that has counted nothing yet genuinely reads
@@ -638,7 +586,7 @@ export const registers: Register[] = [
      info: {en: "Hot water circulation return temperature (BT82)", sv: "Returtemperatur varmvattencirkulation (BT82)"}},
     {address:  175, name: "measure_temperature.i175_hw_comfort_heater", direction: Dir.In, group: "hotwater", scale: 10, // Hot water comfort heater (BT83)
      info: {en: "Hot water comfort heater temperature (BT83)", sv: "Temperatur varmvattenkomfortvärmare (BT83)"}},
-    {address: 1063, name: "boolean_NIBE.i1063_hw_circulation",                       direction: Dir.In,  group: "hotwater",    bool: true, // Hot water circulation (GP11)
+    {address: 1063, name: "status_NIBE.i1063_hw_circulation",                       direction: Dir.In,  group: "hotwater",    bool: true, // Hot water circulation (GP11)
      info: {en: "Whether the hot water circulation pump is running", sv: "Om varmvattencirkulationspumpen är igång"}},
     // Auto-mode cooling start temperature (sibling of h184/h185); holding register 183.
     {address:  183, name: "target_temperature.h183_auto_start_cooling",       direction: Dir.Out, group: "cooling",     scale: 10, min: -20, max: 40, // Auto mode, start temp cooling

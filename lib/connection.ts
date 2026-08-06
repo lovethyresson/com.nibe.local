@@ -484,14 +484,6 @@ export class PumpConnection {
         for (const register of this.profile.registers)
             if (register.internal && isPollable(register))
                 byName.set(register.name, register);
-        // The wind-down trace needs its signals every poll. Two of them (compressor frequency
-        // and status) sit in `diagnostics`, which a user can switch off — without this the
-        // trace would go half blind on exactly the devices most likely to be asked for a log.
-        for (const name of this.profile.role.windDownSignals ?? []) {
-            const register = this.profile.registerByName[name];
-            if (register && isPollable(register))
-                byName.set(register.name, register);
-        }
         return [...byName.values()];
     }
 
@@ -566,13 +558,23 @@ export class PumpConnection {
             });
     }
 
-    // Write a register at its own width. A 32-bit register spans two words and must be written
-    // as both, low word first, mirroring how combineRaw reads them back.
+    // Write a register at its own width. A 32-bit register spans two words and takes ONE FC16
+    // request carrying both — assembled HIGH WORD FIRST, which is the opposite of the order
+    // combineRaw() reads them back in.
     //
-    // Writing only the low word is not a harmless shortcut: it leaves whatever was in the high
-    // word, so it silently produces the right answer for small positive values (whose high word
-    // is already 0) and a wrong one for anything negative or above 65535. The zone setpoints are
-    // 5.0..35.0 and would have "worked" indefinitely on the accident that 350 fits in one word.
+    // That asymmetry is the pump's, and it was measured, not deduced. The pump answers every
+    // plausible shape without a Modbus exception and silently discards all but one:
+    //
+    //   FC16 [high, low]          -> accepted, value took effect
+    //   FC16 [low, high]          -> accepted, value unchanged   (mirrors the READ order)
+    //   FC6 at the address        -> accepted, value unchanged
+    //   FC6 at the address + 1    -> accepted, value unchanged
+    //
+    // Confirmed on two models and two owners: halderex's S735 (PR #5) and the maintainer's S1155,
+    // each writing the zone-1 room setpoint (2505) with the original value restored between
+    // attempts. Because three of the four shapes are ACKed, a partial test looks *exactly* like a
+    // read-only register — this code previously sent [low, high] and the register was written off
+    // as unwritable on that evidence. Do not "correct" the order to match the read path.
     async writeRegisterValue(register: Register, raw: number): Promise<void> {
         const address = register.address;
         if (register.size !== 32) {
@@ -580,10 +582,11 @@ export class PumpConnection {
             return;
         }
         // Two's complement across both words, so a negative value writes 0xFFFF high rather
-        // than being truncated to a large positive one.
+        // than being truncated to a large positive one. Plain arithmetic rather than bitwise
+        // operators, which coerce to *signed* 32 bits — the wrong shape for an unsigned raw.
         const encoded = raw < 0 ? raw + 0x100000000 : raw;
         await this.writeMultipleRegisters(address,
-            [encoded & 0xFFFF, Math.floor(encoded / 65536) & 0xFFFF]);
+            [Math.floor(encoded / 65536), encoded % 65536]);
     }
 
     // Throws on failure (rather than swallowing) so the write error reaches the user who
@@ -940,76 +943,6 @@ export class PumpConnection {
         }
     }
 
-    // ---- Wind-down trace (diagnostic) ----
-    //
-    // The priority register reports what the pump is *prioritising*, not what it is *doing*.
-    // Measured on 2026-08-03: it flipped from hot water to standby at 04:56:56 while the
-    // compressor was still drawing 1809 W. The allocator follows priority instantly, so the
-    // whole tail was booked to Main — that hour came out Main +498% (0.239 kWh against the
-    // pump's own 0.04) and hot water -3.3%, which is one event seen from both ends. It biases
-    // per-function COP *high*, since a function's used energy is understated while its
-    // delivered energy is read straight off the pump.
-    //
-    // Before moving that energy anywhere, measure the shape: how long the tail runs, how much
-    // is in it, and whether compressor power falls cleanly enough to gate on. A fixed
-    // wind-down time is the fragile answer — duration will vary with load and temperature —
-    // so what this is really testing is whether a *condition* exists that ends the tail
-    // reliably. The trace prints one line per poll plus a summary, and changes no attribution.
-    //
-    // Only on a transition into standby: function-to-function the compressor keeps running, so
-    // there is no tail to attribute and holding the previous role would starve the new one.
-    private static readonly WINDDOWN_FLOOR_W = 100;
-    private static readonly WINDDOWN_MAX_MS = 15 * 60 * 1000;
-    private windDown: {from: Role; startedAt: number; kwh: number; peakWatts: number} | null = null;
-    private lastActiveRole: Role | null = null;
-
-    private traceWindDown(role: Role | null, previousRole: Role | null, watts: number,
-                          delta: number, rawByName: Map<string, number>) {
-        const signals = () => (this.profile.role.windDownSignals ?? [])
-            .map((name) => {
-                const register = this.profile.registerByName[name];
-                const raw = register ? rawByName.get(name) : undefined;
-                if (raw === undefined || isUnavailableRaw(raw, register!.size))
-                    return null;
-                const value = signedValue(raw, register!.size) / (register!.scale || 1);
-                return `${register!.address}=${value}`;
-            })
-            .filter((x): x is string => x !== null).join(' ');
-
-        // Start: an active function just handed over to standby while power is still up.
-        if (this.windDown === null) {
-            if (role === 'main' && previousRole && previousRole !== 'main'
-                && watts >= PumpConnection.WINDDOWN_FLOOR_W) {
-                this.windDown = {from: previousRole, startedAt: Date.now(), kwh: 0, peakWatts: watts};
-                this.debug(`Wind-down started — ${previousRole} handed over to standby with `
-                    + `${watts} W still flowing. ${signals()}`);
-            }
-            return;
-        }
-
-        const elapsed = Date.now() - this.windDown.startedAt;
-        this.windDown.kwh += delta;
-        this.windDown.peakWatts = Math.max(this.windDown.peakWatts, watts);
-        this.debug(`Wind-down +${(elapsed / 1000).toFixed(0)}s — ${watts} W, `
-            + `${this.windDown.kwh.toFixed(4)} kWh so far, charged to ${role}. ${signals()}`);
-
-        // End on the pump going quiet, on the pump picking a function back up, or on a cap so a
-        // signal that never settles cannot trace forever.
-        const quiet = watts < PumpConnection.WINDDOWN_FLOOR_W;
-        const resumed = role !== 'main';
-        const expired = elapsed > PumpConnection.WINDDOWN_MAX_MS;
-        if (!quiet && !resumed && !expired)
-            return;
-        const why = quiet ? `power fell below ${PumpConnection.WINDDOWN_FLOOR_W} W`
-            : resumed ? `the pump started producing ${role} again`
-                : 'the cap was reached before it settled';
-        this.log(`Wind-down after ${this.windDown.from} — ${(elapsed / 1000).toFixed(0)}s, `
-            + `${this.windDown.kwh.toFixed(4)} kWh charged to standby, peak ${this.windDown.peakWatts} W. `
-            + `Ended because ${why}. This is the energy the pump books to ${this.windDown.from} `
-            + `and we book to Main.`);
-        this.windDown = null;
-    }
-
     private energySubscribers(): PumpSubscriber[] {
         return [...this.subscribers].filter((subscriber) =>
             functionRoles.includes(subscriber.role) || subscriber.role === 'main');
@@ -1229,8 +1162,6 @@ export class PumpConnection {
             if (activeRole)
                 this.traceAllocation(activeRole, delta, watts);
             this.trackShadowSource(activeRole, rawByName, deltaTimeHours);
-            this.traceWindDown(activeRole, this.lastActiveRole, watts, delta, rawByName);
-            this.lastActiveRole = activeRole;
 
             if (!target && delta > 0)
                 this.debug(`No device for role ${role} (or Main fallback); dropping ${delta.toFixed(5)} kWh`);
