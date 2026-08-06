@@ -129,8 +129,28 @@ export interface Register  {
     // address, so reads, writes and flow autocompletes need no special handling. Requires
     // altPlausible. The register's own `address` should be the first-choice candidate.
     sources?: {address: number; label: RegisterInfo}[];
+    // The band this register's OWN value must fall in for the capability to be offered at all.
+    // Distinct from altPlausible, which vets a candidate *address*: this vets the value found at
+    // the address the register already has, and a register outside its band is treated exactly
+    // like one that never answered — not offered at pairing, flagged unsupported at repair.
+    //
+    // For registers a pump answers even when the underlying function is not configured. The
+    // indoor setpoint is the case in point: an unconfigured zone reads a flat 0 rather than the
+    // not-available sentinel, so without a band a pump with no room zone would be handed a
+    // thermostat dial reading 0 °C. Same reasoning as `inRange`'s "an exact zero means the thing
+    // isn't wired up", applied per register rather than per group.
+    plausible?: {min: number; max: number};
     min?: number;
     max?: number;
+}
+
+// Whether a value read at the register's own address is worth offering as a capability. A
+// register that declares no band always is — this must never quietly filter the whole table.
+export function isPlausibleValue(register: Register | undefined, value: number | undefined): boolean {
+    const band = register?.plausible;
+    if (!band)
+        return true;
+    return value !== undefined && value >= band.min && value <= band.max;
 }
 
 // Whether a value read from a candidate address is good enough to accept as this register's
@@ -215,6 +235,46 @@ export interface Selection {
 // The address to actually put on the wire for a register, honouring what detection resolved.
 export function resolvedAddress(register: Register, selection: Selection | null | undefined): number {
     return selection?.addresses?.[register.name] ?? register.address;
+}
+
+// Carry a stored selection across a register RENAME. Both maps in a Selection are keyed by
+// register name, so a rename silently orphans that register's entries: its per-capability override
+// reverts to the group default, and — the one that actually breaks a pump — its resolved address is
+// lost, sending reads back to a primary that may answer with the not-available sentinel. Room
+// temperature is exactly such a register on both the S735 (resolved to 26) and the S1155 (a user
+// choice among 116/111/26), so renaming it without this would empty the capability until the owner
+// happened to run Repair.
+//
+// Returns the same object when there is nothing to carry, so devices on a model that never renamed
+// anything neither allocate nor re-save. Idempotent: re-applying finds no old keys and changes
+// nothing.
+export function migrateSelection(
+    selection: Selection, renames: Record<string, string> | undefined
+): Selection {
+    const pairs = Object.entries(renames ?? {})
+        .filter(([from]) => selection.overrides?.[from] !== undefined
+            || selection.addresses?.[from] !== undefined);
+    if (!pairs.length)
+        return selection;
+    const migrated: Selection = {
+        ...selection,
+        overrides: {...selection.overrides},
+        ...(selection.addresses ? {addresses: {...selection.addresses}} : {})
+    };
+    for (const [from, to] of pairs) {
+        // The new name wins if it somehow already holds a value — a re-run must never undo itself.
+        if (migrated.overrides[from] !== undefined) {
+            if (migrated.overrides[to] === undefined)
+                migrated.overrides[to] = migrated.overrides[from];
+            delete migrated.overrides[from];
+        }
+        if (migrated.addresses?.[from] !== undefined) {
+            if (migrated.addresses[to] === undefined)
+                migrated.addresses[to] = migrated.addresses[from];
+            delete migrated.addresses[from];
+        }
+    }
+    return migrated;
 }
 
 // Rewrite a list of registers onto their resolved addresses. Returns the originals untouched

@@ -1,7 +1,8 @@
 import net from 'net';
 import {ModbusTCPClient} from 'jsmodbus';
 import {
-    Dir, GroupId, groupIds, Register, RegisterInfo, combineRaw, isPlausibleAlt, toNumericValue
+    Dir, GroupId, groupIds, Register, RegisterInfo, combineRaw, isPlausibleAlt, isPlausibleValue,
+    toNumericValue
 } from './registers';
 import type {ModelProfile} from './profile';
 
@@ -83,8 +84,13 @@ export function buildDetectionResult(
     choices: SourceChoices = {}
 ): DetectionResult {
     const samples: Record<string, RegisterSample> = {};
-    for (const [name, probe] of Object.entries(probes))
-        samples[name] = {read: probe.reads > 0, moved: probe.moved, value: probe.last};
+    for (const [name, probe] of Object.entries(probes)) {
+        // A register that answered with a value outside its declared band counts as not read, so
+        // one decision point covers pairing, repair and the per-capability checkboxes alike. This
+        // is what stops a pump with no configured room zone being handed a thermostat reading 0 °C.
+        const read = probe.reads > 0 && isPlausibleValue(profile.registerByName[name], probe.last);
+        samples[name] = {read, moved: probe.moved, value: probe.last};
+    }
     return {recommendations: recommendGroups(profile, probes), samples, addresses, choices};
 }
 
