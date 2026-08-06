@@ -123,8 +123,8 @@ and they note that luxury mode uses the **immersion heater alongside the compres
 Measured on an S1155 in demand mode Small (stop 48 °C), boosts ran to 53.4, 54.6, 55.0, 58.1 and 58.6 °C:
 always well past Small's setting.
 
-**Our own measurements can't confirm which setpoint it targets**, because on that pump additional heat for hot
-water is blocked, so every boost ends where the compressor gives up rather than where the setting is. With
+**Our own measurements can't confirm which setpoint it targets**, because on that pump the immersion heater for
+hot water is blocked, so every boost ends where the compressor gives up rather than where the setting is. With
 Large at 58 a boost stopped at 58.1; with Large at 66 it stopped at 58.6 — the second is the ceiling, not the
 target, so it neither confirms nor refutes Large.
 
@@ -150,18 +150,100 @@ pump's compressor cannot push past a certain condensing temperature. Compressor-
 the periodic anti-legionella charge has its own stop temperature with a 55 °C floor: 60–70 °C is not
 compressor territory at all.
 
+### Everything looks right and the pump still isn't doing it. Check your schedules first.
+
+**Before suspecting a setting, check the pump's own schedule (menu 6).** A schedule can switch hot water off,
+or block additional heat, entirely independently of everything the app can see — and it is *not* readable over
+Modbus. The app will show hot water permitted, the demand mode correct, the start temperature correct, the
+tank well below it, and the pump idle, with no way to explain the contradiction.
+
+This is not hypothetical. The maintainer lost the better part of a day to exactly this: a tank sitting at
+32 °C against a 52 °C start point, and five hot water boosts where the immersion heater never engaged. Both
+were schedules — "hot water: off" on weekdays, and "block additional heat" — while every register the app
+reads insisted the settings were fine.
+
+If the pump is ignoring something you have set, and the app shows no reason why, the schedule is the first
+place to look and the app cannot help you there.
+
 ### The immersion heater is on, so why isn't it helping hot water?
 
 There are two separate permits, and the obvious one is the wrong one:
 
-- **Allow additional heat** on the Heating device is Nibe's "Permit additional heat, *heating*". It does
+- **Allow immersion heater** on the Heating device is Nibe's "Permit additional heat, *heating*". It does
   nothing for hot water.
-- **Additional heat for hot water** on the Hot Water device is the one that matters, and it is **off from the
-  factory**.
+- **Allow immersion heater, hot water** on the Hot Water device is the one that matters, and it is **off from
+  the factory**.
 
-Even with both on, the pump may still decline. In **Auto** operating mode it blocks additional heat above an
-outdoor-temperature limit ("additional heat stop temperature", commonly 5 °C), so on a mild day it will let
+Even with both on, the pump may still decline. In **Auto** operating mode it blocks the immersion heater above an
+outdoor-temperature limit ("only use immersion heater below", commonly 5 °C), so on a mild day it will let
 the compressor work alone regardless of what you have permitted.
+
+## Indoor temperature
+
+### Can I set my indoor temperature from Homey?
+
+**No — the pump does not allow it over Modbus.** You can *see* it: the Heating device shows **Indoor
+temperature setpoint**, the same number the myUplink app shows. It is read-only, because Nibe provides no
+Modbus path to change it.
+
+That was measured, not assumed, on a live S1155:
+
+- The register holding the setpoint (2505) tracks myUplink exactly — it followed changes to 35.0, 28.0 and
+  22.5 °C. Writing to it is **accepted and then discarded**: the pump acknowledges the write and the value
+  never changes. Checked with both Modbus write function codes, re-read immediately, after 3 seconds, and
+  again minutes later on a fresh connection.
+- Not a fault in this app: writing a *different* register the same way (Smart Price Adaption, 843) works
+  perfectly, and the setpoint write is still discarded with Smart Price Adaption switched off.
+- The older per-climate-system setpoint (206) *does* accept writes — and the pump ignores them. A controlled
+  experiment (`dev/experiment-room-control.mjs`) with room-sensor control on and heating permitted swung the
+  setpoint 10 °C, from 5 °C above the room temperature to 5 °C below it. Neither the pump's calculated supply
+  nor the rate its degree minutes accumulated changed at all. Asking for heat 5 °C above the room is the
+  loudest possible request, and it produced no response.
+
+The same behaviour is reported independently on an S735 in
+[home-assistant/core#154450](https://github.com/home-assistant/core/issues/154450), where myUplink changes
+work within minutes while Modbus writes to the same register do nothing — and where myUplink is observed not
+to touch register 206 either. The app uses an internal path Modbus does not expose.
+
+### So how do I make the house warmer or colder from Homey?
+
+Use the **heat curve offset** on the Heating device (Nibe's *värmeförskjutning*, register 30, −10 to +10).
+That is Nibe's own control for exactly this, it works over Modbus, and it shifts the whole curve — so it
+warms or cools the house without fighting whatever is managing the setpoint.
+
+For an absolute target temperature you still need the myUplink app.
+
+### Why do I still need the myUplink app, then?
+
+Three things Modbus does not give you:
+
+- **Setting the indoor temperature**, as above.
+- **Away / holiday mode.** No way to switch it on, and the register reporting its status carries a value Nibe
+  documents no meaning for — so the app doesn't show it rather than showing a number nobody can interpret.
+- **Schedules.** Menu 6 is not on Modbus at all; Homey Flows do the same job and rather more.
+
+Everything else you'd open myUplink for — reading the indoor temperature and its setpoint, hot water, curves,
+modes, energy — is local and in this app.
+
+### Which sensor is my indoor temperature coming from?
+
+Pairing and Repair say so outright, under the Indoor temperature row: *Using: climate system 1 average —
+23.5*. When more than one sensor reports a plausible temperature it becomes a list to choose from, showing
+what each currently reads so you can tell them apart. To change it later, run **Repair** on the Heating
+device and pick again.
+
+### Is that BT50, the wired room sensor?
+
+Not necessarily, and often not at all. Nibe's register documentation labels the value "BT50", but what it
+reports is the *average for climate system 1* — which on current firmware comes from whatever sensors the
+zone uses, including wireless room units. The maintainer's own pump has no wired room sensor fitted and
+still gets a correct reading. That's why the app names the source rather than claiming a particular sensor.
+
+### The room temperature was blank before I updated.
+
+A bug, fixed in **0.9.13**. The app read register 111 believing it was the room sensor; it is climate system
+*6*, and on most pumps it is empty. Climate system 1 is register 116. Run **Repair** on the Heating device
+after updating so it picks up the corrected register.
 
 ## Setup and connectivity
 

@@ -2948,8 +2948,8 @@
         "boolean_NIBE.i1063_hw_circulation",
         "target_temperature.h183_auto_start_cooling",
         "measure_temperature.i1_outside",
-        "measure_temperature.i26_inside",
-        "target_temperature.h2505_zone1_setpoint",
+        "measure_temperature",
+        "target_temperature",
         "boolean_NIBE.h843_spa_activated",
         "measure_count_NIBE.h845_spa_heating_influence",
         "measure_count_NIBE.i1918_spa_status",
@@ -2989,6 +2989,10 @@
         "measure_enum_NIBE.h56_hotwater_demand_mode",
         "onoff",
         "boolean_NIBE.h697_more_hotwater",
+        "measure_count_NIBE.h846_spa_hotwater",
+        "measure_count_NIBE.h902_spa_hotwater_influence",
+        "measure_count_NIBE.i1915_spa_hotwater_mode",
+        "boolean_NIBE.h762_hotwater_sg_ready",
         "measure_enum_NIBE.h65_periodic_hotwater",
         "measure_day_NIBE.h66_periodic_hotwater_interval",
         "measure_minute_NIBE.h92_periodtime_hotwater",
@@ -3688,7 +3692,7 @@
             "da": "Afkastluft (BT21)"
           }
         },
-        "measure_temperature.i26_inside": {
+        "measure_temperature": {
           "title": {
             "en": "Indoor temperature",
             "sv": "Inomhustemperatur",
@@ -3698,21 +3702,20 @@
             "da": "Indendørstemperatur"
           }
         },
-        "target_temperature.h2505_zone1_setpoint": {
-          "uiComponent": "sensor",
+        "target_temperature": {
           "decimals": 1,
           "min": 5,
           "max": 35,
           "insights": true,
-          "setable": false,
           "title": {
-            "en": "Indoor temperature setpoint",
-            "sv": "Börvärde inomhustemperatur",
-            "de": "Raumtemperatur-Sollwert",
-            "nl": "Streefwaarde binnentemperatuur",
-            "no": "Settpunkt innetemperatur",
-            "da": "Settpunkt indendørstemperatur"
-          }
+            "en": "Room temperature",
+            "sv": "Rumstemperatur",
+            "de": "Raumtemperatur",
+            "nl": "Kamertemperatuur",
+            "no": "Romtemperatur",
+            "da": "Rumtemperatur"
+          },
+          "step": 0.5
         },
         "boolean_NIBE.h202_use_room_sensor": {
           "uiComponent": null,
@@ -4212,6 +4215,53 @@
             "nl": "Status Smart Price Adaption",
             "no": "Status smart pristilpasning",
             "da": "Status smart pristilpasning"
+          }
+        },
+        "measure_count_NIBE.h846_spa_hotwater": {
+          "insights": true,
+          "title": {
+            "en": "Smart price adaptation (hot water)",
+            "sv": "Smart prisanpassning (varmvatten)",
+            "de": "Smart price adaptation (hot water)",
+            "nl": "Smart price adaptation (hot water)",
+            "no": "Smart prisanpassning (varmvatten)",
+            "da": "Smart prisanpassning (varmvatten)"
+          },
+          "decimals": 0
+        },
+        "measure_count_NIBE.h902_spa_hotwater_influence": {
+          "insights": true,
+          "title": {
+            "en": "Smart price influence (hot water)",
+            "sv": "Prispåverkan (varmvatten)",
+            "de": "Smart price influence (hot water)",
+            "nl": "Smart price influence (hot water)",
+            "no": "Prispåverkan (varmvatten)",
+            "da": "Prispåverkan (varmvatten)"
+          },
+          "decimals": 0
+        },
+        "measure_count_NIBE.i1915_spa_hotwater_mode": {
+          "insights": true,
+          "title": {
+            "en": "Smart price mode now (hot water)",
+            "sv": "Prisstyrt läge nu (varmvatten)",
+            "de": "Smart price mode now (hot water)",
+            "nl": "Smart price mode now (hot water)",
+            "no": "Prisstyrt läge nu (varmvatten)",
+            "da": "Prisstyrt läge nu (varmvatten)"
+          },
+          "decimals": 0
+        },
+        "boolean_NIBE.h762_hotwater_sg_ready": {
+          "insights": true,
+          "title": {
+            "en": "SG Ready affects hot water",
+            "sv": "SG Ready påverkar varmvatten",
+            "de": "SG Ready affects hot water",
+            "nl": "SG Ready affects hot water",
+            "no": "SG Ready påverkar varmvatten",
+            "da": "SG Ready påverkar varmvatten"
           }
         }
       },

@@ -93,9 +93,18 @@ export const registers: Register[] = [
     // In a multi-zone house more than one of these is alive and they genuinely differ, so the
     // pump cannot decide — see docs/pairing.md. The band is 5..40 rather than something wider so
     // that a disconnected sensor reading a flat 0 is rejected instead of accepted as 0 °C.
-    // The capability name keeps its historical `i26_` prefix: renaming it would orphan the
-    // Insights log, whose display name is snapshotted on first creation and never changes.
-    {address:  116, name: "measure_temperature.i26_inside",         direction: Dir.In,  group: "heating",     scale:  10, // Rumstemperatur (BT50) klimatsystem 1
+    // The name is the BARE `measure_temperature`, not a `.iNN_` sub-capability, and that is
+    // load-bearing rather than a style slip. Homey's Climate feature and its thermostat tile both
+    // key on the root capability id: a device exposing only dotted temperatures is skipped by
+    // Climate entirely, and the tile needs a matching root `measure_temperature` +
+    // `target_temperature` pair — promote only one and it degrades into separate sensor rows
+    // (halderex, measured on a Homey Pro; PR #5). Same reasoning as `measure_power` and
+    // `alarm_generic`: an official root id is what makes Homey's own features see the device.
+    //
+    // The rename costs this capability's Insights history, which cannot be migrated — a log is
+    // bound to the capability id that created it. `renamedRegisters` in profile.ts carries the
+    // stored *selection* across, which is the part that would otherwise break a pump outright.
+    {address:  116, name: "measure_temperature",                    direction: Dir.In,  group: "heating",     scale:  10, // Rumstemperatur (BT50) klimatsystem 1
      altPlausible: {min: 5, max: 40},
      sources: [
          {address: 116, label: {en: "Climate system 1 average — wired or wireless room sensors", sv: "Medelvärde klimatsystem 1 — trådade eller trådlösa rumsgivare"}},
@@ -334,18 +343,23 @@ export const registers: Register[] = [
     // The CSV documents min 50 / max 300 (5.0..30.0 °C) and is WRONG — the live register held
     // 350. Clamping to 30 would reject a setting the pump itself accepts, so the band is 5..35.
     //
-    // READ-ONLY (`noAction`), and that is a measured fact rather than caution. The pump ACKs a
-    // Modbus write to 2505 and discards it — verified with FC6 and FC16, re-read immediately and
-    // after 3 s, and again minutes later in a fresh connection. It is not the app's 32-bit write:
-    // holding 843 written the same way TOOK (1 -> 0 -> 1). It is not Smart Price Adaption either:
-    // the write was still discarded with SPA switched off. The register mirrors the setpoint
-    // perfectly — it tracked the myUplink app through 35.0, 28.0 and 22.5 — but the pump does not
-    // accept it as an input. So this shows what the indoor setpoint IS; to change it, use the heat
-    // curve offset (register 30), which is what actually regulates a pump with no room-sensor
-    // control enabled. Do not make this settable again without re-running
-    // `node dev/probe-room.mjs --write <value>` and seeing TOOK.
-    {address: 2505, name: "target_temperature.h2505_zone1_setpoint",          direction: Dir.Out, group: "heating",    scale: 10, size: 32, min: 5, max: 35, noAction: true, // Rumstemperatur börvärde zon 1
-     info: {en: "Indoor temperature the pump is aiming for (read-only — the pump refuses Modbus writes here)", sv: "Inomhustemperatur pumpen siktar på (skrivskyddad — pumpen tar inte emot Modbus-skrivningar)"}},
+    // WRITABLE — but only in one very specific shape, and getting that wrong looks exactly like a
+    // read-only register. The pump ACKs every plausible write and silently discards all but a
+    // two-word FC16 request assembled HIGH word first, the opposite of the order it reads in. See
+    // writeRegisterValue() in lib/connection.ts for the measured matrix. Confirmed on two models:
+    // halderex's S735 (PR #5) and the maintainer's S1155.
+    //
+    // This register was briefly shipped read-only on the strength of a test that tried FC6 and
+    // FC16 low-word-first and concluded the pump refused writes. Three of the four shapes ACK, so
+    // a partial matrix is indistinguishable from an unwritable register. If it ever looks inert
+    // again, check the word order before concluding anything.
+    //
+    // Not register 206: that one accepts writes and the controller ignores them — a controlled
+    // A/B/A experiment swung it 10 °C either side of the room temperature and moved neither the
+    // calculated supply nor the degree-minute rate (dev/experiment-room-control.mjs).
+    {address: 2505, name: "target_temperature",                                direction: Dir.Out, group: "heating",    scale: 10, size: 32, min: 5, max: 35,
+     plausible: {min: 5, max: 35}, // Rumstemperatur börvärde zon 1
+     info: {en: "The indoor temperature the pump aims for (menu 1.1, zone 1)", sv: "Inomhustemperaturen pumpen siktar på (meny 1.1, zon 1)"}},
     // Zones 2-40 exist at 2507..2583 (step 2, same shape) but are deliberately NOT mapped. A
     // setpoint on its own is not zone support: without per-zone temperatures and names it is a
     // row of anonymous sliders, and on a single-zone pump they all answer anyway (reading a flat
@@ -378,6 +392,39 @@ export const registers: Register[] = [
     // A sub-id `onoff.*` (a row toggle), not the bare `onoff` — the bare id is now the
     // device's derived Active state (the tile on/off follows operating priority for every
     // role device); the duration picker below is the secondary control for the same register.
+    // The pump's "blocked" flags, polled but not shown, because we do not yet know which is
+    // which. A schedule (menu 6) can stop hot water charging outright, and nothing in the app
+    // could say so: settings all correct, no competing demand, pump idle, tank 20 °C below its
+    // start point — and no explanation available anywhere in the register set we read.
+    //
+    // The map offers three registers titled simply "Blocked" plus an external-blocking flag,
+    // with no indication of which function each covers. Rather than assign meanings by guessing,
+    // they are polled so the register dump shows them: whoever next has a schedule active can
+    // read off which flag moves, and only then are they worth naming and surfacing.
+    {address: 1058, name: "__blocked_external",                                      direction: Dir.In,  group: "core",      scale: 1, internal: true, // Extern blockering
+     info: {en: "External blocking flag, function unconfirmed", sv: "Extern blockeringsflagga, funktion obekräftad"}},
+    {address: 1059, name: "__blocked_1059",                                          direction: Dir.In,  group: "core",      scale: 1, internal: true, // Blockerad
+     info: {en: "One of the pump's blocked flags, which function it covers is unconfirmed", sv: "En av värmepumpens blockeringsflaggor, vilken funktion den gäller är obekräftat"}},
+    {address: 1131, name: "__blocked_1131",                                          direction: Dir.In,  group: "core",      scale: 1, internal: true, // Blockerad
+     info: {en: "One of the pump's blocked flags, which function it covers is unconfirmed", sv: "En av värmepumpens blockeringsflaggor, vilken funktion den gäller är obekräftat"}},
+    {address: 1132, name: "__blocked_1132",                                          direction: Dir.In,  group: "core",      scale: 1, internal: true, // Blockerad
+     info: {en: "One of the pump's blocked flags, which function it covers is unconfirmed", sv: "En av värmepumpens blockeringsflaggor, vilken funktion den gäller är obekräftat"}},
+    // Smart Price Adaptation and SG Ready, the two things that can make the pump ignore a hot
+    // water start temperature it would otherwise act on. Added after a tank sat at 32 °C against
+    // a 52 °C start point with the pump idle and nothing in the app able to say why: none of
+    // these were read, so the app could show every setting as correct and still not explain the
+    // behaviour.
+    //
+    // Value meanings beyond "0 = off" are not documented in the register map, so they are
+    // exposed as plain numbers rather than invented enums.
+    {address:  846, name: "measure_count_NIBE.h846_spa_hotwater",                    direction: Dir.Out, group: "hotwater",  scale: 1, min: 0, max: 4, // (SPA) varmvatten aktiverad
+     info: {en: "Smart Price Adaptation for hot water. When on, the pump may let the tank cool well past its start temperature and charge later, when electricity is cheaper.", sv: "Smart prisanpassning för varmvatten. När den är på kan värmepumpen låta tanken svalna långt förbi starttemperaturen och ladda senare, när elen är billigare."}},
+    {address:  902, name: "measure_count_NIBE.h902_spa_hotwater_influence",           direction: Dir.Out, group: "hotwater",  scale: 1, min: 1, max: 4, // (SPA) varmvatten påverkansgrad
+     info: {en: "How strongly Smart Price Adaptation is allowed to shift hot water charging", sv: "Hur mycket smart prisanpassning får förskjuta varmvattenladdningen"}},
+    {address: 1915, name: "measure_count_NIBE.i1915_spa_hotwater_mode",               direction: Dir.In,  group: "hotwater",  scale: 1, noAction: true, // Varmvattenkomfortläge (SPA)
+     info: {en: "The hot water mode Smart Price Adaptation is currently imposing", sv: "Varmvattenläget som smart prisanpassning för tillfället tvingar fram"}},
+    {address:  762, name: "boolean_NIBE.h762_hotwater_sg_ready",                      direction: Dir.Out, group: "hotwater",  bool: true, // Varmvatten (SG Ready)
+     info: {en: "Whether SG Ready signals are allowed to affect hot water charging", sv: "Om SG Ready-signaler får påverka varmvattenladdningen"}},
     // The two registers 697 drives, polled but never shown: they are how we find out what the
     // pump writes when a one-time increase is started from its OWN menu 2.1.
     //
