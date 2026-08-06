@@ -65,9 +65,7 @@ export const sProfile = makeProfile({
                 "measure_percentage_NIBE.i1102_heating_pump",
                 // the curve that decides the supply temperature
                 "curve_mode_NIBE.h26_heat_curve",
-                "measure_count_NIBE.h26_heat_curve",
                 "curve_displacement_NIBE.h30_heat_curve_displacement",
-                "measure_count_NIBE.h30_heat_curve_displacement",
                 "target_temperature.h34_min_supply",
                 "target_temperature.h38_max_supply",
                 // when it is allowed to run at all
@@ -90,7 +88,6 @@ export const sProfile = makeProfile({
                 "measure_temperature.i8_warmwater_top",
                 // the mode in force, and the boost
                 "hotwater_demand_NIBE.h56_hotwater_demand_mode",
-                "measure_enum_NIBE.h56_hotwater_demand_mode",
                 "boolean_NIBE.h697_more_hotwater",
                 "hotwater_increase_NIBE.h697_onetimeincrease_hotwater",
                 // the setpoints, paired start/stop per mode
@@ -102,12 +99,9 @@ export const sProfile = makeProfile({
                 "target_temperature.h62_hotwater_stop_large",
                 // the periodic anti-legionella charge
                 "boolean_NIBE.h65_periodic_hotwater",
-                "measure_enum_NIBE.h65_periodic_hotwater",
                 "hotwater_periodic_interval_NIBE.h66_periodic_hw_interval",
-                "measure_day_NIBE.h66_periodic_hotwater_interval",
                 "target_temperature.h61_hotwater_stop_periodic",
                 "hotwater_periodtime_NIBE.h92_periodtime_hotwater",
-                "measure_minute_NIBE.h92_periodtime_hotwater",
                 // runtimes, then the circulation accessory most pumps do not have
                 "measure_hour_NIBE.i1091_compressor_usage_hotwater",
                 "measure_hour_NIBE.i1069_additive_usage_hotwater",

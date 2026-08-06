@@ -577,52 +577,6 @@
         ]
       },
       {
-        "id": "measure_enum_NIBE.h56_hotwater_demand_mode.enum",
-        "title": {
-          "en": "Hot water demand mode",
-          "sv": "Varmvattenbehov",
-          "de": "Brauchwasserbedarf",
-          "nl": "Warmtapwaterbehoefte",
-          "no": "Varmtvannsbehov",
-          "da": "Varmtvandsbehov"
-        },
-        "titleFormatted": {
-          "en": "Hot water demand mode is [[mode]]",
-          "sv": "Varmvattenbehov är [[mode]]",
-          "de": "Brauchwasserbedarf ist [[mode]]",
-          "nl": "Warmtapwaterbehoefte is [[mode]]",
-          "no": "Varmtvannsbehov er [[mode]]",
-          "da": "Varmtvandsbehov er [[mode]]"
-        },
-        "hint": {
-          "en": "Hot water demand mode (small/medium/large/smart).",
-          "sv": "Varmvattnets behovsläge (litet/medel/stort/smart).",
-          "de": "Brauchwasserbedarf (klein/mittel/groß/smart).",
-          "nl": "Warmtapwaterbehoefte (klein/gemiddeld/groot/smart).",
-          "no": "Varmtvannsbehov (liten/middels/stor/smart).",
-          "da": "Varmtvandsbehov (lille/middel/stor/smart)."
-        },
-        "args": [
-          {
-            "type": "device",
-            "name": "device",
-            "filter": "driver_id=nibe_s&capabilities=measure_enum_NIBE.h56_hotwater_demand_mode"
-          },
-          {
-            "type": "autocomplete",
-            "name": "mode",
-            "title": {
-              "en": "Mode",
-              "sv": "Läge",
-              "de": "Modus",
-              "nl": "Stand",
-              "no": "Modus",
-              "da": "Indstilling"
-            }
-          }
-        ]
-      },
-      {
         "id": "operating_mode_NIBE.h237_operating_mode.enum",
         "title": {
           "en": "Operating mode",
@@ -762,98 +716,6 @@
       }
     ],
     "actions": [
-      {
-        "id": "measure_count_NIBE.h26_heat_curve.set",
-        "title": {
-          "en": "Set the heat curve",
-          "sv": "Ställ in värmekurvan",
-          "de": "Heizkurve einstellen",
-          "nl": "Stooklijn instellen",
-          "no": "Still inn varmekurven",
-          "da": "Indstil varmekurven"
-        },
-        "titleFormatted": {
-          "en": "Set the heat curve to [[value]]",
-          "sv": "Ställ in värmekurvan till [[value]]",
-          "de": "Heizkurve auf [[value]] setzen",
-          "nl": "Stooklijn instellen op [[value]]",
-          "no": "Sett varmekurven til [[value]]",
-          "da": "Indstil varmekurven til [[value]]"
-        },
-        "hint": {
-          "en": "Heat curve slope for climate system 1. Accepts 0 to 15.",
-          "sv": "Värmekurvans lutning för klimatsystem 1. Tillåter 0 till 15.",
-          "de": "Steilheit der Heizkurve für Klimatisierungssystem 1. Bereich: 0 bis 15.",
-          "nl": "Steilheid van de stooklijn voor klimaatsysteem 1. Bereik: 0 tot 15.",
-          "no": "Helningen på varmekurven for klimasystem 1. Område: 0 til 15.",
-          "da": "Varmekurvens hældning for klimasystem 1. Område: 0 til 15."
-        },
-        "args": [
-          {
-            "type": "device",
-            "name": "device",
-            "filter": "driver_id=nibe_s&capabilities=measure_count_NIBE.h26_heat_curve"
-          },
-          {
-            "type": "number",
-            "name": "value",
-            "title": {
-              "en": "Value",
-              "sv": "Värde",
-              "de": "Wert",
-              "nl": "Waarde",
-              "no": "Verdi",
-              "da": "Værdi"
-            }
-          }
-        ]
-      },
-      {
-        "id": "measure_count_NIBE.h30_heat_curve_displacement.set",
-        "title": {
-          "en": "Set the heat curve offset",
-          "sv": "Ställ in värmekurvans förskjutning",
-          "de": "Parallelverschiebung einstellen",
-          "nl": "Verschuiving stooklijn instellen",
-          "no": "Still inn varmeforskyvningen",
-          "da": "Indstil varmeforskydningen"
-        },
-        "titleFormatted": {
-          "en": "Set the heat curve offset to [[value]]",
-          "sv": "Ställ in värmekurvans förskjutning till [[value]]",
-          "de": "Parallelverschiebung auf [[value]] setzen",
-          "nl": "Verschuiving stooklijn instellen op [[value]]",
-          "no": "Sett varmeforskyvningen til [[value]]",
-          "da": "Indstil varmeforskydningen til [[value]]"
-        },
-        "hint": {
-          "en": "Offset of the heat curve for climate system 1. Accepts -10 to 10.",
-          "sv": "Förskjutning av värmekurvan för klimatsystem 1. Tillåter -10 till 10.",
-          "de": "Parallelverschiebung der Heizkurve für Klimatisierungssystem 1. Bereich: -10 bis 10.",
-          "nl": "Verschuiving van de stooklijn voor klimaatsysteem 1. Bereik: -10 tot 10.",
-          "no": "Forskyvning av varmekurven for klimasystem 1. Område: -10 til 10.",
-          "da": "Forskydning af varmekurven for klimasystem 1. Område: -10 til 10."
-        },
-        "args": [
-          {
-            "type": "device",
-            "name": "device",
-            "filter": "driver_id=nibe_s&capabilities=measure_count_NIBE.h30_heat_curve_displacement"
-          },
-          {
-            "type": "number",
-            "name": "value",
-            "title": {
-              "en": "Value",
-              "sv": "Värde",
-              "de": "Wert",
-              "nl": "Waarde",
-              "no": "Verdi",
-              "da": "Værdi"
-            }
-          }
-        ]
-      },
       {
         "id": "target_temperature.h34_min_supply.set",
         "title": {
@@ -1637,98 +1499,6 @@
         ]
       },
       {
-        "id": "measure_day_NIBE.h66_periodic_hotwater_interval.set",
-        "title": {
-          "en": "Set the days between periodic hot water boosts",
-          "sv": "Ställ in dagar mellan periodiska varmvattenhöjningar",
-          "de": "Intervall der periodischen Erhöhung einstellen",
-          "nl": "Interval periodieke warmtapwaterverhoging instellen",
-          "no": "Still inn intervall for periodisk varmtvann",
-          "da": "Indstil interval for periodisk varmtvand"
-        },
-        "titleFormatted": {
-          "en": "Set the days between periodic hot water boosts to [[value]]",
-          "sv": "Ställ in dagar mellan periodiska varmvattenhöjningar till [[value]]",
-          "de": "Intervall der periodischen Erhöhung auf [[value]] setzen",
-          "nl": "Interval periodieke warmtapwaterverhoging instellen op [[value]]",
-          "no": "Sett intervall for periodisk varmtvann til [[value]]",
-          "da": "Indstil interval for periodisk varmtvand til [[value]]"
-        },
-        "hint": {
-          "en": "Days between periodic hot water boosts. Accepts 1 to 90 days.",
-          "sv": "Dagar mellan periodiska varmvattenhöjningar. Tillåter 1 till 90 dagar.",
-          "de": "Tage zwischen den periodischen Brauchwassererhöhungen. Bereich: 1 bis 90 Tage.",
-          "nl": "Dagen tussen de periodieke warmtapwaterverhogingen. Bereik: 1 tot 90 dagen.",
-          "no": "Dager mellom de periodiske varmtvannshevingene. Område: 1 til 90 dager.",
-          "da": "Dage mellem de periodiske varmtvandsforøgelser. Område: 1 til 90 dage."
-        },
-        "args": [
-          {
-            "type": "device",
-            "name": "device",
-            "filter": "driver_id=nibe_s&capabilities=measure_day_NIBE.h66_periodic_hotwater_interval"
-          },
-          {
-            "type": "number",
-            "name": "value",
-            "title": {
-              "en": "Value",
-              "sv": "Värde",
-              "de": "Wert",
-              "nl": "Waarde",
-              "no": "Verdi",
-              "da": "Værdi"
-            }
-          }
-        ]
-      },
-      {
-        "id": "measure_minute_NIBE.h92_periodtime_hotwater.set",
-        "title": {
-          "en": "Set the hot water period time",
-          "sv": "Ställ in periodtiden för varmvatten",
-          "de": "Periodendauer Brauchwasser einstellen",
-          "nl": "Periodetijd warmtapwater instellen",
-          "no": "Still inn periodetid varmtvann",
-          "da": "Indstil periodetid varmtvand"
-        },
-        "titleFormatted": {
-          "en": "Set the hot water period time to [[value]]",
-          "sv": "Ställ in periodtiden för varmvatten till [[value]]",
-          "de": "Periodendauer Brauchwasser auf [[value]] setzen",
-          "nl": "Periodetijd warmtapwater instellen op [[value]]",
-          "no": "Sett periodetid varmtvann til [[value]]",
-          "da": "Indstil periodetid varmtvand til [[value]]"
-        },
-        "hint": {
-          "en": "Duration of the periodic hot water boost. Accepts 0 to 180 minutes.",
-          "sv": "Längd på den periodiska varmvattenhöjningen. Tillåter 0 till 180 minuter.",
-          "de": "Dauer der periodischen Brauchwassererhöhung. Bereich: 0 bis 180 Minuten.",
-          "nl": "Duur van de periodieke warmtapwaterverhoging. Bereik: 0 tot 180 minuten.",
-          "no": "Varighet på den periodiske varmtvannshevingen. Område: 0 til 180 minutter.",
-          "da": "Varighed af den periodiske varmtvandsforøgelse. Område: 0 til 180 minutter."
-        },
-        "args": [
-          {
-            "type": "device",
-            "name": "device",
-            "filter": "driver_id=nibe_s&capabilities=measure_minute_NIBE.h92_periodtime_hotwater"
-          },
-          {
-            "type": "number",
-            "name": "value",
-            "title": {
-              "en": "Value",
-              "sv": "Värde",
-              "de": "Wert",
-              "nl": "Waarde",
-              "no": "Verdi",
-              "da": "Værdi"
-            }
-          }
-        ]
-      },
-      {
         "id": "measure_minute_NIBE.h94_periodtime_pool.set",
         "title": {
           "en": "Set the pool period time",
@@ -1935,52 +1705,6 @@
             "type": "device",
             "name": "device",
             "filter": "driver_id=nibe_s&capabilities=button.h22_reset_alarm"
-          }
-        ]
-      },
-      {
-        "id": "measure_enum_NIBE.h56_hotwater_demand_mode.enum",
-        "title": {
-          "en": "Set the hot water demand mode",
-          "sv": "Ställ in varmvattenbehovet",
-          "de": "Brauchwasserbedarf einstellen",
-          "nl": "Warmtapwaterbehoefte instellen",
-          "no": "Still inn varmtvannsbehov",
-          "da": "Indstil varmtvandsbehov"
-        },
-        "titleFormatted": {
-          "en": "Set the hot water demand mode to [[mode]]",
-          "sv": "Ställ in varmvattenbehovet till [[mode]]",
-          "de": "Brauchwasserbedarf auf [[mode]] einstellen",
-          "nl": "Warmtapwaterbehoefte instellen op [[mode]]",
-          "no": "Still inn varmtvannsbehov til [[mode]]",
-          "da": "Indstil varmtvandsbehov til [[mode]]"
-        },
-        "hint": {
-          "en": "Hot water demand mode (small/medium/large/smart).",
-          "sv": "Varmvattnets behovsläge (litet/medel/stort/smart).",
-          "de": "Brauchwasserbedarf (klein/mittel/groß/smart).",
-          "nl": "Warmtapwaterbehoefte (klein/gemiddeld/groot/smart).",
-          "no": "Varmtvannsbehov (liten/middels/stor/smart).",
-          "da": "Varmtvandsbehov (lille/middel/stor/smart)."
-        },
-        "args": [
-          {
-            "type": "device",
-            "name": "device",
-            "filter": "driver_id=nibe_s&capabilities=measure_enum_NIBE.h56_hotwater_demand_mode"
-          },
-          {
-            "type": "autocomplete",
-            "name": "mode",
-            "title": {
-              "en": "Mode",
-              "sv": "Läge",
-              "de": "Modus",
-              "nl": "Stand",
-              "no": "Modus",
-              "da": "Indstilling"
-            }
           }
         ]
       },
@@ -2914,18 +2638,12 @@
         "measure_temperature.i37_outside_avg",
         "measure_hour_NIBE.i1087_compressor_usage_total",
         "measure_hour_NIBE.i1091_compressor_usage_hotwater",
-        "measure_count_NIBE.h26_heat_curve",
-        "measure_count_NIBE.h30_heat_curve_displacement",
-        "measure_enum_NIBE.h56_hotwater_demand_mode",
         "onoff",
         "boolean_NIBE.h697_more_hotwater",
         "measure_count_NIBE.h846_spa_hotwater",
         "measure_count_NIBE.h902_spa_hotwater_influence",
         "measure_count_NIBE.i1915_spa_hotwater_mode",
         "boolean_NIBE.h762_hotwater_sg_ready",
-        "measure_enum_NIBE.h65_periodic_hotwater",
-        "measure_day_NIBE.h66_periodic_hotwater_interval",
-        "measure_minute_NIBE.h92_periodtime_hotwater",
         "measure_current.i50_sensor_v2",
         "measure_current.i48_sensor_v2",
         "measure_current.i46_sensor_v2",
@@ -3014,28 +2732,6 @@
             "da": "Kompressorstarter"
           }
         },
-        "measure_count_NIBE.h26_heat_curve": {
-          "uiComponent": null,
-          "title": {
-            "en": "Heat curve",
-            "sv": "Värmekurva",
-            "de": "Heizkurve",
-            "nl": "Stooklijn",
-            "no": "Varmekurve",
-            "da": "Varmekurve"
-          }
-        },
-        "measure_count_NIBE.h30_heat_curve_displacement": {
-          "uiComponent": null,
-          "title": {
-            "en": "Heat curve displacement",
-            "sv": "Värmeförskjutning",
-            "de": "Parallelverschiebung",
-            "nl": "Verschuiving stooklijn",
-            "no": "Varmeforskyvning",
-            "da": "Varmeforskydning"
-          }
-        },
         "measure_current.i46_sensor_v2": {
           "decimals": 1,
           "title": {
@@ -3067,17 +2763,6 @@
             "nl": "Stroomsensor L1 (BE1)",
             "no": "Strømføler L1 (BE1)",
             "da": "Strømføler L1 (BE1)"
-          }
-        },
-        "measure_day_NIBE.h66_periodic_hotwater_interval": {
-          "uiComponent": null,
-          "title": {
-            "en": "Periodic hot water interval",
-            "sv": "Periodiskt varmvatten intervall",
-            "de": "Intervall periodische Erhöhung",
-            "nl": "Interval periodiek warmtapwater",
-            "no": "Intervall periodisk varmtvann",
-            "da": "Interval periodisk varmtvand"
           }
         },
         "measure_degree_minutes_NIBE.h11_degree_minutes": {
@@ -3118,28 +2803,6 @@
             "nl": "Stand afvoerluchtventilator",
             "no": "Viftetrinn avtrekk",
             "da": "Ventilatortrin udsugning"
-          }
-        },
-        "measure_enum_NIBE.h56_hotwater_demand_mode": {
-          "title": {
-            "en": "Hot water demand",
-            "sv": "Varmvattenbehov",
-            "de": "Brauchwasserbedarf",
-            "nl": "Warmtapwaterbehoefte",
-            "no": "Varmtvannsbehov",
-            "da": "Varmtvandsbehov"
-          },
-          "uiComponent": null
-        },
-        "measure_enum_NIBE.h65_periodic_hotwater": {
-          "uiComponent": null,
-          "title": {
-            "en": "Periodic hot water",
-            "sv": "Periodiskt varmvatten",
-            "de": "Periodische Erhöhung",
-            "nl": "Periodiek warmtapwater",
-            "no": "Periodisk varmtvann",
-            "da": "Periodisk varmtvand"
           }
         },
         "operating_mode_NIBE.h237_operating_mode": {
@@ -3379,17 +3042,6 @@
             "nl": "Bedrijfstijd compressor",
             "no": "Driftstid kompressor",
             "da": "Driftstid kompressor"
-          }
-        },
-        "measure_minute_NIBE.h92_periodtime_hotwater": {
-          "uiComponent": null,
-          "title": {
-            "en": "Hot water period time",
-            "sv": "Periodtid varmvatten",
-            "de": "Periodendauer Brauchwasser",
-            "nl": "Periodetijd warmtapwater",
-            "no": "Periodetid varmtvann",
-            "da": "Periodetid varmtvand"
           }
         },
         "measure_percentage_NIBE.i1102_heating_pump": {

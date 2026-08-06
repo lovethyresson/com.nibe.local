@@ -25,6 +25,20 @@ import {registers} from '../drivers/nibe_s/registers';
 // extraction must not have changed.
 // ---------------------------------------------------------------------------------------
 
+
+// A picker that still has a non-picker twin at the same address. Tests that need one look it up
+// rather than naming it: pairs get collapsed as duplication is removed, and hardcoding one means
+// the test breaks for a reason that has nothing to do with what it is checking.
+function anyPickerPair() {
+    for (const picker of registers) {
+        if (!picker.picker) continue;
+        const twin = registers.find((r) => r !== picker && r.address === picker.address
+            && r.direction === picker.direction && !r.picker && !r.secondary);
+        if (twin) return {picker, twin};
+    }
+    return undefined;
+}
+
 test('combineRaw: 16-bit is the single word, 32-bit is low-word-first', () => {
     assert.equal(combineRaw([1234]), 1234);
     assert.equal(combineRaw([1234], 16), 1234);
@@ -94,18 +108,20 @@ test('isAdjustable / isPollable', () => {
 // ---------------------------------------------------------------------------------------
 
 test('buildPickerPrimary maps a picker to its non-picker twin at the same address', () => {
+    const pair = anyPickerPair();
+    if (!pair) return;   // every pair collapsed; the twinless case is covered by its own test
     const pp = buildPickerPrimary(registers);
-    assert.equal(pp['curve_mode_NIBE.h26_heat_curve'], 'measure_count_NIBE.h26_heat_curve');
+    assert.equal(pp[pair.picker.name], pair.twin.name);
     // the non-picker twin itself is not in the map
-    assert.equal(pp['measure_count_NIBE.h26_heat_curve'], undefined);
+    assert.equal(pp[pair.twin.name], undefined);
 });
 
 test('isSelectableRegister: pickers are not separately selectable', () => {
+    const pair = anyPickerPair();
+    if (!pair) return;
     const pp = buildPickerPrimary(registers);
-    const picker = registers.find((r) => r.name === 'curve_mode_NIBE.h26_heat_curve')!;
-    const twin = registers.find((r) => r.name === 'measure_count_NIBE.h26_heat_curve')!;
-    assert.equal(isSelectableRegister(picker, pp), false);
-    assert.equal(isSelectableRegister(twin, pp), true);
+    assert.equal(isSelectableRegister(pair.picker, pp), false);
+    assert.equal(isSelectableRegister(pair.twin, pp), true);
 });
 
 test('isRegisterEnabled: core always on; group + override precedence; picker follows twin', () => {
@@ -121,9 +137,10 @@ test('isRegisterEnabled: core always on; group + override precedence; picker fol
     // per-register override wins over the group
     assert.equal(isRegisterEnabled(hw, {groups: {hotwater: false}, overrides: {[hw.name]: true}}, pp), true);
     // a picker resolves through its twin's override, not its own name
-    const picker = registers.find((r) => r.name === 'curve_mode_NIBE.h26_heat_curve')!;
-    const twinName = 'measure_count_NIBE.h26_heat_curve';
-    assert.equal(isRegisterEnabled(picker, {groups: {heating: true}, overrides: {[twinName]: false}}, pp), false);
+    const pair = anyPickerPair();
+    if (pair)
+        assert.equal(isRegisterEnabled(pair.picker,
+            {groups: {[pair.picker.group]: true}, overrides: {[pair.twin.name]: false}}, pp), false);
 });
 
 test('makeProfile computes registerByName and pickerPrimary', () => {

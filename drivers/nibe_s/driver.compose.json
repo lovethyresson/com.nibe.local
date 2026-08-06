@@ -66,18 +66,12 @@
     "measure_temperature.i37_outside_avg",
     "measure_hour_NIBE.i1087_compressor_usage_total",
     "measure_hour_NIBE.i1091_compressor_usage_hotwater",
-    "measure_count_NIBE.h26_heat_curve",
-    "measure_count_NIBE.h30_heat_curve_displacement",
-    "measure_enum_NIBE.h56_hotwater_demand_mode",
     "onoff",
     "boolean_NIBE.h697_more_hotwater",
     "measure_count_NIBE.h846_spa_hotwater",
     "measure_count_NIBE.h902_spa_hotwater_influence",
     "measure_count_NIBE.i1915_spa_hotwater_mode",
     "boolean_NIBE.h762_hotwater_sg_ready",
-    "measure_enum_NIBE.h65_periodic_hotwater",
-    "measure_day_NIBE.h66_periodic_hotwater_interval",
-    "measure_minute_NIBE.h92_periodtime_hotwater",
     "measure_current.i50_sensor_v2",
     "measure_current.i48_sensor_v2",
     "measure_current.i46_sensor_v2",
@@ -166,28 +160,6 @@
         "da": "Kompressorstarter"
       }
     },
-    "measure_count_NIBE.h26_heat_curve": {
-      "uiComponent": null,
-      "title": {
-        "en": "Heat curve",
-        "sv": "Värmekurva",
-        "de": "Heizkurve",
-        "nl": "Stooklijn",
-        "no": "Varmekurve",
-        "da": "Varmekurve"
-      }
-    },
-    "measure_count_NIBE.h30_heat_curve_displacement": {
-      "uiComponent": null,
-      "title": {
-        "en": "Heat curve displacement",
-        "sv": "Värmeförskjutning",
-        "de": "Parallelverschiebung",
-        "nl": "Verschuiving stooklijn",
-        "no": "Varmeforskyvning",
-        "da": "Varmeforskydning"
-      }
-    },
     "measure_current.i46_sensor_v2": {
       "decimals": 1,
       "title": {
@@ -219,17 +191,6 @@
         "nl": "Stroomsensor L1 (BE1)",
         "no": "Strømføler L1 (BE1)",
         "da": "Strømføler L1 (BE1)"
-      }
-    },
-    "measure_day_NIBE.h66_periodic_hotwater_interval": {
-      "uiComponent": null,
-      "title": {
-        "en": "Periodic hot water interval",
-        "sv": "Periodiskt varmvatten intervall",
-        "de": "Intervall periodische Erhöhung",
-        "nl": "Interval periodiek warmtapwater",
-        "no": "Intervall periodisk varmtvann",
-        "da": "Interval periodisk varmtvand"
       }
     },
     "measure_degree_minutes_NIBE.h11_degree_minutes": {
@@ -270,28 +231,6 @@
         "nl": "Stand afvoerluchtventilator",
         "no": "Viftetrinn avtrekk",
         "da": "Ventilatortrin udsugning"
-      }
-    },
-    "measure_enum_NIBE.h56_hotwater_demand_mode": {
-      "title": {
-        "en": "Hot water demand",
-        "sv": "Varmvattenbehov",
-        "de": "Brauchwasserbedarf",
-        "nl": "Warmtapwaterbehoefte",
-        "no": "Varmtvannsbehov",
-        "da": "Varmtvandsbehov"
-      },
-      "uiComponent": null
-    },
-    "measure_enum_NIBE.h65_periodic_hotwater": {
-      "uiComponent": null,
-      "title": {
-        "en": "Periodic hot water",
-        "sv": "Periodiskt varmvatten",
-        "de": "Periodische Erhöhung",
-        "nl": "Periodiek warmtapwater",
-        "no": "Periodisk varmtvann",
-        "da": "Periodisk varmtvand"
       }
     },
     "operating_mode_NIBE.h237_operating_mode": {
@@ -531,17 +470,6 @@
         "nl": "Bedrijfstijd compressor",
         "no": "Driftstid kompressor",
         "da": "Driftstid kompressor"
-      }
-    },
-    "measure_minute_NIBE.h92_periodtime_hotwater": {
-      "uiComponent": null,
-      "title": {
-        "en": "Hot water period time",
-        "sv": "Periodtid varmvatten",
-        "de": "Periodendauer Brauchwasser",
-        "nl": "Periodetijd warmtapwater",
-        "no": "Periodetid varmtvann",
-        "da": "Periodetid varmtvand"
       }
     },
     "measure_percentage_NIBE.i1102_heating_pump": {

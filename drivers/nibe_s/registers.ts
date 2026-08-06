@@ -316,11 +316,6 @@ export const registers: Register[] = [
      info: {en: "Heat delivered to heating by the compressor alone", sv: "Levererad värme till värme enbart från kompressorn"}},
     {address: 1091, name: "measure_hour_NIBE.i1091_compressor_usage_hotwater",direction: Dir.In,  group: "hotwater",   scale: 1, size: 32, // Total drifttid kompressor varmvatten (s32)
      info: {en: "Compressor runtime spent on hot water", sv: "Kompressorns drifttid för varmvatten"}},
-    // Rad 16 Värmekurvor
-    {address:   26, name: "measure_count_NIBE.h26_heat_curve",                direction: Dir.Out, group: "heating",    scale: 1, min: 0, max: 15, // Värmekurva klimatsystem 1
-     info: {en: "Heat curve slope for climate system 1", sv: "Värmekurvans lutning för klimatsystem 1"}},
-    {address:   30, name: "measure_count_NIBE.h30_heat_curve_displacement",   direction: Dir.Out, group: "heating",    scale: 1, min: -10, max: 10, // Värmeförskjutning klimatsystem 1 RW
-     info: {en: "Offset of the heat curve for climate system 1", sv: "Förskjutning av värmekurvan för klimatsystem 1"}},
     // Rad 16b Rumstemperatur (zoner)
     //
     // The indoor setpoint. This is the register the myUplink app writes when you set an indoor
@@ -383,9 +378,6 @@ export const registers: Register[] = [
     // regulation at all. Read-only either way — writing it is the legacy path.
     {address:  202, name: "boolean_NIBE.h202_use_room_sensor",                direction: Dir.Out, group: "heating",    bool: true, noAction: true, // Använd rumsgivare klimatsystem 1
      info: {en: "Whether room sensor regulation is switched on for climate system 1", sv: "Om rumsgivarreglering är påslagen för klimatsystem 1"}},
-    // Rad 17 Varmvatten
-    {address:   56, name: "measure_enum_NIBE.h56_hotwater_demand_mode",       direction: Dir.Out, group: "hotwater",   enum: hotwaterMap, // Varmvatten behovsläge RW
-     info: {en: "Hot water demand mode (small/medium/large/smart)", sv: "Varmvattnets behovsläge (litet/medel/stort/smart)"}},
     // "More hot water" quick action: on = raw 2, off = raw 0. Raw 2 is *2 hours*, not the
     // 1 hour this was labelled as before it was measured (see onetimeincreaseMap). Write
     // onValue: 1 instead if a 1-hour boost is what's actually wanted.
@@ -440,14 +432,6 @@ export const registers: Register[] = [
      info: {en: "Whether a hot water boost is currently running, as the pump sees it", sv: "Om en varmvattenhöjning pågår, sett från värmepumpen"}},
     {address:  697, name: "boolean_NIBE.h697_more_hotwater",                         direction: Dir.Out, group: "hotwater",   bool: true, onValue: 2, offValue: 0, // Mer varmvatten engångshöjning
      info: {en: "More hot water: a one-time 2-hour boost", sv: "Mer varmvatten: en engångshöjning på 2 timmar"}},
-    // Rad 18 Periodisk varmvatten höjning
-    {address:   65, name: "measure_enum_NIBE.h65_periodic_hotwater",          direction: Dir.Out, group: "hotwater",   enum: booleanMap, // Periodisk varmvatten
-     info: {en: "Periodic hot water boost on/off (status)", sv: "Periodisk varmvattenhöjning av/på (status)"}},
-    {address:   66, name: "measure_day_NIBE.h66_periodic_hotwater_interval",  direction: Dir.Out, group: "hotwater",   scale: 1, min: 1, max: 90, // Periodiskt varmvatten intervall i dagar
-     info: {en: "Days between periodic hot water boosts", sv: "Dagar mellan periodiska varmvattenhöjningar"}},
-    // Rad 19 Periodtid varmvatten
-    {address:   92, name: "measure_minute_NIBE.h92_periodtime_hotwater",      direction: Dir.Out, group: "hotwater",   scale: 1, min: 0, max: 180, // Periodtid varmvatten minuter
-     info: {en: "Duration of the periodic hot water boost", sv: "Längd på den periodiska varmvattenhöjningen"}},
     // Rad 20 Strömförbrukning
     {address:   50, name: "measure_current.i50_sensor_v2",                    direction: Dir.In,  group: "electrical", scale: 10, size: 32, // Strömavkänare BE1 -L1 (u32)
      info: {en: "Current on phase L1 (sensor BE1)", sv: "Ström på fas L1 (givare BE1)"}},
