@@ -35,11 +35,15 @@ export const roleClass: Record<Role, string> = {
     // Nibe DHW tank is (Swedish "Varmvattenberedare"), and the alternatives are the wrong
     // appliance: `boiler` is a furnace, `heater` a radiator.
     //
-    // The cost is that this class renders no on/off state, so the tile does not grey out when
-    // "Allow hot water" is off the way heating's does. Making it a thermostat would fix that —
-    // that is what gives the other two their dimming — but a thermostat needs one honest target
-    // to mirror, and hot water has three stop temperatures whose relevance depends on the demand
-    // mode. Mirroring any one of them is wrong in the other two modes. Correct class, no dial.
+    // It has no dial, and that is the real cost: a thermostat needs one honest target to mirror,
+    // and hot water has three stop temperatures whose relevance depends on the demand mode.
+    // Mirroring any one of them is wrong in the other two. Correct class, no dial.
+    //
+    // This comment used to add that the class also cost the tile its on/off state. That was
+    // wrong. The tile's on/off appearance is `ui.quickAction`, not the class — heating greys
+    // because its quick action is its enable toggle. Hot water had `uiQuickAction` pinned to
+    // "More hot water", which displaced the enable toggle from that one slot. The class was
+    // never involved.
     hotwater: "waterheater",
     // Also a thermostat: it measures a temperature and controls it. Its root capability pair is
     // mirrored from the pool temperature and stop setpoint (see `mirrors` in the S profile),

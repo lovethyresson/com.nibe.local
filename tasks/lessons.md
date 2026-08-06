@@ -188,3 +188,13 @@ Two failures, and the second is the expensive one:
 - Search the vendor's forum *before* the third failed hypothesis, not after. Twice now the answer was
   published and one search away — Nibe's register list for the additional-heat permit, this thread for
   capability order.
+
+**Amended the same day, by the hot water tile.** Search the forum, but rank it below measurement. Both
+threads that looked relevant there were wrong for our case: one said thermostat tiles do not fade (ours
+does), the other that a root `onoff` is required to drive the tile (ours is a sub-id). Acting on either
+would have produced a class change or a capability rename, and neither was the bug. What settled it in one
+call was diffing the `ui` object of a device that worked against one that did not — `ui.quickAction` was
+the whole story, and no thread mentioned it. **A forum is good for "is this possible at all", which is the
+question that unblocks a stalled hypothesis. It is unreliable for "why is mine different", and that is
+what a diff against a working instance answers directly.** Prefer the two-instance diff whenever one
+exists; reach for the forum when nothing local works to compare against.
