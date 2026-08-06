@@ -198,3 +198,21 @@ the whole story, and no thread mentioned it. **A forum is good for "is this poss
 question that unblocks a stalled hypothesis. It is unreliable for "why is mine different", and that is
 what a diff against a working instance answers directly.** Prefer the two-instance diff whenever one
 exists; reach for the forum when nothing local works to compare against.
+
+
+## Write for the venue, not for the evidence you gathered
+
+**2026-08-06.** The 0.9.13 store changelog ran to ~500 words per language — register numbers, the
+2166-vs-2305 measurement, the CSV mistitling of register 180, three crash classes. Every fact was
+true and hard-won, and a pump owner reading the app store scrolled past all of it. "No one will
+ever read that wall of text."
+
+The pull is real: the detail felt like the *proof* the release was sound, so cutting it felt like
+hiding work. It isn't, because the work already has homes — the README row is the engineering
+view, `docs/` carries the reasoning, the commits carry the trail. Length in the wrong venue does
+not add credibility, it costs the one thing a store listing has to do.
+
+**Rule:** before writing user-facing text, name its reader and what they must decide. A store
+changelog reader decides "do I care, and must I do anything?" — a few sentences. Anyone wanting
+mechanism will follow a link. Same discipline as a commit subject line: the body exists, put it
+in the body.

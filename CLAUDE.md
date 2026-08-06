@@ -31,7 +31,11 @@ Four things move together, and the last one is easy to forget:
 
 1. `version` in `.homeycompose/app.json` **and** `package.json`.
 2. `homey app build` to regenerate `app.json` (never hand-edit its version).
-3. A user-facing entry in `.homeychangelog.json` — English and Swedish, written for a pump owner, not a developer.
+3. A user-facing entry in `.homeychangelog.json` — English and Swedish, written for a pump owner, not
+   a developer. **Keep it to a few sentences.** It is a store listing, not release notes: name what
+   changed for the owner and anything they must do, and stop. Register numbers, measurements, evidence
+   and mechanism belong in the README row and `docs/`, which is where anyone who wants them will look.
+   0.9.13 shipped a ~500-word wall nobody read — the detail was right, the venue was wrong.
 4. A row in the **Releases** table in `README.md` — the engineering view: what changed and why it mattered.
 5. `docs/energy-attribution.md` if the release touched attribution, the power sources, the role mapping or
    the COP accumulators — it is the source of truth for that logic, carries the diagrams, and states which
