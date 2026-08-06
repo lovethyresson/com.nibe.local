@@ -198,6 +198,15 @@ function explainRole(role: string, previousRole: string | undefined,
                       + `${e(hwStop)} °C stop point, because a boost was running.`,
                     sv: `Tanken är laddad: varmvattnet nådde ${s(hw)} °C — förbi ${mode.sv.toLowerCase()}s `
                       + `stopptemperatur ${s(hwStop)} °C, eftersom en höjning pågick.`};
+        // Only call it charged if it actually got there. A charge ends short for several reasons
+        // the app cannot distinguish — the user cancelling it, a schedule (menu 6) cutting in, the
+        // compressor giving up — so this states what happened and stops. Measured on an S1155: a
+        // boost ran 12 minutes and ended at 41.9 °C against a 68 °C setpoint, and this line called
+        // that "charged". Naming a cause here would be guessing; saying it ended short is not.
+        if (hw < hwStop - 1)
+            return {en: `Hot water charging ended at ${e(hw)} °C, short of its ${e(hwStop)} °C stop point.`,
+                    sv: `Varmvattenladdningen avslutades vid ${s(hw)} °C, före stopptemperaturen `
+                      + `${s(hwStop)} °C.`};
         return {en: `The tank is charged: hot water reached ${e(hw)} °C, its ${e(hwStop)} °C stop point.`,
                 sv: `Tanken är laddad: varmvattnet nådde ${s(hw)} °C, stopptemperaturen ${s(hwStop)} °C.`};
     }
