@@ -64,6 +64,18 @@ const REGS = [
     {addr: 1069, dir: 'in',  div: 10,  unit: 'h',  name: 'Immersion runtime, hot water'},
     {addr: 1975, dir: 'in',  div: 1,   unit: '',   name: 'Alarm code'},
 
+    ['--- which target is actually in force, and who set it ---'],
+    {addr: 1038, dir: 'in',  div: 1,   unit: '',   name: 'Current hot water MODE (in force now)',
+     note: 'the mode the pump is really using, vs 56 which is only what is configured'},
+    {addr:  137, dir: 'in',  div: 1,   unit: '',   name: 'Current hot water mode CONTROLLED BY',
+     note: 'what is imposing that mode - schedule, boost, smart price, user'},
+    {addr:  747, dir: 'in',  div: 1,   unit: '',   name: 'Temp. lux forces start of HW demand'},
+    {addr: 2301, dir: 'in',  div: 100, unit: 'kWh', size: 32,
+     name: 'Immersion energy for hot water, past hour',
+     note: 'the pump\'s own record of whether the immersion ran - no inference needed'},
+    {addr: 1688, dir: 'in',  div: 1,   unit: '',   name: 'Controlling hot water sensor (BT6)'},
+    {addr: 1689, dir: 'in',  div: 1,   unit: '',   name: 'Display hot water sensor (BT7)'},
+
     ['--- hot water context ---'],
     {addr: 1028, dir: 'in',  div: 1,   unit: '',   name: 'Operating priority (20 = hot water)'},
     {addr:    9, dir: 'in',  div: 10,  unit: 'C',  name: 'Hot water charge (BT6)'},
