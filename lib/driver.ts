@@ -569,6 +569,15 @@ export abstract class NibePumpDriver extends Driver {
 
     private candidateGroups(role: Role, recommendations: Recommendations, samples: Record<string, RegisterSample>) {
         const lang = this.homey.i18n.getLanguage() as 'en' | 'sv';
+        // The pairing picker rebuilds `device.capabilities` from these lists, so this — not
+        // deviceTemplate — is what decides the order a paired device ends up storing, and a
+        // device's stored order is what the Homey app renders. Ordering deviceTemplate alone did
+        // nothing: the picker overwrote it every time.
+        const declared = this.profile.role.displayOrder?.[role] ?? [];
+        const rank = (name: string) => {
+            const at = declared.indexOf(name);
+            return at === -1 ? Number.MAX_SAFE_INTEGER : at;
+        };
         const capsFor = (id: GroupId) => id === 'energy'
             ? this.energyGroupEntries(role, lang, samples)
                 .map((entry) => ({name: entry.name, title: entry.title, detected: entry.detected}))
@@ -576,6 +585,7 @@ export abstract class NibePumpDriver extends Driver {
                 .filter((register) => register.group === id
                     && (!register.role || register.role === role)
                     && isSelectableRegister(register, this.profile.pickerPrimary))
+                .sort((a, b) => rank(a.name) - rank(b.name))
                 .map((register) => ({
                     name: register.name,
                     title: this.regToAutofill(register).name,
