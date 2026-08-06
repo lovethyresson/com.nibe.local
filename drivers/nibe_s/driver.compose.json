@@ -257,7 +257,7 @@
         "no": "Mer varmtvann",
         "da": "Mere varmtvand"
       },
-      "uiQuickAction": true
+      "uiQuickAction": false
     },
     "measure_frequency.i1046_compressor": {
       "title": {
