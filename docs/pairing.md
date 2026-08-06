@@ -3,7 +3,7 @@
 **Source of truth for what happens between "Add device" and a working device.** Update before a release that
 changes detection, the pairing views or how a selection is stored.
 
-Last verified against the code: **0.9.12**.
+Last verified against the code: **0.9.13**.
 
 ## The flow
 
@@ -143,6 +143,63 @@ At runtime it is applied in exactly two places:
 
 The register dump marks a resolved register as `[was <primary>]`, so a support log answers "which address is
 it actually reading?" outright.
+
+## Plausibility of a register's own value
+
+`altPlausible` vets a candidate *address*. **`plausible` vets the value at the address the register already
+has**, and a register reading outside its band is treated exactly like one that never answered — not offered
+at pairing, flagged unsupported at repair.
+
+This is for registers a pump answers even when the underlying function is not configured. The indoor setpoint
+is the case in point: an unconfigured zone reads a flat **0** rather than the not-available sentinel, so
+without a band a pump with no room zone would be handed a thermostat dial reading 0 °C. Same reasoning as
+`inRange`'s "an exact zero means the thing isn't wired up", applied per register rather than per group.
+
+Applied in `buildDetectionResult()`, so one decision point covers pairing, repair and the per-capability
+checkboxes alike.
+
+## Renames, and why they need declaring
+
+A stored `Selection` is keyed by **register name** — both its per-capability overrides and its resolved
+addresses. So renaming a register silently orphans its entries: the override reverts to the group default,
+and the resolved address is lost, sending reads back to a primary that may answer with the sentinel.
+
+That is not hypothetical. Room temperature is a resolved register on both an S735 (alternate address 26) and
+an S1155 (the user's choice among 116/111/26), and 0.9.13 renamed it to the bare `measure_temperature`. Left
+undeclared, every upgraded pump would have quietly lost its room temperature until someone ran Repair.
+
+A model declares `renamedRegisters` (old name → current name) and `migrateSelection()` rewrites the stored
+selection once at device init. It is idempotent, returns the same object when there is nothing to carry so
+unaffected models never re-save, and an existing value under the new name always wins so a re-run cannot
+undo itself.
+
+**What it cannot carry is the Insights history** — a log is bound to the capability id that created it, and
+Homey provides no way to move one. A rename always costs that.
+
+## Mirrors — one value, two capability ids
+
+Homey's thermostat tile and its Climate view key on the **bare** capability ids (`measure_temperature`,
+`target_temperature`). In this app a register's name *is* its capability id and names are unique across the
+table, so those ids can only belong to one register — heating's. Any other device wanting the same treatment
+has to publish a copy.
+
+A `mirror` does that: same value, same poll, surfaced twice on one device. A writable mirror also forwards
+the write back to its source register, so the tile's dial and the named row underneath stay one setting.
+
+Three details that are not obvious:
+
+- **A mirror carries its own capability options.** `capabilitiesOptions` in the compose file is keyed by
+  capability id alone, so a root id shared between roles would otherwise inherit the other role's title — a
+  pool dial labelled "Room temperature".
+- **It follows its source's selection and detection.** No source register, no mirror; source switched off,
+  no mirror. A pump without the POOL 40 accessory is offered no pool thermostat.
+- **It can validate before writing.** Pool heating is a band — the pump heats to `stop` and restarts at
+  `start` — and the dial sets `stop`. Inverting the band is one gesture away once it is a dial, so the write
+  is rejected with a message naming the start temperature rather than being sent to the pump.
+
+Note the device **class** matters too, independently of the capabilities: with the root pair on a `heater`
+the device joins Climate but still renders two separate sensor rows. `thermostat` is what produces the
+combined tile.
 
 ### Picking it up on an existing device
 

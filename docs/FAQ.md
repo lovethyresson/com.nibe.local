@@ -116,88 +116,35 @@ migrated, so COP is blank for a while after upgrading and then rebuilds correctl
 
 ### Why does a hot water boost heat past my stop temperature?
 
-Because a boost ignores the demand mode you have selected. NIBE's manuals describe "More hot water" (menu
-2.1) as temporarily raising the pump to its **luxury** hot water mode — called **Large** on the S-series —
-and they note that luxury mode uses the **immersion heater alongside the compressor**.
+Because a boost temporarily promotes the pump to its **Large** hot water mode and charges to
+*that* stop temperature, whatever mode you normally run. NIBE's manuals describe menu 2.1 "More
+hot water" as temporarily raising the pump to luxury hot water, and measurement agrees: on an
+S1155 in demand mode Small (stop 48 °C), with Large set to 68 °C, a boost ran to **68.4 °C**.
 
-Measured on an S1155 in demand mode Small (stop 48 °C), boosts ran to 53.4, 54.6, 55.0, 58.1 and 58.6 °C:
-always well past Small's setting.
+So the setting that decides how hot a boost gets is **Hot water stop (Large)** — even if Large is
+not the mode you use day to day.
 
-**Our own measurements can't confirm which setpoint it targets**, because on that pump the immersion heater for
-hot water is blocked, so every boost ends where the compressor gives up rather than where the setting is. With
-Large at 58 a boost stopped at 58.1; with Large at 66 it stopped at 58.6 — the second is the ceiling, not the
-target, so it neither confirms nor refutes Large.
+### My boost stops well short of that. Why?
 
-If you want to influence how hot a boost gets, **Hot water stop (Large)** is the setting to try — and see the
-next two questions for why it may not be what limits you.
+Almost certainly because the immersion heater is not available, and the compressor alone cannot
+get there.
 
-### My boost stops well short of what I set. Why?
+The compressor has a hard ceiling — it must condense several degrees hotter than the tank, and
+a heat pump cannot push past a certain discharge temperature. Expect roughly **55–60 °C** in the
+tank on the compressor alone, less when the source is cold. Above that the immersion heater has
+to make up the difference, and there are two common reasons it does not:
 
-Because the compressor has a hard ceiling, and on a boost you are usually asking for something above it.
+- **Operating mode is Auto.** The immersion tick box in the pump's menu 4.1 — the app's **Allow
+  additional heat** — only applies in mode **Manual**. In Auto the pump decides for itself, and
+  the setting is ignored. You can switch mode from the Main device.
+- **A schedule is blocking it.** Each schedule mode has a **"Block additional heat"** switch
+  covering heating and hot water alike. It is not readable over Modbus, so the app cannot show
+  you it — see the schedules question above.
 
-To put heat *into* a 58 °C tank the refrigerant has to condense several degrees hotter still, and a heat
-pump's compressor cannot push past a certain condensing temperature. Compressor-only, expect roughly
-**55–62 °C** in the tank — and where in that band you land moves with conditions:
-
-- **How cold the source is.** The five runs above span 53.4 to 58.6 °C on the same pump in the same week. The
-  best of them happened with the ground loop at 21 °C, about as easy as this machine will ever have it. Expect
-  less in winter.
-- **Protective cut-outs.** When it cannot manage the heat the pump throttles the compressor right down, and if
-  that is not enough it ends the charge on a **high condenser temperature** alarm. Seeing that on hot water in
-  winter is the machine protecting itself, not a fault.
-
-**Above that ceiling you need the immersion heater** — which is a separate setting, see below. It is also why
-the periodic anti-legionella charge has its own stop temperature with a 55 °C floor: 60–70 °C is not
-compressor territory at all.
-
-### Everything looks right and the pump still isn't doing it. Check your schedules first.
-
-**Before suspecting a setting, check the pump's own schedule (menu 6).** A schedule can switch hot water off,
-or block additional heat, entirely independently of everything the app can see — and it is *not* readable over
-Modbus. The app will show hot water permitted, the demand mode correct, the start temperature correct, the
-tank well below it, and the pump idle, with no way to explain the contradiction.
-
-This is not hypothetical. The maintainer lost the better part of a day to exactly this: a tank sitting at
-32 °C against a 52 °C start point, and five hot water boosts where the immersion heater never engaged. Both
-were schedules — "hot water: off" on weekdays, and "block additional heat" — while every register the app
-reads insisted the settings were fine.
-
-If the pump is ignoring something you have set, and the app shows no reason why, the schedule is the first
-place to look and the app cannot help you there.
-
-### Can I turn the immersion heater on for hot water?
-
-**Not directly — there is no such setting.** The pump exposes a permit for *heating* ("Allow additional heat",
-on the Heating device) and nothing equivalent for hot water. While charging the tank, the pump decides for
-itself whether to bring the immersion heater in.
-
-What does control it:
-
-- **A schedule** (menu 6). Each schedule mode has a **"Block additional heat"** switch that covers heating
-  *and* hot water, and it is the one thing that can stop the immersion outright. It is not readable over
-  Modbus, so the app cannot show you it — see the schedules question above. On the maintainer's pump this had
-  been set for a year, which is why five hot water charges in a row showed the immersion at 0 W.
-- **The maximum immersion power** configured on the pump (menu 7.1.5). Set to zero, nothing can use it.
-
-You can *watch* it work: **Immersion heater power** and **Immersion heater active** on the Main device show
-what it is drawing and when, and both chart in Insights.
-
-### My tank stops well short of the temperature I set. Why?
-
-Because the compressor has a hard ceiling and the immersion heater cannot always make up the difference.
-
-To put heat into a 58 °C tank the refrigerant must condense several degrees hotter still, and a heat pump
-cannot push past a certain discharge temperature — measured at **98 °C** on an S1155 just before it stopped.
-Compressor-only, expect roughly **55–62 °C** in the tank, and less when the source is cold: the same pump
-reached 58.6 °C with its ground loop at 21 °C and stalled at 55 °C once a day of testing had pulled the loop
-down to 7.3 °C.
-
-The immersion heater does step in when the compressor trips — but it feeds the *same* water circuit whose
-return temperature caused the trip, so it can only add a little before the pump throttles again. On that pump
-it ran in one-kilowatt bursts and the charge was abandoned about 10 °C short of a deliberately unrealistic
-68 °C target.
-
-Set a target the compressor can actually reach — mid-50s on a ground-source pump — and none of this arises.
+Measured on an S1155: five boosts in a row stopped at 53–59 °C with the immersion drawing 0 W,
+first because a schedule had blocked it for a year and then because Auto mode ignored the permit.
+With both cleared and the mode set to Manual, the immersion ran to its full **7 kW** and the same
+boost reached 68 °C.
 
 ## Setup and connectivity
 
