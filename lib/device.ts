@@ -502,18 +502,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 });
             }
 
-            // Main's on/off is the bare `onoff`, pinned ON (the pump is always operating; there
-            // is no whole-pump on/off command). Register a listener that snaps any manual change
-            // back to on. Function devices need no listener here — their on/off is a real
-            // writable enable register (Allow heating, …) whose write listener is wired above.
-            if (this.role === 'main' && this.hasCapability(PUMP_ACTIVE_CAPABILITY)) {
+            // Main's on/off is the bare `onoff`, pinned ON: the pump is always operating and has
+            // no whole-pump on/off command. It is declared not settable (see
+            // extraCapabilityOptions), so there is nothing to listen for — it just holds its
+            // value. Function devices are different: their on/off is a real writable enable
+            // register whose listener is wired above.
+            if (this.role === 'main' && this.hasCapability(PUMP_ACTIVE_CAPABILITY))
                 await this.setCapabilityValue(PUMP_ACTIVE_CAPABILITY, true).catch(this.error);
-                this.registerCapabilityListener(PUMP_ACTIVE_CAPABILITY, async () => {
-                    setTimeout(() => this.setCapabilityValue(PUMP_ACTIVE_CAPABILITY, true)
-                        .catch(this.error), 300);
-                    throw new Error(this.homey.__('pair.not_settable'));
-                });
-            }
         } catch (err) {
             this.error('Capability setup failed in onInit; attaching to the pump anyway so '
                 + 'this device still receives its energy allocation', err);

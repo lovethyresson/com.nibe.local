@@ -1,5 +1,5 @@
 import {GroupId, Register, Selection, isRegisterEnabled, withResolvedAddresses} from './registers';
-import type {ModelProfile} from './profile';
+import type {CapabilityMirror, ModelProfile} from './profile';
 
 // A paired Homey device represents one logical function of the physical pump.
 // "main" owns the core sensors (outdoor temp, priority, operating mode) plus the
@@ -23,9 +23,19 @@ export const allRoles: Role[] = ["main", ...functionRoles, "solar"];
 // Each device keeps its own custom icon regardless of class (see deviceTemplate `icon`).
 export const roleClass: Record<Role, string> = {
     main: "heatpump",
-    heating: "heater",
+    // `thermostat`, not `heater`, and that is what renders the compact current/target row on the
+    // tile. The root `measure_temperature` + `target_temperature` pair is necessary but not
+    // sufficient: with them present on a `heater` the device joins Homey's Climate view and still
+    // shows two separate sensor rows. Homey's own class description names the combination —
+    // "usually together with the measure_temperature, target_temperature and thermostat_mode
+    // capabilities" — and the class is the remaining discriminator for the tile. Heating is the
+    // only role that carries the pair, so it is the only one that changes.
+    heating: "thermostat",
     hotwater: "waterheater",
-    pool: "heater",
+    // Also a thermostat: it measures a temperature and controls it. Its root capability pair is
+    // mirrored from the pool temperature and stop setpoint (see `mirrors` in the S profile),
+    // since the register table's own names already own those ids.
+    pool: "thermostat",
     cooling: "airconditioning",
     solar: "solarpanel"
 };
@@ -85,6 +95,19 @@ export function pumpActiveTitle(): {en: string; sv: string; de: string; nl: stri
     return {en: "On", sv: "På", de: "Ein", nl: "Aan", no: "På", da: "Til"};
 }
 
+// The mirrors this model declares for a role. See `mirrors` on ModelProfile: a bare capability
+// carrying a register's value so Homey's own features (the thermostat tile, Climate) can see it.
+export function mirrorsForRole(profile: ModelProfile, role: Role): CapabilityMirror[] {
+    return (profile.mirrors ?? []).filter((mirror) => mirror.role === role);
+}
+
+// The mirror that publishes a given capability on a role, if any.
+export function mirrorFor(
+    profile: ModelProfile, role: Role, capability: string
+): CapabilityMirror | undefined {
+    return mirrorsForRole(profile, role).find((mirror) => mirror.capability === capability);
+}
+
 // Which derived energy/COP capabilities this pump can actually produce a value for, given
 // which registers answered during detection. `read(name)` reports whether a register was read
 // (callers pass `() => true` when there is no detection data, preserving the "assume
@@ -121,12 +144,17 @@ export function extraCapabilitySupport(
     // A function's COP needs the used energy (allocator → power source) and its own delivered
     // energy counter.
     const produced = profile.role.producedRegisterForRole[role];
-    return {
+    const support: Record<string, boolean> = {
         [METER_CAPABILITY]: powerOk,
         [ACTIVE_POWER_CAPABILITY]: powerOk,
         [TOTAL_COP_CAPABILITY]: totalsOk,
         [FUNCTION_COP_CAPABILITY]: powerOk && !!produced && read(produced)
     };
+    // A mirror is exactly as supported as the register behind it — offering a thermostat dial
+    // for a pool the pump never reported would be a control over nothing.
+    for (const mirror of mirrorsForRole(profile, role))
+        support[mirror.capability] = read(mirror.register);
+    return support;
 }
 
 export function extraCapabilities(profile: ModelProfile, role: Role, selection?: Selection | null): string[] {
@@ -135,6 +163,14 @@ export function extraCapabilities(profile: ModelProfile, role: Role, selection?:
     // (the upgrade path for devices paired before selections existed).
     const enabled = (name: string) =>
         selection?.overrides?.[name] ?? selection?.groups?.energy ?? true;
+    // Mirrors ride the selection of the register they copy, not their own: they are the same
+    // value, so a user who switched the source off must not still get a dial for it.
+    const mirrored = mirrorsForRole(profile, role)
+        .filter((mirror) => {
+            const source = profile.registerByName[mirror.register];
+            return source && isRegisterEnabled(source, selection ?? null, profile.pickerPrimary);
+        })
+        .map((mirror) => mirror.capability);
     // Solar carries only its two Modbus registers (measure_power + meter_power.solar) — no
     // allocator energy pair and no COP.
     if (role === "solar")
@@ -158,21 +194,23 @@ export function extraCapabilities(profile: ModelProfile, role: Role, selection?:
             caps.push(...ENERGY_CAPABILITIES.filter(enabled));
         if (hasTotalCounters && enabled(TOTAL_COP_CAPABILITY))
             caps.push(TOTAL_COP_CAPABILITY);
-        return caps;
+        return [...caps, ...mirrored];
     }
     // Function roles: the tile on/off is a real register (the "Allow X" enable capability), so
     // there is no derived on/off extra here — just the energy pair + rolling COP, following the
     // power source and the energy selection.
+    // Mirrors are independent of the energy machinery — a pool thermostat has nothing to do with
+    // whether the pump exposes a power source — so they survive this early return.
     if (!hasConsumedPower)
-        return [];
+        return mirrored;
     const energyCaps = ENERGY_CAPABILITIES.filter(enabled);
     // Rolling COP needs the used energy (from the allocator, energy group) alongside the
     // function's produced register — offer it whenever the energy pair is present and the
     // function has a produced register.
     const hasProduced = !!profile.role.producedRegisterForRole[role];
     return energyCaps.length && hasProduced && enabled(FUNCTION_COP_CAPABILITY)
-        ? [...energyCaps, FUNCTION_COP_CAPABILITY]
-        : energyCaps;
+        ? [...energyCaps, FUNCTION_COP_CAPABILITY, ...mirrored]
+        : [...energyCaps, ...mirrored];
 }
 
 // Read the role off a device's `data`. Defaults to "main" defensively; every device
@@ -241,13 +279,22 @@ export function powerTitle(role: Role): {en: string; sv: string} {
 // need a role-specific title, which the compose file can't express — so both the device
 // (runtime) and the pairing template use this single source. Returning them at pairing time is
 // what stops getCapabilityOptions() throwing "Invalid Capability" for the COP sensors.
+export function mirrorOptions(
+    profile: ModelProfile, role: Role, name: string
+): any | undefined {
+    return mirrorFor(profile, role, name)?.options;
+}
+
 export function extraCapabilityOptions(role: Role, name: string): any {
     if (name === METER_CAPABILITY)
         return {title: energyTitle(role)};
     if (name === ACTIVE_POWER_CAPABILITY)
         return {title: powerTitle(role), decimals: 0};
+    // Not settable: the pump has no whole-pump on/off command, so this exists only to give the
+    // tile an on state and is pinned there. Declared settable it was offered as a quick action
+    // called "On", which did nothing but throw when pressed.
     if (name === PUMP_ACTIVE_CAPABILITY)
-        return {title: pumpActiveTitle(), uiComponent: null, setable: true};
+        return {title: pumpActiveTitle(), uiComponent: null, setable: false};
     if (name === ALARM_ACTIVE_CAPABILITY)
         return {title: {en: "Alarm active", sv: "Larm aktivt", de: "Alarm aktiv",
                         nl: "Alarm actief", no: "Alarm aktivt", da: "Alarm aktivt"}};

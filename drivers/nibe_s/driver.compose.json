@@ -1102,7 +1102,8 @@
         "nl": "Periodiek warmtapwater",
         "no": "Periodisk varmtvann",
         "da": "Periodisk varmtvand"
-      }
+      },
+      "uiQuickAction": false
     },
     "boolean_NIBE.h227_nightchill": {
       "title": {
