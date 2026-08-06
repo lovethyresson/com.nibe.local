@@ -1,0 +1,50 @@
+{
+  "type": "enum",
+  "title": {
+    "en": "Operating mode",
+    "sv": "Driftläge",
+    "de": "Betriebsmodus",
+    "nl": "Bedrijfsmodus",
+    "no": "Driftsmodus",
+    "da": "Driftstilstand"
+  },
+  "uiComponent": "picker",
+  "getable": true,
+  "setable": true,
+  "insights": true,
+  "values": [
+    {
+      "id": "0",
+      "title": {
+        "en": "Auto",
+        "sv": "Auto",
+        "de": "Auto",
+        "nl": "Auto",
+        "no": "Auto",
+        "da": "Auto"
+      }
+    },
+    {
+      "id": "1",
+      "title": {
+        "en": "Manual",
+        "sv": "Manuellt",
+        "de": "Manuell",
+        "nl": "Handmatig",
+        "no": "Manuelt",
+        "da": "Manuelt"
+      }
+    },
+    {
+      "id": "2",
+      "title": {
+        "en": "Immersion heater only",
+        "sv": "Endast tillsats",
+        "de": "Nur Zusatzheizung",
+        "nl": "Alleen bijverwarming",
+        "no": "Kun tilleggsvarme",
+        "da": "Kun tilskudsvarme"
+      }
+    }
+  ]
+}

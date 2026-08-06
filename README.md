@@ -16,10 +16,10 @@ automate separately. This app pairs each as its own Homey device:
 
 | Device | What it carries |
 | --- | --- |
-| **Main** | The pump itself: outdoor temperature, operating priority and mode, diagnostics, runtime statistics, phase currents, ground-source (brine) temperatures, **alarms with readable descriptions**, compressor status — plus **total energy produced/consumed**, **Total COP**, **idle energy** (standby draw), and the pump's firmware/type in settings. |
-| **Heating** | Heat curve, supply/return temperatures, degree minutes, ventilation (if fitted) — plus **energy used**, **energy delivered**, and **Heating COP**. |
+| **Main** | The pump itself: operating priority and mode, diagnostics, runtime statistics, phase currents, ground-source (brine) temperatures, **alarms with readable descriptions**, compressor status — plus **total energy produced/consumed**, **Total COP**, **idle energy** (standby draw), and the pump's firmware/type in settings. |
+| **Heating** | A thermostat: indoor and outdoor temperatures, the settable indoor setpoint, heat curve, supply/return temperatures, degree minutes, Smart Price Adaption, ventilation (if fitted) — plus **energy used**, **energy delivered**, and **Heating COP**. |
 | **Hot Water** | Hot-water temperatures, demand mode, one-time boosts, periodic hot water, circulation (if fitted) — plus **energy used**, **energy delivered**, and **Hot Water COP**. |
-| **Pool** | Pool temperature, start/stop setpoints, pump status — plus **energy used**, **energy delivered**, and **Pool COP**. |
+| **Pool** | A thermostat with the POOL 40 accessory: pool temperature, settable target, start/stop setpoints, pump status — plus **energy used**, **energy delivered**, and **Pool COP**. |
 | **Cooling** | Cooling permit, night cooling, auto start/stop temperatures — plus **energy used**, **energy delivered**, and **Cooling COP**. |
 | **Solar** | If a PV/self-consumption accessory (EME 20) is fitted: current generation and total generated, reported to Homey's Energy tab as **production**. |
 
@@ -33,31 +33,41 @@ left unchecked.
 - **Operating priority** — what the pump is doing *right now* (heating / hot water / pool / cooling / idle),
   plus a Flow trigger that fires on every switch and explains **why** in plain language. See
   [Flow cards](#flow-cards).
-- **Operating mode** — Auto / Manual / Add-heat only.
+- **Operating mode** — Auto / Manual / Immersion heater only.
 - **Total energy** produced and consumed, and **Total COP** (see below).
 - **Energy consumed** and **Power** — on Main these are the pump's idle/parasitic draw (charged here rather
   than to a function), not the whole pump's; the true total is the sum across all your Nibe devices. This is
   Main's only entry in Homey's Energy tab.
-- **Power** — current total draw, plus compressor and internal-additive power.
+- **Power** — current total draw, plus compressor and immersion heater power.
 - **Diagnostics** — refrigerant temps (discharge, liquid line, suction gas), inverter temp, compressor
-  frequency; **statistics** — compressor starts and runtime, additive runtime; **phase currents**;
+  frequency; **statistics** — compressor starts and runtime, immersion heater runtime; **phase currents**;
   **ground-source** brine in/out.
 - **Alarms** — an alarm indicator plus the fault in plain language ("438: Lost connection to wireless
   device"), a **reset** button, a Flow trigger when a new alarm appears, the latest alarm in the device's
   settings, and the full history in the app's own **Alarms** settings page. See [Alarms](#alarms).
 - **Compressor status**.
-- **Additional heat power**, **Additional heat active** and total additive runtime — the immersion heater is
+- **Immersion heater power**, **Immersion heater active** and its total runtime — the immersion heater is
   one piece of hardware with one set of readings, so those live here. Its *permits* do not: heating and hot
   water each have their own, on their own device (see below).
 - Fuse rating; pump **firmware version** and **type code** in settings.
 
 ### Heating
+- **Indoor temperature**, and which sensor it comes from — pairing states it outright, and asks you to choose
+  when more than one sensor reports a plausible value.
+- **Indoor temperature setpoint** — settable, and the same setting as menu 1.1 on the pump, so changing it
+  here or there is one value. Together with the reading above this makes the device a **thermostat**: current
+  and target on one tile, and a member of Homey's Climate view.
+- **Outdoor temperature** and the **outdoor average**, which live here rather than on Main because the only
+  things they are read against — the curve, and the summer cut-off — are heating's.
+- **Smart Price Adaption** — on/off, how strongly the electricity price may move the indoor temperature, and
+  what it is doing right now.
 - **Heat curve** (slope) and **offset**, as numeric values and as dropdown selectors.
 - Supply/return and calculated-supply temperatures, flow, heating-pump speed.
-- **Min/max supply**, and the **degree-minute** thresholds that start the compressor and the additive heater.
-- **Auto stop** outdoor temperatures for heating and for the additive heater.
+- **Min/max supply**, and the **degree-minute** thresholds that start the compressor and the immersion heater.
+- **Only heat below** / **only use immersion heater below** — the outdoor averages at which each stops, next
+  to the **outdoor average** they are judged against.
 - **Allow heating** toggle. Exhaust-air **ventilation (FTX)** folds in here if fitted.
-- **Allow additional heat** — Nibe's permit is heating-only ("Permit additional heat, heating"), so it lives
+- **Allow immersion heater** — Nibe's permit is heating-only ("Permit additional heat, heating"), so it lives
   here rather than on Main. It does **not** affect hot water, which has its own switch.
 - Energy **used** + **delivered** + **Heating COP**.
 
@@ -68,14 +78,17 @@ left unchecked.
   blocks the manual boost).
 - **More hot water** — a timed one-time boost (only usable while hot water is allowed).
 - **Periodic hot water** — a scheduled anti-legionella charge every N days.
-- **Additional heat for hot water** — separate from the heating permit, and **off from the factory**. Without
+- **Allow immersion heater, hot water** — separate from the heating permit, and **off from the factory**. Without
   it the compressor charges the tank alone and stops where it can go no higher, which on a ground-source pump
   can be well below the temperature you asked for. Not present on S2125, S320/S325 or S735.
 - Hot-water-circulation temperatures if that accessory is fitted.
 - Energy **used** + **delivered** + **Hot Water COP**.
 
 ### Pool
-- Pool temperature, start/stop setpoints, pool-pump status, period time, **Allow pool**.
+- With the POOL 40 accessory: pool water temperature (BT51) and a settable target, so this is a
+  **thermostat** too. Pool heating runs on a band — the pump heats to the *stop* temperature and restarts at
+  the *start* temperature — so the dial sets **stop**, and a value that would cross *start* is refused.
+- Start/stop setpoints, pool-pump status, period time, **Allow pool**.
 - Energy **used** + **delivered** + **Pool COP**.
 
 ### Cooling
@@ -147,11 +160,11 @@ look alarming, missing capabilities and Modbus write errors.
   water is allowed.
 - **Periodic hot water** is a separate scheduled high-temperature charge every N days (legionella
   prevention), independent of the demand mode.
-- **The electric additive (immersion) heater is shared** between heating and hot water, so its permit and its
+- **The immersion heater is shared** between heating and hot water, so its permit and its
   power/step readouts live on **Main**, not on the Heating device.
 - **Degree minutes** are the running heating deficit that drives the compressor: once low enough the
-  compressor starts, and a further threshold brings in the additive heater. Shown on the Heating device.
-- **Operating mode (Auto / Manual / Add-heat only)** on Main governs the whole pump; some manual-only
+  compressor starts, and a further threshold brings in the immersion heater. Shown on the Heating device.
+- **Operating mode (Auto / Manual / Immersion heater only)** on Main governs the whole pump; some manual-only
   settings (e.g. forced pump speeds) only take effect in Manual.
 - **Energy is attributed, delivered is measured.** Used energy is charged to whichever function the pump is
   prioritising at each poll; **idle draw goes to Main** (so it doesn't wreck a function's COP — dividing
@@ -239,12 +252,11 @@ things came out of that:
   reads with a flat zero straight through a 3.3 kW compressor run, because it belongs to the EME 20
   accessory. So a power source must have *moved or read non-zero* during detection to count, the same
   standard the `inRange` heuristics already applied to sensors.
-- **`dev/audit-registers.mjs` checks both directions.** It used to list registers in the CSVs but not the
-  app; it now also reports which mapped registers are absent per model, calls out **engine-critical** ones
-  (power sources, priority, energy counters, each role's primary on/off) separately, and cross-checks every
-  declared width against the CSVs. That last check immediately found seven registers read as 16-bit that
-  NIBE documents as 32-bit — one of which, the hot-water additional-heat hour counter, would have wrapped
-  at 6553.5 h because it counts *tenths* of an hour.
+- **`dev/audit-registers.mjs` checks both directions.** It lists registers present in the CSVs but not the
+  app, reports which mapped registers are absent per model, calls out **engine-critical** ones (power
+  sources, priority, energy counters, each role's primary on/off) separately, and cross-checks every declared
+  width against the CSVs. That width check matters: a counter of *tenths* of an hour read as 16-bit wraps at
+  6553.5 h.
 
 Known model gaps that have no fallback: register 195 "Hot water permitted" is absent on **S2125,
 S320/S325, S330/S332 and S735**, so the Hot Water device on those pumps has no on/off control — the pump
@@ -254,7 +266,7 @@ likewise missing on several models, which removes that function's COP but nothin
 ## When something has no data
 
 Every value in the app comes from a register, and a register your pump doesn't implement simply never
-answers. That used to be invisible — reads were swallowed and the capability sat blank forever. Now:
+answers. Rather than leaving the capability blank with no explanation:
 
 - The **first time** a register fails, it is named in the app log with its address, batched into one line
   per poll. Scoped to the app start, not to the process's whole life, because a register missing on your
@@ -338,12 +350,12 @@ Main is always on — the pump has no whole-unit on/off; its equivalent is the *
 ## Releases
 
 Newest first. The user-facing wording lives in `.homeychangelog.json` (shown in the Homey app store);
-this table is the engineering view — what changed and, where it matters, why.
+this table is the engineering view — what changed and, where it matters, why. The reasoning behind a register's address or a detection rule lives in [`docs/`](docs/); the trail of what was measured and rejected lives in [`tasks/`](tasks/).
 
 | Version | Highlights |
 |---|---|
-| **0.9.13** | Indoor temperature is now settable, and the reading of it was wrong. The setpoint is holding **2505**, not the obvious 206: Nibe's CSVs title the zone family only `id:12801`–`id:12840` (holding 2505–2583, step 2, s32), which is why searching the register maps for "zone" finds nothing but the `Zone N affected by ECS1` flags. Established by sweeping all 2065 registers of a live S1155 with 35 °C then 28 °C set in the myUplink app — 2505 followed both times and was the only register that did, and writing it drives real demand (DM −14.6 → −339.1, compressor start). 206/205/204/203 and 55 are **legacy** on zone firmware: they sit at their factory default with "Use room sensor" off and holding 2503 "External setting for adjustment migrated" reading 1, so exposing them would have shipped a control that silently does nothing. Reading side: 111 was primary on the mistaken belief the CSVs put BT50 there — it is climate system **6**, returns the sentinel on the maintainer's own pump, and its alternate 26 excepts, so the room-temperature tile was resolving to nothing at all. Climate system 1 is **116**. Since 116/111/26 are three different quantities rather than one relocated register, `altAddresses` (detection decides, silently) could not express it; registers can now declare **`sources`**, where every candidate is probed and two or more live ones become a radio group at pairing and repair — the case [`tasks/register-alternates.md`](tasks/register-alternates.md) scoped and left unbuilt. Zones 2–40 are deliberately **not** mapped: a setpoint without per-zone temperatures and names is a row of anonymous sliders, and on a single-zone pump 2507–2583 all answer anyway, reading a flat 0 rather than their documented default of 20. Also in this release: every temperature the indoor climate is judged by moved onto Heating (outdoor, outdoor average, indoor, thresholds), because the summer cut-off sat on one device and the average it compares against on another — and it was renamed from "Auto mode: stop heating above" to "Only heat below". Nibe's "additional heat"/"additive"/"tillsats" wording was standardised on **immersion heater / elpatron** across capabilities, flow cards and the operating-mode enum, which also gained the Swedish translations it never had; the two master permits (181 "Permit heating", 195 "Hot water permitted") were deliberately *not* renamed, since labelling them as immersion-heater switches would sit them beside the real one (180). Pairing lists lost two kinds of noise: the raw priority number now collapses onto its enum twin via a new `secondary` flag (`picker` would have worked but coerces the value to a string), and the alarm-reaction registers 196/197 were dropped as install-time configuration. Writes became width-aware — these are the first genuinely writable 32-bit registers, and `writeSingleRegister` would have left the high word untouched, working by accident for 5.0–35.0 and corrupting anything negative. The CSV's max of 300 for 2505 is wrong; the live register held 350. |
-| **0.9.12** | Per-function COP was dividing two different spans of time: the delivered-heat counter is the pump's own and runs unobserved, while the electricity side only advances when the app is running *and* a power source reads. On a pump with no register 2166 that meant weeks of heat ÷ hours of measured electricity — 40 ÷ 2.64 = a reported "COP" of 14.96. The numerator now advances only in lockstep with the denominator; poisoned history is discarded rather than migrated. Maps the pump's own hourly per-function energy log (2283–2303) and the compressor-only counters (1583/1585) as internal registers, and reconciles the allocator against them every hour — **measurement only, no correction**: an instrumented 2.35 kWh hot-water cycle came in at −0.8%, so the corrector that earlier evidence seemed to justify was backed out (the +37% that motivated it was an artefact of comparing against a counter that lags an hour and quantises to 0.1 kWh). Registers can now declare alternate addresses, resolved once during detection and stored with the selection: room temperature answers only as the not-available sentinel at 111 on the S735 while undocumented 26 carries the real value, and pump speed / night cooling / the pulse meter relocate on other models. Mechanism and evidence from [halderex's PRs](https://github.com/lovethyresson/com.nibe.local/pull/3). Energy and pairing logic documented with diagrams under [`docs/`](docs/). |
+| **0.9.13** | **Heating and Pool became thermostats** — current and target temperature on one tile, and Heating joins Homey's Climate view. The indoor setpoint is holding **2505**, untitled as `id:12801` on five of the six model maps, which is why it was never mapped; it is *not* register 206, which accepts writes the controller then ignores. Writing a 32-bit register turns out to need one exact shape — a two-word FC16 assembled **high word first**, the opposite of the read order — while the other three shapes are acknowledged and silently discarded, so a partial test looks identical to a read-only register. Room temperature was reading climate system **6** (111) rather than **1** (116) and was blank on most pumps; where several sensors are live, pairing now asks which one regulates. Also: indoor and outdoor temperatures moved onto Heating, beside the cut-off they are judged against; Nibe's "additional heat"/"additive" wording standardised on **immersion heater**; Smart Price Adaption exposed; and three registers dropped as uninterpretable. Mechanism and evidence from [halderex's PR #5](https://github.com/lovethyresson/com.nibe.local/pull/5). |
+| **0.9.12** | Fixed per-function COP reporting impossible figures (a hot-water COP of 15): the delivered-heat counter ran unobserved while the electricity side only advanced when the app was watching, so weeks of heat were divided by hours of measurement. Both sides now cover the same span, and poisoned history is discarded rather than migrated. Adds the pump's own hourly per-function energy log as an hourly self-check on the allocator — measurement only, no correction: an instrumented hot-water cycle came in at −0.8%. Registers can declare **alternate addresses**, resolved once during detection, for the handful that live elsewhere on some models (room temperature on the S735, pump speed, night cooling, the pulse meter). Evidence and mechanism from [halderex](https://github.com/lovethyresson/com.nibe.local/pull/3). |
 | **0.9.11** | Enabling Debug logging dumps every register the model knows — raw *and* decoded, including ones the feature selection has switched off. Nearly every bug found so far was "the pump doesn't report what we assumed", each costing several round-trips with a user; this makes one report enough. Main only (the debug setting mirrors to all five devices), sequential reads, grouped into a dozen long lines rather than a hundred short ones, and re-emitted on debug-enable so it lands at the end of a rolling buffer rather than the start. |
 | **0.9.10** | Diagnostics for energy that looks wrong. An operating-priority code the model doesn't map, or a function whose device isn't paired, silently booked that function's electricity as idle on Main — both are now logged plainly instead of only under debug. On models that expose it, the pump's energy-log inclusion settings (menu 3.1) are reported, since they're configured on the pump and change what the totals mean. Optional lookups (firmware, those settings) no longer masquerade as failed registers. Store description shortened per Homey app review. |
 | **0.9.9** | Per-function energy and COP on the split models. Register 2166 doesn't exist on S320/S325, S330/S332 or S2125, so the allocator was skipped wholesale and every per-function meter and COP stayed empty in silence. Power sources became an ordered fallback list (2166 → 2305, first that reads wins, never summed). Read failures and missing power sources are logged; detection learned that a register *answering* isn't a register *working*; repair lets a fresh detection pass un-tick capabilities; seven registers documented as 32-bit were being read as 16-bit. |

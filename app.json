@@ -623,7 +623,7 @@
         ]
       },
       {
-        "id": "measure_enum_NIBE.h237_operating_mode.enum",
+        "id": "operating_mode_NIBE.h237_operating_mode.enum",
         "title": {
           "en": "Operating mode",
           "sv": "Driftläge",
@@ -652,7 +652,7 @@
           {
             "type": "device",
             "name": "device",
-            "filter": "driver_id=nibe_s&capabilities=measure_enum_NIBE.h237_operating_mode"
+            "filter": "driver_id=nibe_s&capabilities=operating_mode_NIBE.h237_operating_mode"
           },
           {
             "type": "autocomplete",
@@ -1985,7 +1985,7 @@
         ]
       },
       {
-        "id": "measure_enum_NIBE.h237_operating_mode.enum",
+        "id": "operating_mode_NIBE.h237_operating_mode.enum",
         "title": {
           "en": "Set operating mode",
           "sv": "Ställ in driftläge",
@@ -2014,7 +2014,7 @@
           {
             "type": "device",
             "name": "device",
-            "filter": "driver_id=nibe_s&capabilities=measure_enum_NIBE.h237_operating_mode"
+            "filter": "driver_id=nibe_s&capabilities=operating_mode_NIBE.h237_operating_mode"
           },
           {
             "type": "autocomplete",
@@ -2493,76 +2493,6 @@
         ]
       },
       {
-        "id": "boolean_NIBE.h710_hw_additional_heat.onoff",
-        "title": {
-          "en": "Allow the immersion heater for hot water",
-          "sv": "Tillåt elpatronen för varmvatten",
-          "de": "Zusatzheizung für Brauchwasser ein-/ausschalten",
-          "nl": "Bijverwarming voor warmtapwater aan- of uitzetten",
-          "no": "Slå tilleggsvarme for varmtvann på eller av",
-          "da": "Tænd eller sluk tilskudsvarme til varmt vand"
-        },
-        "titleFormatted": {
-          "en": "Immersion heater, hot water – [[state]]",
-          "sv": "Elpatron, varmvatten – [[state]]",
-          "de": "Zusatzheizung für Brauchwasser – [[state]]",
-          "nl": "Bijverwarming voor warmtapwater – [[state]]",
-          "no": "Tilleggsvarme for varmtvann – [[state]]",
-          "da": "Tilskudsvarme til varmt vand – [[state]]"
-        },
-        "hint": {
-          "en": "Lets the immersion heater assist hot water charging. Off by default, and separate from \"Allow immersion heater\", which covers heating only. Without it the compressor charges alone and stops where it can go no higher.",
-          "sv": "Låter elpatronen hjälpa till vid varmvattenladdning. Av från fabrik, och skild från \"Tillåt elpatron\" som bara gäller värme. Utan den laddar kompressorn ensam och stannar där den inte kommer högre.",
-          "de": "Lässt die elektrische Zusatzheizung die Brauchwasserladung unterstützen. Standardmäßig aus und getrennt von der Freigabe für die Heizung.",
-          "nl": "Laat de elektrische bijverwarming het laden van warmtapwater ondersteunen. Standaard uit en los van de vrijgave voor verwarming.",
-          "no": "Lar den elektriske tilleggsvarmen hjelpe til med varmtvannsladingen. Av som standard, og atskilt fra tillatelsen for varme.",
-          "da": "Lader den elektriske tilskudsvarme hjælpe med varmtvandsopladning. Slukket som standard og adskilt fra tilladelsen til varme."
-        },
-        "args": [
-          {
-            "type": "device",
-            "name": "device",
-            "filter": "driver_id=nibe_s&capabilities=boolean_NIBE.h710_hw_additional_heat"
-          },
-          {
-            "type": "dropdown",
-            "name": "state",
-            "title": {
-              "en": "State",
-              "sv": "Läge",
-              "de": "Zustand",
-              "nl": "Status",
-              "no": "Tilstand",
-              "da": "Tilstand"
-            },
-            "values": [
-              {
-                "id": "on",
-                "title": {
-                  "en": "On",
-                  "sv": "På",
-                  "de": "Ein",
-                  "nl": "Aan",
-                  "no": "På",
-                  "da": "Til"
-                }
-              },
-              {
-                "id": "off",
-                "title": {
-                  "en": "Off",
-                  "sv": "Av",
-                  "de": "Aus",
-                  "nl": "Uit",
-                  "no": "Av",
-                  "da": "Fra"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      {
         "id": "onoff.h181_enable_heating.onoff",
         "title": {
           "en": "Allow heating",
@@ -2999,7 +2929,7 @@
         "measure_current.i50_sensor_v2",
         "measure_current.i48_sensor_v2",
         "measure_current.i46_sensor_v2",
-        "measure_enum_NIBE.h237_operating_mode",
+        "operating_mode_NIBE.h237_operating_mode",
         "measure_temperature.i27_pool",
         "measure_temperature.i12_heating_supply",
         "measure_temperature.i13_discharge",
@@ -3027,7 +2957,6 @@
         "measure_minute_NIBE.h94_periodtime_pool",
         "button.h22_reset_alarm",
         "boolean_NIBE.h227_nightchill",
-        "boolean_NIBE.h710_hw_additional_heat",
         "boolean_NIBE.h65_periodic_hotwater",
         "boolean_NIBE.i1828_pool_circulation",
         "onoff.h691_pool_active",
@@ -3064,6 +2993,7 @@
           }
         },
         "boolean_NIBE.i1029_additive_heat_active": {
+          "uiComponent": "sensor",
           "insights": true,
           "title": {
             "en": "Immersion heater active",
@@ -3212,7 +3142,7 @@
             "da": "Periodisk varmtvand"
           }
         },
-        "measure_enum_NIBE.h237_operating_mode": {
+        "operating_mode_NIBE.h237_operating_mode": {
           "title": {
             "en": "Operating mode",
             "sv": "Driftläge",
@@ -3349,9 +3279,9 @@
           }
         },
         "boolean_NIBE.i1100_compressor_status": {
+          "uiComponent": "sensor",
           "setable": false,
           "getable": true,
-          "uiComponent": "sensor",
           "title": {
             "en": "Compressor running",
             "sv": "Kompressor igång",
@@ -3414,9 +3344,9 @@
           }
         },
         "boolean_NIBE.i1063_hw_circulation": {
+          "uiComponent": "sensor",
           "setable": false,
           "getable": true,
-          "uiComponent": "sensor",
           "title": {
             "en": "Hot water circulation",
             "sv": "Varmvattencirkulation",
@@ -4078,9 +4008,9 @@
           }
         },
         "boolean_NIBE.i1828_pool_circulation": {
+          "uiComponent": "sensor",
           "setable": false,
           "getable": true,
-          "uiComponent": "sensor",
           "title": {
             "en": "Pool circulation",
             "sv": "Poolcirkulation",
@@ -4099,17 +4029,6 @@
             "nl": "Periodiek warmtapwater",
             "no": "Periodisk varmtvann",
             "da": "Periodisk varmtvand"
-          }
-        },
-        "boolean_NIBE.h710_hw_additional_heat": {
-          "insights": true,
-          "title": {
-            "en": "Allow immersion heater, hot water",
-            "sv": "Tillåt elpatron, varmvatten",
-            "de": "Heizstab freigeben, Brauchwasser",
-            "nl": "Elektrisch element toestaan, warmtapwater",
-            "no": "Tillat elkolbe, varmtvann",
-            "da": "Tillad elpatron, varmt vand"
           }
         },
         "boolean_NIBE.h227_nightchill": {
@@ -5541,6 +5460,56 @@
       "insights": true,
       "chartType": "stepLine",
       "icon": "/assets/images/energy.svg"
+    },
+    "operating_mode_NIBE": {
+      "type": "enum",
+      "title": {
+        "en": "Operating mode",
+        "sv": "Driftläge",
+        "de": "Betriebsmodus",
+        "nl": "Bedrijfsmodus",
+        "no": "Driftsmodus",
+        "da": "Driftstilstand"
+      },
+      "uiComponent": "picker",
+      "getable": true,
+      "setable": true,
+      "insights": true,
+      "values": [
+        {
+          "id": "0",
+          "title": {
+            "en": "Auto",
+            "sv": "Auto",
+            "de": "Auto",
+            "nl": "Auto",
+            "no": "Auto",
+            "da": "Auto"
+          }
+        },
+        {
+          "id": "1",
+          "title": {
+            "en": "Manual",
+            "sv": "Manuellt",
+            "de": "Manuell",
+            "nl": "Handmatig",
+            "no": "Manuelt",
+            "da": "Manuelt"
+          }
+        },
+        {
+          "id": "2",
+          "title": {
+            "en": "Immersion heater only",
+            "sv": "Endast tillsats",
+            "de": "Nur Zusatzheizung",
+            "nl": "Alleen bijverwarming",
+            "no": "Kun tilleggsvarme",
+            "da": "Kun tilskudsvarme"
+          }
+        }
+      ]
     },
     "time_of_day_NIBE": {
       "title": {

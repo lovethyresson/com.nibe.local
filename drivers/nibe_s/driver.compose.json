@@ -81,7 +81,7 @@
     "measure_current.i50_sensor_v2",
     "measure_current.i48_sensor_v2",
     "measure_current.i46_sensor_v2",
-    "measure_enum_NIBE.h237_operating_mode",
+    "operating_mode_NIBE.h237_operating_mode",
     "measure_temperature.i27_pool",
     "measure_temperature.i12_heating_supply",
     "measure_temperature.i13_discharge",
@@ -109,7 +109,6 @@
     "measure_minute_NIBE.h94_periodtime_pool",
     "button.h22_reset_alarm",
     "boolean_NIBE.h227_nightchill",
-    "boolean_NIBE.h710_hw_additional_heat",
     "boolean_NIBE.h65_periodic_hotwater",
     "boolean_NIBE.i1828_pool_circulation",
     "onoff.h691_pool_active",
@@ -146,6 +145,7 @@
       }
     },
     "boolean_NIBE.i1029_additive_heat_active": {
+      "uiComponent": "sensor",
       "insights": true,
       "title": {
         "en": "Immersion heater active",
@@ -294,7 +294,7 @@
         "da": "Periodisk varmtvand"
       }
     },
-    "measure_enum_NIBE.h237_operating_mode": {
+    "operating_mode_NIBE.h237_operating_mode": {
       "title": {
         "en": "Operating mode",
         "sv": "Driftläge",
@@ -431,9 +431,9 @@
       }
     },
     "boolean_NIBE.i1100_compressor_status": {
+      "uiComponent": "sensor",
       "setable": false,
       "getable": true,
-      "uiComponent": "sensor",
       "title": {
         "en": "Compressor running",
         "sv": "Kompressor igång",
@@ -496,9 +496,9 @@
       }
     },
     "boolean_NIBE.i1063_hw_circulation": {
+      "uiComponent": "sensor",
       "setable": false,
       "getable": true,
-      "uiComponent": "sensor",
       "title": {
         "en": "Hot water circulation",
         "sv": "Varmvattencirkulation",
@@ -1160,9 +1160,9 @@
       }
     },
     "boolean_NIBE.i1828_pool_circulation": {
+      "uiComponent": "sensor",
       "setable": false,
       "getable": true,
-      "uiComponent": "sensor",
       "title": {
         "en": "Pool circulation",
         "sv": "Poolcirkulation",
@@ -1181,17 +1181,6 @@
         "nl": "Periodiek warmtapwater",
         "no": "Periodisk varmtvann",
         "da": "Periodisk varmtvand"
-      }
-    },
-    "boolean_NIBE.h710_hw_additional_heat": {
-      "insights": true,
-      "title": {
-        "en": "Allow immersion heater, hot water",
-        "sv": "Tillåt elpatron, varmvatten",
-        "de": "Heizstab freigeben, Brauchwasser",
-        "nl": "Elektrisch element toestaan, warmtapwater",
-        "no": "Tillat elkolbe, varmtvann",
-        "da": "Tillad elpatron, varmt vand"
       }
     },
     "boolean_NIBE.h227_nightchill": {

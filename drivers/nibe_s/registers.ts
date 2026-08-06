@@ -441,13 +441,6 @@ export const registers: Register[] = [
     {address:  697, name: "boolean_NIBE.h697_more_hotwater",                         direction: Dir.Out, group: "hotwater",   bool: true, onValue: 2, offValue: 0, // Mer varmvatten engångshöjning
      info: {en: "More hot water: a one-time 2-hour boost", sv: "Mer varmvatten: en engångshöjning på 2 timmar"}},
     // Rad 18 Periodisk varmvatten höjning
-    // The hot water half of additional heat, and the reason a manual boost can stall below its
-    // setpoint. Register 180 is titled "Permit additional heat, HEATING" and there is no hot
-    // water equivalent — 710 is it, and it defaults to 0 (off). Measured on an S1155: with 180
-    // enabled and 710 untouched, a boost ran the compressor alone to 53.4 °C and stopped, with
-    // 1027 (additive power) flat at 0 W the whole time. Absent on S2125, S320/S325 and S735.
-    {address:  710, name: "boolean_NIBE.h710_hw_additional_heat",             direction: Dir.Out, group: "hotwater",   bool: true, // Tillsatsvärme varmvattenkomfort
-     info: {en: "Let the electric additional heat assist hot water. Off by default — without it the compressor charges alone and stops where it can go no higher, which can be well below the target.", sv: "Låt eltillsatsen hjälpa till med varmvattnet. Av från fabrik — utan den laddar kompressorn ensam och stannar där den inte kommer högre, vilket kan vara långt under målet."}},
     {address:   65, name: "measure_enum_NIBE.h65_periodic_hotwater",          direction: Dir.Out, group: "hotwater",   enum: booleanMap, // Periodisk varmvatten
      info: {en: "Periodic hot water boost on/off (status)", sv: "Periodisk varmvattenhöjning av/på (status)"}},
     {address:   66, name: "measure_day_NIBE.h66_periodic_hotwater_interval",  direction: Dir.Out, group: "hotwater",   scale: 1, min: 1, max: 90, // Periodiskt varmvatten intervall i dagar
@@ -463,7 +456,7 @@ export const registers: Register[] = [
     {address:   46, name: "measure_current.i46_sensor_v2",                    direction: Dir.In,  group: "electrical", scale: 10, size: 32, // Strömavkänare BE3 -L3 (u32)
      info: {en: "Current on phase L3 (sensor BE3)", sv: "Ström på fas L3 (givare BE3)"}},
     // Rad 21 Driftläge / pool
-    {address:  237, name: "measure_enum_NIBE.h237_operating_mode",            direction: Dir.Out, group: "core",       enum: modeMap, // Driftläge
+    {address:  237, name: "operating_mode_NIBE.h237_operating_mode",            direction: Dir.Out, group: "core",       enum: modeMap, // Driftläge
      info: {en: "Operating mode: auto, manual or additional heat only", sv: "Driftläge: auto, manuellt eller endast tillsats"}},
     {address:   27, name: "measure_temperature.i27_pool",           direction: Dir.In,  group: "pool",        scale:  10, // Pooltemperatur
      info: {en: "Pool water temperature", sv: "Poolens vattentemperatur"}},
@@ -604,13 +597,18 @@ export const registers: Register[] = [
     // hot water (and electric pool assist), so its on/off lives on "main" alongside the
     // additive step (i1029) and power (i1027) readouts, not on the heating device. The
     // per-function permits below (h181 heating, h182 cooling) stay with their function.
-    // On the Heating device, not Main: 180 is Nibe's "Permit additional heat, HEATING" and hot
-    // water has its own separate switch (710). Keeping both on Main is what made an owner
-    // enable this one and reasonably expect a hot water boost to use it. The permits belong
-    // with the function they govern; the shared hardware's readouts — additional heat power,
-    // active, total runtime — stay on Main, because there is one heater and one set of numbers.
-    {address:  180, name: "boolean_NIBE.h180_enable_addition",                       direction: Dir.Out, group: "heating",    bool: true, // Tillåt tillsats
-     info: {en: "Allow additional heat for HEATING. Hot water has its own separate switch — this one does not affect it.", sv: "Tillåt tillsatsvärme för VÄRME. Varmvatten har en egen inställning — den här påverkar inte den."}},
+    // On Main, with the immersion heater's own readouts, because its true scope is unverified.
+    // Nibe titles it "Permit additional heat, HEATING", but Nibe titles have been wrong before
+    // (116 is labelled BT50 and is not), and the pump's schedule modes carry a *global* "Block
+    // additional heat" alongside "Block compressor" and "Hot water" — so the setting that really
+    // governs the immersion is not per-function at all.
+    //
+    // What is known: 180 read 1 throughout a year in which a schedule had additional heat
+    // blocked, so 180 is NOT what the schedule writes; they are separate mechanisms. Whether 180
+    // also gates hot water could not be tested, since the immersion is never called for heating
+    // in summer. Main claims less than Heating does.
+    {address:  180, name: "boolean_NIBE.h180_enable_addition",                       direction: Dir.Out, group: "core",       bool: true, // Tillåt tillsats
+     info: {en: "Nibe's permit for additional heat, which they label as heating-only. Note the pump's own schedule modes carry a separate, global \"block additional heat\" that this cannot see or override.", sv: "Nibes tillstånd för tillsatsvärme, som de märker som endast värme. Observera att värmepumpens schemalägen har en egen, global \"blockera tillsatsvärme\" som den här inte ser eller kan åsidosätta."}},
     {address:  181, name: "onoff.h181_enable_heating",                        direction: Dir.Out, group: "heating",    bool: true, // Tillåt värme
      info: {en: "Allow heating operation", sv: "Tillåt värmedrift"}},
     {address:  182, name: "onoff.h182_enable_cooling",                        direction: Dir.Out, group: "cooling",    bool: true, // Tillåt kyla
