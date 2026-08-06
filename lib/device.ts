@@ -100,10 +100,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         let value = signedValue(raw, register.size);
         if (register.scale)
             return value / register.scale;
-        if (register.enum)
-            return this.homey.__(register.enum[value]) || register.enum[value];
+        // Picker before enum, because a register can carry both: the operating mode is a picker
+        // capability (whose own definition holds the labels) while still needing `enum` so the
+        // mode-specific Flow cards can build their autocomplete. Checking enum first returned the
+        // label where the capability wanted the raw id — "Manual" against "Expected: 0,1,2".
         if (register.picker)
             return "" + value;
+        if (register.enum)
+            return this.homey.__(register.enum[value]) || register.enum[value];
         if (register.bool)
             return value !== (register.offValue ?? 0);
         return value;
@@ -112,7 +116,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private toRegisterValue(register: Register, value: any) {
         if (register.picker)
             value = parseInt(value);
-        if (register.enum)
+        else if (register.enum)
             value = parseInt(Object.entries(register.enum).filter(pair => pair[1] == value)[0][0]);
         else if (register.bool)
             value = value ? (register.onValue ?? 1) : (register.offValue ?? 0);

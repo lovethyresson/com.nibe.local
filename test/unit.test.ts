@@ -4,12 +4,12 @@ import assert from 'node:assert/strict';
 import {
     Dir, combineRaw, signedValue, isUnavailableRaw, toNumericValue, isAdjustable, isPollable,
     buildPickerPrimary, buildRegisterByName, isSelectableRegister, isRegisterEnabled, Register,
-    resolvedAddress
+    migrateSelection, resolvedAddress
 } from '../lib/registers';
 import {makeProfile} from '../lib/profile';
 import {
     registersForRole, roleRegisters, extraCapabilities, extraCapabilityOptions,
-    extraCapabilitySupport, roleGroups, allRoles, functionRoles,
+    extraCapabilitySupport, mirrorOptions, roleGroups, allRoles, functionRoles,
     ACTIVE_POWER_CAPABILITY, FUNCTION_COP_CAPABILITY, METER_CAPABILITY, TOTAL_COP_CAPABILITY
 } from '../lib/roles';
 import type {Role} from '../lib/roles';
@@ -181,16 +181,33 @@ test('every register has bilingual info and a sane scale/size', () => {
     }
 });
 
-test('every picker has a non-picker twin at the same address', () => {
-    for (const r of registers.filter((x) => x.picker)) {
-        const twin = registers.find((o) => o.address === r.address && !o.picker);
-        assert.ok(twin, `picker ${r.name} has no twin`);
+test('a picker either follows a twin or stands alone, and never silently disappears', () => {
+    // Pickers used to be required to have a non-picker twin at the same address, because every
+    // one of them existed to add a settable dropdown beside a read-only display. Operating mode
+    // broke that on purpose: it is a single settable picker with no twin, because two
+    // capabilities driving one register is duplication rather than design.
+    //
+    // What must still hold is the selection behaviour. A picker WITH a twin follows the twin's
+    // checkbox and is not separately selectable; a picker WITHOUT one is its own primary and must
+    // be offered, or the capability could never be enabled at pairing.
+    for (const register of registers) {
+        if (!register.picker)
+            continue;
+        const twin = registers.find((other) => other !== register
+            && other.address === register.address && other.direction === register.direction
+            && !other.picker && !other.secondary);
+        const primary = sProfile.pickerPrimary[register.name];
+        if (twin) {
+            assert.equal(primary, twin.name, `${register.name} should follow ${twin.name}`);
+            assert.ok(!isSelectableRegister(register, sProfile.pickerPrimary),
+                `${register.name} has a twin, so it must not be separately selectable`);
+        } else {
+            assert.equal(primary, undefined, `${register.name} has no twin, so no primary`);
+            assert.ok(isSelectableRegister(register, sProfile.pickerPrimary),
+                `${register.name} stands alone and must be selectable, or it can never be enabled`);
+        }
     }
 });
-
-// ---------------------------------------------------------------------------------------
-// Role logic against the real S profile.
-// ---------------------------------------------------------------------------------------
 
 test('registersForRole partitions by role groups', () => {
     const main = registersForRole(sProfile, 'main', null);
@@ -233,10 +250,14 @@ test('extraCapabilities: Main carries the bare onoff (pinned on); functions do n
 
 test('every extra capability has role-specific options (no option-less COP created at pairing)', () => {
     // The COP "Invalid Capability" bug was a device created with an extra capability but no
-    // capabilitiesOptions. Guarantee every extra a role carries resolves to options.
+    // capabilitiesOptions. Guarantee every extra a role carries resolves to options — from the
+    // generic table, or from a mirror, which supplies its own precisely because the compose file
+    // keys options by capability id alone and a root id is shared between roles.
     for (const role of allRoles)
-        for (const extra of extraCapabilities(sProfile, role, null))
-            assert.ok(extraCapabilityOptions(role, extra)?.title, `no options for ${extra} on ${role}`);
+        for (const extra of extraCapabilities(sProfile, role, null)) {
+            const options = mirrorOptions(sProfile, role, extra) ?? extraCapabilityOptions(role, extra);
+            assert.ok(options?.title, `no options for ${extra} on ${role}`);
+        }
     // Role-specific COP titles.
     assert.deepEqual(extraCapabilityOptions('heating', 'measure_cop_NIBE.rolling').title,
         {en: 'Heating COP (30-day)', sv: 'Värme COP (30 dagar)'});
@@ -740,7 +761,7 @@ function sampleAgainst(answers: Record<number, number | undefined>) {
     );
 }
 
-const INSIDE = 'measure_temperature.i26_inside';
+const INSIDE = 'measure_temperature';
 
 test('sources: indoor temperature offers the three candidates, 116 first', () => {
     // Verified on a live S1155 (fw 1036): 116 is climate system 1 and carries the real value,
@@ -854,18 +875,17 @@ test('alternates: the resolved address is what reads and writes actually use', (
 
 // ---- Zone setpoints ----
 
-test('the indoor setpoint is read-only, because the pump discards writes to it', () => {
-    // Measured on a live S1155 (fw 1036): a Modbus write to 2505 is ACKed and discarded — FC6 and
-    // FC16, re-read immediately, after 3 s, and again minutes later on a fresh connection. It is
-    // not the 32-bit write path (holding 843 written identically TOOK, 1 -> 0 -> 1) and not Smart
-    // Price Adaption (still discarded with SPA off). Shipping it as settable would give the user a
-    // slider that silently snaps back.
-    const setpoint = sProfile.registerByName['target_temperature.h2505_zone1_setpoint'];
-    assert.equal(setpoint.noAction, true, 'the pump refuses writes here — see dev/probe-room.mjs --write');
+test('the indoor setpoint is writable, and nothing marks it otherwise', () => {
+    // It was briefly shipped read-only on the strength of a write test that tried FC6 and FC16
+    // low-word-first only. The pump ACKs those and discards them; the one shape it honours is a
+    // two-word FC16 assembled HIGH word first. Confirmed on halderex's S735 (PR #5) and on the
+    // maintainer's S1155. Three of four shapes ACKing is why a partial matrix proved nothing.
+    const setpoint = sProfile.registerByName['target_temperature'];
+    assert.equal(setpoint.size, 32, 'the zone family is s32 — the write path keys off this');
+    assert.ok(!setpoint.noAction, 'the pump does accept writes here, in the right word order');
+    assert.ok(isAdjustable(setpoint), 'it must reach the generic write flow cards');
     const options = (sProfile.compose.capabilitiesOptions as Record<string, any>)[setpoint.name];
-    assert.equal(options.setable, false, 'target_temperature is setable by default; this instance must not be');
-    // noAction already keeps it out of the generic write cards; assert it rather than assume.
-    assert.ok(!isAdjustable(setpoint));
+    assert.notEqual(options.setable, false, 'nothing may re-disable the control');
 });
 
 test('the indoor setpoint is the zone register, not the legacy room-sensor one', () => {
@@ -873,7 +893,7 @@ test('the indoor setpoint is the zone register, not the legacy room-sensor one',
     // holding 2505 both times, and it was the only register out of 2065 to follow. Registers
     // 206/55 sat at their factory default throughout — they are legacy on zone firmware, and
     // exposing them would give the user a control that silently does nothing.
-    const setpoint = sProfile.registerByName['target_temperature.h2505_zone1_setpoint'];
+    const setpoint = sProfile.registerByName['target_temperature'];
     assert.ok(setpoint, 'zone 1 setpoint must exist');
     assert.equal(setpoint.address, 2505);
     assert.equal(setpoint.direction, Dir.Out);
@@ -898,7 +918,7 @@ test('zones 2-40 are deliberately not mapped', () => {
     for (const address of [2507, 2509, 2511, 2513])
         assert.ok(!registers.some((r) => r.address === address),
             `zone register ${address} is mapped without the rest of the zone model`);
-    assert.equal(sProfile.registerByName['target_temperature.h2505_zone1_setpoint'].group, 'heating');
+    assert.equal(sProfile.registerByName['target_temperature'].group, 'heating');
 });
 
 test('everything the indoor climate is judged by sits on the Heating device', () => {
@@ -906,8 +926,8 @@ test('everything the indoor climate is judged by sits on the Heating device', ()
     // splitting the threshold from the outdoor average across two devices is what made it
     // unreadable. Outdoor, outdoor average, indoor and the thresholds all belong to one device.
     for (const name of ['measure_temperature.i1_outside', 'measure_temperature.i37_outside_avg',
-        'measure_temperature.i26_inside', 'target_temperature.h184_auto_stop_heating',
-        'target_temperature.h2505_zone1_setpoint'])
+        'measure_temperature', 'target_temperature.h184_auto_stop_heating',
+        'target_temperature'])
         assert.equal(sProfile.registerByName[name].group, 'heating', `${name} is not on Heating`);
 
     const onHeating = new Set(roleRegisters(sProfile, 'heating').map((r) => r.name));
@@ -987,4 +1007,86 @@ test('every picker declares exactly the values its capability offers', () => {
             declared.values.map((v: any) => v.id),
             `${register.name} is out of step with ${type}.json`);
     }
+});
+
+// ---- Root capability ids, and carrying a selection across the rename ----
+
+test('room temperature and setpoint use the bare ids Homey Climate keys on', () => {
+    // Homey's Climate feature and the thermostat tile both read the ROOT capability id. A device
+    // exposing only dotted temperatures is skipped by Climate, and the tile needs the matching
+    // measure_temperature + target_temperature pair — promote one and it degrades to sensor rows.
+    assert.ok(sProfile.registerByName['measure_temperature'], 'room temperature must be the root id');
+    assert.ok(sProfile.registerByName['target_temperature'], 'the setpoint must be the root id');
+    assert.equal(sProfile.registerByName['measure_temperature'].address, 116);
+    assert.equal(sProfile.registerByName['target_temperature'].address, 2505);
+    // Both on the same device, or the tile has nothing to pair.
+    const heating = new Set(roleRegisters(sProfile, 'heating').map((r) => r.name));
+    assert.ok(heating.has('measure_temperature') && heating.has('target_temperature'));
+    // The outdoor sensor must NOT take the root id — Homey would read it as the ambient
+    // temperature of whatever zone the device sits in.
+    assert.equal(sProfile.registerByName['measure_temperature.i1_outside'].address, 1);
+});
+
+test('every renamed register is declared, and points at something real', () => {
+    // A rename that isn't declared silently orphans the stored selection — losing the resolved
+    // address, which on an S735 sends room temperature back to a sentinel.
+    const renames = sProfile.renamedRegisters ?? {};
+    assert.ok(Object.keys(renames).length, 'the 0.9.13 renames must be declared');
+    for (const [from, to] of Object.entries(renames)) {
+        assert.ok(sProfile.registerByName[to], `${from} -> ${to}, but ${to} is not in the table`);
+        assert.ok(!sProfile.registerByName[from], `${from} still exists; it was supposedly renamed`);
+    }
+});
+
+test('migrateSelection carries overrides and resolved addresses onto the new name', () => {
+    const renames = {'old.name': 'new.name'};
+    const before = {
+        groups: {heating: true},
+        overrides: {'old.name': false, 'other': true},
+        addresses: {'old.name': 26}
+    };
+    const after = migrateSelection(before, renames);
+    assert.equal(after.overrides['new.name'], false, 'the override must survive the rename');
+    assert.equal(after.addresses!['new.name'], 26, 'the resolved address must survive — this is the one that breaks a pump');
+    assert.equal(after.overrides['old.name'], undefined);
+    assert.equal(after.addresses!['old.name'], undefined);
+    assert.equal(after.overrides['other'], true, 'unrelated entries untouched');
+
+    // Idempotent, and a no-op returns the very same object so unaffected models never re-save.
+    assert.equal(migrateSelection(after, renames), after);
+    const untouched = {groups: {}, overrides: {}};
+    assert.equal(migrateSelection(untouched, renames), untouched);
+    // A re-run must never undo itself: an existing new-name value wins.
+    const both = {groups: {}, overrides: {'old.name': false, 'new.name': true}};
+    assert.equal(migrateSelection(both, renames).overrides['new.name'], true);
+});
+
+test('a setpoint outside its plausible band counts as no data, so no 0 °C dial is offered', () => {
+    // An unconfigured zone answers with a flat 0 rather than the not-available sentinel, so
+    // "the register responded" cannot be the test — a pump with no room zone would otherwise be
+    // handed a thermostat reading 0 °C.
+    const setpoint = sProfile.registerByName['target_temperature'];
+    assert.deepEqual(setpoint.plausible, {min: 5, max: 35});
+
+    const sampled = (value: number) => buildDetectionResult(
+        sProfile, probes({'target_temperature': {reads: 3, last: value}})).samples['target_temperature'];
+    assert.equal(sampled(0).read, false, 'a flat zero is an unconfigured zone, not a 0 °C setpoint');
+    assert.equal(sampled(21.5).read, true);
+    // A register with no band is never filtered — this must not quietly cull the table.
+    assert.equal(buildDetectionResult(
+        sProfile, probes({'measure_temperature.i5_heating_supply': {reads: 3, last: 0}})
+    ).samples['measure_temperature.i5_heating_supply'].read, true);
+});
+
+test('a register that is both picker and enum decodes to the picker id, not the label', () => {
+    // Operating mode is the case: a settable picker capability whose own definition carries the
+    // labels, while the register keeps `enum` so the mode-specific Flow cards can build their
+    // autocomplete. Decoding it as an enum returns "Manual" where the capability declares
+    // 0/1/2, and Homey rejects it on every poll — "Invalid enum capability ... Expected: 0,1,2".
+    const mode = sProfile.registerByName['operating_mode_NIBE.h237_operating_mode'];
+    assert.ok(mode, 'operating mode register missing');
+    assert.ok(mode.picker && mode.enum, 'this test is only meaningful while it carries both');
+    // Whatever else changes, the ids the capability declares must be what the register offers.
+    assert.deepEqual(mode.pickerValues, Object.keys(mode.enum!).map(Number),
+        'picker ids must match the enum map exactly');
 });

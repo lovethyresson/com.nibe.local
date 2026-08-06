@@ -456,7 +456,7 @@ export const registers: Register[] = [
     {address:   46, name: "measure_current.i46_sensor_v2",                    direction: Dir.In,  group: "electrical", scale: 10, size: 32, // Strömavkänare BE3 -L3 (u32)
      info: {en: "Current on phase L3 (sensor BE3)", sv: "Ström på fas L3 (givare BE3)"}},
     // Rad 21 Driftläge / pool
-    {address:  237, name: "operating_mode_NIBE.h237_operating_mode",            direction: Dir.Out, group: "core",       enum: modeMap, // Driftläge
+    {address:  237, name: "operating_mode_NIBE.h237_operating_mode",            direction: Dir.Out, group: "core",       enum: modeMap, picker: true, pickerValues: [0, 1, 2], // Driftläge
      info: {en: "Operating mode: auto, manual or additional heat only", sv: "Driftläge: auto, manuellt eller endast tillsats"}},
     {address:   27, name: "measure_temperature.i27_pool",           direction: Dir.In,  group: "pool",        scale:  10, // Pooltemperatur
      info: {en: "Pool water temperature", sv: "Poolens vattentemperatur"}},
