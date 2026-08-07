@@ -1,12 +1,44 @@
 # Working plan
 
-Two things are live. Everything else that used to be here has shipped — the history is in the
+Three things are live. Everything else that used to be here has shipped — the history is in the
 commits and in the **Releases** table in [`README.md`](../README.md), the durable rules are in
 [`CLAUDE.md`](../CLAUDE.md), and the design write-ups are under [`docs/`](../docs).
 
-## 0.9.13 — release candidate
+## Unreleased — on `main`, version deliberately not stamped
 
-Built, tested and validated at publish level. Not published.
+0.9.13 is out with real users and is being left to run. **If it proves stable the next release is
+1.0, otherwise 0.9.14** — so nothing here bumps `.homeycompose/app.json`, `package.json` or
+`.homeychangelog.json` yet. The text below is written and waiting for whichever number wins; the
+release is then the four-step checklist in `CLAUDE.md`, not a rewrite.
+
+**`ed9c04d` — an enum code the register table has no name for.** Such a code decoded to
+`undefined` and went straight to `setCapabilityValue()`, which rejected it once per poll for as
+long as the pump held it: the picker-shortlist failure fixed in 0.9.13, one register type over.
+Found by [halderex in PR #6](https://github.com/lovethyresson/com.nibe.local/pull/6) on the S735.
+Nibe adds codes per model and firmware, so a gap in a map is normal rather than a fault.
+
+Changelog, EN — *Some status tiles could go blank when the pump reported a value this app has no
+name for. They now show the value itself instead of nothing. There is nothing you need to do.*
+
+Changelog, SV — *Vissa statusrutor kunde bli tomma när pumpen rapporterade ett värde som appen
+inte har något namn för. De visar nu värdet i stället för ingenting. Du behöver inte göra något.*
+
+README row — *An enum register whose map had no entry for the code the pump returned decoded to
+`undefined`, which Homey rejected once per poll — the picker-shortlist crash of 0.9.13, one
+register type over. The bare code is now published instead (`measure_enum_NIBE` is a plain string
+capability, so it renders and Insights keeps logging) and logged once per register and code, which
+is what someone needs in order to name it. The fallback lives in one `enumLabel()`, which
+`priorityLabel()` had been open-coding all along. Found by halderex, PR #6.*
+
+No `docs/` change: this touches neither attribution, the power sources, the role mapping nor the
+COP accumulators. Probably worth a line in `docs/FAQ.md` about a tile showing a number instead of
+a word, if a user asks first.
+
+## 0.9.13 — published, running with other users
+
+Published and live. **This is the release that ends the single-install era** — see the rename
+section in `CLAUDE.md`, which no longer permits a hard cut now that renames land on pumps that
+are not ours.
 
 **It breaks, and that is measured rather than assumed.** Against 0.9.12 the compose capability
 set goes 105 -> 102: **15 removed, 12 added**, several of them renames of the same register onto
@@ -39,11 +71,15 @@ What is in it:
 - indoor setpoint (2505) writable, room sensor resolved at pairing, Pool a thermostat, Smart
   Price Adaption exposed — mechanism and evidence from halderex's PR #5
 
-Before publishing:
+Done:
 
 - [x] push — `feature/room-control` and `main` both at `f71d36f` on origin, fast-forwarded
       (no merge commit). Gate on that exact tree: 90/90 tests, `validate --level publish` clean
-- [ ] `homey app publish`
+- [x] `homey app publish`
+
+Still open, and now with an audience:
+
+- [ ] watch it. Stability on other people's pumps is what decides 1.0 vs 0.9.14
 - [ ] reply to [issue #4](https://github.com/lovethyresson/com.nibe.local/issues/4) — halderex's
       myUplink cross-check measured the energy log against parameter 25138 on the same pump in the
       same hour, 0.930 against 0.93, which is what justified moving the meters to 2305

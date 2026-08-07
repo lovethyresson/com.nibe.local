@@ -137,10 +137,20 @@ pairing, and can change the selection later via the device's **repair** flow (de
   `staticRegisters` in `registers.ts` and get written to read-only `label` settings (declared in
   `driver.compose.json` `settings`) once per connect via `updateStaticSettings()`.
 
-This app has no other installs beyond the maintainer's own device, so capability renames/removals are currently
-done as a hard cut (change the name in `registers`/`driver.compose.json`, done) rather than a migration — the
-device gets re-paired or manually fixed up if needed. **If that ever changes (the app gets other real users), a
-capability rename needs a proper migration, and there are sharp edges worth knowing before adding one:**
+**The app has other users now.** 0.9.13 is published and running on pumps that are not the maintainer's, so the
+hard cut this section used to describe — rename in `registers`/`driver.compose.json` and re-pair the one affected
+device — is no longer available. A rename now lands on someone else's heat pump.
+
+What a rename costs on an install you don't own: the stored `selection` is keyed by register name, so the register
+loses its per-capability override *and its resolved address*, sending reads back to a primary that may answer with
+the not-available sentinel; the owner's Flows pointing at that capability need it picked again; and its Insights
+history starts fresh. **So a rename must declare itself in `renamedRegisters` on the model profile** (see
+`migrateSelection()` in `registers.ts`, and the test that every declared rename points at a register that exists).
+0.9.13 could tell everyone to run Repair because the install base was one device and the release was breaking
+anyway. From here, "run Repair" is a cost paid by strangers, and a silent capability that only comes back when the
+owner happens to open the repair flow is worse.
+
+**Prefer not renaming.** Where a rename is genuinely right, it needs a migration and these sharp edges:
 
 - **Don't delete a capability *type* definition (`.homeycompose/capabilities/*.json`) in the same release as a
   rename away from it.** A device that still has an instance of that type attached will have *every* capability
