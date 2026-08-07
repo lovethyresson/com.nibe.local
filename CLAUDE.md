@@ -137,20 +137,18 @@ pairing, and can change the selection later via the device's **repair** flow (de
   `staticRegisters` in `registers.ts` and get written to read-only `label` settings (declared in
   `driver.compose.json` `settings`) once per connect via `updateStaticSettings()`.
 
-**The app has other users now.** 0.9.13 is published and running on pumps that are not the maintainer's, so the
-hard cut this section used to describe — rename in `registers`/`driver.compose.json` and re-pair the one affected
-device — is no longer available. A rename now lands on someone else's heat pump.
+**This app is pre-1.0, so capability renames/removals are done as a hard cut** — change the name in
+`registers`/`driver.compose.json` and you're done — rather than as a migration. Devices get re-paired or fixed up
+by hand. That holds now that 0.9.13 is published and other people are running it: a handful of early users on a
+pre-1.0 app is exactly who a hard cut is for, and asking them to run Repair is cheaper than carrying migration
+machinery for every rename. Don't re-open this decision each time a release adds users — **1.0 is the line**, and
+until then the answer is the hard cut.
 
-What a rename costs on an install you don't own: the stored `selection` is keyed by register name, so the register
-loses its per-capability override *and its resolved address*, sending reads back to a primary that may answer with
-the not-available sentinel; the owner's Flows pointing at that capability need it picked again; and its Insights
-history starts fresh. **So a rename must declare itself in `renamedRegisters` on the model profile** (see
-`migrateSelection()` in `registers.ts`, and the test that every declared rename points at a register that exists).
-0.9.13 could tell everyone to run Repair because the install base was one device and the release was breaking
-anyway. From here, "run Repair" is a cost paid by strangers, and a silent capability that only comes back when the
-owner happens to open the repair flow is worse.
+`renamedRegisters` + `migrateSelection()` exist because 0.9.13's renames were worth carrying (a stored `selection`
+is keyed by register name, so a rename otherwise loses that register's resolved address, not just its override).
+That is a tool to reach for when a specific rename deserves it — not a standing requirement.
 
-**Prefer not renaming.** Where a rename is genuinely right, it needs a migration and these sharp edges:
+**After 1.0**, a rename needs a proper migration. Either way these sharp edges apply:
 
 - **Don't delete a capability *type* definition (`.homeycompose/capabilities/*.json`) in the same release as a
   rename away from it.** A device that still has an instance of that type attached will have *every* capability

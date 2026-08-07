@@ -216,3 +216,26 @@ not add credibility, it costs the one thing a store listing has to do.
 changelog reader decides "do I care, and must I do anything?" — a few sentences. Anyone wanting
 mechanism will follow a link. Same discipline as a commit subject line: the body exists, put it
 in the body.
+
+## Pre-1.0 means hard cuts. Don't re-derive this from the install count
+
+**2026-08-07.** Told that 0.9.13 was published and running with a few other users, I decided the
+single-install assumption in `CLAUDE.md` had expired, rewrote the rename section to forbid hard
+cuts, made `renamedRegisters` a standing requirement, and committed and pushed it. The user's
+verdict: "We are still pre-1.0, we can do hard cuts. I've said this probably 20 times now."
+
+Twenty times, and it was in neither `tasks/lessons.md` nor the memory directory — which is the
+actual failure. A rule that lives only in the user's repeated corrections gets re-litigated by
+every session that meets a fact which *looks* like it should change the policy.
+
+The reasoning error is worth naming too: `CLAUDE.md` said migrations become necessary "if the app
+gets other real users", I observed other real users, and treated that as the trigger firing. But
+the policy was never a function of the install count — it is a function of the version. Pre-1.0
+is a declaration that the interface is not yet promised, and a handful of early adopters on a
+pre-1.0 app are precisely the people a hard cut is for.
+
+**Rule:** the versioning stance is the user's to set, not something to infer from evidence about
+users, adoption or stability. Pre-1.0 → hard cut; 1.0 is the line where that changes. When a fact
+seems to invalidate a standing policy, say so and ask — changing the policy is not the same kind
+of act as acting under it. And when a correction has clearly been given before, write it down
+where the next session will read it, not only where this one will.
