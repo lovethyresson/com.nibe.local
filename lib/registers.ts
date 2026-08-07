@@ -214,6 +214,26 @@ export function toNumericValue(register: Register, raw: number): number | undefi
     return value;
 }
 
+// The text an enum register publishes for a raw code: the translated label, falling back to the
+// key itself when a translation is missing, and to the bare code when the table has no name for
+// it at all.
+//
+// That last case is the load-bearing one. Nibe adds codes per model and firmware, so a map with a
+// gap is normal rather than a bug — and the gap used to yield `undefined`, which reached
+// setCapabilityValue() and was rejected once per poll for as long as the pump held that code.
+// Same shape as a picker being handed a value outside its shortlist, one register type over.
+// Publishing the number is the honest outcome: `measure_enum_NIBE` is a plain string capability
+// so it renders, Insights keeps logging, and the code is exactly what someone needs in order to
+// name it. `translate` is Homey's `__`, passed in so this stays a pure function.
+export function enumLabel(
+    register: Register | undefined, value: number, translate: (key: string) => string
+): string {
+    const key = register?.enum?.[value];
+    if (key === undefined)
+        return `${value}`;
+    return translate(key) || key;
+}
+
 // The user's feature selection, stored on the device (store key "selection").
 // A missing selection means everything is enabled, which keeps devices paired
 // before this feature (or paired with detection skipped) behaving as before.

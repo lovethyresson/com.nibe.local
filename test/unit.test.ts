@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 
 import {
     Dir, combineRaw, signedValue, isUnavailableRaw, toNumericValue, isAdjustable, isPollable,
-    buildPickerPrimary, buildRegisterByName, isSelectableRegister, isRegisterEnabled, Register,
+    buildPickerPrimary, buildRegisterByName, enumLabel, isSelectableRegister, isRegisterEnabled,
+    Register,
     migrateSelection, resolvedAddress
 } from '../lib/registers';
 import {makeProfile} from '../lib/profile';
@@ -1024,6 +1025,27 @@ test('every picker declares exactly the values its capability offers', () => {
             declared.values.map((v: any) => v.id),
             `${register.name} is out of step with ${type}.json`);
     }
+});
+
+test('an enum code the table has no name for publishes as the bare code', () => {
+    // The picker guard's twin, one register type over. Nibe adds enum codes per model and
+    // firmware, so a map with a gap is normal — and the gap used to decode to `undefined`, which
+    // reached setCapabilityValue() and was rejected on every poll. `measure_enum_NIBE` is a plain
+    // string capability, so the number is a value it accepts and shows.
+    const translate = (key: string) => ({heating: 'Värme'} as Record<string, string>)[key] ?? '';
+    const register: Register = {
+        address: 1028, name: 'measure_enum_NIBE.i1028_priority', direction: Dir.In,
+        group: 'core', enum: {10: 'off', 20: 'heating'}, info: {en: '', sv: ''}
+    };
+    assert.equal(enumLabel(register, 20, translate), 'Värme');
+    // A key with no translation still beats a number — it is at least a word.
+    assert.equal(enumLabel(register, 10, translate), 'off');
+    // The case this exists for.
+    assert.equal(enumLabel(register, 42, translate), '42');
+    // priorityLabel() passes a register that may not exist on this model at all.
+    assert.equal(enumLabel(undefined, 42, translate), '42');
+    // A register carrying no map is every non-enum register; it must not throw on the way past.
+    assert.equal(enumLabel({...register, enum: undefined}, 42, translate), '42');
 });
 
 // ---- Root capability ids, and carrying a selection across the rename ----

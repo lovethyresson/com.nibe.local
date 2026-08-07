@@ -1,7 +1,7 @@
 import {Device} from 'homey';
 import {
-    Dir, Register, Selection, isPollable, isUnavailableRaw, migrateSelection, resolvedAddress,
-    signedValue, withResolvedAddresses
+    Dir, Register, Selection, enumLabel, isPollable, isUnavailableRaw, migrateSelection,
+    resolvedAddress, signedValue, withResolvedAddresses
 } from './registers';
 import {
     ACTIVE_POWER_CAPABILITY, ALARM_ACTIVE_CAPABILITY, ALARM_TEXT_CAPABILITY,
@@ -106,8 +106,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // label where the capability wanted the raw id — "Manual" against "Expected: 0,1,2".
         if (register.picker)
             return "" + value;
-        if (register.enum)
-            return this.homey.__(register.enum[value]) || register.enum[value];
+        if (register.enum) {
+            if (register.enum[value] === undefined)
+                this.noteUnnamedCode(register, value);
+            return enumLabel(register, value, (key) => this.homey.__(key));
+        }
         if (register.bool)
             return value !== (register.offValue ?? 0);
         return value;
@@ -185,6 +188,21 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     // Pickers whose current pump value is outside the shortlist they offer, so the warning is
     // logged once per register rather than on every poll.
     private unlistedPickerValues = new Set<string>();
+
+    // Enum codes the register table has no name for, keyed by register AND code so a pump that
+    // later moves to a second unknown code still says so once — the code is the whole point of
+    // the line, since naming it is the fix.
+    private unnamedEnumCodes = new Set<string>();
+
+    private noteUnnamedCode(register: Register, value: number) {
+        const seen = `${register.name}:${value}`;
+        if (this.unnamedEnumCodes.has(seen))
+            return;
+        this.unnamedEnumCodes.add(seen);
+        this.log(`Register ${register.address} reads ${value}, which "${register.name}" has no `
+            + `name for. Showing the bare code — add it to the register table's map to give it `
+            + `one. Nibe adds codes per model and firmware, so this is a gap, not a fault.`);
+    }
 
     // Values this app has just written, so the poll that reads them back is not mistaken for the
     // pump acting on its own. The timestamp lets an entry expire rather than suppressing a
@@ -546,12 +564,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     // The priority code as the same text the capability shows ("Heating"), falling back to the
-    // bare code for a value the profile doesn't map.
+    // bare code for a value the profile doesn't map — which is enumLabel's job, and the reason
+    // this no longer spells the fallback out for itself.
     private priorityLabel(raw: number): string {
         const name = this.profile.role.priorityRegisterName;
-        const map = name ? this.profile.registerByName[name]?.enum : undefined;
-        const key = map?.[raw];
-        return key ? (this.homey.__(key) || key) : `${raw}`;
+        return enumLabel(name ? this.profile.registerByName[name] : undefined, raw,
+            (key) => this.homey.__(key));
     }
 
     onRegisterRaw(register: Register, raw: number) {
