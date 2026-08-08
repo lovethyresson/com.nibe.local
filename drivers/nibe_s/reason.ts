@@ -48,6 +48,10 @@ export const sReason: ReasonConfig = {
         supply:          {address:    5, direction: Dir.In,  scale: 10},
         addSteps:        {address: 1029, direction: Dir.In},
         stopHeatingOut:  {address:  184, direction: Dir.Out, scale: 10},
+        // 184's own info string calls it out: the outdoor cut-off is an *auto-mode* rule
+        // (0 = Auto, 1 = Manual, 2 = Add. heat only — see registers.ts). Needed so the
+        // "heating stays off" qualifier below doesn't cite a rule that isn't in effect.
+        operatingMode:   {address:  237, direction: Dir.Out},
         // Hot water: the charge sensor, the demand mode, and that mode's start/stop pair.
         hwCharge:        {address:    9, direction: Dir.In,  scale: 10},
         hwTop:           {address:    8, direction: Dir.In,  scale: 10},
@@ -261,10 +265,17 @@ function qualifier(role: string, previousRole: string | undefined,
                    v: ReasonContext['v']): LocalizedText | undefined {
     const outdoor = v('outdoor');
     const stopHeatingOut = v('stopHeatingOut');
+    const operatingMode = v('operatingMode');
     // Only worth saying when the reader would otherwise expect heating to take over — going
     // idle from heating, or idling on. After hot water or pool it's a non sequitur.
+    //
+    // operatingMode === 0 (Auto) is required, not just "not known to be off" — 184 only governs
+    // Auto (see its own info string in registers.ts), so in Manual or Add-heat-only this clause
+    // would name a rule that isn't in effect. If the mode register doesn't answer, say nothing
+    // rather than assume Auto — same as the existing outdoor/stopHeatingOut undefined-safety.
     if (role === 'main' && (previousRole === undefined || previousRole === 'heating' || previousRole === 'main')
-        && outdoor !== undefined && stopHeatingOut !== undefined && outdoor >= stopHeatingOut)
+        && outdoor !== undefined && stopHeatingOut !== undefined && outdoor >= stopHeatingOut
+        && operatingMode === 0)
         return {
             en: `Heating stays off anyway while it is ${e(outdoor)} °C outside (the limit is ${e(stopHeatingOut)} °C).`,
             sv: `Värmen är ändå avstängd så länge det är ${s(outdoor)} °C ute (gränsen är ${s(stopHeatingOut)} °C).`

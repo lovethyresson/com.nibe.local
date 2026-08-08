@@ -514,7 +514,7 @@ const baseline: Record<string, number> = {
     hwStartSmall: 38, hwStopSmall: 45, hwStartMedium: 44, hwStopMedium: 51,
     hwStartLarge: 48, hwStopLarge: 55, moreHotwater: 0, periodicHw: 0,
     dmCooling: 30, startCoolingOut: 25, poolTemp: 24, poolStart: 22, poolStop: 25,
-    outdoor: 10.0, sgReady: 10
+    outdoor: 10.0, sgReady: 10, operatingMode: 0
 };
 
 const why = (role: Role, previousRole: Role | undefined, over: Record<string, number> = {}) => {
@@ -596,6 +596,19 @@ test('reason: the outdoor cut-off is reported when it is what keeps heating off'
     assert.match(blocked.en, /Heating stays off anyway while it is 17\.3 °C outside \(the limit is 17\.0 °C\)/);
     // Below the limit it is not mentioned — no filler.
     assert.doesNotMatch(why('main', 'heating', {outdoor: 4.1})!.en, /stays off anyway/);
+});
+
+test('reason: the outdoor cut-off is not cited outside auto mode', () => {
+    // 184 is an auto-mode setting (its own info string says so) — citing it in Manual or
+    // Add-heat-only would name a rule that is not in effect.
+    const manual = why('main', 'heating', {outdoor: 17.3, stopHeatingOut: 17.0, operatingMode: 1})!;
+    assert.doesNotMatch(manual.en, /stays off anyway/);
+    const addHeatOnly = why('main', 'heating', {outdoor: 17.3, stopHeatingOut: 17.0, operatingMode: 2})!;
+    assert.doesNotMatch(addHeatOnly.en, /stays off anyway/);
+    // Unknown mode (register didn't answer) is treated the same as "not confirmed auto" —
+    // silence rather than a guess.
+    const unknownMode = why('main', 'heating', {outdoor: 17.3, stopHeatingOut: 17.0, operatingMode: undefined as any})!;
+    assert.doesNotMatch(unknownMode.en, /stays off anyway/);
 });
 
 test('reason: an SG Ready price signal is only mentioned when it changes behaviour', () => {
