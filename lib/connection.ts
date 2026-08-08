@@ -133,6 +133,21 @@ export class PumpConnection {
     private connected = false;
     private destroyed = false;
 
+    // Every request to the pump — read or write — funnels through here, one at a time.
+    // Confirmed live: a batch of ~17 read failures, all in one topical group, landed within a
+    // second of a manual write every single time it happened. jsmodbus and the pump's own
+    // Modbus TCP stack are both given no reason to expect that; a poll's dozens of concurrent
+    // reads and an independent write share one client on one socket with nothing coordinating
+    // them. This makes that impossible: whatever calls next just waits its turn.
+    private wireQueue: Promise<unknown> = Promise.resolve();
+    private withWireAccess<T>(fn: () => Promise<T>): Promise<T> {
+        const result = this.wireQueue.then(fn, fn);
+        // Swallow so one failed request doesn't poison the queue for whatever comes after it —
+        // the caller still sees the real rejection via `result`.
+        this.wireQueue = result.catch(() => undefined);
+        return result;
+    }
+
     // Energy integrator state. lastPowerReading is null right after every (re)connect so a
     // connection gap isn't counted as continuous runtime at whatever power the first poll reads.
     private lastPowerReading: number | null = null;
@@ -546,7 +561,7 @@ export class PumpConnection {
     async readRegisterRaw(register: Register, track = true): Promise<number | undefined> {
         const count = register.size === 32 ? 2 : 1;
         const address = this.pduAddress(register);
-        return await ((register.direction === Dir.In)
+        return await this.withWireAccess<any>(() => (register.direction === Dir.In)
             ? this.client.readInputRegisters(address, count)
             : this.client.readHoldingRegisters(address, count))
             .then((resp: any) => {
@@ -604,7 +619,7 @@ export class PumpConnection {
     async writeSingleRegister(address: number, raw: number): Promise<void> {
         const pdu = this.profile.addressBase ? address - this.profile.addressBase : address;
         try {
-            await this.client.writeSingleRegister(pdu, raw);
+            await this.withWireAccess(() => this.client.writeSingleRegister(pdu, raw));
         } catch (reason: any) {
             const detail = describeModbusError(reason);
             // The whole error, verbatim, after the readable summary. jsmodbus says "A Modbus
@@ -622,7 +637,7 @@ export class PumpConnection {
     async writeMultipleRegisters(address: number, values: number[]): Promise<void> {
         const pdu = this.profile.addressBase ? address - this.profile.addressBase : address;
         try {
-            await this.client.writeMultipleRegisters(pdu, values);
+            await this.withWireAccess(() => this.client.writeMultipleRegisters(pdu, values));
         } catch (reason: any) {
             const detail = describeModbusError(reason);
             this.log(`Error writing register ${address} (values ${values.join(', ')}): ${detail.summary}`,
