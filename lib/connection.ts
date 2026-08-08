@@ -645,6 +645,10 @@ export class PumpConnection {
                 }
             });
 
+            // Corrects rawByName itself, before anything below reads it — see the method
+            // comment for why this is the one place this decision gets made.
+            this.applyEnergyLogPriorityOverride(rawByName);
+
             this.reportReadFailures(rawByName.size > 0);
             this.reportEnergyLogSteps(rawByName);
             this.allocateEnergy(rawByName);
@@ -1104,6 +1108,40 @@ export class PumpConnection {
                 + `is absent on some S models (S320/S325, S330/S332, S2125).`);
     }
 
+    // 3804 (see registers.ts) has been observed naming an active function while the documented
+    // priority register (1028) reports idle — confirmed live against myUplink's own "Priority"
+    // reading, which agreed with 3804 and not with 1028 during exactly that state (both read
+    // 30 within ~1s of each other; 1028 read 10 throughout). Rather than have the tile, the
+    // priority_changed trigger, the reset rules and the energy allocator each separately decide
+    // whether to trust 1028 or 3804, this corrects rawByName itself — once, here, before any of
+    // them read it — so everything downstream just sees one already-correct value. That's the
+    // whole rule: one correction point, not four places that each have to agree on the logic.
+    //
+    // Only ever steps in for that one proven failure mode: 1028 reads idle (main) AND 3804
+    // names something else. An active 1028 reading is never overridden — every observation so
+    // far has 1028 and 3804 agreeing once 1028 is off idle (a "More hot water" boost had both
+    // read 20 in the same poll), so there's no evidence to act on in that direction, only this
+    // one. Absent on some models (registerByName lookup fails) — a no-op there, same as today.
+    private applyEnergyLogPriorityOverride(rawByName: Map<string, number>) {
+        if (!this.priorityRegister || !this.energyLogPriorityRegister)
+            return;
+        const rawPriority = rawByName.get(this.priorityRegister.name);
+        if (rawPriority === undefined || this.profile.role.priorityToRole[rawPriority] !== 'main')
+            return;
+        const rawEnergyLog = rawByName.get(this.energyLogPriorityRegister.name);
+        if (rawEnergyLog === undefined)
+            return;
+        const mapped = this.profile.role.priorityToRole[rawEnergyLog];
+        if (!mapped || mapped === 'main')
+            return;
+        // Every capability sharing the priority register's address (the enum tile and its raw
+        // Insights-charted twin) has to move together, or they'd disagree with each other on
+        // top of disagreeing with the pump.
+        for (const register of this.profile.registers)
+            if (register.address === this.priorityRegister.address)
+                rawByName.set(register.name, rawEnergyLog);
+    }
+
     // Integrate total power into a per-function kWh bucket, charged to whichever function the
     // pump is currently prioritising, and push the live draw (watts) to the active device and 0
     // to the others. Skipped entirely on models with no power source (fixed-speed F).
@@ -1119,6 +1157,8 @@ export class PumpConnection {
             for (const subscriber of this.energySubscribers())
                 subscriber.onEnergyUnavailable?.();
         if (watts !== null) {
+            // Already corrected by applyEnergyLogPriorityOverride() if 3804 disagreed with an
+            // idle 1028 — this is not necessarily what 1028 itself is reporting right now.
             const rawPriority = this.priorityRegister
                 ? rawByName.get(this.priorityRegister.name)
                 : undefined;
@@ -1131,24 +1171,28 @@ export class PumpConnection {
                 else this.logUnknownPriority(rawPriority);
             }
 
-            // Diagnostic: the undocumented 3804 register (see registers.ts), read alongside
-            // 1028 so the two can be compared. Absent on some models — rawEnergyLogPriority
-            // stays undefined and the lines below just show "?".
+            // Diagnostic: 3804's own raw value, independent of any correction already folded
+            // into rawPriority above — always the true, un-corrected reading (the override
+            // never touches this register's own rawByName entry), so it stays honest even
+            // while a correction is active.
             const rawEnergyLogPriority = this.energyLogPriorityRegister
                 ? rawByName.get(this.energyLogPriorityRegister.name)
                 : undefined;
 
-            // Diagnostic: dump every priority change with the code, where it's charged,
-            // and the live draw — so a "heating while priority reads X" cycle reveals X.
-            // 3804 is folded into this line whenever 1028 moves, and gets its own line below
-            // when it moves without 1028 — the case actually under investigation.
+            // Diagnostic: dump every priority change with the code, where it's charged, and
+            // the live draw. When rawPriority differs from what 1028 itself actually read
+            // (lastRaw, set before the override ran), the line says so — a correction should
+            // never be silently indistinguishable from a genuine 1028 reading in the log.
             if (rawPriority !== this.lastLoggedPriority) {
                 const mapped = rawPriority !== undefined ? this.profile.role.priorityToRole[rawPriority] : undefined;
                 const from = this.lastLoggedPriority;
                 this.lastLoggedPriority = rawPriority;
+                const trueRaw = this.priorityRegister ? this.lastRaw.get(this.priorityRegister.name) : undefined;
+                const corrected = trueRaw !== undefined && trueRaw !== rawPriority;
                 this.announcePriorityChange(from, rawPriority, role,
                     `Priority change: raw=${rawPriority} -> role=${role}`
-                    + `${mapped ? '' : ' (UNMAPPED)'} draw=${watts}W 3804=${rawEnergyLogPriority ?? '?'}`);
+                    + `${mapped ? '' : ' (UNMAPPED)'} draw=${watts}W`
+                    + `${corrected ? ` (1028 itself still reads ${trueRaw}; corrected via 3804)` : ''}`);
             }
             if (this.energyLogPriorityRegister
                 && rawEnergyLogPriority !== this.lastLoggedEnergyLogPriority) {

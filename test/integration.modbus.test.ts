@@ -256,6 +256,119 @@ test('energy allocator sums power sources and charges the prioritised function',
     }
 });
 
+test('an idle 1028 that disagrees with an active 3804 is corrected everywhere at once',
+    {timeout: 20000}, async () => {
+    const pump = await startPump();
+    try {
+        const power = reg({address: 500, name: 'power', scale: 1});
+        const priority = reg({address: 502, name: 'priority'});
+        // A second capability at the same address as the priority register, like the real S
+        // profile's enum tile + raw-numeric twin on 1028 — both must move together.
+        const priorityTwin = reg({address: 502, name: 'priority_twin'});
+        // Name matched exactly against connection.ts's hardcoded lookup in
+        // applyEnergyLogPriorityOverride() — not configurable per-profile like priorityRegisterName.
+        const energyLogPriority = reg({address: 503, name: 'measure_priority_NIBE.i3804_energylog_priority', internal: true});
+        seed(pump.input, 500, 2000);   // 2000 W
+        seed(pump.input, 502, 10);     // 1028 reads idle
+        seed(pump.input, 503, 30);     // 3804 reads heat
+
+        const profile = makeProfile({
+            registers: [power, priority, priorityTwin, energyLogPriority],
+            role: {
+                priorityRegisterName: 'priority',
+                priorityRawOff: 10,
+                powerSources: [['power']],
+                producedRegisterForRole: {},
+                priorityToRole: {10: 'main', 30: 'heating'}
+            },
+            transport: {port: 502, unitId: 1},
+            detection: {plausible: {}, discoveryProbe: {address: 1, scale: 10, min: -60, max: 60}},
+            compose: {capabilities: [], capabilitiesOptions: {}, actions: [], conditions: [], triggers: []}
+        });
+
+        const main = new FakeSub('main', [priority, priorityTwin]);
+        const heating = new FakeSub('heating', []);
+        const connection = PumpConnection.get('127.0.0.1', profile, {port: pump.port, unitId: 1});
+        connection.attach(main);
+        connection.attach(heating);
+        try {
+            await main.whenUp();
+            await new Promise((r) => setTimeout(r, 11000));
+
+            // Energy: charged to heating, not main, despite 1028 reading idle.
+            const heatCharged = heating.energy.filter((e) => e.watts > 0);
+            assert.ok(heatCharged.length > 0, 'heating should receive the corrected allocation');
+            assert.ok(main.energy.every((e) => e.watts === 0), 'main gets no draw once corrected');
+
+            // Tile + its raw twin: both see the corrected 30, never 1028's real reading of 10.
+            const primaryRaws = main.raws.filter((r) => r.name === 'priority').map((r) => r.raw);
+            const twinRaws = main.raws.filter((r) => r.name === 'priority_twin').map((r) => r.raw);
+            assert.ok(primaryRaws.length > 0 && primaryRaws.every((raw) => raw === 30),
+                `expected only corrected 30 on the primary register, got ${primaryRaws}`);
+            assert.ok(twinRaws.length > 0 && twinRaws.every((raw) => raw === 30),
+                `expected only corrected 30 on the twin register, got ${twinRaws}`);
+
+            // priority_changed: fires with the corrected code, not 1028's own 10.
+            const change = main.priorityChanges.find((c) => c.to === 30);
+            assert.ok(change, 'priority_changed should report the corrected code (30), not 1028\'s own 10');
+        } finally {
+            connection.shutdown();
+        }
+    } finally {
+        await pump.close();
+    }
+});
+
+test('an active 1028 reading is never overridden, even if 3804 disagrees', {timeout: 20000}, async () => {
+    const pump = await startPump();
+    try {
+        const power = reg({address: 500, name: 'power', scale: 1});
+        const priority = reg({address: 502, name: 'priority'});
+        const energyLogPriority = reg({address: 503, name: 'measure_priority_NIBE.i3804_energylog_priority', internal: true});
+        seed(pump.input, 500, 2000);
+        seed(pump.input, 502, 20);     // 1028 reads hot water — active, must win
+        seed(pump.input, 503, 30);     // 3804 disagrees — must be ignored
+
+        const profile = makeProfile({
+            registers: [power, priority, energyLogPriority],
+            role: {
+                priorityRegisterName: 'priority',
+                priorityRawOff: 10,
+                powerSources: [['power']],
+                producedRegisterForRole: {},
+                priorityToRole: {10: 'main', 20: 'hotwater', 30: 'heating'}
+            },
+            transport: {port: 502, unitId: 1},
+            detection: {plausible: {}, discoveryProbe: {address: 1, scale: 10, min: -60, max: 60}},
+            compose: {capabilities: [], capabilitiesOptions: {}, actions: [], conditions: [], triggers: []}
+        });
+
+        const main = new FakeSub('main', [priority]);
+        const hotwater = new FakeSub('hotwater', []);
+        const heating = new FakeSub('heating', []);
+        const connection = PumpConnection.get('127.0.0.1', profile, {port: pump.port, unitId: 1});
+        connection.attach(main);
+        connection.attach(hotwater);
+        connection.attach(heating);
+        try {
+            await main.whenUp();
+            await new Promise((r) => setTimeout(r, 11000));
+
+            assert.ok(hotwater.energy.some((e) => e.watts > 0),
+                'hot water keeps the allocation 1028 actually reported');
+            assert.ok(heating.energy.every((e) => e.watts === 0),
+                '3804 is not trusted over an active 1028 reading');
+            const primaryRaws = main.raws.filter((r) => r.name === 'priority').map((r) => r.raw);
+            assert.ok(primaryRaws.every((raw) => raw === 20),
+                `expected 1028's own 20, unmodified, got ${primaryRaws}`);
+        } finally {
+            connection.shutdown();
+        }
+    } finally {
+        await pump.close();
+    }
+});
+
 test('priority-change reset clears "More hot water" on hot water -> idle', {timeout: 25000}, async () => {
     const pump = await startPump();
     try {
