@@ -4,7 +4,7 @@
 that touches attribution, the power sources, the role mapping or the COP accumulators — not on every build.
 The [README](../README.md) links here and carries the user-facing summary.
 
-Last verified against the code: **0.9.13**.
+Last verified against the code: **0.9.14**.
 
 ## The problem
 
@@ -22,11 +22,17 @@ flowchart TD
     A["Poll the pump — every 5 s, one shared socket"] --> B{"Total power<br/>register 2305, else 2166"}
     B -- "neither answers" --> X["Nothing is attributed<br/>meters hold, COP accumulators pause"]
     B -- "watts" --> C{"Operating priority<br/>register 1028"}
-    C -- "10 / unknown code" --> M["Main"]
+    C -- "10, but 3804 names<br/>an active function" --> V["Corrected role<br/>(register 3804)"]
+    C -- "10, and 3804 agrees<br/>or doesn't answer" --> M["Main"]
+    C -- "unknown code" --> M
     C -- "20" --> HW["Hot water"]
     C -- "30" --> HE["Heating"]
     C -- "40" --> PO["Pool"]
     C -- "60" --> CO["Cooling"]
+    V --> HW
+    V --> HE
+    V --> PO
+    V --> CO
     HW --> P{"Is that device paired?"}
     HE --> P
     PO --> P
@@ -42,9 +48,20 @@ flowchart TD
 The load-bearing property is the **winner-takes-all** step. Nothing is split proportionally and nothing is
 estimated, so the sum across the paired devices is the pump's own total *by construction*. Consequences:
 
-- **Main is the remainder, not the total.** Main is charged when priority reads 10 (idle/standby), when the
-  code is one we don't recognise, and when the function that *is* running has no paired device. It is not
-  "the whole pump" — the whole pump is the sum of all five.
+- **Main is the remainder, not the total.** Main is charged when priority reads 10 and 3804 doesn't name an
+  active function otherwise, when the code is one we don't recognise, and when the function that *is* running
+  has no paired device. It is not "the whole pump" — the whole pump is the sum of all five.
+- **1028 can read idle while the pump is genuinely running something (0.9.14).** Confirmed live: three
+  demand-driven heating cycles (degree minutes crossing the compressor-start threshold, real compressor draw,
+  the 1577 produced-energy counter advancing) all landed with 1028 stuck at 10 throughout. An undocumented
+  second register in the energy-log block, **3804**, correctly named the active function the whole time —
+  independently corroborated against myUplink's own "Priority" reading, which agreed with 3804 within about a
+  second of the transition, not with 1028. `applyEnergyLogPriorityOverride()` corrects 1028's raw value itself,
+  once, in `poll()`, before the tile, the `priority_changed` trigger, the reset rules and the allocator each
+  read it — one correction point rather than four independent judgment calls. Only overrides an *idle* 1028
+  reading; an active one (20/30/40/60) is never touched — a live "More hot water" boost had 1028 and 3804 agree
+  in the same poll, so there's no evidence to act on that direction. Absent on S2125, S320/S325 and S330/S332
+  (per third-party register dumps) — a no-op there, same as 1028-only behaviour before this release.
 - **An unpaired function quietly folds into Main.** The app logs a warning the first time this happens per
   app start, so it doesn't go unnoticed, but the energy still lands on Main.
 - **If neither power register answers, nobody is charged.** The meters stand still rather than guessing.

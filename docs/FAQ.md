@@ -42,6 +42,22 @@ total — that's what Homey's Energy tab shows.
 Delivered heat works the other way round: the pump *does* count that per function, so those figures are read
 straight off the pump and are exact.
 
+### My heating device shows energy produced but 0 kWh used, even though it's genuinely heating
+
+A bug, fixed in **0.9.14**. The register the app relies on for "what is the pump currently working
+on" (1028) was observed reading **idle** throughout a real, demand-driven heating cycle — degree
+minutes crossing the compressor-start threshold, real compressor draw, the produced-energy counter
+advancing the whole time. With 1028 saying idle, every watt of that cycle was booked to Main instead
+of Heating, which is exactly this symptom: energy *produced* (read straight off the pump, so still
+correct) with 0 kWh *used* on the device that actually did the work.
+
+The app now cross-checks 1028 against an undocumented second register, confirmed independently
+against myUplink's own reading, and corrects the mistake when it happens — see
+[`energy-attribution.md`](energy-attribution.md) for the mechanism. It only ever corrects an idle
+reading; if 1028 already says a function is active, that's trusted as-is. Not available on every
+model — S2125, S320/S325 and S330/S332 don't expose the second register, so they fall back to 1028
+alone, same as every release before this one.
+
 ### Why not use the pump's own per-function energy figures instead?
 
 The pump does keep them — but it publishes them **once an hour, for the hour that just ended**. That's too
@@ -145,6 +161,19 @@ Measured on an S1155: five boosts in a row stopped at 53–59 °C with the immer
 first because a schedule had blocked it for a year and then because Auto mode ignored the permit.
 With both cleared and the mode set to Manual, the immersion ran to its full **7 kW** and the same
 boost reached 68 °C.
+
+### Why doesn't cancelling "More hot water" stop the compressor?
+
+It cancels the *request* immediately — measured live, the pump's own internal minutes-remaining
+and status registers both reset within one poll of switching the boost off. What it doesn't do is
+interrupt a compressor cycle that has already started; the pump finishes that cycle regardless.
+That's normal short-cycling protection, present on essentially every heat pump, not a bug here.
+
+Toggling **Allow hot water** off and back on does force a running cycle to stop — that was
+confirmed too — but the app doesn't do this for you automatically. Forcing a running compressor
+off that bluntly, on every boost cancellation, is likely worse for it than letting the current
+cycle finish. It's left as something you choose to do occasionally, not something the app does
+silently and routinely on your behalf.
 
 ## Setup and connectivity
 
