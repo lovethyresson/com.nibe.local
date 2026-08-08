@@ -146,6 +146,13 @@ export const sProfile = makeProfile({
         // returns from hot water (priority 20) to idle (10), so the toggle doesn't linger on.
         resetOnPriorityChange: [
             {from: 20, to: 10, register: "boolean_NIBE.h697_more_hotwater"}
+        ],
+        // 195's own info string says it: "Off disables all hot water, including the More hot
+        // water boost." Disabling hot water mid-boost via the Homey toggle otherwise leaves the
+        // boost running — the reset rule above never fires, because the pump never makes the
+        // "hot water -> idle" transition on its own once Homey has already cut it off.
+        clearOnDisable: [
+            {register: "onoff.h195_enable_hotwater", clears: ["boolean_NIBE.h697_more_hotwater"]}
         ]
     },
 

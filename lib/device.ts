@@ -159,6 +159,31 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         }
     }
 
+    // See profile.role.clearOnDisable: the complement to connection.ts's priority-change reset
+    // rules, for the case those can never fire — the pump never makes the transition on its own
+    // once Homey has already cut the function off. Cheap to call unconditionally from every
+    // writable register's listener; only ever does anything for a bool register turned off that
+    // the profile actually names.
+    private async applyClearOnDisable(register: Register, value: any) {
+        if (!register.bool || value !== false)
+            return;
+        for (const rule of this.profile.role.clearOnDisable ?? []) {
+            if (rule.register !== register.name)
+                continue;
+            for (const name of rule.clears) {
+                const target = this.profile.registerByName[name];
+                if (!target || !this.hasCapability(target.name))
+                    continue;
+                if (this.getCapabilityValue(target.name) === false)
+                    continue; // already off — nothing to clear
+                this.log(`${register.name} disabled — also clearing ${target.name}`);
+                await this.writeRegister(target, false)
+                    .then(() => this.setValue(target, false))
+                    .catch((error) => this.error(`Failed to clear ${target.name} after disabling ${register.name}`, error));
+            }
+        }
+    }
+
     private alarmTrigger = this.homey.flow.getDeviceTriggerCard("alarm_occurred");
     private priorityChangedTrigger = this.homey.flow.getDeviceTriggerCard("priority_changed");
     private capabilityChangedTrigger = this.homey.flow.getDeviceTriggerCard("capability_changed");
@@ -495,6 +520,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                         this.log(`Manual set ${register.name} = ${value}`);
                         await this.writeRegister(register, value);
                         this.checkTrigger(register, value);
+                        await this.applyClearOnDisable(register, value);
                     });
                 }
             }

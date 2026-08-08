@@ -86,6 +86,13 @@ export interface RoleConfig {
     // between specific values — e.g. clear the one-time "More hot water" boost once the pump
     // leaves hot water (20) for idle (10), so the toggle doesn't stay on after it's delivered.
     resetOnPriorityChange?: {from: number; to: number; register: string}[];
+
+    // Registers to write off the instant a bool register is switched off *from Homey* — the
+    // complement to resetOnPriorityChange above, which only fires once the pump itself decides
+    // it's done. Disabling hot water mid-boost never makes that transition on its own (the pump
+    // never naturally arrives at "hot water -> idle" because Homey cut it off first), so without
+    // this the boost is left running with nothing to cancel it.
+    clearOnDisable?: {register: string; clears: string[]}[];
 }
 
 // Text in both supported languages, following the same {en, sv} convention the register table
