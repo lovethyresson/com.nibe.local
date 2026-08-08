@@ -387,18 +387,6 @@ export const registers: Register[] = [
      info: {en: "Whether room sensor regulation is switched on for climate system 1", sv: "Om rumsgivarreglering är påslagen för klimatsystem 1"}},
     {address:  697, name: "boolean_NIBE.h697_more_hotwater",                         direction: Dir.Out, group: "hotwater",   bool: true, onValue: 2, offValue: 0, // Mer varmvatten engångshöjning
      info: {en: "More hot water: a one-time 2-hour boost", sv: "Mer varmvatten: en engångshöjning på 2 timmar"}},
-    // Diagnostic only (internal: true, no capability). Per the measured-behaviour comment
-    // above, writing 697=N sets these two — 225 to N*60 minutes remaining, 1078's status to 1
-    // — which is what the pump actually appears to act on rather than 697 itself. Writing
-    // 697=0 to cancel a running boost was observed NOT to stop the pump charging; what these
-    // two do across that same write is what would show whether a real cancel needs to reach
-    // 225/1078 directly, or whether the boost simply cannot be aborted once accepted. Neither
-    // register has ever been read on a live pump before now — direction and size are inferred
-    // from the comment above, not measured.
-    {address:  225, name: "measure_minute_NIBE.h225_more_hotwater_minutes",         direction: Dir.Out, group: "hotwater",   internal: true, // Mer varmvatten, minuter kvar
-     info: {en: "More hot water minutes remaining, set by writing 697 (diagnostic)", sv: "Kvarvarande minuter för mer varmvatten, sätts av 697 (diagnostik)"}},
-    {address: 1078, name: "status_NIBE.i1078_more_hotwater_status",                 direction: Dir.In,  group: "hotwater",   internal: true, // Mer varmvatten, status
-     info: {en: "Whether a 'More hot water' boost is active, set by writing 697 (diagnostic)", sv: "Om en 'mer varmvatten'-höjning är aktiv, sätts av 697 (diagnostik)"}},
     // Rad 20 Strömförbrukning
     {address:   50, name: "measure_current.i50_sensor_v2",                    direction: Dir.In,  group: "electrical", scale: 10, size: 32, // Strömavkänare BE1 -L1 (u32)
      info: {en: "Current on phase L1 (sensor BE1)", sv: "Ström på fas L1 (givare BE1)"}},
@@ -571,14 +559,14 @@ export const registers: Register[] = [
     // temperature very low instead.
     //
     // Also the only observed way to actually abort a hot-water compressor cycle already in
-    // progress: writing 697=0 alone clears the boost request (225/1078 both confirmed to reset,
-    // see the diagnostic registers below) but the compressor runs its current cycle to
-    // completion regardless — toggling 195 off then back on does stop it. Deliberately not
-    // automated anywhere (e.g. clearOnDisable doesn't do this on its own initiative beyond the
-    // user's own 195 write): forcing a running compressor off this bluntly, on every boost
-    // cancellation, is likely worse for it than the short-cycling protection this cycle
-    // completion exists to prevent. A manual, occasional override is a different risk profile
-    // than the app doing it silently and routinely.
+    // progress: writing 697=0 alone clears the boost request (confirmed on a live pump via a
+    // since-removed diagnostic trace on the pump's internal minutes-remaining/status registers)
+    // but the compressor runs its current cycle to completion regardless — toggling 195 off
+    // then back on does stop it. Deliberately not automated anywhere (e.g. clearOnDisable
+    // doesn't do this on its own initiative beyond the user's own 195 write): forcing a running
+    // compressor off this bluntly, on every boost cancellation, is likely worse for it than the
+    // short-cycling protection this cycle completion exists to prevent. A manual, occasional
+    // override is a different risk profile than the app doing it silently and routinely.
     {address:  195, name: "onoff.h195_enable_hotwater",                       direction: Dir.Out, group: "hotwater",   bool: true, // Tillåt varmvatten
      info: {en: "Allow hot water. Off disables all hot water, including the More hot water boost", sv: "Tillåt varmvatten. Av stänger av allt varmvatten, även engångshöjningen"}},
 

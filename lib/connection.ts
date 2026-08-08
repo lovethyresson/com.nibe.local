@@ -146,12 +146,6 @@ export class PumpConnection {
     // independently so a 3804 transition logs even on a poll where 1028 doesn't move, which
     // is exactly the case under investigation (1028 stuck at 10 while the pump is heating).
     private lastLoggedEnergyLogPriority: number | undefined = undefined;
-    // Diagnostic only — see registers.ts on 225/1078. Tracked together so one line shows all
-    // three whenever any of them moves, which is what a boost start/cancel cycle needs to be
-    // legible in.
-    private lastLoggedMoreHotwaterMinutes: number | undefined = undefined;
-    private lastLoggedMoreHotwaterStatus: number | undefined = undefined;
-    private lastLoggedMoreHotwater: number | undefined = undefined;
     // Throttle (per role) for the "function device missing, charging to Main" warning, so
     // a persistent misattribution re-surfaces periodically without spamming every poll.
     private lastMissingRoleWarn = new Map<Role, number>();
@@ -654,7 +648,6 @@ export class PumpConnection {
             // Corrects rawByName itself, before anything below reads it — see the method
             // comment for why this is the one place this decision gets made.
             this.applyEnergyLogPriorityOverride(rawByName);
-            this.logMoreHotwaterDiagnostics(rawByName);
 
             this.reportReadFailures(rawByName.size > 0);
             this.reportEnergyLogSteps(rawByName);
@@ -1113,29 +1106,6 @@ export class PumpConnection {
         this.log(`No power reading from any candidate source (${sources}) — the pump's electrical draw cannot be `
                 + `measured, so per-function energy and every COP will stay empty. This register `
                 + `is absent on some S models (S320/S325, S330/S332, S2125).`);
-    }
-
-    // Diagnostic only — see registers.ts on 225/1078. Writing 697=0 to cancel a running "More
-    // hot water" boost was observed not to stop the pump charging; this exists to find out
-    // whether 225/1078 actually reset when 697 does, or whether the boost simply cannot be
-    // cancelled through Modbus once accepted. No-op on a model where neither register answers.
-    private logMoreHotwaterDiagnostics(rawByName: Map<string, number>) {
-        const minutesReg = this.profile.registerByName['measure_minute_NIBE.h225_more_hotwater_minutes'];
-        const statusReg = this.profile.registerByName['status_NIBE.i1078_more_hotwater_status'];
-        if (!minutesReg && !statusReg)
-            return;
-        const boostReg = this.profile.registerByName['boolean_NIBE.h697_more_hotwater'];
-        const minutes = minutesReg ? rawByName.get(minutesReg.name) : undefined;
-        const status = statusReg ? rawByName.get(statusReg.name) : undefined;
-        const boost = boostReg ? rawByName.get(boostReg.name) : undefined;
-        if (minutes === this.lastLoggedMoreHotwaterMinutes && status === this.lastLoggedMoreHotwaterStatus
-            && boost === this.lastLoggedMoreHotwater)
-            return;
-        this.lastLoggedMoreHotwaterMinutes = minutes;
-        this.lastLoggedMoreHotwaterStatus = status;
-        this.lastLoggedMoreHotwater = boost;
-        this.debug(`More hot water diagnostic: 697=${boost ?? '?'} 225(minutes)=${minutes ?? '?'} `
-            + `1078(status)=${status ?? '?'}`);
     }
 
     // 3804 (see registers.ts) has been observed naming an active function while the documented
