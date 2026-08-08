@@ -569,6 +569,16 @@ export const registers: Register[] = [
     // entirely (Modbus "Illegal Function" on read and write), so the boost can't be used
     // either. For "auto off, manual boost only" keep this ON and set the active mode's start
     // temperature very low instead.
+    //
+    // Also the only observed way to actually abort a hot-water compressor cycle already in
+    // progress: writing 697=0 alone clears the boost request (225/1078 both confirmed to reset,
+    // see the diagnostic registers below) but the compressor runs its current cycle to
+    // completion regardless — toggling 195 off then back on does stop it. Deliberately not
+    // automated anywhere (e.g. clearOnDisable doesn't do this on its own initiative beyond the
+    // user's own 195 write): forcing a running compressor off this bluntly, on every boost
+    // cancellation, is likely worse for it than the short-cycling protection this cycle
+    // completion exists to prevent. A manual, occasional override is a different risk profile
+    // than the app doing it silently and routinely.
     {address:  195, name: "onoff.h195_enable_hotwater",                       direction: Dir.Out, group: "hotwater",   bool: true, // Tillåt varmvatten
      info: {en: "Allow hot water. Off disables all hot water, including the More hot water boost", sv: "Tillåt varmvatten. Av stänger av allt varmvatten, även engångshöjningen"}},
 
