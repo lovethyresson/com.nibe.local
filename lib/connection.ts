@@ -142,6 +142,10 @@ export class PumpConnection {
     // change (not just idle<->active flips) with its mapped role and the live draw —
     // used to discover which raw code a producing pump actually reports per function.
     private lastLoggedPriority: number | undefined = undefined;
+    // Diagnostic: same, for the undocumented 3804 register (see registers.ts) — tracked
+    // independently so a 3804 transition logs even on a poll where 1028 doesn't move, which
+    // is exactly the case under investigation (1028 stuck at 10 while the pump is heating).
+    private lastLoggedEnergyLogPriority: number | undefined = undefined;
     // Throttle (per role) for the "function device missing, charging to Main" warning, so
     // a persistent misattribution re-surfaces periodically without spamming every poll.
     private lastMissingRoleWarn = new Map<Role, number>();
@@ -185,6 +189,9 @@ export class PumpConnection {
     // one. Only present on models that expose it — F derives consumption from power registers
     // and has no such counter, so it keeps pure trapezoidal integration with no reconciliation.
     private readonly consumptionRegister?: Register;
+    // The undocumented 3804 register (see registers.ts) — diagnostic only, absent on some
+    // models (registerByName returns undefined), same graceful-degradation as the above.
+    private readonly energyLogPriorityRegister?: Register;
 
     // ---- Reconciliation shadow monitor (diagnostic only; does not touch the live meters) ----
     // The live meters accumulate the trapezoidal integral. Alongside that we track what two
@@ -223,6 +230,8 @@ export class PumpConnection {
         this.consumptionRegister = profile.role.totalConsumptionRegister
             ? profile.registerByName[profile.role.totalConsumptionRegister]
             : undefined;
+        this.energyLogPriorityRegister =
+            profile.registerByName['measure_priority_NIBE.i3804_energylog_priority'];
         this.openSocket();
     }
 
@@ -1122,15 +1131,31 @@ export class PumpConnection {
                 else this.logUnknownPriority(rawPriority);
             }
 
+            // Diagnostic: the undocumented 3804 register (see registers.ts), read alongside
+            // 1028 so the two can be compared. Absent on some models — rawEnergyLogPriority
+            // stays undefined and the lines below just show "?".
+            const rawEnergyLogPriority = this.energyLogPriorityRegister
+                ? rawByName.get(this.energyLogPriorityRegister.name)
+                : undefined;
+
             // Diagnostic: dump every priority change with the code, where it's charged,
             // and the live draw — so a "heating while priority reads X" cycle reveals X.
+            // 3804 is folded into this line whenever 1028 moves, and gets its own line below
+            // when it moves without 1028 — the case actually under investigation.
             if (rawPriority !== this.lastLoggedPriority) {
                 const mapped = rawPriority !== undefined ? this.profile.role.priorityToRole[rawPriority] : undefined;
                 const from = this.lastLoggedPriority;
                 this.lastLoggedPriority = rawPriority;
                 this.announcePriorityChange(from, rawPriority, role,
                     `Priority change: raw=${rawPriority} -> role=${role}`
-                    + `${mapped ? '' : ' (UNMAPPED)'} draw=${watts}W`);
+                    + `${mapped ? '' : ' (UNMAPPED)'} draw=${watts}W 3804=${rawEnergyLogPriority ?? '?'}`);
+            }
+            if (this.energyLogPriorityRegister
+                && rawEnergyLogPriority !== this.lastLoggedEnergyLogPriority) {
+                const from = this.lastLoggedEnergyLogPriority;
+                this.lastLoggedEnergyLogPriority = rawEnergyLogPriority;
+                this.debug(`3804 change: raw=${rawEnergyLogPriority} (was ${from ?? '?'}) `
+                    + `— 1028 currently raw=${rawPriority} role=${role} draw=${watts}W`);
             }
 
             // Resolve to an attached device, falling back to Main (which always exists when

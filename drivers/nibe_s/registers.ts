@@ -146,6 +146,13 @@ export const registers: Register[] = [
     // about an implementation detail.
     {address: 1028, name: "measure_priority_NIBE.i1028_priority_value",       direction: Dir.In,  group: "core",       noAction: true, secondary: true, // Prio (raw)
      info: {en: "Raw operating-priority code (10 off, 20 hot water, 30 heating, 40 pool, 60 cooling), logged over time", sv: "Rå driftprioritetskod (10 av, 20 varmvatten, 30 värme, 40 pool, 60 kyla), loggas över tid"}},
+    // Undocumented second "Priority" register, seen only in third-party register dumps
+    // (absent from Nibe's own Modbus manual), sitting inside the energy-log block next to
+    // 3821/3823 rather than beside 1028. `internal`: diagnostic only, logged beside 1028's own
+    // transitions so the two can be compared — never a capability, no assumed meaning, no
+    // effect on attribution. See docs/energy-attribution.md for why this exists.
+    {address: 3804, name: "measure_priority_NIBE.i3804_energylog_priority",  direction: Dir.In,  group: "energy",     role: "main", internal: true, // Prio (energy log, undocumented)
+     info: {en: "Undocumented second priority register, logged for comparison against 1028", sv: "Odokumenterat andra prioritetsregister, loggas för jämförelse med 1028"}},
     {address:   40, name: "measure_water.i40_flow_sensor",          direction: Dir.In,  group: "heating",     scale:  10, // Flödesgivare (BF1)
      info: {en: "Heating medium flow (sensor BF1)", sv: "Värmebärarflöde (givare BF1)"}},
     // Rad 7
