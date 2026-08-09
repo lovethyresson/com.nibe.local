@@ -68,6 +68,27 @@ export const modeMap = Object({
     2: "Immersion heater only"
 });
 
+// Smart Price Adaption influence scales. Each function has its own range and Nibe does not
+// name the steps, so the label is the numeral — `enumLabel` falls back to the key when a
+// translation is missing, which is what makes an untranslated numeral safe here.
+//
+// These exist alongside `picker: true` for the same reason register 237's `modeMap` does: the
+// picker capability holds the labels the UI shows, while the `enum` map is what the dedicated
+// `.enum` flow card builds its autocomplete from. A picker must NOT also carry `scale` —
+// `fromRegisterValue` tests scale first and would hand the enum capability a number.
+const numeralMap = (from: number, to: number) => {
+    const map: Record<number, string> = {};
+    for (let value = from; value <= to; value++)
+        map[value] = String(value);
+    return Object(map);
+};
+
+// Heating rejects 0 (CSV min=1, def=5); pool and cooling start at 0 = no influence (def=2);
+// hot water runs 1..4 (def=2) rather than 1..10.
+export const spaHeatingInfluenceMap = numeralMap(1, 10);
+export const spaInfluenceMap = numeralMap(0, 10);
+export const spaHotwaterInfluenceMap = numeralMap(1, 4);
+
 export const registers: Register[] = [
     // Rad 1 Temp
     // Outdoor temperature lives with heating rather than on Main. It is only ever interesting
@@ -323,6 +344,14 @@ export const registers: Register[] = [
      info: {en: "Heat delivered to heating by the compressor alone", sv: "Levererad värme till värme enbart från kompressorn"}},
     {address: 1091, name: "measure_hour_NIBE.i1091_compressor_usage_hotwater",direction: Dir.In,  group: "hotwater",   scale: 1, size: 32, // Total drifttid kompressor varmvatten (s32)
      info: {en: "Compressor runtime spent on hot water", sv: "Kompressorns drifttid för varmvatten"}},
+    // Nibe splits compressor runtime three ways and no further: the lifetime total (1087), hot
+    // water (1091) and cooling (279). There is no heating or pool equivalent on any of the six
+    // model maps, and deriving one as total minus the others would be wrong — defrost cycles and
+    // pool runtime are in that remainder too. So heating and pool simply have no runtime, and
+    // cooling gets the one Nibe does publish rather than being left short of hot water for no
+    // reason. Present on the S1155/S1255 and S735; absent elsewhere, where detection drops it.
+    {address:  279, name: "measure_hour_NIBE.i279_compressor_usage_cooling", direction: Dir.In,  group: "cooling",    scale: 1, size: 32, // Total drifttid kompressor kyla (u32)
+     info: {en: "Compressor runtime spent on cooling", sv: "Kompressorns drifttid för kyla"}},
     // Rad 16b Rumstemperatur (zoner)
     //
     // The indoor setpoint. This is the register the myUplink app writes when you set an indoor
@@ -374,12 +403,79 @@ export const registers: Register[] = [
     // overwritten by the pump's own controller within a poll — the same way register 11's degree
     // minutes are. `1918` is what SPA is doing right now, so the influence is visible rather than
     // mysterious.
-    {address:  843, name: "boolean_NIBE.h843_spa_activated",                   direction: Dir.Out, group: "heating",    bool: true, // Aktiverad (Smart prisanpassning)
+    // `core`, so this lands on Main rather than Heating. 843 is a single whole-pump 0/1 — menu
+    // 7.1.10, present on all six model maps — and the per-function switches are 844/846/849. It
+    // sat on Heating from 0.9.13, when there was no per-function enable to confuse it with; once
+    // there was, Heating showed two toggles both called Smart Price Adaption. The master belongs
+    // beside operating mode and priority, which are the other whole-pump controls.
+    {address:  843, name: "boolean_NIBE.h843_spa_activated",                   direction: Dir.Out, group: "core",       bool: true, // Aktiverad (Smart prisanpassning)
      info: {en: "Smart Price Adaption — shift consumption towards cheaper hours", sv: "Smart prisanpassning — flytta förbrukningen mot billigare timmar"}},
-    {address:  845, name: "measure_count_NIBE.h845_spa_heating_influence",     direction: Dir.Out, group: "heating",    scale: 1, min: 1, max: 10, // Prisanpassning värme grad av påverkan
+    {address:  845, name: "spa_heating_influence_NIBE.h845_spa_heating_influence", direction: Dir.Out, group: "heating", enum: spaHeatingInfluenceMap, picker: true, pickerValues: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // Prisanpassning värme grad av påverkan
      info: {en: "How strongly the electricity price is allowed to move the indoor temperature (1-10)", sv: "Hur mycket elpriset får påverka inomhustemperaturen (1-10)"}},
-    {address: 1918, name: "measure_count_NIBE.i1918_spa_status",              direction: Dir.In,  group: "heating",    scale: 1, noAction: true, // Driftläge (Smart prisanpassning)
-     info: {en: "What Smart Price Adaption is doing right now", sv: "Vad smart prisanpassning gör just nu"}},
+    // Per-function enable. 844 is documented 0..3 rather than the 0/1 its title implies, and the
+    // live S1155 read a steady 3 with heating price adaption switched on — so 3 is "on" and the
+    // register's documented minimum, 0, is "off". That matches 846 next door, which was watched
+    // going 0 -> 4 -> 0 as hot water price adaption was toggled on the pump's own panel: in both
+    // cases "on" is the register's documented maximum, not 1. `onValue`/`offValue` exist for
+    // exactly this (see 697, where the boost writes 2).
+    //
+    // The offsets these registers used to sit beside — 1914 heating, 1916 pool, 1917 cooling —
+    // are deliberately NOT capabilities. 1914 does not answer on this firmware at all, which left
+    // a trace on pool and cooling but not on heating or hot water, and a measurement that exists
+    // for some functions and not others is worse than none. It also dodges an unresolved question:
+    // both Nibe's CSV and yozik04/nibe give 1916/1917 factor 1 while giving 1914 factor 10, and
+    // neither states a unit, so their true scale was never settled. dev/probe-spa.mjs still reads
+    // all of them if that changes.
+    {address:  844, name: "boolean_NIBE.h844_spa_heating_activated",          direction: Dir.Out, group: "heating",    bool: true, onValue: 3, offValue: 0, // Prisanpassning värme aktiverad
+     info: {en: "Let Smart Price Adaption act on heating", sv: "Låt smart prisanpassning påverka värmen"}},
+    // 1918 speaks the SAME code space as the operating priority (1028), which is why it gets
+    // `priorityMap` rather than a map of its own. Measured on the live S1155: it read 30
+    // ("Heating") while SPA was adapting heating, and dropped to 10 ("Off") the instant the SPA
+    // master (843) was switched off, returning to 30 when it came back. Nibe documents no range
+    // for it at all (the CSV row is min=max=def=0), so this is measurement, not the manual.
+    //
+    // No `secondary` numeric twin here, unlike 1028. That twin exists solely because Homey cannot
+    // chart a string capability, so it buys an Insights graph and nothing else — and a graph of
+    // which function SPA is adapting is not worth a second capability on the tile. The enum alone.
+    {address: 1918, name: "measure_enum_NIBE.i1918_spa_status",               direction: Dir.In,  group: "core",       enum: priorityMap, noAction: true, // Driftläge (Smart prisanpassning)
+     info: {en: "Which function Smart Price Adaption is adapting right now", sv: "Vilken funktion smart prisanpassning anpassar just nu"}},
+    // The rest of the SPA family. 843 above is the master switch (menu 7.1.10); each function then
+    // has its own influence, and hot water runs 1..4 rather than 1..10. They stay grouped together
+    // here for readability — `group` is what puts each on its own device, and the order a user
+    // actually sees is the capability list in driver.compose.json, not this file.
+    //
+    // Every function gets the same pair — an enable and an influence — so the feature reads the
+    // same way whichever device you open. Pool is the one gap: no pool enable is DOCUMENTED, in
+    // any of the six model CSVs or in yozik04/nibe, so pool leans on the master at 843.
+    //
+    // It is also true of the hardware, which is worth stating because the two have diverged twice
+    // in this very block (1914 and 902 are both listed for this model and neither answers).
+    // Holding 847 was the obvious suspect: the sequence is otherwise a strict activated/influence
+    // pairing — 844/845 heating, 846 hot water, 848 pool, 849/850 cooling — so 847 is exactly
+    // where pool's enable belongs, and being in no source at all is precisely how 2505 hid as
+    // `id:12801`. Checked anyway rather than assumed: a raw scan of holding 840..855 on a live
+    // S1155 answered at 842-846 and 848-854 and skipped 847 entirely. Pool has no enable.
+    //
+    // Not an artefact of that pump lacking the POOL 40 accessory. The same pump has no cooling
+    // either, and 849 "(SPA), cooling activated" answers and reads 1 — an enable register for a
+    // function whose hardware is not fitted. So these registers are not gated on the accessory,
+    // and 847's absence is the firmware's, not the plumbing's. The rest of the pool block answers
+    // on that pump too (848 holds its setting, 1916 tracked the master 15 -> 0 -> 15), and
+    // 1914/902 are missing on a pump that certainly does have heating and hot water: presence
+    // here follows what the firmware implements, nothing else.
+    //
+    // 851 ("area", 0..255, read 22 on the live pump) stays out: it is the electricity price area,
+    // and neither Nibe nor any community source publishes what the numbers mean.
+    {address:  846, name: "boolean_NIBE.h846_spa_hotwater_activated",         direction: Dir.Out, group: "hotwater",   bool: true, onValue: 4, offValue: 0, // Prisanpassning varmvatten aktiverad
+     info: {en: "Let Smart Price Adaption act on hot water", sv: "Låt smart prisanpassning påverka varmvattnet"}},
+    {address:  902, name: "spa_hotwater_influence_NIBE.h902_spa_hotwater_influence", direction: Dir.Out, group: "hotwater", enum: spaHotwaterInfluenceMap, picker: true, pickerValues: [1, 2, 3, 4], // Prisanpassning varmvatten grad av påverkan
+     info: {en: "How strongly the electricity price is allowed to move hot water charging (1-4)", sv: "Hur mycket elpriset får påverka varmvattenladdningen (1-4)"}},
+    {address:  848, name: "spa_influence_NIBE.h848_spa_pool_influence",       direction: Dir.Out, group: "pool",       enum: spaInfluenceMap, picker: true, pickerValues: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // Prisanpassning pool grad av påverkan
+     info: {en: "How strongly the electricity price is allowed to move pool heating (0 = not at all)", sv: "Hur mycket elpriset får påverka poolvärmen (0 = inte alls)"}},
+    {address:  849, name: "boolean_NIBE.h849_spa_cooling_activated",          direction: Dir.Out, group: "cooling",    bool: true, // Prisanpassning kyla aktiverad
+     info: {en: "Let Smart Price Adaption act on cooling", sv: "Låt smart prisanpassning påverka kylan"}},
+    {address:  850, name: "spa_influence_NIBE.h850_spa_cooling_influence",    direction: Dir.Out, group: "cooling",    enum: spaInfluenceMap, picker: true, pickerValues: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // Prisanpassning kyla grad av påverkan
+     info: {en: "How strongly the electricity price is allowed to move cooling (0 = not at all)", sv: "Hur mycket elpriset får påverka kylan (0 = inte alls)"}},
     // Why the setpoint above may appear to do nothing. On zone firmware this reads 0 and room
     // control runs through the zones; on older firmware it is what enables room-sensor
     // regulation at all. Read-only either way — writing it is the legacy path.

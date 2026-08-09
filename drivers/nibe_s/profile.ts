@@ -79,9 +79,8 @@ export const sProfile = makeProfile({
                 "measure_degree_minutes_NIBE.h18_limit_dm",
                 // room-sensor regulation and price control, rarely touched
                 "boolean_NIBE.h202_use_room_sensor",
-                "boolean_NIBE.h843_spa_activated",
-                "measure_count_NIBE.h845_spa_heating_influence",
-                "measure_count_NIBE.i1918_spa_status"
+                "boolean_NIBE.h844_spa_heating_activated",
+                "spa_heating_influence_NIBE.h845_spa_heating_influence"
             ],
             hotwater: [
                 "measure_temperature.i9_hot_water",
@@ -108,19 +107,25 @@ export const sProfile = makeProfile({
                 "status_NIBE.i1063_hw_circulation",
                 "measure_temperature.i87_outgoing_hotwater",
                 "measure_temperature.i174_hw_comfort_return",
-                "measure_temperature.i175_hw_comfort_heater"
+                "measure_temperature.i175_hw_comfort_heater",
+                "boolean_NIBE.h846_spa_hotwater_activated",
+                "spa_hotwater_influence_NIBE.h902_spa_hotwater_influence"
             ],
             pool: [
                 "measure_temperature.i27_pool",
                 "target_temperature.h687_pool_start",
                 "target_temperature.h689_pool_stop",
                 "measure_minute_NIBE.h94_periodtime_pool",
-                "status_NIBE.i1828_pool_circulation"
+                "status_NIBE.i1828_pool_circulation",
+                "spa_influence_NIBE.h848_spa_pool_influence"
             ],
             cooling: [
                 "target_temperature.h183_auto_start_cooling",
                 "measure_degree_minutes_NIBE.h20_cooling_dm",
-                "boolean_NIBE.h227_nightchill"
+                "boolean_NIBE.h227_nightchill",
+                "boolean_NIBE.h849_spa_cooling_activated",
+                "spa_influence_NIBE.h850_spa_cooling_influence",
+                "measure_hour_NIBE.i279_compressor_usage_cooling"
             ]
         },
         totalProductionRegister: "meter_kwh_NIBE.i3821_total_production",
@@ -260,7 +265,16 @@ export const sProfile = makeProfile({
     // among 116/111/26.
     renamedRegisters: {
         "measure_temperature.i26_inside": "measure_temperature",
-        "target_temperature.h2505_zone1_setpoint": "target_temperature"
+        "target_temperature.h2505_zone1_setpoint": "target_temperature",
+        // 0.9.14: the SPA heating influence changed capability type (read-only count → picker),
+        // which changes the capability id. Worth carrying because a stored `selection` is keyed
+        // by register name, so without this the register loses its resolved address and any
+        // per-capability override, not just its label.
+        "measure_count_NIBE.h845_spa_heating_influence": "spa_heating_influence_NIBE.h845_spa_heating_influence",
+        // 0.9.15: 1918 turned out to speak the operating-priority code space, so it became a
+        // labelled enum instead of a bare number. Same reason as 845 — the stored selection is
+        // keyed by register name.
+        "measure_count_NIBE.i1918_spa_status": "measure_enum_NIBE.i1918_spa_status"
     },
 
     detection: {

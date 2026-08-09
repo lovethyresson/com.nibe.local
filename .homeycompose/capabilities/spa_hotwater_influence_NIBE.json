@@ -1,0 +1,60 @@
+{
+  "title": {
+    "en": "Price influence",
+    "sv": "Prispåverkan",
+    "de": "Preiseinfluss",
+    "nl": "Prijsinvloed",
+    "no": "Prispåvirkning",
+    "da": "Prispåvirkning"
+  },
+  "type": "enum",
+  "values": [
+    {
+      "id": "1",
+      "title": {
+        "en": "1",
+        "de": "1",
+        "nl": "1",
+        "no": "1",
+        "da": "1",
+        "sv": "1"
+      }
+    },
+    {
+      "id": "2",
+      "title": {
+        "en": "2",
+        "de": "2",
+        "nl": "2",
+        "no": "2",
+        "da": "2",
+        "sv": "2"
+      }
+    },
+    {
+      "id": "3",
+      "title": {
+        "en": "3",
+        "de": "3",
+        "nl": "3",
+        "no": "3",
+        "da": "3",
+        "sv": "3"
+      }
+    },
+    {
+      "id": "4",
+      "title": {
+        "en": "4",
+        "de": "4",
+        "nl": "4",
+        "no": "4",
+        "da": "4",
+        "sv": "4"
+      }
+    }
+  ],
+  "getable": true,
+  "setable": true,
+  "uiComponent": "picker"
+}

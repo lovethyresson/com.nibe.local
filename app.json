@@ -1,7 +1,7 @@
 {
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "com.nibe.local",
-  "version": "0.9.14",
+  "version": "0.9.15",
   "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
@@ -1755,6 +1755,190 @@
         ]
       },
       {
+        "id": "spa_heating_influence_NIBE.h845_spa_heating_influence.enum",
+        "title": {
+          "en": "Set price influence on heating",
+          "sv": "Ställ in prispåverkan på värmen",
+          "de": "Preiseinfluss auf die Heizung einstellen",
+          "nl": "Prijsinvloed op verwarming instellen",
+          "no": "Still inn prispåvirkning på varmen",
+          "da": "Indstil prispåvirkning på varmen"
+        },
+        "titleFormatted": {
+          "en": "Set price influence on heating to [[mode]]",
+          "sv": "Ställ in prispåverkan på värmen till [[mode]]",
+          "de": "Preiseinfluss auf die Heizung auf [[mode]] einstellen",
+          "nl": "Prijsinvloed op verwarming instellen op [[mode]]",
+          "no": "Still inn prispåvirkning på varmen til [[mode]]",
+          "da": "Indstil prispåvirkning på varmen til [[mode]]"
+        },
+        "hint": {
+          "en": "How strongly Smart Price Adaption may move the indoor temperature. 1 is barely, 10 is as much as the pump allows.",
+          "sv": "Hur mycket smart prisanpassning får flytta inomhustemperaturen. 1 är knappt alls, 10 är så mycket värmepumpen tillåter.",
+          "de": "Wie stark Smart Price Adaption die Innentemperatur verschieben darf. 1 ist kaum, 10 so viel wie die Wärmepumpe zulässt.",
+          "nl": "Hoe sterk Smart Price Adaption de binnentemperatuur mag verschuiven. 1 is nauwelijks, 10 is zoveel als de warmtepomp toestaat.",
+          "no": "Hvor mye smart pristilpasning får flytte innetemperaturen. 1 er så vidt, 10 er så mye varmepumpen tillater.",
+          "da": "Hvor meget smart pristilpasning må flytte indetemperaturen. 1 er næsten ikke, 10 er så meget varmepumpen tillader."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=spa_heating_influence_NIBE.h845_spa_heating_influence"
+          },
+          {
+            "type": "autocomplete",
+            "name": "mode",
+            "title": {
+              "en": "Influence",
+              "sv": "Påverkan",
+              "de": "Einfluss",
+              "nl": "Invloed",
+              "no": "Påvirkning",
+              "da": "Påvirkning"
+            }
+          }
+        ]
+      },
+      {
+        "id": "spa_hotwater_influence_NIBE.h902_spa_hotwater_influence.enum",
+        "title": {
+          "en": "Set price influence on hot water",
+          "sv": "Ställ in prispåverkan på varmvattnet",
+          "de": "Preiseinfluss auf das Warmwasser einstellen",
+          "nl": "Prijsinvloed op warm water instellen",
+          "no": "Still inn prispåvirkning på varmtvannet",
+          "da": "Indstil prispåvirkning på varmt vand"
+        },
+        "titleFormatted": {
+          "en": "Set price influence on hot water to [[mode]]",
+          "sv": "Ställ in prispåverkan på varmvattnet till [[mode]]",
+          "de": "Preiseinfluss auf das Warmwasser auf [[mode]] einstellen",
+          "nl": "Prijsinvloed op warm water instellen op [[mode]]",
+          "no": "Still inn prispåvirkning på varmtvannet til [[mode]]",
+          "da": "Indstil prispåvirkning på varmt vand til [[mode]]"
+        },
+        "hint": {
+          "en": "How strongly Smart Price Adaption may shift hot water charging towards cheaper hours. Runs 1 to 4, not 1 to 10 like heating.",
+          "sv": "Hur mycket smart prisanpassning får flytta varmvattenladdningen mot billigare timmar. Går 1 till 4, inte 1 till 10 som värmen.",
+          "de": "Wie stark Smart Price Adaption die Warmwasserbereitung in günstigere Stunden verschieben darf. Reicht von 1 bis 4, nicht 1 bis 10 wie beim Heizen.",
+          "nl": "Hoe sterk Smart Price Adaption het opwarmen van warm water naar goedkopere uren mag verschuiven. Loopt van 1 tot 4, niet 1 tot 10 zoals verwarming.",
+          "no": "Hvor mye smart pristilpasning får flytte varmtvannsladingen mot billigere timer. Går fra 1 til 4, ikke 1 til 10 som varmen.",
+          "da": "Hvor meget smart pristilpasning må flytte varmtvandsopvarmningen mod billigere timer. Går fra 1 til 4, ikke 1 til 10 som varmen."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=spa_hotwater_influence_NIBE.h902_spa_hotwater_influence"
+          },
+          {
+            "type": "autocomplete",
+            "name": "mode",
+            "title": {
+              "en": "Influence",
+              "sv": "Påverkan",
+              "de": "Einfluss",
+              "nl": "Invloed",
+              "no": "Påvirkning",
+              "da": "Påvirkning"
+            }
+          }
+        ]
+      },
+      {
+        "id": "spa_influence_NIBE.h848_spa_pool_influence.enum",
+        "title": {
+          "en": "Set price influence on pool heating",
+          "sv": "Ställ in prispåverkan på poolvärmen",
+          "de": "Preiseinfluss auf die Poolheizung einstellen",
+          "nl": "Prijsinvloed op zwembadverwarming instellen",
+          "no": "Still inn prispåvirkning på bassengvarmen",
+          "da": "Indstil prispåvirkning på poolvarmen"
+        },
+        "titleFormatted": {
+          "en": "Set price influence on pool heating to [[mode]]",
+          "sv": "Ställ in prispåverkan på poolvärmen till [[mode]]",
+          "de": "Preiseinfluss auf die Poolheizung auf [[mode]] einstellen",
+          "nl": "Prijsinvloed op zwembadverwarming instellen op [[mode]]",
+          "no": "Still inn prispåvirkning på bassengvarmen til [[mode]]",
+          "da": "Indstil prispåvirkning på poolvarmen til [[mode]]"
+        },
+        "hint": {
+          "en": "How strongly Smart Price Adaption may shift pool heating towards cheaper hours. 0 leaves pool heating alone entirely.",
+          "sv": "Hur mycket smart prisanpassning får flytta poolvärmen mot billigare timmar. 0 lämnar poolvärmen helt ifred.",
+          "de": "Wie stark Smart Price Adaption die Poolheizung in günstigere Stunden verschieben darf. 0 lässt die Poolheizung völlig unberührt.",
+          "nl": "Hoe sterk Smart Price Adaption de zwembadverwarming naar goedkopere uren mag verschuiven. 0 laat de zwembadverwarming volledig met rust.",
+          "no": "Hvor mye smart pristilpasning får flytte bassengvarmen mot billigere timer. 0 lar bassengvarmen være helt i fred.",
+          "da": "Hvor meget smart pristilpasning må flytte poolvarmen mod billigere timer. 0 lader poolvarmen være helt i fred."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=spa_influence_NIBE.h848_spa_pool_influence"
+          },
+          {
+            "type": "autocomplete",
+            "name": "mode",
+            "title": {
+              "en": "Influence",
+              "sv": "Påverkan",
+              "de": "Einfluss",
+              "nl": "Invloed",
+              "no": "Påvirkning",
+              "da": "Påvirkning"
+            }
+          }
+        ]
+      },
+      {
+        "id": "spa_influence_NIBE.h850_spa_cooling_influence.enum",
+        "title": {
+          "en": "Set price influence on cooling",
+          "sv": "Ställ in prispåverkan på kylan",
+          "de": "Preiseinfluss auf die Kühlung einstellen",
+          "nl": "Prijsinvloed op koeling instellen",
+          "no": "Still inn prispåvirkning på kjølingen",
+          "da": "Indstil prispåvirkning på kølingen"
+        },
+        "titleFormatted": {
+          "en": "Set price influence on cooling to [[mode]]",
+          "sv": "Ställ in prispåverkan på kylan till [[mode]]",
+          "de": "Preiseinfluss auf die Kühlung auf [[mode]] einstellen",
+          "nl": "Prijsinvloed op koeling instellen op [[mode]]",
+          "no": "Still inn prispåvirkning på kjølingen til [[mode]]",
+          "da": "Indstil prispåvirkning på kølingen til [[mode]]"
+        },
+        "hint": {
+          "en": "How strongly Smart Price Adaption may shift cooling towards cheaper hours. 0 leaves cooling alone entirely.",
+          "sv": "Hur mycket smart prisanpassning får flytta kylan mot billigare timmar. 0 lämnar kylan helt ifred.",
+          "de": "Wie stark Smart Price Adaption die Kühlung in günstigere Stunden verschieben darf. 0 lässt die Kühlung völlig unberührt.",
+          "nl": "Hoe sterk Smart Price Adaption de koeling naar goedkopere uren mag verschuiven. 0 laat de koeling volledig met rust.",
+          "no": "Hvor mye smart pristilpasning får flytte kjølingen mot billigere timer. 0 lar kjølingen være helt i fred.",
+          "da": "Hvor meget smart pristilpasning må flytte kølingen mod billigere timer. 0 lader kølingen være helt i fred."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=spa_influence_NIBE.h850_spa_cooling_influence"
+          },
+          {
+            "type": "autocomplete",
+            "name": "mode",
+            "title": {
+              "en": "Influence",
+              "sv": "Påverkan",
+              "de": "Einfluss",
+              "nl": "Invloed",
+              "no": "Påvirkning",
+              "da": "Påvirkning"
+            }
+          }
+        ]
+      },
+      {
         "id": "boolean_NIBE.h697_more_hotwater.onoff",
         "title": {
           "en": "More hot water",
@@ -2587,6 +2771,8 @@
         "status_NIBE.i1029_additive_heat_active",
         "fuse_NIBE.h103_fuse",
         "operating_mode_NIBE.h237_operating_mode",
+        "boolean_NIBE.h843_spa_activated",
+        "measure_enum_NIBE.i1918_spa_status",
         "boolean_NIBE.h180_enable_addition",
         "button.h22_reset_alarm",
         "alarm_text_NIBE",
@@ -2638,9 +2824,8 @@
         "measure_degree_minutes_NIBE.h679_dm_diff_start_addition",
         "measure_degree_minutes_NIBE.h18_limit_dm",
         "boolean_NIBE.h202_use_room_sensor",
-        "boolean_NIBE.h843_spa_activated",
-        "measure_count_NIBE.h845_spa_heating_influence",
-        "measure_count_NIBE.i1918_spa_status",
+        "boolean_NIBE.h844_spa_heating_activated",
+        "spa_heating_influence_NIBE.h845_spa_heating_influence",
         "measure_temperature.i19_return_air",
         "measure_temperature.i20_supply_air",
         "fan_speed.h109_returnair_normal",
@@ -2669,6 +2854,8 @@
         "measure_temperature.i87_outgoing_hotwater",
         "measure_temperature.i174_hw_comfort_return",
         "measure_temperature.i175_hw_comfort_heater",
+        "boolean_NIBE.h846_spa_hotwater_activated",
+        "spa_hotwater_influence_NIBE.h902_spa_hotwater_influence",
         "meter_kwh_NIBE.i1575_hotwater_produced",
         "onoff.h691_pool_active",
         "measure_temperature.i27_pool",
@@ -2676,11 +2863,15 @@
         "target_temperature.h689_pool_stop",
         "measure_minute_NIBE.h94_periodtime_pool",
         "status_NIBE.i1828_pool_circulation",
+        "spa_influence_NIBE.h848_spa_pool_influence",
         "meter_kwh_NIBE.i1581_pool_produced",
         "onoff.h182_enable_cooling",
         "target_temperature.h183_auto_start_cooling",
         "measure_degree_minutes_NIBE.h20_cooling_dm",
         "boolean_NIBE.h227_nightchill",
+        "boolean_NIBE.h849_spa_cooling_activated",
+        "spa_influence_NIBE.h850_spa_cooling_influence",
+        "measure_hour_NIBE.i279_compressor_usage_cooling",
         "meter_kwh_NIBE.i1579_cooling_produced",
         "meter_power.solar"
       ],
@@ -2853,12 +3044,12 @@
         },
         "measure_hour_NIBE.i1069_additive_usage_hotwater": {
           "title": {
-            "en": "Immersion heater runtime, hot water",
-            "sv": "Elpatronens drifttid, varmvatten",
-            "de": "Heizstab-Laufzeit, Brauchwasser",
-            "nl": "Draaiuren elektrisch element, warmtapwater",
-            "no": "Elkolbens driftstid, varmtvann",
-            "da": "Elpatronens driftstid, varmt vand"
+            "en": "Immersion heater runtime",
+            "sv": "Elpatronens drifttid",
+            "de": "Heizstab-Laufzeit",
+            "nl": "Draaiuren elektrisch element",
+            "no": "Elkolbens driftstid",
+            "da": "Elpatronens driftstid"
           }
         },
         "measure_hour_NIBE.i1087_compressor_usage_total": {
@@ -3482,7 +3673,8 @@
             "nl": "Periodetijd verwarming",
             "no": "Periodetid varme",
             "da": "Periodetid varme"
-          }
+          },
+          "insights": false
         },
         "measure_degree_minutes_NIBE.h97_dm_start_compressor": {
           "title": {
@@ -3492,7 +3684,8 @@
             "nl": "Startgraadminuten compressor",
             "no": "Startgradminutter kompressor",
             "da": "Startgradminutter kompressor"
-          }
+          },
+          "insights": false
         },
         "measure_degree_minutes_NIBE.h679_dm_diff_start_addition": {
           "title": {
@@ -3502,7 +3695,8 @@
             "nl": "Startverschil elektrisch element",
             "no": "Startdifferanse elkolbe",
             "da": "Startdifference elpatron"
-          }
+          },
+          "insights": false
         },
         "measure_degree_minutes_NIBE.h18_limit_dm": {
           "title": {
@@ -3512,7 +3706,8 @@
             "nl": "Graadminuten begrensd",
             "no": "Gradminutter begrenset",
             "da": "Gradminutter begrænset"
-          }
+          },
+          "insights": false
         },
         "measure_degree_minutes_NIBE.h20_cooling_dm": {
           "title": {
@@ -3528,7 +3723,7 @@
           "decimals": 1,
           "min": 5,
           "max": 60,
-          "insights": true,
+          "insights": false,
           "title": {
             "en": "Hot water start (Medium)",
             "sv": "Varmvatten start (Medel)",
@@ -3542,7 +3737,7 @@
           "decimals": 1,
           "min": 5,
           "max": 65,
-          "insights": true,
+          "insights": false,
           "title": {
             "en": "Hot water stop (Medium)",
             "sv": "Varmvatten stopp (Medel)",
@@ -3556,7 +3751,7 @@
           "decimals": 1,
           "min": 5,
           "max": 55,
-          "insights": true,
+          "insights": false,
           "title": {
             "en": "Hot water start (Small)",
             "sv": "Varmvatten start (Litet)",
@@ -3570,7 +3765,7 @@
           "decimals": 1,
           "min": 5,
           "max": 60,
-          "insights": true,
+          "insights": false,
           "title": {
             "en": "Hot water stop (Small)",
             "sv": "Varmvatten stopp (Litet)",
@@ -3584,7 +3779,7 @@
           "decimals": 1,
           "min": 5,
           "max": 70,
-          "insights": true,
+          "insights": false,
           "title": {
             "en": "Hot water start (Large)",
             "sv": "Varmvatten start (Stort)",
@@ -3598,7 +3793,7 @@
           "decimals": 1,
           "min": 5,
           "max": 70,
-          "insights": true,
+          "insights": false,
           "title": {
             "en": "Hot water stop (Large)",
             "sv": "Varmvatten stopp (Stort)",
@@ -3612,7 +3807,7 @@
           "decimals": 1,
           "min": 55,
           "max": 70,
-          "insights": true,
+          "insights": false,
           "title": {
             "en": "Hot water stop (periodic)",
             "sv": "Varmvatten stopp (periodisk)",
@@ -3640,7 +3835,8 @@
             "nl": "Periodetijd zwembad",
             "no": "Periodetid basseng",
             "da": "Periodetid pool"
-          }
+          },
+          "insights": false
         },
         "button.h22_reset_alarm": {
           "uiComponent": null,
@@ -3757,21 +3953,39 @@
             "da": "Smart pristilpasning"
           }
         },
-        "measure_count_NIBE.h845_spa_heating_influence": {
-          "uiComponent": null,
-          "min": 1,
-          "max": 10,
+        "boolean_NIBE.h844_spa_heating_activated": {
+          "insights": true,
           "title": {
-            "en": "Price influence on heating (1-10)",
-            "sv": "Prispåverkan på värmen (1-10)",
-            "de": "Preiseinfluss auf die Heizung (1-10)",
-            "nl": "Prijsinvloed op verwarming (1-10)",
-            "no": "Prispåvirkning på varmen (1-10)",
-            "da": "Prispåvirkning på varmen (1-10)"
+            "en": "Smart Price Adaption",
+            "sv": "Smart prisanpassning",
+            "de": "Smart Price Adaption",
+            "nl": "Smart Price Adaption",
+            "no": "Smart pristilpasning",
+            "da": "Smart pristilpasning"
           }
         },
-        "measure_count_NIBE.i1918_spa_status": {
-          "uiComponent": null,
+        "boolean_NIBE.h846_spa_hotwater_activated": {
+          "insights": true,
+          "title": {
+            "en": "Smart Price Adaption",
+            "sv": "Smart prisanpassning",
+            "de": "Smart Price Adaption",
+            "nl": "Smart Price Adaption",
+            "no": "Smart pristilpasning",
+            "da": "Smart pristilpasning"
+          }
+        },
+        "spa_heating_influence_NIBE.h845_spa_heating_influence": {
+          "title": {
+            "en": "Price influence (1-10)",
+            "sv": "Prispåverkan (1-10)",
+            "de": "Preiseinfluss (1-10)",
+            "nl": "Prijsinvloed (1-10)",
+            "no": "Prispåvirkning (1-10)",
+            "da": "Prispåvirkning (1-10)"
+          }
+        },
+        "measure_enum_NIBE.i1918_spa_status": {
           "title": {
             "en": "Smart Price Adaption status",
             "sv": "Status smart prisanpassning",
@@ -3779,6 +3993,57 @@
             "nl": "Status Smart Price Adaption",
             "no": "Status smart pristilpasning",
             "da": "Status smart pristilpasning"
+          }
+        },
+        "spa_hotwater_influence_NIBE.h902_spa_hotwater_influence": {
+          "title": {
+            "en": "Price influence (1-4)",
+            "sv": "Prispåverkan (1-4)",
+            "de": "Preiseinfluss (1-4)",
+            "nl": "Prijsinvloed (1-4)",
+            "no": "Prispåvirkning (1-4)",
+            "da": "Prispåvirkning (1-4)"
+          }
+        },
+        "spa_influence_NIBE.h848_spa_pool_influence": {
+          "title": {
+            "en": "Price influence (0-10)",
+            "sv": "Prispåverkan (0-10)",
+            "de": "Preiseinfluss (0-10)",
+            "nl": "Prijsinvloed (0-10)",
+            "no": "Prispåvirkning (0-10)",
+            "da": "Prispåvirkning (0-10)"
+          }
+        },
+        "boolean_NIBE.h849_spa_cooling_activated": {
+          "insights": true,
+          "title": {
+            "en": "Smart Price Adaption",
+            "sv": "Smart prisanpassning",
+            "de": "Smart Price Adaption",
+            "nl": "Smart Price Adaption",
+            "no": "Smart pristilpasning",
+            "da": "Smart pristilpasning"
+          }
+        },
+        "spa_influence_NIBE.h850_spa_cooling_influence": {
+          "title": {
+            "en": "Price influence (0-10)",
+            "sv": "Prispåverkan (0-10)",
+            "de": "Preiseinfluss (0-10)",
+            "nl": "Prijsinvloed (0-10)",
+            "no": "Prispåvirkning (0-10)",
+            "da": "Prispåvirkning (0-10)"
+          }
+        },
+        "measure_hour_NIBE.i279_compressor_usage_cooling": {
+          "title": {
+            "en": "Compressor runtime",
+            "sv": "Kompressorns drifttid",
+            "de": "Verdichter-Laufzeit",
+            "nl": "Draaiuren compressor",
+            "no": "Kompressorens driftstid",
+            "da": "Kompressorens driftstid"
           }
         }
       },
@@ -5108,6 +5373,329 @@
           }
         }
       ]
+    },
+    "spa_heating_influence_NIBE": {
+      "title": {
+        "en": "Price influence",
+        "sv": "Prispåverkan",
+        "de": "Preiseinfluss",
+        "nl": "Prijsinvloed",
+        "no": "Prispåvirkning",
+        "da": "Prispåvirkning"
+      },
+      "type": "enum",
+      "values": [
+        {
+          "id": "1",
+          "title": {
+            "en": "1",
+            "de": "1",
+            "nl": "1",
+            "no": "1",
+            "da": "1",
+            "sv": "1"
+          }
+        },
+        {
+          "id": "2",
+          "title": {
+            "en": "2",
+            "de": "2",
+            "nl": "2",
+            "no": "2",
+            "da": "2",
+            "sv": "2"
+          }
+        },
+        {
+          "id": "3",
+          "title": {
+            "en": "3",
+            "de": "3",
+            "nl": "3",
+            "no": "3",
+            "da": "3",
+            "sv": "3"
+          }
+        },
+        {
+          "id": "4",
+          "title": {
+            "en": "4",
+            "de": "4",
+            "nl": "4",
+            "no": "4",
+            "da": "4",
+            "sv": "4"
+          }
+        },
+        {
+          "id": "5",
+          "title": {
+            "en": "5",
+            "de": "5",
+            "nl": "5",
+            "no": "5",
+            "da": "5",
+            "sv": "5"
+          }
+        },
+        {
+          "id": "6",
+          "title": {
+            "en": "6",
+            "de": "6",
+            "nl": "6",
+            "no": "6",
+            "da": "6",
+            "sv": "6"
+          }
+        },
+        {
+          "id": "7",
+          "title": {
+            "en": "7",
+            "de": "7",
+            "nl": "7",
+            "no": "7",
+            "da": "7",
+            "sv": "7"
+          }
+        },
+        {
+          "id": "8",
+          "title": {
+            "en": "8",
+            "de": "8",
+            "nl": "8",
+            "no": "8",
+            "da": "8",
+            "sv": "8"
+          }
+        },
+        {
+          "id": "9",
+          "title": {
+            "en": "9",
+            "de": "9",
+            "nl": "9",
+            "no": "9",
+            "da": "9",
+            "sv": "9"
+          }
+        },
+        {
+          "id": "10",
+          "title": {
+            "en": "10",
+            "de": "10",
+            "nl": "10",
+            "no": "10",
+            "da": "10",
+            "sv": "10"
+          }
+        }
+      ],
+      "getable": true,
+      "setable": true,
+      "uiComponent": "picker"
+    },
+    "spa_hotwater_influence_NIBE": {
+      "title": {
+        "en": "Price influence",
+        "sv": "Prispåverkan",
+        "de": "Preiseinfluss",
+        "nl": "Prijsinvloed",
+        "no": "Prispåvirkning",
+        "da": "Prispåvirkning"
+      },
+      "type": "enum",
+      "values": [
+        {
+          "id": "1",
+          "title": {
+            "en": "1",
+            "de": "1",
+            "nl": "1",
+            "no": "1",
+            "da": "1",
+            "sv": "1"
+          }
+        },
+        {
+          "id": "2",
+          "title": {
+            "en": "2",
+            "de": "2",
+            "nl": "2",
+            "no": "2",
+            "da": "2",
+            "sv": "2"
+          }
+        },
+        {
+          "id": "3",
+          "title": {
+            "en": "3",
+            "de": "3",
+            "nl": "3",
+            "no": "3",
+            "da": "3",
+            "sv": "3"
+          }
+        },
+        {
+          "id": "4",
+          "title": {
+            "en": "4",
+            "de": "4",
+            "nl": "4",
+            "no": "4",
+            "da": "4",
+            "sv": "4"
+          }
+        }
+      ],
+      "getable": true,
+      "setable": true,
+      "uiComponent": "picker"
+    },
+    "spa_influence_NIBE": {
+      "title": {
+        "en": "Price influence",
+        "sv": "Prispåverkan",
+        "de": "Preiseinfluss",
+        "nl": "Prijsinvloed",
+        "no": "Prispåvirkning",
+        "da": "Prispåvirkning"
+      },
+      "type": "enum",
+      "values": [
+        {
+          "id": "0",
+          "title": {
+            "en": "0",
+            "de": "0",
+            "nl": "0",
+            "no": "0",
+            "da": "0",
+            "sv": "0"
+          }
+        },
+        {
+          "id": "1",
+          "title": {
+            "en": "1",
+            "de": "1",
+            "nl": "1",
+            "no": "1",
+            "da": "1",
+            "sv": "1"
+          }
+        },
+        {
+          "id": "2",
+          "title": {
+            "en": "2",
+            "de": "2",
+            "nl": "2",
+            "no": "2",
+            "da": "2",
+            "sv": "2"
+          }
+        },
+        {
+          "id": "3",
+          "title": {
+            "en": "3",
+            "de": "3",
+            "nl": "3",
+            "no": "3",
+            "da": "3",
+            "sv": "3"
+          }
+        },
+        {
+          "id": "4",
+          "title": {
+            "en": "4",
+            "de": "4",
+            "nl": "4",
+            "no": "4",
+            "da": "4",
+            "sv": "4"
+          }
+        },
+        {
+          "id": "5",
+          "title": {
+            "en": "5",
+            "de": "5",
+            "nl": "5",
+            "no": "5",
+            "da": "5",
+            "sv": "5"
+          }
+        },
+        {
+          "id": "6",
+          "title": {
+            "en": "6",
+            "de": "6",
+            "nl": "6",
+            "no": "6",
+            "da": "6",
+            "sv": "6"
+          }
+        },
+        {
+          "id": "7",
+          "title": {
+            "en": "7",
+            "de": "7",
+            "nl": "7",
+            "no": "7",
+            "da": "7",
+            "sv": "7"
+          }
+        },
+        {
+          "id": "8",
+          "title": {
+            "en": "8",
+            "de": "8",
+            "nl": "8",
+            "no": "8",
+            "da": "8",
+            "sv": "8"
+          }
+        },
+        {
+          "id": "9",
+          "title": {
+            "en": "9",
+            "de": "9",
+            "nl": "9",
+            "no": "9",
+            "da": "9",
+            "sv": "9"
+          }
+        },
+        {
+          "id": "10",
+          "title": {
+            "en": "10",
+            "de": "10",
+            "nl": "10",
+            "no": "10",
+            "da": "10",
+            "sv": "10"
+          }
+        }
+      ],
+      "getable": true,
+      "setable": true,
+      "uiComponent": "picker"
     },
     "status_NIBE": {
       "type": "boolean",

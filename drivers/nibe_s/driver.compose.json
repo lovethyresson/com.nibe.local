@@ -15,6 +15,8 @@
     "status_NIBE.i1029_additive_heat_active",
     "fuse_NIBE.h103_fuse",
     "operating_mode_NIBE.h237_operating_mode",
+    "boolean_NIBE.h843_spa_activated",
+    "measure_enum_NIBE.i1918_spa_status",
     "boolean_NIBE.h180_enable_addition",
     "button.h22_reset_alarm",
     "alarm_text_NIBE",
@@ -66,9 +68,8 @@
     "measure_degree_minutes_NIBE.h679_dm_diff_start_addition",
     "measure_degree_minutes_NIBE.h18_limit_dm",
     "boolean_NIBE.h202_use_room_sensor",
-    "boolean_NIBE.h843_spa_activated",
-    "measure_count_NIBE.h845_spa_heating_influence",
-    "measure_count_NIBE.i1918_spa_status",
+    "boolean_NIBE.h844_spa_heating_activated",
+    "spa_heating_influence_NIBE.h845_spa_heating_influence",
     "measure_temperature.i19_return_air",
     "measure_temperature.i20_supply_air",
     "fan_speed.h109_returnair_normal",
@@ -97,6 +98,8 @@
     "measure_temperature.i87_outgoing_hotwater",
     "measure_temperature.i174_hw_comfort_return",
     "measure_temperature.i175_hw_comfort_heater",
+    "boolean_NIBE.h846_spa_hotwater_activated",
+    "spa_hotwater_influence_NIBE.h902_spa_hotwater_influence",
     "meter_kwh_NIBE.i1575_hotwater_produced",
     "onoff.h691_pool_active",
     "measure_temperature.i27_pool",
@@ -104,11 +107,15 @@
     "target_temperature.h689_pool_stop",
     "measure_minute_NIBE.h94_periodtime_pool",
     "status_NIBE.i1828_pool_circulation",
+    "spa_influence_NIBE.h848_spa_pool_influence",
     "meter_kwh_NIBE.i1581_pool_produced",
     "onoff.h182_enable_cooling",
     "target_temperature.h183_auto_start_cooling",
     "measure_degree_minutes_NIBE.h20_cooling_dm",
     "boolean_NIBE.h227_nightchill",
+    "boolean_NIBE.h849_spa_cooling_activated",
+    "spa_influence_NIBE.h850_spa_cooling_influence",
+    "measure_hour_NIBE.i279_compressor_usage_cooling",
     "meter_kwh_NIBE.i1579_cooling_produced",
     "meter_power.solar"
   ],
@@ -281,12 +288,12 @@
     },
     "measure_hour_NIBE.i1069_additive_usage_hotwater": {
       "title": {
-        "en": "Immersion heater runtime, hot water",
-        "sv": "Elpatronens drifttid, varmvatten",
-        "de": "Heizstab-Laufzeit, Brauchwasser",
-        "nl": "Draaiuren elektrisch element, warmtapwater",
-        "no": "Elkolbens driftstid, varmtvann",
-        "da": "Elpatronens driftstid, varmt vand"
+        "en": "Immersion heater runtime",
+        "sv": "Elpatronens drifttid",
+        "de": "Heizstab-Laufzeit",
+        "nl": "Draaiuren elektrisch element",
+        "no": "Elkolbens driftstid",
+        "da": "Elpatronens driftstid"
       }
     },
     "measure_hour_NIBE.i1087_compressor_usage_total": {
@@ -910,7 +917,8 @@
         "nl": "Periodetijd verwarming",
         "no": "Periodetid varme",
         "da": "Periodetid varme"
-      }
+      },
+      "insights": false
     },
     "measure_degree_minutes_NIBE.h97_dm_start_compressor": {
       "title": {
@@ -920,7 +928,8 @@
         "nl": "Startgraadminuten compressor",
         "no": "Startgradminutter kompressor",
         "da": "Startgradminutter kompressor"
-      }
+      },
+      "insights": false
     },
     "measure_degree_minutes_NIBE.h679_dm_diff_start_addition": {
       "title": {
@@ -930,7 +939,8 @@
         "nl": "Startverschil elektrisch element",
         "no": "Startdifferanse elkolbe",
         "da": "Startdifference elpatron"
-      }
+      },
+      "insights": false
     },
     "measure_degree_minutes_NIBE.h18_limit_dm": {
       "title": {
@@ -940,7 +950,8 @@
         "nl": "Graadminuten begrensd",
         "no": "Gradminutter begrenset",
         "da": "Gradminutter begrænset"
-      }
+      },
+      "insights": false
     },
     "measure_degree_minutes_NIBE.h20_cooling_dm": {
       "title": {
@@ -956,7 +967,7 @@
       "decimals": 1,
       "min": 5,
       "max": 60,
-      "insights": true,
+      "insights": false,
       "title": {
         "en": "Hot water start (Medium)",
         "sv": "Varmvatten start (Medel)",
@@ -970,7 +981,7 @@
       "decimals": 1,
       "min": 5,
       "max": 65,
-      "insights": true,
+      "insights": false,
       "title": {
         "en": "Hot water stop (Medium)",
         "sv": "Varmvatten stopp (Medel)",
@@ -984,7 +995,7 @@
       "decimals": 1,
       "min": 5,
       "max": 55,
-      "insights": true,
+      "insights": false,
       "title": {
         "en": "Hot water start (Small)",
         "sv": "Varmvatten start (Litet)",
@@ -998,7 +1009,7 @@
       "decimals": 1,
       "min": 5,
       "max": 60,
-      "insights": true,
+      "insights": false,
       "title": {
         "en": "Hot water stop (Small)",
         "sv": "Varmvatten stopp (Litet)",
@@ -1012,7 +1023,7 @@
       "decimals": 1,
       "min": 5,
       "max": 70,
-      "insights": true,
+      "insights": false,
       "title": {
         "en": "Hot water start (Large)",
         "sv": "Varmvatten start (Stort)",
@@ -1026,7 +1037,7 @@
       "decimals": 1,
       "min": 5,
       "max": 70,
-      "insights": true,
+      "insights": false,
       "title": {
         "en": "Hot water stop (Large)",
         "sv": "Varmvatten stopp (Stort)",
@@ -1040,7 +1051,7 @@
       "decimals": 1,
       "min": 55,
       "max": 70,
-      "insights": true,
+      "insights": false,
       "title": {
         "en": "Hot water stop (periodic)",
         "sv": "Varmvatten stopp (periodisk)",
@@ -1068,7 +1079,8 @@
         "nl": "Periodetijd zwembad",
         "no": "Periodetid basseng",
         "da": "Periodetid pool"
-      }
+      },
+      "insights": false
     },
     "button.h22_reset_alarm": {
       "uiComponent": null,
@@ -1185,21 +1197,39 @@
         "da": "Smart pristilpasning"
       }
     },
-    "measure_count_NIBE.h845_spa_heating_influence": {
-      "uiComponent": null,
-      "min": 1,
-      "max": 10,
+    "boolean_NIBE.h844_spa_heating_activated": {
+      "insights": true,
       "title": {
-        "en": "Price influence on heating (1-10)",
-        "sv": "Prispåverkan på värmen (1-10)",
-        "de": "Preiseinfluss auf die Heizung (1-10)",
-        "nl": "Prijsinvloed op verwarming (1-10)",
-        "no": "Prispåvirkning på varmen (1-10)",
-        "da": "Prispåvirkning på varmen (1-10)"
+        "en": "Smart Price Adaption",
+        "sv": "Smart prisanpassning",
+        "de": "Smart Price Adaption",
+        "nl": "Smart Price Adaption",
+        "no": "Smart pristilpasning",
+        "da": "Smart pristilpasning"
       }
     },
-    "measure_count_NIBE.i1918_spa_status": {
-      "uiComponent": null,
+    "boolean_NIBE.h846_spa_hotwater_activated": {
+      "insights": true,
+      "title": {
+        "en": "Smart Price Adaption",
+        "sv": "Smart prisanpassning",
+        "de": "Smart Price Adaption",
+        "nl": "Smart Price Adaption",
+        "no": "Smart pristilpasning",
+        "da": "Smart pristilpasning"
+      }
+    },
+    "spa_heating_influence_NIBE.h845_spa_heating_influence": {
+      "title": {
+        "en": "Price influence (1-10)",
+        "sv": "Prispåverkan (1-10)",
+        "de": "Preiseinfluss (1-10)",
+        "nl": "Prijsinvloed (1-10)",
+        "no": "Prispåvirkning (1-10)",
+        "da": "Prispåvirkning (1-10)"
+      }
+    },
+    "measure_enum_NIBE.i1918_spa_status": {
       "title": {
         "en": "Smart Price Adaption status",
         "sv": "Status smart prisanpassning",
@@ -1207,6 +1237,57 @@
         "nl": "Status Smart Price Adaption",
         "no": "Status smart pristilpasning",
         "da": "Status smart pristilpasning"
+      }
+    },
+    "spa_hotwater_influence_NIBE.h902_spa_hotwater_influence": {
+      "title": {
+        "en": "Price influence (1-4)",
+        "sv": "Prispåverkan (1-4)",
+        "de": "Preiseinfluss (1-4)",
+        "nl": "Prijsinvloed (1-4)",
+        "no": "Prispåvirkning (1-4)",
+        "da": "Prispåvirkning (1-4)"
+      }
+    },
+    "spa_influence_NIBE.h848_spa_pool_influence": {
+      "title": {
+        "en": "Price influence (0-10)",
+        "sv": "Prispåverkan (0-10)",
+        "de": "Preiseinfluss (0-10)",
+        "nl": "Prijsinvloed (0-10)",
+        "no": "Prispåvirkning (0-10)",
+        "da": "Prispåvirkning (0-10)"
+      }
+    },
+    "boolean_NIBE.h849_spa_cooling_activated": {
+      "insights": true,
+      "title": {
+        "en": "Smart Price Adaption",
+        "sv": "Smart prisanpassning",
+        "de": "Smart Price Adaption",
+        "nl": "Smart Price Adaption",
+        "no": "Smart pristilpasning",
+        "da": "Smart pristilpasning"
+      }
+    },
+    "spa_influence_NIBE.h850_spa_cooling_influence": {
+      "title": {
+        "en": "Price influence (0-10)",
+        "sv": "Prispåverkan (0-10)",
+        "de": "Preiseinfluss (0-10)",
+        "nl": "Prijsinvloed (0-10)",
+        "no": "Prispåvirkning (0-10)",
+        "da": "Prispåvirkning (0-10)"
+      }
+    },
+    "measure_hour_NIBE.i279_compressor_usage_cooling": {
+      "title": {
+        "en": "Compressor runtime",
+        "sv": "Kompressorns drifttid",
+        "de": "Verdichter-Laufzeit",
+        "nl": "Draaiuren compressor",
+        "no": "Kompressorens driftstid",
+        "da": "Kompressorens driftstid"
       }
     }
   },
