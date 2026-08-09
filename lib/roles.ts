@@ -184,8 +184,10 @@ export function extraCapabilities(profile: ModelProfile, role: Role, selection?:
             return source && isRegisterEnabled(source, selection ?? null, profile.pickerPrimary);
         })
         .map((mirror) => mirror.capability);
-    // Solar carries only its two Modbus registers (measure_power + meter_power.solar) — no
-    // allocator energy pair and no COP.
+    // Solar carries only its two Modbus registers (measure_power.i2176_solar_current +
+    // meter_power.solar) — no allocator energy pair and no COP. Note the first is a *register*,
+    // not ACTIVE_POWER_CAPABILITY; it used to be named the bare `measure_power`, which is exactly
+    // the collision that rename fixed.
     if (role === "solar")
         return [];
     // A COP/energy extra is only meaningful if the pump exposes the source registers it is

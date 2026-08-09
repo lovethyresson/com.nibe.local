@@ -47,7 +47,9 @@ Five things move together, and the last one is easy to forget:
    changed for the owner and anything they must do, and stop. Register numbers, measurements, evidence
    and mechanism belong in the README row and `docs/`, which is where anyone who wants them will look.
    0.9.13 shipped a ~500-word wall nobody read — the detail was right, the venue was wrong.
-4. A row in the **Releases** table in `README.md` — the engineering view: what changed and why it mattered.
+4. A row in the **Releases** table in `docs/releases.md` — the engineering view: what changed and why it
+   mattered. This is where register numbers, measurements and rejected alternatives belong. `README.md` is
+   user-facing and deliberately carries none of it; don't add a release section back to it.
 5. `docs/energy-attribution.md` if the release touched attribution, the power sources, the role mapping or
    the COP accumulators — it is the source of truth for that logic, carries the diagrams, and states which
    version it was last verified against. Bump that line even when nothing else in it changed. Add a Q to
