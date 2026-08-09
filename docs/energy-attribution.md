@@ -4,7 +4,7 @@
 that touches attribution, the power sources, the role mapping or the COP accumulators — not on every build.
 The [README](../README.md) links here and carries the user-facing summary.
 
-Last verified against the code: **0.9.14**.
+Last verified against the code: **0.9.15**.
 
 ## The problem
 

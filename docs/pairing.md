@@ -3,7 +3,7 @@
 **Source of truth for what happens between "Add device" and a working device.** Update before a release that
 changes detection, the pairing views or how a selection is stored.
 
-Last verified against the code: **0.9.13**.
+Last verified against the code: **0.9.15**.
 
 ## The flow
 
