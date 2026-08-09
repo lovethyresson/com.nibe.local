@@ -5,7 +5,8 @@
   "scripts": {
     "build": "tsc",
     "lint": "eslint --ext .js,.ts --ignore-path .gitignore .",
-    "test": "node --import tsx --test test/*.test.ts"
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json"
   },
   "devDependencies": {
     "@tsconfig/node12": "^1.0.11",
@@ -17,7 +18,6 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
-    "crc": "^4.3.2",
     "jsmodbus": "^4.0.6"
   }
 }

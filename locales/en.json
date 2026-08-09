@@ -9,27 +9,12 @@
   "Speed 2": "Speed 2",
   "Speed 3": "Speed 3",
   "Speed 4": "Speed 4",
-  "Small": "Small",
-  "Medium": "Medium",
-  "Large": "Large",
-  "Not in use": "Not in use",
-  "Smart control": "Smart control",
-  "2 hours": "2 hours",
-  "3 hours": "3 hours",
-  "6 hours": "6 hours",
-  "12 hours": "12 hours",
-  "24 hours": "24 hours",
-  "48 hours": "48 hours",
-  "On": "On",
   "Auto": "Auto",
   "Manual": "Manual",
-  "Add.heat only": "Add.heat only",
   "pair": {
     "title": "Nibe S configuration",
     "ok": "OK",
-    "ipaddress": "IP address",
     "valid_ip_address": "Enter a valid IP address (xxx.xxx.xxx.xxx)",
-    "invalid_ipaddress": "Invalid IP address",
     "not_connected": "Not connected to the heat pump",
     "detect": {
       "title": "Detecting features",
@@ -52,8 +37,7 @@
     },
     "badge": {
       "adjustable": "Adjustable",
-      "insight": "Insight only",
-      "nodata": "No data"
+      "insight": "Insight only"
     },
     "discover": {
       "searching": "Searching your network for Nibe heat pumps…",
@@ -64,7 +48,6 @@
       "pump": "Nibe heat pump",
       "outdoor": "Outdoor temperature",
       "title": "Find your heat pump",
-      "connecting": "Found your pump — connecting…",
       "confirm": "Found your heat pump — tap to confirm"
     },
     "devices": {
@@ -74,11 +57,8 @@
       "detected": "Data detected",
       "notdetected": "No data",
       "select_one": "Select at least one device to add.",
-      "main_desc": "Overview: outdoor temperature, operating priority and mode, plus diagnostics and statistics",
-      "energy": "Energy"
+      "main_desc": "Overview: outdoor temperature, operating priority and mode, plus diagnostics and statistics"
     },
-    "not_settable": "This reflects the heat pump's operating priority and cannot be switched.",
-    "nodata_hint": "This pump did not report a value for this during the check. Turning it on will add a field that stays empty.",
     "sources": {
       "prompt": "More than one sensor can report this. Pick the one that should regulate:",
       "using": "Using:"

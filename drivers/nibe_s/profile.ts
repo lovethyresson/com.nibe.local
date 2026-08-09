@@ -270,7 +270,13 @@ export const sProfile = makeProfile({
         // which changes the capability id. Worth carrying because a stored `selection` is keyed
         // by register name, so without this the register loses its resolved address and any
         // per-capability override, not just its label.
-        "measure_count_NIBE.h845_spa_heating_influence": "spa_heating_influence_NIBE.h845_spa_heating_influence"
+        "measure_count_NIBE.h845_spa_heating_influence": "spa_heating_influence_NIBE.h845_spa_heating_influence",
+        // Off the bare `measure_power`, which collided with the derived live-draw capability of
+        // the same name (see the register's comment). Carried rather than hard-cut because a
+        // stored selection is keyed by register name: a solar owner who unticked or re-sourced
+        // this would otherwise silently lose that, and the collision means the old key could
+        // have been written by either side.
+        "measure_power": "measure_power.i2176_solar_current"
     },
 
     detection: {
@@ -305,7 +311,7 @@ export const sProfile = makeProfile({
                 ["measure_current.i50_sensor_v2", "measure_current.i48_sensor_v2", "measure_current.i46_sensor_v2"]
                     .some((name) => (value(name) ?? 0) > 0),
             solar: ({value}) =>
-                (value("measure_power") ?? 0) > 0
+                (value("measure_power.i2176_solar_current") ?? 0) > 0
                 || (value("meter_power.solar") ?? 0) > 0
         }
     },

@@ -7,9 +7,7 @@
   "pair": {
     "title": "Nibe S konfiguration",
     "ok": "OK",
-    "ipaddress": "IP-adress",
     "valid_ip_address": "Mata in en giltig IP-adress (xxx.xxx.xxx.xxx)",
-    "invalid_ipaddress": "Ogiltig IP-adress",
     "not_connected": "Inte ansluten till värmepumpen",
     "detect": {
       "title": "Identifierar funktioner",
@@ -49,7 +47,6 @@
     },
     "discover": {
       "title": "Hitta din värmepump",
-      "connecting": "Hittade din värmepump — ansluter…",
       "confirm": "Hittade din värmepump — tryck för att bekräfta",
       "searching": "Söker efter Nibe-värmepumpar i ditt nätverk…",
       "found": "Välj din värmepump",
@@ -58,8 +55,7 @@
       "refresh": "Sök igen",
       "pump": "Nibe värmepump",
       "outdoor": "Utetemperatur"
-    },
-    "not_settable": "Detta visar värmepumpens driftprioritering och kan inte styras."
+    }
   },
   "groups": {
     "core": "Grundvärden",

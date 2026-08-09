@@ -9,27 +9,12 @@
   "Speed 2": "Steg 2",
   "Speed 3": "Steg 3",
   "Speed 4": "Steg 4",
-  "Small": "Litet",
-  "Medium": "Medel",
-  "Large": "Stort",
-  "Not in use": "Används inte",
-  "Smart control": "Smart kontrol",
-  "2 hours": "2 timmar",
-  "3 hours": "3 timmar",
-  "6 hours": "6 timmar",
-  "12 hours": "12 timmar",
-  "24 hours": "24 timmar",
-  "48 hours": "48 timmar",
-  "On": "På",
   "Auto": "Auto",
   "Manual": "Manuellt",
-  "Additional heat only": "Endast tillsats",
   "pair": {
     "title": "Nibe S konfiguration",
     "ok": "OK",
-    "ipaddress": "IP-adress",
     "valid_ip_address": "Mata in en giltig IP-adress (xxx.xxx.xxx.xxx)",
-    "invalid_ipaddress": "Ogiltig IP-adress",
     "not_connected": "Inte ansluten till värmepumpen",
     "detect": {
       "title": "Identifierar funktioner",
@@ -52,8 +37,7 @@
     },
     "badge": {
       "adjustable": "Inställbar",
-      "insight": "Endast insikt",
-      "nodata": "Ingen data"
+      "insight": "Endast insikt"
     },
     "discover": {
       "searching": "Söker efter Nibe-värmepumpar i ditt nätverk…",
@@ -64,7 +48,6 @@
       "pump": "Nibe värmepump",
       "outdoor": "Utetemperatur",
       "title": "Hitta din värmepump",
-      "connecting": "Hittade din värmepump — ansluter…",
       "confirm": "Hittade din värmepump — tryck för att bekräfta"
     },
     "devices": {
@@ -74,11 +57,8 @@
       "detected": "Data hittad",
       "notdetected": "Ingen data",
       "select_one": "Välj minst en enhet att lägga till.",
-      "main_desc": "Översikt: utetemperatur, driftprioritering och driftläge, samt diagnostik och statistik",
-      "energy": "Energi"
+      "main_desc": "Översikt: utetemperatur, driftprioritering och driftläge, samt diagnostik och statistik"
     },
-    "not_settable": "Detta visar värmepumpens driftprioritering och kan inte styras.",
-    "nodata_hint": "Värmepumpen rapporterade inget värde för detta vid kontrollen. Slår du på den får du ett fält som förblir tomt.",
     "sources": {
       "prompt": "Fler än en givare kan rapportera detta. Välj den som ska reglera:",
       "using": "Använder:"

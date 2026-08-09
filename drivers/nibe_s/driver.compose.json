@@ -116,7 +116,8 @@
     "spa_influence_NIBE.h850_spa_cooling_influence",
     "measure_hour_NIBE.i279_compressor_usage_cooling",
     "meter_kwh_NIBE.i1579_cooling_produced",
-    "meter_power.solar"
+    "meter_power.solar",
+    "measure_power.i2176_solar_current"
   ],
   "capabilitiesOptions": {
     "meter_power.total": {
@@ -403,6 +404,17 @@
         "nl": "Opgewekte zonne-energie",
         "no": "Generert solenergi",
         "da": "Genereret solenergi"
+      }
+    },
+    "measure_power.i2176_solar_current": {
+      "decimals": 0,
+      "title": {
+        "en": "Solar power generated",
+        "sv": "Genererad soleffekt",
+        "de": "Erzeugte Solarleistung",
+        "nl": "Opgewekt zonnevermogen",
+        "no": "Generert soleffekt",
+        "da": "Genereret soleffekt"
       }
     },
     "measure_temperature.i87_outgoing_hotwater": {

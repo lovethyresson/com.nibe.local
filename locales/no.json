@@ -9,27 +9,12 @@
   "Speed 2": "Trinn 2",
   "Speed 3": "Trinn 3",
   "Speed 4": "Trinn 4",
-  "Small": "Liten",
-  "Medium": "Middels",
-  "Large": "Stor",
-  "Not in use": "Ikke i bruk",
-  "Smart control": "Smart styring",
-  "2 hours": "2 timer",
-  "3 hours": "3 timer",
-  "6 hours": "6 timer",
-  "12 hours": "12 timer",
-  "24 hours": "24 timer",
-  "48 hours": "48 timer",
-  "On": "På",
   "Auto": "Auto",
-  "Manual": "Manuell",
-  "Add.heat only": "Kun tilleggsvarme",
+  "Manual": "Manuelt",
   "pair": {
     "title": "NIBE S-konfigurasjon",
     "ok": "OK",
-    "ipaddress": "IP-adresse",
     "valid_ip_address": "Angi en gyldig IP-adresse (xxx.xxx.xxx.xxx)",
-    "invalid_ipaddress": "Ugyldig IP-adresse",
     "not_connected": "Ikke tilkoblet varmepumpen",
     "detect": {
       "title": "Oppdager funksjoner",
@@ -52,8 +37,7 @@
     },
     "badge": {
       "adjustable": "Justerbar",
-      "insight": "Kun visning",
-      "nodata": "Ingen data"
+      "insight": "Kun visning"
     },
     "discover": {
       "searching": "Søker i nettverket etter NIBE varmepumper …",
@@ -64,7 +48,6 @@
       "pump": "NIBE varmepumpe",
       "outdoor": "Utetemperatur",
       "title": "Finn varmepumpen din",
-      "connecting": "Fant varmepumpen – kobler til …",
       "confirm": "Fant varmepumpen – trykk for å bekrefte"
     },
     "devices": {
@@ -74,11 +57,12 @@
       "detected": "Data oppdaget",
       "notdetected": "Ingen data",
       "select_one": "Velg minst én enhet som skal legges til.",
-      "main_desc": "Oversikt: utetemperatur, driftsprioritering og driftsmodus, samt diagnostikk og statistikk",
-      "energy": "Energi"
+      "main_desc": "Oversikt: utetemperatur, driftsprioritering og driftsmodus, samt diagnostikk og statistikk"
     },
-    "not_settable": "Dette viser varmepumpens driftsprioritering og kan ikke styres.",
-    "nodata_hint": "Varmepumpen rapporterte ingen verdi for dette under kontrollen. Slår du det på, får du et felt som forblir tomt."
+    "sources": {
+      "prompt": "Flere givere kan rapportere dette. Velg den som skal regulere:",
+      "using": "Bruker:"
+    }
   },
   "groups": {
     "heating": "Varme",
@@ -94,5 +78,6 @@
     "alarm": "Alarmhåndtering",
     "energy": "Energi",
     "solar": "Sol / PV"
-  }
+  },
+  "Immersion heater only": "Kun elkolbe"
 }

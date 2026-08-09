@@ -9,27 +9,12 @@
   "Speed 2": "Stand 2",
   "Speed 3": "Stand 3",
   "Speed 4": "Stand 4",
-  "Small": "Klein",
-  "Medium": "Gemiddeld",
-  "Large": "Groot",
-  "Not in use": "Niet in gebruik",
-  "Smart control": "Smart control",
-  "2 hours": "2 uur",
-  "3 hours": "3 uur",
-  "6 hours": "6 uur",
-  "12 hours": "12 uur",
-  "24 hours": "24 uur",
-  "48 hours": "48 uur",
-  "On": "Aan",
   "Auto": "Auto",
   "Manual": "Handmatig",
-  "Add.heat only": "Alleen bijverwarming",
   "pair": {
     "title": "NIBE S-configuratie",
     "ok": "OK",
-    "ipaddress": "IP-adres",
     "valid_ip_address": "Voer een geldig IP-adres in (xxx.xxx.xxx.xxx)",
-    "invalid_ipaddress": "Ongeldig IP-adres",
     "not_connected": "Geen verbinding met de warmtepomp",
     "detect": {
       "title": "Functies detecteren",
@@ -52,8 +37,7 @@
     },
     "badge": {
       "adjustable": "Instelbaar",
-      "insight": "Alleen weergave",
-      "nodata": "Geen data"
+      "insight": "Alleen weergave"
     },
     "discover": {
       "searching": "Je netwerk wordt doorzocht op NIBE warmtepompen…",
@@ -64,7 +48,6 @@
       "pump": "NIBE warmtepomp",
       "outdoor": "Buitentemperatuur",
       "title": "Zoek je warmtepomp",
-      "connecting": "Warmtepomp gevonden — verbinding maken…",
       "confirm": "Warmtepomp gevonden — tik om te bevestigen"
     },
     "devices": {
@@ -74,11 +57,12 @@
       "detected": "Data gedetecteerd",
       "notdetected": "Geen data",
       "select_one": "Selecteer minstens één apparaat om toe te voegen.",
-      "main_desc": "Overzicht: buitentemperatuur, bedrijfsprioriteit en bedrijfsstand, plus diagnose en statistieken",
-      "energy": "Energie"
+      "main_desc": "Overzicht: buitentemperatuur, bedrijfsprioriteit en bedrijfsstand, plus diagnose en statistieken"
     },
-    "not_settable": "Dit toont de bedrijfsprioriteit van de warmtepomp en kan niet worden geschakeld.",
-    "nodata_hint": "Deze warmtepomp gaf hiervoor geen waarde door tijdens de controle. Als je dit aanzet, krijg je een veld dat leeg blijft."
+    "sources": {
+      "prompt": "Meerdere sensoren kunnen dit melden. Kies degene die moet regelen:",
+      "using": "Gebruikt:"
+    }
   },
   "groups": {
     "heating": "Verwarming",
@@ -94,5 +78,6 @@
     "alarm": "Alarmafhandeling",
     "energy": "Energie",
     "solar": "Zonne-energie / PV"
-  }
+  },
+  "Immersion heater only": "Alleen elektrisch element"
 }

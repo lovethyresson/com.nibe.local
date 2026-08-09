@@ -7,9 +7,7 @@
   "pair": {
     "title": "NIBE S Konfiguration",
     "ok": "OK",
-    "ipaddress": "IP-Adresse",
     "valid_ip_address": "Geben Sie eine gültige IP-Adresse ein (xxx.xxx.xxx.xxx)",
-    "invalid_ipaddress": "Ungültige IP-Adresse",
     "not_connected": "Keine Verbindung zur Wärmepumpe",
     "detect": {
       "title": "Funktionen werden erkannt",
@@ -46,7 +44,6 @@
     "discover": {
       "title": "Wärmepumpe suchen",
       "searching": "Das Netzwerk wird nach NIBE Wärmepumpen durchsucht …",
-      "connecting": "Wärmepumpe gefunden – Verbindung wird hergestellt …",
       "confirm": "Wärmepumpe gefunden – zum Bestätigen tippen",
       "found": "Wärmepumpe auswählen",
       "none_found": "Es wurde automatisch keine Wärmepumpe gefunden. Prüfen Sie, ob Modbus TCP an der Wärmepumpe aktiviert ist (Menü 7.5.9), oder geben Sie die IP-Adresse unten ein.",
@@ -55,7 +52,10 @@
       "pump": "NIBE Wärmepumpe",
       "outdoor": "Außentemperatur"
     },
-    "not_settable": "Dies zeigt die Betriebspriorität der Wärmepumpe und kann nicht geschaltet werden."
+    "sources": {
+      "prompt": "Mehr als ein Fühler kann dies melden. Wählen Sie den regelnden aus:",
+      "using": "Verwendet:"
+    }
   },
   "groups": {
     "core": "Basissensoren",
@@ -76,5 +76,8 @@
   "Speed 1": "Stufe 1",
   "Speed 2": "Stufe 2",
   "Speed 3": "Stufe 3",
-  "Speed 4": "Stufe 4"
+  "Speed 4": "Stufe 4",
+  "Auto": "Auto",
+  "Manual": "Manuell",
+  "Immersion heater only": "Nur Heizstab"
 }

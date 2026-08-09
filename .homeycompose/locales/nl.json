@@ -7,9 +7,7 @@
   "pair": {
     "title": "NIBE S-configuratie",
     "ok": "OK",
-    "ipaddress": "IP-adres",
     "valid_ip_address": "Voer een geldig IP-adres in (xxx.xxx.xxx.xxx)",
-    "invalid_ipaddress": "Ongeldig IP-adres",
     "not_connected": "Geen verbinding met de warmtepomp",
     "detect": {
       "title": "Functies detecteren",
@@ -46,7 +44,6 @@
     "discover": {
       "title": "Zoek je warmtepomp",
       "searching": "Je netwerk wordt doorzocht op NIBE warmtepompen…",
-      "connecting": "Warmtepomp gevonden — verbinding maken…",
       "confirm": "Warmtepomp gevonden — tik om te bevestigen",
       "found": "Selecteer je warmtepomp",
       "none_found": "Er is automatisch geen warmtepomp gevonden. Controleer of Modbus TCP is ingeschakeld op de warmtepomp (menu 7.5.9) of voer hieronder het IP-adres in.",
@@ -55,7 +52,10 @@
       "pump": "NIBE warmtepomp",
       "outdoor": "Buitentemperatuur"
     },
-    "not_settable": "Dit toont de bedrijfsprioriteit van de warmtepomp en kan niet worden geschakeld."
+    "sources": {
+      "prompt": "Meerdere sensoren kunnen dit melden. Kies degene die moet regelen:",
+      "using": "Gebruikt:"
+    }
   },
   "groups": {
     "core": "Basissensoren",
@@ -76,5 +76,8 @@
   "Speed 1": "Stand 1",
   "Speed 2": "Stand 2",
   "Speed 3": "Stand 3",
-  "Speed 4": "Stand 4"
+  "Speed 4": "Stand 4",
+  "Auto": "Auto",
+  "Manual": "Handmatig",
+  "Immersion heater only": "Alleen elektrisch element"
 }

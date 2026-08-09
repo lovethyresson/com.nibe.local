@@ -20,48 +20,6 @@ export const priorityMap = Object({
     60: "Cooling"
 });
 
-// 3 is deliberately absent: Nibe's Modbus manual lists it as "not in use" for
-// register 56, so the pump has no mode 3 to select.
-export const hotwaterMap = Object({
-    0: "Small",
-    1: "Medium",
-    2: "Large",
-    4: "Smart control"
-});
-
-// Menu 2.1 "More hot water" (register 697). Nibe's Modbus manual (M12676EN) omits 697
-// entirely, and the S1155 manual describes menu 2.1 as a fixed list ("Setting range: 3, 6
-// and 12 hours, as well as the modes 'Off' and 'One-time increase'"), which made this look
-// like an enum. It isn't — the register is far less constrained than the menu.
-//
-// Measured against the live S1155 on 2026-07-17: 697 is a plain count of *hours*. Writing
-// N sets holding 225 ("More hot water, number of minutes") to N*60 and input 1078
-// ("More hot water status") to 1. That holds for every N in 1..127 — including 24 and 48,
-// which this pump's menu cannot even select, and odd values like 1, 4, 5, 47 and 100. The
-// register is not validated against the menu list. 0 is Off. It is s8 on the wire, so 128+
-// wraps negative and the pump reads it back as 0.
-//
-// Consequences for the labels below:
-//   - 2 is a *2-hour* boost. It was previously labelled "1h", which was simply wrong.
-//   - No raw value means "One-time increase"; the whole 1..127 space is hour counts,
-//     leaving no room for a sentinel, so that mode is unreachable through this register.
-// The map is therefore a curated picker of useful durations, not the register's domain.
-// Any 1..127 is legal if more are ever wanted.
-export const onetimeincreaseMap = Object({
-    0: "Off",
-    2: "2 hours",
-    3: "3 hours",
-    6: "6 hours",
-    12: "12 hours",
-    24: "24 hours",
-    48: "48 hours"
-});
-
-export const booleanMap = Object({
-    0: "Off",
-    1: "On"
-});
-
 export const modeMap = Object({
     0: "Auto",
     1: "Manual",
@@ -485,6 +443,20 @@ export const registers: Register[] = [
     // regulation at all. Read-only either way — writing it is the legacy path.
     {address:  202, name: "boolean_NIBE.h202_use_room_sensor",                direction: Dir.Out, group: "heating",    bool: true, noAction: true, // Använd rumsgivare klimatsystem 1
      info: {en: "Whether room sensor regulation is switched on for climate system 1", sv: "Om rumsgivarreglering är påslagen för klimatsystem 1"}},
+    // Menu 2.1 "More hot water". Nibe's Modbus manual (M12676EN) omits 697 entirely, and the
+    // S1155 manual describes menu 2.1 as a fixed list ("Setting range: 3, 6 and 12 hours, as well
+    // as the modes 'Off' and 'One-time increase'"), which makes it look like an enum. It isn't.
+    //
+    // Measured against the live S1155 on 2026-07-17: 697 is a plain count of *hours*. Writing N
+    // sets holding 225 ("More hot water, number of minutes") to N*60 and input 1078 ("More hot
+    // water status") to 1. That holds for every N in 1..127 — including 24 and 48, which this
+    // pump's menu cannot even select, and odd values like 1, 4, 5, 47 and 100. The register is
+    // not validated against the menu list. 0 is Off. It is s8 on the wire, so 128+ wraps negative
+    // and the pump reads it back as 0. No raw value means "One-time increase": the whole 1..127
+    // space is hour counts, leaving no room for a sentinel, so that mode is unreachable here.
+    //
+    // Exposed as a plain on/off with onValue 2 (a 2-hour boost) rather than a duration picker.
+    // Any 1..127 is legal if a longer boost is ever wanted.
     {address:  697, name: "boolean_NIBE.h697_more_hotwater",                         direction: Dir.Out, group: "hotwater",   bool: true, onValue: 2, offValue: 0, // Mer varmvatten engångshöjning
      info: {en: "More hot water: a one-time 2-hour boost", sv: "Mer varmvatten: en engångshöjning på 2 timmar"}},
     // Rad 20 Strömförbrukning
@@ -690,9 +662,18 @@ export const registers: Register[] = [
      info: {en: "Energy counted by an external pulse meter (BE6)", sv: "Energi räknad av extern pulsmätare (BE6)"}},
     // Photovoltaic / self-consumption accessory (EME 20), on its own `solarpanel`-class
     // device. Mapped to Homey's official energy capabilities so it reports generation to the
-    // Energy tab: measure_power = current generation (W), meter_power.solar = cumulative
-    // generation (declared as exported via setEnergy). Both read 0 without the accessory.
-    {address: 2176, name: "measure_power",                                    direction: Dir.In,  group: "solar",       scale: 1, size: 32, // Current power (EME 20)
+    // Energy tab: this is current generation (W), meter_power.solar is cumulative generation
+    // (declared as exported via setEnergy). Both read 0 without the accessory.
+    //
+    // The sub-capability id is deliberate. This register used to be named bare `measure_power`,
+    // which is also ACTIVE_POWER_CAPABILITY in roles.ts — the derived live-draw capability every
+    // function device carries, and the *base* id Homey's real-time consumption reads. Two
+    // different things answered to one string, so registerByName["measure_power"] resolved this
+    // solar register while the rest of the app meant the derived one. Harmless in what it
+    // produced (a wrong diagnostic line, a duplicated selection write) and one refactor away
+    // from not being. The derived capability keeps the bare id because Homey requires it there;
+    // this one moves.
+    {address: 2176, name: "measure_power.i2176_solar_current",                direction: Dir.In,  group: "solar",       scale: 1, size: 32, // Current power (EME 20)
      info: {en: "Solar power generated right now (EME 20)", sv: "Soleffekt som genereras just nu (EME 20)"}},
     {address: 2180, name: "meter_power.solar",                                direction: Dir.In,  group: "solar",       scale: 10, size: 32, relative: true, // Total energy (EME 20)
      info: {en: "Solar energy generated since this device was added (EME 20)", sv: "Genererad solenergi sedan enheten lades till (EME 20)"}},

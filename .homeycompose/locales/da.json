@@ -7,9 +7,7 @@
   "pair": {
     "title": "NIBE S-konfiguration",
     "ok": "OK",
-    "ipaddress": "IP-adresse",
     "valid_ip_address": "Indtast en gyldig IP-adresse (xxx.xxx.xxx.xxx)",
-    "invalid_ipaddress": "Ugyldig IP-adresse",
     "not_connected": "Ikke forbundet til varmepumpen",
     "detect": {
       "title": "Registrerer funktioner",
@@ -46,7 +44,6 @@
     "discover": {
       "title": "Find din varmepumpe",
       "searching": "Søger på netværket efter NIBE varmepumper …",
-      "connecting": "Fandt varmepumpen – opretter forbindelse …",
       "confirm": "Fandt varmepumpen – tryk for at bekræfte",
       "found": "Vælg din varmepumpe",
       "none_found": "Der blev ikke fundet en varmepumpe automatisk. Kontrollér, at Modbus TCP er aktiveret på varmepumpen (menu 7.5.9), eller indtast IP-adressen nedenfor.",
@@ -55,7 +52,10 @@
       "pump": "NIBE varmepumpe",
       "outdoor": "Udetemperatur"
     },
-    "not_settable": "Dette viser varmepumpens driftsprioritering og kan ikke styres."
+    "sources": {
+      "prompt": "Flere følere kan rapportere dette. Vælg den, der skal regulere:",
+      "using": "Bruger:"
+    }
   },
   "groups": {
     "core": "Basissensorer",
@@ -76,5 +76,8 @@
   "Speed 1": "Trin 1",
   "Speed 2": "Trin 2",
   "Speed 3": "Trin 3",
-  "Speed 4": "Trin 4"
+  "Speed 4": "Trin 4",
+  "Auto": "Auto",
+  "Manual": "Manuelt",
+  "Immersion heater only": "Kun eltilskud"
 }

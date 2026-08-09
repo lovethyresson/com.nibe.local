@@ -7,9 +7,7 @@
   "pair": {
     "title": "Nibe S configuration",
     "ok": "OK",
-    "ipaddress": "IP address",
     "valid_ip_address": "Enter a valid IP address (xxx.xxx.xxx.xxx)",
-    "invalid_ipaddress": "Invalid IP address",
     "not_connected": "Not connected to the heat pump",
     "detect": {
       "title": "Detecting features",
@@ -50,7 +48,6 @@
     "discover": {
       "title": "Find your heat pump",
       "searching": "Searching your network for Nibe heat pumps…",
-      "connecting": "Found your pump — connecting…",
       "confirm": "Found your heat pump — tap to confirm",
       "found": "Select your heat pump",
       "none_found": "No heat pump found automatically. Check that Modbus TCP is enabled on the pump (menu 7.5.9) or enter its IP address below.",
@@ -58,8 +55,7 @@
       "refresh": "Search again",
       "pump": "Nibe heat pump",
       "outdoor": "Outdoor temperature"
-    },
-    "not_settable": "This reflects the heat pump's operating priority and cannot be switched."
+    }
   },
   "groups": {
     "core": "Core sensors",
