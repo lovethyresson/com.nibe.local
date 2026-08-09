@@ -25,14 +25,15 @@ So each job gets its own device, with its own controls, its own energy meter, an
 
 | Device | What it's for |
 | --- | --- |
-| **Main** | The pump itself — what it's doing right now, operating mode, alarms in plain language, diagnostics and runtime stats. Carries the pump's total energy and **Total COP**. |
+| **Main** | The pump itself — what it's doing right now, operating mode, alarms in plain language, diagnostics and runtime stats. Carries the pump's total energy, **Total COP**, and the master switch for price adaption. |
 | **Heating** | A proper thermostat: room temperature and setpoint on one tile, in Homey's Climate view. Heat curve, supply temperatures, the outdoor cut-offs. Ventilation folds in here if fitted. |
 | **Hot Water** | Demand mode, the temperatures behind it, one-time boosts, periodic (anti-legionella) charging. |
 | **Pool** | A thermostat for pool water, if you have the POOL 40 accessory. |
 | **Cooling** | Cooling permit, night cooling, the outdoor temperatures that start and stop it. |
 | **Solar** | If you have the EME 20 accessory: what your panels are making, reported to Homey's Energy tab as **production**. |
 
-Every heat-producing device also carries **energy used**, **energy delivered** and its own **COP**.
+Every heat-producing device also carries **energy used**, **energy delivered**, its own **COP**, and its own
+**price adaption** controls.
 
 You pick which devices to add during pairing — add one, add all — and you can change your mind later with
 the device's **Repair** flow. Anything your pump doesn't have is offered but left unticked.
@@ -54,6 +55,29 @@ answer "how much is my hot water costing me?"
 > Used energy is a good estimate; delivered energy and Total COP are exact. The full mechanism, the diagrams
 > and how accurate the split actually measured (−0.8% on an instrumented hot-water cycle) are in
 > **[docs/energy-attribution.md](docs/energy-attribution.md)**.
+
+## Shift usage to cheaper hours
+
+If you're on an hourly electricity tariff, the pump can lean its work toward the cheap hours by itself —
+Nibe calls it **Smart Price Adaption**. The app exposes it per job, so you decide how much the price is
+allowed to push each one around:
+
+| | On/off | How strongly the price may move it |
+| --- | --- | --- |
+| **Heating** | yes | 1–10 |
+| **Hot Water** | yes | 1–4 |
+| **Pool** | follows the master | 0–10 (0 = not at all) |
+| **Cooling** | yes | 0–10 |
+
+The **master switch for the whole pump** lives on the Main device — turn that off and none of it applies.
+Pool is the one function without its own on/off, because Nibe doesn't publish one for it on any S-series
+model, so it follows the master.
+
+All of it works from a Flow, so you can tie the influence to something else you know — a price forecast,
+whether you're home, or the time of year.
+
+> Your pump is only given the parts it actually answers for. If a control doesn't appear for one of your
+> functions, the pump didn't report it during detection — which is normal, and varies by model and firmware.
 
 ## Know why it did that
 
@@ -112,6 +136,10 @@ A few things that surprise people, none of which are bugs:
   (say 5 °C) — automatic charging never triggers, **More hot water** still works.
 - **Hot water has three temperature pairs**, one per demand mode (Small / Medium / Large). Editing the Medium
   pair does nothing while you're in Small.
+- **The pump refuses writes to a feature it has switched off.** Turn "Allow hot water" off and the pump
+  rejects the demand-mode and boost registers outright ("Illegal Function") rather than ignoring them — so a
+  Flow that sets one will report an error. The same goes for price adaption: its per-function influence is
+  only writable while that function's adaption is switched on.
 - **Pair every function you want metered.** If you skip the Hot Water device, the energy the pump spends on
   hot water lands on Main instead. The app logs a warning when that happens.
 - **Energy counts from when you added the device**, so the numbers reconcile with each other rather than
