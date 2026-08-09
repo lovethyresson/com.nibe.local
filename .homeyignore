@@ -1,5 +1,8 @@
 /dev/
 /tasks/
 /test/
+/docs/
+/.github/
+/CLAUDE.md
+/tsconfig.test.json
 /Dockerfile.test
-/.dockerignore

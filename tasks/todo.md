@@ -4,37 +4,69 @@ Three things are live. Everything else that used to be here has shipped — the 
 commits and in the **Releases** table in [`README.md`](../README.md), the durable rules are in
 [`CLAUDE.md`](../CLAUDE.md), and the design write-ups are under [`docs/`](../docs).
 
-## Unreleased — on `main`, version deliberately not stamped
+## 0.9.15 — pre-1.0 audit, staged and not yet published
 
-0.9.13 is out with real users and is being left to run. **If it proves stable the next release is
-1.0, otherwise 0.9.14** — so nothing here bumps `.homeycompose/app.json`, `package.json` or
-`.homeychangelog.json` yet. The text below is written and waiting for whichever number wins; the
-release is then the four-step checklist in `CLAUDE.md`, not a rewrite.
+A full audit of the codebase and architecture ahead of 1.0. Everything below is committed and
+stamped; what remains is the publish itself.
 
-**`ed9c04d` — an enum code the register table has no name for.** Such a code decoded to
-`undefined` and went straight to `setCapabilityValue()`, which rejected it once per poll for as
-long as the pump held it: the picker-shortlist failure fixed in 0.9.13, one register type over.
-Found by [halderex in PR #6](https://github.com/lovethyresson/com.nibe.local/pull/6) on the S735.
-Nibe adds codes per model and firmware, so a gap in a map is normal rather than a fault.
+**Four runtime defects fixed.** In rough order of how badly they would have read on the forum:
 
-Changelog, EN — *Some status tiles could go blank when the pump reported a value this app has no
-name for. They now show the value itself instead of nothing. There is nothing you need to do.*
+- A pump that stopped answering while holding the TCP connection open was **invisible, forever**.
+  `readRegisterRaw()` resolves `undefined` rather than rejecting, so the poll chain never failed —
+  which made the recovery path behind its `.catch` unreachable dead code, sitting under a comment
+  claiming it handled exactly this. No reconnect, no `setUnavailable()`, no log line: the device
+  looked online with frozen values. Now two consecutive empty polls drop the socket and reconnect.
+  Covered by an integration test against a server that accepts but never answers; verified it
+  fails without the fix.
+- **Writes could be starved behind a poll.** Serializing the wire fixed collisions and introduced
+  unbounded head-of-line blocking: a poll enqueues ~100 requests and each can take the 5 s jsmodbus
+  timeout, so a flow action could wait minutes while Homey's own timeout reported failure. Writes
+  now take a priority lane; the one-at-a-time guarantee is unchanged.
+- **`readRegister()` ignored the resolved alternate address** while `writeRegister()` honoured it —
+  and every write-then-verify flow card uses the pair. Latent rather than loud today (only the
+  night-chill register both writes and has an alternate), but it was one numeric alternate away
+  from telling users a successful write had failed.
+- **A device setting was persisted on every poll** — tens of thousands of flash writes a day across
+  four devices, forever. Debounced to 0.01 kWh steps, flushed on `onUninit`.
 
-Changelog, SV — *Vissa statusrutor kunde bli tomma när pumpen rapporterade ett värde som appen
-inte har något namn för. De visar nu värdet i stället för ingenting. Du behöver inte göra något.*
+Plus: repair now reports capabilities it failed to apply instead of returning success regardless;
+three flow triggers no longer fire unhandled rejections; the enum reverse-lookup gives a real
+message instead of a bare TypeError.
 
-README row — *An enum register whose map had no entry for the code the pump returned decoded to
-`undefined`, which Homey rejected once per poll — the picker-shortlist crash of 0.9.13, one
-register type over. The bare code is now published instead (`measure_enum_NIBE` is a plain string
-capability, so it renders and Insights keeps logging) and logged once per register and code, which
-is what someone needs in order to name it. The fallback lives in one `enumLabel()`, which
-`priorityLabel()` had been open-coding all along. Found by halderex, PR #6.*
+**Dead weight removed.** Two orphan flow cards that had shipped in 0.9.13 *and* 0.9.14 with no
+matching register; two orphan capability types; three dead enum maps (the measured 697 facts moved
+onto the register itself rather than deleted); `groupsForRole()`; the unused `crc` dependency;
+three unreferenced assets; ~11 dead locale keys. Locales are now at full six-language parity in
+both layers — de/nl/no/da had been missing the operating-mode enum and the pairing sensor prompt.
 
-No `docs/` change: this touches neither attribution, the power sources, the role mapping nor the
-COP accumulators. Probably worth a line in `docs/FAQ.md` about a tile showing a number instead of
-a word, if a user asks first.
+**One rename, and it must be pre-1.0.** The solar EME 20 power register was literally named
+`measure_power` — the same string as the derived live-draw capability every function device
+carries. Renamed to `measure_power.i2176_solar_current`, carried by `renamedRegisters`. **Solar
+owners need to run Repair.**
 
-## 0.9.13 — published, running with other users
+**A gate, at last.** `.github/workflows/ci.yml` runs typecheck (app *and* tests), tests, and
+`validate --level publish`. The test suite had never been type-checked — `tsx` strips types without
+checking — and had three real type errors. `tsconfig.json` now pins `strict` explicitly and stops
+sweeping in `dev/*.mjs`.
+
+**Tests: 94 → 101.** New guards so the deleted things cannot come back (every flow card resolves to
+a live register; every capability type has an instance; no register name collides with a derived
+capability name), the watchdog test, and the first coverage of the capability-sync decision every
+existing device runs through at init and after every repair — extracted as `capabilitySyncPlan()`
+so it could be tested at all.
+
+`CLAUDE.md`'s Architecture section was rewritten: it had been describing the layout of two
+refactors ago, including a `staticRegisters`/`updateStaticSettings()` feature that does not exist.
+
+Still open:
+
+- [ ] `homey app publish`
+- [ ] decide whether 1.0 is next. The audit's remaining recommendation — splitting the 1,341-line
+      `PumpConnection`, whose seams are clear (`energy/diagnostics`, `energy/allocator`,
+      `modbus/transport`) — is deliberately **after** 1.0: it touches the comments that encode
+      irreplaceable live measurements and buys nothing a user can see.
+
+## 0.9.14 and 0.9.13 — published, running with other users
 
 Published and live. **This is the release that ends the single-install era** — see the rename
 section in `CLAUDE.md`, which no longer permits a hard cut now that renames land on pumps that
