@@ -7,8 +7,8 @@ import {
     ACTIVE_POWER_CAPABILITY, ALARM_ACTIVE_CAPABILITY, ALARM_TEXT_CAPABILITY,
     FUNCTION_COP_CAPABILITY, METER_CAPABILITY,
     PUMP_ACTIVE_CAPABILITY, Role, SOLAR_METER_CAPABILITY, TOTAL_COP_CAPABILITY,
-    extraCapabilities, extraCapabilityOptions, functionRoles, mirrorOptions, mirrorsForRole,
-    registersForRole, roleClass, roleOf, roleRegisters
+    capabilitySyncPlan, extraCapabilities, extraCapabilityOptions, functionRoles, mirrorOptions,
+    mirrorsForRole, registersForRole, roleClass, roleOf, roleRegisters
 } from './roles';
 import {ALARM_SOURCE_URL, alarmAdvice, alarmDescription} from './alarms';
 import type {LocalizedText, ModelProfile} from './profile';
@@ -119,8 +119,20 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private toRegisterValue(register: Register, value: any) {
         if (register.picker)
             value = parseInt(value);
-        else if (register.enum)
-            value = parseInt(Object.entries(register.enum).filter(pair => pair[1] == value)[0][0]);
+        else if (register.enum) {
+            // A Flow card stored before an enum was renamed still carries the old label, and the
+            // autocomplete's `name` is translated while the stored id is not — so the lookup can
+            // genuinely miss. Indexing [0][0] on the empty result threw a bare
+            // "Cannot read properties of undefined", which tells the user nothing about which
+            // card of theirs is now stale.
+            const match = Object.entries(register.enum).find(pair => pair[1] == value);
+            if (!match)
+                throw new Error(`"${value}" is not one of the values `
+                    + `"${this.registerTitle(register)}" accepts `
+                    + `(${Object.values(register.enum).join(', ')}). `
+                    + 'If this Flow was made on an older version, re-pick the value.');
+            value = parseInt(match[0]);
+        }
         else if (register.bool)
             value = value ? (register.onValue ?? 1) : (register.offValue ?? 0);
         else if (register.scale)
@@ -134,10 +146,17 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         return value;
     }
 
+    // Resolves the address for the same reason writeRegister() does — and it has to, because the
+    // two are used as a pair. Every Flow card that writes then reads back to confirm
+    // (writeNumeric, the .onoff and enable/disable cards) went through writeRegister here and
+    // readRegister there, so on a pump where detection relocated a register the write landed at
+    // the resolved address and the confirmation read the *unresolved* one. That reads the wrong
+    // register — or nothing — and the card then reports a failure for a write that worked.
     async readRegister(register: Register): Promise<any> {
         if (!this.connection)
             return undefined;
-        const raw = await this.connection.readRegisterRaw(register);
+        const address = resolvedAddress(register, this.getSelection());
+        const raw = await this.connection.readRegisterRaw({...register, address});
         return raw === undefined ? undefined : this.fromRegisterValue(register, raw);
     }
 
@@ -201,12 +220,16 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             return;
         const name = this.registerTitle(register);
         const state = {register: {id: register.name}, value: value};
+        // .catch on every one of these, like alarmTrigger and priorityChangedTrigger already do:
+        // trigger() returns a promise, and a Flow whose card throws would otherwise surface as an
+        // unhandled rejection from inside a poll rather than a line naming the register.
         if (register.bool && value) {
-            this.turnedOnTrigger.trigger(this, {register: name}, state);
+            this.turnedOnTrigger.trigger(this, {register: name}, state).catch(this.error);
         } else if (register.bool && !value) {
-            this.turnedOffTrigger.trigger(this, {register: name}, state);
+            this.turnedOffTrigger.trigger(this, {register: name}, state).catch(this.error);
         } else if (register.enum) {
-            this.capabilityChangedTrigger.trigger(this, {value: `${value}`, register: name}, state);
+            this.capabilityChangedTrigger.trigger(this, {value: `${value}`, register: name}, state)
+                .catch(this.error);
         }
     }
 
@@ -436,41 +459,58 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         return value - baseline;
     }
 
-    private async syncCapabilities() {
+    // Reconcile the device's capabilities with its selection. Returns the capabilities that
+    // failed, so a repair can tell the user rather than claiming success it didn't have.
+    //
+    // Every step here still continues past a failure — one capability the SDK won't add must not
+    // abandon the twenty after it, and at onInit there is nobody to tell anyway. What changed is
+    // that the failures are no longer only logged: repair used to report success unconditionally
+    // while the device silently lacked exactly the capabilities the user had just ticked.
+    private async syncCapabilities(): Promise<string[]> {
         const selection = this.getSelection();
-        const roleRegs = registersForRole(this.profile, this.role, selection);
-        const extras = extraCapabilities(this.profile, this.role, selection);
+        const {registers: roleRegs, extras, toRemove} =
+            capabilitySyncPlan(this.profile, this.role, selection, this.getCapabilities());
+        const failed: string[] = [];
+        const note = (name: string, what: string) => (error: any) => {
+            this.error(`Failed to ${what} capability ${name}:`, error);
+            if (!failed.includes(name))
+                failed.push(name);
+        };
 
-        const wanted = new Set<string>([...roleRegs.map((r) => r.name), ...extras]);
-        for (const name of this.getCapabilities()) {
-            if (!wanted.has(name)) {
-                this.debug(`Removing capability ${name}`);
-                await this.removeCapability(name).catch(this.error);
-            }
+        for (const name of toRemove) {
+            this.debug(`Removing capability ${name}`);
+            await this.removeCapability(name).catch(note(name, 'remove'));
         }
 
         for (const register of roleRegs) {
             if (!this.hasCapability(register.name)) {
                 this.debug(`Adding capability ${register.name}`);
-                await this.addCapability(register.name).catch(this.error);
+                await this.addCapability(register.name).catch(note(register.name, 'add'));
             }
-            await this.ensureCapabilityOptions(register.name, this.options(register.name)).catch(this.error);
+            await this.ensureCapabilityOptions(register.name, this.options(register.name))
+                .catch(note(register.name, 'set options on'));
         }
         for (const extra of extras) {
             if (!this.hasCapability(extra)) {
                 this.debug(`Adding capability ${extra}`);
-                await this.addCapability(extra).catch(this.error);
+                await this.addCapability(extra).catch(note(extra, 'add'));
             }
-            await this.ensureCapabilityOptions(extra, this.extraOptions(extra)).catch(this.error);
+            await this.ensureCapabilityOptions(extra, this.extraOptions(extra))
+                .catch(note(extra, 'set options on'));
         }
+        return failed;
     }
 
     async applySelection(selection: Selection) {
         this.log("Applying selection", JSON.stringify(selection));
         await this.setStoreValue('selection', selection);
-        await this.syncCapabilities();
+        const failed = await this.syncCapabilities();
         if (this.hasCapability(METER_CAPABILITY))
             await this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
+        if (failed.length)
+            throw new Error(`${failed.length} capability/capabilities could not be applied: `
+                + `${failed.join(', ')}. The selection was saved — try Repair again, and if it `
+                + 'keeps failing please report it with the app logs.');
     }
 
     async probeForDetection(onProgress: (pass: number, passes: number) => void) {
@@ -494,8 +534,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.role === 'solar')
             await this.setEnergy({meterPowerExportedCapability: SOLAR_METER_CAPABILITY}).catch(this.error);
 
-        if (functionRoles.includes(this.role) || this.role === 'main')
+        if (functionRoles.includes(this.role) || this.role === 'main') {
             this.cumulativeEnergy = this.getSettings().cumulativeEnergy || 0;
+            this.persistedCumulativeEnergy = this.cumulativeEnergy;
+        }
         if (functionRoles.includes(this.role)) {
             this.copUsed = this.cumulativeEnergy;
             await this.loadCopAccumulator();
@@ -507,6 +549,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // the allocator then silently charged its draw to Main/idle instead of its own
         // meter — the root cause of the inflated "idle energy".
         try {
+            // Failures are already logged by syncCapabilities(); at init there is no user
+            // waiting on an answer, so unlike applySelection() this does not escalate them.
             await this.syncCapabilities();
             this.debug(`Device capabilities synced: ${this.getCapabilities().length} — `
                 + this.getCapabilities().join(', '));
@@ -925,7 +969,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             this.cumulativeEnergy += deltaKwh;
             if (this.hasCapability(METER_CAPABILITY))
                 this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
-            this.setSettings({cumulativeEnergy: this.cumulativeEnergy}).catch(this.error);
+            this.persistCumulativeEnergy();
         }
         if (functionRoles.includes(this.role)) {
             this.copUsed = this.cumulativeEnergy;
@@ -935,6 +979,23 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             this.setCapabilityValue(ACTIVE_POWER_CAPABILITY, watts).catch(this.error);
     }
 
+    // Persist the meter in 0.01 kWh steps rather than on every poll, mirroring how
+    // `copProducedAccum` is stored. This used to write the setting whenever the allocator
+    // credited anything at all — i.e. every poll while the pump drew power, which at the
+    // default 10 s interval across four function devices is tens of thousands of flash writes
+    // a day, forever, on a Homey Pro. The capability itself still updates every poll, so
+    // nothing the user looks at moves any more slowly; only the durable copy is batched, and
+    // an ungraceful restart loses at most 0.01 kWh. onUninit() flushes, so an orderly restart
+    // or a repair loses nothing at all.
+    private persistedCumulativeEnergy = 0;
+
+    private persistCumulativeEnergy(force = false) {
+        if (!force && Math.abs(this.cumulativeEnergy - this.persistedCumulativeEnergy) < 0.01)
+            return;
+        this.persistedCumulativeEnergy = this.cumulativeEnergy;
+        this.setSettings({cumulativeEnergy: this.cumulativeEnergy}).catch(this.error);
+    }
+
     // ---- lifecycle ----
 
     async onSettings({newSettings, changedKeys}: {
@@ -942,6 +1003,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }) {
         if (changedKeys.includes('cumulativeEnergy')) {
             this.cumulativeEnergy = newSettings.cumulativeEnergy || 0;
+            // The user just set the durable copy by hand; don't let the next poll's debounce
+            // think it still owes a write of the old value.
+            this.persistedCumulativeEnergy = this.cumulativeEnergy;
             if (this.hasCapability(METER_CAPABILITY))
                 this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
         }
@@ -1001,6 +1065,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     async onUninit() {
+        // Flush the debounced meter before going away, so an orderly restart or a repair keeps
+        // the fraction of a kWh the 0.01 step was still holding.
+        this.persistCumulativeEnergy(true);
         this.connection?.detach(this);
     }
 

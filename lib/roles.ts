@@ -232,10 +232,6 @@ export function roleOf(data: any): Role {
     return (data?.role ?? "main") as Role;
 }
 
-export function groupsForRole(role: Role): GroupId[] {
-    return roleGroups[role];
-}
-
 // Registers this role is responsible for, filtered by the user's feature selection.
 // Drives capability sync, polling and flow-card autocompletes so each device only ever
 // touches its own registers.
@@ -244,6 +240,31 @@ export function groupsForRole(role: Role): GroupId[] {
 // separately, at the moment of the write (see NibePumpDevice.writeRegister) — a capability
 // listener is registered once at init and closes over its register, so resolving there would
 // keep writing to the old address after a repair changed it.
+// What a device's capability list should become, and how to get there from what it has now.
+//
+// Split out of NibePumpDevice.syncCapabilities() so it can be tested: the method itself is a
+// private member of a Homey.Device subclass and needs the SDK runtime to exist, which is why the
+// upgrade path every existing user passes through had no test at all. The decision is pure — the
+// method keeps only the SDK calls and the failure reporting.
+//
+// `toRemove` is what makes dropping a register from the table self-cleaning on running devices:
+// anything the device carries that is no longer wanted goes, including capabilities whose
+// register no longer exists anywhere.
+export function capabilitySyncPlan(
+    profile: ModelProfile, role: Role, selection: Selection | null | undefined, current: string[]
+): {registers: Register[]; extras: string[]; wanted: string[]; toAdd: string[]; toRemove: string[]} {
+    const registers = registersForRole(profile, role, selection);
+    const extras = extraCapabilities(profile, role, selection);
+    const wanted = [...registers.map((r) => r.name), ...extras];
+    const wantedSet = new Set(wanted);
+    const has = new Set(current);
+    return {
+        registers, extras, wanted,
+        toAdd: wanted.filter((name) => !has.has(name)),
+        toRemove: current.filter((name) => !wantedSet.has(name)),
+    };
+}
+
 export function registersForRole(profile: ModelProfile, role: Role, selection: Selection | null | undefined): Register[] {
     const groups = new Set<GroupId>(roleGroups[role]);
     return withResolvedAddresses(profile.registers.filter((register) =>

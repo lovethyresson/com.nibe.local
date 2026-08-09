@@ -20,6 +20,12 @@ export const POLL_SECONDS_MIN = 5;
 export const POLL_SECONDS_MAX = 60;
 export const POLL_SECONDS_DEFAULT = 10;
 
+// How many consecutive polls may read nothing at all before the connection is dropped and
+// rebuilt. Two rather than one: a single empty poll is what a pump busy with its own menu
+// or a momentary stall looks like, and reconnecting on that would churn. Two at the default
+// interval is ~20 s of silence, well inside what a user would call "it stopped updating".
+export const DEAD_POLLS_BEFORE_RECONNECT = 2;
+
 export interface Transport {
     port: number;
     unitId: number;
@@ -122,6 +128,16 @@ export function describeModbusError(reason: any): {summary: string; code?: numbe
 
 const connections = new Map<string, PumpConnection>();
 
+// Which lane a wire request queues in. Writes are user-triggered and latency-sensitive; reads
+// arrive a hundred at a time from the poll loop. See withWireAccess().
+type WireLane = 'read' | 'write';
+
+interface WireJob {
+    run: () => Promise<unknown>;
+    resolve: (value: unknown) => void;
+    reject: (reason: unknown) => void;
+}
+
 export class PumpConnection {
     private socket!: net.Socket;
     private client!: ModbusTCPClient;
@@ -132,6 +148,8 @@ export class PumpConnection {
     private retryTimer: NodeJS.Timeout | null = null;
     private connected = false;
     private destroyed = false;
+    // Consecutive polls where not one register answered. See the watchdog in poll().
+    private deadPolls = 0;
 
     // Every request to the pump — read or write — funnels through here, one at a time.
     // Confirmed live: a batch of ~17 read failures, all in one topical group, landed within a
@@ -139,13 +157,48 @@ export class PumpConnection {
     // Modbus TCP stack are both given no reason to expect that; a poll's dozens of concurrent
     // reads and an independent write share one client on one socket with nothing coordinating
     // them. This makes that impossible: whatever calls next just waits its turn.
-    private wireQueue: Promise<unknown> = Promise.resolve();
-    private withWireAccess<T>(fn: () => Promise<T>): Promise<T> {
-        const result = this.wireQueue.then(fn, fn);
-        // Swallow so one failed request doesn't poison the queue for whatever comes after it —
-        // the caller still sees the real rejection via `result`.
-        this.wireQueue = result.catch(() => undefined);
-        return result;
+    //
+    // Two lanes, not one. Serializing alone was not enough: poll() enqueues the whole register
+    // union — around a hundred requests — in a single synchronous burst, and a user's write
+    // queued behind all of them. Each request can take up to the jsmodbus timeout (5 s), so on a
+    // pump that has gone slow a write could wait minutes. Homey's flow-card timeout fires long
+    // before that, so the user is told their action failed while it is still sitting in the
+    // queue, and it then lands out of order. Writes now jump ahead of queued reads; the
+    // one-request-at-a-time guarantee that made this class necessary is unchanged.
+    private wireHigh: WireJob[] = [];
+    private wireLow: WireJob[] = [];
+    private wireRunning = false;
+
+    private withWireAccess<T>(fn: () => Promise<T>, lane: WireLane = 'read'): Promise<T> {
+        return new Promise<T>((resolve, reject) => {
+            (lane === 'write' ? this.wireHigh : this.wireLow)
+                .push({run: fn, resolve: resolve as (value: unknown) => void, reject});
+            void this.drainWire();
+        });
+    }
+
+    private async drainWire(): Promise<void> {
+        if (this.wireRunning)
+            return;
+        this.wireRunning = true;
+        try {
+            for (;;) {
+                // Re-checked every iteration rather than snapshotted: a write arriving while a
+                // poll's reads are draining takes the next slot, which is the whole point.
+                const job = this.wireHigh.shift() ?? this.wireLow.shift();
+                if (!job)
+                    return;
+                // One failed request must not stop the ones behind it — the caller still sees
+                // the real rejection through its own promise.
+                try {
+                    job.resolve(await job.run());
+                } catch (error) {
+                    job.reject(error);
+                }
+            }
+        } finally {
+            this.wireRunning = false;
+        }
     }
 
     // Energy integrator state. lastPowerReading is null right after every (re)connect so a
@@ -409,6 +462,11 @@ export class PumpConnection {
     private destroy() {
         this.debug('Last device detached, closing connection');
         this.destroyed = true;
+        // Also clear `connected`: removeAllListeners() below means onClose() will never run, so
+        // nothing else ever would. Without it poll() — including the one already scheduled by
+        // onConnect()'s 200 ms timer — passes its `!this.connected` guard and runs against a
+        // destroyed socket, which the watchdog would then try to end() a second time.
+        this.connected = false;
         if (this.pollInterval) clearInterval(this.pollInterval);
         if (this.retryTimer) clearTimeout(this.retryTimer);
         this.socket.removeAllListeners();
@@ -452,6 +510,7 @@ export class PumpConnection {
         this.lastConsumptionRaw = undefined;
         this.lastPollTime = Date.now();
         this.polling = false;
+        this.deadPolls = 0;
         this.subscribers.forEach((subscriber) => subscriber.onConnectionUp());
         setTimeout(() => this.poll(), 200);
         this.pollSeconds = this.desiredPollSeconds();
@@ -619,7 +678,7 @@ export class PumpConnection {
     async writeSingleRegister(address: number, raw: number): Promise<void> {
         const pdu = this.profile.addressBase ? address - this.profile.addressBase : address;
         try {
-            await this.withWireAccess(() => this.client.writeSingleRegister(pdu, raw));
+            await this.withWireAccess(() => this.client.writeSingleRegister(pdu, raw), 'write');
         } catch (reason: any) {
             const detail = describeModbusError(reason);
             // The whole error, verbatim, after the readable summary. jsmodbus says "A Modbus
@@ -637,7 +696,7 @@ export class PumpConnection {
     async writeMultipleRegisters(address: number, values: number[]): Promise<void> {
         const pdu = this.profile.addressBase ? address - this.profile.addressBase : address;
         try {
-            await this.withWireAccess(() => this.client.writeMultipleRegisters(pdu, values));
+            await this.withWireAccess(() => this.client.writeMultipleRegisters(pdu, values), 'write');
         } catch (reason: any) {
             const detail = describeModbusError(reason);
             this.log(`Error writing register ${address} (values ${values.join(', ')}): ${detail.summary}`,
@@ -659,6 +718,30 @@ export class PumpConnection {
                     this.lastRaw.set(register.name, raws[i]!);
                 }
             });
+
+            // Nothing answered at all. Not "this model lacks these registers" — the pump has
+            // stopped talking while leaving the TCP connection up, which is what a pump reboot,
+            // a Modbus slot taken by myUplink, or a wedged firmware looks like from here.
+            // Nothing else notices: readRegisterRaw() resolves undefined rather than rejecting,
+            // so this chain never fails, and setUnavailable() is only ever driven by socket
+            // 'error'/'close'. Without this the device sits "online" with frozen values forever
+            // and logs not one line about it.
+            if (rawByName.size === 0) {
+                this.deadPolls += 1;
+                if (this.deadPolls >= DEAD_POLLS_BEFORE_RECONNECT) {
+                    // Un-gated: this is the difference between a diagnosable report and a forum
+                    // thread, and the user has no reason to have debug logging on beforehand.
+                    this.log(`No register answered in ${this.deadPolls} consecutive polls — the `
+                        + 'connection is up but the pump has stopped responding. Dropping it and '
+                        + 'reconnecting.');
+                    this.deadPolls = 0;
+                    this.polling = false;
+                    this.socket.end(); // 'close' → subscribers marked down, reconnect in 5 s
+                    return;
+                }
+            } else {
+                this.deadPolls = 0;
+            }
 
             // Corrects rawByName itself, before anything below reads it — see the method
             // comment for why this is the one place this decision gets made.
@@ -684,8 +767,12 @@ export class PumpConnection {
                         subscriber.onRegisterRaw(register, raw);
                 }
         }).catch((error) => {
+            // Not the "pump stopped answering" path — readRegisterRaw() never rejects, so this
+            // only ever sees a genuine bug in the poll body above (a decode throwing, a
+            // subscriber's onRegisterRaw throwing). Recovering by dropping the socket used to
+            // live here; it could not fire, and the comment saying it did was worse than no
+            // comment. The unresponsive-pump case is handled by the deadPolls watchdog.
             this.log('Poll failed', error?.message ?? error);
-            this.socket.end(); // triggers 'close' → reconnect
         }).finally(() => {
             this.polling = false;
         });
