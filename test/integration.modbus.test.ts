@@ -10,7 +10,6 @@ import {Role} from '../lib/roles';
 
 // A buffer-backed fake pump: jsmodbus serves the input/holding buffers with its built-in
 // handlers, so seeding a register is just writing 2 big-endian bytes at address*2.
-const REG_BYTES = 0x10000 * 2;
 
 function seed(buf: Buffer, address: number, value: number, size?: 16 | 32) {
     if (size === 32) {
@@ -84,7 +83,10 @@ class FakeSub implements PumpSubscriber {
     wantedRegisters() { return this.regs; }
     onRegisterRaw(register: Register, raw: number) { this.raws.push({name: register.name, raw}); }
     onConnectionUp() { this.up = true; this.upResolvers.forEach((r) => r()); this.upResolvers = []; }
-    onConnectionDown() { this.up = false; }
+    // Counted, not just latched: a drop followed by a reconnect ends with `up` true again, so the
+    // transition is the only evidence the connection was ever dropped.
+    downCount = 0;
+    onConnectionDown() { this.up = false; this.downCount += 1; }
     pollSeconds() { return 5; }
     debugEnabled() { return this.debug; }
     onEnergy(kwh: number, watts: number) { this.energy.push({kwh, watts}); }
@@ -718,8 +720,58 @@ test('a poll where nothing reads at all is not blamed on the registers',
     }
 });
 
+// The other half of the same situation. Not reporting it as missing registers was right, but for
+// a long time it was ALSO not reported as anything else: readRegisterRaw() resolves undefined
+// rather than rejecting, so the poll chain never failed, the recovery path behind its .catch
+// could not run, and setUnavailable() only ever fired on a socket error or close. A pump that
+// stopped answering while holding the TCP connection open therefore left the device looking
+// online with frozen values, indefinitely, with nothing in the log.
+test('a pump that stops answering while the socket stays up is dropped and reconnected',
+     {timeout: 90000}, async () => {
+    const sockets: net.Socket[] = [];
+    const server = new net.Server((socket) => { sockets.push(socket); });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+    const port = (server.address() as net.AddressInfo).port;
+
+    const logs: string[] = [];
+    const realLog = console.log;
+    console.log = (...args: any[]) => { logs.push(args.join(' ')); };
+    try {
+        const a = reg({address: 560, name: 'reg_a', scale: 1});
+        const profile = tinyProfile([a]);
+        const sub = new FakeSub('main', [a]);
+        const connection = PumpConnection.get('127.0.0.1', profile, {port, unitId: 1});
+        connection.attach(sub);
+        try {
+            await sub.whenUp();
+            assert.equal(sub.up, true, 'starts up');
+            // Two consecutive polls must read nothing before the watchdog acts, and each read
+            // only fails once the jsmodbus 5 s timeout expires — so this is ~15 s of real time
+            // before the drop, plus room for the reconnect that follows.
+            await new Promise((r) => setTimeout(r, 30000));
+
+            assert.ok(logs.some((l) => l.includes('the pump has stopped responding')),
+                `expected the watchdog to say so; got: ${JSON.stringify(logs.slice(-5))}`);
+            // The device must actually be told, not just logged about — that is what turns a
+            // frozen tile into an unavailable one. It ends up back "up" because the reconnect
+            // succeeds (the server still accepts connections, it just never answers Modbus),
+            // so the drop itself is what to assert on.
+            assert.ok(sub.downCount >= 1,
+                'the device must be marked down, not left looking online with stale values');
+        } finally {
+            connection.shutdown();
+        }
+    } finally {
+        console.log = realLog;
+        sockets.forEach((s) => s.destroy());
+        await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+});
+
+// 60 s, not 30: this test genuinely takes ~28 s of wall clock, which left a 7% margin on a
+// suite node runs file-concurrently by default. It failed on a loaded machine, not on a bug.
 test('internal registers are polled even though no subscriber wants them, and steps are logged',
-     {timeout: 30000}, async () => {
+     {timeout: 60000}, async () => {
     // Internal registers have no capability, so they never appear in wantedRegisters() — but the
     // energy log lives here and has to be read. This test is the reason the poll loop gained an
     // explicit pass over profile.registers.
@@ -743,7 +795,8 @@ test('internal registers are polled even though no subscriber wants them, and st
             role: {priorityRawOff: 10, powerSources: [], producedRegisterForRole: {}, priorityToRole: {},
                    totalConsumptionRegister: 'tot_used', totalProductionRegister: 'tot_produced'},
             transport: {port: 502, unitId: 1},
-            energyLog: [{name: 'log_used', label: 'hot water used'}],
+            energyLog: [{name: 'log_used', label: 'hot water used',
+                         role: 'hotwater' as Role, flow: 'used' as const}],
             detection: {plausible: {}, discoveryProbe: {address: 1, scale: 10, min: -60, max: 60}},
             compose: {capabilities: [], capabilitiesOptions: {}, actions: [], conditions: [], triggers: []}
         });

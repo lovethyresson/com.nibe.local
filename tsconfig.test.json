@@ -1,0 +1,12 @@
+{
+  // Type-checks the test suite, which the main tsconfig deliberately excludes (its `outDir` is
+  // the app bundle — tests must not be compiled into it). `npm test` runs through tsx, which
+  // strips types without checking them, so without this file nothing ever type-checks test/:
+  // three real errors had accumulated there unnoticed.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["test/**/*.ts", "lib/**/*.ts", "drivers/**/*.ts"],
+  "exclude": [".homeybuild", "node_modules"]
+}

@@ -1,9 +1,23 @@
 {
   "extends": "@tsconfig/node12/tsconfig.json",
   "compilerOptions": {
+    // Inherited from the base config, but stated here on purpose: everything in lib/ is written
+    // assuming strictNullChecks, and a base-config bump must not be able to switch that off
+    // quietly.
+    "strict": true,
+    // Do not raise `target` casually. PumpConnection.reasonRegisters (lib/connection.ts) is a
+    // field initializer that reads `this.profile`, a constructor parameter property. That works
+    // only while `useDefineForClassFields` is false, which is the default below ES2022. Raising
+    // the target flips it, the parameter is assigned after the field initializers run, and
+    // `this.profile` becomes undefined — silently, taking every priority explanation with it.
+    "target": "es2019",
     "allowJs": true,
     "outDir": ".homeybuild/",
     "resolveJsonModule": true
   },
+  // Explicit, because `allowJs` without it swept in dev/*.mjs and assets/pair/*.js — neither of
+  // which ships in the app bundle (see .homeyignore) and neither of which is written to be
+  // type-checked.
+  "include": ["app.ts", "lib/**/*.ts", "drivers/**/*.ts"],
   "exclude": ["test", ".homeybuild", "node_modules"]
 }

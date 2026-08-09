@@ -1,14 +1,17 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import {readdirSync} from 'node:fs';
+import path from 'node:path';
 
 import {
     Dir, combineRaw, signedValue, isUnavailableRaw, toNumericValue, isAdjustable, isPollable,
     buildPickerPrimary, buildRegisterByName, enumLabel, isSelectableRegister, isRegisterEnabled,
-    Register,
+    Register, Selection, flowPredicates,
     migrateSelection, resolvedAddress
 } from '../lib/registers';
 import {makeProfile} from '../lib/profile';
 import {
+    capabilitySyncPlan,
     registersForRole, roleRegisters, extraCapabilities, extraCapabilityOptions,
     extraCapabilitySupport, mirrorOptions, roleGroups, allRoles, functionRoles,
     ACTIVE_POWER_CAPABILITY, FUNCTION_COP_CAPABILITY, METER_CAPABILITY, TOTAL_COP_CAPABILITY
@@ -164,6 +167,120 @@ test('makeProfile computes registerByName and pickerPrimary', () => {
 test('every register name is unique', () => {
     const names = registers.map((r) => r.name);
     assert.equal(new Set(names).size, names.length);
+});
+
+// Every per-register Flow card names its register in its id (`<register>.set`, `.onoff`,
+// `.enum`, `.reset`) — that is how registerFlows() finds the run listener to bind. A card whose
+// register has been deleted therefore binds to nothing and its $filter matches no device: dead
+// weight shipped to users. Two such cards (h196/h197) survived a register removal and shipped in
+// two releases before this test existed.
+// The upgrade path every existing device runs through at onInit and after every Repair. Until
+// this was extracted from NibePumpDevice.syncCapabilities() it could not be tested at all — a
+// private method on a Homey.Device subclass — which is how it stayed the single largest untested
+// decision in the app.
+test('capabilitySyncPlan adds what the selection wants and removes what it does not', () => {
+    const all: Selection = {groups: {}, overrides: {}};
+    const plan = capabilitySyncPlan(sProfile, 'hotwater', all, []);
+
+    assert.ok(plan.wanted.length > 0, 'hot water must want something');
+    assert.deepEqual(plan.toAdd, plan.wanted, 'a device with nothing must add everything wanted');
+    assert.deepEqual(plan.toRemove, [], 'nothing to remove when it carries nothing');
+    // The derived energy/COP capabilities are not registers and must still be planned for.
+    assert.ok(plan.extras.length > 0);
+    for (const extra of plan.extras)
+        assert.ok(plan.wanted.includes(extra), `${extra} missing from wanted`);
+});
+
+test('capabilitySyncPlan removes a capability whose register left the table', () => {
+    const all: Selection = {groups: {}, overrides: {}};
+    // A device carrying everything it should, plus one capability from a register that no longer
+    // exists anywhere. This is what makes dropping a register self-cleaning on a running device.
+    const current = [...capabilitySyncPlan(sProfile, 'heating', all, []).wanted,
+                     'boolean_NIBE.h196_alarm_lower_room_temp'];
+    const plan = capabilitySyncPlan(sProfile, 'heating', all, current);
+
+    assert.deepEqual(plan.toRemove, ['boolean_NIBE.h196_alarm_lower_room_temp']);
+    assert.deepEqual(plan.toAdd, [], 'it already has everything it wants');
+});
+
+test('capabilitySyncPlan removes only the unticked group, not the rest of the device', () => {
+    const withPool: Selection = {groups: {pool: true}, overrides: {}};
+    const withoutPool: Selection = {groups: {pool: false}, overrides: {}};
+
+    const on = capabilitySyncPlan(sProfile, 'pool', withPool, []);
+    assert.ok(on.wanted.length > 0, 'pool selected must want its registers');
+
+    // A pool device that carries them, then has the pool group unticked in Repair. The pool
+    // registers go — but the pool device's groups are ["pool", "energy"], and `energy` was not
+    // unticked, so its meter, live power and COP must survive. Removing those would silently
+    // reset the meter and take the device out of Homey's Energy tab.
+    const off = capabilitySyncPlan(sProfile, 'pool', withoutPool, on.wanted);
+    assert.deepEqual(off.toAdd, []);
+
+    const poolRegisters = registers.filter((r) => r.group === 'pool').map((r) => r.name);
+    for (const name of poolRegisters.filter((n) => on.wanted.includes(n)))
+        assert.ok(off.toRemove.includes(name), `${name} is a pool register and should be removed`);
+    for (const kept of [METER_CAPABILITY, ACTIVE_POWER_CAPABILITY])
+        assert.ok(!off.toRemove.includes(kept),
+            `${kept} belongs to the energy group and must survive unticking pool`);
+});
+
+test('every Flow card resolves to a register that still exists', () => {
+    const generic = new Set([
+        'alarm_occurred', 'priority_changed', 'capability_changed',
+        'capability_turned_on', 'capability_turned_off',
+        'set_numeric_value', 'enable_feature', 'disable_feature',
+        'numeric_value_comparison', 'feature_enabled',
+    ]);
+    const suffixes = ['set', 'onoff', 'enum', 'reset'];
+    const byName = buildRegisterByName(registers);
+    const cards = [...sProfile.compose.triggers, ...sProfile.compose.actions,
+                   ...sProfile.compose.conditions] as {id: string}[];
+    assert.ok(cards.length > 0);
+
+    for (const {id} of cards) {
+        if (generic.has(id))
+            continue;
+        const suffix = id.slice(id.lastIndexOf('.') + 1);
+        assert.ok(suffixes.includes(suffix), `${id} is neither a generic card nor a <register>.<${suffixes.join('|')}> card`);
+        const name = id.slice(0, id.lastIndexOf('.'));
+        assert.ok(byName[name], `Flow card ${id} names a register that no longer exists`);
+    }
+});
+
+// A capability *type* with no instance compiles into app.json and is offered to nobody. The
+// project keeps a retired type declared for a release or two after a rename (see CLAUDE.md) —
+// this catches the ones that were then forgotten.
+test('every custom capability type has at least one instance', () => {
+    // Repo-root relative: both `npm test` and CI run node from the root. Asserting the directory
+    // is non-empty keeps a wrong cwd from turning this into a test that silently checks nothing.
+    const dir = path.join(process.cwd(), '.homeycompose', 'capabilities');
+    const types = readdirSync(dir)
+        .filter((f) => f.endsWith('.json'))
+        .map((f) => f.slice(0, -'.json'.length));
+    assert.ok(types.length > 0, `no capability types found in ${dir}`);
+
+    const used = new Set(sProfile.compose.capabilities.map((c: string) => c.split('.')[0]));
+    for (const type of types)
+        assert.ok(used.has(type), `capability type ${type} has no instance in driver.compose.json`);
+});
+
+// The derived capabilities are not registers, but they share one namespace with them: both are
+// looked up as bare strings, and registerByName is keyed by the same names. The solar power
+// register was literally called "measure_power", the same string as the derived live-draw
+// capability, so a lookup got whichever the table happened to hold.
+//
+// SOLAR_METER_CAPABILITY is deliberately not in this list, and adding it would be wrong. It is a
+// *pointer to* the register named meter_power.solar — one thing with one name, which is how
+// setEnergy() is told which capability carries exported energy. The bug this guards against is
+// two different things answering to one name, not a constant naming a register on purpose.
+test('no register name collides with a derived capability name', () => {
+    const derived = [ACTIVE_POWER_CAPABILITY, METER_CAPABILITY, TOTAL_COP_CAPABILITY,
+                     FUNCTION_COP_CAPABILITY];
+    const byName = buildRegisterByName(registers);
+    for (const name of derived)
+        assert.ok(!byName[name],
+            `${name} is both a derived capability and a register — one of them must be renamed`);
 });
 
 test('every register is present in the compose capabilities superset', () => {
@@ -348,8 +465,8 @@ test('primaryOnoff maps each function to its enable register and Main to the bar
     assert.equal(sProfile.role.primaryOnoff?.cooling, 'onoff.h182_enable_cooling');
     // Each function's primary onoff is a real, writable register in the table.
     for (const role of functionRoles) {
-        const name = sProfile.role.primaryOnoff![role]!;
-        const reg = sProfile.registerByName[name];
+        const name: string = sProfile.role.primaryOnoff![role]!;
+        const reg: Register | undefined = sProfile.registerByName[name];
         assert.ok(reg, `${name} should be a register`);
         assert.equal(reg.bool, true);
     }
@@ -982,11 +1099,12 @@ test('pairing does not offer install-time or duplicate rows', () => {
 });
 
 test('a noAction register is never offered as something a Flow can write', () => {
-    // These mirror the autocomplete predicates in lib/driver.ts. The bool cards originally
-    // checked only writeOnly, which would have put "Room sensor regulation active" — a legacy
-    // register the app reads for context and must never write — into enable/disable Flows.
-    const numericAction = (r: Register) => r.direction === Dir.Out && r.scale! > 0 && !r.noAction;
-    const boolAction = (r: Register) => r.direction === Dir.Out && r.bool! && !r.writeOnly && !r.noAction;
+    // The real predicates lib/driver.ts binds to the cards, not copies of them. This test used
+    // to re-declare its own pair, which meant changing the shipped predicate left it green — the
+    // one thing a test of a predicate must not do. The bool cards originally checked only
+    // writeOnly, which would have put "Room sensor regulation active" — a legacy register the
+    // app reads for context and must never write — into enable/disable Flows.
+    const {numericAction, boolAction} = flowPredicates;
 
     for (const register of registers.filter((r) => r.noAction)) {
         assert.ok(!numericAction(register), `${register.name} is writable via set_numeric_value`);

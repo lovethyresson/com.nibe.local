@@ -164,6 +164,30 @@ export function isPlausibleAlt(register: Register, value: number | undefined): b
 
 // A register the user can change from Homey (writable holding register that
 // isn't display-only) as opposed to a read-only sensor/insight value.
+// Which registers each generic Flow card offers in its autocomplete. These live here, named and
+// exported, rather than inline in registerFlows(), because they are a correctness surface: they
+// are what keeps a read-only or `noAction` register from being presented as something a Flow can
+// write. The test that guards that used to re-declare its own copies and so could not have
+// noticed these changing.
+//
+// The `?? 0` / `!!` are not defensive noise: `scale` and `bool` are optional, and the previous
+// `reg.scale! > 0` asserted a value the type does not promise.
+export const flowPredicates = {
+    // Generic numeric write (set_numeric_value).
+    numericAction: (r: Register) => r.direction === Dir.Out && (r.scale ?? 0) > 0 && !r.noAction,
+    // Generic on/off write (enable_feature / disable_feature). `noAction` excludes a register
+    // from every write card, not just the numeric one.
+    boolAction: (r: Register) =>
+        r.direction === Dir.Out && !!r.bool && !r.writeOnly && !r.noAction,
+    // numeric_value_comparison — reads only, so direction is irrelevant.
+    numericCondition: (r: Register) => (r.scale ?? 0) > 0,
+    // feature_enabled, capability_turned_on, capability_turned_off. A write-only command
+    // register reads back nothing, so it has no state to test or trigger on.
+    boolState: (r: Register) => !!r.bool && !r.writeOnly,
+    // capability_changed carries a label, so it only makes sense for enums.
+    enumTrigger: (r: Register) => r.enum !== undefined,
+};
+
 export function isAdjustable(register: Register): boolean {
     return register.direction === Dir.Out && !register.noAction;
 }

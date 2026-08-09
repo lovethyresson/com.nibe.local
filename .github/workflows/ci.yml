@@ -1,0 +1,41 @@
+name: CI
+
+# The gate the repo did not have. `npm run lint` is not in it on purpose: the codebase is
+# 4-space and eslint-config-athom wants 2, so it fails repo-wide on untouched files and is not a
+# signal on a change (see CLAUDE.md). Types and tests are.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: npm
+
+      - run: npm ci
+
+      # The app bundle. tsconfig.json excludes test/, so this is the code that ships.
+      - name: Type-check the app
+        run: npx tsc --noEmit
+
+      # The suite itself. `npm test` runs through tsx, which strips types without checking them,
+      # so nothing else would ever catch a type error in test/.
+      - name: Type-check the tests
+        run: npx tsc -p tsconfig.test.json
+
+      - name: Test
+        run: npm test
+
+      # Catches anything that makes the manifest unpublishable — an orphan capability instance,
+      # a malformed flow card, a missing translation — before a release does. Pinned rather than
+      # `npx homey@latest` so a CLI release cannot fail the build on its own schedule.
+      - name: Validate the app manifest
+        run: npx --yes homey@4.4.1 app validate --level publish

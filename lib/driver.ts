@@ -3,7 +3,7 @@ import PairSession from "homey/lib/PairSession";
 import net from "net";
 import {
     Dir, GroupId, Register, RegisterInfo, Selection,
-    groupIds, isAdjustable, isSelectableRegister, signedValue
+    flowPredicates, groupIds, isAdjustable, isSelectableRegister, signedValue
 } from './registers';
 import {
     ACTIVE_POWER_CAPABILITY, ENERGY_CAPABILITIES, FUNCTION_COP_CAPABILITY, METER_CAPABILITY,
@@ -195,7 +195,7 @@ export abstract class NibePumpDriver extends Driver {
         }
 
         this.registerAutofillFlow(this.homey.flow.getActionCard("set_numeric_value"),
-            (reg) => reg.direction == Dir.Out && reg.scale! > 0 && !reg.noAction!,
+            flowPredicates.numericAction,
             async (args: any) => this.writeNumeric(args.device, this.profile.registerByName[args.register.id], args.value));
 
         // `noAction` excludes a register from every generic write card, not just the numeric one:
@@ -203,7 +203,7 @@ export abstract class NibePumpDriver extends Driver {
         // that check the "Room sensor regulation active" flag — legacy on zone firmware, where
         // writing it does nothing useful — would be offered as something to switch.
         this.registerAutofillFlow(this.homey.flow.getActionCard("enable_feature"),
-            (reg) => reg.direction == Dir.Out && reg.bool! && !reg.writeOnly && !reg.noAction,
+            flowPredicates.boolAction,
             async (args: any) => {
                 const register = this.profile.registerByName[args.register.id];
                 this.log(`Flow: ${args.device.getName()} enable ${register.name}`);
@@ -212,7 +212,7 @@ export abstract class NibePumpDriver extends Driver {
             });
 
         this.registerAutofillFlow(this.homey.flow.getActionCard("disable_feature"),
-            (reg) => reg.direction == Dir.Out && reg.bool! && !reg.writeOnly && !reg.noAction,
+            flowPredicates.boolAction,
             async (args: any) => {
                 const register = this.profile.registerByName[args.register.id];
                 this.log(`Flow: ${args.device.getName()} disable ${register.name}`);
@@ -221,7 +221,7 @@ export abstract class NibePumpDriver extends Driver {
             });
 
         this.registerAutofillFlow(this.homey.flow.getConditionCard("numeric_value_comparison"),
-            (reg) => reg.scale! > 0,
+            flowPredicates.numericCondition,
             (args: any) => {
                 if (!args.device.hasCapability(args.register.id))
                     return false;
@@ -230,19 +230,19 @@ export abstract class NibePumpDriver extends Driver {
             });
 
         this.registerAutofillFlow(this.homey.flow.getConditionCard("feature_enabled"),
-            (reg) => reg.bool! && !reg.writeOnly,
+            flowPredicates.boolState,
             (args: any) => args.device.hasCapability(args.register.id) && args.device.getCapabilityValue(args.register.id));
 
         this.registerAutofillFlow(this.homey.flow.getDeviceTriggerCard("capability_changed"),
-            (reg) => reg.enum != undefined,
+            flowPredicates.enumTrigger,
             (args: any, state: any) => args.register.id === state.register.id);
 
         this.registerAutofillFlow(this.homey.flow.getDeviceTriggerCard("capability_turned_on"),
-            (reg) => reg.bool! && !reg.writeOnly,
+            flowPredicates.boolState,
             (args: any, state: any) => args.register.id === state.register.id && state.value);
 
         this.registerAutofillFlow(this.homey.flow.getDeviceTriggerCard("capability_turned_off"),
-            (reg) => reg.bool! && !reg.writeOnly,
+            flowPredicates.boolState,
             (args: any, state: any) => args.register.id === state.register.id && !state.value);
     }
 
