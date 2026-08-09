@@ -57,11 +57,11 @@ export const roleClass: Record<Role, string> = {
 // rather than getting its own device: its fan runs year-round and its draw is part
 // of the building-heating side. Groups not listed here (core) stay on "main".
 export const roleGroups: Record<Role, GroupId[]> = {
-    main: ["core", "alarm", "diagnostics", "statistics", "electrical", "groundsource", "energy"],
-    heating: ["heating", "ventilation", "energy"],
-    hotwater: ["hotwater", "energy"],
-    pool: ["pool", "energy"],
-    cooling: ["cooling", "energy"],
+    main: ["core", "alarm", "diagnostics", "statistics", "electrical", "groundsource", "energy", "price"],
+    heating: ["heating", "ventilation", "energy", "price"],
+    hotwater: ["hotwater", "energy", "price"],
+    pool: ["pool", "energy", "price"],
+    cooling: ["cooling", "energy", "price"],
     solar: ["solar"]
 };
 

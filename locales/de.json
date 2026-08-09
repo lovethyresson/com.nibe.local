@@ -93,6 +93,7 @@
     "core": "Basissensoren",
     "alarm": "Alarmbehandlung",
     "energy": "Energie",
-    "solar": "Solar / PV"
+    "solar": "Solar / PV",
+    "price": "Smart Price Adaption"
   }
 }

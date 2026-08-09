@@ -74,7 +74,8 @@
     "diagnostics": "Köldmediediagnostik",
     "statistics": "Driftstatistik",
     "energy": "Energi",
-    "solar": "Solceller / PV"
+    "solar": "Solceller / PV",
+    "price": "Smart prisanpassning"
   },
   "Normal": "Normal",
   "Speed 1": "Steg 1",

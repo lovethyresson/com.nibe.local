@@ -17,6 +17,11 @@ export const groupIds = [
     "hotwater",
     "pool",
     "cooling",
+    // Smart Price Adaption. Spans every device the way "energy" does — the whole-pump master
+    // and status on Main, each function's enable and influence pinned to its own device with
+    // `role` — so one feature toggle governs the lot instead of the master hiding in "core",
+    // where detection is not allowed to drop a register the firmware turns out not to have.
+    "price",
     "ventilation",
     "groundsource",
     "electrical",

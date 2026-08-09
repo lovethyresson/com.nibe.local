@@ -97,7 +97,8 @@
     "core": "Grundvärden",
     "alarm": "Larmhantering",
     "energy": "Energi",
-    "solar": "Solceller / PV"
+    "solar": "Solceller / PV",
+    "price": "Smart prisanpassning"
   },
   "Immersion heater only": "Endast elpatron"
 }

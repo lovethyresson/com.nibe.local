@@ -284,6 +284,11 @@ export const sProfile = makeProfile({
         plausible: {
             // Apply to every pump, so they default to recommended.
             heating: () => true,
+            // Smart Price Adaption is settings, not sensors: 843 and the influences sit still
+            // unless someone changes them, so nothing in the group can be expected to move
+            // within the ~30s probe window. Default it on and let the per-register "did it
+            // answer" check drop the ones a given firmware lacks.
+            price: () => true,
             diagnostics: () => true,
             statistics: () => true,
             alarm: () => true,

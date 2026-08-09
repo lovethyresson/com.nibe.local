@@ -70,7 +70,8 @@
     "diagnostics": "Koudemiddeldiagnose",
     "statistics": "Bedrijfstijdstatistieken",
     "energy": "Energie",
-    "solar": "Zonne-energie / PV"
+    "solar": "Zonne-energie / PV",
+    "price": "Smart Price Adaption"
   },
   "Normal": "Normaal",
   "Speed 1": "Stand 1",

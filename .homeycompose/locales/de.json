@@ -70,7 +70,8 @@
     "diagnostics": "Kältemittel-Diagnose",
     "statistics": "Laufzeitstatistik",
     "energy": "Energie",
-    "solar": "Solar / PV"
+    "solar": "Solar / PV",
+    "price": "Smart Price Adaption"
   },
   "Normal": "Normal",
   "Speed 1": "Stufe 1",

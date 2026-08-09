@@ -70,7 +70,8 @@
     "diagnostics": "Kølemiddeldiagnostik",
     "statistics": "Driftstidsstatistik",
     "energy": "Energi",
-    "solar": "Solceller / PV"
+    "solar": "Solceller / PV",
+    "price": "Smart pristilpasning"
   },
   "Normal": "Normal",
   "Speed 1": "Trin 1",
