@@ -16,7 +16,6 @@
     "fuse_NIBE.h103_fuse",
     "operating_mode_NIBE.h237_operating_mode",
     "boolean_NIBE.h843_spa_activated",
-    "measure_enum_NIBE.i1918_spa_status",
     "boolean_NIBE.h180_enable_addition",
     "button.h22_reset_alarm",
     "alarm_text_NIBE",
@@ -1227,16 +1226,6 @@
         "nl": "Prijsinvloed (1-10)",
         "no": "Prispåvirkning (1-10)",
         "da": "Prispåvirkning (1-10)"
-      }
-    },
-    "measure_enum_NIBE.i1918_spa_status": {
-      "title": {
-        "en": "Smart Price Adaption status",
-        "sv": "Status smart prisanpassning",
-        "de": "Status Smart Price Adaption",
-        "nl": "Status Smart Price Adaption",
-        "no": "Status smart pristilpasning",
-        "da": "Status smart pristilpasning"
       }
     },
     "spa_hotwater_influence_NIBE.h902_spa_hotwater_influence": {

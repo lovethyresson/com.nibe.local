@@ -93,7 +93,6 @@
     "core": "Basissensorer",
     "alarm": "Alarmhåndtering",
     "energy": "Energi",
-    "solar": "Sol / PV",
-    "price": "Smart pristilpasning"
+    "solar": "Sol / PV"
   }
 }

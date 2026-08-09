@@ -74,8 +74,7 @@
     "diagnostics": "Refrigerant diagnostics",
     "statistics": "Runtime statistics",
     "energy": "Energy",
-    "solar": "Solar / PV",
-    "price": "Smart Price Adaption"
+    "solar": "Solar / PV"
   },
   "Normal": "Normal",
   "Speed 1": "Speed 1",

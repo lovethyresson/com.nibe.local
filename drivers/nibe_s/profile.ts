@@ -270,11 +270,7 @@ export const sProfile = makeProfile({
         // which changes the capability id. Worth carrying because a stored `selection` is keyed
         // by register name, so without this the register loses its resolved address and any
         // per-capability override, not just its label.
-        "measure_count_NIBE.h845_spa_heating_influence": "spa_heating_influence_NIBE.h845_spa_heating_influence",
-        // 0.9.15: 1918 turned out to speak the operating-priority code space, so it became a
-        // labelled enum instead of a bare number. Same reason as 845 — the stored selection is
-        // keyed by register name.
-        "measure_count_NIBE.i1918_spa_status": "measure_enum_NIBE.i1918_spa_status"
+        "measure_count_NIBE.h845_spa_heating_influence": "spa_heating_influence_NIBE.h845_spa_heating_influence"
     },
 
     detection: {
@@ -284,11 +280,6 @@ export const sProfile = makeProfile({
         plausible: {
             // Apply to every pump, so they default to recommended.
             heating: () => true,
-            // Smart Price Adaption is settings, not sensors: 843 and the influences sit still
-            // unless someone changes them, so nothing in the group can be expected to move
-            // within the ~30s probe window. Default it on and let the per-register "did it
-            // answer" check drop the ones a given firmware lacks.
-            price: () => true,
             diagnostics: () => true,
             statistics: () => true,
             alarm: () => true,

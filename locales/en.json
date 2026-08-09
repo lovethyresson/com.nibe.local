@@ -97,8 +97,7 @@
     "core": "Core sensors",
     "alarm": "Alarm handling",
     "energy": "Energy",
-    "solar": "Solar / PV",
-    "price": "Smart Price Adaption"
+    "solar": "Solar / PV"
   },
   "Immersion heater only": "Immersion heater only"
 }
