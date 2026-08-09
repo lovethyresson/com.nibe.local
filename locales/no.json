@@ -74,7 +74,7 @@
     "diagnostics": "Kjølemediediagnostikk",
     "statistics": "Driftstidsstatistikk",
     "cooling": "Kjøling",
-    "core": "Basissensorer",
+    "core": "Styring",
     "alarm": "Alarmhåndtering",
     "energy": "Energi",
     "solar": "Sol / PV"

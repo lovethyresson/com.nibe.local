@@ -74,7 +74,7 @@
     "diagnostics": "Kältemittel-Diagnose",
     "statistics": "Laufzeitstatistik",
     "cooling": "Kühlung",
-    "core": "Basissensoren",
+    "core": "Steuerung",
     "alarm": "Alarmbehandlung",
     "energy": "Energie",
     "solar": "Solar / PV"

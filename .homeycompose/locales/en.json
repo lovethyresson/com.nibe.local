@@ -58,7 +58,7 @@
     }
   },
   "groups": {
-    "core": "Core sensors",
+    "core": "Controls",
     "heating": "Heating",
     "hotwater": "Hot water",
     "pool": "Pool",

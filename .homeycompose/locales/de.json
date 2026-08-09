@@ -58,7 +58,7 @@
     }
   },
   "groups": {
-    "core": "Basissensoren",
+    "core": "Steuerung",
     "heating": "Heizung",
     "hotwater": "Brauchwasser",
     "pool": "Pool",

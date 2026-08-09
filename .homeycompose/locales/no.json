@@ -58,7 +58,7 @@
     }
   },
   "groups": {
-    "core": "Basissensorer",
+    "core": "Styring",
     "heating": "Varme",
     "hotwater": "Varmtvann",
     "pool": "Basseng",

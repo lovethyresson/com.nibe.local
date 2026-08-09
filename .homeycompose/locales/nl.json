@@ -58,7 +58,7 @@
     }
   },
   "groups": {
-    "core": "Basissensoren",
+    "core": "Bediening",
     "heating": "Verwarming",
     "hotwater": "Warmtapwater",
     "pool": "Zwembad",
