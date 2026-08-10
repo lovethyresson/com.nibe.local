@@ -65,7 +65,6 @@
     "measure_degree_minutes_NIBE.h11_degree_minutes",
     "measure_degree_minutes_NIBE.h97_dm_start_compressor",
     "measure_degree_minutes_NIBE.h679_dm_diff_start_addition",
-    "measure_degree_minutes_NIBE.h18_limit_dm",
     "boolean_NIBE.h202_use_room_sensor",
     "boolean_NIBE.h844_spa_heating_activated",
     "spa_heating_influence_NIBE.h845_spa_heating_influence",
@@ -278,12 +277,12 @@
     },
     "measure_hour_NIBE.i1025_additive_usage_total": {
       "title": {
-        "en": "Immersion heater runtime, total",
-        "sv": "Elpatronens drifttid, totalt",
-        "de": "Heizstab-Laufzeit, gesamt",
-        "nl": "Draaiuren elektrisch element, totaal",
-        "no": "Elkolbens driftstid, totalt",
-        "da": "Elpatronens driftstid, i alt"
+        "en": "Total immersion heater runtime",
+        "sv": "Total drifttid elpatron",
+        "de": "Gesamtlaufzeit Heizstab",
+        "nl": "Totale bedrijfstijd elektrisch element",
+        "no": "Total driftstid elkolbe",
+        "da": "Samlet driftstid elpatron"
       }
     },
     "measure_hour_NIBE.i1069_additive_usage_hotwater": {
@@ -867,6 +866,7 @@
       "min": 5,
       "max": 80,
       "uiComponent": null,
+      "insights": false,
       "title": {
         "en": "Min supply temperature",
         "sv": "Min framledningstemperatur",
@@ -881,6 +881,7 @@
       "min": 5,
       "max": 80,
       "uiComponent": null,
+      "insights": false,
       "title": {
         "en": "Max supply temperature",
         "sv": "Max framledningstemperatur",
@@ -950,17 +951,6 @@
         "nl": "Startverschil elektrisch element",
         "no": "Startdifferanse elkolbe",
         "da": "Startdifference elpatron"
-      },
-      "insights": false
-    },
-    "measure_degree_minutes_NIBE.h18_limit_dm": {
-      "title": {
-        "en": "Degree minutes limit",
-        "sv": "Gradminuter begränsning",
-        "de": "Gradminuten begrenzt",
-        "nl": "Graadminuten begrensd",
-        "no": "Gradminutter begrenset",
-        "da": "Gradminutter begrænset"
       },
       "insights": false
     },

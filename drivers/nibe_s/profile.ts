@@ -76,7 +76,6 @@ export const sProfile = makeProfile({
                 "measure_degree_minutes_NIBE.h11_degree_minutes",
                 "measure_degree_minutes_NIBE.h97_dm_start_compressor",
                 "measure_degree_minutes_NIBE.h679_dm_diff_start_addition",
-                "measure_degree_minutes_NIBE.h18_limit_dm",
                 // room-sensor regulation and price control, rarely touched
                 "boolean_NIBE.h202_use_room_sensor",
                 "boolean_NIBE.h844_spa_heating_activated",

@@ -549,8 +549,12 @@ export const registers: Register[] = [
     // A difference from h97, not an absolute degree-minute value — hence the positive range.
     {address:  679, name: "measure_degree_minutes_NIBE.h679_dm_diff_start_addition", direction: Dir.Out, group: "heating", scale: 1, min: 100, max: 2000, // Gradminuter differens start tillsats
      info: {en: "How many degree minutes below the compressor start the additive heater joins in", sv: "Hur många gradminuter under kompressorstarten som tillsatsen går in"}},
-    {address:   18, name: "measure_degree_minutes_NIBE.h18_limit_dm",         direction: Dir.Out, group: "heating",    scale: 10, min: -3000, max: 3000, // Gradminuter, begränsat värde
-     info: {en: "Degree minutes limited to the range the pump regulates within", sv: "Gradminuter begränsade till intervallet pumpen reglerar inom"}},
+    // Holding 18 "Limit DM" is deliberately not mapped. It is the degree minutes clamped to the
+    // band the controller regulates in, not a setting: on a live pump it changes in the same poll
+    // as register 11 and pins at the edge of the band (summer 2026: 11 drifted 0..100 while 18 sat
+    // at 0). So it tells an owner nothing 11 doesn't, and being a holding register it used to be
+    // offered as writable — a write the controller overwrites within a poll, exactly as it does
+    // for register 11, which is why that one carries noAction.
     {address:   20, name: "measure_degree_minutes_NIBE.h20_cooling_dm",       direction: Dir.Out, group: "cooling",    scale: 10, min: -3000, max: 3000, // Gradminuter kyla
      info: {en: "Accumulated cooling surplus that decides when cooling starts", sv: "Ackumulerat kylöverskott som avgör när kylan startar"}},
     // Hot water start/stop come as three pairs, one per demand mode (register 56):

@@ -692,48 +692,6 @@
       ]
     },
     {
-      "id": "measure_degree_minutes_NIBE.h18_limit_dm.set",
-      "title": {
-        "en": "Set the degree minute limit",
-        "sv": "Ställ in gradminutbegränsningen",
-        "de": "Gradminutenbegrenzung einstellen",
-        "nl": "Graadminutenbegrenzing instellen",
-        "no": "Still inn gradminuttbegrensning",
-        "da": "Indstil gradminutbegrænsning"
-      },
-      "titleFormatted": {
-        "en": "Set the degree minute limit to [[value]]",
-        "sv": "Ställ in gradminutbegränsningen till [[value]]",
-        "de": "Gradminutenbegrenzung auf [[value]] setzen",
-        "nl": "Graadminutenbegrenzing instellen op [[value]]",
-        "no": "Sett gradminuttbegrensning til [[value]]",
-        "da": "Indstil gradminutbegrænsning til [[value]]"
-      },
-      "hint": {
-        "en": "Degree minutes limited to the range the pump regulates within. Accepts -3000 to 3000 °Cmin.",
-        "sv": "Gradminuter begränsade till intervallet pumpen reglerar inom. Tillåter -3000 till 3000 °Cmin.",
-        "de": "Gradminuten, begrenzt auf den Regelbereich der Wärmepumpe. Bereich: -3000 bis 3000 °Cmin.",
-        "nl": "Graadminuten, begrensd tot het regelbereik van de warmtepomp. Bereik: -3000 tot 3000 °Cmin.",
-        "no": "Gradminutter begrenset til området varmepumpen regulerer innenfor. Område: -3000 til 3000 °Cmin.",
-        "da": "Gradminutter begrænset til det område, varmepumpen regulerer inden for. Område: -3000 til 3000 °Cmin."
-      },
-      "$filter": "capabilities=measure_degree_minutes_NIBE.h18_limit_dm",
-      "args": [
-        {
-          "type": "number",
-          "name": "value",
-          "title": {
-            "en": "Value",
-            "sv": "Värde",
-            "de": "Wert",
-            "nl": "Waarde",
-            "no": "Verdi",
-            "da": "Værdi"
-          }
-        }
-      ]
-    },
-    {
       "id": "measure_degree_minutes_NIBE.h20_cooling_dm.set",
       "title": {
         "en": "Set the cooling degree minutes",

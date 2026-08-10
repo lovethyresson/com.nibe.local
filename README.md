@@ -140,6 +140,9 @@ A few things that surprise people, none of which are bugs:
   rejects the demand-mode and boost registers outright ("Illegal Function") rather than ignoring them — so a
   Flow that sets one will report an error. The same goes for price adaption: its per-function influence is
   only writable while that function's adaption is switched on.
+- **Insights only charts what moves.** Settings you choose — the supply temperature limits, the hot water
+  start and stop points, the degree-minute thresholds — sit on the device and stay adjustable, but draw no
+  graph. A flat line is not history.
 - **Pair every function you want metered.** If you skip the Hot Water device, the energy the pump spends on
   hot water lands on Main instead. The app logs a warning when that happens.
 - **Energy counts from when you added the device**, so the numbers reconcile with each other rather than

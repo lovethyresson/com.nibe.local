@@ -1,7 +1,7 @@
 {
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "com.nibe.local",
-  "version": "0.9.15",
+  "version": "0.9.16",
   "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
@@ -1069,52 +1069,6 @@
             "type": "device",
             "name": "device",
             "filter": "driver_id=nibe_s&capabilities=measure_degree_minutes_NIBE.h679_dm_diff_start_addition"
-          },
-          {
-            "type": "number",
-            "name": "value",
-            "title": {
-              "en": "Value",
-              "sv": "Värde",
-              "de": "Wert",
-              "nl": "Waarde",
-              "no": "Verdi",
-              "da": "Værdi"
-            }
-          }
-        ]
-      },
-      {
-        "id": "measure_degree_minutes_NIBE.h18_limit_dm.set",
-        "title": {
-          "en": "Set the degree minute limit",
-          "sv": "Ställ in gradminutbegränsningen",
-          "de": "Gradminutenbegrenzung einstellen",
-          "nl": "Graadminutenbegrenzing instellen",
-          "no": "Still inn gradminuttbegrensning",
-          "da": "Indstil gradminutbegrænsning"
-        },
-        "titleFormatted": {
-          "en": "Set the degree minute limit to [[value]]",
-          "sv": "Ställ in gradminutbegränsningen till [[value]]",
-          "de": "Gradminutenbegrenzung auf [[value]] setzen",
-          "nl": "Graadminutenbegrenzing instellen op [[value]]",
-          "no": "Sett gradminuttbegrensning til [[value]]",
-          "da": "Indstil gradminutbegrænsning til [[value]]"
-        },
-        "hint": {
-          "en": "Degree minutes limited to the range the pump regulates within. Accepts -3000 to 3000 °Cmin.",
-          "sv": "Gradminuter begränsade till intervallet pumpen reglerar inom. Tillåter -3000 till 3000 °Cmin.",
-          "de": "Gradminuten, begrenzt auf den Regelbereich der Wärmepumpe. Bereich: -3000 bis 3000 °Cmin.",
-          "nl": "Graadminuten, begrensd tot het regelbereik van de warmtepomp. Bereik: -3000 tot 3000 °Cmin.",
-          "no": "Gradminutter begrenset til området varmepumpen regulerer innenfor. Område: -3000 til 3000 °Cmin.",
-          "da": "Gradminutter begrænset til det område, varmepumpen regulerer inden for. Område: -3000 til 3000 °Cmin."
-        },
-        "args": [
-          {
-            "type": "device",
-            "name": "device",
-            "filter": "driver_id=nibe_s&capabilities=measure_degree_minutes_NIBE.h18_limit_dm"
           },
           {
             "type": "number",
@@ -2689,7 +2643,6 @@
         "measure_degree_minutes_NIBE.h11_degree_minutes",
         "measure_degree_minutes_NIBE.h97_dm_start_compressor",
         "measure_degree_minutes_NIBE.h679_dm_diff_start_addition",
-        "measure_degree_minutes_NIBE.h18_limit_dm",
         "boolean_NIBE.h202_use_room_sensor",
         "boolean_NIBE.h844_spa_heating_activated",
         "spa_heating_influence_NIBE.h845_spa_heating_influence",
@@ -2902,12 +2855,12 @@
         },
         "measure_hour_NIBE.i1025_additive_usage_total": {
           "title": {
-            "en": "Immersion heater runtime, total",
-            "sv": "Elpatronens drifttid, totalt",
-            "de": "Heizstab-Laufzeit, gesamt",
-            "nl": "Draaiuren elektrisch element, totaal",
-            "no": "Elkolbens driftstid, totalt",
-            "da": "Elpatronens driftstid, i alt"
+            "en": "Total immersion heater runtime",
+            "sv": "Total drifttid elpatron",
+            "de": "Gesamtlaufzeit Heizstab",
+            "nl": "Totale bedrijfstijd elektrisch element",
+            "no": "Total driftstid elkolbe",
+            "da": "Samlet driftstid elpatron"
           }
         },
         "measure_hour_NIBE.i1069_additive_usage_hotwater": {
@@ -3491,6 +3444,7 @@
           "min": 5,
           "max": 80,
           "uiComponent": null,
+          "insights": false,
           "title": {
             "en": "Min supply temperature",
             "sv": "Min framledningstemperatur",
@@ -3505,6 +3459,7 @@
           "min": 5,
           "max": 80,
           "uiComponent": null,
+          "insights": false,
           "title": {
             "en": "Max supply temperature",
             "sv": "Max framledningstemperatur",
@@ -3574,17 +3529,6 @@
             "nl": "Startverschil elektrisch element",
             "no": "Startdifferanse elkolbe",
             "da": "Startdifference elpatron"
-          },
-          "insights": false
-        },
-        "measure_degree_minutes_NIBE.h18_limit_dm": {
-          "title": {
-            "en": "Degree minutes limit",
-            "sv": "Gradminuter begränsning",
-            "de": "Gradminuten begrenzt",
-            "nl": "Graadminuten begrensd",
-            "no": "Gradminutter begrenset",
-            "da": "Gradminutter begrænset"
           },
           "insights": false
         },
