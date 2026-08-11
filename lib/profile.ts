@@ -111,6 +111,10 @@ export interface ReasonInput {
     size?: 16 | 32;
 }
 
+// Scratch memory a model's rules can write at one priority change and read back at the next.
+// Values only — the engine never looks inside, it just keeps the bag alive.
+export type ReasonState = Record<string, string | number | undefined>;
+
 export interface ReasonContext {
     // Raw priority codes before and after the change, and the roles they map to.
     from?: number;
@@ -120,6 +124,15 @@ export interface ReasonContext {
     // A named input's value, scaled and sign-corrected; undefined if it didn't read (accessory
     // not fitted, register absent on this model) — every rule must tolerate that.
     v(id: string): number | undefined;
+    // Mutable, and it has to be: what STARTED a run is often unreadable by the time the run
+    // ends. "More hot water" (697) is the case in point — the profile's reset rule clears it the
+    // moment the pump goes hot water -> idle, and writes jump the wire queue ahead of the reads
+    // this explanation makes, so the boost that caused a charge is routinely gone before the
+    // charge can be explained. A rule records the trigger at the start and reads it back here.
+    //
+    // Lives for the life of the connection, so it is empty after an app restart — a rule must
+    // still stand up with nothing in it (the pump was mid-charge and nobody watched it start).
+    state: ReasonState;
 }
 
 // Nibe exposes no "why did it do that" register — the control logic is internal. But the

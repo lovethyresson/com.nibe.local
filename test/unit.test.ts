@@ -10,6 +10,7 @@ import {
     migrateSelection, resolvedAddress
 } from '../lib/registers';
 import {makeProfile} from '../lib/profile';
+import type {ReasonState} from '../lib/profile';
 import {
     capabilitySyncPlan,
     registersForRole, roleRegisters, extraCapabilities, extraCapabilityOptions,
@@ -630,13 +631,25 @@ const baseline: Record<string, number> = {
     stopHeatingOut: 17.0, hwCharge: 48.9, hwTop: 49.5, hwMode: 1,
     hwStartSmall: 38, hwStopSmall: 45, hwStartMedium: 44, hwStopMedium: 51,
     hwStartLarge: 48, hwStopLarge: 55, moreHotwater: 0, periodicHw: 0,
-    dmCooling: 30, startCoolingOut: 25, poolTemp: 24, poolStart: 22, poolStop: 25,
+    hwStopPeriodic: 60, dmCooling: 30, startCoolingOut: 25, poolTemp: 24, poolStart: 22, poolStop: 25,
     outdoor: 10.0, sgReady: 10, operatingMode: 0
 };
 
-const why = (role: Role, previousRole: Role | undefined, over: Record<string, number> = {}) => {
+// A one-shot explanation, with nothing remembered from an earlier change. Anything testing what
+// the rules carry ACROSS a change (which trigger fired a hot water charge) has to keep one state
+// bag across both calls — see `run` below — since that is exactly what the connection does.
+const why = (role: Role, previousRole: Role | undefined, over: Record<string, number> = {},
+             state: ReasonState = {}) => {
     const values = {...baseline, ...over};
-    return sReason.explain({role, previousRole, v: (id) => values[id]});
+    return sReason.explain({role, previousRole, v: (id) => values[id], state});
+};
+
+// Two changes through one state bag: the pump starts producing `role` under `start` register
+// values, then goes idle under `end`. Returns the explanation for going idle.
+const run = (role: Role, start: Record<string, number>, end: Record<string, number> = {}) => {
+    const state: ReasonState = {};
+    why(role, 'main', start, state);
+    return why('main', role, {...start, ...end}, state)!;
 };
 
 test('reason: heating start cites degree minutes against the start threshold', () => {
@@ -686,10 +699,73 @@ test('reason: the demand mode selects which start/stop pair is quoted', () => {
     assert.match(small!.en, /38\.0 °C start point for Small demand/);
 });
 
-test('reason: a manual boost is reported as the boost, not as a temperature', () => {
+test('reason: a manual boost is reported as the boost, and names the point it charges to', () => {
+    // Large's stop point (55.0), not the selected mode's — the pump is in Medium here.
     const reason = why('hotwater', 'main', {moreHotwater: 2, hwCharge: 20});
     assert.match(reason!.en, /"More hot water" was switched on/);
+    assert.match(reason!.en, /charging the tank to Large's 55\.0 °C stop point/);
     assert.doesNotMatch(reason!.en, /start point/);
+});
+
+test('reason: a finished charge is measured against what started it, not the demand mode', () => {
+    // A boost aims at Large (55.0) whatever mode is selected, so a run ending at 55.2 is charged
+    // — even though it sailed past Medium's 51.0 stop point, which is what the app used to quote
+    // and then have to explain away.
+    const boost = run('hotwater', {moreHotwater: 2, hwCharge: 42}, {hwCharge: 55.2});
+    assert.match(boost.en, /reached 55\.2 °C, the 55\.0 °C Large stop point that "More hot water" charges to/);
+    assert.doesNotMatch(boost.en, /51\.0/);
+    assert.match(boost.sv, /nådde 55,2 °C, stopptemperaturen 55,0 °C för behovsläget stort/);
+
+    // ...and a boost that gave up short of Large is short of it, not "charged" because it happened
+    // to clear the selected mode's stop point. (Measured on an S1155: a boost ran 12 minutes and
+    // ended at 41.9 °C, and the old rule called that charged.)
+    const gaveUp = run('hotwater', {moreHotwater: 2, hwCharge: 30}, {hwCharge: 41.9});
+    assert.match(gaveUp.en, /ended at 41\.9 °C, short of the 55\.0 °C Large stop point/);
+
+    // The periodic anti-legionella charge aims at the same register.
+    const periodic = run('hotwater', {periodicHw: 1, hwCharge: 48.9}, {hwCharge: 60.2});
+    assert.match(periodic.en, /reached 60\.2 °C, the 60\.0 °C stop point for the periodic hot water charge/);
+
+    // A charge the pump started on demand still gets its demand mode's pair.
+    const demand = run('hotwater', {hwCharge: 43.6}, {hwCharge: 51.2});
+    assert.match(demand.en, /reached 51\.2 °C, its 51\.0 °C stop point/);
+});
+
+test('reason: the trigger is consumed, so one boost cannot explain the next charge', () => {
+    const state: ReasonState = {};
+    why('hotwater', 'main', {moreHotwater: 2, hwCharge: 42}, state);
+    why('main', 'hotwater', {moreHotwater: 0, hwCharge: 59.5}, state);
+    // Next charge is demand-driven and nothing of the boost is left to colour it. (The pump has
+    // cleared 697 by now — the profile's reset rule writes it off on hot water -> idle, which is
+    // why the trigger has to be remembered rather than re-read at the end.)
+    why('hotwater', 'main', {moreHotwater: 0, hwCharge: 43.6}, state);
+    const second = why('main', 'hotwater', {moreHotwater: 0, hwCharge: 51.2}, state)!;
+    assert.match(second.en, /its 51\.0 °C stop point/);
+    assert.doesNotMatch(second.en, /boost/);
+});
+
+test('reason: an untracked charge keeps the old inference, and a boost mid-charge is caught', () => {
+    // Nothing remembered — the app was restarted mid-charge — so the demand mode is all there is,
+    // and overshooting it still says a boost was running. Same for a charge that started on
+    // demand and had a boost switched on part-way through, which is recorded as 'demand'.
+    assert.match(why('main', 'hotwater', {hwCharge: 57.4})!.en,
+        /past Medium's 51\.0 °C stop point, because a boost was running/);
+    assert.match(run('hotwater', {hwCharge: 43.6}, {moreHotwater: 2, hwCharge: 57.4}).en,
+        /because a boost was running/);
+});
+
+test('reason: a boost is still explained when the setpoint it aims at does not read', () => {
+    // Naming the selected demand mode's stop point instead would be the very mistake the tracking
+    // exists to avoid — so the sentence carries no target at all rather than a wrong one.
+    const state: ReasonState = {};
+    const values: Record<string, number> = {...baseline, moreHotwater: 2, hwStopLarge: undefined as any};
+    const v = (id: string) => values[id];
+    const start = sReason.explain({role: 'hotwater', previousRole: 'main', v, state})!;
+    assert.match(start.en, /"More hot water" was switched on, so the pump is charging the tank now\./);
+    values.hwCharge = 55.0;
+    const end = sReason.explain({role: 'main', previousRole: 'hotwater', v, state})!;
+    assert.match(end.en, /The "More hot water" boost finished with the tank at 55\.0 °C\./);
+    assert.doesNotMatch(end.en, /51\.0|stop point/);
 });
 
 test('reason: charging a tank that is above its start point is a scheduled top-up', () => {
@@ -744,7 +820,7 @@ test('reason: cooling and pool starts cite their own thresholds', () => {
 
 test('reason: rules degrade instead of printing blanks when registers do not read', () => {
     // Nothing read at all — still a sentence, just a weaker one, and never "undefined".
-    const bare = sReason.explain({role: 'heating', previousRole: 'main', v: () => undefined})!;
+    const bare = sReason.explain({role: 'heating', previousRole: 'main', v: () => undefined, state: {}})!;
     assert.equal(bare.en, 'Heat demand in the house.');
     assert.doesNotMatch(bare.sv, /undefined|NaN/);
     // A partial read drops the clause it can't support rather than the whole sentence.

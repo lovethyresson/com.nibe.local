@@ -2,7 +2,7 @@ import net from 'net';
 import {ModbusTCPClient} from 'jsmodbus';
 import {Dir, Register, combineRaw, isPollable, isUnavailableRaw, signedValue} from './registers';
 import {Role, functionRoles} from './roles';
-import type {LocalizedText, ModelProfile} from './profile';
+import type {LocalizedText, ModelProfile, ReasonState} from './profile';
 import {DetectionResult, buildDetectionResult, readNumeric, sampleRegisters} from './detection';
 
 // A Nibe pump accepts only a single Modbus client, but the app pairs several logical
@@ -587,6 +587,13 @@ export class PumpConnection {
             size: input.size
         }]);
 
+    // What the model's rules remembered from earlier priority changes on this pump — e.g. that
+    // the hot water charge now ending was fired by a boost rather than by the tank running down.
+    // One bag per connection (so per pump, shared by its devices), deliberately not persisted:
+    // it describes a run in progress, and a run the app did not watch start is one the rules
+    // already have to explain without it.
+    private readonly reasonState: ReasonState = {};
+
     // Read the pump's decision inputs and let the model turn them into a sentence. Done on
     // demand at a priority change rather than every poll, so a handful of transitions a day
     // cost a handful of extra reads. Inputs that don't read are left undefined for explain().
@@ -605,7 +612,8 @@ export class PumpConnection {
             values.set(id, signedValue(raw, register.size) / (register.scale || 1));
         });
         const previousRole = from !== undefined ? this.profile.role.priorityToRole[from] : undefined;
-        return reason.explain({from, to, role, previousRole, v: (id) => values.get(id)});
+        return reason.explain({from, to, role, previousRole, v: (id) => values.get(id),
+            state: this.reasonState});
     }
 
     private pduAddress(register: Register): number {

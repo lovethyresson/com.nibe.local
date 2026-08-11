@@ -581,13 +581,14 @@ export const registers: Register[] = [
     // not what a manual "More hot water" boost aims at: this register read 60.0 while a boost
     // stopped at 58.1 °C.
     //
-    // What a boost DOES target is most likely the Large (luxury) stop point — NIBE's manuals
-    // describe menu 2.1 as temporarily raising the pump to luxury hot water, and say luxury uses
-    // the immersion heater alongside the compressor. Our measurements cannot confirm it, because
-    // additional heat for hot water is blocked on the test pump, so every boost ends at the
-    // compressor's ceiling rather than at a setpoint: 53.4, 54.6, 55.0, then 58.1 with Large at
-    // 58.0 and 58.6 with Large at 66.0. The second of those looks like a refutation and is not —
-    // the ceiling binds first, so the test is simply silent.
+    // What a boost targets is the Large (luxury) stop point — NIBE's manuals describe menu 2.1 as
+    // temporarily raising the pump to luxury hot water, and say luxury uses the immersion heater
+    // alongside the compressor. Crucially it is *always* Large, not whichever demand mode (56) is
+    // selected at the time, which is what reason.ts measures a finished boost against. Our own
+    // measurements cannot confirm the number, because additional heat for hot water is blocked on
+    // the test pump, so every boost ends at the compressor's ceiling rather than at a setpoint:
+    // 53.4, 54.6, 55.0, then 58.1 with Large at 58.0 and 58.6 with Large at 66.0. The second of
+    // those looks like a refutation and is not — the ceiling binds first, so the test is silent.
     //
     // To settle it, set Large BELOW the ceiling (say 54) and run a boost: stopping there proves
     // the target, and unlike every attempt so far the compressor can definitely reach it.

@@ -1,5 +1,5 @@
 import {Dir} from '../../lib/registers';
-import type {LocalizedText, ReasonConfig, ReasonContext} from '../../lib/profile';
+import type {LocalizedText, ReasonConfig, ReasonContext, ReasonState} from '../../lib/profile';
 
 // Why the pump just changed what it is producing.
 //
@@ -30,6 +30,55 @@ const HW_LIMITS: Record<number, {start: string; stop: string; mode: LocalizedTex
     // "Smart control" learns the household's pattern; it charges to the medium band.
     4: {start: 'hwStartMedium', stop: 'hwStopMedium', mode: {en: 'Smart control', sv: 'Smart styrning'}}
 };
+
+// What started the hot water charge that is running, recorded when the pump enters hot water and
+// read back when it leaves. It has to be remembered rather than re-read at the end: the profile's
+// reset rule clears "More hot water" (697) the moment the pump goes hot water -> idle, and writes
+// jump the wire queue ahead of the reads this file makes, so by the time a finished charge is
+// explained the boost that caused it is usually already gone.
+//
+// It decides which stop point the charge was aiming at, which is the whole point — and only one
+// of the three aims at the demand mode the user has selected:
+//
+//   * a "More hot water" boost raises the pump to luxury for its duration, so it charges to
+//     **Large's** stop point (62) whatever mode is selected;
+//   * the periodic anti-legionella charge has its own setpoint (61);
+//   * only a charge the pump started on its own demand aims at the selected mode's pair.
+//
+// Quoting the selected mode for all three is what this fixes: a boost in Medium overshot it and
+// looked like a mystery to explain away, and one that stopped short of Large but above Medium was
+// announced as "charged".
+type HwTrigger = 'boost' | 'periodic' | 'demand';
+const HW_TRIGGER = 'hwTrigger';
+
+// The stop point a charge aims at, for the two triggers that ignore the selected demand mode.
+function hwTargetFor(trigger: 'boost' | 'periodic', v: ReasonContext['v']): number | undefined {
+    return trigger === 'boost' ? v(HW_LIMITS[2]!.stop) : v('hwStopPeriodic');
+}
+
+// ...and how to name it, once it has a number to carry.
+function hwTargetPhrase(trigger: 'boost' | 'periodic', target: number): LocalizedText {
+    return trigger === 'boost'
+        ? {en: `the ${e(target)} °C ${HW_LIMITS[2]!.mode.en} stop point that "More hot water" charges to`,
+           sv: `stopptemperaturen ${s(target)} °C för behovsläget ${HW_LIMITS[2]!.mode.sv.toLowerCase()}, `
+              + `som "Mer varmvatten" laddar till`}
+        : {en: `the ${e(target)} °C stop point for the periodic hot water charge`,
+           sv: `stopptemperaturen ${s(target)} °C för den periodiska varmvattenladdningen`};
+}
+
+// The two as a subject, for a model that doesn't publish the setpoint they aim at.
+const HW_TRIGGER_FINISHED: Record<'boost' | 'periodic', LocalizedText> = {
+    boost:    {en: 'The "More hot water" boost', sv: 'Höjningen "Mer varmvatten"'},
+    periodic: {en: 'The periodic hot water charge', sv: 'Den periodiska varmvattenladdningen'}
+};
+
+// Reading the trigger also consumes it: the charge it describes has ended, and a trigger left
+// behind would go on to explain the next one.
+function takeHwTrigger(state: ReasonState): HwTrigger | undefined {
+    const trigger = state[HW_TRIGGER];
+    delete state[HW_TRIGGER];
+    return typeof trigger === 'string' ? trigger as HwTrigger : undefined;
+}
 
 // One decimal, decimal comma in Swedish; degree minutes are whole numbers.
 const e = (n: number) => n.toFixed(1);
@@ -62,9 +111,9 @@ export const sReason: ReasonConfig = {
         hwStopMedium:    {address:   63, direction: Dir.Out, scale: 10},
         hwStartLarge:    {address:   58, direction: Dir.Out, scale: 10},
         hwStopLarge:     {address:   62, direction: Dir.Out, scale: 10},
-        // The stop point a boost charges to, which is none of the three above. Absent on
-        // S330/S332, so every use of it has to tolerate undefined.
-        hwStopIncrease:  {address:   61, direction: Dir.Out, scale: 10},
+        // The periodic anti-legionella charge's own stop point, which is none of the three above
+        // (a boost aims at Large). Absent on S330/S332, so every use of it tolerates undefined.
+        hwStopPeriodic:  {address:   61, direction: Dir.Out, scale: 10},
         moreHotwater:    {address:  697, direction: Dir.Out},
         periodicHw:      {address:   65, direction: Dir.Out},
         // Cooling and pool.
@@ -78,7 +127,7 @@ export const sReason: ReasonConfig = {
         sgReady:         {address: 1911, direction: Dir.In}
     },
 
-    explain({role, previousRole, v}: ReasonContext): LocalizedText | undefined {
+    explain({role, previousRole, v, state}: ReasonContext): LocalizedText | undefined {
         const limits = HW_LIMITS[v('hwMode') ?? 1] ?? HW_LIMITS[1]!;
         const hwStart = v(limits.start);
         const hwStop = v(limits.stop);
@@ -86,7 +135,7 @@ export const sReason: ReasonConfig = {
         // fallback for tanks that don't report it.
         const hw = v('hwCharge') ?? v('hwTop');
 
-        const main = explainRole(role, previousRole, hwStart, hwStop, hw, limits.mode, v);
+        const main = explainRole(role, previousRole, hwStart, hwStop, hw, limits.mode, v, state);
         if (!main)
             return undefined;
         const extra = qualifier(role, previousRole, v);
@@ -99,29 +148,54 @@ export const sReason: ReasonConfig = {
 function explainRole(role: string, previousRole: string | undefined,
                      hwStart: number | undefined, hwStop: number | undefined,
                      hw: number | undefined, mode: LocalizedText,
-                     v: ReasonContext['v']): LocalizedText | undefined {
+                     v: ReasonContext['v'], state: ReasonState): LocalizedText | undefined {
     const degreeMinutes = v('dm');
     const dmStart = v('dmStart');
+    // Any move away from hot water ends that charge, so its trigger is consumed here whether or
+    // not the branch that follows has a use for it — leaving it behind would let a boost explain
+    // the next charge, which is the same class of bug this tracking exists to fix.
+    const hwTrigger = previousRole === 'hotwater' && role !== 'hotwater'
+        ? takeHwTrigger(state)
+        : undefined;
 
     if (role === 'hotwater') {
+        // Whatever fired this charge decides which stop point it is aiming at, and only this end
+        // of the transition can see it — hence the record rather than a re-read at the far end.
         const boost = v('moreHotwater') ?? 0;
-        if (boost > 0)
-            return {
-                en: '"More hot water" was switched on, so the pump is charging the tank now.',
-                sv: '"Mer varmvatten" har slagits på, så pumpen laddar tanken nu.'
-            };
-        if (hw !== undefined && hwStart !== undefined && hw <= hwStart + 0.5)
+        if (boost > 0) {
+            state[HW_TRIGGER] = 'boost';
+            const target = hwTargetFor('boost', v);
+            return target !== undefined
+                ? {en: `"More hot water" was switched on, so the pump is charging the tank to `
+                      + `${HW_LIMITS[2]!.mode.en}'s ${e(target)} °C stop point.`,
+                   sv: `"Mer varmvatten" har slagits på, så pumpen laddar tanken till ${s(target)} °C, `
+                      + `stopptemperaturen för behovsläget ${HW_LIMITS[2]!.mode.sv.toLowerCase()}.`}
+                : {en: '"More hot water" was switched on, so the pump is charging the tank now.',
+                   sv: '"Mer varmvatten" har slagits på, så pumpen laddar tanken nu.'};
+        }
+        if (hw !== undefined && hwStart !== undefined && hw <= hwStart + 0.5) {
+            state[HW_TRIGGER] = 'demand';
             return {
                 en: `Hot water ran down to ${e(hw)} °C, reaching the ${e(hwStart)} °C start point for ${mode.en} demand.`,
                 sv: `Varmvattnet sjönk till ${s(hw)} °C och nådde starttemperaturen ${s(hwStart)} °C för behovsläge ${mode.sv.toLowerCase()}.`
             };
+        }
         // Above the start point but charging anyway — that is what a scheduled top-up looks
         // like, so only say so when periodic hot water is actually enabled.
-        if (hw !== undefined && hwStart !== undefined && (v('periodicHw') ?? 0) > 0)
-            return {
-                en: `Scheduled periodic hot water charge — the tank is at ${e(hw)} °C, above its ${e(hwStart)} °C start point.`,
-                sv: `Schemalagd periodisk varmvattenladdning — tanken håller ${s(hw)} °C, över starttemperaturen ${s(hwStart)} °C.`
-            };
+        if (hw !== undefined && hwStart !== undefined && (v('periodicHw') ?? 0) > 0) {
+            state[HW_TRIGGER] = 'periodic';
+            const periodicTarget = hwTargetFor('periodic', v);
+            return periodicTarget !== undefined
+                ? {en: `Scheduled periodic hot water charge to ${e(periodicTarget)} °C — the tank is at ${e(hw)} °C, `
+                      + `above its ${e(hwStart)} °C start point.`,
+                   sv: `Schemalagd periodisk varmvattenladdning till ${s(periodicTarget)} °C — tanken håller ${s(hw)} °C, `
+                      + `över starttemperaturen ${s(hwStart)} °C.`}
+                : {en: `Scheduled periodic hot water charge — the tank is at ${e(hw)} °C, above its ${e(hwStart)} °C start point.`,
+                   sv: `Schemalagd periodisk varmvattenladdning — tanken håller ${s(hw)} °C, över starttemperaturen ${s(hwStart)} °C.`};
+        }
+        // Nothing here identifies what fired it, and a guess would be worse than the fallback the
+        // end-of-charge rule already has. Clear rather than leave the previous charge's answer.
+        delete state[HW_TRIGGER];
         return hw !== undefined
             ? {en: `Hot water demand — the tank is at ${e(hw)} °C.`,
                sv: `Varmvattenbehov — tanken håller ${s(hw)} °C.`}
@@ -188,15 +262,27 @@ function explainRole(role: string, previousRole: string | undefined,
     // role === 'main' — the pump went idle. Say what it just finished, since "nothing to do"
     // on its own explains nothing.
     if (previousRole === 'hotwater') {
-        if (hw === undefined || hwStop === undefined)
+        if (hw === undefined)
             return {en: 'Hot water charging finished.', sv: 'Varmvattenladdningen är klar.'};
+        // A boost was aiming at Large and the periodic charge at 61, neither of which is the
+        // selected demand mode's stop point — so that is what each gets measured against.
+        if (hwTrigger === 'boost' || hwTrigger === 'periodic')
+            return endOfCharge(hw, hwTargetFor(hwTrigger, v), hwTrigger);
+        if (hwStop === undefined)
+            return {en: 'Hot water charging finished.', sv: 'Varmvattenladdningen är klar.'};
+        // From here the charge was either the pump's own (trigger 'demand') or one nobody watched
+        // start — the app was restarted mid-charge, or the run began before it connected. Both
+        // get the demand mode's pair, and both keep the inference below.
+        //
         // A charge that ended *above* the demand mode's stop point was not stopped by it — a
-        // boost was running. What DID stop it is not something we can name: measured on an
-        // S1155 with the immersion heater off, two boosts ended at 54.6 and 55.0 °C while
-        // register 61 (the documented boost setpoint) read 62.0 and Large read 58.0. Two runs
-        // ending at *different* temperatures point to a compressor ceiling rather than a
-        // setpoint — a setpoint gives the same number every time. So state what happened and
-        // stop there, rather than naming a limit that may not have been the operative one.
+        // boost was running. It is still worth inferring even with the trigger tracked, because a
+        // boost switched on *during* a demand-driven charge extends a run that was recorded as
+        // 'demand'. What DID stop it is not something we can name: measured on an S1155 with the
+        // immersion heater off, two boosts ended at 54.6 and 55.0 °C while register 61 read 62.0
+        // and Large read 58.0. Two runs ending at *different* temperatures point to a compressor
+        // ceiling rather than a setpoint — a setpoint gives the same number every time. So state
+        // what happened and stop there, rather than naming a limit that may not have been the
+        // operative one.
         if (hw > hwStop + 0.5)
             return {en: `The tank is charged: hot water reached ${e(hw)} °C — past ${mode.en}'s `
                       + `${e(hwStop)} °C stop point, because a boost was running.`,
@@ -244,6 +330,27 @@ function explainRole(role: string, previousRole: string | undefined,
                 + `startar inte förrän vid ${dm(dmStart)}.`
         };
     return {en: 'The pump has no demand to meet.', sv: 'Pumpen har inget behov att möta.'};
+}
+
+// How a charge that ignored the selected demand mode ended, measured against the setpoint it was
+// actually aiming at. Same 1 °C tolerance the demand-mode rule uses, and the same restraint about
+// causes: a charge stops short for reasons the app cannot tell apart (the compressor's ceiling
+// with the immersion heater blocked, a schedule cutting in, the user cancelling), so this says how
+// far it got and stops there. When the setpoint doesn't read there is no number to quote — and
+// falling back to the mode's stop point is exactly the mistake this rule exists to avoid.
+function endOfCharge(hw: number, target: number | undefined,
+                     trigger: 'boost' | 'periodic'): LocalizedText {
+    if (target === undefined) {
+        const what = HW_TRIGGER_FINISHED[trigger];
+        return {en: `${what.en} finished with the tank at ${e(hw)} °C.`,
+                sv: `${what.sv} avslutades med tanken på ${s(hw)} °C.`};
+    }
+    const label = hwTargetPhrase(trigger, target);
+    if (hw < target - 1)
+        return {en: `Hot water charging ended at ${e(hw)} °C, short of ${label.en}.`,
+                sv: `Varmvattenladdningen avslutades vid ${s(hw)} °C, före ${label.sv}.`};
+    return {en: `The tank is charged: hot water reached ${e(hw)} °C, ${label.en}.`,
+            sv: `Tanken är laddad: varmvattnet nådde ${s(hw)} °C, ${label.sv}.`};
 }
 
 // What the pump just stopped doing, as a clause. Used when heating resumes on the back of
