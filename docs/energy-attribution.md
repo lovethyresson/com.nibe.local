@@ -4,7 +4,7 @@
 that touches attribution, the power sources, the role mapping or the COP accumulators — not on every build.
 The [README](../README.md) links here and carries the user-facing summary.
 
-Last verified against the code: **0.9.15**.
+Last verified against the code: **1.0.0**.
 
 ## The problem
 
@@ -19,7 +19,7 @@ pump keeps real counters for heat out, just not for electricity in.
 
 ```mermaid
 flowchart TD
-    A["Poll the pump — every 5 s, one shared socket"] --> B{"Total power<br/>register 2305, else 2166"}
+    A["Poll the pump — every 10 s by default, one shared socket"] --> B{"Total power<br/>register 2305, else 2166"}
     B -- "neither answers" --> X["Nothing is attributed<br/>meters hold, COP accumulators pause"]
     B -- "watts" --> C{"Operating priority<br/>register 1028"}
     C -- "10, but 3804 names<br/>an active function" --> V["Corrected role<br/>(register 3804)"]

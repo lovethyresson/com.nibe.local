@@ -201,18 +201,17 @@ device's **repair** flow (device menu → Repair):
 - Read-only informational settings (firmware, pump model, alarm log) are **not** capabilities — they are
   written to `label` settings declared in `driver.compose.json` `settings` from `lib/device.ts`.
 
-**This app is pre-1.0, so capability renames/removals are done as a hard cut** — change the name in
-`registers`/`driver.compose.json` and you're done — rather than as a migration. Devices get re-paired or fixed up
-by hand. That holds now that 0.9.13 is published and other people are running it: a handful of early users on a
-pre-1.0 app is exactly who a hard cut is for, and asking them to run Repair is cheaper than carrying migration
-machinery for every rename. Don't re-open this decision each time a release adds users — **1.0 is the line**, and
-until then the answer is the hard cut.
+**1.0 has shipped, so the pre-1.0 hard cut is over.** Through 0.9.x a capability rename or removal was done by
+changing the name in `registers`/`driver.compose.json` and nothing else, on the argument that a handful of
+test-channel users is exactly who a hard cut is for. 1.0 was the stated line and the app is past it: **a rename
+now needs a migration**, because a stored `selection` is keyed by register name, so a bare rename loses that
+register's resolved address, not just its override. `renamedRegisters` + `migrateSelection()` are the mechanism —
+they already run at `onInit` alongside `syncCapabilities()`, so a carried rename costs one table entry and no
+Repair. A *removal* still needs nothing: `syncCapabilities()` drops capabilities that no longer exist in the
+register table, and that is self-cleaning on running devices. What removal does need is a changelog line when it
+takes a Flow card with it.
 
-`renamedRegisters` + `migrateSelection()` exist because 0.9.13's renames were worth carrying (a stored `selection`
-is keyed by register name, so a rename otherwise loses that register's resolved address, not just its override).
-That is a tool to reach for when a specific rename deserves it — not a standing requirement.
-
-**After 1.0**, a rename needs a proper migration. Either way these sharp edges apply:
+These sharp edges apply either way:
 
 - **Don't delete a capability *type* definition (`.homeycompose/capabilities/*.json`) in the same release as a
   rename away from it.** A device that still has an instance of that type attached will have *every* capability
