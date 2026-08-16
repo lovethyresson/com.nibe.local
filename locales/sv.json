@@ -57,7 +57,9 @@
       "detected": "Data hittad",
       "notdetected": "Ingen data",
       "select_one": "Välj minst en enhet att lägga till.",
-      "main_desc": "Översikt: utetemperatur, driftprioritering och driftläge, samt diagnostik och statistik"
+      "main_desc": "Översikt: utetemperatur, driftprioritering och driftläge, samt diagnostik och statistik",
+      "analytics": "Dela anonym användningsdata",
+      "analytics_desc": "Hjälper apputvecklaren att se vilka värmepumpsmodeller och funktioner som faktiskt används, och var installationen går fel. Ingen personlig information, inga mätvärden från ditt hem, inga nätverksuppgifter. Du kan ändra detta senare i appens inställningar."
     },
     "sources": {
       "prompt": "Fler än en givare kan rapportera detta. Välj den som ska reglera:",

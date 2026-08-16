@@ -57,7 +57,9 @@
       "detected": "Daten erkannt",
       "notdetected": "Keine Daten",
       "select_one": "Wählen Sie mindestens ein Gerät aus.",
-      "main_desc": "Übersicht: Außentemperatur, Betriebspriorität und Betriebsmodus sowie Diagnose und Statistik"
+      "main_desc": "Übersicht: Außentemperatur, Betriebspriorität und Betriebsmodus sowie Diagnose und Statistik",
+      "analytics": "Anonyme Nutzungsdaten teilen",
+      "analytics_desc": "Hilft dem App-Autor zu sehen, welche Wärmepumpenmodelle und Funktionen tatsächlich genutzt werden und wo die Einrichtung scheitert. Keine personenbezogenen Daten, keine Messwerte aus Ihrem Zuhause, keine Netzwerkdaten. Sie können dies später in den App-Einstellungen ändern."
     },
     "sources": {
       "prompt": "Mehr als ein Fühler kann dies melden. Wählen Sie den regelnden aus:",

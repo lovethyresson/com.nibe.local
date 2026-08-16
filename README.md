@@ -177,6 +177,7 @@ guessing — including which register each capability was mapped to. Turn on **D
 | [docs/pairing.md](docs/pairing.md) | Pairing and detection, with diagrams |
 | [docs/energy-attribution.md](docs/energy-attribution.md) | How a watt gets assigned to a device, and how accurate it is |
 | [docs/engineering.md](docs/engineering.md) | Alarm database, S-series coverage, diagnostics |
+| [docs/analytics.md](docs/analytics.md) | Anonymous usage data — what is collected, what never is, and how to turn it off |
 | [docs/releases.md](docs/releases.md) | Full engineering changelog, newest first |
 
 **Support:** the [Homey Community thread](https://community.homey.app/t/app-pro-nibe-live-local-nibe-control-split-into-the-devices-you-actually-automate/157330)

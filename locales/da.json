@@ -57,7 +57,9 @@
       "detected": "Data registreret",
       "notdetected": "Ingen data",
       "select_one": "Vælg mindst én enhed, der skal tilføjes.",
-      "main_desc": "Oversigt: udetemperatur, driftsprioritering og driftsindstilling samt diagnostik og statistik"
+      "main_desc": "Oversigt: udetemperatur, driftsprioritering og driftsindstilling samt diagnostik og statistik",
+      "analytics": "Del anonyme brugsdata",
+      "analytics_desc": "Hjælper appens udvikler med at se, hvilke varmepumpemodeller og funktioner der reelt bruges, og hvor opsætningen fejler. Ingen personlige oplysninger, ingen målinger fra dit hjem, ingen netværksoplysninger. Du kan ændre dette senere i appens indstillinger."
     },
     "sources": {
       "prompt": "Flere følere kan rapportere dette. Vælg den, der skal regulere:",

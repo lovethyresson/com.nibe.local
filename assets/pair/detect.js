@@ -58,13 +58,26 @@ Homey.on('detection_failed', function (data) {
     showError(data && data.message);
 });
 
+// Reported to the driver rather than tracked here: this view runs inside Homey's app and has no
+// way to reach the SDK. A no-op when consent has not been given — the handler checks.
+function trackClick(button) {
+    Homey.emit('track_ui', {view: 'detect_' + nextViewMode(), button: button}, function () {});
+}
+
+function nextViewMode() {
+    return nextView === 'features' ? 'repair' : 'pair';
+}
+
 retryEl.onclick = function (e) {
     e.preventDefault();
+    trackClick('retry');
     startDetection();
 };
 
 document.getElementById('skip').onclick = function (e) {
     e.preventDefault();
+    // Detection takes ~30 s. How often this is skipped is the question the button exists to answer.
+    trackClick('skip');
     Homey.showView(nextView);
 };
 

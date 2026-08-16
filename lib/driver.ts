@@ -17,6 +17,7 @@ import {
 } from './detection';
 import {Transport, destroyAllConnections, existingConnection} from './connection';
 import {DiscoveryOptions, discoverPumps} from './discovery';
+import {InstallProfile, analyticsConsent, reportInstallProfile, setAnalyticsConsent, track} from './analytics';
 
 // Optional per-device transport entered during F pairing (the gateway port / unit id).
 interface PairTransport {port?: number; unitId?: number}
@@ -107,15 +108,158 @@ export abstract class NibePumpDriver extends Driver {
         };
     };
 
+    // Wraps a Flow card's run listener so every card reports through one place. Applied at the
+    // registration sites rather than card by card, so a card added later is instrumented by
+    // construction rather than by remembering. A failed run is tracked too (`ok: false`) and then
+    // rethrown untouched — an action that fails because the model lacks the register is exactly
+    // the signal worth having, and swallowing the error to report it would be worse than useless.
+    private tracked(kind: 'action' | 'condition', card: string, register: Register | null,
+                    run: (args: any, state: any) => any) {
+        const event = kind === 'action' ? 'Ran THEN Card' : 'Checked AND Card';
+        // `role` answers "which function was this run on?" — heating, hotwater, cooling, main …
+        // Every device this app creates carries an explicit `role` in its data (see
+        // deviceTemplate), so this is exact for real devices. It is NOT routed through roleOf()'s
+        // `?? "main"` default on a missing device, though: that default is right for the app (a
+        // device without a role IS main) but would silently attribute any unreadable device to
+        // Main here — inflating the exact number this property exists to measure. A card that
+        // somehow arrives without a device reports 'unknown', which is visible in Amplitude.
+        const describe = (args: any) => {
+            const data = args?.device?.getData?.();
+            return {
+                card,
+                register: register?.name ?? args?.register?.id,
+                role: data ? roleOf(data) : 'unknown'
+            };
+        };
+        return async (args: any, state: any) => {
+            try {
+                const result = await run(args, state);
+                track(event, {
+                    ...describe(args),
+                    ok: true,
+                    ...(kind === 'condition' ? {result: result === true} : {})
+                });
+                return result;
+            } catch (error) {
+                track(event, {...describe(args), ok: false});
+                throw error;
+            }
+        };
+    }
+
+    // `kind` decides whether the run listener is instrumented. Trigger cards go through here too,
+    // but their run listener is a *filter* that Homey calls for every Flow listening to the card —
+    // tracking there would count Flow subscriptions, not trigger fires. Triggers are instrumented
+    // once at the point they actually fire, in device.ts's checkTrigger.
     private registerAutofillFlow(flow: FlowCard, registerFilter: (reg: Register) => boolean,
-                                 run: (args: any, state: any) => any) {
+                                 run: (args: any, state: any) => any,
+                                 kind: 'action' | 'condition' | 'trigger' = 'action') {
         return flow
             .registerArgumentAutocompleteListener("register", async (query, args) =>
                 (args.device.wantedRegisters() as Register[])
                     .filter(registerFilter)
                     .map(this.regToAutofill)
                     .filter((result: any) => result.name.toLowerCase().includes(query.toLowerCase())))
-            .registerRunListener(async (args, state) => run(args, state));
+            .registerRunListener(kind === 'trigger'
+                ? async (args, state) => run(args, state)
+                : this.tracked(kind, flow.id, null, run));
+    }
+
+    // The install as a shape rather than a stream of events: pump model, which of the six function
+    // devices exist, and which feature groups each carries. Sent as user properties so the
+    // cross-sectional questions ("of the S1255 installs, how many run cooling?") are answerable.
+    // Gathered from the devices themselves, so it is correct after pairing, repair or deletion.
+    collectInstallProfile(): InstallProfile {
+        const devices = this.getDevices() as any[];
+        const featuresByFunction: Record<string, string[]> = {};
+        let pumpModelCode: string | undefined;
+        let firmware: string | undefined;
+
+        for (const device of devices) {
+            const role = roleOf(device.getData());
+            const settings = device.getSettings?.() ?? {};
+            pumpModelCode = pumpModelCode ?? settings.heatpump_type;
+            firmware = firmware ?? settings.firmware;
+            // A missing selection means everything enabled (the upgrade path and the
+            // skip-detection default), so report the role's full group list rather than nothing.
+            const selection = device.getStoreValue?.('selection') as Selection | null;
+            featuresByFunction[role] = selection?.groups
+                ? Object.entries(selection.groups).filter(([, on]) => on).map(([id]) => id)
+                : [...roleGroups[role]];
+        }
+
+        return {
+            pumpModelCode: pumpModelCode ? String(pumpModelCode) : undefined,
+            firmware: firmware ? String(firmware) : undefined,
+            functions: devices.map((device) => roleOf(device.getData())).sort(),
+            featuresByFunction,
+            ...this.hostFacts()
+        };
+    }
+
+    // What the app is running on. Every one of these is synchronous and cannot throw, but they are
+    // wrapped anyway: analytics must never be the reason a device fails to initialise.
+    //
+    // `platform` and `platformVersion` are documented as undefined on older Homey software, where
+    // the SDK says to assume 'local' and 1 — so the defaults here are the documented ones, not a
+    // guess. Reported raw rather than mapped to a product name ("Homey Pro Early 2023"): that
+    // mapping belongs to Athom and would rot in this file.
+    private hostFacts(): Partial<InstallProfile> {
+        try {
+            return {
+                homeyVersion: this.homey.version,
+                homeyPlatform: this.homey.platform ?? 'local',
+                homeyPlatformVersion: this.homey.platformVersion ?? 1,
+                timezone: this.homey.clock.getTimezone(),
+                language: this.homey.i18n.getLanguage(),
+                units: this.homey.i18n.getUnits()
+            };
+        } catch (error) {
+            this.error('Could not read host facts for the install profile', error);
+            return {};
+        }
+    }
+
+    // Called whenever the shape may have changed: a device initialised, was deleted, was repaired,
+    // or the pump finally answered with its model. Debounced inside reportInstallProfile().
+    syncInstallProfile(): void {
+        reportInstallProfile(this.collectInstallProfile());
+    }
+
+    // Consent and click reporting, shared by pairing and repair — both are PairSessions with
+    // buttons worth counting. The views run inside Homey's app, not in this process, so they can
+    // never reach the SDK themselves; every click they report arrives through here.
+    private registerAnalyticsHandlers(session: PairSession) {
+        session.setHandler('set_analytics_consent', async (consent: any) => {
+            setAnalyticsConsent(this.homey, consent === true);
+            this.log(`Analytics: consent ${consent === true ? 'granted' : 'declined'} during pairing`);
+            return true;
+        });
+
+        session.setHandler('track_ui', async (data: any) => {
+            track('Clicked Button', {
+                view: String(data?.view ?? 'unknown'),
+                button: String(data?.button ?? 'unknown')
+            });
+            return true;
+        });
+    }
+
+    // Shared by the pairing and repair detection handlers: same measurement, different entry point.
+    private trackDetection(mode: 'pair' | 'repair', result: DetectionResult) {
+        const recommended = Object.entries(result.recommendations)
+            .filter(([, rec]) => rec?.recommended)
+            .map(([group]) => group);
+        track('Completed Detection', {
+            mode,
+            registers_responded: Object.values(result.samples).filter((s) => s.read).length,
+            registers_total: this.profile.registers.length,
+            groups_recommended: recommended,
+            // The point of detection is whether it works on models the maintainer cannot test.
+            // A pass where nothing answered is the failure worth seeing, so name it explicitly
+            // rather than leaving it to be inferred from a zero.
+            found_nothing: recommended.length === 0
+        });
     }
 
     private async writeNumeric(device: any, register: Register, value: number) {
@@ -143,18 +287,20 @@ export abstract class NibePumpDriver extends Driver {
             if (this.actionSpecs[register.name + ".enum"]) {
                 this.homey.flow.getActionCard(register.name + ".enum")
                     .registerArgumentAutocompleteListener("mode", async (query) => enumOptions(query))
-                    .registerRunListener(async (args) => {
-                        this.log(`Flow: ${args.device.getName()} set ${register.name} = ${args.mode.name}`);
-                        await args.device.writeRegister(register, args.mode.id);
-                        await args.device.setValue(register, args.mode.id);
-                    });
+                    .registerRunListener(this.tracked('action', register.name + ".enum", register,
+                        async (args: any) => {
+                            this.log(`Flow: ${args.device.getName()} set ${register.name} = ${args.mode.name}`);
+                            await args.device.writeRegister(register, args.mode.id);
+                            await args.device.setValue(register, args.mode.id);
+                        }));
             }
             if (this.conditionSpecs[register.name + ".enum"]) {
                 this.homey.flow.getConditionCard(register.name + ".enum")
                     .registerArgumentAutocompleteListener("mode", async (query) => enumOptions(query))
-                    .registerRunListener(async (args) =>
-                        args.device.hasCapability(register.name)
-                        && args.device.getCapabilityValue(register.name) === args.mode.name);
+                    .registerRunListener(this.tracked('condition', register.name + ".enum", register,
+                        async (args: any) =>
+                            args.device.hasCapability(register.name)
+                            && args.device.getCapabilityValue(register.name) === args.mode.name));
             }
         }
 
@@ -163,7 +309,8 @@ export abstract class NibePumpDriver extends Driver {
                 continue;
             if (this.actionSpecs[register.name + ".set"]) {
                 this.homey.flow.getActionCard(register.name + ".set")
-                    .registerRunListener(async (args) => this.writeNumeric(args.device, register, args.value));
+                    .registerRunListener(this.tracked('action', register.name + ".set", register,
+                        async (args: any) => this.writeNumeric(args.device, register, args.value)));
             }
         }
 
@@ -171,10 +318,11 @@ export abstract class NibePumpDriver extends Driver {
             if (!register.writeOnly || !this.actionSpecs[register.name + ".reset"])
                 continue;
             this.homey.flow.getActionCard(register.name + ".reset")
-                .registerRunListener(async (args) => {
-                    this.log(`Flow: ${args.device.getName()} reset ${register.name}`);
-                    await args.device.writeRegister(register, true);
-                });
+                .registerRunListener(this.tracked('action', register.name + ".reset", register,
+                    async (args: any) => {
+                        this.log(`Flow: ${args.device.getName()} reset ${register.name}`);
+                        await args.device.writeRegister(register, true);
+                    }));
         }
 
         // Dedicated per-register on/off cards ("More hot water – On/Off"), a named counterpart
@@ -186,12 +334,13 @@ export abstract class NibePumpDriver extends Driver {
             if (!this.actionSpecs[register.name + ".onoff"])
                 continue;
             this.homey.flow.getActionCard(register.name + ".onoff")
-                .registerRunListener(async (args) => {
-                    const on = (args.state?.id ?? args.state) === 'on';
-                    this.log(`Flow: ${args.device.getName()} set ${register.name} = ${on}`);
-                    await args.device.writeRegister(register, on);
-                    await args.device.setValue(register, await args.device.readRegister(register));
-                });
+                .registerRunListener(this.tracked('action', register.name + ".onoff", register,
+                    async (args: any) => {
+                        const on = (args.state?.id ?? args.state) === 'on';
+                        this.log(`Flow: ${args.device.getName()} set ${register.name} = ${on}`);
+                        await args.device.writeRegister(register, on);
+                        await args.device.setValue(register, await args.device.readRegister(register));
+                    }));
         }
 
         this.registerAutofillFlow(this.homey.flow.getActionCard("set_numeric_value"),
@@ -227,23 +376,24 @@ export abstract class NibePumpDriver extends Driver {
                     return false;
                 const capabilityValue = args.device.getCapabilityValue(args.register.id);
                 return args.comparison === "<" ? capabilityValue < args.value : capabilityValue > args.value;
-            });
+            }, 'condition');
 
         this.registerAutofillFlow(this.homey.flow.getConditionCard("feature_enabled"),
             flowPredicates.boolState,
-            (args: any) => args.device.hasCapability(args.register.id) && args.device.getCapabilityValue(args.register.id));
+            (args: any) => args.device.hasCapability(args.register.id) && args.device.getCapabilityValue(args.register.id),
+            'condition');
 
         this.registerAutofillFlow(this.homey.flow.getDeviceTriggerCard("capability_changed"),
             flowPredicates.enumTrigger,
-            (args: any, state: any) => args.register.id === state.register.id);
+            (args: any, state: any) => args.register.id === state.register.id, 'trigger');
 
         this.registerAutofillFlow(this.homey.flow.getDeviceTriggerCard("capability_turned_on"),
             flowPredicates.boolState,
-            (args: any, state: any) => args.register.id === state.register.id && state.value);
+            (args: any, state: any) => args.register.id === state.register.id && state.value, 'trigger');
 
         this.registerAutofillFlow(this.homey.flow.getDeviceTriggerCard("capability_turned_off"),
             flowPredicates.boolState,
-            (args: any, state: any) => args.register.id === state.register.id && !state.value);
+            (args: any, state: any) => args.register.id === state.register.id && !state.value, 'trigger');
     }
 
     // Capabilities this pump cannot populate, according to a fresh detection pass: registers
@@ -714,7 +864,12 @@ export abstract class NibePumpDriver extends Driver {
             return true;
         });
 
-        session.setHandler('get_context', async () => ({mode: 'pair'}));
+        this.registerAnalyticsHandlers(session);
+
+        session.setHandler('get_context', async () => ({
+            mode: 'pair',
+            analyticsConsent: analyticsConsent(this.homey)
+        }));
 
         session.setHandler('start_detection', async () => {
             if (detection) {
@@ -739,6 +894,7 @@ export abstract class NibePumpDriver extends Driver {
                     const read = Object.values(result.samples).filter((s) => s.read).length;
                     this.log(`onPair detection done: ${read}/${this.profile.registers.length} registers responded — `
                         + this.recommendationSummary(result.recommendations));
+                    this.trackDetection('pair', result);
                     session.emit('detection_done', {}).catch(() => {});
                 })
                 .catch((error) => {
@@ -768,10 +924,13 @@ export abstract class NibePumpDriver extends Driver {
         let detection: DetectionResult | null = null;
         let detectionRunning: Promise<DetectionResult> | null = null;
 
+        this.registerAnalyticsHandlers(session);
+
         session.setHandler('get_context', async () => ({
             mode: 'repair',
             groups: this.groupInfo(role),
-            selection: (device.getStoreValue('selection') ?? null) as Selection | null
+            selection: (device.getStoreValue('selection') ?? null) as Selection | null,
+            analyticsConsent: analyticsConsent(this.homey)
         }));
 
         session.setHandler('start_detection', async () => {
@@ -789,6 +948,7 @@ export abstract class NibePumpDriver extends Driver {
                     const read = Object.values(result.samples).filter((s) => s.read).length;
                     this.log(`onRepair detection done: ${read} registers responded — `
                         + this.recommendationSummary(result.recommendations));
+                    this.trackDetection('repair', result);
                     session.emit('detection_done', {}).catch(() => {});
                 })
                 .catch((error: any) => {
@@ -822,6 +982,15 @@ export abstract class NibePumpDriver extends Driver {
             const selection = this.cleanSelection(raw, resolved);
             this.log('onRepair: selection:', JSON.stringify(selection));
             await device.applySelection(selection);
+            // After the device has the new selection, not before — the profile must describe what
+            // the install now is, and applySelection() can throw.
+            track('Changed Device Set', {
+                action: 'reconfigured',
+                role,
+                groups_enabled: Object.entries(selection.groups ?? {})
+                    .filter(([, on]) => on).map(([id]) => id)
+            });
+            this.syncInstallProfile();
             return true;
         });
     }

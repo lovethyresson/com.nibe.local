@@ -18,6 +18,7 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
+    "@amplitude/analytics-node": "^1.5.70",
     "jsmodbus": "^4.0.6"
   }
 }

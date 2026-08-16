@@ -4,6 +4,7 @@ import {Dir, Register, combineRaw, isPollable, isUnavailableRaw, signedValue} fr
 import {Role, functionRoles} from './roles';
 import type {LocalizedText, ModelProfile, ReasonState} from './profile';
 import {DetectionResult, buildDetectionResult, readNumeric, sampleRegisters} from './detection';
+import {track} from './analytics';
 
 // A Nibe pump accepts only a single Modbus client, but the app pairs several logical
 // devices (main + heating/hot water/pool/cooling/solar) that all talk to the same pump.
@@ -148,6 +149,9 @@ export class PumpConnection {
     private retryTimer: NodeJS.Timeout | null = null;
     private connected = false;
     private destroyed = false;
+    // Set by the watchdog just before it drops the socket, so the resulting 'close' is reported as
+    // the watchdog trip it is rather than as an anonymous disconnect. Cleared once consumed.
+    private closeCause: {cause: string; dead_polls?: number} | null = null;
     // Consecutive polls where not one register answered. See the watchdog in poll().
     private deadPolls = 0;
 
@@ -533,6 +537,10 @@ export class PumpConnection {
         this.subscribers.forEach((subscriber) => subscriber.onConnectionDown());
         if (this.destroyed)
             return;
+        // Only unexpected closes are reported. A destroyed connection is the app shutting down or
+        // the last device detaching, which is not a pump losing its socket.
+        track('Lost Connection', this.closeCause ?? {cause: 'socket_close'});
+        this.closeCause = null;
         this.debug('Socket closed, reconnecting in 5 seconds ...');
         this.retryTimer = setTimeout(() => {
             if (!this.destroyed)
@@ -742,6 +750,10 @@ export class PumpConnection {
                     this.log(`No register answered in ${this.deadPolls} consecutive polls — the `
                         + 'connection is up but the pump has stopped responding. Dropping it and '
                         + 'reconnecting.');
+                    // Attribute the close that this end() is about to cause, rather than tracking
+                    // here: otherwise a watchdog trip reports twice, once as itself and once as
+                    // the socket close it deliberately caused.
+                    this.closeCause = {cause: 'watchdog', dead_polls: this.deadPolls};
                     this.deadPolls = 0;
                     this.polling = false;
                     this.socket.end(); // 'close' → subscribers marked down, reconnect in 5 s

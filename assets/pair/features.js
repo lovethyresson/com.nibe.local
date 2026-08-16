@@ -196,6 +196,10 @@ function render() {
         expand.onclick = function (e) {
             e.preventDefault();
             var open = details.style.display !== 'none';
+            // Only the opening half: how often people drill into a group's individual capabilities
+            // says something about the default; counting the close too would just double it.
+            if (!open)
+                Homey.emit('track_ui', {view: 'repair_features', button: 'expand_group'}, function () {});
             details.style.display = open ? 'none' : 'block';
             expand.textContent = open ? '▸' : '▾';
         };
@@ -226,6 +230,7 @@ document.getElementById('save').onclick = function (e) {
         selection.sources[radio.dataset.source] = Number(radio.value);
     });
     Homey.showLoadingOverlay();
+    Homey.emit('track_ui', {view: 'repair_features', button: 'save'}, function () {});
     // This view is used by the repair flow only (pairing uses the device picker);
     // applying the selection to the device is all that's left.
     Homey.emit('selection_done', selection, function (err) {

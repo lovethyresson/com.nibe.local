@@ -27,6 +27,11 @@
     .body h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em;
                color: #888; margin: 14px 0 6px; }
     .advice { font-size: 13px; line-height: 1.5; white-space: pre-wrap; margin: 0; }
+    .consent { margin-top: 28px; padding-top: 16px; border-top: 1px solid #e2e2e5; }
+    .consent h2 { font-size: 16px; margin: 0 0 10px; }
+    .consent-label { display: flex; align-items: center; gap: 8px; font-size: 14px;
+                     font-weight: 600; cursor: pointer; }
+    .consent-desc { font-size: 12px; color: #888; line-height: 1.45; margin: 6px 0 0 24px; }
     .none { font-size: 13px; color: #888; margin: 0; }
     .orig { margin-top: 10px; }
     .orig summary { font-size: 13px; color: #d81e28; cursor: pointer; }
@@ -47,6 +52,18 @@
   <p class="foot" id="foot"></p>
   <button class="btn" id="clear" style="display:none"></button>
 
+  <!-- Its own titled section, not a stray checkbox under the alarm list. The page opens on
+       alarms, so without a heading a privacy control here is unfindable — and a consent switch
+       nobody can find is not a consent switch. -->
+  <div class="consent">
+    <h2 id="privacy-title"></h2>
+    <label class="consent-label">
+      <input type="checkbox" id="analytics-consent">
+      <span id="analytics-label"></span>
+    </label>
+    <p class="consent-desc" id="analytics-desc"></p>
+  </div>
+
 <script type="text/javascript">
   // Strings kept here (not in the app locales) because a settings page is plain HTML served
   // outside Homey's i18n pipeline; it only knows the language Homey passes to onHomeyReady.
@@ -55,31 +72,49 @@
           empty: 'No alarms recorded. This log is kept by the app while it runs — the pump only exposes its <em>current</em> alarm over Modbus, so anything before the app was installed is not shown. The pump keeps its own longer history in menu 3.4, and menu 7.9.2 can export it to USB.',
           cause: 'Cause and suggested action', none: 'NIBE publishes no further detail for this code.',
           source: 'Descriptions from NIBE’s alarm code database', clear: 'Clear history',
+          privacy: 'Privacy',
+          analytics: 'Share anonymous usage data',
+          analyticsDesc: 'Helps the app author see which pump models and features are actually used, and where setup fails. No personal data, no readings from your home, no network details.',
           confirm: 'Clear the alarm history?', showOriginal: 'Show NIBE\u2019s original guidance (Swedish)' },
     sv: { title: 'Larm', lead: 'Larm som din Nibe-värmepump rapporterat, senaste först. Tryck på ett larm för orsak och åtgärd.',
           empty: 'Inga larm registrerade. Loggen förs av appen medan den kör — värmepumpen exponerar bara sitt <em>aktuella</em> larm via Modbus, så allt före installationen saknas. Värmepumpen har en egen längre historik i meny 3.4, och meny 7.9.2 kan exportera den till USB.',
           cause: 'Orsak och åtgärd', none: 'NIBE publicerar ingen mer information för den här koden.',
           source: 'Beskrivningar från NIBE:s larmkodsdatabas', clear: 'Rensa historik',
+          privacy: 'Integritet',
+          analytics: 'Dela anonym användningsdata',
+          analyticsDesc: 'Hjälper apputvecklaren att se vilka värmepumpsmodeller och funktioner som faktiskt används, och var installationen går fel. Ingen personlig information, inga mätvärden från ditt hem, inga nätverksuppgifter.',
           confirm: 'Rensa larmhistoriken?', showOriginal: '' },
     de: { title: 'Alarme', lead: 'Von Ihrer Nibe-Wärmepumpe gemeldete Alarme, neueste zuerst. Tippen Sie auf einen Alarm für Ursache und Abhilfe.',
           empty: 'Keine Alarme aufgezeichnet. Dieses Protokoll führt die App, solange sie läuft — die Wärmepumpe gibt über Modbus nur ihren <em>aktuellen</em> Alarm aus, alles davor fehlt. Die Wärmepumpe selbst führt eine längere Historie in Menü 3.4, und Menü 7.9.2 kann sie auf USB exportieren.',
           cause: 'Ursache und empfohlene Maßnahme', none: 'NIBE veröffentlicht zu diesem Code keine weiteren Angaben.',
           source: 'Beschreibungen aus NIBEs Alarmcode-Datenbank', clear: 'Verlauf löschen',
+          privacy: 'Datenschutz',
+          analytics: 'Anonyme Nutzungsdaten teilen',
+          analyticsDesc: 'Hilft dem App-Autor zu sehen, welche Wärmepumpenmodelle und Funktionen tatsächlich genutzt werden und wo die Einrichtung scheitert. Keine personenbezogenen Daten, keine Messwerte aus Ihrem Zuhause, keine Netzwerkdaten.',
           confirm: 'Alarmverlauf löschen?', showOriginal: 'NIBEs Originalhinweis anzeigen (Schwedisch)' },
     nl: { title: 'Alarmen', lead: 'Alarmen die je Nibe-warmtepomp heeft gemeld, nieuwste eerst. Tik op een alarm voor de oorzaak en wat je eraan kunt doen.',
           empty: 'Geen alarmen vastgelegd. Dit logboek houdt de app bij zolang die draait — de warmtepomp geeft via Modbus alleen het <em>huidige</em> alarm door, dus alles daarvoor ontbreekt. De warmtepomp zelf bewaart een langere historie in menu 3.4, en menu 7.9.2 kan die naar USB exporteren.',
           cause: 'Oorzaak en aanbevolen actie', none: 'NIBE publiceert geen verdere informatie voor deze code.',
           source: 'Omschrijvingen uit NIBE\'s alarmcodedatabase', clear: 'Geschiedenis wissen',
+          privacy: 'Privacy',
+          analytics: 'Anonieme gebruiksgegevens delen',
+          analyticsDesc: 'Helpt de maker van de app te zien welke warmtepompmodellen en functies echt gebruikt worden, en waar het instellen misgaat. Geen persoonlijke gegevens, geen metingen uit je huis, geen netwerkgegevens.',
           confirm: 'Alarmgeschiedenis wissen?', showOriginal: 'NIBE\u2019s originele toelichting tonen (Zweeds)' },
     no: { title: 'Alarmer', lead: 'Alarmer som varmepumpen din har rapportert, nyeste først. Trykk på en alarm for årsak og tiltak.',
           empty: 'Ingen alarmer registrert. Loggen føres av appen mens den kjører — varmepumpen eksponerer bare den <em>gjeldende</em> alarmen over Modbus, så alt før installasjonen mangler. Varmepumpen har sin egen lengre historikk i meny 3.4, og meny 7.9.2 kan eksportere den til USB.',
           cause: 'Årsak og tiltak', none: 'NIBE publiserer ingen mer informasjon for denne koden.',
           source: 'Beskrivelser fra NIBEs alarmkodedatabase', clear: 'Tøm historikk',
+          privacy: 'Personvern',
+          analytics: 'Del anonyme bruksdata',
+          analyticsDesc: 'Hjelper apputvikleren å se hvilke varmepumpemodeller og funksjoner som faktisk brukes, og hvor oppsettet går galt. Ingen personopplysninger, ingen målinger fra hjemmet ditt, ingen nettverksdetaljer.',
           confirm: 'Tømme alarmhistorikken?', showOriginal: 'Vis NIBEs originalveiledning (svensk)' },
     da: { title: 'Alarmer', lead: 'Alarmer som din Nibe-varmepumpe har rapporteret, nyeste først. Tryk på en alarm for årsag og handling.',
           empty: 'Ingen alarmer registreret. Loggen føres af appen, mens den kører — varmepumpen viser kun sin <em>aktuelle</em> alarm via Modbus, så alt før installationen mangler. Varmepumpen har sin egen længere historik i menu 3.4, og menu 7.9.2 kan eksportere den til USB.',
           cause: 'Årsag og anbefalet handling', none: 'NIBE offentliggør ikke yderligere information for denne kode.',
           source: 'Beskrivelser fra NIBEs alarmkodedatabase', clear: 'Ryd historik',
+          privacy: 'Privatliv',
+          analytics: 'Del anonyme brugsdata',
+          analyticsDesc: 'Hjælper appens udvikler med at se, hvilke varmepumpemodeller og funktioner der reelt bruges, og hvor opsætningen fejler. Ingen personlige oplysninger, ingen målinger fra dit hjem, ingen netværksoplysninger.',
           confirm: 'Ryd alarmhistorikken?', showOriginal: 'Vis NIBEs originalvejledning (svensk)' }
   };
   var t = T.en;
@@ -157,6 +192,25 @@
       Homey.confirm(t.confirm, null, function (err, ok) {
         if (err || !ok) return;
         Homey.set('alarmHistory', [], function () { render([]); });
+      });
+    });
+
+    // Consent is revocable here, not only at pairing — a box you can tick once and never untick
+    // is not consent. Writing the setting is enough: the app listens for the change and stops
+    // (or starts) tracking on the next event, rather than at the next restart.
+    var consentBox = document.getElementById('analytics-consent');
+    document.getElementById('privacy-title').textContent = t.privacy;
+    document.getElementById('analytics-label').textContent = t.analytics;
+    document.getElementById('analytics-desc').textContent = t.analyticsDesc;
+    Homey.get('analytics_consent', function (err, value) {
+      if (!err) consentBox.checked = value === true;
+    });
+    consentBox.addEventListener('change', function () {
+      Homey.set('analytics_consent', consentBox.checked, function (err) {
+        if (err) {
+          consentBox.checked = !consentBox.checked;
+          Homey.alert(err.message || String(err), 'error');
+        }
       });
     });
   }

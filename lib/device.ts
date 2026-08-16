@@ -1,4 +1,5 @@
 import {Device} from 'homey';
+import {track} from './analytics';
 import {
     Dir, Register, Selection, enumLabel, isPollable, isUnavailableRaw, migrateSelection,
     resolvedAddress, signedValue, withResolvedAddresses
@@ -223,11 +224,21 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // .catch on every one of these, like alarmTrigger and priorityChangedTrigger already do:
         // trigger() returns a promise, and a Flow whose card throws would otherwise surface as an
         // unhandled rejection from inside a poll rather than a line naming the register.
+        //
+        // Analytics get which trigger fired and for which register, never the reading. The
+        // register name is a fact about the model; the value would be a timestamped record of when
+        // the compressor ran and when someone drew hot water — not what the consent box asks for.
+        const report = (card: string) => track('Fired WHEN Card', {
+            card, register: register.name, role: this.role
+        });
         if (register.bool && value) {
+            report('capability_turned_on');
             this.turnedOnTrigger.trigger(this, {register: name}, state).catch(this.error);
         } else if (register.bool && !value) {
+            report('capability_turned_off');
             this.turnedOffTrigger.trigger(this, {register: name}, state).catch(this.error);
         } else if (register.enum) {
+            report('capability_changed');
             this.capabilityChangedTrigger.trigger(this, {value: `${value}`, register: name}, state)
                 .catch(this.error);
         }
@@ -563,6 +574,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     this.registerCapabilityListener(register.name, async (value) => {
                         this.log(`Manual set ${register.name} = ${value}`);
                         await this.writeRegister(register, value);
+                        // After the write, so the event means the value changed rather than that
+                        // someone tried. A capability listener only fires for a set from outside
+                        // the app — the tile, the mobile app, the web API; polls write through
+                        // setValue() and do not come through here. So this is a hand on a control.
+                        track('Changed Capability', {capability: register.name, role: this.role});
                         this.checkTrigger(register, value);
                         await this.applyClearOnDisable(register, value);
                     });
@@ -586,6 +602,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                         throw new Error(inLanguage(problem, this.homey.i18n.getLanguage()));
                     this.log(`Manual set ${mirror.capability} (${mirror.register}) = ${value}`);
                     await this.writeRegister(source, value);
+                    track('Changed Capability', {capability: mirror.capability, role: this.role});
                     await this.setValue(source, value);
                 });
             }
@@ -626,6 +643,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                      _role: Role, reason: LocalizedText | undefined) {
         if (this.role !== 'main' || from === undefined || to === undefined)
             return;
+        track('Fired WHEN Card', {card: 'priority_changed', register: 'priority', role: this.role});
         this.priorityChangedTrigger.trigger(this, {
             priority: this.priorityLabel(to),
             previous: this.priorityLabel(from),
@@ -705,8 +723,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             this.setCapabilityValue(ALARM_TEXT_CAPABILITY, description).catch(this.error);
         // Only fire on a real alarm, not on the initial read or when one clears. `previous`
         // is undefined on the first poll after start — don't re-announce a standing alarm.
-        if (code !== 0 && previous !== undefined)
+        if (code !== 0 && previous !== undefined) {
+            // The code, not the description: the code is the model's own identifier and is what
+            // makes "which alarms actually occur in the wild" answerable across languages.
+            track('Raised Alarm', {code});
             this.alarmTrigger.trigger(this, {code, description}, {}).catch(this.error);
+        }
         // Record every alarm (including one already standing at startup) in the log.
         if (code !== 0)
             this.appendAlarmLog(code, description, alarmAdvice(series, code)).catch(this.error);
@@ -806,6 +828,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         for (const device of this.driver.getDevices() as any[])
             if (device.getSettings?.().address === this.host())
                 await device.setSettings(info).catch(this.error);
+        // The model code is only known once the pump has answered, which is why the install
+        // profile is (re)sent from here rather than from onInit — at onInit there is no model yet.
+        (this.driver as any).syncInstallProfile?.();
     }
 
     // Which functions the pump counts toward its own energy log and totals. This is a setting
@@ -1071,8 +1096,20 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.connection?.detach(this);
     }
 
+    // onAdded, not onInit: onInit runs on every app start, so counting devices there would report
+    // an "install" each time the hub reboots. onAdded fires once, when the device is really created.
+    async onAdded() {
+        track('Changed Device Set', {action: 'added', role: roleOf(this.getData())});
+        (this.driver as any).syncInstallProfile?.();
+    }
+
     async onDeleted() {
         this.log('Nibe device has been deleted');
+        track('Changed Device Set', {action: 'removed', role: roleOf(this.getData())});
         this.connection?.detach(this);
+        // After detach, so the profile describes the install as it now stands. The driver still
+        // lists this device at this point on some SDK versions; the debounce means the snapshot
+        // taken a few seconds later is the settled one either way.
+        (this.driver as any).syncInstallProfile?.();
     }
 }

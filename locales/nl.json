@@ -57,7 +57,9 @@
       "detected": "Data gedetecteerd",
       "notdetected": "Geen data",
       "select_one": "Selecteer minstens één apparaat om toe te voegen.",
-      "main_desc": "Overzicht: buitentemperatuur, bedrijfsprioriteit en bedrijfsstand, plus diagnose en statistieken"
+      "main_desc": "Overzicht: buitentemperatuur, bedrijfsprioriteit en bedrijfsstand, plus diagnose en statistieken",
+      "analytics": "Anonieme gebruiksgegevens delen",
+      "analytics_desc": "Helpt de maker van de app te zien welke warmtepompmodellen en functies echt gebruikt worden, en waar het instellen misgaat. Geen persoonlijke gegevens, geen metingen uit je huis, geen netwerkgegevens. Je kunt dit later wijzigen in de app-instellingen."
     },
     "sources": {
       "prompt": "Meerdere sensoren kunnen dit melden. Kies degene die moet regelen:",

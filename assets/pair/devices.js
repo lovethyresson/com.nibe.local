@@ -185,6 +185,7 @@ function render() {
         list.appendChild(item);
     });
     document.getElementById('add').style.display = 'block';
+    document.getElementById('consent-row').style.display = 'block';
 }
 
 // Rebuild the device to create from the group toggles: the core group is always
@@ -245,6 +246,18 @@ function createSelected(devices, i, done) {
     });
 }
 
+// Store the answer before creating anything. The choice is the user's regardless of whether
+// device creation then succeeds, and storing it first is also what lets the driver start tracking
+// in time to record this very pairing run.
+function applyConsent(done) {
+    var consent = document.getElementById('analytics-consent').checked;
+    Homey.emit('set_analytics_consent', consent, function () {
+        if (consent)
+            Homey.emit('track_ui', {view: 'pair_devices', button: 'add'}, function () {});
+        done();
+    });
+}
+
 document.getElementById('add').onclick = function (e) {
     e.preventDefault();
     var chosen = [];
@@ -257,11 +270,20 @@ document.getElementById('add').onclick = function (e) {
         return;
     }
     Homey.showLoadingOverlay();
-    createSelected(chosen, 0, function () {
-        Homey.hideLoadingOverlay();
-        Homey.done();
+    applyConsent(function () {
+        createSelected(chosen, 0, function () {
+            Homey.hideLoadingOverlay();
+            Homey.done();
+        });
     });
 };
+
+// Pre-tick only if consent was already given on an earlier pairing — a second pump should not
+// re-ask a question already answered. Default is unticked: this is opt-in.
+Homey.emit('get_context', {}, function (err, ctx) {
+    if (!err && ctx && ctx.analyticsConsent)
+        document.getElementById('analytics-consent').checked = true;
+});
 
 Homey.emit('get_pairing_devices', {}, function (err, result) {
     if (err) {

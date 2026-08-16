@@ -1,4 +1,5 @@
 import Homey from 'homey';
+import {CONSENT_SETTING, appVersion, initAnalytics, refreshConsent, track} from './lib/analytics';
 
 class NibeApp extends Homey.App {
 
@@ -11,7 +12,19 @@ class NibeApp extends Homey.App {
       this.error('Unhandled promise rejection:', reason?.stack ?? reason?.message ?? reason);
     });
 
-    this.log('Nibe Heatpumps app has been initialized');
+    // The single init for the whole app lifecycle. Without stored consent this touches nothing.
+    initAnalytics(this.homey, (...args) => this.log(...args), (...args) => this.error(...args));
+    track('Started App', {prompt_version: 'BA400.4', app_version: appVersion()});
+
+    // The settings page toggles consent by writing the setting directly (the same way it already
+    // reads the alarm history). Listening here is what makes that a real switch rather than a
+    // stored preference nothing acts on — withdrawal takes effect on the next event, not next boot.
+    this.homey.settings.on('set', (key: string) => {
+      if (key === CONSENT_SETTING)
+        refreshConsent(this.homey);
+    });
+
+    this.log('Nibe Live app has been initialized');
   }
 
 }

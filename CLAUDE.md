@@ -54,6 +54,9 @@ Five things move together, and the last one is easy to forget:
    the COP accumulators — it is the source of truth for that logic, carries the diagrams, and states which
    version it was last verified against. Bump that line even when nothing else in it changed. Add a Q to
    `docs/FAQ.md` if the release changes something a user would otherwise write in to ask about.
+6. `docs/analytics.md` if the release added, removed or changed a tracked event, a property, or the
+   consent flow — it is the source of truth for what the app sends, and the answer to give Athom review
+   when they ask. A `track()` call added without a row there is invisible to the next reader.
 
 Per release, not per build — these are documentation, not generated artifacts.
 

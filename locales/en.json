@@ -57,7 +57,9 @@
       "detected": "Data detected",
       "notdetected": "No data",
       "select_one": "Select at least one device to add.",
-      "main_desc": "Overview: outdoor temperature, operating priority and mode, plus diagnostics and statistics"
+      "main_desc": "Overview: outdoor temperature, operating priority and mode, plus diagnostics and statistics",
+      "analytics": "Share anonymous usage data",
+      "analytics_desc": "Helps the app author see which pump models and features are actually used, and where setup fails. No personal data, no readings from your home, no network details. You can change this later under app settings."
     },
     "sources": {
       "prompt": "More than one sensor can report this. Pick the one that should regulate:",
