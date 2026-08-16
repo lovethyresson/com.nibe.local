@@ -200,3 +200,37 @@ The pump refuses writes it considers invalid — most often "Illegal Function", 
 feature is disabled. The classic case: turning **Allow hot water** off makes the pump block the demand-mode
 and "More hot water" registers entirely. The app now logs the exception name and the full response, so the
 log says which of these it was.
+
+## Privacy
+
+### What does "Share anonymous usage data" actually send?
+
+Which pump model and firmware you have (as the code the pump itself reports), which of the six devices you
+created — Main, Heating, Hot water, Pool, Cooling, Solar — which features you enabled on each, which Flow
+cards and buttons get used, whether register detection worked, and whether the connection to your pump drops.
+Plus your Homey's version, model, timezone and language.
+
+It does **not** send any reading from your pump — no temperatures, no power, no hot water activity. That is a
+deliberate line, not an oversight: a timestamped log of when your compressor ran and when someone showered
+would say a great deal about when you are home, and it answers none of the questions the data exists to
+answer. It also sends no IP address, no pump serial, no device or Flow names, and nothing that identifies you.
+The only identifier attached is a random number generated on your Homey.
+
+### Why does the app want this at all?
+
+It is maintained by one person with one heat pump. Whether a feature works on an S1255, an S320 or an S2125 —
+or whether detection finds anything at all on them — is otherwise guesswork, because the people whose setup
+works never post about it. Knowing which models and functions are actually out there is what decides where
+effort goes.
+
+### How do I turn it off?
+
+**More → Apps → Nibe Live → Configure**, then untick it under **Privacy**. It takes effect immediately, and
+you do not need to delete or repair anything. It is off unless you switched it on — the box during pairing
+starts unticked.
+
+### Where is the data stored?
+
+In the EU. The app sends to Amplitude's European servers and the data is held in their EU instance; it is not
+transferred outside. [docs/analytics.md](analytics.md) lists every single event and property, and everything
+deliberately excluded.

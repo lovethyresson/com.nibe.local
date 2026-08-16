@@ -5,7 +5,7 @@ or changes an event, a property, or the consent flow — not on every build. If 
 without adding a row here, the next person cannot answer "what does this app send?" without reading the
 whole codebase, which is the exact question this file exists to close.
 
-Last verified against the code: **unreleased** (first shipped in — fill in at release).
+Last verified against the code: **1.1.0**, which is the release that introduced all of this.
 
 ## Why there is any of this
 
