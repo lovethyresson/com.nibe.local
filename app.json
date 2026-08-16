@@ -40,6 +40,13 @@
     "name": "Love Thyresson",
     "email": "love@thyresson.se"
   },
+  "contributing": {
+    "donate": {
+      "paypal": {
+        "username": "lovethyresson"
+      }
+    }
+  },
   "contributors": {
     "developers": [
       {
