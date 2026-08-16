@@ -1,4 +1,8 @@
 {
+  "1.0.2": {
+    "en": "Minor tweaks.",
+    "sv": "Mindre justeringar."
+  },
   "1.0.1": {
     "en": "Nibe Live reaches 1.0 — the first version published on the Homey App Store. Everything before this was a test release, so if you are already running the app, this is the same app, out of testing. One fix comes with it: when the app explains a finished hot water charge, it now names the temperature that charge was actually aiming for. A \"More hot water\" boost charges to the Large stop temperature whatever demand mode you have selected, and the periodic charge has a target of its own — so charges that used to look like they overshot, or stopped short, are explained correctly.",
     "sv": "Nibe Live når 1.0 — den första versionen som publiceras i Homeys appbutik. Allt före detta har varit testversioner, så kör du redan appen är det samma app, nu ute ur test. En rättning följer med: när appen förklarar en avslutad varmvattenladdning anger den nu den temperatur laddningen faktiskt siktade på. \"Mer varmvatten\" laddar till stopptemperaturen för behovsläget Stort oavsett vilket läge du valt, och den periodiska laddningen har ett eget mål — så laddningar som tidigare såg ut att gå för långt, eller stanna för tidigt, förklaras nu rätt."
