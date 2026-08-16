@@ -1,4 +1,8 @@
 {
+  "1.1.1": {
+    "en": "Minor tweaks.",
+    "sv": "Mindre justeringar."
+  },
   "1.1.0": {
     "en": "The app can now send anonymous usage data, and it asks first. Tick the box when you add a device, or turn it on and off any time under Privacy in the app's settings — it stays off unless you say yes. It helps work out which pump models people run, which functions and features they actually use, and where setup goes wrong on models that cannot be tested against directly. It never sends readings from your home, your network details, or anything that identifies you.",
     "sv": "Appen kan nu skicka anonym användningsdata, och frågar först. Kryssa i rutan när du lägger till en enhet, eller slå på och av det när som helst under Integritet i appens inställningar — det är avstängt om du inte säger ja. Det hjälper till att ta reda på vilka värmepumpsmodeller som används, vilka funktioner och inställningar som faktiskt används, och var installationen går fel på modeller som inte går att testa mot direkt. Det skickas aldrig mätvärden från ditt hem, dina nätverksuppgifter eller något som identifierar dig."

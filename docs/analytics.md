@@ -5,7 +5,7 @@ or changes an event, a property, or the consent flow — not on every build. If 
 without adding a row here, the next person cannot answer "what does this app send?" without reading the
 whole codebase, which is the exact question this file exists to close.
 
-Last verified against the code: **1.1.0**, which is the release that introduced all of this.
+Last verified against the code: **1.1.1**.
 
 ## Why there is any of this
 
@@ -66,6 +66,25 @@ users' data to the US, *and* it silently breaks ingestion, because an Amplitude 
 scoped to its project's region and the US endpoint rejects an EU key. Do not remove the option
 thinking it is redundant.
 
+### One project, several apps
+
+The ingestion key is **shared with `com.homevolt.local`** and with any future Homey app: one
+Amplitude project serves all of them, and an **`app` property on every event** (plus a matching user
+property) separates them again. That is the whole reason `app` exists.
+
+It is read from `manifest.id`, never hardcoded, so no app names itself and a third one gets the
+separation for free. In `track()` it is merged **after** the caller's properties, so a call site can
+never shadow it — `app` has to be authoritative, because every cross-app chart filters on it and one
+mislabelled event is one attributed to the wrong product.
+
+**Do not mint a per-app key.** Amplitude charts cannot span projects, so splitting the key would
+permanently foreclose every cross-app question — and you would not find that out until the first
+time you wanted to ask one.
+
+One consequence worth knowing: `analytics_device_id` lives in each app's own Homey settings, so a
+Homey running both apps is **two** anonymous profiles, not one. Per-app counts are exact; "how many
+people run both" is not answerable, by construction.
+
 ### The only identifier
 
 A random `crypto.randomUUID()`, stored as `analytics_device_id`, minted on first use *after* consent.
@@ -123,6 +142,7 @@ These descriptions are also set on the properties in Amplitude itself, so the UI
 
 | Property | Meaning |
 | --- | --- |
+| `app` | **Which Homey app sent this** — `com.nibe.local`, `com.homevolt.local`, … Present on *every* event, merged in at the `track()` choke point from `manifest.id`. One Amplitude project serves several apps; this is what separates them. Filter on it in any chart that is about one product. |
 | `role` | **Which pump function this happened on** — `main`, `heating`, `hotwater`, `pool`, `cooling`, `solar`. The headline dimension: it is what makes "was this run on Heating or on Hot water?" answerable. `unknown` means the device could not be read and is a bug, not a real function. |
 | `card` | The Homey Flow card id — generic (`set_numeric_value`) or per-register (`target_temperature.h59_hotwater_start.set`). |
 | `register` | The Modbus register acted on, named as its capability. The `i`/`h` prefix is the address type: `i` = input (read-only sensor), `h` = holding (writable setting). |
@@ -185,6 +205,7 @@ produce one identify rather than six.
 
 | Property | Example | Answers |
 | --- | --- | --- |
+| `app` | `"com.nibe.local"` | Which Homey app this profile belongs to — the shared project's separator |
 | `pump_model_code` | `"1155"` | Which models are in the wild |
 | `firmware` | `"9385"` | Which firmware, for register-map differences |
 | `functions` | `["cooling","heating","hotwater","main"]` | Which functions people use |

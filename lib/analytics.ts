@@ -14,6 +14,11 @@ import {Identify} from '@amplitude/analytics-node';
 // reference) report connection health without threading one through.
 
 // Amplitude ingestion key — public by design; move to an env var when you set up environments.
+//
+// This key is SHARED with com.homevolt.local and any future Homey app: one Amplitude project
+// serves all of them, and the `app` property below is what separates them again. That is the whole
+// reason `app` exists. Do not mint a per-app key — Amplitude charts cannot span projects, so
+// splitting the key would permanently foreclose every cross-app question.
 const API_KEY = 'a43b0104bed25c3c0a277eda560bbe7b';
 
 // The Amplitude project is in the EU, and an ingestion key is scoped to its project's region: the
@@ -39,7 +44,7 @@ type Logger = (...args: any[]) => void;
 
 // null until there is both consent and a successful init(). Every track() checks it, so revoking
 // consent stops the stream on the next call rather than at the next app start.
-let enabled: {deviceId: string; appVersion: string} | null = null;
+let enabled: {deviceId: string; appId: string; appVersion: string} | null = null;
 // amplitude.init() is called at most once per process, whether it is reached from app start or
 // from someone ticking the box during pairing. Consent granted mid-session therefore takes effect
 // straight away — waiting for a restart would make the checkbox look broken.
@@ -115,7 +120,13 @@ function enableIfConsented(host: AnalyticsHost): void {
             amplitude.init(API_KEY, {serverZone: SERVER_ZONE});
             sdkInitialized = true;
         }
-        enabled = {deviceId, appVersion: String(host.manifest?.version ?? 'unknown')};
+        // appId is read from the manifest rather than hardcoded, so neither this app nor
+        // com.homevolt.local names itself and a third app gets the separation for free.
+        enabled = {
+            deviceId,
+            appId: String(host.manifest?.id ?? 'unknown'),
+            appVersion: String(host.manifest?.version ?? 'unknown')
+        };
         log('Analytics: enabled by consent');
     } catch (error) {
         // A failure here must not take app start with it — the pump is the point, analytics are not.
@@ -180,6 +191,7 @@ export function reportInstallProfile(profile: InstallProfile): void {
             return;
         try {
             const identity = new Identify();
+            identity.set('app', enabled.appId);
             identity.set('app_version', enabled.appVersion);
             identity.set('functions', snapshot.functions);
             identity.set('function_count', snapshot.functions.length);
@@ -219,7 +231,11 @@ export function track(name: string, properties?: Record<string, any>): void {
     if (!enabled)
         return;
     try {
-        amplitude.track(name, properties, {device_id: enabled.deviceId})
+        // `app` is merged in here rather than at every call site — that is what makes a single
+        // Amplitude project able to serve every Homey app. It goes AFTER the spread so a caller
+        // cannot shadow it: `app` has to be authoritative, because every cross-app chart is
+        // filtered on it and one mislabelled event is one attributed to the wrong product.
+        amplitude.track(name, {...properties, app: enabled.appId}, {device_id: enabled.deviceId})
             .promise
             .then((result) => {
                 if (result.code >= 400)
