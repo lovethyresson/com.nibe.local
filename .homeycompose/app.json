@@ -1,6 +1,6 @@
 {
   "id": "com.nibe.local",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
@@ -38,6 +38,13 @@
   "author": {
     "name": "Love Thyresson",
     "email": "love@thyresson.se"
+  },
+  "contributing": {
+    "donate": {
+      "paypal": {
+        "username": "lovethyresson"
+      }
+    }
   },
   "contributors": {
     "developers": [
