@@ -2,3 +2,12 @@
 /node_modules/
 /.homeybuild/
 /dev/csv/
+
+# Personal Homey data — flow/device/zone exports pulled off the live hub with
+# `homey api raw`. These carry the home's real device ids, user names and push
+# targets, and are nobody else's business. Dumps belong in a scratchpad outside
+# the repo; these patterns are a backstop for when one lands in it anyway.
+backup_all_advancedflows*.json
+advancedflow*.json
+*.homeyflows.json
+/homey-dump/

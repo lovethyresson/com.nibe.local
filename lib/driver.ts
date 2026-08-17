@@ -191,7 +191,11 @@ export abstract class NibePumpDriver extends Driver {
         return {
             pumpModelCode: pumpModelCode ? String(pumpModelCode) : undefined,
             firmware: firmware ? String(firmware) : undefined,
-            functions: devices.map((device) => roleOf(device.getData())).sort(),
+            // Deduplicated so `role_count` counts parts of the installation, not devices. The
+            // shared taxonomy defines `roles` as a set, and homevolt — where one role really can
+            // have two devices — builds it that way. One device per role is the norm here, so this
+            // is a no-op in practice and an honest shape regardless.
+            roles: [...new Set(devices.map((device) => roleOf(device.getData())))].sort(),
             featuresByFunction,
             ...this.hostFacts()
         };
@@ -259,6 +263,25 @@ export abstract class NibePumpDriver extends Driver {
             // A pass where nothing answered is the failure worth seeing, so name it explicitly
             // rather than leaving it to be inferred from a zero.
             found_nothing: recommended.length === 0
+        });
+    }
+
+    // The failure counterpart, for a detection pass that rejected instead of returning. Without
+    // this, the hardest failure there is — the probe never completing on a model the maintainer
+    // cannot test — was the one thing that sent nothing at all, and in Amplitude it looked
+    // identical to a detection the user never started. It is a `found_nothing` pass by definition.
+    //
+    // `registers_responded` and `groups_recommended` are absent rather than zero, on purpose: the
+    // rejected promise carries no samples, so there is no count to report, and a zero here would
+    // collide with a genuinely different measurement the success path above already makes — a pass
+    // that *completed* and got no answers. `registers_total` is a static profile fact, known
+    // whether or not the pass got anywhere. The error message itself is never sent: it is
+    // unbounded free text, which is exactly what this taxonomy keeps out.
+    private trackFailedDetection(mode: 'pair' | 'repair') {
+        track('Completed Detection', {
+            mode,
+            registers_total: this.profile.registers.length,
+            found_nothing: true
         });
     }
 
@@ -900,6 +923,7 @@ export abstract class NibePumpDriver extends Driver {
                 .catch((error) => {
                     detectionRunning = null;
                     this.error('onPair detection failed', error);
+                    this.trackFailedDetection('pair');
                     session.emit('detection_failed',
                         {message: error?.message ?? String(error)}).catch(() => {});
                 });
@@ -954,6 +978,7 @@ export abstract class NibePumpDriver extends Driver {
                 .catch((error: any) => {
                     detectionRunning = null;
                     this.error('onRepair detection failed', error);
+                    this.trackFailedDetection('repair');
                     session.emit('detection_failed',
                         {message: error?.message ?? String(error)}).catch(() => {});
                 });

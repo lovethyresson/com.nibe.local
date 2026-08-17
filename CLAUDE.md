@@ -58,6 +58,14 @@ Five things move together, and the last one is easy to forget:
    consent flow — it is the source of truth for what the app sends, and the answer to give Athom review
    when they ask. A `track()` call added without a row there is invisible to the next reader.
 
+   **Before adding or renaming any event or property, read `docs/analytics-taxonomy.md`** — the
+   cross-app contract, byte-identical in `com.nibe.local` and `com.homevolt.local`, which report into
+   one shared Amplitude project. A name that already exists keeps its meaning *and* its type; a
+   concept that already has a name reuses it. If a name does not fit, mint a new one rather than
+   overload an existing one. **Never edit that file in one repo alone** — port the change to both, or
+   the contract silently stops being one. Renaming a *user* property also orphans the old one in
+   Amplitude forever (`Identify` only `.set()`s; there is no unset), so it is a one-way decision.
+
 Per release, not per build — these are documentation, not generated artifacts.
 
 Verify with `npm test`, `npm run typecheck`, `npx homey app validate --level publish` — the same

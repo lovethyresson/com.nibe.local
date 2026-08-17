@@ -239,3 +239,25 @@ users, adoption or stability. Pre-1.0 → hard cut; 1.0 is the line where that c
 seems to invalidate a standing policy, say so and ask — changing the policy is not the same kind
 of act as acting under it. And when a correction has clearly been given before, write it down
 where the next session will read it, not only where this one will.
+
+**2026-08-09.** Asked to repoint Homey flows at re-paired Nibe devices, I listed the hub's devices
+with a filter on the *name* `Nibe`. That found `Nibe Main` and stopped. I then reported that the
+hot-water flows were unfixable because no device on the hub carried
+`boolean_NIBE.h697_more_hotwater` — and told the user to go run Repair to enable the hot water
+group. The devices existed the whole time. They were named `Uppvärmning` and `Varmvatten`.
+
+The user's correction was two words of Swedish, which I first mis-read as a locale change request
+and burned a clarifying question on.
+
+The filter was the error, but the real failure is that I reported a *negative* conclusion — "this
+cannot be done, go reconfigure your pump" — on the strength of a search I had chosen the key for.
+A name filter encodes an assumption about what things are called; a `driverId` filter encodes what
+they actually are. For anything on this hub the identity is `homey:app:com.nibe.local:nibe_s`,
+never the label, because the label is the user's to choose and this user names devices in Swedish.
+
+**Rule:** query by stable identity (`driverId`, capability, register address), never by
+human-assigned name. Before telling the user that something is missing, absent or impossible,
+re-derive it a second way — an absence found through one filter is evidence about the filter as
+much as about the world. And the same goes for scope: the orphan sweep that should have opened
+this task (every `homey:device:` UUID in every flow, diffed against the live device list) found
+two more live broken flows that no name-based search would have surfaced.

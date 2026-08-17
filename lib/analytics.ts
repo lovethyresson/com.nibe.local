@@ -149,8 +149,11 @@ export interface InstallProfile {
     // something this app knows reliably, so guessing here would poison the data it exists to give.
     pumpModelCode?: string;
     firmware?: string;
-    // Which of the six role devices the user actually created — the "which functions" question.
-    functions: string[];
+    // Which of the six role devices the user actually created — the "which parts of the
+    // installation does this home have?" question. Sent as the `roles` user property, which is
+    // deliberately the same vocabulary as the per-event `role` property: one concept, two scopes.
+    // Neither derives from the other — an install can own a role it never emits an event for.
+    roles: string[];
     // Enabled feature groups per role — the "which features within a function" question.
     // e.g. {heating: ['heating', 'ventilation', 'energy'], hotwater: ['hotwater']}
     featuresByFunction: Record<string, string[]>;
@@ -193,8 +196,8 @@ export function reportInstallProfile(profile: InstallProfile): void {
             const identity = new Identify();
             identity.set('app', enabled.appId);
             identity.set('app_version', enabled.appVersion);
-            identity.set('functions', snapshot.functions);
-            identity.set('function_count', snapshot.functions.length);
+            identity.set('roles', snapshot.roles);
+            identity.set('role_count', snapshot.roles.length);
             if (snapshot.pumpModelCode)
                 identity.set('pump_model_code', snapshot.pumpModelCode);
             if (snapshot.firmware)

@@ -1,9 +1,17 @@
 # What the app measures, and what it deliberately doesn't
 
-**This file is the source of truth for analytics.** Update it *before every release* that adds, removes
-or changes an event, a property, or the consent flow — not on every build. If you add a `track()` call
-without adding a row here, the next person cannot answer "what does this app send?" without reading the
-whole codebase, which is the exact question this file exists to close.
+**This file is the source of truth for what this app sends and why.** Update it *before every release*
+that adds, removes or changes an event, a property, or the consent flow — not on every build. If you add
+a `track()` call without adding a row here, the next person cannot answer "what does this app send?"
+without reading the whole codebase, which is the exact question this file exists to close.
+
+> **For names and types, [`analytics-taxonomy.md`](analytics-taxonomy.md) is the source of truth.**
+> That file is the cross-app contract — it is byte-identical in `com.nibe.local` and
+> `com.homevolt.local`, which both report into one Amplitude project, so a property name means the
+> same thing and has the same type in both or the shared project is worse than two separate ones.
+> **Check it before adding or renaming any event or property, and never edit it in one repo alone.**
+> This file keeps the privacy prose, the consent flow, and the call sites; it does not get to invent
+> a name.
 
 Last verified against the code: **1.1.1**.
 
@@ -16,7 +24,7 @@ of that can be learned from a forum thread, because the people whose setup works
 So the questions the telemetry exists to answer are narrow and specific:
 
 1. **Which models are out there?** (`pump_model_code`)
-2. **Which of the six function devices do people actually create?** (`functions`)
+2. **Which of the six function devices do people actually create?** (`roles`)
 3. **Which feature groups within each function?** (`features_<role>`)
 4. **Where does setup fail on hardware the maintainer cannot test?** (`Completed Detection`, `Clicked Button`)
 
@@ -124,16 +132,25 @@ Flow it refers to. (They were briefly called `Fired Flow Trigger`, `Evaluated Fl
 
 | Event | Fires when | Properties | Call site |
 | --- | --- | --- | --- |
-| `Started App` | App boots | `prompt_version`, `app_version` | [`app.ts:17`](../app.ts) |
-| `Clicked Button` | Any manual click in a pairing, repair or settings view | `view`, `button` | [`lib/driver.ts:206`](../lib/driver.ts) via `track_ui` |
+| `Started App` | App boots | `app_version` | [`app.ts:17`](../app.ts) |
+| `Clicked Button` | Any manual click in a **pairing or repair** view | `view`, `button` | [`lib/driver.ts:240`](../lib/driver.ts) via `track_ui` |
 | `Changed Capability` | A slider/toggle moved from outside the app — tile, mobile app, web API — **after** the write succeeds | `capability`, `role` | [`lib/device.ts:581`](../lib/device.ts), mirror at `:605` |
-| `Ran THEN Card` | Any of the 34 per-register cards or the 3 generic ones runs | `card`, `register`, `role`, `ok` | [`lib/driver.ts:127`](../lib/driver.ts) |
-| `Checked AND Card` | Any of the 5 condition cards is evaluated | `card`, `register`, `role`, `ok`, `result` | same wrapper |
+| `Ran THEN Card` | Any of the 34 per-register cards or the 3 generic ones runs | `card`, `register`, `role`, `ok` | [`lib/driver.ts:116`](../lib/driver.ts) |
+| `Checked AND Card` | Any of the 5 condition cards is evaluated | `card`, `register`, `role`, `ok`, `result`¹ | same wrapper |
 | `Fired WHEN Card` | A trigger actually fires | `card`, `register`, `role` — **never the value** | [`lib/device.ts:231`](../lib/device.ts), priority at `:646` |
 | `Raised Alarm` | A new alarm appears (not one already standing at startup) | `code` | [`lib/device.ts:729`](../lib/device.ts) |
-| `Completed Detection` | A detection pass finishes, in pairing or repair | `mode`, `registers_responded`, `registers_total`, `groups_recommended`, `found_nothing` | [`lib/driver.ts:219`](../lib/driver.ts) |
-| `Changed Device Set` | A device is added, removed, or reconfigured via Repair | `action`, `role`, `groups_enabled` | [`lib/device.ts:1102`](../lib/device.ts), `:1108`, [`lib/driver.ts:953`](../lib/driver.ts) |
-| `Lost Connection` | The socket drops unexpectedly | `cause` (`watchdog` / `socket_close`), `dead_polls` | [`lib/connection.ts:542`](../lib/connection.ts) |
+| `Completed Detection` | A detection pass finishes **or fails**, in pairing or repair | `mode`, `found_nothing`, `registers_total`; `registers_responded`, `groups_recommended`² | [`lib/driver.ts:249`](../lib/driver.ts), failure path at `:276` |
+| `Changed Device Set` | A device is added, removed, or reconfigured via Repair | `action`, `role`; `groups_enabled`³ | [`lib/device.ts:1102`](../lib/device.ts), `:1108`, [`lib/driver.ts:1008`](../lib/driver.ts) |
+| `Lost Connection` | The socket drops unexpectedly | `cause` (`watchdog` / `socket_close`); `dead_polls`⁴ | [`lib/connection.ts:542`](../lib/connection.ts) |
+
+¹ `result` is present **only on success**. When the run listener throws, the event carries `ok: false`
+and no `result` — nothing was evaluated, so there is no boolean to report. Do not build a chart that
+assumes every `Checked AND Card` has a `result`.
+² Only on the **success** path. A detection that threw carries no samples and no recommendations, so
+both are omitted rather than sent as zero — see the note below.
+³ Only with `action: 'reconfigured'`. The `added` and `removed` events come from the device's own
+`onAdded`/`onDeleted` and carry `action` and `role` only.
+⁴ Only with `cause: 'watchdog'`. A `socket_close` has no poll count to report.
 
 ### Property glossary
 
@@ -147,23 +164,28 @@ These descriptions are also set on the properties in Amplitude itself, so the UI
 | `card` | The Homey Flow card id — generic (`set_numeric_value`) or per-register (`target_temperature.h59_hotwater_start.set`). |
 | `register` | The Modbus register acted on, named as its capability. The `i`/`h` prefix is the address type: `i` = input (read-only sensor), `h` = holding (writable setting). |
 | `ok` | Whether the card's run succeeded. `false` = it threw, usually because the model lacks that register or the value was out of range. A card with a high false rate is a model-compatibility bug. |
-| `result` | What an AND card evaluated to — i.e. whether the Flow carried on past that row. |
+| `result` | What an AND card evaluated to — i.e. whether the Flow carried on past that row. Absent when `ok: false`: a listener that threw evaluated nothing. |
 | `view` / `button` | Which web view, and which button in it. |
 | `capability` | The capability changed by hand. |
 | `code` | The Nibe alarm code, numeric and language-independent. |
 | `mode` | `pair` (first setup) or `repair` (changing an existing device). |
-| `registers_responded` / `registers_total` | Detection coverage on this pump. |
-| `groups_recommended` / `found_nothing` | What detection recommended; `found_nothing` names the outright failure. |
-| `action` / `groups_enabled` | `added`/`removed`/`reconfigured`, and the groups left switched on. |
-| `cause` / `dead_polls` | `watchdog` (socket open, pump silent) vs `socket_close` (connection dropped), and how many empty polls preceded it. |
+| `registers_responded` / `registers_total` | Detection coverage on this pump. `registers_total` is a static profile fact and is always sent; `registers_responded` needs samples, so it is absent on a failed pass. |
+| `groups_recommended` / `found_nothing` | What detection recommended; `found_nothing` names the outright failure. `groups_recommended` is absent on a failed pass. |
+| `action` / `groups_enabled` | `added`/`removed`/`reconfigured`; `groups_enabled` (the groups left switched on) accompanies `reconfigured` only. |
+| `cause` / `dead_polls` | `watchdog` (socket open, pump silent) vs `socket_close` (connection dropped); `dead_polls` (how many empty polls preceded it) accompanies `watchdog` only. |
 
 ### Notes on individual events
 
-**`Started App`** carries `prompt_version: 'BA400.4'`, a marker from the setup flow that created this
-integration. It is safe to remove once the pipeline is known-good.
+**`Started App`** carries `app_version` and nothing else. It used to also send
+`prompt_version: 'BA400.4'`, a marker from the Amplitude setup wizard that scaffolded this
+integration; it had no product meaning and has been removed. Do not reintroduce it.
 
 **`Clicked Button`** is one event for every button, distinguished by `view`/`button`, so
-"how often is detection skipped?" is a filter rather than a separate event name. Current pairs:
+"how often is detection skipped?" is a filter rather than a separate event name. It covers the
+**pairing and repair views only** — the app-settings page ([`settings/index.html`](../settings/index.html))
+emits nothing at all. It has exactly one control, the consent switch, and that writes the
+`analytics_consent` setting directly; tracking a click on the switch that governs tracking is the one
+click this app must not record. Current pairs:
 
 | `view` | `button` |
 | --- | --- |
@@ -197,10 +219,25 @@ the card. Tracking there would count subscriptions, not fires, which is why the 
 whether detection works on hardware the maintainer does not own. `found_nothing` is named explicitly
 rather than left to be inferred from a zero.
 
+It fires from **two** paths, and the difference matters when reading a chart:
+
+| Path | `found_nothing` | `registers_responded` / `groups_recommended` |
+| --- | --- | --- |
+| The pass returned a result | `true` only if nothing was recommended | present |
+| The pass **threw** | always `true` | **absent** |
+
+The failure path exists because it was previously missing: a detection that threw sent nothing, so the
+hardest failure there is — the probe never completing on a model the maintainer cannot test — was
+indistinguishable in Amplitude from a detection the user never started. The two omitted properties are
+absent rather than zero on purpose: a rejected promise carries no samples, and a `registers_responded: 0`
+would collide with a real and different measurement (a pass that *completed* and got no answers). Split
+the two paths in a chart by whether `registers_responded` is set. The error message is never sent — it is
+unbounded free text.
+
 ## User properties
 
 The install as a *shape*, not a stream. Sent with `Identify` from
-[`lib/analytics.ts:163`](../lib/analytics.ts), debounced 5 s so six devices finishing `onInit` together
+[`lib/analytics.ts:183`](../lib/analytics.ts), debounced 5 s so six devices finishing `onInit` together
 produce one identify rather than six.
 
 | Property | Example | Answers |
@@ -208,8 +245,8 @@ produce one identify rather than six.
 | `app` | `"com.nibe.local"` | Which Homey app this profile belongs to — the shared project's separator |
 | `pump_model_code` | `"1155"` | Which models are in the wild |
 | `firmware` | `"9385"` | Which firmware, for register-map differences |
-| `functions` | `["cooling","heating","hotwater","main"]` | Which functions people use |
-| `function_count` | `4` | Convenience for segmenting |
+| `roles` | `["cooling","heating","hotwater","main"]` | Which functions people use |
+| `role_count` | `4` | Convenience for segmenting (Amplitude cannot group by array length) |
 | `features_<role>` | `features_heating: ["heating","ventilation","energy"]` | Which features within each function |
 | `app_version` | `"1.0.1"` | Version segmentation |
 | `homey_version` | `"12.4.1"` | Which Homey software versions are in the field |
@@ -218,6 +255,19 @@ produce one identify rather than six.
 | `timezone` | `"Europe/Stockholm"` | The country signal |
 | `language` | `"sv"` | Which of the six shipped languages are actually used |
 | `units` | `"metric"` | Whether an imperial user would ever hit unit bugs |
+
+**`roles` is the same vocabulary as the per-event `role`, at install scope.** `role` says which part of
+the installation an event happened on; `roles` says which parts the install *has*, and `role_count` is
+its length because Amplitude cannot group by array length. Neither derives from the other — an install
+that paired a Cooling device and never triggered a Flow on it emits no `role: 'cooling'` event, and
+absence of events is not absence of hardware. These were called `functions` and `function_count` until
+two unrelated words for one concept caused real confusion; the cross-app taxonomy settled on `role`.
+
+> **The old names are orphaned, not gone.** Amplitude's `Identify` only ever `.set()`s — there is no
+> unset — so every profile that reported before the rename keeps its last `functions` and
+> `function_count` values forever. In the UI they are permanently stale properties. Prefer `roles`;
+> treat the old pair as pre-rename data only, and expect the same trap on any future user-property
+> rename.
 
 `homey_platform` + `homey_platform_version` are reported **raw, not mapped to a product name**.
 `local` + `2` is a Homey Pro (Early 2023) and `cloud` means Homey Cloud behind a Bridge, but that
