@@ -261,3 +261,16 @@ re-derive it a second way — an absence found through one filter is evidence ab
 much as about the world. And the same goes for scope: the orphan sweep that should have opened
 this task (every `homey:device:` UUID in every flow, diffed against the live device list) found
 two more live broken flows that no name-based search would have surfaced.
+
+## The store changelog is a listing, not release notes (1.1.3)
+
+CLAUDE.md already says to keep `.homeychangelog.json` entries to "a few sentences", and the 1.1.3
+entry I wrote was a few sentences — three of them, each carrying a "so that…" clause explaining
+why the rename mattered and reassuring the reader their Flows still worked. It came straight back
+as "way too wordy". "A few sentences" is not the constraint; *sharp* is. The rewrite that landed
+was three short ones, with every explanatory clause deleted.
+
+**Rule:** draft the changelog entry, then delete every clause that explains why or how — keep only
+what changed for the owner and anything they must do. The mechanism, the register numbers and the
+reasoning go in the `docs/releases.md` row, which is the venue that wants them. Same failure mode
+as 0.9.13's ~500-word wall: the detail was right, the venue was wrong.
