@@ -1054,12 +1054,12 @@
       "max": 70,
       "insights": false,
       "title": {
-        "en": "Hot water stop (periodic)",
-        "sv": "Varmvatten stopp (periodisk)",
-        "de": "Brauchwasser Stopp (periodisch)",
-        "nl": "Warmtapwater stop (periodiek)",
-        "no": "Varmtvann stopp (periodisk)",
-        "da": "Varmt vand stop (periodisk)"
+        "en": "Hot water stop (Periodic)",
+        "sv": "Varmvatten stopp (Periodisk)",
+        "de": "Brauchwasser Stopp (Periodisch)",
+        "nl": "Warmtapwater stop (Periodiek)",
+        "no": "Varmtvann stopp (Periodisk)",
+        "da": "Varmt vand stop (Periodisk)"
       }
     },
     "onoff.h195_enable_hotwater": {

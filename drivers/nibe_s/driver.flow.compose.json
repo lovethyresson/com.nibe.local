@@ -904,20 +904,20 @@
     {
       "id": "target_temperature.h61_hotwater_stop_periodic.set",
       "title": {
-        "en": "Set the periodic hot water stop temperature",
-        "sv": "Ställ in stopptemperatur för periodiskt varmvatten",
-        "de": "Stopptemperatur für periodisches Brauchwasser einstellen",
-        "nl": "Stoptemperatuur periodiek warmtapwater instellen",
-        "no": "Still inn stopptemperatur for periodisk varmtvann",
-        "da": "Indstil stoptemperatur for periodisk varmt vand"
+        "en": "Set the hot water stop temperature (Periodic)",
+        "sv": "Ställ in varmvattnets stopptemperatur (Periodisk)",
+        "de": "Brauchwasser-Stopptemperatur einstellen (Periodisch)",
+        "nl": "Stoptemperatuur warmtapwater instellen (Periodiek)",
+        "no": "Still inn stopptemperatur varmtvann (Periodisk)",
+        "da": "Indstil stoptemperatur varmt vand (Periodisk)"
       },
       "titleFormatted": {
-        "en": "Set the periodic hot water stop temperature to [[value]]",
-        "sv": "Ställ in stopptemperatur för periodiskt varmvatten till [[value]]",
-        "de": "Stopptemperatur für periodisches Brauchwasser auf [[value]] setzen",
-        "nl": "Stoptemperatuur periodiek warmtapwater instellen op [[value]]",
-        "no": "Sett stopptemperatur for periodisk varmtvann til [[value]]",
-        "da": "Indstil stoptemperatur for periodisk varmt vand til [[value]]"
+        "en": "Set the hot water stop temperature (Periodic) to [[value]]",
+        "sv": "Ställ in varmvattnets stopptemperatur (Periodisk) till [[value]]",
+        "de": "Brauchwasser-Stopptemperatur (Periodisch) auf [[value]] setzen",
+        "nl": "Stoptemperatuur warmtapwater (Periodiek) instellen op [[value]]",
+        "no": "Sett stopptemperatur varmtvann (Periodisk) til [[value]]",
+        "da": "Indstil stoptemperatur varmt vand (Periodisk) til [[value]]"
       },
       "hint": {
         "en": "Stop temperature for the periodic anti-legionella charge. Reaching it usually needs the immersion heater — a compressor alone tops out in the high 50s. Accepts 55 to 70 °C.",
@@ -946,20 +946,20 @@
     {
       "id": "target_temperature.h59_hotwater_start.set",
       "title": {
-        "en": "Set the hot water start temperature",
-        "sv": "Ställ in varmvattnets starttemperatur",
-        "de": "Brauchwasser-Starttemperatur einstellen",
-        "nl": "Starttemperatuur warmtapwater instellen",
-        "no": "Still inn starttemperatur varmtvann",
-        "da": "Indstil starttemperatur varmtvand"
+        "en": "Set the hot water start temperature (Medium)",
+        "sv": "Ställ in varmvattnets starttemperatur (Medel)",
+        "de": "Brauchwasser-Starttemperatur einstellen (Mittel)",
+        "nl": "Starttemperatuur warmtapwater instellen (Medium)",
+        "no": "Still inn starttemperatur varmtvann (Medium)",
+        "da": "Indstil starttemperatur varmt vand (Medium)"
       },
       "titleFormatted": {
-        "en": "Set the hot water start temperature to [[value]]",
-        "sv": "Ställ in varmvattnets starttemperatur till [[value]]",
-        "de": "Brauchwasser-Starttemperatur auf [[value]] setzen",
-        "nl": "Starttemperatuur warmtapwater instellen op [[value]]",
-        "no": "Sett starttemperatur varmtvann til [[value]]",
-        "da": "Indstil starttemperatur varmtvand til [[value]]"
+        "en": "Set the hot water start temperature (Medium) to [[value]]",
+        "sv": "Ställ in varmvattnets starttemperatur (Medel) till [[value]]",
+        "de": "Brauchwasser-Starttemperatur (Mittel) auf [[value]] setzen",
+        "nl": "Starttemperatuur warmtapwater (Medium) instellen op [[value]]",
+        "no": "Sett starttemperatur varmtvann (Medium) til [[value]]",
+        "da": "Indstil starttemperatur varmt vand (Medium) til [[value]]"
       },
       "hint": {
         "en": "Tank temperature where hot water charging starts. Accepts 5 to 60 °C.",
@@ -988,20 +988,20 @@
     {
       "id": "target_temperature.h63_hotwater_stop.set",
       "title": {
-        "en": "Set the hot water stop temperature",
-        "sv": "Ställ in varmvattnets stopptemperatur",
-        "de": "Brauchwasser-Stopptemperatur einstellen",
-        "nl": "Stoptemperatuur warmtapwater instellen",
-        "no": "Still inn stopptemperatur varmtvann",
-        "da": "Indstil stoptemperatur varmtvand"
+        "en": "Set the hot water stop temperature (Medium)",
+        "sv": "Ställ in varmvattnets stopptemperatur (Medel)",
+        "de": "Brauchwasser-Stopptemperatur einstellen (Mittel)",
+        "nl": "Stoptemperatuur warmtapwater instellen (Medium)",
+        "no": "Still inn stopptemperatur varmtvann (Medium)",
+        "da": "Indstil stoptemperatur varmt vand (Medium)"
       },
       "titleFormatted": {
-        "en": "Set the hot water stop temperature to [[value]]",
-        "sv": "Ställ in varmvattnets stopptemperatur till [[value]]",
-        "de": "Brauchwasser-Stopptemperatur auf [[value]] setzen",
-        "nl": "Stoptemperatuur warmtapwater instellen op [[value]]",
-        "no": "Sett stopptemperatur varmtvann til [[value]]",
-        "da": "Indstil stoptemperatur varmtvand til [[value]]"
+        "en": "Set the hot water stop temperature (Medium) to [[value]]",
+        "sv": "Ställ in varmvattnets stopptemperatur (Medel) till [[value]]",
+        "de": "Brauchwasser-Stopptemperatur (Mittel) auf [[value]] setzen",
+        "nl": "Stoptemperatuur warmtapwater (Medium) instellen op [[value]]",
+        "no": "Sett stopptemperatur varmtvann (Medium) til [[value]]",
+        "da": "Indstil stoptemperatur varmt vand (Medium) til [[value]]"
       },
       "hint": {
         "en": "Tank temperature where hot water charging stops. Accepts 5 to 65 °C.",

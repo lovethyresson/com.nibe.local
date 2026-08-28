@@ -1,4 +1,8 @@
 {
+  "1.1.3": {
+    "en": "The hot water Flow cards now say which demand mode they set. The two that were simply called \"hot water start temperature\" and \"hot water stop temperature\" set the Medium mode, and now say so. The card for the periodic charge's stop temperature is renamed to match, so all seven sit together in the list instead of one of them hiding under a different name. Existing Flows keep working — only the names shown have changed.",
+    "sv": "Flödeskorten för varmvatten visar nu vilket behovsläge de ställer in. De två som bara hette \"varmvattnets starttemperatur\" och \"varmvattnets stopptemperatur\" ställer in läget Medel, och säger det nu. Kortet för den periodiska laddningens stopptemperatur byter namn på samma sätt, så att alla sju hamnar tillsammans i listan i stället för att ett av dem göms under ett annat namn. Befintliga flöden fortsätter fungera — bara de visade namnen har ändrats."
+  },
   "1.1.1": {
     "en": "Minor tweaks.",
     "sv": "Mindre justeringar."
