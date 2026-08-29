@@ -274,3 +274,24 @@ was three short ones, with every explanatory clause deleted.
 what changed for the owner and anything they must do. The mechanism, the register numbers and the
 reasoning go in the `docs/releases.md` row, which is the venue that wants them. Same failure mode
 as 0.9.13's ~500-word wall: the detail was right, the venue was wrong.
+
+## The changelog rule existed and I broke it anyway (1.1.4)
+
+The 1.1.3 lesson above, and the memory it was promoted to, both said: 2-3 sharp sentences, delete
+every clause that explains why or how. I then wrote a 1.1.4 entry in three sentences that still came
+back as "Sharpen the changelog. We talked about this." So the rule was not the problem — it was not
+specific enough about *what* survives an edit pass and what does not.
+
+Two clauses got through because each looked like it was doing work:
+
+- "Nothing to do — it takes effect when the app updates." CLAUDE.md says name "anything they must
+  do", and I read the null case as something worth stating. It is not. An app update applying itself
+  is not news, and the sentence reads as padding in a two-sentence listing.
+- "The Solar device was reporting its live output to its own tile but not to Energy." That is the
+  data flow, written from the app's point of view. The owner never sees a device report anything to
+  anything; they see an empty production figure in the Energy tab. The mechanism had already been
+  banned in the abstract, and I still wrote it because it felt like the symptom.
+
+**Rule:** after drafting, read each sentence and ask *would the owner recognise this as their own
+problem, or is it how the app works?* Cut the second kind. And when there is nothing the owner must
+do, write nothing — the null case is silence, not a sentence saying so.

@@ -184,12 +184,19 @@ export function extraCapabilities(profile: ModelProfile, role: Role, selection?:
             return source && isRegisterEnabled(source, selection ?? null, profile.pickerPrimary);
         })
         .map((mirror) => mirror.capability);
-    // Solar carries only its two Modbus registers (measure_power.i2176_solar_current +
-    // meter_power.solar) — no allocator energy pair and no COP. Note the first is a *register*,
-    // not ACTIVE_POWER_CAPABILITY; it used to be named the bare `measure_power`, which is exactly
-    // the collision that rename fixed.
+    // Solar carries no allocator energy pair and no COP — its two Modbus registers
+    // (measure_power.i2176_solar_current + meter_power.solar) cover it. Note the first is a
+    // *register*, not ACTIVE_POWER_CAPABILITY; it used to be named the bare `measure_power`,
+    // which is exactly the collision that rename fixed.
+    //
+    // It does still get its mirror. Homey Energy reads live power from the *bare* `measure_power`
+    // id and nothing else: the energy object can redirect the cumulative meter to a
+    // sub-capability (meterPowerExportedCapability, set for solar in device.ts), but there is no
+    // equivalent key for measure_power. So without the mirror a solar device appears in the
+    // Energy tab with its kWh meter and no production reading at all — which is what shipped
+    // from 0.9.16 until it was reported.
     if (role === "solar")
-        return [];
+        return mirrored;
     // A COP/energy extra is only meaningful if the pump exposes the source registers it is
     // derived from. On S all are present (identical to before); on a fixed-speed F with no
     // consumed-power source they drop out cleanly.

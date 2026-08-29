@@ -216,6 +216,28 @@ export const sProfile = makeProfile({
     // at", and `start` stays visible as its own capability. The validator is what stops the dial
     // — now a single gesture — inverting the band.
     mirrors: [
+        // Solar's live generation, published under the bare `measure_power` id. Homey Energy
+        // reads production from that id alone — `meterPowerExportedCapability` redirects the
+        // cumulative meter to meter_power.solar, but measure_power has no such key, so the
+        // register's own sub-capability id is invisible to the Energy tab.
+        //
+        // Plumbing, not a second reading: measure_power.i2176_solar_current already shows these
+        // watts in the device view under its own title, so `uiComponent: null` keeps the mirror
+        // out of it and `insights: false` keeps it from opening a second Insights log with the
+        // same name and the same values — which, per the display-name snapshot, could never be
+        // renamed or merged afterwards. measure_power defaults to insights: true, so this has to
+        // be explicit.
+        {
+            role: "solar",
+            capability: "measure_power",
+            options: {
+                decimals: 0, uiComponent: null, insights: false,
+                title: {en: "Solar power generated", sv: "Genererad soleffekt",
+                        de: "Erzeugte Solarleistung", nl: "Opgewekt zonnevermogen",
+                        no: "Generert soleffekt", da: "Genereret soleffekt"}
+            },
+            register: "measure_power.i2176_solar_current"
+        },
         {
             role: "pool",
             capability: "measure_temperature",

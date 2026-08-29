@@ -20,6 +20,17 @@ other — but it means the absolute numbers will never equal MyUplink's lifetime
 
 The *change* over a given window should agree. Compare a day or a week, not the raw totals.
 
+### My solar panels show up in the Energy tab but with no production figure
+
+Fixed in **1.1.4**. The Solar device was publishing its live output under a name only the device's own
+tile could read, so Homey's Energy tab listed the device but had no production value to show. The tile
+was right the whole time — it was the Energy tab that saw nothing. Updating the app fixes it; there is
+nothing to change on the pump or in the device settings.
+
+Note that the solar energy total counts from when you added the device, not from when the panels were
+installed — same as every other energy figure in this app. Your pump's own lifetime total stays
+visible in MyUplink and in the pump's menus.
+
 ### Why does Main show so little energy used?
 
 Because Main is the **remainder**, not the whole pump. It carries standby draw plus any function you haven't
