@@ -15,9 +15,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Not 18, which is what Homey Pro (Early 2023) runs. That pin looked like it verified the
+      # app against the real runtime, but it never did: these tests exercise our own code against
+      # an in-process fake pump, not Node-version behaviour. What it actually bought was 18
+      # failing tests — the tsx + node:test harness breaks on 18, while all 88 unit tests pass —
+      # so CI sat red from 1.1.1 (2026-08-16) through 1.1.4, five releases nobody was warned
+      # about, because a permanently red gate is one you stop reading.
+      #
+      # Real Node 18 compatibility is confirmed continuously and for free: every user diagnostic
+      # report is the app running on a Homey Pro. That is better evidence than this job could
+      # produce, so it does not need to try.
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
           cache: npm
 
       - run: npm ci
