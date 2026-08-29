@@ -1,4 +1,8 @@
 {
+  "1.1.4": {
+    "en": "Solar panel production now shows in Homey's Energy tab. It was listed there with an empty production figure, even though the Solar device's own tile had the right value all along.",
+    "sv": "Solcellsproduktionen visas nu i Homeys energiflik. Där listades enheten utan produktionsvärde, trots att Solenhetens egen ruta hela tiden visade rätt värde."
+  },
   "1.1.3": {
     "en": "Hot water Flow cards now say which mode they set. The two unlabelled cards set the Medium mode, and the periodic stop card is renamed to match the others. Existing Flows are unaffected.",
     "sv": "Flödeskorten för varmvatten visar nu vilket läge de ställer in. De två omärkta korten ställer in läget Medel, och kortet för periodisk stopptemperatur byter namn så att det följer de andra. Befintliga flöden påverkas inte."

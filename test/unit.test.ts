@@ -375,13 +375,31 @@ test('extraCapabilities: Main carries the bare onoff (pinned on); functions do n
     // just the energy pair + rolling COP.
     const heating = extraCapabilities(sProfile, 'heating', null);
     assert.deepEqual(heating, ['meter_power.total', 'measure_power', 'measure_cop_NIBE.rolling']);
-    // Solar carries neither.
-    assert.deepEqual(extraCapabilities(sProfile, 'solar', null), []);
+    // Solar carries neither — but it does carry its bare measure_power mirror, which is the
+    // only id Homey Energy reads live production from.
+    assert.deepEqual(extraCapabilities(sProfile, 'solar', null), ['measure_power']);
     // Main keeps its on/off (and the alarm pair, which rides the alarm group) when energy is
     // off; functions have no extras then.
     assert.deepEqual(extraCapabilities(sProfile, 'main', {groups: {energy: false}, overrides: {}}),
         ['onoff', 'alarm_generic']);
     assert.deepEqual(extraCapabilities(sProfile, 'heating', {groups: {energy: false}, overrides: {}}), []);
+});
+
+// Homey Energy reads live power from the bare `measure_power` id only. The energy object can
+// point the cumulative meter at a sub-capability (meterPowerExportedCapability), but there is no
+// equivalent key for measure_power — so a solar device whose only power capability is
+// measure_power.i2176_solar_current shows up in the Energy tab with no production reading. That
+// is what 0.9.16 shipped when the register was renamed off the bare id to fix a name collision,
+// and what a user reported against 1.1.2.
+test('the solar device carries a bare measure_power for Homey Energy', () => {
+    const caps = capabilitySyncPlan(sProfile, 'solar', null, []);
+    assert.ok(caps.extras.includes('measure_power'),
+        'solar must carry the bare measure_power id or Homey Energy shows no production');
+    // And the mirror must resolve to options, or addCapability leaves it titled a generic "Power".
+    assert.ok(mirrorOptions(sProfile, 'solar', 'measure_power'),
+        'the solar measure_power mirror needs its own options');
+    // The sub-capability stays: it is the register, and it is what the device view shows.
+    assert.ok(caps.registers.some((r) => r.name === 'measure_power.i2176_solar_current'));
 });
 
 test('every extra capability has role-specific options (no option-less COP created at pairing)', () => {
