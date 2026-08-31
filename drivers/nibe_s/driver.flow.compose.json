@@ -352,6 +352,66 @@
           }
         }
       ]
+    },
+    {
+      "id": "hotwater_volume_dropped_below",
+      "title": {
+        "en": "Hot water available dropped below",
+        "sv": "Tillgängligt varmvatten sjönk under",
+        "de": "Verfügbares Warmwasser fiel unter",
+        "nl": "Beschikbaar warmtapwater daalde onder",
+        "no": "Tilgjengelig varmtvann sank under",
+        "da": "Tilgængeligt varmt vand faldt under"
+      },
+      "titleFormatted": {
+        "en": "Hot water available dropped below [[litres]] L",
+        "sv": "Tillgängligt varmvatten sjönk under [[litres]] l",
+        "de": "Verfügbares Warmwasser fiel unter [[litres]] l",
+        "nl": "Beschikbaar warmtapwater daalde onder [[litres]] l",
+        "no": "Tilgjengelig varmtvann sank under [[litres]] l",
+        "da": "Tilgængeligt varmt vand faldt under [[litres]] l"
+      },
+      "hint": {
+        "en": "Fires once when the estimate crosses your limit going down. Needs a tank picked in Repair.",
+        "sv": "Utlöses en gång när uppskattningen passerar din gräns på väg ned. Kräver en vald beredare under Reparera.",
+        "de": "Wird einmal ausgelöst, wenn die Schätzung Ihre Grenze nach unten überschreitet. Erfordert einen gewählten Speicher.",
+        "nl": "Wordt eenmalig geactiveerd wanneer de schatting je grens neerwaarts passeert. Vereist een gekozen boiler.",
+        "no": "Utløses én gang når estimatet passerer grensen på vei ned. Krever valgt bereder.",
+        "da": "Udløses én gang, når estimatet passerer din grænse på vej ned. Kræver en valgt beholder."
+      },
+      "$filter": "capabilities=measure_volume_NIBE.hotwater_estimate",
+      "args": [
+        {
+          "type": "number",
+          "name": "litres",
+          "min": 0,
+          "max": 2000,
+          "step": 1,
+          "placeholder": {
+            "en": "Litres",
+            "sv": "Liter",
+            "de": "Liter",
+            "nl": "Liter",
+            "no": "Liter",
+            "da": "Liter"
+          }
+        }
+      ],
+      "tokens": [
+        {
+          "name": "litres",
+          "type": "number",
+          "title": {
+            "en": "Hot water available",
+            "sv": "Tillgängligt varmvatten",
+            "de": "Verfügbares Warmwasser",
+            "nl": "Beschikbaar warmtapwater",
+            "no": "Tilgjengelig varmtvann",
+            "da": "Tilgængeligt varmt vand"
+          },
+          "example": 95
+        }
+      ]
     }
   ],
   "actions": [
@@ -2315,6 +2375,51 @@
             "nl": "Stand",
             "no": "Modus",
             "da": "Indstilling"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hotwater_volume_below",
+      "title": {
+        "en": "Hot water available is less than",
+        "sv": "Tillgängligt varmvatten är mindre än",
+        "de": "Verfügbares Warmwasser ist weniger als",
+        "nl": "Beschikbaar warmtapwater is minder dan",
+        "no": "Tilgjengelig varmtvann er mindre enn",
+        "da": "Tilgængeligt varmt vand er mindre end"
+      },
+      "titleFormatted": {
+        "en": "Hot water available is less than [[litres]] L",
+        "sv": "Tillgängligt varmvatten är mindre än [[litres]] l",
+        "de": "Verfügbares Warmwasser ist weniger als [[litres]] l",
+        "nl": "Beschikbaar warmtapwater is minder dan [[litres]] l",
+        "no": "Tilgjengelig varmtvann er mindre enn [[litres]] l",
+        "da": "Tilgængeligt varmt vand er mindre end [[litres]] l"
+      },
+      "hint": {
+        "en": "Needs a tank picked in Repair; false without one.",
+        "sv": "Kräver en vald beredare under Reparera; falskt utan.",
+        "de": "Erfordert einen gewählten Speicher; sonst falsch.",
+        "nl": "Vereist een gekozen boiler; anders onwaar.",
+        "no": "Krever valgt bereder; usant uten.",
+        "da": "Kræver en valgt beholder; falsk uden."
+      },
+      "$filter": "capabilities=measure_volume_NIBE.hotwater_estimate",
+      "args": [
+        {
+          "type": "number",
+          "name": "litres",
+          "min": 0,
+          "max": 2000,
+          "step": 1,
+          "placeholder": {
+            "en": "Litres",
+            "sv": "Liter",
+            "de": "Liter",
+            "nl": "Liter",
+            "no": "Liter",
+            "da": "Liter"
           }
         }
       ]

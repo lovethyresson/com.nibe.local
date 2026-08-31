@@ -57,6 +57,13 @@
     "sources": {
       "prompt": "Meerdere sensoren kunnen dit melden. Kies degene die moet regelen:",
       "using": "Gebruikt:"
+    },
+    "tank": {
+      "title": "Warmtapwaterboiler",
+      "hint": "Nodig voor de warmtapwaterschatting. Eén regel per serie — de bekleding maakt niet uit.",
+      "auto": "Warmtapwater niet schatten",
+      "custom": "Andere boiler…",
+      "litres": "Boilerinhoud"
     }
   },
   "groups": {
@@ -81,5 +88,10 @@
   "Speed 4": "Stand 4",
   "Auto": "Auto",
   "Manual": "Handmatig",
-  "Immersion heater only": "Alleen elektrisch element"
+  "Immersion heater only": "Alleen elektrisch element",
+  "hotwater": {
+    "tank_setup": "Kies je boiler bij Herstellen",
+    "inlet_measured": "gemeten",
+    "inlet_assumed": "aangenomen"
+  }
 }

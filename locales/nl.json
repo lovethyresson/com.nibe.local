@@ -64,6 +64,15 @@
     "sources": {
       "prompt": "Meerdere sensoren kunnen dit melden. Kies degene die moet regelen:",
       "using": "Gebruikt:"
+    },
+    "tank": {
+      "title": "Warmtapwaterboiler",
+      "hint": "Nodig voor de warmtapwaterschatting. Eén regel per serie — de bekleding maakt niet uit.",
+      "auto": "Warmtapwater niet schatten",
+      "custom": "Andere boiler…",
+      "litres": "Boilerinhoud",
+      "inlet": "Inkomend koud water",
+      "inlet_hint": "10 °C is gebruikelijk; in de winter iets lager, in de zomer hoger."
     }
   },
   "groups": {
@@ -81,5 +90,17 @@
     "energy": "Energie",
     "solar": "Zonne-energie / PV"
   },
-  "Immersion heater only": "Alleen elektrisch element"
+  "Immersion heater only": "Alleen elektrisch element",
+  "hotwater": {
+    "tank_unmeasured": "Nog niet bepaald",
+    "tank_setup": "Kies je boiler bij Herstellen",
+    "tank_calibrating": "Kalibreren…",
+    "cal_setup": "Geen boiler gekozen",
+    "cal_waiting": "Tot nu toe vastgelegde laadcycli: __CYCLES__. Er zijn er twee nodig die de boiler verschillend opwarmen.",
+    "cal_done": "Gemeten uit __CYCLES__ laadbeurten",
+    "cal_cold": "Gemeten inkomend koud water: __C__ °C.",
+    "cal_assumed": "Kalibreren…",
+    "inlet_measured": "gemeten",
+    "inlet_assumed": "aangenomen"
+  }
 }

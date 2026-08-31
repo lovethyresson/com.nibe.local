@@ -64,6 +64,15 @@
     "sources": {
       "prompt": "Fler än en givare kan rapportera detta. Välj den som ska reglera:",
       "using": "Använder:"
+    },
+    "tank": {
+      "title": "Varmvattenberedare",
+      "hint": "Behövs för varmvattenuppskattningen. En rad per modellfamilj — materialet spelar ingen roll.",
+      "auto": "Uppskatta inte varmvatten",
+      "custom": "Annan beredare…",
+      "litres": "Beredarens volym",
+      "inlet": "Inkommande kallvatten",
+      "inlet_hint": "10 °C är det vanliga; något lägre på vintern, högre på sommaren."
     }
   },
   "groups": {
@@ -81,5 +90,17 @@
     "energy": "Energi",
     "solar": "Solceller / PV"
   },
-  "Immersion heater only": "Endast elpatron"
+  "Immersion heater only": "Endast elpatron",
+  "hotwater": {
+    "tank_unmeasured": "Inte uppmätt än",
+    "tank_setup": "Välj din beredare under Reparera",
+    "tank_calibrating": "Kalibrerar…",
+    "cal_setup": "Ingen beredare vald",
+    "cal_waiting": "Registrerade laddningar hittills: __CYCLES__. Det krävs två som värmer beredaren olika innan storleken kan räknas ut.",
+    "cal_done": "Uppmätt från __CYCLES__ laddningar",
+    "cal_cold": "Uppmätt inkommande kallvatten: __C__ °C.",
+    "cal_assumed": "Kalibrerar…",
+    "inlet_measured": "uppmätt",
+    "inlet_assumed": "antaget"
+  }
 }

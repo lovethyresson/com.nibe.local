@@ -1,7 +1,7 @@
 {
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "com.nibe.local",
-  "version": "1.1.4",
+  "version": "1.2.0",
   "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
@@ -439,6 +439,70 @@
             }
           }
         ]
+      },
+      {
+        "id": "hotwater_volume_dropped_below",
+        "title": {
+          "en": "Hot water available dropped below",
+          "sv": "Tillgängligt varmvatten sjönk under",
+          "de": "Verfügbares Warmwasser fiel unter",
+          "nl": "Beschikbaar warmtapwater daalde onder",
+          "no": "Tilgjengelig varmtvann sank under",
+          "da": "Tilgængeligt varmt vand faldt under"
+        },
+        "titleFormatted": {
+          "en": "Hot water available dropped below [[litres]] L",
+          "sv": "Tillgängligt varmvatten sjönk under [[litres]] l",
+          "de": "Verfügbares Warmwasser fiel unter [[litres]] l",
+          "nl": "Beschikbaar warmtapwater daalde onder [[litres]] l",
+          "no": "Tilgjengelig varmtvann sank under [[litres]] l",
+          "da": "Tilgængeligt varmt vand faldt under [[litres]] l"
+        },
+        "hint": {
+          "en": "Fires once when the estimate crosses your limit going down. Needs a tank picked in Repair.",
+          "sv": "Utlöses en gång när uppskattningen passerar din gräns på väg ned. Kräver en vald beredare under Reparera.",
+          "de": "Wird einmal ausgelöst, wenn die Schätzung Ihre Grenze nach unten überschreitet. Erfordert einen gewählten Speicher.",
+          "nl": "Wordt eenmalig geactiveerd wanneer de schatting je grens neerwaarts passeert. Vereist een gekozen boiler.",
+          "no": "Utløses én gang når estimatet passerer grensen på vei ned. Krever valgt bereder.",
+          "da": "Udløses én gang, når estimatet passerer din grænse på vej ned. Kræver en valgt beholder."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_volume_NIBE.hotwater_estimate"
+          },
+          {
+            "type": "number",
+            "name": "litres",
+            "min": 0,
+            "max": 2000,
+            "step": 1,
+            "placeholder": {
+              "en": "Litres",
+              "sv": "Liter",
+              "de": "Liter",
+              "nl": "Liter",
+              "no": "Liter",
+              "da": "Liter"
+            }
+          }
+        ],
+        "tokens": [
+          {
+            "name": "litres",
+            "type": "number",
+            "title": {
+              "en": "Hot water available",
+              "sv": "Tillgängligt varmvatten",
+              "de": "Verfügbares Warmwasser",
+              "nl": "Beschikbaar warmtapwater",
+              "no": "Tilgjengelig varmtvann",
+              "da": "Tilgængeligt varmt vand"
+            },
+            "example": 95
+          }
+        ]
       }
     ],
     "conditions": [
@@ -717,6 +781,55 @@
               "nl": "Stand",
               "no": "Modus",
               "da": "Indstilling"
+            }
+          }
+        ]
+      },
+      {
+        "id": "hotwater_volume_below",
+        "title": {
+          "en": "Hot water available is less than",
+          "sv": "Tillgängligt varmvatten är mindre än",
+          "de": "Verfügbares Warmwasser ist weniger als",
+          "nl": "Beschikbaar warmtapwater is minder dan",
+          "no": "Tilgjengelig varmtvann er mindre enn",
+          "da": "Tilgængeligt varmt vand er mindre end"
+        },
+        "titleFormatted": {
+          "en": "Hot water available is less than [[litres]] L",
+          "sv": "Tillgängligt varmvatten är mindre än [[litres]] l",
+          "de": "Verfügbares Warmwasser ist weniger als [[litres]] l",
+          "nl": "Beschikbaar warmtapwater is minder dan [[litres]] l",
+          "no": "Tilgjengelig varmtvann er mindre enn [[litres]] l",
+          "da": "Tilgængeligt varmt vand er mindre end [[litres]] l"
+        },
+        "hint": {
+          "en": "Needs a tank picked in Repair; false without one.",
+          "sv": "Kräver en vald beredare under Reparera; falskt utan.",
+          "de": "Erfordert einen gewählten Speicher; sonst falsch.",
+          "nl": "Vereist een gekozen boiler; anders onwaar.",
+          "no": "Krever valgt bereder; usant uten.",
+          "da": "Kræver en valgt beholder; falsk uden."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_volume_NIBE.hotwater_estimate"
+          },
+          {
+            "type": "number",
+            "name": "litres",
+            "min": 0,
+            "max": 2000,
+            "step": 1,
+            "placeholder": {
+              "en": "Litres",
+              "sv": "Liter",
+              "de": "Liter",
+              "nl": "Liter",
+              "no": "Liter",
+              "da": "Liter"
             }
           }
         ]
@@ -2661,6 +2774,7 @@
         "measure_cop_NIBE.rolling",
         "onoff.h195_enable_hotwater",
         "measure_temperature.i9_hot_water",
+        "measure_volume_NIBE.hotwater_estimate",
         "measure_temperature.i8_warmwater_top",
         "hotwater_demand_NIBE.h56_hotwater_demand_mode",
         "boolean_NIBE.h697_more_hotwater",
@@ -3958,6 +4072,61 @@
         {
           "type": "group",
           "label": {
+            "en": "Hot water",
+            "sv": "Varmvatten",
+            "de": "Warmwasser",
+            "nl": "Warm tapwater",
+            "no": "Varmtvann",
+            "da": "Varmt vand"
+          },
+          "children": [
+            {
+              "id": "hotwater_tank",
+              "type": "label",
+              "label": {
+                "en": "Tank size",
+                "sv": "Beredarens volym",
+                "de": "Speichergröße",
+                "nl": "Boilerinhoud",
+                "no": "Berederens volum",
+                "da": "Beholderens volumen"
+              },
+              "hint": {
+                "en": "The tank you chose in Repair. Change it there if it's wrong.",
+                "sv": "Beredaren du valde under Reparera. Ändra där om den är fel.",
+                "de": "Der unter „Reparieren“ gewählte Speicher. Dort ändern, falls falsch.",
+                "nl": "De boiler die je bij Herstellen koos. Wijzig het daar als het niet klopt.",
+                "no": "Berederen du valgte under Reparer. Endre der hvis den er feil.",
+                "da": "Beholderen du valgte under Reparer. Ret den der, hvis den er forkert."
+              },
+              "value": "—"
+            },
+            {
+              "id": "hotwater_inlet",
+              "type": "label",
+              "label": {
+                "en": "Cold water coming in",
+                "sv": "Inkommande kallvatten",
+                "de": "Kaltwasserzulauf",
+                "nl": "Inkomend koud water",
+                "no": "Inngående kaldtvann",
+                "da": "Indgående koldt vand"
+              },
+              "hint": {
+                "en": "Measured from how cold the tank gets after a big draw. Assumes 10 °C until it has seen one.",
+                "sv": "Uppmätt från hur kall beredaren blir efter en stor tappning. Antar 10 °C tills dess.",
+                "de": "Aus der Speichertemperatur nach einer großen Zapfung ermittelt. Bis dahin 10 °C.",
+                "nl": "Bepaald uit hoe koud de boiler wordt na een grote aftap. Tot dan 10 °C.",
+                "no": "Målt fra hvor kald berederen blir etter en stor tapping. Antar 10 °C inntil da.",
+                "da": "Målt ud fra hvor kold beholderen bliver efter en stor aftapning. Antager 10 °C indtil da."
+              },
+              "value": "—"
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "label": {
             "en": "Advanced",
             "sv": "Avancerat",
             "de": "Erweitert",
@@ -4081,6 +4250,40 @@
                 "da": "Den seneste alarm som varmepumpen har rapporteret. Hele historikken — med NIBEs årsag og anbefalede handling for hver alarm — finder du i appens egne indstillinger: Homey-appen → Mere → Apps → Nibe Live → Konfigurer."
               },
               "value": ""
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "label": {
+            "en": "Privacy",
+            "sv": "Integritet",
+            "de": "Datenschutz",
+            "nl": "Privacy",
+            "no": "Personvern",
+            "da": "Privatliv"
+          },
+          "children": [
+            {
+              "id": "analyticsConsent",
+              "type": "checkbox",
+              "label": {
+                "en": "Share anonymous usage data",
+                "sv": "Dela anonym användningsdata",
+                "de": "Anonyme Nutzungsdaten teilen",
+                "nl": "Anonieme gebruiksgegevens delen",
+                "no": "Del anonyme bruksdata",
+                "da": "Del anonyme brugsdata"
+              },
+              "hint": {
+                "en": "Off by default. Sends pump model, which devices you paired, which Flow cards ran, and alarm codes. Never readings, IP, serial or names.",
+                "sv": "Av som standard. Skickar värmepumpsmodell, vilka enheter du parkopplat, vilka flödeskort som körts och larmkoder. Aldrig mätvärden, IP, serienummer eller namn.",
+                "de": "Standardmäßig aus. Sendet Wärmepumpenmodell, gekoppelte Geräte, ausgeführte Flow-Karten und Alarmcodes. Nie Messwerte, IP, Seriennummer oder Namen.",
+                "nl": "Standaard uit. Verzendt warmtepompmodel, gekoppelde apparaten, uitgevoerde Flow-kaarten en alarmcodes. Nooit metingen, IP, serienummer of namen.",
+                "no": "Av som standard. Sender varmepumpemodell, parede enheter, kjørte flytkort og alarmkoder. Aldri målinger, IP, serienummer eller navn.",
+                "da": "Fra som standard. Sender varmepumpemodel, parrede enheder, kørte Flow-kort og alarmkoder. Aldrig målinger, IP, serienummer eller navne."
+              },
+              "value": false
             }
           ]
         }
@@ -5066,6 +5269,32 @@
       "insights": true,
       "chartType": "stepLine",
       "icon": "/assets/images/select.svg"
+    },
+    "measure_volume_NIBE": {
+      "type": "number",
+      "title": {
+        "en": "Volume",
+        "sv": "Volym",
+        "de": "Volumen",
+        "nl": "Volume",
+        "no": "Volum",
+        "da": "Volumen"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "units": {
+        "en": "L",
+        "sv": "l",
+        "de": "l",
+        "nl": "l",
+        "no": "l",
+        "da": "l"
+      },
+      "decimals": 0,
+      "insights": true,
+      "chartType": "spline",
+      "icon": "/assets/images/water.svg"
     },
     "measure_watt_NIBE": {
       "type": "number",

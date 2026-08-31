@@ -213,6 +213,16 @@ function render() {
 
         list.appendChild(item);
     });
+    /* The tank picker, on the hot water device only. Appended after the groups rather than
+       inside one: it is not a capability you switch on, it is a fact about your installation
+       that makes the litres estimate converge sooner. */
+    if (context.tanks) {
+        var tankCard = document.createElement('div');
+        tankCard.className = 'feature-group';
+        tankCard.appendChild(tankBlock(
+            context.tanks, context.selection && context.selection.hotwater, 'repair'));
+        list.appendChild(tankCard);
+    }
     document.getElementById('save').style.display = 'block';
 }
 
@@ -229,6 +239,9 @@ document.getElementById('save').onclick = function (e) {
     document.querySelectorAll('input[data-source]:checked').forEach(function (radio) {
         selection.sources[radio.dataset.source] = Number(radio.value);
     });
+    var tank = tankValue('repair');
+    if (tank)
+        selection.hotwater = tank;
     Homey.showLoadingOverlay();
     Homey.emit('track_ui', {view: 'repair_features', button: 'save'}, function () {});
     // This view is used by the repair flow only (pairing uses the device picker);

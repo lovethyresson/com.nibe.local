@@ -1,7 +1,13 @@
 /env.json
-/node_modules/
+# No trailing slash: in a git worktree this is a SYMLINK to the main checkout's
+# node_modules (see worktree.symlinkDirectories), and `/node_modules/` matches a
+# directory only — leaving the symlink untracked and one `git add -A` away from
+# committing an absolute path off this machine.
+/node_modules
 /.homeybuild/
 /dev/csv/
+# Throwaway harness for eyeballing the pair/repair views in a browser.
+/dev/preview/
 
 # Personal Homey data — flow/device/zone exports pulled off the live hub with
 # `homey api raw`. These carry the home's real device ids, user names and push

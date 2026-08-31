@@ -94,6 +94,12 @@ export const FUNCTION_COP_CAPABILITY = "measure_cop_NIBE.rolling";
 // setEnergy() so Homey's Energy tab counts it as production, not consumption.
 export const SOLAR_METER_CAPABILITY = "meter_power.solar";
 
+// Litres of 40 °C water the tank can still deliver. Not a Modbus register — the pump reports
+// tank temperatures and never a volume — so, like the energy pair and the COP sensors, it is an
+// "extra". Unlike them it rides the `hotwater` group rather than `energy`, because that is the
+// group its two source sensors live in. See lib/hotwater.ts for what the number means.
+export const HOTWATER_VOLUME_CAPABILITY = "measure_volume_NIBE.hotwater_estimate";
+
 // Alarm state on the main device. `alarm_text_NIBE` is the profile's alarm *register* itself
 // (the raw code, rendered as text by lib/alarms.ts), so it comes from the register table.
 // `alarm_generic` is derived from the same register — Homey's official alarm boolean, so the
@@ -157,11 +163,18 @@ export function extraCapabilitySupport(
     // A function's COP needs the used energy (allocator → power source) and its own delivered
     // energy counter.
     const produced = profile.role.producedRegisterForRole[role];
+    // The hot water estimate needs both tank sensors and the delivered-energy counter it
+    // calibrates against — deliberately independent of the power source, like Total COP, since
+    // none of the three come from the allocator.
+    const tank = profile.hotwaterTank;
+    const tankOk = role === 'hotwater' && !!tank
+        && read(tank.topRegister) && read(tank.lowerRegister) && !!produced && read(produced);
     const support: Record<string, boolean> = {
         [METER_CAPABILITY]: powerOk,
         [ACTIVE_POWER_CAPABILITY]: powerOk,
         [TOTAL_COP_CAPABILITY]: totalsOk,
-        [FUNCTION_COP_CAPABILITY]: powerOk && !!produced && read(produced)
+        [FUNCTION_COP_CAPABILITY]: powerOk && !!produced && read(produced),
+        [HOTWATER_VOLUME_CAPABILITY]: tankOk
     };
     // A mirror is exactly as supported as the register behind it — offering a thermostat dial
     // for a pool the pump never reported would be a control over nothing.
@@ -170,12 +183,50 @@ export function extraCapabilitySupport(
     return support;
 }
 
+// Everything a role COULD carry, ignoring whether the user has opted in yet. Used for the things
+// that must cover the superset — per-instance capability options, and deciding which extras
+// detection found unsupported — where missing an entry causes a real bug rather than a hidden
+// feature (an option-less capability makes getCapabilityOptions() throw "Invalid Capability").
+export function possibleExtraCapabilities(profile: ModelProfile, role: Role): string[] {
+    return buildExtraCapabilities(profile, role, null, true);
+}
+
 export function extraCapabilities(profile: ModelProfile, role: Role, selection?: Selection | null): string[] {
+    return buildExtraCapabilities(profile, role, selection ?? null, false);
+}
+
+function buildExtraCapabilities(
+    profile: ModelProfile, role: Role, selection: Selection | null, superset: boolean
+): string[] {
     // The energy-group extras all follow the same rule: an explicit per-capability override
     // wins, then the group toggle, then "on". A missing selection means everything is enabled
     // (the upgrade path for devices paired before selections existed).
     const enabled = (name: string) =>
         selection?.overrides?.[name] ?? selection?.groups?.energy ?? true;
+    // The hot water estimate is the one extra that does NOT ride the energy group: its two
+    // source sensors are hotwater registers, so a user who switched hot water off should lose it
+    // and a user who switched energy off should not.
+    const hotwaterEnabled = (name: string) =>
+        selection?.overrides?.[name] ?? selection?.groups?.hotwater ?? true;
+    // Opt-in, unlike every other extra, and `selection.hotwater` is the opt-in.
+    //
+    // The capability is blank until the app has watched a couple of the pump's hot water charges,
+    // which is honest but looks broken if it simply appears on an existing device after an app
+    // update — the owner never asked for it and has no idea why it is empty. `selection.hotwater`
+    // is written by the tank picker in pairing and in Repair, so its presence means the user has
+    // actually been shown what this is. A device that predates the feature has no such key and
+    // gets nothing until they run Repair.
+    //
+    // A chosen tank is the opt-in, and it is now load-bearing rather than an accelerant: working
+    // the volume out from delivered energy was tested against real hardware and does not survive
+    // it (a 176 L tank measured 436 L, because water drawn during a charge is indistinguishable
+    // from tank volume). "none" means the owner declined, so there is no volume and no estimate.
+    const tankConfigured = superset
+        || (!!selection?.hotwater && typeof selection.hotwater.litres === 'number');
+    const tankCaps = role === "hotwater" && profile.hotwaterTank && tankConfigured
+        && hotwaterEnabled(HOTWATER_VOLUME_CAPABILITY)
+        ? [HOTWATER_VOLUME_CAPABILITY]
+        : [];
     // Mirrors ride the selection of the register they copy, not their own: they are the same
     // value, so a user who switched the source off must not still get a dial for it.
     const mirrored = mirrorsForRole(profile, role)
@@ -223,16 +274,19 @@ export function extraCapabilities(profile: ModelProfile, role: Role, selection?:
     // power source and the energy selection.
     // Mirrors are independent of the energy machinery — a pool thermostat has nothing to do with
     // whether the pump exposes a power source — so they survive this early return.
+    // The tank estimate survives this early return alongside mirrors: it is derived from the
+    // pump's own sensors and delivered-energy counter, not from the allocator, so a model with
+    // no readable power register still gets it.
     if (!hasConsumedPower)
-        return mirrored;
+        return [...tankCaps, ...mirrored];
     const energyCaps = ENERGY_CAPABILITIES.filter(enabled);
     // Rolling COP needs the used energy (from the allocator, energy group) alongside the
     // function's produced register — offer it whenever the energy pair is present and the
     // function has a produced register.
     const hasProduced = !!profile.role.producedRegisterForRole[role];
     return energyCaps.length && hasProduced && enabled(FUNCTION_COP_CAPABILITY)
-        ? [...energyCaps, FUNCTION_COP_CAPABILITY, ...mirrored]
-        : [...energyCaps, ...mirrored];
+        ? [...energyCaps, FUNCTION_COP_CAPABILITY, ...tankCaps, ...mirrored]
+        : [...energyCaps, ...tankCaps, ...mirrored];
 }
 
 // Read the role off a device's `data`. Defaults to "main" defensively; every device
@@ -354,5 +408,13 @@ export function extraCapabilityOptions(role: Role, name: string): any {
         };
         return {title: titles[role] ?? {en: "COP (30-day)", sv: "COP (30 dagar)"}, decimals: 2};
     }
+    // Whole litres. The estimate reads two sensors eighteen degrees apart on a real tank and
+    // divides the volume between them from measured energy — a decimal place would advertise a
+    // precision it does not have.
+    if (name === HOTWATER_VOLUME_CAPABILITY)
+        return {title: {en: "Hot water available", sv: "Tillgängligt varmvatten",
+                        de: "Verfügbares Warmwasser", nl: "Beschikbaar warmtapwater",
+                        no: "Tilgjengelig varmtvann", da: "Tilgængeligt varmt vand"},
+                decimals: 0};
     return undefined;
 }

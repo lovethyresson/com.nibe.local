@@ -43,7 +43,7 @@ flowchart TD
     B -- "yes" --> D["Mint/read anonymous UUID<br/>amplitude.init()"]
     D --> E["track() calls do something"]
     C --> F["track() calls are no-ops"]
-    G["User ticks box during pairing<br/>or in app settings"] --> H["homey.settings 'set' event"]
+    G["User ticks box during pairing<br/>or in any device's settings → Privacy"] --> H["homey.settings 'set' event"]
     H --> I["refreshConsent()"]
     I --> B
     J["User unticks"] --> H
@@ -53,9 +53,16 @@ flowchart TD
 - **Opt-in, unticked by default.** The checkbox is on the pairing device picker
   ([`drivers/nibe_s/pair/devices.html`](../drivers/nibe_s/pair/devices.html)), directly above the Add
   button, so it is the last thing read before committing rather than a banner to click past.
-- **Revocable without deleting or repairing anything.** App settings → **Privacy**
-  ([`settings/index.html`](../settings/index.html)). Reached via More → Apps → Nibe Live → Configure.
-  A consent switch nobody can find is not a consent switch, which is why it has its own heading.
+- **Revocable without deleting or repairing anything.** Any device's settings → **Privacy**, with
+  the full "sent / never sent" list as the field's hint. It moved here from the app-settings page in
+  1.2.0 for exactly the reason that page states about headings, taken one step further: a consent
+  switch nobody can find is not a consent switch, and essentially nobody navigates to More → Apps →
+  Nibe Live → Configure. Device settings are two taps from the tile.
+- **One answer, shown on every device.** The app-level `analytics_consent` setting remains the single
+  source of truth that every `track()` reads; the checkbox is a view of it. Flipping it on one device
+  writes through and updates the others, and the driver listens on the settings `set` event so a
+  consent given in a *second pump's* pairing flow does not leave existing devices showing a stale
+  box. A control that displays the wrong state is worse than none.
 - **Withdrawal is immediate**, not next-boot. `app.ts` listens on `homey.settings.on('set')`, so the
   gate closes and the SDK is opted out on the next event. Both UIs write the same `analytics_consent`
   setting, so either reflects the other.
@@ -183,9 +190,10 @@ integration; it had no product meaning and has been removed. Do not reintroduce 
 **`Clicked Button`** is one event for every button, distinguished by `view`/`button`, so
 "how often is detection skipped?" is a filter rather than a separate event name. It covers the
 **pairing and repair views only** — the app-settings page ([`settings/index.html`](../settings/index.html))
-emits nothing at all. It has exactly one control, the consent switch, and that writes the
-`analytics_consent` setting directly; tracking a click on the switch that governs tracking is the one
-click this app must not record. Current pairs:
+emits nothing at all. Since 1.2.0 that page carries only the alarm history; the consent switch moved
+to device settings, which emit nothing either. Tracking a click on the switch that governs tracking
+would be the one click this app must not record, and there is now no code path that could. Current
+pairs:
 
 | `view` | `button` |
 | --- | --- |
@@ -205,7 +213,20 @@ added later is instrumented by construction rather than by remembering. A failed
 is precisely the signal worth having.
 
 **`Fired WHEN Card`** is bounded by how `checkTrigger` works: it fires only for **bool and enum**
-registers (18 + 7 = 25 of the table's 120). The other 95 — the continuous analog values polled every
+registers (18 + 7 = 25 of the table's 120).
+
+**The one trigger that is not a register**, and the one place that bound had to be defended by hand:
+`hotwater_volume_dropped_below` fires from the litres-of-hot-water estimate, which is a derived
+*analog* value recomputed on every poll. A tank cooling overnight steps down a litre at a time for
+hours, so tracking each fall would have emitted hundreds of events a day — a firehose by the standard
+of the paragraph above, and a breach of the shared taxonomy's rule that anything on a poll loop must
+be edge-triggered. The device therefore offers every fall to Homey but tracks nothing; the event is
+sent from the card's **run listener** in [`lib/driver.ts`](../lib/driver.ts), only when the value
+actually crosses the threshold a user configured. So the count means "a Flow fired", which is what
+the event name claims, and is naturally rare.
+
+Note this card carries **no `register`** — there is no register behind it. The property is optional
+on this event for exactly that reason. The other 95 — the continuous analog values polled every
 10 s, temperatures and degree-minutes and watts — emit nothing at all. This is why "track every Flow
 call" is a few hundred events a day rather than the ~250k/day a naive reading of the poll loop would
 suggest. **If `checkTrigger` ever starts firing for analog registers, this event becomes a firehose** —

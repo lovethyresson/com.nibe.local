@@ -274,6 +274,13 @@ export interface Selection {
     // A device paired before this existed has no entry and reads the primary exactly as it did —
     // running Repair re-runs detection and fills this in.
     addresses?: Record<string, number>;
+    // The hot water tank, for the litres-available estimate. Only ever set on a hotwater device.
+    //
+    // `tankId` is what the user PICKED, not what is true: "auto" means they did not pick, and the
+    // tank is measured from the pump's own energy counter instead (see lib/hotwater.ts). A picked
+    // size only makes the measurement converge sooner, by supplying the total so a single charge
+    // cycle determines the split. Nothing depends on it being right, or being present at all.
+    hotwater?: {tankId: string; litres: number | null; inletC?: number};
 }
 
 // The address to actually put on the wire for a register, honouring what detection resolved.

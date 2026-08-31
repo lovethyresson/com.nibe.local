@@ -373,3 +373,95 @@ body {
     gap: 0.5em;
     font-weight: 600;
 }
+
+/* ---- hot water tank picker ----
+   Sized to sit inside a feature card without out-shouting it: an expanded group is 0.88-0.9em
+   rows with a quiet description under each, and this used to be body-sized text under a bold
+   title, which made it read as the main event. Native form controls are the other trap — a bare
+   <select> sizes itself to its WIDEST option, so "NIBE VPB S300, stainless · 282 l" forced the
+   control past the viewport and dragged the whole page into horizontal overflow. Hence the
+   explicit width plus min-width:0, which is what actually stops intrinsic width winning. */
+
+.tank-block {
+    margin-top: 0.2em;
+}
+
+.tank-head {
+    font-weight: 600;
+    font-size: 0.9em;
+    padding: 0.2em 0;
+}
+
+/* Nested inside a device card during pairing, where it follows the device's own name and
+   description — without a rule it reads as a second heading competing with the device. */
+.tank-nested {
+    margin-top: 0.7em;
+    padding-top: 0.7em;
+    border-top: 1px solid rgba(128, 128, 128, 0.18);
+}
+
+.tank-select,
+.tank-field {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 0.45em 0.6em;
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: inherit;
+    font: inherit;
+    font-size: 0.88em;
+}
+
+.tank-select {
+    margin-top: 0.15em;
+    /* Leave room for the chevron so a long tank name never sits under it. */
+    padding-right: 2em;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+                      linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position: calc(100% - 1.05em) 55%, calc(100% - 0.75em) 55%;
+    background-size: 0.32em 0.32em, 0.32em 0.32em;
+    background-repeat: no-repeat;
+    cursor: pointer;
+}
+
+.tank-select:focus,
+.tank-field:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+/* Label left, small field right — only ever shown for "Other tank". */
+.tank-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8em;
+    margin-top: 0.45em;
+}
+
+.tank-row-label {
+    font-size: 0.88em;
+}
+
+.tank-row-field {
+    display: flex;
+    align-items: center;
+    gap: 0.35em;
+    flex: none;
+}
+
+.tank-row-field .tank-field {
+    width: 4.6em;
+    text-align: right;
+    padding: 0.35em 0.5em;
+}
+
+.tank-unit {
+    font-size: 0.85em;
+    opacity: 0.6;
+}

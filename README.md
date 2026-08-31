@@ -176,6 +176,7 @@ guessing — including which register each capability was mapped to. Turn on **D
 | [docs/FAQ.md](docs/FAQ.md) | Common questions — myUplink differences, blank COP, write errors |
 | [docs/pairing.md](docs/pairing.md) | Pairing and detection, with diagrams |
 | [docs/energy-attribution.md](docs/energy-attribution.md) | How a watt gets assigned to a device, and how accurate it is |
+| [docs/hot-water-estimate.md](docs/hot-water-estimate.md) | How litres of hot water are estimated, and why the tank size is asked for |
 | [docs/engineering.md](docs/engineering.md) | Alarm database, S-series coverage, diagnostics |
 | [docs/analytics.md](docs/analytics.md) | Anonymous usage data — what is collected, what never is, and how to turn it off |
 | [docs/releases.md](docs/releases.md) | Full engineering changelog, newest first |

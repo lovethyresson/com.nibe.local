@@ -64,6 +64,15 @@
     "sources": {
       "prompt": "Flere givere kan rapportere dette. Velg den som skal regulere:",
       "using": "Bruker:"
+    },
+    "tank": {
+      "title": "Varmtvannsbereder",
+      "hint": "Nødvendig for varmtvannsestimatet. Én rad per modellfamilie — materialet spiller ingen rolle.",
+      "auto": "Ikke estimer varmtvann",
+      "custom": "Annen bereder…",
+      "litres": "Berederens volum",
+      "inlet": "Inngående kaldtvann",
+      "inlet_hint": "10 °C er det vanlige; litt lavere om vinteren, høyere om sommeren."
     }
   },
   "groups": {
@@ -81,5 +90,17 @@
     "energy": "Energi",
     "solar": "Sol / PV"
   },
-  "Immersion heater only": "Kun elkolbe"
+  "Immersion heater only": "Kun elkolbe",
+  "hotwater": {
+    "tank_unmeasured": "Ikke målt ennå",
+    "tank_setup": "Velg berederen din under Reparer",
+    "tank_calibrating": "Kalibrerer…",
+    "cal_setup": "Ingen bereder valgt",
+    "cal_waiting": "Registrerte ladinger hittil: __CYCLES__. Det trengs to som varmer berederen ulikt.",
+    "cal_done": "Målt fra __CYCLES__ ladinger",
+    "cal_cold": "Målt inngående kaldtvann: __C__ °C.",
+    "cal_assumed": "Kalibrerer…",
+    "inlet_measured": "målt",
+    "inlet_assumed": "antatt"
+  }
 }

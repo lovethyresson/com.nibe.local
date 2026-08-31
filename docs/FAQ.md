@@ -141,6 +141,44 @@ advanced when the app could measure — so a numerator covering months was divid
 hours. Both sides now advance over identical intervals. The affected history is discarded rather than
 migrated, so COP is blank for a while after upgrading and then rebuilds correctly.
 
+### How does the app know how much hot water I have left?
+
+You tell it which tank you have, and it reads the tank's two temperature sensors.
+
+**The arithmetic.** "Hot water available" is litres of **40 °C** water — the same thing NIBE prints
+on its tank datasheets, and what you actually care about, since 175 litres at 55 °C is a lot more
+than 175 litres of shower. The app works out how much of the tank is still above 40 °C from where
+the warm/cold boundary sits between the two sensors, and how hot that part is. That is also why the
+figure can read higher than your tank holds: it is not measuring how full the tank is, it is
+measuring how much showering is in it.
+
+**Setting it up.** Open the Hot Water device, run **Repair**, and pick your tank. One entry per
+family — you do not need to know whether yours is copper, stainless or enamel, because that changes
+the answer by about 2 %. Without a tank there is no estimate.
+
+**Why you have to tell it.** The app did originally work the size out by itself, from the heat the
+pump reported against how far the sensors rose. Tested on a real pump with a known 176 L tank it
+measured 436 L. A charge only stops when the bottom sensor reaches its target, so any hot water used
+*during* the charge just makes it run longer — and that extra heat is indistinguishable from a
+bigger tank. Charges usually start because someone is using hot water, so this is the normal case.
+
+**Treat it as a good guide, not a gauge.** Two sensors is not many for a whole tank: the app cannot
+see the water above the top sensor or below the bottom one, so it under-reports a shower while it is
+happening. It moves in the right direction continuously, which is what matters for a Flow.
+
+### It went to zero but the tank is not empty.
+
+That is correct. "Hot water available" counts water you could still shower in at 40 °C. Once the
+hottest water in the tank is below 40, there is none — even though the tank is full of 39 °C water
+that is perfectly good for washing up.
+
+### Hot water available is blank, or the capability is missing.
+
+If it is missing, no tank has been chosen yet — run **Repair** on the Hot Water device.
+
+If it is present but empty, the pump has not reported both tank temperatures yet; that clears on the
+next poll.
+
 ### Why does a hot water boost heat past my stop temperature?
 
 Because a boost temporarily promotes the pump to its **Large** hot water mode and charges to

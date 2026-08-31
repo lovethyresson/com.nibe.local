@@ -202,6 +202,54 @@ export const sProfile = makeProfile({
     // the F-series scheme (see lib/alarms.ts); 438 means different things on the two.
     alarm: {registerName: "alarm_text_NIBE", series: "s"},
 
+    // The hot water tank, for the litres-available estimate (see lib/hotwater.ts).
+    //
+    // TWO layers, not three. Nibe's register maps list a third tank sensor, BT5 "hot water
+    // start", at address 2014 for this family — but a live S1155-16 (type 55, compressor 16,
+    // firmware 1036) returns no answer for it, so S describes the two sensors that do exist.
+    // The same pump, settled and idle, read BT7 56.0 against BT6 38.0: eighteen degrees apart,
+    // with the lower sensor below the 40 °C mix point entirely. That spread is why the split
+    // between them is measured from charge cycles rather than assumed.
+    //
+    // The catalogue only makes the measurement converge sooner — every entry is optional and
+    // "auto" is the default. Litres are NIBE's own published figures from the VPB/VPBS brochure
+    // (639368-5 / 639721 CIL EN 1902-2); no entry may be added without an official source, since
+    // a wrong figure here silently biases every estimate that trusts it.
+    hotwaterTank: {
+        topRegister: "measure_temperature.i8_warmwater_top",
+        lowerRegister: "measure_temperature.i9_hot_water",
+        // WATER volume, never NIBE's published "equivalent amount of hot water at 40 °C" — that
+        // figure is not a property of the tank (NIBE prints 376 L and 455 L for the same VPB S300
+        // in two of its own documents) and feeding one in here would double-count the conversion.
+        //
+        // ONE ENTRY PER TANK FAMILY, not per lining. VPB 200 comes as 172 L copper, 176 L
+        // stainless and 178 L enamel; picking the wrong one costs 1.7 %. The sensor split, which
+        // is not measured on most installations, swings the same answer by ~57 %. Three near
+        // identical rows asked the owner to know something that does not matter, so the families
+        // are collapsed to their midpoint. VPB and VPB S share volumes exactly, so they share a row.
+        //
+        // AHPS / AHP / AHPH are deliberately absent: they store no potable water at all (hot water
+        // is made through a 17 L instantaneous coil), so a litre figure would be meaningless.
+        tanks: [
+            {id: "integrated", litres: 178,
+             name: {en: "Built-in tank (S1255, S1256, S735)",
+                    sv: "Inbyggd beredare (S1255, S1256, S735)"}},
+            {id: "vpb200", litres: 175, name: {en: "NIBE VPB 200 / VPB S200", sv: "NIBE VPB 200 / VPB S200"}},
+            {id: "vpb300", litres: 276, name: {en: "NIBE VPB 300 / VPB S300", sv: "NIBE VPB 300 / VPB S300"}},
+            // Kept apart from VPB 300: the solar coil displaces water, so its heated volume is
+            // lower than the nominal figure and it is the one row whose published 40 °C figure
+            // does not fit the formula every plain VPB row obeys.
+            {id: "vpbs300", litres: 277, name: {en: "NIBE VPBS 300 (solar)", sv: "NIBE VPBS 300 (sol)"}},
+            {id: "vpb500", litres: 486, name: {en: "NIBE VPB 500", sv: "NIBE VPB 500"}},
+            {id: "vpb750", litres: 747, name: {en: "NIBE VPB 750", sv: "NIBE VPB 750"}},
+            {id: "vpb1000", litres: 992, name: {en: "NIBE VPB 1000", sv: "NIBE VPB 1000"}},
+            // Jacket tanks: only the potable volume, never the surrounding buffer.
+            {id: "vpa200", litres: 204, name: {en: "NIBE VPA 200/70", sv: "NIBE VPA 200/70"}},
+            {id: "vpa300", litres: 300, name: {en: "NIBE VPA 300 / VPAS 300", sv: "NIBE VPA 300 / VPAS 300"}},
+            {id: "vpa450", litres: 450, name: {en: "NIBE VPA 450/300", sv: "NIBE VPA 450/300"}}
+        ]
+    },
+
     // How a change of operating priority is explained — see reason.ts, which holds the S
     // control semantics (degree minutes, hot-water start/stop bands, outdoor cut-offs).
     reason: sReason,

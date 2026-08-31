@@ -64,6 +64,15 @@
     "sources": {
       "prompt": "More than one sensor can report this. Pick the one that should regulate:",
       "using": "Using:"
+    },
+    "tank": {
+      "title": "Hot water tank",
+      "hint": "Needed for the hot water estimate. One entry per family — the lining doesn't matter.",
+      "auto": "Don't estimate hot water",
+      "custom": "Other tank…",
+      "litres": "Tank volume",
+      "inlet": "Cold water coming in",
+      "inlet_hint": "10 °C is the usual figure; a little lower in winter, higher in summer."
     }
   },
   "groups": {
@@ -81,5 +90,17 @@
     "energy": "Energy",
     "solar": "Solar / PV"
   },
-  "Immersion heater only": "Immersion heater only"
+  "Immersion heater only": "Immersion heater only",
+  "hotwater": {
+    "tank_unmeasured": "Not measured yet",
+    "tank_setup": "Pick your tank in Repair",
+    "tank_calibrating": "Calibrating…",
+    "cal_setup": "No tank chosen",
+    "cal_waiting": "Charge cycles recorded so far: __CYCLES__. Two that heat the tank differently are needed before a size can be worked out.",
+    "cal_done": "Measured from __CYCLES__ charges",
+    "cal_cold": "Cold water in, measured: __C__ °C.",
+    "cal_assumed": "Calibrating…",
+    "inlet_measured": "measured",
+    "inlet_assumed": "assumed"
+  }
 }

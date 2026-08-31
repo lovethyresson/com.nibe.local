@@ -6,7 +6,8 @@ import {
     flowPredicates, groupIds, isAdjustable, isSelectableRegister, signedValue
 } from './registers';
 import {
-    ACTIVE_POWER_CAPABILITY, ENERGY_CAPABILITIES, FUNCTION_COP_CAPABILITY, METER_CAPABILITY,
+    ACTIVE_POWER_CAPABILITY, ENERGY_CAPABILITIES, FUNCTION_COP_CAPABILITY,
+    HOTWATER_VOLUME_CAPABILITY, METER_CAPABILITY, possibleExtraCapabilities,
     Role, TOTAL_COP_CAPABILITY, allRoles, energyTitle, extraCapabilities, extraCapabilityOptions,
     extraCapabilitySupport, functionRoles, powerTitle, registersForRole, roleClass, roleGroups,
     roleNames, roleOf, roleRegisters
@@ -17,7 +18,8 @@ import {
 } from './detection';
 import {Transport, destroyAllConnections, existingConnection} from './connection';
 import {DiscoveryOptions, discoverPumps} from './discovery';
-import {InstallProfile, analyticsConsent, reportInstallProfile, setAnalyticsConsent, track} from './analytics';
+import {CONSENT_SETTING, InstallProfile, analyticsConsent, reportInstallProfile, setAnalyticsConsent, track} from './analytics';
+import {DEFAULT_INLET_C, MAX_TANK_LITRES, MIN_TANK_LITRES, cleanTankChoice} from './hotwater';
 
 // Optional per-device transport entered during F pairing (the gateway port / unit id).
 interface PairTransport {port?: number; unitId?: number}
@@ -48,6 +50,18 @@ export abstract class NibePumpDriver extends Driver {
             + `${this.profile.registers.length} registers, ${this.getDevices().length} paired device(s)`);
         this.checkConfig();
         this.registerFlows();
+        // The consent checkbox now lives in device settings, but it can still be answered from the
+        // pairing view — including while pairing a second pump, long after these devices existed.
+        // Without this their checkboxes would sit stale until the next restart, and a consent
+        // control that shows the wrong state is worse than none.
+        this.homey.settings.on('set', (key: string) => {
+            if (key !== CONSENT_SETTING)
+                return;
+            const consent = analyticsConsent(this.homey);
+            for (const device of this.getDevices() as any[])
+                if (device.getSettings?.().analyticsConsent !== consent)
+                    device.setSettings({analyticsConsent: consent}).catch((e: any) => this.error(e));
+        });
     }
 
     private recommendationSummary(recs: Recommendations): string {
@@ -417,6 +431,36 @@ export abstract class NibePumpDriver extends Driver {
         this.registerAutofillFlow(this.homey.flow.getDeviceTriggerCard("capability_turned_off"),
             flowPredicates.boolState,
             (args: any, state: any) => args.register.id === state.register.id && !state.value, 'trigger');
+
+        // The litres estimate is derived rather than a register, so the generic autocomplete cards
+        // above cannot see it (their predicates take a Register) and it gets two cards of its own.
+        // Both are scoped by the compose file's $filter to devices that actually carry it.
+        this.homey.flow.getConditionCard("hotwater_volume_below")
+            .registerRunListener(async (args: any) => {
+                const value = args.device.getCapabilityValue(HOTWATER_VOLUME_CAPABILITY);
+                // Blank until the tank has been measured. False is the safe answer: a Flow that
+                // waits for hot water to run low must not fire because we cannot see it yet.
+                if (typeof value !== 'number')
+                    return false;
+                return value < args.litres;
+            });
+
+        // Fires on the downward crossing only. The device fires this whenever the estimate falls
+        // at all, so the threshold test lives here — `previous` is the value before the drop, and
+        // requiring it to have been at or above the limit is what stops every subsequent poll of a
+        // still-falling tank re-triggering the same Flow.
+        this.homey.flow.getDeviceTriggerCard("hotwater_volume_dropped_below")
+            .registerRunListener(async (args: any, state: any) => {
+                const crossed = state.previous >= args.litres && state.litres < args.litres;
+                // Tracked here rather than at the device, so the event counts a Flow actually
+                // firing rather than the estimate ticking down a litre — see fireHotwaterDropped.
+                if (crossed)
+                    track('Fired WHEN Card', {
+                        card: 'hotwater_volume_dropped_below',
+                        role: roleOf(args.device.getData())
+                    });
+                return crossed;
+            });
     }
 
     // Capabilities this pump cannot populate, according to a fresh detection pass: registers
@@ -435,7 +479,7 @@ export abstract class NibePumpDriver extends Driver {
             .map((register) => register.name);
         const support = extraCapabilitySupport(this.profile, role,
             (name) => detection.samples[name]);
-        for (const name of extraCapabilities(this.profile, role, null))
+        for (const name of possibleExtraCapabilities(this.profile, role))
             if (support[name] === false)
                 names.push(name);
         return names;
@@ -450,22 +494,46 @@ export abstract class NibePumpDriver extends Driver {
         const ids = role
             ? groupIds.filter((id) => (roleGroups[role] as GroupId[]).includes(id))
             : groupIds;
+        const lang = language === 'sv' ? 'sv' : 'en';
+        const entriesFor = (id: GroupId) => {
+            if (id === 'energy')
+                return this.energyGroupEntries(role, language);
+            const entries = this.profile.registers
+                .filter((register) => register.group === id
+                    && (!register.role || register.role === role)
+                    && isSelectableRegister(register, this.profile.pickerPrimary))
+                .map((register) => ({
+                    name: register.name,
+                    title: title(register.name),
+                    adjustable: isAdjustable(register),
+                    description: (register.info as any)[language] || register.info.en
+                }));
+            // Derived, so it is in no register group — listed here so Repair can switch it off
+            // like any other capability. Without a checkbox the override cleanSelection preserves
+            // could never be set in the first place.
+            if (id === 'hotwater' && role === 'hotwater' && this.profile.hotwaterTank)
+                entries.push({
+                    name: HOTWATER_VOLUME_CAPABILITY,
+                    title: this.extraDisplayTitle(role, HOTWATER_VOLUME_CAPABILITY, lang),
+                    adjustable: false,
+                    description: lang === 'sv'
+                        ? 'Liter 40-gradigt varmvatten kvar. Kräver vald beredare nedan.'
+                        : 'Litres of 40 °C water left. Needs the tank you pick below.'
+                });
+            return entries;
+        };
         return ids.map((id) => ({
             id,
             name: this.homey.__(`groups.${id}`) || id,
-            registers: id === 'energy'
-                ? this.energyGroupEntries(role, language)
-                : this.profile.registers
-                    .filter((register) => register.group === id
-                        && (!register.role || register.role === role)
-                        && isSelectableRegister(register, this.profile.pickerPrimary))
-                    .map((register) => ({
-                        name: register.name,
-                        title: title(register.name),
-                        adjustable: isAdjustable(register),
-                        description: (register.info as any)[language] || register.info.en
-                    }))
+            registers: entriesFor(id)
         }));
+    }
+
+    // The localized title of any derived capability, from the single source both pairing and the
+    // device runtime already use.
+    private extraDisplayTitle(role: Role, name: string, lang: 'en' | 'sv'): string {
+        const title = extraCapabilityOptions(role, name)?.title;
+        return title?.[lang] || title?.en || name;
     }
 
     private energyCapabilityTitle(role: Role, name: string, lang: 'en' | 'sv'): string {
@@ -556,6 +624,28 @@ export abstract class NibePumpDriver extends Driver {
         return entries;
     }
 
+    // The tank dropdown's contents for a role, or null when this role/model has no tank. The
+    // catalogue is model data (ModelProfile.hotwaterTank) so the views render whatever a profile
+    // offers and know nothing about NIBE's product line.
+    //
+    // "auto" leads and is the default: the app measures the tank from the pump's own energy
+    // counter, so picking a size is an accelerant, never a requirement. That is what keeps the
+    // pairing screen unable to fail on this field.
+    private tankChoices(role: Role) {
+        const catalogue = this.profile.hotwaterTank;
+        if (role !== 'hotwater' || !catalogue)
+            return null;
+        const lang = this.homey.i18n.getLanguage() === 'sv' ? 'sv' : 'en';
+        return {
+            defaultInletC: DEFAULT_INLET_C,
+            minLitres: MIN_TANK_LITRES,
+            maxLitres: MAX_TANK_LITRES,
+            tanks: catalogue.tanks.map((tank) => ({
+                id: tank.id, litres: tank.litres, name: tank.name[lang] || tank.name.en
+            }))
+        };
+    }
+
     // `addresses` is mostly detection's answer rather than the user's: which address a register
     // lives at is normally a fact about the pump, stamped in server-side, and a repair that
     // skipped detection passes the device's existing map through unchanged.
@@ -585,6 +675,9 @@ export abstract class NibePumpDriver extends Driver {
         // re-enables a COP the pump has no registers for.
         for (const name of [...ENERGY_CAPABILITIES, TOTAL_COP_CAPABILITY, FUNCTION_COP_CAPABILITY])
             keep(name, "energy");
+        // The litres estimate rides the hotwater group, not energy — its sensors are hotwater
+        // registers.
+        keep(HOTWATER_VOLUME_CAPABILITY, "hotwater");
         const resolved: Record<string, number> = {...addresses};
         for (const register of this.profile.registers) {
             if (!register.sources?.length)
@@ -596,7 +689,26 @@ export abstract class NibePumpDriver extends Driver {
         const selection: Selection = {groups, overrides};
         if (Object.keys(resolved).length)
             selection.addresses = resolved;
+        const hotwater = this.cleanTankChoice(raw?.hotwater);
+        if (hotwater)
+            selection.hotwater = hotwater;
         return selection;
+    }
+
+    // The tank the user picked, validated against the model's own catalogue.
+    //
+    // THIS FUNCTION IS A WHITELIST, and that is the trap: everything it does not copy is thrown
+    // away, because applySelection() overwrites the device's whole stored selection with what
+    // comes back from here. Leaving the tank out would mean a Repair silently discarding a choice
+    // made at pairing — the user would tick one box about cooling and lose their tank.
+    //
+    // An unrecognised id declines rather than being trusted: the view is untrusted input, and a
+    // bogus litre figure would bias every estimate built on it. Declining is the safe answer
+    // because there is no unattended alternative — deriving the volume from delivered energy was
+    // tested against hardware and measured 436 L for a 176 L tank.
+    private cleanTankChoice(raw: any): Selection["hotwater"] | undefined {
+        const catalogue = this.profile.hotwaterTank;
+        return catalogue ? cleanTankChoice(raw, catalogue.tanks) : undefined;
     }
 
     private static roleSelection(role: Role, recommendations: Recommendations): Selection {
@@ -630,7 +742,7 @@ export abstract class NibePumpDriver extends Driver {
         // hold a value. Re-running detection via repair re-enables them if that changes.
         if (Object.keys(samples).length) {
             const support = extraCapabilitySupport(this.profile, role, (name) => samples[name]);
-            for (const name of extraCapabilities(this.profile, role, null))
+            for (const name of possibleExtraCapabilities(this.profile, role))
                 if (support[name] === false)
                     selection.overrides[name] = false;
         }
@@ -653,7 +765,7 @@ export abstract class NibePumpDriver extends Driver {
         // Options for every extra capability the role could carry (energy pair, COP, main's
         // on/off) so each is created with its role-specific title — otherwise
         // getCapabilityOptions() throws "Invalid Capability" for the COP sensors on first init.
-        for (const extra of extraCapabilities(this.profile, role, null)) {
+        for (const extra of possibleExtraCapabilities(this.profile, role)) {
             const opt = extraCapabilityOptions(role, extra);
             if (opt)
                 options[extra] = opt;
@@ -751,10 +863,11 @@ export abstract class NibePumpDriver extends Driver {
             const at = declared.indexOf(name);
             return at === -1 ? Number.MAX_SAFE_INTEGER : at;
         };
-        const capsFor = (id: GroupId) => id === 'energy'
-            ? this.energyGroupEntries(role, lang, samples)
-                .map((entry) => ({name: entry.name, title: entry.title, detected: entry.detected}))
-            : this.profile.registers
+        const capsFor = (id: GroupId) => {
+            if (id === 'energy')
+                return this.energyGroupEntries(role, lang, samples)
+                    .map((entry) => ({name: entry.name, title: entry.title, detected: entry.detected}));
+            const caps = this.profile.registers
                 .filter((register) => register.group === id
                     && (!register.role || register.role === role)
                     && isSelectableRegister(register, this.profile.pickerPrimary))
@@ -764,6 +877,20 @@ export abstract class NibePumpDriver extends Driver {
                     title: this.regToAutofill(register).name,
                     detected: samples[register.name]?.read ?? false
                 }));
+            // The litres estimate is derived, so it is in no register group and the filter above
+            // cannot find it — but the picker REBUILDS device.capabilities from these lists, so a
+            // capability missing here is dropped at pairing (syncCapabilities re-adds it at init,
+            // which works but leaves it stranded at the end of the tile). Appended for the same
+            // reason energyGroupEntries exists for the COP sensors.
+            if (id === 'hotwater' && role === 'hotwater' && this.profile.hotwaterTank)
+                caps.push({
+                    name: HOTWATER_VOLUME_CAPABILITY,
+                    title: this.extraDisplayTitle(role, HOTWATER_VOLUME_CAPABILITY, lang),
+                    detected: extraCapabilitySupport(
+                        this.profile, role, (name) => samples[name])[HOTWATER_VOLUME_CAPABILITY]
+                });
+            return caps;
+        };
         return (roleGroups[role] as GroupId[])
             .map((id) => ({
                 id,
@@ -816,7 +943,10 @@ export abstract class NibePumpDriver extends Driver {
                 groups: this.candidateGroups(role, recommendations, samples),
                 // Only the choices for registers this role owns — the heating device asks which
                 // sensor its indoor temperature comes from, and no other role should.
-                choices: this.choicesForRole(role, detection?.choices ?? {})
+                choices: this.choicesForRole(role, detection?.choices ?? {}),
+                // null for every role but hot water, which is how the view knows not to render
+                // a tank picker on the pool device.
+                tanks: this.tankChoices(role)
             }));
     }
 
@@ -952,8 +1082,12 @@ export abstract class NibePumpDriver extends Driver {
 
         session.setHandler('get_context', async () => ({
             mode: 'repair',
+            role,
             groups: this.groupInfo(role),
             selection: (device.getStoreValue('selection') ?? null) as Selection | null,
+            // Only the hot water view uses this, but the role is right here and inferring it in
+            // the view from which groups came back would break the day a group moves.
+            tanks: this.tankChoices(role),
             analyticsConsent: analyticsConsent(this.homey)
         }));
 

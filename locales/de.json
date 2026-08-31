@@ -64,6 +64,15 @@
     "sources": {
       "prompt": "Mehr als ein Fühler kann dies melden. Wählen Sie den regelnden aus:",
       "using": "Verwendet:"
+    },
+    "tank": {
+      "title": "Warmwasserspeicher",
+      "hint": "Für die Warmwasserschätzung nötig. Ein Eintrag je Baureihe — die Beschichtung ist egal.",
+      "auto": "Warmwasser nicht schätzen",
+      "custom": "Anderer Speicher…",
+      "litres": "Speichervolumen",
+      "inlet": "Kaltwasserzulauf",
+      "inlet_hint": "Üblich sind 10 °C; im Winter etwas weniger, im Sommer mehr."
     }
   },
   "groups": {
@@ -81,5 +90,17 @@
     "energy": "Energie",
     "solar": "Solar / PV"
   },
-  "Immersion heater only": "Nur Heizstab"
+  "Immersion heater only": "Nur Heizstab",
+  "hotwater": {
+    "tank_unmeasured": "Noch nicht ermittelt",
+    "tank_setup": "Speicher unter „Reparieren“ auswählen",
+    "tank_calibrating": "Kalibrierung läuft…",
+    "cal_setup": "Kein Speicher gewählt",
+    "cal_waiting": "Bisher erfasste Ladevorgänge: __CYCLES__. Zwei, die den Speicher unterschiedlich erwärmen, sind nötig.",
+    "cal_done": "Gemessen aus __CYCLES__ Ladevorgängen",
+    "cal_cold": "Gemessener Kaltwasserzulauf: __C__ °C.",
+    "cal_assumed": "Kalibrierung läuft…",
+    "inlet_measured": "gemessen",
+    "inlet_assumed": "angenommen"
+  }
 }

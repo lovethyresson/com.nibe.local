@@ -64,6 +64,15 @@
     "sources": {
       "prompt": "Flere følere kan rapportere dette. Vælg den, der skal regulere:",
       "using": "Bruger:"
+    },
+    "tank": {
+      "title": "Varmtvandsbeholder",
+      "hint": "Nødvendig for varmtvandsestimatet. Én række pr. modelfamilie — belægningen er ligegyldig.",
+      "auto": "Estimér ikke varmt vand",
+      "custom": "Anden beholder…",
+      "litres": "Beholderens volumen",
+      "inlet": "Indgående koldt vand",
+      "inlet_hint": "10 °C er det sædvanlige; lidt lavere om vinteren, højere om sommeren."
     }
   },
   "groups": {
@@ -81,5 +90,17 @@
     "energy": "Energi",
     "solar": "Solceller / PV"
   },
-  "Immersion heater only": "Kun eltilskud"
+  "Immersion heater only": "Kun eltilskud",
+  "hotwater": {
+    "tank_unmeasured": "Ikke målt endnu",
+    "tank_setup": "Vælg din beholder under Reparer",
+    "tank_calibrating": "Kalibrerer…",
+    "cal_setup": "Ingen beholder valgt",
+    "cal_waiting": "Registrerede opladninger indtil nu: __CYCLES__. Der skal bruges to, der opvarmer beholderen forskelligt.",
+    "cal_done": "Målt ud fra __CYCLES__ opladninger",
+    "cal_cold": "Målt indgående koldt vand: __C__ °C.",
+    "cal_assumed": "Kalibrerer…",
+    "inlet_measured": "målt",
+    "inlet_assumed": "antaget"
+  }
 }

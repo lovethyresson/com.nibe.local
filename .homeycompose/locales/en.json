@@ -57,6 +57,13 @@
       "refresh": "Search again",
       "pump": "Nibe heat pump",
       "outdoor": "Outdoor temperature"
+    },
+    "tank": {
+      "title": "Hot water tank",
+      "hint": "Needed for the hot water estimate. One entry per family — the lining doesn't matter.",
+      "auto": "Don't estimate hot water",
+      "custom": "Other tank…",
+      "litres": "Tank volume"
     }
   },
   "groups": {
@@ -81,5 +88,10 @@
   "Speed 4": "Speed 4",
   "Auto": "Auto",
   "Manual": "Manual",
-  "Immersion heater only": "Immersion heater only"
+  "Immersion heater only": "Immersion heater only",
+  "hotwater": {
+    "tank_setup": "Pick your tank in Repair",
+    "inlet_measured": "measured",
+    "inlet_assumed": "assumed"
+  }
 }

@@ -237,6 +237,23 @@ export interface ModelProfile {
     // rules that turn them into a sentence. See ReasonConfig.
     reason?: ReasonConfig;
 
+    // What this model's hot water tank looks like, for the litres-available estimate.
+    //
+    // The two sensor registers are named rather than hard-coded because they are model data like
+    // everything else here — and because which sensors a tank has is exactly what differs between
+    // models. A probe of a live S1155-16 found BT5 (address 2014) absent, so S describes two
+    // layers; a model with a third would describe three and the maths would follow.
+    //
+    // `tanks` is the catalogue offered in the pairing/repair dropdown. It only ever makes the
+    // measurement converge faster — picking a size supplies the total so a single charge cycle
+    // determines the split, instead of waiting for a second, differently shaped one. Omitting the
+    // whole field means this model gets no estimate.
+    hotwaterTank?: {
+        topRegister: string;
+        lowerRegister: string;
+        tanks: {id: string; litres: number; name: LocalizedText}[];
+    };
+
     // Bare capabilities fed from a register that already has a name of its own.
     //
     // Homey's thermostat tile and its Climate view key on the ROOT capability ids

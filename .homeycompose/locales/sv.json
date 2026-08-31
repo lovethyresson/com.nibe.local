@@ -57,6 +57,13 @@
       "refresh": "Sök igen",
       "pump": "Nibe värmepump",
       "outdoor": "Utetemperatur"
+    },
+    "tank": {
+      "title": "Varmvattenberedare",
+      "hint": "Behövs för varmvattenuppskattningen. En rad per modellfamilj — materialet spelar ingen roll.",
+      "auto": "Uppskatta inte varmvatten",
+      "custom": "Annan beredare…",
+      "litres": "Beredarens volym"
     }
   },
   "groups": {
@@ -81,5 +88,10 @@
   "Speed 4": "Steg 4",
   "Auto": "Auto",
   "Manual": "Manuellt",
-  "Immersion heater only": "Endast elpatron"
+  "Immersion heater only": "Endast elpatron",
+  "hotwater": {
+    "tank_setup": "Välj din beredare under Reparera",
+    "inlet_measured": "uppmätt",
+    "inlet_assumed": "antaget"
+  }
 }

@@ -1,17 +1,21 @@
 import {Device} from 'homey';
-import {track} from './analytics';
+import {analyticsConsent, setAnalyticsConsent, track} from './analytics';
 import {
     Dir, Register, Selection, enumLabel, isPollable, isUnavailableRaw, migrateSelection,
     resolvedAddress, signedValue, withResolvedAddresses
 } from './registers';
 import {
     ACTIVE_POWER_CAPABILITY, ALARM_ACTIVE_CAPABILITY, ALARM_TEXT_CAPABILITY,
-    FUNCTION_COP_CAPABILITY, METER_CAPABILITY,
+    FUNCTION_COP_CAPABILITY, HOTWATER_VOLUME_CAPABILITY, METER_CAPABILITY,
     PUMP_ACTIVE_CAPABILITY, Role, SOLAR_METER_CAPABILITY, TOTAL_COP_CAPABILITY,
     capabilitySyncPlan, extraCapabilities, extraCapabilityOptions, functionRoles, mirrorOptions,
     mirrorsForRole, registersForRole, roleClass, roleOf, roleRegisters
 } from './roles';
 import {ALARM_SOURCE_URL, alarmAdvice, alarmDescription} from './alarms';
+import {
+    ColdSample, COLD_WINDOW_DAYS, DEFAULT_INLET_C, MAX_TANK_LITRES, MIN_TANK_LITRES, MIX_C,
+    dayNumber, learnedInletC, usableLitres
+} from './hotwater';
 import type {LocalizedText, ModelProfile} from './profile';
 import {PumpConnection, PumpSubscriber, POLL_SECONDS_DEFAULT, Transport,
     clampPollSeconds, inLanguage} from './connection';
@@ -207,6 +211,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private alarmTrigger = this.homey.flow.getDeviceTriggerCard("alarm_occurred");
     private priorityChangedTrigger = this.homey.flow.getDeviceTriggerCard("priority_changed");
     private capabilityChangedTrigger = this.homey.flow.getDeviceTriggerCard("capability_changed");
+    private hotwaterDroppedTrigger =
+        this.homey.flow.getDeviceTriggerCard("hotwater_volume_dropped_below");
     private turnedOnTrigger = this.homey.flow.getDeviceTriggerCard("capability_turned_on");
     private turnedOffTrigger = this.homey.flow.getDeviceTriggerCard("capability_turned_off");
 
@@ -403,6 +409,118 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private lastProducedSeen: number | null = null;
     private allocationLive = false;
 
+    // --- Hot water available, in litres -------------------------------------------------
+    //
+    // Two cached sensor readings and the tank the user picked. That is the entire state: an earlier
+    // design also watched the pump's delivered-energy counter across charge cycles to measure the
+    // tank and how it divides between the sensors, and neither survived contact with hardware — see
+    // lib/hotwater.ts and docs/hot-water-estimate.md.
+    private tankTopC: number | null = null;
+    private tankLowerC: number | null = null;
+    private lastPublishedLitres: number | null = null;
+
+    // Range-checked here as well as in the driver's cleanSelection(), because the two arrive by
+    // different routes: repair goes through the driver, but pairing writes the store value
+    // client-side via Homey.createDevice() and never passes through a server-side validator.
+    private tankConfig(): {tankId: string; litres: number | null; inletC: number} {
+        const stored = this.getSelection()?.hotwater;
+        const litres = Number(stored?.litres);
+        const inletC = Number(stored?.inletC);
+        return {
+            tankId: stored?.tankId ?? 'none',
+            litres: Number.isFinite(litres) && litres >= MIN_TANK_LITRES && litres <= MAX_TANK_LITRES
+                ? litres : null,
+            // Learned in preference to guessed. `inletC` in the selection is a stored override that
+            // nothing writes any more — the picker used to ask for this and no longer does, because
+            // almost nobody knows their mains temperature. Honoured if present so a device
+            // configured by the old picker keeps its answer.
+            inletC: Number.isFinite(inletC) && inletC >= 0 && inletC < MIX_C
+                ? inletC
+                : (this.learnedInlet() ?? DEFAULT_INLET_C)
+        };
+    }
+
+    // --- the cold-water inlet, observed rather than asked for ---------------------------
+    private coldDay: number | null = null;
+    private coldDayMin: number | null = null;
+
+    private coldSamples(): ColdSample[] {
+        const stored = this.getStoreValue('coldSamples');
+        return Array.isArray(stored)
+            ? stored.filter((s: any) => typeof s?.day === 'number' && typeof s?.minC === 'number')
+            : [];
+    }
+
+    private learnedInlet(): number | null {
+        return learnedInletC(this.coldSamples(), dayNumber(Date.now()));
+    }
+
+    // Track the day's low-water mark on the lower tank sensor, and roll it into the window when
+    // the day turns. Persisted once a day rather than per poll: this is a flash write, and the
+    // figure it feeds moves over weeks.
+    private noteColdWater(value: number) {
+        const today = dayNumber(Date.now());
+        if (this.coldDay === null) {
+            this.coldDay = today;
+            this.coldDayMin = value;
+            return;
+        }
+        if (today === this.coldDay) {
+            if (this.coldDayMin === null || value < this.coldDayMin)
+                this.coldDayMin = value;
+            return;
+        }
+        const finished = {day: this.coldDay, minC: this.coldDayMin ?? value};
+        this.coldDay = today;
+        this.coldDayMin = value;
+        const kept = [...this.coldSamples().filter((s) => s.day !== finished.day), finished]
+            .filter((s) => today - s.day < COLD_WINDOW_DAYS)
+            .sort((a, b) => a.day - b.day);
+        this.setStoreValue('coldSamples', kept).catch(this.error);
+        this.debug(`Hot water: cold-water inlet estimated at ${learnedInletC(kept, today) ?? '?'} °C `
+            + `(lowest the bottom sensor reached across ${kept.length} days)`);
+        this.publishTankState();
+    }
+
+    // Two read-only rows: the tank the owner told us, and the inlet we worked out. Both are inputs
+    // to the litres figure, so a figure that looks wrong has no invisible terms behind it.
+    private publishTankState() {
+        const {litres} = this.tankConfig();
+        const tank = litres === null
+            ? this.homey.__('hotwater.tank_setup')
+            : `${Math.round(litres)} L`;
+        const learned = this.learnedInlet();
+        const inlet = learned === null
+            ? `${DEFAULT_INLET_C} °C — ${this.homey.__('hotwater.inlet_assumed')}`
+            : `${learned} °C — ${this.homey.__('hotwater.inlet_measured')}`;
+        for (const device of this.driver.getDevices() as any[]) {
+            if (device.getSettings?.().address !== this.host())
+                continue;
+            const current = device.getSettings();
+            // Guarded: setSettings writes to flash, and this is reached whenever a day rolls.
+            if (current.hotwater_tank === tank && current.hotwater_inlet === inlet)
+                continue;
+            device.setSettings({hotwater_tank: tank, hotwater_inlet: inlet}).catch(this.error);
+        }
+    }
+
+    private updateHotwaterVolume() {
+        if (!this.hasCapability(HOTWATER_VOLUME_CAPABILITY))
+            return;
+        const {litres, inletC} = this.tankConfig();
+        if (litres === null || this.tankTopC === null || this.tankLowerC === null)
+            return;
+        const available = usableLitres(litres, this.tankTopC, this.tankLowerC, inletC);
+        if (available === null)
+            return;
+        const rounded = Math.round(available);
+        const previous = this.lastPublishedLitres;
+        this.lastPublishedLitres = rounded;
+        this.setCapabilityValue(HOTWATER_VOLUME_CAPABILITY, rounded).catch(this.error);
+        if (previous !== null && rounded < previous)
+            this.fireHotwaterDropped(previous, rounded);
+    }
+
     // First run on a version that has the accumulator: the stored copSamples pair an absolute
     // pump counter with an app-accumulated series and cannot be reconciled with it, so they are
     // discarded rather than migrated. The COP goes blank and rebuilds within a day or two —
@@ -518,6 +636,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const failed = await this.syncCapabilities();
         if (this.hasCapability(METER_CAPABILITY))
             await this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
+        // A repair can change the tank, and everything downstream of it is now stale: the litres
+        // and the settings labels. Without this the capability appeared and published correctly
+        // while the settings still read "Pick your tank in Repair" — exactly the sort of
+        // contradiction that makes an app look broken.
+        if (this.role === 'hotwater' && this.profile.hotwaterTank) {
+            this.publishTankState();
+            this.updateHotwaterVolume();
+        }
         if (failed.length)
             throw new Error(`${failed.length} capability/capabilities could not be applied: `
                 + `${failed.join(', ')}. The selection was saved — try Repair again, and if it `
@@ -553,6 +679,18 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             this.copUsed = this.cumulativeEnergy;
             await this.loadCopAccumulator();
         }
+        // Restore the measured tank. The cycles themselves are persisted, so a restart costs the
+        // estimate nothing — unlike the COP numerator, which deliberately cannot carry across one.
+        // The distinction is that a cycle is a completed, self-contained measurement, whereas the
+        // COP accumulator is an open integral against a counter that keeps running while the app
+        // is down.
+        if (this.role === 'hotwater' && this.profile.hotwaterTank)
+            this.publishTankState();
+        // The consent checkbox in device settings is a VIEW of the app-level answer, which is the
+        // single source of truth every track() reads. Mirror it in at init so the box shows what
+        // is actually true — including for a device paired before the box existed, or one whose
+        // sibling flipped it.
+        this.syncConsentFromApp();
 
         // Capability setup can fail on an individual device (a capability RPC error, a
         // stale capability type, etc.). Catch it so onInit still reaches attach() below:
@@ -651,6 +789,26 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         }, {priority: to, previous: from}).catch(this.error);
     }
 
+    // Cache whichever of the two tank sensors this was, and republish. They arrive on separate
+    // calls, so the estimate is recomputed whenever either moves.
+    private noteTankReading(register: Register, value: number | null) {
+        const tank = this.profile.hotwaterTank;
+        if (this.role !== 'hotwater' || !tank || value === null)
+            return;
+        if (register.name === tank.topRegister) {
+            this.tankTopC = value;
+            this.updateHotwaterVolume();
+        } else if (register.name === tank.lowerRegister) {
+            this.tankLowerC = value;
+            this.noteColdWater(value);
+            this.updateHotwaterVolume();
+        }
+    }
+
+    private fireHotwaterDropped(previous: number, litres: number) {
+        this.hotwaterDroppedTrigger.trigger(this, {litres}, {litres, previous}).catch(this.error);
+    }
+
     // The priority code as the same text the capability shows ("Heating"), falling back to the
     // bare code for a value the profile doesn't map — which is enumLabel's job, and the reason
     // this no longer spells the fallback out for itself.
@@ -677,6 +835,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.setValue(register, value).catch(this.error);
 
         const rawScaled = typeof rawValue === 'number' ? rawValue : null;
+        this.noteTankReading(register, rawScaled);
         const {totalProductionRegister, totalConsumptionRegister, producedRegisterForRole} = this.profile.role;
         if (this.role === 'main') {
             if (register.name === totalProductionRegister) {
@@ -1023,6 +1182,15 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     // ---- lifecycle ----
 
+    // App answer -> this device's checkbox. Guarded on a real difference: setSettings writes to
+    // flash, and this runs at every init.
+    private syncConsentFromApp() {
+        const consent = analyticsConsent(this.homey);
+        if (this.getSettings().analyticsConsent === consent)
+            return;
+        this.setSettings({analyticsConsent: consent}).catch(this.error);
+    }
+
     async onSettings({newSettings, changedKeys}: {
         oldSettings: {[key: string]: any}, newSettings: {[key: string]: any}, changedKeys: string[]
     }) {
@@ -1039,6 +1207,19 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             this.log(`Poll interval set to ${seconds} s`);
             this.syncPollIntervalToSiblings(seconds).catch(this.error);
             this.connection?.refreshPollInterval();
+        }
+        if (changedKeys.includes('analyticsConsent')) {
+            const consent = !!newSettings.analyticsConsent;
+            this.log(`Anonymous usage data ${consent ? 'enabled' : 'disabled'}`);
+            // Writes the app-level setting, which closes or opens the gate immediately rather than
+            // at the next restart, and opts the Amplitude SDK out as well so anything already in
+            // its batcher is dropped rather than flushed after the user said no.
+            setAnalyticsConsent(this.homey, consent);
+            // One answer for the whole install, so every device of this app shows it — not just
+            // this pump's, unlike the pump-wide settings above.
+            for (const device of this.driver.getDevices() as any[])
+                if (device !== this && device.getSettings?.().analyticsConsent !== consent)
+                    await device.setSettings({analyticsConsent: consent}).catch(this.error);
         }
         if (changedKeys.includes('debugLogging')) {
             const on = !!newSettings.debugLogging;

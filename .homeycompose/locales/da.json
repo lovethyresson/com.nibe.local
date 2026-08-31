@@ -57,6 +57,13 @@
     "sources": {
       "prompt": "Flere følere kan rapportere dette. Vælg den, der skal regulere:",
       "using": "Bruger:"
+    },
+    "tank": {
+      "title": "Varmtvandsbeholder",
+      "hint": "Nødvendig for varmtvandsestimatet. Én række pr. modelfamilie — belægningen er ligegyldig.",
+      "auto": "Estimér ikke varmt vand",
+      "custom": "Anden beholder…",
+      "litres": "Beholderens volumen"
     }
   },
   "groups": {
@@ -81,5 +88,10 @@
   "Speed 4": "Trin 4",
   "Auto": "Auto",
   "Manual": "Manuelt",
-  "Immersion heater only": "Kun eltilskud"
+  "Immersion heater only": "Kun eltilskud",
+  "hotwater": {
+    "tank_setup": "Vælg din beholder under Reparer",
+    "inlet_measured": "målt",
+    "inlet_assumed": "antaget"
+  }
 }

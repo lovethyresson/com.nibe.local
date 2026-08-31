@@ -1,0 +1,11 @@
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <!-- Monochrome capability icon for measure_volume_NIBE (litres of hot water available).
+         Single filled path, transparent background, so Homey's icon mask recolours it cleanly
+         (a filled-background SVG renders as a solid block — see the old store.svg).
+
+         Deliberately a plain droplet rather than a tank with a waterline, which would say more.
+         Homey masks the icon to one flat colour and renders it as small as 16 px, so a level
+         indicator collapses into a notch at the sizes that matter — checked side by side against
+         the alternatives before settling here. -->
+    <path d="M12 2.2c0 0-7 8.1-7 12.4a7 7 0 0 0 14 0C19 10.3 12 2.2 12 2.2z"/>
+</svg>

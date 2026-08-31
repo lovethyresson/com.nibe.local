@@ -76,6 +76,7 @@
     "measure_cop_NIBE.rolling",
     "onoff.h195_enable_hotwater",
     "measure_temperature.i9_hot_water",
+    "measure_volume_NIBE.hotwater_estimate",
     "measure_temperature.i8_warmwater_top",
     "hotwater_demand_NIBE.h56_hotwater_demand_mode",
     "boolean_NIBE.h697_more_hotwater",
@@ -1373,6 +1374,61 @@
     {
       "type": "group",
       "label": {
+        "en": "Hot water",
+        "sv": "Varmvatten",
+        "de": "Warmwasser",
+        "nl": "Warm tapwater",
+        "no": "Varmtvann",
+        "da": "Varmt vand"
+      },
+      "children": [
+        {
+          "id": "hotwater_tank",
+          "type": "label",
+          "label": {
+            "en": "Tank size",
+            "sv": "Beredarens volym",
+            "de": "Speichergröße",
+            "nl": "Boilerinhoud",
+            "no": "Berederens volum",
+            "da": "Beholderens volumen"
+          },
+          "hint": {
+            "en": "The tank you chose in Repair. Change it there if it's wrong.",
+            "sv": "Beredaren du valde under Reparera. Ändra där om den är fel.",
+            "de": "Der unter „Reparieren“ gewählte Speicher. Dort ändern, falls falsch.",
+            "nl": "De boiler die je bij Herstellen koos. Wijzig het daar als het niet klopt.",
+            "no": "Berederen du valgte under Reparer. Endre der hvis den er feil.",
+            "da": "Beholderen du valgte under Reparer. Ret den der, hvis den er forkert."
+          },
+          "value": "—"
+        },
+        {
+          "id": "hotwater_inlet",
+          "type": "label",
+          "label": {
+            "en": "Cold water coming in",
+            "sv": "Inkommande kallvatten",
+            "de": "Kaltwasserzulauf",
+            "nl": "Inkomend koud water",
+            "no": "Inngående kaldtvann",
+            "da": "Indgående koldt vand"
+          },
+          "hint": {
+            "en": "Measured from how cold the tank gets after a big draw. Assumes 10 °C until it has seen one.",
+            "sv": "Uppmätt från hur kall beredaren blir efter en stor tappning. Antar 10 °C tills dess.",
+            "de": "Aus der Speichertemperatur nach einer großen Zapfung ermittelt. Bis dahin 10 °C.",
+            "nl": "Bepaald uit hoe koud de boiler wordt na een grote aftap. Tot dan 10 °C.",
+            "no": "Målt fra hvor kald berederen blir etter en stor tapping. Antar 10 °C inntil da.",
+            "da": "Målt ud fra hvor kold beholderen bliver efter en stor aftapning. Antager 10 °C indtil da."
+          },
+          "value": "—"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": {
         "en": "Advanced",
         "sv": "Avancerat",
         "de": "Erweitert",
@@ -1496,6 +1552,40 @@
             "da": "Den seneste alarm som varmepumpen har rapporteret. Hele historikken — med NIBEs årsag og anbefalede handling for hver alarm — finder du i appens egne indstillinger: Homey-appen → Mere → Apps → Nibe Live → Konfigurer."
           },
           "value": ""
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": {
+        "en": "Privacy",
+        "sv": "Integritet",
+        "de": "Datenschutz",
+        "nl": "Privacy",
+        "no": "Personvern",
+        "da": "Privatliv"
+      },
+      "children": [
+        {
+          "id": "analyticsConsent",
+          "type": "checkbox",
+          "label": {
+            "en": "Share anonymous usage data",
+            "sv": "Dela anonym användningsdata",
+            "de": "Anonyme Nutzungsdaten teilen",
+            "nl": "Anonieme gebruiksgegevens delen",
+            "no": "Del anonyme bruksdata",
+            "da": "Del anonyme brugsdata"
+          },
+          "hint": {
+            "en": "Off by default. Sends pump model, which devices you paired, which Flow cards ran, and alarm codes. Never readings, IP, serial or names.",
+            "sv": "Av som standard. Skickar värmepumpsmodell, vilka enheter du parkopplat, vilka flödeskort som körts och larmkoder. Aldrig mätvärden, IP, serienummer eller namn.",
+            "de": "Standardmäßig aus. Sendet Wärmepumpenmodell, gekoppelte Geräte, ausgeführte Flow-Karten und Alarmcodes. Nie Messwerte, IP, Seriennummer oder Namen.",
+            "nl": "Standaard uit. Verzendt warmtepompmodel, gekoppelde apparaten, uitgevoerde Flow-kaarten en alarmcodes. Nooit metingen, IP, serienummer of namen.",
+            "no": "Av som standard. Sender varmepumpemodell, parede enheter, kjørte flytkort og alarmkoder. Aldri målinger, IP, serienummer eller navn.",
+            "da": "Fra som standard. Sender varmepumpemodel, parrede enheder, kørte Flow-kort og alarmkoder. Aldrig målinger, IP, serienummer eller navne."
+          },
+          "value": false
         }
       ]
     }

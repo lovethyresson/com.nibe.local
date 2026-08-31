@@ -232,6 +232,9 @@ test('every Flow card resolves to a register that still exists', () => {
         'capability_turned_on', 'capability_turned_off',
         'set_numeric_value', 'enable_feature', 'disable_feature',
         'numeric_value_comparison', 'feature_enabled',
+        // Derived rather than register-backed, so these two carry their own cards instead of
+        // riding the autocomplete ones — see HOTWATER_VOLUME_CAPABILITY.
+        'hotwater_volume_below', 'hotwater_volume_dropped_below',
     ]);
     const suffixes = ['set', 'onoff', 'enum', 'reset'];
     const byName = buildRegisterByName(registers);

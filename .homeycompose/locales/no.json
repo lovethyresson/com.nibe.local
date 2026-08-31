@@ -57,6 +57,13 @@
     "sources": {
       "prompt": "Flere givere kan rapportere dette. Velg den som skal regulere:",
       "using": "Bruker:"
+    },
+    "tank": {
+      "title": "Varmtvannsbereder",
+      "hint": "Nødvendig for varmtvannsestimatet. Én rad per modellfamilie — materialet spiller ingen rolle.",
+      "auto": "Ikke estimer varmtvann",
+      "custom": "Annen bereder…",
+      "litres": "Berederens volum"
     }
   },
   "groups": {
@@ -81,5 +88,10 @@
   "Speed 4": "Trinn 4",
   "Auto": "Auto",
   "Manual": "Manuelt",
-  "Immersion heater only": "Kun elkolbe"
+  "Immersion heater only": "Kun elkolbe",
+  "hotwater": {
+    "tank_setup": "Velg berederen din under Reparer",
+    "inlet_measured": "målt",
+    "inlet_assumed": "antatt"
+  }
 }

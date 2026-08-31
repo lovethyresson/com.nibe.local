@@ -121,9 +121,21 @@ function renderGroup(deviceIndex, candidate, group, deviceChecked) {
     return wrap;
 }
 
+/* Tank pickers, so they can follow their device's checkbox — asking for a tank size on a device
+   the user is not creating is noise. */
+var tankToggles = [];
+
+function syncTank(index, on) {
+    tankToggles.forEach(function (entry) {
+        if (entry.index === index)
+            entry.element.style.display = on ? 'block' : 'none';
+    });
+}
+
 function render() {
     var list = document.getElementById('devices');
     list.innerHTML = '';
+    tankToggles = [];
     candidates.forEach(function (candidate, index) {
         var item = document.createElement('div');
         item.className = 'feature-group';
@@ -138,7 +150,10 @@ function render() {
         toggle.checked = candidate.detected; // pre-check the devices we saw data for
         toggle.dataset.index = index;
         // The device's groups follow its checkbox: never checked while the device isn't.
-        toggle.onchange = function () { syncGroups(index, toggle.checked); };
+        toggle.onchange = function () {
+            syncGroups(index, toggle.checked);
+            syncTank(index, toggle.checked);
+        };
         label.appendChild(toggle);
         label.appendChild(document.createTextNode(' ' + candidate.name));
         row.appendChild(label);
@@ -164,6 +179,19 @@ function render() {
             desc.className = 'register-desc';
             desc.textContent = candidate.description;
             item.appendChild(desc);
+        }
+
+        /* The tank picker, on the hot water card only, and deliberately NOT hidden behind the
+           ▸ expander: a size buried under a disclosure triangle would never be picked. It is
+           optional in every case — the first option declines the estimate outright — so it can
+           never block Add and pairing cannot fail on it. */
+        if (candidate.tanks) {
+            var tank = tankBlock(candidate.tanks, null, 'pair' + index);
+            // Nested under a device row here, unlike repair where it owns its card.
+            tank.className += ' tank-nested';
+            item.appendChild(tank);
+            tankToggles.push({index: index, element: tank});
+            syncTank(index, toggle.checked);
         }
 
         if (groups.length) {
@@ -230,6 +258,13 @@ function buildDevice(candidate, index) {
         device.store.selection.addresses = device.store.selection.addresses || {};
         device.store.selection.addresses[radio.dataset.source] = Number(radio.value);
     });
+    // Re-attached for the same reason `addresses` is: the selection is rebuilt from scratch just
+    // above, so anything not copied across here is silently lost on the way to createDevice().
+    if (candidate.tanks) {
+        var tank = tankValue('pair' + index);
+        if (tank)
+            device.store.selection.hotwater = tank;
+    }
     return device;
 }
 
