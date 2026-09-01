@@ -91,7 +91,6 @@
   "Immersion heater only": "Kun elkolbe",
   "hotwater": {
     "tank_setup": "Velg berederen din under Reparer",
-    "inlet_measured": "målt",
     "inlet_assumed": "antatt"
   }
 }

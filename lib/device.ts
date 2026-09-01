@@ -491,8 +491,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             : `${Math.round(litres)} L`;
         const learned = this.learnedInlet();
         const inlet = learned === null
-            ? `${DEFAULT_INLET_C} °C — ${this.homey.__('hotwater.inlet_assumed')}`
-            : `${learned} °C — ${this.homey.__('hotwater.inlet_measured')}`;
+            ? `${DEFAULT_INLET_C} °C (${this.homey.__('hotwater.inlet_assumed')})`
+            : `${learned} °C`;
         for (const device of this.driver.getDevices() as any[]) {
             if (device.getSettings?.().address !== this.host())
                 continue;
@@ -674,6 +674,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (functionRoles.includes(this.role) || this.role === 'main') {
             this.cumulativeEnergy = this.getSettings().cumulativeEnergy || 0;
             this.persistedCumulativeEnergy = this.cumulativeEnergy;
+            // Tidy a total stored before it was rounded. persistCumulativeEnergy() only writes
+            // once the figure has moved 0.01 kWh, so an idle device would otherwise keep showing
+            // the full float for as long as it stays idle. Guarded, so this is a no-op after the
+            // first start rather than a flash write on every one.
+            const tidy = Math.round(this.cumulativeEnergy * 1000) / 1000;
+            if (tidy !== this.cumulativeEnergy)
+                await this.setSettings({cumulativeEnergy: tidy}).catch(this.error);
         }
         if (functionRoles.includes(this.role)) {
             this.copUsed = this.cumulativeEnergy;
@@ -686,6 +693,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // is down.
         if (this.role === 'hotwater' && this.profile.hotwaterTank)
             this.publishTankState();
+        // Re-render the alarm line from the stored log. It is otherwise written only when a NEW
+        // alarm arrives, so a device that has been quiet for weeks keeps whatever format it was
+        // last written in — and a change to renderAlarmLine would never reach it.
+        this.republishAlarmLine();
         // The consent checkbox in device settings is a VIEW of the app-level answer, which is the
         // single source of truth every track() reads. Mirror it in at init so the box shows what
         // is actually true — including for a device paired before the box existed, or one whose
@@ -938,13 +949,26 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.homey.settings.set(key, history);
     }
 
+    private republishAlarmLine() {
+        const log: {t: number; code: number; text: string}[] = this.getStoreValue('alarmLog') ?? [];
+        if (!log.length)
+            return;
+        const latest = this.renderAlarmLine(log[0]);
+        for (const device of this.driver.getDevices() as any[])
+            if (device.getSettings?.().address === this.host()
+                && device.getSettings().alarm_log !== latest)
+                device.setSettings({alarm_log: latest}).catch(this.error);
+    }
+
     private renderAlarmLine(entry?: {t: number; code: number; text: string}): string {
         if (!entry)
             return '';
         // sv-SE renders as "2026-07-24 11:26" — unambiguous and sorts naturally.
         const when = new Date(entry.t).toLocaleString('sv-SE',
             {timeZone: this.homey.clock.getTimezone(), dateStyle: 'short', timeStyle: 'short'});
-        return `${when}  ${entry.text}`;
+        // Timestamp on its own line: the alarm text runs long enough that a single line wraps
+        // mid-sentence and the date stops being scannable.
+        return `${when}\n${entry.text}`;
     }
 
     onConnectionUp() {
@@ -1177,7 +1201,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (!force && Math.abs(this.cumulativeEnergy - this.persistedCumulativeEnergy) < 0.01)
             return;
         this.persistedCumulativeEnergy = this.cumulativeEnergy;
-        this.setSettings({cumulativeEnergy: this.cumulativeEnergy}).catch(this.error);
+        // Rounded to milli-kWh on the way out. A settings number field renders the value exactly
+        // as stored — `decimals` is a capability option and is ignored here — so the raw
+        // accumulator showed as 99.39351378333367 in a box the user is invited to edit. The
+        // in-memory total keeps full precision; only the visible, editable copy is rounded, and
+        // reading it back at start-up costs at most half a milli-kWh.
+        this.setSettings({cumulativeEnergy: Math.round(this.cumulativeEnergy * 1000) / 1000})
+            .catch(this.error);
     }
 
     // ---- lifecycle ----

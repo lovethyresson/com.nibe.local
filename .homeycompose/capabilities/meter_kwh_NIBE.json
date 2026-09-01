@@ -11,7 +11,7 @@
   "uiComponent": "sensor",
   "getable": true,
   "setable": false,
-  "decimals": 0,
+  "decimals": 1,
   "units": {
     "en": "kWh",
     "sv": "kWh",

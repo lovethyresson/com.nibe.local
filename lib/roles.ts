@@ -383,8 +383,11 @@ export function mirrorOptions(
 }
 
 export function extraCapabilityOptions(role: Role, name: string): any {
+    // One decimal, like every other kWh figure in the app. Left to Homey's default this rendered
+    // the raw accumulator to three places on the tile while the delivered-energy meters beside it
+    // showed none — the same quantity, three different precisions.
     if (name === METER_CAPABILITY)
-        return {title: energyTitle(role)};
+        return {title: energyTitle(role), decimals: 1};
     if (name === ACTIVE_POWER_CAPABILITY)
         return {title: powerTitle(role), decimals: 0};
     // Not settable: the pump has no whole-pump on/off command, so this exists only to give the

@@ -91,7 +91,6 @@
   "Immersion heater only": "Kun eltilskud",
   "hotwater": {
     "tank_setup": "Vælg din beholder under Reparer",
-    "inlet_measured": "målt",
     "inlet_assumed": "antaget"
   }
 }

@@ -91,7 +91,6 @@
   "Immersion heater only": "Alleen elektrisch element",
   "hotwater": {
     "tank_setup": "Kies je boiler bij Herstellen",
-    "inlet_measured": "gemeten",
     "inlet_assumed": "aangenomen"
   }
 }

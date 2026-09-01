@@ -2826,7 +2826,8 @@
             "nl": "Totaal energieverbruik",
             "no": "Totalt energiforbruk",
             "da": "Samlet energiforbrug"
-          }
+          },
+          "decimals": 1
         },
         "measure_power": {
           "decimals": 0,
@@ -3005,7 +3006,7 @@
           }
         },
         "meter_kwh_NIBE.i3821_total_production": {
-          "decimals": 0,
+          "decimals": 1,
           "title": {
             "en": "Total energy produced",
             "sv": "Total producerad energi",
@@ -3016,7 +3017,7 @@
           }
         },
         "meter_kwh_NIBE.i3823_total_consumption": {
-          "decimals": 0,
+          "decimals": 1,
           "title": {
             "en": "Total energy consumed",
             "sv": "Total förbrukad energi",
@@ -3027,7 +3028,7 @@
           }
         },
         "meter_kwh_NIBE.i1577_heating_produced": {
-          "decimals": 0,
+          "decimals": 1,
           "title": {
             "en": "Energy delivered",
             "sv": "Levererad energi",
@@ -3038,7 +3039,7 @@
           }
         },
         "meter_kwh_NIBE.i1575_hotwater_produced": {
-          "decimals": 0,
+          "decimals": 1,
           "title": {
             "en": "Energy delivered",
             "sv": "Levererad energi",
@@ -3049,7 +3050,7 @@
           }
         },
         "meter_kwh_NIBE.i1581_pool_produced": {
-          "decimals": 0,
+          "decimals": 1,
           "title": {
             "en": "Energy delivered",
             "sv": "Levererad energi",
@@ -3060,7 +3061,7 @@
           }
         },
         "meter_kwh_NIBE.i1579_cooling_produced": {
-          "decimals": 0,
+          "decimals": 1,
           "title": {
             "en": "Energy delivered",
             "sv": "Levererad energi",
@@ -3083,7 +3084,7 @@
           }
         },
         "meter_kwh_NIBE.i398_pulse_energy": {
-          "decimals": 0,
+          "decimals": 1,
           "title": {
             "en": "Pulse meter energy (BE6)",
             "sv": "Pulsmätarenergi (BE6)",
@@ -4092,12 +4093,12 @@
                 "da": "Beholderens volumen"
               },
               "hint": {
-                "en": "The tank you chose in Repair. Change it there if it's wrong.",
-                "sv": "Beredaren du valde under Reparera. Ändra där om den är fel.",
-                "de": "Der unter „Reparieren“ gewählte Speicher. Dort ändern, falls falsch.",
-                "nl": "De boiler die je bij Herstellen koos. Wijzig het daar als het niet klopt.",
-                "no": "Berederen du valgte under Reparer. Endre der hvis den er feil.",
-                "da": "Beholderen du valgte under Reparer. Ret den der, hvis den er forkert."
+                "en": "The size of your hot water tank. Run repair to change it.",
+                "sv": "Volymen på din varmvattenberedare. Kör Reparera för att ändra.",
+                "de": "Die Größe Ihres Warmwasserspeichers. Zum Ändern „Reparieren“ ausführen.",
+                "nl": "De inhoud van je warmtapwaterboiler. Voer Herstellen uit om te wijzigen.",
+                "no": "Volumet på varmtvannsberederen din. Kjør Reparer for å endre.",
+                "da": "Volumen på din varmtvandsbeholder. Kør Reparer for at ændre."
               },
               "value": "—"
             },
@@ -4105,22 +4106,22 @@
               "id": "hotwater_inlet",
               "type": "label",
               "label": {
-                "en": "Cold water coming in",
-                "sv": "Inkommande kallvatten",
-                "de": "Kaltwasserzulauf",
-                "nl": "Inkomend koud water",
-                "no": "Inngående kaldtvann",
-                "da": "Indgående koldt vand"
+                "en": "Incoming water",
+                "sv": "Inkommande vatten",
+                "de": "Zulaufwasser",
+                "nl": "Inkomend water",
+                "no": "Inngående vann",
+                "da": "Indgående vand"
               },
+              "value": "—",
               "hint": {
-                "en": "Measured from how cold the tank gets after a big draw. Assumes 10 °C until it has seen one.",
-                "sv": "Uppmätt från hur kall beredaren blir efter en stor tappning. Antar 10 °C tills dess.",
-                "de": "Aus der Speichertemperatur nach einer großen Zapfung ermittelt. Bis dahin 10 °C.",
-                "nl": "Bepaald uit hoe koud de boiler wordt na een grote aftap. Tot dan 10 °C.",
-                "no": "Målt fra hvor kald berederen blir etter en stor tapping. Antar 10 °C inntil da.",
-                "da": "Målt ud fra hvor kold beholderen bliver efter en stor aftapning. Antager 10 °C indtil da."
-              },
-              "value": "—"
+                "en": "The measured temperature of the incoming cold water. Used to calculate Hot water available.",
+                "sv": "Uppmätt temperatur på det inkommande kallvattnet. Används för att beräkna Tillgängligt varmvatten.",
+                "de": "Die gemessene Temperatur des einströmenden Kaltwassers. Dient zur Berechnung von „Verfügbares Warmwasser“.",
+                "nl": "De gemeten temperatuur van het inkomende koude water. Wordt gebruikt om Beschikbaar warmtapwater te berekenen.",
+                "no": "Målt temperatur på det inngående kaldtvannet. Brukes til å beregne Tilgjengelig varmtvann.",
+                "da": "Den målte temperatur på det indgående kolde vand. Bruges til at beregne Tilgængeligt varmt vand."
+              }
             }
           ]
         },
@@ -5335,7 +5336,7 @@
       "uiComponent": "sensor",
       "getable": true,
       "setable": false,
-      "decimals": 0,
+      "decimals": 1,
       "units": {
         "en": "kWh",
         "sv": "kWh",

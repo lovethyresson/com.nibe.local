@@ -91,7 +91,6 @@
   "Immersion heater only": "Endast elpatron",
   "hotwater": {
     "tank_setup": "Välj din beredare under Reparera",
-    "inlet_measured": "uppmätt",
     "inlet_assumed": "antaget"
   }
 }

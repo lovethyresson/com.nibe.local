@@ -91,7 +91,6 @@
   "Immersion heater only": "Nur Heizstab",
   "hotwater": {
     "tank_setup": "Speicher unter „Reparieren“ auswählen",
-    "inlet_measured": "gemessen",
     "inlet_assumed": "angenommen"
   }
 }

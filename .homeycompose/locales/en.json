@@ -91,7 +91,6 @@
   "Immersion heater only": "Immersion heater only",
   "hotwater": {
     "tank_setup": "Pick your tank in Repair",
-    "inlet_measured": "measured",
     "inlet_assumed": "assumed"
   }
 }
