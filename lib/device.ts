@@ -513,7 +513,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const available = usableLitres(litres, this.tankTopC, this.tankLowerC, inletC);
         if (available === null)
             return;
-        const rounded = Math.round(available);
+        const rounded = Math.round(available * 10) / 10;
         const previous = this.lastPublishedLitres;
         this.lastPublishedLitres = rounded;
         this.setCapabilityValue(HOTWATER_VOLUME_CAPABILITY, rounded).catch(this.error);

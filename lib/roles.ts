@@ -408,13 +408,14 @@ export function extraCapabilityOptions(role: Role, name: string): any {
         };
         return {title: titles[role] ?? {en: "COP (30-day)", sv: "COP (30 dagar)"}, decimals: 2};
     }
-    // Whole litres. The estimate reads two sensors eighteen degrees apart on a real tank and
-    // divides the volume between them from measured energy — a decimal place would advertise a
-    // precision it does not have.
+    // One decimal. Not because the estimate is accurate to 0.1 L — it reads two sensors and
+    // interpolates between them — but because the figure moves slowly enough that whole litres
+    // made it look stuck: idle drift is ~1 K/h on the top sensor, which is one whole litre every
+    // twenty minutes or so. A decimal makes a draw visible as it happens.
     if (name === HOTWATER_VOLUME_CAPABILITY)
         return {title: {en: "Hot water available", sv: "Tillgängligt varmvatten",
                         de: "Verfügbares Warmwasser", nl: "Beschikbaar warmtapwater",
                         no: "Tilgjengelig varmtvann", da: "Tilgængeligt varmt vand"},
-                decimals: 0};
+                decimals: 1};
     return undefined;
 }
