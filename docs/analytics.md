@@ -333,3 +333,14 @@ the tables above. The consent UI in `devices.html` and `settings/index.html` and
   move together** — a key from a US project will not authenticate against the EU endpoint.
 - **Athom review will ask what the app sends and where.** Point them here, and keep the
   `README.md` privacy note in sync.
+## External temperature actions and setup revision
+
+BT1's Flow action reuses the consent-gated `Ran THEN Card` event. Temperature values are not sent.
+The automatic BT50 feed writes directly through the shared connection and emits no analytics events.
+Sensor inventory, selected device/capability IDs, room names, temperatures and feed diagnostics are
+local only. The standalone BT50 Flow card was removed to avoid a competing writer.
+
+Pairing consent now appears once at final review after Device Setup. It remains unchecked unless
+previously granted. The explanation leads with the single-developer/one-pump rationale and explains
+model compatibility, setup reliability and feature prioritization, followed by concrete sent/not-sent
+examples and the existing device settings → Privacy withdrawal route. The telemetry scope is unchanged.

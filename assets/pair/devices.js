@@ -6,6 +6,8 @@
 Homey.setTitle(Homey.__('pair.devices.title'));
 
 var candidates = [];
+var setup;
+var setupSections = {};
 
 function groupChecked(deviceIndex, groupId) {
     var box = document.querySelector('input[data-device="' + deviceIndex + '"][data-group="' + groupId + '"]');
@@ -45,9 +47,9 @@ function renderSources(deviceIndex, candidate, capName, parent) {
         only.className = 'register-sources';
         var text = document.createElement('div');
         text.className = 'register-desc';
-        text.textContent = Homey.__('pair.sources.using') + ' ' + sources[0].label
+        text.textContent = Homey.__('pair.sources.using') + ' ' + (sources[0].address === 116 ? Homey.__('pair.setup.source_cs1') : sources[0].label)
             + (sources[0].value === undefined || sources[0].value === null
-                ? '' : ' — ' + sources[0].value);
+                ? '' : ' · ' + sources[0].value + ' °C');
         only.appendChild(text);
         parent.appendChild(only);
         return;
@@ -116,26 +118,15 @@ function renderGroup(deviceIndex, candidate, group, deviceChecked) {
         line.appendChild(dot);
         line.appendChild(document.createTextNode(' ' + c.title));
         wrap.appendChild(line);
-        renderSources(deviceIndex, candidate, c.name, wrap);
+        // Temperature sources live in Heating Setup.
     });
     return wrap;
-}
-
-/* Tank pickers, so they can follow their device's checkbox — asking for a tank size on a device
-   the user is not creating is noise. */
-var tankToggles = [];
-
-function syncTank(index, on) {
-    tankToggles.forEach(function (entry) {
-        if (entry.index === index)
-            entry.element.style.display = on ? 'block' : 'none';
-    });
 }
 
 function render() {
     var list = document.getElementById('devices');
     list.innerHTML = '';
-    tankToggles = [];
+    setupSections = {};
     candidates.forEach(function (candidate, index) {
         var item = document.createElement('div');
         item.className = 'feature-group';
@@ -152,7 +143,6 @@ function render() {
         // The device's groups follow its checkbox: never checked while the device isn't.
         toggle.onchange = function () {
             syncGroups(index, toggle.checked);
-            syncTank(index, toggle.checked);
         };
         label.appendChild(toggle);
         label.appendChild(document.createTextNode(' ' + candidate.name));
@@ -181,17 +171,17 @@ function render() {
             item.appendChild(desc);
         }
 
-        /* The tank picker, on the hot water card only, and deliberately NOT hidden behind the
-           ▸ expander: a size buried under a disclosure triangle would never be picked. It is
-           optional in every case — the first option declines the estimate outright — so it can
-           never block Add and pairing cannot fail on it. */
         if (candidate.tanks) {
-            var tank = tankBlock(candidate.tanks, null, 'pair' + index);
-            // Nested under a device row here, unlike repair where it owns its card.
-            tank.className += ' tank-nested';
-            item.appendChild(tank);
-            tankToggles.push({index: index, element: tank});
-            syncTank(index, toggle.checked);
+            setupSections[index] = {id: String(index), role: candidate.role,
+                title: Homey.__('pair.setup.hotwater'), description: candidate.description,
+                content: tankBlock(candidate.tanks, null, 'pair' + index)};
+        }
+        if (candidate.role === 'heating') {
+            var sources = document.createElement('div');
+            renderSources(index, candidate, 'measure_temperature', sources);
+            if (!sources.childNodes.length) sources.textContent = Homey.__('pair.setup.no_nibe_sources');
+            setupSections[index] = {id: String(index), role: candidate.role,
+                title: Homey.__('pair.setup.heating'), description: candidate.description, sources: sources};
         }
 
         if (groups.length) {
@@ -213,7 +203,8 @@ function render() {
         list.appendChild(item);
     });
     document.getElementById('add').style.display = 'block';
-    document.getElementById('consent-row').style.display = 'block';
+    document.getElementById('consent-row').hidden = true;
+    document.getElementById('add').textContent = Homey.__('pair.setup.next');
 }
 
 // Rebuild the device to create from the group toggles: the core group is always
@@ -253,7 +244,7 @@ function buildDevice(candidate, index) {
     // Layered on top of `resolved` rather than replacing it: the two write to the same map but
     // cover different registers, and dropping the detection-resolved ones would undo relocation.
     document.querySelectorAll('input[data-source]:checked').forEach(function (radio) {
-        if (Number(radio.dataset.device) !== index)
+        if (Number(radio.dataset.device) !== Number(index))
             return;
         device.store.selection.addresses = device.store.selection.addresses || {};
         device.store.selection.addresses[radio.dataset.source] = Number(radio.value);
@@ -265,52 +256,50 @@ function buildDevice(candidate, index) {
         if (tank)
             device.store.selection.hotwater = tank;
     }
+    if (candidate.role === 'heating' && setup.indoorConfig())
+        device.store.indoorSensors = setup.indoorConfig();
     return device;
 }
 
-function createSelected(devices, i, done) {
-    if (i >= devices.length) {
-        done();
-        return;
-    }
-    Homey.createDevice(devices[i]).then(function () {
-        createSelected(devices, i + 1, done);
-    }).catch(function (error) {
-        Homey.hideLoadingOverlay();
-        Homey.alert((error && error.message) || String(error), 'error');
-    });
-}
-
-// Store the answer before creating anything. The choice is the user's regardless of whether
-// device creation then succeeds, and storing it first is also what lets the driver start tracking
-// in time to record this very pairing run.
-function applyConsent(done) {
-    var consent = document.getElementById('analytics-consent').checked;
-    Homey.emit('set_analytics_consent', consent, function () {
-        if (consent)
-            Homey.emit('track_ui', {view: 'pair_devices', button: 'add'}, function () {});
-        done();
-    });
-}
-
-document.getElementById('add').onclick = function (e) {
-    e.preventDefault();
+// Keep successful creations across a retry if one later device fails.
+var createdIds = new Set();
+async function commitDevices() {
     var chosen = [];
     document.querySelectorAll('input[data-index]').forEach(function (box) {
-        if (box.checked)
-            chosen.push(buildDevice(candidates[box.dataset.index], box.dataset.index));
+        if (box.checked) chosen.push(buildDevice(candidates[box.dataset.index], box.dataset.index));
     });
-    if (!chosen.length) {
-        Homey.alert(Homey.__('pair.devices.select_one'), 'error');
-        return;
-    }
+    if (!chosen.length) throw new Error(Homey.__('pair.devices.select_one'));
     Homey.showLoadingOverlay();
-    applyConsent(function () {
-        createSelected(chosen, 0, function () {
-            Homey.hideLoadingOverlay();
-            Homey.done();
+    try {
+        var consent = document.getElementById('analytics-consent').checked;
+        await new Promise(function (resolve, reject) {
+            Homey.emit('set_analytics_consent', consent, function (err) { if (err) reject(err); else resolve(); });
         });
+        if (consent) Homey.emit('track_ui', {view: 'pair_devices', button: 'add'}, function () {});
+        for (var device of chosen) {
+            if (createdIds.has(device.data.id)) continue;
+            await Homey.createDevice(device);
+            createdIds.add(device.data.id);
+        }
+        Homey.done();
+    } finally { Homey.hideLoadingOverlay(); }
+}
+
+setup = new NibeSetup({mode: 'pair', consent: document.getElementById('consent-row'),
+    summary: function () { return candidates.filter(function (c, i) {
+        return document.querySelector('input[data-index="' + i + '"]').checked;
+    }).map(function (c) { return c.name; }); }, commit: commitDevices});
+document.getElementById('add').onclick = function (e) {
+    e.preventDefault();
+    var entries = [];
+    var count = 0;
+    document.querySelectorAll('input[data-index]').forEach(function (box) {
+        if (!box.checked) return;
+        count++;
+        if (setupSections[box.dataset.index]) entries.push(setupSections[box.dataset.index]);
     });
+    if (!count) { Homey.alert(Homey.__('pair.devices.select_one'), 'error'); return; }
+    setup.start(entries);
 };
 
 // Pre-tick only if consent was already given on an earlier pairing — a second pump should not

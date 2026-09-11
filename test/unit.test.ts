@@ -294,13 +294,16 @@ test('every register is present in the compose capabilities superset', () => {
         assert.ok(caps.has(r.name), `missing from compose.capabilities: ${r.name}`);
 });
 
-test('internal registers are polled but never surface as capabilities', () => {
+test('internal readings are polled, sensor commands are not, and neither becomes a capability', () => {
     const internal = registers.filter((r) => r.internal);
     assert.ok(internal.length > 0, 'expected at least the energy-log power fallback');
     const caps = new Set(sProfile.compose.capabilities);
     for (const r of internal) {
         assert.ok(!caps.has(r.name), `${r.name} is internal and must not be a capability`);
-        assert.ok(isPollable(r), `${r.name} must still be polled — the allocator reads it`);
+        if ([5987, 5217].includes(r.address))
+            assert.ok(!isPollable(r), `${r.name} is a consumed sensor command, not a reading`);
+        else
+            assert.ok(isPollable(r), `${r.name} must still be polled — the allocator reads it`);
         assert.ok(!isSelectableRegister(r, sProfile.pickerPrimary),
             `${r.name} must not be offered in the features view`);
         // Not on any device, under any selection.

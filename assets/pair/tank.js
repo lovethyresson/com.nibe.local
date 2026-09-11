@@ -88,6 +88,8 @@ function tankBlock(config, current, idPrefix) {
     wrap.appendChild(hint);
 
     var sync = function () {
+        custom.required = select.value === 'custom';
+        custom.disabled = select.value !== 'custom';
         customRow.style.display = select.value === 'custom' ? 'flex' : 'none';
     };
     select.onchange = sync;

@@ -1,6 +1,6 @@
 {
   "id": "com.nibe.local",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
@@ -20,7 +20,9 @@
   "category": [
     "climate"
   ],
-  "permissions": [],
+  "permissions": [
+    "homey:manager:api"
+  ],
   "homepage": "https://github.com/lovethyresson/com.nibe.local",
   "source": "https://github.com/lovethyresson/com.nibe.local",
   "support": "https://community.homey.app/t/app-pro-nibe-live-local-nibe-control-split-into-the-devices-you-actually-automate/157330",

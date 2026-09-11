@@ -1,3 +1,4 @@
+import {averageSensors, cleanIndoorConfig, indoorInventory} from './indoor-sensors';
 import {Driver, FlowCard} from 'homey';
 import PairSession from "homey/lib/PairSession";
 import net from "net";
@@ -966,6 +967,19 @@ export abstract class NibePumpDriver extends Driver {
         };
     }
 
+    private registerIndoorHandlers(session: PairSession, device?: any) {
+        session.setHandler('get_indoor_sensors', async () => indoorInventory(this.homey));
+        session.setHandler('validate_indoor_sensors', async (raw: any) => {
+            const config = cleanIndoorConfig(raw);
+            return {config, value: averageSensors(config, await indoorInventory(this.homey))};
+        });
+        if (device && roleOf(device.getData()) === 'heating') {
+            session.setHandler('indoor_status', async () => device.indoorSetupStatus());
+            session.setHandler('activate_indoor', async (raw: any) => device.activateIndoor(raw));
+            session.setHandler('deactivate_indoor', async () => device.deactivateIndoor());
+        }
+    }
+
     async onPair(session: PairSession): Promise<void> {
         this.log('onPair: pairing session started');
         let ipAddress: string | null = null;
@@ -1018,6 +1032,7 @@ export abstract class NibePumpDriver extends Driver {
         });
 
         this.registerAnalyticsHandlers(session);
+        this.registerIndoorHandlers(session);
 
         session.setHandler('get_context', async () => ({
             mode: 'pair',
@@ -1088,10 +1103,13 @@ export abstract class NibePumpDriver extends Driver {
         });
 
         this.registerAnalyticsHandlers(session);
+        this.registerIndoorHandlers(session, device);
 
         session.setHandler('get_context', async () => ({
             mode: 'repair',
             role,
+            indoorSensors: device.getStoreValue('indoorSensors') ?? null,
+            indoorNativeAddress: device.getStoreValue('indoorNativeAddress') ?? 116,
             groups: this.groupInfo(role),
             selection: (device.getStoreValue('selection') ?? null) as Selection | null,
             // Only the hot water view uses this, but the role is right here and inferring it in
@@ -1152,7 +1170,14 @@ export abstract class NibePumpDriver extends Driver {
             const resolved = (detection as DetectionResult | null)?.addresses
                 ?? (device.getStoreValue('selection') as Selection | null)?.addresses;
             const selection = this.cleanSelection(raw, resolved);
+            const previousTank = (device.getStoreValue('selection') as Selection | null)?.hotwater;
+            if (selection.hotwater && previousTank?.inletC !== undefined && raw?.hotwater?.inletC === undefined)
+                selection.hotwater.inletC = previousTank.inletC;
             this.log('onRepair: selection:', JSON.stringify(selection));
+            if (role === 'heating' && device.getStoreValue('indoorSensors')?.state === 'active') {
+                selection.addresses = {...selection.addresses, measure_temperature: 26};
+                selection.overrides = {...selection.overrides, measure_temperature: true};
+            }
             await device.applySelection(selection);
             // After the device has the new selection, not before — the profile must describe what
             // the install now is, and applySelection() can throw.

@@ -233,3 +233,44 @@ before any runtime fallback could apply.
 From 1.2.1, detection through an existing connection uses the shared wire queue and returns the
 same sensor-choice detail as initial pairing. Leaving detection cancels its remaining reads;
 completed detection results remain available for the selection step.
+
+## Device Setup and Homey indoor sensors (development branch, September 2026)
+
+Device/features selection now opens a shared Device Setup overview. Heating Setup contains the
+NIBE source choices and Homey sensor selection; Hot Water Setup uses the existing tank catalogue,
+custom capacity and no-estimate option. Sections remain mounted in a hidden parking area while
+navigating, so Back preserves the actual field state. Final review is the creation/save boundary;
+analytics consent appears there once. Manual BT50 activation in Repair is a separate explicit
+commit because an established feed must outlive the wizard.
+
+Homey sensor selection is search-first, with Show all, room/type filters, selected chips and pages
+of eight. Room paths preserve Homey's hierarchy and sibling sortIndex. Device and capability IDs
+are stored; names are display-only. The standard Celsius temperature capability and its sub-
+capabilities are accepted; Nibe Live outputs and explicit non-Celsius units are excluded.
+
+Pairing stores `indoorSensors` with state `pending`; it never sends a temperature. The created
+Heating device shows a warning directing the user to Repair. Repair verifies input 5986 is enabled,
+validates every selected reading, persists an active owner before the first write, then writes
+holding 5987 and checks effective input 26. The UI separately requires confirmation of zone control.
+A successful effective read changes the displayed indoor source to input 26; zone average 116 is
+shown separately in Repair diagnostics. The thermostat setpoint is unchanged.
+
+One device owns the feed per pump address. Updates run on the shared Modbus queue at 30-second
+intervals after each completed cycle, independently of the wizard. The current implementation
+reads fresh Homey API snapshots instead of capability subscriptions: it trusts the provider's
+original capability timestamp, never the time a cached value was fetched. All selected sources
+must be available, finite, 5–40 °C and within the configured maximum age (default 120 minutes,
+allowed 5–1440). This conservative policy can pause an unchanged sensor whose app only updates
+timestamps on value changes; the picker explains the limit. No source is silently omitted.
+
+Failures pause delivery, retain the persisted configuration for retry, warn the device and notify
+once per outage. On app restart the persisted active configuration resumes. Failed replacements
+retain the previous active selection. Returning to NIBE requires the user to restore zone control
+and the app to read external BT50 disabled before stopping; the saved original measurement source
+is restored. Deleting the Heating device or losing Homey stops the feed and still requires manual
+pump recovery. There is no proven automatic fallback on this firmware.
+
+The broad `homey:manager:api` permission is necessary for the sensor browser. Store-policy acceptance
+and hardware outage/recovery testing remain release gates; publish-level manifest validation does
+not settle either. The code is a local test candidate, not evidence that the 30-second cadence,
+wireless sensor reporting policies, or unattended failure recovery have passed live acceptance.

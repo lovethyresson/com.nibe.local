@@ -8,6 +8,8 @@ Homey.setTitle(Homey.__('pair.features.title'));
 
 var context = null;
 var detection = null;
+var setup;
+var setupSections = [];
 
 function groupChecked(group) {
     // Repair: start from the current selection. Pair with detection: start
@@ -76,9 +78,9 @@ function renderSources(register, parent) {
     if (sources.length === 1) {
         var only = document.createElement('div');
         only.className = 'register-desc';
-        only.textContent = Homey.__('pair.sources.using') + ' ' + sources[0].label
+        only.textContent = Homey.__('pair.sources.using') + ' ' + (sources[0].address === 116 ? Homey.__('pair.setup.source_cs1') : sources[0].label)
             + (sources[0].value === undefined || sources[0].value === null
-                ? '' : ' — ' + sources[0].value);
+                ? '' : ' · ' + sources[0].value + ' °C');
         box.appendChild(only);
         parent.appendChild(box);
         return;
@@ -189,7 +191,7 @@ function render() {
             details.appendChild(regLabel);
             // Outside the <label>: a click anywhere in a label toggles its checkbox, so nesting
             // the radios there would untick the capability every time you pick a source.
-            renderSources(register, details);
+            // Source choices are shown in the separate Heating Setup section.
         });
         item.appendChild(details);
 
@@ -206,28 +208,32 @@ function render() {
 
         // Toggling a group resets its per-capability overrides
         toggle.onchange = function () {
-            details.querySelectorAll('input').forEach(function (box) {
+            details.querySelectorAll('input[type=checkbox]').forEach(function (box) {
                 box.checked = toggle.checked;
             });
         };
 
         list.appendChild(item);
     });
-    /* The tank picker, on the hot water device only. Appended after the groups rather than
-       inside one: it is not a capability you switch on, it is a fact about your installation
-       that makes the litres estimate converge sooner. */
-    if (context.tanks) {
-        var tankCard = document.createElement('div');
-        tankCard.className = 'feature-group';
-        tankCard.appendChild(tankBlock(
-            context.tanks, context.selection && context.selection.hotwater, 'repair'));
-        list.appendChild(tankCard);
+    if (context.tanks) setupSections.push({id: 'hotwater', role: 'hotwater',
+        title: Homey.__('pair.setup.hotwater'), description: Homey.__('pair.tank.hint'),
+        content: tankBlock(context.tanks, context.selection && context.selection.hotwater, 'repair')});
+    if (context.role === 'heating') {
+        var sources = document.createElement('div');
+        context.groups.forEach(function (g) { g.registers.forEach(function (r) {
+            if (r.name === 'measure_temperature') renderSources(r, sources);
+        }); });
+        if (!sources.childNodes.length) sources.textContent = Homey.__('pair.setup.no_nibe_sources');
+        setupSections.push({id: 'heating', role: 'heating', title: Homey.__('pair.setup.heating'),
+            description: Homey.__('pair.setup.heating_intro'), sources: sources});
     }
+    setup = new NibeSetup({mode: 'repair', indoorSensors: context.indoorSensors, indoorNativeAddress: context.indoorNativeAddress,
+        summary: function () { return setupSections.map(function (s) { return s.title; }); }, commit: commitFeatures});
+    document.getElementById('save').textContent = Homey.__('pair.setup.next');
     document.getElementById('save').style.display = 'block';
 }
 
-document.getElementById('save').onclick = function (e) {
-    e.preventDefault();
+function commitFeatures() {
     var selection = {groups: {}, overrides: {}};
     document.querySelectorAll('input[data-group]').forEach(function (toggle) {
         selection.groups[toggle.dataset.group] = toggle.checked;
@@ -246,13 +252,17 @@ document.getElementById('save').onclick = function (e) {
     Homey.emit('track_ui', {view: 'repair_features', button: 'save'}, function () {});
     // This view is used by the repair flow only (pairing uses the device picker);
     // applying the selection to the device is all that's left.
-    Homey.emit('selection_done', selection, function (err) {
-        Homey.hideLoadingOverlay();
-        if (err)
-            Homey.alert(err.message || String(err), 'error');
-        else
-            Homey.done();
+    return new Promise(function (resolve, reject) {
+        Homey.emit('selection_done', selection, function (err) {
+            Homey.hideLoadingOverlay();
+            if (err) reject(err);
+            else { Homey.done(); resolve(); }
+        });
     });
+};
+
+document.getElementById('save').onclick = function (e) {
+    e.preventDefault(); setup.start(setupSections);
 };
 
 // render() only runs after get_context and get_detection have both answered, so

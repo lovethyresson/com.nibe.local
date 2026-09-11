@@ -48,6 +48,16 @@ export const spaInfluenceMap = numeralMap(0, 10);
 export const spaHotwaterInfluenceMap = numeralMap(1, 4);
 
 export const registers: Register[] = [
+    // External sensor mailboxes, not persistent settings or displayed measurements.
+    // Live S1155 test: FC6 writes are accepted, then the pump clears the mailbox to
+    // 0x8000 within ~1 second. BT1 input 1 and BT50 input 26 follow raw / 10,
+    // but use by the heating zone depends on pump configuration; see docs/external-sensors.md.
+    {address: 5987, name: "external_temperature.h5987_bt50", direction: Dir.Out,
+     group: "heating", role: "heating", internal: true, noAction: true, writeOnly: true, scale: 10, min: 5, max: 40,
+     info: {en: "External indoor temperature (BT50)", sv: "Extern inomhustemperatur (BT50)"}},
+    {address: 5217, name: "external_temperature.h5217_bt1", direction: Dir.Out,
+     group: "heating", role: "heating", internal: true, writeOnly: true, scale: 10, min: -50, max: 60,
+     info: {en: "External outdoor temperature (BT1)", sv: "Extern utomhustemperatur (BT1)"}},
     // Rad 1 Temp
     // Outdoor temperature lives with heating rather than on Main. It is only ever interesting
     // against something heating owns — the heat curve it drives, and the outdoor average the
@@ -88,7 +98,7 @@ export const registers: Register[] = [
      sources: [
          {address: 116, label: {en: "Climate system 1 average — wired or wireless room sensors", sv: "Medelvärde klimatsystem 1 — trådade eller trådlösa rumsgivare"}},
          {address: 111, label: {en: "Climate system 6 average", sv: "Medelvärde klimatsystem 6"}},
-         {address:  26, label: {en: "Room sensor 1-1 — one wired sensor only", sv: "Rumsgivare 1-1 — endast en trådad givare"}}
+         {address:  26, label: {en: "Room sensor BT50 — wired or external input", sv: "Rumsgivare BT50 — trådad eller extern ingång"}}
      ],
      info: {en: "Indoor temperature used to regulate climate system 1", sv: "Inomhustemperatur som reglerar klimatsystem 1"}},
     // Rad 2 Framledning
@@ -695,4 +705,3 @@ export const registers: Register[] = [
     {address:  183, name: "target_temperature.h183_auto_start_cooling",       direction: Dir.Out, group: "cooling",     scale: 10, min: -20, max: 40, // Auto mode, start temp cooling
      info: {en: "Outdoor temperature where automatic mode starts cooling", sv: "Utetemperatur där autoläget startar kylan"}}
 ];
-

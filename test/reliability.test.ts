@@ -86,6 +86,10 @@ test('operating-mode Flows use raw ids and accept saved legacy labels', async ()
     }
     assert.deepEqual(writes, [1, 1]);
     assert.equal(await condition.run({device: target, mode: choices[0]}), false);
+    // BT50 has no standalone Flow: the automatic feed owns that input.
+    assert.equal(cards.has('action:external_temperature.h5987_bt50.set'), false);
+    await get('action:external_temperature.h5217_bt1.set').run({device: target, value: -12.3});
+    assert.equal(writes[writes.length - 1], 65413);
 });
 
 test('invalid values never reach the device write transport; confirmations use canonical values', async () => {
@@ -107,6 +111,32 @@ test('invalid values never reach the device write transport; confirmations use c
     assert.equal(encodeRegisterValue(register('signed', {scale: 10, size: 32}), -35), 4294966946);
     d.connection.readRegisterRaw = async () => 0;
     await assert.rejects(d.writeRegister(mode, 'Manual'), /did not confirm/);
+});
+
+test('external temperature commands validate, use heating only, and do not read a cleared mailbox', async () => {
+    const {d} = device();
+    d.role = 'heating';
+    const writes: {address: number; raw: number}[] = [];
+    d.connection = {
+        writeRegisterValue: async (r: Register, raw: number) => { writes.push({address: r.address, raw}); },
+        readRegisterRaw: async () => { throw new Error('Mailbox clears after consumption'); }
+    };
+    d.setValue = async () => { throw new Error('A sent reading is not a measured capability'); };
+    const indoor = sProfile.registerByName['external_temperature.h5987_bt50'];
+    const outdoor = sProfile.registerByName['external_temperature.h5217_bt1'];
+    await d.writeRegister(indoor, 21.7);
+    await d.writeRegister(outdoor, -12.3);
+    assert.deepEqual(writes, [{address: 5987, raw: 217}, {address: 5217, raw: 65413}]);
+    for (const value of [NaN, Infinity, null, '21.7', 4.9, 40.1])
+        await assert.rejects(d.writeRegister(indoor, value));
+    for (const value of [-50.1, 60.1])
+        await assert.rejects(d.writeRegister(outdoor, value));
+    d.role = 'hotwater';
+    await assert.rejects(d.writeRegister(outdoor, 10), /not available/);
+    assert.equal(writes.length, 2);
+    d.role = 'heating';
+    d.connection.writeRegisterValue = async () => { throw new Error('Modbus rejected'); };
+    await assert.rejects(d.writeRegister(outdoor, 10), /Modbus rejected/);
 });
 
 test('disconnect excludes offline produced energy from function COP', () => {
@@ -192,7 +222,7 @@ test('shutdown awaits the last durable energy write', async () => {
     d.setSettings = () => new Promise<void>((resolve) => { finish = resolve; });
     let done = false;
     const closing = d.onUninit().then(() => { done = true; });
-    await Promise.resolve();
+    await new Promise(resolve => setImmediate(resolve));
     assert.equal(done, false);
     finish();
     await closing;
@@ -227,4 +257,77 @@ test('only explicit unsupported-register errors put background reads on cooldown
     connection.withWireAccess = async () => { throw {body: {code: 2}}; };
     await connection.readRegisterRaw(register('probe'), false);
     assert.equal(connection.unsupportedUntil.has('probe'), false);
+});
+
+function indoorDevice() {
+    const {d, store} = device();
+    d.role = 'heating';
+    d.getSettings = () => ({address: 'test-indoor-pump'});
+    d.driver = {getDevices: () => [d]};
+    d.unsetWarning = async () => {};
+    d.unsetStoreValue = async (key: string) => { store.delete(key); };
+    d.applySelection = async (s: any) => { store.set('selection', s); };
+    store.set('selection', {groups: {heating: true}, overrides: {}, addresses: {measure_temperature: 111}});
+    d.indoorRaw = async (address: number) => address === 5986 ? 1 : 220;
+    d.readIndoorSensors = async () => [{deviceId: 'room', capabilityId: 'measure_temperature',
+        value: 22, available: true, updatedAt: Date.now()}];
+    const config = {sensors: [{deviceId: 'room', capabilityId: 'measure_temperature'}], maxAgeMinutes: 120};
+    return {d, store, config};
+}
+test('initial BT50 verification failure leaves a durable retry owner, without claiming confirmed delivery', async (t) => {
+    const {d, store, config} = indoorDevice();
+    t.after(() => d.stopIndoor());
+    d.sendIndoor = async () => {
+        assert.equal(store.get('indoorSensors').state, 'active');
+        throw new Error('BT50 has not confirmed');
+    };
+    await assert.rejects(d.activateIndoor(config), /not confirmed/);
+    assert.equal(store.get('indoorSensors').state, 'active');
+    assert.ok(d.indoorTimer);
+    assert.notEqual(d.indoorStatus.state, 'active');
+    assert.equal(store.get('selection').addresses.measure_temperature, 111);
+});
+test('replacement validation failure keeps the previous sensor selection and excludes competing writers', async (t) => {
+    const {d, store, config} = indoorDevice(); t.after(() => d.stopIndoor());
+    const previous = {...config, state: 'active', sensors: [{deviceId: 'previous', capabilityId: 'measure_temperature'}]};
+    store.set('indoorSensors', previous);
+    d.sendIndoor = async () => { throw new Error('No readback'); };
+    await assert.rejects(d.activateIndoor(config), /No readback/);
+    assert.deepEqual(store.get('indoorSensors'), previous);
+    await assert.rejects(d.writeRegister(sProfile.registerByName['external_temperature.h5987_bt50'], 22), /automatic/);
+});
+test('BT50 activation uses effective input readback and preserves the native source for manual handover', async (t) => {
+    const {d, store, config} = indoorDevice(); t.after(() => d.stopIndoor());
+    const writes: any[] = [];
+    d.connection = {writeRegisterValue: async (r: Register, value: number) => { writes.push([r.address, value]); }};
+    const status = await d.activateIndoor(config);
+    assert.deepEqual(writes, [[5987, 220]]);
+    assert.equal(status.measured, 22);
+    assert.equal(store.get('selection').addresses.measure_temperature, 26);
+    assert.equal(store.get('indoorNativeAddress'), 111);
+    await assert.rejects(d.deactivateIndoor(), /disable external/);
+    assert.equal(store.get('indoorSensors').state, 'active');
+    d.indoorRaw = async () => 0;
+    await d.deactivateIndoor();
+    assert.equal(store.get('indoorSensors'), undefined);
+    assert.equal(store.get('selection').addresses.measure_temperature, 111);
+    assert.equal(d.indoorTimer, null);
+});
+test('simultaneous Heating devices cannot both activate the same pump', async (t) => {
+    const first = indoorDevice(); const second = indoorDevice();
+    t.after(async () => { await first.d.stopIndoor(); await second.d.stopIndoor(); });
+    first.d.sendIndoor = async () => ({measured: 22});
+    const starting = first.d.activateIndoor(first.config);
+    await assert.rejects(second.d.activateIndoor(second.config), /already supplies/);
+    await starting;
+});
+
+test('BT50 verification allows delayed effective readback beyond the original three-second window', async (t) => {
+    const {d, config} = indoorDevice(); t.after(() => d.stopIndoor());
+    let reads = 0;
+    d.connection = {writeRegisterValue: async () => {}};
+    d.indoorRaw = async (address: number) => address === 5986 ? 1 : (++reads < 5 ? 234 : 220);
+    const result = await d.activateIndoor(config);
+    assert.equal(reads, 5);
+    assert.equal(result.measured, 22);
 });

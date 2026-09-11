@@ -1,3 +1,4 @@
+import {IndoorConfig, averageSensors, cleanIndoorConfig, indoorInventory} from './indoor-sensors';
 import {Device} from 'homey';
 import {analyticsConsent, setAnalyticsConsent, track} from './analytics';
 import {
@@ -30,6 +31,138 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     role: Role = 'main';
     private connection: PumpConnection | null = null;
+
+    private static indoorOwners = new Map<string, NibePumpDevice>();
+    private indoorTimer: ReturnType<typeof setTimeout> | null = null;
+    private indoorWork: Promise<any> | null = null;
+    private indoorStopped = false;
+    private indoorStatus: any = {state: 'idle'};
+
+    async indoorSetupStatus() {
+        const config = this.getStoreValue('indoorSensors') as IndoorConfig | undefined;
+        return {...this.indoorStatus, config, enabled: await this.indoorRaw(5986),
+            measured: await this.indoorCelsius(26), zone: await this.indoorCelsius(116)};
+    }
+
+    private async indoorRaw(address: number) {
+        const raw = await this.connection?.readRegisterRaw({address, direction: Dir.In} as Register, false, 'write');
+        return raw === undefined || isUnavailableRaw(raw) ? null : signedValue(raw);
+    }
+
+    private async indoorCelsius(address: number) {
+        const raw = await this.indoorRaw(address);
+        return raw === null ? null : raw / 10;
+    }
+
+    protected readIndoorSensors() { return indoorInventory(this.homey); }
+
+    private async sendIndoor(config: IndoorConfig) {
+        config = cleanIndoorConfig(config);
+        const value = averageSensors(config, await this.readIndoorSensors());
+        const register = this.profile.registerByName['external_temperature.h5987_bt50'];
+        if (!register || !this.connection || this.indoorStopped) throw new Error('Heating feed is unavailable.');
+        await this.connection.writeRegisterValue(register, encodeRegisterValue(register, value));
+        let measured: number | null = null;
+        for (let attempt = 0; attempt < 16; attempt++) {
+            await new Promise(resolve => setTimeout(resolve, 750));
+            measured = await this.indoorRaw(26);
+            if (measured === Math.round(value * 10)) break;
+        }
+        if (measured !== Math.round(value * 10))
+            throw new Error(`BT50 confirmation is still pending. Sent ${value.toFixed(1)} °C; `
+                + (measured === null ? 'no BT50 reading was returned.' : `the pump reports ${(measured / 10).toFixed(1)} °C.`)
+                + ' The saved feed will retry in the background.');
+        const selection = this.getSelection() ?? {groups: {}, overrides: {}};
+        if (selection.addresses?.measure_temperature !== 26 || selection.overrides.measure_temperature !== true)
+            await this.applySelection({...selection, addresses: {...selection.addresses, measure_temperature: 26},
+                overrides: {...selection.overrides, measure_temperature: true}});
+        this.indoorStatus = {state: 'active', sent: value, measured: measured / 10, deliveredAt: Date.now()};
+        await this.unsetWarning();
+        return this.indoorStatus;
+    }
+
+    // Persist before the first write. Closing Repair cannot cancel an established feed.
+    // Replacements are validated while the previous configuration remains the durable fallback.
+    async activateIndoor(raw: any) {
+        if (this.role !== 'heating') throw new Error('Only Heating can supply BT50.');
+        if (this.indoorWork) throw new Error('A temperature update is in progress. Please try again.');
+        const owner = NibePumpDevice.indoorOwners.get(this.host());
+        if (owner && owner !== this) throw new Error('Another Heating device already supplies this pump.');
+        NibePumpDevice.indoorOwners.set(this.host(), this);
+        const job = (async () => {
+            const duplicate = (this.driver.getDevices() as any[]).some(d => d !== this
+                && d.getSettings().address === this.host()
+                && d.getStoreValue('indoorSensors')?.state === 'active');
+            if (duplicate) throw new Error('Another Heating device already supplies this pump.');
+            const config = cleanIndoorConfig(raw);
+            averageSensors(config, await this.readIndoorSensors());
+            if (await this.indoorRaw(5986) !== 1)
+                throw new Error('Enable external BT50 on the heat pump before verifying.');
+            const previous = this.getStoreValue('indoorSensors') as IndoorConfig | undefined;
+            config.state = 'active';
+            if (previous?.state !== 'active') {
+                await this.setStoreValue('indoorNativeAddress', this.getSelection()?.addresses?.measure_temperature ?? 116);
+                await this.setStoreValue('indoorSensors', config);
+            }
+            try {
+                const status = await this.sendIndoor(config);
+                await this.setStoreValue('indoorSensors', config);
+                return status;
+            } finally {
+                this.scheduleIndoor();
+            }
+        })();
+        this.indoorWork = job;
+        try { return await job; } finally {
+            this.indoorWork = null;
+            if (this.getStoreValue('indoorSensors')?.state !== 'active') NibePumpDevice.indoorOwners.delete(this.host());
+        }
+    }
+
+    async deactivateIndoor() {
+        if (this.indoorWork) throw new Error('A temperature update is in progress. Please try again.');
+        const job = (async () => {
+            if (await this.indoorRaw(5986) !== 0)
+                throw new Error('First select your NIBE sensor for the zone and disable external BT50 on the heat pump.');
+            const selection = this.getSelection();
+            if (selection) await this.applySelection({...selection, addresses: {...selection.addresses,
+                measure_temperature: this.getStoreValue('indoorNativeAddress') ?? 116}});
+            await this.unsetStoreValue('indoorSensors');
+            if (this.indoorTimer) clearTimeout(this.indoorTimer);
+            this.indoorTimer = null;
+            NibePumpDevice.indoorOwners.delete(this.host());
+            this.indoorStatus = {state: 'idle'};
+            await this.unsetWarning();
+        })();
+        this.indoorWork = job;
+        try { return await job; } finally { this.indoorWork = null; }
+    }
+
+    private scheduleIndoor() {
+        if (this.indoorTimer) clearTimeout(this.indoorTimer);
+        if (this.indoorStopped || this.getStoreValue('indoorSensors')?.state !== 'active') return;
+        this.indoorTimer = setTimeout(() => {
+            this.indoorTimer = null;
+            if (this.indoorWork) { this.scheduleIndoor(); return; }
+            this.indoorWork = this.sendIndoor(this.getStoreValue('indoorSensors'))
+                .catch(async (error) => {
+                    const notify = this.indoorStatus.state !== 'error';
+                    this.indoorStatus = {state: 'error', message: error.message};
+                    await this.setWarning(error.message).catch(this.error);
+                    if (notify) await this.homey.notifications.createNotification({
+                        excerpt: 'Nibe Live: indoor temperature feed needs attention. Open Heating → Repair. ' + error.message
+                    }).catch(this.error);
+                }).finally(() => { this.indoorWork = null; this.scheduleIndoor(); });
+        }, 30000);
+    }
+
+    private async stopIndoor() {
+        this.indoorStopped = true;
+        if (this.indoorTimer) clearTimeout(this.indoorTimer);
+        this.indoorTimer = null;
+        await this.indoorWork?.catch(() => {});
+        if (this.role === 'heating' && NibePumpDevice.indoorOwners.get(this.host()) === this) NibePumpDevice.indoorOwners.delete(this.host());
+    }
 
     // Energy bucket (function roles only). Charged by the connection's allocator.
     private cumulativeEnergy = 0;
@@ -144,6 +277,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     // detection and move a relocated register, and reading the selection at write time picks
     // that up without a restart.
     async writeRegister(register: Register, value: any): Promise<void> {
+        if (register.name === 'external_temperature.h5987_bt50' && this.getStoreValue('indoorSensors')?.state === 'active')
+            throw new Error('BT50 is managed by the automatic indoor sensor feed.');
+        if (register.role && register.role !== this.role)
+            throw new Error('This action is not available for this device');
         if (!this.connection)
             throw new Error('Not connected to the heat pump');
         try {
@@ -768,6 +905,19 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
         this.connection = PumpConnection.get(this.host(), this.profile, this.transport());
         this.connection.attach(this);
+        if (this.role === 'heating') {
+            this.indoorStopped = false;
+            if (this.getStoreValue('indoorSensors')?.state === 'active') {
+                const owner = NibePumpDevice.indoorOwners.get(this.host());
+                if (owner && owner !== this) {
+                    this.indoorStopped = true;
+                    await this.setWarning('Another Heating device already supplies this pump.');
+                } else NibePumpDevice.indoorOwners.set(this.host(), this);
+            }
+            this.scheduleIndoor();
+            if (this.getStoreValue('indoorSensors')?.state === 'pending')
+                await this.setWarning('Finish your Homey sensor setup in Heating → Repair.');
+        }
     }
 
     // ---- PumpSubscriber ----
@@ -1288,6 +1438,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 this.dumpRegisters('debug logging enabled').catch(this.error);
         }
         if (changedKeys.includes('address')) {
+            if (this.getStoreValue('indoorSensors')?.state === 'active')
+                throw new Error('Return to your NIBE sensor in Repair before changing the pump address.');
             this.log(`Address changed to ${newSettings.address}, reconnecting`);
             this.connection?.detach(this);
             this.connection = PumpConnection.get(newSettings.address, this.profile, this.transport());
@@ -1323,6 +1475,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     async onUninit() {
+        await this.stopIndoor();
         // Flush the debounced meter before going away, so an orderly restart or a repair keeps
         // the fraction of a kWh the 0.01 step was still holding.
         this.connection?.detach(this);
@@ -1337,6 +1490,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     async onDeleted() {
+        await this.stopIndoor();
         this.log('Nibe device has been deleted');
         track('Changed Device Set', {action: 'removed', role: roleOf(this.getData())});
         this.connection?.detach(this);

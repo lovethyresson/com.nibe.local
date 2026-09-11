@@ -465,3 +465,127 @@ body {
     font-size: 0.85em;
     opacity: 0.6;
 }
+
+/* Shared two-stage setup. Status labels share one column on every device card. */
+[hidden] { display: none !important; }
+.feature-row { display: grid; grid-template-columns: minmax(0, 1fr) 8em 1.5em; }
+.feature-row > .badge, .feature-row > .evidence { justify-self: start; }
+.feature-label { min-width: 0; }
+.setup-shell button { margin-top: 0.75em; }
+.setup-menu { display: flex; align-items: center; justify-content: space-between; gap: 1em;
+    width: 100%; padding: 1em; text-align: left; color: inherit; background: transparent;
+    border: 1px solid rgba(127,127,127,.25); border-radius: 12px; }
+.setup-menu small, .setup-sensor small { display: block; opacity: .7; margin-top: .35em; }
+.setup-menu > span:last-child { flex-shrink: 0; }
+.setup-option { display: block; padding: 1em 0; }
+.setup-benefit { border-top: 1px solid rgba(127,127,127,.25); margin-top: 1em; }
+.setup-search { box-sizing: border-box; width: 100%; padding: .8em; font: inherit; }
+.setup-filters { display: flex; gap: .5em; margin: 1em 0; }
+.setup-filters select { min-width: 0; width: 50%; font: inherit; padding: .5em; }
+.setup-picked { display: flex; flex-wrap: wrap; gap: .5em; margin-bottom: 1em; }
+.setup-picked button { white-space: normal; text-align: left; }
+.setup-sensor { display: flex; align-items: start; gap: .6em; padding: 1em 0; border-bottom: 1px solid rgba(127,127,127,.25); }
+.setup-sensor > span:first-of-type { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.setup-sensor > span:last-child { white-space: nowrap; }
+.setup-error { color: #D81E28; }
+.setup-error:empty { display: none; }
+.setup-actions { display: flex; align-items: center; justify-content: space-between; }
+@media (max-width: 360px) { .setup-menu { flex-wrap: wrap; } .setup-sensor { flex-wrap: wrap; } }
+
+/* Keep the native Homey title; the old feature-selection hero is not another setup heading. */
+.pair-hero.setup-hero .pair-hero-icon,
+.pair-hero.setup-hero .pair-hero-title { display: none; }
+.pair-hero.setup-hero { padding: 0 0 1em; }
+.setup-source-card { border: 1px solid var(--surface-border); border-radius: 12px;
+    margin: 0 0 1em; background: var(--surface); overflow: hidden; }
+.setup-source-card.is-selected { border-color: var(--accent); background: rgba(216,30,40,.05); }
+.setup-shell .setup-source-label { display: flex; align-items: flex-start; gap: .75em;
+    padding: 1em; margin: 0; color: inherit; text-transform: none; font-size: 1em;
+    line-height: 1.45; font-weight: normal; cursor: pointer; }
+.setup-source-label > input { flex: 0 0 auto; margin: .2em 0 0; accent-color: var(--accent); }
+.setup-source-copy { min-width: 0; }
+.setup-source-title { display: block; font-weight: 600; }
+.setup-source-benefit { display: block; margin-top: .55em; font-weight: 500; }
+.setup-source-description { display: block; margin-top: .35em; font-size: .9em; opacity: .8; }
+.setup-native-detail { padding: 0 1em 1em 2.75em; }
+.setup-native-detail .register-sources { margin: 0; padding: 0; border: 0; }
+.setup-native-detail .register-desc { margin: 0; }
+
+.setup-navigation { display: flex; justify-content: flex-start; margin: 0 0 .5em; }
+.setup-navigation button.setup-back { padding: .4em 0; margin: 0; min-height: 44px; font-size: 1em;
+    font-weight: 500; background: none; border: 0; text-align: left; width: auto; }
+.setup-back::before { content: '‹'; margin-right: .35em; }
+.setup-shell button.setup-chip { display: inline-flex; width: auto; min-height: 36px; padding: .4em .65em;
+    margin: 0; border: 1px solid var(--surface-border); border-radius: 18px; background: var(--surface);
+    color: inherit; font-size: .8em; font-weight: 400; line-height: 1.3; text-align: left; }
+.setup-shell button.setup-small-action { width: auto; min-height: 36px; padding: .35em .2em; margin: 0;
+    font-size: .85em; font-weight: 500; background: none; border: 0; }
+.setup-shell .setup-picked { gap: .4em; margin: .6em 0; }
+.setup-shell .setup-sensor { text-transform: none; font-size: 1em; line-height: 1.35; padding: .65em 0; margin: 0; }
+.setup-shell .setup-sensor small { font-size: .8em; margin-top: .15em; }
+.setup-advanced { margin-top: 1em; padding-top: .75em; border-top: 1px solid var(--surface-border); }
+.setup-advanced summary { cursor: pointer; margin-bottom: .6em; }
+.setup-shell .setup-error { padding: .6em 0; margin: .4em 0; font-size: .9em; }
+
+.pair-hero.setup-source-hero .pair-hero-title { display: block; margin: 0 0 .4em; font-size: 1.2em; }
+.pair-hero.setup-source-hero { text-align: left; padding: .25em 0 1em; }
+.pair-hero.setup-source-hero .pair-hero-sub { margin: 0; font-size: .9em; line-height: 1.45; }
+.setup-shell .setup-source-label { padding: .85em; gap: .65em; font-size: .95em; }
+.setup-source-title { font-weight: 500; }
+.setup-source-description { margin-top: .4em; }
+.setup-source-card { border-radius: 10px; margin-bottom: .7em; }
+.setup-native-detail { padding: 0 .85em .85em 2.55em; font-size: .9em; }
+
+.setup-pump-steps { padding-left: 1.6em; margin: .2em 0 1em; }
+.setup-pump-steps li { padding: .5em 0 .5em .3em; line-height: 1.4; }
+.setup-shell .setup-option { text-transform: none; font-size: .95em; font-weight: 400; line-height: 1.4; margin: 0; }
+.setup-feed-notice { background: var(--surface); border-radius: 10px; padding: .8em 1em; margin: .5em 0; font-size: .85em; line-height: 1.4; }
+.setup-feed-notice p { margin: 0; }
+.setup-feed-notice p + p { margin-top: .6em; opacity: .8; }
+.setup-feed-status:empty { display: none; }
+.setup-feed-status { font-size: .85em; margin: .6em 0; }
+
+/* Pump settings and Homey confirmation are separate tasks, with one hierarchy in each. */
+.setup-task-group { border: 1px solid var(--surface-border); border-radius: 12px; padding: 1.1em; margin: .5em 0 1.25em; }
+.setup-task-group > h3 { margin: 0 0 1.1em; font-size: .85em; font-weight: 600; opacity: .65; }
+.setup-task-group .setup-pump-steps { list-style: none; counter-reset: pump-step; padding: 0; margin: 0; }
+.setup-task-group .setup-pump-steps li { counter-increment: pump-step; display: flex; gap: .85em; padding: 0; }
+.setup-task-group .setup-pump-steps li + li { margin-top: 1.4em; }
+.setup-task-group .setup-pump-steps li::before { content: counter(pump-step); display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; background: var(--surface); border: 1px solid var(--surface-border); width: 1.8em; height: 1.8em; flex: 0 0 1.8em; font-size: .85em; }
+.setup-pump-steps strong { display: block; font-weight: 500; }
+.setup-task-group .setup-pump-steps p { margin: .3em 0 0; font-size: .85em; line-height: 1.45; opacity: .75; }
+.setup-confirm-group .setup-option { display: flex; align-items: flex-start; gap: .65em; padding: 0; }
+.setup-confirm-group .setup-option input { flex: 0 0 auto; margin-top: .2em; }
+.setup-feed-summary { margin: 1.1em 0 .7em; font-size: .85em; line-height: 1.5; opacity: .75; }
+.setup-recovery { font-size: .85em; line-height: 1.5; }
+.setup-recovery summary { cursor: pointer; }
+.setup-recovery p { margin: .6em 0 0; opacity: .8; }
+
+.setup-success { text-align: center; padding: 1.5em .5em 1em; }
+.setup-success-check { display: flex; align-items: center; justify-content: center; width: 2.4em; height: 2.4em;
+    margin: 0 auto .85em; font-size: 1.9em; color: #168447; background: rgba(35,166,91,.12); border-radius: 50%; }
+.setup-success h2 { font-size: 1.5em; margin: 0 0 .65em; }
+.setup-success > p { margin: 0 auto; max-width: 26em; line-height: 1.5; opacity: .8; }
+.setup-success-reading { margin: 1.5em 0 .75em; }
+.setup-success-reading strong { display: block; font-size: 2em; font-weight: 500; }
+.setup-success-reading span { display: block; margin-top: .3em; font-size: .85em; opacity: .65; }
+.setup-success-sensors { font-size: .85em; }
+@media (prefers-reduced-motion: no-preference) {
+    .setup-success-check { animation: setup-success-pop .4s ease-out; }
+    @keyframes setup-success-pop { from { transform: scale(.65); opacity: .3; } to { transform: scale(1); opacity: 1; } }
+}
+
+.setup-review-list { list-style: none; margin: 0; padding: 0; }
+.setup-review-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 1em; padding: .9em 0; }
+.setup-review-row + .setup-review-row { border-top: 1px solid var(--surface-border); }
+.setup-review-row:first-child { padding-top: 0; }
+.setup-review-row:last-child { padding-bottom: 0; }
+.setup-review-copy { min-width: 0; }
+.setup-review-copy strong { display: block; font-size: .95em; font-weight: 600; }
+.setup-review-copy span { display: block; margin-top: .35em; font-size: .8em; line-height: 1.45; opacity: .65; overflow-wrap: anywhere; }
+.setup-review-value { flex-shrink: 0; font-size: .95em; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.setup-temperature-summary { padding: 1.1em; margin-bottom: 1.25em; border-radius: 12px; background: var(--surface-bg, #f5f5f7); }
+.setup-temperature-summary h3 { font-size: .85em; font-weight: 500; margin: 0 0 .5em; }
+.setup-temperature-summary > strong { display: block; font-size: 1.8em; line-height: 1.2; font-weight: 600; }
+.setup-temperature-summary p { margin: .6em 0 0; font-size: .8em; line-height: 1.45; opacity: .65; }
