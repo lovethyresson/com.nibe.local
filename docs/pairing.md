@@ -228,3 +228,8 @@ The fallback mechanism, and the S735 evidence behind the room-temperature case, 
 [halderex](https://github.com/lovethyresson/com.nibe.local/pull/3). This implementation resolves at detection
 rather than per-read, which also closes the gap where a *fresh* pair on an S735 would drop the capability
 before any runtime fallback could apply.
+
+
+From 1.2.2, detection through an existing connection uses the shared wire queue and returns the
+same sensor-choice detail as initial pairing. Leaving detection cancels its remaining reads;
+completed detection results remain available for the selection step.

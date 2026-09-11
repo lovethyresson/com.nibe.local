@@ -1,6 +1,6 @@
 {
   "name": "com.nibe.local",
-  "version": "1.2.0",
+  "version": "1.2.2",
   "main": "app.ts",
   "scripts": {
     "build": "tsc",

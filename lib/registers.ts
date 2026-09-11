@@ -192,6 +192,44 @@ export function isAdjustable(register: Register): boolean {
     return register.direction === Dir.Out && !register.noAction;
 }
 
+// Stable raw enum ids are used by new Flows; accept the labels stored by older Flows too.
+export function enumRawValue(register: Register, value: unknown): number {
+    const entries = Object.entries(register.enum ?? {});
+    const match = entries.find(([raw, label]) => String(value) === raw || value === label);
+    if (!match)
+        throw new Error(`Invalid option "${value}" for ${register.name}. Re-pick the Flow option.`);
+    return Number(match[0]);
+}
+
+// Shared by every write path, before anything reaches the wire.
+export function encodeRegisterValue(register: Register, value: unknown): number {
+    let numeric: number;
+    if (register.enum)
+        numeric = enumRawValue(register, value);
+    else if (register.picker) {
+        if (typeof value !== 'string' && typeof value !== 'number')
+            throw new Error('Expected a picker value');
+        numeric = Number(value);
+        if (!register.pickerValues?.includes(numeric))
+            throw new Error(`Invalid option "${value}" for ${register.name}`);
+    } else if (register.bool) {
+        if (typeof value !== 'boolean')
+            throw new Error('Expected an on/off value');
+        numeric = value ? (register.onValue ?? 1) : (register.offValue ?? 0);
+    } else {
+        if (typeof value !== 'number' || !Number.isFinite(value))
+            throw new Error('Expected a finite number');
+        if ((register.min !== undefined && value < register.min)
+            || (register.max !== undefined && value > register.max))
+            throw new Error(`Value must be between ${register.min ?? '−∞'} and ${register.max ?? '∞'}`);
+        numeric = Math.round(value * (register.scale || 1));
+    }
+    const width = register.size === 32 ? 32 : 16;
+    if (!Number.isSafeInteger(numeric) || numeric < -(2 ** (width - 1)) || numeric >= 2 ** width)
+        throw new Error('Value cannot be represented by this register');
+    return numeric < 0 ? numeric + 2 ** width : numeric;
+}
+
 // Whether a register is worth reading on the poll loop. Command registers carry no
 // state to read back, and their capabilities (e.g. Homey's `button`) reject a value.
 export function isPollable(register: Register): boolean {

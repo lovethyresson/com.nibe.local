@@ -925,3 +925,56 @@ test('each function is handed the pump\'s own hourly figure, without the meter b
         await pump.close();
     }
 });
+
+test('a full queue of unanswered registers is bounded by the poll deadline', {timeout: 5000}, async () => {
+    const sockets: net.Socket[] = [];
+    const server = new net.Server((socket) => sockets.push(socket));
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const port = (server.address() as net.AddressInfo).port;
+    const registers = Array.from({length: 100}, (_,i) => reg({address: i, name: `r${i}`}));
+    const connection = PumpConnection.get('127.0.0.1', tinyProfile(registers), {port, unitId: 1});
+    const sub = new FakeSub('main', registers);
+    (connection as any).pollDeadlineMs = 100;
+    connection.attach(sub);
+    try {
+        await sub.whenUp();
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        assert.equal(connection.isConnected(), false);
+        assert.ok(sub.downCount >= 1);
+        assert.equal(sub.raws.length, 0);
+        assert.equal((connection as any).wireLow.length, 0);
+        assert.equal((connection as any).polling, false);
+    } finally {
+        connection.shutdown();
+        sockets.forEach((socket) => socket.destroy());
+        await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+});
+
+test('live detection preserves sensor choices and uses the shared wire queue', {timeout: 35000}, async () => {
+    const pump = await startPump();
+    const sensor = reg({address: 10, name: 'room', scale: 10,
+        altPlausible: {min: 5, max: 40}, sources: [
+            {address: 10, label: {en: 'Zone', sv: 'Zon'}},
+            {address: 20, label: {en: 'Sensor', sv: 'Givare'}}
+        ]});
+    seed(pump.input, 10, 210);
+    seed(pump.input, 20, 220);
+    const connection = PumpConnection.get('127.0.0.1', tinyProfile([sensor]), {port: pump.port, unitId: 1});
+    const sub = new FakeSub('heating', [sensor]);
+    connection.attach(sub);
+    try {
+        await sub.whenUp();
+        const internal = connection as any;
+        const original = internal.withWireAccess.bind(connection);
+        let queued = 0;
+        internal.withWireAccess = (...args: any[]) => { queued++; return original(...args); };
+        const result = await connection.probe(() => {});
+        assert.deepEqual(result.choices.room.map((choice) => choice.address), [10, 20]);
+        assert.equal(result.addresses.room, 10);
+        assert.ok(queued >= 7, 'five sample passes and both source reads must use the queue');
+    } finally {
+        connection.shutdown();
+        await pump.close();
+    }
+});

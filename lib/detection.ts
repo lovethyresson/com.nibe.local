@@ -119,13 +119,20 @@ export async function sampleRegisters(
     read: (register: Register) => Promise<number | undefined>,
     onProgress: (pass: number, passes: number) => void,
     passes: number = PROBE_PASSES,
-    intervalMs: number = PROBE_INTERVAL_MS
+    intervalMs: number = PROBE_INTERVAL_MS,
+    signal?: AbortSignal
 ): Promise<ProbeResult> {
+    const checkedRead = async (register: Register) => {
+        if (signal?.aborted) throw new Error('Detection cancelled');
+        const value = await read(register);
+        if (signal?.aborted) throw new Error('Detection cancelled');
+        return value;
+    };
     const probes: ProbeSamples = Object.fromEntries(
         profile.registers.map((register) => [register.name, {reads: 0, moved: false}]));
     for (let pass = 0; pass < passes; ++pass) {
         for (const register of profile.registers) {
-            const value = await read(register);
+            const value = await checkedRead(register);
             if (value === undefined)
                 continue;
             const probe = probes[register.name];
@@ -136,13 +143,24 @@ export async function sampleRegisters(
         }
         onProgress(pass + 1, passes);
         if (pass < passes - 1)
-            await new Promise((resolve) => setTimeout(resolve, intervalMs));
+            await new Promise<void>((resolve, reject) => {
+                const abort = () => {
+                    clearTimeout(timer);
+                    reject(new Error('Detection cancelled'));
+                };
+                const timer = setTimeout(() => {
+                    signal?.removeEventListener('abort', abort);
+                    resolve();
+                }, intervalMs);
+                signal?.addEventListener('abort', abort, {once: true});
+                if (signal?.aborted) abort();
+            });
     }
     // Sources first: a register that declares them has its own address among the candidates, so
     // resolving them can populate a probe that the sampling run left empty, and resolveAlternates
     // must see that before deciding the primary "produced nothing at all".
-    const sources = await resolveSources(profile, read, probes);
-    const alternates = await resolveAlternates(profile, read, probes);
+    const sources = await resolveSources(profile, checkedRead, probes);
+    const alternates = await resolveAlternates(profile, checkedRead, probes);
     return {probes, addresses: {...sources.addresses, ...alternates}, choices: sources.choices};
 }
 
@@ -275,29 +293,36 @@ export async function probeHost(
     profile: ModelProfile,
     host: string,
     transport: {port: number; unitId: number},
-    onProgress: (pass: number, passes: number) => void
+    onProgress: (pass: number, passes: number) => void,
+    signal?: AbortSignal
 ): Promise<DetectionResult> {
+    if (signal?.aborted) throw new Error('Detection cancelled');
     const socket = new net.Socket();
+    const abort = () => socket.destroy(new Error('Detection cancelled'));
+    signal?.addEventListener('abort', abort, {once: true});
     const client = new ModbusTCPClient(socket, transport.unitId, 5000);
-    await new Promise<void>((resolve, reject) => {
-        socket.setTimeout(10000, () => {
-            socket.destroy();
-            reject(new Error(`Connection to ${host} timed out`));
-        });
-        socket.once('connect', () => {
-            socket.setTimeout(0);
-            resolve();
-        });
-        socket.once('error', (error) => reject(error));
-        socket.connect({port: transport.port, host});
-    });
     try {
+        await new Promise<void>((resolve, reject) => {
+            socket.setTimeout(10000, () => {
+                socket.destroy();
+                reject(new Error(`Connection to ${host} timed out`));
+            });
+            socket.once('connect', () => {
+                socket.setTimeout(0);
+                resolve();
+            });
+            socket.once('error', (error) => reject(error));
+            socket.connect({port: transport.port, host});
+        });
         const {probes, addresses, choices} = await sampleRegisters(
-            profile, (register) => readNumeric(client, register, profile), onProgress);
+            profile, (register) => readNumeric(client, register, profile), onProgress,
+            undefined, undefined, signal);
         return buildDetectionResult(profile, probes, addresses, choices);
     } finally {
-        socket.removeAllListeners();
-        socket.end();
+        signal?.removeEventListener('abort', abort);
+        // Keep an error listener until the socket closes: cancellation may have scheduled
+        // an error event that has not been delivered yet.
+        socket.on('error', () => {});
         socket.destroy();
     }
 }

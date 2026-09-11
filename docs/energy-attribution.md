@@ -4,7 +4,23 @@
 that touches attribution, the power sources, the role mapping or the COP accumulators — not on every build.
 The [README](../README.md) links here and carries the user-facing summary.
 
-Last verified against the code: **1.0.0**.
+Last reviewed against the code: **1.2.2 (local test)**; hardware accuracy measurements below retain their original dates.
+
+## Missing readings and reconnects (1.2.2)
+
+Unavailable sentinels, negative consumption and non-finite power values are rejected before
+integration. A summed source is usable only when every component is present; otherwise the
+allocator tries its next source. A poll without power resets the integration baseline, so the
+first recovered reading establishes a reference instead of bridging the gap.
+
+Disconnects reset each function's produced-energy reference as well as the shared power
+reference. Energy delivered while disconnected is excluded from function COP, matching the
+unobserved electricity interval. Existing accumulated meters and historical samples are retained;
+this fixes future samples rather than reconstructing historical gaps.
+
+COP and hot-water estimates are published after all readings for a poll have arrived. Missing
+required readings clear the derived value instead of combining old and new inputs. Polls have a
+30-second deadline, and results from retired connections cannot update live meters.
 
 ## The problem
 

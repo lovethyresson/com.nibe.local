@@ -1,9 +1,9 @@
 import net from 'net';
 import {ModbusTCPClient} from 'jsmodbus';
-import {Dir, Register, combineRaw, isPollable, isUnavailableRaw, signedValue} from './registers';
+import {Dir, Register, combineRaw, isPollable, isUnavailableRaw, signedValue, toNumericValue} from './registers';
 import {Role, functionRoles} from './roles';
 import type {LocalizedText, ModelProfile, ReasonState} from './profile';
-import {DetectionResult, buildDetectionResult, readNumeric, sampleRegisters} from './detection';
+import {DetectionResult, buildDetectionResult, sampleRegisters} from './detection';
 import {track} from './analytics';
 
 // A Nibe pump accepts only a single Modbus client, but the app pairs several logical
@@ -26,6 +26,7 @@ export const POLL_SECONDS_DEFAULT = 10;
 // or a momentary stall looks like, and reconnecting on that would churn. Two at the default
 // interval is ~20 s of silence, well inside what a user would call "it stopped updating".
 export const DEAD_POLLS_BEFORE_RECONNECT = 2;
+export const POLL_DEADLINE_MS = 30_000;
 
 export interface Transport {
     port: number;
@@ -53,6 +54,7 @@ export interface PumpSubscriber {
     onRegisterRaw(register: Register, raw: number): void;
     onConnectionUp(): void;
     onConnectionDown(): void;
+    onPollComplete?(readNames: Set<string>): void;
     // Poll interval this device asks for, in seconds. The main device's value wins; the rest
     // only matter when no main device is paired.
     pollSeconds(): number;
@@ -146,6 +148,10 @@ export class PumpConnection {
     private pollInterval: NodeJS.Timeout | null = null;
     private pollSeconds = POLL_SECONDS_DEFAULT;
     private polling = false;
+    private generation = 0;
+    private unsupportedUntil = new Map<string, number>();
+    private pollDeadlineMs = POLL_DEADLINE_MS;
+    private pollDeadline: NodeJS.Timeout | null = null;
     private retryTimer: NodeJS.Timeout | null = null;
     private connected = false;
     private destroyed = false;
@@ -174,9 +180,19 @@ export class PumpConnection {
     private wireRunning = false;
 
     private withWireAccess<T>(fn: () => Promise<T>, lane: WireLane = 'read'): Promise<T> {
+        if (!this.connected || this.destroyed)
+            return Promise.reject(new Error('Not connected to the heat pump'));
+        const generation = this.generation;
         return new Promise<T>((resolve, reject) => {
             (lane === 'write' ? this.wireHigh : this.wireLow)
-                .push({run: fn, resolve: resolve as (value: unknown) => void, reject});
+                .push({run: async () => {
+                    if (generation !== this.generation || !this.connected || this.destroyed)
+                        throw new Error('Connection changed before request could run');
+                    const result = await fn();
+                    if (generation !== this.generation)
+                        throw new Error('Connection changed during request');
+                    return result;
+                }, resolve: resolve as (value: unknown) => void, reject});
             void this.drainWire();
         });
     }
@@ -203,6 +219,20 @@ export class PumpConnection {
         } finally {
             this.wireRunning = false;
         }
+    }
+
+    // Retire queued work and prevent an old poll from publishing into a new connection.
+    private invalidateWork() {
+        this.generation++;
+        this.polling = false;
+        if (this.pollDeadline) clearTimeout(this.pollDeadline);
+        this.pollDeadline = null;
+        const error = new Error('Connection closed before request could run');
+        for (const job of [...this.wireHigh, ...this.wireLow]) job.reject(error);
+        this.wireHigh = [];
+        this.wireLow = [];
+        this.lastRaw.clear();
+        this.unsupportedUntil.clear();
     }
 
     // Energy integrator state. lastPowerReading is null right after every (re)connect so a
@@ -308,11 +338,12 @@ export class PumpConnection {
     }
 
     private openSocket() {
-        this.socket = new net.Socket();
-        this.client = new ModbusTCPClient(this.socket, this.transport.unitId, 5000);
-        this.socket.on('connect', () => this.onConnect());
-        this.socket.on('error', (error) => this.onSocketError(error));
-        this.socket.on('close', () => this.onClose());
+        const socket = new net.Socket();
+        this.socket = socket;
+        this.client = new ModbusTCPClient(socket, this.transport.unitId, 5000);
+        socket.on('connect', () => { if (this.socket === socket) this.onConnect(); });
+        socket.on('error', (error) => { if (this.socket === socket) this.onSocketError(error); });
+        socket.on('close', () => { if (this.socket === socket) this.onClose(); });
         this.debug(`Connecting (port ${this.transport.port}, unit ${this.transport.unitId})`);
         this.socket.connect({port: this.transport.port, host: this.host});
     }
@@ -432,7 +463,7 @@ export class PumpConnection {
             this.retryTimer = null;
         }
         this.connected = false;
-        this.socket.removeAllListeners();
+        this.invalidateWork();
         this.socket.destroy();
         this.subscribers.forEach((subscriber) => subscriber.onConnectionDown());
         this.openSocket();
@@ -466,15 +497,12 @@ export class PumpConnection {
     private destroy() {
         this.debug('Last device detached, closing connection');
         this.destroyed = true;
-        // Also clear `connected`: removeAllListeners() below means onClose() will never run, so
-        // nothing else ever would. Without it poll() — including the one already scheduled by
-        // onConnect()'s 200 ms timer — passes its `!this.connected` guard and runs against a
-        // destroyed socket, which the watchdog would then try to end() a second time.
+        // Stop new work immediately; leave socket listeners attached until close so the
+        // Modbus client can reject its in-flight request.
         this.connected = false;
+        this.invalidateWork();
         if (this.pollInterval) clearInterval(this.pollInterval);
         if (this.retryTimer) clearTimeout(this.retryTimer);
-        this.socket.removeAllListeners();
-        this.socket.end();
         this.socket.destroy();
         connections.delete(this.host);
     }
@@ -530,6 +558,7 @@ export class PumpConnection {
 
     private onClose() {
         this.connected = false;
+        this.invalidateWork();
         if (this.pollInterval) {
             clearInterval(this.pollInterval);
             this.pollInterval = null;
@@ -633,12 +662,13 @@ export class PumpConnection {
     // whole table, and its misses are the expected answer to a question we chose to ask, not
     // faults. Without this a dump adds a second "N registers did not read" line naming things
     // the dump has already printed as "no answer", which reads like new breakage.
-    async readRegisterRaw(register: Register, track = true): Promise<number | undefined> {
+    async readRegisterRaw(register: Register, track = true, lane: WireLane = 'read'): Promise<number | undefined> {
+        const generation = this.generation;
         const count = register.size === 32 ? 2 : 1;
         const address = this.pduAddress(register);
         return await this.withWireAccess<any>(() => (register.direction === Dir.In)
             ? this.client.readInputRegisters(address, count)
-            : this.client.readHoldingRegisters(address, count))
+            : this.client.readHoldingRegisters(address, count), lane)
             .then((resp: any) => {
                 const raw = combineRaw(resp.response.body.values as number[], register.size);
                 // A pump can answer without returning a usable value — a short or empty value
@@ -651,8 +681,16 @@ export class PumpConnection {
                 if (track) this.noteRead(register, true);
                 return raw;
             })
-            .catch(() => {
-                if (track) this.noteRead(register, false);
+            .catch((error) => {
+                if (generation !== this.generation) return undefined;
+                if (track) {
+                    this.noteRead(register, false);
+                    const code = describeModbusError(error).code;
+                    // Only explicit unsupported-address/function errors get a cooldown.
+                    // Timeouts remain eligible on every poll, so transient loss can recover.
+                    if (code === 1 || code === 2)
+                        this.unsupportedUntil.set(register.name, Date.now() + 5 * 60_000);
+                }
                 return undefined;
             });
     }
@@ -725,8 +763,27 @@ export class PumpConnection {
         if (!this.connected || this.polling)
             return;
         this.polling = true;
-        const toPoll = this.unionRegisters();
+        const generation = this.generation;
+        this.pollDeadline = setTimeout(() => {
+            if (generation !== this.generation || !this.polling) return;
+            this.log('Poll exceeded its deadline — dropping the connection and reconnecting.');
+            this.closeCause = {cause: 'watchdog'};
+            this.connected = false;
+            this.invalidateWork();
+            this.subscribers.forEach((subscriber) => subscriber.onConnectionDown());
+            this.socket.destroy();
+        }, this.pollDeadlineMs);
+        const critical = new Set([
+            this.priorityRegister?.name, ...this.powerRegisters.map((r) => r.name),
+            this.profile.role.totalConsumptionRegister, this.profile.role.totalProductionRegister
+        ]);
+        // Keep priority and power close together, before slower diagnostic reads. Critical
+        // energy inputs are never put on cooldown, even when an optional fallback is absent.
+        const toPoll = this.unionRegisters()
+            .filter((r) => critical.has(r.name) || Date.now() >= (this.unsupportedUntil.get(r.name) ?? 0))
+            .sort((a, b) => Number(critical.has(b.name)) - Number(critical.has(a.name)));
         Promise.all(toPoll.map((register) => this.readRegisterRaw(register))).then((raws) => {
+            if (generation !== this.generation || !this.connected) return;
             const rawByName = new Map<string, number>();
             toPoll.forEach((register, i) => {
                 if (raws[i] !== undefined) {
@@ -756,7 +813,7 @@ export class PumpConnection {
                     this.closeCause = {cause: 'watchdog', dead_polls: this.deadPolls};
                     this.deadPolls = 0;
                     this.polling = false;
-                    this.socket.end(); // 'close' → subscribers marked down, reconnect in 5 s
+                    this.socket.destroy(); // 'close' → subscribers marked down, reconnect in 5 s
                     return;
                 }
             } else {
@@ -786,6 +843,12 @@ export class PumpConnection {
                     if (raw !== undefined)
                         subscriber.onRegisterRaw(register, raw);
                 }
+            const readNames = new Set([...rawByName.keys()].filter((name) => {
+                const register = toPoll.find((r) => r.name === name);
+                return !isUnavailableRaw(rawByName.get(name)!, register?.size);
+            }));
+            for (const subscriber of this.subscribers)
+                subscriber.onPollComplete?.(readNames);
         }).catch((error) => {
             // Not the "pump stopped answering" path — readRegisterRaw() never rejects, so this
             // only ever sees a genuine bug in the poll body above (a decode throwing, a
@@ -794,6 +857,9 @@ export class PumpConnection {
             // comment. The unresponsive-pump case is handled by the deadPolls watchdog.
             this.log('Poll failed', error?.message ?? error);
         }).finally(() => {
+            if (generation !== this.generation) return;
+            if (this.pollDeadline) clearTimeout(this.pollDeadline);
+            this.pollDeadline = null;
             this.polling = false;
         });
     }
@@ -1189,10 +1255,12 @@ export class PumpConnection {
         let any = false;
         for (const register of groups[group] ?? []) {
             const raw = rawByName.get(register.name);
-            if (raw === undefined)
-                continue;
+            if (raw === undefined || isUnavailableRaw(raw, register.size))
+                return null;
+            const value = signedValue(raw, register.size) / (register.scale || 1);
+            if (!Number.isFinite(value) || value < 0) return null;
             any = true;
-            watts += signedValue(raw, register.size) / (register.scale || 1);
+            watts += value;
         }
         return any ? watts : null;
     }
@@ -1273,11 +1341,14 @@ export class PumpConnection {
 
         const watts = this.totalWatts(rawByName);
         this.notePowerAvailability(watts !== null);
-        if (watts === null)
+        if (watts === null) {
+            this.lastPowerReading = null;
+            this.lastShadowWatts = null;
             // Tell the energy subscribers their series has a gap here, rather than leaving them
             // to assume the last reading still holds.
             for (const subscriber of this.energySubscribers())
                 subscriber.onEnergyUnavailable?.();
+        }
         if (watts !== null) {
             // Already corrected by applyEnergyLogPriorityOverride() if 3804 disagreed with an
             // idle 1028 — this is not necessarily what 1028 itself is reporting right now.
@@ -1417,12 +1488,19 @@ export class PumpConnection {
 
     // Re-run feature detection over the live connection (used by repair and by pairing when a
     // device for this pump already holds the single allowed connection).
-    async probe(onProgress: (pass: number, passes: number) => void): Promise<DetectionResult> {
+    async probe(onProgress: (pass: number, passes: number) => void,
+                signal?: AbortSignal): Promise<DetectionResult> {
         if (!this.connected)
             throw new Error('Not connected to the heat pump');
-        const {probes, addresses} = await sampleRegisters(this.profile,
-            (register) => readNumeric(this.client, register, this.profile), onProgress);
-        return buildDetectionResult(this.profile, probes, addresses);
+        const generation = this.generation;
+        const {probes, addresses, choices} = await sampleRegisters(this.profile,
+            async (register) => {
+                if (generation !== this.generation || !this.connected)
+                    throw new Error('Connection changed during detection');
+                const raw = await this.readRegisterRaw(register, false);
+                return raw === undefined ? undefined : toNumericValue(register, raw);
+            }, onProgress, undefined, undefined, signal);
+        return buildDetectionResult(this.profile, probes, addresses, choices);
     }
 
     isConnected(): boolean {

@@ -283,3 +283,16 @@ starts unticked.
 In the EU. The app sends to Amplitude's European servers and the data is held in their EU instance; it is not
 transferred outside. [docs/analytics.md](analytics.md) lists every single event and property, and everything
 deliberately excluded.
+
+
+### Why did hot-water availability or COP briefly go blank?
+
+From 1.2.2, a completed poll must contain the readings needed for that estimate. If a required
+reading is missing, the app shows no estimate until measurement resumes. It does not combine a
+fresh temperature with an old one or trigger a low-water crossing across a measurement gap.
+
+### Why does a setting now report that the pump did not confirm it?
+
+The app checks the pump's value after writes from both tiles and Flows. A successful Modbus
+acknowledgement alone does not guarantee that the pump applied the setting. A confirmation error
+means the requested value could not be verified; check the current reading before retrying.

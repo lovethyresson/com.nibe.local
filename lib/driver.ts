@@ -3,7 +3,7 @@ import PairSession from "homey/lib/PairSession";
 import net from "net";
 import {
     Dir, GroupId, Register, RegisterInfo, Selection,
-    flowPredicates, groupIds, isAdjustable, isSelectableRegister, signedValue
+    enumRawValue, enumLabel, flowPredicates, groupIds, isAdjustable, isSelectableRegister, signedValue
 } from './registers';
 import {
     ACTIVE_POWER_CAPABILITY, ENERGY_CAPABILITIES, FUNCTION_COP_CAPABILITY,
@@ -301,14 +301,7 @@ export abstract class NibePumpDriver extends Driver {
 
     private async writeNumeric(device: any, register: Register, value: number) {
         this.log(`Flow: ${device.getName()} set ${register.name} = ${value}`);
-        if (value < register.min! || value > register.max!)
-            throw new Error("The value " + value + " is out of range. Value should be between " +
-                register.min + " and " + register.max + ".");
         await device.writeRegister(register, value);
-        const newValue = await device.readRegister(register);
-        if (newValue !== value)
-            throw new Error("Failed setting " + value + ", got back value " + newValue);
-        await device.setValue(register, newValue);
     }
 
     private registerFlows() {
@@ -317,7 +310,7 @@ export abstract class NibePumpDriver extends Driver {
                 continue;
             const enumOptions = async (query: string) =>
                 Object.entries(register.enum as any).map((parts: any) => ({
-                    id: parts[1],
+                    id: parts[0],
                     name: this.homey.__(parts[1]) || parts[1]
                 })).filter((result: any) => result.name.toLowerCase().includes(query.toLowerCase()));
 
@@ -328,16 +321,19 @@ export abstract class NibePumpDriver extends Driver {
                         async (args: any) => {
                             this.log(`Flow: ${args.device.getName()} set ${register.name} = ${args.mode.name}`);
                             await args.device.writeRegister(register, args.mode.id);
-                            await args.device.setValue(register, args.mode.id);
                         }));
             }
             if (this.conditionSpecs[register.name + ".enum"]) {
                 this.homey.flow.getConditionCard(register.name + ".enum")
                     .registerArgumentAutocompleteListener("mode", async (query) => enumOptions(query))
                     .registerRunListener(this.tracked('condition', register.name + ".enum", register,
-                        async (args: any) =>
-                            args.device.hasCapability(register.name)
-                            && args.device.getCapabilityValue(register.name) === args.mode.name));
+                        async (args: any) => {
+                            const raw = enumRawValue(register, args.mode.id);
+                            const expected = register.picker ? String(raw)
+                                : enumLabel(register, raw, (key) => this.homey.__(key));
+                            return args.device.hasCapability(register.name)
+                                && args.device.getCapabilityValue(register.name) === expected;
+                        }));
             }
         }
 
@@ -376,7 +372,6 @@ export abstract class NibePumpDriver extends Driver {
                         const on = (args.state?.id ?? args.state) === 'on';
                         this.log(`Flow: ${args.device.getName()} set ${register.name} = ${on}`);
                         await args.device.writeRegister(register, on);
-                        await args.device.setValue(register, await args.device.readRegister(register));
                     }));
         }
 
@@ -394,7 +389,6 @@ export abstract class NibePumpDriver extends Driver {
                 const register = this.profile.registerByName[args.register.id];
                 this.log(`Flow: ${args.device.getName()} enable ${register.name}`);
                 await args.device.writeRegister(register, true);
-                await args.device.setValue(register, await args.device.readRegister(register));
             });
 
         this.registerAutofillFlow(this.homey.flow.getActionCard("disable_feature"),
@@ -403,7 +397,6 @@ export abstract class NibePumpDriver extends Driver {
                 const register = this.profile.registerByName[args.register.id];
                 this.log(`Flow: ${args.device.getName()} disable ${register.name}`);
                 await args.device.writeRegister(register, false);
-                await args.device.setValue(register, await args.device.readRegister(register));
             });
 
         this.registerAutofillFlow(this.homey.flow.getConditionCard("numeric_value_comparison"),
@@ -412,6 +405,8 @@ export abstract class NibePumpDriver extends Driver {
                 if (!args.device.hasCapability(args.register.id))
                     return false;
                 const capabilityValue = args.device.getCapabilityValue(args.register.id);
+                if (typeof capabilityValue !== 'number' || !Number.isFinite(capabilityValue))
+                    return false;
                 return args.comparison === "<" ? capabilityValue < args.value : capabilityValue > args.value;
             }, 'condition');
 
@@ -977,6 +972,11 @@ export abstract class NibePumpDriver extends Driver {
         let pairTransport: PairTransport = {};
         let detection: DetectionResult | null = null;
         let detectionRunning: Promise<DetectionResult> | null = null;
+        let detectionAbort: AbortController | null = null;
+        session.setHandler('disconnect', async () => { detectionAbort?.abort(); });
+        session.setHandler('showView', async (viewId: string) => {
+            if (viewId !== 'detect') detectionAbort?.abort();
+        });
 
         session.setHandler('discover', async () => {
             const localAddress = await this.homey.cloud.getLocalAddress();
@@ -1031,6 +1031,8 @@ export abstract class NibePumpDriver extends Driver {
             }
             if (detectionRunning)
                 return true;
+            const controller = new AbortController();
+            detectionAbort = controller;
             const onProgress = (pass: number, passes: number) =>
                 session.emit('detection_progress', {pass, passes}).catch(() => {});
             const live = existingConnection(ipAddress!);
@@ -1039,10 +1041,11 @@ export abstract class NibePumpDriver extends Driver {
                 + `${viaLive ? 'existing live connection' : 'new probe socket'} `
                 + `(${this.profile.registers.length} registers × ${PROBE_PASSES} passes)`);
             detectionRunning = viaLive
-                ? live!.probe(onProgress)
-                : probeHost(this.profile, ipAddress!, this.pairingTransport(pairTransport), onProgress);
+                ? live!.probe(onProgress, controller.signal)
+                : probeHost(this.profile, ipAddress!, this.pairingTransport(pairTransport), onProgress, controller.signal);
             detectionRunning
                 .then((result) => {
+                    if (controller.signal.aborted) throw new Error('Detection cancelled');
                     detection = result;
                     const read = Object.values(result.samples).filter((s) => s.read).length;
                     this.log(`onPair detection done: ${read}/${this.profile.registers.length} registers responded — `
@@ -1052,6 +1055,7 @@ export abstract class NibePumpDriver extends Driver {
                 })
                 .catch((error) => {
                     detectionRunning = null;
+                    if (controller.signal.aborted) return;
                     this.error('onPair detection failed', error);
                     this.trackFailedDetection('pair');
                     session.emit('detection_failed',
@@ -1077,6 +1081,11 @@ export abstract class NibePumpDriver extends Driver {
             JSON.stringify(device.getStoreValue('selection') ?? null));
         let detection: DetectionResult | null = null;
         let detectionRunning: Promise<DetectionResult> | null = null;
+        let detectionAbort: AbortController | null = null;
+        session.setHandler('disconnect', async () => { detectionAbort?.abort(); });
+        session.setHandler('showView', async (viewId: string) => {
+            if (viewId !== 'detect') detectionAbort?.abort();
+        });
 
         this.registerAnalyticsHandlers(session);
 
@@ -1098,10 +1107,13 @@ export abstract class NibePumpDriver extends Driver {
             }
             if (detectionRunning)
                 return true;
+            const controller = new AbortController();
+            detectionAbort = controller;
             detectionRunning = device.probeForDetection((pass: number, passes: number) =>
-                session.emit('detection_progress', {pass, passes}).catch(() => {}));
+                session.emit('detection_progress', {pass, passes}).catch(() => {}), controller.signal);
             detectionRunning!
                 .then((result: DetectionResult) => {
+                    if (controller.signal.aborted) throw new Error('Detection cancelled');
                     detection = result;
                     const read = Object.values(result.samples).filter((s) => s.read).length;
                     this.log(`onRepair detection done: ${read} registers responded — `
@@ -1111,6 +1123,7 @@ export abstract class NibePumpDriver extends Driver {
                 })
                 .catch((error: any) => {
                     detectionRunning = null;
+                    if (controller.signal.aborted) return;
                     this.error('onRepair detection failed', error);
                     this.trackFailedDetection('repair');
                     session.emit('detection_failed',

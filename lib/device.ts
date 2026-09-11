@@ -1,7 +1,7 @@
 import {Device} from 'homey';
 import {analyticsConsent, setAnalyticsConsent, track} from './analytics';
 import {
-    Dir, Register, Selection, enumLabel, isPollable, isUnavailableRaw, migrateSelection,
+    Dir, Register, Selection, encodeRegisterValue, enumLabel, isPollable, isUnavailableRaw, migrateSelection,
     resolvedAddress, signedValue, withResolvedAddresses
 } from './registers';
 import {
@@ -121,34 +121,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         return value;
     }
 
-    private toRegisterValue(register: Register, value: any) {
-        if (register.picker)
-            value = parseInt(value);
-        else if (register.enum) {
-            // A Flow card stored before an enum was renamed still carries the old label, and the
-            // autocomplete's `name` is translated while the stored id is not — so the lookup can
-            // genuinely miss. Indexing [0][0] on the empty result threw a bare
-            // "Cannot read properties of undefined", which tells the user nothing about which
-            // card of theirs is now stale.
-            const match = Object.entries(register.enum).find(pair => pair[1] == value);
-            if (!match)
-                throw new Error(`"${value}" is not one of the values `
-                    + `"${this.registerTitle(register)}" accepts `
-                    + `(${Object.values(register.enum).join(', ')}). `
-                    + 'If this Flow was made on an older version, re-pick the value.');
-            value = parseInt(match[0]);
-        }
-        else if (register.bool)
-            value = value ? (register.onValue ?? 1) : (register.offValue ?? 0);
-        else if (register.scale)
-            value = Math.round(value * register.scale);
-        // Two's complement last, mirroring fromRegisterValue() which undoes it first — and sized
-        // like signedValue() is, because a negative 32-bit value wraps at 2^32, not 2^16. Getting
-        // this wrong encodes -350 as a small positive that the splitter then writes with a zero
-        // high word, so the pump receives +65186.
-        if (value < 0)
-            value += register.size === 32 ? 0x100000000 : 65536;
-        return value;
+    private toRegisterValue(register: Register, value: unknown) {
+        return encodeRegisterValue(register, value);
     }
 
     // Resolves the address for the same reason writeRegister() does — and it has to, because the
@@ -161,7 +135,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (!this.connection)
             return undefined;
         const address = resolvedAddress(register, this.getSelection());
-        const raw = await this.connection.readRegisterRaw({...register, address});
+        const raw = await this.connection.readRegisterRaw({...register, address}, true, 'write');
         return raw === undefined ? undefined : this.fromRegisterValue(register, raw);
     }
 
@@ -173,10 +147,35 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (!this.connection)
             throw new Error('Not connected to the heat pump');
         try {
+            const raw = this.toRegisterValue(register, value);
+            const canonical = this.fromRegisterValue(register, raw);
+            for (const mirror of mirrorsForRole(this.profile, this.role)) {
+                if (mirror.register !== register.name || !mirror.writable)
+                    continue;
+                const problem = mirror.validate?.(value, (name) => this.getCapabilityValue(name));
+                if (problem)
+                    throw new Error(inLanguage(problem, this.homey.i18n.getLanguage()));
+            }
             const address = resolvedAddress(register, this.getSelection());
-            this.recentWrites.set(register.name, {value, at: Date.now()});
-            await this.connection.writeRegisterValue(
-                {...register, address}, this.toRegisterValue(register, value));
+            await this.connection.writeRegisterValue({...register, address}, raw);
+            if (!register.writeOnly) {
+                // Verify on the write lane, so confirmation cannot sit behind a full poll.
+                let confirmed = false;
+                for (let attempt = 0; attempt < 3; attempt++) {
+                    const actual = await this.readRegister(register);
+                    if (actual === canonical) {
+                        confirmed = true;
+                        break;
+                    }
+                    if (attempt < 2)
+                        await new Promise((resolve) => setTimeout(resolve, 100));
+                }
+                if (!confirmed)
+                    throw new Error('The pump did not confirm the requested value');
+                this.recentWrites.set(register.name, {value: canonical, at: Date.now()});
+                await this.setValue(register, canonical);
+                await this.applyClearOnDisable(register, canonical);
+            }
         } catch (error: any) {
             // Surface a clear, user-facing message instead of failing silently.
             throw new Error(`Could not set "${this.registerTitle(register)}": ${error?.message ?? error}`);
@@ -202,7 +201,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     continue; // already off — nothing to clear
                 this.log(`${register.name} disabled — also clearing ${target.name}`);
                 await this.writeRegister(target, false)
-                    .then(() => this.setValue(target, false))
                     .catch((error) => this.error(`Failed to clear ${target.name} after disabling ${register.name}`, error));
             }
         }
@@ -508,8 +506,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (!this.hasCapability(HOTWATER_VOLUME_CAPABILITY))
             return;
         const {litres, inletC} = this.tankConfig();
-        if (litres === null || this.tankTopC === null || this.tankLowerC === null)
+        if (litres === null || this.tankTopC === null || this.tankLowerC === null) {
+            this.lastPublishedLitres = null;
+            this.setCapabilityValue(HOTWATER_VOLUME_CAPABILITY, null).catch(this.error);
             return;
+        }
         const available = usableLitres(litres, this.tankTopC, this.tankLowerC, inletC);
         if (available === null)
             return;
@@ -650,10 +651,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 + 'keeps failing please report it with the app logs.');
     }
 
-    async probeForDetection(onProgress: (pass: number, passes: number) => void) {
+    async probeForDetection(onProgress: (pass: number, passes: number) => void, signal?: AbortSignal) {
         if (!this.connection || !this.getAvailable())
             throw new Error(this.homey.__("pair.not_connected"));
-        return this.connection.probe(onProgress);
+        return this.connection.probe(onProgress, signal);
     }
 
     async onInit() {
@@ -728,8 +729,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                         // the app — the tile, the mobile app, the web API; polls write through
                         // setValue() and do not come through here. So this is a hand on a control.
                         track('Changed Capability', {capability: register.name, role: this.role});
-                        this.checkTrigger(register, value);
-                        await this.applyClearOnDisable(register, value);
                     });
                 }
             }
@@ -752,7 +751,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     this.log(`Manual set ${mirror.capability} (${mirror.register}) = ${value}`);
                     await this.writeRegister(source, value);
                     track('Changed Capability', {capability: mirror.capability, role: this.role});
-                    await this.setValue(source, value);
                 });
             }
 
@@ -801,18 +799,16 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     // Cache whichever of the two tank sensors this was, and republish. They arrive on separate
-    // calls, so the estimate is recomputed whenever either moves.
+    // calls. Cache both and compute the estimate only when the poll is complete.
     private noteTankReading(register: Register, value: number | null) {
         const tank = this.profile.hotwaterTank;
-        if (this.role !== 'hotwater' || !tank || value === null)
+        if (this.role !== 'hotwater' || !tank)
             return;
         if (register.name === tank.topRegister) {
             this.tankTopC = value;
-            this.updateHotwaterVolume();
         } else if (register.name === tank.lowerRegister) {
             this.tankLowerC = value;
-            this.noteColdWater(value);
-            this.updateHotwaterVolume();
+            if (value !== null) this.noteColdWater(value);
         }
     }
 
@@ -851,15 +847,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.role === 'main') {
             if (register.name === totalProductionRegister) {
                 this.copProduced = rawScaled;
-                this.updateRollingCop();
             } else if (register.name === totalConsumptionRegister) {
                 this.copUsed = rawScaled;
-                this.updateRollingCop();
             }
         } else if (register.name === producedRegisterForRole[this.role]) {
             // Advance the numerator only across intervals the allocator could measure, so it
             // covers the same span as `cumulativeEnergy`. A negative step (counter reset) is
             // ignored rather than propagated.
+            if (rawScaled === null) this.lastProducedSeen = null;
             if (rawScaled !== null) {
                 if (this.allocationLive && this.lastProducedSeen !== null) {
                     this.copProducedAccum += Math.max(0, rawScaled - this.lastProducedSeen);
@@ -873,7 +868,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 this.lastProducedSeen = rawScaled;
             }
             this.copProduced = this.copProducedAccum;
-            this.updateRollingCop();
         }
     }
 
@@ -1114,7 +1108,35 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     onConnectionDown() {
+        this.onEnergyUnavailable();
+        this.tankTopC = null;
+        this.tankLowerC = null;
+        this.lastPublishedLitres = null;
+        this.copProduced = null;
+        this.copUsed = null;
         this.setUnavailable().catch(this.error);
+    }
+
+    onPollComplete(readNames: Set<string>) {
+        const tank = this.profile.hotwaterTank;
+        if (tank && this.role === 'hotwater') {
+            if (!readNames.has(tank.topRegister)) this.tankTopC = null;
+            if (!readNames.has(tank.lowerRegister)) this.tankLowerC = null;
+            this.updateHotwaterVolume();
+        }
+        const produced = this.profile.role.producedRegisterForRole[this.role];
+        if (produced && !readNames.has(produced)) this.lastProducedSeen = null;
+        const required = this.role === 'main'
+            ? [this.profile.role.totalProductionRegister, this.profile.role.totalConsumptionRegister]
+            : [produced];
+        if (required.some((name) => !name || !readNames.has(name)) ||
+            (this.role !== 'main' && !this.allocationLive)) {
+            const capability = this.copCapability();
+            if (capability && this.hasCapability(capability))
+                this.setCapabilityValue(capability, null).catch(this.error);
+            return;
+        }
+        this.updateRollingCop();
     }
 
     // No power source read this poll, so nothing could be measured. Drop the produced reference
@@ -1181,7 +1203,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         }
         if (functionRoles.includes(this.role)) {
             this.copUsed = this.cumulativeEnergy;
-            this.updateRollingCop();
         }
         if (this.hasCapability(ACTIVE_POWER_CAPABILITY))
             this.setCapabilityValue(ACTIVE_POWER_CAPABILITY, watts).catch(this.error);
@@ -1199,14 +1220,15 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     private persistCumulativeEnergy(force = false) {
         if (!force && Math.abs(this.cumulativeEnergy - this.persistedCumulativeEnergy) < 0.01)
-            return;
-        this.persistedCumulativeEnergy = this.cumulativeEnergy;
+            return Promise.resolve();
         // Rounded to milli-kWh on the way out. A settings number field renders the value exactly
         // as stored — `decimals` is a capability option and is ignored here — so the raw
         // accumulator showed as 99.39351378333367 in a box the user is invited to edit. The
         // in-memory total keeps full precision; only the visible, editable copy is rounded, and
         // reading it back at start-up costs at most half a milli-kWh.
-        this.setSettings({cumulativeEnergy: Math.round(this.cumulativeEnergy * 1000) / 1000})
+        const snapshot = this.cumulativeEnergy;
+        return this.setSettings({cumulativeEnergy: Math.round(snapshot * 1000) / 1000})
+            .then(() => { this.persistedCumulativeEnergy = snapshot; })
             .catch(this.error);
     }
 
@@ -1303,8 +1325,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     async onUninit() {
         // Flush the debounced meter before going away, so an orderly restart or a repair keeps
         // the fraction of a kWh the 0.01 step was still holding.
-        this.persistCumulativeEnergy(true);
         this.connection?.detach(this);
+        await this.persistCumulativeEnergy(true);
     }
 
     // onAdded, not onInit: onInit runs on every app start, so counting devices there would report
