@@ -287,7 +287,7 @@ deliberately excluded.
 
 ### Why did hot-water availability or COP briefly go blank?
 
-From 1.2.2, a completed poll must contain the readings needed for that estimate. If a required
+From 1.2.1, a completed poll must contain the readings needed for that estimate. If a required
 reading is missing, the app shows no estimate until measurement resumes. It does not combine a
 fresh temperature with an old one or trigger a low-water crossing across a measurement gap.
 

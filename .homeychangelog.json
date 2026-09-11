@@ -1,5 +1,5 @@
 {
-  "1.2.2": {
+  "1.2.1": {
     "en": "Fixes operating-mode Flows, efficiency readings after a lost connection, and false low-hot-water alerts. Repair keeps your available sensor choices, and the app recovers faster when the pump stops answering. Settings are confirmed with the pump before being reported as changed.",
     "sv": "Rättar flöden för driftläge, effektivitetsvärden efter anslutningsavbrott och felaktiga varningar om lite varmvatten. Reparera behåller tillgängliga givarval, och appen återhämtar sig snabbare när värmepumpen slutar svara. Inställningar bekräftas av värmepumpen innan de visas som ändrade."
   },

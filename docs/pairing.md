@@ -230,6 +230,6 @@ rather than per-read, which also closes the gap where a *fresh* pair on an S735 
 before any runtime fallback could apply.
 
 
-From 1.2.2, detection through an existing connection uses the shared wire queue and returns the
+From 1.2.1, detection through an existing connection uses the shared wire queue and returns the
 same sensor-choice detail as initial pairing. Leaving detection cancels its remaining reads;
 completed detection results remain available for the selection step.

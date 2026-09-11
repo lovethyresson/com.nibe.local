@@ -4,9 +4,9 @@
 that touches attribution, the power sources, the role mapping or the COP accumulators — not on every build.
 The [README](../README.md) links here and carries the user-facing summary.
 
-Last reviewed against the code: **1.2.2 (local test)**; hardware accuracy measurements below retain their original dates.
+Last reviewed against the code: **1.2.1 (local test)**; hardware accuracy measurements below retain their original dates.
 
-## Missing readings and reconnects (1.2.2)
+## Missing readings and reconnects (1.2.1)
 
 Unavailable sentinels, negative consumption and non-finite power values are rejected before
 integration. A summed source is usable only when every component is present; otherwise the
