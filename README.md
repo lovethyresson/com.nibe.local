@@ -71,9 +71,22 @@ for permissions, missing readings and returning to your native sensor.
 Hot Water Setup retains the tank catalogue, automatic estimate and custom capacity options.
 Repair saves directly with **Save changes**.
 
-Heating also gains a **Set outdoor temperature (BT1)** Flow action.
-It sends a single reading, not an automatic outdoor-sensor feed; see
-[external temperatures](docs/external-sensors.md).
+### Set outdoor temperature (BT1)
+
+The Heating device's **Set outdoor temperature (BT1)** Flow action only takes effect when
+**external BT1 input is enabled on the heat pump**. Enabling Modbus alone is not enough.
+
+On the pump:
+
+1. Open menu **7.5.9 — Modbus TCP/IP** and enable Modbus TCP/IP.
+2. Open submenu **7.5.9.2 — External sensor inputs** and enable **Outdoor temperature (BT1)**.
+3. Run the Flow action and check that the pump's outdoor-temperature reading reflects the supplied value.
+
+Menu labels can vary by model, language and firmware. NIBE documents external-sensor support
+from firmware 2.21.12; see the [NIBE Modbus manual](https://headless.nibe.eu/download/18.3bd9d98318c457ffd811678/1703680919076/M12676EN2.pdf).
+
+The card sends a single reading. It does not start the automatic 30-second feed used for indoor
+BT50 sensors. See [external temperatures](docs/external-sensors.md) for refresh and fallback limitations.
 
 ## Know what each job actually costs
 

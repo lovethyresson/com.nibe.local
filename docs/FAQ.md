@@ -64,7 +64,9 @@ The app checks that external BT50 is disabled before stopping its feed.
 
 This Heating Flow action sends one outdoor-temperature reading. It is separate from the automatic
 indoor feed. A successful Flow action confirms the write was accepted, not that the pump is using
-it. External BT1 must be configured on the pump. The wired-sensor fallback and loss-of-feed
+it. Enable Modbus TCP/IP in menu **7.5.9**, then enable **Outdoor temperature (BT1)** under
+**7.5.9.2 — External sensor inputs**. Enabling Modbus alone is not enough. See the
+[README setup steps](../README.md#set-outdoor-temperature-bt1). The wired-sensor fallback and loss-of-feed
 behaviour are not verified; do not assume stopping a Flow restores the physical sensor.
 
 ### Where did the hot-water tank settings move?
