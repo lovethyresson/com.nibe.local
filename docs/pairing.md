@@ -88,7 +88,7 @@ Indoor temperature is the example, and the reason this exists:
 **Nibe's CSV calls 116 "(BT50)" and that is legacy wording, not a fact.** The maintainer's S1155 has no wired
 room sensor at all — 26/25/24 all answer with a Modbus exception and "Use room sensor CS1" reads 0 — yet 116
 reports a real, independently moving value, because it comes from the wireless room unit assigned to the zone.
-So the app never says BT50 to the user.
+Native-source labels distinguish climate-system averages from individual sensors. The external-sensor setup explicitly names BT50, whose effective reading is input 26.
 
 In a one-zone house only 116 answers and there is nothing to ask. In a house with a wired sensor *and* zone
 sensors, two or three of these are alive at once and genuinely differ. Until 0.9.13 the table declared 111 as
@@ -234,13 +234,13 @@ From 1.2.1, detection through an existing connection uses the shared wire queue 
 same sensor-choice detail as initial pairing. Leaving detection cancels its remaining reads;
 completed detection results remain available for the selection step.
 
-## Device Setup and Homey indoor sensors (development branch, September 2026)
+## Device Setup and Homey indoor sensors (1.3.0)
 
 Device/features selection now opens a shared Device Setup overview. Heating Setup contains the
 NIBE source choices and Homey sensor selection; Hot Water Setup uses the existing tank catalogue,
 custom capacity and no-estimate option. Sections remain mounted in a hidden parking area while
-navigating, so Back preserves the actual field state. Final review is the creation/save boundary;
-analytics consent appears there once. Manual BT50 activation in Repair is a separate explicit
+navigating, so Back preserves the actual field state. Pairing ends with a final creation review and analytics consent. Repair saves directly from
+Device Setup with **Save changes**. Manual BT50 activation in Repair is a separate explicit
 commit because an established feed must outlive the wizard.
 
 Homey sensor selection is search-first, with Show all, room/type filters, selected chips and pages

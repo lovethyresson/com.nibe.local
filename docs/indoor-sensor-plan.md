@@ -1,6 +1,6 @@
 # Indoor temperature sources — implementation plan
 
-Status: implemented as a local test candidate, 11 September 2026. See docs/pairing.md for the implementation contract and deviations (snapshot polling, explicit reading-age limit, and pairing activation deferred to Repair). Live lifecycle acceptance and Store permission approval remain outstanding. No pump settings or running app changed by this implementation.
+Historical design plan for 1.3.0. The implementation is merged and installed on the maintainer’s Homey. See docs/pairing.md and docs/FAQ.md for current behaviour; later UI decisions supersede review/save and timestamp proposals below. Wider hardware lifecycle acceptance and Store permission approval remain outstanding.
 
 ## Scope and product model
 

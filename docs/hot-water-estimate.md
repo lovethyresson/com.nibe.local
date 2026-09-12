@@ -197,9 +197,8 @@ and would permanently suppress the learned figure.
 
 A card headed **Hot water tank**: a one-line explanation, a dropdown, and a compact
 "cold water coming in" row. "Work it out for me (recommended)" is first and selected by default;
-"Other tank…" is last and reveals a labelled litres field. In Repair it is a card of its own; in
-pairing it is nested inside the Hot Water device's card (`.tank-nested`, which adds the separating
-rule) and hides with that device's checkbox.
+"Other tank…" is last and reveals a labelled litres field. Since 1.3.0, both pairing and Repair place this picker in **Hot Water Setup**, reached from
+Device Setup after feature selection. The tank catalogue and choices are unchanged.
 
 Verified in a browser at 375 px and 400 px, light and dark, English and Swedish, including the
 longest catalogue entry and the "Other tank…" path — see `dev/preview/` (gitignored; serve the repo

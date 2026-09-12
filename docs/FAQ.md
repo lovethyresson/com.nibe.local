@@ -3,6 +3,73 @@
 Mostly "why doesn't this match?" questions. The mechanism behind the energy answers is in
 [`energy-attribution.md`](energy-attribution.md).
 
+## Homey temperature sensors
+
+### Can I use my own sensors instead of NIBE's room sensor?
+
+Yes, with a pump and firmware supporting external BT50. Open **Heating → Repair → Heating Setup**
+and choose **Use your own Homey temperature sensors**. Search by sensor name, room or device type,
+or select **Show all**. Rooms follow Homey's order. Choose one sensor or several for an equal average:
+three selected sensors each contribute one third. There are no custom weights or floor groups.
+
+The app accepts standard Homey temperature sensors reporting Celsius, including temperature
+capabilities on devices such as smoke alarms. It excludes Nibe Live's own readings to avoid a loop.
+
+### What do I change on the pump?
+
+The setup screen guides you through enabling external room sensor BT50 in menu **7.5.9.2**,
+assigning BT50 to the intended zone in room sensor / zone settings (**1.3.3 / 1.3.4**),
+and selecting it to control heating. Replace the previous controlling sensor if that is your intent.
+Menus and support vary by model and firmware; effective BT50 writes were verified on an S1155-16.
+
+Use **Verify settings** in Repair to start updates and check the pump's BT50 reading.
+This verifies receipt of the temperature; it cannot prove which zone the pump uses for control.
+Pairing saves a pending selection; finish activation in Repair while you can access the pump.
+
+### Does this replace my thermostat or Smart Price Adaption?
+
+No. The app supplies the measured indoor temperature. The pump still controls heating and uses its
+existing target temperature and Smart Price Adaption settings. BT50 and the zone's averaged
+temperature can differ if the pump combines BT50 with other room sensors.
+
+### Why does the app need permission to access other Homey devices?
+
+It uses Homey's API permission to discover temperature sensors, show their rooms, and read their
+values and update times. The permission is broader than temperature access, but this feature uses
+it to read sensors and room information. It does not change those devices. Sensor names, room names
+and readings are not sent as anonymous usage data.
+
+### What happens if a sensor stops reporting?
+
+Every selected sensor must be available and have a valid reading within the configured reading-age
+limit (two hours by default). If any fails that check, the app stops sending new temperatures,
+shows a warning and retries. It does not silently drop a room from the average.
+
+Sensors that report only when their temperature changes can exceed this limit even if they are
+still online. Review the reading-age setting against how your sensors report.
+
+Once activated, updates continue after Repair closes and resume after an app restart. If Homey
+or the feed stops for long enough, the pump can raise a BT50 alarm. Do not assume it automatically
+returns to the native sensor.
+
+### How do I return to the pump's own sensor?
+
+First restore the native sensor as the zone's controlling sensor and disable external BT50 on the
+pump. Then choose **Use the heat pump’s native temperature sensor** in Heating Setup.
+The app checks that external BT50 is disabled before stopping its feed.
+
+### What does Set outdoor temperature (BT1) do?
+
+This Heating Flow action sends one outdoor-temperature reading. It is separate from the automatic
+indoor feed. A successful Flow action confirms the write was accepted, not that the pump is using
+it. External BT1 must be configured on the pump. The wired-sensor fallback and loss-of-feed
+behaviour are not verified; do not assume stopping a Flow restores the physical sensor.
+
+### Where did the hot-water tank settings move?
+
+Open **Hot Water → Repair → Hot Water Setup**. The existing tank catalogue, automatic estimate,
+custom capacity and no-estimate choices remain available. **Save changes** saves directly.
+
 ## Numbers that don't match myUplink or the pump
 
 ### Should the app agree with my pump's own display?
