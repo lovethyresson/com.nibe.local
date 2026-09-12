@@ -2,7 +2,6 @@
 export interface SensorRef { deviceId: string; capabilityId: string }
 export interface IndoorConfig {
     sensors: SensorRef[];
-    maxAgeMinutes: number;
     state: 'pending' | 'active';
 }
 export interface SensorReading extends SensorRef {
@@ -22,20 +21,17 @@ export function cleanIndoorConfig(raw: any): IndoorConfig {
             throw new Error('A sensor can only be selected once.');
         sensors.push({deviceId: item.deviceId, capabilityId: item.capabilityId});
     }
-    const maxAgeMinutes = Number(raw.maxAgeMinutes ?? 120);
-    if (!Number.isInteger(maxAgeMinutes) || maxAgeMinutes < 5 || maxAgeMinutes > 1440)
-        throw new Error('Reading age must be between 5 and 1440 minutes.');
     // Only a device-owned activation can promote a pending selection to active.
-    return {sensors, maxAgeMinutes, state: 'pending'};
+    return {sensors, state: 'pending'};
 }
-export function averageSensors(config: IndoorConfig, readings: SensorReading[], now = Date.now()): number {
+export function averageSensors(config: IndoorConfig, readings: SensorReading[]): number {
     const values = config.sensors.map(ref => {
         const s = readings.find(r => r.deviceId === ref.deviceId && r.capabilityId === ref.capabilityId);
         if (!s || !s.available || typeof s.value !== 'number' || !Number.isFinite(s.value)
             || s.value < 5 || s.value > 40)
             throw new Error('A selected room sensor is missing, unavailable or outside 5–40 °C.');
-        if (!s.updatedAt || s.updatedAt > now + 60000 || now - s.updatedAt > config.maxAgeMinutes * 60000)
-            throw new Error('A selected sensor has no recent temperature update. Check its app or the reading-age limit.');
+        // A capability timestamp can mean last value change, not last device contact.
+        // The pump refresh cadence must not depend on source timestamp age.
         return s.value;
     });
     if (!values.length) throw new Error('Choose at least one sensor.');

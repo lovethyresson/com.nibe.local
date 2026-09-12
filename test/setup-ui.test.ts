@@ -124,12 +124,12 @@ test('review failures appear beside the action and leave a working retry button'
     assert.ok(f.win.document.querySelector('.setup-chip'));
     const originalEmit = f.win.Homey.emit;
     f.win.Homey.emit = (name: string, data: any, callback: any) => {
-        if (name === 'validate_indoor_sensors') callback({message: 'A selected sensor has no recent temperature update.'});
+        if (name === 'validate_indoor_sensors') callback({message: 'A selected sensor is unavailable.'});
         else originalEmit(name, data, callback);
     };
     f.click('Review sensors'); await new Promise(resolve => setImmediate(resolve));
     const error = f.win.document.querySelector('.setup-error');
-    assert.match(error.textContent, /no recent/);
+    assert.match(error.textContent, /unavailable/);
     assert.equal(error.nextElementSibling.textContent, 'Review sensors');
     assert.equal(error.nextElementSibling.disabled, false);
     f.win.Homey.emit = originalEmit;

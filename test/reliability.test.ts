@@ -331,3 +331,18 @@ test('BT50 verification allows delayed effective readback beyond the original th
     assert.equal(reads, 5);
     assert.equal(result.measured, 22);
 });
+
+test('BT50 repeatedly sends unchanged readings older than the legacy age limit', async (t) => {
+    const {d, config} = indoorDevice(); t.after(() => d.stopIndoor());
+    const writes: number[] = [];
+    d.connection = {writeRegisterValue: async (_r: Register, value: number) => { writes.push(value); }};
+    d.readIndoorSensors = async () => [{deviceId: 'room', capabilityId: 'measure_temperature',
+        value: 22, available: true, updatedAt: Date.now() - 24 * 3600000}];
+    await d.activateIndoor(config);
+    await d.sendIndoor(config);
+    assert.deepEqual(writes, [220, 220]);
+    d.readIndoorSensors = async () => [{deviceId: 'room', capabilityId: 'measure_temperature',
+        value: 22, available: false, updatedAt: Date.now()}];
+    await assert.rejects(d.sendIndoor(config), /unavailable/);
+    assert.deepEqual(writes, [220, 220]);
+});

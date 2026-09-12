@@ -20,7 +20,6 @@ function NibeSetup(options) {
     var config = options.indoorSensors || null;
     var useHomey = !!config;
     var selected = (config && config.sensors || []).slice();
-    var maxAge = config && config.maxAgeMinutes || 120;
     var inventory = [];
     var validated = false;
     var heating;
@@ -77,7 +76,7 @@ function NibeSetup(options) {
     function back(fn) {
         var b = button(t('back'), fn); b.classList.add('setup-back'); navigation.appendChild(b);
     }
-    function draft() { return {sensors: selected.slice(), maxAgeMinutes: Number(maxAge), state: 'pending'}; }
+    function draft() { return {sensors: selected.slice(), state: 'pending'}; }
     function key(s) { return s.deviceId + ':' + s.capabilityId; }
     function nativeMode() {
         if (active) { handover(); return; }
@@ -132,17 +131,11 @@ function NibeSetup(options) {
         var picked = el('div', undefined, 'setup-picked'); picked.setAttribute('aria-live', 'polite');
         var results = el('div'); results.setAttribute('aria-live', 'polite');
         var showAll = false; var page = 0; var onlySelected = false;
-        var age = document.createElement('input'); age.type = 'number'; age.min = '5'; age.max = '1440'; age.value = maxAge;
-        age.className = 'tank-field';
-        var ageLabel = el('label', t('max_age')); ageLabel.appendChild(age);
-        age.onchange = function () { maxAge = Number(age.value); validated = false; };
         var next = button(t('review_sensors'), function () { busy(next, async function () {
             var result = await emit('validate_indoor_sensors', draft());
             config = result.config; validated = true; reviewSensors(result.value);
         }); }, true);
-        var advanced = el('details', undefined, 'setup-advanced');
-        advanced.append(el('summary', t('reading_settings')), ageLabel, el('p', t('age_hint'), 'register-desc'));
-        shell.append(search, filters, picked, next, results, advanced);
+        shell.append(search, filters, picked, next, results);
         back(temperature);
         function normalized(text) { return String(text).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
         function fill(select, title, values) {
@@ -205,7 +198,7 @@ function NibeSetup(options) {
         }
         search.oninput = function () { page = 0; draw(); }; room.onchange = type.onchange = function () { page = 0; draw(); };
         var refresh = button(t('refresh'), function () { busy(refresh, load); });
-        refresh.classList.add('setup-small-action'); advanced.appendChild(refresh);
+        refresh.classList.add('setup-small-action'); shell.appendChild(refresh);
         async function load() {
             inventory = await emit('get_indoor_sensors');
             fill(room, t('all_rooms'), Array.from(new Set(inventory.map(function (s) { return s.room; }))));

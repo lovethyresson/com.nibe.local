@@ -41,12 +41,14 @@ and readings are not sent as anonymous usage data.
 
 ### What happens if a sensor stops reporting?
 
-Every selected sensor must be available and have a valid reading within the configured reading-age
-limit (two hours by default). If any fails that check, the app stops sending new temperatures,
-shows a warning and retries. It does not silently drop a room from the average.
+The app sends the latest temperature to BT50 every 30 seconds after each completed update,
+even when the value has not changed. A source's last temperature-change timestamp does not
+determine this schedule and does not expire the reading.
 
-Sensors that report only when their temperature changes can exceed this limit even if they are
-still online. Review the reading-age setting against how your sensors report.
+Every selected sensor must still be available and have a valid temperature. If a sensor is missing,
+unavailable or outside the supported 5–40 °C range, the app stops sending, warns you and retries.
+It does not silently drop a room from the average. Homey's availability flag depends on the sensor
+app; it is not a guarantee that a battery-powered device is still communicating.
 
 Once activated, updates continue after Repair closes and resume after an app restart. If Homey
 or the feed stops for long enough, the pump can raise a BT50 alarm. Do not assume it automatically

@@ -257,11 +257,11 @@ shown separately in Repair diagnostics. The thermostat setpoint is unchanged.
 
 One device owns the feed per pump address. Updates run on the shared Modbus queue at 30-second
 intervals after each completed cycle, independently of the wizard. The current implementation
-reads fresh Homey API snapshots instead of capability subscriptions: it trusts the provider's
-original capability timestamp, never the time a cached value was fetched. All selected sources
-must be available, finite, 5–40 °C and within the configured maximum age (default 120 minutes,
-allowed 5–1440). This conservative policy can pause an unchanged sensor whose app only updates
-timestamps on value changes; the picker explains the limit. No source is silently omitted.
+reads Homey API snapshots instead of capability subscriptions. All selected sources must be
+available, finite and 5–40 °C. Since 1.3.1, source timestamps are display information only:
+unchanged readings are sent again every cycle, regardless of their age. Legacy saved
+`maxAgeMinutes` fields are ignored and removed when the configuration is next saved.
+No source is silently omitted.
 
 Failures pause delivery, retain the persisted configuration for retry, warn the device and notify
 once per outage. On app restart the persisted active configuration resumes. Failed replacements

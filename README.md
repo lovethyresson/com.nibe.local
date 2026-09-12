@@ -64,7 +64,7 @@ When adding a new Heating device, pairing can save your sensor choices. Finish a
 
 This requires a pump and firmware supporting external BT50. Effective writes have been verified on
 an S1155-16; support and menu layout can differ on other models. Homey and every selected sensor
-must keep supplying valid readings. See the [sensor FAQ](docs/FAQ.md#homey-temperature-sensors)
+must remain available with valid readings; unchanged temperatures are resent every 30 seconds. See the [sensor FAQ](docs/FAQ.md#homey-temperature-sensors)
 for permissions, missing readings and returning to your native sensor.
 
 **Heating Setup** and **Hot Water Setup** now group configuration separately from feature selection.

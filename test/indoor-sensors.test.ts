@@ -10,17 +10,20 @@ const config = cleanIndoorConfig({sensors: readings, state: 'active'});
 test('selection is whitelisted, pending, unique and requires all selected floors', () => {
     assert.equal(config.state, 'pending');
     assert.deepEqual(Object.keys(config.sensors[0]), ['deviceId', 'capabilityId']);
-    assert.equal(averageSensors(config, readings, now), 22);
-    assert.throws(() => averageSensors(config, readings.slice(1), now), /missing/);
+    assert.equal(averageSensors(config, readings), 22);
+    assert.throws(() => averageSensors(config, readings.slice(1)), /missing/);
     assert.throws(() => cleanIndoorConfig({sensors: [readings[0], readings[0]]}), /once/);
     assert.throws(() => cleanIndoorConfig({sensors: []}), /Choose/);
 });
-test('cached reads do not renew observation age; every source must be usable', () => {
-    assert.throws(() => averageSensors(config, readings, now + 121 * 60000), /recent/);
-    for (const invalid of [{value: NaN}, {value: null}, {value: 3276.8}, {available: false}, {value: -1}])
-        assert.throws(() => averageSensors(config, [{...readings[0], ...invalid}, ...readings.slice(1)], now));
-    assert.throws(() => averageSensors(config, [{...readings[0], updatedAt: null}, ...readings.slice(1)], now));
-    assert.throws(() => cleanIndoorConfig({sensors: readings, maxAgeMinutes: 0}));
+test('source timestamps never expire usable readings, including legacy saved age limits', () => {
+    const legacy = cleanIndoorConfig({sensors: readings, maxAgeMinutes: 120});
+    assert.equal('maxAgeMinutes' in legacy, false);
+    for (const updatedAt of [now - 24 * 3600000, null, now + 3600000])
+        assert.equal(averageSensors(legacy, readings.map(r => ({...r, updatedAt}))), 22);
+});
+test('unavailable, missing and invalid sources still block the whole average', () => {
+    for (const invalid of [{value: NaN}, {value: null}, {value: Infinity}, {value: 3276.8}, {available: false}, {value: -1}])
+        assert.throws(() => averageSensors(config, [{...readings[0], ...invalid}, ...readings.slice(1)]), /missing/);
 });
 test('inventory respects room hierarchy and saved order, rejects feedback and unknown units', () => {
     const zones = {root: {id: 'root', name: 'Home', parent: null},
