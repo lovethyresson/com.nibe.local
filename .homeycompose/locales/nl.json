@@ -64,6 +64,15 @@
       "auto": "Warmtapwater niet schatten",
       "custom": "Andere boiler…",
       "litres": "Boilerinhoud"
+    },
+    "gateway": {
+      "title": "Gatewayverbinding",
+      "type": "Gateway",
+      "port": "TCP-poort",
+      "unit": "Modbus-ID",
+      "hint": "Verbind MODBUS 40 via een RTU-naar-TCP-brug of gebruik een compatibele nibegw-esp-gateway. F-serie: experimenteel, alleen uitlezen.",
+      "invalid": "Kies een gateway, poort van 1–65535 en Modbus-ID van 1–247.",
+      "detect_intro": "De waarden van je warmtepomp worden gecontroleerd. Afhankelijk van de gateway kan dit enkele minuten duren."
     }
   },
   "groups": {
@@ -92,5 +101,40 @@
   "hotwater": {
     "tank_setup": "Kies je boiler bij Herstellen",
     "inlet_assumed": "aangenomen"
-  }
+  },
+  "Transfer": "Overdracht",
+  "0": "0",
+  "1": "1",
+  "2": "2",
+  "3": "3",
+  "4": "4",
+  "5": "5",
+  "6": "6",
+  "7": "7",
+  "8": "8",
+  "9": "9",
+  "10": "10",
+  "11": "11",
+  "12": "12",
+  "13": "13",
+  "14": "14",
+  "15": "15",
+  "-10": "-10",
+  "-9": "-9",
+  "-8": "-8",
+  "-7": "-7",
+  "-6": "-6",
+  "-5": "-5",
+  "-4": "-4",
+  "-3": "-3",
+  "-2": "-2",
+  "-1": "-1",
+  "0 = Small": "0 = Klein",
+  "1 = Medium": "1 = Gemiddeld",
+  "2 = Large": "2 = Groot",
+  "4 = Smart control": "4 = Smart control",
+  "3 hours": "3 uur",
+  "6 hours": "6 uur",
+  "12 hours": "12 uur",
+  "One-time increase": "Eenmalige verhoging"
 }

@@ -1,4 +1,8 @@
 {
+  "1.3.2": {
+    "en": "Test release only. Adds Nibe F-series (beta) for testing with compatible local Modbus gateways. Includes heating and hot-water controls where supported, gateway diagnostics and experimental energy allocation. F-series energy scaling and COP still need verification on real installations.",
+    "sv": "Endast testversion. Lägger till Nibe F-series (beta) för test med kompatibla lokala Modbus-gateways. Innehåller styrning av värme och varmvatten där det stöds, gatewaydiagnostik och experimentell energifördelning. Energiskalning och COP för F-serien behöver fortfarande verifieras i verkliga installationer."
+  },
   "1.3.1": {
     "en": "Let your rooms guide the heating. Use one Homey temperature sensor or average several, while your heat pump keeps its thermostat and Smart Price Adaption. Redesigned Heating and Hot Water setup makes configuration easier. Adds a Flow card to set outdoor temperature (BT1). Open Repair on your Heating device to get started.",
     "sv": "Låt dina rum styra värmen. Använd en temperaturgivare i Homey eller medelvärdet från flera, samtidigt som värmepumpen behåller sin termostat och Smart Price Adaption. Omgjord konfiguration för värme och varmvatten gör det enklare att komma igång. Nytt flödeskort för att ställa in utomhustemperaturen (BT1). Öppna Reparera på din värmeenhet för att komma igång."

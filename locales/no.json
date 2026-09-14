@@ -1,4 +1,20 @@
 {
+  "0": "0",
+  "1": "1",
+  "2": "2",
+  "3": "3",
+  "4": "4",
+  "5": "5",
+  "6": "6",
+  "7": "7",
+  "8": "8",
+  "9": "9",
+  "10": "10",
+  "11": "11",
+  "12": "12",
+  "13": "13",
+  "14": "14",
+  "15": "15",
   "Off": "Av",
   "Hot water": "Varmtvann",
   "Heating": "Varme",
@@ -156,6 +172,15 @@
       "success_one": "1 sensor tilkoblet",
       "success_many": "sensorer samarbeider",
       "save_changes": "Lagre endringer"
+    },
+    "gateway": {
+      "title": "Gatewaytilkobling",
+      "type": "Gateway",
+      "port": "TCP-port",
+      "unit": "Modbus-ID",
+      "hint": "Koble MODBUS 40 via en RTU-til-TCP-bro, eller bruk en kompatibel nibegw-esp-gateway. F-serien har eksperimentell støtte kun for avlesning.",
+      "invalid": "Velg gateway, port fra 1–65535 og Modbus-ID fra 1–247.",
+      "detect_intro": "Kontrollerer verdiene varmepumpen rapporterer. Avhengig av gateway kan dette ta flere minutter."
     }
   },
   "groups": {
@@ -185,5 +210,24 @@
     "cal_assumed": "Kalibrerer…",
     "inlet_measured": "målt",
     "inlet_assumed": "antatt"
-  }
+  },
+  "Transfer": "Overføring",
+  "-10": "-10",
+  "-9": "-9",
+  "-8": "-8",
+  "-7": "-7",
+  "-6": "-6",
+  "-5": "-5",
+  "-4": "-4",
+  "-3": "-3",
+  "-2": "-2",
+  "-1": "-1",
+  "0 = Small": "0 = Liten",
+  "1 = Medium": "1 = Middels",
+  "2 = Large": "2 = Stor",
+  "4 = Smart control": "4 = Smart styring",
+  "3 hours": "3 timer",
+  "6 hours": "6 timer",
+  "12 hours": "12 timer",
+  "One-time increase": "Engangsøkning"
 }

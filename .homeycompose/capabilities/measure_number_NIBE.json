@@ -1,0 +1,15 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Value",
+    "sv": "V\u00e4rde",
+    "de": "Wert",
+    "nl": "Waarde",
+    "no": "Verdi",
+    "da": "V\u00e6rdi"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "insights": true
+}

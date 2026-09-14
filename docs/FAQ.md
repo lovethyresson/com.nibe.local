@@ -3,6 +3,19 @@
 Mostly "why doesn't this match?" questions. The mechanism behind the energy answers is in
 [`energy-attribution.md`](energy-attribution.md).
 
+## F-series beta
+
+### What does the F-series beta support?
+
+Choose **Nibe F-series (beta)** when pairing through a compatible Modbus gateway. Available
+readings and controls depend on the pump, accessories and gateway write support. Testing can
+start with gateway writes disabled. LOG.SET should include frequently used energy inputs;
+other readings update more slowly. See the [F-series guide](f-series.md).
+
+Energy allocation is experimental. F730 testing has shown changing compressor-power readings,
+but their watt scaling remains unverified and the tested production counters stayed zero.
+COP needs usable production data. Do not treat beta energy figures as a verified meter.
+
 ## Homey temperature sensors
 
 ### Can I use my own sensors instead of NIBE's room sensor?

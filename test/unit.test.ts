@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readdirSync} from 'node:fs';
 import path from 'node:path';
+import {fProfile} from '../drivers/nibe_f/profile';
 
 import {
     Dir, combineRaw, signedValue, isUnavailableRaw, toNumericValue, isAdjustable, isPollable,
@@ -264,7 +265,8 @@ test('every custom capability type has at least one instance', () => {
         .map((f) => f.slice(0, -'.json'.length));
     assert.ok(types.length > 0, `no capability types found in ${dir}`);
 
-    const used = new Set(sProfile.compose.capabilities.map((c: string) => c.split('.')[0]));
+    const used = new Set([sProfile, fProfile].flatMap((p) => p.compose.capabilities)
+        .map((c: string) => c.split('.')[0]));
     for (const type of types)
         assert.ok(used.has(type), `capability type ${type} has no instance in driver.compose.json`);
 });

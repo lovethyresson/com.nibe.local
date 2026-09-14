@@ -118,18 +118,23 @@ Still open, and now with an audience:
 - [ ] ask Erik (S2125) for a debug log once published — the hourly attribution check will show
       how the split behaves on a pump where 2305 is the only power source
 
-## F-series — parked, and expect to re-plan
+## F-series — experimental driver in progress
 
-Paused 2026-07-30 and still paused. When it comes back it should start from a fresh plan rather
-than the old checklist: the engine has moved a long way since that was written — ordered
-power-source fallbacks, detection that requires a register to be *usable* rather than merely
-present, per-capability support gating, alternate address resolution at detection, the register
-dump, the display-order machinery — and the F design predates all of it.
+The `codex/f-series-diagnostics` branch adds a shared-engine F-series driver with automatic
+feature detection, a curated register superset from seven model exports, gateway address
+selection, and improved remote diagnostics. See [F-series support](../docs/f-series.md).
 
-The `feature/nibe-f-series` branch is deleted. Its Phase 1 work (the `lib/` extraction that made
-the engine model-agnostic) is all in main, so nothing is lost.
+Remaining validation: compare readings on the volunteer's F730, then independently test
+MODBUS 40 through a TCP bridge and other F models. Reviewed controls, conditional Heating rendering and experimental allocation/COP are included;
+compressor scaling, production availability and scope still require real-pump validation.
 
-What it would still need: an F register table, profile, compose, pair/repair views, locales and
-assets; energy and COP from native produced meters with summed power sources, degrading sensibly
-on fixed-speed units; and a live gateway user willing to run a beta, since there is no F hardware
-here to test against.
+- [x] Document F-series energy limits in the README: allocation covers
+      compressor and immersion consumption by operating priority. Main may show zero or very
+      little because fans, circulation pumps, controls and inverter losses are not accounted
+      for. Zero on Main does not mean zero standby electricity, and the function allocations
+      are not a complete whole-pump electricity breakdown. Match the wording to the final
+      validated implementation.
+
+F-series handover checklist: [owner tests](../docs/f-series-user-test.md).
+
+- [x] Incorporate F730 gateway follow-up: LOG.SET fast baseline, one slow background parameter per poll, two detection passes, observation-only debug dumps, delayed simulator mode. Hardware cache freshness remains to verify.

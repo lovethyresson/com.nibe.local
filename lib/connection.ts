@@ -1,3 +1,5 @@
+import {ReadDiagnostic, formatReadDiagnostic} from './read-diagnostics';
+import {frequentRegisterNames, planPoll} from './poll-plan';
 import net from 'net';
 import {ModbusTCPClient} from 'jsmodbus';
 import {Dir, Register, combineRaw, isPollable, isUnavailableRaw, signedValue, toNumericValue} from './registers';
@@ -29,6 +31,7 @@ export const DEAD_POLLS_BEFORE_RECONNECT = 2;
 export const POLL_DEADLINE_MS = 30_000;
 
 export interface Transport {
+    addressBase?: number;
     port: number;
     unitId: number;
 }
@@ -150,6 +153,7 @@ export class PumpConnection {
     private polling = false;
     private generation = 0;
     private unsupportedUntil = new Map<string, number>();
+    private backgroundAttempted = new Map<string, number>();
     private pollDeadlineMs = POLL_DEADLINE_MS;
     private pollDeadline: NodeJS.Timeout | null = null;
     private retryTimer: NodeJS.Timeout | null = null;
@@ -233,6 +237,7 @@ export class PumpConnection {
         this.wireLow = [];
         this.lastRaw.clear();
         this.unsupportedUntil.clear();
+        this.backgroundAttempted.clear();
     }
 
     // Energy integrator state. lastPowerReading is null right after every (re)connect so a
@@ -315,6 +320,7 @@ export class PumpConnection {
     private static readonly SHADOW_B_GAIN = 0.2;            // k: fraction of error corrected per poll
 
     private constructor(private host: string, private profile: ModelProfile, private transport: Transport) {
+        this.pollDeadlineMs = profile.pollDeadlineMs ?? POLL_DEADLINE_MS;
         this.powerGroups = profile.role.powerSources
             .map((group) => group
                 .map((name) => profile.registerByName[name])
@@ -354,8 +360,13 @@ export class PumpConnection {
             connection = new PumpConnection(host, profile, transport);
             connections.set(host, connection);
         }
+        if (connection.profile !== profile)
+            throw new Error('This address is already paired with a different pump driver. Remove that device before changing series.');
         return connection;
     }
+
+    matchesProfile(profile: ModelProfile): boolean { return this.profile === profile; }
+
 
     // The connection isn't a Homey Device/Driver, so its output goes through console.log and
     // doesn't get the ISO timestamp that Homey prefixes onto device/driver logs. Add one in the
@@ -367,6 +378,29 @@ export class PumpConnection {
     // Verbose logging (polling, priority changes, energy allocation). Off unless one of the
     // attached devices has "Debug logging" enabled; errors always log via this.log().
     private debugOn = false;
+    private readDiagnostics = new Map<string, ReadDiagnostic>();
+    private captureUntil = 0;
+    private captureCounts = new Map<string, number>();
+    private captureRemaining = 0;
+
+    describeLastRead(name: string): string {
+        const sample = this.readDiagnostics.get(name);
+        return sample ? formatReadDiagnostic(sample) : 'not sampled';
+    }
+
+    private recordRead(register: Register, sample: ReadDiagnostic) {
+        const previous = this.readDiagnostics.get(register.name);
+        this.readDiagnostics.set(register.name, sample);
+        const count = this.captureCounts.get(register.name) ?? 0;
+        if (this.debugOn && Date.now() <= this.captureUntil && count < 3 && this.captureRemaining > 0) {
+            this.captureCounts.set(register.name, count + 1);
+            this.captureRemaining--;
+            this.log(`Read sample ${count + 1}/3 ${register.name} NIBE=${register.address}: `
+                + formatReadDiagnostic(sample));
+        } else if (this.debugOn && sample.error && sample.error !== previous?.error) {
+            this.log(`Read failed ${register.name}: ${formatReadDiagnostic(sample)}`);
+        }
+    }
 
     refreshDebug() {
         const on = [...this.subscribers].some((subscriber) => subscriber.debugEnabled?.() ?? false);
@@ -375,8 +409,35 @@ export class PumpConnection {
         // Someone just switched debug logging on — almost always *after* the thing they are
         // chasing already happened. Restate the standing read failures so the log they are
         // about to send actually contains them.
-        if (turnedOn)
+        if (turnedOn) {
+            this.traceUntil = Date.now() + 2 * 3600_000;
+            this.lastEnergyTestAt = 0;
+            this.captureUntil = Date.now() + 60_000;
+            this.captureCounts.clear();
+            this.captureRemaining = 200;
+            this.log(`Read capture started: up to 3 samples per register / 200 total over 60 seconds; `
+                + `port=${this.transport.port} unit=${this.transport.unitId} `
+                + `addressBase=${this.transport.addressBase ?? this.profile.addressBase ?? 0}. `
+                + 'Samples use existing reads; receipt time does not establish gateway cache freshness.');
             this.logStandingFailures();
+        }
+    }
+
+    private traceUntil = 0;
+    private lastEnergyTestAt = 0;
+    private traceSnapshot(raws: Map<string, number>) {
+        const now = Date.now();
+        if (!this.debugOn || now > this.traceUntil || now - this.lastEnergyTestAt < 60_000 || !this.profile.diagnosticTrace) return;
+        this.lastEnergyTestAt = now;
+        const frequentNames = this.profile.polling ? frequentRegisterNames(this.profile) : undefined;
+        this.log(`Energy test ${new Date(now).toISOString()}: ` + this.profile.diagnosticTrace.map((name) => {
+            const r = this.profile.registerByName[name];
+            const frequent = !frequentNames || frequentNames.has(name);
+            const raw = frequent ? raws.get(name) : this.lastRaw.get(name);
+            const receipt = this.readDiagnostics.get(name)?.receivedAt;
+            return `${r.address}=${raw === undefined ? 'missing' : `${raw}/${toNumericValue(r, raw) ?? 'unavailable'}`}`
+                + (frequent ? '' : `[last-observed; latest-attempt=${receipt ?? 'never'}]`);
+        }).join(' '));
     }
 
     private logStandingFailures() {
@@ -450,7 +511,8 @@ export class PumpConnection {
     // Change transport (port/unit id) and reconnect with the new parameters. Called from the
     // device settings handler; a no-op if nothing changed.
     applyTransport(transport: Transport) {
-        if (transport.port === this.transport.port && transport.unitId === this.transport.unitId)
+        if (transport.port === this.transport.port && transport.unitId === this.transport.unitId
+            && transport.addressBase === this.transport.addressBase)
             return;
         this.debug(`Transport changed to port ${transport.port}, unit ${transport.unitId} — reconnecting`);
         this.transport = transport;
@@ -582,6 +644,9 @@ export class PumpConnection {
     // device is paired). Command registers are skipped — there's nothing to read back.
     private unionRegisters(): Register[] {
         const byName = new Map<string, Register>();
+        if (this.debugOn && Date.now() <= this.traceUntil)
+            for (const name of this.profile.diagnosticTrace ?? [])
+                byName.set(name, this.profile.registerByName[name]);
         for (const subscriber of this.subscribers)
             for (const register of subscriber.wantedRegisters().filter(isPollable))
                 byName.set(register.name, register);
@@ -654,7 +719,7 @@ export class PumpConnection {
     }
 
     private pduAddress(register: Register): number {
-        return this.profile.addressBase ? register.address - this.profile.addressBase : register.address;
+        return register.address - (this.transport.addressBase ?? this.profile.addressBase ?? 0);
     }
 
     // `track` records the outcome for the read-failure report. Pass false for deliberate
@@ -666,23 +731,35 @@ export class PumpConnection {
         const generation = this.generation;
         const count = register.size === 32 ? 2 : 1;
         const address = this.pduAddress(register);
-        return await this.withWireAccess<any>(() => (register.direction === Dir.In)
-            ? this.client.readInputRegisters(address, count)
-            : this.client.readHoldingRegisters(address, count), lane)
+        const queued = Date.now();
+        let started = queued;
+        const evidence = (words: number[], error?: string): ReadDiagnostic => ({
+            receivedAt: new Date().toISOString(), address,
+            functionCode: register.direction === Dir.In ? 4 : 3, count, words,
+            durationMs: Date.now() - started, queueMs: started - queued, error
+        });
+        return await this.withWireAccess<any>(() => {
+            started = Date.now();
+            return register.direction === Dir.In
+                ? this.client.readInputRegisters(address, count)
+                : this.client.readHoldingRegisters(address, count);
+        }, lane)
             .then((resp: any) => {
-                const raw = combineRaw(resp.response.body.values as number[], register.size);
-                // A pump can answer without returning a usable value — a short or empty value
-                // array yields undefined (16-bit) or NaN (32-bit, missing high word). That is
-                // a failed read, not a reading of zero, and must not be scored as a success.
-                if (raw === undefined || Number.isNaN(raw)) {
+                if (generation !== this.generation) return undefined;
+                const words = Array.from(resp.response.body.values as number[]);
+                const raw = combineRaw(words, register.size);
+                if (words.length !== count || raw === undefined || Number.isNaN(raw)) {
+                    this.recordRead(register, evidence(words, `Short response: expected ${count} words, got ${words.length}`));
                     if (track) this.noteRead(register, false);
                     return undefined;
                 }
+                this.recordRead(register, evidence(words));
                 if (track) this.noteRead(register, true);
                 return raw;
             })
             .catch((error) => {
                 if (generation !== this.generation) return undefined;
+                this.recordRead(register, evidence([], describeModbusError(error).summary));
                 if (track) {
                     this.noteRead(register, false);
                     const code = describeModbusError(error).code;
@@ -713,9 +790,13 @@ export class PumpConnection {
     // read-only register — this code previously sent [low, high] and the register was written off
     // as unwritable on that evidence. Do not "correct" the order to match the read path.
     async writeRegisterValue(register: Register, raw: number): Promise<void> {
+        if (this.profile.readOnly) throw new Error("This driver is currently read-only.");
+        if (register.noAction && !register.writeOnly) throw new Error('This register is read-only');
         const address = register.address;
         if (register.size !== 32) {
-            await this.writeSingleRegister(address, raw);
+            if (this.profile.singleWordWriteFunction === 16)
+                await this.writeMultipleRegisters(address, [raw]);
+            else await this.writeSingleRegister(address, raw);
             return;
         }
         // Two's complement across both words, so a negative value writes 0xFFFF high rather
@@ -730,7 +811,8 @@ export class PumpConnection {
     // triggered it. `address` is the register's logical address; the model offset is applied
     // here at the wire boundary.
     async writeSingleRegister(address: number, raw: number): Promise<void> {
-        const pdu = this.profile.addressBase ? address - this.profile.addressBase : address;
+        if (this.profile.readOnly) throw new Error("This driver is currently read-only.");
+        const pdu = address - (this.transport.addressBase ?? this.profile.addressBase ?? 0);
         try {
             await this.withWireAccess(() => this.client.writeSingleRegister(pdu, raw), 'write');
         } catch (reason: any) {
@@ -748,7 +830,8 @@ export class PumpConnection {
     // The two-word form, for 32-bit registers. Same error handling as the single-word write:
     // throws with a readable summary rather than swallowing.
     async writeMultipleRegisters(address: number, values: number[]): Promise<void> {
-        const pdu = this.profile.addressBase ? address - this.profile.addressBase : address;
+        if (this.profile.readOnly) throw new Error("This driver is currently read-only.");
+        const pdu = address - (this.transport.addressBase ?? this.profile.addressBase ?? 0);
         try {
             await this.withWireAccess(() => this.client.writeMultipleRegisters(pdu, values), 'write');
         } catch (reason: any) {
@@ -779,10 +862,11 @@ export class PumpConnection {
         ]);
         // Keep priority and power close together, before slower diagnostic reads. Critical
         // energy inputs are never put on cooldown, even when an optional fallback is absent.
-        const toPoll = this.unionRegisters()
+        const eligible = this.unionRegisters()
             .filter((r) => critical.has(r.name) || Date.now() >= (this.unsupportedUntil.get(r.name) ?? 0))
             .sort((a, b) => Number(critical.has(b.name)) - Number(critical.has(a.name)));
-        Promise.all(toPoll.map((register) => this.readRegisterRaw(register))).then((raws) => {
+        const {frequent: toPoll, background} = planPoll(this.profile, eligible, this.backgroundAttempted, Date.now());
+        Promise.all(toPoll.map((register) => this.readRegisterRaw(register))).then(async (raws) => {
             if (generation !== this.generation || !this.connected) return;
             const rawByName = new Map<string, number>();
             toPoll.forEach((register, i) => {
@@ -826,6 +910,7 @@ export class PumpConnection {
 
             this.reportReadFailures(rawByName.size > 0);
             this.reportEnergyLogSteps(rawByName);
+            this.traceSnapshot(rawByName);
             this.allocateEnergy(rawByName);
 
             // Profile reset rules on priority transitions (e.g. clear "More hot water" once the
@@ -849,6 +934,19 @@ export class PumpConnection {
             }));
             for (const subscriber of this.subscribers)
                 subscriber.onPollComplete?.(readNames);
+
+            // Publish allocation/COP before spending time on a slow parameter. These values
+            // update their own capabilities, without creating another energy integration step.
+            for (const register of background) {
+                this.backgroundAttempted.set(register.name, Date.now());
+                const raw = await this.readRegisterRaw(register);
+                if (generation !== this.generation || !this.connected) return;
+                if (raw === undefined) continue;
+                this.lastRaw.set(register.name, raw);
+                for (const subscriber of this.subscribers)
+                    if (subscriber.wantedRegisters().some((r) => r.name === register.name))
+                        subscriber.onRegisterRaw(register, raw);
+            }
         }).catch((error) => {
             // Not the "pump stopped answering" path — readRegisterRaw() never rejects, so this
             // only ever sees a genuine bug in the poll body above (a decode throwing, a
@@ -1257,8 +1355,8 @@ export class PumpConnection {
             const raw = rawByName.get(register.name);
             if (raw === undefined || isUnavailableRaw(raw, register.size))
                 return null;
-            const value = signedValue(raw, register.size) / (register.scale || 1);
-            if (!Number.isFinite(value) || value < 0) return null;
+            const value = toNumericValue(register, raw);
+            if (value === undefined || !Number.isFinite(value) || value < 0) return null;
             any = true;
             watts += value;
         }

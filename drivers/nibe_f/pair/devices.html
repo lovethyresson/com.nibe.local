@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../assets/pair/pair.css">
+</head>
+<body>
+<div id="nibe-pair-setup">
+
+<div class="pair-hero">
+    <div class="pair-hero-icon"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="32"/><path d="M50 34v32M34 50h32"/></svg></div>
+    <div class="pair-hero-title" data-i18n="pair.devices.title"></div>
+    <p class="pair-hero-sub" data-i18n="pair.devices.intro"></p>
+</div>
+
+<form class="homey-form">
+    <div id="devices"></div>
+
+    <div class="consent" id="consent-row" style="display: none">
+        <h3 data-i18n="pair.setup.analytics_title"></h3>
+        <p class="register-desc" data-i18n="pair.setup.analytics_benefit"></p>
+        <label class="consent-label">
+            <input type="checkbox" id="analytics-consent">
+            <span data-i18n="pair.devices.analytics"></span>
+        </label>
+        <p class="register-desc" data-i18n="pair.setup.analytics_details"></p>
+        <p class="register-desc" data-i18n="pair.setup.analytics_optional"></p>
+    </div>
+
+    <button class="homey-button-primary-full" id="add" style="display: none" data-i18n="pair.devices.add"></button>
+</form>
+
+</div>
+<script type="text/javascript" src="../../../assets/pair/setup.js"></script>
+<script type="text/javascript" src="../../../assets/pair/tank.js"></script>
+<script type="text/javascript" src="../../../assets/pair/devices.js"></script>
+</body>
+</html>

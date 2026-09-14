@@ -1,0 +1,71 @@
+{
+  "type": "enum",
+  "title": {
+    "en": "Hot water boost",
+    "sv": "Varmvattenhöjning",
+    "de": "Warmwassererhöhung",
+    "nl": "Warmwaterverhoging",
+    "no": "Varmtvannsøkning",
+    "da": "Varmtvandsforøgelse"
+  },
+  "getable": true,
+  "setable": true,
+  "uiComponent": "picker",
+  "values": [
+    {
+      "id": "0",
+      "title": {
+        "en": "Off",
+        "sv": "Av",
+        "de": "Aus",
+        "nl": "Uit",
+        "no": "Av",
+        "da": "Fra"
+      }
+    },
+    {
+      "id": "1",
+      "title": {
+        "en": "3 hours",
+        "sv": "3 timmar",
+        "de": "3 Stunden",
+        "nl": "3 uur",
+        "no": "3 timer",
+        "da": "3 timer"
+      }
+    },
+    {
+      "id": "2",
+      "title": {
+        "en": "6 hours",
+        "sv": "6 timmar",
+        "de": "6 Stunden",
+        "nl": "6 uur",
+        "no": "6 timer",
+        "da": "6 timer"
+      }
+    },
+    {
+      "id": "3",
+      "title": {
+        "en": "12 hours",
+        "sv": "12 timmar",
+        "de": "12 Stunden",
+        "nl": "12 uur",
+        "no": "12 timer",
+        "da": "12 timer"
+      }
+    },
+    {
+      "id": "4",
+      "title": {
+        "en": "One-time increase",
+        "sv": "Engångshöjning",
+        "de": "Einmalige Erhöhung",
+        "nl": "Eenmalige verhoging",
+        "no": "Engangsøkning",
+        "da": "Engangsforøgelse"
+      }
+    }
+  ]
+}

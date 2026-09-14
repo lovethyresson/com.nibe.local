@@ -176,7 +176,7 @@ function render() {
                 title: Homey.__('pair.setup.hotwater'), description: candidate.description,
                 content: tankBlock(candidate.tanks, null, 'pair' + index)};
         }
-        if (candidate.role === 'heating') {
+        if (candidate.role === 'heating' && candidate.indoorSupported !== false) {
             var sources = document.createElement('div');
             renderSources(index, candidate, 'measure_temperature', sources);
             if (!sources.childNodes.length) sources.textContent = Homey.__('pair.setup.no_nibe_sources');

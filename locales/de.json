@@ -1,4 +1,20 @@
 {
+  "0": "0",
+  "1": "1",
+  "2": "2",
+  "3": "3",
+  "4": "4",
+  "5": "5",
+  "6": "6",
+  "7": "7",
+  "8": "8",
+  "9": "9",
+  "10": "10",
+  "11": "11",
+  "12": "12",
+  "13": "13",
+  "14": "14",
+  "15": "15",
   "Off": "Aus",
   "Hot water": "Brauchwasser",
   "Heating": "Heizung",
@@ -156,6 +172,15 @@
       "success_one": "1 Sensor verbunden",
       "success_many": "Sensoren arbeiten zusammen",
       "save_changes": "Änderungen speichern"
+    },
+    "gateway": {
+      "title": "Gateway-Verbindung",
+      "type": "Gateway",
+      "port": "TCP-Port",
+      "unit": "Modbus-ID",
+      "hint": "MODBUS 40 über eine RTU-TCP-Brücke oder ein kompatibles nibegw-esp-Gateway verbinden. F-Serie: experimentell, nur Lesen.",
+      "invalid": "Gateway, Port von 1–65535 und Modbus-ID von 1–247 auswählen.",
+      "detect_intro": "Die gemeldeten Werte der Wärmepumpe werden geprüft. Je nach Gateway kann dies mehrere Minuten dauern."
     }
   },
   "groups": {
@@ -185,5 +210,24 @@
     "cal_assumed": "Kalibrierung läuft…",
     "inlet_measured": "gemessen",
     "inlet_assumed": "angenommen"
-  }
+  },
+  "Transfer": "Übertragung",
+  "-10": "-10",
+  "-9": "-9",
+  "-8": "-8",
+  "-7": "-7",
+  "-6": "-6",
+  "-5": "-5",
+  "-4": "-4",
+  "-3": "-3",
+  "-2": "-2",
+  "-1": "-1",
+  "0 = Small": "0 = Klein",
+  "1 = Medium": "1 = Mittel",
+  "2 = Large": "2 = Groß",
+  "4 = Smart control": "4 = Smart Control",
+  "3 hours": "3 Stunden",
+  "6 hours": "6 Stunden",
+  "12 hours": "12 Stunden",
+  "One-time increase": "Einmalige Erhöhung"
 }

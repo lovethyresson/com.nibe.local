@@ -2,7 +2,7 @@ import {IndoorConfig, averageSensors, cleanIndoorConfig, indoorInventory} from '
 import {Device} from 'homey';
 import {analyticsConsent, setAnalyticsConsent, track} from './analytics';
 import {
-    Dir, Register, Selection, encodeRegisterValue, enumLabel, isPollable, isUnavailableRaw, migrateSelection,
+    Dir, Register, Selection, encodeRegisterValue, toNumericValue, enumLabel, isPollable, isUnavailableRaw, migrateSelection,
     resolvedAddress, signedValue, withResolvedAddresses
 } from './registers';
 import {
@@ -10,7 +10,7 @@ import {
     FUNCTION_COP_CAPABILITY, HOTWATER_VOLUME_CAPABILITY, METER_CAPABILITY,
     PUMP_ACTIVE_CAPABILITY, Role, SOLAR_METER_CAPABILITY, TOTAL_COP_CAPABILITY,
     capabilitySyncPlan, extraCapabilities, extraCapabilityOptions, functionRoles, mirrorOptions,
-    mirrorsForRole, registersForRole, roleClass, roleOf, roleRegisters
+    mirrorsForRole, registersForRole, roleClass, roleOf, roleRegisters, deviceClass, roomThermostatActive
 } from './roles';
 import {ALARM_SOURCE_URL, alarmAdvice, alarmDescription} from './alarms';
 import {
@@ -31,6 +31,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     role: Role = 'main';
     private connection: PumpConnection | null = null;
+    private thermostatSync: Promise<void> | null = null;
 
     private static indoorOwners = new Map<string, NibePumpDevice>();
     private indoorTimer: ReturnType<typeof setTimeout> | null = null;
@@ -190,11 +191,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     // Transport for this device: the model defaults, optionally overridden by per-device
     // port/unit-id settings (F gateways). S has no such settings → falls back to 502/1.
-    private transport(): Transport {
-        const settings = this.getSettings();
+    private transport(settings = this.getSettings()): Transport {
         return {
             port: settings.port || this.profile.transport.port,
-            unitId: settings.unitId || this.profile.transport.unitId
+            unitId: settings.unitId || this.profile.transport.unitId,
+            addressBase: this.profile.addressModes?.[settings.addressMode]?.addressBase ?? this.profile.addressBase
         };
     }
 
@@ -235,7 +236,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // 0x8000 / 0x80000000 is Nibe's "value not available" sentinel. Show as no value.
         if (isUnavailableRaw(raw, register.size))
             return null;
-        let value = signedValue(raw, register.size);
+        let value = register.signed === false ? raw : signedValue(raw, register.size);
         if (register.scale)
             return value / register.scale;
         // Picker before enum, because a register can carry both: the operating mode is a picker
@@ -277,12 +278,26 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     // detection and move a relocated register, and reading the selection at write time picks
     // that up without a restart.
     async writeRegister(register: Register, value: any): Promise<void> {
+        if (this.profile.readOnly) throw new Error("This driver is currently read-only.");
         if (register.name === 'external_temperature.h5987_bt50' && this.getStoreValue('indoorSensors')?.state === 'active')
             throw new Error('BT50 is managed by the automatic indoor sensor feed.');
         if (register.role && register.role !== this.role)
             throw new Error('This action is not available for this device');
         if (!this.connection)
             throw new Error('Not connected to the heat pump');
+        if (register.noAction && !register.writeOnly)
+            throw new Error('This register is read-only');
+        const room = this.profile.roomThermostat;
+        if (room && (register.name === room.target || (register.name === room.enabled && value === true))) {
+            const sensor = await this.readRegister(this.profile.registerByName[room.sensor]);
+            if (typeof sensor !== 'number' || sensor < 5 || sensor > 40)
+                throw new Error('A working indoor sensor is required for room temperature control.');
+            if (register.name === room.target && await this.readRegister(this.profile.registerByName[room.enabled]) !== true)
+                throw new Error('Room regulation is disabled. Adjust the heating curve instead.');
+        }
+        const requirement = this.profile.writeRequirements?.[register.name];
+        if (requirement && !requirement.values.includes(Number(await this.readRegister(this.profile.registerByName[requirement.register]))))
+            throw new Error(inLanguage(requirement.message, this.homey.i18n.getLanguage()));
         try {
             const raw = this.toRegisterValue(register, value);
             const canonical = this.fromRegisterValue(register, raw);
@@ -305,7 +320,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                         break;
                     }
                     if (attempt < 2)
-                        await new Promise((resolve) => setTimeout(resolve, 100));
+                        await new Promise((resolve) => setTimeout(resolve, this.profile.writeReadbackIntervalMs ?? 100));
                 }
                 if (!confirmed)
                     throw new Error('The pump did not confirm the requested value');
@@ -343,13 +358,24 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         }
     }
 
-    private alarmTrigger = this.homey.flow.getDeviceTriggerCard("alarm_occurred");
-    private priorityChangedTrigger = this.homey.flow.getDeviceTriggerCard("priority_changed");
-    private capabilityChangedTrigger = this.homey.flow.getDeviceTriggerCard("capability_changed");
-    private hotwaterDroppedTrigger =
-        this.homey.flow.getDeviceTriggerCard("hotwater_volume_dropped_below");
-    private turnedOnTrigger = this.homey.flow.getDeviceTriggerCard("capability_turned_on");
-    private turnedOffTrigger = this.homey.flow.getDeviceTriggerCard("capability_turned_off");
+    private get alarmTrigger() {
+        return this.homey.flow.getDeviceTriggerCard((this.profile.flowPrefix ?? "") + "alarm_occurred");
+    }
+    private get priorityChangedTrigger() {
+        return this.homey.flow.getDeviceTriggerCard((this.profile.flowPrefix ?? "") + "priority_changed");
+    }
+    private get capabilityChangedTrigger() {
+        return this.homey.flow.getDeviceTriggerCard((this.profile.flowPrefix ?? "") + "capability_changed");
+    }
+    private get hotwaterDroppedTrigger() {
+        return this.homey.flow.getDeviceTriggerCard((this.profile.flowPrefix ?? "") + "hotwater_volume_dropped_below");
+    }
+    private get turnedOnTrigger() {
+        return this.homey.flow.getDeviceTriggerCard((this.profile.flowPrefix ?? "") + "capability_turned_on");
+    }
+    private get turnedOffTrigger() {
+        return this.homey.flow.getDeviceTriggerCard((this.profile.flowPrefix ?? "") + "capability_turned_off");
+    }
 
     private registerTitle(register: Register): string {
         const option: any = this.options(register.name);
@@ -511,7 +537,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     // role-specific title — which the shared compose file can't express).
     private extraOptions(name: string): any {
         return mirrorOptions(this.profile, this.role, name)
-            ?? extraCapabilityOptions(this.role, name);
+            ?? extraCapabilityOptions(this.role, name, this.profile);
     }
 
     // ---- Rolling 30-day COP -------------------------------------------------------------
@@ -765,6 +791,16 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             await this.ensureCapabilityOptions(extra, this.extraOptions(extra))
                 .catch(note(extra, 'set options on'));
         }
+        if (this.profile.roomThermostat && this.role === 'heating') {
+            const wanted = deviceClass(this.profile, this.role, selection);
+            if (this.getClass() !== wanted) await this.setClass(wanted as any).catch(note('class', 'set'));
+            if (this.hasCapability('target_temperature')) {
+                const source = this.profile.registerByName[this.profile.roomThermostat.target];
+                this.registerCapabilityListener('target_temperature', async (value) => this.writeRegister(source, value));
+                const value = this.getCapabilityValue(source.name);
+                if (typeof value === 'number') await this.setCapabilityValue('target_temperature', value);
+            }
+        }
         return failed;
     }
 
@@ -801,9 +837,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         await this.migrateRenamedRegisters();
         this.debug(`Device init: role ${this.role}, host ${this.host()}, groups [${this.enabledGroupsSummary()}]`);
 
-        if (this.getClass() !== roleClass[this.role]) {
+        const wantedClass = deviceClass(this.profile, this.role, this.getSelection());
+        if (this.getClass() !== wantedClass) {
             this.debug(`Updating device class: ${this.getClass()} -> ${roleClass[this.role]}`);
-            await this.setClass(roleClass[this.role]).catch(this.error);
+            await this.setClass(wantedClass as any).catch(this.error);
         }
 
         if (this.role === 'solar')
@@ -929,7 +966,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     wantedRegisters(): Register[] {
-        return registersForRole(this.profile, this.role, this.getSelection());
+        const selected = registersForRole(this.profile, this.role, this.getSelection());
+        if (this.role !== 'heating' || !this.profile.roomThermostat) return selected;
+        const needed = Object.values(this.profile.roomThermostat).map((n) => this.profile.registerByName[n]);
+        return [...new Map([...selected, ...needed].map((r) => [r.name, r])).values()];
     }
 
     // The pump switched what it is producing. Only the main device carries the priority
@@ -1225,7 +1265,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             // burst of 100 concurrent reads is a poor thing to do to a pump that permits one
             // client. A hundred sequential reads take about a second.
             for (const register of all) {
-                const raw = await this.connection.readRegisterRaw(register, false);
+                const raw = this.profile.polling
+                    ? this.connection.lastRawFor(register.name)
+                    : await this.connection.readRegisterRaw(register, false);
                 const value = raw === undefined ? undefined : this.fromRegisterValue(register, raw);
                 if (raw !== undefined)
                     answered += 1;
@@ -1240,13 +1282,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 const moved = primary.get(register.name);
                 const from = moved !== undefined && moved !== register.address ? ` [was ${moved}]` : '';
                 const list = byGroup.get(register.group) ?? [];
-                list.push(`${register.address} ${register.name}=${shown}${mark}${from}`);
+                list.push(`${register.address} ${register.name}=${shown}${mark}${from} {${this.connection.describeLastRead(register.name)}}`);
                 byGroup.set(register.group, list);
             }
             // Grouped into a dozen long lines rather than a hundred short ones: a diagnostic
             // report is a rolling buffer of unknown size, and fewer lines survive it better.
             this.log(`Register dump (${reason}) — ${answered}/${all.length} answered. `
-                + `Every register this model knows, ignoring the feature selection; `
+                + (this.profile.polling ? 'Last observed values only; no extra reads on this slow gateway. '
+                    : 'Every register this model knows, ignoring the feature selection; ')
                 + `[off] marks one this device is not currently showing.`);
             for (const [group, lines] of byGroup)
                 this.log(`  ${group}: ${lines.join(' | ')}`);
@@ -1268,6 +1311,17 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     onPollComplete(readNames: Set<string>) {
+        if (this.profile.roomThermostat && this.role === 'heating' && !this.thermostatSync) {
+            const active = roomThermostatActive(this.profile, (name) => {
+                if (!readNames.has(name)) return undefined;
+                const raw = this.connection?.lastRawFor(name);
+                return raw === undefined ? undefined : toNumericValue(this.profile.registerByName[name], raw);
+            });
+            if (active !== !!this.getSelection()?.roomThermostat) {
+                this.thermostatSync = this.applySelection({...this.getSelection()!, roomThermostat: active})
+                    .catch(this.error).finally(() => { this.thermostatSync = null; });
+            }
+        }
         const tank = this.profile.hotwaterTank;
         if (tank && this.role === 'hotwater') {
             if (!readNames.has(tank.topRegister)) this.tankTopC = null;
@@ -1442,11 +1496,15 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 throw new Error('Return to your NIBE sensor in Repair before changing the pump address.');
             this.log(`Address changed to ${newSettings.address}, reconnecting`);
             this.connection?.detach(this);
-            this.connection = PumpConnection.get(newSettings.address, this.profile, this.transport());
+            this.connection = PumpConnection.get(newSettings.address, this.profile, this.transport(newSettings));
             this.connection.attach(this);
-        } else if (changedKeys.includes('port') || changedKeys.includes('unitId')) {
+        } else if (changedKeys.includes('port') || changedKeys.includes('unitId') || changedKeys.includes('addressMode')) {
             this.log(`Transport changed (port/unit), reconnecting`);
-            this.connection?.applyTransport(this.transport());
+            const transport = this.transport(newSettings);
+            for (const key of ['port', 'unitId', 'addressMode']) {
+                if (changedKeys.includes(key)) await this.syncToSiblings(key, newSettings[key]);
+            }
+            this.connection?.applyTransport(transport);
         }
     }
 

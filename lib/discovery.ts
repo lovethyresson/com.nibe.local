@@ -1,5 +1,6 @@
 import net from 'net';
 import os from 'os';
+import {Dir} from './registers';
 import {ModbusTCPClient} from 'jsmodbus';
 
 // Modbus TCP has no discovery protocol, and Nibe pumps don't announce themselves
@@ -23,6 +24,7 @@ export interface DiscoveredPump {
 // The Modbus transport + probe register to verify a responder is a pump. `probeAddress`
 // is the on-the-wire PDU address (the caller applies any model address offset).
 export interface DiscoveryOptions {
+    direction?: Dir;
     port: number;
     unitId: number;
     probeAddress: number;
@@ -56,7 +58,9 @@ async function tryHost(host: string, options: DiscoveryOptions): Promise<Discove
         socket.once('error', () => finish(null));
         socket.once('connect', () => {
             socket.setTimeout(0);
-            client.readInputRegisters(options.probeAddress, 1)
+            (options.direction === Dir.Out
+                ? client.readHoldingRegisters(options.probeAddress, 1)
+                : client.readInputRegisters(options.probeAddress, 1))
                 .then((resp: any) => {
                     let raw = resp.response.body.values[0];
                     if (raw >= 32768)

@@ -251,3 +251,21 @@ guessing — including which register each capability was mapped to. Turn on **D
   November 2018), which is the only source that maps the alarm register's numbers to text.
 
 Not affiliated with or endorsed by NIBE Energy Systems.
+
+
+### F-series testing
+
+F-series support is experimental and connects through a compatible local Modbus gateway.
+For responsive energy allocation, put the important readings in the pump's `LOG.SET` file;
+other parameters are read individually at a lower frequency. See the
+[recommended F730 baseline and gateway behavior](docs/f-series.md#logset-and-slow-reads).
+Available features are detected automatically. Heating shows curve controls when room
+regulation is not in use; a working indoor sensor with room regulation enabled adds the
+thermostat view. Control writes require a gateway that supports them.
+
+Energy allocation estimates compressor and immersion-heater consumption. Fans, circulation
+pumps, controls and inverter losses are not accounted for, so Main can show zero despite
+standby consumption. COP is experimental and depends on the pump's production readings;
+compressor scaling still needs verification on real F-series installations.
+
+[Setup and limitations](docs/f-series.md) · [First test checklist](docs/f-series-user-test.md)

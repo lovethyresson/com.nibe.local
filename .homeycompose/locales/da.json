@@ -64,6 +64,15 @@
       "auto": "Estimér ikke varmt vand",
       "custom": "Anden beholder…",
       "litres": "Beholderens volumen"
+    },
+    "gateway": {
+      "title": "Gatewayforbindelse",
+      "type": "Gateway",
+      "port": "TCP-port",
+      "unit": "Modbus-ID",
+      "hint": "Tilslut MODBUS 40 via en RTU-til-TCP-bro, eller brug en kompatibel nibegw-esp-gateway. F-serien har eksperimentel understøttelse kun til aflæsning.",
+      "invalid": "Vælg gateway, port fra 1–65535 og Modbus-ID fra 1–247.",
+      "detect_intro": "Kontrollerer værdierne fra varmepumpen. Afhængigt af gateway kan det tage flere minutter."
     }
   },
   "groups": {
@@ -92,5 +101,40 @@
   "hotwater": {
     "tank_setup": "Vælg din beholder under Reparer",
     "inlet_assumed": "antaget"
-  }
+  },
+  "Transfer": "Overførsel",
+  "0": "0",
+  "1": "1",
+  "2": "2",
+  "3": "3",
+  "4": "4",
+  "5": "5",
+  "6": "6",
+  "7": "7",
+  "8": "8",
+  "9": "9",
+  "10": "10",
+  "11": "11",
+  "12": "12",
+  "13": "13",
+  "14": "14",
+  "15": "15",
+  "-10": "-10",
+  "-9": "-9",
+  "-8": "-8",
+  "-7": "-7",
+  "-6": "-6",
+  "-5": "-5",
+  "-4": "-4",
+  "-3": "-3",
+  "-2": "-2",
+  "-1": "-1",
+  "0 = Small": "0 = Lille",
+  "1 = Medium": "1 = Middel",
+  "2 = Large": "2 = Stor",
+  "4 = Smart control": "4 = Smart styring",
+  "3 hours": "3 timer",
+  "6 hours": "6 timer",
+  "12 hours": "12 timer",
+  "One-time increase": "Engangsforøgelse"
 }

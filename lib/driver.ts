@@ -10,7 +10,7 @@ import {
     ACTIVE_POWER_CAPABILITY, ENERGY_CAPABILITIES, FUNCTION_COP_CAPABILITY,
     HOTWATER_VOLUME_CAPABILITY, METER_CAPABILITY, possibleExtraCapabilities,
     Role, TOTAL_COP_CAPABILITY, allRoles, energyTitle, extraCapabilities, extraCapabilityOptions,
-    extraCapabilitySupport, functionRoles, powerTitle, registersForRole, roleClass, roleGroups,
+    extraCapabilitySupport, functionRoles, powerTitle, registersForRole, roleClass, roleGroups, deviceClass, roomThermostatActive,
     roleNames, roleOf, roleRegisters
 } from './roles';
 import type {ModelProfile} from './profile';
@@ -23,7 +23,7 @@ import {CONSENT_SETTING, InstallProfile, analyticsConsent, reportInstallProfile,
 import {DEFAULT_INLET_C, MAX_TANK_LITRES, MIN_TANK_LITRES, cleanTankChoice} from './hotwater';
 
 // Optional per-device transport entered during F pairing (the gateway port / unit id).
-interface PairTransport {port?: number; unitId?: number}
+interface PairTransport {port?: number; unitId?: number; addressMode?: string}
 
 // Generic pump driver. All model-specific data (register table, role config, transport,
 // compose files, detection heuristics) comes from the concrete subclass's `profile`.
@@ -107,7 +107,7 @@ export abstract class NibePumpDriver extends Driver {
         }
         // Writable on/off registers should each have a dedicated ".onoff" card.
         for (const register of this.profile.registers) {
-            if (register.direction !== Dir.Out || !register.bool || register.writeOnly)
+            if (register.direction !== Dir.Out || register.noAction || !register.bool || register.writeOnly)
                 continue;
             if (!this.actionSpecs[`${register.name}.onoff`])
                 this.debug(`No dedicated "onoff" flow card for writable on/off register ${register.name}`);
@@ -305,6 +305,10 @@ export abstract class NibePumpDriver extends Driver {
         await device.writeRegister(register, value);
     }
 
+    private flowId(id: string): string {
+        return (this.profile.flowPrefix ?? "") + id;
+    }
+
     private registerFlows() {
         for (const register of this.profile.registers) {
             if (!register.enum)
@@ -316,7 +320,7 @@ export abstract class NibePumpDriver extends Driver {
                 })).filter((result: any) => result.name.toLowerCase().includes(query.toLowerCase()));
 
             if (this.actionSpecs[register.name + ".enum"]) {
-                this.homey.flow.getActionCard(register.name + ".enum")
+                this.homey.flow.getActionCard(this.flowId(register.name + ".enum"))
                     .registerArgumentAutocompleteListener("mode", async (query) => enumOptions(query))
                     .registerRunListener(this.tracked('action', register.name + ".enum", register,
                         async (args: any) => {
@@ -325,7 +329,7 @@ export abstract class NibePumpDriver extends Driver {
                         }));
             }
             if (this.conditionSpecs[register.name + ".enum"]) {
-                this.homey.flow.getConditionCard(register.name + ".enum")
+                this.homey.flow.getConditionCard(this.flowId(register.name + ".enum"))
                     .registerArgumentAutocompleteListener("mode", async (query) => enumOptions(query))
                     .registerRunListener(this.tracked('condition', register.name + ".enum", register,
                         async (args: any) => {
@@ -342,7 +346,7 @@ export abstract class NibePumpDriver extends Driver {
             if (!isAdjustable(register) || !(register.scale! > 0))
                 continue;
             if (this.actionSpecs[register.name + ".set"]) {
-                this.homey.flow.getActionCard(register.name + ".set")
+                this.homey.flow.getActionCard(this.flowId(register.name + ".set"))
                     .registerRunListener(this.tracked('action', register.name + ".set", register,
                         async (args: any) => this.writeNumeric(args.device, register, args.value)));
             }
@@ -351,7 +355,7 @@ export abstract class NibePumpDriver extends Driver {
         for (const register of this.profile.registers) {
             if (!register.writeOnly || !this.actionSpecs[register.name + ".reset"])
                 continue;
-            this.homey.flow.getActionCard(register.name + ".reset")
+            this.homey.flow.getActionCard(this.flowId(register.name + ".reset"))
                 .registerRunListener(this.tracked('action', register.name + ".reset", register,
                     async (args: any) => {
                         this.log(`Flow: ${args.device.getName()} reset ${register.name}`);
@@ -363,11 +367,11 @@ export abstract class NibePumpDriver extends Driver {
         // to the generic enable/disable-feature cards, matching the dedicated numeric ".set"
         // cards. The `state` dropdown carries id "on"/"off".
         for (const register of this.profile.registers) {
-            if (register.direction !== Dir.Out || !register.bool || register.writeOnly)
+            if (register.direction !== Dir.Out || register.noAction || !register.bool || register.writeOnly)
                 continue;
             if (!this.actionSpecs[register.name + ".onoff"])
                 continue;
-            this.homey.flow.getActionCard(register.name + ".onoff")
+            this.homey.flow.getActionCard(this.flowId(register.name + ".onoff"))
                 .registerRunListener(this.tracked('action', register.name + ".onoff", register,
                     async (args: any) => {
                         const on = (args.state?.id ?? args.state) === 'on';
@@ -376,7 +380,8 @@ export abstract class NibePumpDriver extends Driver {
                     }));
         }
 
-        this.registerAutofillFlow(this.homey.flow.getActionCard("set_numeric_value"),
+        if (this.actionSpecs["set_numeric_value"])
+            this.registerAutofillFlow(this.homey.flow.getActionCard(this.flowId("set_numeric_value")),
             flowPredicates.numericAction,
             async (args: any) => this.writeNumeric(args.device, this.profile.registerByName[args.register.id], args.value));
 
@@ -384,7 +389,8 @@ export abstract class NibePumpDriver extends Driver {
         // it marks a holding register the app reads for context but must never write. Without
         // that check the "Room sensor regulation active" flag — legacy on zone firmware, where
         // writing it does nothing useful — would be offered as something to switch.
-        this.registerAutofillFlow(this.homey.flow.getActionCard("enable_feature"),
+        if (this.actionSpecs["enable_feature"])
+            this.registerAutofillFlow(this.homey.flow.getActionCard(this.flowId("enable_feature")),
             flowPredicates.boolAction,
             async (args: any) => {
                 const register = this.profile.registerByName[args.register.id];
@@ -392,7 +398,8 @@ export abstract class NibePumpDriver extends Driver {
                 await args.device.writeRegister(register, true);
             });
 
-        this.registerAutofillFlow(this.homey.flow.getActionCard("disable_feature"),
+        if (this.actionSpecs["disable_feature"])
+            this.registerAutofillFlow(this.homey.flow.getActionCard(this.flowId("disable_feature")),
             flowPredicates.boolAction,
             async (args: any) => {
                 const register = this.profile.registerByName[args.register.id];
@@ -400,7 +407,7 @@ export abstract class NibePumpDriver extends Driver {
                 await args.device.writeRegister(register, false);
             });
 
-        this.registerAutofillFlow(this.homey.flow.getConditionCard("numeric_value_comparison"),
+        this.registerAutofillFlow(this.homey.flow.getConditionCard(this.flowId("numeric_value_comparison")),
             flowPredicates.numericCondition,
             (args: any) => {
                 if (!args.device.hasCapability(args.register.id))
@@ -411,27 +418,28 @@ export abstract class NibePumpDriver extends Driver {
                 return args.comparison === "<" ? capabilityValue < args.value : capabilityValue > args.value;
             }, 'condition');
 
-        this.registerAutofillFlow(this.homey.flow.getConditionCard("feature_enabled"),
+        this.registerAutofillFlow(this.homey.flow.getConditionCard(this.flowId("feature_enabled")),
             flowPredicates.boolState,
             (args: any) => args.device.hasCapability(args.register.id) && args.device.getCapabilityValue(args.register.id),
             'condition');
 
-        this.registerAutofillFlow(this.homey.flow.getDeviceTriggerCard("capability_changed"),
+        this.registerAutofillFlow(this.homey.flow.getDeviceTriggerCard(this.flowId("capability_changed")),
             flowPredicates.enumTrigger,
             (args: any, state: any) => args.register.id === state.register.id, 'trigger');
 
-        this.registerAutofillFlow(this.homey.flow.getDeviceTriggerCard("capability_turned_on"),
+        this.registerAutofillFlow(this.homey.flow.getDeviceTriggerCard(this.flowId("capability_turned_on")),
             flowPredicates.boolState,
             (args: any, state: any) => args.register.id === state.register.id && state.value, 'trigger');
 
-        this.registerAutofillFlow(this.homey.flow.getDeviceTriggerCard("capability_turned_off"),
+        this.registerAutofillFlow(this.homey.flow.getDeviceTriggerCard(this.flowId("capability_turned_off")),
             flowPredicates.boolState,
             (args: any, state: any) => args.register.id === state.register.id && !state.value, 'trigger');
 
         // The litres estimate is derived rather than a register, so the generic autocomplete cards
         // above cannot see it (their predicates take a Register) and it gets two cards of its own.
         // Both are scoped by the compose file's $filter to devices that actually carry it.
-        this.homey.flow.getConditionCard("hotwater_volume_below")
+        if (this.conditionSpecs["hotwater_volume_below"])
+            this.homey.flow.getConditionCard(this.flowId("hotwater_volume_below"))
             .registerRunListener(async (args: any) => {
                 const value = args.device.getCapabilityValue(HOTWATER_VOLUME_CAPABILITY);
                 // Blank until the tank has been measured. False is the safe answer: a Flow that
@@ -445,7 +453,8 @@ export abstract class NibePumpDriver extends Driver {
         // at all, so the threshold test lives here — `previous` is the value before the drop, and
         // requiring it to have been at or above the limit is what stops every subsequent poll of a
         // still-falling tank re-triggering the same Flow.
-        this.homey.flow.getDeviceTriggerCard("hotwater_volume_dropped_below")
+        if (this.profile.hotwaterTank)
+            this.homey.flow.getDeviceTriggerCard(this.flowId("hotwater_volume_dropped_below"))
             .registerRunListener(async (args: any, state: any) => {
                 const crossed = state.previous >= args.litres && state.litres < args.litres;
                 // Tracked here rather than at the device, so the event counts a Flow actually
@@ -528,7 +537,7 @@ export abstract class NibePumpDriver extends Driver {
     // The localized title of any derived capability, from the single source both pairing and the
     // device runtime already use.
     private extraDisplayTitle(role: Role, name: string, lang: 'en' | 'sv'): string {
-        const title = extraCapabilityOptions(role, name)?.title;
+        const title = extraCapabilityOptions(role, name, this.profile)?.title;
         return title?.[lang] || title?.en || name;
     }
 
@@ -720,6 +729,8 @@ export abstract class NibePumpDriver extends Driver {
                            addresses: Record<string, number> = {}) {
         const language = this.homey.i18n.getLanguage();
         const selection = NibePumpDriver.roleSelection(role, recommendations);
+        if (role === 'heating' && this.profile.roomThermostat)
+            selection.roomThermostat = roomThermostatActive(this.profile, (name) => samples[name]?.read ? samples[name].value : undefined);
         // Where detection found a register at one of its alternate addresses, record it on the
         // device so the runtime reads that address instead of the one in the table.
         if (Object.keys(addresses).length)
@@ -762,13 +773,15 @@ export abstract class NibePumpDriver extends Driver {
         // on/off) so each is created with its role-specific title — otherwise
         // getCapabilityOptions() throws "Invalid Capability" for the COP sensors on first init.
         for (const extra of possibleExtraCapabilities(this.profile, role)) {
-            const opt = extraCapabilityOptions(role, extra);
+            const opt = extraCapabilityOptions(role, extra, this.profile);
             if (opt)
                 options[extra] = opt;
         }
         // Only carry port/unit-id into the device settings when the model actually uses them
         // (F pairing entered them) — keeps S device settings unchanged (just {address}).
-        const settings: {address: string; port?: number; unitId?: number} = {address: ip};
+        const settings: {address: string; port?: number; unitId?: number; addressMode?: string} = {address: ip};
+        if (transport?.addressMode)
+            settings.addressMode = transport.addressMode;
         if (transport?.port)
             settings.port = transport.port;
         if (transport?.unitId)
@@ -783,7 +796,7 @@ export abstract class NibePumpDriver extends Driver {
         this.logCapabilityMapping(role, orderedCaps, selection, samples);
         return {
             name: roleNames[role][language as 'en' | 'sv'] || roleNames[role].en,
-            class: roleClass[role],
+            class: deviceClass(this.profile, role, selection),
             data: {id: `${ip}#${role}`, role},
             settings,
             store: {selection},
@@ -942,28 +955,42 @@ export abstract class NibePumpDriver extends Driver {
                 choices: this.choicesForRole(role, detection?.choices ?? {}),
                 // null for every role but hot water, which is how the view knows not to render
                 // a tank picker on the pool device.
-                tanks: this.tankChoices(role)
+                tanks: this.tankChoices(role),
+                indoorSupported: !!this.profile.indoorSensorFeed
             }));
     }
 
     // Discovery transport/probe for this model: sweep the profile's default port, verify with
     // the profile's probe register (offset applied).
-    private discoveryOptions(port?: number): DiscoveryOptions {
+    private discoveryOptions(transport?: PairTransport): DiscoveryOptions {
         const probe = this.profile.detection.discoveryProbe;
         return {
-            port: port || this.profile.transport.port,
-            unitId: this.profile.transport.unitId,
-            probeAddress: this.profile.addressBase ? probe.address - this.profile.addressBase : probe.address,
+            ...this.pairingTransport(transport),
+            probeAddress: probe.address - (this.pairingTransport(transport).addressBase ?? 0),
+            direction: probe.direction,
             scale: probe.scale,
             min: probe.min,
             max: probe.max
         };
     }
 
+    private validatePairTransport(data: any): PairTransport {
+        if (!this.profile.addressModes) return {};
+        const port = Number(data?.port ?? 502);
+        const unitId = Number(data?.unitId ?? 1);
+        const addressMode = data?.addressMode ?? Object.keys(this.profile.addressModes)[0];
+        if (!Number.isInteger(port) || port < 1 || port > 65535
+            || !Number.isInteger(unitId) || unitId < 1 || unitId > 247
+            || !this.profile.addressModes[addressMode])
+            throw new Error(this.homey.__('pair.gateway.invalid'));
+        return {port, unitId, addressMode};
+    }
+
     private pairingTransport(transport?: PairTransport): Transport {
         return {
             port: transport?.port || this.profile.transport.port,
-            unitId: transport?.unitId || this.profile.transport.unitId
+            unitId: transport?.unitId || this.profile.transport.unitId,
+            addressBase: this.profile.addressModes?.[transport?.addressMode ?? ""]?.addressBase ?? this.profile.addressBase
         };
     }
 
@@ -992,13 +1019,15 @@ export abstract class NibePumpDriver extends Driver {
             if (viewId !== 'detect') detectionAbort?.abort();
         });
 
-        session.setHandler('discover', async () => {
+        session.setHandler('get_connection_options', async () => ({addressModes: this.profile.addressModes ?? {}}));
+        session.setHandler('discover', async (options: any) => {
+            if (this.profile.addressModes) pairTransport = this.validatePairTransport(options);
             const localAddress = await this.homey.cloud.getLocalAddress();
             const pairedAddresses = this.getDevices().map((device) => String(device.getSettings().address));
             this.log(`onPair discover: scanning subnet from ${localAddress}, skipping ${pairedAddresses.length} paired IP(s)`);
             const probe = this.profile.detection.discoveryProbe;
             const found = await discoverPumps(localAddress, new Set(pairedAddresses),
-                this.discoveryOptions(pairTransport.port), (done, total) =>
+                this.discoveryOptions(pairTransport), (done, total) =>
                     session.emit('discovery_progress', {done, total}).catch(() => {}));
             const byAddress = new Map(found.map((pump) => [pump.address, pump]));
             for (const address of new Set(pairedAddresses)) {
@@ -1024,10 +1053,7 @@ export abstract class NibePumpDriver extends Driver {
                 throw new Error(this.homey.__('pair.valid_ip_address'));
             ipAddress = data.ipaddress;
             // F pairing may supply a gateway port / unit id alongside the IP.
-            pairTransport = {
-                port: data.port ? Number(data.port) : undefined,
-                unitId: data.unitId ? Number(data.unitId) : undefined
-            };
+            pairTransport = this.validatePairTransport(data);
             return true;
         });
 
@@ -1036,7 +1062,9 @@ export abstract class NibePumpDriver extends Driver {
 
         session.setHandler('get_context', async () => ({
             mode: 'pair',
-            analyticsConsent: analyticsConsent(this.homey)
+            slowDetection: !!this.profile.addressModes,
+            analyticsConsent: analyticsConsent(this.homey),
+            indoorSupported: !!this.profile.indoorSensorFeed
         }));
 
         session.setHandler('start_detection', async () => {
@@ -1051,6 +1079,8 @@ export abstract class NibePumpDriver extends Driver {
             const onProgress = (pass: number, passes: number) =>
                 session.emit('detection_progress', {pass, passes}).catch(() => {});
             const live = existingConnection(ipAddress!);
+            if (live && !live.matchesProfile(this.profile))
+                throw new Error('This address is already paired with a different pump driver. Remove that device before changing series.');
             const viaLive = !!(live && live.isConnected());
             this.log(`onPair detection: starting for ${ipAddress} via `
                 + `${viaLive ? 'existing live connection' : 'new probe socket'} `
@@ -1107,6 +1137,7 @@ export abstract class NibePumpDriver extends Driver {
 
         session.setHandler('get_context', async () => ({
             mode: 'repair',
+            slowDetection: !!this.profile.addressModes,
             role,
             indoorSensors: device.getStoreValue('indoorSensors') ?? null,
             indoorNativeAddress: device.getStoreValue('indoorNativeAddress') ?? 116,
@@ -1115,7 +1146,8 @@ export abstract class NibePumpDriver extends Driver {
             // Only the hot water view uses this, but the role is right here and inferring it in
             // the view from which groups came back would break the day a group moves.
             tanks: this.tankChoices(role),
-            analyticsConsent: analyticsConsent(this.homey)
+            analyticsConsent: analyticsConsent(this.homey),
+            indoorSupported: !!this.profile.indoorSensorFeed
         }));
 
         session.setHandler('start_detection', async () => {

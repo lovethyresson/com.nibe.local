@@ -978,3 +978,21 @@ test('live detection preserves sensor choices and uses the shared wire queue', {
         await pump.close();
     }
 });
+
+test('the F profile reads the same sensor through both gateway address modes', {timeout: 15000}, async () => {
+    const {fProfile} = await import('../drivers/nibe_f/profile');
+    const pump = await startPump();
+    const outdoor = fProfile.registers.find((r) => r.address === 40004)!;
+    try {
+        seed(pump.holding, 40004, 215);
+        seed(pump.holding, 4, 182);
+        for (const [addressBase, expected] of [[0, 215], [40000, 182]]) {
+            await withConnection(fProfile, {port: pump.port, unitId: 1, addressBase},
+                new FakeSub('main', []), async (c) => {
+                    assert.equal(await c.readRegisterRaw(outdoor), expected);
+                    assert.match(c.describeLastRead(outdoor.name), new RegExp(`FC3 address=${40004 - addressBase} `));
+                    await assert.rejects(c.writeRegisterValue(outdoor, 0), /read-only/);
+                });
+        }
+    } finally { await pump.close(); }
+});

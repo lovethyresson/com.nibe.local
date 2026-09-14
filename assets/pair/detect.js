@@ -82,6 +82,10 @@ document.getElementById('skip').onclick = function (e) {
 };
 
 Homey.emit('get_context', {}, function (err, ctx) {
+    if (ctx && ctx.slowDetection) {
+        var intro = document.querySelector('[data-i18n="pair.detect.intro"]');
+        if (intro) intro.textContent = Homey.__('pair.gateway.detect_intro');
+    }
     if (ctx && ctx.mode === 'repair')
         nextView = 'features';
     startDetection();

@@ -117,3 +117,13 @@ English is produced by phrase substitution over the `DICTIONARY` in the script, 
 hand-written entries in `dev/alarm-en.json` for the Swedish compound nouns it can't reach.
 The script prints anything that still looks Swedish; **the S-series list is clean, the
 F-series still has ~112 titles to translate** — do that when the F driver lands.
+
+### F-series register audit
+
+See [F-series support](../docs/f-series.md) for the seven export filenames and gateway conventions.
+Run `node --import tsx dev/audit-f-registers.mjs` to check the curated F table against those local exports.
+
+## F-series simulator
+
+`node dev/f-series-simulator.mjs --host 0.0.0.0 --port 1502 --mode modbus40`
+serves a synthetic F730-like pump for Homey pairing. See [setup, scenarios and limits](../docs/f-series.md#first-build-and-simulator).

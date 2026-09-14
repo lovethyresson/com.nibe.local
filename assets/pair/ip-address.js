@@ -1,0 +1,119 @@
+/* Shared pump discovery and gateway connection form. */
+
+    Homey.setTitle(Homey.__('pair.title'));
+
+    var statusEl = document.getElementById('discovery-status');
+    var listEl = document.getElementById('pump-list');
+    var refreshEl = document.getElementById('refresh');
+    var manualEl = document.getElementById('manual');
+    var progressEl = document.getElementById('progress');
+    var barEl = document.getElementById('discovery-bar');
+
+    function proceedWith(ipaddress) {
+        Homey.showLoadingOverlay();
+        Homey.emit('ip_address_entered', Object.assign({ipaddress: ipaddress}, gatewayOptions()), function (err, result) {
+            Homey.hideLoadingOverlay();
+            if (err) {
+                Homey.alert((err && err.message) || String(err), 'error', function () {});
+            } else if (result) {
+                Homey.showView('detect');
+            }
+        });
+    }
+
+    Homey.on('discovery_progress', function (progress) {
+        barEl.style.width = Math.round((progress.done / progress.total) * 100) + '%';
+    });
+
+    function renderPumps(pumps) {
+        listEl.innerHTML = '';
+        pumps.forEach(function (pump) {
+            var item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'pump-item';
+
+            var glyph = document.createElement('span');
+            glyph.className = 'pump-glyph';
+            glyph.innerHTML = '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="13" y="31" width="74" height="44" rx="8"/><circle cx="39" cy="53" r="14"/><circle cx="39" cy="53" r="2.6" fill="currentColor" stroke="none"/><path d="M39 53V41M39 53l10 6M39 53l-9 7" stroke-width="4.5"/><path d="M61 45h14M61 53h14M61 61h14" stroke-width="4.5"/></svg>';
+            item.appendChild(glyph);
+
+            var body = document.createElement('span');
+            body.className = 'pump-body';
+            var name = document.createElement('strong');
+            name.textContent = Homey.__('pair.discover.pump');
+            body.appendChild(name);
+            var addr = document.createElement('div');
+            addr.className = 'pump-detail';
+            addr.textContent = pump.address
+                + (typeof pump.outdoorTemperature === 'number'
+                    ? '  ·  ' + Homey.__('pair.discover.outdoor') + ' ' + pump.outdoorTemperature + ' °C'
+                    : '');
+            body.appendChild(addr);
+            item.appendChild(body);
+
+            var chev = document.createElement('span');
+            chev.className = 'pump-chevron';
+            chev.textContent = '›';
+            item.appendChild(chev);
+
+            item.onclick = function (e) {
+                e.preventDefault();
+                proceedWith(pump.address);
+            };
+            listEl.appendChild(item);
+        });
+    }
+
+    function discover() {
+        refreshEl.style.display = 'none';
+        manualEl.style.display = 'none';
+        listEl.innerHTML = '';
+        progressEl.style.display = 'block';
+        barEl.style.width = '3%';
+        statusEl.textContent = Homey.__('pair.discover.searching');
+        Homey.emit('discover', gatewayOptions(), function (err, pumps) {
+            progressEl.style.display = 'none';
+            refreshEl.style.display = 'inline-block';
+            manualEl.style.display = 'block';
+            if (err || !pumps || !pumps.length) {
+                statusEl.textContent = Homey.__('pair.discover.none_found');
+                manualEl.open = true;
+                return;
+            }
+            // Show the found pump(s) with their IP and let the user confirm by tapping,
+            // rather than auto-advancing — so the device and address can be verified.
+            statusEl.textContent = pumps.length === 1
+                ? Homey.__('pair.discover.confirm')
+                : Homey.__('pair.discover.found');
+            renderPumps(pumps);
+        });
+    }
+
+    refreshEl.onclick = function (e) {
+        e.preventDefault();
+        discover();
+    };
+
+    document.getElementById('submit').onclick = function (e) {
+        e.preventDefault();
+        proceedWith(document.getElementById('ipaddress').value);
+    };
+
+    function gatewayOptions() {
+        if (document.getElementById('gateway-settings').hidden) return {};
+        return {addressMode: document.getElementById('gateway-type').value,
+            port: Number(document.getElementById('gateway-port').value),
+            unitId: Number(document.getElementById('gateway-unit').value)};
+    }
+    Homey.emit('get_connection_options', {}, function (err, options) {
+        var modes = options && options.addressModes || {};
+        var select = document.getElementById('gateway-type');
+        Object.keys(modes).forEach(function (id) {
+            var option = document.createElement('option');
+            option.value = id; option.textContent = modes[id].label; select.appendChild(option);
+        });
+        document.getElementById('gateway-settings').hidden = !Object.keys(modes).length;
+        select.onchange = discover;
+        discover();
+    });
+

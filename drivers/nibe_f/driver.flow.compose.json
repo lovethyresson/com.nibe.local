@@ -1,0 +1,800 @@
+{
+  "triggers": [
+    {
+      "id": "f_alarm_occurred",
+      "title": {
+        "en": "An alarm occurred",
+        "sv": "Ett larm inträffade",
+        "de": "Ein Alarm ist aufgetreten",
+        "nl": "Er is een alarm opgetreden",
+        "no": "Et alarm oppsto",
+        "da": "Der opstod en alarm"
+      },
+      "hint": {
+        "en": "Fires when the heat pump reports a new alarm. Use the alarm description token to see what happened.",
+        "sv": "Utlöses när värmepumpen rapporterar ett nytt larm. Använd larmbeskrivningen som tagg för att se vad som hänt.",
+        "de": "Wird ausgelöst, wenn die Wärmepumpe einen neuen Alarm meldet. Über das Tag mit der Alarmbeschreibung sehen Sie, was passiert ist.",
+        "nl": "Wordt geactiveerd wanneer de warmtepomp een nieuw alarm meldt. Gebruik de tag met de alarmomschrijving om te zien wat er is gebeurd.",
+        "no": "Utløses når varmepumpen rapporterer en ny alarm. Bruk taggen med alarmbeskrivelsen for å se hva som skjedde.",
+        "da": "Udløses når varmepumpen rapporterer en ny alarm. Brug tagget med alarmbeskrivelsen for at se, hvad der skete."
+      },
+      "$filter": "capabilities=alarm_generic",
+      "tokens": [
+        {
+          "name": "description",
+          "type": "string",
+          "title": {
+            "en": "Alarm",
+            "sv": "Larm",
+            "de": "Alarm",
+            "nl": "Alarm",
+            "no": "Alarm",
+            "da": "Alarm"
+          },
+          "example": {
+            "en": "438: Lost connection to wireless device",
+            "sv": "438: Tappad anslutning till trådlös enhet",
+            "de": "438: Lost connection to wireless device",
+            "nl": "438: Lost connection to wireless device",
+            "no": "438: Lost connection to wireless device",
+            "da": "438: Lost connection to wireless device"
+          }
+        },
+        {
+          "name": "code",
+          "type": "number",
+          "title": {
+            "en": "Alarm code",
+            "sv": "Larmkod",
+            "de": "Alarmcode",
+            "nl": "Alarmcode",
+            "no": "Alarmkode",
+            "da": "Alarmkode"
+          },
+          "example": {
+            "en": "438",
+            "sv": "438",
+            "de": "438",
+            "nl": "438",
+            "no": "438",
+            "da": "438"
+          }
+        }
+      ]
+    },
+    {
+      "id": "f_priority_changed",
+      "title": {
+        "en": "Operating priority changed",
+        "sv": "Driftprioriteringen ändrades",
+        "de": "Betriebspriorität hat sich geändert",
+        "nl": "Bedrijfsprioriteit gewijzigd",
+        "no": "Driftsprioriteringen endret seg",
+        "da": "Driftsprioriteringen ændrede sig"
+      },
+      "hint": {
+        "en": "Fires when the heat pump switches what it is producing (hot water, heating, pool, cooling, off). The reason token explains why in plain language — which threshold the pump actually reached, with the numbers behind it.",
+        "sv": "Utlöses när värmepumpen byter vad den producerar (varmvatten, värme, pool, kyla, av). Orsakstaggen förklarar varför på vanlig svenska — vilken gräns pumpen faktiskt nådde, med siffrorna bakom.",
+        "de": "Wird ausgelöst, wenn die Wärmepumpe wechselt, was sie erzeugt (Warmwasser, Heizung, Pool, Kühlung, aus). Das Tag „Grund\" erklärt in verständlicher Sprache, warum.",
+        "nl": "Wordt geactiveerd wanneer de warmtepomp wisselt wat hij produceert (warm water, verwarming, zwembad, koeling, uit). De tag met de reden legt in gewone taal uit waarom.",
+        "no": "Utløses når varmepumpen bytter hva den produserer (varmtvann, varme, basseng, kjøling, av). Årsakstaggen forklarer på vanlig språk hvorfor.",
+        "da": "Udløses når varmepumpen skifter, hvad den producerer (varmt vand, varme, pool, køling, fra). Tagget med årsagen forklarer i almindeligt sprog hvorfor."
+      },
+      "$filter": "capabilities=measure_enum_NIBE.h43086_priority",
+      "tokens": [
+        {
+          "name": "priority",
+          "type": "string",
+          "title": {
+            "en": "Priority",
+            "sv": "Prioritering",
+            "de": "Priorität",
+            "nl": "Prioriteit",
+            "no": "Prioritering",
+            "da": "Prioritering"
+          },
+          "example": {
+            "en": "Heating",
+            "sv": "Värme",
+            "de": "Heizung",
+            "nl": "Verwarming",
+            "no": "Varme",
+            "da": "Varme"
+          }
+        },
+        {
+          "name": "previous",
+          "type": "string",
+          "title": {
+            "en": "Previous priority",
+            "sv": "Föregående prioritering",
+            "de": "Vorherige Priorität",
+            "nl": "Vorige prioriteit",
+            "no": "Forrige prioritering",
+            "da": "Forrige prioritering"
+          },
+          "example": {
+            "en": "Off",
+            "sv": "Av",
+            "de": "Aus",
+            "nl": "Uit",
+            "no": "Av",
+            "da": "Fra"
+          }
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "title": {
+            "en": "Reason",
+            "sv": "Orsak",
+            "de": "Grund",
+            "nl": "Reden",
+            "no": "Årsak",
+            "da": "Årsag"
+          },
+          "example": {
+            "en": "The house fell behind on heat: degree minutes are down to -60, at or past the -60 threshold that starts the compressor.",
+            "sv": "Huset kom efter på värme: gradminuterna är nere på -60, vid eller förbi gränsen -60 som startar kompressorn.",
+            "de": "The house fell behind on heat: degree minutes are down to -60, at or past the -60 threshold that starts the compressor.",
+            "nl": "The house fell behind on heat: degree minutes are down to -60, at or past the -60 threshold that starts the compressor.",
+            "no": "The house fell behind on heat: degree minutes are down to -60, at or past the -60 threshold that starts the compressor.",
+            "da": "The house fell behind on heat: degree minutes are down to -60, at or past the -60 threshold that starts the compressor."
+          }
+        }
+      ]
+    },
+    {
+      "id": "f_capability_changed",
+      "title": {
+        "en": "Register changed",
+        "sv": "Registervärde ändrades",
+        "de": "Register geändert",
+        "nl": "Register gewijzigd",
+        "no": "Register endret",
+        "da": "Register ændret"
+      },
+      "titleFormatted": {
+        "en": "[[register]] changed",
+        "sv": "[[register]] ändrades",
+        "de": "[[register]] geändert",
+        "nl": "[[register]] gewijzigd",
+        "no": "[[register]] endret",
+        "da": "[[register]] ændret"
+      },
+      "hint": {
+        "en": "Fires when the selected register's value changes. Only registers with a fixed set of modes (operating mode, hot water demand, priority, fan mode) can be picked.",
+        "sv": "Utlöses när det valda registrets värde ändras. Bara register med ett fast antal lägen (driftläge, varmvattenbehov, prioritet, fläktläge) kan väljas.",
+        "de": "Wird ausgelöst, wenn sich der Wert des gewählten Registers ändert. Es können nur Register mit einer festen Auswahl an Modi gewählt werden (Betriebsmodus, Brauchwasserbedarf, Betriebspriorität, Lüfterstufe).",
+        "nl": "Wordt geactiveerd wanneer de waarde van het gekozen register verandert. Alleen registers met een vaste set standen kunnen worden gekozen (bedrijfsstand, warmtapwaterbehoefte, bedrijfsprioriteit, ventilatorstand).",
+        "no": "Utløses når verdien til det valgte registeret endrer seg. Kun registre med et fast sett moduser kan velges (driftsmodus, varmtvannsbehov, driftsprioritering, viftetrinn).",
+        "da": "Udløses, når værdien for det valgte register ændrer sig. Kun registre med et fast sæt indstillinger kan vælges (driftsindstilling, varmtvandsbehov, driftsprioritering, ventilatortrin)."
+      },
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "register",
+          "title": {
+            "en": "Register",
+            "sv": "Register",
+            "de": "Register",
+            "nl": "Register",
+            "no": "Register",
+            "da": "Register"
+          }
+        }
+      ],
+      "tokens": [
+        {
+          "name": "value",
+          "type": "string",
+          "title": {
+            "en": "Value",
+            "sv": "Värde",
+            "de": "Wert",
+            "nl": "Waarde",
+            "no": "Verdi",
+            "da": "Værdi"
+          },
+          "example": {
+            "en": "Hot water",
+            "sv": "Varmvatten",
+            "de": "Brauchwasser",
+            "nl": "Warmtapwater",
+            "no": "Varmtvann",
+            "da": "Varmtvand"
+          }
+        },
+        {
+          "name": "register",
+          "type": "string",
+          "title": {
+            "en": "Register",
+            "sv": "Register",
+            "de": "Register",
+            "nl": "Register",
+            "no": "Register",
+            "da": "Register"
+          },
+          "example": {
+            "en": "Hot water demand",
+            "sv": "Varmvattenbehov",
+            "de": "Brauchwasserbedarf",
+            "nl": "Warmtapwaterbehoefte",
+            "no": "Varmtvannsbehov",
+            "da": "Varmtvandsbehov"
+          }
+        }
+      ]
+    },
+    {
+      "id": "f_capability_turned_on",
+      "title": {
+        "en": "Register turned on",
+        "sv": "Registervärde sätts på",
+        "de": "Register eingeschaltet",
+        "nl": "Register ingeschakeld",
+        "no": "Register slått på",
+        "da": "Register tændt"
+      },
+      "titleFormatted": {
+        "en": "[[register]] turned on",
+        "sv": "[[register]] sätts på",
+        "de": "[[register]] eingeschaltet",
+        "nl": "[[register]] ingeschakeld",
+        "no": "[[register]] slått på",
+        "da": "[[register]] tændt"
+      },
+      "hint": {
+        "en": "Fires when the selected on/off register switches on.",
+        "sv": "Utlöses när det valda av/på-registret slås på.",
+        "de": "Wird ausgelöst, wenn das gewählte Ein/Aus-Register einschaltet.",
+        "nl": "Wordt geactiveerd wanneer het gekozen aan/uit-register inschakelt.",
+        "no": "Utløses når det valgte på/av-registeret slås på.",
+        "da": "Udløses, når det valgte til/fra-register tændes."
+      },
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "register",
+          "title": {
+            "en": "Register",
+            "sv": "Register",
+            "de": "Register",
+            "nl": "Register",
+            "no": "Register",
+            "da": "Register"
+          }
+        }
+      ],
+      "tokens": [
+        {
+          "name": "register",
+          "type": "string",
+          "title": {
+            "en": "Register",
+            "sv": "Register",
+            "de": "Register",
+            "nl": "Register",
+            "no": "Register",
+            "da": "Register"
+          },
+          "example": {
+            "en": "Hot water demand",
+            "sv": "Varmvattenbehov",
+            "de": "Brauchwasserbedarf",
+            "nl": "Warmtapwaterbehoefte",
+            "no": "Varmtvannsbehov",
+            "da": "Varmtvandsbehov"
+          }
+        }
+      ]
+    },
+    {
+      "id": "f_capability_turned_off",
+      "title": {
+        "en": "Register turned off",
+        "sv": "Registervärde stängs på",
+        "de": "Register ausgeschaltet",
+        "nl": "Register uitgeschakeld",
+        "no": "Register slått av",
+        "da": "Register slukket"
+      },
+      "titleFormatted": {
+        "en": "[[register]] turned off",
+        "sv": "[[register]] stängs av",
+        "de": "[[register]] ausgeschaltet",
+        "nl": "[[register]] uitgeschakeld",
+        "no": "[[register]] slått av",
+        "da": "[[register]] slukket"
+      },
+      "hint": {
+        "en": "Fires when the selected on/off register switches off.",
+        "sv": "Utlöses när det valda av/på-registret stängs av.",
+        "de": "Wird ausgelöst, wenn das gewählte Ein/Aus-Register ausschaltet.",
+        "nl": "Wordt geactiveerd wanneer het gekozen aan/uit-register uitschakelt.",
+        "no": "Utløses når det valgte på/av-registeret slås av.",
+        "da": "Udløses, når det valgte til/fra-register slukkes."
+      },
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "register",
+          "title": {
+            "en": "Register",
+            "sv": "Register",
+            "de": "Register",
+            "nl": "Register",
+            "no": "Register",
+            "da": "Register"
+          }
+        }
+      ],
+      "tokens": [
+        {
+          "name": "register",
+          "type": "string",
+          "title": {
+            "en": "Register",
+            "sv": "Register",
+            "de": "Register",
+            "nl": "Register",
+            "no": "Register",
+            "da": "Register"
+          },
+          "example": {
+            "en": "Hot water demand",
+            "sv": "Varmvattenbehov",
+            "de": "Brauchwasserbedarf",
+            "nl": "Warmtapwaterbehoefte",
+            "no": "Varmtvannsbehov",
+            "da": "Varmtvandsbehov"
+          }
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "f_set_numeric_value",
+      "title": {
+        "en": "Set value of a register (advanced)",
+        "sv": "Sätt värdet på ett register (avancerat)",
+        "de": "Registerwert setzen (erweitert)",
+        "nl": "Registerwaarde instellen (geavanceerd)",
+        "no": "Sett verdi for et register (avansert)",
+        "da": "Indstil værdi for et register (avanceret)"
+      },
+      "titleFormatted": {
+        "en": "Set value of [[register]] to [[value]]",
+        "sv": "Sätt värdet på [[register]] till [[value]]",
+        "de": "[[register]] auf [[value]] setzen",
+        "nl": "[[register]] instellen op [[value]]",
+        "no": "Sett [[register]] til [[value]]",
+        "da": "Indstil [[register]] til [[value]]"
+      },
+      "hint": {
+        "en": "Writes any writable Modbus register, picked by name. Prefer the named cards (\"Set the heat curve to …\") — this is the escape hatch for registers that have none. Values outside the register’s range are rejected.",
+        "sv": "Skriver till valfritt skrivbart Modbus-register, valt via namn. Använd hellre de namngivna korten (\"Ställ in värmekurvan till …\") — det här är reservutgången för register som saknar sådana. Värden utanför registrets intervall avvisas.",
+        "de": "Beschreibt ein beliebiges beschreibbares Modbus-Register, ausgewählt über den Namen. Bevorzugen Sie die benannten Karten („Heizkurve auf … setzen“) – dies ist die Ausweichlösung für Register ohne eigene Karte. Werte außerhalb des Registerbereichs werden abgelehnt.",
+        "nl": "Schrijft naar een willekeurig beschrijfbaar Modbus-register, gekozen op naam. Gebruik bij voorkeur de benoemde kaarten (\"Stooklijn instellen op …\") — dit is de noodoplossing voor registers zonder eigen kaart. Waarden buiten het bereik van het register worden geweigerd.",
+        "no": "Skriver til et hvilket som helst skrivbart Modbus-register, valgt ved navn. Bruk helst de navngitte kortene («Sett varmekurven til …») – dette er nødløsningen for registre uten eget kort. Verdier utenfor registerets område avvises.",
+        "da": "Skriver til et vilkårligt skrivbart Modbus-register, valgt ved navn. Brug helst de navngivne kort (»Indstil varmekurven til …«) – dette er nødløsningen for registre uden eget kort. Værdier uden for registerets område afvises."
+      },
+      "advanced": true,
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "register",
+          "title": {
+            "en": "Register",
+            "sv": "Register",
+            "de": "Register",
+            "nl": "Register",
+            "no": "Register",
+            "da": "Register"
+          }
+        },
+        {
+          "type": "number",
+          "name": "value",
+          "title": {
+            "en": "Value",
+            "sv": "Värde",
+            "de": "Wert",
+            "nl": "Waarde",
+            "no": "Verdi",
+            "da": "Værdi"
+          }
+        }
+      ]
+    },
+    {
+      "id": "f_enable_feature",
+      "title": {
+        "en": "Enable a register (advanced)",
+        "sv": "Slå på ett register (avancerat)",
+        "de": "Register einschalten (erweitert)",
+        "nl": "Register inschakelen (geavanceerd)",
+        "no": "Slå på et register (avansert)",
+        "da": "Tænd et register (avanceret)"
+      },
+      "titleFormatted": {
+        "en": "Enable [[register]]",
+        "sv": "Slå på [[register]]",
+        "de": "[[register]] einschalten",
+        "nl": "[[register]] inschakelen",
+        "no": "Slå på [[register]]",
+        "da": "Tænd [[register]]"
+      },
+      "hint": {
+        "en": "Switches on any writable on/off register, picked by name. Prefer the device’s own on/off cards — this is the escape hatch.",
+        "sv": "Slår på valfritt skrivbart av/på-register, valt via namn. Använd hellre enhetens egna av/på-kort — det här är reservutgången.",
+        "de": "Schaltet ein beliebiges beschreibbares Ein/Aus-Register ein, ausgewählt über den Namen. Bevorzugen Sie die eigenen Ein/Aus-Karten des Geräts – dies ist die Ausweichlösung.",
+        "nl": "Schakelt een willekeurig beschrijfbaar aan/uit-register in, gekozen op naam. Gebruik bij voorkeur de eigen aan/uit-kaarten van het apparaat — dit is de noodoplossing.",
+        "no": "Slår på et hvilket som helst skrivbart på/av-register, valgt ved navn. Bruk helst enhetens egne på/av-kort – dette er nødløsningen.",
+        "da": "Tænder et vilkårligt skrivbart til/fra-register, valgt ved navn. Brug helst enhedens egne til/fra-kort – dette er nødløsningen."
+      },
+      "advanced": true,
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "register",
+          "title": {
+            "en": "Register",
+            "sv": "Register",
+            "de": "Register",
+            "nl": "Register",
+            "no": "Register",
+            "da": "Register"
+          }
+        }
+      ]
+    },
+    {
+      "id": "f_disable_feature",
+      "title": {
+        "en": "Disable a register (advanced)",
+        "sv": "Stäng av ett register (avancerat)",
+        "de": "Register ausschalten (erweitert)",
+        "nl": "Register uitschakelen (geavanceerd)",
+        "no": "Slå av et register (avansert)",
+        "da": "Sluk et register (avanceret)"
+      },
+      "titleFormatted": {
+        "en": "Disable [[register]]",
+        "sv": "Stäng av [[register]]",
+        "de": "[[register]] ausschalten",
+        "nl": "[[register]] uitschakelen",
+        "no": "Slå av [[register]]",
+        "da": "Sluk [[register]]"
+      },
+      "hint": {
+        "en": "Switches off any writable on/off register, picked by name. Prefer the device’s own on/off cards — this is the escape hatch.",
+        "sv": "Stänger av valfritt skrivbart av/på-register, valt via namn. Använd hellre enhetens egna av/på-kort — det här är reservutgången.",
+        "de": "Schaltet ein beliebiges beschreibbares Ein/Aus-Register aus, ausgewählt über den Namen. Bevorzugen Sie die eigenen Ein/Aus-Karten des Geräts – dies ist die Ausweichlösung.",
+        "nl": "Schakelt een willekeurig beschrijfbaar aan/uit-register uit, gekozen op naam. Gebruik bij voorkeur de eigen aan/uit-kaarten van het apparaat — dit is de noodoplossing.",
+        "no": "Slår av et hvilket som helst skrivbart på/av-register, valgt ved navn. Bruk helst enhetens egne på/av-kort – dette er nødløsningen.",
+        "da": "Slukker et vilkårligt skrivbart til/fra-register, valgt ved navn. Brug helst enhedens egne til/fra-kort – dette er nødløsningen."
+      },
+      "advanced": true,
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "register",
+          "title": {
+            "en": "Register",
+            "sv": "Register",
+            "de": "Register",
+            "nl": "Register",
+            "no": "Register",
+            "da": "Register"
+          }
+        }
+      ]
+    },
+    {
+      "id": "f_curve_mode_NIBE.h47007_heat_curve.enum",
+      "title": {
+        "en": "Set Heating curve",
+        "sv": "Ställ in Värmekurva",
+        "de": "Einstellung ändern",
+        "nl": "Instelling wijzigen",
+        "no": "Endre innstilling",
+        "da": "Skift indstilling"
+      },
+      "$filter": "capabilities=curve_mode_NIBE.h47007_heat_curve",
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "mode",
+          "title": {
+            "en": "Mode",
+            "sv": "Läge",
+            "de": "Modus",
+            "nl": "Stand",
+            "no": "Modus",
+            "da": "Indstilling"
+          }
+        }
+      ],
+      "titleFormatted": {
+        "en": "Set Heating curve: [[mode]]",
+        "sv": "Ställ in Värmekurva: [[mode]]",
+        "de": "Einstellung ändern: [[mode]]",
+        "nl": "Instelling wijzigen: [[mode]]",
+        "no": "Endre innstilling: [[mode]]",
+        "da": "Skift indstilling: [[mode]]"
+      }
+    },
+    {
+      "id": "f_curve_displacement_NIBE.h47011_curve_offset.enum",
+      "title": {
+        "en": "Set Heating curve offset",
+        "sv": "Ställ in Värmekurvans förskjutning",
+        "de": "Einstellung ändern",
+        "nl": "Instelling wijzigen",
+        "no": "Endre innstilling",
+        "da": "Skift indstilling"
+      },
+      "$filter": "capabilities=curve_displacement_NIBE.h47011_curve_offset",
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "mode",
+          "title": {
+            "en": "Mode",
+            "sv": "Läge",
+            "de": "Modus",
+            "nl": "Stand",
+            "no": "Modus",
+            "da": "Indstilling"
+          }
+        }
+      ],
+      "titleFormatted": {
+        "en": "Set Heating curve offset: [[mode]]",
+        "sv": "Ställ in Värmekurvans förskjutning: [[mode]]",
+        "de": "Einstellung ändern: [[mode]]",
+        "nl": "Instelling wijzigen: [[mode]]",
+        "no": "Endre innstilling: [[mode]]",
+        "da": "Skift indstilling: [[mode]]"
+      }
+    },
+    {
+      "id": "f_hotwater_demand_NIBE.h47041_comfort.enum",
+      "title": {
+        "en": "Set Hot water comfort",
+        "sv": "Ställ in Varmvattenkomfort",
+        "de": "Einstellung ändern",
+        "nl": "Instelling wijzigen",
+        "no": "Endre innstilling",
+        "da": "Skift indstilling"
+      },
+      "$filter": "capabilities=hotwater_demand_NIBE.h47041_comfort",
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "mode",
+          "title": {
+            "en": "Mode",
+            "sv": "Läge",
+            "de": "Modus",
+            "nl": "Stand",
+            "no": "Modus",
+            "da": "Indstilling"
+          }
+        }
+      ],
+      "titleFormatted": {
+        "en": "Set Hot water comfort: [[mode]]",
+        "sv": "Ställ in Varmvattenkomfort: [[mode]]",
+        "de": "Einstellung ändern: [[mode]]",
+        "nl": "Instelling wijzigen: [[mode]]",
+        "no": "Endre innstilling: [[mode]]",
+        "da": "Skift indstilling: [[mode]]"
+      }
+    },
+    {
+      "id": "f_f_hotwater_boost.h48132_boost.enum",
+      "title": {
+        "en": "Set Temporary hot water boost",
+        "sv": "Ställ in Tillfällig varmvattenhöjning",
+        "de": "Einstellung ändern",
+        "nl": "Instelling wijzigen",
+        "no": "Endre innstilling",
+        "da": "Skift indstilling"
+      },
+      "$filter": "capabilities=f_hotwater_boost.h48132_boost",
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "mode",
+          "title": {
+            "en": "Mode",
+            "sv": "Läge",
+            "de": "Modus",
+            "nl": "Stand",
+            "no": "Modus",
+            "da": "Indstilling"
+          }
+        }
+      ],
+      "titleFormatted": {
+        "en": "Set Temporary hot water boost: [[mode]]",
+        "sv": "Ställ in Tillfällig varmvattenhöjning: [[mode]]",
+        "de": "Einstellung ändern: [[mode]]",
+        "nl": "Instelling wijzigen: [[mode]]",
+        "no": "Endre innstilling: [[mode]]",
+        "da": "Skift indstilling: [[mode]]"
+      }
+    },
+    {
+      "id": "f_operating_mode_NIBE.h47137_mode.enum",
+      "title": {
+        "en": "Set Operating mode",
+        "sv": "Ställ in Driftläge",
+        "de": "Einstellung ändern",
+        "nl": "Instelling wijzigen",
+        "no": "Endre innstilling",
+        "da": "Skift indstilling"
+      },
+      "$filter": "capabilities=operating_mode_NIBE.h47137_mode",
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "mode",
+          "title": {
+            "en": "Mode",
+            "sv": "Läge",
+            "de": "Modus",
+            "nl": "Stand",
+            "no": "Modus",
+            "da": "Indstilling"
+          }
+        }
+      ],
+      "titleFormatted": {
+        "en": "Set Operating mode: [[mode]]",
+        "sv": "Ställ in Driftläge: [[mode]]",
+        "de": "Einstellung ändern: [[mode]]",
+        "nl": "Instelling wijzigen: [[mode]]",
+        "no": "Endre innstilling: [[mode]]",
+        "da": "Skift indstilling: [[mode]]"
+      }
+    }
+  ],
+  "conditions": [
+    {
+      "id": "f_numeric_value_comparison",
+      "title": {
+        "en": "Value comparison",
+        "sv": "Värdejämförelse",
+        "de": "Wertvergleich",
+        "nl": "Waardevergelijking",
+        "no": "Verdisammenligning",
+        "da": "Værdisammenligning"
+      },
+      "titleFormatted": {
+        "en": "Value of [[register]] is [[comparison]] [[value]]",
+        "sv": "Värdet på [[register]] är [[comparison]] [[value]]",
+        "de": "Wert von [[register]] ist [[comparison]] [[value]]",
+        "nl": "Waarde van [[register]] is [[comparison]] [[value]]",
+        "no": "Verdien av [[register]] er [[comparison]] [[value]]",
+        "da": "Værdien af [[register]] er [[comparison]] [[value]]"
+      },
+      "hint": {
+        "en": "Compares any readable numeric register against a value. Useful for readings that have no card of their own, such as degree minutes or compressor frequency.",
+        "sv": "Jämför valfritt läsbart numeriskt register mot ett värde. Användbart för mätvärden utan eget kort, till exempel gradminuter eller kompressorfrekvens.",
+        "de": "Vergleicht ein beliebiges lesbares numerisches Register mit einem Wert. Nützlich für Messwerte ohne eigene Karte, etwa Gradminuten oder Verdichterfrequenz.",
+        "nl": "Vergelijkt een willekeurig uitleesbaar numeriek register met een waarde. Handig voor metingen zonder eigen kaart, zoals graadminuten of compressorfrequentie.",
+        "no": "Sammenligner et hvilket som helst lesbart numerisk register med en verdi. Nyttig for målinger uten eget kort, som gradminutter eller kompressorfrekvens.",
+        "da": "Sammenligner et vilkårligt læsbart numerisk register med en værdi. Nyttigt til målinger uden eget kort, såsom gradminutter eller kompressorfrekvens."
+      },
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "register",
+          "title": {
+            "en": "Register",
+            "sv": "Register",
+            "de": "Register",
+            "nl": "Register",
+            "no": "Register",
+            "da": "Register"
+          }
+        },
+        {
+          "type": "dropdown",
+          "name": "comparison",
+          "title": {
+            "en": "Comparison",
+            "sv": "Jämförelse",
+            "de": "Vergleich",
+            "nl": "Vergelijking",
+            "no": "Sammenligning",
+            "da": "Sammenligning"
+          },
+          "values": [
+            {
+              "id": "<",
+              "title": {
+                "en": "less than",
+                "sv": "mindre än",
+                "de": "kleiner als",
+                "nl": "kleiner dan",
+                "no": "mindre enn",
+                "da": "mindre end"
+              }
+            },
+            {
+              "id": ">",
+              "title": {
+                "en": "greater than",
+                "sv": "större än",
+                "de": "größer als",
+                "nl": "groter dan",
+                "no": "større enn",
+                "da": "større end"
+              }
+            }
+          ]
+        },
+        {
+          "type": "number",
+          "name": "value",
+          "title": {
+            "en": "Value",
+            "sv": "Värde",
+            "de": "Wert",
+            "nl": "Waarde",
+            "no": "Verdi",
+            "da": "Værdi"
+          }
+        }
+      ]
+    },
+    {
+      "id": "f_feature_enabled",
+      "title": {
+        "en": "A register is on (advanced)",
+        "sv": "Ett register är på (avancerat)",
+        "de": "Ein Register ist eingeschaltet (erweitert)",
+        "nl": "Een register is ingeschakeld (geavanceerd)",
+        "no": "Et register er på (avansert)",
+        "da": "Et register er tændt (avanceret)"
+      },
+      "titleFormatted": {
+        "en": "[[register]] is !{{enabled|disabled}}",
+        "sv": "[[register]] är !{{på|av}}",
+        "de": "[[register]] ist !{{aktiviert|deaktiviert}}",
+        "nl": "[[register]] is !{{ingeschakeld|uitgeschakeld}}",
+        "no": "[[register]] er !{{aktivert|deaktivert}}",
+        "da": "[[register]] er !{{aktiveret|deaktiveret}}"
+      },
+      "hint": {
+        "en": "Checks any on/off register, picked by name. Prefer the device’s own on/off condition cards — this is the escape hatch.",
+        "sv": "Kontrollerar valfritt av/på-register, valt via namn. Använd hellre enhetens egna av/på-villkorskort — det här är reservutgången.",
+        "de": "Prüft ein beliebiges Ein/Aus-Register, ausgewählt über den Namen. Bevorzugen Sie die eigenen Ein/Aus-Bedingungskarten des Geräts – dies ist die Ausweichlösung.",
+        "nl": "Controleert een willekeurig aan/uit-register, gekozen op naam. Gebruik bij voorkeur de eigen aan/uit-voorwaardekaarten van het apparaat — dit is de noodoplossing.",
+        "no": "Sjekker et hvilket som helst på/av-register, valgt ved navn. Bruk helst enhetens egne på/av-betingelseskort – dette er nødløsningen.",
+        "da": "Kontrollerer et vilkårligt til/fra-register, valgt ved navn. Brug helst enhedens egne til/fra-betingelseskort – dette er nødløsningen."
+      },
+      "advanced": true,
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "register",
+          "title": {
+            "en": "Register",
+            "sv": "Register",
+            "de": "Register",
+            "nl": "Register",
+            "no": "Register",
+            "da": "Register"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -4,7 +4,7 @@
 that touches attribution, the power sources, the role mapping or the COP accumulators — not on every build.
 The [README](../README.md) links here and carries the user-facing summary.
 
-Last reviewed against the code: **1.2.1 (local test)**; hardware accuracy measurements below retain their original dates.
+Last reviewed against the code: **1.3.2 (F-series beta)**; hardware accuracy measurements below retain their original dates.
 
 ## Missing readings and reconnects (1.2.1)
 
@@ -219,3 +219,17 @@ produced the −0.8% figure, and it stays measurement-only until there is a reas
 - [`tasks/todo.md`](../tasks/todo.md) — the working plan and the resolved verdict on correction.
 - [`tasks/todo-halderex.md`](../tasks/todo-halderex.md) — external S735 verification.
 - [`tasks/s735-energylog-verification.md`](../tasks/s735-energylog-verification.md) — the full write-up.
+
+
+## Experimental F-series build (2026-09-12)
+
+F-series now uses this same allocator and rolling COP machinery with alternative summed inputs
+43375 + 43084, then 43141 + 43084. Both members must read; one missing component invalidates
+the source group. Function production uses 42437/42439/42441/42443 where available. This is an
+experimental estimate excluding auxiliary electricity, with an unresolved F730 compressor
+scaling report, not a verified whole-pump meter. Main has no synthesized Total COP.
+See [F-series research and build limits](f-series.md). S-series source selection is unchanged.
+
+The F-series owner test build also logs raw/decoded energy snapshots once per minute for a
+bounded two-hour debug window. Control writes and room-thermostat rendering share the engine;
+neither changes the electrical source definitions above.

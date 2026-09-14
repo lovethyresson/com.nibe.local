@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import Module from 'node:module';
 import {sProfile} from '../drivers/nibe_s/profile';
+import {fProfile} from '../drivers/nibe_f/profile';
 import {Dir, encodeRegisterValue, Register} from '../lib/registers';
 import {PumpConnection} from '../lib/connection';
 import {HOTWATER_VOLUME_CAPABILITY, FUNCTION_COP_CAPABILITY} from '../lib/roles';
@@ -157,6 +158,75 @@ test('disconnect excludes offline produced energy from function COP', () => {
     assert.equal(d.copProducedAccum, 8);
 });
 
+test('F-series production feeds the shared rolling COP over the same observed span', () => {
+    const {d, caps, store} = device();
+    d.profile = fProfile;
+    d.setValue = async () => {};
+    d.noteTankReading = () => {};
+    d.role = 'hotwater';
+    const produced = fProfile.registerByName[fProfile.role.producedRegisterForRole.hotwater!];
+    d.onEnergy(0, 1000);
+    d.onRegisterRaw(produced, 5000);
+    store.set('copSamples', [{t: Date.now(), p: 0, u: 0}]);
+    d.onEnergy(1, 1000);
+    d.onRegisterRaw(produced, 5025); // 2.5 kWh delivered, 1 kWh covered electricity
+    d.onPollComplete(new Set([produced.name]));
+    assert.equal(caps.get(FUNCTION_COP_CAPABILITY), 2.5);
+    d.onPollComplete(new Set());
+    assert.equal(caps.get(FUNCTION_COP_CAPABILITY), null);
+});
+
+test('F write verification gives a cached reply time to refresh', async () => {
+    const {d} = device();
+    assert.equal(fProfile.writeReadbackIntervalMs, 2100);
+    d.profile = {...fProfile, writeReadbackIntervalMs: 30}; d.role = 'heating';
+    d.connection = {writeRegisterValue: async () => {}};
+    const times: number[] = [];
+    d.readRegister = async () => { times.push(Date.now()); return times.length === 1 ? 0 : 1; };
+    d.setValue = async () => {};
+    await d.writeRegister(fProfile.registerByName['curve_displacement_NIBE.h47011_curve_offset'], 1);
+    assert.equal(times.length, 2); assert.ok(times[1] - times[0] >= 25);
+});
+
+test('F controls reject inactive room control and wrong operating mode before writing', async () => {
+    const {d} = device(); d.profile = fProfile; d.role = 'heating';
+    const writes: any[] = [];
+    d.connection = {writeRegisterValue: async (...args: any[]) => writes.push(args)};
+    const values = new Map<string, any>([['measure_temperature', 21],
+        ['boolean_NIBE.h47394_room_control', false], ['operating_mode_NIBE.h47137_mode', '0']]);
+    d.readRegister = async (r: Register) => values.get(r.name);
+    await assert.rejects(d.writeRegister(fProfile.registerByName[fProfile.roomThermostat!.target], 22), /disabled/);
+    await assert.rejects(d.writeRegister(fProfile.registerByName['boolean_NIBE.h47371_allow_heating'], false), /Auto/);
+    values.delete('measure_temperature');
+    await assert.rejects(d.writeRegister(fProfile.registerByName[fProfile.roomThermostat!.enabled], true), /indoor sensor/);
+    assert.equal(writes.length, 0);
+});
+
+test('F live room state switches between heater and thermostat and wires the new dial', async () => {
+    const {d, caps, store} = device();
+    d.profile = fProfile; d.role = 'heating';
+    let deviceClass = 'heater';
+    const listeners = new Map();
+    Object.assign(d, {getClass: () => deviceClass, setClass: async (value: string) => { deviceClass = value; },
+        getCapabilities: () => [...caps.keys()], hasCapability: (name: string) => caps.has(name),
+        addCapability: async (name: string) => { caps.set(name, null); },
+        removeCapability: async (name: string) => { caps.delete(name); },
+        ensureCapabilityOptions: async () => {}, debug: () => {},
+        registerCapabilityListener: (name: string, fn: any) => listeners.set(name, fn)});
+    const cfg = fProfile.roomThermostat!;
+    const raw = new Map([[cfg.sensor, 210], [cfg.enabled, 1], [cfg.target, 220]]);
+    d.connection = {lastRawFor: (name: string) => raw.get(name)};
+    store.set('selection', {groups: {heating: true, energy: false}, overrides: {}});
+    d.onPollComplete(new Set(raw.keys())); await d.thermostatSync;
+    assert.equal(deviceClass, 'thermostat');
+    assert.equal(caps.has('target_temperature'), true);
+    assert.equal(typeof listeners.get('target_temperature'), 'function');
+    raw.set(cfg.enabled, 0);
+    d.onPollComplete(new Set(raw.keys())); await d.thermostatSync;
+    assert.equal(deviceClass, 'heater');
+    assert.equal(caps.has('target_temperature'), false);
+});
+
 test('hot water derives once per snapshot and discards missing sensor readings', () => {
     const {d, caps} = device();
     d.profile = {...sProfile, hotwaterTank: {...sProfile.hotwaterTank, topRegister: 'top', lowerRegister: 'lower'}};
@@ -232,7 +302,7 @@ test('shutdown awaits the last durable energy write', async () => {
 test('retiring a connection rejects queued writes and ignores an old in-flight result', async () => {
     const connection: any = Object.create(PumpConnection.prototype);
     Object.assign(connection, {connected: true, destroyed: false, generation: 0,
-        wireHigh: [], wireLow: [], wireRunning: false, lastRaw: new Map(), unsupportedUntil: new Map()});
+        wireHigh: [], wireLow: [], wireRunning: false, lastRaw: new Map(), unsupportedUntil: new Map(), backgroundAttempted: new Map()});
     let release!: () => void;
     const running = connection.withWireAccess(() => new Promise<void>((resolve) => { release = resolve; }));
     let wrote = false;
@@ -247,10 +317,14 @@ test('retiring a connection rejects queued writes and ignores an old in-flight r
 
 test('only explicit unsupported-register errors put background reads on cooldown', async () => {
     const connection: any = Object.create(PumpConnection.prototype);
-    Object.assign(connection, {generation: 1, profile: {}, unsupportedUntil: new Map(),
+    Object.assign(connection, {generation: 1, profile: {}, transport: {},
+        readDiagnostics: new Map(), captureCounts: new Map(), unsupportedUntil: new Map(),
         noteRead: () => {}, withWireAccess: async () => { throw {body: {code: 2}}; }});
     await connection.readRegisterRaw(register('missing'));
     assert.ok(connection.unsupportedUntil.get('missing') > Date.now());
+    connection.withWireAccess = async () => { throw {body: {code: 4}}; };
+    await connection.readRegisterRaw(register('warming'));
+    assert.equal(connection.unsupportedUntil.has('warming'), false);
     connection.withWireAccess = async () => { throw new Error('timeout'); };
     await connection.readRegisterRaw(register('temporary'));
     assert.equal(connection.unsupportedUntil.has('temporary'), false);

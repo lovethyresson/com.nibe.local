@@ -118,12 +118,27 @@ export async function sampleRegisters(
     profile: ModelProfile,
     read: (register: Register) => Promise<number | undefined>,
     onProgress: (pass: number, passes: number) => void,
-    passes: number = PROBE_PASSES,
+    passes: number = profile.detection.passes ?? PROBE_PASSES,
     intervalMs: number = PROBE_INTERVAL_MS,
     signal?: AbortSignal
 ): Promise<ProbeResult> {
+    const pause = (ms: number) => new Promise<void>((resolve, reject) => {
+        const abort = () => { clearTimeout(timer); reject(new Error('Detection cancelled')); };
+        const timer = setTimeout(() => {
+            signal?.removeEventListener('abort', abort);
+            resolve();
+        }, ms);
+        signal?.addEventListener('abort', abort, {once: true});
+        if (signal?.aborted) abort();
+    });
+    let lastRequest = -Infinity;
     const checkedRead = async (register: Register) => {
         if (signal?.aborted) throw new Error('Detection cancelled');
+        // An immediate cached response may still have triggered a slow pump-side request.
+        // During discovery LOG.SET is unknown, so pace even successful replies.
+        const delay = (profile.detection.requestIntervalMs ?? 0) - (Date.now() - lastRequest);
+        if (delay > 0) await pause(delay);
+        lastRequest = Date.now();
         const value = await read(register);
         if (signal?.aborted) throw new Error('Detection cancelled');
         return value;
@@ -131,8 +146,10 @@ export async function sampleRegisters(
     const probes: ProbeSamples = Object.fromEntries(
         profile.registers.map((register) => [register.name, {reads: 0, moved: false}]));
     for (let pass = 0; pass < passes; ++pass) {
-        for (const register of profile.registers) {
+        for (const [index, register] of profile.registers.entries()) {
             const value = await checkedRead(register);
+            if (profile.detection.requestIntervalMs)
+                onProgress(pass * profile.registers.length + index + 1, passes * profile.registers.length);
             if (value === undefined)
                 continue;
             const probe = probes[register.name];
@@ -141,20 +158,9 @@ export async function sampleRegisters(
             probe.reads += 1;
             probe.last = value;
         }
-        onProgress(pass + 1, passes);
+        if (!profile.detection.requestIntervalMs) onProgress(pass + 1, passes);
         if (pass < passes - 1)
-            await new Promise<void>((resolve, reject) => {
-                const abort = () => {
-                    clearTimeout(timer);
-                    reject(new Error('Detection cancelled'));
-                };
-                const timer = setTimeout(() => {
-                    signal?.removeEventListener('abort', abort);
-                    resolve();
-                }, intervalMs);
-                signal?.addEventListener('abort', abort, {once: true});
-                if (signal?.aborted) abort();
-            });
+            await pause(intervalMs);
     }
     // Sources first: a register that declares them has its own address among the candidates, so
     // resolving them can populate a probe that the sampling run left empty, and resolveAlternates
@@ -292,7 +298,7 @@ export function recommendGroups(profile: ModelProfile, probes: ProbeSamples): Re
 export async function probeHost(
     profile: ModelProfile,
     host: string,
-    transport: {port: number; unitId: number},
+    transport: {port: number; unitId: number; addressBase?: number},
     onProgress: (pass: number, passes: number) => void,
     signal?: AbortSignal
 ): Promise<DetectionResult> {
@@ -315,7 +321,9 @@ export async function probeHost(
             socket.connect({port: transport.port, host});
         });
         const {probes, addresses, choices} = await sampleRegisters(
-            profile, (register) => readNumeric(client, register, profile), onProgress,
+            profile, (register) => readNumeric(client, register, {
+                ...profile, addressBase: transport.addressBase ?? profile.addressBase
+            }), onProgress,
             undefined, undefined, signal);
         return buildDetectionResult(profile, probes, addresses, choices);
     } finally {

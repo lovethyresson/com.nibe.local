@@ -1,0 +1,1032 @@
+{
+  "name": {
+    "en": "Nibe F-series (beta)",
+    "sv": "Nibe F-series (beta)",
+    "de": "Nibe F-series (beta)",
+    "nl": "Nibe F-series (beta)",
+    "no": "Nibe F-series (beta)",
+    "da": "Nibe F-series (beta)"
+  },
+  "class": "other",
+  "images": {
+    "small": "/drivers/nibe_f/assets/images/small.png",
+    "large": "/drivers/nibe_f/assets/images/large.png",
+    "xlarge": "/drivers/nibe_f/assets/images/xlarge.png"
+  },
+  "pair": [
+    {
+      "id": "ip_address"
+    },
+    {
+      "id": "detect"
+    },
+    {
+      "id": "devices"
+    }
+  ],
+  "repair": [
+    {
+      "id": "detect"
+    },
+    {
+      "id": "features"
+    }
+  ],
+  "settings": [
+    {
+      "type": "group",
+      "label": {
+        "en": "Connection",
+        "sv": "Anslutning",
+        "de": "Verbindung",
+        "nl": "Verbinding",
+        "no": "Tilkobling",
+        "da": "Forbindelse"
+      },
+      "children": [
+        {
+          "id": "address",
+          "type": "text",
+          "label": {
+            "en": "IP address",
+            "sv": "IP-adress",
+            "de": "IP-Adresse",
+            "nl": "IP-adres",
+            "no": "IP-adresse",
+            "da": "IP-adresse"
+          },
+          "value": ""
+        },
+        {
+          "id": "port",
+          "type": "number",
+          "label": {
+            "en": "TCP port",
+            "sv": "TCP port",
+            "de": "TCP port",
+            "nl": "TCP port",
+            "no": "TCP port",
+            "da": "TCP port"
+          },
+          "value": 502,
+          "min": 1,
+          "max": 65535
+        },
+        {
+          "id": "unitId",
+          "type": "number",
+          "label": {
+            "en": "Modbus ID",
+            "sv": "Modbus ID",
+            "de": "Modbus ID",
+            "nl": "Modbus ID",
+            "no": "Modbus ID",
+            "da": "Modbus ID"
+          },
+          "value": 1,
+          "min": 1,
+          "max": 247
+        },
+        {
+          "id": "addressMode",
+          "type": "dropdown",
+          "label": {
+            "en": "Gateway",
+            "sv": "Gateway",
+            "de": "Gateway",
+            "nl": "Gateway",
+            "no": "Gateway",
+            "da": "Gateway"
+          },
+          "value": "modbus40",
+          "values": [
+            {
+              "id": "modbus40",
+              "label": {
+                "en": "MODBUS 40 + TCP",
+                "sv": "MODBUS 40 + TCP",
+                "de": "MODBUS 40 + TCP",
+                "nl": "MODBUS 40 + TCP",
+                "no": "MODBUS 40 + TCP",
+                "da": "MODBUS 40 + TCP"
+              }
+            },
+            {
+              "id": "nibegw",
+              "label": {
+                "en": "nibegw-esp",
+                "sv": "nibegw-esp",
+                "de": "nibegw-esp",
+                "nl": "nibegw-esp",
+                "no": "nibegw-esp",
+                "da": "nibegw-esp"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": {
+        "en": "Advanced",
+        "sv": "Avancerat",
+        "de": "Erweitert",
+        "nl": "Geavanceerd",
+        "no": "Avansert",
+        "da": "Avanceret"
+      },
+      "children": [
+        {
+          "id": "pollInterval",
+          "type": "number",
+          "label": {
+            "en": "Poll interval (seconds)",
+            "sv": "Avläsningsintervall (sekunder)",
+            "de": "Abfrageintervall (Sekunden)",
+            "nl": "Uitleesinterval (seconden)",
+            "no": "Avlesningsintervall (sekunder)",
+            "da": "Aflæsningsinterval (sekunder)"
+          },
+          "hint": {
+            "en": "Requested interval for energy, thermostat and key temperature readings. Set on Nibe Main; all function devices follow it. One background parameter is read per cycle, each at most once a minute; a full rotation can take several minutes. Slow reads can extend the interval. LOG.SET controls which parameters the gateway refreshes frequently; this setting does not control cache freshness.",
+            "sv": "Önskat intervall för energi, termostat och viktiga temperaturer. Ställ in på Nibe Main; alla funktionsenheter följer det. En bakgrundsparameter läses per omgång, varje parameter högst en gång per minut; ett helt varv kan ta flera minuter. Långsamma avläsningar kan förlänga intervallet. LOG.SET styr vilka parametrar gatewayen uppdaterar ofta; denna inställning styr inte hur aktuella cachevärdena är.",
+            "de": "Gewünschtes Intervall für Energie-, Thermostat- und wichtige Temperaturwerte. Auf Nibe Main einstellen; alle Funktionsgeräte übernehmen es. Pro Zyklus wird ein Hintergrundparameter gelesen, jeder höchstens einmal pro Minute; ein vollständiger Durchlauf kann mehrere Minuten dauern. Langsame Abfragen können das Intervall verlängern. LOG.SET bestimmt, welche Parameter das Gateway häufig aktualisiert; diese Einstellung bestimmt nicht die Aktualität zwischengespeicherter Werte.",
+            "nl": "Gewenst interval voor energie-, thermostaat- en belangrijke temperatuurwaarden. Stel dit in op Nibe Main; alle functieapparaten volgen dit. Per cyclus wordt één achtergrondparameter gelezen, elke parameter hoogstens eenmaal per minuut; een volledige ronde kan enkele minuten duren. Trage uitlezingen kunnen het interval verlengen. LOG.SET bepaalt welke parameters de gateway vaak vernieuwt; deze instelling bepaalt niet hoe actueel de cachewaarden zijn.",
+            "no": "Ønsket intervall for energi, termostat og viktige temperaturer. Angi på Nibe Main; alle funksjonsenheter følger det. Én bakgrunnsparameter leses per runde, hver parameter høyst én gang i minuttet; en full runde kan ta flere minutter. Langsomme avlesninger kan forlenge intervallet. LOG.SET styrer hvilke parametere gatewayen oppdaterer ofte; denne innstillingen styrer ikke hvor ferske hurtigbufferverdiene er.",
+            "da": "Ønsket interval for energi, termostat og vigtige temperaturer. Indstil på Nibe Main; alle funktionsenheder følger det. Én baggrundsparameter læses pr. runde, hver parameter højst én gang i minuttet; en hel runde kan tage flere minutter. Langsomme aflæsninger kan forlænge intervallet. LOG.SET styrer, hvilke parametre gatewayen opdaterer ofte; denne indstilling styrer ikke, hvor aktuelle cacheværdierne er."
+          },
+          "value": 10,
+          "min": 5,
+          "max": 60,
+          "units": {
+            "en": "s"
+          }
+        },
+        {
+          "id": "debugLogging",
+          "type": "checkbox",
+          "label": {
+            "en": "Debug logging",
+            "sv": "Felsökningsloggning",
+            "de": "Debug-Protokollierung",
+            "nl": "Debug-logboek",
+            "no": "Feilsøkingslogg",
+            "da": "Fejlsøgningslog"
+          },
+          "hint": {
+            "en": "Log polling, connection and energy-allocation detail. Normally the app only logs pairing, Flow actions and manual changes. Turn this on when troubleshooting or before sending logs for support.",
+            "sv": "Logga avläsning, anslutning och energifördelning i detalj. Normalt loggas bara parkoppling, flödeskort och manuella ändringar. Slå på vid felsökning eller innan du skickar loggar för support."
+          },
+          "value": false
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": {
+        "en": "Alarms",
+        "sv": "Larm",
+        "de": "Alarme",
+        "nl": "Alarmen",
+        "no": "Alarmer",
+        "da": "Alarmer"
+      },
+      "children": [
+        {
+          "id": "alarm_log",
+          "type": "label",
+          "label": {
+            "en": "Latest alarm",
+            "sv": "Senaste larmet",
+            "de": "Letzter Alarm",
+            "nl": "Laatste alarm",
+            "no": "Siste alarm",
+            "da": "Seneste alarm"
+          },
+          "hint": {
+            "en": "The most recent alarm reported by the heat pump. For the full history — with NIBE's cause and suggested action for each alarm — open this app's own settings: Homey app → More → Apps → Nibe Live → Configure.",
+            "sv": "Det senaste larmet som värmepumpen rapporterat. För hela historiken — med NIBE:s orsak och åtgärd för varje larm — öppna appens egna inställningar: Homey-appen → Mer → Appar → Nibe Live → Konfigurera.",
+            "de": "Der jüngste von der Wärmepumpe gemeldete Alarm. Die vollständige Historie — mit NIBEs Ursache und empfohlener Maßnahme je Alarm — finden Sie in den Einstellungen dieser App: Homey-App → Mehr → Apps → Nibe Live → Konfigurieren.",
+            "nl": "Het meest recente alarm van de warmtepomp. De volledige historie — met NIBE's oorzaak en aanbevolen actie per alarm — vind je in de instellingen van deze app: Homey-app → Meer → Apps → Nibe Live → Configureren.",
+            "no": "Den nyeste alarmen varmepumpen har rapportert. Hele historikken — med NIBEs årsak og tiltak for hver alarm — finner du i appens egne innstillinger: Homey-appen → Mer → Apper → Nibe Live → Konfigurer.",
+            "da": "Den seneste alarm som varmepumpen har rapporteret. Hele historikken — med NIBEs årsag og anbefalede handling for hver alarm — finder du i appens egne indstillinger: Homey-appen → Mere → Apps → Nibe Live → Konfigurer."
+          },
+          "value": ""
+        }
+      ]
+    }
+  ],
+  "capabilities": [
+    "onoff",
+    "alarm_generic",
+    "measure_enum_NIBE.h43086_priority",
+    "measure_temperature.h40004_outside",
+    "measure_temperature",
+    "measure_temperature.h40067_outside_avg",
+    "measure_temperature.h43009_calculated_supply",
+    "measure_temperature.h40008_heating_supply",
+    "measure_temperature.h40012_heating_return",
+    "measure_temperature.h40071_heating_supply",
+    "measure_water.h40072_flow_sensor",
+    "measure_degree_minutes_NIBE.h43005_degree_minutes",
+    "measure_percentage_NIBE.h43437_heating_pump",
+    "measure_temperature.h40013_warmwater_top",
+    "measure_temperature.h40014_hot_water",
+    "measure_hour_NIBE.h43239_additive_usage_hotwater",
+    "measure_hour_NIBE.h43424_compressor_usage_hotwater",
+    "measure_temperature.h40025_return_air",
+    "measure_temperature.h40026_supply_air",
+    "measure_percentage_NIBE.h43108_fan",
+    "measure_temperature.h40015_source_in",
+    "measure_temperature.h40016_source_out",
+    "measure_percentage_NIBE.h43439_source_pump",
+    "measure_temperature.h43140_inverter",
+    "measure_frequency.h43136_compressor",
+    "measure_temperature.h40018_discharge",
+    "measure_temperature.h40019_liquid_line",
+    "measure_temperature.h40022_suction_gas",
+    "status_NIBE.h43435_compressor_status",
+    "measure_hour_NIBE.h43081_additive_usage_total",
+    "measure_count_NIBE.h43416_compressor_starts",
+    "measure_hour_NIBE.h43420_compressor_usage_total",
+    "measure_current.h40079_sensor_v2",
+    "measure_current.h40081_sensor_v2",
+    "measure_current.h40083_sensor_v2",
+    "measure_watt_NIBE.h43141_compressor_motor",
+    "measure_watt_NIBE.h43084_additive_effect",
+    "alarm_text_NIBE",
+    "measure_temperature.h40042_pool",
+    "status_NIBE.h43024_cooling",
+    "measure_temperature.h40045_cooling_supply",
+    "measure_power.h42035_solar_current",
+    "meter_power.solar",
+    "meter_kwh_NIBE.h42437_hotwater_produced",
+    "meter_kwh_NIBE.h42439_heating_produced",
+    "meter_kwh_NIBE.h42441_cooling_produced",
+    "meter_kwh_NIBE.h42443_pool_produced",
+    "curve_mode_NIBE.h47007_heat_curve",
+    "curve_displacement_NIBE.h47011_curve_offset",
+    "boolean_NIBE.h47394_room_control",
+    "target_temperature.h47398_room_setpoint",
+    "measure_number_NIBE.h47402_room_factor",
+    "hotwater_demand_NIBE.h47041_comfort",
+    "f_hotwater_boost.h48132_boost",
+    "boolean_NIBE.h47050_periodic_hw",
+    "fan_speed.h47265_normal",
+    "operating_mode_NIBE.h47137_mode",
+    "boolean_NIBE.h47370_allow_addition",
+    "boolean_NIBE.h47371_allow_heating",
+    "target_temperature"
+  ],
+  "capabilitiesOptions": {
+    "measure_enum_NIBE.h43086_priority": {
+      "title": {
+        "en": "Priority",
+        "sv": "Driftprioritering",
+        "de": "Betriebspriorität",
+        "nl": "Bedrijfsprioriteit",
+        "no": "Driftsprioritering",
+        "da": "Driftsprioritering"
+      },
+      "setable": false,
+      "getable": true
+    },
+    "measure_temperature.h40004_outside": {
+      "title": {
+        "en": "Outside temperature (BT1)",
+        "sv": "Utetemperatur (BT1)",
+        "de": "Außentemperatur (BT1)",
+        "nl": "Buitentemperatuur (BT1)",
+        "no": "Utetemperatur (BT1)",
+        "da": "Udetemperatur (BT1)"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_temperature": {
+      "title": {
+        "en": "Indoor temperature",
+        "sv": "Inomhustemperatur",
+        "de": "Raumtemperatur",
+        "nl": "Binnentemperatuur",
+        "no": "Innetemperatur",
+        "da": "Indendørstemperatur"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_temperature.h40067_outside_avg": {
+      "title": {
+        "en": "Average outdoor temperature",
+        "sv": "Medelutetemperatur",
+        "de": "Mittlere Außentemperatur",
+        "nl": "Gemiddelde buitentemperatuur",
+        "no": "Gjennomsnittlig utetemperatur",
+        "da": "Gennemsnitlig udetemperatur"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_temperature.h43009_calculated_supply": {
+      "title": {
+        "en": "Calculated supply",
+        "sv": "Beräknad framledning",
+        "de": "Berechneter Vorlauf",
+        "nl": "Berekende aanvoer",
+        "no": "Beregnet turledning",
+        "da": "Beregnet fremløb"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_temperature.h40008_heating_supply": {
+      "title": {
+        "en": "Heating supply (BT2)",
+        "sv": "Framledningstemp. (BT2)",
+        "de": "Vorlauftemperatur (BT2)",
+        "nl": "Aanvoertemperatuur (BT2)",
+        "no": "Turledningstemperatur (BT2)",
+        "da": "Fremløbstemperatur (BT2)"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_temperature.h40012_heating_return": {
+      "title": {
+        "en": "Heating return (BT3)",
+        "sv": "Returledningstemp. (BT3)",
+        "de": "Rücklauftemperatur (BT3)",
+        "nl": "Retourtemperatuur (BT3)",
+        "no": "Returtemperatur (BT3)",
+        "da": "Returtemperatur (BT3)"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_temperature.h40071_heating_supply": {
+      "title": {
+        "en": "Heating supply (BT12)",
+        "sv": "Framledning (BT12)",
+        "de": "Kondensator-Vorlauf (BT12)",
+        "nl": "Condensor aanvoer (BT12)",
+        "no": "Kondensator turledning (BT12)",
+        "da": "Kondensator fremløb (BT12)"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_water.h40072_flow_sensor": {
+      "title": {
+        "en": "Flow sensor (BF1)",
+        "sv": "Flödesgivare (BF1)",
+        "de": "Volumenstromsensor (BF1)",
+        "nl": "Debietmeter (BF1)",
+        "no": "Strømningsføler (BF1)",
+        "da": "Flowmåler (BF1)"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_degree_minutes_NIBE.h43005_degree_minutes": {
+      "title": {
+        "en": "Degree minutes",
+        "sv": "Gradminuter",
+        "de": "Gradminuten",
+        "nl": "Graadminuten",
+        "no": "Gradminutter",
+        "da": "Gradminutter"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_percentage_NIBE.h43437_heating_pump": {
+      "title": {
+        "en": "Heating pump (GP1)",
+        "sv": "Värme-pumphastighet (GP1)",
+        "de": "Heizungsumwälzpumpe (GP1)",
+        "nl": "Verwarmingspomp (GP1)",
+        "no": "Varmebærerpumpe (GP1)",
+        "da": "Varmebærerpumpe (GP1)"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 0
+    },
+    "measure_temperature.h40013_warmwater_top": {
+      "title": {
+        "en": "Hot water top (BT7)",
+        "sv": "Varmvatten topp (BT7)",
+        "de": "Brauchwasser oben (BT7)",
+        "nl": "Warmtapwater boven (BT7)",
+        "no": "Varmtvann topp (BT7)",
+        "da": "Varmtvand top (BT7)"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_temperature.h40014_hot_water": {
+      "title": {
+        "en": "Hot water charging (BT6)",
+        "sv": "Varmvatten laddning (BT6)",
+        "de": "Brauchwasserladung (BT6)",
+        "nl": "Warmtapwaterlading (BT6)",
+        "no": "Varmtvannslading (BT6)",
+        "da": "Varmtvandsladning (BT6)"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_hour_NIBE.h43239_additive_usage_hotwater": {
+      "title": {
+        "en": "Immersion heater runtime",
+        "sv": "Elpatronens drifttid",
+        "de": "Heizstab-Laufzeit",
+        "nl": "Draaiuren elektrisch element",
+        "no": "Elkolbens driftstid",
+        "da": "Elpatronens driftstid"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_hour_NIBE.h43424_compressor_usage_hotwater": {
+      "title": {
+        "en": "Compressor runtime",
+        "sv": "Drifttid kompressor",
+        "de": "Verdichterlaufzeit",
+        "nl": "Bedrijfstijd compressor",
+        "no": "Driftstid kompressor",
+        "da": "Driftstid kompressor"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 0
+    },
+    "measure_temperature.h40025_return_air": {
+      "title": {
+        "en": "Extract air (BT20)",
+        "sv": "Frånluft (BT20)",
+        "de": "Abluft (BT20)",
+        "nl": "Afvoerlucht (BT20)",
+        "no": "Avtrekksluft (BT20)",
+        "da": "Udsugningsluft (BT20)"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_temperature.h40026_supply_air": {
+      "title": {
+        "en": "Exhaust air (BT21)",
+        "sv": "Avluft (BT21)",
+        "de": "Fortluft (BT21)",
+        "nl": "Ventilatielucht (BT21)",
+        "no": "Avluft (BT21)",
+        "da": "Afkastluft (BT21)"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_percentage_NIBE.h43108_fan": {
+      "title": {
+        "en": "Fan speed",
+        "sv": "Fläkthastighet",
+        "de": "Lüfterdrehzahl",
+        "nl": "Ventilatorsnelheid",
+        "no": "Viftehastighet",
+        "da": "Ventilatorhastighed"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 0
+    },
+    "measure_temperature.h40015_source_in": {
+      "title": {
+        "en": "Brine in (BT10)",
+        "sv": "Köldbärare in (BT10)",
+        "de": "Kollektor ein (BT10)",
+        "nl": "Brine in (BT10)",
+        "no": "Kollektor inn (BT10)",
+        "da": "Brine ind (BT10)"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_temperature.h40016_source_out": {
+      "title": {
+        "en": "Brine out (BT11)",
+        "sv": "Köldbärare ut (BT11)",
+        "de": "Kollektor aus (BT11)",
+        "nl": "Brine uit (BT11)",
+        "no": "Kollektor ut (BT11)",
+        "da": "Brine ud (BT11)"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_percentage_NIBE.h43439_source_pump": {
+      "title": {
+        "en": "Source pump (GP2)",
+        "sv": "Köld-pumphastighet (GP2)",
+        "de": "Kollektorpumpe (GP2)",
+        "nl": "Bronpomp (GP2)",
+        "no": "Kollektorpumpe (GP2)",
+        "da": "Brinepumpe (GP2)"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 0
+    },
+    "measure_temperature.h43140_inverter": {
+      "title": {
+        "en": "Inverter temperature",
+        "sv": "Invertertemperatur",
+        "de": "Invertertemperatur",
+        "nl": "Invertertemperatuur",
+        "no": "Invertertemperatur",
+        "da": "Invertertemperatur"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_frequency.h43136_compressor": {
+      "title": {
+        "en": "Compressor frequency",
+        "sv": "Kompressorfrekvens",
+        "de": "Verdichterfrequenz",
+        "nl": "Compressorfrequentie",
+        "no": "Kompressorfrekvens",
+        "da": "Kompressorfrekvens"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_temperature.h40018_discharge": {
+      "title": {
+        "en": "Discharge (BT14)",
+        "sv": "Hetgas (BT14)",
+        "de": "Heißgas (BT14)",
+        "nl": "Heetgas (BT14)",
+        "no": "Varmgass (BT14)",
+        "da": "Varm gas (BT14)"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_temperature.h40019_liquid_line": {
+      "title": {
+        "en": "Liquid line (BT15)",
+        "sv": "Vätskeledning (BT15)",
+        "de": "Flüssigkeitsleitung (BT15)",
+        "nl": "Vloeistofleiding (BT15)",
+        "no": "Væskeledning (BT15)",
+        "da": "Væskeledning (BT15)"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_temperature.h40022_suction_gas": {
+      "title": {
+        "en": "Suction gas (BT17)",
+        "sv": "Suggas (BT17)",
+        "de": "Sauggas (BT17)",
+        "nl": "Zuiggas (BT17)",
+        "no": "Sugegass (BT17)",
+        "da": "Sugegas (BT17)"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "status_NIBE.h43435_compressor_status": {
+      "setable": false,
+      "getable": true,
+      "title": {
+        "en": "Compressor running",
+        "sv": "Kompressor igång",
+        "de": "Verdichter läuft",
+        "nl": "Compressor draait",
+        "no": "Kompressor går",
+        "da": "Kompressor kører"
+      }
+    },
+    "measure_hour_NIBE.h43081_additive_usage_total": {
+      "title": {
+        "en": "Total immersion heater runtime",
+        "sv": "Total drifttid elpatron",
+        "de": "Gesamtlaufzeit Heizstab",
+        "nl": "Totale bedrijfstijd elektrisch element",
+        "no": "Total driftstid elkolbe",
+        "da": "Samlet driftstid elpatron"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_count_NIBE.h43416_compressor_starts": {
+      "title": {
+        "en": "Compressor starts",
+        "sv": "Kompressorstarter",
+        "de": "Verdichterstarts",
+        "nl": "Compressorstarts",
+        "no": "Kompressorstarter",
+        "da": "Kompressorstarter"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 0
+    },
+    "measure_hour_NIBE.h43420_compressor_usage_total": {
+      "title": {
+        "en": "Total compressor runtime",
+        "sv": "Total drifttid kompressor",
+        "de": "Gesamtlaufzeit Verdichter",
+        "nl": "Totale bedrijfstijd compressor",
+        "no": "Total driftstid kompressor",
+        "da": "Samlet driftstid kompressor"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 0
+    },
+    "measure_current.h40079_sensor_v2": {
+      "decimals": 1,
+      "title": {
+        "en": "Current sensor L1 (BE1)",
+        "sv": "Strömsensor L1 (BE1)",
+        "de": "Stromsensor L1 (BE1)",
+        "nl": "Stroomsensor L1 (BE1)",
+        "no": "Strømføler L1 (BE1)",
+        "da": "Strømføler L1 (BE1)"
+      },
+      "setable": false,
+      "getable": true
+    },
+    "measure_current.h40081_sensor_v2": {
+      "decimals": 1,
+      "title": {
+        "en": "Current sensor L2 (BE2)",
+        "sv": "Strömsensor L2 (BE2)",
+        "de": "Stromsensor L2 (BE2)",
+        "nl": "Stroomsensor L2 (BE2)",
+        "no": "Strømføler L2 (BE2)",
+        "da": "Strømføler L2 (BE2)"
+      },
+      "setable": false,
+      "getable": true
+    },
+    "measure_current.h40083_sensor_v2": {
+      "decimals": 1,
+      "title": {
+        "en": "Current sensor L3 (BE3)",
+        "sv": "Strömsensor L3 (BE3)",
+        "de": "Stromsensor L3 (BE3)",
+        "nl": "Stroomsensor L3 (BE3)",
+        "no": "Strømføler L3 (BE3)",
+        "da": "Strømføler L3 (BE3)"
+      },
+      "setable": false,
+      "getable": true
+    },
+    "measure_watt_NIBE.h43141_compressor_motor": {
+      "title": {
+        "en": "Compressor motor power",
+        "sv": "Kompressormotorns effekt",
+        "de": "Kompressormotorleistung",
+        "nl": "Compressormotorvermogen",
+        "no": "Kompressormotoreffekt",
+        "da": "Kompressormotoreffekt"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 0
+    },
+    "measure_watt_NIBE.h43084_additive_effect": {
+      "decimals": 0,
+      "insights": true,
+      "title": {
+        "en": "Immersion heater power",
+        "sv": "Elpatronens effekt",
+        "de": "Heizstableistung",
+        "nl": "Vermogen elektrisch element",
+        "no": "Elkolbens effekt",
+        "da": "Elpatronens effekt"
+      },
+      "setable": false,
+      "getable": true
+    },
+    "alarm_text_NIBE": {
+      "title": {
+        "en": "Alarm",
+        "sv": "Larm",
+        "de": "Alarm",
+        "nl": "Alarm",
+        "no": "Alarm",
+        "da": "Alarm"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 0
+    },
+    "measure_temperature.h40042_pool": {
+      "title": {
+        "en": "Pool temperature (BT51)",
+        "sv": "Pooltemperatur (BT51)",
+        "de": "Pooltemperatur (BT51)",
+        "nl": "Zwembadtemperatuur (BT51)",
+        "no": "Bassengtemperatur (BT51)",
+        "da": "Pooltemperatur (BT51)"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "status_NIBE.h43024_cooling": {
+      "title": {
+        "en": "Cooling active",
+        "sv": "Kyla aktiv",
+        "de": "Kühlung aktiv",
+        "nl": "Koeling actief",
+        "no": "Kjøling aktiv",
+        "da": "Køling aktiv"
+      },
+      "setable": false,
+      "getable": true
+    },
+    "measure_temperature.h40045_cooling_supply": {
+      "title": {
+        "en": "Cooling supply temperature",
+        "sv": "Framledningstemperatur kyla",
+        "de": "Kühlvorlauftemperatur",
+        "nl": "Aanvoertemperatuur koeling",
+        "no": "Turtemperatur kjøling",
+        "da": "Fremløbstemperatur køling"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_power.h42035_solar_current": {
+      "decimals": 0,
+      "title": {
+        "en": "Solar power generated",
+        "sv": "Genererad soleffekt",
+        "de": "Erzeugte Solarleistung",
+        "nl": "Opgewekt zonnevermogen",
+        "no": "Generert soleffekt",
+        "da": "Genereret soleffekt"
+      },
+      "setable": false,
+      "getable": true
+    },
+    "meter_power.solar": {
+      "decimals": 1,
+      "title": {
+        "en": "Solar energy generated",
+        "sv": "Genererad solenergi",
+        "de": "Erzeugte Solarenergie",
+        "nl": "Opgewekte zonne-energie",
+        "no": "Generert solenergi",
+        "da": "Genereret solenergi"
+      },
+      "setable": false,
+      "getable": true
+    },
+    "meter_kwh_NIBE.h42437_hotwater_produced": {
+      "decimals": 1,
+      "title": {
+        "en": "Energy delivered",
+        "sv": "Levererad energi",
+        "de": "Gelieferte Energie",
+        "nl": "Geleverde energie",
+        "no": "Levert energi",
+        "da": "Leveret energi"
+      },
+      "setable": false,
+      "getable": true
+    },
+    "meter_kwh_NIBE.h42439_heating_produced": {
+      "decimals": 1,
+      "title": {
+        "en": "Energy delivered",
+        "sv": "Levererad energi",
+        "de": "Gelieferte Energie",
+        "nl": "Geleverde energie",
+        "no": "Levert energi",
+        "da": "Leveret energi"
+      },
+      "setable": false,
+      "getable": true
+    },
+    "meter_kwh_NIBE.h42441_cooling_produced": {
+      "decimals": 1,
+      "title": {
+        "en": "Energy delivered",
+        "sv": "Levererad energi",
+        "de": "Gelieferte Energie",
+        "nl": "Geleverde energie",
+        "no": "Levert energi",
+        "da": "Leveret energi"
+      },
+      "setable": false,
+      "getable": true
+    },
+    "meter_kwh_NIBE.h42443_pool_produced": {
+      "decimals": 1,
+      "title": {
+        "en": "Energy delivered",
+        "sv": "Levererad energi",
+        "de": "Gelieferte Energie",
+        "nl": "Geleverde energie",
+        "no": "Levert energi",
+        "da": "Leveret energi"
+      },
+      "setable": false,
+      "getable": true
+    },
+    "curve_mode_NIBE.h47007_heat_curve": {
+      "title": {
+        "en": "Heating curve",
+        "sv": "Värmekurva",
+        "de": "Heizkurve",
+        "nl": "Stooklijn",
+        "no": "Varmekurve",
+        "da": "Varmekurve"
+      },
+      "getable": true,
+      "setable": true
+    },
+    "curve_displacement_NIBE.h47011_curve_offset": {
+      "title": {
+        "en": "Heating curve offset",
+        "sv": "Värmekurvans förskjutning",
+        "de": "Heizkurvenverschiebung",
+        "nl": "Stooklijnverschuiving",
+        "no": "Varmekurveforskyvning",
+        "da": "Varmekurveforskydning"
+      },
+      "getable": true,
+      "setable": true
+    },
+    "boolean_NIBE.h47394_room_control": {
+      "title": {
+        "en": "Use room sensor",
+        "sv": "Använd rumsgivare",
+        "de": "Raumfühler verwenden",
+        "nl": "Ruimtesensor gebruiken",
+        "no": "Bruk romføler",
+        "da": "Brug rumføler"
+      },
+      "getable": true,
+      "setable": true
+    },
+    "target_temperature.h47398_room_setpoint": {
+      "title": {
+        "en": "Room target",
+        "sv": "Önskad rumstemperatur",
+        "de": "Raumsolltemperatur",
+        "nl": "Gewenste kamertemperatuur",
+        "no": "Ønsket romtemperatur",
+        "da": "Ønsket rumtemperatur"
+      },
+      "getable": true,
+      "setable": true,
+      "min": 5.0,
+      "max": 30.0,
+      "step": 0.1,
+      "decimals": 1
+    },
+    "measure_number_NIBE.h47402_room_factor": {
+      "title": {
+        "en": "Room sensor influence",
+        "sv": "Rumsgivarpåverkan",
+        "de": "Raumfühlereinfluss",
+        "nl": "Invloed ruimtesensor",
+        "no": "Romfølerpåvirkning",
+        "da": "Rumfølerpåvirkning"
+      },
+      "getable": true,
+      "setable": true,
+      "min": 0.0,
+      "max": 6.0,
+      "step": 0.1,
+      "decimals": 1
+    },
+    "hotwater_demand_NIBE.h47041_comfort": {
+      "title": {
+        "en": "Hot water comfort",
+        "sv": "Varmvattenkomfort",
+        "de": "Warmwasserkomfort",
+        "nl": "Warmwatercomfort",
+        "no": "Varmtvannskomfort",
+        "da": "Varmtvandskomfort"
+      },
+      "getable": true,
+      "setable": true
+    },
+    "f_hotwater_boost.h48132_boost": {
+      "title": {
+        "en": "Temporary hot water boost",
+        "sv": "Tillfällig varmvattenhöjning",
+        "de": "Temporäre Warmwassererhöhung",
+        "nl": "Tijdelijke warmwaterverhoging",
+        "no": "Midlertidig varmtvannsøkning",
+        "da": "Midlertidig varmtvandsforøgelse"
+      },
+      "getable": true,
+      "setable": true
+    },
+    "boolean_NIBE.h47050_periodic_hw": {
+      "title": {
+        "en": "Periodic hot water increase",
+        "sv": "Periodisk varmvattenhöjning",
+        "de": "Periodische Warmwassererhöhung",
+        "nl": "Periodieke warmwaterverhoging",
+        "no": "Periodisk varmtvannsøkning",
+        "da": "Periodisk varmtvandsforøgelse"
+      },
+      "getable": true,
+      "setable": true
+    },
+    "fan_speed.h47265_normal": {
+      "title": {
+        "en": "Normal fan speed",
+        "sv": "Normal fläkthastighet",
+        "de": "Normale Lüfterdrehzahl",
+        "nl": "Normale ventilatorsnelheid",
+        "no": "Normal viftehastighet",
+        "da": "Normal ventilatorhastighed"
+      },
+      "getable": true,
+      "setable": true,
+      "min": 0.0,
+      "max": 100.0,
+      "step": 1.0,
+      "decimals": 0
+    },
+    "operating_mode_NIBE.h47137_mode": {
+      "title": {
+        "en": "Operating mode",
+        "sv": "Driftläge",
+        "de": "Betriebsart",
+        "nl": "Bedrijfsmodus",
+        "no": "Driftsmodus",
+        "da": "Driftstilstand"
+      },
+      "getable": true,
+      "setable": true
+    },
+    "boolean_NIBE.h47370_allow_addition": {
+      "title": {
+        "en": "Allow immersion (Manual mode)",
+        "sv": "Tillåt tillsats (manuellt läge)",
+        "de": "Zusatzheizung erlauben (manuell)",
+        "nl": "Bijverwarming toestaan (handmatig)",
+        "no": "Tillat tilleggsvarme (manuell)",
+        "da": "Tillad tilskudsvarme (manuel)"
+      },
+      "getable": true,
+      "setable": true
+    },
+    "boolean_NIBE.h47371_allow_heating": {
+      "title": {
+        "en": "Allow heating (Manual/addition mode)",
+        "sv": "Tillåt värme (manuellt/tillsatsläge)",
+        "de": "Heizung erlauben (manuell/Zusatzheizung)",
+        "nl": "Verwarming toestaan (handmatig/bijverwarming)",
+        "no": "Tillat varme (manuell/tilleggsvarme)",
+        "da": "Tillad varme (manuel/tilskudsvarme)"
+      },
+      "getable": true,
+      "setable": true
+    },
+    "target_temperature": {
+      "title": {
+        "en": "Room target",
+        "sv": "Önskad rumstemperatur"
+      },
+      "min": 5,
+      "max": 30,
+      "step": 0.1
+    }
+  }
+}

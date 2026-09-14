@@ -48,6 +48,7 @@ export interface Register  {
     // spanning two consecutive words (low word first, see combineRaw). Nibe's energy and
     // lifetime-counter registers are 32-bit.
     size?: 16 | 32;
+    signed?: boolean;
     // A lifetime cumulative counter displayed relative to its value when the device was
     // paired ("since added") rather than as the pump's all-time total. The device captures
     // the first observed value as a baseline (persisted) and subtracts it, so every energy
@@ -271,7 +272,7 @@ export function toNumericValue(register: Register, raw: number): number | undefi
     // detection path did not. Undefined here means "did not read", which is the truth.
     if (isUnavailableRaw(raw, register.size))
         return undefined;
-    const value = signedValue(raw, register.size);
+    const value = register.signed === false ? raw : signedValue(raw, register.size);
     if (register.scale)
         return value / register.scale;
     return value;
@@ -301,6 +302,7 @@ export function enumLabel(
 // A missing selection means everything is enabled, which keeps devices paired
 // before this feature (or paired with detection skipped) behaving as before.
 export interface Selection {
+    roomThermostat?: boolean;
     groups: Partial<Record<GroupId, boolean>>;
     overrides: Record<string, boolean>;
     // Register name → the address this device actually reads it at. Two things write here and

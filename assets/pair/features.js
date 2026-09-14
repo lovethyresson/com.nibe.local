@@ -218,7 +218,7 @@ function render() {
     if (context.tanks) setupSections.push({id: 'hotwater', role: 'hotwater',
         title: Homey.__('pair.setup.hotwater'), description: Homey.__('pair.tank.hint'),
         content: tankBlock(context.tanks, context.selection && context.selection.hotwater, 'repair')});
-    if (context.role === 'heating') {
+    if (context.role === 'heating' && context.indoorSupported !== false) {
         var sources = document.createElement('div');
         context.groups.forEach(function (g) { g.registers.forEach(function (r) {
             if (r.name === 'measure_temperature') renderSources(r, sources);

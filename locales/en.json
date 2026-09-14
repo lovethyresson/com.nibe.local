@@ -1,4 +1,20 @@
 {
+  "0": "0",
+  "1": "1",
+  "2": "2",
+  "3": "3",
+  "4": "4",
+  "5": "5",
+  "6": "6",
+  "7": "7",
+  "8": "8",
+  "9": "9",
+  "10": "10",
+  "11": "11",
+  "12": "12",
+  "13": "13",
+  "14": "14",
+  "15": "15",
   "Off": "Off",
   "Hot water": "Hot water",
   "Heating": "Heating",
@@ -156,6 +172,15 @@
       "success_one": "1 sensor connected",
       "success_many": "sensors working together",
       "save_changes": "Save changes"
+    },
+    "gateway": {
+      "title": "Gateway connection",
+      "type": "Gateway",
+      "port": "TCP port",
+      "unit": "Modbus ID",
+      "hint": "Connect MODBUS 40 through an RTU-to-TCP bridge, or use a compatible nibegw-esp gateway. F-series support is experimental and read-only.",
+      "invalid": "Choose a gateway, a port from 1–65535 and a Modbus ID from 1–247.",
+      "detect_intro": "Checking the values your heat pump reports. Depending on the gateway, this can take several minutes."
     }
   },
   "groups": {
@@ -185,5 +210,24 @@
     "cal_assumed": "Calibrating…",
     "inlet_measured": "measured",
     "inlet_assumed": "assumed"
-  }
+  },
+  "Transfer": "Transfer",
+  "-10": "-10",
+  "-9": "-9",
+  "-8": "-8",
+  "-7": "-7",
+  "-6": "-6",
+  "-5": "-5",
+  "-4": "-4",
+  "-3": "-3",
+  "-2": "-2",
+  "-1": "-1",
+  "0 = Small": "0 = Small",
+  "1 = Medium": "1 = Medium",
+  "2 = Large": "2 = Large",
+  "4 = Smart control": "4 = Smart control",
+  "3 hours": "3 hours",
+  "6 hours": "6 hours",
+  "12 hours": "12 hours",
+  "One-time increase": "One-time increase"
 }

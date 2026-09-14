@@ -9,6 +9,7 @@ import {actions, conditions, triggers} from './driver.flow.compose.json';
 // the S driver's roles.ts / connection.ts / detection.ts, so S behaviour is unchanged.
 export const sProfile = makeProfile({
     registers,
+    indoorSensorFeed: true,
 
     role: {
         priorityRegisterName: "measure_enum_NIBE.i1028_priority",

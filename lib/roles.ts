@@ -120,6 +120,21 @@ export function mirrorsForRole(profile: ModelProfile, role: Role): CapabilityMir
     return (profile.mirrors ?? []).filter((mirror) => mirror.role === role);
 }
 
+export function roomThermostatActive(profile: ModelProfile, read: (name: string) => number | undefined): boolean {
+    const config = profile.roomThermostat;
+    if (!config) return false;
+    const sensor = read(config.sensor), target = read(config.target);
+    return read(config.enabled) === 1 && sensor !== undefined && sensor >= 5 && sensor <= 40
+        && target !== undefined && target >= 5 && target <= 30;
+}
+
+export function deviceClass(profile: ModelProfile, role: Role, selection?: Selection | null): string {
+    return role === 'heating' && profile.roomThermostat
+        ? (selection?.roomThermostat && selection.groups.heating !== false
+            && selection.overrides[profile.roomThermostat.sensor] !== false
+            && selection.overrides[profile.roomThermostat.target] !== false ? 'thermostat' : 'heater') : roleClass[role];
+}
+
 // The mirror that publishes a given capability on a role, if any.
 export function mirrorFor(
     profile: ModelProfile, role: Role, capability: string
@@ -154,7 +169,7 @@ export function extraCapabilitySupport(
         const probe = sample(name);
         return !!probe?.read && (probe.moved || (probe.value ?? 0) !== 0);
     };
-    const powerOk = profile.role.powerSources.some((group) => group.some(usablePower));
+    const powerOk = profile.role.powerSources.some((group) => group.every(read) && group.some(usablePower));
     // The lifetime counters behind Main's Total COP — deliberately independent of the power
     // source, which is why Total COP still works on a model with no readable power register.
     const {totalProductionRegister, totalConsumptionRegister} = profile.role;
@@ -231,6 +246,8 @@ function buildExtraCapabilities(
     // value, so a user who switched the source off must not still get a dial for it.
     const mirrored = mirrorsForRole(profile, role)
         .filter((mirror) => {
+            if (!superset && profile.roomThermostat?.target === mirror.register && !selection?.roomThermostat)
+                return false;
             const source = profile.registerByName[mirror.register];
             return source && isRegisterEnabled(source, selection ?? null, profile.pickerPrimary);
         })
@@ -332,6 +349,7 @@ export function registersForRole(profile: ModelProfile, role: Role, selection: S
     const groups = new Set<GroupId>(roleGroups[role]);
     return withResolvedAddresses(profile.registers.filter((register) =>
         !register.internal
+        && (profile.roomThermostat?.target !== register.name || !!selection?.roomThermostat)
         && groups.has(register.group)
         && (!register.role || register.role === role)
         && isRegisterEnabled(register, selection, profile.pickerPrimary)), selection);
@@ -382,7 +400,14 @@ export function mirrorOptions(
     return mirrorFor(profile, role, name)?.options;
 }
 
-export function extraCapabilityOptions(role: Role, name: string): any {
+export function extraCapabilityOptions(role: Role, name: string, profile?: ModelProfile): any {
+    if (profile?.estimatedEnergy && [METER_CAPABILITY, ACTIVE_POWER_CAPABILITY, FUNCTION_COP_CAPABILITY].includes(name)) {
+        const options = extraCapabilityOptions(role, name);
+        const prefixes: Record<string, string> = {en: 'Experimental: ', sv: 'Experimentell: ',
+            de: 'Experimentell: ', nl: 'Experimenteel: ', no: 'Eksperimentell: ', da: 'Eksperimentel: '};
+        return {...options, title: Object.fromEntries(Object.entries(prefixes).map(([lang, prefix]) =>
+            [lang, prefix + (options.title[lang] ?? options.title.en)]))};
+    }
     // One decimal, like every other kWh figure in the app. Left to Homey's default this rendered
     // the raw accumulator to three places on the tile while the delivered-energy meters beside it
     // showed none — the same quantity, three different precisions.

@@ -150,6 +150,7 @@ export interface ReasonConfig {
 }
 
 export interface DiscoveryProbe {
+    direction?: Dir;
     // The register read to verify a Modbus responder is a pump and to label it (outdoor temp).
     address: number;
     scale: number;
@@ -178,6 +179,22 @@ export interface CapabilityMirror {
 }
 
 export interface ModelProfile {
+    // Homey Flow ids are app-global; each additional driver needs its own namespace.
+    flowPrefix?: string;
+    addressModes?: Record<string, {label: string; addressBase: number}>;
+    readOnly?: boolean;
+    estimatedEnergy?: boolean;
+    // MODBUS 40 accepts FC16 even for a single word; S keeps its verified FC6 path.
+    singleWordWriteFunction?: 6 | 16;
+    writeReadbackIntervalMs?: number;
+    diagnosticTrace?: string[];
+    roomThermostat?: {sensor: string; enabled: string; target: string};
+    writeRequirements?: Record<string, {register: string; values: number[]; message: LocalizedText}>;
+    indoorSensorFeed?: boolean;
+    pollDeadlineMs?: number;
+    // Opt-in for gateways whose non-broadcast parameters take seconds apiece.
+    // At most one background parameter is requested after publishing a frequent poll.
+    polling?: {frequent: string[]; backgroundIntervalMs: number};
     registers: Register[];
     registerByName: Record<string, Register>;
     // name -> primary (non-picker twin) name, for picker/sensor pair resolution.
@@ -275,6 +292,8 @@ export interface ModelProfile {
     renamedRegisters?: Record<string, string>;
 
     detection: {
+        passes?: number;
+        requestIntervalMs?: number;
         // Fallback per-group heuristics for when nothing moved during the sampling window.
         plausible: Partial<Record<Exclude<GroupId, "core">, (helpers: PlausibleHelpers) => boolean>>;
         discoveryProbe: DiscoveryProbe;
