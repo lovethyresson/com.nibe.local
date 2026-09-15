@@ -38,7 +38,7 @@ worktree only when its `package.json` genuinely diverges — and then give it a 
 
 ### Releasing
 
-Five things move together, and the last one is easy to forget:
+Review these together when preparing a release:
 
 1. `version` in `.homeycompose/app.json` **and** `package.json`.
 2. `homey app build` to regenerate `app.json` (never hand-edit its version).
@@ -65,6 +65,12 @@ Five things move together, and the last one is easy to forget:
    overload an existing one. **Never edit that file in one repo alone** — port the change to both, or
    the contract silently stops being one. Renaming a *user* property also orphans the old one in
    Amplitude forever (`Identify` only `.set()`s; there is no unset), so it is a one-way decision.
+
+7. For every major feature release, **consider a short timeline announcement**. This means a meaningful
+   user-facing release, not only a semantic-version major bump. Skip routine fixes. Use one benefit and
+   one concrete next step per snippet, target only relevant drivers/devices, and translate the copy.
+   Configure only the latest announcement in `lib/release-announcements.ts`; keep its ID stable across
+   patches and copy edits. See `docs/release-announcements.md` for delivery rules and current release copy.
 
 Per release, not per build — these are documentation, not generated artifacts.
 

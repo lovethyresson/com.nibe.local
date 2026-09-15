@@ -1,4 +1,5 @@
 import Homey from 'homey';
+import {announceRelease} from './lib/release-announcements';
 import {CONSENT_SETTING, appVersion, initAnalytics, refreshConsent, track} from './lib/analytics';
 
 class NibeApp extends Homey.App {
@@ -23,6 +24,8 @@ class NibeApp extends Homey.App {
       if (key === CONSENT_SETTING)
         refreshConsent(this.homey);
     });
+
+    void announceRelease(this.homey).catch(error => this.error('Release announcement failed:', error));
 
     this.log('Nibe Live app has been initialized');
   }

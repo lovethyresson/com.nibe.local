@@ -1,4 +1,8 @@
 {
+  "1.3.3": {
+    "en": "Short feature tips now appear in your Homey timeline, with setup guidance for hot-water estimates and heating sensors. Tips are shown once and only for devices you have added. Also includes experimental Nibe F-series support through compatible local Modbus gateways; F-series energy and COP still need verification on real installations.",
+    "sv": "Korta funktionstips visas nu i Homeys tidslinje, med vägledning för uppskattad varmvattenmängd och temperaturgivare för värmen. Tipsen visas en gång och bara för enheter du har lagt till. Innehåller även experimentellt stöd för Nibe F-serien via kompatibla lokala Modbus-gateways; energivärden och COP för F-serien behöver fortfarande verifieras i verkliga installationer."
+  },
   "1.3.2": {
     "en": "Test release only. Adds Nibe F-series (beta) for testing with compatible local Modbus gateways. Includes heating and hot-water controls where supported, gateway diagnostics and experimental energy allocation. F-series energy scaling and COP still need verification on real installations.",
     "sv": "Endast testversion. Lägger till Nibe F-series (beta) för test med kompatibla lokala Modbus-gateways. Innehåller styrning av värme och varmvatten där det stöds, gatewaydiagnostik och experimentell energifördelning. Energiskalning och COP för F-serien behöver fortfarande verifieras i verkliga installationer."
