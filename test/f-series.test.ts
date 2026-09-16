@@ -92,8 +92,8 @@ test('F thermostat requires a real room reading and enabled room regulation', ()
     assert.equal(extraCapabilities(fProfile, 'heating', selection).includes('target_temperature'), true);
 });
 
-test('F single-word controls use FC16 in both gateway modes', async () => {
-    for (const base of [0, 40000]) {
+test('F single-word controls use FC16 with every address convention', async () => {
+    for (const base of [0, 40001, 40000]) {
         const c: any = Object.create(PumpConnection.prototype);
         const writes: any[] = [];
         Object.assign(c, {profile: fProfile, transport: {addressBase: base},
@@ -170,8 +170,8 @@ test('one F table reads full MODBUS 40 ids or translated gateway ids', async () 
         readInputRegisters: () => { throw new Error('F sensor incorrectly read as input'); }
     };
     assert.equal(await readNumeric(client, at(40004), fProfile), 21.3);
-    assert.equal(await readNumeric(client, at(40004), {...fProfile, addressBase: 40000}), 21.3);
-    assert.deepEqual(reads, [[40004, 1], [4, 1]]);
+    assert.equal(await readNumeric(client, at(40004), {...fProfile, addressBase: fProfile.addressModes!.nibegw.addressBase}), 21.3);
+    assert.deepEqual(reads, [[40004, 1], [3, 1]]);
 });
 
 test('absent accessories returning zero do not recommend pool, cooling or solar', () => {
@@ -202,7 +202,7 @@ test('diagnostics preserve raw words and errors and cap repeated capture', async
     const c: any = Object.create(PumpConnection.prototype);
     const logs: string[] = [];
     Object.assign(c, {
-        profile: fProfile, transport: {port: 502, unitId: 1, addressBase: 40000}, generation: 1,
+        profile: fProfile, transport: {port: 502, unitId: 1, addressBase: fProfile.addressModes!.nibegw.addressBase}, generation: 1,
         readDiagnostics: new Map(), captureCounts: new Map(), captureUntil: Date.now() + 60000,
         captureRemaining: 200, debugOn: true, unsupportedUntil: new Map(),
         noteRead: () => {}, log: (s: string) => logs.push(s), withWireAccess: (run: any) => run(),
@@ -210,7 +210,7 @@ test('diagnostics preserve raw words and errors and cap repeated capture', async
     });
     for (let i = 0; i < 5; i++) assert.equal(await c.readRegisterRaw(at(40004)), 0xff9c);
     assert.equal(logs.length, 3);
-    assert.match(logs[0], /FC3 address=4 count=1 words=\[0xff9c\]/);
+    assert.match(logs[0], /FC3 address=3 count=1 words=\[0xff9c\]/);
     assert.match(logs[0], /received=.*request=\d+ms queue=\d+ms/);
     c.client.readHoldingRegisters = async () => { throw {body: {code: 2}}; };
     assert.equal(await c.readRegisterRaw(at(40004), false), undefined);

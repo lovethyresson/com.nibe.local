@@ -1,7 +1,7 @@
 {
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "com.nibe.local",
-  "version": "1.3.3",
+  "version": "1.3.4",
   "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
@@ -3704,38 +3704,57 @@
               "id": "addressMode",
               "type": "dropdown",
               "label": {
-                "en": "Gateway",
-                "sv": "Gateway",
-                "de": "Gateway",
-                "nl": "Gateway",
-                "no": "Gateway",
-                "da": "Gateway"
+                "en": "Register addressing",
+                "sv": "Registeradressering",
+                "de": "Registeradressierung",
+                "nl": "Registeradressering",
+                "no": "Registeradressering",
+                "da": "Registeradressering"
               },
               "value": "modbus40",
               "values": [
                 {
                   "id": "modbus40",
                   "label": {
-                    "en": "MODBUS 40 + TCP",
-                    "sv": "MODBUS 40 + TCP",
-                    "de": "MODBUS 40 + TCP",
-                    "nl": "MODBUS 40 + TCP",
-                    "no": "MODBUS 40 + TCP",
-                    "da": "MODBUS 40 + TCP"
+                    "en": "40025 → 40025",
+                    "sv": "40025 → 40025",
+                    "de": "40025 → 40025",
+                    "nl": "40025 → 40025",
+                    "no": "40025 → 40025",
+                    "da": "40025 → 40025"
                   }
                 },
                 {
                   "id": "nibegw",
                   "label": {
-                    "en": "nibegw-esp",
-                    "sv": "nibegw-esp",
-                    "de": "nibegw-esp",
-                    "nl": "nibegw-esp",
-                    "no": "nibegw-esp",
-                    "da": "nibegw-esp"
+                    "en": "40025 → 24",
+                    "sv": "40025 → 24",
+                    "de": "40025 → 24",
+                    "nl": "40025 → 24",
+                    "no": "40025 → 24",
+                    "da": "40025 → 24"
+                  }
+                },
+                {
+                  "id": "offset40000",
+                  "label": {
+                    "en": "40025 → 25",
+                    "sv": "40025 → 25",
+                    "de": "40025 → 25",
+                    "nl": "40025 → 25",
+                    "no": "40025 → 25",
+                    "da": "40025 → 25"
                   }
                 }
-              ]
+              ],
+              "hint": {
+                "en": "Choose how NIBE register 40025 is addressed on your connection. Confirm with a working Modbus query. The same convention applies to all reads and writes.",
+                "sv": "Välj hur NIBE-register 40025 adresseras via din anslutning. Kontrollera med en fungerande Modbus-fråga. Samma adressering används för alla läsningar och skrivningar.",
+                "de": "Wählen Sie, wie NIBE-Register 40025 über Ihre Verbindung adressiert wird. Prüfen Sie dies mit einer funktionierenden Modbus-Abfrage. Die Einstellung gilt für alle Lese- und Schreibzugriffe.",
+                "nl": "Kies hoe NIBE-register 40025 via uw verbinding wordt geadresseerd. Controleer dit met een werkende Modbus-query. De instelling geldt voor alle lees- en schrijfopdrachten.",
+                "no": "Velg hvordan NIBE-register 40025 adresseres via tilkoblingen. Bekreft med en fungerende Modbus-spørring. Samme adressering brukes for all lesing og skriving.",
+                "da": "Vælg, hvordan NIBE-register 40025 adresseres via forbindelsen. Bekræft med en fungerende Modbus-forespørgsel. Samme adressering bruges til al læsning og skrivning."
+              }
             }
           ]
         },
@@ -4284,12 +4303,12 @@
         "measure_current.h40079_sensor_v2": {
           "decimals": 1,
           "title": {
-            "en": "Current sensor L1 (BE1)",
-            "sv": "Strömsensor L1 (BE1)",
-            "de": "Stromsensor L1 (BE1)",
-            "nl": "Stroomsensor L1 (BE1)",
-            "no": "Strømføler L1 (BE1)",
-            "da": "Strømføler L1 (BE1)"
+            "en": "Current sensor L3 (BE3)",
+            "sv": "Strömsensor L3 (BE3)",
+            "de": "Stromsensor L3 (BE3)",
+            "nl": "Stroomsensor L3 (BE3)",
+            "no": "Strømføler L3 (BE3)",
+            "da": "Strømføler L3 (BE3)"
           },
           "setable": false,
           "getable": true
@@ -4310,12 +4329,12 @@
         "measure_current.h40083_sensor_v2": {
           "decimals": 1,
           "title": {
-            "en": "Current sensor L3 (BE3)",
-            "sv": "Strömsensor L3 (BE3)",
-            "de": "Stromsensor L3 (BE3)",
-            "nl": "Stroomsensor L3 (BE3)",
-            "no": "Strømføler L3 (BE3)",
-            "da": "Strømføler L3 (BE3)"
+            "en": "Current sensor L1 (BE1)",
+            "sv": "Strömsensor L1 (BE1)",
+            "de": "Stromsensor L1 (BE1)",
+            "nl": "Stroomsensor L1 (BE1)",
+            "no": "Strømføler L1 (BE1)",
+            "da": "Strømføler L1 (BE1)"
           },
           "setable": false,
           "getable": true

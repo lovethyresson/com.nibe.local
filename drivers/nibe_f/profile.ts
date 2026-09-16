@@ -26,12 +26,13 @@ export const fProfile = makeProfile({
     mirrors: [{role: 'heating', capability: 'target_temperature',
         register: 'target_temperature.h47398_room_setpoint', writable: true,
         options: {title: {en: 'Room target', sv: 'Önskad rumstemperatur'}, min: 5, max: 30, step: 0.1}}],
+    // Generic wire-address conventions. Keep legacy setting IDs so saved devices
+    // retain their selection; these are offsets, not gateway-specific register maps.
     addressModes: {
-        modbus40: {label: 'MODBUS 40 + TCP', addressBase: 0},
-        nibegw: {label: 'nibegw-esp', addressBase: 40000}
+        modbus40: {label: '40025 → 40025', addressBase: 0},
+        nibegw: {label: '40025 → 24', addressBase: 40001},
+        offset40000: {label: '40025 → 25', addressBase: 40000}
     },
-    // Full NIBE ids on MODBUS 40. nibegw-esp is a per-connection offset, never
-    // a different pump table. All mapped ids are holding registers in both modes.
     transport: {port: 502, unitId: 1},
     role: {
         priorityRegisterName: 'measure_enum_NIBE.h43086_priority', priorityRawOff: 10,

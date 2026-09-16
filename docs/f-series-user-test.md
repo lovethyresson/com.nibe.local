@@ -171,3 +171,65 @@ report submission until the next day. Longer gateway/USB logs are useful if alre
 One F730 validates that pump/firmware/gateway combination. It does not prove MODBUS 40 bridge
 compatibility or coverage of other F-series models. Without an independent meter we can check
 consistency and timing, but cannot independently prove absolute electricity accuracy.
+
+## First paired-device report, 1.3.3 (2026-09-15)
+
+Manual connection succeeded; automatic discovery did not. The 122 detection count represents
+61 parameters sampled twice, not a table of 122 different registers. Main, Heating, Hot Water
+and an unexpected Solar device were added.
+
+Confirmed mapping error: current labels were reversed. ModbusManager identifies 40079 as BE3,
+40081 as BE2, and 40083 as BE1. Corrected the F labels without changing addresses or word order.
+
+The reported currents 190054.4 A and 124518.4 A are exactly 65536 times 2.9 A and 1.9 A.
+This is evidence to investigate word order/alignment; it is not proof of a specific fix. Get
+actual words/count/address from diagnostics and verify the gateway's required pump word-swap
+setting before changing decoding. Average outdoor -1451.6 °C and GP2 65304% are invalid too,
+but those are 16-bit values and a 32-bit word-order correction alone cannot explain them.
+
+Fan register 43108 conflicts across sources: ModbusManager calls it percentage fan speed,
+whereas the owner's API export calls it current fan mode and reports 0. The separate cloud
+50221 reports 85%. Do not blindly replace a local address with that cloud identifier or treat
+zero mode as a confirmed zero fan speed. Compare local behavior before remapping.
+
+Solar recommendation can currently follow any movement during detection, even when the final
+values are zero. Raw detection evidence is needed to distinguish this from a positive cached
+counter, corrupt value or manual selection. Do not treat the paired Solar device as hardware
+presence. Zero production/COP continues to be unresolved. Cloud/local temperature comparisons
+need aligned timestamps; do not use their differences alone to choose alternate registers.
+
+## Follow-up: word swap confirmed and adjacent sensors identified (2026-09-16)
+
+Word swap has been enabled throughout. The owner's five temperature comparisons consistently
+show the next register (BT14 -> BT15, BT15 -> BT16, BT7 -> BT6, BT3 -> BT7, BT20 -> BT21).
+The installation PDF confirms nibegw-esp selected and Solar recommended automatically.
+This supports an address offset fault, not a request to turn word swap on again.
+
+Corrected nibegw's profile base from 40000 to 40001 to account for ESP-Modbus's one-based
+callback. Simulator and regression fixtures now model that convention. Request correction
+applies to existing devices at app restart; use Repair to refresh feature selection afterwards.
+Keep writes disabled until the owner confirms sensor identity on the corrected build.
+47265 remains the normal fan-speed setting, not actual measured fan speed. Leave 43108's
+meaning and production/power-source support open until reading the corrected addresses.
+
+## Confirmed wire captures (2026-09-16)
+
+QModMaster address base zero, unit 1, FC03 confirms:
+
+| NIBE id | Wire address / words | Raw reply words (hex) | Interpretation |
+| --- | --- | --- | --- |
+| 40025 BT20 | 24 / 1 | 00DB | 21.9 °C, owner verified |
+| 40026 BT21 | 25 / 1 | 00E4 | 22.8 °C, owner verified |
+| 40079 BE3 | 78 / 2 | 0032 0000 | 5.0 A, low word first |
+| Mid-value 40080 | 79 / 2 | 0000 0020 | Misaligned: 209715.2 A if decoded as BE3; not 3.2 A |
+
+The last read crosses a parameter boundary. Samples were taken at different times;
+there is no simultaneous comparison proving accuracy of a neighboring phase value.
+Exact TCP request/response fixtures are covered by `test/f-simulator.test.ts`.
+
+In the next test build, select **Register addressing: 40025 → 24**. Existing saved
+`nibegw` selections keep this convention automatically. Keep writes disabled, restart
+the app and run Repair to repeat detection; compare temperatures and all three phase
+currents against the pump, then collect diagnostics over a hot-water cycle.
+No word-order, scaling, energy-allocation or other business-logic changes accompany
+this connection correction. Production and power remain to be verified on hardware.

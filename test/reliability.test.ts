@@ -176,6 +176,17 @@ test('F-series production feeds the shared rolling COP over the same observed sp
     assert.equal(caps.get(FUNCTION_COP_CAPABILITY), null);
 });
 
+test('saved nibegw devices and discovery both resolve the corrected wire address', () => {
+    const {d} = device(); d.profile = fProfile;
+    assert.equal(d.transport({addressMode: 'nibegw', port: 502, unitId: 1}).addressBase, 40001);
+    assert.equal(d.transport({addressMode: 'modbus40', port: 502, unitId: 1}).addressBase, 0);
+    const driver = new DriverClass(); driver.profile = fProfile;
+    assert.equal(driver.discoveryOptions({addressMode: 'nibegw'}).probeAddress, 3);
+    assert.equal(driver.discoveryOptions({addressMode: 'modbus40'}).probeAddress, 40004);
+    assert.equal(d.transport({addressMode: 'offset40000', port: 502, unitId: 1}).addressBase, 40000);
+    assert.equal(driver.discoveryOptions({addressMode: 'offset40000'}).probeAddress, 4);
+});
+
 test('F write verification gives a cached reply time to refresh', async () => {
     const {d} = device();
     assert.equal(fProfile.writeReadbackIntervalMs, 2100);

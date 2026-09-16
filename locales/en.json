@@ -175,10 +175,10 @@
     },
     "gateway": {
       "title": "Gateway connection",
-      "type": "Gateway",
+      "type": "Register addressing",
       "port": "TCP port",
       "unit": "Modbus ID",
-      "hint": "Connect MODBUS 40 through an RTU-to-TCP bridge, or use a compatible nibegw-esp gateway. F-series support is experimental and read-only.",
+      "hint": "Choose how NIBE register 40025 is addressed on your connection. Confirm with a working Modbus query. The same convention applies to all reads and writes.",
       "invalid": "Choose a gateway, a port from 1–65535 and a Modbus ID from 1–247.",
       "detect_intro": "Checking the values your heat pump reports. Depending on the gateway, this can take several minutes."
     }

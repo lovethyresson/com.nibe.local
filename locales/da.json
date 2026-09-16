@@ -175,10 +175,10 @@
     },
     "gateway": {
       "title": "Gatewayforbindelse",
-      "type": "Gateway",
+      "type": "Registeradressering",
       "port": "TCP-port",
       "unit": "Modbus-ID",
-      "hint": "Tilslut MODBUS 40 via en RTU-til-TCP-bro, eller brug en kompatibel nibegw-esp-gateway. F-serien har eksperimentel understøttelse kun til aflæsning.",
+      "hint": "Vælg, hvordan NIBE-register 40025 adresseres via forbindelsen. Bekræft med en fungerende Modbus-forespørgsel. Samme adressering bruges til al læsning og skrivning.",
       "invalid": "Vælg gateway, port fra 1–65535 og Modbus-ID fra 1–247.",
       "detect_intro": "Kontrollerer værdierne fra varmepumpen. Afhængigt af gateway kan det tage flere minutter."
     }

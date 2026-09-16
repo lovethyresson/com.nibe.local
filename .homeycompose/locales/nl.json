@@ -67,10 +67,10 @@
     },
     "gateway": {
       "title": "Gatewayverbinding",
-      "type": "Gateway",
+      "type": "Registeradressering",
       "port": "TCP-poort",
       "unit": "Modbus-ID",
-      "hint": "Verbind MODBUS 40 via een RTU-naar-TCP-brug of gebruik een compatibele nibegw-esp-gateway. F-serie: experimenteel, alleen uitlezen.",
+      "hint": "Kies hoe NIBE-register 40025 via uw verbinding wordt geadresseerd. Controleer dit met een werkende Modbus-query. De instelling geldt voor alle lees- en schrijfopdrachten.",
       "invalid": "Kies een gateway, poort van 1–65535 en Modbus-ID van 1–247.",
       "detect_intro": "De waarden van je warmtepomp worden gecontroleerd. Afhankelijk van de gateway kan dit enkele minuten duren."
     }

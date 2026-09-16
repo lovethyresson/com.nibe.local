@@ -48,7 +48,7 @@ export async function startSimulator({host = '127.0.0.1', port = 1502, mode = 'm
     if (!Number.isFinite(readDelayMs) || readDelayMs < 0) throw new Error('Invalid read delay');
     const broadcast = new Set(logSet);
     const replies = new Set();
-    const wide = new Set([42439, 42437, 41850, 41848, 41846]);
+    const wide = new Set([42439, 42437, 41850, 41848, 41846, 40079, 40081, 40083]);
     const fixture = createFixture({room, power, production});
     const phases = ['heating', 'hotwater', 'immersion', 'idle'];
     const started = Date.now(); let last = started;
@@ -72,7 +72,7 @@ export async function startSimulator({host = '127.0.0.1', port = 1502, mode = 'm
                 const frame = pending.subarray(0, length + 6); pending = pending.subarray(length + 6);
                 const fc = frame[7]; let error = 0; let values = []; let delay = 0;
                 if (fc === 16 && length === 9 && frame[12] === 2 && frame.readUInt16BE(10) === 1) {
-                    const address = frame.readUInt16BE(8) + (mode === 'nibegw' ? 40000 : 0);
+                    const address = frame.readUInt16BE(8) + (mode === 'nibegw' ? 40001 : 0);
                     const raw = frame.readUInt16BE(13);
                     const signed = raw >= 32768 ? raw - 65536 : raw;
                     const bounds = {47007: [0, 15], 47011: [-10, 10], 47394: [0, 1],
@@ -90,7 +90,7 @@ export async function startSimulator({host = '127.0.0.1', port = 1502, mode = 'm
                 } else if (fc !== 3) error = fc === 16 ? 3 : 1;
                 else if (length !== 6) error = 3;
                 else {
-                    const start = frame.readUInt16BE(8) + (mode === 'nibegw' ? 40000 : 0);
+                    const start = frame.readUInt16BE(8) + (mode === 'nibegw' ? 40001 : 0);
                     const count = frame.readUInt16BE(10);
                     delay = broadcast.has(start) ? 0 : readDelayMs;
                     // One logical parameter, including its two words for a 32-bit counter.

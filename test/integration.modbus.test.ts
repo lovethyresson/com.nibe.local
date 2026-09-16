@@ -985,8 +985,8 @@ test('the F profile reads the same sensor through both gateway address modes', {
     const outdoor = fProfile.registers.find((r) => r.address === 40004)!;
     try {
         seed(pump.holding, 40004, 215);
-        seed(pump.holding, 4, 182);
-        for (const [addressBase, expected] of [[0, 215], [40000, 182]]) {
+        seed(pump.holding, 3, 182);
+        for (const [addressBase, expected] of [[0, 215], [fProfile.addressModes!.nibegw.addressBase, 182]]) {
             await withConnection(fProfile, {port: pump.port, unitId: 1, addressBase},
                 new FakeSub('main', []), async (c) => {
                     assert.equal(await c.readRegisterRaw(outdoor), expected);

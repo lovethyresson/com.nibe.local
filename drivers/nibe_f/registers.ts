@@ -444,8 +444,8 @@ export const registers: Register[] = [
         "size": 32,
         "signed": false,
         "info": {
-            "en": "Current sensor L1 (BE1)",
-            "sv": "Strömsensor L1 (BE1)"
+            "en": "Current sensor L3 (BE3)",
+            "sv": "Strömsensor L3 (BE3)"
         }
     },
     {
@@ -472,8 +472,8 @@ export const registers: Register[] = [
         "size": 32,
         "signed": false,
         "info": {
-            "en": "Current sensor L3 (BE3)",
-            "sv": "Strömsensor L3 (BE3)"
+            "en": "Current sensor L1 (BE1)",
+            "sv": "Strömsensor L1 (BE1)"
         }
     },
     {

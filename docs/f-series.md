@@ -47,21 +47,25 @@ Gateway behavior is checked separately against:
 
 ## Connections
 
-Select the gateway, its IP, TCP port and Modbus unit ID during pairing. The same settings
+Select the register addressing convention, IP, TCP port and Modbus unit ID during pairing. The same settings
 are available afterwards and are shared across the pump's function devices.
 
-| Gateway selection | Homey request for outdoor temperature |
+| Register addressing selection | Homey request for outdoor temperature |
 | --- | --- |
-| MODBUS 40 + TCP | Holding register / FC3, wire address **40004** |
-| nibegw-esp | Holding register / FC3, wire address **4** |
+| 40025 → 40025 | Holding register / FC3, wire address **40004** |
+| 40025 → 24 | Holding register / FC3, wire address **3** |
+| 40025 → 25 | Holding register / FC3, wire address **4** |
 
 MODBUS 40 needs a Modbus RTU-to-TCP bridge; Homey does not directly connect to RS485 or
-raw serial-over-TCP. The bridge must preserve the full NIBE register address. The compact
+raw serial-over-TCP. Select the convention that the bridge exposes; full-address MODBUS 40 hardware has not yet been verified with this app. The compact
 address alias available in some MODBUS 40 versions is not this driver's selected convention.
 
 The register table always retains canonical NIBE ids. Only the connection applies the
-configured offset. Upstream nibegw-esp subtracts 40000 for the holding-register range used
-by all currently mapped registers. Other firmware variants need their wire behavior verified;
+configured offset. For nibegw-esp subtract **40001** from the canonical NIBE id: 40025
+becomes wire 24. ESP-Modbus increments wire addresses before calling the register callback;
+nibegw's custom callback adds 40000 without undoing that increment. The earlier beta used
+40000 and consequently read/wrote the next register. This correction applies only to the
+nibegw mode, including discovery, detection, regular reads, controls and readback. Other firmware variants need their wire behavior verified;
 there is no generic promise that every product called “Nibe gateway” speaks Modbus TCP.
 
 32-bit reads use two words, low word first. Verify the pump/gateway word-swap configuration
@@ -156,7 +160,7 @@ listeners remain in the shared driver/device classes; S-series IDs are unchanged
 
 ## Remote validation and debug logging
 
-1. Pair with the F-series driver and correct gateway setting. If the gateway was previously
+1. Pair with the F-series driver and correct register addressing setting. If the gateway was previously
    paired as S-series at the same address, remove that incorrect device before pairing F.
 2. Enable **Debug logging** on Main. F-series dumps use the last observed readings, with no
    additional full scan. The dump includes decoded/raw values, actual wire address, function
@@ -242,7 +246,7 @@ node dev/f-series-simulator.mjs --host 0.0.0.0 --port 1502 --mode modbus40
 ```
 
 Pair the F-series driver using this computer's LAN IP, port 1502, unit 1 and MODBUS 40 + TCP.
-For the alternate scheme use `--mode nibegw` and choose nibegw-esp in pairing. No physical
+For the alternate scheme use `--mode nibegw` and choose 40025 → 24 in pairing. No physical
 MODBUS 40 is needed for the simulator. Keep the computer awake while testing.
 
 The simulator spends 120 seconds each in heating, hot water, immersion-only heating and idle.
@@ -271,3 +275,34 @@ or counter delay. It must never be used as hardware validation evidence.
 ## Owner handover
 
 See [the first hardware test checklist](f-series-user-test.md).
+
+
+## Address correction following the 1.3.3 owner report
+
+The owner confirmed that word swap was already enabled. Five observed temperature mismatches
+all point to the next register: 40018 -> 40019, 40019 -> 40020, 40013 -> 40014,
+40012 -> 40013 and 40025 -> 40026. This matches the callback-address convention in
+[ESP-Modbus](https://github.com/espressif/esp-modbus/blob/main/modbus/mb_controller/common/esp_modbus_slave.c)
+and the custom callback in [nibegw-esp](https://github.com/nptr/nibegw-esp/blob/master/main/sys_modbus.cpp).
+Correcting addresses precedes any additional word-order or scaling changes.
+
+Existing devices save `addressMode=nibegw`, not the numeric base, so the new mapping applies
+on restart. Run Repair afterwards to replace recommendations derived from neighboring values;
+remove an unwanted Solar device manually. Historical beta energy/Insights values are not
+rewritten or reset. The earlier test fixtures mirrored our offset assumption and missed this;
+the new regression uses explicit PDU addresses and distinct adjacent-register values.
+
+The main reference remains ModbusManager's model exports. Cloud parameter IDs are separate
+and are not interchangeable with local Modbus addresses. Register 47265 is the normal fan
+speed setting, not independently measured current fan speed. Reassess 43108 after correcting
+the wire address before changing its meaning based on the API export.
+
+### Generic register addressing
+
+The connection dropdown now names address conventions by example, not gateway brands.
+`40025 → 40025`, `40025 → 24` and `40025 → 25` subtract 0, 40001 and 40000 respectively.
+The persisted IDs `modbus40` and `nibegw` remain for backwards compatibility only.
+All conventions use the existing shared transport path for discovery, detection,
+reads, writes and readback, with one canonical register table and unchanged business logic.
+The owner's exact FC03 captures confirm `40025 → 24` and low-word-first BE3 on this
+connection; this is not hardware validation of other gateways or conventions.

@@ -175,10 +175,10 @@
     },
     "gateway": {
       "title": "Gateway-Verbindung",
-      "type": "Gateway",
+      "type": "Registeradressierung",
       "port": "TCP-Port",
       "unit": "Modbus-ID",
-      "hint": "MODBUS 40 über eine RTU-TCP-Brücke oder ein kompatibles nibegw-esp-Gateway verbinden. F-Serie: experimentell, nur Lesen.",
+      "hint": "Wählen Sie, wie NIBE-Register 40025 über Ihre Verbindung adressiert wird. Prüfen Sie dies mit einer funktionierenden Modbus-Abfrage. Die Einstellung gilt für alle Lese- und Schreibzugriffe.",
       "invalid": "Gateway, Port von 1–65535 und Modbus-ID von 1–247 auswählen.",
       "detect_intro": "Die gemeldeten Werte der Wärmepumpe werden geprüft. Je nach Gateway kann dies mehrere Minuten dauern."
     }
