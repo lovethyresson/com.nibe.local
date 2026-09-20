@@ -269,3 +269,8 @@ standby consumption. COP is experimental and depends on the pump's production re
 compressor scaling still needs verification on real F-series installations.
 
 [Setup and limitations](docs/f-series.md) · [First test checklist](docs/f-series-user-test.md)
+
+## License
+
+Licensed under the [GNU General Public License v3.0](LICENSE) (GPL-3.0-only).
+See [NOTICE](NOTICE) for retained upstream attribution and third-party exclusions.

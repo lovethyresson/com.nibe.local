@@ -22,5 +22,6 @@
     "@amplitude/analytics-node": "^1.5.70",
     "homey-api": "3.14.0",
     "jsmodbus": "^4.0.6"
-  }
+  },
+  "license": "GPL-3.0-only"
 }
