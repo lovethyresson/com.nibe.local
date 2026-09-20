@@ -577,6 +577,8 @@ export const registers: Register[] = [
     {
         "address": 42075,
         "name": "meter_power.solar",
+        // F730 capture: sign-extended 16-bit unavailable marker, not solar energy.
+        "unavailableRaw": [0xffff8000],
         "direction": Dir.Out,
         "group": "solar",
         "noAction": true,
@@ -695,6 +697,36 @@ export const registers: Register[] = [
         }
     },
     {
+        "address": 44298,
+        "name": "energy_counter.h44298_ep14_hotwater_produced",
+        "direction": Dir.Out,
+        "group": "electrical",
+        "noAction": true,
+        "internal": true,
+        "size": 32,
+        "signed": false,
+        "scale": 10,
+        "info": {
+            "en": "EP14 hot-water heat production. Diagnostic only; not used for COP.",
+            "sv": "Producerad varmvattenenergi EP14. Endast diagnostik; används inte för COP."
+        }
+    },
+    {
+        "address": 44300,
+        "name": "energy_counter.h44300_ep14_heating_produced",
+        "direction": Dir.Out,
+        "group": "electrical",
+        "noAction": true,
+        "internal": true,
+        "size": 32,
+        "signed": false,
+        "scale": 10,
+        "info": {
+            "en": "EP14 heating production. Diagnostic only; not used for COP.",
+            "sv": "Producerad värmeenergi EP14. Endast diagnostik; används inte för COP."
+        }
+    },
+    {
         "address": 43375,
         "name": "power_sample.h43375_compressor_mean",
         "direction": Dir.Out,
@@ -714,7 +746,6 @@ export const registers: Register[] = [
         "name": "curve_mode_NIBE.h47007_heat_curve",
         "direction": Dir.Out,
         "group": "heating",
-        "scale": 1,
         "size": 16,
         "signed": true,
         "info": {
@@ -764,7 +795,6 @@ export const registers: Register[] = [
         "name": "curve_displacement_NIBE.h47011_curve_offset",
         "direction": Dir.Out,
         "group": "heating",
-        "scale": 1,
         "size": 16,
         "signed": true,
         "info": {
@@ -824,7 +854,6 @@ export const registers: Register[] = [
         "name": "boolean_NIBE.h47394_room_control",
         "direction": Dir.Out,
         "group": "heating",
-        "scale": 1,
         "size": 16,
         "signed": false,
         "info": {
@@ -872,7 +901,6 @@ export const registers: Register[] = [
         "name": "hotwater_demand_NIBE.h47041_comfort",
         "direction": Dir.Out,
         "group": "hotwater",
-        "scale": 1,
         "size": 16,
         "signed": true,
         "info": {
@@ -898,7 +926,6 @@ export const registers: Register[] = [
         "name": "f_hotwater_boost.h48132_boost",
         "direction": Dir.Out,
         "group": "hotwater",
-        "scale": 1,
         "size": 16,
         "signed": true,
         "info": {
@@ -926,7 +953,6 @@ export const registers: Register[] = [
         "name": "boolean_NIBE.h47050_periodic_hw",
         "direction": Dir.Out,
         "group": "hotwater",
-        "scale": 1,
         "size": 16,
         "signed": true,
         "info": {
@@ -955,7 +981,6 @@ export const registers: Register[] = [
         "name": "operating_mode_NIBE.h47137_mode",
         "direction": Dir.Out,
         "group": "core",
-        "scale": 1,
         "size": 16,
         "signed": false,
         "info": {
@@ -979,7 +1004,6 @@ export const registers: Register[] = [
         "name": "boolean_NIBE.h47370_allow_addition",
         "direction": Dir.Out,
         "group": "electrical",
-        "scale": 1,
         "size": 16,
         "signed": false,
         "info": {
@@ -993,7 +1017,6 @@ export const registers: Register[] = [
         "name": "boolean_NIBE.h47371_allow_heating",
         "direction": Dir.Out,
         "group": "heating",
-        "scale": 1,
         "size": 16,
         "signed": false,
         "info": {

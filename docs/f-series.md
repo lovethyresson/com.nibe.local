@@ -306,3 +306,14 @@ All conventions use the existing shared transport path for discovery, detection,
 reads, writes and readback, with one canonical register table and unchanged business logic.
 The owner's exact FC03 captures confirm `40025 → 24` and low-word-first BE3 on this
 connection; this is not hardware validation of other gateways or conventions.
+
+## Pending 1.3.5 diagnostic additions
+
+The F730 export distinguishes system production totals 42437/42439 from EP14 production
+44298/44300. The latter are now diagnostic-only background reads, not substitutes for the
+current COP sources. Compare counter changes over the same observed cycle before deciding
+whether they are usable. Lifetime totals do not establish that consumed and produced energy
+labels should be reversed. The shared allocation formula and source selection are unchanged.
+
+Debug state uses the incoming setting during Homey callbacks, before saved settings update.
+This corrects the report's contradictory “disabled” followed by “capture started” sequence.

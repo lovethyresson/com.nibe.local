@@ -127,6 +127,14 @@ export function describeModbusError(reason: any): {summary: string; code?: numbe
         return {summary: `Modbus exception ${code}: ${known}`, code};
     if (typeof code === 'number')
         return {summary: `Modbus exception ${code} (not in the standard table)`, code};
+    if (reason?.err === 'OutOfSync') {
+        const request = reason.request;
+        const response = reason.response;
+        return {summary: 'Modbus response out of sync (transaction ID or function code mismatch); '
+            + `request transaction=${request?.id ?? 'unknown'} FC=${request?.body?.fc ?? 'unknown'}; `
+            + (response ? `response transaction=${response.id ?? 'unknown'} FC=${response.body?.fc ?? 'unknown'}`
+                : 'response details not supplied by Modbus library')};
+    }
     if (reason?.err === 'Timeout' || /timeout/i.test(reason?.message ?? ''))
         return {summary: 'the pump did not answer in time'};
     return {summary: reason?.message ?? String(reason)};
@@ -709,7 +717,7 @@ export class PumpConnection {
         const values = new Map<string, number>();
         this.reasonRegisters.forEach(([id, register], i) => {
             const raw = raws[i];
-            if (raw === undefined || isUnavailableRaw(raw, register.size))
+            if (raw === undefined || isUnavailableRaw(raw, register.size, register.unavailableRaw))
                 return;
             values.set(id, signedValue(raw, register.size) / (register.scale || 1));
         });
@@ -930,7 +938,7 @@ export class PumpConnection {
                 }
             const readNames = new Set([...rawByName.keys()].filter((name) => {
                 const register = toPoll.find((r) => r.name === name);
-                return !isUnavailableRaw(rawByName.get(name)!, register?.size);
+                return !isUnavailableRaw(rawByName.get(name)!, register?.size, register?.unavailableRaw);
             }));
             for (const subscriber of this.subscribers)
                 subscriber.onPollComplete?.(readNames);
@@ -1014,7 +1022,7 @@ export class PumpConnection {
         for (const entry of entries) {
             const register = this.profile.registerByName[entry.name];
             const raw = register ? rawByName.get(entry.name) : undefined;
-            if (raw === undefined || isUnavailableRaw(raw, register!.size))
+            if (raw === undefined || isUnavailableRaw(raw, register!.size, register!.unavailableRaw))
                 continue;
             const value = signedValue(raw, register!.size) / (register!.scale || 1);
             const previous = this.lastEnergyLog.get(entry.name);
@@ -1033,7 +1041,7 @@ export class PumpConnection {
         const totalNow = (name?: string) => {
             const register = name ? this.profile.registerByName[name] : undefined;
             const raw = register ? rawByName.get(register.name) : undefined;
-            return raw === undefined || isUnavailableRaw(raw, register!.size)
+            return raw === undefined || isUnavailableRaw(raw, register!.size, register!.unavailableRaw)
                 ? undefined : signedValue(raw, register!.size) / (register!.scale || 1);
         };
         const produced = totalNow(this.profile.role.totalProductionRegister);
@@ -1353,7 +1361,7 @@ export class PumpConnection {
         let any = false;
         for (const register of groups[group] ?? []) {
             const raw = rawByName.get(register.name);
-            if (raw === undefined || isUnavailableRaw(raw, register.size))
+            if (raw === undefined || isUnavailableRaw(raw, register.size, register.unavailableRaw))
                 return null;
             const value = toNumericValue(register, raw);
             if (value === undefined || !Number.isFinite(value) || value < 0) return null;

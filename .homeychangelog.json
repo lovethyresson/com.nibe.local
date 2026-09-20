@@ -1,4 +1,8 @@
 {
+  "1.3.5": {
+    "en": "Test release only. Fixes F-series switches and mode selectors, false Solar detection from an invalid energy value, and debug logging switching at the wrong time. Adds diagnostic readings of alternative heat-production counters and clearer Modbus synchronisation errors. Run Repair to repeat detection. Energy allocation and COP calculations are unchanged and still need hardware verification.",
+    "sv": "Endast testversion. Rättar strömbrytare och lägesväljare för F-serien, felaktig soldetektering från ett ogiltigt energivärde och debugloggning som växlade vid fel tillfälle. Lägger till diagnostiska avläsningar av alternativa värmeproduktionsräknare och tydligare synkroniseringsfel för Modbus. Kör Reparera för att upprepa detekteringen. Energifördelning och COP-beräkningar är oförändrade och behöver fortfarande verifieras på hårdvara."
+  },
   "1.3.4": {
     "en": "Test release only. Fixes F-series register addressing that could show the wrong temperatures and unrealistic current readings. Adds an explicit register-addressing setting and corrects L1/L3 sensor labels. Existing nibegw connections use the corrected addressing automatically. Run Repair to repeat feature detection. F-series energy and COP still need verification on real installations.",
     "sv": "Endast testversion. Rättar registeradressering för F-serien som kunde visa fel temperaturer och orimliga strömvärden. Lägger till en tydlig inställning för registeradressering och rättar etiketterna för L1/L3. Befintliga nibegw-anslutningar får rätt adressering automatiskt. Kör Reparera för att upprepa funktionsdetekteringen. Energivärden och COP för F-serien behöver fortfarande verifieras i verkliga installationer."

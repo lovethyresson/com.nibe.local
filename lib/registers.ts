@@ -49,6 +49,8 @@ export interface Register  {
     // lifetime-counter registers are 32-bit.
     size?: 16 | 32;
     signed?: boolean;
+    // Additional unavailable encodings observed for this register; never applied globally.
+    unavailableRaw?: number[];
     // A lifetime cumulative counter displayed relative to its value when the device was
     // paired ("since added") rather than as the pump's all-time total. The device captures
     // the first observed value as a baseline (persisted) and subtracts it, so every energy
@@ -256,8 +258,8 @@ export function signedValue(raw: number, size?: number): number {
 
 // Nibe's "value not available" sentinel (all-ones top bit): 0x8000 for 16-bit, 0x80000000
 // for 32-bit. Checked on the raw (pre-sign) value.
-export function isUnavailableRaw(raw: number, size?: number): boolean {
-    return raw === (size === 32 ? 0x80000000 : 0x8000);
+export function isUnavailableRaw(raw: number, size?: number, additional?: readonly number[]): boolean {
+    return raw === (size === 32 ? 0x80000000 : 0x8000) || !!additional?.includes(raw);
 }
 
 // Convert a raw register value to a plain number (sign + scale only, no enum/bool
@@ -270,7 +272,7 @@ export function toNumericValue(register: Register, raw: number): number | undefi
     // hot-water circulation sensors (BT70/BT82/BT83) survived detection and arrived as
     // capabilities that render "-" forever: the runtime path checks the sentinel and the
     // detection path did not. Undefined here means "did not read", which is the truth.
-    if (isUnavailableRaw(raw, register.size))
+    if (isUnavailableRaw(raw, register.size, register.unavailableRaw))
         return undefined;
     const value = register.signed === false ? raw : signedValue(raw, register.size);
     if (register.scale)

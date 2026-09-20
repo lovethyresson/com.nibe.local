@@ -1377,3 +1377,13 @@ test('every name in displayOrder is a real register the role actually carries', 
         }
     }
 });
+
+test('out-of-sync diagnostics do not mistake transaction mismatch for confirmed function mismatch', async () => {
+    const {describeModbusError} = await import('../lib/connection');
+    const result = describeModbusError({err: 'OutOfSync',
+        message: 'request fc and response fc does not match.', request: {id: 42, body: {fc: 3}}});
+    assert.match(result.summary, /transaction ID or function code mismatch/);
+    assert.match(result.summary, /request transaction=42 FC=3/);
+    assert.match(result.summary, /response details not supplied/);
+    assert.equal(result.code, undefined);
+});

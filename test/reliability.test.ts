@@ -193,7 +193,9 @@ test('F write verification gives a cached reply time to refresh', async () => {
     d.profile = {...fProfile, writeReadbackIntervalMs: 30}; d.role = 'heating';
     d.connection = {writeRegisterValue: async () => {}};
     const times: number[] = [];
-    d.readRegister = async () => { times.push(Date.now()); return times.length === 1 ? 0 : 1; };
+    d.readRegister = async (r: Register) => {
+        times.push(Date.now()); return d.fromRegisterValue(r, times.length === 1 ? 0 : 1);
+    };
     d.setValue = async () => {};
     await d.writeRegister(fProfile.registerByName['curve_displacement_NIBE.h47011_curve_offset'], 1);
     assert.equal(times.length, 2); assert.ok(times[1] - times[0] >= 25);
@@ -430,4 +432,62 @@ test('BT50 repeatedly sends unchanged readings older than the legacy age limit',
         value: 22, available: false, updatedAt: Date.now()}];
     await assert.rejects(d.sendIndoor(config), /unavailable/);
     assert.deepEqual(writes, [220, 220]);
+});
+
+test('F-series controls decode to the Homey capability types instead of scaled numbers', () => {
+    const {d} = device(); d.profile = fProfile;
+    for (const r of fProfile.registers.filter((r) => r.bool || r.picker || r.enum)) {
+        const raw = r.picker ? r.pickerValues![0] : r.enum ? Number(Object.keys(r.enum)[0]) : 0;
+        const value = d.fromRegisterValue(r, raw);
+        assert.equal(typeof value, r.bool ? 'boolean' : 'string', r.name);
+        if (r.bool) {
+            assert.equal(d.fromRegisterValue(r, r.offValue ?? 0), false, r.name);
+            assert.equal(d.fromRegisterValue(r, r.onValue ?? 1), true, r.name);
+        }
+    }
+    const solar = fProfile.registerByName['meter_power.solar'];
+    assert.equal(d.fromRegisterValue(solar, 0xffff8000), null);
+    assert.equal(d.fromRegisterValue(solar, 12345), 1234.5);
+    const temp = fProfile.registers.find((r) => r.address === 40004);
+    assert.equal(d.fromRegisterValue(temp, 161), 16.1);
+});
+
+test('debug toggles use new settings immediately across the pump while Homey still returns old settings', async () => {
+    const {d} = device(); const {d: sibling} = device(); const {d: other} = device();
+    const settings = {address: 'pump-a', debugLogging: false};
+    const siblingSettings = {...settings};
+    d.getSettings = () => settings;
+    sibling.getSettings = () => siblingSettings;
+    other.getSettings = () => ({address: 'pump-b', debugLogging: true});
+    sibling.setSettings = async (next: any) => { await Promise.resolve(); Object.assign(siblingSettings, next); };
+    d.driver = {getDevices: () => [d, sibling, other]};
+    let dumps = 0;
+    d.dumpRegisters = async () => { assert.equal(d.debugEnabled(), true); dumps++; };
+    const logs: string[] = [];
+    const c: any = Object.create(PumpConnection.prototype);
+    Object.assign(c, {subscribers: new Set([d, sibling]), debugOn: false,
+        captureCounts: new Map(), transport: {port: 502, unitId: 1}, profile: fProfile,
+        log: (s: string) => logs.push(s), logStandingFailures: () => {}});
+    d.connection = c;
+    const toggle = async (on: boolean) => {
+        await d.onSettings({oldSettings: {...settings}, newSettings: {...settings, debugLogging: on},
+            changedKeys: ['debugLogging']});
+        // Homey commits the initiating device only after its callback completes.
+        assert.equal(c.debugOn, on);
+        assert.equal(d.debugEnabled(), on);
+        assert.equal(sibling.debugEnabled(), on);
+        assert.equal(other.debugEnabled(), true);
+        settings.debugLogging = on;
+    };
+    await toggle(true);
+    assert.equal(dumps, 1);
+    assert.equal(logs.filter((s) => s.startsWith('Read capture started')).length, 1);
+    await toggle(false);
+    assert.equal(dumps, 1);
+    assert.equal(logs.filter((s) => s.startsWith('Read capture started')).length, 1);
+    await toggle(true);
+    assert.equal(dumps, 2);
+    assert.equal(logs.filter((s) => s.startsWith('Read capture started')).length, 2);
+    const {d: restarted} = device(); restarted.getSettings = () => settings;
+    assert.equal(restarted.debugEnabled(), true, 'restart uses the saved setting');
 });

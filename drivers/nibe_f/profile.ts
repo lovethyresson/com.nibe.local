@@ -12,7 +12,7 @@ export const fProfile = makeProfile({
         frequent: registers.filter((r) => [40004, 40008, 40012, 40013, 40014, 40025, 45001]
             .includes(r.address)).map((r) => r.name)},
     diagnosticTrace: registers.filter((r) => [43086, 43141, 43375, 43084, 43136, 43435,
-        41846, 41848, 41850, 42437, 42439, 40033, 47394, 47398].includes(r.address)).map((r) => r.name),
+        41846, 41848, 41850, 42437, 42439, 44298, 44300, 40033, 47394, 47398].includes(r.address)).map((r) => r.name),
     writeRequirements: {
         'boolean_NIBE.h47370_allow_addition': {register: 'operating_mode_NIBE.h47137_mode', values: [1],
             message: {en: 'Immersion permission applies only in Manual mode. Change operating mode explicitly first.',

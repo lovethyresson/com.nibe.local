@@ -180,8 +180,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     // Verbose logging, off by default. Without it the app logs only the things a user acts on
     // — pairing/repair, Flow actions, manual changes and alarms — so a log dump stays readable.
     // Turn on "Debug logging" (Advanced settings) for polling, connection and energy detail.
+    private debugLoggingOverride?: boolean;
+
     debugEnabled(): boolean {
-        return !!this.getSettings().debugLogging;
+        return this.debugLoggingOverride ?? !!this.getSettings().debugLogging;
     }
 
     protected debug(...args: any[]) {
@@ -234,7 +236,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     private fromRegisterValue(register: Register, raw: number) {
         // 0x8000 / 0x80000000 is Nibe's "value not available" sentinel. Show as no value.
-        if (isUnavailableRaw(raw, register.size))
+        if (isUnavailableRaw(raw, register.size, register.unavailableRaw))
             return null;
         let value = register.signed === false ? raw : signedValue(raw, register.size);
         if (register.scale)
@@ -1482,6 +1484,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             this.log(`Debug logging ${on ? 'enabled' : 'disabled'}`);
             // Pump-wide diagnostic switch: mirror onto the pump's other devices so one toggle
             // covers the whole pump, and refresh the shared connection's own verbosity.
+            // Homey still exposes the old settings during onSettings. Apply the new
+            // pump-wide value in memory before refreshDebug inspects any subscriber.
+            this.debugLoggingOverride = on;
+            for (const device of this.driver.getDevices() as NibePumpDevice[]) {
+                if (device !== this && device.getSettings().address === this.host())
+                    device.debugLoggingOverride = on;
+            }
             this.syncToSiblings('debugLogging', on).catch(this.error);
             this.connection?.refreshDebug();
             // Dump again on enable, not only at connect. A diagnostic report is a rolling

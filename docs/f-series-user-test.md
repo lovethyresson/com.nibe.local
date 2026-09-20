@@ -233,3 +233,37 @@ the app and run Repair to repeat detection; compare temperatures and all three p
 currents against the pump, then collect diagnostics over a hot-water cycle.
 No word-order, scaling, energy-allocation or other business-logic changes accompany
 this connection correction. Production and power remain to be verified on hardware.
+
+## 1.3.5 follow-up test
+
+1. Update to test build 1.3.5. Keep writes disabled and addressing at **40025 → 24**.
+2. Enable debug logging on Nibe Main **before restarting**, then restart and run Repair.
+3. Check whether Solar is recommended, and whether operating mode and switches now display
+   correctly. Existing unwanted Solar devices are not automatically removed.
+4. Just before the next hot-water cycle, toggle debug logging off and on to start a fresh
+   detailed capture (raw sample capture lasts one minute, energy tracing lasts two hours).
+5. Note local start/end times, compare Homey compressor/immersion power against pump values
+   where available, and record whether hot-water energy/COP populate.
+6. Send a diagnostic while the compressor is actively producing hot water, then another
+   immediately after the cycle, plus the debug log and any mismatches. Disable logging afterwards.
+
+The 1.3.4 report contained idle power samples and two out-of-sync episodes about 30 minutes
+apart. Neither the gateway cause nor active-cycle power scaling is established. The new build
+improves error wording; it does not claim to fix the communication interruptions. No change
+to energy-allocation business logic is included.
+
+### Added before publishing 1.3.5 (2026-09-19)
+
+- Fixed debug transitions during Homey settings callbacks: incoming state is applied
+  immediately across the same pump, even while saved settings still contain the old value.
+  Turning logging off must not start a fresh capture; restart still uses the saved setting.
+- Added read-only, internal background samples of EP14 production counters 44298 (hot water)
+  and 44300 (heating), u32 / 10 kWh, at wire addresses 4297 and 4299 with base 40001.
+  They appear in raw capture when sampled and in the two-hour energy trace as last-observed
+  values with timestamps. Background reads rotate; a one-minute capture need not contain both.
+- No substitution into allocation/COP, no change to power scaling or heating-circuit support.
+- The owner's cycle was 2026-09-17 16:55:40–17:40:43 Europe/Stockholm. The report resent on
+  September 18 had the same log ID/content (only email formatting/footer differed).
+- Disappearing/reappearing devices and the return of deleted Solar remain unconfirmed causes.
+  A normal startup does not create Homey devices. If repeated, obtain an immediate diagnostic
+  and exact time; do not describe the invalid-Solar-value fix as a fix for this separate issue.

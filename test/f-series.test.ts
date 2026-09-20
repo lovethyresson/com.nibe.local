@@ -131,7 +131,7 @@ test('F power sums required sources and falls back without double counting', () 
 });
 
 test('F holding registers expose only the reviewed controls', () => {
-    assert.equal(fProfile.registers.length, 61);
+    assert.equal(fProfile.registers.length, 63);
     for (const r of fProfile.registers) {
         assert.equal(r.direction, Dir.Out);
         if (r.address < 47000) {
@@ -218,4 +218,43 @@ test('diagnostics preserve raw words and errors and cap repeated capture', async
     c.client.readHoldingRegisters = async () => ({response: {body: {values: [42]}}});
     assert.equal(await c.readRegisterRaw(at(40079), false), undefined);
     assert.match(c.describeLastRead(at(40079).name), /Short response: expected 2 words, got 1/);
+});
+
+test('captured F730 unavailable solar value does not recommend Solar, real production still does', async () => {
+    const solar = at(42075);
+    const client: any = {readHoldingRegisters: async () => ({response: {body: {values: [0x8000, 0xffff]}}})};
+    assert.equal(await readNumeric(client, solar, fProfile), undefined);
+    const present = (raw: number) => fProfile.detection.plausible.solar!({
+        value: (name: string) => name === solar.name ? toNumericValue(solar, raw) : 0
+    } as any);
+    assert.equal(present(0xffff8000), false);
+    assert.equal(present(0), false);
+    assert.equal(present(12345), true);
+    // The extra encoding is local to the solar register, not a global 32-bit rule.
+    assert.equal(toNumericValue({...solar, unavailableRaw: undefined}, 0xffff8000), 429493452.8);
+});
+
+test('EP14 counters are read and traced in the background without becoming allocation or COP sources', async () => {
+    const c: any = Object.create(PumpConnection.prototype);
+    Object.assign(c, {profile: fProfile, debugOn: false, subscribers: new Set(), powerRegisters: []});
+    const union = c.unionRegisters();
+    const reads: number[][] = [];
+    const client: any = {readHoldingRegisters: async (...args: number[]) => {
+        reads.push(args); return {response: {body: {values: [3525, 0]}}};
+    }};
+    for (const address of [44298, 44300]) {
+        const r = at(address);
+        assert.equal(r.internal, true);
+        assert.equal(r.noAction, true);
+        assert.ok(union.includes(r));
+        assert.ok(fProfile.diagnosticTrace!.includes(r.name));
+        assert.equal(fProfile.compose.capabilities.includes(r.name), false);
+        assert.equal(frequentRegisterNames(fProfile).has(r.name), false);
+        assert.equal(await readNumeric(client, r, {...fProfile, addressBase: 40001}), 352.5);
+    }
+    assert.deepEqual(reads, [[4297, 2], [4299, 2]]);
+    assert.equal(fProfile.role.producedRegisterForRole.hotwater, at(42437).name);
+    assert.equal(fProfile.role.producedRegisterForRole.heating, at(42439).name);
+    assert.deepEqual(fProfile.role.powerSources, [[at(43375).name, at(43084).name],
+        [at(43141).name, at(43084).name]]);
 });
