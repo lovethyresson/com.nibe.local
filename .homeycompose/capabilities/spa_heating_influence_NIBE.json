@@ -122,5 +122,6 @@
   ],
   "getable": true,
   "setable": true,
-  "uiComponent": "picker"
+  "uiComponent": "picker",
+  "icon": "/assets/images/energy.svg"
 }

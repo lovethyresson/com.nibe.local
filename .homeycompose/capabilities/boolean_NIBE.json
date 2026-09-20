@@ -11,5 +11,6 @@
   "uiComponent": "toggle",
   "getable": true,
   "setable": true,
-  "insights": true
+  "insights": true,
+  "icon": "/assets/images/select.svg"
 }

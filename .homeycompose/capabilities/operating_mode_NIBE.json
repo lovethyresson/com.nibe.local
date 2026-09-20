@@ -46,5 +46,6 @@
         "da": "Kun tilskudsvarme"
       }
     }
-  ]
+  ],
+  "icon": "/assets/images/select.svg"
 }

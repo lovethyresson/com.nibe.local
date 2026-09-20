@@ -56,5 +56,6 @@
   ],
   "getable": true,
   "setable": true,
-  "uiComponent": "picker"
+  "uiComponent": "picker",
+  "icon": "/assets/images/time.svg"
 }
