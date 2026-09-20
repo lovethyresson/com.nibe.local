@@ -8,7 +8,7 @@
 # test.ts), so there is no separate service to orchestrate. These tests validate our engine
 # against a fake pump we seed; the real pump's register semantics/scales and a gateway's
 # address offset still require the live S1155 run and the F beta.
-FROM node:20-slim
+FROM node:22-slim
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -16,4 +16,8 @@ COPY tsconfig.json ./
 COPY lib ./lib
 COPY drivers ./drivers
 COPY test ./test
+COPY dev ./dev
+COPY assets ./assets
+COPY locales ./locales
+COPY .homeycompose ./.homeycompose
 CMD ["npm", "test"]

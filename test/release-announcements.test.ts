@@ -93,11 +93,20 @@ test('disabled startup never touches Homey services', async () => {
 });
 
 
-test('1.3.3 announcement is S-series only and translated in all supported languages', () => {
-    assert.equal(CURRENT_ANNOUNCEMENT?.id, '1.3.3-setup-tips');
-    assert.equal(CURRENT_ANNOUNCEMENT?.snippets.length, 2);
+test('configured announcement has an id, a valid audience and all supported translations', () => {
+    // null intentionally disables announcements; delivery of that case is covered above.
+    if (!CURRENT_ANNOUNCEMENT) return;
+    assert.ok(CURRENT_ANNOUNCEMENT.id.trim());
+    assert.ok(CURRENT_ANNOUNCEMENT.snippets.length > 0);
     for (const snippet of CURRENT_ANNOUNCEMENT!.snippets) {
-        assert.deepEqual(snippet.driverIds, ['nibe_s']);
+        if (snippet.driverIds) {
+            assert.ok(snippet.driverIds.length > 0);
+            assert.ok(snippet.driverIds.every((id) => ['nibe_s', 'nibe_f'].includes(id)));
+        }
+        if (snippet.roles) {
+            assert.ok(snippet.roles.length > 0);
+            assert.ok(snippet.roles.every((role) => ['main', 'heating', 'hotwater', 'pool', 'cooling', 'solar'].includes(role)));
+        }
         for (const language of ['en', 'sv', 'de', 'nl', 'no', 'da']) {
             assert.ok(snippet.text[language]?.trim());
         }

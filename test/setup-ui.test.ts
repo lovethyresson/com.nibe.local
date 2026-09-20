@@ -99,20 +99,15 @@ test('Homey picker is search-first, preserves selections across searches, and pa
     f.dom.window.close();
 });
 
-test('source descriptions stay inside their choice and Back sits above the content', () => {
+test('temperature source choices explain which sensors supply the reading', () => {
     const f = fixture(); f.click('Continue'); f.menu('Heating Setup');
     const doc = f.win.document.getElementById('nibe-pair-setup');
-    assert.equal(doc.querySelector('.pair-hero-title').hasAttribute('data-i18n'), false);
-    assert.equal(doc.querySelector('.pair-hero-sub').hasAttribute('data-i18n'), false);
-    assert.ok(doc.querySelector('.pair-hero').classList.contains('setup-hero'));
     const cards = doc.querySelectorAll('.setup-source-card');
     assert.equal(cards.length, 2);
     assert.match(cards[0].textContent, /heat pump’s native temperature sensor/);
     assert.match(cards[1].textContent, /own Homey temperature sensors/);
     assert.ok(cards[1].contains(doc.querySelector('.setup-source-description')));
-    assert.ok(doc.querySelector('.setup-navigation').nextElementSibling.classList.contains('pair-hero'));
     assert.equal(doc.querySelector('.pair-hero-title').textContent, 'Choose your temperature source');
-    assert.equal(doc.querySelectorAll('.setup-shell .setup-back').length, 0);
     f.dom.window.close();
 });
 

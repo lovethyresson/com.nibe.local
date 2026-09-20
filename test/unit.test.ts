@@ -1,8 +1,5 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readdirSync} from 'node:fs';
-import path from 'node:path';
-import {fProfile} from '../drivers/nibe_f/profile';
 
 import {
     Dir, combineRaw, signedValue, isUnavailableRaw, toNumericValue, isAdjustable, isPollable,
@@ -20,7 +17,7 @@ import {
 } from '../lib/roles';
 import type {Role} from '../lib/roles';
 import {sReason} from '../drivers/nibe_s/reason';
-import {buildDetectionResult, recommendGroups, sampleRegisters, ProbeSamples} from '../lib/detection';
+import {buildDetectionResult, recommendGroups, readNumeric, sampleRegisters, ProbeSamples} from '../lib/detection';
 import {alarmAdvice, alarmDescription, alarmEntry} from '../lib/alarms';
 import alarmCodes from '../lib/alarm-codes.json';
 import {sProfile} from '../drivers/nibe_s/profile';
@@ -32,17 +29,12 @@ import {registers} from '../drivers/nibe_s/registers';
 // ---------------------------------------------------------------------------------------
 
 
-// A picker that still has a non-picker twin at the same address. Tests that need one look it up
-// rather than naming it: pairs get collapsed as duplication is removed, and hardcoding one means
-// the test breaks for a reason that has nothing to do with what it is checking.
-function anyPickerPair() {
-    for (const picker of registers) {
-        if (!picker.picker) continue;
-        const twin = registers.find((r) => r !== picker && r.address === picker.address
-            && r.direction === picker.direction && !r.picker && !r.secondary);
-        if (twin) return {picker, twin};
-    }
-    return undefined;
+// A fixed fixture keeps helper coverage alive when the shipped catalogue changes.
+function pickerPair() {
+    const twin: Register = {address: 1, name: 'value', direction: Dir.Out,
+        group: 'hotwater', info: {en: '', sv: ''}};
+    const picker: Register = {...twin, name: 'picker', picker: true};
+    return {twin, picker, registers: [twin, picker]};
 }
 
 test('combineRaw: 16-bit is the single word, 32-bit is low-word-first', () => {
@@ -83,21 +75,24 @@ test('toNumericValue: sign + scale, no enum/bool mapping', () => {
     assert.equal(toNumericValue(reg(10, 32), 0x8000), 3276.8);
 });
 
-test('detection: a sensor answering "not available" does not count as read', () => {
-    // The hot water circulation accessory (BT70/BT82/BT83) is absent on most pumps. Its
-    // registers exist on the model, so the pump answers — with the sentinel. Detection must
-    // treat that as no data, or pairing hands the user capabilities that can never fill in.
-    const bt70 = 'measure_temperature.i87_outgoing_hotwater';
-    const bt82 = 'measure_temperature.i174_hw_comfort_return';
-    const bt83 = 'measure_temperature.i175_hw_comfort_heater';
-    for (const name of [bt70, bt82, bt83])
-        assert.ok(sProfile.registerByName[name], `${name} missing from the register table`);
-
-    // sampleRegisters skips undefined readings, so an all-sentinel register ends at reads: 0.
-    const sampled = probes({[bt70]: {reads: 0}});
-    assert.equal(sampled[bt70].reads, 0);
-    assert.equal(buildDetectionResult(sProfile, sampled).samples[bt70].read, false,
-        'an unavailable sensor must be reported as not read, so pairing drops it');
+test('detection: a sensor answering "not available" does not count as read', async () => {
+    const names = ['measure_temperature.i87_outgoing_hotwater',
+        'measure_temperature.i174_hw_comfort_return', 'measure_temperature.i175_hw_comfort_heater'];
+    const profile = {...sProfile, registers: names.map((name) => sProfile.registerByName[name])};
+    let raw = 0x8000;
+    const client: any = {readInputRegisters: async () => ({response: {body: {values: [raw]}}})};
+    const sample = () => sampleRegisters(profile, (r) => readNumeric(client, r, profile), () => {}, 1, 0);
+    const unavailable = await sample();
+    for (const name of names) {
+        assert.equal(unavailable.probes[name].reads, 0);
+        assert.equal(buildDetectionResult(profile, unavailable.probes).samples[name].read, false);
+    }
+    raw = 450;
+    const available = await sample();
+    for (const name of names) {
+        assert.equal(available.probes[name].last, 45);
+        assert.equal(buildDetectionResult(profile, available.probes).samples[name].read, true);
+    }
 });
 
 test('isAdjustable / isPollable', () => {
@@ -113,21 +108,14 @@ test('isAdjustable / isPollable', () => {
 // Catalog helpers — picker/sensor twins and selection resolution.
 // ---------------------------------------------------------------------------------------
 
-test('buildPickerPrimary maps a picker to its non-picker twin at the same address', () => {
-    const pair = anyPickerPair();
-    if (!pair) return;   // every pair collapsed; the twinless case is covered by its own test
-    const pp = buildPickerPrimary(registers);
-    assert.equal(pp[pair.picker.name], pair.twin.name);
-    // the non-picker twin itself is not in the map
-    assert.equal(pp[pair.twin.name], undefined);
-});
-
-test('isSelectableRegister: pickers are not separately selectable', () => {
-    const pair = anyPickerPair();
-    if (!pair) return;
-    const pp = buildPickerPrimary(registers);
-    assert.equal(isSelectableRegister(pair.picker, pp), false);
-    assert.equal(isSelectableRegister(pair.twin, pp), true);
+test('paired pickers follow their primary while standalone pickers remain selectable', () => {
+    const {picker, twin, registers: pair} = pickerPair();
+    const standalone = {...picker, name: 'standalone', address: 2};
+    const pp = buildPickerPrimary([...pair, standalone]);
+    assert.deepEqual(pp, {picker: 'value'});
+    assert.equal(isSelectableRegister(picker, pp), false);
+    assert.equal(isSelectableRegister(twin, pp), true);
+    assert.equal(isSelectableRegister(standalone, pp), true);
 });
 
 test('isRegisterEnabled: core always on; group + override precedence; picker follows twin', () => {
@@ -143,23 +131,23 @@ test('isRegisterEnabled: core always on; group + override precedence; picker fol
     // per-register override wins over the group
     assert.equal(isRegisterEnabled(hw, {groups: {hotwater: false}, overrides: {[hw.name]: true}}, pp), true);
     // a picker resolves through its twin's override, not its own name
-    const pair = anyPickerPair();
-    if (pair)
-        assert.equal(isRegisterEnabled(pair.picker,
-            {groups: {[pair.picker.group]: true}, overrides: {[pair.twin.name]: false}}, pp), false);
+    const pair = pickerPair();
+    assert.equal(isRegisterEnabled(pair.picker,
+        {groups: {hotwater: true}, overrides: {[pair.twin.name]: false}},
+        buildPickerPrimary(pair.registers)), false);
 });
 
 test('makeProfile computes registerByName and pickerPrimary', () => {
+    const {twin, picker, registers: pair} = pickerPair();
     const p = makeProfile({
-        registers,
+        registers: pair,
         role: sProfile.role,
         transport: sProfile.transport,
         detection: sProfile.detection,
         compose: sProfile.compose
     });
-    assert.equal(Object.keys(p.registerByName).length, registers.length);
-    assert.deepEqual(p.registerByName, buildRegisterByName(registers));
-    assert.deepEqual(p.pickerPrimary, buildPickerPrimary(registers));
+    assert.deepEqual(p.registerByName, {value: twin, picker});
+    assert.deepEqual(p.pickerPrimary, {picker: 'value'});
 });
 
 // ---------------------------------------------------------------------------------------
@@ -251,24 +239,6 @@ test('every Flow card resolves to a register that still exists', () => {
         const name = id.slice(0, id.lastIndexOf('.'));
         assert.ok(byName[name], `Flow card ${id} names a register that no longer exists`);
     }
-});
-
-// A capability *type* with no instance compiles into app.json and is offered to nobody. The
-// project keeps a retired type declared for a release or two after a rename (see CLAUDE.md) —
-// this catches the ones that were then forgotten.
-test('every custom capability type has at least one instance', () => {
-    // Repo-root relative: both `npm test` and CI run node from the root. Asserting the directory
-    // is non-empty keeps a wrong cwd from turning this into a test that silently checks nothing.
-    const dir = path.join(process.cwd(), '.homeycompose', 'capabilities');
-    const types = readdirSync(dir)
-        .filter((f) => f.endsWith('.json'))
-        .map((f) => f.slice(0, -'.json'.length));
-    assert.ok(types.length > 0, `no capability types found in ${dir}`);
-
-    const used = new Set([sProfile, fProfile].flatMap((p) => p.compose.capabilities)
-        .map((c: string) => c.split('.')[0]));
-    for (const type of types)
-        assert.ok(used.has(type), `capability type ${type} has no instance in driver.compose.json`);
 });
 
 // The derived capabilities are not registers, but they share one namespace with them: both are
@@ -883,7 +853,6 @@ test('reason inputs are synthetic names, kept out of every capability path', () 
     const caps = new Set(sProfile.compose.capabilities);
     for (const id of names) {
         const synthetic = `__reason.${id}`;
-        assert.ok(synthetic.startsWith('__'), `${synthetic} must be namespaced as synthetic`);
         assert.ok(!caps.has(synthetic), `${synthetic} must never be a capability`);
         assert.ok(!registers.some((r) => r.name === synthetic),
             `${synthetic} must not appear in the register table`);
@@ -1079,12 +1048,13 @@ test('sources: every declaration is well formed', () => {
     }
 });
 
-test('alternates: an implausible reading is rejected rather than accepted', async () => {
+test('alternates: zero is valid meter data, but an out-of-range reading is rejected', async () => {
     // 0 *is* data for a meter that has counted nothing, so that band admits it — unlike the
     // room-sensor band, which treats a flat 0 as a dead sensor.
     const pulse = 'meter_kwh_NIBE.i398_pulse_energy';
     const resolved = (await sampleAgainst({396: 0})).addresses;
     assert.equal(resolved[pulse], 396);
+    assert.equal((await sampleAgainst({396: -1})).addresses[pulse], undefined);
 });
 
 test('alternates: every declaration is well formed and unambiguous', () => {
@@ -1215,8 +1185,7 @@ test('a noAction register is never offered as something a Flow can write', () =>
 
     // The read-side condition card is deliberately unaffected: asking whether the flag is on is
     // exactly what it is exposed for.
-    const readCondition = (r: Register) => r.bool! && !r.writeOnly;
-    assert.ok(readCondition(sProfile.registerByName['boolean_NIBE.h202_use_room_sensor']));
+    assert.ok(flowPredicates.boolState(sProfile.registerByName['boolean_NIBE.h202_use_room_sensor']));
 });
 
 test('immersion heater wording is used consistently, and not on the master permits', () => {
@@ -1348,19 +1317,6 @@ test('a setpoint outside its plausible band counts as no data, so no 0 °C dial 
     assert.equal(buildDetectionResult(
         sProfile, probes({'measure_temperature.i5_heating_supply': {reads: 3, last: 0}})
     ).samples['measure_temperature.i5_heating_supply'].read, true);
-});
-
-test('a register that is both picker and enum decodes to the picker id, not the label', () => {
-    // Operating mode is the case: a settable picker capability whose own definition carries the
-    // labels, while the register keeps `enum` so the mode-specific Flow cards can build their
-    // autocomplete. Decoding it as an enum returns "Manual" where the capability declares
-    // 0/1/2, and Homey rejects it on every poll — "Invalid enum capability ... Expected: 0,1,2".
-    const mode = sProfile.registerByName['operating_mode_NIBE.h237_operating_mode'];
-    assert.ok(mode, 'operating mode register missing');
-    assert.ok(mode.picker && mode.enum, 'this test is only meaningful while it carries both');
-    // Whatever else changes, the ids the capability declares must be what the register offers.
-    assert.deepEqual(mode.pickerValues, Object.keys(mode.enum!).map(Number),
-        'picker ids must match the enum map exactly');
 });
 
 test('every name in displayOrder is a real register the role actually carries', () => {

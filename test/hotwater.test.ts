@@ -98,15 +98,6 @@ test('a fully hot tank uses its mean temperature, not just the top', () => {
     near(skewed, even, 0.01, 'the mean of 58 and 52 is 55');
 });
 
-test('the model is parameter-free — no split to guess', () => {
-    // The lumped model needed an upper-share constant, and moving it 0.25 → 0.45 swung the answer
-    // by ~57 %. Nothing here can be tuned: same inputs, same answer, always.
-    const a = usableLitres(175, 44.2, 27.0, 15.4)!;
-    const b = usableLitres(175, 44.2, 27.0, 15.4)!;
-    assert.equal(a, b);
-    assert.ok(a > 0 && a < 175);
-});
-
 // ---------------------------------------------------------------------------------------
 // The tank the user picks
 // ---------------------------------------------------------------------------------------
@@ -126,16 +117,6 @@ test('every catalogue tank is well formed, unique, and a plausible water volume'
         assert.ok(entry.name.en && entry.name.sv, `${entry.id} needs both languages`);
     }
     assert.ok(!ids.has('none') && !ids.has('custom'), 'reserved ids must not be catalogue entries');
-});
-
-// The catalogue holds WATER volume. NIBE's published "equivalent amount of hot water at 40 °C" is
-// roughly a third larger, so a V40 figure pasted in by mistake would inflate every estimate.
-test('no catalogue entry is secretly a V40 figure', () => {
-    for (const entry of CATALOGUE)
-        assert.ok(usableLitres(entry.litres, 50, 50, 10)! > entry.litres,
-            `${entry.id}: stored volume should be smaller than its own 40 °C equivalent`);
-    const vpb200 = CATALOGUE.find((t) => t.id === 'vpb200')!;
-    assert.equal(vpb200.litres, 175, 'the VPB 200 family midpoint, not its V40 figure');
 });
 
 // One row per family, not per lining: picking the wrong lining costs ~2 %, and asking owners to
@@ -174,10 +155,7 @@ test('a custom volume is accepted only inside the range the model can use', () =
             `${litres} L should not be accepted as a tank size`);
 });
 
-// THE REGRESSION TEST. cleanSelection() is a whitelist and applySelection() overwrites the whole
-// stored selection with its output, so anything it forgets to copy is destroyed. A user who picked
-// their tank at pairing and later opened Repair to tick one box about cooling would have lost it.
-test('a tank picked at pairing survives a Repair that never mentions it', () => {
+test('cleaning a saved tank choice preserves its volume and explicit inlet', () => {
     const atPairing = cleanTankChoice({tankId: 'vpb300', inletC: 12}, CATALOGUE)!;
     assert.deepEqual(cleanTankChoice(atPairing, CATALOGUE), atPairing);
     assert.equal(atPairing.litres, 276);

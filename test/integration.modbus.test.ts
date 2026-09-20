@@ -361,7 +361,7 @@ test('an active 1028 reading is never overridden, even if 3804 disagrees', {time
             assert.ok(heating.energy.every((e) => e.watts === 0),
                 '3804 is not trusted over an active 1028 reading');
             const primaryRaws = main.raws.filter((r) => r.name === 'priority').map((r) => r.raw);
-            assert.ok(primaryRaws.every((raw) => raw === 20),
+            assert.ok(primaryRaws.length > 0 && primaryRaws.every((raw) => raw === 20),
                 `expected 1028's own 20, unmodified, got ${primaryRaws}`);
         } finally {
             connection.shutdown();
@@ -683,50 +683,7 @@ test('a register that never reads is reported once per app start, and restated w
     }
 });
 
-test('a poll where nothing reads at all is not blamed on the registers',
-     {timeout: 30000}, async () => {
-    // A server that accepts the connection and then never answers: every read times out on
-    // the same poll. That is a connection problem, and reporting it as "N registers do not
-    // exist on this model" would be actively misleading.
-    const sockets: net.Socket[] = [];
-    const server = new net.Server((socket) => { sockets.push(socket); });
-    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
-    const port = (server.address() as net.AddressInfo).port;
-
-    const logs: string[] = [];
-    const realLog = console.log;
-    console.log = (...args: any[]) => { logs.push(args.join(' ')); };
-    try {
-        const a = reg({address: 550, name: 'reg_a', scale: 1});
-        const b = reg({address: 551, name: 'reg_b', scale: 1});
-        const profile = tinyProfile([a, b]);
-        const sub = new FakeSub('main', [a, b]);
-        const connection = PumpConnection.get('127.0.0.1', profile, {port, unitId: 1});
-        connection.attach(sub);
-        try {
-            await sub.whenUp();
-            // The jsmodbus client gives up on a request after 5 s, so this covers a full poll
-            // in which every single read failed.
-            await new Promise((r) => setTimeout(r, 14000));
-            assert.ok(!logs.some((l) => l.includes('did not read (first failure since app start)')),
-                'a total loss is a connection problem and must not be blamed on the registers');
-        } finally {
-            connection.shutdown();
-        }
-    } finally {
-        console.log = realLog;
-        sockets.forEach((s) => s.destroy());
-        await new Promise<void>((resolve) => server.close(() => resolve()));
-    }
-});
-
-// The other half of the same situation. Not reporting it as missing registers was right, but for
-// a long time it was ALSO not reported as anything else: readRegisterRaw() resolves undefined
-// rather than rejecting, so the poll chain never failed, the recovery path behind its .catch
-// could not run, and setUnavailable() only ever fired on a socket error or close. A pump that
-// stopped answering while holding the TCP connection open therefore left the device looking
-// online with frozen values, indefinitely, with nothing in the log.
-test('a pump that stops answering while the socket stays up is dropped and reconnected',
+test('an unresponsive pump is reconnected without blaming individual registers',
      {timeout: 90000}, async () => {
     const sockets: net.Socket[] = [];
     const server = new net.Server((socket) => { sockets.push(socket); });
@@ -758,6 +715,9 @@ test('a pump that stops answering while the socket stays up is dropped and recon
             // so the drop itself is what to assert on.
             assert.ok(sub.downCount >= 1,
                 'the device must be marked down, not left looking online with stale values');
+            assert.ok(sockets.length >= 2, 'the watchdog must reconnect after dropping the socket');
+            assert.ok(!logs.some((l) => l.includes('did not read (first failure since app start)')),
+                'a total loss is a connection problem, not an unsupported register');
         } finally {
             connection.shutdown();
         }

@@ -434,17 +434,24 @@ test('BT50 repeatedly sends unchanged readings older than the legacy age limit',
     assert.deepEqual(writes, [220, 220]);
 });
 
-test('F-series controls decode to the Homey capability types instead of scaled numbers', () => {
-    const {d} = device(); d.profile = fProfile;
-    for (const r of fProfile.registers.filter((r) => r.bool || r.picker || r.enum)) {
-        const raw = r.picker ? r.pickerValues![0] : r.enum ? Number(Object.keys(r.enum)[0]) : 0;
-        const value = d.fromRegisterValue(r, raw);
-        assert.equal(typeof value, r.bool ? 'boolean' : 'string', r.name);
-        if (r.bool) {
-            assert.equal(d.fromRegisterValue(r, r.offValue ?? 0), false, r.name);
-            assert.equal(d.fromRegisterValue(r, r.onValue ?? 1), true, r.name);
+test('S and F controls decode to Homey capability types and picker ids take precedence over labels', () => {
+    const {d} = device();
+    for (const profile of [sProfile, fProfile]) {
+        d.profile = profile;
+        for (const r of profile.registers.filter((r) => r.bool || r.picker || r.enum)) {
+            const raw = r.picker ? r.pickerValues![0] : r.enum ? Number(Object.keys(r.enum)[0]) : 0;
+            const value = d.fromRegisterValue(r, raw);
+            assert.equal(typeof value, r.bool ? 'boolean' : 'string', r.name);
+            if (r.picker)
+                for (const id of r.pickerValues!)
+                    assert.equal(d.fromRegisterValue(r, id), String(id), r.name);
+            if (r.bool) {
+                assert.equal(d.fromRegisterValue(r, r.offValue ?? 0), false, r.name);
+                assert.equal(d.fromRegisterValue(r, r.onValue ?? 1), true, r.name);
+            }
         }
     }
+    d.profile = fProfile;
     const solar = fProfile.registerByName['meter_power.solar'];
     assert.equal(d.fromRegisterValue(solar, 0xffff8000), null);
     assert.equal(d.fromRegisterValue(solar, 12345), 1234.5);
@@ -490,4 +497,14 @@ test('debug toggles use new settings immediately across the pump while Homey sti
     assert.equal(logs.filter((s) => s.startsWith('Read capture started')).length, 2);
     const {d: restarted} = device(); restarted.getSettings = () => settings;
     assert.equal(restarted.debugEnabled(), true, 'restart uses the saved setting');
+});
+
+// The driver whitelist is the boundary that can drop a saved tank during Repair.
+test('selection cleaning carries the saved tank through unrelated feature changes', () => {
+    const driver = new DriverClass(); driver.profile = sProfile;
+    const hotwater = {tankId: 'vpb300', litres: 276, inletC: 12};
+    const selection = driver.cleanSelection({groups: {hotwater: true, cooling: false}, hotwater});
+    const repaired = driver.cleanSelection({...selection, groups: {...selection.groups, cooling: true}});
+    assert.deepEqual(repaired.hotwater, hotwater);
+    assert.equal(repaired.groups.cooling, true);
 });
