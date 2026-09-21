@@ -24,7 +24,7 @@ export function createFixture({room = true, power = true, production = true} = {
         const addition = immersion ? 2000 : 0;
         set(43086, running || immersion ? (role === 'hotwater' ? 20 : 30) : 10);
         set(43435, running ? 1 : 0); set(43136, running ? 500 : 0);
-        if (power) { set(43141, compressor); set(43375, compressor); set(43084, addition / 10); }
+        if (power) { set(43141, compressor / 10); set(43375, compressor / 10); set(43084, addition / 10); }
         consumed[role] += (compressor + addition) * seconds / 3600000;
         produced[role] += (compressor * (role === 'heating' ? 3 : 2.5) + addition) * seconds / 3600000;
         if (production) {

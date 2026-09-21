@@ -1,6 +1,7 @@
 import {Dir} from '../../lib/registers';
 import {makeProfile} from '../../lib/profile';
 import {registers} from './registers';
+import {diagnosticRegisters} from './diagnostic-registers';
 import {capabilities, capabilitiesOptions} from './driver.compose.json';
 import {actions, conditions, triggers} from './driver.flow.compose.json';
 
@@ -11,6 +12,11 @@ export const fProfile = makeProfile({
     polling: {backgroundIntervalMs: 60_000,
         frequent: registers.filter((r) => [40004, 40008, 40012, 40013, 40014, 40025, 45001]
             .includes(r.address)).map((r) => r.name)},
+    diagnosticSweep: {
+        registers: [...registers, ...diagnosticRegisters],
+        energy: [...registers.filter((r) => [43086, 43141, 43375, 43084, 43136, 43435,
+            41846, 41848, 41850, 42437, 42439, 44298, 44300].includes(r.address)), ...diagnosticRegisters]
+    },
     diagnosticTrace: registers.filter((r) => [43086, 43141, 43375, 43084, 43136, 43435,
         41846, 41848, 41850, 42437, 42439, 44298, 44300, 40033, 47394, 47398].includes(r.address)).map((r) => r.name),
     writeRequirements: {

@@ -1,8 +1,63 @@
 # F-series energy: Home Assistant research
 
-Research date: 2026-09-12. Scope: electricity consumption and per-function allocation without
+Research dates: 2026-09-12, updated 2026-09-20. Scope: electricity consumption and per-function allocation without
 requiring an external meter. This records implementation evidence and owner reports separately.
 No F-series hardware measurements were made for this research.
+
+## September 20 decision: continue a bounded inverter-model beta
+
+The compressor scaling uncertainty is now resolved strongly enough to correct register metadata.
+Both **43141 and 43375 require raw ×10 to obtain watts**. The tester's reported 57 therefore
+represents 570 W, assuming it is the unchanged raw value currently displayed by the app.
+This is a source-unit correction, not a change to the shared allocation business logic or
+a gateway-specific mapping.
+
+Evidence chain:
+
+- [F730 owner test and correction of both registers](https://github.com/anerdins/nibepi/pull/35#issuecomment-1804048498).
+  The PR quotes NIBE Support confirming 0.01 kW increments; a later reply says the correction
+  applies to inverter units. This is a published account of support correspondence, not an
+  independently retrieved NIBE specification. The NibePi PR itself remains unmerged.
+- [Independent confirmation by elupus](https://github.com/anerdins/nibepi/pull/35#issuecomment-1874696305)
+  links the correction already in the Python nibe library.
+- [Python library correction](https://github.com/yozik04/nibe/blob/3eb7b88cb7e61553bbf3d53831a17faba7cb4b61/nibe/data/extensions.json#L162)
+  covers F730, F750, F1155/F1255 and F1355.
+- The [current generated F730 definitions](https://github.com/yozik04/nibe/blob/master/nibe/data/f730.json)
+  actually contain factor 100 and unit kW for both registers. The library loads this model data;
+  this is not merely an unused proposed override. Home Assistant's
+  [integration manifest](https://github.com/home-assistant/core/blob/dev/homeassistant/components/nibe_heatpump/manifest.json)
+  depends on this library. Raw 57 / 100 kW = 570 W.
+
+Earlier research found the PR but did not follow its comments through to the corrected library
+data. Retaining factor 1 was too conservative once that implementation evidence was available.
+
+The useful promise is **estimated compressor-plus-immersion energy allocated to heating and
+hot water**. The compressor signal describes inverter output to the motor; it does not establish
+whole-unit mains consumption, inverter losses, fan, circulation-pump or standby consumption.
+Do not compensate with invented percentages. Main can remain near zero while unmeasured
+auxiliary consumption exists. Other inverter models have supporting definitions, but only the
+F730 has this tester's hardware evidence; fixed-speed models remain a separate unsupported
+energy-source question.
+
+Production is still unresolved on this installation. The library labels 41848/41850 as consumed
+energy and 44298/44300 as heat-meter production (compressor plus addition, EP14). There is no
+evidence here for exchanging these labels based on lifetime ratios. The app's selected
+42437/42439 have returned zero; readable nonzero alternatives do not yet establish current
+production. Compare increments over the same complete cycle, including settling time, before
+using alternatives for COP. Excluding electrical auxiliaries also limits the scope of any COP.
+
+The prepared 1.3.5 now corrects both compressor units in register metadata and adds the
+bounded capture described below. Next validation should use this build; retain the shared allocator; verify idle → hot water → idle and a heating
+cycle when available, with timestamped raw power, immersion, priority and allocated energy.
+Check that power updates, energy follows the active function and reconnects do not create
+spikes or stale allocation. Record production/native counter deltas alongside this capture.
+Naturally occurring immersion operation needs its own confirmation when available; do not
+require the tester to force it. External meters are not a prerequisite for these checks, but
+without one they do not establish absolute electrical accuracy.
+
+Go if fresh power and priority reliably support the promised allocation. Keep COP unavailable
+until its production source is verified. Stop energy support for configurations where no
+trustworthy power source can be established; do not widen the claim to every F-series model.
 
 ## Findings that affect our implementation
 
@@ -65,8 +120,8 @@ validation was still pending. Their formula includes custom offsets and a compre
 It is evidence that users build estimates, not a reusable calibration for F730 or all F-series.
 The ×10 compressor factor conflicts with our exported definition. Subsequent research found
 [NibePi PR 35](https://github.com/anerdins/nibepi/pull/35): an F730 owner reports a NIBE support
-reply specifying raw ×10 W. This strengthens the scaling concern; retain both raw readings
-and do not assume either the template or the exported factor is universally correct.
+reply specifying raw ×10 W. The September 20 follow-up above confirms this correction in the
+Python library for both compressor registers; the template's other allowances remain unverified.
 [Owner's implementation, July 17 post](https://gathering.tweakers.net/forum/list_messages/2106834/3).
 
 Another HA discussion proposes rated compressor watts multiplied by runtime, or a power template

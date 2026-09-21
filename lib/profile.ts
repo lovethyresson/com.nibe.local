@@ -188,6 +188,7 @@ export interface ModelProfile {
     singleWordWriteFunction?: 6 | 16;
     writeReadbackIntervalMs?: number;
     diagnosticTrace?: string[];
+    diagnosticSweep?: {registers: Register[]; energy: Register[]};
     roomThermostat?: {sensor: string; enabled: string; target: string};
     writeRequirements?: Record<string, {register: string; values: number[]; message: LocalizedText}>;
     indoorSensorFeed?: boolean;

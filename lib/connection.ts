@@ -1,3 +1,4 @@
+import {DiagnosticCapture} from './diagnostic-capture';
 import {ReadDiagnostic, formatReadDiagnostic} from './read-diagnostics';
 import {frequentRegisterNames, planPoll} from './poll-plan';
 import net from 'net';
@@ -387,6 +388,7 @@ export class PumpConnection {
     // attached devices has "Debug logging" enabled; errors always log via this.log().
     private debugOn = false;
     private readDiagnostics = new Map<string, ReadDiagnostic>();
+    private diagnosticCapture?: DiagnosticCapture;
     private captureUntil = 0;
     private captureCounts = new Map<string, number>();
     private captureRemaining = 0;
@@ -397,6 +399,7 @@ export class PumpConnection {
     }
 
     private recordRead(register: Register, sample: ReadDiagnostic) {
+        this.diagnosticCapture?.observe(register, sample, Date.now());
         const previous = this.readDiagnostics.get(register.name);
         this.readDiagnostics.set(register.name, sample);
         const count = this.captureCounts.get(register.name) ?? 0;
@@ -414,10 +417,17 @@ export class PumpConnection {
         const on = [...this.subscribers].some((subscriber) => subscriber.debugEnabled?.() ?? false);
         const turnedOn = on && !this.debugOn;
         this.debugOn = on;
+        if (!on) {
+            this.diagnosticCapture?.stop('debug disabled');
+            this.diagnosticCapture = undefined;
+        }
         // Someone just switched debug logging on — almost always *after* the thing they are
         // chasing already happened. Restate the standing read failures so the log they are
         // about to send actually contains them.
         if (turnedOn) {
+            if (this.profile.diagnosticSweep)
+                this.diagnosticCapture = new DiagnosticCapture(this.profile.diagnosticSweep,
+                    (line) => this.log(line), Date.now());
             this.traceUntil = Date.now() + 2 * 3600_000;
             this.lastEnergyTestAt = 0;
             this.captureUntil = Date.now() + 60_000;
@@ -954,6 +964,18 @@ export class PumpConnection {
                 for (const subscriber of this.subscribers)
                     if (subscriber.wantedRegisters().some((r) => r.name === register.name))
                         subscriber.onRegisterRaw(register, raw);
+            }
+            // Bounded diagnostic probes run after normal values have been published. They
+            // never enter lastRaw, discovery, subscriber values or the allocator.
+            const capture = this.diagnosticCapture;
+            if (capture) for (let i = 0; i < 2; i++) {
+                if (generation !== this.generation || !this.connected || !this.debugOn
+                    || capture !== this.diagnosticCapture) break;
+                const job = capture.next(Date.now());
+                if (!job) break;
+                await this.readRegisterRaw(job.register, false);
+                if (generation !== this.generation || capture !== this.diagnosticCapture) break;
+                capture.complete(job, this.readDiagnostics.get(job.register.name), Date.now());
             }
         }).catch((error) => {
             // Not the "pump stopped answering" path — readRegisterRaw() never rejects, so this

@@ -144,10 +144,11 @@ observed window, with the existing missing-data/restart safeguards. No Main tota
 invented. The result is experimental: auxiliary electrical loads are excluded and production
 is total-system scope, which may not match a single compressor on a multi-pump installation.
 
-A newly found [NibePi F730 correction](https://github.com/anerdins/nibepi/pull/35) reports that
-43141 needs raw ×10 W, contradicting the export's factor 1. This build retains the export
-scaling pending hardware comparison; it is not a validated electricity meter. The mean
-register's real scaling must also be checked, not assumed correct because it is preferred.
+The [September 20 research follow-up](f-series-energy-research.md#september-20-decision-continue-a-bounded-inverter-model-beta)
+establishes raw ×10 W for both 43141 and 43375 using owner tests, reported NIBE Support
+confirmation and the corrected Python nibe library definitions. The 1.3.5 metadata now applies
+this correction to both sources. The reading covers inverter output to the compressor, not
+whole-pump mains power.
 
 The F730 export also lists consumed-energy counters: ventilation 41846, hot water 41848,
 and heating 41850 (all u32, factor 10). The other six exports do not list them. These are
@@ -162,15 +163,22 @@ listeners remain in the shared driver/device classes; S-series IDs are unchanged
 
 1. Pair with the F-series driver and correct register addressing setting. If the gateway was previously
    paired as S-series at the same address, remove that incorrect device before pairing F.
-2. Enable **Debug logging** on Main. F-series dumps use the last observed readings, with no
-   additional full scan. The dump includes decoded/raw values, actual wire address, function
-   code, word count, hexadecimal words, receipt time, request/queue duration and read errors.
-   An immediate post-connect dump can be empty; ongoing snapshots supply later observations.
-3. For 60 seconds after enabling debug, existing reads are also captured up to three times per
-   register, with a global limit of 200 samples. This adds no independent polling loop or
-   extra refresh requests. Slow gateways or unselected readings may yield fewer than three.
-4. Collect a Homey diagnostic report promptly. Compare a few timestamped readings with the
-   pump screen, then repeat during heating, hot-water production and idle operation.
+2. Enable **Debug logging** on Main before restarting the app. Each new F-series debug
+   session starts a two-hour bounded capture and two passes over known readable driver
+   registers, including unselected features and all eight heating/hot-water production
+   candidates. This is not a scan of arbitrary addresses. Write-only commands are excluded.
+3. Normal polling publishes first, followed by at most two extra sequential diagnostic reads
+   per poll. Writes retain queue priority. Sweeps can take tens of minutes; slow reads or a
+   long polling interval can leave them incomplete at the two-hour limit, which is logged.
+   Diagnostic probes never update capabilities, feature detection, or allocation inputs.
+4. Energy observations include raw words, decoded values, changes since the previous logged
+   successful observation, receipt times, wire address/function/width, request/queue duration
+   and errors. Existing energy reads are logged at most once per minute per register; slow
+   candidates are refreshed in rotation, so this is not a guaranteed one-minute sample rate.
+5. Capture idle before and after a complete hot-water cycle, and heating when available.
+   Send a Homey diagnostic promptly after the capture, before another restart, then disable
+   debug. Disabling debug stops additional probes; toggling it on starts a new bounded session.
+   The initial generic 60-second raw capture remains available as well.
 
 Homey already supplies the app version. The logs do not claim that receipt time is measurement
 time: nibegw-esp returns cached values and requests refreshes in the background. A successful

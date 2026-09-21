@@ -122,7 +122,7 @@ test('F power sums required sources and falls back without double counting', () 
     const c: any = Object.create(PumpConnection.prototype);
     c.powerGroups = fProfile.role.powerSources.map((g) => g.map((n) => fProfile.registerByName[n]));
     c.notePowerGroup = () => {};
-    const raw = new Map([[at(43375).name, 1000], [at(43141).name, 1200], [at(43084).name, 150]]);
+    const raw = new Map([[at(43375).name, 100], [at(43141).name, 120], [at(43084).name, 150]]);
     assert.equal(c.totalWatts(raw), 2500);
     raw.delete(at(43375).name);
     assert.equal(c.totalWatts(raw), 2700);
@@ -257,4 +257,37 @@ test('EP14 counters are read and traced in the background without becoming alloc
     assert.equal(fProfile.role.producedRegisterForRole.heating, at(42439).name);
     assert.deepEqual(fProfile.role.powerSources, [[at(43375).name, at(43084).name],
         [at(43141).name, at(43084).name]]);
+});
+
+test('bounded diagnostic probes follow normal publication and never enter allocation or cached device values', async () => {
+    const c: any = Object.create(PumpConnection.prototype);
+    const events: string[] = [];
+    const probe = fProfile.diagnosticSweep!.energy.find((r) => r.address === 44306)!;
+    let jobs = 0;
+    const capture = {next: () => (++jobs <= 2 ? {register: probe} : undefined),
+        complete: () => events.push('diagnostic logged')};
+    Object.assign(c, {profile: fProfile, connected: true, polling: false, generation: 1, debugOn: true,
+        diagnosticCapture: capture, readDiagnostics: new Map(),
+        pollDeadlineMs: 1000, priorityRegister: at(43086), powerRegisters: [at(43375), at(43084)],
+        unsupportedUntil: new Map(), backgroundAttempted: new Map(), lastRaw: new Map(),
+        unionRegisters: () => [at(43086), at(43375), at(43084)],
+        readRegisterRaw: async (r: any, track = true) => {
+            if (r === probe) { assert.equal(track, false); events.push('probe'); }
+            return 1;
+        },
+        subscribers: [{wantedRegisters: () => [], onPollComplete: () => events.push('published')}],
+        applyEnergyLogPriorityOverride: () => {}, reportReadFailures: () => {}, reportEnergyLogSteps: () => {},
+        traceSnapshot: () => {}, allocateEnergy: (raw: Map<string, number>) => {
+            assert.equal(raw.has(probe.name), false); events.push('allocated');
+        }, log: assert.fail});
+    c.poll();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(events, ['allocated', 'published', 'probe', 'diagnostic logged', 'probe', 'diagnostic logged']);
+    assert.equal(c.lastRaw.has(probe.name), false);
+    assert.equal(jobs, 2);
+    c.debugOn = false;
+    events.length = 0;
+    c.poll();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(events, ['allocated', 'published']);
 });

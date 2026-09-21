@@ -4,7 +4,7 @@
 that touches attribution, the power sources, the role mapping or the COP accumulators — not on every build.
 The [README](../README.md) links here and carries the user-facing summary.
 
-Last reviewed against the code: **1.3.2 (F-series beta)**; hardware accuracy measurements below retain their original dates.
+Last reviewed against the code: **1.3.5 (F-series beta)**; hardware accuracy measurements below retain their original dates.
 
 ## Missing readings and reconnects (1.2.1)
 
@@ -233,3 +233,11 @@ See [F-series research and build limits](f-series.md). S-series source selection
 The F-series owner test build also logs raw/decoded energy snapshots once per minute for a
 bounded two-hour debug window. Control writes and room-thermostat rendering share the engine;
 neither changes the electrical source definitions above.
+
+### F-series 1.3.5 source-unit correction (2026-09-20)
+
+Both inverter compressor inputs, 43141 and 43375, now decode raw ×10 W (57 becomes 570 W),
+matching the corrected Python nibe definitions. Immersion 43084 is unchanged. Source order,
+priority allocation and COP calculations are unchanged. This corrects future accumulated
+energy; it does not rescale existing history. The two-hour diagnostic sweeps never feed
+additional reads into accounting. Production candidates remain diagnostic until validated.

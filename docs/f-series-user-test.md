@@ -267,3 +267,28 @@ to energy-allocation business logic is included.
 - Disappearing/reappearing devices and the return of deleted Solar remain unconfirmed causes.
   A normal startup does not create Homey devices. If repeated, obtain an immediate diagnostic
   and exact time; do not describe the invalid-Solar-value fix as a fix for this separate issue.
+
+## Updated 1.3.5 test handover (September 20)
+
+This replaces earlier 1.3.5 instructions; the tester's last supplied results are from 1.3.4.
+
+1. Update to 1.3.5 without uninstalling. Enable Main debug logging **before** restarting the app.
+2. Run Repair on Main to repeat feature detection. Keep the polling interval at 10 seconds.
+   Check that Solar is no longer offered without a supported solar accessory; report if it returns.
+3. Leave debug enabled for about two hours, ideally starting 10–15 minutes before a normal
+   hot-water cycle and including idle afterwards. Record cycle start/end times and a few
+   timestamped comparisons of power, temperatures and active function with the pump display.
+   Include heating if it occurs naturally; do not force heating or immersion.
+4. Send a Homey diagnostic immediately afterwards, before restarting again, then disable debug.
+   Share the report ID, cycle times and any freezes, reconnections or unexpected devices.
+5. A separate heating capture can follow later if no heating occurred. Toggle debug off/on to
+   begin a fresh bounded session. No LOG.SET edits or manual register queries are required yet.
+
+Two sweeps run gradually over the driver's known readable register set (not every possible
+F730 address), including unselected features and four additional production definitions. The
+energy capture compares all eight system/EP14, compressor-only/combined production counters.
+One capture may not finish the sweeps on a slow gateway; progress and the time limit are logged.
+
+Compressor raw 57 now means 570 W. The correction changes future energy accumulation only;
+existing history is not retroactively recalculated. Allocation remains an estimate covering
+compressor and immersion, not all pump electrical loads. COP is not yet validated.

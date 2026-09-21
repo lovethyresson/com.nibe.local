@@ -482,7 +482,7 @@ export const registers: Register[] = [
         "direction": Dir.Out,
         "group": "electrical",
         "noAction": true,
-        "scale": 1,
+        "scale": 0.1,
         "size": 16,
         "signed": false,
         "info": {
@@ -735,7 +735,7 @@ export const registers: Register[] = [
         "internal": true,
         "size": 16,
         "signed": true,
-        "scale": 1,
+        "scale": 0.1,
         "info": {
             "en": "Compressor electrical power averaged over 10 seconds; compare with 43141 before choosing the integration source.",
             "sv": "Kompressorns eleffekt som medelvärde över 10 sekunder; jämför med 43141 innan integrationskälla väljs."
