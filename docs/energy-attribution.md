@@ -4,7 +4,22 @@
 that touches attribution, the power sources, the role mapping or the COP accumulators — not on every build.
 The [README](../README.md) links here and carries the user-facing summary.
 
-Last reviewed against the code: **1.3.5 (F-series beta)**; hardware accuracy measurements below retain their original dates.
+Last reviewed against the code: **1.3.6 (F-series beta)**; hardware accuracy measurements below retain their original dates.
+
+## F-series production sources (1.3.6 test)
+
+Pairing/Repair uses the shared source picker: hot water 42437 or EP14 44298,
+heating 42439 or EP14 44300. These are documented combined compressor/immersion
+production counters. The canonical capability names remain stable; only their read
+addresses change. A source switch starts a fresh delta baseline, avoiding a jump
+between unrelated lifetime totals; relative display baselines are stored per source.
+Compressor-only counters are diagnostic evidence, not substitutes.
+EP14 describes one compressor module, not a sum across a multi-module installation;
+source scope and actual counter movement must be checked before treating COP as accurate.
+A positive counter supports a recommendation even if static during the short scan.
+Zero, unavailable or failed reads do not recommend production/COP. Manual selection is
+still allowed; zero can be legitimate on a new/reset meter. Readability alone does not
+validate thermal-meter hardware or accuracy. Allocation and COP arithmetic are unchanged.
 
 ## Missing readings and reconnects (1.2.1)
 

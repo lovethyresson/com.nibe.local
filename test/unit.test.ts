@@ -22,6 +22,7 @@ import {alarmAdvice, alarmDescription, alarmEntry} from '../lib/alarms';
 import alarmCodes from '../lib/alarm-codes.json';
 import {sProfile} from '../drivers/nibe_s/profile';
 import {registers} from '../drivers/nibe_s/registers';
+import {choosePumpCandidate} from '../lib/discovery';
 
 // ---------------------------------------------------------------------------------------
 // Decode helpers — the raw Modbus → value maths. These are the load-bearing bits the
@@ -1342,4 +1343,18 @@ test('out-of-sync diagnostics do not mistake transaction mismatch for confirmed 
     assert.match(result.summary, /request transaction=42 FC=3/);
     assert.match(result.summary, /response details not supplied/);
     assert.equal(result.code, undefined);
+});
+
+test('a moved pump is identified only when exactly one responder matches its model', () => {
+    const a = {address: '10.0.0.2', identity: 15};
+    const b = {address: '10.0.0.3', identity: 99};
+    const c = {address: '10.0.0.4'};
+    assert.equal(choosePumpCandidate([a, b, c], 15).pick, a, 'the one of the same model');
+    assert.equal(choosePumpCandidate([a, {...a, address: '10.0.0.5'}], 15).pick, undefined,
+        'two of the same model is a guess, not an answer');
+    assert.equal(choosePumpCandidate([c], 15).pick, undefined,
+        'a responder whose model code did not read is not assumed to match');
+    assert.equal(choosePumpCandidate([c], undefined).pick, c, 'model never read: the only pump there is');
+    assert.equal(choosePumpCandidate([a, c], undefined).pick, undefined);
+    assert.equal(choosePumpCandidate([], 15).pick, undefined);
 });

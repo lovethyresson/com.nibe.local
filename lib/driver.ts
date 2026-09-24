@@ -18,7 +18,7 @@ import {
     DetectionResult, PROBE_PASSES, Recommendations, RegisterSample, SourceChoices, probeHost
 } from './detection';
 import {Transport, destroyAllConnections, existingConnection} from './connection';
-import {DiscoveryOptions, discoverPumps} from './discovery';
+import {DiscoveryOptions, choosePumpCandidate, discoverPumps} from './discovery';
 import {CONSENT_SETTING, InstallProfile, analyticsConsent, reportInstallProfile, setAnalyticsConsent, track} from './analytics';
 import {DEFAULT_INLET_C, MAX_TANK_LITRES, MIN_TANK_LITRES, cleanTankChoice} from './hotwater';
 
@@ -963,15 +963,101 @@ export abstract class NibePumpDriver extends Driver {
     // Discovery transport/probe for this model: sweep the profile's default port, verify with
     // the profile's probe register (offset applied).
     private discoveryOptions(transport?: PairTransport): DiscoveryOptions {
+        return this.probeOptions(this.pairingTransport(transport));
+    }
+
+    private probeOptions(transport: Transport): DiscoveryOptions {
         const probe = this.profile.detection.discoveryProbe;
         return {
-            ...this.pairingTransport(transport),
-            probeAddress: probe.address - (this.pairingTransport(transport).addressBase ?? 0),
+            ...transport,
+            probeAddress: probe.address - (transport.addressBase ?? 0),
             direction: probe.direction,
             scale: probe.scale,
             min: probe.min,
             max: probe.max
         };
+    }
+
+    // The devices of one pump: everything of this driver paired at that address.
+    private pumpDevices(host: string): any[] {
+        return (this.getDevices() as any[]).filter((device) => device.getSettings?.().address === host);
+    }
+
+    // Every address any of this app's drivers has a device at — a pump the user paired under the
+    // other series still owns its address.
+    private pairedAddresses(): Set<string> {
+        const drivers = Object.values(this.homey.drivers.getDrivers()) as Driver[];
+        return new Set(drivers.flatMap((driver) =>
+            (driver.getDevices() as any[]).map((device) => String(device.getSettings?.().address))));
+    }
+
+    // Move every device of the pump at `from` to `to`, keeping their history, settings and
+    // Flows — the whole point over re-pairing. `initiator` is a device whose own settings are
+    // already being saved by Homey (a user edit in onSettings); it is reconnected but not
+    // written, since setSettings() from inside onSettings is overwritten by the save.
+    async movePump(from: string, to: string, initiator?: any, initiatorSettings?: any): Promise<void> {
+        const devices = this.pumpDevices(from);
+        if (initiator && !devices.includes(initiator))
+            devices.push(initiator);
+        if (this.pairedAddresses().has(to))
+            throw new Error(this.homey.__('connection.address_in_use', {host: to}));
+        this.log(`Moving ${devices.length} device(s) from ${from} to ${to}`);
+        for (const device of devices) {
+            if (device !== initiator)
+                await device.setSettings({address: to});
+            device.reconnectTo(to, from, device === initiator ? initiatorSettings : undefined);
+        }
+    }
+
+    // The subnet sweep behind relocatePump(), as a method so tests can stand in for the network.
+    private sweep(localAddress: string, exclude: Set<string>, options: DiscoveryOptions) {
+        return discoverPumps(localAddress, exclude, options);
+    }
+
+    // The pump at `from` has not answered a connect for minutes. Sweep the subnet the way pairing
+    // does, and if exactly one unpaired pump of the same model answers, it is this one under a new
+    // DHCP lease: move its devices there. Anything else changes nothing — see choosePumpCandidate.
+    // Returns the new address, or undefined.
+    private relocating = new Set<string>();
+
+    async relocatePump(from: string, transport: Transport): Promise<string | undefined> {
+        if (this.relocating.has(from))
+            return undefined;
+        this.relocating.add(from);
+        try {
+            const devices = this.pumpDevices(from);
+            const stored = Number(devices.map((d) => d.getSettings().heatpump_type).find((v) => v));
+            const modelCode = Number.isFinite(stored) && stored > 0 ? stored : undefined;
+            const typeAddress = this.profile.pumpInfo?.typeAddress;
+            const localAddress = await this.homey.cloud.getLocalAddress();
+            this.log(`Pump at ${from} unreachable — searching the network for it `
+                + `(model code ${modelCode ?? 'unknown'})`);
+            const found = await this.sweep(localAddress, this.pairedAddresses(), {
+                ...this.probeOptions(transport),
+                identityAddress: typeAddress === undefined ? undefined
+                    : typeAddress - (transport.addressBase ?? 0)
+            });
+            const {pick, matches} = choosePumpCandidate(found, modelCode);
+            const seen = found.map((p) => `${p.address}${p.identity === undefined ? '' : ` (model ${p.identity})`}`);
+            if (!pick) {
+                this.log(`Search for the pump at ${from}: ${matches.length === 0
+                    ? `no unpaired pump${modelCode === undefined ? '' : ' of the same model'} found`
+                    : `${matches.length} candidates, not moving`}`
+                    + (seen.length ? ` — responders: ${seen.join(', ')}` : ''));
+                return undefined;
+            }
+            // Re-check: a pairing or a manual edit may have claimed the address mid-sweep.
+            if (!this.pumpDevices(from).length || this.pairedAddresses().has(pick.address))
+                return undefined;
+            this.log(`Found the pump at ${pick.address} — it moved from ${from}`);
+            await this.movePump(from, pick.address);
+            await this.homey.notifications.createNotification({
+                excerpt: this.homey.__('connection.moved', {from, to: pick.address})
+            }).catch((error: any) => this.error('Could not post the moved-pump notice', error));
+            return pick.address;
+        } finally {
+            this.relocating.delete(from);
+        }
     }
 
     private validatePairTransport(data: any): PairTransport {

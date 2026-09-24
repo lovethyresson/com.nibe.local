@@ -56,3 +56,31 @@ test('all eight production candidates are diagnostic inputs without selecting ne
         assert.ok(fProfile.diagnosticSweep!.energy.some((r) => r.address === address && r.size === 32 && r.scale === 10));
     assert.equal(fProfile.role.producedRegisterForRole.hotwater, 'meter_kwh_NIBE.h42437_hotwater_produced');
 });
+
+test('retained capture keeps bounded first/last evidence, failures and decreases after the capture ends', () => {
+    const logs: string[] = [];
+    const retained: any[] = [];
+    const c = new DiagnosticCapture({registers: [r], energy: [r]}, (s) => logs.push(s), 0,
+        (summary) => retained.push(summary));
+    c.observe(r, sample(0, [57]), 0);
+    c.observe(r, sample(60_000, [], 'timeout'), 60_000);
+    c.observe(r, sample(120_000, [60]), 120_000);
+    c.observe(r, sample(180_000, [50]), 180_000);
+    c.report(300_000);
+    const entry = retained[0].registers[0];
+    assert.equal(entry.first.value, 570);
+    assert.equal(entry.last.value, 500);
+    assert.equal(entry.min, 500);
+    assert.equal(entry.max, 600);
+    assert.equal(entry.errors, 1);
+    assert.equal(entry.decreases, 1);
+    assert.equal(entry.lastError, 'timeout');
+    c.stop('debug disabled');
+    assert.equal(retained.at(-1).stopped, true);
+    assert.equal(c.snapshot().registers.length, 1);
+    c.report(Date.now() + 300_000);
+    assert.ok(logs.at(-1)!.includes('"first"'));
+    assert.equal(retained.at(-1).registers[0].last.at, sample(180_000).receivedAt);
+    retained[0].registers[0].first.value = 99;
+    assert.equal(c.snapshot().registers[0].first!.value, 570, 'retained snapshots are independent');
+});

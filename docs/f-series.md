@@ -325,3 +325,24 @@ labels should be reversed. The shared allocation formula and source selection ar
 
 Debug state uses the incoming setting during Homey callbacks, before saved settings update.
 This corrects the report's contradictory “disabled” followed by “capture started” sequence.
+
+
+## 1.3.6 detection and diagnostics
+
+Heating/hot-water production checks whole-system 42439/42437 and combined EP14
+44300/44298 using the same source selector as S-series. Positive static counters
+can be recommended; no complete production cycle is required during installation.
+Zero/unavailable production is unchecked, with manual override retained. EP14 is
+module-scoped; it is not a whole-system total on a multi-module installation.
+Compressor-only counters are not used as combined production substitutes.
+
+BT12 (40017) and BT16 (40020) are optional refrigerant diagnostic temperatures.
+Actual fan telemetry remains 43108. A zero-only discovery does not recommend it;
+normal fan setting 47265 is not substituted for measured speed.
+
+The two-hour capture retains bounded first/last raw and decoded readings, ranges,
+failure counts and decreases per register. It repeats a compact summary every five
+minutes while debugging (including after capture expires), emits it when debug is
+disabled, and saves it on Main. Restart with debug enabled logs the saved capture.
+Receipt timestamps do not prove fresh pump data. Disable debug and immediately send
+the diagnostic after a test cycle so the summary is near the end of Homey's log.

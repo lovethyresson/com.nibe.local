@@ -292,3 +292,22 @@ One capture may not finish the sweeps on a slow gateway; progress and the time l
 Compressor raw 57 now means 570 W. The correction changes future energy accumulation only;
 existing history is not retroactively recalculated. Allocation remains an estimate covering
 compressor and immersion, not all pump electrical loads. COP is not yet validated.
+
+
+## 1.3.6 follow-up test
+
+1. Update to test build 1.3.6, enable debug logging on Main **before restarting**, then restart.
+2. Run Repair on Heating and Hot Water to refresh production/COP recommendations and
+   save the selected source. Report which source is shown (whole system or EP14).
+   Zero/unavailable counters are unchecked; you can still enable them manually.
+   Run Repair on Main to check BT12 and BT16. Keep the existing address convention.
+3. Compare BT12/BT16 against the pump service menu. Actual fan speed may be unchecked
+   if it only returned zero; the app does not substitute the configured normal speed.
+4. Toggle debug off/on shortly before a natural heating or hot-water cycle to start a
+   fresh capture. Note local start/end times and the delivered-energy counter before
+   and after. Do not change heat-pump settings solely to create a test cycle.
+5. After the cycle, disable debug logging on Main, then **immediately** send a Homey
+   diagnostic. Include its reference, timestamps, chosen production source, and any
+   differences from the pump. The summary now survives the two-hour detailed capture.
+   Missing production should not prevent checking temperatures, controls and allocated
+   consumption. COP accuracy still needs a changing, correctly scoped production source.

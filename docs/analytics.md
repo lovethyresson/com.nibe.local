@@ -148,7 +148,7 @@ Flow it refers to. (They were briefly called `Fired Flow Trigger`, `Evaluated Fl
 | `Raised Alarm` | A new alarm appears (not one already standing at startup) | `code` | [`lib/device.ts:729`](../lib/device.ts) |
 | `Completed Detection` | A detection pass finishes **or fails**, in pairing or repair | `mode`, `found_nothing`, `registers_total`; `registers_responded`, `groups_recommended`² | [`lib/driver.ts:249`](../lib/driver.ts), failure path at `:276` |
 | `Changed Device Set` | A device is added, removed, or reconfigured via Repair | `action`, `role`; `groups_enabled`³ | [`lib/device.ts:1102`](../lib/device.ts), `:1108`, [`lib/driver.ts:1008`](../lib/driver.ts) |
-| `Lost Connection` | The socket drops unexpectedly | `cause` (`watchdog` / `socket_close`); `dead_polls`⁴ | [`lib/connection.ts:542`](../lib/connection.ts) |
+| `Lost Connection` | An established connection drops unexpectedly. Failed reconnect attempts during the same outage are not events (they were before 2026-09-24, one per retry) | `cause` (`watchdog` / `socket_close`); `dead_polls`⁴ | [`lib/connection.ts`](../lib/connection.ts) `onClose()` |
 
 ¹ `result` is present **only on success**. When the run listener throws, the event carries `ok: false`
 and no `result` — nothing was evaluated, so there is no boolean to report. Do not build a chart that

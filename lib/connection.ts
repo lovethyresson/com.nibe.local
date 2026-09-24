@@ -1,4 +1,4 @@
-import {DiagnosticCapture} from './diagnostic-capture';
+import {CaptureSummary, DiagnosticCapture} from './diagnostic-capture';
 import {ReadDiagnostic, formatReadDiagnostic} from './read-diagnostics';
 import {frequentRegisterNames, planPoll} from './poll-plan';
 import net from 'net';
@@ -31,6 +31,32 @@ export const POLL_SECONDS_DEFAULT = 10;
 export const DEAD_POLLS_BEFORE_RECONNECT = 2;
 export const POLL_DEADLINE_MS = 30_000;
 
+// How long a connect attempt may take before it is abandoned. Without one, a SYN that nothing
+// answers (the pump's old address now on another subnet, or held by a device that drops it) is
+// left to the kernel, which gives up after about two minutes — and nothing is logged meanwhile.
+export const CONNECT_TIMEOUT_MS = 10_000;
+// Wait before each reconnect attempt, by how many attempts in a row have failed. The first retry
+// after a drop is quick; a pump that stays away is tried once a minute rather than every 5 s.
+export const RETRY_DELAYS_MS = [5_000, 10_000, 20_000, 30_000, 60_000];
+// A pump that cannot be reached for this long is searched for on the subnet, in case the router
+// gave it a new address; see NibePumpDriver.relocatePump(). Repeated at most this often.
+export const SEARCH_AFTER_MS = 3 * 60_000;
+export const SEARCH_EVERY_MS = 30 * 60_000;
+// While the pump stays unreachable, one reminder line this often instead of one per attempt.
+const OUTAGE_LOG_EVERY_MS = 10 * 60_000;
+
+// Why the devices are unavailable, as far as this end can tell. Drives the message on the tile.
+//   connecting  — no answer yet, nothing has failed
+//   unreachable — connect failed or timed out: nothing answered at that address
+//   refused     — something is at that address, but its Modbus port is closed
+//   silent      — the connection was up but the pump stopped answering (watchdog)
+//   searching   — unreachable long enough that the subnet is being searched for the pump
+export type ConnectionProblem = 'connecting' | 'unreachable' | 'refused' | 'silent' | 'searching';
+
+export function classifyConnectError(error: any): ConnectionProblem {
+    return error?.code === 'ECONNREFUSED' ? 'refused' : 'unreachable';
+}
+
 export interface Transport {
     addressBase?: number;
     port: number;
@@ -54,10 +80,16 @@ export function inLanguage(text: LocalizedText | undefined, language: string): s
 // A device subscribing to a pump connection. Homey's Device already provides log/error.
 export interface PumpSubscriber {
     role: Role;
+    onDiagnosticSummary?(summary: CaptureSummary): void;
     wantedRegisters(): Register[];
     onRegisterRaw(register: Register, raw: number): void;
     onConnectionUp(): void;
-    onConnectionDown(): void;
+    // Called when the devices go down and again when the reason changes — not per failed attempt.
+    onConnectionDown(problem: ConnectionProblem): void;
+    // Look for the pump at another address and move its devices there if it is found. The
+    // connection calls this on one subscriber (main if paired) after a long run of failed
+    // connects; see SEARCH_AFTER_MS.
+    searchForPump?(): Promise<void>;
     onPollComplete?(readNames: Set<string>): void;
     // Poll interval this device asks for, in seconds. The main device's value wins; the rest
     // only matter when no main device is paired.
@@ -173,6 +205,25 @@ export class PumpConnection {
     private closeCause: {cause: string; dead_polls?: number} | null = null;
     // Consecutive polls where not one register answered. See the watchdog in poll().
     private deadPolls = 0;
+    // Whether the current socket ever connected, which tells a drop from a failed attempt.
+    private established = false;
+    // The error the current socket failed with; 'close' follows and acts on it.
+    private socketError: any = null;
+    // What subscribers were last told. null while up (or before anything was said).
+    private problem: ConnectionProblem | null = null;
+    // The current outage: when it started, how many connects have failed since, the last error
+    // logged (so a change of error is logged and a repeat is not) and when it was last logged.
+    private outageSince: number | null = null;
+    private failedAttempts = 0;
+    private outageError: string | undefined;
+    private outageLoggedAt = 0;
+    private searching = false;
+    private lastSearch = 0;
+    // Instance copies of the timing constants, so the integration tests can shorten them.
+    private connectTimeoutMs = CONNECT_TIMEOUT_MS;
+    private retryDelaysMs = RETRY_DELAYS_MS;
+    private searchAfterMs = SEARCH_AFTER_MS;
+    private searchEveryMs = SEARCH_EVERY_MS;
 
     // Every request to the pump — read or write — funnels through here, one at a time.
     // Confirmed live: a batch of ~17 read failures, all in one topical group, landed within a
@@ -356,11 +407,22 @@ export class PumpConnection {
         const socket = new net.Socket();
         this.socket = socket;
         this.client = new ModbusTCPClient(socket, this.transport.unitId, 5000);
-        socket.on('connect', () => { if (this.socket === socket) this.onConnect(); });
+        this.established = false;
+        this.socketError = null;
+        socket.setTimeout(this.connectTimeoutMs, () => {
+            if (this.socket !== socket || this.established) return;
+            socket.destroy(Object.assign(
+                new Error(`connect timed out after ${Math.round(this.connectTimeoutMs / 1000)} s`),
+                {code: 'ETIMEDOUT'}));
+        });
+        socket.on('connect', () => {
+            socket.setTimeout(0);
+            if (this.socket === socket) this.onConnect();
+        });
         socket.on('error', (error) => { if (this.socket === socket) this.onSocketError(error); });
         socket.on('close', () => { if (this.socket === socket) this.onClose(); });
         this.debug(`Connecting (port ${this.transport.port}, unit ${this.transport.unitId})`);
-        this.socket.connect({port: this.transport.port, host: this.host});
+        socket.connect({port: this.transport.port, host: this.host});
     }
 
     static get(host: string, profile: ModelProfile, transport: Transport): PumpConnection {
@@ -427,7 +489,10 @@ export class PumpConnection {
         if (turnedOn) {
             if (this.profile.diagnosticSweep)
                 this.diagnosticCapture = new DiagnosticCapture(this.profile.diagnosticSweep,
-                    (line) => this.log(line), Date.now());
+                    (line) => this.log(line), Date.now(), (summary) => {
+                        for (const subscriber of this.subscribers)
+                            subscriber.onDiagnosticSummary?.(summary);
+                    });
             this.traceUntil = Date.now() + 2 * 3600_000;
             this.lastEnergyTestAt = 0;
             this.captureUntil = Date.now() + 60_000;
@@ -545,7 +610,7 @@ export class PumpConnection {
         this.connected = false;
         this.invalidateWork();
         this.socket.destroy();
-        this.subscribers.forEach((subscriber) => subscriber.onConnectionDown());
+        this.notifyDown('connecting');
         this.openSocket();
     }
 
@@ -561,7 +626,7 @@ export class PumpConnection {
                     subscriber.onRegisterRaw(register, raw);
             }
         } else {
-            subscriber.onConnectionDown();
+            subscriber.onConnectionDown(this.problem ?? 'connecting');
         }
     }
 
@@ -613,7 +678,19 @@ export class PumpConnection {
 
     private onConnect() {
         this.debug('Connected');
+        if (this.outageSince !== null) {
+            // Un-gated, like the failure it closes: a report that shows the pump going away
+            // must also show whether and when it came back.
+            const seconds = Math.round((Date.now() - this.outageSince) / 1000);
+            this.log(`Reconnected after ${seconds} s`
+                + (this.failedAttempts ? ` and ${this.failedAttempts} failed attempt(s).` : '.'));
+        }
+        this.established = true;
         this.connected = true;
+        this.problem = null;
+        this.outageSince = null;
+        this.failedAttempts = 0;
+        this.outageError = undefined;
         this.lastPowerReading = null;
         this.lastPriority = undefined;
         // Drop the counter reference too: across a connection gap the pump kept consuming, and
@@ -630,31 +707,109 @@ export class PumpConnection {
         this.pollInterval = setInterval(() => this.poll(), this.pollSeconds * 1000);
     }
 
+    // Node always follows 'error' with 'close', and onClose() does the work — a failed connect
+    // attempt reports here and there, so acting in both marked every device down twice per try.
     private onSocketError(error: any) {
-        this.log('Socket error', error?.message ?? error);
+        this.socketError = error;
         this.connected = false;
-        this.subscribers.forEach((subscriber) => subscriber.onConnectionDown());
+    }
+
+    // Tell subscribers the devices are down, once per reason rather than once per attempt:
+    // every call re-runs setUnavailable() and the energy-gap bookkeeping on up to six devices.
+    private notifyDown(problem: ConnectionProblem) {
+        if (this.problem === problem)
+            return;
+        this.problem = problem;
+        this.subscribers.forEach((subscriber) => subscriber.onConnectionDown(problem));
     }
 
     private onClose() {
+        const wasEstablished = this.established;
+        const error = this.socketError;
+        this.established = false;
+        this.socketError = null;
         this.connected = false;
         this.invalidateWork();
         if (this.pollInterval) {
             clearInterval(this.pollInterval);
             this.pollInterval = null;
         }
-        this.subscribers.forEach((subscriber) => subscriber.onConnectionDown());
-        if (this.destroyed)
+        if (this.destroyed) {
+            this.notifyDown('connecting');
             return;
-        // Only unexpected closes are reported. A destroyed connection is the app shutting down or
-        // the last device detaching, which is not a pump losing its socket.
-        track('Lost Connection', this.closeCause ?? {cause: 'socket_close'});
-        this.closeCause = null;
-        this.debug('Socket closed, reconnecting in 5 seconds ...');
+        }
+        const detail = error?.message ?? 'closed by the pump';
+        const now = Date.now();
+        let problem: ConnectionProblem;
+        if (wasEstablished) {
+            // A live connection went away. Only these are reported: a destroyed connection is the
+            // app shutting down or the last device detaching, and a failed reconnect attempt is
+            // the same outage continuing, not a new loss.
+            track('Lost Connection', this.closeCause ?? {cause: 'socket_close'});
+            problem = this.closeCause ? 'silent' : classifyConnectError(error);
+            if (!this.closeCause)
+                this.log(`Connection lost: ${detail}. Reconnecting.`);
+            this.closeCause = null;
+            this.outageSince = now;
+            this.failedAttempts = 0;
+            this.outageError = undefined;
+        } else {
+            problem = classifyConnectError(error);
+            this.outageSince ??= now;
+            this.failedAttempts += 1;
+        }
+        const delay = this.retryDelaysMs[Math.min(this.failedAttempts, this.retryDelaysMs.length - 1)];
+        if (!wasEstablished) {
+            // First failure of an outage, or a different failure: say so. The same failure
+            // again: stay quiet, with one reminder every OUTAGE_LOG_EVERY_MS. One line per
+            // attempt is what filled a whole diagnostic report and pushed out everything
+            // before the outage — the part that would have explained it.
+            if (detail !== this.outageError) {
+                this.outageError = detail;
+                this.outageLoggedAt = now;
+                this.log(`Cannot connect: ${detail}. Retrying in ${delay / 1000} s.`);
+            } else if (now - this.outageLoggedAt >= OUTAGE_LOG_EVERY_MS) {
+                this.outageLoggedAt = now;
+                this.log(`Still cannot connect: ${detail} — ${this.failedAttempts} attempts since `
+                    + `${new Date(this.outageSince!).toISOString()}. Retrying every ${delay / 1000} s.`);
+            }
+        }
+        if (!this.searching)
+            this.notifyDown(problem);
+        if (!wasEstablished)
+            this.maybeSearch(now);
         this.retryTimer = setTimeout(() => {
+            this.retryTimer = null;
             if (!this.destroyed)
-                this.socket.connect({port: this.transport.port, host: this.host});
-        }, 5000);
+                this.openSocket();
+        }, delay);
+    }
+
+    // After a long enough run of failed connects, ask a device to look for the pump elsewhere on
+    // the subnet — a DHCP lease that moved it is the one cause of this that can fix itself.
+    // Only failed connects count: a pump that connects but stays silent is still at this address.
+    private maybeSearch(now: number) {
+        if (this.searching || this.outageSince === null
+            || now - this.outageSince < this.searchAfterMs || now - this.lastSearch < this.searchEveryMs)
+            return;
+        const subscribers = [...this.subscribers];
+        const searcher = subscribers.find((s) => s.role === 'main' && s.searchForPump)
+            ?? subscribers.find((s) => s.searchForPump);
+        if (!searcher)
+            return;
+        this.searching = true;
+        this.lastSearch = now;
+        const previous = this.problem;
+        this.notifyDown('searching');
+        searcher.searchForPump!()
+            .catch((error) => this.log('Searching for the pump failed:', error?.message ?? error))
+            .finally(() => {
+                this.searching = false;
+                // A pump that was found has had its devices moved off this connection, which
+                // destroyed it. Otherwise put back the reason the search replaced.
+                if (!this.destroyed && !this.connected && this.problem === 'searching')
+                    this.notifyDown(previous && previous !== 'searching' ? previous : 'unreachable');
+            });
     }
 
     // The registers to read this cycle: everyone's wanted registers, deduped by name, plus
@@ -871,7 +1026,7 @@ export class PumpConnection {
             this.closeCause = {cause: 'watchdog'};
             this.connected = false;
             this.invalidateWork();
-            this.subscribers.forEach((subscriber) => subscriber.onConnectionDown());
+            this.notifyDown('silent');
             this.socket.destroy();
         }, this.pollDeadlineMs);
         const critical = new Set([

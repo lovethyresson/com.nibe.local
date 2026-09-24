@@ -30,7 +30,7 @@ interface Pump {
 // `registerCount` bounds the served address space. Reading past it makes jsmodbus answer with
 // an empty value array — the closest this harness gets to a real pump's "no such register on
 // this model", which is what the read-failure reporting exists for.
-async function startPump(registerCount = 0x10000): Promise<Pump> {
+async function startPump(registerCount = 0x10000, listenPort = 0): Promise<Pump> {
     const input = Buffer.alloc(registerCount * 2);
     const holding = Buffer.alloc(registerCount * 2);
     const server = new net.Server();
@@ -42,7 +42,7 @@ async function startPump(registerCount = 0x10000): Promise<Pump> {
         sockets.add(socket);
         socket.on('close', () => sockets.delete(socket));
     });
-    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+    await new Promise<void>((resolve) => server.listen(listenPort, '127.0.0.1', () => resolve()));
     const port = (server.address() as net.AddressInfo).port;
     return {
         port, input, holding,
@@ -955,4 +955,126 @@ test('the F profile reads the same sensor through both gateway address modes', {
                 });
         }
     } finally { await pump.close(); }
+});
+
+// ---- Unreachable pumps: backoff, quiet logging, one down per reason, the search ----
+
+// Records why the devices were marked down, in order.
+class ProblemSub extends FakeSub {
+    problems: string[] = [];
+    searches = 0;
+    search: () => Promise<void> = async () => {};
+    onConnectionDown(problem?: string) { super.onConnectionDown(); this.problems.push(String(problem)); }
+    async searchForPump() { this.searches += 1; await this.search(); }
+}
+
+// A port nothing is listening on, so a connect is refused at once.
+async function closedPort(): Promise<number> {
+    const server = net.createServer();
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+    const port = (server.address() as net.AddressInfo).port;
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    return port;
+}
+
+async function captureLogs<T>(fn: (logs: string[]) => Promise<T>): Promise<T> {
+    const logs: string[] = [];
+    const realLog = console.log;
+    console.log = (...args: any[]) => { logs.push(args.join(' ')); };
+    try { return await fn(logs); } finally { console.log = realLog; }
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+test('a pump that is not there is retried with backoff, logged once and marked down once, then recovers',
+     {timeout: 15000}, async () => {
+    const port = await closedPort();
+    await captureLogs(async (logs) => {
+        const a = reg({address: 1, name: 'reg_a'});
+        const sub = new ProblemSub('main', [a]);
+        const connection = PumpConnection.get('127.0.0.1', tinyProfile([a]), {port, unitId: 1});
+        Object.assign(connection as any, {retryDelaysMs: [20, 40, 80], searchAfterMs: 60_000});
+        connection.attach(sub);
+        let pump: Pump | undefined;
+        try {
+            await sleep(700);
+            const failed = (connection as any).failedAttempts;
+            // 20 + 40 + 80 + 80 … — a fixed 20 ms would have tried ~30 times by now.
+            assert.ok(failed >= 4 && failed <= 12, `backoff should slow retries; ${failed} attempts`);
+            assert.deepEqual(sub.problems, ['connecting', 'refused'],
+                'down once, with the reason — not once per failed attempt');
+            assert.equal(logs.filter((l) => l.includes('Cannot connect: connect ECONNREFUSED')).length, 1,
+                `one line per outage, not per attempt: ${JSON.stringify(logs)}`);
+
+            pump = await startPump(16, port);
+            await sub.whenUp();
+            assert.ok(logs.some((l) => /Reconnected after \d+ s and \d+ failed attempt/.test(l)),
+                'the recovery is logged alongside the failure it closes');
+            assert.equal((connection as any).failedAttempts, 0);
+        } finally {
+            connection.shutdown();
+            await pump?.close();
+        }
+    });
+});
+
+test('a connect nothing answers is abandoned by the connect timeout', {timeout: 10000}, async (t) => {
+    // TEST-NET-1: routable, never answered. Without a route the kernel fails it at once instead.
+    await captureLogs(async (logs) => {
+        const a = reg({address: 1, name: 'reg_a'});
+        const sub = new ProblemSub('main', [a]);
+        const connection = PumpConnection.get('192.0.2.1', tinyProfile([a]), {port: 502, unitId: 1});
+        Object.assign(connection as any, {connectTimeoutMs: 200, retryDelaysMs: [60_000]});
+        // The first socket was opened by the constructor with the default timeout; start over.
+        (connection as any).openSocket();
+        connection.attach(sub);
+        try {
+            await sleep(800);
+            const line = logs.find((l) => l.includes('Cannot connect'));
+            if (line && !line.includes('timed out')) {
+                t.skip(`no route to TEST-NET-1 here: ${line}`);
+                return;
+            }
+            assert.ok(line?.includes('connect timed out'),
+                `expected the connect timeout to fire; got ${JSON.stringify(logs)}`);
+            assert.deepEqual(sub.problems, ['connecting', 'unreachable']);
+        } finally {
+            connection.shutdown();
+        }
+    });
+});
+
+test('a long outage asks main to search for the pump, once per window, and restores the reason after',
+     {timeout: 15000}, async () => {
+    const port = await closedPort();
+    await captureLogs(async (logs) => {
+        const a = reg({address: 1, name: 'reg_a'});
+        const main = new ProblemSub('main', [a]);
+        const heating = new ProblemSub('heating', [a]);
+        let release!: () => void;
+        main.search = () => new Promise<void>((resolve) => { release = resolve; });
+        const connection = PumpConnection.get('127.0.0.1', tinyProfile([a]), {port, unitId: 1});
+        Object.assign(connection as any, {retryDelaysMs: [20], searchAfterMs: 50, searchEveryMs: 60_000});
+        connection.attach(heating);
+        connection.attach(main);
+        try {
+            await sleep(300);
+            assert.equal(main.searches, 1, 'main searches once the outage is long enough');
+            assert.equal(heating.searches, 0, 'one search per pump, not per device');
+            assert.equal(main.problems[main.problems.length - 1], 'searching');
+            release();
+            await sleep(300);
+            assert.equal(main.searches, 1, 'not again inside the window');
+            assert.deepEqual(heating.problems, ['connecting', 'refused', 'searching', 'refused']);
+
+            // A search that fails is logged, never thrown into the retry loop.
+            main.search = async () => { throw new Error('sweep broke'); };
+            (connection as any).lastSearch = 0;
+            await sleep(200);
+            assert.ok(logs.some((l) => l.includes('Searching for the pump failed: sweep broke')));
+            assert.equal(connection.isConnected(), false);
+        } finally {
+            connection.shutdown();
+        }
+    });
 });

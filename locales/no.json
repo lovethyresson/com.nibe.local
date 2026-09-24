@@ -229,5 +229,14 @@
   "3 hours": "3 timer",
   "6 hours": "6 timer",
   "12 hours": "12 timer",
-  "One-time increase": "Engangsøkning"
+  "One-time increase": "Engangsøkning",
+  "connection": {
+    "connecting": "Kobler til varmepumpen…",
+    "unreachable": "Får ikke kontakt med varmepumpen på __host__. Sjekk at den er på nettverket og at IP-adressen ikke er endret.",
+    "refused": "Varmepumpen på __host__ avviste tilkoblingen. Sjekk at Modbus TCP er aktivert på pumpen.",
+    "silent": "Varmepumpen på __host__ sluttet å svare. Kobler til på nytt…",
+    "searching": "Får ikke kontakt med varmepumpen på __host__. Søker etter den på nettverket…",
+    "moved": "Nibe Live: varmepumpen har flyttet fra __from__ til __to__. Enhetene er oppdatert.",
+    "address_in_use": "En annen paret varmepumpe bruker allerede __host__."
+  }
 }

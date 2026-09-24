@@ -136,5 +136,14 @@
   "3 hours": "3 uur",
   "6 hours": "6 uur",
   "12 hours": "12 uur",
-  "One-time increase": "Eenmalige verhoging"
+  "One-time increase": "Eenmalige verhoging",
+  "connection": {
+    "connecting": "Verbinden met de warmtepomp…",
+    "unreachable": "Warmtepomp op __host__ niet bereikbaar. Controleer of hij op het netwerk zit en of het IP-adres niet is veranderd.",
+    "refused": "De warmtepomp op __host__ weigerde de verbinding. Controleer of Modbus TCP op de pomp is ingeschakeld.",
+    "silent": "De warmtepomp op __host__ reageert niet meer. Opnieuw verbinden…",
+    "searching": "Warmtepomp op __host__ niet bereikbaar. Het netwerk wordt doorzocht…",
+    "moved": "Nibe Live: je warmtepomp is verhuisd van __from__ naar __to__. De apparaten zijn bijgewerkt.",
+    "address_in_use": "Een andere gekoppelde warmtepomp gebruikt __host__ al."
+  }
 }

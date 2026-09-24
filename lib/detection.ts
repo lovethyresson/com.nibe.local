@@ -205,8 +205,10 @@ async function resolveSources(
         // register whose own address is dead reads as "no data" and the capability is dropped
         // during pairing, so the choice would never reach the user.
         const probe = probes[register.name];
-        if (probe && probe.reads === 0) {
+        if (probe && (probe.reads === 0 || !isPlausibleAlt(register, probe.last)
+            || live[0].address !== register.address)) {
             probe.reads = 1;
+            probe.moved = false;
             probe.last = live[0].value;
         }
         choices[register.name] = live;

@@ -4,6 +4,48 @@ Research dates: 2026-09-12, updated 2026-09-20. Scope: electricity consumption a
 requiring an external meter. This records implementation evidence and owner reports separately.
 No F-series hardware measurements were made for this research.
 
+## September 23: production depends on metering hardware and variant
+
+Production is not universally absent from F-series. NIBE's F1255 PC product page describes
+EMK 300 measuring delivered heat separately for heating/hot water, with/without addition:
+https://www.nibe.eu/nl-be/producten/warmtepompen/water-water-warmtepompen/f1255-pc
+The manufacturer EMK manual describes a water-flow meter using existing temperature sensors:
+https://professional.nibe.eu/document/Asennusohjeet/831222-3.pdf
+This is thermal metering, distinct from the external electricity meters excluded from our
+normal-support assumptions. Neither kind of accessory should be presumed installed.
+
+There is evidence for F730 production hardware too, but variant matters:
+
+- NIBE's German F730 brochure explicitly lists an integrated heat meter (printed page 13):
+  https://www.baulinks.de/bkd_file/nibe/NIBE_F730_S735_Abluft-WP_A4_24S_230714.pdf
+- NIBE Swedish installer manual 331666-4, printed page 58, labels the BF1 connection
+  **Only in F730 E**. This was verified visually in the diagram; text extraction omits it.
+  https://www.rskdatabasen.se/infodocs/MONT/MONT_30_6251305.pdf
+  This historical diagram establishes variant differences, not a universal rule for all later
+  F730 hardware or countries. Do not infer the tester's exact variant from his country alone.
+- A third-party-hosted copy of NIBE release notes records BF1 configuration regression in
+  9089R9, corrected in 9089R10 (2021-03-08), and UK built-in flow-meter support in 9089R15
+  (2022-10-31). Useful supporting evidence of firmware/variant differences, not a diagnosis
+  of this installation; the copy was not retrieved from a NIBE host:
+  https://es.scribd.com/document/622017635/F730-v9089R15-CHANGELOG
+
+The September 22 tester diagnostic (c687bc94-2f98-4db8-b759-39e8994f8a3e) contains BF1
+40072 = 0x8000 (unavailable), observed at 15:21:14 UTC. EP14 heating production 44300 stayed
+26660.4 kWh at 20:27:11 and 20:46:10 UTC; hot-water production stayed 352.5 kWh. No hot-water
+cycle occurred. Native counter labelled heating consumption 41850 rose 56771.4 -> 56773.0 kWh
+between 20:26:51 and 20:45:50 UTC. These observations do not validate relabelling consumption
+as production, and a nonzero static counter does not establish a usable production source.
+The retained stdout contains only 100 entries and no detailed two-hour capture/sweep lines.
+
+Conclusion: heat production exists for suitably equipped F-series, including some F730
+variants, but is unverified and plausibly unavailable on this tester's installation. Ask for
+one observation of the pump's own Service info heat-meter page during heating: is BF1 present
+and reporting flow, and do delivered heating kWh advance? Also record exact model variant and
+firmware. If the pump itself has no working heat-meter data, stop register hunting and leave
+production/COP unavailable. If its display advances while Modbus counters do not, investigate
+mapping/firmware/gateway exposure. No external meter purchase or invented flow/COP estimate is
+part of the proposed support. Consumption allocation remains independently useful.
+
 ## September 20 decision: continue a bounded inverter-model beta
 
 The compressor scaling uncertainty is now resolved strongly enough to correct register metadata.

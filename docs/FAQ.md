@@ -321,6 +321,21 @@ Modbus TCP has no announcement mechanism and Nibe pumps don't advertise themselv
 of your Homey's subnet for port 502. It only works when **Modbus TCP is enabled on the pump (menu 7.5.9)**
 and the Homey is on the same subnet. Otherwise enter the IP manually — that path always works.
 
+### My devices say "Can't reach the heat pump".
+
+Nothing answered at the pump's address. Usually either the router gave the pump a new IP address, or
+the pump dropped off the network (Wi-Fi is the usual suspect). The app retries on its own, less often as
+the outage goes on (up to once a minute). After three minutes it also searches your Homey's subnet for
+the pump. If it finds **exactly one** unpaired pump of the same model, it moves all of that pump's
+devices there and posts a notification. It won't guess between two candidates. If the address is a host
+name rather than a number, the app never replaces it.
+
+The durable fix is a **DHCP reservation** for the pump in your router. To change the address by hand,
+edit **IP address** on any one of the pump's devices; its other devices follow.
+
+"Refused the connection" is different: something is at that address, but Modbus TCP is off
+(menu 7.5.9 on S-series).
+
 ### A capability sits blank forever.
 
 Your model probably doesn't implement that register. Turn on **Debug logging** in the app's advanced

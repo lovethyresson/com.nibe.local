@@ -40,7 +40,7 @@ function device() {
         setCapabilityValue: async (name: string, value: any) => { caps.set(name, value); },
         getStoreValue: (name: string) => store.get(name),
         setStoreValue: async (name: string, value: any) => { store.set(name, value); },
-        setUnavailable: async () => {}, setSettings: async () => {},
+        setUnavailable: async () => {}, setSettings: async () => {}, getSettings: () => ({}),
         log: () => {}, error: () => {}, noteExternalChange: () => {},
         homey: {__: (key: string) => key, i18n: {getLanguage: () => 'en'}}
     });
@@ -147,7 +147,7 @@ test('disconnect excludes offline produced energy from function COP', () => {
     d.allocationLive = true;
     d.lastProducedSeen = 100;
     d.copProducedAccum = 7;
-    d.onConnectionDown();
+    d.onConnectionDown('unreachable');
     assert.equal(d.allocationLive, false);
     assert.equal(d.lastProducedSeen, null);
     d.onEnergy(0, 1000); // reconnect's baseline poll
@@ -507,4 +507,150 @@ test('selection cleaning carries the saved tank through unrelated feature change
     const repaired = driver.cleanSelection({...selection, groups: {...selection.groups, cooling: true}});
     assert.deepEqual(repaired.hotwater, hotwater);
     assert.equal(repaired.groups.cooling, true);
+});
+
+test('production source changes cannot add unrelated lifetime totals or consume stale replies', () => {
+    const {d, store} = device();
+    d.profile = fProfile;
+    d.role = 'heating';
+    d.setValue = async () => {};
+    const original = fProfile.registerByName[fProfile.role.producedRegisterForRole.heating!];
+    const alternate = {...original, address: 44300};
+    store.set('selection', {groups: {}, overrides: {}, addresses: {}});
+    d.allocationLive = true;
+    d.onRegisterRaw(original, 1000);
+    d.onRegisterRaw(original, 1010);
+    assert.equal(d.copProducedAccum, 1);
+    store.set('selection', {groups: {}, overrides: {}, addresses: {[original.name]: 44300}});
+    d.onRegisterRaw(alternate, 266604);
+    assert.equal(d.copProducedAccum, 1, 'lifetime source difference is not new production');
+    assert.equal(d.applyBaseline(alternate, 26660.4), 0);
+    d.onRegisterRaw(original, 1020);
+    assert.equal(d.lastProducedSeen, 26660.4, 'old in-flight reply cannot reset the new baseline');
+    d.onRegisterRaw(alternate, 266614);
+    assert.equal(d.copProducedAccum, 2);
+    store.set('selection', {groups: {}, overrides: {}, addresses: {}});
+    d.onRegisterRaw(original, 1030);
+    assert.equal(d.copProducedAccum, 2, 'returning to an earlier source also starts a new interval');
+    assert.equal(d.applyBaseline(original, 103), 3, 'existing canonical display baseline is preserved');
+});
+
+test('diagnostic retention is confined to Main and survives the Homey store boundary', async () => {
+    const {d, store} = device();
+    const snapshot = {startedAt: '2026-09-23T00:00:00Z', stopped: true,
+        completed: 2, expected: 2, registers: []};
+    d.onDiagnosticSummary(snapshot);
+    assert.equal(store.get('fDiagnosticSummary'), undefined);
+    d.role = 'main';
+    d.onDiagnosticSummary(snapshot);
+    assert.deepEqual(store.get('fDiagnosticSummary'), snapshot);
+});
+
+// ---- Moving a pump to another address ----
+
+// A pump's devices on the Homey side, with a driver that owns them and the app's driver list.
+function pumpAt(address: string, others: any[] = []) {
+    const driver = new DriverClass();
+    const devices: any[] = [];
+    const make = (role: string, at = address) => {
+        const {d, store} = device();
+        const settings: any = {address: at, heatpump_type: '15'};
+        d.role = role;
+        d.getSettings = () => settings;
+        d.setSettings = async (next: any) => { d.written.push(next); Object.assign(settings, next); };
+        d.written = [] as any[];
+        d.moves = [] as any[];
+        d.reconnectTo = (to: string, from: string, s?: any) => { d.moves.push({to, from, s}); };
+        d.driver = driver;
+        devices.push(d);
+        return {d, store, settings};
+    };
+    const notices: string[] = [];
+    Object.assign(driver, {
+        profile: sProfile, getDevices: () => [...devices, ...others], log: () => {}, error: () => {},
+        homey: {
+            __: (key: string, args?: any) => args ? `${key} ${JSON.stringify(args)}` : key,
+            drivers: {getDrivers: () => ({nibe_s: driver})},
+            cloud: {getLocalAddress: async () => '192.168.1.5:80'},
+            notifications: {createNotification: async ({excerpt}: any) => { notices.push(excerpt); }}
+        }
+    });
+    return {driver, make, notices};
+}
+
+test('changing one device\'s address moves the whole pump, never onto another pump\'s address', async () => {
+    const {make} = pumpAt('192.168.1.29');
+    const {d: main} = make('main');
+    const {d: heating, store: heatingStore} = make('heating');
+    const {d: other} = make('main', '192.168.1.60');
+
+    await main.onSettings({oldSettings: {address: '192.168.1.29'}, newSettings: {address: '192.168.1.40'},
+        changedKeys: ['address']});
+    assert.deepEqual(heating.written, [{address: '192.168.1.40'}], 'the sibling follows');
+    assert.deepEqual(main.written, [], 'Homey saves the edited device itself after onSettings');
+    assert.deepEqual(main.moves.map((m: any) => m.to), ['192.168.1.40']);
+    assert.equal(main.moves[0].s.address, '192.168.1.40', 'reconnects with the settings being saved');
+    assert.deepEqual(heating.moves.map((m: any) => [m.from, m.to]), [['192.168.1.29', '192.168.1.40']]);
+    assert.deepEqual(other.moves, [], 'another pump is left alone');
+
+    main.getSettings().address = '192.168.1.40';
+    main.moves = []; heating.moves = [];
+    await assert.rejects(main.onSettings({oldSettings: {address: '192.168.1.40'},
+        newSettings: {address: '192.168.1.60'}, changedKeys: ['address']}), /connection\.address_in_use/);
+    assert.deepEqual([...main.moves, ...heating.moves], [], 'a refused move touches nothing');
+
+    // The BT50 feed lives on Heating, but editing Main moves Heating too.
+    heatingStore.set('indoorSensors', {state: 'active'});
+    await assert.rejects(main.onSettings({oldSettings: {address: '192.168.1.40'},
+        newSettings: {address: '192.168.1.41'}, changedKeys: ['address']}), /Return to your NIBE sensor/);
+});
+
+test('a pump that moved is followed only when exactly one unpaired pump of its model answers', async () => {
+    const {driver, make, notices} = pumpAt('192.168.1.29');
+    const {d: main} = make('main');
+    const {d: heating} = make('heating');
+    const transport = {port: 502, unitId: 1};
+    let answer: any[] = [];
+    const sweeps: any[] = [];
+    driver.sweep = async (local: string, exclude: Set<string>, options: any) => {
+        sweeps.push({local, exclude: [...exclude], options});
+        return answer;
+    };
+
+    answer = [{address: '192.168.1.40', identity: 15}, {address: '192.168.1.41', identity: 15}];
+    assert.equal(await driver.relocatePump('192.168.1.29', transport), undefined);
+    assert.deepEqual(main.written, [], 'two candidates: nothing moves');
+    assert.ok(sweeps[0].exclude.includes('192.168.1.29'), 'paired addresses are never candidates');
+    assert.equal(sweeps[0].options.identityAddress, 1497, 'the model code is read from each responder');
+
+    answer = [{address: '192.168.1.40', identity: 15}, {address: '192.168.1.41', identity: 99}];
+    assert.equal(await driver.relocatePump('192.168.1.29', transport), '192.168.1.40');
+    for (const d of [main, heating]) {
+        assert.deepEqual(d.written, [{address: '192.168.1.40'}]);
+        assert.deepEqual(d.moves.map((m: any) => m.to), ['192.168.1.40']);
+    }
+    assert.equal(notices.length, 1);
+    assert.match(notices[0], /connection\.moved .*192\.168\.1\.29.*192\.168\.1\.40/);
+});
+
+test('a device follows its pump to a new address, BT50 ownership included', () => {
+    const {d} = device();
+    const settings: any = {address: '192.168.1.40'};
+    d.role = 'heating';
+    d.getSettings = () => settings;
+    const attached: string[] = [];
+    const fake = (host: string) => ({attach: () => attached.push(`attach ${host}`),
+        detach: () => attached.push(`detach ${host}`)});
+    d.connection = fake('192.168.1.29');
+    (DeviceClass as any).indoorOwners.set('192.168.1.29', d);
+    const realGet = PumpConnection.get;
+    (PumpConnection as any).get = (host: string) => fake(host);
+    try {
+        d.reconnectTo('192.168.1.40', '192.168.1.29');
+    } finally {
+        (PumpConnection as any).get = realGet;
+        (DeviceClass as any).indoorOwners.delete('192.168.1.40');
+    }
+    assert.deepEqual(attached, ['detach 192.168.1.29', 'attach 192.168.1.40']);
+    assert.equal((DeviceClass as any).indoorOwners.has('192.168.1.29'), false);
 });

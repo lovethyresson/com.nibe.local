@@ -280,7 +280,18 @@ two independent connections.
   If two consecutive polls read *nothing at all*, the connection logs un-gated, marks subscribers down and
   drops the socket to force a reconnect. Without it, a pump that stopped answering while holding the TCP
   connection open left devices looking online with frozen values, indefinitely and silently.
-- On `close`: devices marked unavailable, auto-reconnect after 5 s via `retryTimer`.
+- On `close`: devices marked unavailable **with a reason** (`ConnectionProblem`: connecting /
+  unreachable / refused / silent / searching → `connection.*` locale keys), told once per reason rather
+  than once per attempt. Every attempt gets a fresh socket via `openSocket()` with a 10 s connect
+  timeout; retries back off 5 → 10 → 20 → 30 → 60 s. An outage logs its first failure, any change of
+  error, a reminder every 10 min and the reconnect — never one line per attempt, which once filled a
+  whole diagnostic report.
+- **The pump's address can move.** After 3 min of failed connects the connection asks one device
+  (`searchForPump()`, main preferred) to have the driver sweep the subnet (`relocatePump()`, reusing
+  pairing discovery). It moves the pump only when exactly one unpaired responder matches the stored
+  model code (`heatpump_type`, register 1497), see `choosePumpCandidate()`; otherwise nothing changes.
+  Host names are never replaced. A user edit of `address` on any device moves every device of that pump
+  (`movePump()`), since a pump's devices are keyed by address.
 - `setValue()` writes the capability and fires the relevant trigger (`checkTrigger`) only when the value
   actually changed.
 - Writable capabilities get a `registerCapabilityListener` that writes to the Modbus register and re-triggers

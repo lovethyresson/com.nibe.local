@@ -19,6 +19,8 @@ const CLAMP_PREFIX = 24;
 export interface DiscoveredPump {
     address: string;
     outdoorTemperature?: number;
+    // The model code read from `identityAddress`, when one was asked for and answered.
+    identity?: number;
 }
 
 // The Modbus transport + probe register to verify a responder is a pump. `probeAddress`
@@ -31,6 +33,19 @@ export interface DiscoveryOptions {
     scale: number;
     min: number;
     max: number;
+    // An input register (PDU address) that identifies the model, read from every responder that
+    // passes the probe. Used when looking for a pump that moved, never during pairing.
+    identityAddress?: number;
+}
+
+// Which responder is the pump that went missing, if that can be told at all. Nothing on the wire
+// identifies one particular pump — there is no serial — so the model code is the only evidence,
+// and anything but exactly one match is ambiguous. Ambiguous means leave the devices alone:
+// moving them to the wrong pump is far worse than asking the user to type an address.
+export function choosePumpCandidate(found: DiscoveredPump[], modelCode?: number):
+    {pick?: DiscoveredPump; matches: DiscoveredPump[]} {
+    const matches = modelCode === undefined ? found : found.filter((pump) => pump.identity === modelCode);
+    return {pick: matches.length === 1 ? matches[0] : undefined, matches};
 }
 
 const CONNECT_TIMEOUT_MS = 750;
@@ -68,9 +83,15 @@ async function tryHost(host: string, options: DiscoveryOptions): Promise<Discove
                     const temperature = raw / options.scale;
                     // Anything with the Modbus port open that answers this read is Modbus,
                     // but only a sane outdoor temperature makes it a likely Nibe.
-                    finish(temperature > options.min && temperature < options.max
-                        ? {address: host, outdoorTemperature: temperature}
-                        : null);
+                    if (!(temperature > options.min && temperature < options.max))
+                        return finish(null);
+                    const pump: DiscoveredPump = {address: host, outdoorTemperature: temperature};
+                    if (options.identityAddress === undefined)
+                        return finish(pump);
+                    // A pump whose model code does not read stays a candidate, without one.
+                    client.readInputRegisters(options.identityAddress, 1)
+                        .then((id: any) => finish({...pump, identity: id.response.body.values[0]}))
+                        .catch(() => finish(pump));
                 })
                 .catch(() => finish(null));
         });

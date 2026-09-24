@@ -1,5 +1,7 @@
+import {CaptureSummary, logCaptureSummary} from './diagnostic-capture';
 import {IndoorConfig, averageSensors, cleanIndoorConfig, indoorInventory} from './indoor-sensors';
 import {Device} from 'homey';
+import net from 'net';
 import {analyticsConsent, setAnalyticsConsent, track} from './analytics';
 import {
     Dir, Register, Selection, encodeRegisterValue, toNumericValue, enumLabel, isPollable, isUnavailableRaw, migrateSelection,
@@ -18,7 +20,7 @@ import {
     dayNumber, learnedInletC, usableLitres
 } from './hotwater';
 import type {LocalizedText, ModelProfile} from './profile';
-import {PumpConnection, PumpSubscriber, POLL_SECONDS_DEFAULT, Transport,
+import {ConnectionProblem, PumpConnection, PumpSubscriber, POLL_SECONDS_DEFAULT, Transport,
     clampPollSeconds, inLanguage} from './connection';
 
 // One logical function of the physical pump (see roles.ts). All devices share a single
@@ -181,6 +183,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     // — pairing/repair, Flow actions, manual changes and alarms — so a log dump stays readable.
     // Turn on "Debug logging" (Advanced settings) for polling, connection and energy detail.
     private debugLoggingOverride?: boolean;
+
+    onDiagnosticSummary(summary: CaptureSummary) {
+        if (this.role !== 'main') return;
+        void this.setStoreValue('fDiagnosticSummary', summary).catch(this.error);
+    }
 
     debugEnabled(): boolean {
         return this.debugLoggingOverride ?? !!this.getSettings().debugLogging;
@@ -570,6 +577,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private copProducedAccum = 0;
     private persistedProducedAccum = 0;
     private lastProducedSeen: number | null = null;
+    private lastProducedAddress?: number;
     private allocationLive = false;
 
     // --- Hot water available, in litres -------------------------------------------------
@@ -745,7 +753,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     private applyBaseline(register: Register, value: number): number {
-        const key = `baseline.${register.name}`;
+        const canonical = this.profile.registerByName[register.name];
+        const suffix = canonical && register.address !== canonical.address ? '.' + register.address : '';
+        const key = `baseline.${register.name}${suffix}`;
         let baseline = this.getStoreValue(key);
         if (typeof baseline !== 'number') {
             baseline = value;
@@ -942,6 +952,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 + 'this device still receives its energy allocation', err);
         }
 
+        if (this.role === 'main' && this.profile.diagnosticSweep && this.debugEnabled()) {
+            const retained = this.getStoreValue('fDiagnosticSummary') as CaptureSummary | undefined;
+            if (retained?.registers) {
+                this.log('Retained F diagnostic capture from before restart:');
+                logCaptureSummary(retained, (line) => this.log(line));
+            }
+        }
         this.connection = PumpConnection.get(this.host(), this.profile, this.transport());
         this.connection.attach(this);
         if (this.role === 'heating') {
@@ -1018,6 +1035,15 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     onRegisterRaw(register: Register, raw: number) {
+        if (register.sources?.length) {
+            const canonical = this.profile.registerByName[register.name];
+            // A reply from before Repair may still be in flight.
+            if (canonical && register.address !== resolvedAddress(canonical, this.getSelection())) return;
+            if (register.name === this.profile.role.producedRegisterForRole[this.role]) {
+                if (this.lastProducedAddress !== register.address) this.lastProducedSeen = null;
+                this.lastProducedAddress = register.address;
+            }
+        }
         const rawValue = this.fromRegisterValue(register, raw);
 
         // The alarm register carries a bare fault code. Its capability is the *text*
@@ -1302,14 +1328,38 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         }
     }
 
-    onConnectionDown() {
+    onConnectionDown(problem: ConnectionProblem) {
         this.onEnergyUnavailable();
         this.tankTopC = null;
         this.tankLowerC = null;
         this.lastPublishedLitres = null;
         this.copProduced = null;
         this.copUsed = null;
-        this.setUnavailable().catch(this.error);
+        // Say why on the tile. A bare greyed-out device is what turned "the router gave the pump
+        // a new address" into a support mail.
+        this.setUnavailable(this.homey.__(`connection.${problem}`, {host: this.host()})).catch(this.error);
+    }
+
+    // The connection has failed to reach the pump for minutes. The driver sweeps the subnet and
+    // moves this pump's devices if it finds it elsewhere. A host name is the user's own answer
+    // to changing addresses, so it is never replaced with a number.
+    async searchForPump(): Promise<void> {
+        if (!net.isIP(this.host()))
+            return;
+        await (this.driver as any).relocatePump(this.host(), this.transport());
+    }
+
+    // Point this device at another address. Called for every device of the pump by
+    // NibePumpDriver.movePump(), after its `address` setting has been written (or, for the
+    // device the user is editing, with the settings Homey is about to save).
+    reconnectTo(host: string, from: string, settings?: {[key: string]: any}) {
+        if (NibePumpDevice.indoorOwners.get(from) === this) {
+            NibePumpDevice.indoorOwners.delete(from);
+            NibePumpDevice.indoorOwners.set(host, this);
+        }
+        this.connection?.detach(this);
+        this.connection = PumpConnection.get(host, this.profile, this.transport(settings));
+        this.connection.attach(this);
     }
 
     onPollComplete(readNames: Set<string>) {
@@ -1449,7 +1499,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.setSettings({analyticsConsent: consent}).catch(this.error);
     }
 
-    async onSettings({newSettings, changedKeys}: {
+    async onSettings({oldSettings, newSettings, changedKeys}: {
         oldSettings: {[key: string]: any}, newSettings: {[key: string]: any}, changedKeys: string[]
     }) {
         if (changedKeys.includes('cumulativeEnergy')) {
@@ -1501,12 +1551,26 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 this.dumpRegisters('debug logging enabled').catch(this.error);
         }
         if (changedKeys.includes('address')) {
-            if (this.getStoreValue('indoorSensors')?.state === 'active')
+            const from = String(oldSettings.address);
+            // Not trimmed: Homey saves the value as typed, and siblings must match it exactly.
+            const to = String(newSettings.address ?? '');
+            if (!to.trim())
+                throw new Error(this.homey.__('pair.valid_ip_address'));
+            // Pump-wide, because the whole pump moves: the BT50 feed is owned by Heating, but
+            // editing Main's address moves Heating too.
+            const feeding = (this.driver.getDevices() as any[]).some((device) =>
+                (device === this || device.getSettings?.().address === from)
+                && device.getStoreValue?.('indoorSensors')?.state === 'active');
+            if (feeding)
                 throw new Error('Return to your NIBE sensor in Repair before changing the pump address.');
-            this.log(`Address changed to ${newSettings.address}, reconnecting`);
-            this.connection?.detach(this);
-            this.connection = PumpConnection.get(newSettings.address, this.profile, this.transport(newSettings));
-            this.connection.attach(this);
+            // An address and port edited in one save: siblings take the port first, or they
+            // would reconnect at the new address with the old one.
+            for (const key of ['port', 'unitId', 'addressMode'])
+                if (changedKeys.includes(key)) await this.syncToSiblings(key, newSettings[key]);
+            this.log(`Address changed from ${from} to ${to}, moving the pump's devices`);
+            // One edit moves every device of the pump. Doing only this one left the pump's other
+            // devices on the old address, each needing the same edit by hand.
+            await (this.driver as any).movePump(from, to, this, newSettings);
         } else if (changedKeys.includes('port') || changedKeys.includes('unitId') || changedKeys.includes('addressMode')) {
             this.log(`Transport changed (port/unit), reconnecting`);
             const transport = this.transport(newSettings);

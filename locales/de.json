@@ -229,5 +229,14 @@
   "3 hours": "3 Stunden",
   "6 hours": "6 Stunden",
   "12 hours": "12 Stunden",
-  "One-time increase": "Einmalige Erhöhung"
+  "One-time increase": "Einmalige Erhöhung",
+  "connection": {
+    "connecting": "Verbindung zur Wärmepumpe wird hergestellt…",
+    "unreachable": "Wärmepumpe unter __host__ nicht erreichbar. Prüfen Sie, ob sie im Netzwerk ist und ob sich ihre IP-Adresse geändert hat.",
+    "refused": "Die Wärmepumpe unter __host__ hat die Verbindung abgelehnt. Prüfen Sie, ob Modbus TCP an der Pumpe aktiviert ist.",
+    "silent": "Die Wärmepumpe unter __host__ antwortet nicht mehr. Verbindung wird neu aufgebaut…",
+    "searching": "Wärmepumpe unter __host__ nicht erreichbar. Sie wird im Netzwerk gesucht…",
+    "moved": "Nibe Live: Ihre Wärmepumpe ist von __from__ nach __to__ umgezogen. Die Geräte wurden aktualisiert.",
+    "address_in_use": "Eine andere gekoppelte Wärmepumpe verwendet bereits __host__."
+  }
 }

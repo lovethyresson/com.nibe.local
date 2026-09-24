@@ -234,7 +234,7 @@ test('captured F730 unavailable solar value does not recommend Solar, real produ
     assert.equal(toNumericValue({...solar, unavailableRaw: undefined}, 0xffff8000), 429493452.8);
 });
 
-test('EP14 counters are read and traced in the background without becoming allocation or COP sources', async () => {
+test('EP14 diagnostic aliases stay internal; selected production sources retain canonical capability names', async () => {
     const c: any = Object.create(PumpConnection.prototype);
     Object.assign(c, {profile: fProfile, debugOn: false, subscribers: new Set(), powerRegisters: []});
     const union = c.unionRegisters();
@@ -290,4 +290,44 @@ test('bounded diagnostic probes follow normal publication and never enter alloca
     c.poll();
     await new Promise((resolve) => setImmediate(resolve));
     assert.deepEqual(events, ['allocated', 'published']);
+});
+
+test('F production discovery uses documented combined sources and keeps manual selection', async () => {
+    const {buildDetectionResult} = await import('../lib/detection');
+    const {registersForRole} = await import('../lib/roles');
+    const produced = at(42439);
+    const profile = {...fProfile, registers: [produced, at(43375), at(43084)],
+        detection: {...fProfile.detection, requestIntervalMs: 0}};
+    for (const alternate of [undefined, 0, 26660.4]) {
+        const values = new Map<number, number | undefined>([[42439, 0], [44300, alternate],
+            [43375, 1400], [43084, 0]]);
+        const result = await sampleRegisters(profile, async (r) => values.get(r.address), () => {}, undefined, 0);
+        const detected = buildDetectionResult(profile, result.probes, result.addresses, result.choices);
+        assert.equal(detected.samples[produced.name].read, !!alternate);
+        assert.equal(extraCapabilitySupport(profile, 'heating',
+            (name) => detected.samples[name])[FUNCTION_COP_CAPABILITY], !!alternate);
+        if (alternate) {
+            assert.equal(result.addresses[produced.name], 44300);
+            assert.equal(detected.samples[produced.name].value, alternate);
+        }
+        const selection = {groups: {heating: true, energy: true},
+            overrides: {[produced.name]: true, [FUNCTION_COP_CAPABILITY]: true},
+            addresses: result.addresses};
+        assert.ok(registersForRole(fProfile, 'heating', selection).some((r) =>
+            r.name === produced.name && r.address === (alternate ? 44300 : 42439)));
+        assert.ok(extraCapabilities(fProfile, 'heating', selection).includes(FUNCTION_COP_CAPABILITY));
+    }
+    assert.deepEqual(at(42437).sources?.map((s) => s.address), [42437, 44298]);
+    assert.deepEqual(produced.sources?.map((s) => s.address), [42439, 44300]);
+});
+
+test('F added temperatures decode signed tenths; zero fan is not recommended but still a valid reading', async () => {
+    const {buildDetectionResult} = await import('../lib/detection');
+    for (const address of [40017, 40020]) assert.equal(toNumericValue(at(address), 0xff9c), -10);
+    const fan = at(43108);
+    assert.equal(toNumericValue(fan, 0), 0);
+    assert.equal(buildDetectionResult({...fProfile, registers: [fan]}, {[fan.name]: {reads: 2, moved: false, last: 0}})
+        .samples[fan.name].read, false);
+    assert.equal(buildDetectionResult({...fProfile, registers: [fan]}, {[fan.name]: {reads: 2, moved: false, last: 85}})
+        .samples[fan.name].read, true);
 });

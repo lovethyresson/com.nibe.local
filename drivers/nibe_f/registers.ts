@@ -254,6 +254,7 @@ export const registers: Register[] = [
     },
     {
         "address": 43108,
+        "plausible": {"min": 1, "max": 100},
         "name": "measure_percentage_NIBE.h43108_fan",
         "direction": Dir.Out,
         "group": "ventilation",
@@ -334,6 +335,34 @@ export const registers: Register[] = [
         "info": {
             "en": "Compressor frequency",
             "sv": "Kompressorfrekvens"
+        }
+    },
+    {
+        "address": 40017,
+        "name": "measure_temperature.h40017_condenser_out",
+        "direction": Dir.Out,
+        "group": "diagnostics",
+        "noAction": true,
+        "scale": 10,
+        "size": 16,
+        "signed": true,
+        "info": {
+            "en": "Condenser out (BT12)",
+            "sv": "Kondensor ut (BT12)"
+        }
+    },
+    {
+        "address": 40020,
+        "name": "measure_temperature.h40020_evaporator",
+        "direction": Dir.Out,
+        "group": "diagnostics",
+        "noAction": true,
+        "scale": 10,
+        "size": 16,
+        "signed": true,
+        "info": {
+            "en": "Evaporator (BT16)",
+            "sv": "Förångare (BT16)"
         }
     },
     {
@@ -593,6 +622,12 @@ export const registers: Register[] = [
     },
     {
         "address": 42437,
+        "altPlausible": {"min": 0.1, "max": 429496729.4},
+        "sources": [
+            {"address": 42437, "label": {"en": "Whole system", "sv": "Hela systemet"}},
+            {"address": 44298, "label": {"en": "EP14 including immersion heater", "sv": "EP14 inklusive tillsats"}}
+        ],
+        "plausible": {"min": 0.1, "max": 429496729.4},
         "name": "meter_kwh_NIBE.h42437_hotwater_produced",
         "direction": Dir.Out,
         "group": "hotwater",
@@ -608,6 +643,12 @@ export const registers: Register[] = [
     },
     {
         "address": 42439,
+        "altPlausible": {"min": 0.1, "max": 429496729.4},
+        "sources": [
+            {"address": 42439, "label": {"en": "Whole system", "sv": "Hela systemet"}},
+            {"address": 44300, "label": {"en": "EP14 including immersion heater", "sv": "EP14 inklusive tillsats"}}
+        ],
+        "plausible": {"min": 0.1, "max": 429496729.4},
         "name": "meter_kwh_NIBE.h42439_heating_produced",
         "direction": Dir.Out,
         "group": "heating",
@@ -623,6 +664,7 @@ export const registers: Register[] = [
     },
     {
         "address": 42441,
+        "plausible": {"min": 0.1, "max": 429496729.4},
         "name": "meter_kwh_NIBE.h42441_cooling_produced",
         "direction": Dir.Out,
         "group": "cooling",
@@ -638,6 +680,7 @@ export const registers: Register[] = [
     },
     {
         "address": 42443,
+        "plausible": {"min": 0.1, "max": 429496729.4},
         "name": "meter_kwh_NIBE.h42443_pool_produced",
         "direction": Dir.Out,
         "group": "pool",

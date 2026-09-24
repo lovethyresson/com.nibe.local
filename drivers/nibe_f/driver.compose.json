@@ -262,6 +262,8 @@
     "measure_percentage_NIBE.h43439_source_pump",
     "measure_temperature.h43140_inverter",
     "measure_frequency.h43136_compressor",
+    "measure_temperature.h40017_condenser_out",
+    "measure_temperature.h40020_evaporator",
     "measure_temperature.h40018_discharge",
     "measure_temperature.h40019_liquid_line",
     "measure_temperature.h40022_suction_gas",
@@ -1046,6 +1048,24 @@
       "min": 5,
       "max": 30,
       "step": 0.1
+    },
+    "measure_temperature.h40017_condenser_out": {
+      "title": {
+        "en": "Condenser out (BT12)",
+        "sv": "Kondensor ut (BT12)"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
+    },
+    "measure_temperature.h40020_evaporator": {
+      "title": {
+        "en": "Evaporator (BT16)",
+        "sv": "Förångare (BT16)"
+      },
+      "setable": false,
+      "getable": true,
+      "decimals": 1
     }
   }
 }

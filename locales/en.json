@@ -229,5 +229,14 @@
   "3 hours": "3 hours",
   "6 hours": "6 hours",
   "12 hours": "12 hours",
-  "One-time increase": "One-time increase"
+  "One-time increase": "One-time increase",
+  "connection": {
+    "connecting": "Connecting to the heat pump…",
+    "unreachable": "Can't reach the heat pump at __host__. Check that it's on the network and that its IP address hasn't changed.",
+    "refused": "The heat pump at __host__ refused the connection. Check that Modbus TCP is enabled on the pump.",
+    "silent": "The heat pump at __host__ stopped answering. Reconnecting…",
+    "searching": "Can't reach the heat pump at __host__. Searching the network for it…",
+    "moved": "Nibe Live: your heat pump moved from __from__ to __to__. Its devices have been updated.",
+    "address_in_use": "Another paired heat pump already uses __host__."
+  }
 }

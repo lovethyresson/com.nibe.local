@@ -138,3 +138,29 @@ compressor scaling, production availability and scope still require real-pump va
 F-series handover checklist: [owner tests](../docs/f-series-user-test.md).
 
 - [x] Incorporate F730 gateway follow-up: LOG.SET fast baseline, one slow background parameter per poll, two detection passes, observation-only debug dumps, delayed simulator mode. Hardware cache freshness remains to verify.
+
+## Connection stability and IP changes (2026-09-24)
+
+Triggered by diagnostic 70825e9c ("Tappar ofta kommunikation"): 4 min of `EHOSTUNREACH` every 8 s
+to 192.168.1.29 — the pump was not on the LAN at that address (DHCP move or Wi-Fi drop).
+
+- [x] 7. One reconnect path: every attempt goes through `openSocket()` (fresh socket + client).
+- [x] 4. Connect timeout (10 s) on the live socket; a silently dropped SYN no longer takes ~2 min.
+- [x] 5. Backoff 5 → 10 → 30 → 60 s; log the first failure and any change of error, then one
+      summary every 10 min; log the reconnect with attempts + duration.
+- [x] 6. Fan out `onConnectionDown` only on up→down (or when the problem kind changes), not per attempt.
+- [x] 3. `setUnavailable(message)` explaining why (unreachable / refused / silent / searching), 6 languages.
+- [x] 2. Address change in settings moves every device of the pump; refuse an address another pump uses;
+      indoor-feed guard becomes pump-wide.
+- [x] 1. Auto-relocation: after 3 min of connect failures, sweep the subnet (existing discovery);
+      exclude every paired address; keep candidates whose model code (1497) matches the stored
+      `heatpump_type` when known; move the pump only if exactly one remains. Rescan every 30 min
+      while still down. Logged un-gated either way.
+- [x] Tests: backoff/timeout/dedup (integration), relocation choice (unit), pump-wide move (device harness).
+- [x] Docs: FAQ entry, releases row, CLAUDE.md connection section.
+
+**Review.** All seven items done; `Lost Connection` now fires only on real drops (it fired on every
+failed retry). Tests added for backoff/quiet logging/single down, the connect timeout, the search
+trigger and window, candidate choice, the pump-wide settings move, relocation and BT50 ownership.
+Shipped as part of 1.3.6, combined with the F-series work: one changelog entry, one releases row. Not verified against a real pump changing address; the sweep is the pairing
+discovery code, which is.

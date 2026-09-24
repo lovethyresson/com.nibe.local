@@ -1,4 +1,8 @@
 {
+  "1.3.6": {
+    "en": "Features: Follows a moved heat pump. If your router gives the pump a new IP address, the app finds it and updates all its devices; changing the IP on one device now updates the rest. Tweaks: Devices say why they are offline, and reconnects are calmer. F-series (test): BT12/BT16 temperatures and better production and COP recommendations — run Repair to update them.",
+    "sv": "Funktioner: Hittar en flyttad värmepump. Om routern ger pumpen en ny IP-adress hittar appen den och uppdaterar alla dess enheter; ändrar du IP-adressen på en enhet följer de andra med. Justeringar: Enheterna visar varför de är offline, och återanslutningen är lugnare. F-serien (test): temperaturerna BT12/BT16 och bättre rekommendationer för produktion och COP — kör Reparera för att uppdatera dem."
+  },
   "1.3.5": {
     "en": "Test release only. Corrects F-series compressor power readings, switches and mode selectors, and false Solar detection. Improves debug logging with a two-hour energy capture and bounded register checks to investigate heat production. Run Repair to repeat detection. Energy allocation remains experimental; COP still needs hardware verification.",
     "sv": "Endast testversion. Rättar kompressoreffekt, strömbrytare och lägesväljare för F-serien samt felaktig soldetektering. Förbättrar debugloggningen med två timmars energiinsamling och avgränsade registerkontroller för att undersöka värmeproduktionen. Kör Reparera för att upprepa detekteringen. Energifördelningen är fortsatt experimentell; COP behöver verifieras på hårdvara."
