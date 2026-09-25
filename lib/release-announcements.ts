@@ -79,10 +79,12 @@ export async function deliverAnnouncement(
 
 export function announcementDevices(devices: Record<string, any>, appId: string): Device[] {
     const owner = `homey:app:${appId}`;
+    // driverId is the full `homey:app:<app>:<driver>` on current Homey. Never touch driverUri:
+    // homey-api keeps it only as a getter that returns undefined and logs a deprecation warning
+    // per call — one per device on the whole Homey, which buried every startup log.
     return Object.values(devices).flatMap(device => {
         const fullId = String(device.driverId ?? '');
-        const driverId = fullId.startsWith(`${owner}:`) ? fullId.slice(owner.length + 1)
-            : device.driverUri === owner ? fullId : null;
+        const driverId = fullId.startsWith(`${owner}:`) ? fullId.slice(owner.length + 1) : null;
         return driverId ? [{driverId, role: device.data?.role ?? 'main'}] : [];
     });
 }

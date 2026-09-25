@@ -330,11 +330,18 @@ test('retiring a connection rejects queued writes and ignores an old in-flight r
 
 test('only explicit unsupported-register errors put background reads on cooldown', async () => {
     const connection: any = Object.create(PumpConnection.prototype);
+    const selected = register('selected');
     Object.assign(connection, {generation: 1, profile: {}, transport: {},
         readDiagnostics: new Map(), captureCounts: new Map(), unsupportedUntil: new Map(),
+        subscribers: new Set([{wantedRegisters: () => [selected]}]),
         noteRead: () => {}, withWireAccess: async () => { throw {body: {code: 2}}; }});
+    // Never confirmed on this pump (a reason input, an internal register): absent until reconnect.
     await connection.readRegisterRaw(register('missing'));
-    assert.ok(connection.unsupportedUntil.get('missing') > Date.now());
+    assert.equal(connection.unsupportedUntil.get('missing'), Infinity);
+    // A selected capability answered at detection, so it is retried: a setting may have blocked it.
+    await connection.readRegisterRaw(selected);
+    const retry = connection.unsupportedUntil.get('selected');
+    assert.ok(retry > Date.now() && retry <= Date.now() + 5 * 60_000);
     connection.withWireAccess = async () => { throw {body: {code: 4}}; };
     await connection.readRegisterRaw(register('warming'));
     assert.equal(connection.unsupportedUntil.has('warming'), false);
@@ -344,6 +351,30 @@ test('only explicit unsupported-register errors put background reads on cooldown
     connection.withWireAccess = async () => { throw {body: {code: 2}}; };
     await connection.readRegisterRaw(register('probe'), false);
     assert.equal(connection.unsupportedUntil.has('probe'), false);
+});
+
+// A priority change used to re-ask every reason input, including the ones the pump had just
+// answered exception 1 for (pool and cooling on a pump without them), so each change added a
+// fresh batch of "Illegal function" lines. An input on cooldown reads as missing instead.
+test('a priority-change explanation does not re-read inputs on cooldown', async () => {
+    const connection: any = Object.create(PumpConnection.prototype);
+    const seen: Record<string, number | undefined> = {};
+    Object.assign(connection, {
+        unsupportedUntil: new Map([['__reason.pool', Date.now() + 60_000]]),
+        reasonState: {},
+        profile: {role: {priorityToRole: {}}, reason: {explain: ({v}: any) => {
+            seen.pool = v('pool');
+            seen.dm = v('dm');
+            return undefined;
+        }}},
+        reasonRegisters: [['pool', register('__reason.pool')], ['dm', register('__reason.dm')]]
+    });
+    const asked: string[] = [];
+    connection.readRegisterRaw = async (r: any) => { asked.push(r.name); return 5; };
+    await connection.explainPriorityChange(10, 30, 'heating');
+    assert.deepEqual(asked, ['__reason.dm']);
+    assert.equal(seen.pool, undefined);
+    assert.equal(seen.dm, 5);
 });
 
 function indoorDevice() {
@@ -486,13 +517,21 @@ test('debug toggles use new settings immediately across the pump while Homey sti
         assert.equal(other.debugEnabled(), true);
         settings.debugLogging = on;
     };
+    // The dump reports what a poll read and makes no reads itself, so it waits for the next poll.
+    const poll = () => d.onPollComplete(new Set());
     await toggle(true);
+    assert.equal(dumps, 0);
+    poll();
     assert.equal(dumps, 1);
+    poll();
+    assert.equal(dumps, 1, 'once per enable, not per poll');
     assert.equal(logs.filter((s) => s.startsWith('Read capture started')).length, 1);
     await toggle(false);
+    poll();
     assert.equal(dumps, 1);
     assert.equal(logs.filter((s) => s.startsWith('Read capture started')).length, 1);
     await toggle(true);
+    poll();
     assert.equal(dumps, 2);
     assert.equal(logs.filter((s) => s.startsWith('Read capture started')).length, 2);
     const {d: restarted} = device(); restarted.getSettings = () => settings;
