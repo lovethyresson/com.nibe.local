@@ -730,7 +730,7 @@ test('an unresponsive pump is reconnected without blaming individual registers',
 
 // 60 s, not 30: this test genuinely takes ~28 s of wall clock, which left a 7% margin on a
 // suite node runs file-concurrently by default. It failed on a loaded machine, not on a bug.
-test('internal registers are polled even though no subscriber wants them, and steps are logged',
+test('internal registers are polled even though no subscriber wants them, and Main gets the standby share',
      {timeout: 60000}, async () => {
     // Internal registers have no capability, so they never appear in wantedRegisters() — but the
     // energy log lives here and has to be read. This test is the reason the poll loop gained an
@@ -764,6 +764,8 @@ test('internal registers are polled even though no subscriber wants them, and st
         // The subscriber asks for `visible` only — the internal register must still be read.
         const sub = new FakeSub('main', [visible]);
         sub.debug = true;
+        const mainHours: number[] = [];
+        (sub as any).onEnergyLogHour = (used?: number) => { if (used !== undefined) mainHours.push(used); };
         const connection = PumpConnection.get('127.0.0.1', profile, {port: pump.port, unitId: 1});
         connection.attach(sub);
         try {
@@ -774,44 +776,20 @@ test('internal registers are polled even though no subscriber wants them, and st
             assert.ok(!sub.raws.some((r) => r.name === 'log_used'),
                 'but it must never be dispatched to a device as a capability value');
 
-            // The value standing at startup describes an hour nobody watched, so it is a
-            // baseline, not a step.
-            assert.ok(!logs.some((l) => l.includes('the pump\'s own figures')),
-                'the first reading is a baseline and must not be reported as a step');
-
-            // The first step aligns the counters on a real :00 boundary and is not reported:
-            // the app connected part-way through that hour, so the pump's figure and the
-            // counter delta would cover different spans.
-            seed(pump.input, 702, 50, 32);
+            // Main's standby share: the counter's movement less what the functions booked, one
+            // step back because the counter lags the log by about an hour. The baseline and the
+            // first (part-hour) step only anchor; nothing is handed out for them.
+            seed(pump.input, 702, 50, 32);       // first step: aligns the counter on :00
             await new Promise((r) => setTimeout(r, 7000));
-            assert.ok(logs.some((l) => l.includes('stepped for the first time')),
-                'the first step must align the counters rather than be reported');
-            assert.ok(!logs.some((l) => l.includes('the pump\'s own figures')),
-                'and must not produce a comparison line');
-
-            // Now a full hour, with both sides covering the same span.
-            seed(pump.input, 702, 13, 32);       // 0.13 kWh for the next completed hour
+            seed(pump.input, 702, 13, 32);       // a full hour: functions booked 0.13 kWh
             await new Promise((r) => setTimeout(r, 7000));
-            const steps = logs.filter((l) => l.includes('the pump\'s own figures'));
-            assert.equal(steps.length, 1, 'exactly one line per step');
-            assert.ok(steps[0].includes('hot water used=0.13'),
-                `expected the stepped value, got: ${steps[0]}`);
-            // The counters lag the log by about an hour, so the reconciliation compares one
-            // step back. With only one reported hour so far there is nothing to reconcile yet.
-            assert.ok(!logs.some((l) => l.includes('Energy log reconciliation')),
-                'nothing to reconcile against until a second hour lands');
-
-            // A second hour: now the first hour's split can be checked against the counter
-            // movement measured over it.
+            assert.equal(mainHours.length, 0, 'no standby share until a previous hour exists');
             seed(pump.input, 702, 7, 32);
-            seed(pump.input, 704, 1013, 32);     // counters advance by 1.3 kWh
+            seed(pump.input, 704, 1013, 32);     // the counter moved 1.3 kWh over that hour
             await new Promise((r) => setTimeout(r, 7000));
-            const recon = logs.filter((l) => l.includes('Energy log reconciliation'));
-            assert.equal(recon.length, 1, 'one reconciliation line once a previous hour exists');
-            assert.ok(recon[0].includes('split used 0.13'),
-                `expected the previous hour's split, got: ${recon[0]}`);
-            assert.ok(recon[0].includes('one step back'),
-                'the line must say why it compares one step back');
+            assert.equal(mainHours.length, 1);
+            assert.ok(Math.abs(mainHours[0] - 1.17) < 1e-9,
+                `standby is 1.3 − 0.13 = 1.17 kWh, got ${mainHours[0]}`);
         } finally {
             connection.shutdown();
         }

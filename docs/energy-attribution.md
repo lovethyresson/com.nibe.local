@@ -4,7 +4,7 @@
 that touches attribution, the power sources, the role mapping or the COP accumulators — not on every build.
 The [README](../README.md) links here and carries the user-facing summary.
 
-Last reviewed against the code: **1.3.6 (F-series beta)**; hardware accuracy measurements below retain their original dates.
+Last reviewed against the code: **1.3.7**; hardware accuracy measurements below retain their original dates. 1.3.7 removed the attribution debug logging (within-hour trace, shadow power source, shadow monitor, hourly energy-log and reconciliation lines, 3804 changes); the measurements below were taken with it. Attribution itself is unchanged.
 
 ## F-series production sources (1.3.6 test)
 

@@ -310,10 +310,6 @@ export class PumpConnection {
     // change (not just idle<->active flips) with its mapped role and the live draw —
     // used to discover which raw code a producing pump actually reports per function.
     private lastLoggedPriority: number | undefined = undefined;
-    // Diagnostic: same, for the undocumented 3804 register (see registers.ts) — tracked
-    // independently so a 3804 transition logs even on a poll where 1028 doesn't move, which
-    // is exactly the case under investigation (1028 stuck at 10 while the pump is heating).
-    private lastLoggedEnergyLogPriority: number | undefined = undefined;
     // Throttle (per role) for the "function device missing, charging to Main" warning, so
     // a persistent misattribution re-surfaces periodically without spamming every poll.
     private lastMissingRoleWarn = new Map<Role, number>();
@@ -353,32 +349,9 @@ export class PumpConnection {
     // Which group answered last, so a change of source is logged rather than silently swapped.
     private activePowerGroup: number | undefined = undefined;
     private readonly priorityRegister?: Register;
-    // The pump's own cumulative consumption counter (S: register 3823), when the model has
-    // one. Only present on models that expose it — F derives consumption from power registers
-    // and has no such counter, so it keeps pure trapezoidal integration with no reconciliation.
-    private readonly consumptionRegister?: Register;
-    // The undocumented 3804 register (see registers.ts) — diagnostic only, absent on some
-    // models (registerByName returns undefined), same graceful-degradation as the above.
+    // The undocumented 3804 register (see registers.ts), absent on some models (registerByName
+    // returns undefined). Used to correct an idle 1028 — see applyEnergyLogPriorityOverride().
     private readonly energyLogPriorityRegister?: Register;
-
-    // ---- Reconciliation shadow monitor (diagnostic only; does not touch the live meters) ----
-    // The live meters accumulate the trapezoidal integral. Alongside that we track what two
-    // candidate strategies WOULD have accumulated, so their drift against the pump's own
-    // counter can be compared from the logs before either is adopted:
-    //   trapezoid — today's behaviour: integrate instantaneous power over real elapsed time.
-    //   A (counter) — allocate the pump counter's own delta each poll (exact by construction,
-    //                 but a coarse staircase since the counter steps in 0.1 kWh).
-    //   B (feed-forward) — integrate, but steer the running error back toward the counter with
-    //                 a clamped correction so the meter stays smooth AND tracks the counter.
-    private shadowTrapezoid = 0;   // Σ integrated kWh since the monitor started
-    private shadowCounterA = 0;    // Σ pump-counter deltas over the same span
-    private shadowB = 0;           // Σ feed-forward-corrected kWh
-    private shadowErrorB = 0;      // running (ours − pump) error driving B's correction
-    private lastConsumptionRaw: number | undefined = undefined;
-    private shadowStarted = 0;     // timestamp of the first reconciled poll
-    private lastShadowLog = 0;
-    private static readonly SHADOW_LOG_MS = 30 * 60 * 1000; // summarise every 30 min
-    private static readonly SHADOW_B_GAIN = 0.2;            // k: fraction of error corrected per poll
 
     private constructor(private host: string, private profile: ModelProfile, private transport: Transport) {
         this.pollDeadlineMs = profile.pollDeadlineMs ?? POLL_DEADLINE_MS;
@@ -395,9 +368,6 @@ export class PumpConnection {
         this.powerRegisters = [...this.powerGroups, ...this.displayGroups].flat();
         this.priorityRegister = profile.role.priorityRegisterName
             ? profile.registerByName[profile.role.priorityRegisterName]
-            : undefined;
-        this.consumptionRegister = profile.role.totalConsumptionRegister
-            ? profile.registerByName[profile.role.totalConsumptionRegister]
             : undefined;
         this.energyLogPriorityRegister =
             profile.registerByName['measure_priority_NIBE.i3804_energylog_priority'];
@@ -694,10 +664,6 @@ export class PumpConnection {
         this.outageError = undefined;
         this.lastPowerReading = null;
         this.lastPriority = undefined;
-        // Drop the counter reference too: across a connection gap the pump kept consuming, and
-        // that whole offline delta would otherwise land on the first poll after reconnect and
-        // skew the comparison (the trapezoid side deliberately counts nothing for the gap).
-        this.lastConsumptionRaw = undefined;
         this.lastPollTime = Date.now();
         this.polling = false;
         this.deadPolls = 0;
@@ -828,10 +794,10 @@ export class PumpConnection {
             byName.set(register.name, register);
         if (this.priorityRegister)
             byName.set(this.priorityRegister.name, this.priorityRegister);
-        // The reconciliation monitors need the pump's own totals every poll, even when no device
-        // selected those capabilities — consumption for the shadow monitor, and both for the
-        // energy-log reconciliation. Relying on Main happening to carry them as capabilities
-        // would make the comparison vanish the moment a user unticked one during pairing.
+        // The hourly energy log needs the pump's own totals every poll, even when no device
+        // selected those capabilities: Main's standby share is the consumption counter's movement
+        // less what the functions booked. Relying on Main happening to carry them as capabilities
+        // would lose that share the moment a user unticked one during pairing.
         for (const name of [this.profile.role.totalConsumptionRegister,
                             this.profile.role.totalProductionRegister]) {
             const register = name ? this.profile.registerByName[name] : undefined;
@@ -937,10 +903,15 @@ export class PumpConnection {
                 if (track) {
                     this.noteRead(register, false);
                     const code = describeModbusError(error).code;
-                    // Only explicit unsupported-address/function errors get a cooldown.
-                    // Timeouts remain eligible on every poll, so transient loss can recover.
+                    // Only explicit unsupported-address/function errors, never timeouts, so a
+                    // transient loss recovers on the next poll. A capability someone selected
+                    // answered at detection, so its exception usually means a pump setting blocked
+                    // it (Allow hot water off blocks 56/697): retry in 5 minutes so it comes back
+                    // with the setting. Anything else — reason inputs, internal registers — was
+                    // never confirmed on this pump: absent until the next connection.
                     if (code === 1 || code === 2)
-                        this.unsupportedUntil.set(register.name, Date.now() + 5 * 60_000);
+                        this.unsupportedUntil.set(register.name, this.isSelectedCapability(register.name)
+                            ? Date.now() + 5 * 60_000 : Infinity);
                 }
                 return undefined;
             });
@@ -1153,23 +1124,17 @@ export class PumpConnection {
     // we did not watch, so it is recorded as the baseline and not reported as a step.
     private lastEnergyLog = new Map<string, number>();
     private energyLogStarted = false;
-    // UTC hour of the last report, so an hour whose figures happen to repeat still closes.
+    // UTC hour of the last step, so an hour whose figures happen to repeat still closes.
     private lastReportedHour: number | null = null;
     private firstStepSeen = false;
-    // The pump's lifetime counters as they stood at the previous hourly step, so each logged
-    // hour can carry its own total alongside the per-function split. Without this the split is
-    // unverifiable from the log alone — you would need a second source to know what it should
-    // add up to, which is exactly the round trip this logging exists to avoid.
-    private totalsAtLastStep: {produced?: number; used?: number} = {};
-    // The previous step's per-function totals, held back so they can be reconciled against the
-    // counter movement measured at the NEXT step — the counters lag the log by about an hour.
-    private pendingSplit: {hour: string; used: number; produced: number} | undefined;
+    // The pump's consumption counter as it stood at the previous hourly step.
+    private usedAtLastStep: number | undefined;
+    // What the functions booked at the previous step, held back because the counter lags the log
+    // by about an hour: Main's standby share is next step's counter movement less this.
+    private pendingUsed: number | undefined;
 
-    // The pump publishes its own per-function energy for each completed hour. Report each step
-    // once, as one line covering the whole hour, so a support log shows what the pump itself
-    // booked next to what the allocator estimated. Observation only for now — nothing depends
-    // on these values yet, which is the point: they have never been seen on an S320-class pump,
-    // and `cooling=NO` governs this very block.
+    // The pump publishes its own per-function energy for each completed hour. Hand each function
+    // its hour, and Main whatever the counter moved beyond them.
     private reportEnergyLogSteps(rawByName: Map<string, number>) {
         const entries = this.profile.energyLog;
         if (!entries?.length)
@@ -1184,9 +1149,7 @@ export class PumpConnection {
         // The next report then compares two hours of ours against one of theirs.
         //
         // Found by halderex on an S735 (issue #4), where three of nine hours were skipped. Our
-        // own S1155 log has the same gaps: 16:00, then 19:00, then 21:00. It corrupts only the
-        // diagnostics — the meters never read these figures — but the diagnostics are what the
-        // 2166-vs-2305 decision rests on, so it matters now.
+        // own S1155 log has the same gaps: 16:00, then 19:00, then 21:00.
         //
         // So: clock rollover is the safety net, held a minute past the hour to let the pump
         // publish before we look.
@@ -1195,7 +1158,7 @@ export class PumpConnection {
         const rolled = this.lastReportedHour !== null
             && nowHour !== this.lastReportedHour
             && now.getUTCMinutes() >= 1;
-        const stepped: string[] = [];
+        let stepped = false;
         const values = new Map<string, number>();
         for (const entry of entries) {
             const register = this.profile.registerByName[entry.name];
@@ -1207,7 +1170,7 @@ export class PumpConnection {
             this.lastEnergyLog.set(entry.name, value);
             values.set(entry.label, value);
             if (previous !== undefined && value !== previous && this.energyLogStarted)
-                stepped.push(`${entry.label}=${value}`);
+                stepped = true;
         }
         // Sum the per-function figures by side. Anything the additional heater used is
         // electricity, so it belongs on the used side.
@@ -1215,66 +1178,36 @@ export class PumpConnection {
             [...values.entries()].filter(([label]) => pick(label))
                 .reduce((acc, [, v]) => acc + v, 0);
 
-        // The pump's own lifetime counters, read the same poll.
-        const totalNow = (name?: string) => {
-            const register = name ? this.profile.registerByName[name] : undefined;
-            const raw = register ? rawByName.get(register.name) : undefined;
-            return raw === undefined || isUnavailableRaw(raw, register!.size, register!.unavailableRaw)
-                ? undefined : signedValue(raw, register!.size) / (register!.scale || 1);
-        };
-        const produced = totalNow(this.profile.role.totalProductionRegister);
-        const used = totalNow(this.profile.role.totalConsumptionRegister);
+        // The pump's own consumption counter, read the same poll.
+        const counter = this.profile.role.totalConsumptionRegister
+            ? this.profile.registerByName[this.profile.role.totalConsumptionRegister] : undefined;
+        const counterRaw = counter ? rawByName.get(counter.name) : undefined;
+        const used = counterRaw === undefined || isUnavailableRaw(counterRaw, counter!.size, counter!.unavailableRaw)
+            ? undefined : signedValue(counterRaw, counter!.size) / (counter!.scale || 1);
 
         if (!this.energyLogStarted) {
             this.energyLogStarted = true;
             this.lastReportedHour = nowHour;
-            this.totalsAtLastStep = {produced, used};
-            this.debug(`Energy log baseline recorded for ${this.lastEnergyLog.size} register(s) `
-                + `— steps will be reported from the next completed hour.`);
+            this.usedAtLastStep = used;
             return;
         }
-        if ((stepped.length || rolled) && !this.firstStepSeen) {
-            // The first step after startup is not comparable. The pump's figure covers the whole
-            // hour it reports, but the lifetime counters were only sampled from whenever the app
-            // connected — part-way through it. Reporting the two side by side would show the
-            // split exceeding the total for reasons that have nothing to do with the pump. Use
-            // this step to anchor the counters on a true :00 boundary instead; every line from
-            // here on has both sides covering exactly the same hour.
+        if ((stepped || rolled) && !this.firstStepSeen) {
+            // The first step after startup covers an hour the app only saw part of, so it only
+            // anchors the counter on a true :00 boundary.
             this.firstStepSeen = true;
             this.lastReportedHour = nowHour;
-            this.totalsAtLastStep = {produced, used};
-            this.debug('Energy log stepped for the first time — the app connected part-way '
-                + 'through that hour, so it is used to align the counters rather than reported. '
-                + 'Full hours follow.');
+            this.usedAtLastStep = used;
             return;
         }
-        if (stepped.length || rolled) {
+        if (stepped || rolled) {
             this.lastReportedHour = nowHour;
-            const hour = `${now.toISOString().slice(11, 13)}:00`;
-            this.debug(`Energy log — the pump's own figures for the hour ending ${hour} UTC: `
-                + `${stepped.length ? stepped.join(', ') : 'unchanged from last hour'} kWh`);
-
-            // The lifetime counters lag the log by about an hour: measured on a live S1155, the
-            // log booked 1.44 kWh of hot water at 11:00 while 3823 had not moved at all, and
-            // 3823 then gained 1.40 over the following hour. So the counter movement measured
-            // now reconciles the split reported at the PREVIOUS step, not this one. Comparing
-            // them same-hour reads 1.44 against 0.00 and looks catastrophic; comparing them one
-            // step apart reads 1.44 against 1.40, which is the counter's 0.1 kWh quantisation.
-            const dUsed = used !== undefined && this.totalsAtLastStep.used !== undefined
-                ? used - this.totalsAtLastStep.used : undefined;
-            const dProduced = produced !== undefined && this.totalsAtLastStep.produced !== undefined
-                ? produced - this.totalsAtLastStep.produced : undefined;
-            const pending = this.pendingSplit;
-            if (pending && dUsed !== undefined && dProduced !== undefined) {
-                const err = (split: number, counter: number) =>
-                    counter === 0 ? (split === 0 ? 'exact' : 'counter still at 0')
-                        : `${(((split - counter) / counter) * 100).toFixed(1)}%`;
-                this.debug(`Energy log reconciliation — the ${pending.hour} hour: `
-                    + `split used ${pending.used.toFixed(2)} vs counter ${dUsed.toFixed(2)} `
-                    + `(${err(pending.used, dUsed)}), produced ${pending.produced.toFixed(2)} vs `
-                    + `${dProduced.toFixed(2)} (${err(pending.produced, dProduced)}). `
-                    + `Compared one step back because the lifetime counters lag the log.`);
-            }
+            // The counter lags the log by about an hour: measured on a live S1155, the log booked
+            // 1.44 kWh of hot water at 11:00 while 3823 had not moved at all, and 3823 then gained
+            // 1.40 over the following hour. So the movement measured now belongs with the split
+            // booked at the PREVIOUS step.
+            const dUsed = used !== undefined && this.usedAtLastStep !== undefined
+                ? used - this.usedAtLastStep : undefined;
+            const pending = this.pendingUsed;
             // Hand each function its own hour. The log is prompt at :00 — it is the lifetime
             // counters that lag — so these need no shifting and can drive the meters directly.
             const perRole = new Map<Role, {used?: number; produced?: number}>();
@@ -1295,136 +1228,13 @@ export class PumpConnection {
             }
             // Main's share is what the pump attributed to no function at all — real standby,
             // and the reason idle stays broken out. Uses the counter delta, which lags, so it
-            // describes the previous hour; that is what `pendingSplit` is holding.
+            // describes the previous hour; that is what `pendingUsed` is holding.
             const main = [...this.subscribers].find((s) => s.role === 'main');
-            if (main && pending && dUsed !== undefined)
-                main.onEnergyLogHour?.(Math.max(0, dUsed - pending.used), undefined);
+            if (main && pending !== undefined && dUsed !== undefined)
+                main.onEnergyLogHour?.(Math.max(0, dUsed - pending), undefined);
 
-            this.reportShadowSource(perRole);
-            this.hourAllocation.clear();
-            this.shadowHourAllocation.clear();
-            this.pendingSplit = {
-                hour,
-                used: sumOf((label) => label.includes('used') || label.startsWith('add.heat')),
-                produced: sumOf((label) => label.includes('produced'))
-            };
-            this.totalsAtLastStep = {produced, used};
-        }
-    }
-
-    // ---- Within-hour attribution trace (diagnostic only) ---------------------------------
-    // The hourly comparison against the pump's own books gives the SIZE of any attribution
-    // error. It cannot give the mechanism, and the candidates need opposite fixes: excess
-    // accrued during the compressor cycle points at the allocator charging overheads (pumps,
-    // fans, electronics) to whichever function is prioritised, while excess accrued during idle
-    // points at standby being charged to a function instead of Main, and excess at transitions
-    // points at lag. A single endpoint per hour cannot tell those apart.
-    //
-    // So trace where the hour's energy accrues — but only while the pump is actually drawing,
-    // which is where the question lives and which keeps an idle night near-silent.
-    private static readonly TRACE_INTERVAL_MS = 5 * 60 * 1000;
-    private static readonly TRACE_MIN_WATTS = 100;
-    private hourAllocation = new Map<Role, number>();
-    private lastTraceAt = 0;
-
-    private traceAllocation(role: Role, delta: number, watts: number) {
-        if (delta > 0)
-            this.hourAllocation.set(role, (this.hourAllocation.get(role) ?? 0) + delta);
-        const now = Date.now();
-        if (watts < PumpConnection.TRACE_MIN_WATTS
-            || now - this.lastTraceAt < PumpConnection.TRACE_INTERVAL_MS)
-            return;
-        this.lastTraceAt = now;
-        const split = [...this.hourAllocation.entries()]
-            .filter(([, kwh]) => kwh > 0.001)
-            .map(([r, kwh]) => `${r} ${kwh.toFixed(3)}`).join(', ') || 'nothing yet';
-        this.debug(`Attribution so far this hour: ${split} kWh — drawing ${watts} W right now, `
-            + `charged to ${role}.`);
-    }
-
-    // ---- Shadow power source (diagnostic) ----
-    //
-    // Only meaningful on a pump that carries more than one power source, which is exactly the
-    // situation that lets us answer a question we otherwise cannot: how much does the *choice*
-    // of power register skew the per-function split?
-    //
-    // 2166 is instantaneous; 2305 is the energy log's averaged reading, and models with no 2166
-    // (S320/S325, S330/S332, S2125) run on it. Measured side by side on a live S1155 over one
-    // hot-water cycle, 2305's integral came to 0.1293 kWh against 2166's 0.1311 — 1.4% — so a
-    // pump's TOTAL is right either way. But averaging lags the compressor ramp (920 W against
-    // 2166's 1621 W) and overruns on the way down, and the allocator charges every poll to
-    // whichever function the priority register named at that instant. After a switch, an
-    // averaged signal is still carrying the *previous* function's power. Total preserved, split
-    // skewed — and a single-function run cannot show it, which is why the July comparison
-    // (integrals over one uninterrupted cycle) did not answer this.
-    //
-    // So: run the fallback source through the same trapezoid and the same role, accumulate per
-    // hour, and print it beside the real one against the pump's own books. The live meters never
-    // see this. Debug-gated at the reporting end; the arithmetic is a few adds per poll.
-    private shadowHourAllocation = new Map<Role, number>();
-    private lastShadowWatts: number | null = null;
-
-    private trackShadowSource(role: Role | null, rawByName: Map<string, number>,
-                              deltaTimeHours: number) {
-        // Nothing to shadow unless a fallback exists AND the preferred source is the one
-        // actually in use — on a pump that only has 2305, group 1 *is* the real source and
-        // shadowing it would just restate the live figure.
-        if (this.powerGroups.length < 2 || this.activePowerGroup !== 0)
-            return;
-        const watts = this.groupWatts(1, rawByName);
-        if (watts === null) {
-            // Same rule as the real integrator: a gap must not be integrated across.
-            this.lastShadowWatts = null;
-            return;
-        }
-        if (this.lastShadowWatts !== null && role) {
-            const delta = ((this.lastShadowWatts + watts) / 2) * deltaTimeHours / 1000;
-            if (delta > 0)
-                this.shadowHourAllocation.set(role, (this.shadowHourAllocation.get(role) ?? 0) + delta);
-        }
-        this.lastShadowWatts = watts;
-    }
-
-    // One line per function at each :00, comparing both power sources against the figure the
-    // pump booked itself. `perRole` carries the pump's own hourly split.
-    private reportShadowSource(perRole: Map<Role, {used?: number; produced?: number}>) {
-        if (this.powerGroups.length < 2 || this.activePowerGroup !== 0
-            || this.shadowHourAllocation.size === 0)
-            return;
-        const label = (group: number) =>
-            this.powerGroups[group].map((r) => r.address).join('+');
-        const off = (ours: number, pump: number) =>
-            pump === 0 ? 'pump booked nothing' : `${(((ours - pump) / pump) * 100).toFixed(1)}%`;
-        // Every role either source credited, not just the ones the pump's log names — Main is
-        // the one that matters and the log has no line for it. halderex measured 2166 reading
-        // 10 W against 2305's 50 W while idle on an S735, because 2166 does not see the
-        // continuously-running exhaust-air fan (issue #4). Whether our pump shows the same gap
-        // is not answerable without printing standby, and it decides whether that finding is a
-        // property of 2166 or of exhaust-air models.
-        const roles = new Set<Role>([...perRole.keys(),
-            ...this.hourAllocation.keys(), ...this.shadowHourAllocation.keys()]);
-        for (const role of roles) {
-            const pump = perRole.get(role)?.used;
-            const real = this.hourAllocation.get(role) ?? 0;
-            const shadow = this.shadowHourAllocation.get(role) ?? 0;
-            if (pump === undefined) {
-                if (real < 0.001 && shadow < 0.001)
-                    continue;
-                // No line in the pump's log to score against — which is not the same as the
-                // energy being unattributed. An exhaust-air pump books its idle draw under
-                // *heating*, so read this against the heating row rather than alone.
-                this.debug(`Power-source comparison — ${role} last hour: `
-                    + `${label(0)} ${real.toFixed(3)}, ${label(1)} ${shadow.toFixed(3)} kWh. `
-                    + `The pump's log has no line for this role — compare with heating before `
-                    + `calling it unattributed.`);
-                continue;
-            }
-            if (pump === 0 && real < 0.01 && shadow < 0.01)
-                continue;
-            this.debug(`Power-source comparison — ${role} last hour: pump ${pump.toFixed(3)}, `
-                + `${label(0)} ${real.toFixed(3)} (${off(real, pump)}), `
-                + `${label(1)} ${shadow.toFixed(3)} (${off(shadow, pump)}) kWh. `
-                + `What the split would look like on a model that has only ${label(1)}.`);
+            this.pendingUsed = sumOf((label) => label.includes('used') || label.startsWith('add.heat'));
+            this.usedAtLastStep = used;
         }
     }
 
@@ -1627,7 +1437,6 @@ export class PumpConnection {
         this.notePowerAvailability(watts !== null);
         if (watts === null) {
             this.lastPowerReading = null;
-            this.lastShadowWatts = null;
             // Tell the energy subscribers their series has a gap here, rather than leaving them
             // to assume the last reading still holds.
             for (const subscriber of this.energySubscribers())
@@ -1648,14 +1457,6 @@ export class PumpConnection {
                 else this.logUnknownPriority(rawPriority);
             }
 
-            // Diagnostic: 3804's own raw value, independent of any correction already folded
-            // into rawPriority above — always the true, un-corrected reading (the override
-            // never touches this register's own rawByName entry), so it stays honest even
-            // while a correction is active.
-            const rawEnergyLogPriority = this.energyLogPriorityRegister
-                ? rawByName.get(this.energyLogPriorityRegister.name)
-                : undefined;
-
             // Diagnostic: dump every priority change with the code, where it's charged, and
             // the live draw. When rawPriority differs from what 1028 itself actually read
             // (lastRaw, set before the override ran), the line says so — a correction should
@@ -1670,13 +1471,6 @@ export class PumpConnection {
                     `Priority change: raw=${rawPriority} -> role=${role}`
                     + `${mapped ? '' : ' (UNMAPPED)'} draw=${watts}W`
                     + `${corrected ? ` (1028 itself still reads ${trueRaw}; corrected via 3804)` : ''}`);
-            }
-            if (this.energyLogPriorityRegister
-                && rawEnergyLogPriority !== this.lastLoggedEnergyLogPriority) {
-                const from = this.lastLoggedEnergyLogPriority;
-                this.lastLoggedEnergyLogPriority = rawEnergyLogPriority;
-                this.debug(`3804 change: raw=${rawEnergyLogPriority} (was ${from ?? '?'}) `
-                    + `— 1028 currently raw=${rawPriority} role=${role} draw=${watts}W`);
             }
 
             // Resolve to an attached device, falling back to Main (which always exists when
@@ -1705,69 +1499,13 @@ export class PumpConnection {
                 else
                     subscriber.onEnergy?.(0, 0);
             }
-            if (activeRole)
-                this.traceAllocation(activeRole, delta, watts);
-            this.trackShadowSource(activeRole, rawByName, deltaTimeHours);
-
             if (!target && delta > 0)
                 this.debug(`No device for role ${role} (or Main fallback); dropping ${delta.toFixed(5)} kWh`);
-
-            this.trackReconciliation(delta, rawByName);
 
             this.lastPowerReading = watts;
         }
 
         this.lastPollTime = now;
-    }
-
-    // Diagnostic shadow monitor for the two reconciliation candidates. Runs only on models that
-    // expose their own consumption counter (S register 3823) — F derives consumption from power
-    // registers and has no counter to reconcile against, so it stays on pure trapezoid and this
-    // is a no-op there. Accumulates only; the live meters are untouched.
-    private trackReconciliation(integratedDelta: number, rawByName: Map<string, number>) {
-        if (!this.consumptionRegister)
-            return;
-        const raw = rawByName.get(this.consumptionRegister.name);
-        if (raw === undefined)
-            return;
-        const now = Date.now();
-        const scale = this.consumptionRegister.scale || 1;
-
-        // First reading only establishes the reference point.
-        if (this.lastConsumptionRaw === undefined) {
-            this.lastConsumptionRaw = raw;
-            this.shadowStarted = now;
-            this.lastShadowLog = now;
-            return;
-        }
-
-        // A: the pump counter's own delta. Negative deltas (counter reset/rollover) are ignored
-        // rather than propagated, so a glitch can't corrupt the comparison.
-        const pumpDelta = (raw - this.lastConsumptionRaw) / scale;
-        this.lastConsumptionRaw = raw;
-        if (pumpDelta < 0)
-            return;
-
-        // B: integrate, then steer the running error back toward the counter. Clamped at 0 so a
-        // meter fed this way could never step backwards (Homey reads that as a meter reset).
-        const corrected = Math.max(0, integratedDelta - PumpConnection.SHADOW_B_GAIN * this.shadowErrorB);
-        this.shadowErrorB += corrected - pumpDelta;
-
-        this.shadowTrapezoid += integratedDelta;
-        this.shadowCounterA += pumpDelta;
-        this.shadowB += corrected;
-
-        if (now - this.lastShadowLog < PumpConnection.SHADOW_LOG_MS)
-            return;
-        this.lastShadowLog = now;
-        const hours = (now - this.shadowStarted) / 3600000;
-        const pump = this.shadowCounterA; // A is exact by construction
-        const pct = (v: number) => pump > 0 ? `${(((v - pump) / pump) * 100).toFixed(1)}%` : 'n/a';
-        this.debug(`Energy reconciliation after ${hours.toFixed(1)} h — `
-            + `pump(3823)=${pump.toFixed(3)} kWh | `
-            + `trapezoid=${this.shadowTrapezoid.toFixed(3)} (${pct(this.shadowTrapezoid)}) | `
-            + `B feed-forward=${this.shadowB.toFixed(3)} (${pct(this.shadowB)}) | `
-            + `B residual error=${this.shadowErrorB.toFixed(4)} kWh`);
     }
 
     // Re-run feature detection over the live connection (used by repair and by pairing when a
@@ -1789,6 +1527,11 @@ export class PumpConnection {
 
     isConnected(): boolean {
         return this.connected;
+    }
+
+    private isSelectedCapability(name: string): boolean {
+        return [...this.subscribers].some((subscriber) =>
+            subscriber.wantedRegisters().some((register) => register.name === name));
     }
 
     // Answered exception 1 or 2 recently, so it is left alone until the cooldown runs out — every

@@ -1188,10 +1188,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // Main's on/off is pinned ON — re-assert it on every (re)connect.
         if (this.role === 'main' && this.hasCapability(PUMP_ACTIVE_CAPABILITY))
             this.setCapabilityValue(PUMP_ACTIVE_CAPABILITY, true).catch(this.error);
-        if (this.role === 'main')
-            this.updatePumpInfo()
-                .then(() => this.dumpRegisters('connected'))
-                .catch(this.error);
+        if (this.role === 'main') {
+            this.updatePumpInfo().catch(this.error);
+            this.dumpAfterPoll = 'connected';
+        }
     }
 
     // Read the pump's identity once per connect and surface it to the read-only "Heat pump"
@@ -1274,10 +1274,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     // pulled 3.3 kW, 32-bit counters read as 16-bit — is obvious with both and invisible with
     // only the decoded value.
     private dumping = false;
+    // Set at connect and when debug is switched on; the dump runs after the next completed poll.
+    private dumpAfterPoll: string | null = null;
 
+    // What the last poll read, for every register this model knows. It makes no reads of its own:
+    // it used to re-read the whole table — every group the pump doesn't have included — and each
+    // of those answered "Illegal function". Which registers a pump has is Repair's question.
     async dumpRegisters(reason: string) {
-        // Main only. The debug setting is mirrored onto every device of the pump, so without
-        // this each of the five would dump and the pump would field 500 reads at once.
+        // Main only. The debug setting is mirrored onto every device of the pump.
         if (this.role !== 'main' || !this.connection || !this.debugEnabled() || this.dumping)
             return;
         this.dumping = true;
@@ -1289,20 +1293,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const primary = new Map(this.profile.registers.map((r) => [r.name, r.address]));
             const byGroup = new Map<string, string[]>();
             let answered = 0;
-            // Sequential rather than Promise.all: this runs alongside the poll loop, and a
-            // burst of 100 concurrent reads is a poor thing to do to a pump that permits one
-            // client. A hundred sequential reads take about a second.
             for (const register of all) {
-                // One the poll was just told is absent keeps its recorded answer below rather
-                // than being asked again — the re-read only doubled every failure in the log.
-                const raw = this.profile.polling || this.connection.onCooldown(register.name)
-                    ? this.connection.lastRawFor(register.name)
-                    : await this.connection.readRegisterRaw(register, false);
+                const raw = this.connection.lastRawFor(register.name);
                 const value = raw === undefined ? undefined : this.fromRegisterValue(register, raw);
                 if (raw !== undefined)
                     answered += 1;
-                const shown = raw === undefined ? 'no answer'
-                    : `${value === null ? 'n/a' : value} (raw ${raw})`;
+                const shown = raw !== undefined ? `${value === null ? 'n/a' : value} (raw ${raw})`
+                    : this.connection.onCooldown(register.name) ? 'absent' : 'not polled';
                 // `internal` registers are engine infrastructure with no capability, so they
                 // are never "enabled" — say so rather than implying the user switched them off.
                 const mark = register.internal ? ' [internal]'
@@ -1317,9 +1314,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             }
             // Grouped into a dozen long lines rather than a hundred short ones: a diagnostic
             // report is a rolling buffer of unknown size, and fewer lines survive it better.
-            this.log(`Register dump (${reason}) — ${answered}/${all.length} answered. `
-                + (this.profile.polling ? 'Last observed values only; no extra reads on this slow gateway. '
-                    : 'Every register this model knows, ignoring the feature selection; ')
+            this.log(`Register dump (${reason}) — ${answered}/${all.length} read by the last poll. `
                 + `[off] marks one this device is not currently showing.`);
             for (const [group, lines] of byGroup)
                 this.log(`  ${group}: ${lines.join(' | ')}`);
@@ -1365,6 +1360,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     onPollComplete(readNames: Set<string>) {
+        if (this.dumpAfterPoll) {
+            const reason = this.dumpAfterPoll;
+            this.dumpAfterPoll = null;
+            this.dumpRegisters(reason).catch(this.error);
+        }
         if (this.profile.roomThermostat && this.role === 'heating' && !this.thermostatSync) {
             const active = roomThermostatActive(this.profile, (name) => {
                 if (!readNames.has(name)) return undefined;
@@ -1411,7 +1411,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     // because that has never been measured.
     //
     // What IS measured: the whole-pump integral tracks the pump's counter within a few percent
-    // over a day (the shadow monitor reports -5.3% at 24 h). So the integration is sound.
+    // over a day (a since-removed shadow monitor measured -5.3% at 24 h). So the integration is sound.
     //
     // What is NOT measured, and what this logs: how well that good total is *split* between
     // functions. A single 24 h comparison suggested hot water was over-attributed by 37%, but
@@ -1550,7 +1550,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             // pushes out — toggling debug off and on just before submitting puts a fresh one
             // at the end, where a tail keeps it.
             if (on)
-                this.dumpRegisters('debug logging enabled').catch(this.error);
+                this.dumpAfterPoll = 'debug logging enabled';
         }
         if (changedKeys.includes('address')) {
             const from = String(oldSettings.address);
