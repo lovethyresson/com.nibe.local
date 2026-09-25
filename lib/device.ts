@@ -985,6 +985,16 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         return clampPollSeconds(seconds);
     }
 
+    // See PumpSubscriber.absentRegisters. Main keeps the pump's answer; one copy is enough.
+    absentRegisters(): string[] {
+        return this.role === 'main' ? (this.getStoreValue('absentRegisters') ?? []) : [];
+    }
+
+    onAbsentRegisters(names: string[]) {
+        if (this.role === 'main')
+            this.setStoreValue('absentRegisters', names).catch(this.error);
+    }
+
     wantedRegisters(): Register[] {
         const selected = registersForRole(this.profile, this.role, this.getSelection());
         if (this.role !== 'heating' || !this.profile.roomThermostat) return selected;
@@ -1218,7 +1228,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             : await this.connection.readRegisterRaw(
                 {address: firmwareAddress, name: '__pumpinfo.firmware', direction: Dir.In} as Register);
         this.debug(`Pump info: heat-pump type ${type ?? '?'}, firmware ${firmware ?? '?'}`);
-        await this.logEnergyLogSettings();
         const info: {firmware?: string; heatpump_type?: string} = {};
         if (typeof firmware === 'number')
             info.firmware = String(firmware);
@@ -1232,36 +1241,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // The model code is only known once the pump has answered, which is why the install
         // profile is (re)sent from here rather than from onInit — at onInit there is no model yet.
         (this.driver as any).syncInstallProfile?.();
-    }
-
-    // Which functions the pump counts toward its own energy log and totals. This is a setting
-    // on the pump, not a property of the model, so the same figures can mean different things
-    // on two identical units — and a support log that shows the numbers without showing this
-    // cannot explain them. Read once per connect alongside the model info.
-    //
-    // Absence is expected and model-dependent (cooling exists on S320/S2125 but not S1155), so
-    // a register that doesn't answer reports as "n/a" rather than being treated as a fault.
-    private async logEnergyLogSettings() {
-        const settings = this.profile.energyLogSettings;
-        if (!this.connection || !settings?.length)
-            return;
-        const parts: string[] = [];
-        for (const setting of settings) {
-            const raw = await this.connection.readRegisterRaw({
-                address: setting.address,
-                name: `__energylog.${setting.label}`,
-                direction: Dir.Out
-            } as Register);
-            if (raw !== undefined)
-                parts.push(`${setting.label}=${raw ? 'yes' : 'NO'}`);
-        }
-        // Most models expose none of these (only S320/S325 and S1156/S1256 have the pool flag,
-        // only S320/S325 and S2125 the cooling one), and a line reading "n/a, n/a, n/a, n/a" on
-        // every startup would be pure noise. Say nothing rather than nothing at length.
-        if (!parts.length)
-            return;
-        this.debug(`Energy log counts: ${parts.join(', ')} — pump settings (menu 3.1) that `
-            + `decide which functions its own energy totals include.`);
     }
 
     // A one-shot read of every register the model knows about, logged when debug logging is on.

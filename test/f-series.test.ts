@@ -56,7 +56,7 @@ test('frequent values and allocation are published before a slow background repl
     const chosen = [at(43086), at(43375), at(43084), at(47011)];
     Object.assign(c, {profile: fProfile, connected: true, polling: false, generation: 1,
         pollDeadlineMs: 1000, priorityRegister: at(43086), powerRegisters: [at(43375), at(43084)],
-        unsupportedUntil: new Map(), backgroundAttempted: new Map(), lastRaw: new Map(),
+        unsupportedUntil: new Map(), knownAbsent: new Set(), backgroundAttempted: new Map(), lastRaw: new Map(),
         unionRegisters: () => chosen,
         readRegisterRaw: async (r: any) => r.address === 47011
             ? await new Promise<number>((resolve) => { release = resolve; }) : 1,
@@ -204,7 +204,7 @@ test('diagnostics preserve raw words and errors and cap repeated capture', async
     Object.assign(c, {
         profile: fProfile, transport: {port: 502, unitId: 1, addressBase: fProfile.addressModes!.nibegw.addressBase}, generation: 1,
         readDiagnostics: new Map(), captureCounts: new Map(), captureUntil: Date.now() + 60000,
-        captureRemaining: 200, debugOn: true, unsupportedUntil: new Map(),
+        captureRemaining: 200, debugOn: true, unsupportedUntil: new Map(), knownAbsent: new Set(),
         noteRead: () => {}, log: (s: string) => logs.push(s), withWireAccess: (run: any) => run(),
         client: {readHoldingRegisters: async () => ({response: {body: {values: [0xff9c]}}})}
     });
@@ -269,7 +269,7 @@ test('bounded diagnostic probes follow normal publication and never enter alloca
     Object.assign(c, {profile: fProfile, connected: true, polling: false, generation: 1, debugOn: true,
         diagnosticCapture: capture, readDiagnostics: new Map(),
         pollDeadlineMs: 1000, priorityRegister: at(43086), powerRegisters: [at(43375), at(43084)],
-        unsupportedUntil: new Map(), backgroundAttempted: new Map(), lastRaw: new Map(),
+        unsupportedUntil: new Map(), knownAbsent: new Set(), backgroundAttempted: new Map(), lastRaw: new Map(),
         unionRegisters: () => [at(43086), at(43375), at(43084)],
         readRegisterRaw: async (r: any, track = true) => {
             if (r === probe) { assert.equal(track, false); events.push('probe'); }
