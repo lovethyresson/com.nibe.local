@@ -89,7 +89,12 @@
     "statistics": "Bedrijfstijdstatistieken",
     "energy": "Energie",
     "solar": "Zonne-energie / PV",
+    "spa": "Smart Price Adaption",
     "sgready": "SG Ready"
+  },
+  "groups_info": {
+    "spa": "Verschuift het verbruik van de pomp naar goedkopere uren, op basis van spotprijzen uit myUplink.",
+    "sgready": "Laat Homey de pomp vertellen wanneer stroom duur, goedkoop of gratis is. Aangevinkt neemt het de bedrade SG Ready-ingangen van de pomp over."
   },
   "Normal": "Normaal",
   "Blocking": "Blokkering",

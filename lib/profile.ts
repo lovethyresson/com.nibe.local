@@ -191,6 +191,10 @@ export interface ModelProfile {
     diagnosticSweep?: {registers: Register[]; energy: Register[]};
     roomThermostat?: {sensor: string; enabled: string; target: string};
     writeRequirements?: Record<string, {register: string; values: number[]; message: LocalizedText}>;
+    // A feature group whose tick IS a pump setting: switching the group on or off in pairing or
+    // Repair writes this bool register to match. Only on a change the user makes — never
+    // reasserted, so a value changed from the pump's own menu is left alone.
+    groupSwitches?: Partial<Record<GroupId, string>>;
     indoorSensorFeed?: boolean;
     pollDeadlineMs?: number;
     // Opt-in for gateways whose non-broadcast parameters take seconds apiece.
@@ -297,6 +301,10 @@ export interface ModelProfile {
         requestIntervalMs?: number;
         // Fallback per-group heuristics for when nothing moved during the sampling window.
         plausible: Partial<Record<Exclude<GroupId, "core">, (helpers: PlausibleHelpers) => boolean>>;
+        // The register a group cannot work without. If it doesn't answer, the group is reported
+        // unsupported even when its other registers read — SG Ready's 1911 answers on every model,
+        // but without 6008 there is nothing to control.
+        requires?: Partial<Record<Exclude<GroupId, "core">, string>>;
         discoveryProbe: DiscoveryProbe;
     };
 

@@ -68,6 +68,7 @@
     "measure_degree_minutes_NIBE.h679_dm_diff_start_addition",
     "boolean_NIBE.h202_use_room_sensor",
     "boolean_NIBE.h844_spa_heating_activated",
+    "boolean_NIBE.h760_sg_ready_heating",
     "spa_heating_influence_NIBE.h845_spa_heating_influence",
     "measure_temperature.i19_return_air",
     "measure_temperature.i20_supply_air",
@@ -99,6 +100,7 @@
     "measure_temperature.i174_hw_comfort_return",
     "measure_temperature.i175_hw_comfort_heater",
     "boolean_NIBE.h846_spa_hotwater_activated",
+    "boolean_NIBE.h762_sg_ready_hotwater",
     "spa_hotwater_influence_NIBE.h902_spa_hotwater_influence",
     "meter_kwh_NIBE.i1575_hotwater_produced",
     "onoff.h691_pool_active",
@@ -114,6 +116,7 @@
     "measure_degree_minutes_NIBE.h20_cooling_dm",
     "boolean_NIBE.h227_nightchill",
     "boolean_NIBE.h849_spa_cooling_activated",
+    "boolean_NIBE.h761_sg_ready_cooling",
     "spa_influence_NIBE.h850_spa_cooling_influence",
     "measure_hour_NIBE.i279_compressor_usage_cooling",
     "meter_kwh_NIBE.i1579_cooling_produced",
@@ -1222,6 +1225,17 @@
         "da": "Smart pristilpasning"
       }
     },
+    "boolean_NIBE.h760_sg_ready_heating": {
+      "insights": true,
+      "title": {
+        "en": "SG Ready",
+        "sv": "SG Ready",
+        "de": "SG Ready",
+        "nl": "SG Ready",
+        "no": "SG Ready",
+        "da": "SG Ready"
+      }
+    },
     "boolean_NIBE.h846_spa_hotwater_activated": {
       "insights": true,
       "title": {
@@ -1231,6 +1245,17 @@
         "nl": "Smart Price Adaption",
         "no": "Smart pristilpasning",
         "da": "Smart pristilpasning"
+      }
+    },
+    "boolean_NIBE.h762_sg_ready_hotwater": {
+      "insights": true,
+      "title": {
+        "en": "SG Ready",
+        "sv": "SG Ready",
+        "de": "SG Ready",
+        "nl": "SG Ready",
+        "no": "SG Ready",
+        "da": "SG Ready"
       }
     },
     "spa_heating_influence_NIBE.h845_spa_heating_influence": {
@@ -1272,6 +1297,17 @@
         "nl": "Smart Price Adaption",
         "no": "Smart pristilpasning",
         "da": "Smart pristilpasning"
+      }
+    },
+    "boolean_NIBE.h761_sg_ready_cooling": {
+      "insights": true,
+      "title": {
+        "en": "SG Ready",
+        "sv": "SG Ready",
+        "de": "SG Ready",
+        "nl": "SG Ready",
+        "no": "SG Ready",
+        "da": "SG Ready"
       }
     },
     "spa_influence_NIBE.h850_spa_cooling_influence": {

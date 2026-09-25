@@ -279,7 +279,9 @@ export function recommendGroups(profile: ModelProfile, probes: ProbeSamples): Re
             continue;
         const plausible = profile.detection.plausible[groupId];
         let evidence: Evidence;
-        if (groupProbes.every((probe) => probe.reads === 0))
+        const required = profile.detection.requires?.[groupId];
+        if (groupProbes.every((probe) => probe.reads === 0)
+            || (required !== undefined && !(probes[required]?.reads > 0)))
             evidence = "unsupported";
         else if (groupProbes.some((probe) => probe.moved))
             evidence = "moving";

@@ -5,13 +5,13 @@ import net from 'net';
 import {analyticsConsent, setAnalyticsConsent, track} from './analytics';
 import {
     Dir, Register, Selection, encodeRegisterValue, toNumericValue, enumLabel, isPollable, isUnavailableRaw, migrateSelection,
-    optInGroups, resolvedAddress, signedValue, withOptInGroups, withResolvedAddresses
+    GroupId, optInGroups, resolvedAddress, signedValue, withOptInGroups, withResolvedAddresses
 } from './registers';
 import {
     ACTIVE_POWER_CAPABILITY, ALARM_ACTIVE_CAPABILITY, ALARM_TEXT_CAPABILITY,
     FUNCTION_COP_CAPABILITY, HOTWATER_VOLUME_CAPABILITY, METER_CAPABILITY,
     PUMP_ACTIVE_CAPABILITY, Role, SOLAR_METER_CAPABILITY, TOTAL_COP_CAPABILITY,
-    capabilitySyncPlan, extraCapabilities, extraCapabilityOptions, functionRoles, mirrorOptions,
+    capabilitySyncPlan, extraCapabilities, roleGroups, extraCapabilityOptions, functionRoles, mirrorOptions,
     mirrorsForRole, registersForRole, roleClass, roleOf, roleRegisters, deviceClass, roomThermostatActive
 } from './roles';
 import {ALARM_SOURCE_URL, alarmAdvice, alarmDescription} from './alarms';
@@ -824,6 +824,16 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     async applySelection(selection: Selection) {
         this.log("Applying selection", JSON.stringify(selection));
+        // Pump first: if the switch can't be written, nothing is saved and Repair says why,
+        // rather than showing a feature the pump isn't actually running.
+        // After a failed pairing write the stored tick is not what the pump has, so compare
+        // against "off" and write the switch again.
+        const retry = !!this.getStoreValue('groupSwitchWarning');
+        await this.writeGroupSwitches(retry ? this.switchesOff() : this.getSelection(), selection);
+        if (retry) {
+            await this.setStoreValue('groupSwitchWarning', false).catch(this.error);
+            await this.unsetWarning().catch(this.error);
+        }
         await this.setStoreValue('selection', selection);
         const failed = await this.syncCapabilities();
         if (this.hasCapability(METER_CAPABILITY))
@@ -840,6 +850,27 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             throw new Error(`${failed.length} capability/capabilities could not be applied: `
                 + `${failed.join(', ')}. The selection was saved — try Repair again, and if it `
                 + 'keeps failing please report it with the app logs.');
+    }
+
+    // Every switch group as unticked: the baseline for a write that must only ever switch on.
+    private switchesOff(): Selection {
+        return {groups: Object.fromEntries(Object.keys(this.profile.groupSwitches ?? {})
+            .map((group) => [group, false])), overrides: {}} as Selection;
+    }
+
+    // See ModelProfile.groupSwitches. Writes only the groups whose tick changed between the two
+    // selections, and only for groups this device carries.
+    private async writeGroupSwitches(before: Selection | null, after: Selection) {
+        for (const [group, name] of Object.entries(this.profile.groupSwitches ?? {})) {
+            if (!name || !(roleGroups[this.role] as string[]).includes(group))
+                continue;
+            const was = before?.groups?.[group as GroupId];
+            const now = after.groups?.[group as GroupId];
+            if (now === undefined || now === was)
+                continue;
+            this.log(`Feature ${group} switched ${now ? 'on' : 'off'}: writing ${name}`);
+            await this.writeRegister(this.profile.registerByName[name], now);
+        }
     }
 
     async probeForDetection(onProgress: (pass: number, passes: number) => void, signal?: AbortSignal) {
@@ -1198,6 +1229,23 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             this.updatePumpInfo()
                 .then(() => this.dumpRegisters('connected'))
                 .catch(this.error);
+        this.applyPendingGroupSwitches();
+    }
+
+    // Pairing is over, so there is nobody to throw to: a failure becomes a device warning that
+    // stays until the next Repair, which writes the switch again.
+    private applyPendingGroupSwitches() {
+        if (!this.getStoreValue('pendingGroupSwitches'))
+            return;
+        // Everything counts as "was off", so only a ticked box writes: pairing switches a feature
+        // on and never off, which would override an owner who set it from elsewhere.
+        this.setStoreValue('pendingGroupSwitches', false)
+            .then(() => this.writeGroupSwitches(this.switchesOff(), this.getSelection() ?? {groups: {}, overrides: {}}))
+            .catch((error: any) => {
+                this.error('Could not apply a feature switch after pairing:', error);
+                this.setStoreValue('groupSwitchWarning', true).catch(this.error);
+                this.setWarning(`${error?.message ?? error} — open Repair to try again.`).catch(this.error);
+            });
     }
 
     // Read the pump's identity once per connect and surface it to the read-only "Heat pump"
@@ -1622,6 +1670,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     // onAdded, not onInit: onInit runs on every app start, so counting devices there would report
     // an "install" each time the hub reboots. onAdded fires once, when the device is really created.
     async onAdded() {
+        // A switch ticked during pairing is written on the first connection: the pairing socket is
+        // gone and the device's own may not be up yet. Anything already on the pump is a no-op.
+        if (this.profile.groupSwitches && this.getSelection())
+            await this.setStoreValue('pendingGroupSwitches', true).catch(this.error);
+        if (this.connection?.isConnected())
+            this.applyPendingGroupSwitches();
         track('Changed Device Set', {action: 'added', role: roleOf(this.getData())});
         (this.driver as any).syncInstallProfile?.();
     }

@@ -197,7 +197,8 @@
     "alarm": "Alarmafhandeling",
     "energy": "Energie",
     "solar": "Zonne-energie / PV",
-    "sgready": "SG Ready"
+    "sgready": "SG Ready",
+    "spa": "Smart Price Adaption"
   },
   "Immersion heater only": "Alleen elektrisch element",
   "hotwater": {
@@ -242,5 +243,9 @@
   },
   "Blocking": "Blokkering",
   "Low price": "Lage prijs",
-  "Overcapacity": "Overcapaciteit"
+  "Overcapacity": "Overcapaciteit",
+  "groups_info": {
+    "spa": "Verschuift het verbruik van de pomp naar goedkopere uren, op basis van spotprijzen uit myUplink.",
+    "sgready": "Laat Homey de pomp vertellen wanneer stroom duur, goedkoop of gratis is. Aangevinkt neemt het de bedrade SG Ready-ingangen van de pomp over."
+  }
 }

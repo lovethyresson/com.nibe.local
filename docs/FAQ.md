@@ -400,6 +400,10 @@ means the requested value could not be verified; check the current reading befor
 
 From 1.3.7 (test). Your pump needs firmware that supports SG Ready over Modbus (register 6008, added
 in late 2025), and its wired SG Ready inputs must not be configured. Run Repair on the Main device and
-turn on **SG Ready**; if detection leaves it unticked, your firmware doesn't have it yet. Then, in a
-Flow, run **SG Ready via Homey: On** once, and use **Set SG Ready mode** (Blocking, Normal, Low price,
-Overcapacity). The Main device shows **SG Ready state**, the mode the pump actually switched to.
+tick **SG Ready**; if it says not supported, your firmware doesn't have it yet. Ticking it hands SG
+Ready control to Homey, and unticking hands it back to the wired inputs. Then use **Set SG Ready mode**
+in a Flow (Blocking, Normal, Low price, Overcapacity). The Main device shows **SG Ready state**, the
+mode the pump actually switched to.
+
+The Heating, Hot water and Cooling devices each have an **SG Ready** switch that decides whether that
+function reacts to the mode at all. They work the same with the pump's wired SG Ready inputs.

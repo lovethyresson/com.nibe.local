@@ -21,6 +21,7 @@ export const groupIds = [
     "groundsource",
     "electrical",
     "solar",
+    "spa",
     "sgready",
     "alarm",
     "diagnostics",

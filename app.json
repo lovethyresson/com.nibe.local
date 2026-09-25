@@ -2943,12 +2943,12 @@
           "da": "Indstil SG Ready-tilstand [[mode]]"
         },
         "hint": {
-          "en": "Needs SG Ready via Homey switched on. Check the result with the SG Ready state.",
-          "sv": "Kräver att SG Ready via Homey är på. Kontrollera resultatet med SG Ready-läget.",
-          "de": "Erfordert, dass SG Ready über Homey eingeschaltet ist. Ergebnis im SG-Ready-Zustand prüfen.",
-          "nl": "Vereist dat SG Ready via Homey aan staat. Controleer het resultaat met de SG Ready-status.",
-          "no": "Krever at SG Ready via Homey er på. Sjekk resultatet med SG Ready-tilstanden.",
-          "da": "Kræver at SG Ready via Homey er slået til. Tjek resultatet med SG Ready-tilstanden."
+          "en": "Blocking holds the pump back; Low price and Overcapacity let it store more heat. Check the result with the SG Ready state.",
+          "sv": "Blockering håller tillbaka pumpen; Lågpris och Överkapacitet låter den lagra mer värme. Kontrollera resultatet med SG Ready-läget.",
+          "de": "Sperre hält die Pumpe zurück; Niedrigpreis und Überkapazität lassen sie mehr Wärme speichern. Ergebnis im SG-Ready-Zustand prüfen.",
+          "nl": "Blokkering houdt de pomp in; Lage prijs en Overcapaciteit laten hem meer warmte opslaan. Controleer het resultaat met de SG Ready-status.",
+          "no": "Blokkering holder pumpen tilbake; Lavpris og Overkapasitet lar den lagre mer varme. Sjekk resultatet med SG Ready-tilstanden.",
+          "da": "Blokering holder pumpen tilbage; Lavpris og Overkapacitet lader den lagre mere varme. Tjek resultatet med SG Ready-tilstanden."
         },
         "args": [
           {
@@ -2967,76 +2967,6 @@
               "no": "Modus",
               "da": "Indstilling"
             }
-          }
-        ]
-      },
-      {
-        "id": "sg_ready.h3032_api_control.onoff",
-        "title": {
-          "en": "SG Ready via Homey",
-          "sv": "SG Ready via Homey",
-          "de": "SG Ready über Homey",
-          "nl": "SG Ready via Homey",
-          "no": "SG Ready via Homey",
-          "da": "SG Ready via Homey"
-        },
-        "titleFormatted": {
-          "en": "SG Ready via Homey: [[state]]",
-          "sv": "SG Ready via Homey: [[state]]",
-          "de": "SG Ready über Homey: [[state]]",
-          "nl": "SG Ready via Homey: [[state]]",
-          "no": "SG Ready via Homey: [[state]]",
-          "da": "SG Ready via Homey: [[state]]"
-        },
-        "hint": {
-          "en": "On: Homey sets the SG Ready mode. Off: the pump's wired SG Ready inputs decide.",
-          "sv": "På: Homey styr SG Ready-läget. Av: pumpens trådade SG Ready-ingångar styr.",
-          "de": "Ein: Homey stellt den SG-Ready-Modus ein. Aus: die verdrahteten SG-Ready-Eingänge der Pumpe entscheiden.",
-          "nl": "Aan: Homey stelt de SG Ready-modus in. Uit: de bedrade SG Ready-ingangen van de pomp beslissen.",
-          "no": "På: Homey styrer SG Ready-modus. Av: pumpens kablede SG Ready-innganger bestemmer.",
-          "da": "Til: Homey styrer SG Ready-tilstanden. Fra: pumpens kablede SG Ready-indgange bestemmer."
-        },
-        "args": [
-          {
-            "type": "device",
-            "name": "device",
-            "filter": "driver_id=nibe_s&capabilities=measure_enum_NIBE.i1911_sg_ready_state"
-          },
-          {
-            "type": "dropdown",
-            "name": "state",
-            "title": {
-              "en": "State",
-              "sv": "Läge",
-              "de": "Zustand",
-              "nl": "Status",
-              "no": "Tilstand",
-              "da": "Tilstand"
-            },
-            "values": [
-              {
-                "id": "on",
-                "title": {
-                  "en": "On",
-                  "sv": "På",
-                  "de": "Ein",
-                  "nl": "Aan",
-                  "no": "På",
-                  "da": "Til"
-                }
-              },
-              {
-                "id": "off",
-                "title": {
-                  "en": "Off",
-                  "sv": "Av",
-                  "de": "Aus",
-                  "nl": "Uit",
-                  "no": "Av",
-                  "da": "Fra"
-                }
-              }
-            ]
           }
         ]
       },
@@ -4915,6 +4845,7 @@
         "measure_degree_minutes_NIBE.h679_dm_diff_start_addition",
         "boolean_NIBE.h202_use_room_sensor",
         "boolean_NIBE.h844_spa_heating_activated",
+        "boolean_NIBE.h760_sg_ready_heating",
         "spa_heating_influence_NIBE.h845_spa_heating_influence",
         "measure_temperature.i19_return_air",
         "measure_temperature.i20_supply_air",
@@ -4946,6 +4877,7 @@
         "measure_temperature.i174_hw_comfort_return",
         "measure_temperature.i175_hw_comfort_heater",
         "boolean_NIBE.h846_spa_hotwater_activated",
+        "boolean_NIBE.h762_sg_ready_hotwater",
         "spa_hotwater_influence_NIBE.h902_spa_hotwater_influence",
         "meter_kwh_NIBE.i1575_hotwater_produced",
         "onoff.h691_pool_active",
@@ -4961,6 +4893,7 @@
         "measure_degree_minutes_NIBE.h20_cooling_dm",
         "boolean_NIBE.h227_nightchill",
         "boolean_NIBE.h849_spa_cooling_activated",
+        "boolean_NIBE.h761_sg_ready_cooling",
         "spa_influence_NIBE.h850_spa_cooling_influence",
         "measure_hour_NIBE.i279_compressor_usage_cooling",
         "meter_kwh_NIBE.i1579_cooling_produced",
@@ -6069,6 +6002,17 @@
             "da": "Smart pristilpasning"
           }
         },
+        "boolean_NIBE.h760_sg_ready_heating": {
+          "insights": true,
+          "title": {
+            "en": "SG Ready",
+            "sv": "SG Ready",
+            "de": "SG Ready",
+            "nl": "SG Ready",
+            "no": "SG Ready",
+            "da": "SG Ready"
+          }
+        },
         "boolean_NIBE.h846_spa_hotwater_activated": {
           "insights": true,
           "title": {
@@ -6078,6 +6022,17 @@
             "nl": "Smart Price Adaption",
             "no": "Smart pristilpasning",
             "da": "Smart pristilpasning"
+          }
+        },
+        "boolean_NIBE.h762_sg_ready_hotwater": {
+          "insights": true,
+          "title": {
+            "en": "SG Ready",
+            "sv": "SG Ready",
+            "de": "SG Ready",
+            "nl": "SG Ready",
+            "no": "SG Ready",
+            "da": "SG Ready"
           }
         },
         "spa_heating_influence_NIBE.h845_spa_heating_influence": {
@@ -6119,6 +6074,17 @@
             "nl": "Smart Price Adaption",
             "no": "Smart pristilpasning",
             "da": "Smart pristilpasning"
+          }
+        },
+        "boolean_NIBE.h761_sg_ready_cooling": {
+          "insights": true,
+          "title": {
+            "en": "SG Ready",
+            "sv": "SG Ready",
+            "de": "SG Ready",
+            "nl": "SG Ready",
+            "no": "SG Ready",
+            "da": "SG Ready"
           }
         },
         "spa_influence_NIBE.h850_spa_cooling_influence": {

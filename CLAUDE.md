@@ -128,7 +128,8 @@ maps one Nibe Modbus register to one Homey capability:
   (read/write, settings). This maps to `readInputRegisters` vs `readHoldingRegisters`/`writeSingleRegister`.
 - `group` — the feature group the register belongs to. The list is `groupIds` in
   [lib/registers.ts](lib/registers.ts) plus `core`: `core`, `heating`, `hotwater`, `pool`, `cooling`,
-  `ventilation`, `groundsource`, `electrical`, `solar`, `energy`, `alarm`, `diagnostics`, `statistics`.
+  `ventilation`, `groundsource`, `electrical`, `solar`, `spa`, `sgready`, `energy`, `alarm`, `diagnostics`,
+  `statistics`.
   `core` registers are always enabled; the rest follow the user's feature selection (see below). Groups
   also decide which *device* a register lands on — see `roleGroups` in [lib/roles.ts](lib/roles.ts).
 - `info` — required `{en, sv}` one-liner explaining what the register is; shown under each capability in the
@@ -341,5 +342,5 @@ The app ships **six** languages — `en`, `sv`, `de`, `nl`, `no`, `da` — and `
 six; keep it that way when adding user-facing strings. Note the compose step *merges into* `locales/` but never
 prunes it, so a key removed from `.homeycompose/locales/` lingers there until deleted by hand.
 
-Only two i18n keys are built dynamically — `groups.<id>` and `pair.evidence.<name>`. Everything else is a
+Only three i18n keys are built dynamically — `groups.<id>`, `groups_info.<id>` (optional one-line group description) and `pair.evidence.<name>`. Everything else is a
 literal, so an unreferenced key really is dead.

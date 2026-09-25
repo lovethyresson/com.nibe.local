@@ -1,7 +1,7 @@
 {
   "1.3.7": {
-    "en": "Test release only. Features: SG Ready from Flows. Set the pump's SG Ready mode from a Flow, and see the mode it is actually in on the Main device. Run Repair on the Main device and turn on SG Ready.",
-    "sv": "Endast testversion. Funktioner: SG Ready från Flöden. Styr pumpens SG Ready-läge från ett Flöde och se vilket läge den faktiskt är i på huvudenheten. Kör Reparera på huvudenheten och slå på SG Ready."
+    "en": "Test release only. Features: SG Ready. Let Homey set the pump's SG Ready mode from a Flow, and see the mode it is actually in on the Main device. Run Repair on the Main device and turn on SG Ready. Tweaks: SG Ready switches on Heating, Hot water and Cooling; Smart Price Adaption and SG Ready are explained in Repair.",
+    "sv": "Endast testversion. Funktioner: SG Ready. Låt Homey styra pumpens SG Ready-läge från ett Flöde och se vilket läge den faktiskt är i på huvudenheten. Kör Reparera på huvudenheten och slå på SG Ready. Justeringar: SG Ready-brytare på Värme, Varmvatten och Kyla; Smart prisanpassning och SG Ready förklaras i Reparera."
   },
   "1.3.6": {
     "en": "Features: Follows a moved heat pump. If your router gives the pump a new IP address, the app finds it and updates all its devices; changing the IP on one device now updates the rest. Tweaks: Devices say why they are offline, and reconnects are calmer. F-series (test): BT12/BT16 temperatures and better production and COP recommendations — run Repair to update them.",

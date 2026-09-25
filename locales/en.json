@@ -197,7 +197,8 @@
     "alarm": "Alarm handling",
     "energy": "Energy",
     "solar": "Solar / PV",
-    "sgready": "SG Ready"
+    "sgready": "SG Ready",
+    "spa": "Smart Price Adaption"
   },
   "Immersion heater only": "Immersion heater only",
   "hotwater": {
@@ -242,5 +243,9 @@
   },
   "Blocking": "Blocking",
   "Low price": "Low price",
-  "Overcapacity": "Overcapacity"
+  "Overcapacity": "Overcapacity",
+  "groups_info": {
+    "spa": "Moves the pump's consumption to cheaper hours, using spot prices it gets from myUplink.",
+    "sgready": "Lets Homey tell the pump when power is expensive, cheap or free. Ticking this takes over from the pump's wired SG Ready inputs."
+  }
 }

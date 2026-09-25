@@ -197,7 +197,8 @@
     "alarm": "Alarmbehandlung",
     "energy": "Energie",
     "solar": "Solar / PV",
-    "sgready": "SG Ready"
+    "sgready": "SG Ready",
+    "spa": "Smart Price Adaption"
   },
   "Immersion heater only": "Nur Heizstab",
   "hotwater": {
@@ -242,5 +243,9 @@
   },
   "Blocking": "Sperre",
   "Low price": "Niedrigpreis",
-  "Overcapacity": "Überkapazität"
+  "Overcapacity": "Überkapazität",
+  "groups_info": {
+    "spa": "Verlagert den Verbrauch der Pumpe in günstigere Stunden, anhand der Spotpreise aus myUplink.",
+    "sgready": "Lässt Homey der Pumpe mitteilen, wann Strom teuer, günstig oder gratis ist. Aktiviert ersetzt es die verdrahteten SG-Ready-Eingänge der Pumpe."
+  }
 }

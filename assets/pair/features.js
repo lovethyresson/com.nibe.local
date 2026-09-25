@@ -156,6 +156,13 @@ function render() {
 
         item.appendChild(row);
 
+        if (group.description) {
+            var groupDesc = document.createElement('div');
+            groupDesc.className = 'register-desc';
+            groupDesc.textContent = group.description;
+            item.appendChild(groupDesc);
+        }
+
         var details = document.createElement('div');
         details.className = 'registers';
         details.style.display = 'none';

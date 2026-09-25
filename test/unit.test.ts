@@ -273,7 +273,7 @@ test('internal readings are polled, Flow-only commands are not, and neither beco
     const caps = new Set(sProfile.compose.capabilities);
     for (const r of internal) {
         assert.ok(!caps.has(r.name), `${r.name} is internal and must not be a capability`);
-        // Sensor feeds (5987, 5217) and SG Ready's Flow-only writes (3032, 6008).
+        // Sensor feeds (5987, 5217) and SG Ready's unpolled writes (3032, 6008).
         if ([5987, 5217, 3032, 6008].includes(r.address))
             assert.ok(!isPollable(r), `${r.name} is a Flow-only command, not a reading`);
         else
@@ -620,16 +620,41 @@ test('recommendGroups: groups whose registers never read are unsupported', () =>
 // SG Ready control arrived with firmware 4.7.5 and only some pumps have it. 1911 (the mode the
 // pump reports) answers on every S model, so it must not be what recommends the group — only
 // the writable 6008 answering means Homey can actually control SG Ready.
-test('recommendGroups: SG Ready is recommended only when 6008 answers', () => {
+test('recommendGroups: SG Ready is unsupported without 6008, and pre-ticked only if Homey already controls it', () => {
+    // 1911 answers on every model; without 6008 there is nothing to control.
     const without = recommendGroups(sProfile, probes({
-        'measure_enum_NIBE.i1911_sg_ready_state': {last: 10}
-    }));
-    assert.equal(without.sgready?.recommended, false);
-    const withIt = recommendGroups(sProfile, probes({
         'measure_enum_NIBE.i1911_sg_ready_state': {last: 10},
+        'sg_ready.h3032_api_control': {last: 0}
+    }));
+    assert.equal(without.sgready?.evidence, 'unsupported');
+    // Ticking the group writes 3032, so a pump still on its wired inputs is not pre-ticked.
+    const wired = recommendGroups(sProfile, probes({
+        'measure_enum_NIBE.i1911_sg_ready_state': {last: 10},
+        'sg_ready.h3032_api_control': {last: 0},
         'sg_ready.h6008_requested_mode': {last: 1}
     }));
-    assert.equal(withIt.sgready?.recommended, true);
+    assert.equal(wired.sgready?.recommended, false);
+    assert.notEqual(wired.sgready?.evidence, 'unsupported');
+    const api = recommendGroups(sProfile, probes({
+        'measure_enum_NIBE.i1911_sg_ready_state': {last: 10},
+        'sg_ready.h3032_api_control': {last: 1},
+        'sg_ready.h6008_requested_mode': {last: 1}
+    }));
+    assert.equal(api.sgready?.recommended, true);
+});
+
+test('SG Ready: ticking the group is what switches Homey control on the pump', () => {
+    assert.equal(sProfile.groupSwitches?.sgready, 'sg_ready.h3032_api_control');
+    const register = sProfile.registerByName['sg_ready.h3032_api_control'];
+    assert.ok(register.bool && register.direction === Dir.Out);
+    assert.ok(roleGroups.main.includes('sgready'), 'written by Main, the device that carries the group');
+});
+
+test('Smart Price Adaption has its own group on Main, and existing devices keep it', () => {
+    const spa = sProfile.registerByName['boolean_NIBE.h843_spa_activated'];
+    assert.equal(spa.group, 'spa');
+    const old: Selection = {groups: {electrical: true}, overrides: {}};
+    assert.ok(registersForRole(sProfile, 'main', withOptInGroups(old)).some((r) => r.name === spa.name));
 });
 
 test('SG Ready: a device paired before the group existed gets it off, not on', () => {
@@ -652,7 +677,28 @@ test('SG Ready: only the actual state is on the tile; the writes are Flow-only',
     assert.deepEqual(onTile, ['measure_enum_NIBE.i1911_sg_ready_state']);
     const actions = new Set(sProfile.compose.actions.map((a: any) => a.id));
     assert.ok(actions.has('sg_ready.h6008_requested_mode.enum'));
-    assert.ok(actions.has('sg_ready.h3032_api_control.onoff'));
+    assert.ok(!actions.has('sg_ready.h3032_api_control.onoff'), 'the Repair tick is the switch');
+});
+
+// Same split as Smart Price Adaption: the mode is one pump-wide signal on Main, and each function
+// device carries its own "react to SG Ready" switch — which also serves owners on the wired inputs,
+// so these are not in the opt-in sgready group.
+test('SG Ready: each function device carries its own participation switch', () => {
+    const cases: [Role, string, number][] = [
+        ['heating', 'boolean_NIBE.h760_sg_ready_heating', 760],
+        ['cooling', 'boolean_NIBE.h761_sg_ready_cooling', 761],
+        ['hotwater', 'boolean_NIBE.h762_sg_ready_hotwater', 762]
+    ];
+    for (const [role, name, address] of cases) {
+        const register = sProfile.registerByName[name];
+        // Holding: input 762 is an unrelated fan-speed reading on some models.
+        assert.equal(register.direction, Dir.Out);
+        assert.equal(register.address, address);
+        assert.ok(flowPredicates.boolAction(register), `${name} is switchable from a Flow`);
+        for (const other of allRoles)
+            assert.equal(registersForRole(sProfile, other, null).some((r) => r.name === name), other === role,
+                `${name} belongs on ${role} only`);
+    }
 });
 
 test('SG Ready: a mode is written as its 0..3 code, and only once Homey has control', () => {

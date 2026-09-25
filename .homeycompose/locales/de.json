@@ -89,7 +89,12 @@
     "statistics": "Laufzeitstatistik",
     "energy": "Energie",
     "solar": "Solar / PV",
+    "spa": "Smart Price Adaption",
     "sgready": "SG Ready"
+  },
+  "groups_info": {
+    "spa": "Verlagert den Verbrauch der Pumpe in günstigere Stunden, anhand der Spotpreise aus myUplink.",
+    "sgready": "Lässt Homey der Pumpe mitteilen, wann Strom teuer, günstig oder gratis ist. Aktiviert ersetzt es die verdrahteten SG-Ready-Eingänge der Pumpe."
   },
   "Normal": "Normal",
   "Blocking": "Sperre",

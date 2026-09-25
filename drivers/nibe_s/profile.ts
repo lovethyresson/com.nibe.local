@@ -77,10 +77,11 @@ export const sProfile = makeProfile({
                 "measure_degree_minutes_NIBE.h11_degree_minutes",
                 "measure_degree_minutes_NIBE.h97_dm_start_compressor",
                 "measure_degree_minutes_NIBE.h679_dm_diff_start_addition",
-                // room-sensor regulation and price control, rarely touched
+                // room-sensor regulation and price/grid control, rarely touched
                 "boolean_NIBE.h202_use_room_sensor",
                 "boolean_NIBE.h844_spa_heating_activated",
-                "spa_heating_influence_NIBE.h845_spa_heating_influence"
+                "spa_heating_influence_NIBE.h845_spa_heating_influence",
+                "boolean_NIBE.h760_sg_ready_heating"
             ],
             hotwater: [
                 "measure_temperature.i9_hot_water",
@@ -109,7 +110,8 @@ export const sProfile = makeProfile({
                 "measure_temperature.i174_hw_comfort_return",
                 "measure_temperature.i175_hw_comfort_heater",
                 "boolean_NIBE.h846_spa_hotwater_activated",
-                "spa_hotwater_influence_NIBE.h902_spa_hotwater_influence"
+                "spa_hotwater_influence_NIBE.h902_spa_hotwater_influence",
+                "boolean_NIBE.h762_sg_ready_hotwater"
             ],
             pool: [
                 "measure_temperature.i27_pool",
@@ -125,6 +127,7 @@ export const sProfile = makeProfile({
                 "boolean_NIBE.h227_nightchill",
                 "boolean_NIBE.h849_spa_cooling_activated",
                 "spa_influence_NIBE.h850_spa_cooling_influence",
+                "boolean_NIBE.h761_sg_ready_cooling",
                 "measure_hour_NIBE.i279_compressor_usage_cooling"
             ]
         },
@@ -330,9 +333,12 @@ export const sProfile = makeProfile({
     // 6008 only takes effect while 3032 is 1, so refuse the write with the fix rather than send it.
     writeRequirements: {
         "sg_ready.h6008_requested_mode": {register: "sg_ready.h3032_api_control", values: [1],
-            message: {en: 'SG Ready is not under Homey\'s control. Run "SG Ready via Homey: On" first.',
-                sv: 'SG Ready styrs inte av Homey. Kör "SG Ready via Homey: På" först.'}}
+            message: {en: 'SG Ready is not under Homey\'s control. Turn SG Ready on in Repair on the Main device.',
+                sv: 'SG Ready styrs inte av Homey. Slå på SG Ready under Reparera på huvudenheten.'}}
     },
+
+    // Ticking SG Ready means "Homey drives SG Ready", which is what 3032 says on the pump.
+    groupSwitches: {sgready: "sg_ready.h3032_api_control"},
 
     // Room temperature and the indoor setpoint moved from sub-capabilities to the bare
     // `measure_temperature` / `target_temperature` so Homey's Climate feature and the thermostat
@@ -387,13 +393,16 @@ export const sProfile = makeProfile({
             electrical: ({value}) =>
                 ["measure_current.i50_sensor_v2", "measure_current.i48_sensor_v2", "measure_current.i46_sensor_v2"]
                     .some((name) => (value(name) ?? 0) > 0),
-            // 6008 doesn't move on its own, so "answered" is the evidence. A pump without the
-            // firmware returns an exception and the group stays off.
-            sgready: ({value}) => value("sg_ready.h6008_requested_mode") !== undefined,
+            // Pre-ticked only where Homey control is already switched on, because ticking it
+            // writes 3032 — recommending it on any pump with 6008 would silently take SG Ready
+            // away from wired inputs. A pump without 6008 is unsupported (`requires` below).
+            sgready: ({value}) => value("sg_ready.h3032_api_control") === 1,
+            spa: ({value}) => value("boolean_NIBE.h843_spa_activated") !== undefined,
             solar: ({value}) =>
                 (value("measure_power.i2176_solar_current") ?? 0) > 0
                 || (value("meter_power.solar") ?? 0) > 0
-        }
+        },
+        requires: {sgready: "sg_ready.h6008_requested_mode"}
     },
 
     compose: {capabilities, capabilitiesOptions, actions, conditions, triggers}

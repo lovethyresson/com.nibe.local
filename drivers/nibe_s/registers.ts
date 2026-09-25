@@ -391,16 +391,15 @@ export const registers: Register[] = [
     // Each function's SPA controls live in that function's own group, so they follow the feature
     // the user already picked rather than needing one of their own. 843 is the exception: a single
     // whole-pump 0/1 (menu 7.1.10, on all six model maps) while the per-function switches are
-    // 844/846/849, so it goes in `core` and lands on Main beside operating mode and priority. It
-    // sat on Heating from 0.9.13, when there was no per-function enable to confuse it with; once
-    // there was, Heating showed two toggles both called Smart Price Adaption.
+    // 844/846/849, so it lands on Main. It sat on Heating from 0.9.13, when there was no
+    // per-function enable to confuse it with; once there was, Heating showed two toggles both
+    // called Smart Price Adaption.
     //
-    // The cost of `core` is that deviceTemplate() skips it when writing detection's "this register
-    // never answered" overrides — core being the fixed baseline — so a firmware lacking 843 would
-    // keep a switch that throws when tapped. Accepted knowingly: 843 is documented for every model
-    // and answers on the pump this was built against, and the alternative, a feature group holding
-    // a single register, cost a GroupId, five roleGroups entries and twelve locale strings.
-    {address:  843, name: "boolean_NIBE.h843_spa_activated",                   direction: Dir.Out, group: "core",       bool: true, // Aktiverad (Smart prisanpassning)
+    // Its own `spa` group since 1.3.7 (it was `core` before): a tile can't say what Smart Price
+    // Adaption does, and the group's line in pairing/Repair can. Unlike SG Ready's switch it stays
+    // a tile toggle — SPA is a pump feature owners run without Homey, so hiding Homey's view of it
+    // must not switch it off. Not an opt-in group: existing devices keep the toggle they had.
+    {address:  843, name: "boolean_NIBE.h843_spa_activated",                   direction: Dir.Out, group: "spa",       bool: true, // Aktiverad (Smart prisanpassning)
      info: {en: "Smart Price Adaption — shift consumption towards cheaper hours", sv: "Smart prisanpassning — flytta förbrukningen mot billigare timmar"}},
     // SG Ready over Modbus, instead of the two hardwired inputs. Firmware 4.7.5 (Dec 2025) added
     // 6008, and only the S1156/S1256 map lists it; S1155/S1255 owners report it on current
@@ -408,15 +407,17 @@ export const registers: Register[] = [
     // (compare 843 above): a group is what lets detection leave it off on a pump where 6008
     // doesn't answer, and `optInGroups` keeps it off on devices paired before it existed.
     //
-    // Only the actual mode (1911) is a capability. The two writes are Flow-only — SG Ready is
-    // driven by an automation or nothing, and a tile picker nobody touches is clutter. Being
-    // `internal` + `writeOnly` keeps them off the tile and off the poll, so a pump without the
-    // firmware isn't sent a failing read every 10 s. A write is then not read back; 1911 is the
-    // confirmation, and it is also the only honest one, since the request is not the outcome.
+    // Only the actual mode (1911) is a capability. The mode (6008) is Flow-only — SG Ready is
+    // driven by an automation or nothing, and a tile picker nobody touches is clutter — and 3032
+    // is the group itself: ticking SG Ready in pairing/Repair writes it (`groupSwitches`), because
+    // "Homey controls SG Ready" is exactly what that box means. Being `internal` + `writeOnly`
+    // keeps both off the tile and off the poll, so a pump without the firmware isn't sent a
+    // failing read every 10 s. A write is then not read back; 1911 is the confirmation, and the
+    // more honest one, since the request is not the outcome.
     //
-    // 6008 only takes effect while 3032 is 1 (enforced by `writeRequirements`) and the physical
-    // SG Ready inputs are not configured. Whether the pump times out a mode it hasn't heard again
-    // is not documented anywhere.
+    // 6008 only takes effect while 3032 is 1 (still checked by `writeRequirements`, since the
+    // pump's own menu can switch it back) and the physical SG Ready inputs are not configured.
+    // Whether the pump times out a mode it hasn't heard again is not documented anywhere.
     {address: 3032, name: "sg_ready.h3032_api_control",                   direction: Dir.Out, group: "sgready",    internal: true, writeOnly: true, bool: true, // Aktivera SG Ready via API
      info: {en: "Let Homey set the SG Ready mode instead of the hardwired inputs", sv: "Låt Homey styra SG Ready-läget i stället för de trådade ingångarna"}},
     {address: 6008, name: "sg_ready.h6008_requested_mode",             direction: Dir.Out, group: "sgready",    internal: true, writeOnly: true, enum: sgReadyModeMap, // Begärt driftläge (SG Ready)
@@ -441,6 +442,12 @@ export const registers: Register[] = [
     // all of them if that changes.
     {address:  844, name: "boolean_NIBE.h844_spa_heating_activated",          direction: Dir.Out, group: "heating",    bool: true, onValue: 3, offValue: 0, // Prisanpassning värme aktiverad
      info: {en: "Let Smart Price Adaption act on heating", sv: "Låt smart prisanpassning påverka värmen"}},
+    // Per-function SG Ready participation, the counterpart of the SPA switches above: the SG Ready
+    // mode is one pump-wide signal (6008/1911 on Main, or the wired inputs), and these decide which
+    // functions react to it. 760 is on all six model maps; 761/762 only on S1155/S1255 and
+    // S1156/S1256. Holding 762 only — input 762 is an unrelated fan-speed reading on some models.
+    {address:  760, name: "boolean_NIBE.h760_sg_ready_heating",               direction: Dir.Out, group: "heating",    bool: true, // Värme (SG Ready)
+     info: {en: "Let SG Ready act on heating", sv: "Låt SG Ready påverka värmen"}},
     // 1918, "Operating mode (Smart Price Adaption)", is deliberately not a capability — but the
     // decoding is recorded here so nobody has to derive it twice. It speaks the SAME code space as
     // the operating priority (1028): measured on a live S1155 it read 30 ("Heating") while SPA was
@@ -478,12 +485,16 @@ export const registers: Register[] = [
     // and neither Nibe nor any community source publishes what the numbers mean.
     {address:  846, name: "boolean_NIBE.h846_spa_hotwater_activated",         direction: Dir.Out, group: "hotwater",   bool: true, onValue: 4, offValue: 0, // Prisanpassning varmvatten aktiverad
      info: {en: "Let Smart Price Adaption act on hot water", sv: "Låt smart prisanpassning påverka varmvattnet"}},
+    {address:  762, name: "boolean_NIBE.h762_sg_ready_hotwater",              direction: Dir.Out, group: "hotwater",   bool: true, // Varmvatten (SG Ready)
+     info: {en: "Let SG Ready act on hot water", sv: "Låt SG Ready påverka varmvattnet"}},
     {address:  902, name: "spa_hotwater_influence_NIBE.h902_spa_hotwater_influence", direction: Dir.Out, group: "hotwater", enum: spaHotwaterInfluenceMap, picker: true, pickerValues: [1, 2, 3, 4], // Prisanpassning varmvatten grad av påverkan
      info: {en: "How strongly the electricity price is allowed to move hot water charging (1-4)", sv: "Hur mycket elpriset får påverka varmvattenladdningen (1-4)"}},
     {address:  848, name: "spa_influence_NIBE.h848_spa_pool_influence",       direction: Dir.Out, group: "pool",       enum: spaInfluenceMap, picker: true, pickerValues: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // Prisanpassning pool grad av påverkan
      info: {en: "How strongly the electricity price is allowed to move pool heating (0 = not at all)", sv: "Hur mycket elpriset får påverka poolvärmen (0 = inte alls)"}},
     {address:  849, name: "boolean_NIBE.h849_spa_cooling_activated",          direction: Dir.Out, group: "cooling",    bool: true, // Prisanpassning kyla aktiverad
      info: {en: "Let Smart Price Adaption act on cooling", sv: "Låt smart prisanpassning påverka kylan"}},
+    {address:  761, name: "boolean_NIBE.h761_sg_ready_cooling",               direction: Dir.Out, group: "cooling",    bool: true, // Kyla (SG Ready)
+     info: {en: "Let SG Ready act on cooling", sv: "Låt SG Ready påverka kylan"}},
     {address:  850, name: "spa_influence_NIBE.h850_spa_cooling_influence",    direction: Dir.Out, group: "cooling",    enum: spaInfluenceMap, picker: true, pickerValues: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // Prisanpassning kyla grad av påverkan
      info: {en: "How strongly the electricity price is allowed to move cooling (0 = not at all)", sv: "Hur mycket elpriset får påverka kylan (0 = inte alls)"}},
     // Why the setpoint above may appear to do nothing. On zone firmware this reads 0 and room

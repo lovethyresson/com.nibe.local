@@ -197,7 +197,8 @@
     "alarm": "Alarmhåndtering",
     "energy": "Energi",
     "solar": "Solceller / PV",
-    "sgready": "SG Ready"
+    "sgready": "SG Ready",
+    "spa": "Smart pristilpasning"
   },
   "Immersion heater only": "Kun eltilskud",
   "hotwater": {
@@ -242,5 +243,9 @@
   },
   "Blocking": "Blokering",
   "Low price": "Lavpris",
-  "Overcapacity": "Overkapacitet"
+  "Overcapacity": "Overkapacitet",
+  "groups_info": {
+    "spa": "Flytter pumpens forbrug til billigere timer ud fra spotpriser, den henter fra myUplink.",
+    "sgready": "Lader Homey fortælle pumpen, hvornår strøm er dyr, billig eller gratis. Afkrydset overtager den pumpens kablede SG Ready-indgange."
+  }
 }

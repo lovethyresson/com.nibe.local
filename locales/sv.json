@@ -197,7 +197,8 @@
     "alarm": "Larmhantering",
     "energy": "Energi",
     "solar": "Solceller / PV",
-    "sgready": "SG Ready"
+    "sgready": "SG Ready",
+    "spa": "Smart prisanpassning"
   },
   "Immersion heater only": "Endast elpatron",
   "hotwater": {
@@ -242,5 +243,9 @@
   },
   "Blocking": "Blockering",
   "Low price": "Lågpris",
-  "Overcapacity": "Överkapacitet"
+  "Overcapacity": "Överkapacitet",
+  "groups_info": {
+    "spa": "Flyttar pumpens förbrukning till billigare timmar, utifrån spotpriser den hämtar från myUplink.",
+    "sgready": "Låter Homey tala om för pumpen när elen är dyr, billig eller gratis. Ikryssad tar den över från pumpens trådade SG Ready-ingångar."
+  }
 }

@@ -109,6 +109,12 @@ function renderGroup(deviceIndex, candidate, group, deviceChecked) {
     head.appendChild(box);
     head.appendChild(document.createTextNode(' ' + group.name));
     wrap.appendChild(head);
+    if (group.description) {
+        var desc = document.createElement('div');
+        desc.className = 'register-desc';
+        desc.textContent = group.description;
+        wrap.appendChild(desc);
+    }
 
     group.caps.forEach(function (c) {
         var line = document.createElement('div');

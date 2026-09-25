@@ -89,7 +89,12 @@
     "statistics": "Driftstidsstatistikk",
     "energy": "Energi",
     "solar": "Sol / PV",
+    "spa": "Smart pristilpasning",
     "sgready": "SG Ready"
+  },
+  "groups_info": {
+    "spa": "Flytter pumpens forbruk til billigere timer, ut fra spotpriser den henter fra myUplink.",
+    "sgready": "Lar Homey fortelle pumpen når strømmen er dyr, billig eller gratis. Avkrysset tar den over fra pumpens kablede SG Ready-innganger."
   },
   "Normal": "Normal",
   "Blocking": "Blokkering",
