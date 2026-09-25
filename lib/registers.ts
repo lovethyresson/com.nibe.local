@@ -96,6 +96,11 @@ export interface Register  {
     // Still sampled by detection, which is what decides whether it is usable on this model.
     // Combined with writeOnly for sensor-feed commands: no capability and no polling.
     internal?: boolean;
+    // Offered by the generic write cards ("Set register to value", enable/disable feature) even
+    // though it is no capability. For an `internal` + `writeOnly` register that exists only for
+    // automations, e.g. SG Ready's requested mode: nothing on the tile, nothing polled. On a pump
+    // without it the write fails with the pump's own Modbus error.
+    flowOnly?: boolean;
     // Addresses to fall back to, in order, when this register carries no usable value on a
     // model. Two different situations need this, and only one of them is predictable from
     // Nibe's register maps:

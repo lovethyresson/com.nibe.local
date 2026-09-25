@@ -5,12 +5,12 @@ import {
     Dir, combineRaw, signedValue, isUnavailableRaw, toNumericValue, isAdjustable, isPollable,
     buildPickerPrimary, buildRegisterByName, enumLabel, isSelectableRegister, isRegisterEnabled,
     Register, Selection, flowPredicates,
-    migrateSelection, resolvedAddress
+    migrateSelection, resolvedAddress, encodeRegisterValue
 } from '../lib/registers';
 import {makeProfile} from '../lib/profile';
 import type {ReasonState} from '../lib/profile';
 import {
-    capabilitySyncPlan,
+    capabilitySyncPlan, writableRegisters,
     registersForRole, roleRegisters, extraCapabilities, extraCapabilityOptions,
     extraCapabilitySupport, mirrorOptions, roleGroups, allRoles, functionRoles,
     ACTIVE_POWER_CAPABILITY, FUNCTION_COP_CAPABILITY, METER_CAPABILITY, TOTAL_COP_CAPABILITY
@@ -273,8 +273,9 @@ test('internal readings are polled, sensor commands are not, and neither becomes
     const caps = new Set(sProfile.compose.capabilities);
     for (const r of internal) {
         assert.ok(!caps.has(r.name), `${r.name} is internal and must not be a capability`);
-        if ([5987, 5217].includes(r.address))
-            assert.ok(!isPollable(r), `${r.name} is a consumed sensor command, not a reading`);
+        // Sensor feeds (5987, 5217) and SG Ready's Flow-only requested mode (6008).
+        if ([5987, 5217, 6008].includes(r.address))
+            assert.ok(!isPollable(r), `${r.name} is a write-only command, not a reading`);
         else
             assert.ok(isPollable(r), `${r.name} must still be polled — the allocator reads it`);
         assert.ok(!isSelectableRegister(r, sProfile.pickerPrimary),
@@ -284,6 +285,25 @@ test('internal readings are polled, sensor commands are not, and neither becomes
             assert.ok(!registersForRole(sProfile, role, null).some((x) => x.name === r.name),
                 `${r.name} leaked onto the ${role} device`);
     }
+});
+
+// The owner's request, as asked: register 6008 selectable in "Set register to value" on Main, with
+// nothing on any tile and nothing polled. A Flow-only register never reads, so it must stay out of
+// the comparison condition, where it would always look empty.
+test('SG Ready 6008 is offered by the generic write card on Main only', () => {
+    const sg = sProfile.registerByName['sg_ready.h6008_requested_mode'];
+    assert.equal(sg.address, 6008);
+    assert.equal(sg.direction, Dir.Out);
+    assert.ok(flowPredicates.numericAction(sg), 'Set register to value must accept it');
+    assert.ok(!isPollable(sg));
+    for (const role of allRoles) {
+        const selected = registersForRole(sProfile, role, null);
+        assert.ok(!selected.some((r) => r.name === sg.name), `no capability on ${role}`);
+        assert.equal(writableRegisters(sProfile, role, selected).some((r) => r.name === sg.name), role === 'main',
+            `offered for writing on ${role}`);
+    }
+    assert.throws(() => encodeRegisterValue(sg, 4), /between 0 and 3/);
+    assert.equal(encodeRegisterValue(sg, 2), 2);
 });
 
 test('every register has bilingual info and a sane scale/size', () => {

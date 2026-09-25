@@ -385,6 +385,15 @@ export const registers: Register[] = [
     // a single register, cost a GroupId, five roleGroups entries and twelve locale strings.
     {address:  843, name: "boolean_NIBE.h843_spa_activated",                   direction: Dir.Out, group: "core",       bool: true, // Aktiverad (Smart prisanpassning)
      info: {en: "Smart Price Adaption — shift consumption towards cheaper hours", sv: "Smart prisanpassning — flytta förbrukningen mot billigare timmar"}},
+    // SG Ready requested mode, written over Modbus instead of the wired SG Ready inputs. Flow-only,
+    // for owners who drive SG Ready from an automation: selectable in "Set register to value" on
+    // Main and nowhere else — no capability, no polling. The pump only acts on it once SG Ready is
+    // set up on the pump and "Activate SG Ready via API" (holding 3032) is 1; both are the owner's
+    // to do. Documented only in the S1156/S1256 map (firmware 4.7.5+); an S1155 on 4.13 without SG
+    // Ready configured answers exception 1 for 6008 and the whole 1911-1913 family, so on a pump
+    // where it isn't available the write fails with that error rather than being hidden.
+    {address: 6008, name: "sg_ready.h6008_requested_mode",                     direction: Dir.Out, group: "core",       role: "main", internal: true, writeOnly: true, flowOnly: true, scale: 1, min: 0, max: 3, // Begärt driftläge (SG Ready)
+     info: {en: "SG Ready mode (0 blocking, 1 normal, 2 low price, 3 overcapacity)", sv: "SG Ready-läge (0 blockering, 1 normal, 2 lågpris, 3 överkapacitet)"}},
     {address:  845, name: "spa_heating_influence_NIBE.h845_spa_heating_influence", direction: Dir.Out, group: "heating", enum: spaHeatingInfluenceMap, picker: true, pickerValues: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // Prisanpassning värme grad av påverkan
      info: {en: "How strongly the electricity price is allowed to move the indoor temperature (1-10)", sv: "Hur mycket elpriset får påverka inomhustemperaturen (1-10)"}},
     // Per-function enable. 844 is documented 0..3 rather than the 0/1 its title implies, and the

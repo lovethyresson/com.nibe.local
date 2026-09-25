@@ -12,7 +12,8 @@ import {
     FUNCTION_COP_CAPABILITY, HOTWATER_VOLUME_CAPABILITY, METER_CAPABILITY,
     PUMP_ACTIVE_CAPABILITY, Role, SOLAR_METER_CAPABILITY, TOTAL_COP_CAPABILITY,
     capabilitySyncPlan, extraCapabilities, extraCapabilityOptions, functionRoles, mirrorOptions,
-    mirrorsForRole, registersForRole, roleClass, roleOf, roleRegisters, deviceClass, roomThermostatActive
+    mirrorsForRole, registersForRole, roleClass, roleOf, roleRegisters, deviceClass, roomThermostatActive,
+    writableRegisters
 } from './roles';
 import {ALARM_SOURCE_URL, alarmAdvice, alarmDescription} from './alarms';
 import {
@@ -989,6 +990,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.role !== 'heating' || !this.profile.roomThermostat) return selected;
         const needed = Object.values(this.profile.roomThermostat).map((n) => this.profile.registerByName[n]);
         return [...new Map([...selected, ...needed].map((r) => [r.name, r])).values()];
+    }
+
+    // For the generic write cards only; see writableRegisters().
+    writableRegisters(): Register[] {
+        return writableRegisters(this.profile, this.role, this.wantedRegisters());
     }
 
     // The pump switched what it is producing. Only the main device carries the priority

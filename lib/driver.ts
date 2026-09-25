@@ -117,9 +117,11 @@ export abstract class NibePumpDriver extends Driver {
     private regToAutofill = (register: Register) => {
         const option: any = this.options(register.name);
         const language = this.homey.i18n.getLanguage();
+        // A Flow-only register has no capability options; its info line is the label.
+        const info = (register.info as any)?.[language] || register.info?.en;
         return {
             id: register.name,
-            name: option?.title?.[language] || option?.title?.en || register.name
+            name: option?.title?.[language] || option?.title?.en || info || register.name
         };
     };
 
@@ -171,7 +173,7 @@ export abstract class NibePumpDriver extends Driver {
                                  kind: 'action' | 'condition' | 'trigger' = 'action') {
         return flow
             .registerArgumentAutocompleteListener("register", async (query, args) =>
-                (args.device.wantedRegisters() as Register[])
+                ((kind === 'action' ? args.device.writableRegisters() : args.device.wantedRegisters()) as Register[])
                     .filter(registerFilter)
                     .map(this.regToAutofill)
                     .filter((result: any) => result.name.toLowerCase().includes(query.toLowerCase())))

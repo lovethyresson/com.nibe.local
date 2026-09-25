@@ -363,6 +363,16 @@ export function roleRegisters(profile: ModelProfile, role: Role): Register[] {
         !register.internal && groups.has(register.group) && (!register.role || register.role === role));
 }
 
+// What a device's generic write cards offer: its capabilities plus the Flow-only registers that
+// belong on it (see Register.flowOnly). Conditions and triggers stay on the capabilities alone —
+// a Flow-only register is never read, so there is nothing to compare or fire on.
+export function writableRegisters(profile: ModelProfile, role: Role, selected: Register[]): Register[] {
+    const groups = new Set<GroupId>(roleGroups[role]);
+    const flowOnly = profile.registers.filter((register) =>
+        register.flowOnly && groups.has(register.group) && (!register.role || register.role === role));
+    return [...selected, ...flowOnly];
+}
+
 // Suggested device names, shown in pairing. Generic across models (the driver name
 // distinguishes S from F).
 export const roleNames: Record<Role, {en: string; sv: string}> = {
