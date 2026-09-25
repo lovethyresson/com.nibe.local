@@ -346,6 +346,30 @@ test('only explicit unsupported-register errors put background reads on cooldown
     assert.equal(connection.unsupportedUntil.has('probe'), false);
 });
 
+// A priority change used to re-ask every reason input, including the ones the pump had just
+// answered exception 1 for (pool and cooling on a pump without them), so each change added a
+// fresh batch of "Illegal function" lines. An input on cooldown reads as missing instead.
+test('a priority-change explanation does not re-read inputs on cooldown', async () => {
+    const connection: any = Object.create(PumpConnection.prototype);
+    const seen: Record<string, number | undefined> = {};
+    Object.assign(connection, {
+        unsupportedUntil: new Map([['__reason.pool', Date.now() + 60_000]]),
+        reasonState: {},
+        profile: {role: {priorityToRole: {}}, reason: {explain: ({v}: any) => {
+            seen.pool = v('pool');
+            seen.dm = v('dm');
+            return undefined;
+        }}},
+        reasonRegisters: [['pool', register('__reason.pool')], ['dm', register('__reason.dm')]]
+    });
+    const asked: string[] = [];
+    connection.readRegisterRaw = async (r: any) => { asked.push(r.name); return 5; };
+    await connection.explainPriorityChange(10, 30, 'heating');
+    assert.deepEqual(asked, ['__reason.dm']);
+    assert.equal(seen.pool, undefined);
+    assert.equal(seen.dm, 5);
+});
+
 function indoorDevice() {
     const {d, store} = device();
     d.role = 'heating';

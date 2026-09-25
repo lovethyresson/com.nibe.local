@@ -117,9 +117,10 @@ export interface PumpSubscriber {
 
 // Modbus exception codes (MODBUS Application Protocol v1.1b, section 7). jsmodbus surfaces
 // these only as "A Modbus Exception Occurred - See Response Body", so without decoding them a
-// failed write says nothing at all about why it failed.
+// failed request says nothing at all about why it failed. Worded for reads and writes alike:
+// Nibe answers 1 for a register this pump doesn't have, on either.
 const MODBUS_EXCEPTIONS: Record<number, string> = {
-    1: 'Illegal function — the pump does not support writing this register',
+    1: 'Illegal function — this pump doesn\'t have this register, or a pump setting has switched it off',
     2: 'Illegal data address — no such register on this model',
     3: 'Illegal data value — the value is outside the range the pump accepts',
     4: 'Server device failure — the pump hit an error carrying out the request',
@@ -877,8 +878,8 @@ export class PumpConnection {
         const reason = this.profile.reason;
         if (!reason || this.reasonRegisters.length === 0)
             return undefined;
-        const raws = await Promise.all(
-            this.reasonRegisters.map(([, register]) => this.readRegisterRaw(register)));
+        const raws = await Promise.all(this.reasonRegisters.map(([, register]) =>
+            this.onCooldown(register.name) ? undefined : this.readRegisterRaw(register)));
         const values = new Map<string, number>();
         this.reasonRegisters.forEach(([id, register], i) => {
             const raw = raws[i];
@@ -1036,7 +1037,7 @@ export class PumpConnection {
         // Keep priority and power close together, before slower diagnostic reads. Critical
         // energy inputs are never put on cooldown, even when an optional fallback is absent.
         const eligible = this.unionRegisters()
-            .filter((r) => critical.has(r.name) || Date.now() >= (this.unsupportedUntil.get(r.name) ?? 0))
+            .filter((r) => critical.has(r.name) || !this.onCooldown(r.name))
             .sort((a, b) => Number(critical.has(b.name)) - Number(critical.has(a.name)));
         const {frequent: toPoll, background} = planPoll(this.profile, eligible, this.backgroundAttempted, Date.now());
         Promise.all(toPoll.map((register) => this.readRegisterRaw(register))).then(async (raws) => {
@@ -1788,6 +1789,13 @@ export class PumpConnection {
 
     isConnected(): boolean {
         return this.connected;
+    }
+
+    // Answered exception 1 or 2 recently, so it is left alone until the cooldown runs out — every
+    // path that reads on its own schedule honours this, not just the poll, or the same absent
+    // register is re-asked (and re-logged) from each of them.
+    onCooldown(name: string): boolean {
+        return Date.now() < (this.unsupportedUntil.get(name) ?? 0);
     }
 
     shutdown() {

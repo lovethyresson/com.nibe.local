@@ -1293,7 +1293,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             // burst of 100 concurrent reads is a poor thing to do to a pump that permits one
             // client. A hundred sequential reads take about a second.
             for (const register of all) {
-                const raw = this.profile.polling
+                // One the poll was just told is absent keeps its recorded answer below rather
+                // than being asked again — the re-read only doubled every failure in the log.
+                const raw = this.profile.polling || this.connection.onCooldown(register.name)
                     ? this.connection.lastRawFor(register.name)
                     : await this.connection.readRegisterRaw(register, false);
                 const value = raw === undefined ? undefined : this.fromRegisterValue(register, raw);

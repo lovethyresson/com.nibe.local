@@ -295,3 +295,17 @@ Two clauses got through because each looked like it was doing work:
 **Rule:** after drafting, read each sentence and ask *would the owner recognise this as their own
 problem, or is it how the app works?* Cut the second kind. And when there is nothing the owner must
 do, write nothing — the null case is silence, not a sentence saying so.
+
+## A log full of errors is a bug report, not "debug logging doing its job"
+
+**2026-09-25.** Handed a startup log with ~190 "Device.driverUri is deprecated" lines and dozens of
+"Illegal function" read failures, I sorted it into "unrelated/pre-existing" and "expected with debug
+on" and offered to flag the fixes for later. The user: "Are you kidding me? … Get real." Every item
+had a cause in our code: a deprecated getter read once per device on the Homey, an exception text
+that blamed *writing* on reads, and two read paths (priority-change reasons, the debug dump) that
+ignored the cooldown the poll had already set, so each absent register failed two or three times.
+
+**Rule:** when the user shows a noisy log, the question is "which line of ours produced each of
+these, and why more than once?" — not "which ones can I explain away". Pre-existing is not the same
+as acceptable, and "debug is on" explains why a line is *printed*, never why the request was *made*.
+Fix what repeats; only then triage what's left.

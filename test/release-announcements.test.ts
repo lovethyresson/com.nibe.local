@@ -73,12 +73,20 @@ test('startup uses persisted inventory even before SDK drivers exist', async () 
     assert.deepEqual(h.messages, ['Hot water setup']);
 });
 
-test('inventory recognizes both Homey device ID formats and excludes other apps', () => {
+test('inventory recognizes this app\'s devices by driverId and excludes other apps', () => {
     assert.deepEqual(announcementDevices({
         one: {driverId: 'homey:app:com.nibe.local:nibe_s', data: {role: 'hotwater'}},
-        two: {driverUri: 'homey:app:com.nibe.local', driverId: 'nibe_s', data: {role: 'heating'}},
+        two: {driverId: 'homey:app:com.nibe.local:nibe_s', data: {role: 'heating'}},
         other: {driverId: 'homey:app:another.app:nibe_s', data: {role: 'hotwater'}}
     }, 'com.nibe.local'), devices);
+});
+
+// homey-api's Device.driverUri is a getter that logs a deprecation warning on every access; one
+// read per device filled a startup log with ~190 lines. Nothing may touch it.
+test('inventory never reads the deprecated driverUri', () => {
+    const device = {driverId: 'homey:app:com.nibe.local:nibe_s', data: {role: 'heating'}};
+    Object.defineProperty(device, 'driverUri', {get: () => { throw new Error('driverUri was read'); }});
+    assert.deepEqual(announcementDevices({device}, 'com.nibe.local'), [{driverId: 'nibe_s', role: 'heating'}]);
 });
 
 test('failed inventory does not silently consume an announcement', async () => {
