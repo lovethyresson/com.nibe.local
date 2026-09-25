@@ -35,12 +35,6 @@ export type GroupId = typeof groupIds[number] | "core";
 export interface RegisterInfo {
     en: string;
     sv: string;
-    // Optional for the pairing/Repair one-liners, which fall back to English. Give them where the
-    // text is the only label a register has — a Flow-only register's name in the card's list.
-    nl?: string;
-    de?: string;
-    no?: string;
-    da?: string;
 }
 
 export interface Register  {
@@ -102,10 +96,10 @@ export interface Register  {
     // Still sampled by detection, which is what decides whether it is usable on this model.
     // Combined with writeOnly for sensor-feed commands: no capability and no polling.
     internal?: boolean;
-    // Offered by the generic write cards ("Set register to value", enable/disable feature) even
-    // though it is no capability. For an `internal` + `writeOnly` register that exists only for
-    // automations, e.g. SG Ready's requested mode: nothing on the tile, nothing polled. On a pump
-    // without it the write fails with the pump's own Modbus error.
+    // Written from its own Flow card even though it is no capability. For an `internal` +
+    // `writeOnly` register that exists only for automations, e.g. SG Ready's requested mode:
+    // nothing on the tile, nothing polled, and a write-only on/off still gets its On/Off card.
+    // On a pump without it the write fails with the pump's own Modbus error.
     flowOnly?: boolean;
     // Addresses to fall back to, in order, when this register carries no usable value on a
     // model. Two different situations need this, and only one of them is predictable from
@@ -191,9 +185,10 @@ export const flowPredicates = {
     // Generic numeric write (set_numeric_value).
     numericAction: (r: Register) => r.direction === Dir.Out && (r.scale ?? 0) > 0 && !r.noAction,
     // Generic on/off write (enable_feature / disable_feature). `noAction` excludes a register
-    // from every write card, not just the numeric one.
+    // from every write card, not just the numeric one. A write-only command is left out too,
+    // unless it is Flow-only, which exists for exactly these cards (SG Ready's 3032).
     boolAction: (r: Register) =>
-        r.direction === Dir.Out && !!r.bool && !r.writeOnly && !r.noAction,
+        r.direction === Dir.Out && !!r.bool && (!r.writeOnly || !!r.flowOnly) && !r.noAction,
     // numeric_value_comparison — reads only, so direction is irrelevant.
     numericCondition: (r: Register) => (r.scale ?? 0) > 0,
     // feature_enabled, capability_turned_on, capability_turned_off. A write-only command

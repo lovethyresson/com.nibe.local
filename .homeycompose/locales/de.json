@@ -91,6 +91,9 @@
     "solar": "Solar / PV"
   },
   "Normal": "Normal",
+  "Blocking": "Sperre",
+  "Low price": "Niedrigpreis",
+  "Overcapacity": "Überkapazität",
   "Speed 1": "Stufe 1",
   "Speed 2": "Stufe 2",
   "Speed 3": "Stufe 3",

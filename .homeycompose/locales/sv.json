@@ -91,6 +91,9 @@
     "solar": "Solceller / PV"
   },
   "Normal": "Normal",
+  "Blocking": "Blockering",
+  "Low price": "Lågpris",
+  "Overcapacity": "Överkapacitet",
   "Speed 1": "Steg 1",
   "Speed 2": "Steg 2",
   "Speed 3": "Steg 3",

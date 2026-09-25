@@ -93,6 +93,40 @@ test('operating-mode Flows use raw ids and accept saved legacy labels', async ()
     assert.equal(writes[writes.length - 1], 65413);
 });
 
+// A picker with no value map in code (the heat curve) gets its dropdown from its own capability
+// in the manifest: the ids and translated titles its tile shows.
+test('picker Flow cards offer the capability\'s own values, translated, and write the picked one', async () => {
+    const driver = new DriverClass();
+    const cards = new Map<string, any>();
+    const get = (id: string) => {
+        if (!cards.has(id)) cards.set(id, {
+            registerArgumentAutocompleteListener(_name: string, fn: any) { this.autocomplete = fn; return this; },
+            registerRunListener(fn: any) { this.run = fn; return this; }
+        });
+        return cards.get(id);
+    };
+    Object.assign(driver, {
+        profile: sProfile,
+        actionSpecs: Object.fromEntries(sProfile.compose.actions.map((a: any) => [a.id, a])),
+        conditionSpecs: Object.fromEntries(sProfile.compose.conditions.map((a: any) => [a.id, a])),
+        homey: {__: (key: string) => key, manifest: require('../app.json'), i18n: {getLanguage: () => 'nl'},
+            flow: {getActionCard: (id: string) => get('action:' + id), getConditionCard: (id: string) => get('condition:' + id),
+                getDeviceTriggerCard: (id: string) => get('trigger:' + id)}},
+        tracked: (_kind: any, _card: any, _reg: any, fn: any) => fn,
+        registerAutofillFlow: () => {}, log: () => {}
+    });
+    driver.registerFlows();
+    const demand = get('action:hotwater_demand_NIBE.h56_hotwater_demand_mode.enum');
+    const choices = await demand.autocomplete('');
+    assert.deepEqual(choices.map((c: any) => c.id), ['0', '1', '2', '4']);
+    assert.equal(choices[0].name, '0 = Klein', 'Dutch title from the manifest');
+    const writes: [string, any][] = [];
+    await demand.run({device: {getName: () => 'Pump', writeRegister: async (r: Register, v: any) => { writes.push([r.name, v]); }},
+        mode: choices[3]});
+    assert.deepEqual(writes, [['hotwater_demand_NIBE.h56_hotwater_demand_mode', '4']]);
+    assert.equal((await get('action:curve_mode_NIBE.h26_heat_curve.enum').autocomplete('')).length, 16);
+});
+
 test('invalid values never reach the device write transport; confirmations use canonical values', async () => {
     const {d} = device();
     const mode = sProfile.registerByName['operating_mode_NIBE.h237_operating_mode'];

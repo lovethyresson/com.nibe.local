@@ -47,6 +47,14 @@ export const spaHeatingInfluenceMap = numeralMap(1, 10);
 export const spaInfluenceMap = numeralMap(0, 10);
 export const spaHotwaterInfluenceMap = numeralMap(1, 4);
 
+// SG Ready's requested mode (holding 6008), in Nibe's own mode names.
+export const sgReadyModeMap = Object({
+    0: "Blocking",
+    1: "Normal",
+    2: "Low price",
+    3: "Overcapacity"
+});
+
 export const registers: Register[] = [
     // External sensor mailboxes, not persistent settings or displayed measurements.
     // Live S1155 test: FC6 writes are accepted, then the pump clears the mailbox to
@@ -386,15 +394,21 @@ export const registers: Register[] = [
     {address:  843, name: "boolean_NIBE.h843_spa_activated",                   direction: Dir.Out, group: "core",       bool: true, // Aktiverad (Smart prisanpassning)
      info: {en: "Smart Price Adaption — shift consumption towards cheaper hours", sv: "Smart prisanpassning — flytta förbrukningen mot billigare timmar"}},
     // SG Ready requested mode, written over Modbus instead of the wired SG Ready inputs. Flow-only,
-    // for owners who drive SG Ready from an automation: selectable in "Set register to value" on
-    // Main and nowhere else — no capability, no polling. The pump only acts on it once SG Ready is
-    // set up on the pump and "Activate SG Ready via API" (holding 3032) is 1; both are the owner's
-    // to do. Documented only in the S1156/S1256 map (firmware 4.7.5+); an S1155 on 4.13 without SG
-    // Ready configured answers exception 1 for 6008 and the whole 1911-1913 family, so on a pump
-    // where it isn't available the write fails with that error rather than being hidden.
-    {address: 6008, name: "sg_ready.h6008_requested_mode",                     direction: Dir.Out, group: "core",       role: "main", internal: true, writeOnly: true, flowOnly: true, scale: 1, min: 0, max: 3, // Begärt driftläge (SG Ready)
-     // The label in the card's register list. Values: 0 blocking, 1 normal, 2 low price, 3 overcapacity.
-     info: {en: "SG Ready", sv: "SG Ready", nl: "SG Ready", de: "SG Ready", no: "SG Ready", da: "SG Ready"}},
+    // for owners who drive SG Ready from an automation: its own "Set SG Ready mode" card on Main
+    // and nothing else — no capability, no polling. The pump only acts on it once SG Ready is set
+    // up on the pump and "Activate SG Ready via API" (3032, below) is on; the pump side is the
+    // owner's to do. Documented only in the S1156/S1256 map (firmware 4.7.5+); an S1155 on 4.13
+    // without SG Ready configured answers exception 1 for 6008 and the whole 1911-1913 family, so
+    // on a pump where it isn't available the write fails with that error rather than being hidden.
+    // Not also in "Set value of a register": an enum register must not carry a scale (see the
+    // picker note at the top), and one card per setting is the rule for Flows.
+    {address: 6008, name: "sg_ready.h6008_requested_mode",                     direction: Dir.Out, group: "core",       role: "main", internal: true, writeOnly: true, flowOnly: true, enum: sgReadyModeMap, // Begärt driftläge (SG Ready)
+     // Values: 0 blocking, 1 normal, 2 low price, 3 overcapacity.
+     info: {en: "SG Ready requested mode", sv: "Begärt SG Ready-läge"}},
+    // "Activate SG Ready via API": on hands SG Ready to Modbus (6008 above), off hands it back to
+    // the wired inputs. Flow-only the same way, with its own "SG Ready – On/Off" card on Main.
+    {address: 3032, name: "sg_ready.h3032_api_control",                        direction: Dir.Out, group: "core",       role: "main", internal: true, writeOnly: true, flowOnly: true, bool: true, // Aktivera SG Ready via API
+     info: {en: "Let Homey set the SG Ready mode instead of the wired inputs", sv: "Låt Homey styra SG Ready-läget i stället för de trådade ingångarna"}},
     {address:  845, name: "spa_heating_influence_NIBE.h845_spa_heating_influence", direction: Dir.Out, group: "heating", enum: spaHeatingInfluenceMap, picker: true, pickerValues: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // Prisanpassning värme grad av påverkan
      info: {en: "How strongly the electricity price is allowed to move the indoor temperature (1-10)", sv: "Hur mycket elpriset får påverka inomhustemperaturen (1-10)"}},
     // Per-function enable. 844 is documented 0..3 rather than the 0/1 its title implies, and the

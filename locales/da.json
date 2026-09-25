@@ -238,5 +238,8 @@
     "searching": "Kan ikke nå varmepumpen på __host__. Søger efter den på netværket…",
     "moved": "Nibe Live: din varmepumpe er flyttet fra __from__ til __to__. Enhederne er opdateret.",
     "address_in_use": "En anden parret varmepumpe bruger allerede __host__."
-  }
+  },
+  "Blocking": "Blokering",
+  "Low price": "Lavpris",
+  "Overcapacity": "Overkapacitet"
 }

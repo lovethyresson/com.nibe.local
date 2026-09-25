@@ -91,6 +91,9 @@
     "solar": "Zonne-energie / PV"
   },
   "Normal": "Normaal",
+  "Blocking": "Blokkering",
+  "Low price": "Lage prijs",
+  "Overcapacity": "Overcapaciteit",
   "Speed 1": "Stand 1",
   "Speed 2": "Stand 2",
   "Speed 3": "Stand 3",

@@ -10,7 +10,7 @@ import {
 import {makeProfile} from '../lib/profile';
 import type {ReasonState} from '../lib/profile';
 import {
-    capabilitySyncPlan, writableRegisters,
+    capabilitySyncPlan,
     registersForRole, roleRegisters, extraCapabilities, extraCapabilityOptions,
     extraCapabilitySupport, mirrorOptions, roleGroups, allRoles, functionRoles,
     ACTIVE_POWER_CAPABILITY, FUNCTION_COP_CAPABILITY, METER_CAPABILITY, TOTAL_COP_CAPABILITY
@@ -273,8 +273,8 @@ test('internal readings are polled, sensor commands are not, and neither becomes
     const caps = new Set(sProfile.compose.capabilities);
     for (const r of internal) {
         assert.ok(!caps.has(r.name), `${r.name} is internal and must not be a capability`);
-        // Sensor feeds (5987, 5217) and SG Ready's Flow-only requested mode (6008).
-        if ([5987, 5217, 6008].includes(r.address))
+        // Sensor feeds (5987, 5217) and SG Ready's Flow-only writes (6008, 3032).
+        if ([5987, 5217, 6008, 3032].includes(r.address))
             assert.ok(!isPollable(r), `${r.name} is a write-only command, not a reading`);
         else
             assert.ok(isPollable(r), `${r.name} must still be polled — the allocator reads it`);
@@ -290,20 +290,57 @@ test('internal readings are polled, sensor commands are not, and neither becomes
 // The owner's request, as asked: register 6008 selectable in "Set register to value" on Main, with
 // nothing on any tile and nothing polled. A Flow-only register never reads, so it must stay out of
 // the comparison condition, where it would always look empty.
-test('SG Ready 6008 is offered by the generic write card on Main only', () => {
-    const sg = sProfile.registerByName['sg_ready.h6008_requested_mode'];
-    assert.equal(sg.address, 6008);
-    assert.equal(sg.direction, Dir.Out);
-    assert.ok(flowPredicates.numericAction(sg), 'Set register to value must accept it');
-    assert.ok(!isPollable(sg));
-    for (const role of allRoles) {
-        const selected = registersForRole(sProfile, role, null);
-        assert.ok(!selected.some((r) => r.name === sg.name), `no capability on ${role}`);
-        assert.equal(writableRegisters(sProfile, role, selected).some((r) => r.name === sg.name), role === 'main',
-            `offered for writing on ${role}`);
+// SG Ready from Flows, and nothing else: its own cards on Main, no capability anywhere, never polled.
+// Both cards filter on a capability only Main carries, since these registers have none of their own.
+test('SG Ready 6008 and 3032 are Flow-only on Main', () => {
+    const cards = new Map(sProfile.compose.actions.map((a: any) => [a.id, a]));
+    const mainOnly = 'capabilities=measure_enum_NIBE.i1028_priority';
+    for (const [name, card] of [['sg_ready.h6008_requested_mode', '.enum'], ['sg_ready.h3032_api_control', '.onoff']]) {
+        const r = sProfile.registerByName[name];
+        assert.equal(r.direction, Dir.Out);
+        assert.ok(!isPollable(r), `${name} is never read`);
+        assert.equal((cards.get(name + card) as any)?.$filter, mainOnly, `${name}${card} shows on Main`);
+        assert.ok(registersForRole(sProfile, 'main', null).some((x) => x.name === 'measure_enum_NIBE.i1028_priority'));
+        for (const role of allRoles)
+            assert.ok(!registersForRole(sProfile, role, null).some((x) => x.name === name), `no capability on ${role}`);
     }
-    assert.throws(() => encodeRegisterValue(sg, 4), /between 0 and 3/);
-    assert.equal(encodeRegisterValue(sg, 2), 2);
+    // A mode is a dropdown, not a number typed into the generic card: an enum must not carry a scale.
+    assert.ok(!flowPredicates.numericAction(sProfile.registerByName['sg_ready.h6008_requested_mode']));
+    assert.throws(() => encodeRegisterValue(sProfile.registerByName['sg_ready.h6008_requested_mode'], 4), /Invalid option/);
+});
+
+// 3032 hands SG Ready to Modbus and back.
+test('SG Ready 3032 switches like any other on/off', () => {
+    const api = sProfile.registerByName['sg_ready.h3032_api_control'];
+    assert.equal(api.address, 3032);
+    assert.ok(flowPredicates.boolAction(api), 'on/off writes must accept it');
+    assert.ok(!flowPredicates.boolState(api), 'never read, so no condition or trigger');
+    assert.ok(!isPollable(api));
+    // The exception is Flow-only: an ordinary write-only command still stays out.
+    assert.ok(!flowPredicates.boolAction(sProfile.registerByName['button.h22_reset_alarm']));
+    assert.equal(encodeRegisterValue(api, true), 1);
+    assert.equal(encodeRegisterValue(api, false), 0);
+});
+
+// One way to switch each thing from a Flow. The generic Enable/Disable feature cards duplicated
+// the dedicated ones for most switches and were the only route for the rest (Smart Price
+// Adaption), so every switchable register now has its own card and the generic pair is
+// deprecated: hidden from new Flows, still run for existing ones.
+test('every switchable on/off register has its own card, and the generic pair is deprecated', () => {
+    const actions = new Map(sProfile.compose.actions.map((a: any) => [a.id, a]));
+    for (const r of registers.filter(flowPredicates.boolAction))
+        assert.ok(actions.has(`${r.name}.onoff`), `${r.name} has no dedicated On/Off card`);
+    for (const id of ['enable_feature', 'disable_feature'])
+        assert.equal((actions.get(id) as any)?.deprecated, true, `${id} must be deprecated, not removed`);
+});
+
+test('the SG Ready mode card offers the four modes and writes their codes', () => {
+    const sg = sProfile.registerByName['sg_ready.h6008_requested_mode'];
+    assert.ok(sProfile.compose.actions.some((a: any) => a.id === `${sg.name}.enum`));
+    assert.deepEqual(Object.values(sg.enum!), ['Blocking', 'Normal', 'Low price', 'Overcapacity']);
+    assert.equal(encodeRegisterValue(sg, '3'), 3, 'dropdown id');
+    assert.equal(encodeRegisterValue(sg, 'Low price'), 2, 'a label stored by an older Flow');
+    assert.equal(encodeRegisterValue(sg, 1), 1, 'the generic numeric card still works');
 });
 
 test('every register has bilingual info and a sane scale/size', () => {

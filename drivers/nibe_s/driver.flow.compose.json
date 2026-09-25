@@ -1487,6 +1487,258 @@
       ]
     },
     {
+      "id": "curve_mode_NIBE.h26_heat_curve.enum",
+      "title": {
+        "en": "Set heat curve",
+        "sv": "Ställ in värmekurva",
+        "de": "Heizkurve einstellen",
+        "nl": "Stooklijn instellen",
+        "no": "Still inn varmekurve",
+        "da": "Indstil varmekurve"
+      },
+      "titleFormatted": {
+        "en": "Set heat curve [[mode]]",
+        "sv": "Ställ in värmekurva [[mode]]",
+        "de": "Heizkurve [[mode]] einstellen",
+        "nl": "Stooklijn instellen op [[mode]]",
+        "no": "Still inn varmekurve [[mode]]",
+        "da": "Indstil varmekurve [[mode]]"
+      },
+      "hint": {
+        "en": "The heat curve slope (0–15).",
+        "sv": "Värmekurvans lutning (0–15).",
+        "de": "Steigung der Heizkurve (0–15).",
+        "nl": "Helling van de stooklijn (0–15).",
+        "no": "Varmekurvens stigning (0–15).",
+        "da": "Varmekurvens hældning (0–15)."
+      },
+      "$filter": "capabilities=curve_mode_NIBE.h26_heat_curve",
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "mode",
+          "title": {
+            "en": "Mode",
+            "sv": "Läge",
+            "de": "Modus",
+            "nl": "Stand",
+            "no": "Modus",
+            "da": "Indstilling"
+          }
+        }
+      ]
+    },
+    {
+      "id": "curve_displacement_NIBE.h30_heat_curve_displacement.enum",
+      "title": {
+        "en": "Set heat curve displacement",
+        "sv": "Ställ in värmeförskjutning",
+        "de": "Parallelverschiebung einstellen",
+        "nl": "Verschuiving stooklijn instellen",
+        "no": "Still inn varmeforskyvning",
+        "da": "Indstil varmeforskydning"
+      },
+      "titleFormatted": {
+        "en": "Set heat curve displacement [[mode]]",
+        "sv": "Ställ in värmeförskjutning [[mode]]",
+        "de": "Parallelverschiebung [[mode]] einstellen",
+        "nl": "Verschuiving stooklijn instellen op [[mode]]",
+        "no": "Still inn varmeforskyvning [[mode]]",
+        "da": "Indstil varmeforskydning [[mode]]"
+      },
+      "hint": {
+        "en": "Shifts the heat curve up or down (−10…+10).",
+        "sv": "Förskjuter värmekurvan uppåt eller nedåt (−10…+10).",
+        "de": "Verschiebt die Heizkurve nach oben oder unten (−10…+10).",
+        "nl": "Verschuift de stooklijn omhoog of omlaag (−10…+10).",
+        "no": "Forskyver varmekurven opp eller ned (−10…+10).",
+        "da": "Forskyder varmekurven op eller ned (−10…+10)."
+      },
+      "$filter": "capabilities=curve_displacement_NIBE.h30_heat_curve_displacement",
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "mode",
+          "title": {
+            "en": "Mode",
+            "sv": "Läge",
+            "de": "Modus",
+            "nl": "Stand",
+            "no": "Modus",
+            "da": "Indstilling"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hotwater_demand_NIBE.h56_hotwater_demand_mode.enum",
+      "title": {
+        "en": "Set hot water demand",
+        "sv": "Ställ in varmvatten behov",
+        "de": "Brauchwasserbedarf einstellen",
+        "nl": "Warmtapwaterbehoefte instellen",
+        "no": "Still inn varmtvannsbehov",
+        "da": "Indstil varmtvandsbehov"
+      },
+      "titleFormatted": {
+        "en": "Set hot water demand [[mode]]",
+        "sv": "Ställ in varmvatten behov [[mode]]",
+        "de": "Brauchwasserbedarf [[mode]] einstellen",
+        "nl": "Warmtapwaterbehoefte instellen op [[mode]]",
+        "no": "Still inn varmtvannsbehov [[mode]]",
+        "da": "Indstil varmtvandsbehov [[mode]]"
+      },
+      "hint": {
+        "en": "Small, medium, large or smart control.",
+        "sv": "Liten, medel, stor eller smart styrning.",
+        "de": "Klein, mittel, groß oder intelligente Steuerung.",
+        "nl": "Klein, gemiddeld, groot of slimme regeling.",
+        "no": "Liten, middels, stor eller smart styring.",
+        "da": "Lille, middel, stor eller smart styring."
+      },
+      "$filter": "capabilities=hotwater_demand_NIBE.h56_hotwater_demand_mode",
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "mode",
+          "title": {
+            "en": "Mode",
+            "sv": "Läge",
+            "de": "Modus",
+            "nl": "Stand",
+            "no": "Modus",
+            "da": "Indstilling"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hotwater_increase_NIBE.h697_onetimeincrease_hotwater.enum",
+      "title": {
+        "en": "Set one-time increase",
+        "sv": "Ställ in engångshöjning",
+        "de": "Einmalige Erhöhung einstellen",
+        "nl": "Eenmalige verhoging instellen",
+        "no": "Still inn engangsheving",
+        "da": "Indstil engangsforøgelse"
+      },
+      "titleFormatted": {
+        "en": "Set one-time increase [[mode]]",
+        "sv": "Ställ in engångshöjning [[mode]]",
+        "de": "Einmalige Erhöhung [[mode]] einstellen",
+        "nl": "Eenmalige verhoging instellen op [[mode]]",
+        "no": "Still inn engangsheving [[mode]]",
+        "da": "Indstil engangsforøgelse [[mode]]"
+      },
+      "hint": {
+        "en": "Boost hot water for a number of hours, or switch it off.",
+        "sv": "Höj varmvattnet ett antal timmar, eller stäng av.",
+        "de": "Warmwasser für einige Stunden erhöhen oder ausschalten.",
+        "nl": "Warm water een aantal uur verhogen, of uitzetten.",
+        "no": "Øk varmtvannet i et antall timer, eller slå av.",
+        "da": "Hæv varmtvandet i et antal timer, eller slå fra."
+      },
+      "$filter": "capabilities=hotwater_increase_NIBE.h697_onetimeincrease_hotwater",
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "mode",
+          "title": {
+            "en": "Mode",
+            "sv": "Läge",
+            "de": "Modus",
+            "nl": "Stand",
+            "no": "Modus",
+            "da": "Indstilling"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hotwater_periodic_interval_NIBE.h66_periodic_hw_interval.enum",
+      "title": {
+        "en": "Set periodic hot water interval",
+        "sv": "Ställ in periodiskt varmvatten intervall",
+        "de": "Intervall periodische Erhöhung einstellen",
+        "nl": "Interval periodiek warmtapwater instellen",
+        "no": "Still inn intervall periodisk varmtvann",
+        "da": "Indstil interval periodisk varmtvand"
+      },
+      "titleFormatted": {
+        "en": "Set periodic hot water interval [[mode]]",
+        "sv": "Ställ in periodiskt varmvatten intervall [[mode]]",
+        "de": "Intervall periodische Erhöhung [[mode]] einstellen",
+        "nl": "Interval periodiek warmtapwater instellen op [[mode]]",
+        "no": "Still inn intervall periodisk varmtvann [[mode]]",
+        "da": "Indstil interval periodisk varmtvand [[mode]]"
+      },
+      "hint": {
+        "en": "Days between periodic hot water boosts.",
+        "sv": "Dagar mellan periodiska varmvattenhöjningar.",
+        "de": "Tage zwischen periodischen Warmwassererhöhungen.",
+        "nl": "Dagen tussen periodieke warmwaterverhogingen.",
+        "no": "Dager mellom periodiske varmtvannshevinger.",
+        "da": "Dage mellem periodiske varmtvandsforøgelser."
+      },
+      "$filter": "capabilities=hotwater_periodic_interval_NIBE.h66_periodic_hw_interval",
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "mode",
+          "title": {
+            "en": "Mode",
+            "sv": "Läge",
+            "de": "Modus",
+            "nl": "Stand",
+            "no": "Modus",
+            "da": "Indstilling"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hotwater_periodtime_NIBE.h92_periodtime_hotwater.enum",
+      "title": {
+        "en": "Set periodic hot water length",
+        "sv": "Ställ in periodiskt varmvatten längd",
+        "de": "Dauer periodische Erhöhung einstellen",
+        "nl": "Duur periodiek warmtapwater instellen",
+        "no": "Still inn varighet periodisk varmtvann",
+        "da": "Indstil varighed periodisk varmtvand"
+      },
+      "titleFormatted": {
+        "en": "Set periodic hot water length [[mode]]",
+        "sv": "Ställ in periodiskt varmvatten längd [[mode]]",
+        "de": "Dauer periodische Erhöhung [[mode]] einstellen",
+        "nl": "Duur periodiek warmtapwater instellen op [[mode]]",
+        "no": "Still inn varighet periodisk varmtvann [[mode]]",
+        "da": "Indstil varighed periodisk varmtvand [[mode]]"
+      },
+      "hint": {
+        "en": "How long a periodic hot water boost lasts.",
+        "sv": "Hur länge en periodisk varmvattenhöjning pågår.",
+        "de": "Wie lange eine periodische Warmwassererhöhung dauert.",
+        "nl": "Hoe lang een periodieke warmwaterverhoging duurt.",
+        "no": "Hvor lenge en periodisk varmtvannsheving varer.",
+        "da": "Hvor længe en periodisk varmtvandsforøgelse varer."
+      },
+      "$filter": "capabilities=hotwater_periodtime_NIBE.h92_periodtime_hotwater",
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "mode",
+          "title": {
+            "en": "Mode",
+            "sv": "Läge",
+            "de": "Modus",
+            "nl": "Stand",
+            "no": "Modus",
+            "da": "Indstilling"
+          }
+        }
+      ]
+    },
+    {
       "id": "boolean_NIBE.h697_more_hotwater.onoff",
       "title": {
         "en": "More hot water",
@@ -1983,6 +2235,378 @@
       ]
     },
     {
+      "id": "boolean_NIBE.h843_spa_activated.onoff",
+      "title": {
+        "en": "Smart Price Adaption",
+        "sv": "Smart prisanpassning",
+        "de": "Smart Price Adaption",
+        "nl": "Smart Price Adaption",
+        "no": "Smart pristilpasning",
+        "da": "Smart pristilpasning"
+      },
+      "titleFormatted": {
+        "en": "Smart Price Adaption – [[state]]",
+        "sv": "Smart prisanpassning – [[state]]",
+        "de": "Smart Price Adaption – [[state]]",
+        "nl": "Smart Price Adaption – [[state]]",
+        "no": "Smart pristilpasning – [[state]]",
+        "da": "Smart pristilpasning – [[state]]"
+      },
+      "hint": {
+        "en": "Shift the pump's consumption towards cheaper hours.",
+        "sv": "Flytta pumpens förbrukning mot billigare timmar.",
+        "de": "Verlagert den Verbrauch der Pumpe in günstigere Stunden.",
+        "nl": "Verschuif het verbruik van de pomp naar goedkopere uren.",
+        "no": "Flytt pumpens forbruk mot billigere timer.",
+        "da": "Flyt pumpens forbrug mod billigere timer."
+      },
+      "$filter": "capabilities=boolean_NIBE.h843_spa_activated",
+      "args": [
+        {
+          "type": "dropdown",
+          "name": "state",
+          "title": {
+            "en": "State",
+            "sv": "Läge",
+            "de": "Zustand",
+            "nl": "Status",
+            "no": "Tilstand",
+            "da": "Tilstand"
+          },
+          "values": [
+            {
+              "id": "on",
+              "title": {
+                "en": "On",
+                "sv": "På",
+                "de": "Ein",
+                "nl": "Aan",
+                "no": "På",
+                "da": "Til"
+              }
+            },
+            {
+              "id": "off",
+              "title": {
+                "en": "Off",
+                "sv": "Av",
+                "de": "Aus",
+                "nl": "Uit",
+                "no": "Av",
+                "da": "Fra"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "boolean_NIBE.h844_spa_heating_activated.onoff",
+      "title": {
+        "en": "Smart Price Adaption",
+        "sv": "Smart prisanpassning",
+        "de": "Smart Price Adaption",
+        "nl": "Smart Price Adaption",
+        "no": "Smart pristilpasning",
+        "da": "Smart pristilpasning"
+      },
+      "titleFormatted": {
+        "en": "Smart Price Adaption – [[state]]",
+        "sv": "Smart prisanpassning – [[state]]",
+        "de": "Smart Price Adaption – [[state]]",
+        "nl": "Smart Price Adaption – [[state]]",
+        "no": "Smart pristilpasning – [[state]]",
+        "da": "Smart pristilpasning – [[state]]"
+      },
+      "hint": {
+        "en": "Let Smart Price Adaption act on heating.",
+        "sv": "Låt smart prisanpassning påverka värmen.",
+        "de": "Smart Price Adaption auf die Heizung wirken lassen.",
+        "nl": "Laat Smart Price Adaption de verwarming beïnvloeden.",
+        "no": "La smart pristilpasning påvirke varmen.",
+        "da": "Lad smart pristilpasning påvirke varmen."
+      },
+      "$filter": "capabilities=boolean_NIBE.h844_spa_heating_activated",
+      "args": [
+        {
+          "type": "dropdown",
+          "name": "state",
+          "title": {
+            "en": "State",
+            "sv": "Läge",
+            "de": "Zustand",
+            "nl": "Status",
+            "no": "Tilstand",
+            "da": "Tilstand"
+          },
+          "values": [
+            {
+              "id": "on",
+              "title": {
+                "en": "On",
+                "sv": "På",
+                "de": "Ein",
+                "nl": "Aan",
+                "no": "På",
+                "da": "Til"
+              }
+            },
+            {
+              "id": "off",
+              "title": {
+                "en": "Off",
+                "sv": "Av",
+                "de": "Aus",
+                "nl": "Uit",
+                "no": "Av",
+                "da": "Fra"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "boolean_NIBE.h846_spa_hotwater_activated.onoff",
+      "title": {
+        "en": "Smart Price Adaption",
+        "sv": "Smart prisanpassning",
+        "de": "Smart Price Adaption",
+        "nl": "Smart Price Adaption",
+        "no": "Smart pristilpasning",
+        "da": "Smart pristilpasning"
+      },
+      "titleFormatted": {
+        "en": "Smart Price Adaption – [[state]]",
+        "sv": "Smart prisanpassning – [[state]]",
+        "de": "Smart Price Adaption – [[state]]",
+        "nl": "Smart Price Adaption – [[state]]",
+        "no": "Smart pristilpasning – [[state]]",
+        "da": "Smart pristilpasning – [[state]]"
+      },
+      "hint": {
+        "en": "Let Smart Price Adaption act on hot water.",
+        "sv": "Låt smart prisanpassning påverka varmvattnet.",
+        "de": "Smart Price Adaption auf das Warmwasser wirken lassen.",
+        "nl": "Laat Smart Price Adaption het warm water beïnvloeden.",
+        "no": "La smart pristilpasning påvirke varmtvannet.",
+        "da": "Lad smart pristilpasning påvirke varmtvandet."
+      },
+      "$filter": "capabilities=boolean_NIBE.h846_spa_hotwater_activated",
+      "args": [
+        {
+          "type": "dropdown",
+          "name": "state",
+          "title": {
+            "en": "State",
+            "sv": "Läge",
+            "de": "Zustand",
+            "nl": "Status",
+            "no": "Tilstand",
+            "da": "Tilstand"
+          },
+          "values": [
+            {
+              "id": "on",
+              "title": {
+                "en": "On",
+                "sv": "På",
+                "de": "Ein",
+                "nl": "Aan",
+                "no": "På",
+                "da": "Til"
+              }
+            },
+            {
+              "id": "off",
+              "title": {
+                "en": "Off",
+                "sv": "Av",
+                "de": "Aus",
+                "nl": "Uit",
+                "no": "Av",
+                "da": "Fra"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "boolean_NIBE.h849_spa_cooling_activated.onoff",
+      "title": {
+        "en": "Smart Price Adaption",
+        "sv": "Smart prisanpassning",
+        "de": "Smart Price Adaption",
+        "nl": "Smart Price Adaption",
+        "no": "Smart pristilpasning",
+        "da": "Smart pristilpasning"
+      },
+      "titleFormatted": {
+        "en": "Smart Price Adaption – [[state]]",
+        "sv": "Smart prisanpassning – [[state]]",
+        "de": "Smart Price Adaption – [[state]]",
+        "nl": "Smart Price Adaption – [[state]]",
+        "no": "Smart pristilpasning – [[state]]",
+        "da": "Smart pristilpasning – [[state]]"
+      },
+      "hint": {
+        "en": "Let Smart Price Adaption act on cooling.",
+        "sv": "Låt smart prisanpassning påverka kylan.",
+        "de": "Smart Price Adaption auf die Kühlung wirken lassen.",
+        "nl": "Laat Smart Price Adaption de koeling beïnvloeden.",
+        "no": "La smart pristilpasning påvirke kjølingen.",
+        "da": "Lad smart pristilpasning påvirke kølingen."
+      },
+      "$filter": "capabilities=boolean_NIBE.h849_spa_cooling_activated",
+      "args": [
+        {
+          "type": "dropdown",
+          "name": "state",
+          "title": {
+            "en": "State",
+            "sv": "Läge",
+            "de": "Zustand",
+            "nl": "Status",
+            "no": "Tilstand",
+            "da": "Tilstand"
+          },
+          "values": [
+            {
+              "id": "on",
+              "title": {
+                "en": "On",
+                "sv": "På",
+                "de": "Ein",
+                "nl": "Aan",
+                "no": "På",
+                "da": "Til"
+              }
+            },
+            {
+              "id": "off",
+              "title": {
+                "en": "Off",
+                "sv": "Av",
+                "de": "Aus",
+                "nl": "Uit",
+                "no": "Av",
+                "da": "Fra"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sg_ready.h3032_api_control.onoff",
+      "title": {
+        "en": "SG Ready",
+        "sv": "SG Ready",
+        "de": "SG Ready",
+        "nl": "SG Ready",
+        "no": "SG Ready",
+        "da": "SG Ready"
+      },
+      "titleFormatted": {
+        "en": "SG Ready – [[state]]",
+        "sv": "SG Ready – [[state]]",
+        "de": "SG Ready – [[state]]",
+        "nl": "SG Ready – [[state]]",
+        "no": "SG Ready – [[state]]",
+        "da": "SG Ready – [[state]]"
+      },
+      "hint": {
+        "en": "On: Homey sets the SG Ready mode. Off: the pump's own SG Ready inputs decide.",
+        "sv": "På: Homey styr SG Ready-läget. Av: pumpens egna SG Ready-ingångar styr.",
+        "de": "Ein: Homey setzt den SG-Ready-Modus. Aus: die eigenen SG-Ready-Eingänge der Pumpe entscheiden.",
+        "nl": "Aan: Homey stelt de SG Ready-modus in. Uit: de eigen SG Ready-ingangen van de pomp beslissen.",
+        "no": "På: Homey styrer SG Ready-modus. Av: pumpens egne SG Ready-innganger bestemmer.",
+        "da": "Til: Homey styrer SG Ready-tilstanden. Fra: pumpens egne SG Ready-indgange bestemmer."
+      },
+      "$filter": "capabilities=measure_enum_NIBE.i1028_priority",
+      "args": [
+        {
+          "type": "dropdown",
+          "name": "state",
+          "title": {
+            "en": "State",
+            "sv": "Läge",
+            "de": "Zustand",
+            "nl": "Status",
+            "no": "Tilstand",
+            "da": "Tilstand"
+          },
+          "values": [
+            {
+              "id": "on",
+              "title": {
+                "en": "On",
+                "sv": "På",
+                "de": "Ein",
+                "nl": "Aan",
+                "no": "På",
+                "da": "Til"
+              }
+            },
+            {
+              "id": "off",
+              "title": {
+                "en": "Off",
+                "sv": "Av",
+                "de": "Aus",
+                "nl": "Uit",
+                "no": "Av",
+                "da": "Fra"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sg_ready.h6008_requested_mode.enum",
+      "title": {
+        "en": "Set SG Ready mode",
+        "sv": "Ställ in SG Ready-läge",
+        "de": "SG-Ready-Modus einstellen",
+        "nl": "SG Ready-modus instellen",
+        "no": "Still inn SG Ready-modus",
+        "da": "Indstil SG Ready-tilstand"
+      },
+      "titleFormatted": {
+        "en": "Set SG Ready mode [[mode]]",
+        "sv": "Ställ in SG Ready-läge [[mode]]",
+        "de": "SG-Ready-Modus [[mode]] einstellen",
+        "nl": "SG Ready-modus instellen op [[mode]]",
+        "no": "Still inn SG Ready-modus [[mode]]",
+        "da": "Indstil SG Ready-tilstand [[mode]]"
+      },
+      "hint": {
+        "en": "Needs SG Ready set up on the pump and switched on.",
+        "sv": "Kräver att SG Ready är konfigurerat i pumpen och påslaget.",
+        "de": "Erfordert, dass SG Ready an der Pumpe eingerichtet und eingeschaltet ist.",
+        "nl": "Vereist dat SG Ready op de pomp is ingesteld en aan staat.",
+        "no": "Krever at SG Ready er satt opp på pumpen og slått på.",
+        "da": "Kræver at SG Ready er sat op på pumpen og slået til."
+      },
+      "$filter": "capabilities=measure_enum_NIBE.i1028_priority",
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "mode",
+          "title": {
+            "en": "Mode",
+            "sv": "Läge",
+            "de": "Modus",
+            "nl": "Stand",
+            "no": "Modus",
+            "da": "Indstilling"
+          }
+        }
+      ]
+    },
+    {
       "id": "set_numeric_value",
       "title": {
         "en": "Set value of a register (advanced)",
@@ -2034,7 +2658,8 @@
             "da": "Værdi"
           }
         }
-      ]
+      ],
+      "deprecated": true
     },
     {
       "id": "enable_feature",
@@ -2076,7 +2701,8 @@
             "da": "Register"
           }
         }
-      ]
+      ],
+      "deprecated": true
     },
     {
       "id": "disable_feature",
@@ -2118,7 +2744,8 @@
             "da": "Register"
           }
         }
-      ]
+      ],
+      "deprecated": true
     },
     {
       "id": "external_temperature.h5217_bt1.set",

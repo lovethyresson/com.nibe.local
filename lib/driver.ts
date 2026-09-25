@@ -107,7 +107,7 @@ export abstract class NibePumpDriver extends Driver {
         }
         // Writable on/off registers should each have a dedicated ".onoff" card.
         for (const register of this.profile.registers) {
-            if (register.direction !== Dir.Out || register.noAction || !register.bool || register.writeOnly)
+            if (register.direction !== Dir.Out || register.noAction || !register.bool || (register.writeOnly && !register.flowOnly))
                 continue;
             if (!this.actionSpecs[`${register.name}.onoff`])
                 this.debug(`No dedicated "onoff" flow card for writable on/off register ${register.name}`);
@@ -117,11 +117,9 @@ export abstract class NibePumpDriver extends Driver {
     private regToAutofill = (register: Register) => {
         const option: any = this.options(register.name);
         const language = this.homey.i18n.getLanguage();
-        // A Flow-only register has no capability options; its info line is the label.
-        const info = (register.info as any)?.[language] || register.info?.en;
         return {
             id: register.name,
-            name: option?.title?.[language] || option?.title?.en || info || register.name
+            name: option?.title?.[language] || option?.title?.en || register.name
         };
     };
 
@@ -173,7 +171,7 @@ export abstract class NibePumpDriver extends Driver {
                                  kind: 'action' | 'condition' | 'trigger' = 'action') {
         return flow
             .registerArgumentAutocompleteListener("register", async (query, args) =>
-                ((kind === 'action' ? args.device.writableRegisters() : args.device.wantedRegisters()) as Register[])
+                (args.device.wantedRegisters() as Register[])
                     .filter(registerFilter)
                     .map(this.regToAutofill)
                     .filter((result: any) => result.name.toLowerCase().includes(query.toLowerCase())))
@@ -311,15 +309,30 @@ export abstract class NibePumpDriver extends Driver {
         return (this.profile.flowPrefix ?? "") + id;
     }
 
+    // A picker's choices as its capability defines them in the manifest — the same ids and
+    // translated titles its own dropdown on the tile shows, so card and tile always agree.
+    private pickerOptions(register: Register): {id: string; name: string}[] {
+        const language = this.homey.i18n.getLanguage();
+        const type = register.name.split('.')[0];
+        const values = (this.homey.manifest as any)?.capabilities?.[type]?.values ?? [];
+        return values.map((value: any) => ({
+            id: String(value.id),
+            name: value.title?.[language] || value.title?.en || String(value.id)
+        }));
+    }
+
     private registerFlows() {
         for (const register of this.profile.registers) {
-            if (!register.enum)
+            if (!register.enum && !register.picker)
                 continue;
             const enumOptions = async (query: string) =>
-                Object.entries(register.enum as any).map((parts: any) => ({
-                    id: parts[0],
-                    name: this.homey.__(parts[1]) || parts[1]
-                })).filter((result: any) => result.name.toLowerCase().includes(query.toLowerCase()));
+                (register.enum
+                    ? Object.entries(register.enum as any).map((parts: any) => ({
+                        id: parts[0],
+                        name: this.homey.__(parts[1]) || parts[1]
+                    }))
+                    : this.pickerOptions(register))
+                    .filter((result: any) => result.name.toLowerCase().includes(query.toLowerCase()));
 
             if (this.actionSpecs[register.name + ".enum"]) {
                 this.homey.flow.getActionCard(this.flowId(register.name + ".enum"))
@@ -365,11 +378,12 @@ export abstract class NibePumpDriver extends Driver {
                     }));
         }
 
-        // Dedicated per-register on/off cards ("More hot water – On/Off"), a named counterpart
-        // to the generic enable/disable-feature cards, matching the dedicated numeric ".set"
-        // cards. The `state` dropdown carries id "on"/"off".
+        // Dedicated per-register on/off cards ("More hot water – On/Off"): the way to switch a
+        // register from a Flow. The generic enable/disable-feature cards duplicated them and are
+        // deprecated — hidden from new Flows, still run for existing ones. Flow-only registers
+        // (SG Ready's 3032) get one too. The `state` dropdown carries id "on"/"off".
         for (const register of this.profile.registers) {
-            if (register.direction !== Dir.Out || register.noAction || !register.bool || register.writeOnly)
+            if (register.direction !== Dir.Out || register.noAction || !register.bool || (register.writeOnly && !register.flowOnly))
                 continue;
             if (!this.actionSpecs[register.name + ".onoff"])
                 continue;
