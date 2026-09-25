@@ -393,7 +393,9 @@ export const registers: Register[] = [
     // Ready configured answers exception 1 for 6008 and the whole 1911-1913 family, so on a pump
     // where it isn't available the write fails with that error rather than being hidden.
     {address: 6008, name: "sg_ready.h6008_requested_mode",                     direction: Dir.Out, group: "core",       role: "main", internal: true, writeOnly: true, flowOnly: true, scale: 1, min: 0, max: 3, // Begärt driftläge (SG Ready)
-     info: {en: "SG Ready mode (0 blocking, 1 normal, 2 low price, 3 overcapacity)", sv: "SG Ready-läge (0 blockering, 1 normal, 2 lågpris, 3 överkapacitet)"}},
+     info: {en: "SG Ready mode (0 blocking, 1 normal, 2 low price, 3 overcapacity)", sv: "SG Ready-läge (0 blockering, 1 normal, 2 lågpris, 3 överkapacitet)",
+            nl: "SG Ready-modus (0 blokkering, 1 normaal, 2 lage prijs, 3 overcapaciteit)", de: "SG-Ready-Modus (0 Sperre, 1 Normal, 2 Niedrigpreis, 3 Überkapazität)",
+            no: "SG Ready-modus (0 blokkering, 1 normal, 2 lavpris, 3 overkapasitet)", da: "SG Ready-tilstand (0 blokering, 1 normal, 2 lavpris, 3 overkapacitet)"}},
     {address:  845, name: "spa_heating_influence_NIBE.h845_spa_heating_influence", direction: Dir.Out, group: "heating", enum: spaHeatingInfluenceMap, picker: true, pickerValues: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // Prisanpassning värme grad av påverkan
      info: {en: "How strongly the electricity price is allowed to move the indoor temperature (1-10)", sv: "Hur mycket elpriset får påverka inomhustemperaturen (1-10)"}},
     // Per-function enable. 844 is documented 0..3 rather than the 0/1 its title implies, and the

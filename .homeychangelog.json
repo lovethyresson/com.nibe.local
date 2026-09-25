@@ -1,4 +1,12 @@
 {
+  "1.3.7": {
+    "en": "Test release only. Features: SG Ready in Flows. \"Set value of a register\" on the Main device can now set the SG Ready mode (register 6008), if SG Ready over Modbus is set up on your pump. Tweaks: Much quieter debug logs.",
+    "sv": "Endast testversion. Funktioner: SG Ready i Flöden. \"Sätt värdet på ett register\" på huvudenheten kan nu ställa in SG Ready-läget (register 6008), om SG Ready via Modbus är konfigurerat i pumpen. Justeringar: Mycket tystare felsökningsloggar.",
+    "nl": "Alleen testversie. Functies: SG Ready in Flows. \"Registerwaarde instellen\" op het hoofdapparaat kan nu de SG Ready-modus instellen (register 6008), als SG Ready via Modbus op je warmtepomp is ingesteld. Verbeteringen: veel rustigere debuglogs.",
+    "de": "Nur Testversion. Funktionen: SG Ready in Flows. \"Registerwert setzen\" am Hauptgerät kann jetzt den SG-Ready-Modus setzen (Register 6008), wenn SG Ready über Modbus an deiner Wärmepumpe eingerichtet ist. Verbesserungen: deutlich ruhigere Debug-Logs.",
+    "no": "Kun testversjon. Funksjoner: SG Ready i Flows. \"Sett verdi for et register\" på hovedenheten kan nå stille inn SG Ready-modus (register 6008), hvis SG Ready via Modbus er satt opp på varmepumpen. Justeringer: mye roligere feilsøkingslogger.",
+    "da": "Kun testversion. Funktioner: SG Ready i Flows. \"Indstil værdi for et register\" på hovedenheden kan nu indstille SG Ready-tilstanden (register 6008), hvis SG Ready via Modbus er sat op på varmepumpen. Justeringer: meget roligere fejlsøgningslogs."
+  },
   "1.3.6": {
     "en": "Features: Follows a moved heat pump. If your router gives the pump a new IP address, the app finds it and updates all its devices; changing the IP on one device now updates the rest. Tweaks: Devices say why they are offline, and reconnects are calmer. F-series (test): BT12/BT16 temperatures and better production and COP recommendations — run Repair to update them.",
     "sv": "Funktioner: Hittar en flyttad värmepump. Om routern ger pumpen en ny IP-adress hittar appen den och uppdaterar alla dess enheter; ändrar du IP-adressen på en enhet följer de andra med. Justeringar: Enheterna visar varför de är offline, och återanslutningen är lugnare. F-serien (test): temperaturerna BT12/BT16 och bättre rekommendationer för produktion och COP — kör Reparera för att uppdatera dem."

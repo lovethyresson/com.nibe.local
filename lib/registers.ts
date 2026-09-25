@@ -35,6 +35,12 @@ export type GroupId = typeof groupIds[number] | "core";
 export interface RegisterInfo {
     en: string;
     sv: string;
+    // Optional for the pairing/Repair one-liners, which fall back to English. Give them where the
+    // text is the only label a register has — a Flow-only register's name in the card's list.
+    nl?: string;
+    de?: string;
+    no?: string;
+    da?: string;
 }
 
 export interface Register  {

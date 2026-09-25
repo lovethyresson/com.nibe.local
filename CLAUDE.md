@@ -42,7 +42,8 @@ Review these together when preparing a release:
 
 1. `version` in `.homeycompose/app.json` **and** `package.json`.
 2. `homey app build` to regenerate `app.json` (never hand-edit its version).
-3. A user-facing entry in `.homeychangelog.json` — English and Swedish, written for a pump owner, not
+3. A user-facing entry in `.homeychangelog.json` — all six languages the app ships (`en`, `sv`, `nl`,
+   `de`, `no`, `da`; there are many Dutch users), quoting Flow cards by their translated titles, written for a pump owner, not
    a developer. **Keep it to a few sentences.** It is a store listing, not release notes: name what
    changed for the owner and anything they must do, and stop. Register numbers, measurements, evidence
    and mechanism belong in the README row and `docs/`, which is where anyone who wants them will look.
