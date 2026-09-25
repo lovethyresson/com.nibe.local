@@ -86,6 +86,10 @@ export interface PumpSubscriber {
     onConnectionUp(): void;
     // Called when the devices go down and again when the reason changes — not per failed attempt.
     onConnectionDown(problem: ConnectionProblem): void;
+    // Registers this pump has said it doesn't have, remembered across restarts (Main keeps them).
+    // Seeded at attach; the connection reports the set whenever it grows or Repair clears it.
+    absentRegisters?(): string[];
+    onAbsentRegisters?(names: string[]): void;
     // Look for the pump at another address and move its devices there if it is found. The
     // connection calls this on one subscriber (main if paired) after a long run of failed
     // connects; see SEARCH_AFTER_MS.
@@ -195,6 +199,10 @@ export class PumpConnection {
     private polling = false;
     private generation = 0;
     private unsupportedUntil = new Map<string, number>();
+    // Registers this pump answered exception 1/2 for that nobody selected as a capability —
+    // reason inputs, internal energy-log registers. Never asked again, across restarts too (Main
+    // stores the set), until Repair's detection re-learns what the pump has.
+    private knownAbsent = new Set<string>();
     private backgroundAttempted = new Map<string, number>();
     private pollDeadlineMs = POLL_DEADLINE_MS;
     private pollDeadline: NodeJS.Timeout | null = null;
@@ -587,6 +595,8 @@ export class PumpConnection {
 
     attach(subscriber: PumpSubscriber) {
         this.subscribers.add(subscriber);
+        for (const name of subscriber.absentRegisters?.() ?? [])
+            this.knownAbsent.add(name);
         this.refreshDebug();
         this.refreshPollInterval();
         if (this.connected) {
@@ -908,10 +918,13 @@ export class PumpConnection {
                     // answered at detection, so its exception usually means a pump setting blocked
                     // it (Allow hot water off blocks 56/697): retry in 5 minutes so it comes back
                     // with the setting. Anything else — reason inputs, internal registers — was
-                    // never confirmed on this pump: absent until the next connection.
-                    if (code === 1 || code === 2)
-                        this.unsupportedUntil.set(register.name, this.isSelectedCapability(register.name)
-                            ? Date.now() + 5 * 60_000 : Infinity);
+                    // never confirmed on this pump: remembered as absent (see knownAbsent).
+                    if (code === 1 || code === 2) {
+                        if (this.isSelectedCapability(register.name))
+                            this.unsupportedUntil.set(register.name, Date.now() + 5 * 60_000);
+                        else
+                            this.learnAbsent(register.name);
+                    }
                 }
                 return undefined;
             });
@@ -1514,6 +1527,12 @@ export class PumpConnection {
                 signal?: AbortSignal): Promise<DetectionResult> {
         if (!this.connected)
             throw new Error('Not connected to the heat pump');
+        // Detection is where the pump is asked what it has again, so forget what it said before:
+        // a register that answers now (a firmware update, a feature switched on) is read again.
+        if (this.knownAbsent.size) {
+            this.knownAbsent.clear();
+            this.reportAbsent();
+        }
         const generation = this.generation;
         const {probes, addresses, choices} = await sampleRegisters(this.profile,
             async (register) => {
@@ -1534,11 +1553,24 @@ export class PumpConnection {
             subscriber.wantedRegisters().some((register) => register.name === name));
     }
 
-    // Answered exception 1 or 2 recently, so it is left alone until the cooldown runs out — every
+    // Absent on this pump, or answered exception 1 or 2 recently — left alone either way. Every
     // path that reads on its own schedule honours this, not just the poll, or the same absent
     // register is re-asked (and re-logged) from each of them.
     onCooldown(name: string): boolean {
-        return Date.now() < (this.unsupportedUntil.get(name) ?? 0);
+        return this.knownAbsent.has(name) || Date.now() < (this.unsupportedUntil.get(name) ?? 0);
+    }
+
+    private learnAbsent(name: string) {
+        if (this.knownAbsent.has(name))
+            return;
+        this.knownAbsent.add(name);
+        this.reportAbsent();
+    }
+
+    private reportAbsent() {
+        const names = [...this.knownAbsent];
+        for (const subscriber of this.subscribers)
+            subscriber.onAbsentRegisters?.(names);
     }
 
     shutdown() {

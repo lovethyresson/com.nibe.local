@@ -216,20 +216,10 @@ export interface ModelProfile {
     // omitted on models where they aren't known → the info step is skipped.
     pumpInfo?: {typeAddress?: number; firmwareAddress?: number};
 
-    // Pump-side settings that change what the energy figures MEAN rather than what they are,
-    // read once per connect and logged. Never capabilities — nobody wants to see these on a
-    // tile, but without them a support log cannot explain the numbers above it.
-    //
-    // The S-series energy log has per-function *inclusion* flags (Nibe's own symbol names are
-    // `eMbHolding_eU8EnergyLogSettingsIncCooling` and friends), so whether cooling or hot
-    // water counts toward the pump's own totals is configured on the pump. Two identical
-    // models can therefore report different totals, and the CSVs give these addresses no
-    // title at all — they appear only as `id:12391` — so there is no chance of guessing them.
-    energyLogSettings?: {label: string; address: number}[];
-
     // The pump's own per-function hourly energy accounting. Each entry names an `internal`
     // register that reports the PREVIOUS COMPLETED HOUR: static within the hour, stepping at
-    // :00. The engine watches for the step and logs it — never differences it within the hour.
+    // :00. The engine watches for the step and hands each function its hour — never
+    // differences it within the hour.
     //
     // This is currently observation only. It is the evidence for moving per-function energy off
     // the estimating allocator (measured attributing 1.37 kWh to hot water on a day the pump

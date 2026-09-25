@@ -315,7 +315,7 @@ test('shutdown awaits the last durable energy write', async () => {
 test('retiring a connection rejects queued writes and ignores an old in-flight result', async () => {
     const connection: any = Object.create(PumpConnection.prototype);
     Object.assign(connection, {connected: true, destroyed: false, generation: 0,
-        wireHigh: [], wireLow: [], wireRunning: false, lastRaw: new Map(), unsupportedUntil: new Map(), backgroundAttempted: new Map()});
+        wireHigh: [], wireLow: [], wireRunning: false, lastRaw: new Map(), unsupportedUntil: new Map(), knownAbsent: new Set(), backgroundAttempted: new Map()});
     let release!: () => void;
     const running = connection.withWireAccess(() => new Promise<void>((resolve) => { release = resolve; }));
     let wrote = false;
@@ -331,13 +331,18 @@ test('retiring a connection rejects queued writes and ignores an old in-flight r
 test('only explicit unsupported-register errors put background reads on cooldown', async () => {
     const connection: any = Object.create(PumpConnection.prototype);
     const selected = register('selected');
+    const stored: string[][] = [];
     Object.assign(connection, {generation: 1, profile: {}, transport: {},
-        readDiagnostics: new Map(), captureCounts: new Map(), unsupportedUntil: new Map(),
-        subscribers: new Set([{wantedRegisters: () => [selected]}]),
+        readDiagnostics: new Map(), captureCounts: new Map(), unsupportedUntil: new Map(), knownAbsent: new Set(),
+        subscribers: new Set([{wantedRegisters: () => [selected], onAbsentRegisters: (n: string[]) => stored.push(n)}]),
         noteRead: () => {}, withWireAccess: async () => { throw {body: {code: 2}}; }});
-    // Never confirmed on this pump (a reason input, an internal register): absent until reconnect.
+    // Never confirmed on this pump (a reason input, an internal register): remembered as absent,
+    // and handed to Main to keep across restarts, so it is never asked again until Repair.
     await connection.readRegisterRaw(register('missing'));
-    assert.equal(connection.unsupportedUntil.get('missing'), Infinity);
+    assert.ok(connection.onCooldown('missing'));
+    assert.deepEqual(stored, [['missing']]);
+    await connection.readRegisterRaw(register('missing'));
+    assert.equal(stored.length, 1, 'reported once, not on every failure');
     // A selected capability answered at detection, so it is retried: a setting may have blocked it.
     await connection.readRegisterRaw(selected);
     const retry = connection.unsupportedUntil.get('selected');
@@ -351,6 +356,7 @@ test('only explicit unsupported-register errors put background reads on cooldown
     connection.withWireAccess = async () => { throw {body: {code: 2}}; };
     await connection.readRegisterRaw(register('probe'), false);
     assert.equal(connection.unsupportedUntil.has('probe'), false);
+    assert.equal(connection.knownAbsent.has('probe'), false, 'detection reads never mark anything absent');
 });
 
 // A priority change used to re-ask every reason input, including the ones the pump had just
@@ -360,7 +366,7 @@ test('a priority-change explanation does not re-read inputs on cooldown', async 
     const connection: any = Object.create(PumpConnection.prototype);
     const seen: Record<string, number | undefined> = {};
     Object.assign(connection, {
-        unsupportedUntil: new Map([['__reason.pool', Date.now() + 60_000]]),
+        unsupportedUntil: new Map(), knownAbsent: new Set(['__reason.pool']),
         reasonState: {},
         profile: {role: {priorityToRole: {}}, reason: {explain: ({v}: any) => {
             seen.pool = v('pool');

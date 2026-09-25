@@ -168,23 +168,7 @@ export const sProfile = makeProfile({
     // Model/firmware input registers (menu labels), read once per connect.
     pumpInfo: {typeAddress: 1497, firmwareAddress: 1496},
 
-    // Which functions the pump counts toward its own energy log and totals — Nibe's
-    // `eMbHolding_eU8EnergyLogSettingsInc*`. Holding registers, read-only here; the CSVs give
-    // them no title (3095 appears only as `id:12391`), so they are unfindable without Nibe's
-    // symbol list.
-    //
-    // Only the two that any S-model actually exposes are listed: cooling on S320/S325 and
-    // S2125, pool 1 on S320/S325 and S1156/S1256. IncHW (3092) and IncPool2 (3094) exist in
-    // Nibe's master list but on none of the six S-series register maps, so listing them would
-    // only ever produce "unavailable". Everything else reports nothing at all, which is
-    // correct — those models give no way to know what their totals include.
-    energyLogSettings: [
-        {label: "cooling", address: 3095},
-        {label: "pool 1", address: 3093}
-    ],
-
-    // Watched and logged each time they step at :00. Ordered used-then-produced so a logged
-    // hour reads as a COP left to right.
+    // Watched for their step at :00, when each function is handed its hour.
     energyLog: [
         {name: "meter_kwh_NIBE.i2291_log_used_heating",      label: "heating used",       role: "heating",  flow: "used"},
         {name: "meter_kwh_NIBE.i2299_log_add_heating",       label: "add.heat heating",   role: "heating",  flow: "used"},
