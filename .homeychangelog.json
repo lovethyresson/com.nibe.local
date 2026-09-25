@@ -1,4 +1,8 @@
 {
+  "1.3.7": {
+    "en": "Test release only. Features: SG Ready from Flows. Set the pump's SG Ready mode from a Flow, and see the mode it is actually in on the Main device. Run Repair on the Main device and turn on SG Ready.",
+    "sv": "Endast testversion. Funktioner: SG Ready från Flöden. Styr pumpens SG Ready-läge från ett Flöde och se vilket läge den faktiskt är i på huvudenheten. Kör Reparera på huvudenheten och slå på SG Ready."
+  },
   "1.3.6": {
     "en": "Features: Follows a moved heat pump. If your router gives the pump a new IP address, the app finds it and updates all its devices; changing the IP on one device now updates the rest. Tweaks: Devices say why they are offline, and reconnects are calmer. F-series (test): BT12/BT16 temperatures and better production and COP recommendations — run Repair to update them.",
     "sv": "Funktioner: Hittar en flyttad värmepump. Om routern ger pumpen en ny IP-adress hittar appen den och uppdaterar alla dess enheter; ändrar du IP-adressen på en enhet följer de andra med. Justeringar: Enheterna visar varför de är offline, och återanslutningen är lugnare. F-serien (test): temperaturerna BT12/BT16 och bättre rekommendationer för produktion och COP — kör Reparera för att uppdatera dem."

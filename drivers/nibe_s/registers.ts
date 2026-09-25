@@ -47,6 +47,23 @@ export const spaHeatingInfluenceMap = numeralMap(1, 10);
 export const spaInfluenceMap = numeralMap(0, 10);
 export const spaHotwaterInfluenceMap = numeralMap(1, 4);
 
+// SG Ready, in Nibe's own mode names. The requested mode (holding 6008) is 0..3; the mode the
+// pump reports it is in (input 1911) is the same four states ×10. Both are keyed to the same
+// labels so a Flow can compare what it asked for with what it got.
+export const sgReadyModeMap = Object({
+    0: "Blocking",
+    1: "Normal",
+    2: "Low price",
+    3: "Overcapacity"
+});
+
+export const sgReadyStateMap = Object({
+    10: "Normal",
+    20: "Blocking",
+    30: "Low price",
+    40: "Overcapacity"
+});
+
 export const registers: Register[] = [
     // External sensor mailboxes, not persistent settings or displayed measurements.
     // Live S1155 test: FC6 writes are accepted, then the pump clears the mailbox to
@@ -385,6 +402,27 @@ export const registers: Register[] = [
     // a single register, cost a GroupId, five roleGroups entries and twelve locale strings.
     {address:  843, name: "boolean_NIBE.h843_spa_activated",                   direction: Dir.Out, group: "core",       bool: true, // Aktiverad (Smart prisanpassning)
      info: {en: "Smart Price Adaption — shift consumption towards cheaper hours", sv: "Smart prisanpassning — flytta förbrukningen mot billigare timmar"}},
+    // SG Ready over Modbus, instead of the two hardwired inputs. Firmware 4.7.5 (Dec 2025) added
+    // 6008, and only the S1156/S1256 map lists it; S1155/S1255 owners report it on current
+    // firmware, others report it missing. That is why this is its own group rather than `core`
+    // (compare 843 above): a group is what lets detection leave it off on a pump where 6008
+    // doesn't answer, and `optInGroups` keeps it off on devices paired before it existed.
+    //
+    // Only the actual mode (1911) is a capability. The two writes are Flow-only — SG Ready is
+    // driven by an automation or nothing, and a tile picker nobody touches is clutter. Being
+    // `internal` + `writeOnly` keeps them off the tile and off the poll, so a pump without the
+    // firmware isn't sent a failing read every 10 s. A write is then not read back; 1911 is the
+    // confirmation, and it is also the only honest one, since the request is not the outcome.
+    //
+    // 6008 only takes effect while 3032 is 1 (enforced by `writeRequirements`) and the physical
+    // SG Ready inputs are not configured. Whether the pump times out a mode it hasn't heard again
+    // is not documented anywhere.
+    {address: 3032, name: "sg_ready.h3032_api_control",                   direction: Dir.Out, group: "sgready",    internal: true, writeOnly: true, bool: true, // Aktivera SG Ready via API
+     info: {en: "Let Homey set the SG Ready mode instead of the hardwired inputs", sv: "Låt Homey styra SG Ready-läget i stället för de trådade ingångarna"}},
+    {address: 6008, name: "sg_ready.h6008_requested_mode",             direction: Dir.Out, group: "sgready",    internal: true, writeOnly: true, enum: sgReadyModeMap, // Begärt driftläge (SG Ready)
+     info: {en: "SG Ready mode to request: blocking, normal, low price or overcapacity", sv: "SG Ready-läge att begära: blockering, normal, lågpris eller överkapacitet"}},
+    {address: 1911, name: "measure_enum_NIBE.i1911_sg_ready_state",            direction: Dir.In,  group: "sgready",    enum: sgReadyStateMap, // Driftläge (SG Ready)
+     info: {en: "SG Ready mode the pump is actually in", sv: "SG Ready-läget pumpen faktiskt är i"}},
     {address:  845, name: "spa_heating_influence_NIBE.h845_spa_heating_influence", direction: Dir.Out, group: "heating", enum: spaHeatingInfluenceMap, picker: true, pickerValues: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // Prisanpassning värme grad av påverkan
      info: {en: "How strongly the electricity price is allowed to move the indoor temperature (1-10)", sv: "Hur mycket elpriset får påverka inomhustemperaturen (1-10)"}},
     // Per-function enable. 844 is documented 0..3 rather than the 0/1 its title implies, and the

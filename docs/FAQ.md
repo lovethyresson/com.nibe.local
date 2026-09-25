@@ -395,3 +395,11 @@ fresh temperature with an old one or trigger a low-water crossing across a measu
 The app checks the pump's value after writes from both tiles and Flows. A successful Modbus
 acknowledgement alone does not guarantee that the pump applied the setting. A confirmation error
 means the requested value could not be verified; check the current reading before retrying.
+
+### How do I control SG Ready from Homey?
+
+From 1.3.7 (test). Your pump needs firmware that supports SG Ready over Modbus (register 6008, added
+in late 2025), and its wired SG Ready inputs must not be configured. Run Repair on the Main device and
+turn on **SG Ready**; if detection leaves it unticked, your firmware doesn't have it yet. Then, in a
+Flow, run **SG Ready via Homey: On** once, and use **Set SG Ready mode** (Blocking, Normal, Low price,
+Overcapacity). The Main device shows **SG Ready state**, the mode the pump actually switched to.

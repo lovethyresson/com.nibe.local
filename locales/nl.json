@@ -196,7 +196,8 @@
     "core": "Bediening",
     "alarm": "Alarmafhandeling",
     "energy": "Energie",
-    "solar": "Zonne-energie / PV"
+    "solar": "Zonne-energie / PV",
+    "sgready": "SG Ready"
   },
   "Immersion heater only": "Alleen elektrisch element",
   "hotwater": {
@@ -238,5 +239,8 @@
     "searching": "Warmtepomp op __host__ niet bereikbaar. Het netwerk wordt doorzocht…",
     "moved": "Nibe Live: je warmtepomp is verhuisd van __from__ naar __to__. De apparaten zijn bijgewerkt.",
     "address_in_use": "Een andere gekoppelde warmtepomp gebruikt __host__ al."
-  }
+  },
+  "Blocking": "Blokkering",
+  "Low price": "Lage prijs",
+  "Overcapacity": "Overcapaciteit"
 }

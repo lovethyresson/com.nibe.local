@@ -196,7 +196,8 @@
     "core": "Steuerung",
     "alarm": "Alarmbehandlung",
     "energy": "Energie",
-    "solar": "Solar / PV"
+    "solar": "Solar / PV",
+    "sgready": "SG Ready"
   },
   "Immersion heater only": "Nur Heizstab",
   "hotwater": {
@@ -238,5 +239,8 @@
     "searching": "Wärmepumpe unter __host__ nicht erreichbar. Sie wird im Netzwerk gesucht…",
     "moved": "Nibe Live: Ihre Wärmepumpe ist von __from__ nach __to__ umgezogen. Die Geräte wurden aktualisiert.",
     "address_in_use": "Eine andere gekoppelte Wärmepumpe verwendet bereits __host__."
-  }
+  },
+  "Blocking": "Sperre",
+  "Low price": "Niedrigpreis",
+  "Overcapacity": "Überkapazität"
 }

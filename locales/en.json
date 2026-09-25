@@ -196,7 +196,8 @@
     "core": "Controls",
     "alarm": "Alarm handling",
     "energy": "Energy",
-    "solar": "Solar / PV"
+    "solar": "Solar / PV",
+    "sgready": "SG Ready"
   },
   "Immersion heater only": "Immersion heater only",
   "hotwater": {
@@ -238,5 +239,8 @@
     "searching": "Can't reach the heat pump at __host__. Searching the network for it…",
     "moved": "Nibe Live: your heat pump moved from __from__ to __to__. Its devices have been updated.",
     "address_in_use": "Another paired heat pump already uses __host__."
-  }
+  },
+  "Blocking": "Blocking",
+  "Low price": "Low price",
+  "Overcapacity": "Overcapacity"
 }

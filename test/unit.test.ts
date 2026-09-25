@@ -5,7 +5,7 @@ import {
     Dir, combineRaw, signedValue, isUnavailableRaw, toNumericValue, isAdjustable, isPollable,
     buildPickerPrimary, buildRegisterByName, enumLabel, isSelectableRegister, isRegisterEnabled,
     Register, Selection, flowPredicates,
-    migrateSelection, resolvedAddress
+    migrateSelection, resolvedAddress, withOptInGroups, encodeRegisterValue
 } from '../lib/registers';
 import {makeProfile} from '../lib/profile';
 import type {ReasonState} from '../lib/profile';
@@ -267,14 +267,15 @@ test('every register is present in the compose capabilities superset', () => {
         assert.ok(caps.has(r.name), `missing from compose.capabilities: ${r.name}`);
 });
 
-test('internal readings are polled, sensor commands are not, and neither becomes a capability', () => {
+test('internal readings are polled, Flow-only commands are not, and neither becomes a capability', () => {
     const internal = registers.filter((r) => r.internal);
     assert.ok(internal.length > 0, 'expected at least the energy-log power fallback');
     const caps = new Set(sProfile.compose.capabilities);
     for (const r of internal) {
         assert.ok(!caps.has(r.name), `${r.name} is internal and must not be a capability`);
-        if ([5987, 5217].includes(r.address))
-            assert.ok(!isPollable(r), `${r.name} is a consumed sensor command, not a reading`);
+        // Sensor feeds (5987, 5217) and SG Ready's Flow-only writes (3032, 6008).
+        if ([5987, 5217, 3032, 6008].includes(r.address))
+            assert.ok(!isPollable(r), `${r.name} is a Flow-only command, not a reading`);
         else
             assert.ok(isPollable(r), `${r.name} must still be polled — the allocator reads it`);
         assert.ok(!isSelectableRegister(r, sProfile.pickerPrimary),
@@ -614,6 +615,57 @@ test('recommendGroups: groups whose registers never read are unsupported', () =>
     // heating always plausible-true, but groundsource has no reads => unsupported
     assert.equal(recs.groundsource?.evidence, 'unsupported');
     assert.equal(recs.groundsource?.recommended, false);
+});
+
+// SG Ready control arrived with firmware 4.7.5 and only some pumps have it. 1911 (the mode the
+// pump reports) answers on every S model, so it must not be what recommends the group — only
+// the writable 6008 answering means Homey can actually control SG Ready.
+test('recommendGroups: SG Ready is recommended only when 6008 answers', () => {
+    const without = recommendGroups(sProfile, probes({
+        'measure_enum_NIBE.i1911_sg_ready_state': {last: 10}
+    }));
+    assert.equal(without.sgready?.recommended, false);
+    const withIt = recommendGroups(sProfile, probes({
+        'measure_enum_NIBE.i1911_sg_ready_state': {last: 10},
+        'sg_ready.h6008_requested_mode': {last: 1}
+    }));
+    assert.equal(withIt.sgready?.recommended, true);
+});
+
+test('SG Ready: a device paired before the group existed gets it off, not on', () => {
+    const old: Selection = {groups: {electrical: true, diagnostics: true}, overrides: {}};
+    const migrated = withOptInGroups(old);
+    assert.equal(migrated.groups.sgready, false);
+    assert.ok(!registersForRole(sProfile, 'main', migrated)
+        .some((r) => r.name === 'measure_enum_NIBE.i1911_sg_ready_state'));
+    // Idempotent, and never overrides a choice already made.
+    assert.equal(withOptInGroups(migrated), migrated);
+    const chosen: Selection = {groups: {sgready: true}, overrides: {}};
+    assert.equal(withOptInGroups(chosen), chosen);
+    assert.ok(registersForRole(sProfile, 'main', chosen)
+        .some((r) => r.name === 'measure_enum_NIBE.i1911_sg_ready_state'));
+});
+
+test('SG Ready: only the actual state is on the tile; the writes are Flow-only', () => {
+    const onTile = registersForRole(sProfile, 'main', {groups: {sgready: true}, overrides: {}})
+        .filter((r) => r.group === 'sgready').map((r) => r.name);
+    assert.deepEqual(onTile, ['measure_enum_NIBE.i1911_sg_ready_state']);
+    const actions = new Set(sProfile.compose.actions.map((a: any) => a.id));
+    assert.ok(actions.has('sg_ready.h6008_requested_mode.enum'));
+    assert.ok(actions.has('sg_ready.h3032_api_control.onoff'));
+});
+
+test('SG Ready: a mode is written as its 0..3 code, and only once Homey has control', () => {
+    const mode = sProfile.registerByName['sg_ready.h6008_requested_mode'];
+    assert.equal(encodeRegisterValue(mode, '2'), 2);
+    assert.equal(encodeRegisterValue(mode, 'Low price'), 2, 'labels stored by a Flow still resolve');
+    assert.throws(() => encodeRegisterValue(mode, '4'));
+    const requirement = sProfile.writeRequirements?.['sg_ready.h6008_requested_mode'];
+    assert.equal(requirement?.register, 'sg_ready.h3032_api_control');
+    assert.deepEqual(requirement?.values, [1]);
+    // The requested mode and the reported one share labels, so a Flow can compare them.
+    const state = sProfile.registerByName['measure_enum_NIBE.i1911_sg_ready_state'];
+    assert.deepEqual(Object.values(mode.enum!).sort(), Object.values(state.enum!).sort());
 });
 
 // ---- Priority-change reasons (drivers/nibe_s/reason.ts) ----

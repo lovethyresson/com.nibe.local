@@ -88,9 +88,13 @@
     "diagnostics": "Refrigerant diagnostics",
     "statistics": "Runtime statistics",
     "energy": "Energy",
-    "solar": "Solar / PV"
+    "solar": "Solar / PV",
+    "sgready": "SG Ready"
   },
   "Normal": "Normal",
+  "Blocking": "Blocking",
+  "Low price": "Low price",
+  "Overcapacity": "Overcapacity",
   "Speed 1": "Speed 1",
   "Speed 2": "Speed 2",
   "Speed 3": "Speed 3",

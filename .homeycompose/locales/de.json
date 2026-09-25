@@ -88,9 +88,13 @@
     "diagnostics": "Kältemittel-Diagnose",
     "statistics": "Laufzeitstatistik",
     "energy": "Energie",
-    "solar": "Solar / PV"
+    "solar": "Solar / PV",
+    "sgready": "SG Ready"
   },
   "Normal": "Normal",
+  "Blocking": "Sperre",
+  "Low price": "Niedrigpreis",
+  "Overcapacity": "Überkapazität",
   "Speed 1": "Stufe 1",
   "Speed 2": "Stufe 2",
   "Speed 3": "Stufe 3",

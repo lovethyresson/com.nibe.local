@@ -88,9 +88,13 @@
     "diagnostics": "Kjølemediediagnostikk",
     "statistics": "Driftstidsstatistikk",
     "energy": "Energi",
-    "solar": "Sol / PV"
+    "solar": "Sol / PV",
+    "sgready": "SG Ready"
   },
   "Normal": "Normal",
+  "Blocking": "Blokkering",
+  "Low price": "Lavpris",
+  "Overcapacity": "Overkapasitet",
   "Speed 1": "Trinn 1",
   "Speed 2": "Trinn 2",
   "Speed 3": "Trinn 3",

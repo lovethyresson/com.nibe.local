@@ -88,9 +88,13 @@
     "diagnostics": "Koudemiddeldiagnose",
     "statistics": "Bedrijfstijdstatistieken",
     "energy": "Energie",
-    "solar": "Zonne-energie / PV"
+    "solar": "Zonne-energie / PV",
+    "sgready": "SG Ready"
   },
   "Normal": "Normaal",
+  "Blocking": "Blokkering",
+  "Low price": "Lage prijs",
+  "Overcapacity": "Overcapaciteit",
   "Speed 1": "Stand 1",
   "Speed 2": "Stand 2",
   "Speed 3": "Stand 3",

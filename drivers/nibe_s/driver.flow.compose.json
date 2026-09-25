@@ -1487,6 +1487,114 @@
       ]
     },
     {
+      "id": "sg_ready.h6008_requested_mode.enum",
+      "title": {
+        "en": "Set SG Ready mode",
+        "sv": "Ställ in SG Ready-läge",
+        "de": "SG-Ready-Modus einstellen",
+        "nl": "SG Ready-modus instellen",
+        "no": "Still inn SG Ready-modus",
+        "da": "Indstil SG Ready-tilstand"
+      },
+      "titleFormatted": {
+        "en": "Set SG Ready mode [[mode]]",
+        "sv": "Ställ in SG Ready-läge [[mode]]",
+        "de": "SG-Ready-Modus [[mode]] einstellen",
+        "nl": "SG Ready-modus instellen op [[mode]]",
+        "no": "Still inn SG Ready-modus [[mode]]",
+        "da": "Indstil SG Ready-tilstand [[mode]]"
+      },
+      "hint": {
+        "en": "Needs SG Ready via Homey switched on. Check the result with the SG Ready state.",
+        "sv": "Kräver att SG Ready via Homey är på. Kontrollera resultatet med SG Ready-läget.",
+        "de": "Erfordert, dass SG Ready über Homey eingeschaltet ist. Ergebnis im SG-Ready-Zustand prüfen.",
+        "nl": "Vereist dat SG Ready via Homey aan staat. Controleer het resultaat met de SG Ready-status.",
+        "no": "Krever at SG Ready via Homey er på. Sjekk resultatet med SG Ready-tilstanden.",
+        "da": "Kræver at SG Ready via Homey er slået til. Tjek resultatet med SG Ready-tilstanden."
+      },
+      "$filter": "capabilities=measure_enum_NIBE.i1911_sg_ready_state",
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "mode",
+          "title": {
+            "en": "Mode",
+            "sv": "Läge",
+            "de": "Modus",
+            "nl": "Stand",
+            "no": "Modus",
+            "da": "Indstilling"
+          }
+        }
+      ]
+    },
+    {
+      "id": "sg_ready.h3032_api_control.onoff",
+      "title": {
+        "en": "SG Ready via Homey",
+        "sv": "SG Ready via Homey",
+        "de": "SG Ready über Homey",
+        "nl": "SG Ready via Homey",
+        "no": "SG Ready via Homey",
+        "da": "SG Ready via Homey"
+      },
+      "titleFormatted": {
+        "en": "SG Ready via Homey: [[state]]",
+        "sv": "SG Ready via Homey: [[state]]",
+        "de": "SG Ready über Homey: [[state]]",
+        "nl": "SG Ready via Homey: [[state]]",
+        "no": "SG Ready via Homey: [[state]]",
+        "da": "SG Ready via Homey: [[state]]"
+      },
+      "hint": {
+        "en": "On: Homey sets the SG Ready mode. Off: the pump's wired SG Ready inputs decide.",
+        "sv": "På: Homey styr SG Ready-läget. Av: pumpens trådade SG Ready-ingångar styr.",
+        "de": "Ein: Homey stellt den SG-Ready-Modus ein. Aus: die verdrahteten SG-Ready-Eingänge der Pumpe entscheiden.",
+        "nl": "Aan: Homey stelt de SG Ready-modus in. Uit: de bedrade SG Ready-ingangen van de pomp beslissen.",
+        "no": "På: Homey styrer SG Ready-modus. Av: pumpens kablede SG Ready-innganger bestemmer.",
+        "da": "Til: Homey styrer SG Ready-tilstanden. Fra: pumpens kablede SG Ready-indgange bestemmer."
+      },
+      "$filter": "capabilities=measure_enum_NIBE.i1911_sg_ready_state",
+      "args": [
+        {
+          "type": "dropdown",
+          "name": "state",
+          "title": {
+            "en": "State",
+            "sv": "Läge",
+            "de": "Zustand",
+            "nl": "Status",
+            "no": "Tilstand",
+            "da": "Tilstand"
+          },
+          "values": [
+            {
+              "id": "on",
+              "title": {
+                "en": "On",
+                "sv": "På",
+                "de": "Ein",
+                "nl": "Aan",
+                "no": "På",
+                "da": "Til"
+              }
+            },
+            {
+              "id": "off",
+              "title": {
+                "en": "Off",
+                "sv": "Av",
+                "de": "Aus",
+                "nl": "Uit",
+                "no": "Av",
+                "da": "Fra"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "boolean_NIBE.h697_more_hotwater.onoff",
       "title": {
         "en": "More hot water",
@@ -2367,6 +2475,48 @@
         "da": "Hvad varmepumpen producerer lige nu (varme, varmtvand, pool …)."
       },
       "$filter": "capabilities=measure_enum_NIBE.i1028_priority",
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "mode",
+          "title": {
+            "en": "Mode",
+            "sv": "Läge",
+            "de": "Modus",
+            "nl": "Stand",
+            "no": "Modus",
+            "da": "Indstilling"
+          }
+        }
+      ]
+    },
+    {
+      "id": "measure_enum_NIBE.i1911_sg_ready_state.enum",
+      "title": {
+        "en": "SG Ready state",
+        "sv": "SG Ready-läge",
+        "de": "SG-Ready-Zustand",
+        "nl": "SG Ready-status",
+        "no": "SG Ready-tilstand",
+        "da": "SG Ready-tilstand"
+      },
+      "titleFormatted": {
+        "en": "SG Ready state is [[mode]]",
+        "sv": "SG Ready-läge är [[mode]]",
+        "de": "SG-Ready-Zustand ist [[mode]]",
+        "nl": "SG Ready-status is [[mode]]",
+        "no": "SG Ready-tilstand er [[mode]]",
+        "da": "SG Ready-tilstand er [[mode]]"
+      },
+      "hint": {
+        "en": "The SG Ready mode the pump is actually in.",
+        "sv": "SG Ready-läget pumpen faktiskt är i.",
+        "de": "Der SG-Ready-Modus, in dem die Pumpe tatsächlich ist.",
+        "nl": "De SG Ready-modus waarin de pomp werkelijk staat.",
+        "no": "SG Ready-modusen pumpen faktisk er i.",
+        "da": "Den SG Ready-tilstand pumpen faktisk er i."
+      },
+      "$filter": "capabilities=measure_enum_NIBE.i1911_sg_ready_state",
       "args": [
         {
           "type": "autocomplete",

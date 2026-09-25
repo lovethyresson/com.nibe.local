@@ -327,6 +327,13 @@ export const sProfile = makeProfile({
         }
     ],
 
+    // 6008 only takes effect while 3032 is 1, so refuse the write with the fix rather than send it.
+    writeRequirements: {
+        "sg_ready.h6008_requested_mode": {register: "sg_ready.h3032_api_control", values: [1],
+            message: {en: 'SG Ready is not under Homey\'s control. Run "SG Ready via Homey: On" first.',
+                sv: 'SG Ready styrs inte av Homey. Kör "SG Ready via Homey: På" först.'}}
+    },
+
     // Room temperature and the indoor setpoint moved from sub-capabilities to the bare
     // `measure_temperature` / `target_temperature` so Homey's Climate feature and the thermostat
     // tile can see them. Both resolutions are stored per register NAME, so without this an
@@ -380,6 +387,9 @@ export const sProfile = makeProfile({
             electrical: ({value}) =>
                 ["measure_current.i50_sensor_v2", "measure_current.i48_sensor_v2", "measure_current.i46_sensor_v2"]
                     .some((name) => (value(name) ?? 0) > 0),
+            // 6008 doesn't move on its own, so "answered" is the evidence. A pump without the
+            // firmware returns an exception and the group stays off.
+            sgready: ({value}) => value("sg_ready.h6008_requested_mode") !== undefined,
             solar: ({value}) =>
                 (value("measure_power.i2176_solar_current") ?? 0) > 0
                 || (value("meter_power.solar") ?? 0) > 0

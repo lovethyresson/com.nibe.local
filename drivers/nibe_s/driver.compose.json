@@ -16,6 +16,7 @@
     "fuse_NIBE.h103_fuse",
     "operating_mode_NIBE.h237_operating_mode",
     "boolean_NIBE.h843_spa_activated",
+    "measure_enum_NIBE.i1911_sg_ready_state",
     "boolean_NIBE.h180_enable_addition",
     "button.h22_reset_alarm",
     "alarm_text_NIBE",
@@ -1198,6 +1199,16 @@
         "nl": "Smart Price Adaption",
         "no": "Smart pristilpasning",
         "da": "Smart pristilpasning"
+      }
+    },
+    "measure_enum_NIBE.i1911_sg_ready_state": {
+      "title": {
+        "en": "SG Ready state",
+        "sv": "SG Ready-läge",
+        "de": "SG-Ready-Zustand",
+        "nl": "SG Ready-status",
+        "no": "SG Ready-tilstand",
+        "da": "SG Ready-tilstand"
       }
     },
     "boolean_NIBE.h844_spa_heating_activated": {

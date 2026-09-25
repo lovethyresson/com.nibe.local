@@ -196,7 +196,8 @@
     "core": "Styring",
     "alarm": "Alarmhåndtering",
     "energy": "Energi",
-    "solar": "Sol / PV"
+    "solar": "Sol / PV",
+    "sgready": "SG Ready"
   },
   "Immersion heater only": "Kun elkolbe",
   "hotwater": {
@@ -238,5 +239,8 @@
     "searching": "Får ikke kontakt med varmepumpen på __host__. Søker etter den på nettverket…",
     "moved": "Nibe Live: varmepumpen har flyttet fra __from__ til __to__. Enhetene er oppdatert.",
     "address_in_use": "En annen paret varmepumpe bruker allerede __host__."
-  }
+  },
+  "Blocking": "Blokkering",
+  "Low price": "Lavpris",
+  "Overcapacity": "Overkapasitet"
 }

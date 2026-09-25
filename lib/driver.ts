@@ -107,7 +107,7 @@ export abstract class NibePumpDriver extends Driver {
         }
         // Writable on/off registers should each have a dedicated ".onoff" card.
         for (const register of this.profile.registers) {
-            if (register.direction !== Dir.Out || register.noAction || !register.bool || register.writeOnly)
+            if (register.direction !== Dir.Out || register.noAction || !register.bool)
                 continue;
             if (!this.actionSpecs[`${register.name}.onoff`])
                 this.debug(`No dedicated "onoff" flow card for writable on/off register ${register.name}`);
@@ -367,7 +367,9 @@ export abstract class NibePumpDriver extends Driver {
         // to the generic enable/disable-feature cards, matching the dedicated numeric ".set"
         // cards. The `state` dropdown carries id "on"/"off".
         for (const register of this.profile.registers) {
-            if (register.direction !== Dir.Out || register.noAction || !register.bool || register.writeOnly)
+            // writeOnly is fine here: writing on/off needs no state to read back (SG Ready's
+            // 3032 is one). A command like "reset alarm" is kept out by noAction instead.
+            if (register.direction !== Dir.Out || register.noAction || !register.bool)
                 continue;
             if (!this.actionSpecs[register.name + ".onoff"])
                 continue;
@@ -527,11 +529,13 @@ export abstract class NibePumpDriver extends Driver {
                 });
             return entries;
         };
+        // Same rule as the pairing picker: a group with nothing to offer on this model (SG Ready
+        // on the F-series) is not shown as an empty checkbox.
         return ids.map((id) => ({
             id,
             name: this.homey.__(`groups.${id}`) || id,
             registers: entriesFor(id)
-        }));
+        })).filter((group) => group.registers.length > 0);
     }
 
     // The localized title of any derived capability, from the single source both pairing and the

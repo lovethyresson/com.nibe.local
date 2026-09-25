@@ -21,6 +21,7 @@ export const groupIds = [
     "groundsource",
     "electrical",
     "solar",
+    "sgready",
     "alarm",
     "diagnostics",
     "statistics",
@@ -31,6 +32,14 @@ export const groupIds = [
 ] as const;
 
 export type GroupId = typeof groupIds[number] | "core";
+
+// Groups that start OFF on a device paired before the group existed. Everywhere else a group
+// missing from a stored selection reads as enabled, which is right for the upgrade path of the
+// original groups but wrong for a feature only some firmware has: SG Ready's 6008 is absent on
+// most pumps in the field, so defaulting it on would hand every existing Main device a state
+// that can never read. `withOptInGroups()` writes the key explicitly, so every reader agrees.
+// Pairing and Repair decide these from detection like any other group.
+export const optInGroups: GroupId[] = ["sgready"];
 
 export interface RegisterInfo {
     en: string;
@@ -369,6 +378,18 @@ export function migrateSelection(
         }
     }
     return migrated;
+}
+
+// Record each opt-in group the stored selection predates as explicitly off. Returns the same
+// object when there is nothing to add, so the caller can tell whether to persist.
+export function withOptInGroups(selection: Selection): Selection {
+    const missing = optInGroups.filter((group) => selection.groups?.[group] === undefined);
+    if (!missing.length)
+        return selection;
+    const groups = {...selection.groups};
+    for (const group of missing)
+        groups[group] = false;
+    return {...selection, groups};
 }
 
 // Rewrite a list of registers onto their resolved addresses. Returns the originals untouched

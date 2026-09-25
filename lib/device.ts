@@ -5,7 +5,7 @@ import net from 'net';
 import {analyticsConsent, setAnalyticsConsent, track} from './analytics';
 import {
     Dir, Register, Selection, encodeRegisterValue, toNumericValue, enumLabel, isPollable, isUnavailableRaw, migrateSelection,
-    resolvedAddress, signedValue, withResolvedAddresses
+    optInGroups, resolvedAddress, signedValue, withOptInGroups, withResolvedAddresses
 } from './registers';
 import {
     ACTIVE_POWER_CAPABILITY, ALARM_ACTIVE_CAPABILITY, ALARM_TEXT_CAPABILITY,
@@ -217,17 +217,23 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     // One-shot and idempotent: rewrite the stored selection's keys for registers this model has
-    // renamed. A device with no stored selection has everything enabled and nothing to carry.
-    private async migrateRenamedRegisters() {
+    // renamed, and record any opt-in group it predates as off. A device with no stored selection
+    // has everything enabled and nothing to carry.
+    private async migrateStoredSelection() {
         const selection = this.getSelection();
         if (!selection)
             return;
-        const migrated = migrateSelection(selection, this.profile.renamedRegisters);
+        const renamed = migrateSelection(selection, this.profile.renamedRegisters);
+        if (renamed !== selection)
+            this.log('Migrating stored selection onto renamed registers: '
+                + Object.entries(this.profile.renamedRegisters ?? {})
+                    .map(([from, to]) => `${from} -> ${to}`).join(', '));
+        const migrated = withOptInGroups(renamed);
+        if (migrated !== renamed)
+            this.log('New opt-in groups start off (enable via Repair): '
+                + optInGroups.filter((group) => selection.groups?.[group] === undefined).join(', '));
         if (migrated === selection)
             return;
-        this.log('Migrating stored selection onto renamed registers: '
-            + Object.entries(this.profile.renamedRegisters ?? {})
-                .map(([from, to]) => `${from} -> ${to}`).join(', '));
         await this.setStoreValue('selection', migrated).catch(this.error);
     }
 
@@ -846,7 +852,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.role = roleOf(this.getData());
         // Before anything reads the selection: carry it across any register this model has
         // renamed, so an upgraded device keeps its overrides and its resolved addresses.
-        await this.migrateRenamedRegisters();
+        await this.migrateStoredSelection();
         this.debug(`Device init: role ${this.role}, host ${this.host()}, groups [${this.enabledGroupsSummary()}]`);
 
         const wantedClass = deviceClass(this.profile, this.role, this.getSelection());
