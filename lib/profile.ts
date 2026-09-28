@@ -285,6 +285,8 @@ export interface ModelProfile {
     detection: {
         passes?: number;
         requestIntervalMs?: number;
+        // Recommendation policy only; does not change runtime energy accounting.
+        powerMayBeIdle?: boolean;
         // Fallback per-group heuristics for when nothing moved during the sampling window.
         plausible: Partial<Record<Exclude<GroupId, "core">, (helpers: PlausibleHelpers) => boolean>>;
         discoveryProbe: DiscoveryProbe;

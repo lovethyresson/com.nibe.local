@@ -346,3 +346,15 @@ minutes while debugging (including after capture expires), emits it when debug i
 disabled, and saves it on Main. Restart with debug enabled logs the saved capture.
 Receipt timestamps do not prove fresh pump data. Disable debug and immediately send
 the diagnostic after a test cycle so the summary is near the end of Homey's log.
+
+## 1.3.8 pairing recommendations
+
+F-series accepts idle zero readings from a complete compressor-plus-immersion power source
+group when recommending allocated consumption and current power. A missing required input
+still prevents that recommendation. This is availability detection, not proof of meter accuracy.
+Production counters must return plausible positive values; they need not increase during the
+short scan. COP requires both consumption and production inputs. Static positive counters
+can therefore still be recommended, even if later observation finds they never update.
+Users can deselect Energy delivered and COP independently, retaining allocated consumption.
+Repair uses the same rules; review and save the desired checkboxes. No runtime energy
+calculation, register mapping, or S-series detection rule changes in this release.

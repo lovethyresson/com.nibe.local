@@ -246,3 +246,106 @@ It cannot independently establish absolute electrical accuracy or prove all auxi
 included. No reviewed source removes that limitation. Keep energy support explicitly experimental
 until these questions are resolved; a register-reading driver alone does not fulfill the app's
 per-function energy promise.
+
+## 2026-09-27 overnight hot-water report (1.3.7)
+
+Diagnostic `02aca898-2ee2-44c5-b8d5-5def77588647`, supplied as a local attachment.
+Owner reports hot water 02:03:50–03:06:54, then Off at 03:07:54 (Europe/Stockholm).
+This is 00:03:50–01:06:54 UTC; the cycle was about 63 minutes. No heating cycle
+was reported in that observation period.
+
+The retained diagnostic capture is NOT that cycle: it started September 25 at
+19:29:30 UTC and sampled until approximately 21:29 UTC (21:29–23:29 local).
+All retained priority observations are 10, with zero compressor and immersion power.
+It completed both sweeps (138/138 replies, 69 readable diagnostic registers).
+The September 27 log repeats this stopped summary five times; repeat time is not
+sample time. Retention works, but the two-hour acquisition window missed the cycle.
+
+Independent fresh background reads in the September 27 reconnect dump still help:
+
+| Counter | September 25 capture | September 27 ~09:29 UTC read |
+|---|---:|---:|
+| 44298 EP14 hot-water production | 352.5 kWh | 352.5 kWh (0x0dc5, 0x0000) |
+| 44300 EP14 heating production | 26660.4 kWh | 26660.4 kWh (0x116c, 0x0004) |
+| 41848 native hot-water consumption | 3090.8 kWh | 3092.4 kWh (0x78cc, 0x0000) |
+
+The unchanged hot-water production reading brackets the owner's reported cycle.
+This supports treating 44298 as unusable/frozen on this installation; it does not
+establish why (pump counter, optional meter, or register-specific gateway caching),
+nor prove all F-series models lack production. The consumption increase covers the
+whole interval between samples; it is NOT a measured 1.6 kWh for this particular cycle.
+There is no valid cycle COP or integrated app-energy delta in this attachment.
+
+Canonical 42437/42439 remained zero in the retained capture and in fresh foreground
+reads. The Main dump labels them as relocated to 44298/44300 using Main's selection,
+but its attached actual read details show wire 2436/2438. This dump combines a Main
+selection with a connection-wide cache keyed by capability name, and all function
+registers are marked off because Main does not own them. It does not establish the
+Heating/Hot Water child selections or prove a transport-offset regression. Future
+reports should include each device's effective source and actual read address together.
+
+A fresh out-of-sync burst at 09:31 UTC causes two failed polls; reconnection completes
+about five seconds later and valid readings resume. It is hours after the reported
+cycle and cannot be blamed for that cycle's missing evidence.
+
+Next diagnostic improvement should retain bounded cycle summaries using normal
+power/priority/counter polling while debug is enabled, including start/end, valid
+coverage, selected source, counter deltas and gaps. Keep extra full sweeps bounded;
+do not require the owner to anticipate an overnight cycle or stay awake. This changes
+observability, not allocation or COP calculations. No runtime change made in this review.
+
+## 2026-09-27 afternoon diagnostic: active hot-water snapshot
+
+Diagnostic `9c4bd6d9-987b-4bab-ab76-5f788b7711c4`, app 1.3.7.
+A fresh retained capture started at 14:03:34 UTC (16:03 local), completed both
+sweeps (138/138), and expired around 16:03 UTC (18:03 local). Priority ranged
+10–20 and ended at 20; motor power stayed zero in its sampled points, while the
+mean compressor input reached 20 W near the end. This is not a full charge trace.
+The principal energy inputs had zero read errors in this capture; BF1 remained
+unavailable (two observations).
+
+The later reconnect dump at 16:36:43 UTC (18:36 local) independently confirms:
+- Priority 43086 = 20 (hot water).
+- 43141 and 43375 both raw 54, decoded 540 W; immersion 43084 = 0 W.
+- Earlier background sample 43136 raw 351 = 35.1 Hz at 16:33:41 UTC.
+- BT2 = 47.4 C, BT3 = 32.0 C, BT7 = 43.4 C, BT6 = 31.8 C.
+- Fresh EP14 production reads at 16:34 UTC still show 352.5 kWh hot water and
+  26660.4 kWh heating. Canonical 42437/42439 still read zero.
+- Native hot-water consumption 41848 still reads 3092.4 kWh at 16:34:11 UTC.
+
+This demonstrates usable live mode/power inputs during an active hot-water run,
+not independently validated watt accuracy or successful cumulative app allocation.
+There is no completed-cycle counter delta or end-of-cycle snapshot, so do not
+calculate cycle kWh/COP or claim the native consumption counter never updates.
+Unchanged production adds to the earlier before/after evidence against usable
+production on this installation, but still does not prove the root cause.
+
+A socket reset (ECONNRESET) at 16:36:37 UTC recovers in roughly five seconds.
+The stopped summary does not contain the later 540 W snapshot: repeating its
+summary cannot substitute for a rolling/event-based cycle capture. No runtime
+changes made in this review.
+
+## 2026-09-28 owner cross-check outside Homey
+
+Owner screenshots report QModMaster FC03 reads before and after a hot-water cycle:
+starting 13:23:04, hot water 13:24:04, stopping 15:25:12, off 15:26:12 local.
+No heating cycle occurred. Both reads of 44298 (wire 4297) returned decimal words
+3525, 0 = 352.5 kWh; 44300 (wire 4299) returned 4460, 4 = 26660.4 kWh.
+This independently reproduces the app values and the unchanged hot-water counter;
+unchanged heating during a hot-water-only cycle is expected. Both totals also match
+the earlier September 22 observations, weakening the daily-aggregation explanation.
+QModMaster uses the same gateway, so this does not exclude stale gateway data.
+
+The pump display Service info 3.1 page 8/18 explicitly says accumulated energy
+CONSUMPTION: heating 56791.8 kWh, hot water 3093.4 kWh, ventilation 2797.8 kWh.
+The owner found no production display. Do not relabel these as delivered heat.
+He was told F730 lacks flow metering and requires EMK 300. Missing metering is
+consistent with earlier unavailable BF1, but this is not proof for all F730 variants.
+NIBE EMK 300 manual 831222-3, English F-series page 34, does NOT list F730 as a
+compatible product (F1145/F1155/F1245/F1255, VVM225/310/320/325, SMO40 are listed).
+Do not recommend that accessory as a verified fix.
+
+Practical outcome: leave delivered energy/COP off for this installation and retain
+allocated electrical consumption. No F-specific estimated-production calculation.
+Pairing still uses plausible values, not short-window counter movement; these
+positive static values require manual deselection, not a false promise of detection.

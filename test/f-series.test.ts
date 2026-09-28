@@ -118,6 +118,31 @@ test('F COP requires production and a complete compressor plus immersion source'
     assert.equal(extraCapabilitySupport(fProfile, 'heating', sample)[FUNCTION_COP_CAPABILITY], false);
 });
 
+test('F idle pairing keeps allocated energy independently of production; S keeps its policy', async () => {
+    const {buildDetectionResult} = await import('../lib/detection');
+    for (const role of ['heating', 'hotwater'] as const) {
+        const produced = fProfile.role.producedRegisterForRole[role]!;
+        for (const value of [undefined, 0, 352.5]) {
+            const probes = {
+                [at(43375).name]: {reads: 2, moved: false, last: 0},
+                [at(43084).name]: {reads: 2, moved: false, last: 0},
+                [produced]: {reads: value === undefined ? 0 : 2, moved: false, last: value}
+            };
+            const profile = {...fProfile, registers: [at(43375), at(43084), fProfile.registerByName[produced]]};
+            const result = buildDetectionResult(profile, probes);
+            const support = extraCapabilitySupport(fProfile, role, (name) => result.samples[name]);
+            assert.equal(support[METER_CAPABILITY], true);
+            assert.equal(result.samples[produced].read, value === 352.5);
+            assert.equal(support[FUNCTION_COP_CAPABILITY], value === 352.5);
+            delete result.samples[at(43084).name];
+            assert.equal(extraCapabilitySupport(fProfile, role,
+                (name) => result.samples[name])[METER_CAPABILITY], false);
+        }
+    }
+    assert.equal(extraCapabilitySupport(sProfile, 'heating',
+        () => ({read: true, moved: false, value: 0}))[METER_CAPABILITY], false);
+});
+
 test('F power sums required sources and falls back without double counting', () => {
     const c: any = Object.create(PumpConnection.prototype);
     c.powerGroups = fProfile.role.powerSources.map((g) => g.map((n) => fProfile.registerByName[n]));

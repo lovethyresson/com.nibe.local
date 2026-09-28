@@ -160,14 +160,15 @@ export function extraCapabilitySupport(
     const read = (name: string) => sample(name)?.read ?? false;
     // The pump's electrical draw. Everything the allocator produces depends on it.
     //
-    // Stricter than a plain "did it answer": a power register that answers every read and
-    // sits at exactly zero throughout the sampling window is not wired up on this pump. That
-    // is not hypothetical — register 2727 "Current power" answers 31/31 reads on an S1155 and
+    // S keeps its nonzero check: register 2727 "Current power" answers 31/31 reads on an S1155 and
     // stays at 0 straight through a 3.3 kW compressor run, because it belongs to the external
     // energy-meter accessory. Same reasoning as `inRange`'s "exactly 0 means missing sensor".
+    // Profiles with native compressor/addition inputs may accept idle zero readings. This
+    // recommends a feature, not a guarantee of an active source; all group members must read.
     const usablePower = (name: string) => {
         const probe = sample(name);
-        return !!probe?.read && (probe.moved || (probe.value ?? 0) !== 0);
+        return !!probe?.read && (profile.detection.powerMayBeIdle
+            || probe.moved || (probe.value ?? 0) !== 0);
     };
     const powerOk = profile.role.powerSources.some((group) => group.every(read) && group.some(usablePower));
     // The lifetime counters behind Main's Total COP — deliberately independent of the power

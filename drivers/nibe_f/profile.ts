@@ -58,6 +58,7 @@ export const fProfile = makeProfile({
     },
     alarm: {registerName: 'alarm_text_NIBE', series: 'f'},
     detection: {
+        powerMayBeIdle: true,
         // Two passes permit a cache miss to warm up without five full slow scans.
         passes: 2,
         requestIntervalMs: 2100,

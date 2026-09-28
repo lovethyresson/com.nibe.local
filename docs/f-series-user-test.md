@@ -1,5 +1,8 @@
 # F730 first hardware test
 
+The current driver is named **Nibe F-series (experimental)**. Older test instructions below
+refer to the label used in those releases.
+
 This is an experimental build. The purpose is to check the gateway, readings, controls and
 energy accounting against your pump. No external electricity meter is required.
 
