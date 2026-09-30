@@ -4,7 +4,8 @@ Optional short Homey timeline messages, bundled with the app. No external servic
 
 ## Preparing a release
 
-Always consider an announcement for a major feature release; routine fixes usually need none.
+Always ask the user whether a release should include a timeline message, including patch releases,
+unless they have already explicitly decided for that release.
 Use a short benefit followed by a concrete setup step. Homey already shows the app version elsewhere.
 
 Set `CURRENT_ANNOUNCEMENT` in `lib/release-announcements.ts` to an `Announcement`:
@@ -28,17 +29,18 @@ Notification errors are logged and retry on the next app start. Delivery and set
 an atomic transaction: a crash after Homey accepts a notification but before its ID is saved can repeat it.
 This is a timeline entry; phone push behavior follows Homey's notification settings.
 
-## Announcement in 1.3.3
+## Announcement in 1.4.1
 
-The active `1.3.3-setup-tips` announcement contains two snippets, both restricted to `nibe_s`, so each owner sees only relevant news:
+The active `1.4-feature-update` replaces the 1.3.3 tips. It targets owners by driver,
+combining both snippets into one message for owners with both series.
 
-### Hot Water (`roles: ['hotwater']`)
+### S-series
 
-Hot water available is here. Run Repair on your Hot Water device to set it up.
+More control in Flows: dedicated setting cards and SG Ready controls where supported and configured. Explore the new Nibe Flow cards; existing Flows keep working.
 
-### Heating (`roles: ['heating']`)
+### F-series
 
-You can now use your Homey temperature sensors for heating. Run Repair on your Heating device to set it up.
+Experimental F-series support has improved readings and energy recommendations. Run Repair on your Nibe devices to review the available features.
 
-Both snippets are translated into English, Swedish, German, Dutch, Norwegian and Danish.
-Keep this ID on later patches to avoid repeating the same tips.
+Both snippets are translated into all six supported languages. Keep the ID stable across
+subsequent patches so users receive this feature announcement only once.

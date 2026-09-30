@@ -67,8 +67,8 @@ Review these together when preparing a release:
    the contract silently stops being one. Renaming a *user* property also orphans the old one in
    Amplitude forever (`Identify` only `.set()`s; there is no unset), so it is a one-way decision.
 
-7. For every major feature release, **consider a short timeline announcement**. This means a meaningful
-   user-facing release, not only a semantic-version major bump. Skip routine fixes. Use one benefit and
+7. For every release, **ask the user whether to include a timeline message**, unless they have
+   already explicitly decided for that release. This includes patch releases; do not silently skip them. Use one benefit and
    one concrete next step per snippet, target only relevant drivers/devices, and translate the copy.
    Configure only the latest announcement in `lib/release-announcements.ts`; keep its ID stable across
    patches and copy edits. See `docs/release-announcements.md` for delivery rules and current release copy.
