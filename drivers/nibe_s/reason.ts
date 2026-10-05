@@ -16,7 +16,7 @@ import type {LocalizedText, ReasonConfig, ReasonContext, ReasonState} from '../.
 //   * Pool works the same way against its own start/stop pair (687/689).
 //   * Cooling starts once DM rises above the cooling threshold (20) with a warm enough outdoor
 //     temperature (183).
-//   * Heating is blocked outright above the outdoor cut-off (184) regardless of DM.
+//   * In Auto, heating is blocked above the average outdoor cut-off (184) regardless of DM.
 //
 // So each rule below picks the comparison that actually fired and states it with the two or
 // three numbers that justify it. Everything is optional-safe: any input can be missing (the
@@ -124,6 +124,7 @@ export const sReason: ReasonConfig = {
         poolStop:        {address:  689, direction: Dir.Out, scale: 10},
         // Context that can override any of the above.
         outdoor:         {address:    1, direction: Dir.In,  scale: 10},
+        outdoorAverage:  {address:   37, direction: Dir.In,  scale: 10},
         sgReady:         {address: 1911, direction: Dir.In}
     },
 
@@ -370,7 +371,7 @@ function finished(role: string): LocalizedText {
 // silence is better than filler.
 function qualifier(role: string, previousRole: string | undefined,
                    v: ReasonContext['v']): LocalizedText | undefined {
-    const outdoor = v('outdoor');
+    const outdoor = v('outdoorAverage');
     const stopHeatingOut = v('stopHeatingOut');
     const operatingMode = v('operatingMode');
     // Only worth saying when the reader would otherwise expect heating to take over — going
@@ -384,8 +385,8 @@ function qualifier(role: string, previousRole: string | undefined,
         && outdoor !== undefined && stopHeatingOut !== undefined && outdoor >= stopHeatingOut
         && operatingMode === 0)
         return {
-            en: `Heating stays off anyway while it is ${e(outdoor)} °C outside (the limit is ${e(stopHeatingOut)} °C).`,
-            sv: `Värmen är ändå avstängd så länge det är ${s(outdoor)} °C ute (gränsen är ${s(stopHeatingOut)} °C).`
+            en: `Heating stays off anyway while the average outdoor temperature is ${e(outdoor)} °C (the limit is ${e(stopHeatingOut)} °C).`,
+            sv: `Värmen är ändå avstängd så länge medelutetemperaturen är ${s(outdoor)} °C (gränsen är ${s(stopHeatingOut)} °C).`
         };
 
     if (role === 'heating') {

@@ -16,6 +16,16 @@ Energy allocation is experimental. F730 testing has shown changing compressor-po
 but their watt scaling remains unverified and the tested production counters stayed zero.
 COP needs usable production data. Do not treat beta energy figures as a verified meter.
 
+## Heating cutoff
+
+### Why is heating running when it is warmer outside than the heating-stop setting?
+
+In Auto mode, the heating-stop setting is compared with the **average outdoor temperature**.
+The current outdoor reading can be above the limit while the average remains below it.
+For example, 16.8 °C outside with a 14.8 °C average does not reach a 15 °C heating cutoff.
+This cutoff does not apply in Manual mode. From 1.4.2, the S-series operational explanation
+uses the average too, and omits the cutoff explanation if that reading is unavailable.
+
 ## Homey temperature sensors
 
 ### Can I use my own sensors instead of NIBE's room sensor?

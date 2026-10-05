@@ -686,7 +686,7 @@ const baseline: Record<string, number> = {
     hwStartSmall: 38, hwStopSmall: 45, hwStartMedium: 44, hwStopMedium: 51,
     hwStartLarge: 48, hwStopLarge: 55, moreHotwater: 0, periodicHw: 0,
     hwStopPeriodic: 60, dmCooling: 30, startCoolingOut: 25, poolTemp: 24, poolStart: 22, poolStop: 25,
-    outdoor: 10.0, sgReady: 10, operatingMode: 0
+    outdoor: 10.0, outdoorAverage: 10.0, sgReady: 10, operatingMode: 0
 };
 
 // A one-shot explanation, with nothing remembered from an earlier change. Anything testing what
@@ -733,11 +733,11 @@ test('reason: heating that resumes after another function is not blamed on degre
 
 test('reason: the heating cut-off is not mentioned after hot water or pool', () => {
     // It is relevant when heating is what you'd expect to happen next...
-    assert.match(why('main', 'heating', {outdoor: 17.3})!.en, /stays off anyway/);
-    assert.match(why('main', 'main', {outdoor: 17.3})!.en, /stays off anyway/);
+    assert.match(why('main', 'heating', {outdoorAverage: 17.3})!.en, /stays off anyway/);
+    assert.match(why('main', 'main', {outdoorAverage: 17.3})!.en, /stays off anyway/);
     // ...and a non sequitur when the pump just finished something else.
-    assert.doesNotMatch(why('main', 'hotwater', {outdoor: 17.3})!.en, /stays off anyway/);
-    assert.doesNotMatch(why('main', 'pool', {outdoor: 17.3})!.en, /stays off anyway/);
+    assert.doesNotMatch(why('main', 'hotwater', {outdoorAverage: 17.3})!.en, /stays off anyway/);
+    assert.doesNotMatch(why('main', 'pool', {outdoorAverage: 17.3})!.en, /stays off anyway/);
 });
 
 test('reason: hot water start cites the tank against its demand-mode start point', () => {
@@ -839,22 +839,36 @@ test('reason: going idle explains what just finished, not that nothing is happen
 });
 
 test('reason: the outdoor cut-off is reported when it is what keeps heating off', () => {
-    const blocked = why('main', 'heating', {outdoor: 17.3, stopHeatingOut: 17.0})!;
-    assert.match(blocked.en, /Heating stays off anyway while it is 17\.3 °C outside \(the limit is 17\.0 °C\)/);
+    const blocked = why('main', 'heating', {outdoorAverage: 17.3, stopHeatingOut: 17.0})!;
+    assert.match(blocked.en, /Heating stays off anyway while the average outdoor temperature is 17\.3 °C \(the limit is 17\.0 °C\)/);
     // Below the limit it is not mentioned — no filler.
-    assert.doesNotMatch(why('main', 'heating', {outdoor: 4.1})!.en, /stays off anyway/);
+    assert.doesNotMatch(why('main', 'heating', {outdoorAverage: 4.1})!.en, /stays off anyway/);
+});
+
+test('reason: the heating cut-off uses average outdoor temperature, never the instant reading', () => {
+    const values = {outdoor: 16.8, outdoorAverage: 14.8, stopHeatingOut: 15};
+    assert.doesNotMatch(why('main', 'heating', values)!.en, /stays off anyway/);
+    const blocked = why('main', 'heating', {...values, outdoor: 14, outdoorAverage: 16})!;
+    assert.match(blocked.en, /average outdoor temperature is 16\.0 °C/);
+    assert.match(blocked.sv, /medelutetemperaturen är 16,0 °C/);
+    assert.doesNotMatch(why('main', 'heating', {
+        ...values, outdoorAverage: undefined as any
+    })!.en, /stays off anyway/);
+    assert.equal(sReason.inputs.outdoorAverage.address, 37);
+    assert.equal(sReason.inputs.outdoorAverage.direction, Dir.In);
+    assert.equal(sReason.inputs.outdoorAverage.scale, 10);
 });
 
 test('reason: the outdoor cut-off is not cited outside auto mode', () => {
     // 184 is an auto-mode setting (its own info string says so) — citing it in Manual or
     // Add-heat-only would name a rule that is not in effect.
-    const manual = why('main', 'heating', {outdoor: 17.3, stopHeatingOut: 17.0, operatingMode: 1})!;
+    const manual = why('main', 'heating', {outdoorAverage: 17.3, stopHeatingOut: 17.0, operatingMode: 1})!;
     assert.doesNotMatch(manual.en, /stays off anyway/);
-    const addHeatOnly = why('main', 'heating', {outdoor: 17.3, stopHeatingOut: 17.0, operatingMode: 2})!;
+    const addHeatOnly = why('main', 'heating', {outdoorAverage: 17.3, stopHeatingOut: 17.0, operatingMode: 2})!;
     assert.doesNotMatch(addHeatOnly.en, /stays off anyway/);
     // Unknown mode (register didn't answer) is treated the same as "not confirmed auto" —
     // silence rather than a guess.
-    const unknownMode = why('main', 'heating', {outdoor: 17.3, stopHeatingOut: 17.0, operatingMode: undefined as any})!;
+    const unknownMode = why('main', 'heating', {outdoorAverage: 17.3, stopHeatingOut: 17.0, operatingMode: undefined as any})!;
     assert.doesNotMatch(unknownMode.en, /stays off anyway/);
 });
 
