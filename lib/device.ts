@@ -1050,7 +1050,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             // A reply from before Repair may still be in flight.
             if (canonical && register.address !== resolvedAddress(canonical, this.getSelection())) return;
             if (register.name === this.profile.role.producedRegisterForRole[this.role]) {
-                if (this.lastProducedAddress !== register.address) this.lastProducedSeen = null;
+                if (this.lastProducedAddress !== register.address) {
+                    this.lastProducedSeen = null;
+                    this.resetDeliveredCheck();
+                }
                 this.lastProducedAddress = register.address;
             }
         }
@@ -1079,6 +1082,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 this.copUsed = rawScaled;
             }
         } else if (register.name === producedRegisterForRole[this.role]) {
+            this.noteDeliveredCounter(rawScaled);
             // Advance the numerator only across intervals the allocator could measure, so it
             // covers the same span as `cumulativeEnergy`. A negative step (counter reset) is
             // ignored rather than propagated.
@@ -1306,6 +1310,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     onConnectionDown(problem: ConnectionProblem) {
         this.onEnergyUnavailable();
+        this.resetDeliveredCheck();
         this.tankTopC = null;
         this.tankLowerC = null;
         this.lastPublishedLitres = null;
@@ -1406,7 +1411,60 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private bookedThisHour = 0;   // what the allocator credited this function since the last hour
     private loggedEnergyComparison = false;
 
-    onEnergyLogHour(used: number | undefined, _produced: number | undefined) {
+    // ---- Measuring the delivered counter against the pump's hourly log --------------------
+    // OBSERVATION ONLY, like the used-side check above. A ground-source S-series owner on
+    // firmware 536 saw 1575 (hot water delivered) climb ~53 kWh in a day that the pump's own
+    // hourly log booked ~3 kWh of hot-water electricity for — a COP near 15, while the used side
+    // matched the log within 0.5%. Both delivered figures are the pump's; this logs them side
+    // by side so a diagnostic report says which one is wrong.
+    //
+    // The cumulative pair is the one to read. The lifetime counters lag the hourly log by about
+    // an hour (measured for 3823) and 1575 steps in 0.1 kWh, so single hours can disagree from
+    // timing alone; a day of them cannot.
+    private deliveredCounterLast: number | null = null;  // last 1575/1577/... reading
+    private deliveredCounterHour = 0;                     // its movement since the last log step
+    private deliveredCheckPrimed = false;                 // false = the current hour is partial
+    private deliveredTotals = {counter: 0, log: 0, hours: 0};
+
+    private noteDeliveredCounter(value: number | null) {
+        if (value !== null && this.deliveredCounterLast !== null)
+            this.deliveredCounterHour += value - this.deliveredCounterLast;
+        this.deliveredCounterLast = value;
+    }
+
+    // A gap or a source switch leaves the current hour covered by the log but only partly by
+    // the counter, so that hour is discarded rather than compared. Totals so far are kept.
+    private resetDeliveredCheck() {
+        this.deliveredCounterLast = null;
+        this.deliveredCounterHour = 0;
+        this.deliveredCheckPrimed = false;
+    }
+
+    private compareDelivered(logged: number | undefined) {
+        const counter = this.deliveredCounterHour;
+        this.deliveredCounterHour = 0;
+        if (logged === undefined)
+            return;
+        // The first step after start or a gap closes an hour the counter only partly saw.
+        if (!this.deliveredCheckPrimed) {
+            this.deliveredCheckPrimed = this.deliveredCounterLast !== null;
+            return;
+        }
+        const totals = this.deliveredTotals;
+        totals.counter += counter;
+        totals.log += logged;
+        totals.hours += 1;
+        const name = this.profile.role.producedRegisterForRole[this.role] ?? 'delivered counter';
+        const ratio = totals.log >= 0.5
+            ? ` (counter ÷ log ${(totals.counter / totals.log).toFixed(2)})`
+            : '';
+        this.debug(`Delivered check — the pump's hourly log booked ${logged.toFixed(2)} kWh delivered `
+            + `last hour, ${name} moved ${counter.toFixed(2)} kWh. Over ${totals.hours} h: log `
+            + `${totals.log.toFixed(2)} kWh, counter ${totals.counter.toFixed(2)} kWh${ratio}.`);
+    }
+
+    onEnergyLogHour(used: number | undefined, produced: number | undefined) {
+        this.compareDelivered(produced);
         const booked = this.bookedThisHour;
         this.bookedThisHour = 0;
         if (used === undefined)

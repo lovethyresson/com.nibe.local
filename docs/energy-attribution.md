@@ -4,7 +4,7 @@
 that touches attribution, the power sources, the role mapping or the COP accumulators — not on every build.
 The [README](../README.md) links here and carries the user-facing summary.
 
-Last reviewed against the code: **1.3.7**; hardware accuracy measurements below retain their original dates. 1.3.7 removed the attribution debug logging (within-hour trace, shadow power source, shadow monitor, hourly energy-log and reconciliation lines, 3804 changes); the measurements below were taken with it. Attribution itself is unchanged.
+Last reviewed against the code: **1.4.3**; hardware accuracy measurements below retain their original dates. 1.4.3 adds a debug-only delivered check (per-function counter vs the hourly *produced* log); see "Delivered counters are not always trustworthy" below. 1.3.7 removed the attribution debug logging (within-hour trace, shadow power source, shadow monitor, hourly energy-log and reconciliation lines, 3804 changes); the measurements below were taken with it. Attribution itself is unchanged.
 
 ## F-series production sources (1.3.6 test)
 
@@ -217,6 +217,12 @@ backed out. Three independent measurements agree the real error is small and *ne
 At each `:00` the app still reads the pump's own per-function hourly figures and logs an attribution check
 against what the allocator credited. **It compares only — it never corrects the meter.** That is what
 produced the −0.8% figure, and it stays measurement-only until there is a reason to act on it.
+
+## Delivered counters are not always trustworthy (1.4.3)
+
+The per-function COP assumes the pump's delivered counter (1575/1577/1579/1581) is right. On one ground-source S-series (model code 56, firmware 536, 3821/3823 absent) it is not: 1575 rose ~53 kWh in a day whose hot-water electricity the hourly log booked at ~3–4 kWh, while the allocator's used figure matched that log within 0.5%. The COP error is then entirely in the numerator, and Main has no Total COP to compare against.
+
+With debug on, each function device now logs at every `:00` step what the hourly log booked as *produced* next to how far its delivered counter moved, with running totals. Read the totals, not single hours (counter lag and 0.1 kWh steps). Observation only — nothing is corrected yet.
 
 ## Known warts
 

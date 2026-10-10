@@ -1,4 +1,12 @@
 {
+  "1.4.3": {
+    "en": "Adds a diagnostic check for heat pumps where \"Energy delivered\" and COP read too high. With debug logging on, a diagnostics report now shows the pump's own hourly figures next to the counter. Nothing you see changes.",
+    "sv": "Lägger till en diagnoskontroll för värmepumpar där \"Levererad energi\" och COP visar för höga värden. Med felsökningsloggning påslagen visar en diagnostikrapport nu pumpens egna timvärden bredvid räknaren. Inget av det du ser ändras.",
+    "nl": "Voegt een diagnosecontrole toe voor warmtepompen waarbij \"Geleverde energie\" en COP te hoog uitvallen. Met debuglogging aan toont een diagnoserapport nu de eigen uurwaarden van de pomp naast de teller. Wat je ziet verandert niet.",
+    "de": "Fügt eine Diagnoseprüfung für Wärmepumpen hinzu, bei denen „Gelieferte Energie“ und COP zu hoch angezeigt werden. Mit aktivierter Debug-Protokollierung zeigt ein Diagnosebericht jetzt die stündlichen Werte der Pumpe neben dem Zähler. An der Anzeige ändert sich nichts.",
+    "no": "Legger til en diagnosekontroll for varmepumper der \"Levert energi\" og COP viser for høye verdier. Med feilsøkingslogging på viser en diagnoserapport nå pumpens egne timeverdier ved siden av telleren. Ingenting du ser endres.",
+    "da": "Tilføjer et diagnosetjek for varmepumper, hvor \"Leveret energi\" og COP viser for høje værdier. Med fejlsøgningslogning slået til viser en diagnoserapport nu pumpens egne timeværdier ved siden af tælleren. Intet af det, du ser, ændres."
+  },
   "1.4.2": {
     "en": "Corrects heating explanations to use the average outdoor temperature for the automatic heating cutoff. This prevents incorrect messages that heating is blocked when only the current outdoor temperature exceeds the limit.",
     "sv": "Rättar driftförklaringen så att värmestoppet i autoläge bedöms utifrån medelutetemperaturen. Det förhindrar felaktiga meddelanden om att värmen är blockerad när bara den aktuella utetemperaturen överstiger gränsen.",

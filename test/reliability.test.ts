@@ -733,3 +733,30 @@ test('a device follows its pump to a new address, BT50 ownership included', () =
     assert.deepEqual(attached, ['detach 192.168.1.29', 'attach 192.168.1.40']);
     assert.equal((DeviceClass as any).indoorOwners.has('192.168.1.29'), false);
 });
+
+test('delivered check compares the counter with the hourly log, skipping partial hours', () => {
+    const {d} = device();
+    const lines: string[] = [];
+    Object.assign(d, {setValue: async () => {}, debugEnabled: () => true,
+        log: (line: string) => { lines.push(line); }});
+    const produced = sProfile.registerByName[sProfile.role.producedRegisterForRole.hotwater!];
+    const read = (kwh: number) => d.onRegisterRaw(produced, Math.round(kwh * (produced.scale || 1)));
+    read(100);
+    read(101);
+    d.onEnergyLogHour(0.5, 0.4); // partial hour since start: primes, compares nothing
+    assert.equal(lines.filter((l) => l.startsWith('Delivered check')).length, 0);
+    read(108);
+    d.onEnergyLogHour(0.5, 1);
+    read(115);
+    d.onEnergyLogHour(0.5, 1);
+    const checks = lines.filter((l) => l.startsWith('Delivered check'));
+    assert.equal(checks.length, 2);
+    assert.match(checks[1], /moved 7\.00 kWh\. Over 2 h: log 2\.00 kWh, counter 14\.00 kWh \(counter ÷ log 7\.00\)/);
+    d.onConnectionDown('unreachable');
+    read(120);
+    read(121);
+    d.onEnergyLogHour(0.5, 1); // the hour around the gap is discarded, totals kept
+    read(122);
+    d.onEnergyLogHour(0.5, 1);
+    assert.match(lines.filter((l) => l.startsWith('Delivered check')).pop()!, /Over 3 h: log 3\.00 kWh, counter 15\.00 kWh/);
+});
