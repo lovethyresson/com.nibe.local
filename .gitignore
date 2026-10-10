@@ -17,3 +17,5 @@ backup_all_advancedflows*.json
 advancedflow*.json
 *.homeyflows.json
 /homey-dump/
+# Working plan, kept local.
+/docs/multiple-climate-systems-plan.md
