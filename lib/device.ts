@@ -420,6 +420,32 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         }
     }
 
+    // A register with its own "<name>.changed" card fires it with the new value: a mode's label
+    // (operating mode, fan mode) or a number (heat curve displacement). These replace the generic
+    // "Register changed" card, which most devices offered for a single register. Only stepwise
+    // registers get one, so it fires per change and stays out of the poll-loop firehose
+    // docs/analytics.md warns of. A missing old value is the first reading of a new device, a
+    // "now known", not a change.
+    private checkChangedTrigger(register: Register, oldValue: any, value: any) {
+        const id = register.name + ".changed";
+        if (oldValue === null || oldValue === undefined
+            || !this.profile.compose.triggers.some((card: any) => card.id === id))
+            return;
+        let token: string | number;
+        if (register.enum) {
+            // A picker holds the raw id ("0"), an enum capability its label already.
+            token = register.picker
+                ? enumLabel(register, Number(value), (key) => this.homey.__(key)) : `${value}`;
+        } else {
+            token = Number(value);
+            if (!Number.isFinite(token))
+                return;
+        }
+        track('Fired WHEN Card', {card: id, register: register.name, role: this.role});
+        this.homey.flow.getDeviceTriggerCard((this.profile.flowPrefix ?? "") + id)
+            .trigger(this, {value: token}).catch(this.error);
+    }
+
     // Pickers whose current pump value is outside the shortlist they offer, so the warning is
     // logged once per register rather than on every poll.
     private unlistedPickerValues = new Set<string>();
@@ -515,6 +541,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (oldValue !== value) {
             this.noteExternalChange(register, oldValue, value);
             this.checkTrigger(register, value);
+            this.checkChangedTrigger(register, oldValue, value);
         }
     }
 

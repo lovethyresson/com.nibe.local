@@ -29,9 +29,25 @@ Notification errors are logged and retry on the next app start. Delivery and set
 an atomic transaction: a crash after Homey accepts a notification but before its ID is saved can repeat it.
 This is a timeline entry; phone push behavior follows Homey's notification settings.
 
+## Announcement in 1.4.4
+
+The active `1.4.4-setting-triggers` replaces `1.4-feature-update`. Both snippets target
+S-series only and are combined into one message for an owner with both devices.
+
+### Heating device
+
+New Flow cards react when the heat curve displacement, operating mode or fan mode changes. Add them to a Flow from your Nibe devices.
+
+### Cooling device
+
+Night cooling has moved to your Nibe heating device. Pick that device again in Flows that switch night cooling.
+
+The cooling snippet goes to every cooling-device owner, not only those who used night cooling:
+the app cannot see which Flows use a card. Both snippets are translated into all six languages.
+
 ## Announcement in 1.4.1
 
-The active `1.4-feature-update` replaces the 1.3.3 tips. It targets owners by driver,
+The then-active `1.4-feature-update` replaces the 1.3.3 tips. It targets owners by driver,
 combining both snippets into one message for owners with both series.
 
 ### S-series

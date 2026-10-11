@@ -122,7 +122,6 @@ export const sProfile = makeProfile({
             cooling: [
                 "target_temperature.h183_auto_start_cooling",
                 "measure_degree_minutes_NIBE.h20_cooling_dm",
-                "boolean_NIBE.h227_nightchill",
                 "boolean_NIBE.h849_spa_cooling_activated",
                 "spa_influence_NIBE.h850_spa_cooling_influence",
                 "measure_hour_NIBE.i279_compressor_usage_cooling"

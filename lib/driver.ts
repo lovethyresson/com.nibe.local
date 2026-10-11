@@ -4,7 +4,7 @@ import PairSession from "homey/lib/PairSession";
 import net from "net";
 import {
     Dir, GroupId, Register, RegisterInfo, Selection,
-    enumRawValue, enumLabel, flowPredicates, groupIds, isAdjustable, isSelectableRegister, signedValue
+    enumConditionValue, flowPredicates, groupIds, isAdjustable, isSelectableRegister, signedValue
 } from './registers';
 import {
     ACTIVE_POWER_CAPABILITY, ENERGY_CAPABILITIES, FUNCTION_COP_CAPABILITY,
@@ -348,13 +348,31 @@ export abstract class NibePumpDriver extends Driver {
                     .registerArgumentAutocompleteListener("mode", async (query) => enumOptions(query))
                     .registerRunListener(this.tracked('condition', register.name + ".enum", register,
                         async (args: any) => {
-                            const raw = enumRawValue(register, args.mode.id);
-                            const expected = register.picker ? String(raw)
-                                : enumLabel(register, raw, (key) => this.homey.__(key));
+                            const expected = enumConditionValue(register, args.mode.id,
+                                (key) => this.homey.__(key));
                             return args.device.hasCapability(register.name)
                                 && args.device.getCapabilityValue(register.name) === expected;
                         }));
             }
+        }
+
+        // Dedicated less/greater-than card for a register whose value is a number even though its
+        // capability is a picker (heat curve displacement: "3" on the tile). The generic "Value
+        // comparison" card stays scaled-only, since widening it to pickers would offer operating
+        // mode and the hot water modes, where greater-than means nothing.
+        for (const register of this.profile.registers) {
+            if (!this.conditionSpecs[register.name + ".compare"])
+                continue;
+            this.homey.flow.getConditionCard(this.flowId(register.name + ".compare"))
+                .registerRunListener(this.tracked('condition', register.name + ".compare", register,
+                    async (args: any) => {
+                        if (!args.device.hasCapability(register.name))
+                            return false;
+                        const value = Number(args.device.getCapabilityValue(register.name) ?? NaN);
+                        if (!Number.isFinite(value))
+                            return false;
+                        return args.comparison === "<" ? value < args.value : value > args.value;
+                    }));
         }
 
         for (const register of this.profile.registers) {

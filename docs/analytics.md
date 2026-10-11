@@ -207,13 +207,17 @@ via `Homey.emit('track_ui', …)` to a handler in the driver
 [`features.js:202`](../assets/pair/features.js) and `:233`).
 
 **`Ran THEN Card` / `Checked AND Card`** come from a single `tracked()` wrapper applied at the
-six `registerRunListener` sites in [`lib/driver.ts`](../lib/driver.ts), **not** card by card — so a card
+seven `registerRunListener` sites in [`lib/driver.ts`](../lib/driver.ts), **not** card by card — so a card
 added later is instrumented by construction rather than by remembering. A failed run is tracked with
 `ok: false` and the error is rethrown untouched: an action failing because the model lacks that register
 is precisely the signal worth having.
 
 **`Fired WHEN Card`** is bounded by how `checkTrigger` works: it fires only for **bool and enum**
-registers (18 + 7 = 25 of the table's 120).
+registers (18 + 7 = 25 of the table's 120), plus a register with its own `<name>.changed` card
+(`checkChangedTrigger`): operating mode (237), fan mode (1037) and heat curve displacement (30).
+All three move in steps, so each fires once per change. Never give a `.changed` card to an analog
+register. The generic `capability_changed` card is deprecated in their favour but still fires for
+existing Flows, so a change to 237 or 1037 is tracked under both card names.
 
 **The one trigger that is not a register**, and the one place that bound had to be defended by hand:
 `hotwater_volume_dropped_below` fires from the litres-of-hot-water estimate, which is a derived

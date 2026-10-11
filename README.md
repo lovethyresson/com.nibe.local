@@ -26,10 +26,10 @@ So each job gets its own device, with its own controls, its own energy meter, an
 | Device | What it's for |
 | --- | --- |
 | **Main** | The pump itself — what it's doing right now, operating mode, alarms in plain language, diagnostics and runtime stats. Carries the pump's total energy, **Total COP**, and the master switch for price adaption. |
-| **Heating** | A proper thermostat: room temperature and setpoint on one tile, in Homey's Climate view. Heat curve, supply temperatures, the outdoor cut-offs. Ventilation folds in here if fitted. |
+| **Heating** | A proper thermostat: room temperature and setpoint on one tile, in Homey's Climate view. Heat curve, supply temperatures, the outdoor cut-offs. Ventilation and night cooling fold in here if fitted. |
 | **Hot Water** | Demand mode, the temperatures behind it, one-time boosts, periodic (anti-legionella) charging. |
 | **Pool** | A thermostat for pool water, if you have the POOL 40 accessory. |
-| **Cooling** | Cooling permit, night cooling, the outdoor temperatures that start and stop it. |
+| **Cooling** | Cooling permit and the outdoor temperature that starts it. |
 | **Solar** | If you have the EME 20 accessory: what your panels are making, reported to Homey's Energy tab as **production**. |
 
 Every heat-producing device also carries **energy used**, **energy delivered**, its own **COP**, and its own
@@ -169,9 +169,10 @@ the flow as a diagram and explains what detection decides.
 
 ## Automating it
 
-Every writable setting works from a Flow. There are generic cards (set any value, flip any switch, compare
-any reading) plus named ones where that reads better — every switch has its own on/off action, dropdown
-settings get their own cards, and there's an **"An alarm occurred"** trigger.
+Every writable setting has its own Flow card: every switch an on/off action, every dropdown setting a
+card to set it and most a card to check it. Settings you change on the pump or in myUplink have triggers too
+(heat curve displacement, operating mode, fan mode), and so do alarms and the pump switching what it
+produces. Generic cards remain for flipping or comparing any switch or reading.
 
 **Each device's on/off is a real control**: switching the Hot Water device off turns off hot water on the
 pump. Main is always on, because the pump has no whole-unit off switch — its equivalent is the operating

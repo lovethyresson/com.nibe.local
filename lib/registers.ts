@@ -211,6 +211,18 @@ export function enumRawValue(register: Register, value: unknown): number {
     return Number(match[0]);
 }
 
+// What a "<register> is <mode>" condition compares the capability value against. A picker holds
+// the raw id as a string ("0"), an enum capability its translated label. A picker without an
+// enum map (heat curve, hot water demand) has no labels to resolve: the option id is the value.
+export function enumConditionValue(
+    register: Register, id: unknown, translate: (key: string) => string
+): string {
+    if (register.picker && !register.enum)
+        return String(id);
+    const raw = enumRawValue(register, id);
+    return register.picker ? String(raw) : enumLabel(register, raw, translate);
+}
+
 // Shared by every write path, before anything reaches the wire.
 export function encodeRegisterValue(register: Register, value: unknown): number {
     let numeric: number;

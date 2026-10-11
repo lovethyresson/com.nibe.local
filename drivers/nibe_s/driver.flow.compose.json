@@ -225,7 +225,8 @@
             "da": "Varmtvandsbehov"
           }
         }
-      ]
+      ],
+      "deprecated": true
     },
     {
       "id": "capability_turned_on",
@@ -349,6 +350,132 @@
             "nl": "Warmtapwaterbehoefte",
             "no": "Varmtvannsbehov",
             "da": "Varmtvandsbehov"
+          }
+        }
+      ]
+    },
+    {
+      "id": "curve_displacement_NIBE.h30_heat_curve_displacement.changed",
+      "title": {
+        "en": "Heat curve displacement changed",
+        "sv": "Värmeförskjutningen ändrades",
+        "de": "Parallelverschiebung geändert",
+        "nl": "Verschuiving stooklijn gewijzigd",
+        "no": "Varmeforskyvningen endret",
+        "da": "Varmeforskydningen ændret"
+      },
+      "hint": {
+        "en": "Fires when the heat curve displacement changes, whether set on the pump, in myUplink or from Homey.",
+        "sv": "Utlöses när värmeförskjutningen ändras, oavsett om den ställs in på pumpen, i myUplink eller från Homey.",
+        "de": "Wird ausgelöst, wenn sich die Parallelverschiebung ändert, ob an der Pumpe, in myUplink oder über Homey eingestellt.",
+        "nl": "Wordt geactiveerd wanneer de verschuiving van de stooklijn verandert, of die nu op de pomp, in myUplink of via Homey is ingesteld.",
+        "no": "Utløses når varmeforskyvningen endres, enten den stilles inn på pumpen, i myUplink eller fra Homey.",
+        "da": "Udløses, når varmeforskydningen ændres, uanset om den indstilles på pumpen, i myUplink eller fra Homey."
+      },
+      "$filter": "capabilities=curve_displacement_NIBE.h30_heat_curve_displacement",
+      "tokens": [
+        {
+          "name": "value",
+          "type": "number",
+          "title": {
+            "en": "Displacement",
+            "sv": "Förskjutning",
+            "de": "Verschiebung",
+            "nl": "Verschuiving",
+            "no": "Forskyvning",
+            "da": "Forskydning"
+          },
+          "example": {
+            "en": "2",
+            "sv": "2",
+            "de": "2",
+            "nl": "2",
+            "no": "2",
+            "da": "2"
+          }
+        }
+      ]
+    },
+    {
+      "id": "operating_mode_NIBE.h237_operating_mode.changed",
+      "title": {
+        "en": "Operating mode changed",
+        "sv": "Driftläget ändrades",
+        "de": "Betriebsmodus geändert",
+        "nl": "Bedrijfsstand gewijzigd",
+        "no": "Driftsmodusen endret",
+        "da": "Driftsindstillingen ændret"
+      },
+      "hint": {
+        "en": "Fires when the operating mode changes: auto, manual or additional heat only.",
+        "sv": "Utlöses när driftläget ändras: auto, manuellt eller endast tillsats.",
+        "de": "Wird ausgelöst, wenn sich der Betriebsmodus ändert: Auto, Manuell oder nur Zusatzheizung.",
+        "nl": "Wordt geactiveerd wanneer de bedrijfsstand verandert: auto, handmatig of alleen bijverwarming.",
+        "no": "Utløses når driftsmodusen endres: auto, manuell eller kun tilleggsvarme.",
+        "da": "Udløses, når driftsindstillingen ændres: auto, manuel eller kun tilskudsvarme."
+      },
+      "$filter": "capabilities=operating_mode_NIBE.h237_operating_mode",
+      "tokens": [
+        {
+          "name": "value",
+          "type": "string",
+          "title": {
+            "en": "Operating mode",
+            "sv": "Driftläge",
+            "de": "Betriebsmodus",
+            "nl": "Bedrijfsstand",
+            "no": "Driftsmodus",
+            "da": "Driftsindstilling"
+          },
+          "example": {
+            "en": "Auto",
+            "sv": "Auto",
+            "de": "Auto",
+            "nl": "Auto",
+            "no": "Auto",
+            "da": "Auto"
+          }
+        }
+      ]
+    },
+    {
+      "id": "measure_enum_NIBE.i1037_return_fan_step.changed",
+      "title": {
+        "en": "Fan mode changed",
+        "sv": "Fläktläget ändrades",
+        "de": "Lüfterstufe geändert",
+        "nl": "Ventilatorstand gewijzigd",
+        "no": "Viftetrinnet endret",
+        "da": "Ventilatortrinnet ændret"
+      },
+      "hint": {
+        "en": "Fires when the exhaust air fan switches mode: normal or speed 1–4.",
+        "sv": "Utlöses när frånluftsfläkten byter läge: normal eller hastighet 1–4.",
+        "de": "Wird ausgelöst, wenn der Abluftventilator die Stufe wechselt: normal oder Stufe 1–4.",
+        "nl": "Wordt geactiveerd wanneer de afzuigventilator van stand wisselt: normaal of stand 1–4.",
+        "no": "Utløses når avtrekksviften bytter trinn: normal eller trinn 1–4.",
+        "da": "Udløses, når udsugningsventilatoren skifter trin: normal eller trin 1–4."
+      },
+      "$filter": "capabilities=measure_enum_NIBE.i1037_return_fan_step",
+      "tokens": [
+        {
+          "name": "value",
+          "type": "string",
+          "title": {
+            "en": "Fan mode",
+            "sv": "Fläktläge",
+            "de": "Lüfterstufe",
+            "nl": "Ventilatorstand",
+            "no": "Viftetrinn",
+            "da": "Ventilatortrin"
+          },
+          "example": {
+            "en": "Normal",
+            "sv": "Normal",
+            "de": "Normal",
+            "nl": "Normaal",
+            "no": "Normal",
+            "da": "Normal"
           }
         }
       ]
@@ -2884,6 +3011,79 @@
       ]
     },
     {
+      "id": "curve_displacement_NIBE.h30_heat_curve_displacement.compare",
+      "title": {
+        "en": "Heat curve displacement is less/greater than",
+        "sv": "Värmeförskjutningen är mindre/större än",
+        "de": "Parallelverschiebung ist kleiner/größer als",
+        "nl": "Verschuiving stooklijn is kleiner/groter dan",
+        "no": "Varmeforskyvningen er mindre/større enn",
+        "da": "Varmeforskydningen er mindre/større end"
+      },
+      "titleFormatted": {
+        "en": "Heat curve displacement is [[comparison]] [[value]]",
+        "sv": "Värmeförskjutningen är [[comparison]] [[value]]",
+        "de": "Parallelverschiebung ist [[comparison]] [[value]]",
+        "nl": "Verschuiving stooklijn is [[comparison]] [[value]]",
+        "no": "Varmeforskyvningen er [[comparison]] [[value]]",
+        "da": "Varmeforskydningen er [[comparison]] [[value]]"
+      },
+      "$filter": "capabilities=curve_displacement_NIBE.h30_heat_curve_displacement",
+      "args": [
+        {
+          "type": "dropdown",
+          "name": "comparison",
+          "title": {
+            "en": "Comparison",
+            "sv": "Jämförelse",
+            "de": "Vergleich",
+            "nl": "Vergelijking",
+            "no": "Sammenligning",
+            "da": "Sammenligning"
+          },
+          "values": [
+            {
+              "id": "<",
+              "title": {
+                "en": "less than",
+                "sv": "mindre än",
+                "de": "kleiner als",
+                "nl": "kleiner dan",
+                "no": "mindre enn",
+                "da": "mindre end"
+              }
+            },
+            {
+              "id": ">",
+              "title": {
+                "en": "greater than",
+                "sv": "större än",
+                "de": "größer als",
+                "nl": "groter dan",
+                "no": "større enn",
+                "da": "større end"
+              }
+            }
+          ]
+        },
+        {
+          "type": "number",
+          "name": "value",
+          "min": -10,
+          "max": 10,
+          "step": 1,
+          "title": {
+            "en": "Value",
+            "sv": "Värde",
+            "de": "Wert",
+            "nl": "Waarde",
+            "no": "Verdi",
+            "da": "Værdi"
+          }
+        }
+      ]
+    },
+    {
       "id": "feature_enabled",
       "title": {
         "en": "A register is on (advanced)",
@@ -2902,12 +3102,12 @@
         "da": "[[register]] er !{{aktiveret|deaktiveret}}"
       },
       "hint": {
-        "en": "Checks any on/off register, picked by name. Prefer the device’s own on/off condition cards — this is the escape hatch.",
-        "sv": "Kontrollerar valfritt av/på-register, valt via namn. Använd hellre enhetens egna av/på-villkorskort — det här är reservutgången.",
-        "de": "Prüft ein beliebiges Ein/Aus-Register, ausgewählt über den Namen. Bevorzugen Sie die eigenen Ein/Aus-Bedingungskarten des Geräts – dies ist die Ausweichlösung.",
-        "nl": "Controleert een willekeurig aan/uit-register, gekozen op naam. Gebruik bij voorkeur de eigen aan/uit-voorwaardekaarten van het apparaat — dit is de noodoplossing.",
-        "no": "Sjekker et hvilket som helst på/av-register, valgt ved navn. Bruk helst enhetens egne på/av-betingelseskort – dette er nødløsningen.",
-        "da": "Kontrollerer et vilkårligt til/fra-register, valgt ved navn. Brug helst enhedens egne til/fra-betingelseskort – dette er nødløsningen."
+        "en": "Checks any on/off register, picked by name.",
+        "sv": "Kontrollerar valfritt av/på-register, valt via namn.",
+        "de": "Prüft ein beliebiges Ein/Aus-Register, ausgewählt über den Namen.",
+        "nl": "Controleert een willekeurig aan/uit-register, gekozen op naam.",
+        "no": "Sjekker et hvilket som helst på/av-register, valgt ved navn.",
+        "da": "Kontrollerer et vilkårligt til/fra-register, valgt ved navn."
       },
       "advanced": true,
       "args": [
@@ -2952,6 +3152,174 @@
         "da": "Driftsindstilling: auto, manuel eller kun tilskudsvarme."
       },
       "$filter": "capabilities=operating_mode_NIBE.h237_operating_mode",
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "mode",
+          "title": {
+            "en": "Mode",
+            "sv": "Läge",
+            "de": "Modus",
+            "nl": "Stand",
+            "no": "Modus",
+            "da": "Indstilling"
+          }
+        }
+      ]
+    },
+    {
+      "id": "curve_mode_NIBE.h26_heat_curve.enum",
+      "title": {
+        "en": "Heat curve",
+        "sv": "Värmekurva",
+        "de": "Heizkurve",
+        "nl": "Stooklijn",
+        "no": "Varmekurve",
+        "da": "Varmekurve"
+      },
+      "titleFormatted": {
+        "en": "Heat curve is [[mode]]",
+        "sv": "Värmekurva är [[mode]]",
+        "de": "Heizkurve ist [[mode]]",
+        "nl": "Stooklijn is [[mode]]",
+        "no": "Varmekurve er [[mode]]",
+        "da": "Varmekurve er [[mode]]"
+      },
+      "hint": {
+        "en": "The heat curve slope (0–15).",
+        "sv": "Värmekurvans lutning (0–15).",
+        "de": "Steigung der Heizkurve (0–15).",
+        "nl": "Helling van de stooklijn (0–15).",
+        "no": "Varmekurvens stigning (0–15).",
+        "da": "Varmekurvens hældning (0–15)."
+      },
+      "$filter": "capabilities=curve_mode_NIBE.h26_heat_curve",
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "mode",
+          "title": {
+            "en": "Mode",
+            "sv": "Läge",
+            "de": "Modus",
+            "nl": "Stand",
+            "no": "Modus",
+            "da": "Indstilling"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hotwater_demand_NIBE.h56_hotwater_demand_mode.enum",
+      "title": {
+        "en": "Hot water demand",
+        "sv": "Varmvatten behov",
+        "de": "Brauchwasserbedarf",
+        "nl": "Warmtapwaterbehoefte",
+        "no": "Varmtvannsbehov",
+        "da": "Varmtvandsbehov"
+      },
+      "titleFormatted": {
+        "en": "Hot water demand is [[mode]]",
+        "sv": "Varmvatten behov är [[mode]]",
+        "de": "Brauchwasserbedarf ist [[mode]]",
+        "nl": "Warmtapwaterbehoefte is [[mode]]",
+        "no": "Varmtvannsbehov er [[mode]]",
+        "da": "Varmtvandsbehov er [[mode]]"
+      },
+      "hint": {
+        "en": "Small, medium, large or smart control.",
+        "sv": "Liten, medel, stor eller smart styrning.",
+        "de": "Klein, mittel, groß oder intelligente Steuerung.",
+        "nl": "Klein, gemiddeld, groot of slimme regeling.",
+        "no": "Liten, middels, stor eller smart styring.",
+        "da": "Lille, middel, stor eller smart styring."
+      },
+      "$filter": "capabilities=hotwater_demand_NIBE.h56_hotwater_demand_mode",
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "mode",
+          "title": {
+            "en": "Mode",
+            "sv": "Läge",
+            "de": "Modus",
+            "nl": "Stand",
+            "no": "Modus",
+            "da": "Indstilling"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hotwater_periodic_interval_NIBE.h66_periodic_hw_interval.enum",
+      "title": {
+        "en": "Periodic hot water interval",
+        "sv": "Periodiskt varmvatten intervall",
+        "de": "Intervall periodische Erhöhung",
+        "nl": "Interval periodiek warmtapwater",
+        "no": "Intervall periodisk varmtvann",
+        "da": "Interval periodisk varmtvand"
+      },
+      "titleFormatted": {
+        "en": "Periodic hot water interval is [[mode]]",
+        "sv": "Periodiskt varmvatten intervall är [[mode]]",
+        "de": "Intervall periodische Erhöhung ist [[mode]]",
+        "nl": "Interval periodiek warmtapwater is [[mode]]",
+        "no": "Intervall periodisk varmtvann er [[mode]]",
+        "da": "Interval periodisk varmtvand er [[mode]]"
+      },
+      "hint": {
+        "en": "Days between periodic hot water boosts.",
+        "sv": "Dagar mellan periodiska varmvattenhöjningar.",
+        "de": "Tage zwischen periodischen Warmwassererhöhungen.",
+        "nl": "Dagen tussen periodieke warmwaterverhogingen.",
+        "no": "Dager mellom periodiske varmtvannshevinger.",
+        "da": "Dage mellem periodiske varmtvandsforøgelser."
+      },
+      "$filter": "capabilities=hotwater_periodic_interval_NIBE.h66_periodic_hw_interval",
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "mode",
+          "title": {
+            "en": "Mode",
+            "sv": "Läge",
+            "de": "Modus",
+            "nl": "Stand",
+            "no": "Modus",
+            "da": "Indstilling"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hotwater_periodtime_NIBE.h92_periodtime_hotwater.enum",
+      "title": {
+        "en": "Periodic hot water length",
+        "sv": "Periodiskt varmvatten längd",
+        "de": "Dauer periodische Erhöhung",
+        "nl": "Duur periodiek warmtapwater",
+        "no": "Varighet periodisk varmtvann",
+        "da": "Varighed periodisk varmtvand"
+      },
+      "titleFormatted": {
+        "en": "Periodic hot water length is [[mode]]",
+        "sv": "Periodiskt varmvatten längd är [[mode]]",
+        "de": "Dauer periodische Erhöhung ist [[mode]]",
+        "nl": "Duur periodiek warmtapwater is [[mode]]",
+        "no": "Varighet periodisk varmtvann er [[mode]]",
+        "da": "Varighed periodisk varmtvand er [[mode]]"
+      },
+      "hint": {
+        "en": "How long a periodic hot water boost lasts.",
+        "sv": "Hur länge en periodisk varmvattenhöjning pågår.",
+        "de": "Wie lange eine periodische Warmwassererhöhung dauert.",
+        "nl": "Hoe lang een periodieke warmwaterverhoging duurt.",
+        "no": "Hvor lenge en periodisk varmtvannsheving varer.",
+        "da": "Hvor længe en periodisk varmtvandsforøgelse varer."
+      },
+      "$filter": "capabilities=hotwater_periodtime_NIBE.h92_periodtime_hotwater",
       "args": [
         {
           "type": "autocomplete",

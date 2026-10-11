@@ -13,32 +13,38 @@ export interface Announcement {
 
 // Opt in deliberately at release time. Keep only the latest announcement, never a backlog.
 export const CURRENT_ANNOUNCEMENT: Announcement | null = {
-    "id": "1.4-feature-update",
+    "id": "1.4.4-setting-triggers",
     "snippets": [
         {
             "driverIds": [
                 "nibe_s"
             ],
+            "roles": [
+                "heating"
+            ],
             "text": {
-                "en": "More control in Flows: dedicated setting cards and SG Ready controls where supported and configured. Explore the new Nibe Flow cards; existing Flows keep working.",
-                "sv": "Mer styrning i Flöden: egna inställningskort och SG Ready-styrning där det stöds och är konfigurerat. Utforska de nya Nibe-korten; befintliga Flöden fortsätter fungera.",
-                "de": "Mehr Kontrolle in Flows: eigene Einstellungskarten und SG-Ready-Steuerung, sofern unterstützt und eingerichtet. Entdecke die neuen Nibe-Flow-Karten; bestehende Flows funktionieren weiter.",
-                "nl": "Meer controle in Flows: aparte instellingskaarten en SG Ready-besturing waar ondersteund en ingesteld. Bekijk de nieuwe Nibe-Flow-kaarten; bestaande Flows blijven werken.",
-                "no": "Mer kontroll i Flows: egne innstillingskort og SG Ready-styring der det støttes og er satt opp. Utforsk de nye Nibe-kortene; eksisterende Flows virker fortsatt.",
-                "da": "Mere kontrol i Flows: egne indstillingskort og SG Ready-styring, hvor det understøttes og er sat op. Udforsk de nye Nibe-kort; eksisterende Flows virker fortsat."
+                "en": "New Flow cards react when the heat curve displacement, operating mode or fan mode changes. Add them to a Flow from your Nibe devices.",
+                "sv": "Nya Flödeskort reagerar när värmeförskjutning, driftläge eller fläktläge ändras. Lägg till dem i ett Flöde från dina Nibe-enheter.",
+                "de": "Neue Flow-Karten reagieren, wenn sich Parallelverschiebung, Betriebsmodus oder Lüfterstufe ändern. Füge sie über deine Nibe-Geräte zu einem Flow hinzu.",
+                "nl": "Nieuwe Flow-kaarten reageren wanneer de verschuiving van de stooklijn, de bedrijfsstand of de ventilatorstand verandert. Voeg ze toe aan een Flow via je Nibe-apparaten.",
+                "no": "Nye Flow-kort reagerer når varmeforskyvning, driftsmodus eller viftetrinn endres. Legg dem til i en Flow fra Nibe-enhetene dine.",
+                "da": "Nye Flow-kort reagerer, når varmeforskydning, driftsindstilling eller ventilatortrin ændres. Tilføj dem til et Flow fra dine Nibe-enheder."
             }
         },
         {
             "driverIds": [
-                "nibe_f"
+                "nibe_s"
+            ],
+            "roles": [
+                "cooling"
             ],
             "text": {
-                "en": "Experimental F-series support has improved readings and energy recommendations. Run Repair on your Nibe devices to review the available features.",
-                "sv": "Det experimentella F-seriestödet har förbättrade mätvärden och energirekommendationer. Kör Reparera på dina Nibe-enheter för att granska tillgängliga funktioner.",
-                "de": "Die experimentelle F-Serie bietet verbesserte Messwerte und Energieempfehlungen. Starte Reparieren auf deinen Nibe-Geräten, um die verfügbaren Funktionen zu prüfen.",
-                "nl": "Experimentele F-serie-ondersteuning biedt verbeterde meetwaarden en energieaanbevelingen. Kies Herstellen op je Nibe-apparaten om de beschikbare functies te bekijken.",
-                "no": "Eksperimentell F-seriestøtte har forbedrede måleverdier og energianbefalinger. Kjør Reparer på Nibe-enhetene dine for å se tilgjengelige funksjoner.",
-                "da": "Eksperimentel F-serieunderstøttelse har forbedrede måleværdier og energianbefalinger. Kør Reparer på dine Nibe-enheder for at gennemgå de tilgængelige funktioner."
+                "en": "Night cooling has moved to your Nibe heating device. Pick that device again in Flows that switch night cooling.",
+                "sv": "Nattsvalka har flyttat till din Nibe-värmeenhet. Välj den enheten igen i Flöden som styr nattsvalka.",
+                "de": "Die Nachtkühlung ist zu deinem Nibe-Heizungsgerät umgezogen. Wähle dieses Gerät in Flows, die die Nachtkühlung schalten, neu aus.",
+                "nl": "Nachtkoeling is verhuisd naar je Nibe-verwarmingsapparaat. Kies dat apparaat opnieuw in Flows die nachtkoeling schakelen.",
+                "no": "Nattkjøling er flyttet til Nibe-varmeenheten din. Velg den enheten på nytt i Flows som styrer nattkjøling.",
+                "da": "Natkøling er flyttet til din Nibe-varmeenhed. Vælg den enhed igen i Flows, der styrer natkøling."
             }
         }
     ]

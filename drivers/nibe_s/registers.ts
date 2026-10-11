@@ -534,9 +534,12 @@ export const registers: Register[] = [
 
     // On / Off delar på kortet
     // On / Off Nattsvalka
+    // Fan-only (it speeds up the exhaust air fan, the compressor is not involved), so it lives in
+    // ventilation with the fan's other registers rather than on the cooling device, which a pump
+    // that cannot cool, like the S735 it was built for, never gets.
     // Relocated to 2955 on the S2125 and S330/S332 (the S320/S325 list both). A 0/1 flag, so
     // the band admits exactly those two values; writes follow the resolved address too.
-    {address:  227, name: "boolean_NIBE.h227_nightchill",                            direction: Dir.Out, group: "cooling",     bool: true, // Nattsvalka 1
+    {address:  227, name: "boolean_NIBE.h227_nightchill",                            direction: Dir.Out, group: "ventilation", bool: true, // Nattsvalka 1
      altAddresses: [2955], altPlausible: {min: 0, max: 1},
      info: {en: "Night cooling using the exhaust air fan", sv: "Nattsvalka med hjälp av frånluftsfläkten"}},
     // On / Off Periodiskt varmvatten

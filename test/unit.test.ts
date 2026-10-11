@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
     Dir, combineRaw, signedValue, isUnavailableRaw, toNumericValue, isAdjustable, isPollable,
-    buildPickerPrimary, buildRegisterByName, enumLabel, isSelectableRegister, isRegisterEnabled,
+    buildPickerPrimary, buildRegisterByName, enumConditionValue, enumLabel, isSelectableRegister, isRegisterEnabled,
     Register, Selection, flowPredicates,
     migrateSelection, resolvedAddress, encodeRegisterValue
 } from '../lib/registers';
@@ -226,7 +226,7 @@ test('every Flow card resolves to a register that still exists', () => {
         // riding the autocomplete ones — see HOTWATER_VOLUME_CAPABILITY.
         'hotwater_volume_below', 'hotwater_volume_dropped_below',
     ]);
-    const suffixes = ['set', 'onoff', 'enum', 'reset'];
+    const suffixes = ['set', 'onoff', 'enum', 'reset', 'changed', 'compare'];
     const byName = buildRegisterByName(registers);
     const cards = [...sProfile.compose.triggers, ...sProfile.compose.actions,
                    ...sProfile.compose.conditions] as {id: string}[];
@@ -239,6 +239,39 @@ test('every Flow card resolves to a register that still exists', () => {
         assert.ok(suffixes.includes(suffix), `${id} is neither a generic card nor a <register>.<${suffixes.join('|')}> card`);
         const name = id.slice(0, id.lastIndexOf('.'));
         assert.ok(byName[name], `Flow card ${id} names a register that no longer exists`);
+    }
+});
+
+test('an "is <mode>" condition compares against what the capability actually holds', () => {
+    // Each shape stores something different: a plain picker its raw id, a picker with an enum
+    // map its raw id too (the labels live in the manifest), an enum capability its label. The
+    // plain picker case threw "Invalid option" until enumConditionValue gave it its own branch.
+    const byName = buildRegisterByName(registers);
+    const translate = (key: string) => key;
+    assert.equal(enumConditionValue(byName['hotwater_demand_NIBE.h56_hotwater_demand_mode'], '2', translate), '2');
+    assert.equal(enumConditionValue(byName['curve_mode_NIBE.h26_heat_curve'], '7', translate), '7');
+    assert.equal(enumConditionValue(byName['operating_mode_NIBE.h237_operating_mode'], '1', translate), '1');
+    assert.equal(enumConditionValue(byName['measure_enum_NIBE.i1037_return_fan_step'], '2', translate), 'Speed 2');
+});
+
+test('a per-register .changed or .compare card hands over a value of the type it declares', () => {
+    // checkChangedTrigger passes a mode's label or a number, and the .compare condition compares
+    // numbers, so each card has to sit on a register whose value really is one of those.
+    const byName = buildRegisterByName(registers);
+    const isNumber = (r: Register) => (r.scale ?? 0) > 0
+        || (!!r.picker && !r.enum && !!r.pickerValues?.every(Number.isFinite));
+    const changed = (sProfile.compose.triggers as any[]).filter(({id}) => id.endsWith('.changed'));
+    const compare = (sProfile.compose.conditions as any[]).filter(({id}) => id.endsWith('.compare'));
+    assert.ok(changed.length > 0 && compare.length > 0);
+    for (const card of changed) {
+        const register = byName[card.id.slice(0, card.id.lastIndexOf('.'))];
+        const expected = register.enum ? 'string' : isNumber(register) ? 'number' : undefined;
+        assert.ok(expected, `${card.id} is on ${register.name}, which is neither a mode nor a number`);
+        assert.equal(card.tokens?.[0]?.type, expected, `${card.id} should carry a ${expected} tag`);
+    }
+    for (const card of compare) {
+        const register = byName[card.id.slice(0, card.id.lastIndexOf('.'))];
+        assert.ok(isNumber(register), `${card.id} is on ${register.name}, whose value is not a number`);
     }
 });
 

@@ -320,6 +320,13 @@ silently and routinely on your behalf.
 
 ## Setup and connectivity
 
+### Where did night cooling go?
+
+Since 1.4.4 it is on the **Heating** device, next to the other ventilation controls. It only runs
+the exhaust air fan, so pumps that cannot cool never had a Cooling device to find it on. A Flow
+that switched it on the Cooling device needs the Heating device picked again. If it is missing,
+run **Repair** on the Heating device and tick ventilation.
+
 ### Can I run this and myUplink at the same time?
 
 Yes. myUplink is a cloud service and never touches Modbus. What you *can't* do is point a second **Modbus**

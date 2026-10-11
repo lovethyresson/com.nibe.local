@@ -262,6 +262,14 @@ action/condition cards named `<capability_name>.enum` (registered dynamically in
 `actionSpecs`/`conditionSpecs` built from the flow compose file), since enums need a `mode` autocomplete rather than
 a free-form value.
 
+**New cards are per setting, not generic.** The generic write cards (`set_numeric_value`,
+`enable_feature`, `disable_feature`) and the generic `capability_changed` trigger are `deprecated`:
+hidden from new Flows, still run for existing ones. A register gets a card by adding a compose entry
+under its suffix; the code that runs it is shared: `.set`, `.enum` (a picker or enum, action or
+condition), `.onoff`, `.reset`, `.changed` (trigger, fired by `checkChangedTrigger()` with a mode
+label or a number) and `.compare` (less/greater-than condition for a numeric picker). Give
+`.changed` only to registers that move in steps, never an analog reading (see `docs/analytics.md`).
+
 ### Connection and device lifecycle (`lib/connection.ts`, `lib/device.ts`)
 
 **One `PumpConnection` per pump host, shared by that pump's devices.** `connections` is a module-level
