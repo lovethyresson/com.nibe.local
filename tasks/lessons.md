@@ -309,3 +309,18 @@ ignored the cooldown the poll had already set, so each absent register failed tw
 these, and why more than once?" — not "which ones can I explain away". Pre-existing is not the same
 as acceptable, and "debug is on" explains why a line is *printed*, never why the request was *made*.
 Fix what repeats; only then triage what's left.
+
+## A store changelog covers everything since the last LIVE version
+
+**2026-10-12.** Asked to release 1.4.5 live and "summarize all changes from 1.4.2 in a timeline
+message", I consolidated the timeline message but wrote the 1.4.5 changelog for 1.4.5 alone, then
+uploaded it. 1.4.3 and 1.4.4 were test-only, so live owners going 1.4.2 → 1.4.5 would never have
+read about the 1.4.4 Flow cards or night cooling moving devices. Athom refuses a second upload of a
+version in review, so the fix cost a version: 1.4.6. The user: "because of your sloppyness. Don't
+do this again."
+
+**Rule:** before any `homey app publish` meant for live, run `git log <last-live-tag>..HEAD` and
+check every user-facing change appears in the changelog entry being shipped — not just the
+current version's. Test-only versions in between don't count as shipped. 1.4.0 already did this
+for 1.3.4–1.3.8; that row in `docs/releases.md` is the precedent. Upload only after that check:
+an uploaded version can't be corrected, only superseded.
