@@ -53,17 +53,58 @@ export const roleClass: Record<Role, string> = {
     solar: "solarpanel"
 };
 
-// Which feature groups belong to each role. Ventilation (FTX) folds into heating
-// rather than getting its own device: its fan runs year-round and its draw is part
-// of the building-heating side. Groups not listed here (core) stay on "main".
+// Which feature groups belong to each role. Groups not listed here (core) stay on "main".
+//
+// Ventilation sits on main for the same reason groundsource does: it serves every function,
+// not one. The exhaust-air fan runs year-round and feeds heat recovery for heating and hot water
+// alike, and night cooling (227) is a summer feature, so the heating device — off all summer —
+// was the least fitting home. It lived there until 1.4.7; see `movedGroups` for the handover.
 export const roleGroups: Record<Role, GroupId[]> = {
-    main: ["core", "alarm", "diagnostics", "statistics", "electrical", "groundsource", "energy"],
-    heating: ["heating", "ventilation", "energy"],
+    main: ["core", "alarm", "diagnostics", "statistics", "electrical", "groundsource", "ventilation", "energy"],
+    heating: ["heating", "energy"],
     hotwater: ["hotwater", "energy"],
     pool: ["pool", "energy"],
     cooling: ["cooling", "energy"],
     solar: ["solar"]
 };
+
+// A feature group that has moved between devices. A selection is stored per device, so the
+// owner's choice for the group — on/off, per-capability overrides, resolved addresses — still
+// lives on the device it left, and the device it joined has no key for it. A missing key means
+// "enabled" (isRegisterEnabled), which would hand every fan register to pumps whose owner
+// switched ventilation off at pairing because they have none. adoptMovedGroup() carries it over.
+export interface GroupMove {group: GroupId; from: Role; to: Role}
+export const movedGroups: GroupMove[] = [
+    {group: "ventilation", from: "heating", to: "main"}
+];
+
+// The destination's selection with the moved group's state taken from the source device.
+// `source`: the source device's stored selection; null when it has none (everything enabled, so
+// the group was on); undefined when no such device exists (the group was never shown, so it
+// stays off — the owner keeps seeing exactly what they saw before).
+export function adoptMovedGroup(
+    profile: ModelProfile, target: Selection, source: Selection | null | undefined, group: GroupId
+): Selection {
+    const enabled = source === undefined ? false
+        : source === null ? true
+        : source.groups?.[group] ?? true;
+    const overrides = {...target.overrides};
+    const addresses = {...target.addresses};
+    for (const register of profile.registers.filter((r) => r.group === group)) {
+        const override = source?.overrides?.[register.name];
+        if (override !== undefined)
+            overrides[register.name] = override;
+        const address = source?.addresses?.[register.name];
+        if (address !== undefined)
+            addresses[register.name] = address;
+    }
+    return {
+        ...target,
+        groups: {...target.groups, [group]: enabled},
+        overrides,
+        ...(Object.keys(addresses).length ? {addresses} : {})
+    };
+}
 
 // The register names of the software energy meter (kWh, per function device) and the
 // live power draw (W, non-zero only on the currently active function). Neither is a

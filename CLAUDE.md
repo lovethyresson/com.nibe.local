@@ -181,7 +181,8 @@ app's headline feature, not an implementation detail — it is what lets a user 
 also getting every heating register on the same tile.
 
 - `roleGroups` maps each role to the feature groups it carries. `main` owns `core` plus the
-  diagnostic/statistic/electrical groups; ventilation folds into `heating`; `energy` is shared by every
+  diagnostic/statistic/electrical/groundsource groups and, since 1.4.7, `ventilation` (it serves every
+  function, and a moved group's stored selection is handed over by `movedGroups`); `energy` is shared by every
   heat-producing function.
 - `roleClass` gives each device a Homey device class (`heatpump`, `thermostat`, `waterheater`,
   `airconditioning`, `solarpanel`). The comments there record why each one — they were argued out against

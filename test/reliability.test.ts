@@ -762,3 +762,51 @@ test('delivered check compares the counter with the hourly log, skipping partial
     d.onEnergyLogHour(0.5, 1);
     assert.match(lines.filter((l) => l.startsWith('Delivered check')).pop()!, /Over 4 h: log 3\.00 kWh, counter 15\.00 kWh/);
 });
+
+test('ventilation hands over from heating to main in either init order, and Repair wins', async () => {
+    const pump = (role: string, selection: any) => {
+        const {d, store} = device();
+        store.set('selection', selection);
+        Object.assign(d, {role, getData: () => ({role}), getSettings: () => ({address: '10.0.0.9'}),
+            syncCapabilities: async () => { d.synced = (d.synced ?? 0) + 1; return []; }});
+        return {d, store};
+    };
+    const pair = (devices: any[]) => devices.forEach((x) => { x.d.driver = {getDevices: () => devices.map((y) => y.d)}; });
+    const heatingSel = () => ({groups: {heating: true, ventilation: false}, overrides: {}});
+
+    // Main first: no heating device seen yet, so it defaults off; heating then hands its state over.
+    let main = pump('main', {groups: {diagnostics: true}, overrides: {}});
+    let heating = pump('heating', {groups: {heating: true, ventilation: true}, overrides: {}});
+    pair([main]);
+    await main.d.migrateMovedGroups();
+    assert.equal(main.store.get('selection').groups.ventilation, false);
+    assert.equal(main.store.get('moved.ventilation'), 'default');
+    main.d.capabilitiesSynced = true;
+    pair([main, heating]);
+    await heating.d.migrateMovedGroups();
+    assert.equal(main.store.get('selection').groups.ventilation, true, 'heating had it on');
+    assert.equal(main.store.get('moved.ventilation'), 'adopted');
+    assert.equal(main.d.synced, 1, 'an already-running main re-syncs its capabilities');
+
+    // Heating first: main adopts before its own init, which then leaves the selection alone.
+    main = pump('main', {groups: {diagnostics: true}, overrides: {}});
+    heating = pump('heating', heatingSel());
+    pair([main, heating]);
+    await heating.d.migrateMovedGroups();
+    assert.equal(main.store.get('selection').groups.ventilation, false);
+    assert.equal(main.d.synced, undefined, 'main syncs in its own onInit, not before');
+    await main.d.migrateMovedGroups();
+    assert.equal(main.store.get('moved.ventilation'), 'adopted');
+
+    // A Repair on main is the owner's choice; a later heating start must not overwrite it.
+    main = pump('main', {groups: {diagnostics: true}, overrides: {}});
+    heating = pump('heating', {groups: {heating: true, ventilation: true}, overrides: {}});
+    pair([main]);
+    await main.d.migrateMovedGroups();
+    Object.assign(main.d, {syncCapabilities: async () => []});
+    await main.d.applySelection({groups: {diagnostics: true, ventilation: false}, overrides: {}});
+    pair([main, heating]);
+    await heating.d.migrateMovedGroups();
+    assert.equal(main.store.get('selection').groups.ventilation, false);
+    assert.equal(main.store.get('moved.ventilation'), 'set');
+});

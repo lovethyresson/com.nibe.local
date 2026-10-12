@@ -13,16 +13,20 @@ export interface Announcement {
 
 // Opt in deliberately at release time. Keep only the latest announcement, never a backlog.
 export const CURRENT_ANNOUNCEMENT: Announcement | null = {
-    "id": "1.4.5-update",
+    "id": "1.4.7-update",
     "snippets": [
         {
+            "roles": [
+                "heating",
+                "cooling"
+            ],
             "text": {
-                "en": "Keep your heat pump's software up to date: older versions can report wrong energy and COP figures. Approve updates in the myUplink app or on the pump, then run Repair on your Nibe devices.",
-                "sv": "Håll värmepumpens programvara uppdaterad: äldre versioner kan visa fel energi- och COP-värden. Godkänn uppdateringar i myUplink-appen eller på pumpen och kör sedan Reparera på dina Nibe-enheter.",
-                "de": "Halte die Software deiner Wärmepumpe aktuell: Ältere Versionen können falsche Energie- und COP-Werte melden. Bestätige Updates in der myUplink-App oder an der Pumpe und starte danach Reparieren auf deinen Nibe-Geräten.",
-                "nl": "Houd de software van je warmtepomp up-to-date: oudere versies kunnen verkeerde energie- en COP-waarden geven. Keur updates goed in de myUplink-app of op de pomp en kies daarna Herstellen op je Nibe-apparaten.",
-                "no": "Hold programvaren på varmepumpen oppdatert: eldre versjoner kan vise feil energi- og COP-verdier. Godkjenn oppdateringer i myUplink-appen eller på pumpen, og kjør deretter Reparer på Nibe-enhetene dine.",
-                "da": "Hold varmepumpens software opdateret: ældre versioner kan vise forkerte energi- og COP-værdier. Godkend opdateringer i myUplink-appen eller på pumpen, og kør derefter Reparer på dine Nibe-enheder."
+                "en": "IMPORTANT: Ventilation has moved to your Nibe Main device. Fan speed, fan mode, air temperatures and night cooling are now on Main. Pick the Main device again in Flows that use them.",
+                "sv": "VIKTIGT: Ventilationen har flyttat till din Nibe Main-enhet. Fläkthastighet, fläktläge, lufttemperaturer och nattsvalka finns nu på Main. Välj Main-enheten igen i Flöden som använder dem.",
+                "de": "WICHTIG: Die Lüftung ist zu deinem Nibe-Main-Gerät umgezogen. Lüfterdrehzahl, Lüfterstufe, Lufttemperaturen und Nachtkühlung sind jetzt auf Main. Wähle in Flows, die sie nutzen, das Main-Gerät neu aus.",
+                "nl": "BELANGRIJK: Ventilatie is verhuisd naar je Nibe Main-apparaat. Ventilatorsnelheid, ventilatorstand, luchttemperaturen en nachtkoeling staan nu op Main. Kies het Main-apparaat opnieuw in Flows die ze gebruiken.",
+                "no": "VIKTIG: Ventilasjonen er flyttet til Nibe Main-enheten din. Viftehastighet, viftetrinn, lufttemperaturer og nattkjøling ligger nå på Main. Velg Main-enheten på nytt i Flows som bruker dem.",
+                "da": "VIGTIGT: Ventilationen er flyttet til din Nibe Main-enhed. Ventilatorhastighed, ventilatortrin, lufttemperaturer og natkøling ligger nu på Main. Vælg Main-enheden igen i Flows, der bruger dem."
             }
         },
         {
@@ -39,22 +43,6 @@ export const CURRENT_ANNOUNCEMENT: Announcement | null = {
                 "nl": "Nieuwe Flow-kaarten reageren wanneer de verschuiving van de stooklijn, de bedrijfsstand of de ventilatorstand verandert. Voeg ze toe aan een Flow via je Nibe-apparaten.",
                 "no": "Nye Flow-kort reagerer når varmeforskyvning, driftsmodus eller viftetrinn endres. Legg dem til i en Flow fra Nibe-enhetene dine.",
                 "da": "Nye Flow-kort reagerer, når varmeforskydning, driftsindstilling eller ventilatortrin ændres. Tilføj dem til et Flow fra dine Nibe-enheder."
-            }
-        },
-        {
-            "driverIds": [
-                "nibe_s"
-            ],
-            "roles": [
-                "cooling"
-            ],
-            "text": {
-                "en": "Night cooling has moved to your Nibe heating device. Pick that device again in Flows that switch night cooling.",
-                "sv": "Nattsvalka har flyttat till din Nibe-värmeenhet. Välj den enheten igen i Flöden som styr nattsvalka.",
-                "de": "Die Nachtkühlung ist zu deinem Nibe-Heizungsgerät umgezogen. Wähle dieses Gerät in Flows, die die Nachtkühlung schalten, neu aus.",
-                "nl": "Nachtkoeling is verhuisd naar je Nibe-verwarmingsapparaat. Kies dat apparaat opnieuw in Flows die nachtkoeling schakelen.",
-                "no": "Nattkjøling er flyttet til Nibe-varmeenheten din. Velg den enheten på nytt i Flows som styrer nattkjøling.",
-                "da": "Natkøling er flyttet til din Nibe-varmeenhed. Vælg den enhed igen i Flows, der styrer natkøling."
             }
         }
     ]

@@ -12,7 +12,7 @@ import type {ReasonState} from '../lib/profile';
 import {
     capabilitySyncPlan,
     registersForRole, roleRegisters, extraCapabilities, extraCapabilityOptions,
-    extraCapabilitySupport, mirrorOptions, roleGroups, allRoles, functionRoles,
+    extraCapabilitySupport, mirrorOptions, roleGroups, allRoles, functionRoles, adoptMovedGroup,
     ACTIVE_POWER_CAPABILITY, FUNCTION_COP_CAPABILITY, METER_CAPABILITY, TOTAL_COP_CAPABILITY
 } from '../lib/roles';
 import type {Role} from '../lib/roles';
@@ -1437,4 +1437,27 @@ test('a moved pump is identified only when exactly one responder matches its mod
     assert.equal(choosePumpCandidate([c], undefined).pick, c, 'model never read: the only pump there is');
     assert.equal(choosePumpCandidate([a, c], undefined).pick, undefined);
     assert.equal(choosePumpCandidate([], 15).pick, undefined);
+});
+
+test('ventilation lives on main and moves its selection with it', () => {
+    assert.ok(roleGroups.main.includes('ventilation'));
+    assert.ok(!roleGroups.heating.includes('ventilation'));
+    const night = 'boolean_NIBE.h227_nightchill';
+    const fan = 'fan_speed.h109_returnair_normal';
+    const main = {groups: {diagnostics: true}, overrides: {'some.other': false}};
+    // Heating had ventilation off, one override and a relocated night-cooling address.
+    const heating = {groups: {heating: true, ventilation: false}, overrides: {[fan]: true, measure_temperature: false},
+        addresses: {[night]: 2955, measure_temperature: 26}};
+    const moved = adoptMovedGroup(sProfile, main, heating, 'ventilation');
+    assert.equal(moved.groups.ventilation, false);
+    assert.equal(moved.groups.diagnostics, true);
+    assert.deepEqual(moved.overrides, {'some.other': false, [fan]: true}, 'only ventilation overrides move');
+    assert.deepEqual(moved.addresses, {[night]: 2955}, 'only ventilation addresses move');
+    // No stored selection on heating = everything enabled; no heating device = never shown.
+    assert.equal(adoptMovedGroup(sProfile, main, null, 'ventilation').groups.ventilation, true);
+    assert.equal(adoptMovedGroup(sProfile, main, undefined, 'ventilation').groups.ventilation, false);
+    assert.equal(adoptMovedGroup(sProfile, main, undefined, 'ventilation').addresses, undefined);
+    const names = (role: Role) => registersForRole(sProfile, role, null).map((r) => r.name);
+    assert.ok(names('main').includes(night) && names('main').includes(fan));
+    assert.ok(!names('heating').includes(night) && !names('heating').includes(fan));
 });

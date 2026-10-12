@@ -29,6 +29,23 @@ Notification errors are logged and retry on the next app start. Delivery and set
 an atomic transaction: a crash after Homey accepts a notification but before its ID is saved can repeat it.
 This is a timeline entry; phone push behavior follows Homey's notification settings.
 
+## Announcement in 1.4.7
+
+The active `1.4.7-update` replaces `1.4.5-update` (never live) and summarises everything since 1.4.2. It leads with
+the ventilation move, because it breaks Flows; the 1.4.4 night-cooling snippet is gone, since night cooling is no
+longer on the heating device.
+
+### Heating and cooling devices, both drivers
+
+IMPORTANT: Ventilation has moved to your Nibe Main device. Fan speed, fan mode, air temperatures and night cooling are now on Main. Pick the Main device again in Flows that use them.
+
+### S-series heating device
+
+New Flow cards react when the heat curve displacement, operating mode or fan mode changes. Add them to a Flow from your Nibe devices.
+
+A new ID because the content changed materially: 1.4.4 test users were told night cooling moved to heating, and
+must now hear it moved to Main. All snippets are in all six languages.
+
 ## Announcement in 1.4.5
 
 The active `1.4.5-update` replaces `1.4.4-setting-triggers` and summarises everything since 1.4.2,

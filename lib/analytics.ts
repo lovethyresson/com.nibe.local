@@ -155,7 +155,7 @@ export interface InstallProfile {
     // Neither derives from the other — an install can own a role it never emits an event for.
     roles: string[];
     // Enabled feature groups per role — the "which features within a function" question.
-    // e.g. {heating: ['heating', 'ventilation', 'energy'], hotwater: ['hotwater']}
+    // e.g. {main: ['diagnostics', 'ventilation'], heating: ['heating', 'energy'], hotwater: ['hotwater']}
     featuresByFunction: Record<string, string[]>;
 
     // The hub this is all running on. Same principle as pumpModelCode: send what the SDK reports,

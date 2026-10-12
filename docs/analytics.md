@@ -272,7 +272,7 @@ produce one identify rather than six.
 | `firmware` | `"9385"` | Which firmware, for register-map differences |
 | `roles` | `["cooling","heating","hotwater","main"]` | Which functions people use |
 | `role_count` | `4` | Convenience for segmenting (Amplitude cannot group by array length) |
-| `features_<role>` | `features_heating: ["heating","ventilation","energy"]` | Which features within each function |
+| `features_<role>` | `features_heating: ["heating","energy"]` | Which features within each function. Since 1.4.7 `ventilation` reports under `features_main`, not `features_heating` |
 | `app_version` | `"1.0.1"` | Version segmentation |
 | `homey_version` | `"12.4.1"` | Which Homey software versions are in the field |
 | `homey_platform` | `"local"` / `"cloud"` | Homey Pro vs Homey Cloud (i.e. behind a Bridge) |

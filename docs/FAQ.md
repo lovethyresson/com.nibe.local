@@ -106,6 +106,12 @@ pump's registers with no arithmetic. If one disagrees with the pump's own menu, 
 
 Energy and COP are a different story; see below.
 
+### Where did fan speed, fan mode and night cooling go?
+
+To the **Nibe Main** device, since 1.4.7. Ventilation serves heating and hot water alike, so it sits on Main next to
+the other whole-pump settings. Your on/off choice for ventilation moved with it. Flows that used these cards on the
+heating or cooling device need the Main device picked again; history from before the update stays on the old device.
+
 ### Do I need to update my heat pump's software?
 
 Yes, before pairing if you can. Many registers the app uses only exist on recent firmware, and older

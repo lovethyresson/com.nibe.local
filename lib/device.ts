@@ -12,7 +12,8 @@ import {
     FUNCTION_COP_CAPABILITY, HOTWATER_VOLUME_CAPABILITY, METER_CAPABILITY,
     PUMP_ACTIVE_CAPABILITY, Role, SOLAR_METER_CAPABILITY, TOTAL_COP_CAPABILITY,
     capabilitySyncPlan, extraCapabilities, extraCapabilityOptions, functionRoles, mirrorOptions,
-    mirrorsForRole, registersForRole, roleClass, roleOf, roleRegisters, deviceClass, roomThermostatActive
+    mirrorsForRole, registersForRole, roleClass, roleOf, roleRegisters, deviceClass, roomThermostatActive,
+    GroupMove, adoptMovedGroup, movedGroups
 } from './roles';
 import {ALARM_SOURCE_URL, alarmAdvice, alarmDescription} from './alarms';
 import {
@@ -32,6 +33,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     abstract profile: ModelProfile;
 
     role: Role = 'main';
+    private capabilitiesSynced = false;
     private connection: PumpConnection | null = null;
     private thermostatSync: Promise<void> | null = null;
 
@@ -229,6 +231,51 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             + Object.entries(this.profile.renamedRegisters ?? {})
                 .map(([from, to]) => `${from} -> ${to}`).join(', '));
         await this.setStoreValue('selection', migrated).catch(this.error);
+    }
+
+    // Hand a moved feature group's selection from the device it left to the device it joined
+    // (see movedGroups). Devices of one pump initialise in no guaranteed order, so both ends try
+    // and whichever comes second completes it:
+    //   - the destination adopts from the source if the source exists yet, and otherwise stores
+    //     the group as off, flagged 'default' — the status quo for an owner without that device;
+    //   - the source pushes its state to a destination that has no key yet or only the default.
+    // A Repair on the destination flags it 'set', after which nothing overwrites the owner's choice.
+    private async migrateMovedGroups() {
+        for (const move of movedGroups) {
+            if (this.role === move.to) {
+                const selection = this.getSelection();
+                if (!selection || selection.groups?.[move.group] !== undefined)
+                    continue;
+                const source = this.sibling(move.from);
+                await this.adoptMoved(move, source ? source.getStoreValue('selection') ?? null : undefined);
+            } else if (this.role === move.from) {
+                const target = this.sibling(move.to);
+                const pending = target?.getStoreValue(`moved.${move.group}`) === 'default'
+                    || (target?.getStoreValue('selection')
+                        && target.getStoreValue('selection').groups?.[move.group] === undefined);
+                if (target && pending)
+                    await target.adoptMoved(move, this.getSelection()).catch(this.error);
+            }
+        }
+    }
+
+    async adoptMoved(move: GroupMove, source: Selection | null | undefined) {
+        const selection = this.getSelection();
+        if (!selection)
+            return;
+        const next = adoptMovedGroup(this.profile, selection, source, move.group);
+        this.log(`Moving the ${move.group} selection from ${move.from} to ${move.to}: `
+            + (source === undefined ? `no ${move.from} device, so it stays off` : `${next.groups[move.group] ? 'on' : 'off'}, as on ${move.from}`));
+        await this.setStoreValue('selection', next);
+        await this.setStoreValue(`moved.${move.group}`, source === undefined ? 'default' : 'adopted');
+        // Before this device's own onInit has synced, that sync will pick the selection up.
+        if (this.capabilitiesSynced)
+            await this.syncCapabilities();
+    }
+
+    private sibling(role: Role): any {
+        return (this.driver.getDevices() as any[]).find((device) => device !== this
+            && device.getSettings?.().address === this.host() && roleOf(device.getData()) === role);
     }
 
     private enabledGroupsSummary(): string {
@@ -846,6 +893,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     async applySelection(selection: Selection) {
         this.log("Applying selection", JSON.stringify(selection));
         await this.setStoreValue('selection', selection);
+        // The owner has now chosen moved groups here themselves; no handover may overwrite that.
+        for (const move of movedGroups)
+            if (this.role === move.to && selection.groups?.[move.group] !== undefined)
+                await this.setStoreValue(`moved.${move.group}`, 'set');
         const failed = await this.syncCapabilities();
         if (this.hasCapability(METER_CAPABILITY))
             await this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
@@ -874,6 +925,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // Before anything reads the selection: carry it across any register this model has
         // renamed, so an upgraded device keeps its overrides and its resolved addresses.
         await this.migrateRenamedRegisters();
+        await this.migrateMovedGroups().catch(this.error);
         this.debug(`Device init: role ${this.role}, host ${this.host()}, groups [${this.enabledGroupsSummary()}]`);
 
         const wantedClass = deviceClass(this.profile, this.role, this.getSelection());
@@ -926,7 +978,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             // Failures are already logged by syncCapabilities(); at init there is no user
             // waiting on an answer, so unlike applySelection() this does not escalate them.
             await this.syncCapabilities();
-            this.debug(`Device capabilities synced: ${this.getCapabilities().length} — `
+            this.capabilitiesSynced = true;
+            this.debug(`Device capabilities synced:${this.getCapabilities().length} — `
                 + this.getCapabilities().join(', '));
 
             if (this.hasCapability(METER_CAPABILITY))
