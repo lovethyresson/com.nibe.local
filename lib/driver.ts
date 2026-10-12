@@ -1182,6 +1182,7 @@ export abstract class NibePumpDriver extends Driver {
 
         session.setHandler('get_context', async () => ({
             mode: 'pair',
+            driverId: this.id,
             slowDetection: !!this.profile.addressModes,
             analyticsConsent: analyticsConsent(this.homey),
             indoorSupported: !!this.profile.indoorSensorFeed

@@ -73,6 +73,18 @@
       "hint": "Choose how NIBE register 40025 is addressed on your connection. Confirm with a working Modbus query. The same convention applies to all reads and writes.",
       "invalid": "Choose a gateway, a port from 1–65535 and a Modbus ID from 1–247.",
       "detect_intro": "Checking the values your heat pump reports. Depending on the gateway, this can take several minutes."
+    },
+    "firmware": {
+      "title": "Update your heat pump first",
+      "intro": "Many features need recent heat pump software. Older versions miss readings the app relies on and can even report wrong energy figures.",
+      "online_title": "Over the internet with myUplink",
+      "online_body": "When an update is waiting, approve it in the myUplink app — or on the pump's display: swipe to the product overview and tap Update.",
+      "usb_title": "With a USB stick",
+      "usb_body": "Download the latest software from myuplink.com and put it on a USB stick. Insert it in the port above the display and open menu 8.1.",
+      "f_title": "Via myUplink or a USB stick",
+      "f_body": "The steps differ between models — your heat pump's manual shows how.",
+      "note": "Takes a few minutes. Your settings are kept.",
+      "continue": "Continue"
     }
   },
   "groups": {

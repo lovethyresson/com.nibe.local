@@ -73,6 +73,18 @@
       "hint": "Kies hoe NIBE-register 40025 via uw verbinding wordt geadresseerd. Controleer dit met een werkende Modbus-query. De instelling geldt voor alle lees- en schrijfopdrachten.",
       "invalid": "Kies een gateway, poort van 1–65535 en Modbus-ID van 1–247.",
       "detect_intro": "De waarden van je warmtepomp worden gecontroleerd. Afhankelijk van de gateway kan dit enkele minuten duren."
+    },
+    "firmware": {
+      "title": "Werk eerst je warmtepomp bij",
+      "intro": "Veel functies hebben recente software in de warmtepomp nodig. Oudere versies missen waarden die de app gebruikt en kunnen zelfs verkeerde energiecijfers geven.",
+      "online_title": "Via internet met myUplink",
+      "online_body": "Staat er een update klaar, keur die dan goed in de myUplink-app – of op het display van de pomp: veeg naar het productoverzicht en tik op Bijwerken.",
+      "usb_title": "Met een USB-stick",
+      "usb_body": "Download de nieuwste software van myuplink.com en zet die op een USB-stick. Steek die in de poort boven het display en open menu 8.1.",
+      "f_title": "Via myUplink of een USB-stick",
+      "f_body": "De stappen verschillen per model – de handleiding van je warmtepomp laat zien hoe.",
+      "note": "Duurt een paar minuten. Je instellingen blijven behouden.",
+      "continue": "Doorgaan"
     }
   },
   "groups": {

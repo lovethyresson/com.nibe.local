@@ -106,6 +106,14 @@ pump's registers with no arithmetic. If one disagrees with the pump's own menu, 
 
 Energy and COP are a different story; see below.
 
+### Do I need to update my heat pump's software?
+
+Yes, before pairing if you can. Many registers the app uses only exist on recent firmware, and older
+firmware has been seen booking several times too much delivered energy: one S1255 showed a hot-water COP
+near 9 until a firmware update, after which its counters matched the pump's own hourly log within 1%.
+Updating later works too; run **Repair** on each device afterwards so the app checks what the pump now
+offers. The COP is a 30-day average, so readings from before the update take a month to roll out.
+
 ### Why doesn't my energy total match MyUplink?
 
 Counters are **baselined when you add the device**, so everything reads "since you paired it" rather than

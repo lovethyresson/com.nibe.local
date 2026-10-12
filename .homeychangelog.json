@@ -1,4 +1,12 @@
 {
+  "1.4.5": {
+    "en": "Features: Pairing now starts by showing how to update your heat pump's software, in the myUplink app, on the pump or with a USB stick. Older versions can report wrong energy and COP figures. Tweaks: Shorter diagnostic logs.",
+    "sv": "Funktioner: Parkopplingen börjar nu med att visa hur du uppdaterar värmepumpens programvara, i myUplink-appen, på pumpen eller med ett USB-minne. Äldre versioner kan visa fel energi- och COP-värden. Justeringar: Kortare diagnostikloggar.",
+    "nl": "Functies: Koppelen begint nu met uitleg over het bijwerken van de software van je warmtepomp, in de myUplink-app, op de pomp of met een USB-stick. Oudere versies kunnen verkeerde energie- en COP-waarden geven. Verbeteringen: Kortere diagnoselogs.",
+    "de": "Funktionen: Das Koppeln beginnt jetzt mit einer Anleitung zum Aktualisieren der Wärmepumpen-Software, in der myUplink-App, an der Pumpe oder per USB-Stick. Ältere Versionen können falsche Energie- und COP-Werte melden. Verbesserungen: Kürzere Diagnoseprotokolle.",
+    "no": "Funksjoner: Paring starter nå med å vise hvordan du oppdaterer programvaren på varmepumpen, i myUplink-appen, på pumpen eller med en USB-pinne. Eldre versjoner kan vise feil energi- og COP-verdier. Justeringer: Kortere diagnoselogger.",
+    "da": "Funktioner: Parring starter nu med at vise, hvordan du opdaterer varmepumpens software, i myUplink-appen, på pumpen eller med en USB-nøgle. Ældre versioner kan vise forkerte energi- og COP-værdier. Justeringer: Kortere diagnoselogs."
+  },
   "1.4.4": {
     "en": "Features: New Flow cards. Flows can react when the heat curve displacement, operating mode or fan mode changes, and check the heat curve, hot water demand and periodic hot water. Night cooling has moved to the heating device: pick that device again in Flows that use it. Tweaks: \"Register changed\" is hidden from new Flows; existing Flows keep working.",
     "sv": "Features: Nya Flödeskort. Flöden kan reagera när värmeförskjutning, driftläge eller fläktläge ändras, och kontrollera värmekurva, varmvattenbehov och periodiskt varmvatten. Nattsvalka har flyttat till värmeenheten: välj den enheten igen i Flöden som använder den. Tweaks: \"Registervärde ändrades\" döljs för nya Flöden; befintliga Flöden fortsätter fungera.",

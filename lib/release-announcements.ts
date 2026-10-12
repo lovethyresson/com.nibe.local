@@ -13,8 +13,18 @@ export interface Announcement {
 
 // Opt in deliberately at release time. Keep only the latest announcement, never a backlog.
 export const CURRENT_ANNOUNCEMENT: Announcement | null = {
-    "id": "1.4.4-setting-triggers",
+    "id": "1.4.5-update",
     "snippets": [
+        {
+            "text": {
+                "en": "Keep your heat pump's software up to date: older versions can report wrong energy and COP figures. Approve updates in the myUplink app or on the pump, then run Repair on your Nibe devices.",
+                "sv": "Håll värmepumpens programvara uppdaterad: äldre versioner kan visa fel energi- och COP-värden. Godkänn uppdateringar i myUplink-appen eller på pumpen och kör sedan Reparera på dina Nibe-enheter.",
+                "de": "Halte die Software deiner Wärmepumpe aktuell: Ältere Versionen können falsche Energie- und COP-Werte melden. Bestätige Updates in der myUplink-App oder an der Pumpe und starte danach Reparieren auf deinen Nibe-Geräten.",
+                "nl": "Houd de software van je warmtepomp up-to-date: oudere versies kunnen verkeerde energie- en COP-waarden geven. Keur updates goed in de myUplink-app of op de pomp en kies daarna Herstellen op je Nibe-apparaten.",
+                "no": "Hold programvaren på varmepumpen oppdatert: eldre versjoner kan vise feil energi- og COP-verdier. Godkjenn oppdateringer i myUplink-appen eller på pumpen, og kjør deretter Reparer på Nibe-enhetene dine.",
+                "da": "Hold varmepumpens software opdateret: ældre versioner kan vise forkerte energi- og COP-værdier. Godkend opdateringer i myUplink-appen eller på pumpen, og kør derefter Reparer på dine Nibe-enheder."
+            }
+        },
         {
             "driverIds": [
                 "nibe_s"

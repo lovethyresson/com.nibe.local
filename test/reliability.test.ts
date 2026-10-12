@@ -747,16 +747,18 @@ test('delivered check compares the counter with the hourly log, skipping partial
     assert.equal(lines.filter((l) => l.startsWith('Delivered check')).length, 0);
     read(108);
     d.onEnergyLogHour(0.5, 1);
+    d.onEnergyLogHour(0, 0); // idle hour: counted in the totals, not printed
+    assert.equal(lines.filter((l) => l.startsWith('Delivered check')).length, 1);
     read(115);
     d.onEnergyLogHour(0.5, 1);
     const checks = lines.filter((l) => l.startsWith('Delivered check'));
     assert.equal(checks.length, 2);
-    assert.match(checks[1], /moved 7\.00 kWh\. Over 2 h: log 2\.00 kWh, counter 14\.00 kWh \(counter ÷ log 7\.00\)/);
+    assert.match(checks[1], /moved 7\.00 kWh\. Over 3 h: log 2\.00 kWh, counter 14\.00 kWh \(counter ÷ log 7\.00\)/);
     d.onConnectionDown('unreachable');
     read(120);
     read(121);
     d.onEnergyLogHour(0.5, 1); // the hour around the gap is discarded, totals kept
     read(122);
     d.onEnergyLogHour(0.5, 1);
-    assert.match(lines.filter((l) => l.startsWith('Delivered check')).pop()!, /Over 3 h: log 3\.00 kWh, counter 15\.00 kWh/);
+    assert.match(lines.filter((l) => l.startsWith('Delivered check')).pop()!, /Over 4 h: log 3\.00 kWh, counter 15\.00 kWh/);
 });

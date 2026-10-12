@@ -212,7 +212,7 @@ test('absent accessories returning zero do not recommend pool, cooling or solar'
 });
 
 test('drivers share pairing views and use disjoint Flow ids', () => {
-    for (const view of ['pair/ip_address.html', 'pair/detect.html', 'pair/devices.html',
+    for (const view of ['pair/firmware.html', 'pair/ip_address.html','pair/detect.html', 'pair/devices.html',
                         'repair/detect.html', 'repair/features.html']) {
         assert.equal(fs.readFileSync(`drivers/nibe_f/${view}`, 'utf8'),
             fs.readFileSync(`drivers/nibe_s/${view}`, 'utf8'));

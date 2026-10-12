@@ -1294,6 +1294,9 @@
   },
   "pair": [
     {
+      "id": "firmware"
+    },
+    {
       "id": "ip_address"
     },
     {

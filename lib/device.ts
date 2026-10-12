@@ -1481,6 +1481,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         totals.counter += counter;
         totals.log += logged;
         totals.hours += 1;
+        // An idle hour adds nothing and, on a function that never runs (a pool), was half of a
+        // debug report's lines. The totals carry on and print with the next hour that moved.
+        if (logged === 0 && counter === 0)
+            return;
         const name = this.profile.role.producedRegisterForRole[this.role] ?? 'delivered counter';
         const ratio = totals.log >= 0.5
             ? ` (counter ÷ log ${(totals.counter / totals.log).toFixed(2)})`

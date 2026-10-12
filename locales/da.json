@@ -181,6 +181,18 @@
       "hint": "Vælg, hvordan NIBE-register 40025 adresseres via forbindelsen. Bekræft med en fungerende Modbus-forespørgsel. Samme adressering bruges til al læsning og skrivning.",
       "invalid": "Vælg gateway, port fra 1–65535 og Modbus-ID fra 1–247.",
       "detect_intro": "Kontrollerer værdierne fra varmepumpen. Afhængigt af gateway kan det tage flere minutter."
+    },
+    "firmware": {
+      "title": "Opdater varmepumpen først",
+      "intro": "Mange funktioner kræver ny software i varmepumpen. Ældre versioner mangler værdier, som appen bruger, og kan endda vise forkerte energital.",
+      "online_title": "Via internettet med myUplink",
+      "online_body": "Når en opdatering venter, så godkend den i myUplink-appen – eller på pumpens display: swipe til produktoversigten, og tryk på Opdater.",
+      "usb_title": "Med en USB-nøgle",
+      "usb_body": "Hent den nyeste software fra myuplink.com, og læg den på en USB-nøgle. Sæt den i porten over displayet, og åbn menu 8.1.",
+      "f_title": "Via myUplink eller en USB-nøgle",
+      "f_body": "Trinnene er forskellige fra model til model – varmepumpens manual viser hvordan.",
+      "note": "Tager et par minutter. Dine indstillinger bevares.",
+      "continue": "Fortsæt"
     }
   },
   "groups": {

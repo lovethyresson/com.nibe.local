@@ -589,3 +589,58 @@ body {
 .setup-temperature-summary h3 { font-size: .85em; font-weight: 500; margin: 0 0 .5em; }
 .setup-temperature-summary > strong { display: block; font-size: 1.8em; line-height: 1.2; font-weight: 600; }
 .setup-temperature-summary p { margin: .6em 0 0; font-size: .8em; line-height: 1.45; opacity: .65; }
+
+/* ---- firmware step ---- */
+
+.firmware-art svg {
+    width: 7em;
+    height: auto;
+    display: block;
+    margin: 0 auto 0.4em;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.firmware-art .fw-body { fill: var(--surface); stroke: currentColor; stroke-width: 3.5; }
+.firmware-art .fw-screen { fill: none; stroke: currentColor; stroke-width: 3; opacity: 0.8; }
+.firmware-art .fw-screen-lines,
+.firmware-art .fw-vents { fill: none; stroke: currentColor; stroke-width: 3; opacity: 0.45; }
+.firmware-art .fw-badge { fill: var(--accent); stroke: none; }
+.firmware-art .fw-arrow { fill: none; stroke: #fff; stroke-width: 4.5; }
+
+@media (prefers-reduced-motion: no-preference) {
+    .firmware-art .fw-arrow { animation: fw-rise 2.4s ease-in-out infinite; }
+    @keyframes fw-rise {
+        0%, 100% { transform: translateY(1.5px); }
+        50%      { transform: translateY(-2.5px); }
+    }
+}
+
+.firmware-options { margin-top: 1em; }
+
+.firmware-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9em;
+    padding: 0.9em 1em;
+    margin: 0.6em 0;
+    border: 1px solid var(--surface-border);
+    border-radius: 12px;
+    background: var(--surface);
+}
+
+.firmware-option .pump-glyph { margin-top: 0.1em; }
+
+.firmware-detail {
+    margin: 0.25em 0 0;
+    font-size: 0.9em;
+    line-height: 1.45;
+    opacity: 0.8;
+}
+
+.firmware-note {
+    text-align: center;
+    font-size: 0.85em;
+    opacity: 0.65;
+    margin: 1em 0 0;
+}

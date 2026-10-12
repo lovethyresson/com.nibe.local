@@ -29,6 +29,19 @@ Notification errors are logged and retry on the next app start. Delivery and set
 an atomic transaction: a crash after Homey accepts a notification but before its ID is saved can repeat it.
 This is a timeline entry; phone push behavior follows Homey's notification settings.
 
+## Announcement in 1.4.5
+
+The active `1.4.5-update` replaces `1.4.4-setting-triggers` and summarises everything since 1.4.2,
+so owners who were on 1.4.2 get one message. It keeps the two 1.4.4 snippets (S-series heating and
+cooling, unchanged) and adds one untargeted snippet for every owner:
+
+### All devices
+
+Keep your heat pump's software up to date: older versions can report wrong energy and COP figures. Approve updates in the myUplink app or on the pump, then run Repair on your Nibe devices.
+
+Owners already shown the 1.4.4 message on the test channel see its two snippets again; the
+new ID is what lets 1.4.2 owners receive them at all. All snippets are in all six languages.
+
 ## Announcement in 1.4.4
 
 The active `1.4.4-setting-triggers` replaces `1.4-feature-update`. Both snippets target
