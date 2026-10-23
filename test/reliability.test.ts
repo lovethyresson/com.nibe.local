@@ -505,6 +505,36 @@ test('BT50 repeatedly sends unchanged readings older than the legacy age limit',
     assert.deepEqual(writes, [220, 220]);
 });
 
+test('a briefly failing BT50 feed stays quiet; one that stays down notifies once', async (t) => {
+    // The installed @types/node predates the options form and mocking Date; Node 20.4+ supports both.
+    (t.mock.timers.enable as any)({apis: ['setTimeout', 'Date']});
+    const {d, store, config} = indoorDevice(); t.after(() => d.stopIndoor());
+    store.set('indoorSensors', {...config, state: 'active'});
+    const notices: string[] = []; const warnings: string[] = [];
+    d.homey = {...d.homey, notifications: {createNotification: async (n: any) => { notices.push(n.excerpt); }}};
+    d.setWarning = async (message: string) => { warnings.push(message); };
+    let fail = true;
+    d.sendIndoor = async () => { if (fail) throw new Error('Timeout after 10000ms'); };
+    const cycle = async () => {
+        t.mock.timers.tick(30000);
+        for (let i = 0; i < 5; i++) await new Promise((resolve) => setImmediate(resolve));
+    };
+    d.scheduleIndoor();
+    // Fail, recover, fail: the pattern that used to post a notice per blip.
+    await cycle(); fail = false; await cycle(); fail = true; await cycle();
+    assert.deepEqual(notices, []);
+    assert.deepEqual(warnings, []);
+    for (let i = 0; i < 10; i++) await cycle();
+    assert.equal(notices.length, 1);
+    assert.match(notices[0], /Timeout after 10000ms/);
+    assert.equal(warnings.length, 1);
+    for (let i = 0; i < 10; i++) await cycle();
+    assert.equal(notices.length, 1);
+    fail = false; await cycle(); fail = true;
+    for (let i = 0; i < 9; i++) await cycle();
+    assert.equal(notices.length, 1);
+});
+
 test('S and F controls decode to Homey capability types and picker ids take precedence over labels', () => {
     const {d} = device();
     for (const profile of [sProfile, fProfile]) {

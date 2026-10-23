@@ -1,5 +1,5 @@
 import {CaptureSummary, logCaptureSummary} from './diagnostic-capture';
-import {IndoorConfig, averageSensors, cleanIndoorConfig, indoorInventory} from './indoor-sensors';
+import {IndoorConfig, averageSensors, cleanIndoorConfig, selectedReadings} from './indoor-sensors';
 import {Device} from 'homey';
 import net from 'net';
 import {analyticsConsent, setAnalyticsConsent, track} from './analytics';
@@ -24,6 +24,9 @@ import type {LocalizedText, ModelProfile} from './profile';
 import {ConnectionProblem, PumpConnection, PumpSubscriber, POLL_SECONDS_DEFAULT, Transport,
     clampPollSeconds, inLanguage} from './connection';
 
+// How long the indoor feed may keep failing before the user is told (10 missed 30 s updates).
+const INDOOR_ALERT_AFTER_MS = 5 * 60 * 1000;
+
 // One logical function of the physical pump (see roles.ts). All devices share a single
 // PumpConnection per pump host; this class is the Homey-facing subscriber: it maps its role's
 // registers to capabilities, and — for function roles — keeps the energy bucket the
@@ -42,6 +45,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private indoorWork: Promise<any> | null = null;
     private indoorStopped = false;
     private indoorStatus: any = {state: 'idle'};
+    private indoorFailingSince: number | null = null;
+    private indoorAlerted = false;
 
     async indoorSetupStatus() {
         const config = this.getStoreValue('indoorSensors') as IndoorConfig | undefined;
@@ -59,11 +64,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         return raw === null ? null : raw / 10;
     }
 
-    protected readIndoorSensors() { return indoorInventory(this.homey); }
+    protected readIndoorSensors(config: IndoorConfig) { return selectedReadings(this.homey, config.sensors); }
 
     private async sendIndoor(config: IndoorConfig) {
         config = cleanIndoorConfig(config);
-        const value = averageSensors(config, await this.readIndoorSensors());
+        const value = averageSensors(config, await this.readIndoorSensors(config));
         const register = this.profile.registerByName['external_temperature.h5987_bt50'];
         if (!register || !this.connection || this.indoorStopped) throw new Error('Heating feed is unavailable.');
         await this.connection.writeRegisterValue(register, encodeRegisterValue(register, value));
@@ -100,7 +105,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 && d.getStoreValue('indoorSensors')?.state === 'active');
             if (duplicate) throw new Error('Another Heating device already supplies this pump.');
             const config = cleanIndoorConfig(raw);
-            averageSensors(config, await this.readIndoorSensors());
+            averageSensors(config, await this.readIndoorSensors(config));
             if (await this.indoorRaw(5986) !== 1)
                 throw new Error('Enable external BT50 on the heat pump before verifying.');
             const previous = this.getStoreValue('indoorSensors') as IndoorConfig | undefined;
@@ -150,11 +155,19 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             this.indoorTimer = null;
             if (this.indoorWork) { this.scheduleIndoor(); return; }
             this.indoorWork = this.sendIndoor(this.getStoreValue('indoorSensors'))
+                .then(() => { this.indoorFailingSince = null; this.indoorAlerted = false; })
                 .catch(async (error) => {
-                    const notify = this.indoorStatus.state !== 'error';
                     this.indoorStatus = {state: 'error', message: error.message};
+                    // A missed cycle or two is routine (a slow Homey API call, a pump reconnect) and the
+                    // next one recovers. Warn and notify once, only when the feed has stayed down.
+                    if (this.indoorFailingSince === null) {
+                        this.indoorFailingSince = Date.now();
+                        this.log('Indoor feed update failed, retrying:', error.message);
+                    }
+                    if (this.indoorAlerted || Date.now() - this.indoorFailingSince < INDOOR_ALERT_AFTER_MS) return;
+                    this.indoorAlerted = true;
                     await this.setWarning(error.message).catch(this.error);
-                    if (notify) await this.homey.notifications.createNotification({
+                    await this.homey.notifications.createNotification({
                         excerpt: 'Nibe Live: indoor temperature feed needs attention. Open Heating → Repair. ' + error.message
                     }).catch(this.error);
                 }).finally(() => { this.indoorWork = null; this.scheduleIndoor(); });

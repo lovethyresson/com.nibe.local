@@ -77,7 +77,7 @@ export function sensorInventory(devices: Record<string, any>, zones: Record<stri
 }
 
 const clients = new WeakMap<object, Promise<any>>();
-export async function indoorInventory(homey: any): Promise<SensorReading[]> {
+async function withApi<T>(homey: any, use: (api: any) => Promise<T>): Promise<T> {
     let client = clients.get(homey);
     if (!client) {
         const {HomeyAPI} = require('homey-api');
@@ -85,13 +85,30 @@ export async function indoorInventory(homey: any): Promise<SensorReading[]> {
         clients.set(homey, client);
     }
     try {
-        const api = await client;
-        const [devices, zones] = await Promise.all([
-            api.devices.getDevices({$cache: false, $timeout: 10000}), api.zones.getZones({$cache: false, $timeout: 10000})
-        ]);
-        return sensorInventory(devices, zones, homey.i18n.getLanguage());
+        return await use(await client);
     } catch (error) {
         clients.delete(homey);
         throw error;
     }
+}
+
+export async function indoorInventory(homey: any): Promise<SensorReading[]> {
+    return withApi(homey, async (api) => {
+        const [devices, zones] = await Promise.all([
+            api.devices.getDevices({$cache: false, $timeout: 10000}), api.zones.getZones({$cache: false, $timeout: 10000})
+        ]);
+        return sensorInventory(devices, zones, homey.i18n.getLanguage());
+    });
+}
+
+/** The feed's 30 s read: only the selected devices. Every device and zone on the Homey each
+ *  cycle timed out after 10 s often enough to interrupt the feed several times a day. */
+export async function selectedReadings(homey: any, sensors: SensorRef[]): Promise<SensorReading[]> {
+    return withApi(homey, async (api) => {
+        const ids = [...new Set(sensors.map(s => s.deviceId))];
+        // A deleted device is left out, so averageSensors() reports it as missing.
+        const devices = await Promise.all(ids.map(id => api.devices.getDevice({id, $cache: false, $timeout: 10000})
+            .catch((error: any) => error?.statusCode === 404 ? null : Promise.reject(error))));
+        return sensorInventory(Object.fromEntries(devices.filter(d => d).map(d => [d.id, d])), {});
+    });
 }

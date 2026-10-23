@@ -69,7 +69,8 @@ even when the value has not changed. A source's last temperature-change timestam
 determine this schedule and does not expire the reading.
 
 Every selected sensor must still be available and have a valid temperature. If a sensor is missing,
-unavailable or outside the supported 5–40 °C range, the app stops sending, warns you and retries.
+unavailable or outside the supported 5–40 °C range, the app stops sending and retries. If updates
+keep failing for 5 minutes, it warns you once on the Heating device and in the timeline.
 It does not silently drop a room from the average. Homey's availability flag depends on the sensor
 app; it is not a guarantee that a battery-powered device is still communicating.
 

@@ -210,5 +210,13 @@
   "1.2.0": {
     "en": "Features: Hot Water Available. The app now calculates the currently available supply of 40 C hot water in your tank. Run repair on the hot water device to setup. Tweaks: Minor updates to labels and rounding.",
     "sv": "Funktioner: Tillgängligt varmvatten. Appen beräknar nu hur mycket 40-gradigt varmvatten som finns kvar i beredaren. Kör Reparera på enheten Varmvatten för att komma igång. Justeringar: Mindre ändringar av etiketter och avrundning."
+  },
+  "1.4.8": {
+    "en": "Tweaks: The indoor temperature feed no longer posts a timeline notice every time a single update fails. It now warns you once, only if updates keep failing for 5 minutes.",
+    "sv": "Tweaks: Inomhustemperaturflödet skickar inte längre en notis i tidslinjen varje gång en enstaka uppdatering misslyckas. Nu varnar det en gång, bara om uppdateringarna fortsätter att misslyckas i 5 minuter.",
+    "nl": "Tweaks: De binnentemperatuurfeed plaatst niet langer een melding in de tijdlijn telkens wanneer één update mislukt. Je krijgt nu één waarschuwing, alleen als updates 5 minuten lang blijven mislukken.",
+    "de": "Tweaks: Die Raumtemperatur-Übertragung meldet nicht mehr bei jeder einzelnen fehlgeschlagenen Aktualisierung etwas in der Zeitleiste. Sie warnt jetzt einmal, und nur, wenn Aktualisierungen 5 Minuten lang fehlschlagen.",
+    "no": "Tweaks: Innetemperaturstrømmen legger ikke lenger ut et varsel i tidslinjen hver gang én oppdatering mislykkes. Nå varsler den én gang, bare hvis oppdateringene fortsetter å mislykkes i 5 minutter.",
+    "da": "Tweaks: Indetemperaturfeedet sender ikke længere en besked til tidslinjen, hver gang en enkelt opdatering mislykkes. Nu advarer det én gang, kun hvis opdateringerne bliver ved med at mislykkes i 5 minutter."
   }
 }
