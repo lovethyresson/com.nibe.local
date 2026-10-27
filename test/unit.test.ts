@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-    Dir, combineRaw, signedValue, isUnavailableRaw, toNumericValue, isAdjustable, isPollable,
+    Dir, combineRaw, signedValue, isAllOnesResponse, isUnavailableRaw, toNumericValue, isAdjustable, isPollable,
     buildPickerPrimary, buildRegisterByName, enumConditionValue, enumLabel, isSelectableRegister, isRegisterEnabled,
     Register, Selection, flowPredicates,
     migrateSelection, resolvedAddress, encodeRegisterValue
@@ -22,7 +22,7 @@ import {alarmAdvice, alarmDescription, alarmEntry} from '../lib/alarms';
 import alarmCodes from '../lib/alarm-codes.json';
 import {sProfile} from '../drivers/nibe_s/profile';
 import {registers} from '../drivers/nibe_s/registers';
-import {choosePumpCandidate} from '../lib/discovery';
+import {choosePumpCandidate, describeRead, describeServerId, describeSubject} from '../lib/discovery';
 
 // ---------------------------------------------------------------------------------------
 // Decode helpers — the raw Modbus → value maths. These are the load-bearing bits the
@@ -51,6 +51,17 @@ test('signedValue: two-s complement per width', () => {
     assert.equal(signedValue(32768, 16), -32768);
     assert.equal(signedValue(0x80000000, 32), -2147483648);
     assert.equal(signedValue(143907, 32), 143907);   // energy counter stays positive
+});
+
+test('isAllOnesResponse: only a whole sweep of all-ones words condemns a responder', () => {
+    const ones = (n: number) => Array.from({length: n}, (_, i) => ({raw: i % 2 ? 0xFFFFFFFF : 0xFFFF,
+        size: (i % 2 ? 32 : 16) as 16 | 32}));
+    assert.equal(isAllOnesResponse(ones(5)), true);
+    // -1 is a real reading of a single register (curve offset, degree minutes).
+    assert.equal(isAllOnesResponse(ones(4)), false);
+    assert.equal(isAllOnesResponse([...ones(5), {raw: 97, size: 16}]), false);
+    // A 32-bit register reading 0xFFFF is a real value, not all-ones.
+    assert.equal(isAllOnesResponse([...ones(5), {raw: 0xFFFF, size: 32}]), false);
 });
 
 test('isUnavailableRaw: Nibe not-available sentinels', () => {
@@ -1460,4 +1471,28 @@ test('ventilation lives on main and moves its selection with it', () => {
     const names = (role: Role) => registersForRole(sProfile, role, null).map((r) => r.name);
     assert.ok(names('main').includes(night) && names('main').includes(fan));
     assert.ok(!names('heating').includes(night) && !names('heating').includes(fan));
+});
+
+test('describeRead says what each no-data diagnostic read answered', () => {
+    assert.equal(describeRead({raw: 0xFFFF}), '0xFFFF');
+    assert.equal(describeRead({raw: 55}), '0x0037');
+    assert.equal(describeRead({error: {err: 'ModbusException', response: {body: {code: 2}}}}), 'exception 2');
+    assert.equal(describeRead({error: {err: 'Timeout', message: 'Req timed out'}}), 'timeout');
+    assert.equal(describeRead({error: 'empty answer'}), 'empty answer');
+});
+
+test('describeServerId decodes a function 17 answer the way an S1155 gives it', () => {
+    // Captured from an S1155: FC 17, 11 bytes: server ID 0xB4, run indicator 0xFF, "LMB3.1.11".
+    assert.equal(describeServerId(Buffer.from('110bb4ff4c4d42332e312e3131', 'hex')), '0xB4, running, "LMB3.1.11"');
+    assert.equal(describeServerId(Buffer.from('1102010000', 'hex')), '0x01, not running');
+    assert.equal(describeServerId(Buffer.from('9101', 'hex')), 'exception 1');
+    // Not the ID/run-indicator layout: shown as bytes rather than guessed at.
+    assert.equal(describeServerId(Buffer.from('1103abcdef', 'hex')), '0xABCDEF');
+    assert.equal(describeServerId(Buffer.from('0300', 'hex')), 'unexpected answer 0300');
+});
+
+test('describeSubject prints a certificate subject like openssl does', () => {
+    assert.equal(describeSubject({O: 'NIBE', CN: '06544319324004'}), 'O=NIBE, CN=06544319324004');
+    assert.equal(describeSubject({OU: ['a', 'b']}), 'OU=a+b');
+    assert.equal(describeSubject(undefined), 'no subject');
 });

@@ -3,10 +3,12 @@ import {ReadDiagnostic, formatReadDiagnostic} from './read-diagnostics';
 import {frequentRegisterNames, planPoll} from './poll-plan';
 import net from 'net';
 import {ModbusTCPClient} from 'jsmodbus';
-import {Dir, Register, combineRaw, isPollable, isUnavailableRaw, signedValue, toNumericValue} from './registers';
+import {
+    Dir, Register, combineRaw, isAllOnesResponse, isPollable, isUnavailableRaw, signedValue, toNumericValue
+} from './registers';
 import {Role, functionRoles} from './roles';
 import type {LocalizedText, ModelProfile, ReasonState} from './profile';
-import {DetectionResult, buildDetectionResult, sampleRegisters} from './detection';
+import {DetectionResult, RawAnswers, buildDetectionResult, sampleRegisters} from './detection';
 import {track} from './analytics';
 
 // A Nibe pump accepts only a single Modbus client, but the app pairs several logical
@@ -51,7 +53,9 @@ const OUTAGE_LOG_EVERY_MS = 10 * 60_000;
 //   refused     — something is at that address, but its Modbus port is closed
 //   silent      — the connection was up but the pump stopped answering (watchdog)
 //   searching   — unreachable long enough that the subnet is being searched for the pump
-export type ConnectionProblem = 'connecting' | 'unreachable' | 'refused' | 'silent' | 'searching';
+//   no_data     — connected, but every register answers 0xFFFF (a gateway, not the pump)
+export type ConnectionProblem = 'connecting' | 'unreachable' | 'refused' | 'silent' | 'searching'
+    | 'no_data';
 
 export function classifyConnectError(error: any): ConnectionProblem {
     return error?.code === 'ECONNREFUSED' ? 'refused' : 'unreachable';
@@ -94,6 +98,9 @@ export interface PumpSubscriber {
     // connection calls this on one subscriber (main if paired) after a long run of failed
     // connects; see SEARCH_AFTER_MS.
     searchForPump?(): Promise<void>;
+    // Log what is at this address and on the subnet, once, when every register answers 0xFFFF;
+    // see diagnoseNoData() in discovery.ts. Called on one subscriber, main if paired.
+    diagnoseNoData?(): Promise<void>;
     onPollComplete?(readNames: Set<string>): void;
     // Poll interval this device asks for, in seconds. The main device's value wins; the rest
     // only matter when no main device is paired.
@@ -599,7 +606,7 @@ export class PumpConnection {
             this.knownAbsent.add(name);
         this.refreshDebug();
         this.refreshPollInterval();
-        if (this.connected) {
+        if (this.connected && this.problem !== 'no_data') {
             subscriber.onConnectionUp();
             for (const register of subscriber.wantedRegisters().filter(isPollable)) {
                 const raw = this.lastRaw.get(register.name);
@@ -787,6 +794,23 @@ export class PumpConnection {
                 if (!this.destroyed && !this.connected && this.problem === 'searching')
                     this.notifyDown(previous && previous !== 'searching' ? previous : 'unreachable');
             });
+    }
+
+    // Once per connection: the user's "yes, that is the pump's IP" cannot be checked from here, so
+    // put what is actually at this address, and what else answers Modbus nearby, in the log.
+    private noDataDiagnosed = false;
+
+    private diagnoseNoData() {
+        if (this.noDataDiagnosed)
+            return;
+        const subscribers = [...this.subscribers];
+        const diagnoser = subscribers.find((s) => s.role === 'main' && s.diagnoseNoData)
+            ?? subscribers.find((s) => s.diagnoseNoData);
+        if (!diagnoser)
+            return;
+        this.noDataDiagnosed = true;
+        diagnoser.diagnoseNoData!()
+            .catch((error) => this.log('The no-data diagnostic failed:', error?.message ?? error));
     }
 
     // The registers to read this cycle: everyone's wanted registers, deduped by name, plus
@@ -1028,11 +1052,33 @@ export class PumpConnection {
             if (generation !== this.generation || !this.connected) return;
             const rawByName = new Map<string, number>();
             toPoll.forEach((register, i) => {
-                if (raws[i] !== undefined) {
+                if (raws[i] !== undefined)
                     rawByName.set(register.name, raws[i]!);
-                    this.lastRaw.set(register.name, raws[i]!);
-                }
             });
+
+            // Everything that answered, answered 0xFFFF: not a pump, whatever it is (see
+            // isAllOnesResponse). Publishing that put -1 / -0.1 on every capability of a device
+            // that looked online. Say why on the tile instead, and keep polling: the socket is
+            // fine, and the first real answer brings the devices back.
+            if (isAllOnesResponse(toPoll.filter((r) => rawByName.has(r.name))
+                .map((r) => ({raw: rawByName.get(r.name)!, size: r.size})))) {
+                this.deadPolls = 0;
+                if (this.problem !== 'no_data') {
+                    // Un-gated, like the watchdog: nobody has debug on when this first happens.
+                    this.log(`All ${rawByName.size} registers answered 0xFFFF — whatever is at this `
+                        + 'address is not serving heat pump data. Not publishing values.');
+                    this.diagnoseNoData();
+                }
+                this.notifyDown('no_data');
+                return;
+            }
+            if (this.problem === 'no_data') {
+                this.log('Registers answer with data again.');
+                this.problem = null;
+                this.subscribers.forEach((subscriber) => subscriber.onConnectionUp());
+            }
+            for (const [name, raw] of rawByName)
+                this.lastRaw.set(name, raw);
 
             // Nothing answered at all. Not "this model lacks these registers" — the pump has
             // stopped talking while leaving the TCP connection up, which is what a pump reboot,
@@ -1534,13 +1580,17 @@ export class PumpConnection {
             this.reportAbsent();
         }
         const generation = this.generation;
+        const answers = new RawAnswers();
         const {probes, addresses, choices} = await sampleRegisters(this.profile,
             async (register) => {
                 if (generation !== this.generation || !this.connected)
                     throw new Error('Connection changed during detection');
                 const raw = await this.readRegisterRaw(register, false);
-                return raw === undefined ? undefined : toNumericValue(register, raw);
+                if (raw === undefined) return undefined;
+                answers.note(raw, register.size);
+                return toNumericValue(register, raw);
             }, onProgress, undefined, undefined, signal);
+        answers.check();
         return buildDetectionResult(this.profile, probes, addresses, choices);
     }
 

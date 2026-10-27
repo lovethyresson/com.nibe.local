@@ -1423,6 +1423,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         await (this.driver as any).relocatePump(this.host(), this.transport());
     }
 
+    // Every register answers 0xFFFF. The driver logs what is at this address and on the subnet.
+    async diagnoseNoData(): Promise<void> {
+        await (this.driver as any).diagnoseNoData(this.host(), this.transport());
+    }
+
     // Point this device at another address. Called for every device of the pump by
     // NibePumpDriver.movePump(), after its `address` setting has been written (or, for the
     // device the user is editing, with the settings Homey is about to save).

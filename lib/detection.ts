@@ -1,8 +1,8 @@
 import net from 'net';
 import {ModbusTCPClient} from 'jsmodbus';
 import {
-    Dir, GroupId, groupIds, Register, RegisterInfo, combineRaw, isPlausibleAlt, isPlausibleValue,
-    toNumericValue
+    Dir, GroupId, groupIds, Register, RegisterInfo, combineRaw, isAllOnesResponse, isPlausibleAlt,
+    isPlausibleValue, toNumericValue
 } from './registers';
 import type {ModelProfile} from './profile';
 
@@ -94,8 +94,33 @@ export function buildDetectionResult(
     return {recommendations: recommendGroups(profile, probes), samples, addresses, choices};
 }
 
+// Detection found a responder that answers 0xFFFF to every register; see isAllOnesResponse().
+// Its own type so the driver can tell the user why in their language, rather than show this.
+export class AllOnesResponseError extends Error {
+    constructor() {
+        super('The device at this address answers 0xFFFF to every register — not a heat pump');
+        this.name = 'AllOnesResponseError';
+    }
+}
+
+// Collects every raw answer during detection, and throws AllOnesResponseError if they were all
+// all-ones. Without it detection read -0.1 as a "plausible non-zero" value everywhere and
+// recommended every group.
+export class RawAnswers {
+    private raws: {raw: number; size?: number}[] = [];
+
+    note(raw: number, size?: number) {
+        this.raws.push({raw, size});
+    }
+
+    check() {
+        if (isAllOnesResponse(this.raws))
+            throw new AllOnesResponseError();
+    }
+}
+
 export async function readNumeric(
-    client: ModbusTCPClient, register: Register, profile: ModelProfile
+    client: ModbusTCPClient, register: Register, profile: ModelProfile, answers?: RawAnswers
 ): Promise<number | undefined> {
     const count = register.size === 32 ? 2 : 1;
     const address = pduAddress(register, profile);
@@ -109,6 +134,7 @@ export async function readNumeric(
             // that is a read which carried nothing — not a reading of zero.
             if (raw === undefined || Number.isNaN(raw))
                 return undefined;
+            answers?.note(raw, register.size);
             return toNumericValue(register, raw);
         })
         .catch(() => undefined);
@@ -322,11 +348,13 @@ export async function probeHost(
             socket.once('error', (error) => reject(error));
             socket.connect({port: transport.port, host});
         });
+        const answers = new RawAnswers();
         const {probes, addresses, choices} = await sampleRegisters(
             profile, (register) => readNumeric(client, register, {
                 ...profile, addressBase: transport.addressBase ?? profile.addressBase
-            }), onProgress,
+            }, answers), onProgress,
             undefined, undefined, signal);
+        answers.check();
         return buildDetectionResult(profile, probes, addresses, choices);
     } finally {
         signal?.removeEventListener('abort', abort);

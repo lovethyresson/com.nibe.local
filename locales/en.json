@@ -37,6 +37,7 @@
       "intro": "Connecting to the heat pump and watching which values change. This takes about half a minute.",
       "status": "Sampling registers",
       "failed": "Could not read from the heat pump",
+      "no_data": "Something answers at this address, but it returns no heat pump data. Check the IP is the pump's own and that Modbus TCP is on (menu 7.5.9).",
       "retry": "Retry",
       "skip": "Skip detection"
     },
@@ -247,6 +248,7 @@
     "unreachable": "Can't reach the heat pump at __host__. Check that it's on the network and that its IP address hasn't changed.",
     "refused": "The heat pump at __host__ refused the connection. Check that Modbus TCP is enabled on the pump.",
     "silent": "The heat pump at __host__ stopped answering. Reconnecting…",
+    "no_data": "Something at __host__ answers, but returns no heat pump data. Check the IP is the pump's own and that Modbus TCP is on (menu 7.5.9).",
     "searching": "Can't reach the heat pump at __host__. Searching the network for it…",
     "moved": "Nibe Live: your heat pump moved from __from__ to __to__. Its devices have been updated.",
     "address_in_use": "Another paired heat pump already uses __host__."

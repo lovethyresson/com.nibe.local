@@ -14,6 +14,7 @@
       "intro": "Opretter forbindelse til varmepumpen og ser, hvilke værdier der ændrer sig. Det tager cirka et halvt minut.",
       "status": "Aflæser registre",
       "failed": "Kunne ikke læse fra varmepumpen",
+      "no_data": "Noget svarer på denne adresse, men sender ingen varmepumpedata. Tjek at IP-adressen er pumpens egen, og at Modbus TCP er slået til (menu 7.5.9).",
       "retry": "Prøv igen",
       "skip": "Spring registrering over"
     },
@@ -157,6 +158,7 @@
     "unreachable": "Kan ikke nå varmepumpen på __host__. Tjek, at den er på netværket, og at IP-adressen ikke er ændret.",
     "refused": "Varmepumpen på __host__ afviste forbindelsen. Tjek, at Modbus TCP er slået til på pumpen.",
     "silent": "Varmepumpen på __host__ holdt op med at svare. Forbinder igen…",
+    "no_data": "Noget på __host__ svarer, men sender ingen varmepumpedata. Tjek at IP-adressen er pumpens egen, og at Modbus TCP er slået til (menu 7.5.9).",
     "searching": "Kan ikke nå varmepumpen på __host__. Søger efter den på netværket…",
     "moved": "Nibe Live: din varmepumpe er flyttet fra __from__ til __to__. Enhederne er opdateret.",
     "address_in_use": "En anden parret varmepumpe bruger allerede __host__."

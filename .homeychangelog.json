@@ -218,5 +218,13 @@
     "de": "Tweaks: Die Raumtemperatur-Übertragung meldet nicht mehr bei jeder einzelnen fehlgeschlagenen Aktualisierung etwas in der Zeitleiste. Sie warnt jetzt einmal, und nur, wenn Aktualisierungen 5 Minuten lang fehlschlagen.",
     "no": "Tweaks: Innetemperaturstrømmen legger ikke lenger ut et varsel i tidslinjen hver gang én oppdatering mislykkes. Nå varsler den én gang, bare hvis oppdateringene fortsetter å mislykkes i 5 minutter.",
     "da": "Tweaks: Indetemperaturfeedet sender ikke længere en besked til tidslinjen, hver gang en enkelt opdatering mislykkes. Nu advarer det én gang, kun hvis opdateringerne bliver ved med at mislykkes i 5 minutter."
+  },
+  "1.4.9": {
+    "en": "Tweaks: When something answers at the pump's address but sends no heat pump data, pairing stops and the devices say so, instead of showing -1 everywhere. The log now also records what is at that address, to help find the cause.",
+    "sv": "Tweaks: När något svarar på värmepumpens adress men inte skickar några värmepumpsdata avbryts parkopplingen och enheterna säger det, i stället för att visa -1 överallt. Loggen visar nu också vad som finns på adressen, för att hjälpa till att hitta orsaken.",
+    "nl": "Tweaks: Als er iets reageert op het adres van de warmtepomp maar geen warmtepompgegevens stuurt, stopt het koppelen en melden de apparaten dat, in plaats van overal -1 te tonen. Het logboek vermeldt nu ook wat er op dat adres zit, om de oorzaak te vinden.",
+    "de": "Tweaks: Wenn unter der Adresse der Wärmepumpe etwas antwortet, aber keine Wärmepumpendaten sendet, bricht die Kopplung ab und die Geräte melden das, statt überall -1 anzuzeigen. Das Protokoll hält jetzt auch fest, was sich unter dieser Adresse befindet, um die Ursache zu finden.",
+    "no": "Tweaks: Når noe svarer på varmepumpens adresse, men ikke sender varmepumpedata, stopper paringen og enhetene sier fra, i stedet for å vise -1 overalt. Loggen viser nå også hva som finnes på adressen, for å hjelpe med å finne årsaken.",
+    "da": "Tweaks: Når noget svarer på varmepumpens adresse, men ikke sender varmepumpedata, stopper parringen, og enhederne siger det, i stedet for at vise -1 overalt. Loggen viser nu også, hvad der findes på adressen, for at hjælpe med at finde årsagen."
   }
 }

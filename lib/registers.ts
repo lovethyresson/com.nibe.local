@@ -280,6 +280,20 @@ export function isUnavailableRaw(raw: number, size?: number, additional?: readon
     return raw === (size === 32 ? 0x80000000 : 0x8000) || !!additional?.includes(raw);
 }
 
+// Fewer answers than this prove nothing about the responder: -1 is a legitimate reading of
+// many single registers (a curve offset, degree minutes), so only a whole sweep counts.
+export const ALL_ONES_MIN_READS = 5;
+
+// Whether a responder answered every read with all-ones words (0xFFFF, or 0xFFFFFFFF for a
+// 32-bit pair). No Nibe register map does that: a missing sensor answers 0x8000 and a missing
+// register an exception. A Modbus gateway with nothing behind it does, and it decodes as -1 or
+// -0.1 on every capability, which looked like a working pump that reported nonsense (S1156,
+// 2026-10-27). `raws` are the combined raw values of every read that answered.
+export function isAllOnesResponse(raws: readonly {raw: number; size?: number}[]): boolean {
+    return raws.length >= ALL_ONES_MIN_READS
+        && raws.every(({raw, size}) => raw === (size === 32 ? 0xFFFFFFFF : 0xFFFF));
+}
+
 // Convert a raw register value to a plain number (sign + scale only, no enum/bool
 // mapping) — used by detection sampling where only numeric movement and plausibility
 // matter.

@@ -15,10 +15,11 @@ import {
 } from './roles';
 import type {ModelProfile} from './profile';
 import {
-    DetectionResult, PROBE_PASSES, Recommendations, RegisterSample, SourceChoices, probeHost
+    AllOnesResponseError, DetectionResult, PROBE_PASSES, Recommendations, RegisterSample, SourceChoices,
+    probeHost
 } from './detection';
 import {Transport, destroyAllConnections, existingConnection} from './connection';
-import {DiscoveryOptions, choosePumpCandidate, discoverPumps} from './discovery';
+import {DiscoveryOptions, choosePumpCandidate, diagnoseNoData, discoverPumps} from './discovery';
 import {CONSENT_SETTING, InstallProfile, analyticsConsent, reportInstallProfile, setAnalyticsConsent, track} from './analytics';
 import {DEFAULT_INLET_C, MAX_TANK_LITRES, MIN_TANK_LITRES, cleanTankChoice} from './hotwater';
 
@@ -292,6 +293,14 @@ export abstract class NibePumpDriver extends Driver {
     // that *completed* and got no answers. `registers_total` is a static profile fact, known
     // whether or not the pass got anywhere. The error message itself is never sent: it is
     // unbounded free text, which is exactly what this taxonomy keeps out.
+    // What the detect view shows when detection fails. An all-0xFFFF responder is the one failure
+    // the user can act on, and it would otherwise read as a pump that works.
+    private detectionFailure(error: any): string {
+        if (error instanceof AllOnesResponseError)
+            return this.homey.__('pair.detect.no_data');
+        return error?.message ?? String(error);
+    }
+
     private trackFailedDetection(mode: 'pair' | 'repair') {
         track('Completed Detection', {
             mode,
@@ -1002,9 +1011,11 @@ export abstract class NibePumpDriver extends Driver {
 
     private probeOptions(transport: Transport): DiscoveryOptions {
         const probe = this.profile.detection.discoveryProbe;
+        const typeAddress = this.profile.pumpInfo?.typeAddress;
         return {
             ...transport,
             probeAddress: probe.address - (transport.addressBase ?? 0),
+            confirmAddress: typeAddress === undefined ? undefined : typeAddress - (transport.addressBase ?? 0),
             direction: probe.direction,
             scale: probe.scale,
             min: probe.min,
@@ -1092,6 +1103,26 @@ export abstract class NibePumpDriver extends Driver {
         } finally {
             this.relocating.delete(from);
         }
+    }
+
+    // A pump whose every register answers 0xFFFF: log the reads under other unit IDs, the host's
+    // other ports, and every Modbus responder on the subnet. See diagnoseNoData() in discovery.ts.
+    async diagnoseNoData(host: string, transport: Transport): Promise<void> {
+        const base = transport.addressBase ?? 0;
+        const addresses = [this.profile.detection.discoveryProbe.address, this.profile.pumpInfo?.typeAddress]
+            .filter((address): address is number => address !== undefined)
+            .map((address) => address - base);
+        const localAddress = net.isIP(host)
+            ? await this.homey.cloud.getLocalAddress().catch(() => undefined) : undefined;
+        this.log(`No-data diagnostic for ${host}: reading input ${addresses.join(', ')} (wire addresses)`);
+        const lines = await this.diagnose(host, localAddress, {port: transport.port, unitId: transport.unitId, addresses});
+        for (const line of lines)
+            this.log(`  ${line}`);
+    }
+
+    // The network side of diagnoseNoData(), as a method so tests can stand in for the network.
+    private diagnose(...args: Parameters<typeof diagnoseNoData>) {
+        return diagnoseNoData(...args);
     }
 
     private validatePairTransport(data: any): PairTransport {
@@ -1225,7 +1256,7 @@ export abstract class NibePumpDriver extends Driver {
                     this.error('onPair detection failed', error);
                     this.trackFailedDetection('pair');
                     session.emit('detection_failed',
-                        {message: error?.message ?? String(error)}).catch(() => {});
+                        {message: this.detectionFailure(error)}).catch(() => {});
                 });
             return true;
         });
@@ -1298,7 +1329,7 @@ export abstract class NibePumpDriver extends Driver {
                     this.error('onRepair detection failed', error);
                     this.trackFailedDetection('repair');
                     session.emit('detection_failed',
-                        {message: error?.message ?? String(error)}).catch(() => {});
+                        {message: this.detectionFailure(error)}).catch(() => {});
                 });
             return true;
         });

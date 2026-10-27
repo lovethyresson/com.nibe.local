@@ -14,6 +14,7 @@
       "intro": "Verbindung zur Wärmepumpe wird hergestellt und beobachtet, welche Werte sich ändern. Dies dauert etwa eine halbe Minute.",
       "status": "Register werden abgefragt",
       "failed": "Die Wärmepumpe konnte nicht gelesen werden",
+      "no_data": "An dieser Adresse antwortet etwas, liefert aber keine Wärmepumpendaten. Prüfe, ob die IP die der Pumpe ist und Modbus TCP aktiv ist (Menü 7.5.9).",
       "retry": "Erneut versuchen",
       "skip": "Erkennung überspringen"
     },
@@ -157,6 +158,7 @@
     "unreachable": "Wärmepumpe unter __host__ nicht erreichbar. Prüfen Sie, ob sie im Netzwerk ist und ob sich ihre IP-Adresse geändert hat.",
     "refused": "Die Wärmepumpe unter __host__ hat die Verbindung abgelehnt. Prüfen Sie, ob Modbus TCP an der Pumpe aktiviert ist.",
     "silent": "Die Wärmepumpe unter __host__ antwortet nicht mehr. Verbindung wird neu aufgebaut…",
+    "no_data": "Unter __host__ antwortet etwas, liefert aber keine Wärmepumpendaten. Prüfe, ob die IP die der Pumpe ist und Modbus TCP aktiv ist (Menü 7.5.9).",
     "searching": "Wärmepumpe unter __host__ nicht erreichbar. Sie wird im Netzwerk gesucht…",
     "moved": "Nibe Live: Ihre Wärmepumpe ist von __from__ nach __to__ umgezogen. Die Geräte wurden aktualisiert.",
     "address_in_use": "Eine andere gekoppelte Wärmepumpe verwendet bereits __host__."

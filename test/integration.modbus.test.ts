@@ -1,11 +1,16 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'fs';
 import net from 'net';
+import path from 'path';
+import tls from 'tls';
 import {ModbusTCPServer} from 'jsmodbus';
 
 import {Dir, Register, signedValue} from '../lib/registers';
 import {LocalizedText, makeProfile, ModelProfile} from '../lib/profile';
 import {PumpConnection, PumpSubscriber, Transport, inLanguage} from '../lib/connection';
+import {AllOnesResponseError, probeHost} from '../lib/detection';
+import {diagnoseNoData, reportServerId, tlsSubject, tryHost} from '../lib/discovery';
 import {Role} from '../lib/roles';
 
 // A buffer-backed fake pump: jsmodbus serves the input/holding buffers with its built-in
@@ -941,9 +946,11 @@ test('the F profile reads the same sensor through both gateway address modes', {
 class ProblemSub extends FakeSub {
     problems: string[] = [];
     searches = 0;
+    diagnoses = 0;
     search: () => Promise<void> = async () => {};
     onConnectionDown(problem?: string) { super.onConnectionDown(); this.problems.push(String(problem)); }
     async searchForPump() { this.searches += 1; await this.search(); }
+    async diagnoseNoData() { this.diagnoses += 1; }
 }
 
 // A port nothing is listening on, so a connect is refused at once.
@@ -1055,4 +1062,114 @@ test('a long outage asks main to search for the pump, once per window, and resto
             connection.shutdown();
         }
     });
+});
+
+// ---- A responder that answers 0xFFFF to everything: a gateway with no pump behind it ----
+
+const allOnesRegisters = [1, 2, 3, 4, 5, 6].map((address) =>
+    reg({address, name: `r${address}`, scale: 10}));
+
+async function startAllOnesPump(): Promise<Pump> {
+    const pump = await startPump(64);
+    pump.input.fill(0xFF);
+    pump.holding.fill(0xFF);
+    return pump;
+}
+
+test('the poll marks devices down with a reason when every register answers 0xFFFF, and recovers',
+    {timeout: 20000}, async () => {
+        const pump = await startAllOnesPump();
+        const sub = new ProblemSub('main', allOnesRegisters);
+        try {
+            await captureLogs(async (logs) => {
+                await withConnection(tinyProfile(allOnesRegisters), {port: pump.port, unitId: 1}, sub, async () => {
+                    await sleep(1000);
+                    assert.deepEqual(sub.problems, ['connecting', 'no_data']);
+                    assert.equal(sub.up, false);
+                    assert.equal(sub.raws.length, 0, '0xFFFF must not reach a capability');
+                    assert.equal(logs.filter((l) => /answered 0xFFFF/.test(l)).length, 1);
+                    assert.equal(sub.diagnoses, 1, 'the diagnostic runs once, not every poll');
+                    // The pump comes good: the next poll brings the devices back with real values.
+                    pump.input.fill(0);
+                    seed(pump.input, 1, 97);
+                    await sleep(5500);
+                    assert.equal(sub.up, true);
+                    assert.ok(sub.raws.some((r) => r.name === 'r1' && r.raw === 97));
+                });
+            });
+        } finally { await pump.close(); }
+    });
+
+test('detection refuses a responder that answers 0xFFFF to every register', {timeout: 15000}, async () => {
+    const pump = await startAllOnesPump();
+    const profile = tinyProfile(allOnesRegisters);
+    profile.detection.passes = 1;
+    try {
+        await assert.rejects(probeHost(profile, '127.0.0.1', {port: pump.port, unitId: 1}, () => {}),
+            AllOnesResponseError);
+        // A real pump whose readings happen to include -1 still passes.
+        pump.input.fill(0);
+        seed(pump.input, 1, 0xFFFF);
+        seed(pump.input, 2, 215);
+        const result = await probeHost(profile, '127.0.0.1', {port: pump.port, unitId: 1}, () => {});
+        assert.equal(result.samples.r2.value, 21.5);
+    } finally { await pump.close(); }
+});
+
+test('discovery skips a responder whose probe and model code both read 0xFFFF', {timeout: 15000}, async () => {
+    const pump = await startAllOnesPump();
+    const options = {port: pump.port, unitId: 1, probeAddress: 1, scale: 10, min: -60, max: 60, confirmAddress: 50};
+    try {
+        assert.equal(await tryHost('127.0.0.1', options), null);
+        // An outdoor temperature of exactly -0.1 °C is real when the model code reads.
+        seed(pump.input, 50, 55);
+        assert.deepEqual(await tryHost('127.0.0.1', options), {address: '127.0.0.1', outdoorTemperature: -0.1});
+    } finally { await pump.close(); }
+});
+
+test("the no-data diagnostic logs the answers under every unit ID and the host's other ports", {timeout: 30000}, async () => {
+    const pump = await startAllOnesPump();
+    try {
+        seed(pump.input, 50, 55);
+        // No local address: the subnet sweep is skipped, which keeps this off the real network.
+        const lines = await diagnoseNoData('127.0.0.1', undefined, {port: pump.port, unitId: 1, addresses: [1, 50, 9000]});
+        const unit1 = lines.find((l) => l.startsWith('127.0.0.1 unit 1 (configured):'));
+        // The fake pump ignores the unit ID and serves 64 registers: 9000 comes back empty.
+        assert.equal(unit1, '127.0.0.1 unit 1 (configured): in1=0xFFFF in50=0x0037 in9000=empty answer');
+        assert.ok(lines.some((l) => l.startsWith('127.0.0.1 unit 255: in1=0xFFFF')));
+        assert.ok(lines.some((l) => l.startsWith('127.0.0.1 server ID (function 17): ')), JSON.stringify(lines));
+        assert.ok(lines.some((l) => /^127\.0\.0\.1 other ports: 80 (open|closed)/.test(l)), JSON.stringify(lines));
+        assert.equal(lines.some((l) => l.startsWith('Other Modbus responders')), false);
+    } finally { await pump.close(); }
+});
+
+test('function 17 is read off the wire, including an answer split across packets', {timeout: 10000}, async () => {
+    const server = net.createServer((socket) => socket.once('data', (request) => {
+        // Echo the transaction ID and unit; answer like an S1155, in two writes.
+        const pdu = Buffer.from('110bb4ff4c4d42332e312e3131', 'hex');
+        const header = Buffer.from([request[0], request[1], 0, 0, 0, pdu.length + 1, request[6]]);
+        socket.write(Buffer.concat([header, pdu.subarray(0, 4)]));
+        setTimeout(() => socket.write(pdu.subarray(4)), 20);
+    }));
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+    const port = (server.address() as net.AddressInfo).port;
+    try {
+        assert.equal(await reportServerId('127.0.0.1', port, 1), '0xB4, running, "LMB3.1.11"');
+        assert.equal(await reportServerId('127.0.0.1', await closedPort(), 1), 'econnrefused');
+    } finally { await new Promise<void>((resolve) => server.close(() => resolve())); }
+});
+
+test('the 8443 certificate subject is read without trusting the certificate', {timeout: 10000}, async () => {
+    const fixtures = path.join(__dirname, 'fixtures');
+    const server = tls.createServer({
+        key: fs.readFileSync(path.join(fixtures, 'nibe-tls-test.key')),
+        cert: fs.readFileSync(path.join(fixtures, 'nibe-tls-test.crt'))
+    }, (socket) => socket.end());
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+    const port = (server.address() as net.AddressInfo).port;
+    try {
+        assert.equal(await tlsSubject('127.0.0.1', port), 'certificate O=NIBE, CN=TEST0000000000');
+        // Something on the port that does not speak TLS: no subject, no throw.
+        assert.equal(await tlsSubject('127.0.0.1', await closedPort()), undefined);
+    } finally { await new Promise<void>((resolve) => server.close(() => resolve())); }
 });

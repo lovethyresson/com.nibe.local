@@ -37,6 +37,7 @@
       "intro": "Ansluter till värmepumpen och tittar på vilka värden som ändras. Det tar ungefär en halv minut.",
       "status": "Läser register",
       "failed": "Kunde inte läsa från värmepumpen",
+      "no_data": "Något svarar på adressen, men det skickar ingen värmepumpsdata. Kontrollera att IP-adressen är pumpens egen och att Modbus TCP är på (meny 7.5.9).",
       "retry": "Försök igen",
       "skip": "Hoppa över identifiering"
     },
@@ -247,6 +248,7 @@
     "unreachable": "Når inte värmepumpen på __host__. Kontrollera att den är ansluten till nätverket och att IP-adressen inte har ändrats.",
     "refused": "Värmepumpen på __host__ nekade anslutningen. Kontrollera att Modbus TCP är aktiverat i pumpen.",
     "silent": "Värmepumpen på __host__ slutade svara. Ansluter igen…",
+    "no_data": "Något på __host__ svarar, men skickar ingen värmepumpsdata. Kontrollera att IP-adressen är pumpens egen och att Modbus TCP är på (meny 7.5.9).",
     "searching": "Når inte värmepumpen på __host__. Söker efter den i nätverket…",
     "moved": "Nibe Live: värmepumpen har flyttat från __from__ till __to__. Enheterna har uppdaterats.",
     "address_in_use": "En annan parkopplad värmepump använder redan __host__."

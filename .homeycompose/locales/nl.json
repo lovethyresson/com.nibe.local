@@ -14,6 +14,7 @@
       "intro": "Er wordt verbinding gemaakt met de warmtepomp en gekeken welke waarden veranderen. Dit duurt ongeveer een halve minuut.",
       "status": "Registers uitlezen",
       "failed": "Kan niet uitlezen van de warmtepomp",
+      "no_data": "Er antwoordt iets op dit adres, maar het levert geen warmtepompgegevens. Controleer of het IP-adres van de pomp zelf is en of Modbus TCP aan staat (menu 7.5.9).",
       "retry": "Opnieuw proberen",
       "skip": "Detectie overslaan"
     },
@@ -157,6 +158,7 @@
     "unreachable": "Warmtepomp op __host__ niet bereikbaar. Controleer of hij op het netwerk zit en of het IP-adres niet is veranderd.",
     "refused": "De warmtepomp op __host__ weigerde de verbinding. Controleer of Modbus TCP op de pomp is ingeschakeld.",
     "silent": "De warmtepomp op __host__ reageert niet meer. Opnieuw verbinden…",
+    "no_data": "Er antwoordt iets op __host__, maar het levert geen warmtepompgegevens. Controleer of het IP-adres van de pomp zelf is en of Modbus TCP aan staat (menu 7.5.9).",
     "searching": "Warmtepomp op __host__ niet bereikbaar. Het netwerk wordt doorzocht…",
     "moved": "Nibe Live: je warmtepomp is verhuisd van __from__ naar __to__. De apparaten zijn bijgewerkt.",
     "address_in_use": "Een andere gekoppelde warmtepomp gebruikt __host__ al."
