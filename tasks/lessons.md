@@ -324,3 +324,38 @@ check every user-facing change appears in the changelog entry being shipped — 
 current version's. Test-only versions in between don't count as shipped. 1.4.0 already did this
 for 1.3.4–1.3.8; that row in `docs/releases.md` is the precedent. Upload only after that check:
 an uploaded version can't be corrected, only superseded.
+
+## A pump test holds every input to what it measures, and runs to the end
+
+**2026-10-29.** I ran a 3 h fake-BT1 step to measure how calculated supply (1017) follows the
+outdoor average, with room-sensor control off. SPA (843) was still on, and room control had been
+switched off minutes before, so supply was already falling at baseline. The run measured nothing
+new. I only raised SPA when the user asked. The user: "why didn't you think of this earlier?"
+
+**Rule:** before starting a hardware probe, list every input to the measured value (for 1017:
+BT1 average 37, curve 26, offset 30, min/max supply 34/38, room control, SPA 843, operating mode
+237, holiday/away). Hold each still or log it, require a flat baseline, and ask the user for any
+setting change up front, as part of the plan. A probe should refuse to start when a precondition
+fails.
+
+Same day, second mistake: the user said "let's conclude this one now first" and I stopped the
+run 15 minutes early and wrote it off as "measured nothing", when the step data held a clean
+response. **Rule:** "conclude" means finish and analyse, not abort. Never stop a running
+hardware test without the user saying stop, and fit the data before calling a run useless.
+
+## Check the operating mode before reasoning about pump automatics
+
+**2026-10-30.** I described the warm-stop test (0.5) as stopping the radiators above 15 °C. The
+user: "that's only true in auto mode". The auto-stop thresholds (184/185) act only in operating
+mode Auto (237 = 0), and their pump runs Manual (237 = 1), which the probe had just logged.
+
+**Rule:** before predicting what a pump automatic will do, read the mode that gates it (237 for
+auto-stop) and say which mode the prediction is for.
+
+## The most aggressive preset should actually be aggressive
+
+**2026-10-30.** I proposed "Save the most" at −2 / +1.5 K. The user: "you're too cautious. The
+most aggressive one should allow like 5-7 degree swings". It is now −4 / +2 K.
+
+**Rule:** the extreme preset is for owners who opted into discomfort; give it the full range and
+put the safety in the planner (add-heat-aware recovery, clamps), not in a timid band.
