@@ -9,7 +9,7 @@
 //   node --import tsx dev/read-smart-history.mjs http://<homey-ip>/app/com.nibe.local/userdata/smart-….bin
 //   node --import tsx dev/read-smart-history.mjs ./smart-….bin [--tz Europe/Stockholm]
 import fs from 'node:fs';
-import {FIELDS, History} from '../lib/smart/history.ts';
+import {FIELDS, History, applyJournal} from '../lib/smart/history.ts';
 import {electricityPerSlot, heatPerSlot} from '../lib/smart/heat.ts';
 import {SLOT_MS} from '../lib/smart/prices.ts';
 
@@ -21,14 +21,17 @@ if (!source) {
 const tzAt = process.argv.indexOf('--tz');
 const timeZone = tzAt > 0 ? process.argv[tzAt + 1] : 'Europe/Stockholm';
 
-const buffer = /^https?:/.test(source)
-    ? Buffer.from(await (await fetch(source)).arrayBuffer())
-    : fs.readFileSync(source);
-const history = History.deserialize(buffer);
+const read = async (path) => (/^https?:/.test(path)
+    ? fetch(path).then(async (r) => (r.ok ? Buffer.from(await r.arrayBuffer()) : undefined))
+    : fs.promises.readFile(path).catch(() => undefined));
+const history = History.deserialize(await read(source) ?? Buffer.alloc(0));
 if (!history) {
     console.error('Not a history file this version can read.');
     process.exit(1);
 }
+// Slots closed since the last hourly save, as the app replays them (lib/smart/store-file.ts).
+const journal = await read(`${source}.journal`);
+if (journal?.length) applyJournal(history, journal);
 const slots = history.range();
 const rows = slots.map((slot) => ({slot, ...history.get(slot)}));
 const heat = heatPerSlot(rows.map((r) => ({slot: r.slot, qmeter: r.qmeter, hz: r.hz, dhw: r.dhw})));

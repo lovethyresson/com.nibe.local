@@ -39,6 +39,12 @@ Offline only; nothing runs on the Homey yet. Design: `docs/smart-heating-plan.md
       now appended to `smart-<id>.bin.journal` (88 bytes) and replayed on load; the hourly save
       empties it.
 
+**Daily model log** (`dev/fit-house-model.mjs … --system radiators`, history + journal):
+- 2026-10-31 21:43 — 96 slots (30 Oct 20:45 → 21:15), 1 valid day, 78 usable; gap 19:45–20:15
+  (lost to the reinstall before the journal), 21:00 partial (restart). Heat loss 310 W/K, τ 57 h,
+  stored 17.6 kWh/K, lever 128 W/K, 6 h error 0.17 K. Learning (days, stability). No live
+  `model.json` yet (first hourly fit ~22:03).
+
 ## Smart heating slice 1: data collection (branch `smart-heating/m1-data`)
 
 **Goal.** Record what the house model will learn from, starting now, because learning needs weeks

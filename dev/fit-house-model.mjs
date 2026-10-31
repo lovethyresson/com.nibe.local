@@ -5,7 +5,7 @@
 //   node --import tsx dev/fit-house-model.mjs <url or file> [--system radiators|slab|wooden_floor|both|unknown]
 //       [--era pre1960|1960_1979|1980_1999|2000_or_later|unknown] [--days <last n days only>]
 import fs from 'node:fs';
-import {History} from '../lib/smart/history.ts';
+import {History, applyJournal} from '../lib/smart/history.ts';
 import {CURVE_GAIN} from '../lib/smart/actuator.ts';
 import {estimateLever} from '../lib/smart/planner.ts';
 import {fitHouse, heatingHours, modelSlotsFromHistory, readiness} from '../lib/smart/house.ts';
@@ -20,14 +20,17 @@ const option = (name, fallback) => {
     const at = process.argv.indexOf(`--${name}`);
     return at > 0 ? process.argv[at + 1] : fallback;
 };
-const buffer = /^https?:/.test(source)
-    ? Buffer.from(await (await fetch(source)).arrayBuffer())
-    : fs.readFileSync(source);
-const history = History.deserialize(buffer);
+const read = async (path) => (/^https?:/.test(path)
+    ? fetch(path).then(async (r) => (r.ok ? Buffer.from(await r.arrayBuffer()) : undefined))
+    : fs.promises.readFile(path).catch(() => undefined));
+const history = History.deserialize(await read(source) ?? Buffer.alloc(0));
 if (!history) {
     console.error('Not a history file this version can read.');
     process.exit(1);
 }
+// Slots closed since the last hourly save, as the app replays them (lib/smart/store-file.ts).
+const journal = await read(`${source}.journal`);
+if (journal?.length) applyJournal(history, journal);
 let slots = modelSlotsFromHistory(history);
 const days = option('days');
 if (days) slots = slots.slice(-Number(days) * 96);
