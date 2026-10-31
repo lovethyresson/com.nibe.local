@@ -4,6 +4,23 @@ Three things are live. Everything else that used to be here has shipped — the 
 commits and in the **Releases** table in [`README.md`](../README.md), the durable rules are in
 [`CLAUDE.md`](../CLAUDE.md), and the design write-ups are under [`docs/`](../docs).
 
+## Smart heating slice 2: house model (branch `smart-heating/m1-data`)
+
+Offline only; nothing runs on the Homey yet. Design: `docs/smart-heating-plan.md` §4.2, §6.
+
+- [x] `lib/smart/outdoor.ts`: real outdoor source (wired while not feeding, Homey sensor, forecast
+      + per-hour bias), 6 h degraded limit.
+- [x] `lib/smart/model.ts`: stage 1 RLS (heat-loss seed), stage 2 2R2C EKF with priors from the two
+      Setup answers, gating, 6 h prediction RMSE, `toModelSlots`.
+- [x] `test/smart-house-sim.ts` + `test/smart-model.test.ts`: radiator and slab houses recovered
+      within 10 % heat loss / 15 % τ; a wrong answer still predicts inside 0.35 K.
+- [x] `dev/fit-house-model.mjs` runs on the real file (day 1: 77/92 usable, 6 h RMSE 0.21 K;
+      too short to read the parameters).
+- [ ] Fit again after ≥ 5 valid days. Passive data has no excitation (§6.3), so expect τ low.
+- [ ] Run the model online in the collector (state in the store, one slot at a time), then
+      `insights.ts`.
+- [ ] Drift (§6.2) and readiness (§6.4) are not in yet.
+
 ## Smart heating slice 1: data collection (branch `smart-heating/m1-data`)
 
 **Goal.** Record what the house model will learn from, starting now, because learning needs weeks
@@ -47,9 +64,10 @@ six-language strings (the slice adds no owner-facing text).
 
 **Verify:**
 - [x] `npm test`, `npm run typecheck` and `npx homey app validate --level publish` pass.
-- [ ] After 24 h on the installed dev build, read the file back. Prices must
-      match Homey Energy, outdoor must match input 1, and slot energy must add up to the pump's
-      own counters to within 5 %.
+- [x] After 24 h on the installed dev build, read the file back (2026-10-31, 92 slots, none
+      partial). 79/79 of the day's slots match Homey Energy's spot and all-in price; spread heat
+      85.81 kWh vs 1577's 85.80. 2166 summed 5.8 % under 3823, so per-slot electricity now
+      spreads 3823 instead (`electricityPerSlot`).
 - [x] Dev build installed on the maintainer's Homey (`homey app install`); no release. First hour
       read back 2026-10-30: prices match the cost formula, 2166 sums to within 1 % of 3823; 1577
       flat because the pump made hot water all hour, so heat spreading is still unverified.

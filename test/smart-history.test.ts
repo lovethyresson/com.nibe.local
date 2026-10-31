@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Aggregator, FIELDS, FLAG, History} from '../lib/smart/history';
-import {heatPerSlot} from '../lib/smart/heat';
+import {electricityPerSlot, heatPerSlot} from '../lib/smart/heat';
 import {SLOT_MS} from '../lib/smart/prices';
 
 const t0 = 2_000_000 * SLOT_MS; // slot 2,000,000
@@ -70,6 +70,16 @@ test('heat steps are spread back over their slots by compressor Hz', () => {
     assert.equal(heat.has(1), false);
 });
 
+test('compressor Hz spent on hot water gets none of the heating step', () => {
+    const heat = heatPerSlot([
+        {slot: 1, qmeter: 10.0, hz: 50},
+        {slot: 2, qmeter: 10.0, hz: 50, dhw: 1},
+        {slot: 3, qmeter: 10.3, hz: 50, dhw: 0.5},
+    ]);
+    assert.ok(Math.abs(heat.get(2)!) < 1e-9);
+    assert.ok(Math.abs(heat.get(3)! - 0.3) < 1e-9);
+});
+
 test('a gap or an unread counter restarts the chain instead of guessing', () => {
     const heat = heatPerSlot([
         {slot: 1, qmeter: 10.0, hz: 30},
@@ -79,4 +89,14 @@ test('a gap or an unread counter restarts the chain instead of guessing', () => 
         {slot: 6, qmeter: 10.8, hz: 30},
     ]);
     assert.deepEqual([...heat.keys()], [6]);
+});
+
+test('electricity comes from the consumption counter, shaped by the power reading', () => {
+    const pel = electricityPerSlot([
+        {slot: 1, emeter: 500.0, pw: 1000},
+        {slot: 2, emeter: 500.0, pw: 1000},
+        {slot: 3, emeter: 501.2, pw: 3000},
+    ]);
+    assert.ok(Math.abs(pel.get(2)! - 0.3) < 1e-9);
+    assert.ok(Math.abs(pel.get(3)! - 0.9) < 1e-9);
 });

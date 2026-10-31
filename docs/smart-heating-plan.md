@@ -489,9 +489,12 @@ needs, whatever the owner selected. This is the precedent at `lib/device.ts:1024
 
 ### 5.5 Delivered heat
 
-- 1577 steps in whole kWh. Spread each step over the slots since the previous one, weighted by Hz.
+- 1577 steps by 0.1 kWh on the S1155. Spread each step over the slots since the previous one,
+  weighted by Hz outside hot water (a hot-water slot's Hz made no space heat).
+- Electricity per slot is spread the same way from the consumption counter (3823), weighted by
+  2166. 2166 alone read 5.8 % under 3823 over the first day (2026-10-31), the same shortfall that
+  moved the energy meters off it in 0.9.13.
 - Where flow (40) exists, cross-check against `ṁ·cp·(tsup − tret)`.
-- Exclude hot-water slots.
 
 ---
 
@@ -501,6 +504,9 @@ needs, whatever the owner selected. This is the precedent at `lib/device.ts:1024
 
 1. **1R1C ARX by RLS** (λ = 0.998/slot): `ti[k+1] = a·ti + b·te + c·qheat + d·gti_s + e`.
    Usable after about 3 days, or day 1 with the backfill.
+   - It seeds stage 2's **heat loss only**. The history holds slot means, so the inputs are
+     averaged over the two slots; that took the heat-loss bias on a simulated house from +6–10 %
+     to 0. Its τ stays biased low by sensor noise (−50 % at 0.03 K), so it is never shown.
 2. **2R2C augmented EKF.**
    - States `[ti, tm]`; log-parameters `[1/(CiRie), 1/(CiRim), 1/(CmRim), 1/Ci, Aw/Ci, f, Φint/Ci]`.
    - Exact zero-order-hold discretisation via the 2×2 matrix exponential.
@@ -509,6 +515,13 @@ needs, whatever the owner selected. This is the precedent at `lib/device.ts:1024
    - The BT1 → supply lag (τ ≈ 49 min, §4.5) and the emitter lag are a **known actuator stage in
      front of the house model**, not states the EKF has to find. Lumping them into the house is
      how a radiator house gets credited with storage it doesn't have.
+   - **Measured on simulated houses (2026-10-31, `test/smart-model.test.ts`).** Over 21 days
+     with ±40 % excitation and the right answers, a radiator and a slab house came out within
+     8 % on heat loss and 12 % on τ across six seeds (radiator within 3 %), with 6 h RMSE ≤ 0.05 K. Without excitation, τ
+     came out ~20 % low (§6.3). With "Don't know" a slab's τ wandered ±30 %, and with the wrong
+     answer (radiators, pre-1960) heat loss was off by up to 2×. It still predicted within 0.14 K
+     in every case and learned `f` > 0.6. The answers buy parameters the owner can read, not
+     prediction accuracy.
 
 ### 6.2 Gating
 
@@ -1065,7 +1078,9 @@ four plus the Setup hub.
 - [ ] Prerequisites: six-language `LocalizedText`; translate the BT50 feed warnings
 - [ ] **M1** `mode.ts` + capability filter + pump-wide sync + pair/repair "Price control" section
 - [ ] **M1** `prices.ts`, `weather.ts`, `outdoor.ts`, `history.ts` + `/userdata` persistence + Insights backfill
-- [ ] **M1** `model.ts` + `insights.ts` + labels; release to test
+      (all but the backfill done; collecting on the maintainer's Homey since 2026-10-30)
+- [ ] **M1** `model.ts` + `insights.ts` + labels; release to test (`model.ts` done offline, not yet
+      run online)
 - [ ] **M2** `presets.ts`, `planner.ts` v1, `actuator.ts`, `controller.ts` in shadow; twin integration test
 - [ ] **M2** two weeks of shadow on ≥ 3 houses (radiator, slab, air-source)
 - [ ] **M3** Verify/handover, live feed, capabilities, settings, Flow cards, write locks, reconciliation, savings, analytics
