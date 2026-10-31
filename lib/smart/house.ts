@@ -1,0 +1,119 @@
+/** The house model run over the stored history, plus the lifecycle checks that need more than
+ *  one fit: readiness (§6.4) and drift (§6.2, §9). Pure.
+ *
+ *  The model is refitted from the whole history rather than stepped one slot at a time: heat for
+ *  a slot is only known once 1577 steps again, which can be several slots later, and a refit
+ *  needs no filter state to persist or migrate. 28 days is ~2,700 slots, cheap enough hourly. */
+import {FLAG, History} from './history';
+import {heatPerSlot} from './heat';
+import {
+    BuildEra, HeatingSystem, HouseParams, ModelSlot, envelopeTau, fitSeries, predictionRmse, rlsHouse, toModelSlots,
+} from './model';
+
+const DAY_SLOTS = 96;
+/** A day counts toward readiness when this many of its slots taught the model something. */
+export const VALID_DAY_USABLE = 48;
+
+export interface HouseAnswers {
+    system: HeatingSystem;
+    era: BuildEra;
+}
+
+export interface HouseFit {
+    params?: HouseParams;
+    /** Stage 1's heat loss, kW/K, when plausible. */
+    firstOrderHeatLoss?: number;
+    /** 6 h open-loop error over the last 7 days, K. */
+    rmse: number;
+    windows: number;
+    slots: number;
+    usable: number;
+    /** Days with at least VALID_DAY_USABLE usable slots and some space heating. */
+    validDays: number;
+}
+
+export function modelSlotsFromHistory(history: History): ModelSlot[] {
+    const rows = history.range().map((slot) => ({slot, ...history.get(slot)!}));
+    const heat = heatPerSlot(rows.map((r) => ({slot: r.slot, qmeter: r.qmeter, hz: r.hz, dhw: r.dhw})));
+    return toModelSlots(rows.map((r) => ({slot: r.slot, ti: r.ti, te: r.te, gtiS: r.gtiS, dhw: r.dhw,
+        partial: (r.flags & FLAG.partial) !== 0, q: heat.get(r.slot)})));
+}
+
+export function validDays(slots: ModelSlot[]): number {
+    const days = new Map<number, {usable: number; heat: number}>();
+    for (const s of slots) {
+        const day = Math.floor(s.slot / DAY_SLOTS);
+        const d = days.get(day) ?? {usable: 0, heat: 0};
+        if (s.usable) d.usable++;
+        d.heat += s.inputs.q;
+        days.set(day, d);
+    }
+    return [...days.values()].filter((d) => d.usable >= VALID_DAY_USABLE && d.heat > 0).length;
+}
+
+export function fitHouse(slots: ModelSlot[], answers: HouseAnswers): HouseFit {
+    // Stage 2 starts after up to 3 days of stage 1, but never waits for more data than exists.
+    const warmupSlots = Math.max(1, Math.min(3 * DAY_SLOTS, slots.length));
+    const fit = fitSeries(slots, answers.system, answers.era, {warmupSlots});
+    const recent = slots.slice(-7 * DAY_SLOTS);
+    const quality = fit.params ? predictionRmse(fit.params, recent, fit.states) : {rmse: NaN, windows: 0};
+    return {
+        params: fit.params,
+        firstOrderHeatLoss: rlsHouse(fit.rls)?.heatLoss,
+        rmse: quality.rmse,
+        windows: quality.windows,
+        slots: slots.length,
+        usable: slots.filter((s) => s.usable).length,
+        validDays: validDays(slots),
+    };
+}
+
+// ---- lifecycle across fits ----
+
+/** One fit kept per day, for readiness and drift. */
+export interface DailyFit {
+    day: number;
+    heatLoss: number;
+    tau: number;
+    rmse: number;
+}
+
+export const KEEP_DAYS = 30;
+
+/** Replace or append today's entry. */
+export function recordDailyFit(log: DailyFit[], day: number, fit: HouseFit): DailyFit[] {
+    if (!fit.params) return log;
+    const entry = {day, heatLoss: fit.params.heatLoss, tau: envelopeTau(fit.params), rmse: fit.rmse};
+    return [...log.filter((d) => d.day !== day), entry].sort((a, b) => a.day - b.day).slice(-KEEP_DAYS);
+}
+
+export const READY_RMSE = 0.35;
+export const READY_DAYS = 5;
+export const TAU_STABLE = 0.15;
+
+export interface Readiness {
+    ready: boolean;
+    /** What is still missing, for the log and later the insights label. */
+    missing: ('accuracy' | 'days' | 'stability')[];
+}
+
+/** §6.4: 6 h RMSE under 0.35 K, at least 5 valid days, τ within 15 % over the last 3 days. */
+export function readiness(fit: HouseFit, log: DailyFit[]): Readiness {
+    const missing: Readiness['missing'] = [];
+    if (!(fit.rmse < READY_RMSE) || fit.windows < 8) missing.push('accuracy');
+    if (fit.validDays < READY_DAYS) missing.push('days');
+    const last = log.slice(-3);
+    const stable = last.length === 3 && Math.max(...last.map((d) => d.tau)) / Math.min(...last.map((d) => d.tau)) - 1 <= TAU_STABLE;
+    if (!stable) missing.push('stability');
+    return {ready: missing.length === 0, missing};
+}
+
+export const DRIFT_PER_DAY = 0.2;
+
+/** §6.2: heat loss or τ moving more than 20 % a day, three days running, on consecutive days. */
+export function drifting(log: DailyFit[]): boolean {
+    const last = log.slice(-4);
+    if (last.length < 4 || last.some((d, i) => i > 0 && d.day !== last[i - 1].day + 1)) return false;
+    const moved = (key: 'heatLoss' | 'tau') => last.slice(1).every((d, i) => Math.abs(d[key] / last[i][key] - 1) > DRIFT_PER_DAY);
+    return moved('heatLoss') || moved('tau');
+}

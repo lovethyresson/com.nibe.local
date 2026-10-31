@@ -1790,9 +1790,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     async onUninit() {
-        await this.stopIndoor();
+        // History first: an app update may not wait for the rest. If it doesn't wait at all, the
+        // hourly save bounds the loss to an hour, and the model re-anchors across the gap.
         await this.smart?.stop(this.connection?.currentPollSeconds() ?? 10).catch(this.error);
         this.smart = null;
+        await this.stopIndoor();
         // Flush the debounced meter before going away, so an orderly restart or a repair keeps
         // the fraction of a kWh the 0.01 step was still holding.
         this.connection?.detach(this);

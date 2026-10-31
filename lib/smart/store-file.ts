@@ -28,7 +28,29 @@ export async function saveHistory(name: string, history: History): Promise<void>
 }
 
 export async function deleteHistory(name: string): Promise<void> {
-    await fs.unlink(`${DIR}/${name}`).catch((error: any) => {
-        if (error?.code !== 'ENOENT') throw error;
-    });
+    for (const file of [name, modelFileName(name)]) {
+        await fs.unlink(`${DIR}/${file}`).catch((error: any) => {
+            if (error?.code !== 'ENOENT') throw error;
+        });
+    }
+}
+
+/** The model's state sits beside the history under the same unguessable name. */
+export function modelFileName(historyName: string): string {
+    return historyName.replace(/\.bin$/, '.model.json');
+}
+
+export async function loadJson<T>(name: string): Promise<T | undefined> {
+    try {
+        return JSON.parse(await fs.readFile(`${DIR}/${name}`, 'utf8'));
+    } catch (error: any) {
+        if (error?.code === 'ENOENT' || error instanceof SyntaxError) return undefined;
+        throw error;
+    }
+}
+
+export async function saveJson(name: string, value: unknown): Promise<void> {
+    const path = `${DIR}/${name}`;
+    await fs.writeFile(`${path}.tmp`, JSON.stringify(value));
+    await fs.rename(`${path}.tmp`, path);
 }

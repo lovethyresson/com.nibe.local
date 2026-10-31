@@ -17,9 +17,14 @@ Offline only; nothing runs on the Homey yet. Design: `docs/smart-heating-plan.md
 - [x] `dev/fit-house-model.mjs` runs on the real file (day 1: 77/92 usable, 6 h RMSE 0.21 K;
       too short to read the parameters).
 - [ ] Fit again after ≥ 5 valid days. Passive data has no excitation (§6.3), so expect τ low.
-- [ ] Run the model online in the collector (state in the store, one slot at a time), then
-      `insights.ts`.
-- [ ] Drift (§6.2) and readiness (§6.4) are not in yet.
+- [x] Run the model online: the collector refits over the whole history every hour
+      (`lib/smart/house.ts`; heat for a slot lands slots later, so a refit beats stepping) and
+      writes `smart-<id>.model.json` beside the history. Answers default to "Don't know".
+- [x] `lib/smart/insights.ts`: heat loss, cool-down from the heated steady state, stored heat,
+      sun, fast/slow; readiness (§6.4) and drift (§6.2) over one fit per day.
+- [ ] A reinstall at 20:23 on 2026-10-31 lost the slots since the 19:46 save: `onUninit` either
+      didn't run or didn't get to the save. It now saves history before anything else; check
+      the file's Last-Modified on the next install.
 
 ## Smart heating slice 1: data collection (branch `smart-heating/m1-data`)
 

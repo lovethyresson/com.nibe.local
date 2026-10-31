@@ -6,7 +6,9 @@ import {withApi} from '../indoor-sensors';
 import {Aggregator, FLAG, History, Sample, SlotContext} from './history';
 import {DayPrices, PriceSlot, localDate, nextPriceFetchMs, normalisePrices, slotOf} from './prices';
 import {WEATHER_STALE_MS, WeatherSlot, openMeteoUrl, weatherSlots} from './weather';
-import {deleteHistory, loadHistory, saveHistory} from './store-file';
+import {deleteHistory, loadHistory, loadJson, modelFileName, saveHistory, saveJson} from './store-file';
+import {DailyFit, HouseAnswers, drifting, fitHouse, modelSlotsFromHistory, readiness, recordDailyFit} from './house';
+import {houseInsights, insightsLine} from './insights';
 
 const HOUR = 60 * 60 * 1000;
 
@@ -36,9 +38,11 @@ export class SmartCollector {
     private pricesAt = 0;
     private timers: any[] = [];
     private stopped = false;
+    private dailyFits: DailyFit[] = [];
 
     constructor(private readonly homey: any, private readonly fileName: string,
-                private readonly log: (...args: any[]) => void) {
+                private readonly log: (...args: any[]) => void,
+                private readonly answers: HouseAnswers = {system: 'unknown', era: 'unknown'}) {
         this.aggregator = new Aggregator(this.history, (slot) => this.context(slot));
     }
 
@@ -51,10 +55,17 @@ export class SmartCollector {
             this.history = loaded;
             this.aggregator = new Aggregator(this.history, (slot) => this.context(slot));
         }
+        const model = await loadJson<{dailyFits?: DailyFit[]}>(modelFileName(this.fileName)).catch(() => undefined);
+        this.dailyFits = Array.isArray(model?.dailyFits) ? model!.dailyFits : [];
         this.log(`Smart history: ${this.history.range().length} slots in /userdata/${this.fileName}.`);
         this.loop(() => this.fetchPrices(), 5_000);
         this.loop(() => this.fetchWeather(), 20_000);
-        this.loop(async () => { await this.save(); this.logStatus(); return HOUR; }, HOUR);
+        this.loop(async () => {
+            await this.save();
+            this.logStatus();
+            await this.fitModel();
+            return HOUR;
+        }, HOUR);
     }
 
     /** One completed poll of the pump. */
@@ -141,6 +152,23 @@ export class SmartCollector {
             this.weatherAt = Date.now();
         }
         return HOUR + jitter;
+    }
+
+    /** Refit the house model over the whole history and keep the result beside it. Reads only:
+     *  nothing here reaches the pump or the owner yet. */
+    private async fitModel() {
+        const started = Date.now();
+        const fit = fitHouse(modelSlotsFromHistory(this.history), this.answers);
+        const day = Math.floor(started / (24 * HOUR));
+        this.dailyFits = recordDailyFit(this.dailyFits, day, fit);
+        const ready = readiness(fit, this.dailyFits);
+        const insights = houseInsights(fit);
+        const drift = drifting(this.dailyFits);
+        this.log(`${insightsLine(fit, insights, ready)}${drift ? '; DRIFT' : ''} (${Date.now() - started} ms)`);
+        await saveJson(modelFileName(this.fileName), {
+            at: new Date(started).toISOString(), answers: this.answers, fit, ready, insights, drift,
+            dailyFits: this.dailyFits,
+        });
     }
 
     private async save() {
