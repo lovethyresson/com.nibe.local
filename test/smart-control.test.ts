@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {PRESETS, limitsFor, presetOf} from '../lib/smart/presets';
 import {curveInput, fedValue} from '../lib/smart/actuator';
-import {planShift, simulate, steadyState, ForecastSlot} from '../lib/smart/planner';
+import {estimateLever, owedHeat, planShift, simulate, startingPoint, steadyState, ForecastSlot} from '../lib/smart/planner';
 import {RADIATOR_HOUSE, SLAB_HOUSE} from './smart-house-sim';
 import energyPrices from './fixtures/energy-prices-se3-2026-10-30.json';
 
@@ -116,4 +116,38 @@ test('negative prices pull heat in', () => {
 test('doing nothing from steady state holds comfort, so the reference is honest', () => {
     const sim = simulate(RADIATOR_HOUSE, 21, steadyState(RADIATOR_HOUSE, 21, 2), day, new Array(day.length).fill(0));
     assert.ok(sim.ti.every((t) => Math.abs(t - 21) < 0.01));
+});
+
+test('a replan starts where the pump is, so a coast survives replanning', () => {
+    const limits = limitsFor(PRESETS.save_most);
+    assert.deepEqual(startingPoint(-9, 6, limits), [-7, -5, -3, -1, 0, 0]);
+    assert.deepEqual(startingPoint(-9, 4, limits, [-12, -14, -10, 0]), [-11, -13, -11, -9]);
+    const start = steadyState(RADIATOR_HOUSE, 21, 2);
+    const coasting = {...start, bias: -10};
+    const plan = planShift(RADIATOR_HOUSE, 21, coasting, peaked.slice(66), limits, {}, new Array(30).fill(-10));
+    assert.ok(Math.abs(plan.biases[0] - -10) <= 2, `jumped to ${plan.biases[0]}`);
+});
+
+test('warmth above doing nothing earns nothing, colder is owed per degree-hour', () => {
+    const house = RADIATOR_HOUSE;
+    const reference = simulate(house, 21, steadyState(house, 21, 2), day.slice(0, 8), new Array(8).fill(0));
+    const warmer = {...reference, ti: reference.ti.map((t) => t + 1), tm: reference.tm.map((t) => t + 1)};
+    const colder = {...reference, ti: reference.ti.map((t) => t - 1), tm: reference.tm};
+    assert.equal(owedHeat(house, warmer, reference), 0);
+    assert.ok(Math.abs(owedHeat(house, colder, reference) - (house.heatLoss * 0.25 * 8 + house.ci)) < 1e-9);
+});
+
+test('a weaker lever moves less heat for the same bias', () => {
+    const start = steadyState(RADIATOR_HOUSE, 21, 2);
+    const bias = new Array(16).fill(-10);
+    const heat = (lever?: number) => simulate(RADIATOR_HOUSE, 21, start, day.slice(0, 16), bias, {lever})
+        .heat.reduce((a, b) => a + b, 0);
+    const full = simulate(RADIATOR_HOUSE, 21, start, day.slice(0, 16), new Array(16).fill(0)).heat.reduce((a, b) => a + b, 0);
+    assert.ok(full - heat(0.45 * RADIATOR_HOUSE.heatLoss) < full - heat());
+});
+
+test('the lever is heat per K of calculated supply above indoor, times the supply gain', () => {
+    const hours = Array.from({length: 14}, (_, i) => ({tcalc: 35 + i, ti: 22, heatKw: 0.26 * (13 + i)}));
+    assert.ok(Math.abs(estimateLever(hours, 0.5)! - 0.13) < 1e-9);
+    assert.equal(estimateLever(hours.slice(0, 5), 0.5), undefined);
 });

@@ -9,10 +9,12 @@ commits and in the **Releases** table in [`README.md`](../README.md), the durabl
 - [x] `presets.ts`, `actuator.ts` (clamps on 184/183/185 in Auto, ramp, pass-through),
       `planner.ts` (cost at equal comfort, linear-response greedy). Tests in
       `test/smart-control.test.ts`.
-- [x] `dev/evaluate-presets.mjs`: 20 SE3 days → 0.6 / 1.5 / 2.8–3.1 % at equal comfort.
+- [x] `dev/evaluate-presets.mjs`: 20 SE3 days, measured lever → 0.9 / 2.3 / 5.2 % at no-worse
+      comfort (plan §7.3 has the table and the three rejected objectives).
+- [x] Why *Save the most* didn't use its depth: replans started from zero bias (fixed: warm
+      start), and the lever is ~0.45·H, not H (measured; `PumpCurve.lever`).
 - [ ] Rerun on the maintainer's learned house once the model is ready (`--model`).
-- [ ] Why *Save the most* doesn't use its depth closed loop.
-- [ ] Learn the pump curve (heat vs fed outdoor) from 1017 instead of assuming it is tuned.
+- [ ] Learn the lever live per pump (`estimateLever` over the history) and keep it in the model file.
 
 ## Smart heating slice 2: house model (branch `smart-heating/m1-data`)
 
