@@ -8,7 +8,7 @@ existing shared connection/write queue. The range is an app guardrail.
 BT50 is supplied by the automatic Homey sensor feed configured in Heating Setup, rather than a
 standalone Flow card. Users can select one sensor or an equal average of several. Pairing saves a
 pending configuration; Repair verifies and activates the persistent feed. See
-[indoor sensor plan](indoor-sensor-plan.md) for its lifecycle and recovery requirements.
+[pairing](pairing.md) and the [FAQ](FAQ.md) for how it behaves.
 
 A successful BT1 action means the Modbus write was accepted, not proof that the external sensor is
 enabled. Transport failures reach the Flow. No second pump connection is opened.
