@@ -850,6 +850,11 @@ export class PumpConnection {
         return this.lastRaw.get(name);
     }
 
+    /** The poll interval in force, which main's setting decides for every device of the pump. */
+    currentPollSeconds(): number {
+        return this.pollSeconds;
+    }
+
     // The profile's reason inputs as Register objects, so they go through the same read path as
     // everything else. Synthetic names (`__reason.*`) keep them out of every capability path.
     private readonly reasonRegisters: [string, Register][] =

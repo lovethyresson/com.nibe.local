@@ -1,5 +1,8 @@
 import {CaptureSummary, logCaptureSummary} from './diagnostic-capture';
 import {IndoorConfig, averageSensors, cleanIndoorConfig, selectedReadings} from './indoor-sensors';
+import {SmartCollector} from './smart/collector';
+import {newHistoryFileName} from './smart/store-file';
+import {Sample} from './smart/history';
 import {Device} from 'homey';
 import net from 'net';
 import {analyticsConsent, setAnalyticsConsent, track} from './analytics';
@@ -41,6 +44,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private thermostatSync: Promise<void> | null = null;
 
     private static indoorOwners = new Map<string, NibePumpDevice>();
+    // Smart heating history, collected on Heating (lib/smart). Reads only.
+    private smart: SmartCollector | null = null;
     private indoorTimer: ReturnType<typeof setTimeout> | null = null;
     private indoorWork: Promise<any> | null = null;
     private indoorStopped = false;
@@ -1064,6 +1069,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 } else NibePumpDevice.indoorOwners.set(this.host(), this);
             }
             this.scheduleIndoor();
+            await this.startSmartHistory().catch(this.error);
             if (this.getStoreValue('indoorSensors')?.state === 'pending')
                 await this.setWarning('Finish your Homey sensor setup in Heating → Repair.');
         }
@@ -1089,9 +1095,43 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     wantedRegisters(): Register[] {
         const selected = registersForRole(this.profile, this.role, this.getSelection());
-        if (this.role !== 'heating' || !this.profile.roomThermostat) return selected;
-        const needed = Object.values(this.profile.roomThermostat).map((n) => this.profile.registerByName[n]);
+        if (this.role !== 'heating') return selected;
+        const names = Object.values(this.profile.roomThermostat ?? {});
+        const smart = this.profile.smartHistory;
+        if (smart) names.push(...Object.values(smart.numeric) as string[], smart.priority.register, smart.immersion);
+        const needed = names.map((n) => this.profile.registerByName[n]).filter((r) => r);
         return [...new Map([...selected, ...needed].map((r) => [r.name, r])).values()];
+    }
+
+    private async startSmartHistory() {
+        if (!this.profile.smartHistory || this.smart) return;
+        let file = this.getStoreValue('smartHistoryFile') as string | undefined;
+        if (!file) {
+            file = newHistoryFileName();
+            await this.setStoreValue('smartHistoryFile', file);
+        }
+        // Mirrored to an app setting so dev/read-smart-history.mjs can find it through the Homey
+        // API (`homey api apps get-app-setting`); a device store is not readable from outside.
+        this.homey.settings.set(`smartHistoryFile.${this.getData().id}`, file);
+        this.smart = new SmartCollector(this.homey, file, (...args) => this.log(...args));
+        await this.smart.start();
+    }
+
+    // One poll's values for the smart history, decoded the same way capabilities are.
+    private smartSample(readNames: Set<string>): Sample {
+        const smart = this.profile.smartHistory!;
+        const value = (name: string) => {
+            const raw = readNames.has(name) ? this.connection?.lastRawFor(name) : undefined;
+            const register = this.profile.registerByName[name];
+            return raw === undefined || !register ? undefined : toNumericValue(register, raw);
+        };
+        const sample: Sample = {};
+        for (const [field, name] of Object.entries(smart.numeric)) sample[field as keyof typeof smart.numeric] = value(name!);
+        const priority = value(smart.priority.register);
+        if (priority !== undefined) sample.dhw = priority === smart.priority.hotwater;
+        const immersion = value(smart.immersion);
+        if (immersion !== undefined) sample.aux = immersion !== 0;
+        return sample;
     }
 
     // The pump switched what it is producing. Only the main device carries the priority
@@ -1402,6 +1442,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     onConnectionDown(problem: ConnectionProblem) {
+        this.smart?.markReconnect();
         this.onEnergyUnavailable();
         this.resetDeliveredCheck();
         this.tankTopC = null;
@@ -1442,6 +1483,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     onPollComplete(readNames: Set<string>) {
+        if (this.smart && this.connection)
+            this.smart.sample(this.connection.currentPollSeconds(), this.smartSample(readNames));
         if (this.dumpAfterPoll) {
             const reason = this.dumpAfterPoll;
             this.dumpAfterPoll = null;
@@ -1748,6 +1791,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     async onUninit() {
         await this.stopIndoor();
+        await this.smart?.stop(this.connection?.currentPollSeconds() ?? 10).catch(this.error);
+        this.smart = null;
         // Flush the debounced meter before going away, so an orderly restart or a repair keeps
         // the fraction of a kWh the 0.01 step was still holding.
         this.connection?.detach(this);
@@ -1763,6 +1808,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     async onDeleted() {
         await this.stopIndoor();
+        await this.smart?.remove().catch(this.error);
+        this.smart = null;
+        this.homey.settings.unset(`smartHistoryFile.${this.getData().id}`);
         this.log('Nibe device has been deleted');
         track('Changed Device Set', {action: 'removed', role: roleOf(this.getData())});
         this.connection?.detach(this);

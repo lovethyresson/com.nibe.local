@@ -4,6 +4,59 @@ Three things are live. Everything else that used to be here has shipped — the 
 commits and in the **Releases** table in [`README.md`](../README.md), the durable rules are in
 [`CLAUDE.md`](../CLAUDE.md), and the design write-ups are under [`docs/`](../docs).
 
+## Smart heating slice 1: data collection (branch `smart-heating/m1-data`)
+
+**Goal.** Record what the house model will learn from, starting now, because learning needs weeks
+of history. Nothing new is shown to the owner and nothing is written to the pump. Design source:
+`docs/smart-heating-plan.md` §5.2–5.5.
+
+**No switch (maintainer, 2026-10-30).** Collection runs on every Heating device in this build,
+which goes onto the maintainer's Homey with `homey app install`; it is not released. The
+owner-facing mode choice (`mode.ts`) gates it before anything ships.
+
+**Pure modules (`lib/smart/`, unit-tested with an injected clock):**
+- [x] `prices.ts`: Homey Energy response → 15-min UTC slots. 60-min zones ×4; DST days (92/100
+      slots); user-cost formula by a hand-written parser (numbers, + − * /, parentheses, unary
+      minus; never `eval`) with the `highestPriceWithUserCosts` self-check, else spot and
+      `costsApplied: false`; tomorrow-missing vs today-missing.
+- [x] `weather.ts`: Open-Meteo URL builder (location rounded to 2 decimals, `metno_seamless`,
+      tilted irradiance S) and response → per-slot values, linear interpolation hourly → 15 min,
+      24 h staleness. MET Norway fallback is left for a later slice.
+- [x] `history.ts`: 15-min bucket aggregator (mean, kWh sum, fraction, flags), `partial` below
+      80 % poll coverage and after a reconnect, `Float32Array` ring of 28 × 96 slots, versioned
+      (de)serialisation.
+- [x] `heat.ts`: spread each whole-kWh step of 1577 over the slots since the previous step,
+      weighted by Hz; drop hot-water slots.
+
+**Glue:**
+- [x] `lib/smart/collector.ts`: one per pump, owned by Heating (the `indoorOwners` pattern).
+      It takes `onPollComplete`/`lastRawFor` samples and the pump's total electricity per poll.
+      It runs a price timer (hourly, every 15 min from 12:45 to 16:00 until tomorrow appears) and a
+      weather timer (hourly ± 5 min).
+- [x] `lib/smart/store-file.ts`: `/userdata/smart-<random>.bin`, with the random name held in the
+      device store. Writes go through a temp file and a rename. Flushed hourly and in `onUninit`.
+- [x] `wantedRegisters()` on Heating adds 1, 5, 7, 10, 11, 1017, 1046, 1577, 1028, 1029 and indoor
+      while collecting.
+- [x] Hourly debug line: slots filled, partial count, price and weather age.
+- [x] `dev/read-smart-history.mjs`: download and decode the file, then print slots as CSV, so the
+      data can be checked by eye.
+
+**Out of this slice:** the model, insights, mode choice, Setup/Repair UI, Insights backfill, the
+real-outdoor source while feeding (input 1 is real as long as nothing feeds), analytics and the
+six-language strings (the slice adds no owner-facing text).
+
+**Verify:**
+- [x] `npm test`, `npm run typecheck` and `npx homey app validate --level publish` pass.
+- [ ] After 24 h on the installed dev build, read the file back. Prices must
+      match Homey Energy, outdoor must match input 1, and slot energy must add up to the pump's
+      own counters to within 5 %.
+- [x] Dev build installed on the maintainer's Homey (`homey app install`); no release. First hour
+      read back 2026-10-30: prices match the cost formula, 2166 sums to within 1 % of 3823; 1577
+      flat because the pump made hot water all hour, so heat spreading is still unverified.
+
+**Open for the maintainer:**
+- 28 days of 15-min history (~230 KB) is enough for M1/M2.
+
 ## 0.9.15 — pre-1.0 audit, staged and not yet published
 
 A full audit of the codebase and architecture ahead of 1.0. Everything below is committed and

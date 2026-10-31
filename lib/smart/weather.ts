@@ -1,0 +1,60 @@
+/** Open-Meteo forecast → 15-minute UTC slots. Pure: the collector does the fetching.
+ *  Design: docs/smart-heating-plan.md §5.3. Weather data by Open-Meteo.com (CC BY 4.0). */
+import {SLOT_MS, slotOf} from './prices';
+
+export const WEATHER_STALE_MS = 24 * 60 * 60 * 1000;
+
+export interface WeatherSlot {
+    slot: number;
+    /** Outdoor °C. */
+    te: number;
+    /** Irradiance on a south-facing wall, W/m². */
+    gtiS: number;
+    /** Global horizontal irradiance, W/m². */
+    ghi: number;
+    /** Wind m/s, relative humidity %, cloud cover %. */
+    wind: number;
+    rh: number;
+    cloud: number;
+}
+
+const HOURLY = ['temperature_2m', 'wind_speed_10m', 'relative_humidity_2m', 'cloud_cover',
+    'shortwave_radiation', 'global_tilted_irradiance'];
+
+/** The location is rounded to 2 decimals (~1 km) before it leaves the Homey. */
+export function openMeteoUrl(latitude: number, longitude: number): string {
+    const round = (v: number) => (Math.round(v * 100) / 100).toFixed(2);
+    return 'https://api.open-meteo.com/v1/forecast'
+        + `?latitude=${round(latitude)}&longitude=${round(longitude)}`
+        + `&hourly=${HOURLY.join(',')}&tilt=90&azimuth=0&models=metno_seamless`
+        + '&past_days=1&forecast_days=3&timezone=GMT&timeformat=unixtime&wind_speed_unit=ms';
+}
+
+/** Hourly values → slots. Temperature, wind and humidity are instants and are interpolated
+ *  linearly. Radiation is Open-Meteo's mean over the *preceding* hour, so each slot in that hour
+ *  takes it as is. A missing value leaves the slot out rather than inventing one. */
+export function weatherSlots(response: any): WeatherSlot[] {
+    const hourly = response?.hourly;
+    const times: unknown[] = Array.isArray(hourly?.time) ? hourly.time : [];
+    const series = (name: string): (number | null)[] => times.map((_, i) => {
+        const v = hourly?.[name]?.[i];
+        return typeof v === 'number' && Number.isFinite(v) ? v : null;
+    });
+    const [te, wind, rh, cloud, ghi, gti] = HOURLY.map(series);
+    const out: WeatherSlot[] = [];
+    for (let i = 0; i + 1 < times.length; i++) {
+        const t0 = Number(times[i]) * 1000, t1 = Number(times[i + 1]) * 1000;
+        if (!Number.isFinite(t0) || t1 - t0 !== 4 * SLOT_MS) continue;
+        for (let q = 0; q < 4; q++) {
+            const f = q / 4;
+            const lerp = (s: (number | null)[]) =>
+                s[i] === null || s[i + 1] === null ? null : s[i]! + (s[i + 1]! - s[i]!) * f;
+            // Radiation for [t0, t1) is reported at t1.
+            const values = {te: lerp(te), wind: lerp(wind), rh: lerp(rh), cloud: lerp(cloud),
+                ghi: ghi[i + 1], gtiS: gti[i + 1]};
+            if (Object.values(values).some((v) => v === null)) continue;
+            out.push({slot: slotOf(t0) + q, ...values} as WeatherSlot);
+        }
+    }
+    return out;
+}

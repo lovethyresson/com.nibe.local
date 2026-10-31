@@ -77,7 +77,7 @@ export function sensorInventory(devices: Record<string, any>, zones: Record<stri
 }
 
 const clients = new WeakMap<object, Promise<any>>();
-async function withApi<T>(homey: any, use: (api: any) => Promise<T>): Promise<T> {
+export async function withApi<T>(homey: any, use: (api: any) => Promise<T>): Promise<T> {
     let client = clients.get(homey);
     if (!client) {
         const {HomeyAPI} = require('homey-api');

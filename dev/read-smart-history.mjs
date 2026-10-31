@@ -1,0 +1,45 @@
+// Decodes the smart heating history file (lib/smart/history.ts) and prints it as CSV, one row
+// per 15-minute slot, with heat per slot from lib/smart/heat.ts. Reads only.
+//
+// The file lives in the app's /userdata, which the Homey serves over HTTP. Its name is in the
+// app log at start, and in the app setting `smartHistoryFile.<device id>`:
+//   homey api apps get-app-settings --id com.nibe.local
+//
+//   node --import tsx dev/read-smart-history.mjs http://<homey-ip>/app/com.nibe.local/userdata/smart-….bin
+//   node --import tsx dev/read-smart-history.mjs ./smart-….bin [--tz Europe/Stockholm]
+import fs from 'node:fs';
+import {FIELDS, History} from '../lib/smart/history.ts';
+import {heatPerSlot} from '../lib/smart/heat.ts';
+import {SLOT_MS} from '../lib/smart/prices.ts';
+
+const source = process.argv[2];
+if (!source) {
+    console.error('usage: node --import tsx dev/read-smart-history.mjs <url or file> [--tz <zone>]');
+    process.exit(1);
+}
+const tzAt = process.argv.indexOf('--tz');
+const timeZone = tzAt > 0 ? process.argv[tzAt + 1] : 'Europe/Stockholm';
+
+const buffer = /^https?:/.test(source)
+    ? Buffer.from(await (await fetch(source)).arrayBuffer())
+    : fs.readFileSync(source);
+const history = History.deserialize(buffer);
+if (!history) {
+    console.error('Not a history file this version can read.');
+    process.exit(1);
+}
+const slots = history.range();
+const rows = slots.map((slot) => ({slot, ...history.get(slot)}));
+const heat = heatPerSlot(rows.map((r) => ({slot: r.slot, qmeter: r.qmeter, hz: r.hz})));
+const local = new Intl.DateTimeFormat('sv-SE', {timeZone, dateStyle: 'short', timeStyle: 'short'});
+
+console.log(['local', ...FIELDS, 'qheat_kwh', 'pel_kwh'].join(','));
+for (const r of rows) {
+    const cells = FIELDS.map((f) => (Number.isFinite(r[f]) ? +r[f].toFixed(3) : ''));
+    const q = heat.get(r.slot);
+    const pel = Number.isFinite(r.pw) ? r.pw * 0.25 / 1000 : NaN;
+    console.log([local.format(new Date(r.slot * SLOT_MS)), ...cells, q === undefined ? '' : q.toFixed(3),
+        Number.isFinite(pel) ? pel.toFixed(3) : ''].join(','));
+}
+console.error(`${rows.length} slots, ${slots.length ? local.format(new Date(slots[0] * SLOT_MS)) : '-'} → `
+    + `${slots.length ? local.format(new Date(slots.at(-1) * SLOT_MS)) : '-'}`);

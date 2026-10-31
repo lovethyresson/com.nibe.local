@@ -199,6 +199,23 @@ export const sProfile = makeProfile({
     // "auto" is the default. Litres are NIBE's own published figures from the VPB/VPBS brochure
     // (639368-5 / 639721 CIL EN 1902-2); no entry may be added without an official source, since
     // a wrong figure here silently biases every estimate that trusts it.
+    smartHistory: {
+        numeric: {
+            ti: "measure_temperature",
+            te: "measure_temperature.i1_outside",
+            tsup: "measure_temperature.i5_heating_supply",
+            tret: "measure_temperature.i7_heating_return",
+            tcalc: "measure_temperature.i1017_calculated_supply",
+            tbrine: "measure_temperature.i10_source_in",
+            hz: "measure_frequency.i1046_compressor",
+            dm: "measure_degree_minutes_NIBE.h11_degree_minutes",
+            pw: "measure_watt_NIBE.i2166_energy_usage",
+            qmeter: "meter_kwh_NIBE.i1577_heating_produced",
+            emeter: "meter_kwh_NIBE.i3823_total_consumption",
+        },
+        priority: {register: "measure_priority_NIBE.i1028_priority_value", hotwater: 20},
+        immersion: "status_NIBE.i1029_additive_heat_active",
+    },
     hotwaterTank: {
         topRegister: "measure_temperature.i8_warmwater_top",
         lowerRegister: "measure_temperature.i9_hot_water",
