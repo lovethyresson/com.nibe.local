@@ -9,6 +9,8 @@ import {heatPerSlot} from './heat';
 import {
     BuildEra, HeatingSystem, HouseParams, ModelSlot, envelopeTau, fitSeries, predictionRmse, rlsHouse, toModelSlots,
 } from './model';
+import {estimateLever} from './planner';
+import {CURVE_GAIN} from './actuator';
 
 const DAY_SLOTS = 96;
 /** A day counts toward readiness when this many of its slots taught the model something. */
@@ -30,6 +32,27 @@ export interface HouseFit {
     usable: number;
     /** Days with at least VALID_DAY_USABLE usable slots and some space heating. */
     validDays: number;
+    /** kW of heat per K of bias (planner.ts `PumpCurve.lever`), when enough clean hours exist. */
+    lever?: number;
+}
+
+/** Whole hours of steady space heating (no hot water, every slot read) for `estimateLever`. */
+export function heatingHours(history: History): {heatKw: number; tcalc: number; ti: number}[] {
+    const slots = history.range();
+    const heat = heatPerSlot(slots.map((slot) => {
+        const v = history.get(slot)!;
+        return {slot, qmeter: v.qmeter, hz: v.hz, dhw: v.dhw};
+    }));
+    const hours: {heatKw: number; tcalc: number; ti: number}[] = [];
+    for (let i = 0; i + 4 <= slots.length; i += 4) {
+        const block = slots.slice(i, i + 4);
+        if (block[3] !== block[0] + 3) continue;
+        const values = block.map((s) => history.get(s)!);
+        if (values.some((v, k) => !(v.dhw < 0.05) || (v.flags & FLAG.partial) || !heat.has(block[k]))) continue;
+        const mean = (f: 'tcalc' | 'ti') => values.reduce((a, v) => a + v[f], 0) / 4;
+        hours.push({heatKw: block.reduce((a, s) => a + heat.get(s)!, 0), tcalc: mean('tcalc'), ti: mean('ti')});
+    }
+    return hours;
 }
 
 export function modelSlotsFromHistory(history: History): ModelSlot[] {
@@ -51,7 +74,7 @@ export function validDays(slots: ModelSlot[]): number {
     return [...days.values()].filter((d) => d.usable >= VALID_DAY_USABLE && d.heat > 0).length;
 }
 
-export function fitHouse(slots: ModelSlot[], answers: HouseAnswers): HouseFit {
+export function fitHouse(slots: ModelSlot[], answers: HouseAnswers, lever?: number): HouseFit {
     // Stage 2 starts after up to 3 days of stage 1, but never waits for more data than exists.
     const warmupSlots = Math.max(1, Math.min(3 * DAY_SLOTS, slots.length));
     const fit = fitSeries(slots, answers.system, answers.era, {warmupSlots});
@@ -65,7 +88,13 @@ export function fitHouse(slots: ModelSlot[], answers: HouseAnswers): HouseFit {
         slots: slots.length,
         usable: slots.filter((s) => s.usable).length,
         validDays: validDays(slots),
+        lever,
     };
+}
+
+/** The whole hourly job: model slots, fit and lever from one history. */
+export function fitHistory(history: History, answers: HouseAnswers): HouseFit {
+    return fitHouse(modelSlotsFromHistory(history), answers, estimateLever(heatingHours(history), CURVE_GAIN));
 }
 
 // ---- lifecycle across fits ----

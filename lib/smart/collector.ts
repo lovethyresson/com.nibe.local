@@ -7,7 +7,7 @@ import {Aggregator, FLAG, Field, History, Sample, SlotContext, encodeRecord} fro
 import {DayPrices, PriceSlot, localDate, nextPriceFetchMs, normalisePrices, slotOf} from './prices';
 import {WEATHER_STALE_MS, WeatherSlot, openMeteoUrl, weatherSlots} from './weather';
 import {appendJournal, deleteHistory, loadHistory, loadJson, modelFileName, saveHistory, saveJson} from './store-file';
-import {DailyFit, HouseAnswers, drifting, fitHouse, modelSlotsFromHistory, readiness, recordDailyFit} from './house';
+import {DailyFit, HouseAnswers, drifting, fitHistory, readiness, recordDailyFit} from './house';
 import {houseInsights, insightsLine} from './insights';
 
 const HOUR = 60 * 60 * 1000;
@@ -167,7 +167,7 @@ export class SmartCollector {
      *  nothing here reaches the pump or the owner yet. */
     private async fitModel() {
         const started = Date.now();
-        const fit = fitHouse(modelSlotsFromHistory(this.history), this.answers);
+        const fit = fitHistory(this.history, this.answers);
         const day = Math.floor(started / (24 * HOUR));
         this.dailyFits = recordDailyFit(this.dailyFits, day, fit);
         const ready = readiness(fit, this.dailyFits);

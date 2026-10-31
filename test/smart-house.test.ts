@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {DailyFit, HouseFit, drifting, fitHouse, readiness, recordDailyFit, validDays} from '../lib/smart/house';
+import {DailyFit, HouseFit, drifting, fitHouse, heatingHours, readiness, recordDailyFit, validDays} from '../lib/smart/house';
+import {FIELDS, FLAG, History} from '../lib/smart/history';
 import {coolDown, houseInsights} from '../lib/smart/insights';
 import {RADIATOR_HOUSE, SLAB_HOUSE, simulateHouse} from './smart-house-sim';
 
@@ -58,4 +59,19 @@ test('implausible numbers show "still learning"', () => {
     assert.equal(houseInsights({params: {...RADIATOR_HOUSE, heatLoss: 2}, rmse: 0.1} as HouseFit), undefined);
     assert.equal(houseInsights({params: {...RADIATOR_HOUSE, cm: 400}, rmse: 0.1} as HouseFit), undefined);
     assert.equal(houseInsights({rmse: NaN} as HouseFit), undefined);
+});
+
+test('the lever is fitted only on whole hours of clean space heating', () => {
+    const history = new History(64);
+    let meter = 1000;
+    for (let k = 0; k < 24; k++) {
+        const values = Object.fromEntries(FIELDS.map((f) => [f, NaN])) as any;
+        meter += 1.2; // 4.8 kW
+        Object.assign(values, {ti: 22, tcalc: 40, hz: 50, qmeter: meter, dhw: k >= 12 && k < 16 ? 1 : 0, flags: k === 20 ? FLAG.partial : 0});
+        history.put(5000 + k, values);
+    }
+    const hours = heatingHours(history);
+    // Hour 0 lacks a reference reading for its first slot; hours 3 (hot water) and 5 (partial) are out.
+    assert.equal(hours.length, 3);
+    assert.ok(hours.every((h) => Math.abs(h.heatKw - 4.8) < 1e-3 && h.tcalc === 40));
 });

@@ -6,7 +6,9 @@
 //       [--era pre1960|1960_1979|1980_1999|2000_or_later|unknown] [--days <last n days only>]
 import fs from 'node:fs';
 import {History} from '../lib/smart/history.ts';
-import {fitHouse, modelSlotsFromHistory, readiness} from '../lib/smart/house.ts';
+import {CURVE_GAIN} from '../lib/smart/actuator.ts';
+import {estimateLever} from '../lib/smart/planner.ts';
+import {fitHouse, heatingHours, modelSlotsFromHistory, readiness} from '../lib/smart/house.ts';
 import {houseInsights, insightsLine} from '../lib/smart/insights.ts';
 
 const source = process.argv[2];
@@ -29,7 +31,8 @@ if (!history) {
 let slots = modelSlotsFromHistory(history);
 const days = option('days');
 if (days) slots = slots.slice(-Number(days) * 96);
-const fit = fitHouse(slots, {system: option('system', 'unknown'), era: option('era', 'unknown')});
+const fit = fitHouse(slots, {system: option('system', 'unknown'), era: option('era', 'unknown')},
+    estimateLever(heatingHours(history), CURVE_GAIN));
 const insights = houseInsights(fit);
 console.log(insightsLine(fit, insights, readiness(fit, [])));
 if (fit.params) {

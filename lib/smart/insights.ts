@@ -66,7 +66,8 @@ export function houseInsights(fit: HouseFit): HouseInsights | undefined {
 export function insightsLine(fit: HouseFit, insights: HouseInsights | undefined, ready: Readiness): string {
     const head = `Smart model: ${fit.usable}/${fit.slots} usable slots, ${fit.validDays} valid days, `
         + `6 h error ${Number.isFinite(fit.rmse) ? fit.rmse.toFixed(2) : '-'} K, `
-        + (ready.ready ? 'ready' : `learning (${ready.missing.join(', ')})`);
+        + (ready.ready ? 'ready' : `learning (${ready.missing.join(', ')})`)
+        + (fit.lever !== undefined ? `, lever ${Math.round(fit.lever * 1000)} W/K` : '');
     if (!insights) return `${head}; still learning`;
     return `${head}; heat loss ${Math.round(insights.heatLoss)} W/°C, τ ${Math.round(insights.tau)} h, `
         + `stored ${insights.stored.toFixed(1)} kWh/°C, −${insights.coolingIn6h.toFixed(1)} °C in 6 h at 0 °C off, `
