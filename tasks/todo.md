@@ -4,6 +4,16 @@ Three things are live. Everything else that used to be here has shipped — the 
 commits and in the **Releases** table in [`README.md`](../README.md), the durable rules are in
 [`CLAUDE.md`](../CLAUDE.md), and the design write-ups are under [`docs/`](../docs).
 
+## Smart heating slice 3: planner (offline)
+
+- [x] `presets.ts`, `actuator.ts` (clamps on 184/183/185 in Auto, ramp, pass-through),
+      `planner.ts` (cost at equal comfort, linear-response greedy). Tests in
+      `test/smart-control.test.ts`.
+- [x] `dev/evaluate-presets.mjs`: 20 SE3 days → 0.6 / 1.5 / 2.8–3.1 % at equal comfort.
+- [ ] Rerun on the maintainer's learned house once the model is ready (`--model`).
+- [ ] Why *Save the most* doesn't use its depth closed loop.
+- [ ] Learn the pump curve (heat vs fed outdoor) from 1017 instead of assuming it is tuned.
+
 ## Smart heating slice 2: house model (branch `smart-heating/m1-data`)
 
 Offline only; nothing runs on the Homey yet. Design: `docs/smart-heating-plan.md` §4.2, §6.

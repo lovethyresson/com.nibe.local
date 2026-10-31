@@ -655,6 +655,37 @@ Runs every 15 min and on new prices or weather. Horizon: 24–36 h of slots.
    - Every candidate is **simulated through the model and clamped to the band**.
    - A shift happens only when `p_high / p_low > 1 + margin`.
 
+**Built offline (2026-10-31, `lib/smart/planner.ts`, `dev/evaluate-presets.mjs`).**
+- The objective is **cost at equal comfort**: electricity bought, plus the warmth a plan leaves
+  owing (degree-hours below a reference, and stored heat short at the end) bought back at the
+  horizon's mean price. A cooler house saves nothing in it, so the planner can only win by
+  shifting. Two earlier forms failed in the closed-loop bench and are rejected:
+  - *Minimise cost, keep the mean indoor ≥ doing nothing from now.* Each replan's bar started from
+    the current state, so a pre-heat raised the bar for every later replan; the house ratcheted
+    +0.2 K warmer and cost 2–5 % **more** than doing nothing. The reference is therefore doing
+    nothing from the steady state at comfort.
+  - *Equal mean over the horizon as a constraint.* Over a finite horizon it weights early heat
+    more than late, so it forbade coasting the evening peak: 2.7 % where a hand-made 3 h coast
+    found 8.7 %.
+- The house and curve are linear in the bias while the pump is between off and flat out, so one
+  impulse response scores every move. A greedy search moves the bias 1 K at a time; the result is
+  re-simulated in full. About 5 ms a plan.
+- **Result, 20 real SE3 days (2026-10-03…30, all-in `(spot + 0.609) × 1.25`), closed loop,
+  hourly replanning, at equal comfort:**
+
+  | House | Comfortable | Save some | Save the most | best day |
+  |---|---|---|---|---|
+  | radiator (H 180 W/K, C 9.5 kWh/K) | 0.6 % | 1.5 % | 2.8 % | 6.2 % |
+  | slab (H 120 W/K, C 15 kWh/K) | 0.6 % | 1.4 % | 3.1 % | 6.4 % |
+
+  Gross savings ran 3–6 %; the difference is a cooler house, which §11 does not count.
+- **Model error barely matters to the plan.** Planned with a model learned passively, with
+  "Don't know", or from the wrong answers, and applied to the true house, every preset landed
+  within 0.2 points of the perfect-model result, even with stored heat 46 % low.
+- **Open for M2:** *Save the most* never went below 20.4 °C closed loop (its band allows 17); its
+  extra comes from pre-heating, not deep coasts. And the pump model is an assumption: the curve
+  is taken as tuned to the house (`H·(comfort − fed) − gains`); shadow must learn it from 1017.
+
 The output per slot is `{bias, mode, reason}`. The reason is structured, e.g.
 `{kind: 'coast', until: '19:00', priceRatio: 2.3}`, and rendered in six languages.
 
@@ -1082,6 +1113,7 @@ four plus the Setup hub.
 - [ ] **M1** `model.ts` + `insights.ts` + labels; release to test (`model.ts` done offline, not yet
       run online)
 - [ ] **M2** `presets.ts`, `planner.ts` v1, `actuator.ts`, `controller.ts` in shadow; twin integration test
+      (presets, actuator and planner done offline 2026-10-31; controller and shadow not started)
 - [ ] **M2** two weeks of shadow on ≥ 3 houses (radiator, slab, air-source)
 - [ ] **M3** Verify/handover, live feed, capabilities, settings, Flow cards, write locks, reconciliation, savings, analytics
 - [ ] **M3** release (test → live)

@@ -21,6 +21,7 @@ its connection while a probe runs** and reconnects by itself afterwards.
 | `probe-energylog.mjs` | what the energy-log block (2283-2305) means, and can it replace the allocator |
 | `probe-bt1.mjs` | **writes the BT1 mailbox (5217) only**: is feeding the outdoor sensor a safe lever for Smart heating? Expiry, disconnects, a physical-BT1 copy, supply response and threshold effects (M0 in `docs/smart-heating-plan.md`). `--step` refuses with SPA on, waits for a settled supply, aborts on a changed setting and fits gain and lag (§3.1) |
 | `read-smart-history.mjs` | decodes the smart heating history file from `/userdata` into CSV, one row per 15-min slot (reads a file or the Homey's URL, not the pump; run with `node --import tsx`) |
+| `evaluate-presets.mjs` | what each Smart heating preset would have saved at equal comfort over real price days, closed loop, on the simulated houses or a learned one (`--model`); offline, no pump |
 | `fit-house-model.mjs` | fits the smart heating house model to that history file and prints heat loss, τ, stored heat and the 6 h prediction error (same inputs; `--system`/`--era` are the Setup answers) |
 | `analyse-energylog.mjs` | hour by hour, does the pump's own per-function split add up to its own total (reads a `homey app run` log, not the pump) |
 
