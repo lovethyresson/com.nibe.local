@@ -95,6 +95,32 @@ export class History {
     }
 }
 
+/** One closed slot as a journal record: slot (u32 BE) then the fields (f32 BE). Slots closed
+ *  since the last full save are appended as these, so a process killed without `onUninit`
+ *  (an app install does that) loses only the open slot, without rewriting the whole file every
+ *  15 minutes. */
+export const RECORD_BYTES = 4 + 4 * FIELDS.length;
+
+export function encodeRecord(slot: number, values: Record<Field, number>): Buffer {
+    const out = Buffer.alloc(RECORD_BYTES);
+    out.writeUInt32BE(slot, 0);
+    FIELDS.forEach((field, f) => out.writeFloatBE(values[field], 4 + 4 * f));
+    return out;
+}
+
+/** Replay a journal into a history; a torn last record is ignored. Returns records applied. */
+export function applyJournal(history: History, journal: Buffer): number {
+    let applied = 0;
+    for (let at = 0; at + RECORD_BYTES <= journal.length; at += RECORD_BYTES) {
+        const slot = journal.readUInt32BE(at);
+        if (slot === 0) continue;
+        const values = Object.fromEntries(FIELDS.map((field, f) => [field, journal.readFloatBE(at + 4 + 4 * f)]));
+        history.put(slot, values as Record<Field, number>);
+        applied++;
+    }
+    return applied;
+}
+
 /** Collects poll samples into the open slot and closes it into a History when time moves on. */
 export class Aggregator {
     private slot: number | undefined;
@@ -104,7 +130,8 @@ export class Aggregator {
     private polls = 0;
     private flags = 0;
 
-    constructor(private readonly history: History, private readonly context: (slot: number) => SlotContext) {}
+    constructor(private readonly history: History, private readonly context: (slot: number) => SlotContext,
+                private readonly onClose?: (slot: number, values: Record<Field, number>) => void) {}
 
     /** One completed poll. `pollSeconds` sets how many polls a full slot expects. */
     sample(now: number, pollSeconds: number, sample: Sample) {
@@ -154,6 +181,7 @@ export class Aggregator {
         if (weather) Object.assign(values, weather);
         values.flags = flags;
         this.history.put(slot, values);
+        this.onClose?.(slot, values);
         this.sums.clear(); this.counts.clear(); this.last.clear();
         this.polls = 0;
         this.flags = 0;

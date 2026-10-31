@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {Aggregator, FIELDS, FLAG, History} from '../lib/smart/history';
+import {Aggregator, FIELDS, FLAG, History, RECORD_BYTES, applyJournal, encodeRecord} from '../lib/smart/history';
 import {electricityPerSlot, heatPerSlot} from '../lib/smart/heat';
 import {SLOT_MS} from '../lib/smart/prices';
 
@@ -99,4 +99,18 @@ test('electricity comes from the consumption counter, shaped by the power readin
     ]);
     assert.ok(Math.abs(pel.get(2)! - 0.3) < 1e-9);
     assert.ok(Math.abs(pel.get(3)! - 0.9) < 1e-9);
+});
+
+test('closed slots journal as records that replay onto the last full save', () => {
+    const saved = new History(8);
+    const journal: Buffer[] = [];
+    const agg = new Aggregator(saved, () => ({}), (slot, values) => journal.push(encodeRecord(slot, values)));
+    for (let k = 0; k < 3; k++)
+        for (let i = 0; i < 90; i++) agg.sample(t0 + k * SLOT_MS + i * 10_000, 10, {ti: 20 + k, te: 5});
+    agg.flush(10);
+    assert.equal(journal.length, 3);
+    const restored = History.deserialize(new History(8).serialize())!;
+    const bytes = Buffer.concat([...journal, Buffer.alloc(RECORD_BYTES - 3)]); // torn last write
+    assert.equal(applyJournal(restored, bytes), 3);
+    for (let k = 0; k < 3; k++) assert.deepEqual(restored.get(2_000_000 + k), saved.get(2_000_000 + k));
 });

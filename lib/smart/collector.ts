@@ -3,10 +3,10 @@
  *  Design: docs/smart-heating-plan.md §5.2–5.4. */
 import https from 'https';
 import {withApi} from '../indoor-sensors';
-import {Aggregator, FLAG, History, Sample, SlotContext} from './history';
+import {Aggregator, FLAG, Field, History, Sample, SlotContext, encodeRecord} from './history';
 import {DayPrices, PriceSlot, localDate, nextPriceFetchMs, normalisePrices, slotOf} from './prices';
 import {WEATHER_STALE_MS, WeatherSlot, openMeteoUrl, weatherSlots} from './weather';
-import {deleteHistory, loadHistory, loadJson, modelFileName, saveHistory, saveJson} from './store-file';
+import {appendJournal, deleteHistory, loadHistory, loadJson, modelFileName, saveHistory, saveJson} from './store-file';
 import {DailyFit, HouseAnswers, drifting, fitHouse, modelSlotsFromHistory, readiness, recordDailyFit} from './house';
 import {houseInsights, insightsLine} from './insights';
 
@@ -43,7 +43,16 @@ export class SmartCollector {
     constructor(private readonly homey: any, private readonly fileName: string,
                 private readonly log: (...args: any[]) => void,
                 private readonly answers: HouseAnswers = {system: 'unknown', era: 'unknown'}) {
-        this.aggregator = new Aggregator(this.history, (slot) => this.context(slot));
+        this.aggregator = this.newAggregator();
+    }
+
+    private newAggregator() {
+        return new Aggregator(this.history, (slot) => this.context(slot), (slot, values) => this.journal(slot, values));
+    }
+
+    private journal(slot: number, values: Record<Field, number>) {
+        appendJournal(this.fileName, encodeRecord(slot, values))
+            .catch((error) => this.log('Smart history: journal write failed:', error?.message ?? error));
     }
 
     async start() {
@@ -53,7 +62,7 @@ export class SmartCollector {
         });
         if (loaded) {
             this.history = loaded;
-            this.aggregator = new Aggregator(this.history, (slot) => this.context(slot));
+            this.aggregator = this.newAggregator();
         }
         const model = await loadJson<{dailyFits?: DailyFit[]}>(modelFileName(this.fileName)).catch(() => undefined);
         this.dailyFits = Array.isArray(model?.dailyFits) ? model!.dailyFits : [];

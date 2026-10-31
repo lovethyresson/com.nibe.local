@@ -22,9 +22,10 @@ Offline only; nothing runs on the Homey yet. Design: `docs/smart-heating-plan.md
       writes `smart-<id>.model.json` beside the history. Answers default to "Don't know".
 - [x] `lib/smart/insights.ts`: heat loss, cool-down from the heated steady state, stored heat,
       sun, fast/slow; readiness (§6.4) and drift (§6.2) over one fit per day.
-- [ ] A reinstall at 20:23 on 2026-10-31 lost the slots since the 19:46 save: `onUninit` either
-      didn't run or didn't get to the save. It now saves history before anything else; check
-      the file's Last-Modified on the next install.
+- [x] A reinstall at 20:23 on 2026-10-31 lost the slots since the 19:46 save, and a second one
+      confirmed `homey app install` ends the process before `onUninit` saves. Each closed slot is
+      now appended to `smart-<id>.bin.journal` (88 bytes) and replayed on load; the hourly save
+      empties it.
 
 ## Smart heating slice 1: data collection (branch `smart-heating/m1-data`)
 
