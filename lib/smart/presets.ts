@@ -40,6 +40,9 @@ export interface Limits {
     preheatLeadTau: number;
     /** Largest outdoor bias, K either way. */
     maxBias: number;
+    /** What a degree-hour below comfort is worth, as a multiple of the heat that would cure it:
+     *  1 trades comfort for money at cost, above 1 pays extra to stay at comfort. */
+    comfortWeight: number;
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -58,6 +61,8 @@ export function limitsFor(s: ProfileSettings): Limits {
         maxCoastH: MAX_COAST_H * stored,
         preheatLeadTau: stored,
         maxBias: MAX_BIAS_K * stored,
+        // 100 % price → 1 (comfort at cost), 30 % → 1.7, 0 % → 2.
+        comfortWeight: 2 - price,
     };
 }
 

@@ -13,6 +13,7 @@
 //   0.4  How fast and how far does a BT1 step move calculated supply (1017)?          --step
 //   0.5  What else does a fake BT1 move (auto-stop 184/185, cooling 183, add heat)?   --step --force
 //   0.7  Does a 30 s feed cadence hold for an hour without exceptions?      --step 0 --minutes 60
+//   3.3  Does the gain hold far from the real temperature (±20 K, the planner's limit)? --ladder
 //
 //   node dev/probe-bt1.mjs [host]                              one pass: context + thresholds
 //   node dev/probe-bt1.mjs --watch [--interval 5]              toggle menu 7.5.9.2 on the display
@@ -20,6 +21,12 @@
 //   node dev/probe-bt1.mjs --find-physical [--offset -5]
 //   node dev/probe-bt1.mjs --step -5 [--minutes 30]            also --step +5, --step 0
 //        [--after 150] [--settle 30] [--lat 59.3 --lon 18.1] [--allow-spa] [--max-indoor 1]
+//   node dev/probe-bt1.mjs --ladder -5,-10,-15,-20 [--rung 75] [--after 150] [--min-dm -600] [--tau 49]
+//
+// --ladder (plan §3.3) walks the offset out in rungs, --rung minutes each, then recovers. It reads
+// the gain per rung with the curve's lag known (τ 49 min, §3.1), so a rung shorter than 3τ still
+// says whether 1 K of fed outdoor still moves supply 0.5 K out there. Besides --step's aborts it
+// stops on the immersion heater starting (1029) or degree minutes below --min-dm.
 //
 // --step is the gain/latency test (plan §3.1). Before the first write it checks SPA (843) is off,
 // snapshots the settings that feed the curve, and waits until calculated supply has been flat for
@@ -58,7 +65,7 @@ const port = num('port', 502); // only for testing against a local fake
 // --sensor bt50 runs the same modes against the indoor mailbox instead (tested 2026-10-28 at the
 // maintainer's request). BT50 needs the zone set to be controlled by BT50 (input 5986 = 1).
 const SENSORS = {
-    bt1: {mailbox: 5217, effective: 1, maxOffset: 15, confirmTries: 4, name: 'BT1 outdoor', menu: '7.5.9.2 (external BT1)'},
+    bt1: {mailbox: 5217, effective: 1, maxOffset: 20, confirmTries: 4, name: 'BT1 outdoor', menu: '7.5.9.2 (external BT1)'},
     bt50: {mailbox: 5987, effective: 26, fallback: 116, maxOffset: 3, confirmTries: 16, name: 'BT50 indoor', menu: '7.5.9.2 (external BT50) and zone control by BT50'},
 };
 const sensorName = argv[argv.indexOf('--sensor') + 1];
@@ -206,9 +213,11 @@ async function thresholds() {
 }
 
 // Refuse a fed value on the other side of a threshold from the real one, unless --force: that is
-// question 0.5, and it should be asked on purpose.
+// question 0.5, and it should be asked on purpose. The thresholds act in Auto only (237 = 0,
+// plan §4.1), so in Manual nothing is crossed; there the add-heat aborts stand guard.
 function crossings(real, fed, t) {
     const out = [];
+    if (t[237] !== undefined && t[237] !== 0) return out;
     for (const [address, label] of [[184, 'auto-stop heating'], [185, 'auto-stop add heat'], [183, 'auto-start cooling']]) {
         const v = t[address];
         if (v !== undefined && (real < v) !== (fed < v)) out.push(`${label} (${v} °C)`);
@@ -518,8 +527,115 @@ async function step(offset) {
     }
 }
 
+// §3.3 — the gain far from the real temperature: offsets in rungs, then recovery.
+async function ladder(rungs) {
+    const CURVE_TAU_MIN = num('tau', 49); // only a fake pump wants another
+    const rungMin = num('rung', 75);
+    const afterMin = num('after', 150);
+    const settleMin = num('settle', 30);
+    const maxIndoor = num('max-indoor', 1);
+    const minDm = num('min-dm', -600);
+    if (!rungs.length || rungs.some((r) => !Number.isFinite(r) || Math.abs(r) > MAX_OFFSET_K))
+        throw new Error(`--ladder needs offsets within ±${MAX_OFFSET_K} K, e.g. -5,-10,-15,-20`);
+    if (rungs.some((r, i) => i > 0 && Math.abs(r - rungs[i - 1]) > 5))
+        throw new Error('Rungs may be at most 5 K apart: the app never jumps further than that either.');
+
+    const held = await heldSnapshot();
+    if (held[843] !== 0 && !has('allow-spa'))
+        throw new Error(`SPA (843) reads ${held[843]}. Switch it off first, or pass --allow-spa.`);
+    const checkHeld = async () => {
+        const changed = heldChanges(held, await heldSnapshot());
+        if (changed.length) throw new Error(`ABORT: a held setting changed: ${changed.join(', ')}`);
+    };
+    const t00 = Date.now();
+    const settled = [];
+    console.log(`Settling: calculated supply within 0.2 K for ${settleMin} min (max 120 min).`);
+    for (;;) {
+        const s = await sample();
+        settled.push({at: Date.now(), y: s[1017]});
+        console.log(`${stamp(t00)}  settle    ${phaseLine(s, await realOutdoor())}`);
+        const win = settled.filter((p) => p.at >= Date.now() - settleMin * 60_000 && p.y !== undefined).map((p) => p.y);
+        if (Date.now() - t00 >= settleMin * 60_000 && Math.max(...win) - Math.min(...win) <= 0.2) break;
+        if (Date.now() - t00 > 120 * 60_000) throw new Error('Calculated supply did not settle within 120 min.');
+        await sleep(FEED_EVERY_MS);
+    }
+    await checkHeld();
+
+    const base = await sample();
+    const y0 = settled.slice(-20).reduce((a, p) => a + (p.y ?? base[1017]), 0) / Math.min(20, settled.length);
+    const indoor0 = base[116];
+    // The widest rung is checked against the thresholds up front; startFeed refuses a crossing.
+    const widest = rungs.reduce((a, r) => (Math.abs(r) > Math.abs(a) ? r : a), 0);
+    const t = await thresholds();
+    const real = await readValue('input', 1, 10);
+    if (real === undefined) throw new Error('input 1 is unavailable; nothing to offset from');
+    const crossed = crossings(real, real + widest, t);
+    if (crossed.length && !has('force'))
+        throw new Error(`the ${widest} K rung would cross ${crossed.join(', ')} from real ${real} °C. Pick a day where it doesn't, or --force.`);
+    restoreTo = real;
+    const t0 = Date.now();
+    const points = [];
+    let x = 0; // the curve's filtered view of the offset
+    let last = t0;
+    let writes = 0, failures = 0, lastHeldCheck = Date.now();
+    for (const offset of rungs) {
+        const fed = Math.round((real + offset) * 10) / 10;
+        console.log(`\nRung ${offset >= 0 ? '+' : ''}${offset} K: feeding ${fed} °C for ${rungMin} min.`);
+        if (!(await feedAndVerify(fed))) throw new Error('input 1 did not follow the write. Is menu 7.5.9.2 enabled?');
+        const tr = Date.now();
+        while (Date.now() - tr < rungMin * 60_000) {
+            await sleep(FEED_EVERY_MS);
+            try { await writeBT1(fed); writes++; } catch (e) { failures++; console.log(`${stamp(t0)}  write failed: ${e.message}`); }
+            const s = await sample();
+            const now = Date.now();
+            x = offset + (x - offset) * Math.exp(-(now - last) / 60_000 / CURVE_TAU_MIN);
+            last = now;
+            if (s[1017] !== undefined) points.push({rung: offset, x, dy: s[1017] - y0, at: now});
+            console.log(`${stamp(t0)}  ${String(offset).padStart(4)} K   ${phaseLine(s, await realOutdoor())}  x ${x.toFixed(1)}`);
+            if (indoor0 !== undefined && s[116] !== undefined && Math.abs(s[116] - indoor0) > maxIndoor)
+                throw new Error(`ABORT: indoor (116) moved ${indoor0} -> ${s[116]} °C, more than ${maxIndoor} K.`);
+            if (s[1029] === 1) throw new Error('ABORT: the immersion heater started (1029). That rung is too deep for this house today.');
+            if (s.dm !== undefined && s.dm < minDm) throw new Error(`ABORT: degree minutes ${s.dm} below ${minDm}.`);
+            if (Date.now() - lastHeldCheck > 10 * 60_000) { await checkHeld(); lastHeldCheck = Date.now(); }
+        }
+    }
+    console.log(`\nRESULT: ${writes} writes, ${failures} failures.`);
+    await restore('ladder done');
+    restoreTo = undefined;
+
+    // Gain per rung: change in supply over change in the filtered offset, last 10 min of each rung
+    // against the last 10 min of the one before (or the settled start). Supply per K colder, so
+    // the sign matches §3.1's 0.5.
+    const tail = (rung) => {
+        const pts = points.filter((p) => p.rung === rung);
+        const end = pts.at(-1)?.at ?? 0;
+        const last10 = pts.filter((p) => p.at >= end - 10 * 60_000);
+        return {x: last10.reduce((a, p) => a + p.x, 0) / last10.length, dy: last10.reduce((a, p) => a + p.dy, 0) / last10.length};
+    };
+    let prev = {x: 0, dy: 0};
+    console.log('\nGain per rung (K supply per K colder; §3.1 measured 0.50 at ±5 K):');
+    for (const rung of rungs) {
+        const now = tail(rung);
+        const gain = -(now.dy - prev.dy) / (now.x - prev.x);
+        console.log(`  ${String(rung).padStart(4)} K: curve saw ${now.x.toFixed(1)} K, supply ${now.dy >= 0 ? '+' : ''}${now.dy.toFixed(1)} K, `
+            + `gain over this rung ${gain.toFixed(2)}`);
+        prev = now;
+    }
+    const sxx = points.reduce((a, p) => a + p.x * p.x, 0);
+    console.log(`  Whole ladder, one gain through the origin: ${(-points.reduce((a, p) => a + p.x * p.dy, 0) / sxx).toFixed(2)}.`);
+    console.log('  Pass (plan §3.3): every rung within 20 % of 0.50, or the planner\'s bias limit is cut to the last rung that is.');
+
+    const t1 = Date.now();
+    while (Date.now() - t1 < afterMin * 60_000) {
+        await sleep(FEED_EVERY_MS);
+        console.log(`${stamp(t1)}  after     ${phaseLine(await sample(), await realOutdoor())}`);
+        if (Date.now() - lastHeldCheck > 10 * 60_000) { await checkHeld(); lastHeldCheck = Date.now(); }
+    }
+}
+
 try {
     if (has('watch')) await watch();
+    else if (has('ladder')) await ladder(String(argv[argv.indexOf('--ladder') + 1] ?? '').split(',').map(Number));
     else if (has('hold')) await hold(num('hold', -5));
     else if (has('find-physical')) await findPhysical();
     else if (has('step')) await step(num('step', -5));

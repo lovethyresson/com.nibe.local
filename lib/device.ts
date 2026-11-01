@@ -1,6 +1,6 @@
 import {CaptureSummary, logCaptureSummary} from './diagnostic-capture';
 import {IndoorConfig, averageSensors, cleanIndoorConfig, selectedReadings} from './indoor-sensors';
-import {SmartCollector} from './smart/collector';
+import {Controls, SmartCollector} from './smart/collector';
 import {newHistoryFileName} from './smart/store-file';
 import {Sample} from './smart/history';
 import {Device} from 'homey';
@@ -1098,7 +1098,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.role !== 'heating') return selected;
         const names = Object.values(this.profile.roomThermostat ?? {});
         const smart = this.profile.smartHistory;
-        if (smart) names.push(...Object.values(smart.numeric) as string[], smart.priority.register, smart.immersion);
+        if (smart) names.push(...Object.values(smart.numeric) as string[], smart.priority.register, smart.immersion,
+            ...Object.values(smart.controls ?? {}) as string[]);
         const needed = names.map((n) => this.profile.registerByName[n]).filter((r) => r);
         return [...new Map([...selected, ...needed].map((r) => [r.name, r])).values()];
     }
@@ -1117,14 +1118,26 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         await this.smart.start();
     }
 
-    // One poll's values for the smart history, decoded the same way capabilities are.
+    // A register's value from this poll, decoded the same way capabilities are.
+    private smartValue(readNames: Set<string>, name?: string): number | undefined {
+        if (!name) return undefined;
+        const raw = readNames.has(name) ? this.connection?.lastRawFor(name) : undefined;
+        const register = this.profile.registerByName[name];
+        return raw === undefined || !register ? undefined : toNumericValue(register, raw);
+    }
+
+    // The settings smart heating plans with, from this poll.
+    private smartControls(readNames: Set<string>): Controls {
+        const c = this.profile.smartHistory?.controls;
+        const value = (name?: string) => this.smartValue(readNames, name);
+        return {comfort: value(c?.comfort), mode: value(c?.mode), thresholds: {
+            stopHeating: value(c?.stopHeating), stopAddHeat: value(c?.stopAddHeat), startCooling: value(c?.startCooling)}};
+    }
+
+    // One poll's values for the smart history.
     private smartSample(readNames: Set<string>): Sample {
         const smart = this.profile.smartHistory!;
-        const value = (name: string) => {
-            const raw = readNames.has(name) ? this.connection?.lastRawFor(name) : undefined;
-            const register = this.profile.registerByName[name];
-            return raw === undefined || !register ? undefined : toNumericValue(register, raw);
-        };
+        const value = (name: string) => this.smartValue(readNames, name);
         const sample: Sample = {};
         for (const [field, name] of Object.entries(smart.numeric)) sample[field as keyof typeof smart.numeric] = value(name!);
         const priority = value(smart.priority.register);
@@ -1483,8 +1496,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     onPollComplete(readNames: Set<string>) {
-        if (this.smart && this.connection)
+        if (this.smart && this.connection) {
+            this.smart.setControls(this.smartControls(readNames));
             this.smart.sample(this.connection.currentPollSeconds(), this.smartSample(readNames));
+        }
         if (this.dumpAfterPoll) {
             const reason = this.dumpAfterPoll;
             this.dumpAfterPoll = null;

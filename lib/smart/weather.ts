@@ -1,6 +1,7 @@
 /** Open-Meteo forecast → 15-minute UTC slots. Pure: the collector does the fetching.
  *  Design: docs/smart-heating-plan.md §5.3. Weather data by Open-Meteo.com (CC BY 4.0). */
 import {SLOT_MS, slotOf} from './prices';
+import {WALLS, sunPosition, wallIrradiance} from './solar';
 
 export const WEATHER_STALE_MS = 24 * 60 * 60 * 1000;
 
@@ -8,8 +9,11 @@ export interface WeatherSlot {
     slot: number;
     /** Outdoor °C. */
     te: number;
-    /** Irradiance on a south-facing wall, W/m². */
+    /** Irradiance on a south-facing wall, W/m² (Open-Meteo's own). */
     gtiS: number;
+    /** East- and west-facing walls, W/m², computed in solar.ts. */
+    gtiE: number;
+    gtiW: number;
     /** Global horizontal irradiance, W/m². */
     ghi: number;
     /** Wind m/s, relative humidity %, cloud cover %. */
@@ -19,7 +23,7 @@ export interface WeatherSlot {
 }
 
 const HOURLY = ['temperature_2m', 'wind_speed_10m', 'relative_humidity_2m', 'cloud_cover',
-    'shortwave_radiation', 'global_tilted_irradiance'];
+    'shortwave_radiation', 'global_tilted_irradiance', 'direct_normal_irradiance', 'diffuse_radiation'];
 
 /** The location is rounded to 2 decimals (~1 km) before it leaves the Homey. */
 export function openMeteoUrl(latitude: number, longitude: number): string {
@@ -32,7 +36,9 @@ export function openMeteoUrl(latitude: number, longitude: number): string {
 
 /** Hourly values → slots. Temperature, wind and humidity are instants and are interpolated
  *  linearly. Radiation is Open-Meteo's mean over the *preceding* hour, so each slot in that hour
- *  takes it as is. A missing value leaves the slot out rather than inventing one. */
+ *  takes it as is, but the walls' share of the direct beam is worked out for each slot's own
+ *  midpoint, since the sun moves 4° an hour across an east or west wall. A missing value leaves
+ *  the slot out rather than inventing one. The response's own coordinates place the sun. */
 export function weatherSlots(response: any): WeatherSlot[] {
     const hourly = response?.hourly;
     const times: unknown[] = Array.isArray(hourly?.time) ? hourly.time : [];
@@ -40,7 +46,9 @@ export function weatherSlots(response: any): WeatherSlot[] {
         const v = hourly?.[name]?.[i];
         return typeof v === 'number' && Number.isFinite(v) ? v : null;
     });
-    const [te, wind, rh, cloud, ghi, gti] = HOURLY.map(series);
+    const [te, wind, rh, cloud, ghi, gti, dni, dhi] = HOURLY.map(series);
+    const latitude = Number(response?.latitude), longitude = Number(response?.longitude);
+    const located = Number.isFinite(latitude) && Number.isFinite(longitude);
     const out: WeatherSlot[] = [];
     for (let i = 0; i + 1 < times.length; i++) {
         const t0 = Number(times[i]) * 1000, t1 = Number(times[i + 1]) * 1000;
@@ -50,8 +58,13 @@ export function weatherSlots(response: any): WeatherSlot[] {
             const lerp = (s: (number | null)[]) =>
                 s[i] === null || s[i + 1] === null ? null : s[i]! + (s[i + 1]! - s[i]!) * f;
             // Radiation for [t0, t1) is reported at t1.
+            const wall = (facing: number) => {
+                if (!located || dni[i + 1] === null || dhi[i + 1] === null || ghi[i + 1] === null) return null;
+                const sun = sunPosition(t0 + (q + 0.5) * SLOT_MS, latitude, longitude);
+                return wallIrradiance(dni[i + 1]!, dhi[i + 1]!, ghi[i + 1]!, sun, facing);
+            };
             const values = {te: lerp(te), wind: lerp(wind), rh: lerp(rh), cloud: lerp(cloud),
-                ghi: ghi[i + 1], gtiS: gti[i + 1]};
+                ghi: ghi[i + 1], gtiS: gti[i + 1], gtiE: wall(WALLS.east), gtiW: wall(WALLS.west)};
             if (Object.values(values).some((v) => v === null)) continue;
             out.push({slot: slotOf(t0) + q, ...values} as WeatherSlot);
         }

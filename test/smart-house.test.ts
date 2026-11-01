@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {DailyFit, HouseFit, drifting, fitHouse, heatingHours, readiness, recordDailyFit, validDays} from '../lib/smart/house';
 import {FIELDS, FLAG, History} from '../lib/smart/history';
 import {coolDown, houseInsights} from '../lib/smart/insights';
-import {RADIATOR_HOUSE, SLAB_HOUSE, simulateHouse} from './smart-house-sim';
+import {RADIATOR_HOUSE, SLAB_HOUSE, WEST_HOUSE, simulateHouse} from './smart-house-sim';
 
 const day = (d: number, heatLoss: number, tau: number): DailyFit => ({day: d, heatLoss, tau, rmse: 0.1});
 
@@ -53,6 +53,13 @@ test('insights: a slab coasts longer per degree than a radiator house, and says 
     // Radiator house: the air drops fast at first, then rides on the mass.
     const curve = coolDown(RADIATOR_HOUSE, 6);
     assert.ok(curve[4] - curve[8] > curve[20] - curve[24]);
+});
+
+test('insights name the wall the sun comes through, when one dominates', () => {
+    const west = houseInsights({params: WEST_HOUSE, rmse: 0.1, validDays: 7} as HouseFit)!;
+    assert.equal(west.sunMostly, 'west');
+    assert.ok(Math.abs(west.sunAt500.west - 4) < 1e-9);
+    assert.equal(houseInsights({params: {...RADIATOR_HOUSE, sun: 0.002}, rmse: 0.1, validDays: 7} as HouseFit)!.sunMostly, undefined);
 });
 
 test('implausible numbers show "still learning"', () => {

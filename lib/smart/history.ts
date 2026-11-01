@@ -2,7 +2,8 @@
  *  Design: docs/smart-heating-plan.md §5.4. */
 import {SLOT_MS, slotOf} from './prices';
 
-/** Per-slot fields, in storage order. Appending is safe; reordering needs a VERSION bump. */
+/** Per-slot fields, in storage order. Appending is safe (a file with fewer fields loads with the
+ *  new ones missing); reordering needs a VERSION bump. */
 export const FIELDS = [
     'ti',      // indoor °C (mean)
     'te',      // outdoor °C as the pump reads it, input 1 (mean)
@@ -26,6 +27,8 @@ export const FIELDS = [
     'cloud',   // %
     'coverage', // polls received / polls expected
     'flags',
+    'gtiE',    // east-wall irradiance W/m² (solar.ts)
+    'gtiW',    // west-wall irradiance W/m²
 ] as const;
 export type Field = typeof FIELDS[number];
 export const FLAG = {partial: 1, reconnect: 2, costs: 4} as const;
@@ -41,7 +44,7 @@ export type Sample = Partial<Record<'ti' | 'te' | 'tsup' | 'tret' | 'tcalc' | 't
 
 export interface SlotContext {
     price?: {price: number; spot: number; costsApplied: boolean};
-    weather?: {gtiS: number; ghi: number; wind: number; rh: number; cloud: number};
+    weather?: {gtiS: number; gtiE: number; gtiW: number; ghi: number; wind: number; rh: number; cloud: number};
 }
 
 /** Ring buffer of closed slots. Missing values are NaN. */
@@ -81,16 +84,27 @@ export class History {
             Buffer.from(this.data.buffer, this.data.byteOffset, this.data.byteLength)]);
     }
 
-    /** Undefined for anything this version did not write: the caller starts a new history. */
+    /** Fields per slot in a saved file, or undefined when this version can't read it. */
+    static fieldCount(buffer: Buffer): number | undefined {
+        if (buffer.length < 12 || buffer.readUInt32BE(0) !== MAGIC || buffer.readUInt8(4) !== VERSION) return undefined;
+        const count = buffer.readUInt8(5);
+        return count > 0 && count <= FIELDS.length ? count : undefined;
+    }
+
+    /** Undefined for anything this version can't read: the caller starts a new history. A file
+     *  from before a field was appended loads with that field missing. */
     static deserialize(buffer: Buffer): History | undefined {
-        if (buffer.length < 12 || buffer.readUInt32BE(0) !== MAGIC || buffer.readUInt8(4) !== VERSION
-            || buffer.readUInt8(5) !== FIELDS.length) return undefined;
+        const count = History.fieldCount(buffer);
+        if (count === undefined) return undefined;
         const capacity = buffer.readUInt32BE(8);
-        if (buffer.length !== 12 + capacity * 4 * (1 + FIELDS.length)) return undefined;
+        if (buffer.length !== 12 + capacity * 4 * (1 + count)) return undefined;
         const history = new History(capacity);
         const copy = Uint8Array.prototype.slice.call(buffer, 12);
         history.slots.set(new Uint32Array(copy.buffer, 0, capacity));
-        history.data.set(new Float32Array(copy.buffer, capacity * 4, capacity * FIELDS.length));
+        const stored = new Float32Array(copy.buffer, capacity * 4, capacity * count);
+        if (count === FIELDS.length) history.data.set(stored);
+        else for (let i = 0; i < capacity; i++)
+            history.data.set(stored.subarray(i * count, (i + 1) * count), i * FIELDS.length);
         return history;
     }
 }
@@ -108,13 +122,16 @@ export function encodeRecord(slot: number, values: Record<Field, number>): Buffe
     return out;
 }
 
-/** Replay a journal into a history; a torn last record is ignored. Returns records applied. */
-export function applyJournal(history: History, journal: Buffer): number {
+/** Replay a journal into a history; a torn last record is ignored. Returns records applied.
+ *  `fields` is how many fields the writer had: the saved file's count, since every start saves
+ *  before it journals (`SmartCollector.start`). */
+export function applyJournal(history: History, journal: Buffer, fields: number = FIELDS.length): number {
+    const bytes = 4 + 4 * fields;
     let applied = 0;
-    for (let at = 0; at + RECORD_BYTES <= journal.length; at += RECORD_BYTES) {
+    for (let at = 0; at + bytes <= journal.length; at += bytes) {
         const slot = journal.readUInt32BE(at);
         if (slot === 0) continue;
-        const values = Object.fromEntries(FIELDS.map((field, f) => [field, journal.readFloatBE(at + 4 + 4 * f)]));
+        const values = Object.fromEntries(FIELDS.map((field, f) => [field, f < fields ? journal.readFloatBE(at + 4 + 4 * f) : NaN]));
         history.put(slot, values as Record<Field, number>);
         applied++;
     }

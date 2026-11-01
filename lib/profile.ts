@@ -197,6 +197,9 @@ export interface ModelProfile {
             | 'qmeter' | 'emeter', string>>;
         priority: {register: string; hotwater: number};
         immersion: string;
+        // The settings the controller plans with (collector.ts `Controls`): indoor setpoint,
+        // operating mode, and the Auto-mode thresholds the actuator keeps clear of.
+        controls?: {comfort: string; mode: string; stopHeating?: string; stopAddHeat?: string; startCooling?: string};
     };
     writeRequirements?: Record<string, {register: string; values: number[]; message: LocalizedText}>;
     indoorSensorFeed?: boolean;

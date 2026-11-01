@@ -1,16 +1,34 @@
 /** Collects the smart heating history for one pump: poll samples from the Heating device, prices
- *  from Homey Energy and weather from Open-Meteo. Reads only; nothing here writes to the pump.
- *  Design: docs/smart-heating-plan.md §5.2–5.4. */
+ *  from Homey Energy and weather from Open-Meteo; refits the house model hourly; and runs the
+ *  controller in shadow every slot. Reads only; nothing here writes to the pump.
+ *  Design: docs/smart-heating-plan.md §5.2–5.4, §6, §7.5. */
 import https from 'https';
 import {withApi} from '../indoor-sensors';
 import {Aggregator, FLAG, Field, History, Sample, SlotContext, encodeRecord} from './history';
-import {DayPrices, PriceSlot, localDate, nextPriceFetchMs, normalisePrices, slotOf} from './prices';
+import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, normalisePrices, slotOf} from './prices';
 import {WEATHER_STALE_MS, WeatherSlot, openMeteoUrl, weatherSlots} from './weather';
-import {appendJournal, deleteHistory, loadHistory, loadJson, modelFileName, saveHistory, saveJson} from './store-file';
-import {DailyFit, HouseAnswers, drifting, fitHistory, readiness, recordDailyFit} from './house';
+import {
+    appendJournal, appendLine, deleteHistory, loadHistory, loadJson, modelFileName, saveHistory, saveJson, shadowLogName,
+    shadowStateName, trimLines,
+} from './store-file';
+import {DailyFit, HouseAnswers, HouseFit, drifting, fitHistory, readiness, recordDailyFit} from './house';
 import {houseInsights, insightsLine} from './insights';
+import {ForecastBias, forecastCorrection, learnForecastBias, newForecastBias} from './outdoor';
+import {SHADOW_PRESETS, ShadowMemory, shadowForecast, shadowStep} from './shadow';
+import {PumpThresholds} from './actuator';
 
 const HOUR = 60 * 60 * 1000;
+/** Shadow log lines kept: 28 days of slots, trimmed once it passes 30. */
+const SHADOW_KEEP = 28 * 96;
+
+/** The pump settings the controller reads, as of the latest poll. */
+export interface Controls {
+    /** Indoor setpoint (2505), °C. */
+    comfort?: number;
+    /** Operating mode (237): 0 Auto, 1 Manual, 2 immersion heater only. */
+    mode?: number;
+    thresholds: PumpThresholds;
+}
 
 function getJson(url: string, timeoutMs = 15_000): Promise<any> {
     return new Promise((resolve, reject) => {
@@ -39,6 +57,14 @@ export class SmartCollector {
     private timers: any[] = [];
     private stopped = false;
     private dailyFits: DailyFit[] = [];
+    private fit?: HouseFit;
+    private controls: Controls = {thresholds: {}};
+    private shadowMemory: ShadowMemory = {};
+    private forecastBias: ForecastBias = newForecastBias();
+    private shadowSlot?: number;
+    private shadowLines = 0;
+    private shadowSkipped = new Map<string, number>();
+    private lastShadow?: any;
 
     constructor(private readonly homey: any, private readonly fileName: string,
                 private readonly log: (...args: any[]) => void,
@@ -53,6 +79,8 @@ export class SmartCollector {
     private journal(slot: number, values: Record<Field, number>) {
         appendJournal(this.fileName, encodeRecord(slot, values))
             .catch((error) => this.log('Smart history: journal write failed:', error?.message ?? error));
+        // Off the poll's call stack: three plans take a moment on a Homey.
+        this.homey.setTimeout(() => this.shadow(slot, values), 0);
     }
 
     async start() {
@@ -64,17 +92,37 @@ export class SmartCollector {
             this.history = loaded;
             this.aggregator = this.newAggregator();
         }
+        // Save before the first journal record: a journal is read with the saved file's field
+        // count, so a file from before a field was appended must not gain new-format records.
+        await this.save().catch((error) => this.log('Smart history: save failed:', error?.message ?? error));
         const model = await loadJson<{dailyFits?: DailyFit[]}>(modelFileName(this.fileName)).catch(() => undefined);
         this.dailyFits = Array.isArray(model?.dailyFits) ? model!.dailyFits : [];
+        const shadow = await loadJson<{memory?: ShadowMemory; forecastBias?: ForecastBias; slot?: number}>(
+            shadowStateName(this.fileName)).catch(() => undefined);
+        if (shadow?.memory) this.shadowMemory = shadow.memory;
+        if (shadow?.forecastBias?.mean?.length === 24) this.forecastBias = shadow.forecastBias;
+        this.shadowSlot = shadow?.slot;
+        this.shadowLines = await trimLines(shadowLogName(this.fileName), SHADOW_KEEP).catch(() => 0);
         this.log(`Smart history: ${this.history.range().length} slots in /userdata/${this.fileName}.`);
         this.loop(() => this.fetchPrices(), 5_000);
         this.loop(() => this.fetchWeather(), 20_000);
+        // First fit soon after start, so shadow doesn't wait an hour for a model.
         this.loop(async () => {
             await this.save();
             this.logStatus();
             await this.fitModel();
+            await this.saveShadow();
             return HOUR;
-        }, HOUR);
+        }, 2 * 60 * 1000);
+    }
+
+    /** The latest poll's settings. A setting this poll didn't read keeps its last value. */
+    setControls(controls: Controls) {
+        const keep = <T>(next: T | undefined, last: T | undefined) => next ?? last;
+        const t = controls.thresholds, last = this.controls.thresholds;
+        this.controls = {comfort: keep(controls.comfort, this.controls.comfort), mode: keep(controls.mode, this.controls.mode),
+            thresholds: {stopHeating: keep(t.stopHeating, last.stopHeating), stopAddHeat: keep(t.stopAddHeat, last.stopAddHeat),
+                startCooling: keep(t.startCooling, last.startCooling)}};
     }
 
     /** One completed poll of the pump. */
@@ -109,7 +157,7 @@ export class SmartCollector {
         const price = this.prices.get(slot);
         if (price) context.price = {price: price.price, spot: price.spot, costsApplied: this.costsApplied};
         const weather = Date.now() - this.weatherAt < WEATHER_STALE_MS ? this.weather.get(slot) : undefined;
-        if (weather) context.weather = {gtiS: weather.gtiS, ghi: weather.ghi, wind: weather.wind,
+        if (weather) context.weather = {gtiS: weather.gtiS, gtiE: weather.gtiE, gtiW: weather.gtiW, ghi: weather.ghi, wind: weather.wind,
             rh: weather.rh, cloud: weather.cloud};
         return context;
     }
@@ -168,6 +216,7 @@ export class SmartCollector {
     private async fitModel() {
         const started = Date.now();
         const fit = fitHistory(this.history, this.answers);
+        this.fit = fit;
         const day = Math.floor(started / (24 * HOUR));
         this.dailyFits = recordDailyFit(this.dailyFits, day, fit);
         const ready = readiness(fit, this.dailyFits);
@@ -182,6 +231,69 @@ export class SmartCollector {
 
     private async save() {
         await saveHistory(this.fileName, this.history);
+    }
+
+    private localHour(slot: number): number {
+        const parts = new Intl.DateTimeFormat('en-GB', {timeZone: this.homey.clock.getTimezone(), hour: 'numeric', hourCycle: 'h23'})
+            .formatToParts(new Date(slot * SLOT_MS));
+        return Number(parts.find((p) => p.type === 'hour')?.value ?? 0);
+    }
+
+    /** A slot closed: learn the forecast's outdoor error from it, then plan the next slot in
+     *  shadow (§7.5). Nothing is fed, so input 1 is the real outdoor temperature throughout. */
+    private shadow(slot: number, values: Record<Field, number>) {
+        if (this.stopped) return;
+        const forecastTe = this.weather.get(slot)?.te;
+        if (Number.isFinite(values.te) && forecastTe !== undefined)
+            this.forecastBias = learnForecastBias(this.forecastBias, this.localHour(slot), values.te, forecastTe);
+        const skip = (why: string) => this.shadowSkipped.set(why, (this.shadowSkipped.get(why) ?? 0) + 1);
+        const fit = this.fit;
+        const c = this.controls;
+        if (!fit?.params || !fit.state) return skip('no model');
+        if (!Number.isFinite(values.ti) || !Number.isFinite(values.te)) return skip('no reading');
+        if (c.comfort === undefined || c.mode === undefined) return skip('no settings');
+        if (c.mode === 2) return skip('immersion only');
+        const next = slot + 1;
+        const fresh = Date.now() - this.weatherAt < WEATHER_STALE_MS ? this.weather : new Map<number, WeatherSlot>();
+        const forecast = shadowForecast(next, fresh, this.prices,
+            (s) => forecastCorrection(this.forecastBias, this.localHour(s)));
+        if (forecast.length < 8) return skip('no forecast');
+        const started = Date.now();
+        const out = shadowStep({
+            house: fit.params, lever: fit.lever, ti: values.ti,
+            // The mass moves slowly: the hourly fit's is close enough, the air is the reading.
+            tm: fit.state.tm, comfort: c.comfort, real: values.te, auto: c.mode === 0, thresholds: c.thresholds,
+            forecast, memory: this.shadowMemory,
+            slots: this.shadowSlot !== undefined && slot > this.shadowSlot ? Math.min(4, slot - this.shadowSlot) : 1,
+        });
+        this.shadowMemory = out.memory;
+        this.shadowSlot = slot;
+        this.lastShadow = {slot: next, at: new Date(next * SLOT_MS).toISOString(), ti: values.ti, te: values.te,
+            comfort: c.comfort, mode: c.mode, horizon: forecast.length, ms: Date.now() - started,
+            fitSlot: fit.state.slot, baseline: out.baseline, presets: out.presets};
+        appendLine(shadowLogName(this.fileName), this.lastShadow)
+            .then(() => { this.shadowLines++; })
+            .catch((error) => this.log('Smart shadow: log write failed:', error?.message ?? error));
+    }
+
+    private async saveShadow() {
+        await saveJson(shadowStateName(this.fileName), {memory: this.shadowMemory, forecastBias: this.forecastBias,
+            slot: this.shadowSlot});
+        if (this.shadowLines > SHADOW_KEEP + 2 * 96)
+            this.shadowLines = await trimLines(shadowLogName(this.fileName), SHADOW_KEEP);
+        const last = this.lastShadow;
+        const skipped = [...this.shadowSkipped].map(([why, n]) => `${n} ${why}`).join(', ');
+        this.shadowSkipped.clear();
+        if (!last) {
+            this.log(`Smart shadow: nothing planned yet${skipped ? ` (${skipped})` : ''}.`);
+            return;
+        }
+        const presets = SHADOW_PRESETS.map((id) => {
+            const p = last.presets[id];
+            return p ? `${id} ${p.bias > 0 ? '+' : ''}${p.bias} K → ${p.fed} °C (${(p.saving * 100).toFixed(1)} %)` : `${id} -`;
+        }).join(', ');
+        this.log(`Smart shadow: ${presets}; doing nothing ${last.baseline.join('/')} °C in 1/6 h; `
+            + `${last.horizon} slots ahead, ${last.ms} ms${skipped ? `; skipped ${skipped}` : ''}.`);
     }
 
     private logStatus() {

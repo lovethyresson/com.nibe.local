@@ -4,6 +4,29 @@ Three things are live. Everything else that used to be here has shipped — the 
 commits and in the **Releases** table in [`README.md`](../README.md), the durable rules are in
 [`CLAUDE.md`](../CLAUDE.md), and the design write-ups are under [`docs/`](../docs).
 
+## Smart heating slice 4: shadow, weather feed-forward, sun per wall (2026-11-01)
+
+Maintainer's go: "Do it" (shadow), sun impact differing per window direction, ±20 K test "Ok",
+FAQ claim "a few percent" "Ok".
+
+- [x] `solar.ts`: sun position + wall irradiance; east/west walls from DNI/DHI in the same
+      Open-Meteo request; matched Open-Meteo's own walls within 1–2 W/m² RMSE over 14 days.
+      History fields `gtiE`/`gtiW` appended; older files and journals load (journal read with the
+      saved file's field count; every start saves first).
+- [x] Model: one window area per wall, absolute (per-Ci drifted to 9 kW on day 1). Stage 2 seeded
+      from the energy balance (RLS ranged 0.06×–26× on a slab warm-up). West-facing sim house
+      learns its west sun.
+- [x] Planner: comfort = setpoint (`comfortReference`), `comfortWeight` = 2 − price, no early exit
+      on a thin spread, coast cap counts slots below comfort only; forecast sun discounted by
+      trust. Real-weather bench (`--weather`/`--forecast`): steadier at Comfortable/Save some.
+- [x] Shadow (`shadow.ts`, collector): all three presets every slot, log + state files,
+      `dev/review-shadow.mjs`. Live on the Homey since 2026-11-01 08:45 (2.3 s a slot).
+- [x] `probe-bt1.mjs --ladder` for §3.3, dry-run on the fake pump (0.55 per rung).
+- [ ] Run the §3.3 ladder on the S1155 (needs the maintainer's go-ahead and the §3.1 checklist).
+- [ ] Shadow behind a hidden setting before any test-channel build.
+- [ ] The planner's doing-nothing is the curve alone; if shadow's live error tracks sun or indoor,
+      model the room loop (or require it off, as M3 does anyway).
+
 ## Smart heating slice 3: planner (offline)
 
 - [x] `presets.ts`, `actuator.ts` (clamps on 184/183/185 in Auto, ramp, pass-through),
@@ -36,7 +59,7 @@ Offline only; nothing runs on the Homey yet. Design: `docs/smart-heating-plan.md
       sun, fast/slow; readiness (§6.4) and drift (§6.2) over one fit per day.
 - [x] A reinstall at 20:23 on 2026-10-31 lost the slots since the 19:46 save, and a second one
       confirmed `homey app install` ends the process before `onUninit` saves. Each closed slot is
-      now appended to `smart-<id>.bin.journal` (88 bytes) and replayed on load; the hourly save
+      now appended to `smart-<id>.bin.journal` (92 bytes, 100 since the wall fields) and replayed on load; the hourly save
       empties it.
 
 **Daily model log** (`dev/fit-house-model.mjs … --system radiators`, history + journal):

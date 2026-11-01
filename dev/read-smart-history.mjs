@@ -24,14 +24,16 @@ const timeZone = tzAt > 0 ? process.argv[tzAt + 1] : 'Europe/Stockholm';
 const read = async (path) => (/^https?:/.test(path)
     ? fetch(path).then(async (r) => (r.ok ? Buffer.from(await r.arrayBuffer()) : undefined))
     : fs.promises.readFile(path).catch(() => undefined));
-const history = History.deserialize(await read(source) ?? Buffer.alloc(0));
+const file = await read(source) ?? Buffer.alloc(0);
+const history = History.deserialize(file);
 if (!history) {
     console.error('Not a history file this version can read.');
     process.exit(1);
 }
 // Slots closed since the last hourly save, as the app replays them (lib/smart/store-file.ts).
 const journal = await read(`${source}.journal`);
-if (journal?.length) applyJournal(history, journal);
+// Journalled with the saved file's field count: every start saves before it journals.
+if (journal?.length) applyJournal(history, journal, History.fieldCount(file));
 const slots = history.range();
 const rows = slots.map((slot) => ({slot, ...history.get(slot)}));
 const heat = heatPerSlot(rows.map((r) => ({slot: r.slot, qmeter: r.qmeter, hz: r.hz, dhw: r.dhw})));

@@ -6,7 +6,7 @@ import {SLOT_MS} from '../lib/smart/prices';
 
 const t0 = 2_000_000 * SLOT_MS; // slot 2,000,000
 const price = {price: 2.5, spot: 1.2, costsApplied: true};
-const weather = {gtiS: 300, ghi: 150, wind: 3, rh: 80, cloud: 40};
+const weather = {gtiS: 300, gtiE: 120, gtiW: 80, ghi: 150, wind: 3, rh: 80, cloud: 40};
 
 test('a full slot averages samples, keeps counters\' last value and attaches price and weather', () => {
     const history = new History(8);
@@ -113,4 +113,29 @@ test('closed slots journal as records that replay onto the last full save', () =
     const bytes = Buffer.concat([...journal, Buffer.alloc(RECORD_BYTES - 3)]); // torn last write
     assert.equal(applyJournal(restored, bytes), 3);
     for (let k = 0; k < 3; k++) assert.deepEqual(restored.get(2_000_000 + k), saved.get(2_000_000 + k));
+});
+
+test('a file and journal from before the wall fields load with those fields missing', () => {
+    const old = FIELDS.length - 2;
+    const history = new History(4);
+    history.put(7, Object.fromEntries(FIELDS.map((f, i) => [f, i])) as any);
+    // Rewrite the current file as the older writer would have: fewer fields per slot.
+    const current = history.serialize();
+    const capacity = 4;
+    const legacy = Buffer.alloc(12 + capacity * 4 * (1 + old));
+    current.copy(legacy, 0, 0, 12 + capacity * 4);
+    legacy.writeUInt8(old, 5);
+    for (let i = 0; i < capacity; i++)
+        current.copy(legacy, 12 + capacity * 4 + i * old * 4, 12 + capacity * 4 + i * FIELDS.length * 4,
+            12 + capacity * 4 + (i * FIELDS.length + old) * 4);
+    assert.equal(History.fieldCount(legacy), old);
+    const back = History.deserialize(legacy)!;
+    assert.equal(back.get(7)!.flags, FIELDS.indexOf('flags'));
+    assert.ok(Number.isNaN(back.get(7)!.gtiE) && Number.isNaN(back.get(7)!.gtiW));
+    const record = Buffer.alloc(4 + 4 * old);
+    record.writeUInt32BE(9, 0);
+    record.writeFloatBE(21.5, 4);
+    assert.equal(applyJournal(back, record, old), 1);
+    assert.equal(back.get(9)!.ti, 21.5);
+    assert.ok(Number.isNaN(back.get(9)!.gtiW));
 });

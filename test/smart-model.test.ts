@@ -1,10 +1,10 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    BuildEra, HeatingSystem, HouseParams, envelopeTau, fitSeries, newRls, predictionRmse, priorFor, rlsHouse,
+    BuildEra, HeatingSystem, HouseParams, balanceHeatLoss, envelopeTau, fitSeries, newRls, predictionRmse, priorFor, rlsHouse,
     rlsRegressors, rlsUpdate, stepHouse, usableSlot,
 } from '../lib/smart/model';
-import {RADIATOR_HOUSE, SLAB_HOUSE, simulateHouse} from './smart-house-sim';
+import {RADIATOR_HOUSE, SLAB_HOUSE, WEST_HOUSE, simulateHouse} from './smart-house-sim';
 
 const within = (actual: number, expected: number, share: number) =>
     assert.ok(Math.abs(actual / expected - 1) <= share, `${actual} not within ${share * 100} % of ${expected}`);
@@ -26,7 +26,7 @@ test('the exact step matches a fine Euler integration of the same house', () => 
 });
 
 test('stage 1 recovers the heat loss of a one-mass house within 5 %', () => {
-    const house: HouseParams = {heatLoss: 0.2, ci: 10, cm: 1, rim: 1, f: 0, sun: 0.004, gains: 0.3};
+    const house: HouseParams = {heatLoss: 0.2, ci: 10, cm: 1, rim: 1, f: 0, sun: 0.004, sunE: 0.001, sunW: 0.001, gains: 0.3};
     for (const seed of [1, 2, 3]) {
         const slots = simulateHouse(house, {days: 14, excitation: 0.4, seed, singleNode: true, noise: 0.01});
         let rls = newRls();
@@ -87,4 +87,22 @@ test('missing indoor readings are predicted through, and a long gap re-anchors o
     assert.ok(holed.filter((s) => Number.isNaN(s.ti)).every((s) => fit.states.has(s.slot)));
     const anchor = holed.find((s) => s.slot === slots[431].slot)!;
     assert.ok(Math.abs(fit.states.get(anchor.slot)![0] - anchor.ti) < 0.2);
+});
+
+test('a house with its glass to the west learns that its sun comes from the west', () => {
+    for (const seed of [1, 2]) {
+        const slots = simulateHouse(WEST_HOUSE, {days: 21, excitation: 0.4, hotWaterPerDay: 3, seed});
+        const p = fitSeries(slots, 'radiators', '1960_1979').params!;
+        assert.ok(p.sunW > 2 * p.sunE && p.sunW > 2 * p.sun, `E ${p.sunE} S ${p.sun} W ${p.sunW}`);
+        within(p.sunW, WEST_HOUSE.sunW, 0.35);
+    }
+});
+
+test('the warm-up energy balance seeds the heat loss within 30 % on every simulated house', () => {
+    for (const house of [RADIATOR_HOUSE, SLAB_HOUSE, WEST_HOUSE])
+        for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+            const warmup = simulateHouse(house, {days: 3, excitation: 0.4, hotWaterPerDay: 3, seed});
+            within(balanceHeatLoss(warmup)!, house.heatLoss, 0.3);
+        }
+    assert.equal(balanceHeatLoss(simulateHouse(RADIATOR_HOUSE, {days: 3}).slice(0, 8)), undefined);
 });

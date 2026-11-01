@@ -1,9 +1,12 @@
-/** Planner v1: price shifting through the outdoor bias. Pure. Design: docs/smart-heating-plan.md
- *  §7.3 (trim is left out until it runs against a live house; this is the shift).
+/** Planner v1: price shifting and weather feed-forward through the outdoor bias. Pure.
+ *  Design: docs/smart-heating-plan.md §7.3.
  *
  *  It minimises the cost at equal comfort (`fairCost`) inside the profile's band, so a plan
  *  that saves only by running the house cooler is worth nothing to it: that is not price
- *  shifting (§11).
+ *  shifting (§11). Comfort is the setpoint, not what the curve would have done, so the same
+ *  search also acts on the forecast: it eases off before sun that would overheat the house
+ *  (free heat; warmth above comfort is worth nothing) and, at a profile that values comfort
+ *  above its price, warms ahead of a cold front the curve would lag behind.
  *
  *  Assumptions to replace with measurements:
  *  - Doing nothing holds comfort: the curve delivers `H·(comfort − te) − gains` kW. Each K of
@@ -23,7 +26,10 @@ const STEP_K = 1;
 
 export interface ForecastSlot {
     te: number;
+    /** Irradiance on the south, east and west walls, W/m² (model.ts `Inputs`). */
     sun: number;
+    sunE?: number;
+    sunW?: number;
     /** Price per kWh of electricity. */
     price: number;
 }
@@ -67,7 +73,7 @@ export function simulate(house: HouseParams, comfort: number, state: PlanState, 
     forecast.forEach((slot, k) => {
         curve = curveInput(curve, slot.te - biases[k], SLOT_H, CURVE_TAU_H);
         const heat = pumpHeat(house, comfort, slot.te, curve, pump);
-        [ti, tm] = stepHouse(house, ti, tm, {te: slot.te, q: heat, sun: slot.sun});
+        [ti, tm] = stepHouse(house, ti, tm, {te: slot.te, q: heat, sun: slot.sun, sunE: slot.sunE, sunW: slot.sunW});
         out.ti.push(ti);
         out.tm.push(tm);
         out.heat.push(heat);
@@ -92,17 +98,29 @@ export interface Plan {
     /** Cost at equal comfort of the plan and of doing nothing (see `planShift`). */
     fairCost: number;
     baselineFairCost: number;
-    /** Why nothing shifted, when nothing did. */
+    /** Why nothing moved, when nothing did. */
     reason?: 'spread_below_margin' | 'no_gain' | 'no_room';
 }
 
+/** What comfort means to the planner: air at the setpoint every slot, and at the end the mass
+ *  the curve would hold there in steady state (no sun). It is the setpoint, not a simulation of
+ *  doing nothing: that one counted the sun's overshoot as comfort, so easing off ahead of sun
+ *  looked like making the house colder. It is not "from now" either: a reference starting at the
+ *  current state ratcheted, each replan's bar rising with the last pre-heat. */
+export type Reference = Pick<Simulation, 'ti' | 'tm'>;
+
+export function comfortReference(house: HouseParams, comfort: number, forecast: ForecastSlot[]): Reference {
+    const end = steadyState(house, comfort, forecast[forecast.length - 1].te);
+    return {ti: forecast.map(() => comfort), tm: forecast.map(() => end.tm)};
+}
+
 /** Electricity bought, plus the warmth a plan leaves owing, bought back at the horizon's mean
- *  price: degree-hours below the reference (H·Δt each) and stored heat short at the end. Running
- *  the house colder therefore saves nothing here; only buying the same comfort at cheaper hours
- *  does. The reference is doing nothing from the steady state at comfort, not from now, so a
- *  pre-heat already made is credited rather than raising the bar for the next replan. */
-export function fairCost(house: HouseParams, sim: Simulation, reference: Simulation, meanPrice: number): number {
-    return sim.cost + owedHeat(house, sim, reference) / COP * meanPrice;
+ *  price times `weight`: degree-hours below comfort (H·Δt each) and stored heat short at the
+ *  end. Running the house colder therefore saves nothing here; only buying the same comfort at
+ *  cheaper hours does. A weight above 1 values comfort above its price, which is what makes a
+ *  pre-heat ahead of a cold front worth buying. */
+export function fairCost(house: HouseParams, sim: Simulation, reference: Reference, meanPrice: number, weight = 1): number {
+    return sim.cost + weight * owedHeat(house, sim, reference) / COP * meanPrice;
 }
 
 /** kWh of heat a plan leaves owing: each degree-hour colder than the reference (H·Δt), plus
@@ -111,7 +129,7 @@ export function fairCost(house: HouseParams, sim: Simulation, reference: Simulat
  *  deficits (equal *average* comfort) made the closed-loop planner hold 24.5 °C all morning to
  *  pay for a cool evening, and crediting surplus outright made heat at any cheaper-than-mean hour
  *  look like a saving. */
-export function owedHeat(house: HouseParams, sim: Simulation, reference: Simulation): number {
+export function owedHeat(house: HouseParams, sim: Reference, reference: Reference): number {
     const n = sim.ti.length;
     let owed = Math.max(0, house.ci * (reference.ti[n - 1] - sim.ti[n - 1]) + house.cm * (reference.tm[n - 1] - sim.tm[n - 1]));
     for (let k = 0; k < n; k++) owed += house.heatLoss * SLOT_H * Math.max(0, reference.ti[k] - sim.ti[k]);
@@ -124,7 +142,11 @@ export function owedHeat(house: HouseParams, sim: Simulation, reference: Simulat
  *  the bias, so one impulse response gives every slot's effect on that cost and on indoor. A
  *  greedy search then moves the bias 1 K at a time where it pays most, inside the band, the
  *  bias limit, the ramp and the coast cap. The result is re-simulated in full, clamps included,
- *  and dropped if it leaves the band. */
+ *  and dropped if it leaves the band.
+ *
+ *  A spread below the margin doesn't stop the search, it only stops price shifting: each move
+ *  must still beat half the margin on the heat it moves, which a pure arbitrage on a thin spread
+ *  can't, while easing off ahead of sun saves outright and passes. */
 export function planShift(house: HouseParams, comfort: number, state: PlanState, forecast: ForecastSlot[],
                           limits: Limits, pump: PumpCurve = {}, previous?: number[], maxMoves = 2000): Plan {
     const n = forecast.length;
@@ -132,14 +154,15 @@ export function planShift(house: HouseParams, comfort: number, state: PlanState,
     const baseline = simulate(house, comfort, state, forecast, zero, pump);
     const prices = forecast.map((s) => s.price);
     const meanPrice = mean(prices);
-    const reference = simulate(house, comfort, steadyState(house, comfort, forecast[0].te), forecast, zero, pump);
-    const baselineFair = fairCost(house, baseline, reference, meanPrice);
-    const nothing = (reason: Plan['reason']): Plan =>
-        ({biases: zero, plan: baseline, baseline, fairCost: baselineFair, baselineFairCost: baselineFair, reason});
+    const reference = comfortReference(house, comfort, forecast);
+    const weight = limits.comfortWeight;
+    const baselineFair = fairCost(house, baseline, reference, meanPrice, weight);
     const lo = Math.min(...prices);
     const hi = Math.max(...prices);
+    const thin = !(hi > lo * (1 + limits.margin)) || hi <= 0;
+    const nothing = (reason: Plan['reason']): Plan => ({biases: zero, plan: baseline, baseline,
+        fairCost: baselineFair, baselineFairCost: baselineFair, reason: reason === 'no_gain' && thin ? 'spread_below_margin' : reason});
     if (limits.maxBias === 0) return nothing('no_room');
-    if (!(hi > lo * (1 + limits.margin)) || hi <= 0) return nothing('spread_below_margin');
 
     // Unit-bias responses at slot 0: indoor, mass and heat m slots later.
     const unit = [1, ...new Array(n - 1).fill(0)];
@@ -157,7 +180,7 @@ export function planShift(house: HouseParams, comfort: number, state: PlanState,
         for (let k = j; k < n; k++) g += prices[k] / COP * rq[k - j];
         return g;
     });
-    const owedValue = meanPrice / COP;
+    const owedValue = weight * meanPrice / COP;
     // A move must win at least half the margin on the heat it moves, so a thin spread isn't chased.
     const threshold = (Number.isFinite(limits.margin) ? limits.margin : 1) / 2 * meanPrice / COP * moved;
 
@@ -191,10 +214,13 @@ export function planShift(house: HouseParams, comfort: number, state: PlanState,
         const before = j === 0 ? state.bias : biases[j - 1];
         if (Math.abs(value - before) > RAMP_K_PER_SLOT + 1e-9) return false;
         if (j + 1 < n && Math.abs(biases[j + 1] - value) > RAMP_K_PER_SLOT + 1e-9) return false;
-        if (value < 0) {
+        // The coast cap limits living on stored heat, so only slots below comfort count: easing
+        // off while sun holds the house above it draws on nothing.
+        if (value < 0 && ti[j] < comfort) {
+            const drawing = (k: number) => biases[k] < 0 && ti[k] < comfort;
             let run = 1;
-            for (let k = j - 1; k >= 0 && biases[k] < 0; k--) run++;
-            for (let k = j + 1; k < n && biases[k] < 0; k++) run++;
+            for (let k = j - 1; k >= 0 && drawing(k); k--) run++;
+            for (let k = j + 1; k < n && drawing(k); k++) run++;
             if (run > maxCoast) return false;
         }
         return true;
@@ -231,7 +257,7 @@ export function planShift(house: HouseParams, comfort: number, state: PlanState,
     const plan = simulate(house, comfort, state, forecast, biases, pump);
     // Clamps (pump at zero or flat out) break the linear picture; keep the band regardless.
     if (plan.ti.some((t, k) => t < floor[k] - 0.1 || t > ceiling[k] + 0.1)) return nothing('no_gain');
-    const fair = fairCost(house, plan, reference, meanPrice);
+    const fair = fairCost(house, plan, reference, meanPrice, weight);
     if (fair >= baselineFair) return nothing('no_gain');
     return {biases, plan, baseline, fairCost: fair, baselineFairCost: baselineFair};
 }

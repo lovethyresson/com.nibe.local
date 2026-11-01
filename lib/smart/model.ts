@@ -2,8 +2,8 @@
  *  Design: docs/smart-heating-plan.md §6.
  *
  *  Two stages:
- *  1. A 1R1C ARX fitted by recursive least squares. Quick to settle, and the source of the
- *     heat-loss starting point for stage 2.
+ *  1. A 1R1C ARX fitted by recursive least squares, reported alongside. Stage 2's heat-loss
+ *     starting point is the warm-up's energy balance instead (`balanceHeatLoss`).
  *  2. A 2R2C grey-box model, states [ti, tm] (air and mass), with its parameters learned by an
  *     augmented extended Kalman filter. Its starting point comes from the owner's two Setup
  *     answers (§6.6).
@@ -33,8 +33,8 @@ const symmetrise = (a: Mat): Mat => a.map((row, i) => row.map((v, j) => (v + a[j
  *  The history holds slot *means*, and a slot's heat shows up partly in the next slot's mean, so
  *  the inputs are the mean of the two slots (see `rlsRegressors`). Without that the heat loss
  *  reads 6–10 % high on a noiseless simulated house; with it, exact. The time constant stays
- *  biased low by sensor noise (errors in the ti regressor: −50 % at 0.03 K), so stage 1 seeds
- *  the heat loss only and its τ is never shown. */
+ *  biased low by sensor noise (errors in the ti regressor: −50 % at 0.03 K), so its τ is never
+ *  shown, and over a short warm-up its heat loss is too erratic to seed stage 2 with. */
 export interface Rls {
     theta: number[];
     P: Mat;
@@ -47,9 +47,12 @@ export function newRls(lambda = 0.998): Rls {
 }
 
 export function rlsRegressors(previous: ModelSlot, slot: ModelSlot): number[] {
-    const mean = (k: keyof Inputs) => (previous.inputs[k] + slot.inputs[k]) / 2;
-    return [previous.ti, mean('te'), mean('q'), mean('sun'), 1];
+    const mean = (k: 'te' | 'q') => (previous.inputs[k] + slot.inputs[k]) / 2;
+    return [previous.ti, mean('te'), mean('q'), (totalSun(previous.inputs) + totalSun(slot.inputs)) / 2, 1];
 }
+
+/** Stage 1 has one sun term: the three walls summed. */
+const totalSun = (u: Inputs) => u.sun + (u.sunE ?? 0) + (u.sunW ?? 0);
 
 export function rlsUpdate(rls: Rls, x: number[], y: number): Rls {
     const Px = rls.P.map((row) => row.reduce((s, v, j) => s + v * x[j], 0));
@@ -68,7 +71,7 @@ export interface FirstOrderHouse {
     heatLoss: number;
     /** Stored heat, kWh per K. */
     capacity: number;
-    /** Solar gain, kW per W/m² on the south wall. */
+    /** Solar gain, kW per W/m² summed over the three walls. */
     sun: number;
 }
 
@@ -85,13 +88,20 @@ export function rlsHouse(rls: Rls): FirstOrderHouse | undefined {
 // ---- stage 2: 2R2C by augmented EKF ----
 
 /**
- *  Ci dti/dt = (te − ti)/Rie + (tm − ti)/Rim + (1 − f)·P + Aw·sun + Φ
+ *  Ci dti/dt = (te − ti)/Rie + (tm − ti)/Rim + (1 − f)·P + Σ Aw·sun + Φ
  *  Cm dtm/dt = (ti − tm)/Rim + f·P
  *
+ *  The sun term has one window area per wall (east, south, west), so a house whose windows face
+ *  west learns that its sun arrives in the afternoon, and one with few windows learns little sun
+ *  at all. The walls' irradiance is correlated (one sun), so each area is only told apart on days
+ *  when the sun shows at different hours; until then they stay near the prior's split.
+ *
  *  Learned in log space (f in logit space) so every parameter stays positive (f in 0..1):
- *  p = [1/(Ci·Rie), 1/(Ci·Rim), 1/(Cm·Rim), 1/Ci, Aw/Ci, f, Φ/Ci].
+ *  p = [1/(Ci·Rie), 1/(Ci·Rim), 1/(Cm·Rim), 1/Ci, AwS, f, Φ/Ci, AwE, AwW]. The window areas are
+ *  absolute, not per Ci like the rates: a wall with no sun yet would otherwise drift with every
+ *  change in Ci, and report sun the house never had.
  */
-export const PARAMS = ['ie', 'im', 'mi', 'invCi', 'sun', 'f', 'gains'] as const;
+export const PARAMS = ['ie', 'im', 'mi', 'invCi', 'sun', 'f', 'gains', 'sunE', 'sunW'] as const;
 const NS = 2;
 const NP = PARAMS.length;
 const NZ = NS + NP;
@@ -107,8 +117,10 @@ export interface HouseParams {
     rim: number;
     /** Share of delivered heat that goes into the mass first (underfloor high, radiators low). */
     f: number;
-    /** Solar aperture, kW per W/m² on the south wall. */
+    /** Solar aperture, kW per W/m², of the south, east and west walls. */
     sun: number;
+    sunE: number;
+    sunW: number;
     /** Internal gains, kW. */
     gains: number;
 }
@@ -121,23 +133,31 @@ const logit = (x: number) => Math.log(x / (1 - x));
 const sigmoid = (x: number) => 1 / (1 + Math.exp(-x));
 
 function toVector(p: HouseParams): number[] {
-    const rates = [1 / (p.ci / p.heatLoss), 1 / (p.ci * p.rim), 1 / (p.cm * p.rim), 1 / p.ci, p.sun / p.ci];
-    return [...rates.map(Math.log), logit(p.f), Math.log(p.gains / p.ci)];
+    const rates = [1 / (p.ci / p.heatLoss), 1 / (p.ci * p.rim), 1 / (p.cm * p.rim), 1 / p.ci, p.sun];
+    return [...rates.map(Math.log), logit(p.f), Math.log(p.gains / p.ci), Math.log(p.sunE), Math.log(p.sunW)];
 }
 
 function fromVector(v: number[]): HouseParams {
     const [ie, im, mi, invCi, sun] = v.slice(0, 5).map(Math.exp);
     const ci = 1 / invCi;
     const rim = 1 / (ci * im);
-    return {heatLoss: ie * ci, ci, cm: 1 / (mi * rim), rim, f: sigmoid(v[5]), sun: sun * ci, gains: Math.exp(v[6]) * ci};
+    return {heatLoss: ie * ci, ci, cm: 1 / (mi * rim), rim, f: sigmoid(v[5]), sun, gains: Math.exp(v[6]) * ci,
+        sunE: Math.exp(v[7]), sunW: Math.exp(v[8])};
 }
 
 export interface Inputs {
     te: number;
     /** Delivered heat this slot, kWh. */
     q: number;
-    /** South-wall irradiance, W/m². */
+    /** Irradiance on the south wall, W/m²; east and west when known (missing reads as no sun). */
     sun: number;
+    sunE?: number;
+    sunW?: number;
+}
+
+/** kW of sun through the windows. */
+export function solarGain(p: HouseParams, u: Inputs): number {
+    return p.sun * u.sun + p.sunE * (u.sunE ?? 0) + p.sunW * (u.sunW ?? 0);
 }
 
 /** One exact zero-order-hold step of the 2R2C model over `dt` hours. */
@@ -145,7 +165,7 @@ export function stepHouse(p: HouseParams, ti: number, tm: number, u: Inputs, dt 
     const P = u.q / SLOT_H;
     const a11 = -(1 / p.rim + p.heatLoss) / p.ci, a12 = 1 / (p.rim * p.ci);
     const a21 = 1 / (p.rim * p.cm), a22 = -1 / (p.rim * p.cm);
-    const b1 = (p.heatLoss * u.te + (1 - p.f) * P + p.sun * u.sun + p.gains) / p.ci;
+    const b1 = (p.heatLoss * u.te + (1 - p.f) * P + solarGain(p, u) + p.gains) / p.ci;
     const b2 = p.f * P / p.cm;
     // expm(A·dt) for a 2×2 with real eigenvalues: e^{s·dt}[cosh(d·dt)·I + sinh(d·dt)/d·(A − s·I)].
     const s = (a11 + a22) / 2;
@@ -187,18 +207,20 @@ export interface Prior {
 }
 
 /** Where the EKF starts. The heat loss is the one thing the answers can't size, so it comes from
- *  stage 1 when that has settled, else a wide guess. */
+ *  the warm-up's energy balance when there was heating to judge by, else a wide guess. */
 export function priorFor(system: HeatingSystem, era: BuildEra, heatLoss?: number): Prior {
     const s = SYSTEM[system];
     const h = heatLoss && heatLoss > 0.02 && heatLoss < 1.5 ? heatLoss : 0.15;
     const total = ERA_TAU[era] * h;
     const ci = total * (1 - s.massShare);
     const params: HouseParams = {
-        heatLoss: h, ci, cm: total * s.massShare, rim: s.couplingH / ci, f: s.f, sun: 0.003, gains: 0.3,
+        heatLoss: h, ci, cm: total * s.massShare, rim: s.couplingH / ci, f: s.f, gains: 0.3,
+        // ~3 m² of effective glass per wall: a guess the sun corrects within a few clear days.
+        sun: 0.003, sunE: 0.003, sunW: 0.003,
     };
     const wide = system === 'unknown' || era === 'unknown' ? 1.4 : 1;
     const hSd = heatLoss ? 0.3 : 0.7;
-    return {params, sd: [hSd, 0.8, 0.8, 0.6, 1, 1, 1].map((v) => v * wide)};
+    return {params, sd: [hSd, 0.8, 0.8, 0.6, 1, 1, 1, 1, 1].map((v) => v * wide)};
 }
 
 // ---- the filter ----
@@ -322,9 +344,12 @@ export function usableSlot(g: GateInput): boolean {
     return true;
 }
 
-/** History rows (heat already spread, see heat.ts) → what the model reads. */
-export function toModelSlots(rows: {slot: number; ti: number; te: number; gtiS: number; dhw: number;
-    partial: boolean; q?: number}[]): ModelSlot[] {
+const orZero = (v?: number) => v !== undefined && Number.isFinite(v) ? v : 0;
+
+/** History rows (heat already spread, see heat.ts) → what the model reads. Slots from before the
+ *  east and west walls were recorded read as no sun there, which the south wall then absorbs. */
+export function toModelSlots(rows: {slot: number; ti: number; te: number; gtiS: number; gtiE?: number; gtiW?: number;
+    dhw: number; partial: boolean; q?: number}[]): ModelSlot[] {
     const sorted = [...rows].sort((a, b) => a.slot - b.slot);
     return sorted.map((r, i) => {
         const previous = sorted[i - 1]?.slot === r.slot - 1 ? sorted[i - 1].ti : undefined;
@@ -332,7 +357,7 @@ export function toModelSlots(rows: {slot: number; ti: number; te: number; gtiS: 
         return {
             slot: r.slot,
             ti: r.ti,
-            inputs: {te: r.te, q, sun: Number.isFinite(r.gtiS) ? r.gtiS : 0},
+            inputs: {te: r.te, q, sun: orZero(r.gtiS), sunE: orZero(r.gtiE), sunW: orZero(r.gtiW)},
             // An unknown heat amount (the slot before the first counter step) is not a zero.
             usable: r.q !== undefined && Number.isFinite(r.te) && usableSlot({ti: r.ti, previousTi: previous,
                 partial: r.partial, dhw: r.dhw}),
@@ -364,6 +389,21 @@ export function predictionRmse(params: HouseParams, slots: ModelSlot[], states: 
     return {rmse: n ? Math.sqrt(sum / n) : NaN, windows: n};
 }
 
+/** Heat loss from the energy balance: heat delivered over degree-hours indoor above outdoor.
+ *  It ignores sun, internal gains and what the house stored meanwhile, so it reads low by their
+ *  share (10–25 % on the simulated houses), but it never strays far. Stage 1's ARX over the same
+ *  three days ranged from 0.06× to 26× the true value on a slab house, and a seed that far off
+ *  left the mass unidentified for weeks. Undefined without enough heating to judge by. */
+export function balanceHeatLoss(slots: ModelSlot[]): number | undefined {
+    let heat = 0, degreeHours = 0;
+    for (const s of slots) {
+        if (!Number.isFinite(s.ti) || !Number.isFinite(s.inputs.te)) continue;
+        heat += s.inputs.q;
+        degreeHours += (s.ti - s.inputs.te) * SLOT_H;
+    }
+    return degreeHours > 24 * 5 && heat > 0 ? heat / degreeHours : undefined;
+}
+
 /** Run both stages over a series in time order: the offline path, for tests and dev tools, and
  *  the shape the online collector repeats one slot at a time. */
 export function fitSeries(slots: ModelSlot[], system: HeatingSystem, era: BuildEra,
@@ -381,8 +421,8 @@ export function fitSeries(slots: ModelSlot[], system: HeatingSystem, era: BuildE
         if (!ekf) {
             buffered.push(slot);
             if (buffered.length < warmup) continue;
-            // Stage 1 has seen the warm-up; seed stage 2 with its heat loss and replay from the start.
-            ekf = newEkf(priorFor(system, era, rlsHouse(rls)?.heatLoss));
+            // Seed stage 2 with the warm-up's energy balance and replay from the start.
+            ekf = newEkf(priorFor(system, era, balanceHeatLoss(buffered)));
             for (const b of buffered) {
                 ekf = ekfStep(ekf, b, options.tuning);
                 if (ekf.slot === b.slot) states.set(b.slot, [ekf.z[0], ekf.z[1]]);

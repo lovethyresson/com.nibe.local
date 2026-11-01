@@ -12,8 +12,10 @@ export interface HouseInsights {
     hoursPerDegree: number;
     /** kWh per °C, air and mass together. */
     stored: number;
-    /** kW added at 500 W/m² on the south wall, a sunny winter noon. */
-    sunAt500: number;
+    /** kW through each wall's windows at 500 W/m² on it, a sunny winter hour facing the sun. */
+    sunAt500: {east: number; south: number; west: number};
+    /** The wall with more than half the glass, when one has. */
+    sunMostly?: 'east' | 'south' | 'west';
     /** Slow = behaves like a heavy floor: most heat goes into the mass first. */
     speed: 'fast' | 'slow';
     tau: number;
@@ -39,6 +41,14 @@ export function coolDown(p: HouseParams, hours: number, from = 21, outdoor = 0):
     return out;
 }
 
+const MOSTLY = 0.5;
+
+function mostly(walls: {east: number; south: number; west: number}): HouseInsights['sunMostly'] {
+    const total = walls.east + walls.south + walls.west;
+    const [wall, area] = (Object.entries(walls) as [keyof typeof walls, number][]).sort((a, b) => b[1] - a[1])[0];
+    return total > 0 && area / total > MOSTLY ? wall : undefined;
+}
+
 /** Undefined while the model has no plausible reading: the label says "Still learning". */
 export function houseInsights(fit: HouseFit): HouseInsights | undefined {
     const p = fit.params;
@@ -54,7 +64,8 @@ export function houseInsights(fit: HouseFit): HouseInsights | undefined {
         coolingIn6h: curve[0] - curve[24],
         hoursPerDegree: firstDegree < 0 ? 24 : firstDegree / 4,
         stored: p.ci + p.cm,
-        sunAt500: p.sun * 500,
+        sunAt500: {east: p.sunE * 500, south: p.sun * 500, west: p.sunW * 500},
+        sunMostly: mostly({east: p.sunE, south: p.sun, west: p.sunW}),
         speed: p.f > SLOW_F ? 'slow' : 'fast',
         tau,
         accuracy: fit.rmse,
@@ -71,5 +82,6 @@ export function insightsLine(fit: HouseFit, insights: HouseInsights | undefined,
     if (!insights) return `${head}; still learning`;
     return `${head}; heat loss ${Math.round(insights.heatLoss)} W/°C, τ ${Math.round(insights.tau)} h, `
         + `stored ${insights.stored.toFixed(1)} kWh/°C, −${insights.coolingIn6h.toFixed(1)} °C in 6 h at 0 °C off, `
-        + `sun ${insights.sunAt500.toFixed(1)} kW, ${insights.speed}`;
+        + `sun E/S/W ${[insights.sunAt500.east, insights.sunAt500.south, insights.sunAt500.west].map((v) => v.toFixed(1)).join('/')} kW`
+        + `${insights.sunMostly ? ` (mostly ${insights.sunMostly})` : ''}, ${insights.speed}`;
 }

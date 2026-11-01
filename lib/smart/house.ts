@@ -34,6 +34,8 @@ export interface HouseFit {
     validDays: number;
     /** kW of heat per K of bias (planner.ts `PumpCurve.lever`), when enough clean hours exist. */
     lever?: number;
+    /** The filter's air and mass at the last slot it saw: where a plan starts (shadow.ts). */
+    state?: {slot: number; ti: number; tm: number};
 }
 
 /** Whole hours of steady space heating (no hot water, every slot read) for `estimateLever`. */
@@ -58,7 +60,7 @@ export function heatingHours(history: History): {heatKw: number; tcalc: number; 
 export function modelSlotsFromHistory(history: History): ModelSlot[] {
     const rows = history.range().map((slot) => ({slot, ...history.get(slot)!}));
     const heat = heatPerSlot(rows.map((r) => ({slot: r.slot, qmeter: r.qmeter, hz: r.hz, dhw: r.dhw})));
-    return toModelSlots(rows.map((r) => ({slot: r.slot, ti: r.ti, te: r.te, gtiS: r.gtiS, dhw: r.dhw,
+    return toModelSlots(rows.map((r) => ({slot: r.slot, ti: r.ti, te: r.te, gtiS: r.gtiS, gtiE: r.gtiE, gtiW: r.gtiW, dhw: r.dhw,
         partial: (r.flags & FLAG.partial) !== 0, q: heat.get(r.slot)})));
 }
 
@@ -80,6 +82,10 @@ export function fitHouse(slots: ModelSlot[], answers: HouseAnswers, lever?: numb
     const fit = fitSeries(slots, answers.system, answers.era, {warmupSlots});
     const recent = slots.slice(-7 * DAY_SLOTS);
     const quality = fit.params ? predictionRmse(fit.params, recent, fit.states) : {rmse: NaN, windows: 0};
+    // The last slot the filter corrected: slots after it wait for 1577 to step, so it ran them
+    // with no heat, which leaves its state there too cold.
+    const lastUsable = [...slots].reverse().find((s) => s.usable && fit.states.has(s.slot));
+    const last = lastUsable && ([lastUsable.slot, fit.states.get(lastUsable.slot)!] as const);
     return {
         params: fit.params,
         firstOrderHeatLoss: rlsHouse(fit.rls)?.heatLoss,
@@ -89,6 +95,7 @@ export function fitHouse(slots: ModelSlot[], answers: HouseAnswers, lever?: numb
         usable: slots.filter((s) => s.usable).length,
         validDays: validDays(slots),
         lever,
+        state: fit.params && last ? {slot: last[0], ti: last[1][0], tm: last[1][1]} : undefined,
     };
 }
 

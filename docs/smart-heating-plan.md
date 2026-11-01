@@ -213,6 +213,36 @@ maintainer's S1155 (ground source, radiators); details in [external-sensors.md](
 fast radiator house. Both are learned per pump in M1/M2, and M2 shadow needs a slab house and an
 air-source pump before M3 ships (§7.5).
 
+### 3.3 The gain far from the real temperature (planned, needs the maintainer's go-ahead)
+
+§3.1 measured the gain at ±5 K. The planner may bias ±12 K (Save some) and ±20 K (Save the most),
+and both the curve's shape and the supply limits (34 min, 38 max) can bend the gain out there. A
+coast that moves half the heat the planner expects is a coast that saves half as much.
+
+**Design (`dev/probe-bt1.mjs --ladder`):** settle as §3.1, then walk the fed value out in rungs
+of 5 K, 75 min each, and recover for 150 min. A rung is 1.5τ, short of steady state, so the gain
+is read against the curve's filtered view of the offset (τ 49 min known from §3.1): change in
+supply over change in what the curve saw, rung by rung. Dry-run against the fake pump: 0.55 on
+every rung for a fake gain of 0.55.
+- **Pre-heat side (colder fake):** `--ladder -5,-10,-15,-20`. Risk: degree minutes and the
+  immersion heater. Aborts if 1029 turns on or DM falls below `--min-dm` (−600).
+- **Coast side (warmer fake):** `--ladder 5,10,15,20`. Risk: supply reaching min supply (34) and
+  the compressor stopping; that is a result (where the lever ends), not a failure.
+- Each side ~6.5 h: settle ≥ 30 min, 4 × 75 min, recovery 150 min. Two days.
+- Aborts as §3.1 (held setting changed, indoor more than 1 K from its start), plus the two above.
+
+**Pass:** every rung within 20 % of 0.50. Otherwise `MAX_BIAS_K` (§7.4) is cut to the last rung
+that passes, on that side.
+
+**Before the run:** the §3.1 checklist (SPA off, room-sensor control off ≥ 60 min, nothing
+planned at the pump, at home), operating mode as it is normally run (Manual here: the auto-stop
+thresholds don't act, so the probe doesn't refuse on them), and a mild day for the pre-heat side.
+
+```
+node dev/probe-bt1.mjs --ladder -5,-10,-15,-20 --lat <lat> --lon <lon>
+node dev/probe-bt1.mjs --ladder 5,10,15,20 --lat <lat> --lon <lon>
+```
+
 ---
 
 ## 4. Lever: BT1 feed
@@ -430,8 +460,12 @@ them. So the app evaluates `mathExpression` itself:
 **Open-Meteo** (`models=metno_seamless`, hourly):
 - Variables: `temperature_2m`, `wind_speed_10m`, `relative_humidity_2m`, `cloud_cover`,
   `shortwave_radiation`.
-- `global_tilted_irradiance` at `tilt=90`, `azimuth=0` (S); a second façade (E/W) only if the fit
-  asks for it.
+- `global_tilted_irradiance` at `tilt=90`, `azimuth=0` (S), plus `direct_normal_irradiance` and
+  `diffuse_radiation`, from which `solar.ts` works out the **east and west walls** (sun position
+  per slot, isotropic sky, ground albedo 0.2). One request instead of three: over 14 days at the
+  maintainer's location the computed walls matched Open-Meteo's own tilted irradiance within
+  1–2 W/m² RMSE on all three (2026-11-01). History fields `gtiE`/`gtiW` were appended; files from
+  before load with them missing, which the model reads as no sun on those walls.
 - `past_days=1&forecast_days=3`.
 - Attribution, "Weather data by Open-Meteo.com (CC BY 4.0)", goes in the README and the settings
   hint.
@@ -502,13 +536,26 @@ needs, whatever the owner selected. This is the precedent at `lib/device.ts:1024
 
 ### 6.1 Stages
 
-1. **1R1C ARX by RLS** (λ = 0.998/slot): `ti[k+1] = a·ti + b·te + c·qheat + d·gti_s + e`.
-   Usable after about 3 days, or day 1 with the backfill.
-   - It seeds stage 2's **heat loss only**. The history holds slot means, so the inputs are
-     averaged over the two slots; that took the heat-loss bias on a simulated house from +6–10 %
-     to 0. Its τ stays biased low by sensor noise (−50 % at 0.03 K), so it is never shown.
+1. **1R1C ARX by RLS** (λ = 0.998/slot): `ti[k+1] = a·ti + b·te + c·qheat + d·Σgti + e`.
+   Reported beside stage 2, never shown. The history holds slot means, so the inputs are
+   averaged over the two slots; that took the heat-loss bias on a simulated house from +6–10 %
+   to 0. Its τ stays biased low by sensor noise (−50 % at 0.03 K).
+   - **It no longer seeds stage 2 (2026-11-01).** Over a 3-day warm-up its heat loss ranged from
+     0.06× to 26× the truth on a slab house, and a seed that far off left the mass unidentified
+     for weeks (τ 695 h for 127 h). Stage 2 now starts from the warm-up's **energy balance**,
+     heat over indoor-above-outdoor degree-hours: it ignores sun and gains, so it reads 8–25 %
+     low, but it stayed within that on every simulated house and seed.
 2. **2R2C augmented EKF.**
-   - States `[ti, tm]`; log-parameters `[1/(CiRie), 1/(CiRim), 1/(CmRim), 1/Ci, Aw/Ci, f, Φint/Ci]`.
+   - States `[ti, tm]`; log-parameters `[1/(CiRie), 1/(CiRim), 1/(CmRim), 1/Ci, AwS, f, Φint/Ci,
+     AwE, AwW]`.
+   - **Sun per wall (2026-11-01).** One window area each for the east, south and west walls, so
+     a house with its glass to the west learns that its sun arrives in the afternoon, and one
+     with little glass learns little sun at all; the planner then eases off at the right hours
+     (§7.3). The walls' irradiance is correlated, so they separate only on days the sun shows at
+     different hours; until then each stays near the prior (3 m²-equivalent). The areas are
+     learned absolute, not per Ci like the rates: per Ci, an unobserved wall drifted to 9 kW of
+     "sun" as the fit raised Ci sixfold on the maintainer's first day. On a simulated
+     west-facing house the west area came out within 35 % and more than twice either other wall.
    - Exact zero-order-hold discretisation via the 2×2 matrix exponential.
    - **Priors from the owner's two Setup answers** (§6.6), not a fixed radiator prior. The EKF
      then learns the house; the answers only set where it starts and how far it may wander.
@@ -697,6 +744,50 @@ Runs every 15 min and on new prices or weather. Horizon: 24–36 h of slots.
   whether ±40 K is safe (gain measured at ±5 K only, §7.4); Comfortable earns little (< 1 %)
   and may not be worth a setting of its own.
 
+**Weather feed-forward (2026-11-01).** The Ngenic value: indoor stays level because heat is cut
+*before* forecast sun lands and raised before a cold front, not after the sensor sees it.
+- **Comfort is the setpoint**, not a simulation of doing nothing (`comfortReference`). The old
+  reference counted the sun's overshoot as comfort, so easing off ahead of sun looked like making
+  the house colder and never happened. Now warmth above the setpoint is worth nothing and costs
+  the heat that made it; degree-hours below it are owed as before.
+- **`comfortWeight` = 2 − price share**: what a degree-hour below comfort is worth as a multiple
+  of the heat that cures it. Save the most (1.0) trades comfort at cost; Comfortable (1.7) pays
+  extra to stay level, which is what makes a pre-heat ahead of a cold front worth buying.
+- **No early exit on a thin spread.** Each move must still beat half the margin on the heat it
+  moves, which a thin-spread arbitrage can't, but easing off ahead of sun saves outright and
+  passes. The coast cap counts only slots below comfort: easing off while sun holds the house
+  above it draws on no stored heat.
+- **Forecast sun is discounted by the profile's forecast trust** (×0.58 Comfortable, ×0.74 Save
+  some, ×0.9 Save the most), so a forecast that oversells sun leaves the house short by less.
+- **Bench, real October weather (2026-10-03…30) at the maintainer's location, planned on
+  Open-Meteo's day-ahead forecast, the house run on what happened**, lever 0.45·H, Manual,
+  comfort 22.5 °C. *Fair* is the price-shift yardstick (against doing nothing, sun overshoot
+  counted as comfort); *at comfort* counts warmth above the setpoint as worth nothing; RMS is
+  the indoor distance from the setpoint:
+
+  | House | Profile | fair | at comfort | RMS off setpoint (doing nothing) |
+  |---|---|---|---|---|
+  | radiator | Comfortable | 1.2 % | 10.8 % | 0.39 K (0.54) |
+  | | Save some | 2.3 % | 15.3 % | 0.41 K (0.54) |
+  | | Save the most | 7.5 % | 22.5 % | 0.69 K (0.54) |
+  | slab | Comfortable | 0.3 % | 11.1 % | 0.55 K (0.62) |
+  | | Save some | 2.9 % | 17.1 % | 0.54 K (0.62) |
+  | | Save the most | 7.3 % | 23.2 % | 0.58 K (0.62) |
+  | west-facing | Comfortable | 1.3 % | 9.9 % | 0.31 K (0.43) |
+  | | Save some | 2.6 % | 13.5 % | 0.34 K (0.43) |
+  | | Save the most | 7.9 % | 20.2 % | 0.65 K (0.43) |
+
+  Planning on the day-ahead forecast instead of the weather that came cost under 0.3 points
+  anywhere. Comfortable and Save some are **steadier** than doing nothing (−25 % RMS); Save the
+  most is less steady, because it spends comfort for money by design.
+- **The "at comfort" column is an upper bound, not a claim.** The simulated houses overheat on a
+  clear October day with nothing to stop them (the bench's doing nothing is the curve alone), and
+  the planner's own model of doing nothing is the same curve. A real pump with room-sensor control
+  trims part of that overshoot itself: on the maintainer's S1155 on 2026-10-31 (sun up to 190 W/m²
+  south) indoor stayed 22.3–22.6 °C while calculated supply fell 43 → 31 °C on its own. Smart
+  heating needs room-sensor control *off* (§3.2), so against the owner's setup today the trim
+  replaces the room loop rather than adding to it, and its worth is what M2 shadow measures.
+
 The output per slot is `{bias, mode, reason}`. The reason is structured, e.g.
 `{kind: 'coast', until: '19:00', priceRatio: 2.3}`, and rendered in six languages.
 
@@ -744,9 +835,14 @@ Rules:
 - Picking Custom starts the sliders at the preset that was selected; moving any slider shows
   Custom. Moving them back to a preset's values shows that preset again.
 - **Expectations, said once in the FAQ, not in the UI:** most of a "saving" in any product is a
-  lower average indoor temperature (≈ 5 % per °C). Price shifting proper is worth a few percent in
-  a fast radiator house and more in a slab house with big spreads. Savings are reported at equal
-  average indoor temperature (§11) so the two are never mixed.
+  lower average indoor temperature (≈ 5 % per °C). Price shifting proper is worth **a few
+  percent**: ~1 % at Comfortable, 2–3 % at Save some money, 5–8 % at Save the most on October SE3
+  prices (§7.3), more on volatile days and roughly double in a winter with twice the spread.
+  Beyond that, the claim is **steadier indoor**, not money: easing off ahead of forecast sun is
+  heat the house would have wasted, but how much depends on how far sun overheats it today, which
+  the pump's own room correction already trims; M2 shadow measures it per house before any figure
+  is quoted. Savings are reported at equal average indoor temperature (§11) so the two are never
+  mixed. Copy this into `docs/FAQ.md` with the M3 release, not before: the feature isn't shipped.
 
 **Why this shape.** Commercial products expose one comfort↔savings control with 3–4 named presets
 (Nibe SPA's newer firmware: Off/Comfort/Save/Save PLUS; Qvantum: Eco/Balanced/Comfort; tado: a
@@ -765,6 +861,25 @@ without making everyone read sliders.
 - Behind `debugLogging`, plus a hidden test-channel setting.
 - **Exit:** two weeks on at least 3 houses (one radiator, one slab, one air-source), with no
   would-have plan leaving its band by more than 0.3 K under the realised weather.
+
+**Built (2026-11-01, `lib/smart/shadow.ts`, wired in `collector.ts`).** Every closed slot plans
+the next one for all three presets, off the poll's call stack, from: the hourly fit (parameters,
+lever, and the mass at the last slot the filter corrected), the slot's indoor reading, the real
+outdoor temperature (input 1: nothing is fed), the setpoint (2505), operating mode (237) and the
+Auto thresholds (183/184/185) from the latest poll, and the forecast: Open-Meteo corrected per
+local hour by what the wired sensor taught (`outdoor.ts`), with prices where known, else the last
+one known. Each preset carries its own would-be bias, curve and plan between slots, so its log
+reads as the feed sequence it would really have sent.
+- **Log:** `smart-….shadow.jsonl` beside the history, one line per slot: indoor, outdoor,
+  setpoint, mode, and per preset the bias, fed value, actuator clamps, planner reason, planned
+  indoor 1 h and 6 h ahead and planned saving; plus where *doing nothing* was expected to be 1 h
+  and 6 h ahead. Since nothing is fed, the house really is doing nothing, so that pair against
+  what followed is the model's **live** error, forecast error included. Trimmed to 28 days. The
+  carried state is in `smart-….shadow.json`. One summary line in the app log per hour.
+- **Review:** `node dev/review-shadow.mjs <url of the .shadow.jsonl>`.
+- **Not yet behind a setting:** it runs on the maintainer's dev build. Before any test-channel
+  build it goes behind the hidden setting above.
+- First live slot (2026-11-01 08:45): 2.3 s for all three presets on the Homey Pro.
 
 ### 7.6 Timers and lifecycle
 
@@ -1124,7 +1239,10 @@ four plus the Setup hub.
 - [ ] **M1** `model.ts` + `insights.ts` + labels; release to test (`model.ts` done offline, not yet
       run online)
 - [ ] **M2** `presets.ts`, `planner.ts` v1, `actuator.ts`, `controller.ts` in shadow; twin integration test
-      (presets, actuator and planner done offline 2026-10-31; controller and shadow not started)
+      (presets, actuator and planner done offline 2026-10-31; weather feed-forward and sun per wall
+      2026-11-01; shadow running on the maintainer's Homey since 2026-11-01; the state machine,
+      guards and its setting not started)
+- [ ] **M2** §3.3 gain ladder to ±20 K on the S1155 (tool ready, needs the maintainer's go-ahead)
 - [ ] **M2** two weeks of shadow on ≥ 3 houses (radiator, slab, air-source)
 - [ ] **M3** Verify/handover, live feed, capabilities, settings, Flow cards, write locks, reconciliation, savings, analytics
 - [ ] **M3** release (test → live)

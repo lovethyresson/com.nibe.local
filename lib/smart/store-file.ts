@@ -24,8 +24,9 @@ export async function loadHistory(name: string): Promise<History | undefined> {
     const journal = await readOrUndefined(`${DIR}/${journalName(name)}`);
     let history = file ? History.deserialize(file) : undefined;
     if (!journal?.length) return history;
+    const fields = history && file ? History.fieldCount(file) : undefined;
     history ??= new History();
-    applyJournal(history, journal);
+    applyJournal(history, journal, fields);
     return history;
 }
 
@@ -44,7 +45,7 @@ export async function appendJournal(name: string, record: Buffer): Promise<void>
 }
 
 export async function deleteHistory(name: string): Promise<void> {
-    for (const file of [name, journalName(name), modelFileName(name)]) {
+    for (const file of [name, journalName(name), modelFileName(name), shadowLogName(name), shadowStateName(name)]) {
         await fs.unlink(`${DIR}/${file}`).catch((error: any) => {
             if (error?.code !== 'ENOENT') throw error;
         });
@@ -54,6 +55,33 @@ export async function deleteHistory(name: string): Promise<void> {
 /** The model's state sits beside the history under the same unguessable name. */
 export function modelFileName(historyName: string): string {
     return historyName.replace(/\.bin$/, '.model.json');
+}
+
+/** Shadow mode's per-slot log (JSON lines) and its carried state, beside the history. */
+export function shadowLogName(historyName: string): string {
+    return historyName.replace(/\.bin$/, '.shadow.jsonl');
+}
+
+export function shadowStateName(historyName: string): string {
+    return historyName.replace(/\.bin$/, '.shadow.json');
+}
+
+export async function appendLine(name: string, value: unknown): Promise<void> {
+    await fs.appendFile(`${DIR}/${name}`, `${JSON.stringify(value)}\n`);
+}
+
+/** Keep the last `keep` lines; returns how many are left. */
+export async function trimLines(name: string, keep: number): Promise<number> {
+    const text = await fs.readFile(`${DIR}/${name}`, 'utf8').catch((error: any) => {
+        if (error?.code === 'ENOENT') return '';
+        throw error;
+    });
+    const lines = text.split('\n').filter((l) => l.length);
+    if (lines.length <= keep) return lines.length;
+    const path = `${DIR}/${name}`;
+    await fs.writeFile(`${path}.tmp`, `${lines.slice(-keep).join('\n')}\n`);
+    await fs.rename(`${path}.tmp`, path);
+    return keep;
 }
 
 export async function loadJson<T>(name: string): Promise<T | undefined> {

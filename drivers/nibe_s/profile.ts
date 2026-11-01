@@ -215,6 +215,13 @@ export const sProfile = makeProfile({
         },
         priority: {register: "measure_priority_NIBE.i1028_priority_value", hotwater: 20},
         immersion: "status_NIBE.i1029_additive_heat_active",
+        controls: {
+            comfort: "target_temperature",
+            mode: "operating_mode_NIBE.h237_operating_mode",
+            stopHeating: "target_temperature.h184_auto_stop_heating",
+            stopAddHeat: "target_temperature.h185_auto_stop_addition",
+            startCooling: "target_temperature.h183_auto_start_cooling",
+        },
     },
     hotwaterTank: {
         topRegister: "measure_temperature.i8_warmwater_top",

@@ -2,8 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {PRESETS, limitsFor, presetOf} from '../lib/smart/presets';
 import {curveInput, fedValue} from '../lib/smart/actuator';
-import {estimateLever, owedHeat, planShift, simulate, startingPoint, steadyState, ForecastSlot} from '../lib/smart/planner';
-import {RADIATOR_HOUSE, SLAB_HOUSE} from './smart-house-sim';
+import {comfortReference, estimateLever, owedHeat, planShift, simulate, startingPoint, steadyState, ForecastSlot} from '../lib/smart/planner';
+import {RADIATOR_HOUSE, SLAB_HOUSE, WEST_HOUSE, SIM_START_SLOT, simSun} from './smart-house-sim';
 import energyPrices from './fixtures/energy-prices-se3-2026-10-30.json';
 
 test('presets set the table\'s coast caps and bias limits', () => {
@@ -20,7 +20,8 @@ test('presets set the table\'s coast caps and bias limits', () => {
 
 test('Custom at zero is trim only, and extremes stay in range', () => {
     const zero = limitsFor({coldest: 0, warmest: 0, price: 0, weather: 0, stored: 0});
-    assert.deepEqual(zero, {lower: 0, upper: 0, margin: Infinity, forecastTrust: 0, maxCoastH: 0, preheatLeadTau: 0, maxBias: 0});
+    assert.deepEqual(zero, {lower: 0, upper: 0, margin: Infinity, forecastTrust: 0, maxCoastH: 0, preheatLeadTau: 0, maxBias: 0,
+        comfortWeight: 2});
     const wild = limitsFor({coldest: 9, warmest: -1, price: 2, weather: 2, stored: 2});
     assert.deepEqual([wild.lower, wild.upper, wild.maxBias, wild.margin], [5, 0, 20, 0.1]);
 });
@@ -150,4 +151,42 @@ test('the lever is heat per K of calculated supply above indoor, times the suppl
     const hours = Array.from({length: 14}, (_, i) => ({tcalc: 35 + i, ti: 22, heatKw: 0.26 * (13 + i)}));
     assert.ok(Math.abs(estimateLever(hours, 0.5)! - 0.13) < 1e-9);
     assert.equal(estimateLever(hours.slice(0, 5), 0.5), undefined);
+});
+
+/** One October day from midnight UTC at a flat price: 2 °C, clear, sun on the walls. */
+const sunnyDay: ForecastSlot[] = Array.from({length: 96}, (_, k) => ({te: 2, price: 2, ...simSun(SIM_START_SLOT + k, 1)}));
+const overshoot = (ti: number[], comfort: number) => ti.reduce((a, t) => a + Math.max(0, t - comfort) * 0.25, 0);
+const rms = (ti: number[], comfort: number) => Math.sqrt(ti.reduce((a, t) => a + (t - comfort) ** 2, 0) / ti.length);
+const shortfall = (ti: number[], comfort: number) => ti.reduce((a, t) => a + Math.max(0, comfort - t) * 0.25, 0);
+
+test('ahead of sun it eases off: less heat, less overshoot, at a flat price', () => {
+    for (const house of [RADIATOR_HOUSE, WEST_HOUSE]) {
+        const plan = planShift(house, 21, steadyState(house, 21, 2), sunnyDay, limitsFor(PRESETS.save_some), {lever: 0.45 * house.heatLoss});
+        assert.ok(plan.biases.some((b) => b < 0), 'no coast');
+        assert.ok(plan.plan.cost < plan.baseline.cost);
+        assert.ok(overshoot(plan.plan.ti, 21) < overshoot(plan.baseline.ti, 21));
+        // Steadier overall: the dip ahead of the sun is smaller than the overshoot it saves.
+        assert.ok(rms(plan.plan.ti, 21) < 0.6 * rms(plan.baseline.ti, 21), `${rms(plan.plan.ti, 21)} vs ${rms(plan.baseline.ti, 21)}`);
+        assert.ok(Math.min(...plan.plan.ti) > 21 - limitsFor(PRESETS.save_some).lower);
+    }
+    // The west house's sun is in the afternoon, so its coast is later than the even house's.
+    const firstCoast = (house: typeof RADIATOR_HOUSE) => planShift(house, 21, steadyState(house, 21, 2), sunnyDay,
+        limitsFor(PRESETS.save_some), {lever: 0.45 * house.heatLoss}).biases.findIndex((b) => b <= -6);
+    assert.ok(firstCoast(WEST_HOUSE) > firstCoast(RADIATOR_HOUSE), `${firstCoast(WEST_HOUSE)} vs ${firstCoast(RADIATOR_HOUSE)}`);
+});
+
+test('ahead of a cold front, a profile that values comfort warms early; one that values money need not', () => {
+    const front: ForecastSlot[] = Array.from({length: 96}, (_, k) => ({te: k < 40 ? 5 : -10, sun: 0, price: 2}));
+    const start = steadyState(SLAB_HOUSE, 21, 5);
+    const comfortable = planShift(SLAB_HOUSE, 21, start, front, limitsFor(PRESETS.comfortable));
+    assert.ok(comfortable.biases.slice(0, 40).some((b) => b > 0), 'no pre-heat');
+    assert.ok(shortfall(comfortable.plan.ti, 21) < shortfall(comfortable.baseline.ti, 21));
+    const most = planShift(SLAB_HOUSE, 21, start, front, limitsFor(PRESETS.save_most));
+    assert.ok(most.plan.cost <= comfortable.plan.cost + 1e-9);
+});
+
+test('comfort is the setpoint, and the end owes the steady mass at the last outdoor temperature', () => {
+    const ref = comfortReference(RADIATOR_HOUSE, 21, [{te: 5, sun: 0, price: 1}, {te: -5, sun: 0, price: 1}]);
+    assert.deepEqual(ref.ti, [21, 21]);
+    assert.equal(ref.tm[1], steadyState(RADIATOR_HOUSE, 21, -5).tm);
 });

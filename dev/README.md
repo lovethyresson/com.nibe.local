@@ -19,9 +19,10 @@ its connection while a probe runs** and reconnects by itself afterwards.
 | `probe-power.mjs` | what input 2727 "Current power" actually reports |
 | `probe-power-split.mjs` | should per-function energy integrate 2166 or 2305 |
 | `probe-energylog.mjs` | what the energy-log block (2283-2305) means, and can it replace the allocator |
-| `probe-bt1.mjs` | **writes the BT1 mailbox (5217) only**: is feeding the outdoor sensor a safe lever for Smart heating? Expiry, disconnects, a physical-BT1 copy, supply response and threshold effects (M0 in `docs/smart-heating-plan.md`). `--step` refuses with SPA on, waits for a settled supply, aborts on a changed setting and fits gain and lag (§3.1) |
+| `probe-bt1.mjs` | **writes the BT1 mailbox (5217) only**: is feeding the outdoor sensor a safe lever for Smart heating? Expiry, disconnects, a physical-BT1 copy, supply response and threshold effects (M0 in `docs/smart-heating-plan.md`). `--step` refuses with SPA on, waits for a settled supply, aborts on a changed setting and fits gain and lag (§3.1); `--ladder` walks the offset out to ±20 K in 5 K rungs and reads the gain per rung, aborting if the immersion heater starts (§3.3) |
 | `read-smart-history.mjs` | decodes the smart heating history file from `/userdata` into CSV, one row per 15-min slot (reads a file or the Homey's URL, not the pump; run with `node --import tsx`) |
-| `evaluate-presets.mjs` | what each Smart heating preset would have saved at equal comfort over real price days, closed loop, on the simulated houses or a learned one (`--model`); offline, no pump |
+| `evaluate-presets.mjs` | what each Smart heating preset would have saved at equal comfort over real price days, closed loop, on the simulated houses or a learned one (`--model`), and how steady indoor stayed; with `--weather`/`--forecast` on Open-Meteo's real weather, planned on its day-ahead forecast; offline, no pump |
+| `review-shadow.mjs` | reads the shadow log (`smart-….shadow.jsonl`): what each preset would have fed, how often it coasted or was clamped, and the model's live 1 h / 6 h error against what the house did; reads only |
 | `fit-house-model.mjs` | fits the smart heating house model to that history file and prints heat loss, τ, stored heat and the 6 h prediction error (same inputs; `--system`/`--era` are the Setup answers) |
 | `analyse-energylog.mjs` | hour by hour, does the pump's own per-function split add up to its own total (reads a `homey app run` log, not the pump) |
 
