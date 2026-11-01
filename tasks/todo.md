@@ -67,6 +67,20 @@ Offline only; nothing runs on the Homey yet. Design: `docs/smart-heating-plan.md
   (lost to the reinstall before the journal), 21:00 partial (restart). Heat loss 310 W/K, τ 57 h,
   stored 17.6 kWh/K, lever 128 W/K, 6 h error 0.17 K. Learning (days, stability). No live
   `model.json` yet (first hourly fit ~22:03).
+- 2026-11-01 21:45 — 192 slots, 158 usable, 2 valid days, no gaps today. Heat loss 296 W/K (live
+  300), τ 72–75 h, sun E/S/W 0.5/1.1/0.6 kW at 500 W/m² (mostly south; E/W moved off the prior),
+  lever 127 W/K (0.42·H), 6 h error 0.21 K. Learning (days, stability): too early for
+  evaluate-presets. Shadow: 52 slots, 124 ms a slot; doing nothing predicted 1 h 0.18 K RMS (bias
+  +0.14), 6 h 0.66 K RMS (bias **+0.62**, model too warm). Presets: Comfortable −6…0 K (coasting
+  77 %), Save some −12…+2 (52 %), Save the most −20…0 (85 %); no clamps, ramps ≤ 2 K/slot, no
+  pre-heat near add-heat (pre-heat max +2 K at 9 °C real). Planned saving 6.5/6.8/9.1 %.
+  **The 6 h bias is the pump's own control, not the house model:** SPA is on (843 = 1) and cut
+  calculated supply from 36 to 26 °C over the 17–20 price peak (3.4–3.5 kr), the compressor
+  stopped 19–20 h with DM positive, and indoor fell 22.5 → 21.4 °C while outdoor rose. The
+  doing-nothing baseline (curve alone) knows neither SPA nor the room loop, so live error is only
+  a fair test of the feed-forward on slots with both off and nothing fed (the ladder's own slots
+  are fed, so they aren't; the evening after it, with SPA and the room loop still off, would be). Settings
+  read back unchanged (curve 5, 184 = 15, 185 = 5, 237 = Manual).
 
 ## Smart heating slice 1: data collection (branch `smart-heating/m1-data`)
 
