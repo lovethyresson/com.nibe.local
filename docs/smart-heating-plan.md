@@ -228,7 +228,7 @@ every rung for a fake gain of 0.55.
   immersion heater. Aborts if 1029 turns on or DM falls below `--min-dm` (−600).
 - **Coast side (warmer fake):** `--ladder 5,10,15,20`. Risk: supply reaching min supply (34) and
   the compressor stopping; that is a result (where the lever ends), not a failure.
-- Each side ~6.5 h: settle ≥ 30 min, 4 × 75 min, recovery 150 min. Two days.
+- Each side ~8 h: settle ≥ 30 min (up to 2 h), 4 × 75 min, recovery 150 min. Two days.
 - Aborts as §3.1 (held setting changed, indoor more than 1 K from its start), plus the two above.
 
 **Pass:** every rung within 20 % of 0.50. Otherwise `MAX_BIAS_K` (§7.4) is cut to the last rung
