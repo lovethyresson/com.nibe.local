@@ -214,7 +214,7 @@ maintainer's S1155 (ground source, radiators); details in [external-sensors.md](
 fast radiator house. Both are learned per pump in M1/M2, and M2 shadow needs a slab house and an
 air-source pump before M3 ships (§7.5).
 
-### 3.3 The gain far from the real temperature (planned, needs the maintainer's go-ahead)
+### 3.3 The gain far from the real temperature (pre-heat side done 2026-11-02; coast side to run)
 
 §3.1 measured the gain at ±5 K. The planner may bias ±12 K (Save some) and ±20 K (Save the most),
 and both the curve's shape and the supply limits (34 min, 38 max) can bend the gain out there. A
@@ -243,6 +243,22 @@ thresholds don't act, so the probe doesn't refuse on them), and a mild day for t
 node dev/probe-bt1.mjs --ladder -5,-10,-15,-20 --lat <lat> --lon <lon>
 node dev/probe-bt1.mjs --ladder 5,10,15,20 --lat <lat> --lon <lon>
 ```
+
+**Result, pre-heat side (2026-11-02, S1155, 07:57–18:20, outdoor 7–9 °C, SPA and room-sensor
+control off, hot-water Flow paused):** 583 writes, 0 failures (one Modbus drop at 09:24 aborted
+the first attempt; the probe now reconnects).
+
+| Rung | Curve saw | Supply | Gain |
+|---|---|---|---|
+| −5 K | −3.8 K | +1.6 K | 0.42 |
+| −10 K | −8.5 K | +3.8 K | 0.46 |
+| −15 K | −13.5 K | +6.0 K | 0.44 |
+| −20 K | −18.5 K | +8.1 K | 0.43 |
+
+One gain through the origin: **0.44**, flat to −20 K. Every rung is within 20 % of 0.50, so the
+pre-heat side keeps its full −20 K. The gain is linear but ~12 % below §3.1's 0.50: use the
+measured value, not 0.50. Indoor stayed 21.5–21.9 °C, DM bottomed at −102, the immersion heater
+never ran. After the last rung the fake was released and calc supply fell back from 36.5 to 29.3.
 
 ---
 
@@ -1262,7 +1278,8 @@ four plus the Setup hub.
       (presets, actuator and planner done offline 2026-10-31; weather feed-forward and sun per wall
       2026-11-01; shadow running on the maintainer's Homey since 2026-11-01; the state machine,
       guards and its setting not started)
-- [ ] **M2** §3.3 gain ladder to ±20 K on the S1155 (tool ready, needs the maintainer's go-ahead)
+- [ ] **M2** §3.3 gain ladder to ±20 K on the S1155 (pre-heat side passed 2026-11-02, gain 0.44;
+      coast side `--ladder 5,10,15,20` needs the maintainer's go-ahead)
 - [ ] **M2** two weeks of shadow on ≥ 3 houses (radiator, slab, air-source)
 - [ ] **M3** Verify/handover, live feed, capabilities, settings, Flow cards, write locks, reconciliation, savings, analytics
 - [ ] **M3** release (test → live)

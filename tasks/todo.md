@@ -22,7 +22,11 @@ FAQ claim "a few percent" "Ok".
 - [x] Shadow (`shadow.ts`, collector): all three presets every slot, log + state files,
       `dev/review-shadow.mjs`. Live on the Homey since 2026-11-01 08:45 (2.3 s a slot).
 - [x] `probe-bt1.mjs --ladder` for §3.3, dry-run on the fake pump (0.55 per rung).
-- [ ] Run the §3.3 ladder on the S1155 (needs the maintainer's go-ahead and the §3.1 checklist).
+- [x] §3.3 pre-heat ladder on the S1155, 2026-11-02: gain 0.42/0.46/0.44/0.43 at −5…−20 K (0.44
+      overall), all within 20 % of 0.50, so −20 K stands; 583 writes, 0 failures, DM ≥ −102, no
+      immersion. Hot-water Flow re-enabled after the run.
+- [ ] §3.3 coast ladder (`--ladder 5,10,15,20`), another day, needs the maintainer's go-ahead.
+- [ ] Planner: check where it assumes the BT1 gain and use the measured 0.44, not 0.50.
 - [ ] Shadow behind a hidden setting before any test-channel build.
 - [ ] The planner's doing-nothing is the curve alone; if shadow's live error tracks sun or indoor,
       model the room loop (or require it off, as M3 does anyway).
