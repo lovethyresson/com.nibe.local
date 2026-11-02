@@ -286,19 +286,28 @@ While we feed 5217, input 1 *and* the BT1 average 37 show **our** value. The app
 real outdoor temperature to compute the fed value, for the model, and to show the owner. Sources,
 in order of preference:
 
-1. **A physical-BT1 register**, if M0.3 finds one.
-2. **A Homey outdoor sensor** the owner picks in Setup.
-   - Reuse the BT50 picker (`sensorInventory`), with the range widened to −50..60 °C.
-   - Same rule as the indoor feed: no partial averaging.
-3. **Open-Meteo current temperature**, bias-corrected. The app learns `wired − forecast` per hour
-   of day while not feeding (the learning phase, and every pause), as an exponential moving
-   average. That correction is applied while feeding.
+Decided 2026-11-02 (maintainer): **a Homey outdoor sensor is optional and comes first; the
+forecast is the fallback, not a fault.** M0.3 found no physical-BT1 register, and most owners have
+no outdoor sensor, so requiring one would shut most of them out. In order:
+
+1. **A Homey outdoor sensor** the owner picks in Setup.
+   - Reuse the BT50 picker (`sensorInventory`), with the range widened to −50..50 °C.
+   - A reading counts while present, changed within 2 h, and in range (`outdoor.ts usableSensor`).
+   - Until Setup has the picker, the app setting `smartOutdoorSensor` (a `SensorRef`) is set by
+     hand; Setup will write the same setting.
+2. **The wired BT1 (input 1)**, only while nothing feeds it.
+3. **Open-Meteo, bias-corrected.** The app learns `real − forecast` per hour of day from 1 or 2,
+   as an exponential moving average, and applies it while feeding without a sensor.
 
 Rules for the source:
 
-- **Setup requires 1 or 2 to turn control on.** Option 3 is allowed only as a degraded fallback
-  while the chosen source is down. After 6 h on option 3, go neutral: stop feeding so the wired
-  sensor takes over.
+- **Without a sensor, feed only when the bias is non-zero.** A neutral slot leaves BT1 to the
+  wired sensor, so the correction keeps learning from the real value. If the forecast alone has
+  carried more than 6 h in a row, go neutral for an hour to relearn.
+- **History (M1, built).** Each slot records outdoor from the same order (`recordedOutdoor`). It
+  flags input 1 more than 3 K from the sensor or forecast as a fed BT1 (a probe, a Flow card,
+  another app), so a test feed never teaches the model a fake outdoor temperature. Measured
+  2026-11-02: the ladder fed 3.6 °C, the Hue sensor read 7.2, the forecast 7.3.
 - **Display.** While feeding, Heating's outdoor capability (`measure_temperature.i1_outside`) shows
   the **real** value, not register 1, and the BT1 average shows a rolling mean of the real values
   computed by the app.
@@ -1034,9 +1043,9 @@ Choosing **Smart heating** shows the prerequisites from a `get_smart_prerequisit
 |---|---|---|
 | Indoor temperature source | Homey sensors are chosen in the Heating temperature section, or a NIBE room sensor is readable | Blocking: "Needs an indoor temperature", with a link into the Heating temperature section |
 | Room-sensor control | Shown as the step "Room-sensor control is turned off in Repair" | Not blocking at pairing. Repair Verify enforces it (§4.3). The BT50 feed and Smart heating are exclusive pump-side, because both use the indoor loop |
-| Real outdoor source | NIBE (if M0.3 found it) or a Homey outdoor sensor picked here (reuses the picker) | Blocking |
+| Real outdoor source | A Homey outdoor sensor picked here (reuses the picker), or none: the corrected forecast stands in (§4.2) | Optional |
 | Homey Energy prices | `dynamic` → "Uses your Homey Energy prices (SE3, 15 min)" | Not blocking: "Saves energy; add dynamic prices in Homey Energy to also use cheap hours" |
-| Location | "Weather for your Homey's location" | Not blocking: "No location: no weather" |
+| Location | "Weather for your Homey's location" | Blocking only without an outdoor sensor: then the forecast is the outdoor fallback. Otherwise "No location: no weather" |
 | Model | Not applicable at pairing | – |
 | House questions (§6.6) | "How is the house heated?" and "When was it built (or last insulated)?", each with "Don't know" | Not blocking |
 | Operating mode (237) | Auto: "Recommended" | Not blocking. Manual: "Works. Auto is recommended: the pump then stops heating in summer and keeps the immersion heater off in mild weather by itself". Immersion heater only: blocking |
@@ -1178,7 +1187,7 @@ decide the name once. Add rows to `docs/analytics.md`.
 - **prices:** the expression parser, including hostile input (`process.exit()`, `**`, `1/0`) and
   whitespace; DST 92/100-slot days (fixtures captured live); 60 → 15 expansion; the timeout
   classification; the summary self-check.
-- **outdoor:** source priority; forecast-bias learning; the 6 h degraded limit.
+- **outdoor:** source priority (sensor, unfed BT1, forecast); forecast-bias learning; a fed BT1 recognised in history; the 6 h relearn pause.
 - **history:** coverage and partial flags; reconnect mid-slot; ring wrap; version mismatch.
 - **model:** RLS recovers synthetic 1R1C within 5 %; the EKF recovers a simulated radiator *and* a
   slab house; gating drops spikes; drift.
