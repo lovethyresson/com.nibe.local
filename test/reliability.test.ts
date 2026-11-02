@@ -840,3 +840,11 @@ test('ventilation hands over from heating to main in either init order, and Repa
     assert.equal(main.store.get('selection').groups.ventilation, false);
     assert.equal(main.store.get('moved.ventilation'), 'set');
 });
+
+test('Heating keeps a moved indoor sensor address when smart heating adds its registers', () => {
+    const {d, store} = device();
+    d.role = 'heating';
+    store.set('selection', {groups: {heating: true}, overrides: {measure_temperature: true}, addresses: {measure_temperature: 26}});
+    const indoor = d.wantedRegisters().filter((r: Register) => r.name === 'measure_temperature');
+    assert.deepEqual(indoor.map((r: Register) => r.address), [26]);
+});

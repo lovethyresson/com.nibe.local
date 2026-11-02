@@ -1101,7 +1101,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (smart) names.push(...Object.values(smart.numeric) as string[], smart.priority.register, smart.immersion,
             ...Object.values(smart.controls ?? {}) as string[]);
         const needed = names.map((n) => this.profile.registerByName[n]).filter((r) => r);
-        return [...new Map([...selected, ...needed].map((r) => [r.name, r])).values()];
+        // Selected last, so a register the user moved (Selection.addresses) keeps its address:
+        // onRegisterRaw drops a reply from any other one, which froze the indoor reading.
+        return [...new Map([...needed, ...selected].map((r) => [r.name, r])).values()];
     }
 
     private async startSmartHistory() {
