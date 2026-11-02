@@ -107,8 +107,8 @@ three things:
 | **M0** | BT1 verification on hardware (`dev/probe-bt1.mjs`) | probes only | nothing (docs) |
 | **M1** | Mode choice SPA ⇄ Smart, data foundation, "House insights" | **none** | test → live |
 | **M2** | Shadow controller | **none** (logs what it would feed) | test |
-| **M3** | Controller v1: efficiency loop + price shifting through BT1 | 5217, 843 | test → live |
-| **M4** | Hot-water timing (replaces SPA hot water) + add-heat guard | DHW registers | test → live |
+| **M3** | Controller v1: efficiency loop + price shifting through BT1, away mode, transparency (§19) | 5217, 843 | test → live |
+| **M4** | Smart hot water (replaces SPA hot water) + solar surplus + add-heat guard (§12, §19.3) | DHW registers | test → live |
 | **M5** | Predictive optimiser (DP, COP model, air-source, PV) | same lever | test → live |
 
 **On the timing of M4.** Choosing Smart heating turns SPA off for the whole pump, which includes
@@ -1022,6 +1022,11 @@ Add each card to the generic allowlist in `test/unit.test.ts:219`.
 | Smart heating paused | trigger | `reason` |
 | Smart heating is pre-heating / coasting / paused | condition | – |
 | Profile is … | condition | dropdown |
+| Set away until … / Back home | action | date and time; ends away mode early (§19.2) |
+| Away mode is on | condition | – |
+| Expensive period starts in … | trigger | minutes ahead; tokens `starts`, `ends`, `price` (§19.1) |
+| Cheap period starts in … | trigger | as above |
+| Pre-heating / coasting started | trigger | `reason`, `until`, `bias` |
 
 Also widen `LocalizedText` from `{en, sv}` to six languages (`lib/profile.ts:100`), so that
 `reason.ts` and the controller's reasons reach every owner in their language.
@@ -1114,6 +1119,11 @@ never swallow them.
 - On a fixed contract, savings = energy saved × the fixed price.
 - **Note for SPA owners switching over:** the counterfactual is "Nibe without SPA", not
   "Nibe with SPA". The FAQ says so plainly.
+- **SPA is the baseline that matters** (seen 2026-11-01: SPA cut supply from 36 to 26 °C over the
+  evening price peak). Where the history holds weeks of the owner's own SPA running, report
+  against those too, or say plainly that the figure is against the pump without SPA.
+- **Widget (decided 2026-11-02):** this month's saving with its band, and comfort held.
+  Shown only once the 14-day rule passes. See §19.1.
 
 ---
 
@@ -1154,8 +1164,8 @@ how to defer and advance hot water safely on the S1155.
   `+ terminal value of stored heat`.
 - **COP:** Carnot fraction with η learned online; brine or outdoor as the source; a defrost penalty
   binned by `(te, rh)` for air-source.
-- **PV:** a Homey `solarpanel` device with a forecast surplus → that slot is priced at the export
-  value.
+- **PV:** moved to M4 (§19.3). The optimiser keeps the same rule: a slot with forecast surplus is
+  priced at the export value.
 - **Fallback:** if the solve throws or takes longer than 5 s, use the M3 plan.
 - **Ship gate:** beats M3's counterfactual on at least 3 test houses over 4 weeks.
   - Radiator houses gain least here, so the slab tester is essential.
@@ -1257,6 +1267,68 @@ four plus the Setup hub.
 - [ ] **M3** release (test → live)
 - [ ] **M4** hot-water probes and timing; DM-aware add-heat planning
 - [ ] **M5** COP, DP optimiser, air-source, PV; ship gate vs M3
+
+## 19. Roadmap decisions (maintainer, 2026-11-02)
+
+What makes Smart heating stand out against Nibe SPA, Tibber and Ngenic, decided after the M2
+shadow results. **Out of scope:** running the whole house's energy (heat pump, EV, battery and
+solar under one fuse limit). That is an app of its own, not part of this one.
+
+### 19.1 Transparency (M3)
+
+The competitors are black boxes. Owners switch off what they don't understand.
+
+- **Every decision has a plain reason**, in the owner's language. For example: "Cooling 0.3 °C
+  until 19:00: prices peak 17–19 and the house holds heat about 4 h". It is shown as the Heating
+  status, and in the timeline only on a change of mode, never per slot.
+- **Planned heating graph:** the next 24 h, with the planned indoor temperature against comfort,
+  the pre-heat and coast blocks, and the price beneath. It is a Homey widget, drawn from the
+  current plan (`planShift` already returns indoor per slot), and redrawn when the plan changes.
+- **Savings widget:** §11, honest by its rules there.
+- **Flow cards that expose the plan** (§10.3): an expensive or cheap period starting in N
+  minutes, and pre-heating or coasting started. Owners can then move the dishwasher, sauna or EV
+  around the heat pump without us modelling those devices.
+
+### 19.2 Away mode (M3)
+
+Our own, rather than the pump's holiday setting, so the planner knows when the owner returns.
+
+- **Set:** a Flow card or the device, with an end time. **Back home** ends it early.
+- **While away**, comfort drops to the away temperature (a setting, default 17 °C), and the
+  planner coasts through expensive hours within it.
+- **Return:** the model's hours-per-degree says when to start warming, so the house is at
+  comfort at the end time, on cheap hours where it can.
+- **Hot water** (M4): no boosts while away, and refilled before return.
+
+### 19.3 Solar surplus (M4)
+
+Sweden pays roughly spot for exported power but charges spot plus grid fee, tax and VAT for
+imported power. Every surplus kWh used at home is therefore worth about 1 kr more than one sold.
+
+- **Live:** Homey Energy's live report gives grid export. Sustained export above the
+  compressor's draw for 10 min is priced at the export value in the planner, which then
+  pre-heats within the comfort ceiling. Sunny winter days count too.
+- **Hot water first:** a 200–300 L store that is needed all year is the best sink. "More hot
+  water" (697) is used when the tank has room, under §12's rules.
+- **Planned:** the forecast's sun (already in the history) gives the expected surplus a day
+  ahead, so the planner can leave room for it instead of buying heat that morning.
+- **Research first:** read how Home Assistant users run Nibe pumps on surplus before building.
+
+### 19.4 Smart hot water (M4, §12)
+
+Beyond the timing in §12: learn the household's draw pattern from the estimated litres, and have
+hot water ready before the usual peaks (for example morning showers), heated in cheap or surplus
+hours. No boosts while away.
+
+### 19.5 For later consideration
+
+- **Room sensors and radiator valves** (Tado and others): use the coldest room that matters as
+  the comfort limit, and valve openings to see where the heat goes. Value depends a lot on the
+  implementation, so it gets a design of its own before any build.
+- **Health checks from the model:** drift in heat loss, COP or brine temperature as early
+  maintenance advice. Maybe later.
+- **Known heat gains** (sauna, oven, dryer power), **window contacts** (pause learning while
+  open), and grid CO₂ intensity: candidates, not planned.
 
 ## 18. Open questions
 
