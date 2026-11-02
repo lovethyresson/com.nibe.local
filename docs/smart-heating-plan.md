@@ -108,6 +108,7 @@ three things:
 | **M1** | Mode choice SPA ⇄ Smart, data foundation, "House insights" | **none** | test → live |
 | **M2** | Shadow controller | **none** (logs what it would feed) | test |
 | **M3** | Controller v1: efficiency loop + price shifting through BT1, away mode, transparency (§19) | 5217, 843 | test → live |
+| **MW** | Widgets: a design of their own across the app, Smart heating's among them (§19.5) | none | test → live |
 | **M4** | Smart hot water (replaces SPA hot water) + solar surplus + add-heat guard (§12, §19.3) | DHW registers | test → live |
 | **M5** | Predictive optimiser (DP, COP model, air-source, PV) | same lever | test → live |
 
@@ -1122,8 +1123,8 @@ never swallow them.
 - **SPA is the baseline that matters** (seen 2026-11-01: SPA cut supply from 36 to 26 °C over the
   evening price peak). Where the history holds weeks of the owner's own SPA running, report
   against those too, or say plainly that the figure is against the pump without SPA.
-- **Widget (decided 2026-11-02):** this month's saving with its band, and comfort held.
-  Shown only once the 14-day rule passes. See §19.1.
+- **Widget:** this month's saving with its band, and comfort held, once the 14-day rule passes.
+  A candidate for the widgets milestone (§19.5), not part of M3.
 
 ---
 
@@ -1281,10 +1282,9 @@ The competitors are black boxes. Owners switch off what they don't understand.
 - **Every decision has a plain reason**, in the owner's language. For example: "Cooling 0.3 °C
   until 19:00: prices peak 17–19 and the house holds heat about 4 h". It is shown as the Heating
   status, and in the timeline only on a change of mode, never per slot.
-- **Planned heating graph:** the next 24 h, with the planned indoor temperature against comfort,
-  the pre-heat and coast blocks, and the price beneath. It is a Homey widget, drawn from the
-  current plan (`planShift` already returns indoor per slot), and redrawn when the plan changes.
-- **Savings widget:** §11, honest by its rules there.
+- **Planned heating and savings** are shown as widgets, which have a milestone of their own
+  (§19.5). M3 keeps the data they will draw: the current plan (`planShift` already returns indoor
+  per slot) and the savings ledger (§11).
 - **Flow cards that expose the plan** (§10.3): an expensive or cheap period starting in N
   minutes, and pre-heating or coasting started. Owners can then move the dishwasher, sauna or EV
   around the heat pump without us modelling those devices.
@@ -1320,7 +1320,16 @@ Beyond the timing in §12: learn the household's draw pattern from the estimated
 hot water ready before the usual peaks (for example morning showers), heated in cheap or surplus
 hours. No boosts while away.
 
-### 19.5 For later consideration
+### 19.5 Widgets (milestone MW, maintainer 2026-11-02)
+
+Widgets get a broader look across the whole app, not one per feature, so they are a milestone of
+their own rather than part of M3. Smart heating's candidates:
+
+- **Planned heating:** the next 24 h, with planned indoor against comfort, the pre-heat and coast
+  blocks, and the price beneath; redrawn when the plan changes.
+- **Savings:** this month's saving with its band, and comfort held (§11).
+
+### 19.6 For later consideration
 
 - **Room sensors and radiator valves** (Tado and others): use the coldest room that matters as
   the comfort limit, and valve openings to see where the heat goes. Value depends a lot on the
