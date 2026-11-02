@@ -6,7 +6,7 @@ import https from 'https';
 import {SensorRef, selectedReadings, withApi} from '../indoor-sensors';
 import {Aggregator, FLAG, Field, History, Sample, SlotContext, encodeRecord} from './history';
 import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, normalisePrices, slotOf} from './prices';
-import {WEATHER_STALE_MS, WeatherSlot, openMeteoUrl, weatherSlots} from './weather';
+import {Place, WEATHER_STALE_MS, WeatherSlot, openMeteoUrl, placeSearchUrl, placesFrom, weatherLocation, weatherSlots} from './weather';
 import {
     appendJournal, appendLine, deleteHistory, loadHistory, loadJson, modelFileName, saveHistory, saveJson, shadowLogName,
     shadowStateName, trimLines,
@@ -21,6 +21,14 @@ const HOUR = 60 * 60 * 1000;
 /** App setting: the Homey sensor the owner picked for outdoor, a SensorRef. Setup will write it
  *  (plan §4.2); until then it is set by hand, `homey api apps set-app-setting`. */
 export const OUTDOOR_SENSOR_SETTING = 'smartOutdoorSensor';
+/** App setting: a `Place` the owner searched for, used when the Homey has no location. */
+export const LOCATION_SETTING = 'smartLocation';
+
+/** Setup's place search, for a Homey without a location (plan §8). */
+export async function searchPlaces(query: string, language = 'en'): Promise<Place[]> {
+    if (query.trim().length < 2) return [];
+    return placesFrom(await getJson(placeSearchUrl(query, language)));
+}
 /** Minute readings a slot needs before its sensor mean stands for the slot. */
 const SENSOR_MIN_READINGS = 5;
 /** Shadow log lines kept: 28 days of slots, trimmed once it passes 30. */
@@ -72,6 +80,7 @@ export class SmartCollector {
     private lastShadow?: any;
     private sensorSums = new Map<number, {sum: number; n: number}>();
     private sensorState = '';
+    private locationState = '';
 
     constructor(private readonly homey: any, private readonly fileName: string,
                 private readonly log: (...args: any[]) => void,
@@ -235,13 +244,18 @@ export class SmartCollector {
 
     private async fetchWeather(): Promise<number> {
         const jitter = (Math.random() - 0.5) * 10 * 60 * 1000;
-        const location: any = await withApi(this.homey, (api) => api.geolocation.getOptionLocation());
-        const {latitude, longitude} = location?.value ?? {};
-        if (typeof latitude !== 'number' || typeof longitude !== 'number') {
-            this.log('Smart history: the Homey has no location, so no weather.');
-            return 6 * HOUR;
+        const homeyLocation: any = await withApi(this.homey, (api) => api.geolocation.getOptionLocation())
+            .catch(() => undefined);
+        const chosen = this.homey.settings.get(LOCATION_SETTING) as Place | null;
+        const location = weatherLocation(homeyLocation?.value, chosen);
+        const state = location?.source === 'chosen' ? `the chosen place ${chosen!.name}` : location ? 'the Homey\'s location' : 'none';
+        if (state !== this.locationState) {
+            this.log(`Smart history: weather for ${location ? state
+                : 'nowhere: the Homey has no location and no place is chosen (Setup will ask)'}.`);
+            this.locationState = state;
         }
-        const slots = weatherSlots(await getJson(openMeteoUrl(latitude, longitude)));
+        if (!location) return HOUR;
+        const slots = weatherSlots(await getJson(openMeteoUrl(location.latitude, location.longitude)));
         if (slots.length) {
             this.weather = new Map(slots.map((s) => [s.slot, s]));
             this.weatherAt = Date.now();

@@ -1045,7 +1045,7 @@ Choosing **Smart heating** shows the prerequisites from a `get_smart_prerequisit
 | Room-sensor control | Shown as the step "Room-sensor control is turned off in Repair" | Not blocking at pairing. Repair Verify enforces it (§4.3). The BT50 feed and Smart heating are exclusive pump-side, because both use the indoor loop |
 | Real outdoor source | A Homey outdoor sensor picked here (reuses the picker), or none: the corrected forecast stands in (§4.2) | Optional |
 | Homey Energy prices | `dynamic` → "Uses your Homey Energy prices (SE3, 15 min)" | Not blocking: "Saves energy; add dynamic prices in Homey Energy to also use cheap hours" |
-| Location | "Weather for your Homey's location" | Blocking only without an outdoor sensor: then the forecast is the outdoor fallback. Otherwise "No location: no weather" |
+| Location | Checked when Setup opens. With one: "Weather for your Homey's location". Without: a place search (Open-Meteo geocoding; only the typed name leaves the Homey, the result is kept to 2 decimals) saved as the app setting `smartLocation`; `searchPlaces()` and the fallback are built (2026-11-02) | Blocking only without an outdoor sensor, since the forecast is then the outdoor fallback. Otherwise "No location: no weather or sun" |
 | Model | Not applicable at pairing | – |
 | House questions (§6.6) | "How is the house heated?" and "When was it built (or last insulated)?", each with "Don't know" | Not blocking |
 | Operating mode (237) | Auto: "Recommended" | Not blocking. Manual: "Works. Auto is recommended: the pump then stops heating in summer and keeps the immersion heater off in mild weather by itself". Immersion heater only: blocking |

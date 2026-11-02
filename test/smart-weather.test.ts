@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {openMeteoUrl, weatherSlots} from '../lib/smart/weather';
+import {openMeteoUrl, placeSearchUrl, placesFrom, weatherLocation, weatherSlots} from '../lib/smart/weather';
 import {slotOf} from '../lib/smart/prices';
 import {WALLS, sunPosition, wallIrradiance} from '../lib/smart/solar';
 
@@ -64,4 +64,22 @@ test('the east and west walls follow the forecast, south stays Open-Meteo\'s own
     if (sunny.length) assert.ok(sunny.some((s) => s.gtiE !== s.gtiW));
     // Without coordinates there is no sun to place: the walls are missing, so the slot is too.
     assert.equal(weatherSlots({...live, latitude: undefined}).length, 0);
+});
+
+test('a place search keeps only the name, region and rounded coordinates', () => {
+    assert.match(placeSearchUrl(' Sollentuna ', 'sv'), /name=Sollentuna&count=8&language=sv/);
+    const places = placesFrom({results: [
+        {name: 'Sollentuna', latitude: 59.42804, longitude: 17.95093, admin1: 'Stockholms län', country: 'Sverige'},
+        {name: 'Broken', latitude: null, longitude: 1},
+    ]});
+    assert.deepEqual(places, [{name: 'Sollentuna', region: 'Stockholms län, Sverige', latitude: 59.43, longitude: 17.95}]);
+    assert.deepEqual(placesFrom({}), []);
+});
+
+test('the Homey\'s location wins, a chosen place stands in, and 0,0 is no location', () => {
+    const chosen = {name: 'Sollentuna', region: '', latitude: 59.43, longitude: 17.95};
+    assert.equal(weatherLocation({latitude: 59.4, longitude: 17.9}, chosen)?.source, 'homey');
+    assert.deepEqual(weatherLocation({latitude: 0, longitude: 0}, chosen), {latitude: 59.43, longitude: 17.95, source: 'chosen'});
+    assert.equal(weatherLocation(undefined, chosen)?.source, 'chosen');
+    assert.equal(weatherLocation(undefined, null), undefined);
 });

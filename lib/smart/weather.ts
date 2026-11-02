@@ -34,6 +34,41 @@ export function openMeteoUrl(latitude: number, longitude: number): string {
         + '&past_days=1&forecast_days=3&timezone=GMT&timeformat=unixtime&wind_speed_unit=ms';
 }
 
+/** Where the weather is for: the Homey's own location, else a place the owner searched for in
+ *  Setup (app setting `smartLocation`). */
+export interface Place {
+    name: string;
+    /** County and country, to tell two places of one name apart. */
+    region: string;
+    latitude: number;
+    longitude: number;
+}
+
+const round2 = (v: number) => Math.round(v * 100) / 100;
+
+/** Open-Meteo's place search. Only the typed name leaves the Homey. */
+export function placeSearchUrl(query: string, language = 'en'): string {
+    return 'https://geocoding-api.open-meteo.com/v1/search'
+        + `?name=${encodeURIComponent(query.trim())}&count=8&language=${encodeURIComponent(language)}&format=json`;
+}
+
+/** Search results → places, coordinates rounded to 2 decimals (~1 km), as the forecast uses them. */
+export function placesFrom(response: any): Place[] {
+    const results: any[] = Array.isArray(response?.results) ? response.results : [];
+    return results.filter((r) => typeof r?.name === 'string' && Number.isFinite(r.latitude) && Number.isFinite(r.longitude))
+        .map((r) => ({name: r.name, region: [r.admin1, r.country].filter((x) => typeof x === 'string' && x).join(', '),
+            latitude: round2(r.latitude), longitude: round2(r.longitude)}));
+}
+
+/** The Homey's location if it has one, else the chosen place, else none. */
+export function weatherLocation(homey: any, chosen: any): {latitude: number; longitude: number; source: 'homey' | 'chosen'} | undefined {
+    const valid = (v: any) => typeof v?.latitude === 'number' && typeof v?.longitude === 'number'
+        && Math.abs(v.latitude) <= 90 && Math.abs(v.longitude) <= 180 && !(v.latitude === 0 && v.longitude === 0);
+    if (valid(homey)) return {latitude: homey.latitude, longitude: homey.longitude, source: 'homey'};
+    if (valid(chosen)) return {latitude: chosen.latitude, longitude: chosen.longitude, source: 'chosen'};
+    return undefined;
+}
+
 /** Hourly values → slots. Temperature, wind and humidity are instants and are interpolated
  *  linearly. Radiation is Open-Meteo's mean over the *preceding* hour, so each slot in that hour
  *  takes it as is, but the walls' share of the direct beam is worked out for each slot's own
