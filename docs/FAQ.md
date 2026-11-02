@@ -84,6 +84,19 @@ First restore the native sensor as the zone's controlling sensor and disable ext
 pump. Then choose **Use the heat pump’s native temperature sensor** in Heating Setup.
 The app checks that external BT50 is disabled before stopping its feed.
 
+### Can the thermostat show one of my NIBE wireless room sensors?
+
+Yes, since 1.5.0 on S-series. Open **Heating → Repair → Heating Setup** and keep the pump's native
+sensor: each wireless sensor is listed with its current reading, next to the pump's average. The pump
+gives the sensors no names, and its order matches neither the zone list nor menu 5.4, so the reading
+is how you tell them apart. Each sensor can also have its own temperature on the Heating device.
+
+### My pump has two zones. Which one does the thermostat set?
+
+The one you choose. On pumps with two or more zones, Heating Setup first asks which zone the
+thermostat sets. Pick the zone whose room sensor controls the heating (menu 1.3.3). Until 1.5.0 the
+thermostat always set zone 1, which on some pumps is a zone that only displays.
+
 ### What does Set outdoor temperature (BT1) do?
 
 This Heating Flow action sends one outdoor-temperature reading. It is separate from the automatic
@@ -367,6 +380,11 @@ edit **IP address** on any one of the pump's devices; its other devices follow.
 
 "Refused the connection" is different: something is at that address, but Modbus TCP is off
 (menu 7.5.9 on S-series).
+
+"Answers, but returns no heat pump data" means something at that address speaks Modbus but returns
+nothing a pump would, which used to show as -1 on every capability. Check the address is the pump's own
+rather than another device's, and that Modbus TCP is on (menu 7.5.9). The log records what that
+address turned out to be.
 
 ### A capability sits blank forever.
 

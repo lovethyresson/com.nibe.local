@@ -13,22 +13,8 @@ export interface Announcement {
 
 // Opt in deliberately at release time. Keep only the latest announcement, never a backlog.
 export const CURRENT_ANNOUNCEMENT: Announcement | null = {
-    "id": "1.4.7-update",
+    "id": "1.5.0-update",
     "snippets": [
-        {
-            "roles": [
-                "heating",
-                "cooling"
-            ],
-            "text": {
-                "en": "IMPORTANT: Ventilation has moved to your Nibe Main device. Fan speed, fan mode, air temperatures and night cooling are now on Main. Pick the Main device again in Flows that use them.",
-                "sv": "VIKTIGT: Ventilationen har flyttat till din Nibe Main-enhet. Fläkthastighet, fläktläge, lufttemperaturer och nattsvalka finns nu på Main. Välj Main-enheten igen i Flöden som använder dem.",
-                "de": "WICHTIG: Die Lüftung ist zu deinem Nibe-Main-Gerät umgezogen. Lüfterdrehzahl, Lüfterstufe, Lufttemperaturen und Nachtkühlung sind jetzt auf Main. Wähle in Flows, die sie nutzen, das Main-Gerät neu aus.",
-                "nl": "BELANGRIJK: Ventilatie is verhuisd naar je Nibe Main-apparaat. Ventilatorsnelheid, ventilatorstand, luchttemperaturen en nachtkoeling staan nu op Main. Kies het Main-apparaat opnieuw in Flows die ze gebruiken.",
-                "no": "VIKTIG: Ventilasjonen er flyttet til Nibe Main-enheten din. Viftehastighet, viftetrinn, lufttemperaturer og nattkjøling ligger nå på Main. Velg Main-enheten på nytt i Flows som bruker dem.",
-                "da": "VIGTIGT: Ventilationen er flyttet til din Nibe Main-enhed. Ventilatorhastighed, ventilatortrin, lufttemperaturer og natkøling ligger nu på Main. Vælg Main-enheden igen i Flows, der bruger dem."
-            }
-        },
         {
             "driverIds": [
                 "nibe_s"
@@ -37,12 +23,12 @@ export const CURRENT_ANNOUNCEMENT: Announcement | null = {
                 "heating"
             ],
             "text": {
-                "en": "New Flow cards react when the heat curve displacement, operating mode or fan mode changes. Add them to a Flow from your Nibe devices.",
-                "sv": "Nya Flödeskort reagerar när värmeförskjutning, driftläge eller fläktläge ändras. Lägg till dem i ett Flöde från dina Nibe-enheter.",
-                "de": "Neue Flow-Karten reagieren, wenn sich Parallelverschiebung, Betriebsmodus oder Lüfterstufe ändern. Füge sie über deine Nibe-Geräte zu einem Flow hinzu.",
-                "nl": "Nieuwe Flow-kaarten reageren wanneer de verschuiving van de stooklijn, de bedrijfsstand of de ventilatorstand verandert. Voeg ze toe aan een Flow via je Nibe-apparaten.",
-                "no": "Nye Flow-kort reagerer når varmeforskyvning, driftsmodus eller viftetrinn endres. Legg dem til i en Flow fra Nibe-enhetene dine.",
-                "da": "Nye Flow-kort reagerer, når varmeforskydning, driftsindstilling eller ventilatortrin ændres. Tilføj dem til et Flow fra dine Nibe-enheder."
+                "en": "Your Heating thermostat can now follow one NIBE wireless room sensor, and on pumps with several zones you choose which zone it sets. Run Repair on your Nibe Heating device to set it up.",
+                "sv": "Termostaten på Värme kan nu följa en trådlös NIBE-rumsgivare, och på värmepumpar med flera zoner väljer du vilken zon den ställer in. Kör Reparera på din Nibe Värme-enhet för att ställa in det.",
+                "de": "Der Thermostat von Heizung kann jetzt einem NIBE-Funk-Raumfühler folgen, und bei Wärmepumpen mit mehreren Zonen wählst du, welche Zone er einstellt. Führe Reparieren auf deinem Nibe-Heizungsgerät aus, um es einzurichten.",
+                "nl": "De thermostaat van Verwarming kan nu één draadloze NIBE-ruimtesensor volgen, en op warmtepompen met meerdere zones kies je welke zone hij instelt. Voer Repareren uit op je Nibe Verwarming-apparaat om het in te stellen.",
+                "no": "Termostaten på Varme kan nå følge én trådløs NIBE-romføler, og på varmepumper med flere soner velger du hvilken sone den stiller inn. Kjør Reparer på Nibe Varme-enheten din for å sette det opp.",
+                "da": "Termostaten på Varme kan nu følge én trådløs NIBE-rumføler, og på varmepumper med flere zoner vælger du, hvilken zone den indstiller. Kør Reparer på din Nibe Varme-enhed for at sætte det op."
             }
         }
     ]
