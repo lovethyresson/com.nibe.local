@@ -142,6 +142,22 @@ async function reconnect() {
     conn = await connect();
 }
 
+// The pump drops the Modbus connection now and then (twice on 2026-11-02, minutes apart). A run
+// rides through that: reconnect, and only give up after a few minutes of trying.
+async function reconnectPatiently(why) {
+    for (let i = 1; i <= 10; i++) {
+        try {
+            await reconnect();
+            console.log(`  reconnected (${why}, attempt ${i})`);
+            return true;
+        } catch (e) {
+            console.log(`  reconnect attempt ${i} failed: ${e.message}`);
+            await sleep(15_000);
+        }
+    }
+    return false;
+}
+
 async function readRaw(kind, address) {
     try {
         const r = kind === 'input'
@@ -235,7 +251,14 @@ async function restore(why) {
         console.log(`\n[${why}] fed the pre-test ${SENSOR.name} ${restoreTo} °C once more: ${ok ? `input ${SENSOR.effective} follows` : 'NOT confirmed'}.`);
         console.log('  If the pump holds fed values (see --hold), turn menu 7.5.9.2 off and on to return to the wired sensor.');
     } catch (e) {
-        console.log(`\n[${why}] restore write failed: ${e.message}. Turn menu 7.5.9.2 off and on at the display.`);
+        console.log(`\n[${why}] restore write failed: ${e.message}. Reconnecting to try once more.`);
+        try {
+            if (!(await reconnectPatiently('restore'))) throw new Error('no connection');
+            const ok = await feedAndVerify(restoreTo);
+            console.log(`  fed ${restoreTo} °C: ${ok ? `input ${SENSOR.effective} follows` : 'NOT confirmed'}.`);
+        } catch (e2) {
+            console.log(`  failed again: ${e2.message}. A fed value expires within ~5 min on its own (§3.2 0.1).`);
+        }
     }
 }
 process.on('SIGINT', async () => {
@@ -378,8 +401,9 @@ async function heldSnapshot() {
     return m;
 }
 
+// An unreadable setting is a lost connection, not a change: compare only what both reads saw.
 function heldChanges(before, now) {
-    return HELD.filter(([, a]) => before[a] !== now[a]).map(([, a, label]) => `${label} ${before[a]} -> ${now[a]}`);
+    return HELD.filter(([, a]) => before[a] !== undefined && now[a] !== undefined && before[a] !== now[a]).map(([, a, label]) => `${label} ${before[a]} -> ${now[a]}`);
 }
 
 // Real outdoor temperature from Open-Meteo: input 1 shows the fed value while feeding, and the
@@ -585,7 +609,12 @@ async function ladder(rungs) {
         const tr = Date.now();
         while (Date.now() - tr < rungMin * 60_000) {
             await sleep(FEED_EVERY_MS);
-            try { await writeBT1(fed); writes++; } catch (e) { failures++; console.log(`${stamp(t0)}  write failed: ${e.message}`); }
+            try { await writeBT1(fed); writes++; } catch (e) {
+                failures++;
+                console.log(`${stamp(t0)}  write failed: ${e.message}`);
+                if (!(await reconnectPatiently('write failed'))) throw new Error('ABORT: the pump stayed unreachable.');
+                await feedAndVerify(fed);
+            }
             const s = await sample();
             const now = Date.now();
             x = offset + (x - offset) * Math.exp(-(now - last) / 60_000 / CURVE_TAU_MIN);
