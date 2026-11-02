@@ -6,7 +6,7 @@ import {SLOT_MS, slotOf} from './prices';
  *  new ones missing); reordering needs a VERSION bump. */
 export const FIELDS = [
     'ti',      // indoor °C (mean)
-    'te',      // outdoor °C as the pump reads it, input 1 (mean)
+    'te',      // outdoor °C, input 1 (mean); while BT1 is fed from elsewhere, the forecast (FLAG.fedOutdoor)
     'tsup',    // supply °C (mean)
     'tret',    // return °C (mean)
     'tcalc',   // calculated supply °C (mean)
@@ -31,7 +31,11 @@ export const FIELDS = [
     'gtiW',    // west-wall irradiance W/m²
 ] as const;
 export type Field = typeof FIELDS[number];
-export const FLAG = {partial: 1, reconnect: 2, costs: 4} as const;
+export const FLAG = {partial: 1, reconnect: 2, costs: 4, fedOutdoor: 8} as const;
+/** Input 1 further than this from the corrected forecast is a fed BT1, not the weather: a probe,
+ *  a Flow card, another app. Forecast error after the per-hour correction is ~1–2 K; a fed
+ *  offset worth testing is ≥ 5 K. */
+export const FED_OUTDOOR_K = 3;
 
 const LAST: ReadonlySet<Field> = new Set(['qmeter', 'emeter']);
 export const PARTIAL_BELOW = 0.8;
@@ -45,6 +49,8 @@ export type Sample = Partial<Record<'ti' | 'te' | 'tsup' | 'tret' | 'tcalc' | 't
 export interface SlotContext {
     price?: {price: number; spot: number; costsApplied: boolean};
     weather?: {gtiS: number; gtiE: number; gtiW: number; ghi: number; wind: number; rh: number; cloud: number};
+    /** The forecast's outdoor °C for the slot, corrected by what the wired sensor taught. */
+    outdoor?: number;
 }
 
 /** Ring buffer of closed slots. Missing values are NaN. */
@@ -189,7 +195,12 @@ export class Aggregator {
         values.coverage = Math.min(1, this.polls / expected);
         let flags = this.flags;
         if (values.coverage < PARTIAL_BELOW) flags |= FLAG.partial;
-        const {price, weather} = this.context(slot);
+        const {price, weather, outdoor} = this.context(slot);
+        // Input 1 shows whatever BT1 is fed. The house model wants the real outdoor temperature.
+        if (outdoor !== undefined && Number.isFinite(outdoor) && Math.abs(values.te - outdoor) > FED_OUTDOOR_K) {
+            values.te = outdoor;
+            flags |= FLAG.fedOutdoor;
+        }
         if (price) {
             values.price = price.price;
             values.spot = price.spot;

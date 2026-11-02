@@ -28,6 +28,26 @@ test('a full slot averages samples, keeps counters\' last value and attaches pri
     assert.equal(slot.gtiS, 300);
 });
 
+test('a BT1 fed from elsewhere is recognised against the forecast and replaced by it', () => {
+    const history = new History(8);
+    // 2026-11-02: the pump read 3.6 °C while a probe fed it, against a real ~7.3 °C.
+    const fedAt = (te: number, outdoor?: number) => {
+        const agg = new Aggregator(history, () => ({outdoor}));
+        for (let i = 0; i < 90; i++) agg.sample(t0 + i * 10_000, 10, {ti: 21, te});
+        agg.flush(10);
+        return history.get(2_000_000)!;
+    };
+    const fed = fedAt(3.6, 7.3);
+    assert.ok(Math.abs(fed.te - 7.3) < 1e-6);
+    assert.equal(fed.flags & FLAG.fedOutdoor, FLAG.fedOutdoor);
+    // An ordinary forecast miss stays the pump's reading.
+    const miss = fedAt(5.6, 7.3);
+    assert.ok(Math.abs(miss.te - 5.6) < 1e-6);
+    assert.equal(miss.flags & FLAG.fedOutdoor, 0);
+    // Without a forecast there is nothing to judge against.
+    assert.ok(Math.abs(fedAt(3.6).te - 3.6) < 1e-6);
+});
+
 test('thin coverage and reconnects mark a slot partial', () => {
     const history = new History(8);
     const agg = new Aggregator(history, () => ({}));

@@ -97,10 +97,12 @@ export class SmartCollector {
         await this.save().catch((error) => this.log('Smart history: save failed:', error?.message ?? error));
         const model = await loadJson<{dailyFits?: DailyFit[]}>(modelFileName(this.fileName)).catch(() => undefined);
         this.dailyFits = Array.isArray(model?.dailyFits) ? model!.dailyFits : [];
-        const shadow = await loadJson<{memory?: ShadowMemory; forecastBias?: ForecastBias; slot?: number}>(
+        // `outdoorBias`, not the earlier `forecastBias`: that one learned from the BT1 test feeds of
+        // 2026-11-02 before fed slots were recognised, and starts over.
+        const shadow = await loadJson<{memory?: ShadowMemory; outdoorBias?: ForecastBias; slot?: number}>(
             shadowStateName(this.fileName)).catch(() => undefined);
         if (shadow?.memory) this.shadowMemory = shadow.memory;
-        if (shadow?.forecastBias?.mean?.length === 24) this.forecastBias = shadow.forecastBias;
+        if (shadow?.outdoorBias?.mean?.length === 24) this.forecastBias = shadow.outdoorBias;
         this.shadowSlot = shadow?.slot;
         this.shadowLines = await trimLines(shadowLogName(this.fileName), SHADOW_KEEP).catch(() => 0);
         this.log(`Smart history: ${this.history.range().length} slots in /userdata/${this.fileName}.`);
@@ -159,6 +161,8 @@ export class SmartCollector {
         const weather = Date.now() - this.weatherAt < WEATHER_STALE_MS ? this.weather.get(slot) : undefined;
         if (weather) context.weather = {gtiS: weather.gtiS, gtiE: weather.gtiE, gtiW: weather.gtiW, ghi: weather.ghi, wind: weather.wind,
             rh: weather.rh, cloud: weather.cloud};
+        if (weather && Number.isFinite(weather.te))
+            context.outdoor = weather.te + forecastCorrection(this.forecastBias, this.localHour(slot));
         return context;
     }
 
@@ -240,11 +244,12 @@ export class SmartCollector {
     }
 
     /** A slot closed: learn the forecast's outdoor error from it, then plan the next slot in
-     *  shadow (§7.5). Nothing is fed, so input 1 is the real outdoor temperature throughout. */
+     *  shadow (§7.5). The app feeds nothing, and a slot BT1 was fed from elsewhere already carries
+     *  the forecast's outdoor temperature (history.ts FLAG.fedOutdoor). */
     private shadow(slot: number, values: Record<Field, number>) {
         if (this.stopped) return;
         const forecastTe = this.weather.get(slot)?.te;
-        if (Number.isFinite(values.te) && forecastTe !== undefined)
+        if (Number.isFinite(values.te) && forecastTe !== undefined && !(values.flags & FLAG.fedOutdoor))
             this.forecastBias = learnForecastBias(this.forecastBias, this.localHour(slot), values.te, forecastTe);
         const skip = (why: string) => this.shadowSkipped.set(why, (this.shadowSkipped.get(why) ?? 0) + 1);
         const fit = this.fit;
@@ -277,7 +282,7 @@ export class SmartCollector {
     }
 
     private async saveShadow() {
-        await saveJson(shadowStateName(this.fileName), {memory: this.shadowMemory, forecastBias: this.forecastBias,
+        await saveJson(shadowStateName(this.fileName), {memory: this.shadowMemory, outdoorBias: this.forecastBias,
             slot: this.shadowSlot});
         if (this.shadowLines > SHADOW_KEEP + 2 * 96)
             this.shadowLines = await trimLines(shadowLogName(this.fileName), SHADOW_KEEP);
@@ -300,10 +305,12 @@ export class SmartCollector {
         const since = slotOf(Date.now() - 24 * HOUR);
         const day = this.history.range().filter((s) => s >= since).map((s) => this.history.get(s)!);
         const partial = day.filter((v) => v.flags & FLAG.partial).length;
+        const fed = day.filter((v) => v.flags & FLAG.fedOutdoor).length;
         const priced = day.filter((v) => Number.isFinite(v.price)).length;
         const weathered = day.filter((v) => Number.isFinite(v.gtiS)).length;
         const age = (at: number) => at ? `${Math.round((Date.now() - at) / 60000)} min` : 'never';
         this.log(`Smart history: last 24 h ${day.length}/96 slots, ${partial} partial, ${priced} priced, `
+            + `${fed ? `${fed} with BT1 fed from elsewhere, ` : ''}`
             + `${weathered} with weather; prices ${age(this.pricesAt)} old (owner costs ${this.costsApplied ? 'on' : 'off'}), `
             + `weather ${age(this.weatherAt)} old; ${this.history.range().length} slots on file.`);
     }
