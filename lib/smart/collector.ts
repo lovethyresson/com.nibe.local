@@ -3,7 +3,7 @@
  *  controller in shadow every slot. Reads only; nothing here writes to the pump.
  *  Design: docs/smart-heating-plan.md §5.2–5.4, §6, §7.5. */
 import https from 'https';
-import {withApi} from '../indoor-sensors';
+import {SensorRef, selectedReadings, withApi} from '../indoor-sensors';
 import {Aggregator, FLAG, Field, History, Sample, SlotContext, encodeRecord} from './history';
 import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, normalisePrices, slotOf} from './prices';
 import {WEATHER_STALE_MS, WeatherSlot, openMeteoUrl, weatherSlots} from './weather';
@@ -13,11 +13,16 @@ import {
 } from './store-file';
 import {DailyFit, HouseAnswers, HouseFit, drifting, fitHistory, readiness, recordDailyFit} from './house';
 import {houseInsights, insightsLine} from './insights';
-import {ForecastBias, forecastCorrection, learnForecastBias, newForecastBias} from './outdoor';
+import {ForecastBias, forecastCorrection, learnForecastBias, newForecastBias, usableSensor} from './outdoor';
 import {SHADOW_PRESETS, ShadowMemory, shadowForecast, shadowStep} from './shadow';
 import {PumpThresholds} from './actuator';
 
 const HOUR = 60 * 60 * 1000;
+/** App setting: the Homey sensor the owner picked for outdoor, a SensorRef. Setup will write it
+ *  (plan §4.2); until then it is set by hand, `homey api apps set-app-setting`. */
+export const OUTDOOR_SENSOR_SETTING = 'smartOutdoorSensor';
+/** Minute readings a slot needs before its sensor mean stands for the slot. */
+const SENSOR_MIN_READINGS = 5;
 /** Shadow log lines kept: 28 days of slots, trimmed once it passes 30. */
 const SHADOW_KEEP = 28 * 96;
 
@@ -65,6 +70,8 @@ export class SmartCollector {
     private shadowLines = 0;
     private shadowSkipped = new Map<string, number>();
     private lastShadow?: any;
+    private sensorSums = new Map<number, {sum: number; n: number}>();
+    private sensorState = '';
 
     constructor(private readonly homey: any, private readonly fileName: string,
                 private readonly log: (...args: any[]) => void,
@@ -108,6 +115,7 @@ export class SmartCollector {
         this.log(`Smart history: ${this.history.range().length} slots in /userdata/${this.fileName}.`);
         this.loop(() => this.fetchPrices(), 5_000);
         this.loop(() => this.fetchWeather(), 20_000);
+        this.loop(() => this.readOutdoorSensor(), 30_000);
         // First fit soon after start, so shadow doesn't wait an hour for a model.
         this.loop(async () => {
             await this.save();
@@ -161,6 +169,9 @@ export class SmartCollector {
         const weather = Date.now() - this.weatherAt < WEATHER_STALE_MS ? this.weather.get(slot) : undefined;
         if (weather) context.weather = {gtiS: weather.gtiS, gtiE: weather.gtiE, gtiW: weather.gtiW, ghi: weather.ghi, wind: weather.wind,
             rh: weather.rh, cloud: weather.cloud};
+        const sensor = this.sensorSums.get(slot);
+        if (sensor && sensor.n >= SENSOR_MIN_READINGS) context.sensor = sensor.sum / sensor.n;
+        for (const s of [...this.sensorSums.keys()]) if (s <= slot) this.sensorSums.delete(s);
         if (weather && Number.isFinite(weather.te))
             context.outdoor = weather.te + forecastCorrection(this.forecastBias, this.localHour(slot));
         return context;
@@ -175,6 +186,29 @@ export class SmartCollector {
             if (!this.stopped) this.timers.push(this.homey.setTimeout(run, next));
         };
         this.timers.push(this.homey.setTimeout(run, firstMs));
+    }
+
+    /** One minute's reading of the owner's outdoor sensor, if one is picked. Logged only when
+     *  its state changes, never once a minute. */
+    private async readOutdoorSensor(): Promise<number> {
+        const ref = this.homey.settings.get(OUTDOOR_SENSOR_SETTING) as SensorRef | null;
+        let state: string;
+        if (!ref?.deviceId || !ref.capabilityId) state = 'none';
+        else {
+            const reading = (await selectedReadings(this.homey, [ref]))[0];
+            const value = usableSensor(reading, Date.now());
+            if (value !== undefined) {
+                const slot = slotOf(Date.now());
+                const sum = this.sensorSums.get(slot) ?? {sum: 0, n: 0};
+                this.sensorSums.set(slot, {sum: sum.sum + value, n: sum.n + 1});
+                state = `using ${reading.name} (${reading.capabilityId})`;
+            } else state = `${reading?.name ?? ref.deviceId} not usable (missing, unavailable, stale or out of range)`;
+        }
+        if (state !== this.sensorState) {
+            this.log(`Smart history: outdoor sensor ${state === 'none' ? 'not picked; the pump and the forecast stand in' : state}.`);
+            this.sensorState = state;
+        }
+        return 60 * 1000;
     }
 
     private async fetchPrices(): Promise<number> {
@@ -249,7 +283,8 @@ export class SmartCollector {
     private shadow(slot: number, values: Record<Field, number>) {
         if (this.stopped) return;
         const forecastTe = this.weather.get(slot)?.te;
-        if (Number.isFinite(values.te) && forecastTe !== undefined && !(values.flags & FLAG.fedOutdoor))
+        // Learn from a real reading (the sensor, or an unfed input 1), never from the forecast itself.
+        if (Number.isFinite(values.te) && forecastTe !== undefined && !(values.flags & FLAG.forecastOutdoor))
             this.forecastBias = learnForecastBias(this.forecastBias, this.localHour(slot), values.te, forecastTe);
         const skip = (why: string) => this.shadowSkipped.set(why, (this.shadowSkipped.get(why) ?? 0) + 1);
         const fit = this.fit;
@@ -306,11 +341,12 @@ export class SmartCollector {
         const day = this.history.range().filter((s) => s >= since).map((s) => this.history.get(s)!);
         const partial = day.filter((v) => v.flags & FLAG.partial).length;
         const fed = day.filter((v) => v.flags & FLAG.fedOutdoor).length;
+        const sensed = day.filter((v) => v.flags & FLAG.sensorOutdoor).length;
         const priced = day.filter((v) => Number.isFinite(v.price)).length;
         const weathered = day.filter((v) => Number.isFinite(v.gtiS)).length;
         const age = (at: number) => at ? `${Math.round((Date.now() - at) / 60000)} min` : 'never';
         this.log(`Smart history: last 24 h ${day.length}/96 slots, ${partial} partial, ${priced} priced, `
-            + `${fed ? `${fed} with BT1 fed from elsewhere, ` : ''}`
+            + `${fed ? `${fed} with BT1 fed from elsewhere, ` : ''}${sensed ? `${sensed} outdoor from the sensor, ` : ''}`
             + `${weathered} with weather; prices ${age(this.pricesAt)} old (owner costs ${this.costsApplied ? 'on' : 'off'}), `
             + `weather ${age(this.weatherAt)} old; ${this.history.range().length} slots on file.`);
     }

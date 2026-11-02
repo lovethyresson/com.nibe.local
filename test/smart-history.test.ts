@@ -39,13 +39,20 @@ test('a BT1 fed from elsewhere is recognised against the forecast and replaced b
     };
     const fed = fedAt(3.6, 7.3);
     assert.ok(Math.abs(fed.te - 7.3) < 1e-6);
-    assert.equal(fed.flags & FLAG.fedOutdoor, FLAG.fedOutdoor);
+    assert.equal(fed.flags & (FLAG.fedOutdoor | FLAG.forecastOutdoor), FLAG.fedOutdoor | FLAG.forecastOutdoor);
     // An ordinary forecast miss stays the pump's reading.
     const miss = fedAt(5.6, 7.3);
     assert.ok(Math.abs(miss.te - 5.6) < 1e-6);
     assert.equal(miss.flags & FLAG.fedOutdoor, 0);
     // Without a forecast there is nothing to judge against.
     assert.ok(Math.abs(fedAt(3.6).te - 3.6) < 1e-6);
+    // The owner's sensor wins, and is what the slot says it used.
+    const agg = new Aggregator(history, () => ({outdoor: 7.3, sensor: 7.2}));
+    for (let i = 0; i < 90; i++) agg.sample(t0 + i * 10_000, 10, {ti: 21, te: 3.6});
+    agg.flush(10);
+    const sensed = history.get(2_000_000)!;
+    assert.ok(Math.abs(sensed.te - 7.2) < 1e-6);
+    assert.equal(sensed.flags & (FLAG.sensorOutdoor | FLAG.fedOutdoor), FLAG.sensorOutdoor | FLAG.fedOutdoor);
 });
 
 test('thin coverage and reconnects mark a slot partial', () => {
