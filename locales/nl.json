@@ -160,6 +160,7 @@
       "source_intro": "Kies welke sensor de binnentemperatuur voor je verwarmingsregeling levert.",
       "source_homey_desc": "Gebruik één sensor of het gemiddelde van meerdere kamers. Je warmtepomp blijft de regeling verzorgen.",
       "source_cs1": "Gemiddelde klimaatsysteem 1",
+      "source_wireless": "Draadloze ruimtesensor",
       "feed_short": "Verificatie start regelmatige temperatuurupdates, ook na het sluiten van Herstellen.",
       "feed_recovery": "Als Homey of een sensor uitvalt, kan BT50 alarm geven. Herstel de NIBE-sensor en schakel externe BT50 uit op de pomp.",
       "on_pump": "Op je warmtepomp",

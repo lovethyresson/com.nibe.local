@@ -160,6 +160,7 @@
       "source_intro": "Choose which sensor supplies the indoor temperature used to control your heating.",
       "source_homey_desc": "Use one sensor or average several rooms. Your heat pump stays in control.",
       "source_cs1": "Climate system 1 average",
+      "source_wireless": "Wireless room sensor",
       "feed_short": "Verification starts regular temperature updates, which continue after you close Repair.",
       "feed_recovery": "If Homey or a sensor stops reporting, BT50 may alarm. Restore the NIBE sensor and disable external BT50 on your pump.",
       "on_pump": "On your heat pump",

@@ -160,6 +160,7 @@
       "source_intro": "Wählen Sie den Sensor für die Innentemperatur Ihrer Heizungsregelung.",
       "source_homey_desc": "Nutzen Sie einen Sensor oder den Durchschnitt mehrerer Räume. Die Wärmepumpe behält die Regelung.",
       "source_cs1": "Durchschnitt Klimasystem 1",
+      "source_wireless": "Funk-Raumfühler",
       "feed_short": "Die Prüfung startet regelmäßige Temperaturupdates, auch nach dem Schließen von Reparieren.",
       "feed_recovery": "Bei Ausfall von Homey oder einem Sensor kann BT50 einen Alarm auslösen. Stellen Sie den NIBE-Sensor wieder her und deaktivieren Sie externen BT50.",
       "on_pump": "An der Wärmepumpe",

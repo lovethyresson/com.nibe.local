@@ -234,5 +234,13 @@
     "de": "Wärmepumpen mit mehr als einer Zone: Wählen Sie unter Heizung → Reparieren, welche Zone der Thermostat von Heizung einstellt. Hat Ihre Wärmepumpe mehrere Zonen, protokolliert die App nach jedem Start außerdem einmal die Zonentemperaturen, um eine Temperatur pro Zone hinzufügen zu können.",
     "no": "Varmepumper med mer enn én sone: velg hvilken sone termostaten på Varme stiller inn, under Varme → Reparer. Har varmepumpen flere soner, logger appen også sonetemperaturer én gang etter hver oppstart, for å kunne legge til en temperatur per sone.",
     "da": "Varmepumper med mere end én zone: vælg, hvilken zone termostaten på Varme indstiller, under Varme → Reparer. Har varmepumpen flere zoner, logger appen også zonetemperaturer én gang efter hver start, så der kan tilføjes en temperatur pr. zone."
+  },
+  "1.4.11": {
+    "en": "Wireless room sensors: the Heating thermostat can show the temperature from one of your NIBE wireless room sensors instead of the average, and each sensor gets its own temperature on the Heating device. Run Heating → Repair and pick the sensor by its reading.",
+    "sv": "Trådlösa rumsgivare: termostaten på Värme kan visa temperaturen från en av dina trådlösa NIBE-rumsgivare i stället för medelvärdet, och varje givare får en egen temperatur på enheten Värme. Kör Värme → Reparera och välj givaren efter dess värde.",
+    "nl": "Draadloze ruimtesensoren: de thermostaat van Verwarming kan de temperatuur van een van je draadloze NIBE-ruimtesensoren tonen in plaats van het gemiddelde, en elke sensor krijgt een eigen temperatuur op het apparaat Verwarming. Voer Verwarming → Repareren uit en kies de sensor aan de hand van de meetwaarde.",
+    "de": "Funk-Raumfühler: Der Thermostat von Heizung kann die Temperatur eines Ihrer NIBE-Funk-Raumfühler statt des Mittelwerts anzeigen, und jeder Fühler erhält eine eigene Temperatur auf dem Gerät Heizung. Führen Sie Heizung → Reparieren aus und wählen Sie den Fühler anhand seines Messwerts.",
+    "no": "Trådløse romfølere: termostaten på Varme kan vise temperaturen fra en av dine trådløse NIBE-romfølere i stedet for gjennomsnittet, og hver føler får sin egen temperatur på enheten Varme. Kjør Varme → Reparer og velg føleren ut fra verdien.",
+    "da": "Trådløse rumfølere: termostaten på Varme kan vise temperaturen fra en af dine trådløse NIBE-rumfølere i stedet for gennemsnittet, og hver føler får sin egen temperatur på enheden Varme. Kør Varme → Reparer, og vælg føleren ud fra dens måling."
   }
 }

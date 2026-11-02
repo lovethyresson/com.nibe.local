@@ -55,6 +55,16 @@ export const sgReadyModeMap = Object({
     3: "Overcapacity"
 });
 
+// Wireless room sensors (input 2800.., step 2), found on Pro-Z's S1156 (fw 4.14.6) by a scan of the
+// whole input space: 2800 = 24.8 and 2802 = 22.0, and their mean is exactly climate system 1's
+// average at 116 (23.4). NIBE's changelog 2.27.5 added "registers to read data from wireless units"
+// without naming them. The slot order is NOT the zone order (1.3.4) and NOT the wireless-unit order
+// (5.4): his first slot is the sensor listed second in both. So the app never names a slot — each is
+// offered with its live reading and the user picks by value. 2801/2803 mirrored 2800/2802 exactly and
+// are left unmapped. Eight slots, not NIBE's forty units: one house rarely has more, and each costs a
+// detection read and a compose entry.
+export const wirelessSlots = Array.from({length: 8}, (_, i) => 2800 + 2 * i);
+
 export const registers: Register[] = [
     // External sensor mailboxes, not persistent settings or displayed measurements.
     // Live S1155 test: FC6 writes are accepted, then the pump clears the mailbox to
@@ -106,9 +116,15 @@ export const registers: Register[] = [
      sources: [
          {address: 116, label: {en: "Climate system 1 average — wired or wireless room sensors", sv: "Medelvärde klimatsystem 1 — trådade eller trådlösa rumsgivare"}},
          {address: 111, label: {en: "Climate system 6 average", sv: "Medelvärde klimatsystem 6"}},
-         {address:  26, label: {en: "Room sensor BT50 — wired or external input", sv: "Rumsgivare BT50 — trådad eller extern ingång"}}
+         {address:  26, label: {en: "Room sensor BT50 — wired or external input", sv: "Rumsgivare BT50 — trådad eller extern ingång"}},
+         ...wirelessSlots.map((address) => ({address, label: {en: "Wireless room sensor", sv: "Trådlös rumsgivare"}}))
      ],
      info: {en: "Indoor temperature used to regulate climate system 1", sv: "Inomhustemperatur som reglerar klimatsystem 1"}},
+    // One wireless room sensor each, read-only. Opt-in: offered only where detection read a room
+    // temperature at that slot, so a pump without wireless sensors never gets eight empty rows.
+    ...wirelessSlots.map((address, i): Register => ({address, name: `measure_temperature.i${address}_wireless_${i + 1}`,
+     direction: Dir.In, group: "heating", scale: 10, optIn: true, plausible: {min: 5, max: 40},
+     info: {en: "The temperature at one wireless room sensor. NIBE's slot order follows neither the zones nor menu 5.4, so match it by its reading", sv: "Temperaturen vid en trådlös rumsgivare. NIBE:s ordning följer varken zonerna eller meny 5.4, så känn igen den på värdet"}})),
     // Rad 2 Framledning
     {address: 1017, name: "measure_temperature.i1017_calculated_supply", direction: Dir.In, group: "heating", scale:  10, // Beräknad framledning klimatsystem 1
      info: {en: "Supply temperature the pump is aiming for (climate system 1)", sv: "Framledningstemperatur pumpen siktar på (klimatsystem 1)"}},

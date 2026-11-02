@@ -1074,12 +1074,13 @@ function sampleAgainst(answers: Record<number, number | undefined>) {
 
 const INSIDE = 'measure_temperature';
 
-test('sources: indoor temperature offers the three candidates, 116 first', () => {
+test('sources: indoor temperature offers the three system candidates, 116 first, then wireless slots', () => {
     // Verified on a live S1155 (fw 1036): 116 is climate system 1 and carries the real value,
     // 111 is climate system 6 and returns the sentinel, 26 is a single sensor and excepts.
     const inside = sProfile.registerByName[INSIDE];
     assert.equal(inside.address, 116, 'climate system 1 is 116 on all six model maps');
-    assert.deepEqual(inside.sources?.map((s) => s.address), [116, 111, 26]);
+    assert.deepEqual(inside.sources?.slice(0, 3).map((s) => s.address), [116, 111, 26]);
+    assert.ok(inside.sources?.slice(3).every((s) => s.address >= 2800 && s.address <= 2814));
     assert.equal(inside.altAddresses, undefined, 'sources replaces the silent-fallback path');
 });
 

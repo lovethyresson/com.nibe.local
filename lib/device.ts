@@ -4,7 +4,7 @@ import {Device} from 'homey';
 import net from 'net';
 import {analyticsConsent, setAnalyticsConsent, track} from './analytics';
 import {
-    Dir, Register, Selection, combineRaw, encodeRegisterValue, toNumericValue, enumLabel, isPollable, isUnavailableRaw, migrateSelection,
+    Dir, Register, Selection, encodeRegisterValue, toNumericValue, enumLabel, isPollable, isUnavailableRaw, migrateSelection,
     resolvedAddress, signedValue, withResolvedAddresses
 } from './registers';
 import {
@@ -16,7 +16,6 @@ import {
     GroupMove, adoptMovedGroup, movedGroups
 } from './roles';
 import {ALARM_SOURCE_URL, alarmAdvice, alarmDescription} from './alarms';
-import {formatHits, scanInputSpace} from './zone-scan';
 import {
     ColdSample, COLD_WINDOW_DAYS, DEFAULT_INLET_C, MAX_TANK_LITRES, MIN_TANK_LITRES, MIX_C,
     dayNumber, learnedInletC, usableLitres
@@ -43,9 +42,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     private static indoorOwners = new Map<string, NibePumpDevice>();
     private indoorTimer: ReturnType<typeof setTimeout> | null = null;
-    // Hosts already zone-scanned in this app run. One scan per pump per start; restart to rerun.
-    private static zoneScanned = new Set<string>();
-    private zoneScanTimer: ReturnType<typeof setTimeout> | null = null;
+    // When a selection was last applied. A Repair can move a register to another address (a
+    // different zone or sensor), and the first read there is not a change made on the pump.
+    private selectionAppliedAt = 0;
     private indoorWork: Promise<any> | null = null;
     private indoorStopped = false;
     private indoorStatus: any = {state: 'idle'};
@@ -565,6 +564,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // degree minutes in one — and nobody "changed" those, the pump just recomputed them.
         if (register.noAction)
             return;
+        // Right after Repair the "old" value may belong to another address: switching the
+        // thermostat from zone 1 to zone 2 logged zone 2's setpoint as a pump-side change.
+        if (Date.now() - this.selectionAppliedAt < NibePumpDevice.WRITE_ECHO_MS)
+            return;
         const ours = this.recentWrites.get(register.name);
         if (ours && ours.value === value && Date.now() - ours.at < NibePumpDevice.WRITE_ECHO_MS)
             return;
@@ -909,6 +912,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     async applySelection(selection: Selection) {
         this.log("Applying selection", JSON.stringify(selection));
+        this.selectionAppliedAt = Date.now();
         await this.setStoreValue('selection', selection);
         // The owner has now chosen moved groups here themselves; no handover may overwrite that.
         for (const move of movedGroups)
@@ -1068,7 +1072,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 } else NibePumpDevice.indoorOwners.set(this.host(), this);
             }
             this.scheduleIndoor();
-            this.scheduleZoneScan(0);
             if (this.getStoreValue('indoorSensors')?.state === 'pending')
                 await this.setWarning('Finish your Homey sensor setup in Heating → Repair.');
         }
@@ -1751,52 +1754,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         }
     }
 
-    // Research for per-zone support (test builds): on a pump with two or more configured zones,
-    // log each zone's setpoint and every input register reading like a room temperature, once per
-    // app start. NIBE documents no per-zone temperature; matching these against what myUplink
-    // shows per zone at the same minute is how it gets found. Logs only — see lib/zone-scan.ts.
-    private scheduleZoneScan(attempt: number) {
-        const target = this.profile.registerByName['target_temperature'];
-        if (!target?.sources || attempt > 6 || NibePumpDevice.zoneScanned.has(this.host()))
-            return;
-        this.zoneScanTimer = setTimeout(() => {
-            this.zoneScanTimer = null;
-            this.runZoneScan(attempt).catch((err) => this.error('Zone scan failed', err));
-        }, attempt === 0 ? 2 * 60_000 : 5 * 60_000);
-    }
-
-    private async runZoneScan(attempt: number) {
-        const target = this.profile.registerByName['target_temperature'];
-        const connection = this.connection;
-        if (!target?.sources || !connection || NibePumpDevice.zoneScanned.has(this.host()))
-            return;
-        const zones: string[] = [];
-        let answered = 0;
-        for (const [i, source] of target.sources.entries()) {
-            const words = await connection.readWords(Dir.Out, source.address, 2);
-            if (!words) continue;
-            answered++;
-            const value = signedValue(combineRaw(words, 32), 32) / 10;
-            if (value >= 5 && value <= 35) zones.push(`zone ${i + 1} (${source.address})=${value}`);
-        }
-        if (!answered) { this.scheduleZoneScan(attempt + 1); return; }
-        NibePumpDevice.zoneScanned.add(this.host());
-        if (zones.length < 2) return;
-        const chosen = resolvedAddress(target, this.getSelection());
-        this.log(`Zone scan: ${zones.length} zones configured: ${zones.join(', ')}; thermostat drives ${chosen}. `
-            + 'Reading input registers 0-9999 for room temperatures; note what myUplink shows per zone now.');
-        const started = Date.now();
-        const result = await scanInputSpace((address, count) => connection.readWords(Dir.In, address, count),
-            0, 9999, {deadline: started + 30 * 60_000});
-        this.log(`Zone scan ${result.aborted ? `stopped (${result.aborted})` : 'done'} in `
-            + `${Math.round((Date.now() - started) / 1000)} s: ${result.reads} requests, ${result.answered} registers `
-            + `answered, ${result.hits.length} read 5-40 °C (address=°C):`);
-        for (const line of formatHits(result.hits))
-            this.log(`Zone scan hits: ${line}`);
-    }
-
     async onUninit() {
-        if (this.zoneScanTimer) clearTimeout(this.zoneScanTimer);
         await this.stopIndoor();
         // Flush the debounced meter before going away, so an orderly restart or a repair keeps
         // the fraction of a kWh the 0.01 step was still holding.

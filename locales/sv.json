@@ -160,6 +160,7 @@
       "source_intro": "Välj vilken givare som mäter inomhustemperaturen för din värmestyrning.",
       "source_homey_desc": "Använd en givare eller medelvärdet från flera rum. Värmepumpen behåller styrningen.",
       "source_cs1": "Medelvärde klimatsystem 1",
+      "source_wireless": "Trådlös rumsgivare",
       "feed_short": "Verifieringen startar regelbundna temperaturuppdateringar som fortsätter när du stänger Reparera.",
       "feed_recovery": "Om Homey eller en givare slutar rapportera kan BT50 larma. Återställ NIBE-givaren och stäng av extern BT50 på pumpen.",
       "on_pump": "På värmepumpen",

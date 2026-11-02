@@ -1,7 +1,7 @@
 {
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "com.nibe.local",
-  "version": "1.4.10",
+  "version": "1.4.11",
   "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
@@ -5815,6 +5815,14 @@
         "measure_cop_NIBE.total",
         "onoff.h181_enable_heating",
         "measure_temperature",
+        "measure_temperature.i2800_wireless_1",
+        "measure_temperature.i2802_wireless_2",
+        "measure_temperature.i2804_wireless_3",
+        "measure_temperature.i2806_wireless_4",
+        "measure_temperature.i2808_wireless_5",
+        "measure_temperature.i2810_wireless_6",
+        "measure_temperature.i2812_wireless_7",
+        "measure_temperature.i2814_wireless_8",
         "target_temperature",
         "measure_temperature.i1_outside",
         "measure_temperature.i37_outside_avg",
@@ -7051,6 +7059,94 @@
             "no": "Kompressorens driftstid",
             "da": "Kompressorens driftstid"
           }
+        },
+        "measure_temperature.i2800_wireless_1": {
+          "title": {
+            "en": "Wireless room sensor 1",
+            "sv": "Trådlös rumsgivare 1",
+            "de": "Funk-Raumfühler 1",
+            "nl": "Draadloze ruimtesensor 1",
+            "no": "Trådløs romføler 1",
+            "da": "Trådløs rumføler 1"
+          },
+          "decimals": 1
+        },
+        "measure_temperature.i2802_wireless_2": {
+          "title": {
+            "en": "Wireless room sensor 2",
+            "sv": "Trådlös rumsgivare 2",
+            "de": "Funk-Raumfühler 2",
+            "nl": "Draadloze ruimtesensor 2",
+            "no": "Trådløs romføler 2",
+            "da": "Trådløs rumføler 2"
+          },
+          "decimals": 1
+        },
+        "measure_temperature.i2804_wireless_3": {
+          "title": {
+            "en": "Wireless room sensor 3",
+            "sv": "Trådlös rumsgivare 3",
+            "de": "Funk-Raumfühler 3",
+            "nl": "Draadloze ruimtesensor 3",
+            "no": "Trådløs romføler 3",
+            "da": "Trådløs rumføler 3"
+          },
+          "decimals": 1
+        },
+        "measure_temperature.i2806_wireless_4": {
+          "title": {
+            "en": "Wireless room sensor 4",
+            "sv": "Trådlös rumsgivare 4",
+            "de": "Funk-Raumfühler 4",
+            "nl": "Draadloze ruimtesensor 4",
+            "no": "Trådløs romføler 4",
+            "da": "Trådløs rumføler 4"
+          },
+          "decimals": 1
+        },
+        "measure_temperature.i2808_wireless_5": {
+          "title": {
+            "en": "Wireless room sensor 5",
+            "sv": "Trådlös rumsgivare 5",
+            "de": "Funk-Raumfühler 5",
+            "nl": "Draadloze ruimtesensor 5",
+            "no": "Trådløs romføler 5",
+            "da": "Trådløs rumføler 5"
+          },
+          "decimals": 1
+        },
+        "measure_temperature.i2810_wireless_6": {
+          "title": {
+            "en": "Wireless room sensor 6",
+            "sv": "Trådlös rumsgivare 6",
+            "de": "Funk-Raumfühler 6",
+            "nl": "Draadloze ruimtesensor 6",
+            "no": "Trådløs romføler 6",
+            "da": "Trådløs rumføler 6"
+          },
+          "decimals": 1
+        },
+        "measure_temperature.i2812_wireless_7": {
+          "title": {
+            "en": "Wireless room sensor 7",
+            "sv": "Trådlös rumsgivare 7",
+            "de": "Funk-Raumfühler 7",
+            "nl": "Draadloze ruimtesensor 7",
+            "no": "Trådløs romføler 7",
+            "da": "Trådløs rumføler 7"
+          },
+          "decimals": 1
+        },
+        "measure_temperature.i2814_wireless_8": {
+          "title": {
+            "en": "Wireless room sensor 8",
+            "sv": "Trådlös rumsgivare 8",
+            "de": "Funk-Raumfühler 8",
+            "nl": "Draadloze ruimtesensor 8",
+            "no": "Trådløs romføler 8",
+            "da": "Trådløs rumføler 8"
+          },
+          "decimals": 1
         }
       },
       "energy": {

@@ -109,6 +109,13 @@ How it behaves:
   (`assets/pair/devices.js`) and the repair features view (`assets/pair/features.js`). Each option shows what
   that address actually read, because "23.5" vs "18.1" is the only thing that distinguishes them to a human.
 
+Since 1.4.11 the indoor-temperature candidates also include the **wireless room sensor slots**, input
+2800..2814 (step 2). Their order matches neither the zones nor menu 5.4 (Pro-Z's S1156: the sensor listed
+second in both is in the first slot), so the view labels every slot just "Wireless room sensor" and the
+live reading identifies it (`nibeSourceLabel()` in `assets/pair/setup.js`). The same slots are opt-in rows on
+Heating: `optIn` registers are off unless an override turns them on, which pairing and Repair set only where
+detection read a room temperature.
+
 The thermostat setpoint is the second `sources` register (1.4.10): zone setpoints 2505..2583, step 2, in
 menu 1.3.4's order. An unconfigured zone reads a flat 0, which `altPlausible` rejects, so only real zones are
 offered. Unlike indoor temperature, **one** live zone is not stated at all — a single-zone pump has nothing

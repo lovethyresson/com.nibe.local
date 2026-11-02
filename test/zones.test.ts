@@ -1,20 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {formatHits, isRoomTemperatureWord, scanInputSpace} from '../lib/zone-scan';
-import {isPlausibleAlt, resolvedAddress} from '../lib/registers';
+import {isPlausibleValue, isPlausibleAlt, isRegisterEnabled, resolvedAddress} from '../lib/registers';
 import {sProfile} from '../drivers/nibe_s/profile';
-
-// A pump that answers only the addresses in `space`, refusing any block touching another one.
-const pump = (space: Record<number, number>, delay = () => 0) => {
-    let now = 0;
-    const read = async (address: number, count: number) => {
-        now += delay();
-        for (let a = address; a < address + count; a++)
-            if (!(a in space)) return undefined;
-        return Array.from({length: count}, (_, i) => space[address + i]);
-    };
-    return {read, now: () => now};
-};
 
 test('zone setpoints are offered as thermostat targets, zone 1 first', () => {
     const target = sProfile.registerByName['target_temperature'];
@@ -31,46 +18,25 @@ test('zone setpoints are offered as thermostat targets, zone 1 first', () => {
     assert.equal(resolvedAddress(target, null), 2505);
 });
 
-test('room-temperature words: 5-40 °C in tenths, signed, never the sentinel', () => {
-    assert.equal(isRoomTemperatureWord(220), true);
-    assert.equal(isRoomTemperatureWord(49), false);
-    assert.equal(isRoomTemperatureWord(401), false);
-    assert.equal(isRoomTemperatureWord(0x8000), false);
-    assert.equal(isRoomTemperatureWord(0xFFF6), false, '-1.0 °C is not a room');
-});
 
-test('scan finds temperatures next to refused addresses, and splits refused blocks', async () => {
-    const space: Record<number, number> = {};
-    for (let a = 0; a < 200; a++) space[a] = 0;
-    delete space[37];          // one hole: the 50-block and its 10-block are refused
-    space[26] = 215; space[116] = 234; space[150] = 245; space[151] = 1000;
-    const {read} = pump(space);
-    const result = await scanInputSpace(read, 0, 249);
-    assert.deepEqual(result.hits, [{address: 26, value: 21.5}, {address: 116, value: 23.4}, {address: 150, value: 24.5}]);
-    assert.equal(result.answered, 199);
-    assert.ok(!result.aborted);
-    // 0-49: 1 + 5 tens, of which 30-39 goes single (10). 50-199: 3 blocks. 200-249: 1 + 5 + 50.
-    assert.equal(result.reads, 1 + 5 + 10 + 3 + 1 + 5 + 50);
-});
+test('wireless room sensors: offered as indoor sources by reading, rows only where detected', () => {
+    const indoor = sProfile.registerByName['measure_temperature'];
+    const slots = (indoor.sources ?? []).filter((s) => s.address >= 2800);
+    assert.deepEqual(slots.map((s) => s.address), [2800, 2802, 2804, 2806, 2808, 2810, 2812, 2814]);
+    assert.equal(indoor.sources?.[0].address, 116, 'climate-system average stays the default');
+    // Pro-Z's S1156: the first slot is the sensor listed second in both 1.3.4 and 5.4, so no
+    // slot label may carry a number, zone or position.
+    assert.ok(slots.every((s) => !/\d/.test(s.label.en)));
 
-test('scan stops when the pump answers too slowly, instead of wedging the wire', async () => {
-    const {read, now} = pump({}, () => 5000);
-    const result = await scanInputSpace(read, 0, 9999, {now});
-    assert.equal(result.aborted, 'pump answering too slowly');
-    assert.equal(result.reads, 2);
-});
-
-test('scan respects its deadline', async () => {
-    const {read, now} = pump({}, () => 100);
-    const result = await scanInputSpace(read, 0, 9999, {now, deadline: 1000});
-    assert.equal(result.aborted, 'time limit');
-    assert.ok(result.reads <= 11);
-});
-
-test('hits format as compact lines', () => {
-    const hits = Array.from({length: 25}, (_, i) => ({address: i, value: 20}));
-    const lines = formatHits(hits);
-    assert.equal(lines.length, 2);
-    assert.equal(lines[0].split(' ').length, 20);
-    assert.equal(lines[1], '20=20 21=20 22=20 23=20 24=20');
+    const row = sProfile.registerByName['measure_temperature.i2802_wireless_2'];
+    assert.ok(row?.optIn, 'opt-in row');
+    const none = {} as Record<string, string>;
+    // Off for a device that never ran detection, or predates the register.
+    assert.equal(isRegisterEnabled(row, null, none), false);
+    assert.equal(isRegisterEnabled(row, {groups: {heating: true}, overrides: {}}, none), false);
+    assert.equal(isRegisterEnabled(row, {groups: {heating: true}, overrides: {[row.name]: true}}, none), true);
+    assert.equal(isRegisterEnabled(row, {groups: {heating: false}, overrides: {[row.name]: true}}, none), false);
+    // An empty slot reads NIBE's sentinel or 0; neither is a room.
+    assert.equal(isPlausibleValue(row, 0), false);
+    assert.equal(isPlausibleValue(row, 22), true);
 });

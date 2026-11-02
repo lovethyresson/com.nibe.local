@@ -554,6 +554,7 @@ export abstract class NibePumpDriver extends Driver {
                     name: register.name,
                     title: title(register.name),
                     adjustable: isAdjustable(register),
+                    optIn: !!register.optIn,
                     description: (register.info as any)[language] || register.info.en
                 }));
             // Derived, so it is in no register group — listed here so Repair can switch it off
@@ -564,6 +565,7 @@ export abstract class NibePumpDriver extends Driver {
                     name: HOTWATER_VOLUME_CAPABILITY,
                     title: this.extraDisplayTitle(role, HOTWATER_VOLUME_CAPABILITY, lang),
                     adjustable: false,
+                    optIn: false,
                     description: lang === 'sv'
                         ? 'Liter 40-gradigt varmvatten kvar. Kräver vald beredare nedan.'
                         : 'Litres of 40 °C water left. Needs the tank you pick below.'
@@ -708,15 +710,16 @@ export abstract class NibePumpDriver extends Driver {
         for (const id of groupIds)
             groups[id] = !!raw?.groups?.[id];
         const overrides: Selection["overrides"] = {};
-        const keep = (name: string, group: GroupId) => {
+        const keep = (name: string, group: GroupId, optIn = false) => {
             const override = raw?.overrides?.[name];
-            if (typeof override === "boolean" && override !== groups[group])
+            // An opt-in register is off without an override, so its "on" is the one worth keeping.
+            if (typeof override === "boolean" && (optIn ? override : override !== groups[group]))
                 overrides[name] = override;
         };
         for (const register of this.profile.registers) {
             if (register.group === "core")
                 continue;
-            keep(register.name, register.group);
+            keep(register.name, register.group, !!register.optIn);
         }
         // The derived energy/COP capabilities are toggled like registers in the features view,
         // so their overrides have to survive the round trip too — otherwise repair silently
@@ -779,6 +782,11 @@ export abstract class NibePumpDriver extends Driver {
         if (Object.keys(addresses).length)
             selection.addresses = addresses;
         for (const register of roleRegisters(this.profile, role)) {
+            if (register.optIn) {
+                if (samples[register.name]?.read)
+                    selection.overrides[register.name] = true;
+                continue;
+            }
             if (register.group !== 'core'
                 && isSelectableRegister(register, this.profile.pickerPrimary)
                 && selection.groups[register.group]

@@ -47,7 +47,7 @@ function renderSources(deviceIndex, candidate, capName, parent) {
         only.className = 'register-sources';
         var text = document.createElement('div');
         text.className = 'register-desc';
-        text.textContent = Homey.__('pair.sources.using') + ' ' + (sources[0].address === 116 ? Homey.__('pair.setup.source_cs1') : sources[0].label)
+        text.textContent = Homey.__('pair.sources.using') + ' ' + nibeSourceLabel(sources[0])
             + (sources[0].value === undefined || sources[0].value === null
                 ? '' : ' · ' + sources[0].value + ' °C');
         only.appendChild(text);
@@ -81,7 +81,7 @@ function renderSources(deviceIndex, candidate, capName, parent) {
         radio.dataset.device = deviceIndex;
         radio.dataset.source = capName;
         option.appendChild(radio);
-        var text = ' ' + source.label;
+        var text = ' ' + nibeSourceLabel(source);
         if (source.value !== undefined && source.value !== null)
             text += ' — ' + source.value + ' °C';
         option.appendChild(document.createTextNode(text));

@@ -160,6 +160,7 @@
       "source_intro": "Velg sensoren som måler innetemperaturen for varmestyringen.",
       "source_homey_desc": "Bruk én sensor eller gjennomsnittet av flere rom. Varmepumpen beholder styringen.",
       "source_cs1": "Gjennomsnitt klimasystem 1",
+      "source_wireless": "Trådløs romføler",
       "feed_short": "Bekreftelsen starter regelmessige temperaturoppdateringer som fortsetter når du lukker Reparer.",
       "feed_recovery": "Hvis Homey eller en sensor slutter å rapportere, kan BT50 varsle alarm. Gjenopprett NIBE-sensoren og deaktiver ekstern BT50.",
       "on_pump": "På varmepumpen",

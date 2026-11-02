@@ -149,6 +149,10 @@ export interface Register  {
     // thermostat dial reading 0 °C. Same reasoning as `inRange`'s "an exact zero means the thing
     // isn't wired up", applied per register rather than per group.
     plausible?: {min: number; max: number};
+    // Off unless an explicit override turns it on — set by pairing/Repair where detection read the
+    // register. For a family of slots most pumps don't fill (wireless room sensors), so a device
+    // that never ran detection, or predates the register, doesn't sprout a row per empty slot.
+    optIn?: boolean;
     min?: number;
     max?: number;
 }
@@ -461,9 +465,11 @@ export function isRegisterEnabled(
     selection: Selection | null | undefined,
     pickerPrimary: Record<string, string>
 ): boolean {
+    const key = pickerPrimary[register.name] ?? register.name;
+    if (register.optIn)
+        return selection?.overrides?.[key] === true && selection.groups?.[register.group] !== false;
     if (register.group === "core" || !selection)
         return true;
-    const key = pickerPrimary[register.name] ?? register.name;
     return selection.overrides?.[key]
         ?? selection.groups?.[register.group]
         ?? true;

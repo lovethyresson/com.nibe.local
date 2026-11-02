@@ -402,3 +402,12 @@ function nibeZoneCards(sources, options) {
     box.addEventListener('change', mark); mark();
     return box;
 }
+
+// A source's label in the user's language. The driver localises only en/sv, so the two families
+// shown everywhere get keys of their own. A wireless slot is deliberately unnumbered: NIBE's slot
+// order matches neither zones nor menu 5.4, so the reading beside it is what identifies it.
+function nibeSourceLabel(source) {
+    if (source.address === 116) return Homey.__('pair.setup.source_cs1');
+    if (source.address >= 2800 && source.address <= 2878) return Homey.__('pair.setup.source_wireless');
+    return source.label;
+}
