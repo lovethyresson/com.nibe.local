@@ -954,6 +954,24 @@ export class PumpConnection {
             });
     }
 
+    // A raw block read for research scans (see lib/zone-scan.ts): no register, no read-failure
+    // tracking, no absent-learning. Resolves undefined on any error, including an exception for
+    // an address the model doesn't have, which is the expected answer for most of a sweep.
+    async readWords(direction: Dir, address: number, count: number): Promise<number[] | undefined> {
+        const generation = this.generation;
+        const pdu = address - (this.transport.addressBase ?? this.profile.addressBase ?? 0);
+        try {
+            const resp: any = await this.withWireAccess<any>(() => direction === Dir.In
+                ? this.client.readInputRegisters(pdu, count)
+                : this.client.readHoldingRegisters(pdu, count));
+            if (generation !== this.generation) return undefined;
+            const words = Array.from(resp.response.body.values as number[]);
+            return words.length === count ? words : undefined;
+        } catch {
+            return undefined;
+        }
+    }
+
     // Write a register at its own width. A 32-bit register spans two words and takes ONE FC16
     // request carrying both — assembled HIGH WORD FIRST, which is the opposite of the order
     // combineRaw() reads them back in.

@@ -35,10 +35,13 @@ function syncGroups(deviceIndex, deviceChecked) {
 // Detection only reports a register here when two or more candidates answered plausibly, so an
 // entry always represents a real question. Each option shows what that address actually read —
 // without the numbers there is no way to tell the candidates apart.
-function renderSources(deviceIndex, candidate, capName, parent) {
+function renderSources(deviceIndex, candidate, capName, parent, promptKey) {
     var choices = candidate.choices || {};
     var sources = choices[capName];
     if (!sources || !sources.length)
+        return;
+    // A zone choice is only a question with two or more zones; one zone needs no line at all.
+    if (promptKey && sources.length < 2)
         return;
     // One live candidate is not a choice — but it is still worth naming, so "Indoor temperature"
     // doesn't leave you guessing which sensor the pump is regulating on.
@@ -64,7 +67,7 @@ function renderSources(deviceIndex, candidate, capName, parent) {
 
     var prompt = document.createElement('div');
     prompt.className = 'register-desc';
-    prompt.textContent = Homey.__('pair.sources.prompt');
+    prompt.textContent = Homey.__(promptKey || 'pair.sources.prompt');
     box.appendChild(prompt);
 
     var matched = sources.some(function (s) { return s.address === stored; });
@@ -83,7 +86,7 @@ function renderSources(deviceIndex, candidate, capName, parent) {
         option.appendChild(radio);
         var text = ' ' + source.label;
         if (source.value !== undefined && source.value !== null)
-            text += ' — ' + source.value;
+            text += ' — ' + source.value + ' °C';
         option.appendChild(document.createTextNode(text));
         box.appendChild(option);
     });
@@ -180,8 +183,11 @@ function render() {
             var sources = document.createElement('div');
             renderSources(index, candidate, 'measure_temperature', sources);
             if (!sources.childNodes.length) sources.textContent = Homey.__('pair.setup.no_nibe_sources');
+            var zones = document.createElement('div');
+            renderSources(index, candidate, 'target_temperature', zones, 'pair.setup.zone_prompt');
             setupSections[index] = {id: String(index), role: candidate.role,
-                title: Homey.__('pair.setup.heating'), description: candidate.description, sources: sources};
+                title: Homey.__('pair.setup.heating'), description: candidate.description, sources: sources,
+                zones: zones.childNodes.length ? zones : undefined};
         }
 
         if (groups.length) {

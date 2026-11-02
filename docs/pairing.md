@@ -109,6 +109,13 @@ How it behaves:
   (`assets/pair/devices.js`) and the repair features view (`assets/pair/features.js`). Each option shows what
   that address actually read, because "23.5" vs "18.1" is the only thing that distinguishes them to a human.
 
+The thermostat setpoint is the second `sources` register (1.4.10): zone setpoints 2505..2583, step 2, in
+menu 1.3.4's order. An unconfigured zone reads a flat 0, which `altPlausible` rejects, so only real zones are
+offered. Unlike indoor temperature, **one** live zone is not stated at all — a single-zone pump has nothing
+to say about zones — and two or more are asked above both temperature-source cards in Heating Setup, since
+the zone is independent of where the temperature comes from. The case that forced it: an S1156 whose zone 1
+only displays and zone 2 controls, so a thermostat fixed on 2505 set a zone that regulates nothing.
+
 The pick lands in the same `Selection.addresses` map as a resolved alternate, so reads, writes and flow
 autocompletes need no special handling. `cleanSelection()` accepts an address only if the register declares
 `sources` and actually offers it — the view is untrusted input.

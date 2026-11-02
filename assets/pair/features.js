@@ -66,9 +66,12 @@ function selectedSource(register, sources) {
 // they are different quantities and only the user knows which one they mean. Either way the
 // sensor is named — "Indoor temperature" alone tells you nothing about where it comes from,
 // which is what made pairing confusing.
-function renderSources(register, parent) {
+function renderSources(register, parent, promptKey) {
     var sources = sourcesFor(register);
     if (!sources)
+        return;
+    // A zone choice is only a question with two or more zones; one zone needs no line at all.
+    if (promptKey && sources.length < 2)
         return;
     var chosen = selectedSource(register, sources);
 
@@ -88,7 +91,7 @@ function renderSources(register, parent) {
 
     var prompt = document.createElement('div');
     prompt.className = 'register-desc';
-    prompt.textContent = Homey.__('pair.sources.prompt');
+    prompt.textContent = Homey.__(promptKey || 'pair.sources.prompt');
     box.appendChild(prompt);
 
     sources.forEach(function (source) {
@@ -105,7 +108,7 @@ function renderSources(register, parent) {
 
         var text = ' ' + source.label;
         if (source.value !== undefined && source.value !== null)
-            text += ' — ' + source.value;
+            text += ' — ' + source.value + ' °C';
         option.appendChild(document.createTextNode(text));
         box.appendChild(option);
     });
@@ -224,8 +227,13 @@ function render() {
             if (r.name === 'measure_temperature') renderSources(r, sources);
         }); });
         if (!sources.childNodes.length) sources.textContent = Homey.__('pair.setup.no_nibe_sources');
+        var zones = document.createElement('div');
+        context.groups.forEach(function (g) { g.registers.forEach(function (r) {
+            if (r.name === 'target_temperature') renderSources(r, zones, 'pair.setup.zone_prompt');
+        }); });
         setupSections.push({id: 'heating', role: 'heating', title: Homey.__('pair.setup.heating'),
-            description: Homey.__('pair.setup.heating_intro'), sources: sources});
+            description: Homey.__('pair.setup.heating_intro'), sources: sources,
+            zones: zones.childNodes.length ? zones : undefined});
     }
     setup = new NibeSetup({mode: 'repair', indoorSensors: context.indoorSensors, indoorNativeAddress: context.indoorNativeAddress,
         summary: function () { return setupSections.map(function (s) { return s.title; }); }, commit: commitFeatures});

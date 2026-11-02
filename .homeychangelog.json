@@ -226,5 +226,13 @@
     "de": "Tweaks: Wenn unter der Adresse der Wärmepumpe etwas antwortet, aber keine Wärmepumpendaten sendet, bricht die Kopplung ab und die Geräte melden das, statt überall -1 anzuzeigen. Das Protokoll hält jetzt auch fest, was sich unter dieser Adresse befindet, um die Ursache zu finden.",
     "no": "Tweaks: Når noe svarer på varmepumpens adresse, men ikke sender varmepumpedata, stopper paringen og enhetene sier fra, i stedet for å vise -1 overalt. Loggen viser nå også hva som finnes på adressen, for å hjelpe med å finne årsaken.",
     "da": "Tweaks: Når noget svarer på varmepumpens adresse, men ikke sender varmepumpedata, stopper parringen, og enhederne siger det, i stedet for at vise -1 overalt. Loggen viser nu også, hvad der findes på adressen, for at hjælpe med at finde årsagen."
+  },
+  "1.4.10": {
+    "en": "Pumps with more than one zone: choose which zone the Heating thermostat sets, under Heating → Repair. If your pump has several zones, the app also logs zone temperatures once after each start, to help add a temperature per zone.",
+    "sv": "Värmepumpar med mer än en zon: välj vilken zon termostaten på Värme ställer in, under Värme → Reparera. Har värmepumpen flera zoner loggar appen också zontemperaturer en gång efter varje start, för att kunna lägga till en temperatur per zon.",
+    "nl": "Warmtepompen met meer dan één zone: kies onder Verwarming → Repareren welke zone de thermostaat van Verwarming instelt. Heeft je warmtepomp meerdere zones, dan logt de app na elke start ook eenmalig de zonetemperaturen, om een temperatuur per zone te kunnen toevoegen.",
+    "de": "Wärmepumpen mit mehr als einer Zone: Wählen Sie unter Heizung → Reparieren, welche Zone der Thermostat von Heizung einstellt. Hat Ihre Wärmepumpe mehrere Zonen, protokolliert die App nach jedem Start außerdem einmal die Zonentemperaturen, um eine Temperatur pro Zone hinzufügen zu können.",
+    "no": "Varmepumper med mer enn én sone: velg hvilken sone termostaten på Varme stiller inn, under Varme → Reparer. Har varmepumpen flere soner, logger appen også sonetemperaturer én gang etter hver oppstart, for å kunne legge til en temperatur per sone.",
+    "da": "Varmepumper med mere end én zone: vælg, hvilken zone termostaten på Varme indstiller, under Varme → Reparer. Har varmepumpen flere zoner, logger appen også zonetemperaturer én gang efter hver start, så der kan tilføjes en temperatur pr. zone."
   }
 }

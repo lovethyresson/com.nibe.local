@@ -144,6 +144,7 @@
       "handover_hint": "Välj din ursprungliga givare som styrande på pumpen och stäng av extern BT50. Uppdateringarna fortsätter tills du verifierar här.",
       "handover_confirm": "Min NIBE-givare styr zonen igen.",
       "no_nibe_sources": "Inga aktiva NIBE-källor hittades. Nuvarande eller förvald källa behålls.",
+      "zone_prompt": "Din värmepump har mer än en zon. Vilken zon ska termostaten ställa in? Välj zonen som styr värmen (meny 1.3.3):",
       "analytics_title": "Hjälp till att göra Nibe Live bättre",
       "analytics_benefit": "Nibe Live utvecklas av en person med en värmepump. Genom att dela hur appen fungerar med din hjälper du till att upptäcka kompatibilitetsproblem, förbättra installationen och prioritera funktionerna du använder.",
       "analytics_details": "Inkluderar pumpmodell, använda appfunktioner och tekniska händelser som installationsfel och anslutningsproblem. Temperaturvärden, enhetsnamn och Flow-namn ingår aldrig.",

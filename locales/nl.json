@@ -144,6 +144,7 @@
       "handover_hint": "Kies op de pomp je oorspronkelijke sensor voor de zoneregeling en schakel externe BT50 uit. Updates gaan door totdat je hier verifieert.",
       "handover_confirm": "Mijn NIBE-sensor regelt de zone weer.",
       "no_nibe_sources": "Geen actieve NIBE-bronnen gevonden. De huidige of standaardbron blijft behouden.",
+      "zone_prompt": "Je warmtepomp heeft meer dan één zone. Welke zone moet de thermostaat instellen? Kies de zone die de verwarming regelt (menu 1.3.3):",
       "analytics_title": "Help Nibe Live beter te maken",
       "analytics_benefit": "Nibe Live wordt gemaakt door één ontwikkelaar met één warmtepomp. Door te delen hoe de app met jouw pomp werkt, help je compatibiliteitsproblemen te vinden, de installatie te verbeteren en nuttige functies voorrang te geven.",
       "analytics_details": "Bevat je pompmodel, gebruikte appfuncties en technische gebeurtenissen zoals installatie- en verbindingsproblemen. Temperatuurmetingen, apparaatnamen en Flow-namen worden nooit meegestuurd.",

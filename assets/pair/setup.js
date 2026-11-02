@@ -44,7 +44,7 @@ function NibeSetup(options) {
         view.querySelector('.pair-hero-sub').textContent = intro || '';
     }
     function clear(title, intro) {
-        sections.forEach(function (s) { if (s.sources) parking.appendChild(s.sources); if (s.content) parking.appendChild(s.content); });
+        sections.forEach(function (s) { if (s.sources) parking.appendChild(s.sources); if (s.zones) parking.appendChild(s.zones); if (s.content) parking.appendChild(s.content); });
         if (options.consent) parking.appendChild(options.consent);
         navigation.replaceChildren(); navigation.hidden = false;
         shell.replaceChildren();
@@ -87,6 +87,9 @@ function NibeSetup(options) {
         view.querySelector('.pair-hero-title').textContent = t('source_title');
         view.querySelector('.pair-hero-title').hidden = false;
         view.querySelector('.pair-hero').classList.add('setup-source-hero');
+        // Which zone the thermostat sets. Independent of where the temperature comes from, so it
+        // stays visible whichever source card is selected.
+        if (heating.zones) shell.appendChild(heating.zones);
         var nativeCard = el('div', undefined, 'setup-source-card' + (!useHomey ? ' is-selected' : ''));
         var native = el('label', undefined, 'setup-source-label');
         var n = document.createElement('input'); n.type = 'radio'; n.name = 'temperature-mode'; n.checked = !useHomey;
@@ -344,7 +347,7 @@ function NibeSetup(options) {
     }
     api.start = function (entries) {
         sections = entries;
-        sections.forEach(function (s) { if (s.sources) parking.appendChild(s.sources); if (s.content) parking.appendChild(s.content); });
+        sections.forEach(function (s) { if (s.sources) parking.appendChild(s.sources); if (s.zones) parking.appendChild(s.zones); if (s.content) parking.appendChild(s.content); });
         hub();
     };
     api.indoorConfig = function () { return useHomey && validated ? draft() : null; };

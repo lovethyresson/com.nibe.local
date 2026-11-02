@@ -144,6 +144,7 @@
       "handover_hint": "On the pump, select your original sensor to control the zone and disable external BT50. The current feed continues until you verify here.",
       "handover_confirm": "My NIBE sensor is controlling the zone again.",
       "no_nibe_sources": "No live NIBE source choices were detected. The current/default source will be kept.",
+      "zone_prompt": "Your pump has more than one zone. Which zone should the thermostat set? Pick the zone that controls the heating (menu 1.3.3):",
       "analytics_title": "Help make Nibe Live better",
       "analytics_benefit": "Nibe Live is built by one developer with one heat pump. Sharing how the app works with yours helps uncover compatibility issues, improve setup and focus development on the features you use.",
       "analytics_details": "Includes your pump model, app features used and technical events such as setup failures and connection problems. Temperature readings, device names and Flow names are never included.",

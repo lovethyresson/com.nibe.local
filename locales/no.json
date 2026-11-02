@@ -144,6 +144,7 @@
       "handover_hint": "Velg den opprinnelige sensoren til å styre sonen på pumpen, og deaktiver ekstern BT50. Oppdateringene fortsetter til du bekrefter her.",
       "handover_confirm": "NIBE-sensoren styrer sonen igjen.",
       "no_nibe_sources": "Ingen aktive NIBE-kilder ble funnet. Nåværende eller standard kilde beholdes.",
+      "zone_prompt": "Varmepumpen har mer enn én sone. Hvilken sone skal termostaten stille inn? Velg sonen som styrer varmen (meny 1.3.3):",
       "analytics_title": "Hjelp oss å gjøre Nibe Live bedre",
       "analytics_benefit": "Nibe Live utvikles av én person med én varmepumpe. Ved å dele hvordan appen fungerer med din, hjelper du med å oppdage kompatibilitetsproblemer, forbedre oppsettet og prioritere funksjonene du bruker.",
       "analytics_details": "Inkluderer pumpemodell, brukte appfunksjoner og tekniske hendelser som oppsettsfeil og tilkoblingsproblemer. Temperaturmålinger, enhetsnavn og Flow-navn sendes aldri.",
