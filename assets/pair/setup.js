@@ -87,9 +87,6 @@ function NibeSetup(options) {
         view.querySelector('.pair-hero-title').textContent = t('source_title');
         view.querySelector('.pair-hero-title').hidden = false;
         view.querySelector('.pair-hero').classList.add('setup-source-hero');
-        // Which zone the thermostat sets. Independent of where the temperature comes from, so it
-        // stays visible whichever source card is selected.
-        if (heating.zones) shell.appendChild(heating.zones);
         var nativeCard = el('div', undefined, 'setup-source-card' + (!useHomey ? ' is-selected' : ''));
         var native = el('label', undefined, 'setup-source-label');
         var n = document.createElement('input'); n.type = 'radio'; n.name = 'temperature-mode'; n.checked = !useHomey;
@@ -121,7 +118,24 @@ function NibeSetup(options) {
         var next = button(useHomey ? t('choose_sensors') : t('save_section'), function () {
             if (useHomey) picker(); else { ready[heating.id] = true; hub(); }
         }, true);
+        shell.appendChild(next); back(heating.zones ? zones : hub);
+    }
+    // Which zone the thermostat sets: its own step, before the temperature source, and only on a
+    // pump with two or more zones. Continue stays disabled until a zone is picked.
+    function zones() {
+        clear(t('heating'), t('thermostat_zone_intro'));
+        view.querySelector('.pair-hero-title').textContent = t('thermostat_zone_title');
+        view.querySelector('.pair-hero-title').hidden = false;
+        view.querySelector('.pair-hero').classList.add('setup-source-hero');
+        shell.appendChild(heating.zones);
+        var next = button(t('next'), temperature, true);
+        var update = function () { next.disabled = !heating.zones.querySelector('input:checked'); };
+        heating.zones.onchange = update; update();
         shell.appendChild(next); back(hub);
+    }
+    function zoneLabel() {
+        var picked = heating && heating.zones && heating.zones.querySelector('input:checked');
+        return picked ? picked.dataset.label : null;
     }
     function picker() {
         clear(t('heating'), t('picker_intro'));
@@ -307,7 +321,7 @@ function NibeSetup(options) {
         shell.appendChild(stop); back(temperature);
     }
     function open(section) {
-        if (section.role === 'heating') { heating = section; temperature(); return; }
+        if (section.role === 'heating') { heating = section; if (heating.zones) zones(); else temperature(); return; }
         clear(section.title, section.description);
         shell.appendChild(section.content);
         shell.appendChild(button(t('save_section'), function () {
@@ -338,6 +352,7 @@ function NibeSetup(options) {
     function review() {
         clear(t('review'), t('review_hint'));
         options.summary().forEach(function (s) { shell.appendChild(el('p', s)); });
+        if (zoneLabel()) shell.appendChild(el('p', t('thermostat_zone_review').replace('__zone__', zoneLabel())));
         if (useHomey) shell.appendChild(el('p', options.mode === 'pair' ? t('pending_hint') : t('active_note')));
         if (options.consent) { options.consent.hidden = false; options.consent.style.display = 'block'; shell.appendChild(options.consent); }
         var save = button(Homey.__(options.mode === 'pair' ? 'pair.devices.add' : 'pair.ok'), function () {
@@ -351,4 +366,39 @@ function NibeSetup(options) {
         hub();
     };
     api.indoorConfig = function () { return useHomey && validated ? draft() : null; };
+}
+
+// Zone cards for the thermostat target, or null when there is nothing to ask: one zone (or none)
+// is not a choice. The radios carry data-source so the views' commit picks them up like any other
+// source choice; `stored` preselects a zone the user already chose (Repair).
+function nibeZoneCards(sources, options) {
+    if (!sources || sources.length < 2) return null;
+    var box = document.createElement('div');
+    var known = sources.some(function (s) { return s.address === options.stored; });
+    sources.forEach(function (source) {
+        var card = document.createElement('div');
+        card.className = 'setup-source-card';
+        var label = document.createElement('label'); label.className = 'setup-source-label';
+        var radio = document.createElement('input'); radio.type = 'radio';
+        radio.name = options.name; radio.value = String(source.address);
+        radio.dataset.source = 'target_temperature'; radio.dataset.label = source.label;
+        if (options.device !== undefined) radio.dataset.device = options.device;
+        radio.checked = known && source.address === options.stored;
+        var copy = document.createElement('span'); copy.className = 'setup-source-copy';
+        var title = document.createElement('span'); title.className = 'setup-source-title'; title.textContent = source.label;
+        copy.appendChild(title);
+        if (source.value !== undefined && source.value !== null) {
+            var target = document.createElement('span'); target.className = 'setup-source-description';
+            target.textContent = Homey.__('pair.setup.thermostat_zone_target').replace('__value__', source.value);
+            copy.appendChild(target);
+        }
+        label.append(radio, copy); card.appendChild(label); box.appendChild(card);
+    });
+    var mark = function () {
+        box.querySelectorAll('.setup-source-card').forEach(function (card) {
+            card.classList.toggle('is-selected', !!card.querySelector('input:checked'));
+        });
+    };
+    box.addEventListener('change', mark); mark();
+    return box;
 }
