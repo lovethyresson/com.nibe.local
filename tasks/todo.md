@@ -85,6 +85,19 @@ Offline only; nothing runs on the Homey yet. Design: `docs/smart-heating-plan.md
   a fair test of the feed-forward on slots with both off and nothing fed (the ladder's own slots
   are fed, so they aren't; the evening after it, with SPA and the room loop still off, would be). Settings
   read back unchanged (curve 5, 184 = 15, 185 = 5, 237 = Manual).
+- 2026-11-02 21:20 — 285 slots (30 Oct 20:45 → 2 Nov 21:15), 229 usable, 3 valid days; gaps
+  31 Oct 19:30–20:30 and 2 Nov 10:45–11:45 (installs). Heat loss 280 W/K (first-order 215), τ 91 h,
+  stored 25.6 kWh/K, sun E/S/W 0.3/0.5/0.4 kW, lever 125 W/K (0.45·H), 6 h error 0.23 K. Learning
+  (days, stability). Outdoor today: 35 slots from the Homey sensor, 1 forecast, 17 flagged fed (the
+  ladder; earlier ladder slots predate the flag). Shadow 145 slots: doing nothing 1 h 0.18 K
+  (bias +0.06), 6 h 0.63 K (bias **+0.30**, down from +0.62). SPA and the room loop off since
+  ~07:00 for the ladder, so this evening is the first clean baseline, but the day's own slots were
+  fed. Presets today pre-heat a lot (Comfortable 71 %, mean +3.3 K; Save the most up to +20 K)
+  because indoor sat ~21.5 against the 22.5 setpoint with the room loop off: comfort-chasing, not
+  price-shifting. Within what the ladder showed safe (−20 K: DM −102, no immersion), but the
+  planner should not read a room-loop-off house as a comfort deficit. Planned saving 6.2/6.0/5.4 %.
+  Indoor in history switches from 116 to 26 (the Heating device's own source) from 21:05 (fix
+  e63bdbd; the tile had been frozen since 30 Oct).
 
 ## Smart heating slice 1: data collection (branch `smart-heating/m1-data`)
 
