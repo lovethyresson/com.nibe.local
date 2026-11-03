@@ -105,6 +105,21 @@ Offline only; nothing runs on the Homey yet. Design: `docs/smart-heating-plan.md
   planner should not read a room-loop-off house as a comfort deficit. Planned saving 6.2/6.0/5.4 %.
   Indoor in history switches from 116 to 26 (the Heating device's own source) from 21:05 (fix
   e63bdbd; the tile had been frozen since 30 Oct).
+- 2026-11-03 21:45 — 381 slots (30 Oct 19:45 → 3 Nov 21:15), 324 usable, 4 valid days; no new
+  gaps (31 Oct 19:45–20:30 and 2 Nov 11:00–11:45 remain), 2 partial today (installs). Heat loss
+  234 W/K (first-order 175), τ 111 h, stored 25.8 kWh/K, sun E/S/W 0.2/0.2/0.5 kW, lever 128 W/K,
+  6 h error 0.28 K. Learning (days, stability): heat loss has slid 292 → 299 → 277 → 234 W/K and
+  τ 64 → 111 h over the four daily fits, so not stable yet. Outdoor today: 85 of 86 slots from the
+  Homey sensor, 0 forecast, 56 fed (the coast ladder). Heat curve learning: 0 points, since room
+  control has been on since ~12:30 and `roomctl` (2b37d2c) records 1 from the 21:15 slot. Shadow
+  240 slots: doing nothing 1 h 0.22 K (bias +0.03), 6 h 0.89 K (bias +0.23; 0.63 K yesterday),
+  worse because today was fed all morning and then the room loop drove 1017 to ~49 °C, which the
+  curve-only baseline does not know. SPA on (influence 10) and the room loop on since midday.
+  Presets today pre-heat almost throughout (Comfortable 95 %, mean +5.5 K; Save some 76 %) because
+  indoor bottomed at 19.7 °C after the coast: comfort recovery, the same room-loop-off artefact as
+  yesterday. Save the most still spans −20…+20 K, and the ladder showed +20 K (coast) outside the
+  20 % band, so the planner's coast range should stop at +15 K before any feed is live. Planned
+  saving 6.6/6.9/5.4 %.
 
 ## Smart heating slice 1: data collection (branch `smart-heating/m1-data`)
 
