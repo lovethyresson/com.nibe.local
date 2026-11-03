@@ -404,7 +404,20 @@ average (it may still be what the auto-stop thresholds use).
   `supply ≈ curve(f)`.
   - `τc` and the gain start from the measured values, then are learned online from 1017, which
     is a measured output every slot, so the estimate corrects itself.
-  - The gain is curve-dependent; it is learned per pump, not hard-coded.
+  - The gain is curve-dependent; it is learned per pump, not hard-coded. **Done (`lib/smart/curve.ts`,
+    2026-11-03):** the history keeps input 1 as the pump saw it (`bt1`, fed or not) and the four
+    settings that shape the curve (26, 30, 34, 38). Every slot is a point (BT1 through the 49 min
+    filter, 1017); a piecewise-linear curve on 2 K knots, smoothed and made non-increasing, is
+    fitted hourly from the points since the settings last changed (≥ 48 points over ≥ 3 K). The
+    planner moves heat by `heatPerSupplyK × (S(curve) − S(te))` instead of `lever × (te − curve)`,
+    so the gain is the curve's slope where the feed lands; until a curve exists it keeps the old
+    lever at 0.5. Not modelled: room-sensor control's `factor × (setpoint − indoor)` term in 1017.
+  - **Bench (October prices, 20 days, Manual mode, true curve vs a planner assuming 0.5):** the
+    learned curve takes the planner's own 1 h indoor prediction error to zero (fixed 0.5: up to
+    0.014 K on the S1155's curve, 0.066 K on a flat 0.3 curve, 0.062 K on a steep 0.8 one), but
+    savings and lowest indoor move by at most ±0.3 pp / 0.1 K: the hourly replan against measured
+    indoor absorbs most of a wrong gain. Its value is a plan that says what will happen, which the
+    guards and the owner-facing forecast rely on, and pumps far from 0.5.
 - **Invert it.** The planner decides the supply it wants; the actuator computes the fed value.
   - A 50 min lag is short against 1–3 h price peaks, so the fed value can move close to when the
     supply should move, with a lead of about one τc.

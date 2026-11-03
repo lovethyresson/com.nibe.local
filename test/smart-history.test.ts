@@ -39,6 +39,8 @@ test('a BT1 fed from elsewhere is recognised against the forecast and replaced b
     };
     const fed = fedAt(3.6, 7.3);
     assert.ok(Math.abs(fed.te - 7.3) < 1e-6);
+    // The heat curve worked from what was fed, so that is kept beside the real temperature.
+    assert.ok(Math.abs(fed.bt1 - 3.6) < 1e-6);
     assert.equal(fed.flags & (FLAG.fedOutdoor | FLAG.forecastOutdoor), FLAG.fedOutdoor | FLAG.forecastOutdoor);
     // An ordinary forecast miss stays the pump's reading.
     const miss = fedAt(5.6, 7.3);
@@ -143,7 +145,7 @@ test('closed slots journal as records that replay onto the last full save', () =
 });
 
 test('a file and journal from before the wall fields load with those fields missing', () => {
-    const old = FIELDS.length - 2;
+    const old = FIELDS.indexOf('gtiE');
     const history = new History(4);
     history.put(7, Object.fromEntries(FIELDS.map((f, i) => [f, i])) as any);
     // Rewrite the current file as the older writer would have: fewer fields per slot.
@@ -158,7 +160,7 @@ test('a file and journal from before the wall fields load with those fields miss
     assert.equal(History.fieldCount(legacy), old);
     const back = History.deserialize(legacy)!;
     assert.equal(back.get(7)!.flags, FIELDS.indexOf('flags'));
-    assert.ok(Number.isNaN(back.get(7)!.gtiE) && Number.isNaN(back.get(7)!.gtiW));
+    assert.ok(Number.isNaN(back.get(7)!.gtiE) && Number.isNaN(back.get(7)!.gtiW) && Number.isNaN(back.get(7)!.bt1));
     const record = Buffer.alloc(4 + 4 * old);
     record.writeUInt32BE(9, 0);
     record.writeFloatBE(21.5, 4);

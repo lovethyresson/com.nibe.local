@@ -9,7 +9,7 @@
  *  for the gain far from the real outdoor temperature (§7.4, M0 measured ±5 K only), before
  *  anything is fed. */
 import {HouseParams} from './model';
-import {ForecastSlot, PlanState, planShift, simulate} from './planner';
+import {ForecastSlot, PlanState, PumpCurve, planShift, simulate} from './planner';
 import {PRESETS, PresetId, limitsFor} from './presets';
 import {ClampReason, PumpThresholds, curveInput, fedValue} from './actuator';
 
@@ -32,8 +32,8 @@ export type ShadowMemory = Partial<Record<PresetId, PresetMemory>>;
 
 export interface ShadowInput {
     house: HouseParams;
-    /** kW per K of bias; the house's heat loss when not yet measured. */
-    lever?: number;
+    /** How a bias moves heat (planner.ts `PumpCurve`); the house's heat loss per K when not yet measured. */
+    pump?: PumpCurve;
     /** Air and mass now. */
     ti: number;
     tm: number;
@@ -76,7 +76,7 @@ export function shadowStep(input: ShadowInput): ShadowOutput {
     const forecast = input.forecast.slice(0, HORIZON);
     const steps = Math.max(1, input.slots ?? 1);
     const out: ShadowOutput = {presets: {}, baseline: [], memory: {}};
-    const pump = {lever: input.lever};
+    const pump = input.pump ?? {};
     for (const id of SHADOW_PRESETS) {
         const limits = limitsFor(PRESETS[id]);
         const previous = input.memory[id] ?? {bias: 0, curve: input.real, plan: []};

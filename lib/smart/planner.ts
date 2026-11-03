@@ -9,14 +9,16 @@
  *  above its price, warms ahead of a cold front the curve would lag behind.
  *
  *  Assumptions to replace with measurements:
- *  - Doing nothing holds comfort: the curve delivers `H·(comfort − te) − gains` kW. Each K of
- *    bias moves that by `lever` kW through the curve's 49 min lag. A curve tuned to the house
- *    would make `lever = H`; on the S1155 it measured ~0.45·H (`estimateLever`), because 1 K
- *    of fed outdoor moves supply 0.5 K, and heat follows supply above indoor.
+ *  - Doing nothing holds comfort: the curve delivers `H·(comfort − te) − gains` kW. A bias moves
+ *    that through the curve's 49 min lag: with a learned curve (curve.ts) by `heatPerSupplyK`
+ *    kW per K of supply it changes there, which follows the curve's slope where the feed lands
+ *    (0.44 to 0.77 K per K on the S1155, §3.3); without one by `lever` kW per K of bias. A curve
+ *    tuned to the house would make `lever = H`; on the S1155 it measured ~0.45·H.
  *  - Electricity = heat / COP with a constant COP. The COP model is M5. */
 import {HouseParams, stepHouse} from './model';
 import {Limits} from './presets';
 import {CURVE_TAU_H, RAMP_K_PER_SLOT, curveInput} from './actuator';
+import {SupplyCurve, supplyAt} from './curve';
 
 export const COP = 3;
 /** The pump's heat ceiling as the outdoor temperature its curve is designed for. */
@@ -55,14 +57,19 @@ export interface Simulation {
 export interface PumpCurve {
     /** kW of heat per K of bias, once the curve has caught up. Default: the house's heat loss. */
     lever?: number;
+    /** The learned heat curve and kW of heat per K of supply; together they replace `lever`. */
+    supply?: SupplyCurve;
+    heatPerSupplyK?: number;
 }
 
 /** Heat this slot, kWh: what holds comfort at `te`, moved by the bias the curve has seen so far
  *  (`te − curve`), between off and the pump's design output. */
 export function pumpHeat(house: HouseParams, comfort: number, te: number, curve: number, pump: PumpCurve = {}): number {
-    const lever = pump.lever ?? house.heatLoss;
     const max = house.heatLoss * (comfort - DESIGN_OUTDOOR);
-    const P = house.heatLoss * (comfort - te) - house.gains + lever * (te - curve);
+    const moved = pump.supply && pump.heatPerSupplyK !== undefined
+        ? pump.heatPerSupplyK * (supplyAt(pump.supply, curve) - supplyAt(pump.supply, te))
+        : (pump.lever ?? house.heatLoss) * (te - curve);
+    const P = house.heatLoss * (comfort - te) - house.gains + moved;
     return Math.min(max, Math.max(0, P)) * SLOT_H;
 }
 

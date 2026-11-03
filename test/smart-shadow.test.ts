@@ -9,7 +9,7 @@ const house = RADIATOR_HOUSE;
 const peak = (k: number) => (k >= 24 && k < 40 ? 4 : 1);
 const forecastFrom = (from: number): ForecastSlot[] => Array.from({length: 96}, (_, k) => ({te: 2, sun: 0, price: peak(from + k)}));
 const start = steadyState(house, 21, 2);
-const input = (from: number, memory: ShadowMemory) => ({house, lever: 0.45 * house.heatLoss, ti: start.ti, tm: start.tm,
+const input = (from: number, memory: ShadowMemory) => ({house, pump: {lever: 0.45 * house.heatLoss}, ti: start.ti, tm: start.tm,
     comfort: 21, real: 2, auto: false, thresholds: {}, forecast: forecastFrom(from), memory});
 
 test('each slot plans all three presets and carries each one\'s would-be feed', () => {

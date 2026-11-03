@@ -6,9 +6,8 @@
 //       [--era pre1960|1960_1979|1980_1999|2000_or_later|unknown] [--days <last n days only>]
 import fs from 'node:fs';
 import {History, applyJournal} from '../lib/smart/history.ts';
-import {CURVE_GAIN} from '../lib/smart/actuator.ts';
-import {estimateLever} from '../lib/smart/planner.ts';
-import {fitHouse, heatingHours, modelSlotsFromHistory, readiness} from '../lib/smart/house.ts';
+import {curveLine} from '../lib/smart/curve.ts';
+import {fitHouse, modelSlotsFromHistory, pumpFromHistory, readiness} from '../lib/smart/house.ts';
 import {houseInsights, insightsLine} from '../lib/smart/insights.ts';
 
 const source = process.argv[2];
@@ -36,10 +35,12 @@ if (journal?.length) applyJournal(history, journal, History.fieldCount(file));
 let slots = modelSlotsFromHistory(history);
 const days = option('days');
 if (days) slots = slots.slice(-Number(days) * 96);
-const fit = fitHouse(slots, {system: option('system', 'unknown'), era: option('era', 'unknown')},
-    estimateLever(heatingHours(history), CURVE_GAIN));
+const pump = pumpFromHistory(history);
+const fit = fitHouse(slots, {system: option('system', 'unknown'), era: option('era', 'unknown')}, pump.lever, pump);
 const insights = houseInsights(fit);
 console.log(insightsLine(fit, insights, readiness(fit, [])));
+console.log(curveLine(pump.supply)
+    + (pump.heatPerSupplyK === undefined ? '' : `, ${Math.round(pump.heatPerSupplyK * 1000)} W per K of supply`));
 if (fit.params) {
     const p = fit.params;
     const round = (v, d = 3) => +v.toFixed(d);

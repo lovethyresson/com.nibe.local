@@ -90,8 +90,6 @@ export function fedValue(input: ActuatorInput): ActuatorOutput {
 
 /** The curve's view of BT1: a first-order filter of what was fed (τ ≈ 49 min, §4.5). */
 export const CURVE_TAU_H = 49 / 60;
-/** Supply K per K of fed BT1 at curve 5 on the S1155; learned per pump from 1017 later. */
-export const CURVE_GAIN = 0.5;
 
 export function curveInput(previous: number, fed: number, dtH = 0.25, tauH = CURVE_TAU_H): number {
     return fed + (previous - fed) * Math.exp(-dtH / tauH);

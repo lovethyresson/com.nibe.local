@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {DailyFit, HouseFit, drifting, fitHouse, heatingHours, readiness, recordDailyFit, validDays} from '../lib/smart/house';
+import {DailyFit, HouseFit, drifting, fitHouse, heatingHours, pumpFromHistory, readiness, recordDailyFit, validDays} from '../lib/smart/house';
 import {FIELDS, FLAG, History} from '../lib/smart/history';
 import {coolDown, houseInsights} from '../lib/smart/insights';
 import {RADIATOR_HOUSE, SLAB_HOUSE, WEST_HOUSE, simulateHouse} from './smart-house-sim';
@@ -81,4 +81,29 @@ test('the lever is fitted only on whole hours of clean space heating', () => {
     // Hour 0 lacks a reference reading for its first slot; hours 3 (hot water) and 5 (partial) are out.
     assert.equal(hours.length, 3);
     assert.ok(hours.every((h) => Math.abs(h.heatKw - 4.8) < 1e-3 && h.tcalc === 40));
+});
+
+test('the planner gets the learned curve once the history traces one, the lever until then', () => {
+    const history = new History(400);
+    let meter = 1000;
+    const put = (k: number, bt1: number) => {
+        const values = Object.fromEntries(FIELDS.map((f) => [f, NaN])) as any;
+        const tcalc = 40 - 0.5 * bt1;
+        meter += 0.05 * (tcalc - 21); // heat follows supply above indoor
+        Object.assign(values, {ti: 21, te: 2, bt1, tcalc, hz: 50, qmeter: meter, dhw: 0, flags: 0,
+            hcurve: 5, hoffset: 0, supmin: 20, supmax: 60});
+        history.put(5000 + k, values);
+    };
+    // A short history: the lever, no curve yet.
+    for (let k = 0; k < 60; k++) put(k, 2);
+    const early = pumpFromHistory(history);
+    assert.equal(early.supply, undefined);
+    assert.ok(early.lever! > 0);
+    // A day of outdoor swinging 10 K traces the curve.
+    for (let k = 60; k < 156; k++) put(k, 2 + 5 * Math.sin(k / 15));
+    const later = pumpFromHistory(history);
+    assert.ok(later.supply, 'a curve once the points span it');
+    assert.ok(Math.abs(later.heatPerSupplyK! - 0.2) < 0.02, `${later.heatPerSupplyK}`);
+    const fit = fitHouse([], {system: 'radiators', era: 'unknown'}, later.lever, later);
+    assert.deepEqual(fit.pump, {supply: later.supply, heatPerSupplyK: later.heatPerSupplyK});
 });

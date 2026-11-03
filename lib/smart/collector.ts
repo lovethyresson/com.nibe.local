@@ -314,7 +314,7 @@ export class SmartCollector {
         if (forecast.length < 8) return skip('no forecast');
         const started = Date.now();
         const out = shadowStep({
-            house: fit.params, lever: fit.lever, ti: values.ti,
+            house: fit.params, pump: fit.pump, ti: values.ti,
             // The mass moves slowly: the hourly fit's is close enough, the air is the reading.
             tm: fit.state.tm, comfort: c.comfort, real: values.te, auto: c.mode === 0, thresholds: c.thresholds,
             forecast, memory: this.shadowMemory,

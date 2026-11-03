@@ -28,8 +28,11 @@ FAQ claim "a few percent" "Ok".
 - [x] §3.3 coast ladder on the S1155, 2026-11-03: gain 0.45/0.52/0.59/0.77 at +5…+20 K (0.54
       overall, rising as the fake warms); +20 K fails the 20 % band. Run resumed twice (`--resume`),
       `--no-abort` added. Hot-water Flow re-enabled after the run.
-- [ ] Planner: replace the single BT1 gain (0.50) with the measured one: 0.44 on the pre-heat side,
-      0.45 → 0.77 on the coast side (a gain per fed temperature), or cap the coast bias at 15 K.
+- [x] Planner: the BT1 gain is the learned heat curve's slope where the feed lands (`lib/smart/curve.ts`,
+      plan §4.5), not 0.50. History records `bt1` and 26/30/34/38; a settings change starts a new
+      curve. Bench: plan error to zero, savings within ±0.3 pp.
+- [ ] Room-sensor control's term in 1017 (`factor × (setpoint − indoor)`): fit it beside the curve
+      once a house with room control on has shadow data, or the curve reads steeper than it is.
 - [ ] Shadow behind a hidden setting before any test-channel build.
 - [ ] The planner's doing-nothing is the curve alone; if shadow's live error tracks sun or indoor,
       model the room loop (or require it off, as M3 does anyway).
