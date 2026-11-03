@@ -74,6 +74,13 @@ test('points follow BT1 through the curve\'s filter, restarting after a gap or a
     // A slot that did not read the settings is not a change.
     put(51, {bt1: 5, tcalc: 33, hcurve: NaN, hoffset: NaN, supmin: NaN, supmax: NaN});
     assert.equal(curvePoints(history).length, 50 - 40 + 1 - 4 + 1);
+    // Nor is one that stops answering and comes back unchanged: the S1155 refuses the offset
+    // while room-sensor control is on.
+    put(52, {bt1: 5, tcalc: 33, hcurve: 6, hoffset: NaN});
+    put(53, {bt1: 5, tcalc: 33, hcurve: 6, hoffset: 0});
+    assert.equal(curvePoints(history).length, 50 - 40 + 1 - 4 + 3);
+    put(54, {bt1: 5, tcalc: 33, hcurve: 6, hoffset: 2});
+    assert.equal(curvePoints(history).length, 1, 'a moved offset is a new curve');
 });
 
 test('with a learned curve a bias moves heat by the curve\'s slope where the feed lands', () => {

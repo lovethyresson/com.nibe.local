@@ -59,17 +59,19 @@ const SETTINGS = ['hcurve', 'hoffset', 'supmin', 'supmax'] as const;
 export function curvePoints(history: History): CurvePoint[] {
     const slots = history.range();
     let points: CurvePoint[] = [];
-    let settings: string | undefined;
+    const settings = new Map<string, number>();
     let x: number | undefined;
     let last: number | undefined;
     let warm = 0;
     for (const slot of slots) {
         const v = history.get(slot)!;
-        const now = SETTINGS.map((k) => (Number.isFinite(v[k]) ? v[k] : '')).join('/');
-        // A setting not read this slot is not a change.
-        if (SETTINGS.some((k) => Number.isFinite(v[k]))) {
-            if (settings !== undefined && now !== settings) points = [];
-            settings = now;
+        // Only a setting read before and read differently now is a change. One that stops or
+        // starts answering is not: the S1155 refuses the offset (30) while room-sensor control
+        // is on, and switching that is no reason to forget the curve.
+        for (const k of SETTINGS) {
+            if (!Number.isFinite(v[k])) continue;
+            if (settings.has(k) && settings.get(k) !== v[k]) points = [];
+            settings.set(k, v[k]);
         }
         const bt1 = v.bt1;
         if (!Number.isFinite(bt1) || (v.flags & FLAG.partial) || last === undefined || slot !== last + 1 || x === undefined) {
