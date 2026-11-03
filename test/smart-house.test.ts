@@ -91,7 +91,7 @@ test('the planner gets the learned curve once the history traces one, the lever 
         const tcalc = 40 - 0.5 * bt1;
         meter += 0.05 * (tcalc - 21); // heat follows supply above indoor
         Object.assign(values, {ti: 21, te: 2, bt1, tcalc, hz: 50, qmeter: meter, dhw: 0, flags: 0,
-            hcurve: 5, hoffset: 0, supmin: 20, supmax: 60});
+            hcurve: 5, hoffset: 0, supmin: 20, supmax: 60, roomctl: 0});
         history.put(5000 + k, values);
     };
     // A short history: the lever, no curve yet.

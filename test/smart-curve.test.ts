@@ -52,7 +52,7 @@ const empty = () => Object.fromEntries(FIELDS.map((f) => [f, NaN])) as Record<Fi
 test('points follow BT1 through the curve\'s filter, restarting after a gap or a settings change', () => {
     const history = new History(400);
     const put = (slot: number, v: Partial<Record<Field, number>>) =>
-        history.put(slot, {...empty(), flags: 0, hcurve: 5, hoffset: 0, supmin: 20, supmax: 60, ...v});
+        history.put(slot, {...empty(), flags: 0, hcurve: 5, hoffset: 0, supmin: 20, supmax: 60, roomctl: 0, ...v});
     // 3 h at a steady 5 °C, then a step to 15 °C fed: the curve sees it arrive over ~49 min.
     for (let s = 1; s <= 12; s++) put(s, {bt1: 5, te: 5, tcalc: 30});
     for (let s = 13; s <= 24; s++) put(s, {bt1: 15, te: 5, tcalc: 26});
@@ -97,33 +97,17 @@ test('with a learned curve a bias moves heat by the curve\'s slope where the fee
     assert.ok(coast({supply: s1155, heatPerSupplyK: k}) > coast({lever: 0.45 * house.heatLoss}) * 1.1);
 });
 
-test('room-sensor control is fitted beside the curve and kept out of it', () => {
-    // Factor 2: indoor wandering ±0.8 K from its setpoint, on its own rhythm, moves 1017 by ±1.6 K.
-    const points = pointsOn(measured, -10, 20, 600).map((p, i) => {
-        const room = 0.8 * Math.sin(i / 7);
-        return {...p, supply: p.supply + 2 * room, room};
-    });
-    const curve = fitSupplyCurve(points)!;
-    assert.ok(Math.abs(curve.room - 2) < 0.3, `${curve.room}`);
-    assert.ok(Math.abs(gainBetween(curve, -5, 0) - 0.44) < 0.06);
-    assert.ok(gainBetween(curve, 15, 20) > 0.7);
-    assert.match(curveLine(curve), /, room factor \d\.\d$/);
-});
-
-test('without room-sensor control, indoor following the heat is not read as one', () => {
-    // A coast like 2026-11-03: the feed warms, supply falls, and the house cools after it.
-    const supplyStart = measured(-10);
-    const points = pointsOn(measured, -10, 20, 600).map((p) => ({...p, room: 0.06 * (supplyStart - p.supply)}));
-    const curve = fitSupplyCurve(points)!;
-    assert.ok(Math.abs(curve.room) < 0.2, `${curve.room}`);
-    assert.ok(Math.abs(gainBetween(curve, -5, 0) - 0.44) < 0.06);
-    assert.ok(gainBetween(curve, 15, 20) > 0.7, `${gainBetween(curve, 15, 20)}`);
-});
-
-test('a point carries indoor\'s distance from its setpoint when both were read', () => {
-    const history = new History(16);
-    for (let s = 1; s <= 6; s++)
-        history.put(s, {...empty(), flags: 0, bt1: 5, tcalc: 30, ti: 20.5, tset: s < 6 ? 21.5 : NaN});
-    const points = curvePoints(history);
-    assert.deepEqual(points.map((p) => p.room), [1, undefined]);
+test('only slots with room-sensor control off are points, and the filter runs through the rest', () => {
+    const history = new History(64);
+    const put = (slot: number, roomctl: number) =>
+        history.put(slot, {...empty(), flags: 0, hcurve: 5, supmin: 20, supmax: 60, bt1: 7, tcalc: 45, roomctl});
+    // 2026-11-03: the room loop holds 1017 ~15 K above the curve, so none of it is a point.
+    for (let s = 1; s <= 10; s++) put(s, 1);
+    assert.equal(curvePoints(history).length, 0);
+    // Turned off: points from the next slot, the filter already warm.
+    put(11, 0);
+    assert.equal(curvePoints(history).length, 1);
+    // Not read (a build before the field existed) is not off.
+    put(12, NaN);
+    assert.equal(curvePoints(history).length, 1);
 });
