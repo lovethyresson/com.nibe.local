@@ -9,9 +9,12 @@
  *  sees, BT1 through its ~49 min filter. Each slot is a point on the curve; normal weather traces
  *  it over the outdoor range the house meets, and every feed samples it further out.
  *
- *  Not modelled: room-sensor control adds `factor × (setpoint − indoor)` to 1017. With indoor
- *  near its setpoint that is a small shift, mostly absorbed by the knots; a house run far from it
- *  with the factor high reads a steeper curve than it has. */
+ *  Room-sensor control adds `factor × (setpoint − indoor)` to 1017. Left in, a house cooled by a
+ *  coast would read a curve that rises where it sat cold, so the factor is fitted beside the
+ *  curve as one more unknown and kept out of it: the curve is what a feed moves. A ridge holds
+ *  it at 0 until indoor has moved independently of the outdoor temperature, and a factor that
+ *  comes out with the wrong sign (supply falling as the house cools) is the house following its
+ *  heat, not a room loop, so it is dropped. */
 import {FLAG, History} from './history';
 import {CURVE_TAU_H, curveInput} from './actuator';
 
@@ -26,12 +29,16 @@ export const MIN_POINTS = 48;
 export const MIN_SPAN_K = 3;
 /** Smoothness: a knot without points of its own follows its neighbours. */
 const SMOOTH = 0.5;
+/** Holds the room factor at 0 until indoor has moved: per point, against the spread of (setpoint − indoor). */
+const ROOM_RIDGE = 0.02;
 
 export interface CurvePoint {
     /** What the curve saw: BT1 through its filter, °C. */
     x: number;
     /** Calculated supply, °C. */
     supply: number;
+    /** Indoor setpoint minus indoor, K, when both were read. */
+    room?: number;
 }
 
 export interface SupplyCurve {
@@ -40,6 +47,8 @@ export interface SupplyCurve {
     /** Supply at each knot, never rising with x. */
     supply: number[];
     points: number;
+    /** Supply K per K of indoor below its setpoint: room-sensor control's factor, 0 without one. */
+    room: number;
 }
 
 /** The settings that shape the curve; a change to any of them starts a new one. */
@@ -71,14 +80,22 @@ export function curvePoints(history: History): CurvePoint[] {
             warm++;
         }
         last = slot;
-        if (x !== undefined && warm >= WARMUP_SLOTS && Number.isFinite(v.tcalc)) points.push({x, supply: v.tcalc});
+        const room = v.tset - v.ti;
+        if (x !== undefined && warm >= WARMUP_SLOTS && Number.isFinite(v.tcalc))
+            points.push({x, supply: v.tcalc, ...(Number.isFinite(room) ? {room} : {})});
     }
     return points;
 }
 
-/** Piecewise-linear supply over knots KNOT_K apart, least squares with a smoothness penalty,
- *  then made non-increasing. Undefined until there are MIN_POINTS over MIN_SPAN_K. */
+/** Piecewise-linear supply over knots KNOT_K apart plus the room term, least squares with a
+ *  smoothness penalty, then made non-increasing. Undefined until there are MIN_POINTS over
+ *  MIN_SPAN_K. */
 export function fitSupplyCurve(points: CurvePoint[]): SupplyCurve | undefined {
+    const fit = fitWith(points, true);
+    return fit && fit.room < 0 ? fitWith(points, false) : fit;
+}
+
+function fitWith(points: CurvePoint[], withRoom: boolean): SupplyCurve | undefined {
     const usable = points.filter((p) => Number.isFinite(p.x) && Number.isFinite(p.supply));
     if (usable.length < MIN_POINTS) return undefined;
     const lo = Math.min(...usable.map((p) => p.x));
@@ -88,19 +105,23 @@ export function fitSupplyCurve(points: CurvePoint[]): SupplyCurve | undefined {
     const knots: number[] = [];
     for (let k = first; k < hi + KNOT_K; k += KNOT_K) knots.push(k);
     const n = knots.length;
-    const A = Array.from({length: n}, () => new Array(n).fill(0));
-    const b = new Array(n).fill(0);
+    // Unknowns: supply at each knot, then the room factor (index n).
+    const m = n + 1;
+    const A = Array.from({length: m}, () => new Array(m).fill(0));
+    const b = new Array(m).fill(0);
     const weight = new Array(n).fill(0);
     for (const p of usable) {
         const j = Math.min(n - 2, Math.floor((p.x - first) / KNOT_K));
         const t = (p.x - knots[j]) / KNOT_K;
-        const w = [1 - t, t];
-        for (let a = 0; a < 2; a++) {
-            b[j + a] += w[a] * p.supply;
-            weight[j + a] += w[a];
-            for (let c = 0; c < 2; c++) A[j + a][j + c] += w[a] * w[c];
+        const idx = [j, j + 1, n];
+        const w = [1 - t, t, withRoom ? p.room ?? 0 : 0];
+        for (let a = 0; a < 3; a++) {
+            b[idx[a]] += w[a] * p.supply;
+            if (a < 2) weight[idx[a]] += w[a];
+            for (let c = 0; c < 3; c++) A[idx[a]][idx[c]] += w[a] * w[c];
         }
     }
+    A[n][n] += ROOM_RIDGE * usable.length;
     const lambda = SMOOTH * usable.length / n;
     for (let j = 1; j + 1 < n; j++) {
         const d = [j - 1, j, j + 1];
@@ -111,7 +132,7 @@ export function fitSupplyCurve(points: CurvePoint[]): SupplyCurve | undefined {
     for (let j = 0; j < n; j++) A[j][j] += 1e-6 * (usable.length / n);
     const s = solve(A, b);
     if (!s) return undefined;
-    return {knots, supply: nonIncreasing(s, weight.map((w) => w + 1e-3)), points: usable.length};
+    return {knots, supply: nonIncreasing(s.slice(0, n), weight.map((w) => w + 1e-3)), points: usable.length, room: withRoom ? s[n] : 0};
 }
 
 /** Supply where the curve sees `x`; beyond the learned knots the end segment carries on. */
@@ -135,7 +156,8 @@ export function curveLine(curve: SupplyCurve | undefined): string {
     const {knots} = curve;
     const gains: string[] = [];
     for (let a = knots[0]; a + 2 * KNOT_K <= knots.at(-1)!; a += 2 * KNOT_K) gains.push(gainBetween(curve, a, a + 2 * KNOT_K).toFixed(2));
-    return `heat curve ${knots[0]}…${knots.at(-1)} °C (${curve.points} slots), gain per 4 K ${gains.join(' ') || '-'}`;
+    return `heat curve ${knots[0]}…${knots.at(-1)} °C (${curve.points} slots), gain per 4 K ${gains.join(' ') || '-'}`
+        + (curve.room > 0.05 ? `, room factor ${curve.room.toFixed(1)}` : '');
 }
 
 // Gaussian elimination with partial pivoting; undefined when singular.

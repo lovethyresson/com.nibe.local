@@ -31,8 +31,9 @@ FAQ claim "a few percent" "Ok".
 - [x] Planner: the BT1 gain is the learned heat curve's slope where the feed lands (`lib/smart/curve.ts`,
       plan §4.5), not 0.50. History records `bt1` and 26/30/34/38; a settings change starts a new
       curve. Bench: plan error to zero, savings within ±0.3 pp.
-- [ ] Room-sensor control's term in 1017 (`factor × (setpoint − indoor)`): fit it beside the curve
-      once a house with room control on has shadow data, or the curve reads steeper than it is.
+- [x] Room-sensor control's term in 1017 (`factor × (setpoint − indoor)`) is fitted beside the curve
+      and kept out of it (`tset` recorded). Check the factor it learns on the S1155 once room
+      control has run a few days (Nibe's menu value is the reference).
 - [ ] Shadow behind a hidden setting before any test-channel build.
 - [ ] The planner's doing-nothing is the curve alone; if shadow's live error tracks sun or indoor,
       model the room loop (or require it off, as M3 does anyway).

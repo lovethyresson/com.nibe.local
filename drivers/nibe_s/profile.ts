@@ -216,6 +216,7 @@ export const sProfile = makeProfile({
             hoffset: "curve_displacement_NIBE.h30_heat_curve_displacement",
             supmin: "target_temperature.h34_min_supply",
             supmax: "target_temperature.h38_max_supply",
+            tset: "target_temperature",
         },
         priority: {register: "measure_priority_NIBE.i1028_priority_value", hotwater: 20},
         immersion: "status_NIBE.i1029_additive_heat_active",

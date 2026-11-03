@@ -194,7 +194,7 @@ export interface ModelProfile {
     // field, plus the priority value that means hot water and the immersion-heater flag.
     smartHistory?: {
         numeric: Partial<Record<'ti' | 'te' | 'tsup' | 'tret' | 'tcalc' | 'tbrine' | 'hz' | 'dm' | 'pw'
-            | 'qmeter' | 'emeter' | 'hcurve' | 'hoffset' | 'supmin' | 'supmax', string>>;
+            | 'qmeter' | 'emeter' | 'hcurve' | 'hoffset' | 'supmin' | 'supmax' | 'tset', string>>;
         priority: {register: string; hotwater: number};
         immersion: string;
         // The settings the controller plans with (collector.ts `Controls`): indoor setpoint,

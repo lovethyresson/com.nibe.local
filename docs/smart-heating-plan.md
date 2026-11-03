@@ -411,7 +411,10 @@ average (it may still be what the auto-stop thresholds use).
     fitted hourly from the points since the settings last changed (≥ 48 points over ≥ 3 K). The
     planner moves heat by `heatPerSupplyK × (S(curve) − S(te))` instead of `lever × (te − curve)`,
     so the gain is the curve's slope where the feed lands; until a curve exists it keeps the old
-    lever at 0.5. Not modelled: room-sensor control's `factor × (setpoint − indoor)` term in 1017.
+    lever at 0.5. Room-sensor control's `factor × (setpoint − indoor)` in 1017 is fitted beside
+    the curve (setpoint recorded as `tset`) and kept out of it, so a house cooled by a coast does
+    not read a curve that rises where it sat cold; a factor with the wrong sign is the house
+    following its heat, not a room loop, and is dropped.
   - **Bench (October prices, 20 days, Manual mode, true curve vs a planner assuming 0.5):** the
     learned curve takes the planner's own 1 h indoor prediction error to zero (fixed 0.5: up to
     0.014 K on the S1155's curve, 0.066 K on a flat 0.3 curve, 0.062 K on a steep 0.8 one), but
