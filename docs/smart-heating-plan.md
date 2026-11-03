@@ -214,7 +214,7 @@ maintainer's S1155 (ground source, radiators); details in [external-sensors.md](
 fast radiator house. Both are learned per pump in M1/M2, and M2 shadow needs a slab house and an
 air-source pump before M3 ships (§7.5).
 
-### 3.3 The gain far from the real temperature (pre-heat side done 2026-11-02; coast side to run)
+### 3.3 The gain far from the real temperature (done 2026-11-02/03)
 
 §3.1 measured the gain at ±5 K. The planner may bias ±12 K (Save some) and ±20 K (Save the most),
 and both the curve's shape and the supply limits (34 min, 38 max) can bend the gain out there. A
@@ -259,6 +259,28 @@ One gain through the origin: **0.44**, flat to −20 K. Every rung is within 20 
 pre-heat side keeps its full −20 K. The gain is linear but ~12 % below §3.1's 0.50: use the
 measured value, not 0.50. Indoor stayed 21.5–21.9 °C, DM bottomed at −102, the immersion heater
 never ran. After the last rung the fake was released and calc supply fell back from 36.5 to 29.3.
+
+**Result, coast side (2026-11-03, S1155, 06:42–11:43, real outdoor 2 → 5 °C, SPA and room-sensor
+control off overnight, hot-water Flow paused):** run in four pieces. A Claude restart killed it in
+the +10 rung and a 5-min network loss (this Mac, `EHOSTUNREACH`) in the +15 rung, about 3 min of
+which the pump spent back on its wired sensor. The probe gained `--resume` (picks up a dead run
+from its log, while the pump still holds the fed value), `--no-abort` (limits log WARN and a
+person decides) and unbounded reconnects under `--no-abort`. Baseline: calc 30.9 at real 2.1.
+
+| Rung | Curve saw | Supply | Gain |
+|---|---|---|---|
+| +5 K | +3.8 K | −1.7 K | 0.45 |
+| +10 K | +8.6 K | −4.2 K | 0.52 |
+| +15 K | +13.0 K | −6.8 K | 0.59 (network gap) |
+| +20 K | +18.4 K | −10.9 K | 0.77 |
+
+One gain through the origin: **0.54** (562 points), but **not linear**: the gain rises as the fake
+warms, where the curve flattens towards its foot. +5…+15 pass (within 20 % of 0.50); +20 does not,
+so per the pass rule the coast side's `MAX_BIAS_K` is cut to **15 K**. Better than a cut: make
+the planner's gain a function of the fed temperature (the curve's slope there) rather than one
+number; the two sides together show 0.44 below the real temperature and 0.45 → 0.77 above it.
+Calc supply reached 20 °C with no floor at 34, so min supply did not bind on this curve. Indoor
+(116) 20.4 → 19.8 °C, DM −72…+100, the immersion heater never ran, no WARN.
 
 ---
 
@@ -1278,8 +1300,8 @@ four plus the Setup hub.
       (presets, actuator and planner done offline 2026-10-31; weather feed-forward and sun per wall
       2026-11-01; shadow running on the maintainer's Homey since 2026-11-01; the state machine,
       guards and its setting not started)
-- [ ] **M2** §3.3 gain ladder to ±20 K on the S1155 (pre-heat side passed 2026-11-02, gain 0.44;
-      coast side `--ladder 5,10,15,20` needs the maintainer's go-ahead)
+- [x] **M2** §3.3 gain ladder to ±20 K on the S1155 (pre-heat 2026-11-02: 0.44 flat, −20 K stands;
+      coast 2026-11-03: 0.45/0.52/0.59/0.77, +20 K fails, coast limit 15 K or a gain per fed temperature)
 - [ ] **M2** two weeks of shadow on ≥ 3 houses (radiator, slab, air-source)
 - [ ] **M3** Verify/handover, live feed, capabilities, settings, Flow cards, write locks, reconciliation, savings, analytics
 - [ ] **M3** release (test → live)

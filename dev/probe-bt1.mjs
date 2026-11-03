@@ -27,6 +27,10 @@
 // the gain per rung with the curve's lag known (τ 49 min, §3.1), so a rung shorter than 3τ still
 // says whether 1 K of fed outdoor still moves supply 0.5 K out there. Besides --step's aborts it
 // stops on the immersion heater starting (1029) or degree minutes below --min-dm.
+// --resume <file.json> picks up a killed ladder without settling again: {real, y0, indoor0, x, at,
+// rungEnd, prev: {x, dy}} from the dead run's log, with --ladder listing the rungs still to run.
+// Only valid while the pump still holds the dead run's fed value, so the curve never saw a break.
+// --no-abort turns the indoor, immersion, degree-minute and held-setting aborts into WARN lines.
 //
 // --step is the gain/latency test (plan §3.1). Before the first write it checks SPA (843) is off,
 // snapshots the settings that feed the curve, and waits until calculated supply has been flat for
@@ -45,6 +49,7 @@
 // uses "Set outdoor temperature (BT1)" during a run, or it will overwrite the fed value.
 
 import net from 'net';
+import {readFileSync} from 'fs';
 import {createRequire} from 'module';
 
 const require = createRequire(import.meta.url);
@@ -145,7 +150,8 @@ async function reconnect() {
 // The pump drops the Modbus connection now and then (twice on 2026-11-02, minutes apart). A run
 // rides through that: reconnect, and only give up after a few minutes of trying.
 async function reconnectPatiently(why) {
-    for (let i = 1; i <= 10; i++) {
+    // --no-abort keeps trying: a network blip must not end a run a person has not stopped.
+    for (let i = 1; has('no-abort') || i <= 10; i++) {
         try {
             await reconnect();
             console.log(`  reconnected (${why}, attempt ${i})`);
@@ -567,14 +573,23 @@ async function ladder(rungs) {
     const held = await heldSnapshot();
     if (held[843] !== 0 && !has('allow-spa'))
         throw new Error(`SPA (843) reads ${held[843]}. Switch it off first, or pass --allow-spa.`);
+    // --no-abort: a breached limit is logged once as WARN and the run carries on, so a person
+    // decides whether to stop it (Ctrl-C restores) instead of losing hours of rungs to a limit.
+    const warned = new Set();
+    const breach = (kind, msg) => {
+        if (!has('no-abort')) throw new Error(`ABORT: ${msg}`);
+        if (!warned.has(kind)) console.log(`WARN: ${msg} Carrying on (--no-abort).`);
+        warned.add(kind);
+    };
     const checkHeld = async () => {
         const changed = heldChanges(held, await heldSnapshot());
-        if (changed.length) throw new Error(`ABORT: a held setting changed: ${changed.join(', ')}`);
+        if (changed.length) breach('held', `a held setting changed: ${changed.join(', ')}.`);
     };
+    const resume = has('resume') ? JSON.parse(readFileSync(argv[argv.indexOf('--resume') + 1], 'utf8')) : undefined;
     const t00 = Date.now();
     const settled = [];
-    console.log(`Settling: calculated supply within 0.2 K for ${settleMin} min (max 120 min).`);
-    for (;;) {
+    if (!resume) console.log(`Settling: calculated supply within 0.2 K for ${settleMin} min (max 120 min).`);
+    for (; !resume;) {
         const s = await sample();
         settled.push({at: Date.now(), y: s[1017]});
         console.log(`${stamp(t00)}  settle    ${phaseLine(s, await realOutdoor())}`);
@@ -586,12 +601,13 @@ async function ladder(rungs) {
     await checkHeld();
 
     const base = await sample();
-    const y0 = settled.slice(-20).reduce((a, p) => a + (p.y ?? base[1017]), 0) / Math.min(20, settled.length);
-    const indoor0 = base[116];
+    const y0 = resume?.y0 ?? settled.slice(-20).reduce((a, p) => a + (p.y ?? base[1017]), 0) / Math.min(20, settled.length);
+    const indoor0 = resume?.indoor0 ?? base[116];
     // The widest rung is checked against the thresholds up front; startFeed refuses a crossing.
     const widest = rungs.reduce((a, r) => (Math.abs(r) > Math.abs(a) ? r : a), 0);
     const t = await thresholds();
-    const real = await readValue('input', 1, 10);
+    // Resuming, input 1 still shows the dead run's fed value, not the real temperature.
+    const real = resume?.real ?? await readValue('input', 1, 10);
     if (real === undefined) throw new Error('input 1 is unavailable; nothing to offset from');
     const crossed = crossings(real, real + widest, t);
     if (crossed.length && !has('force'))
@@ -599,15 +615,16 @@ async function ladder(rungs) {
     restoreTo = real;
     const t0 = Date.now();
     const points = [];
-    let x = 0; // the curve's filtered view of the offset
-    let last = t0;
+    let x = resume?.x ?? 0; // the curve's filtered view of the offset
+    let last = resume?.at ?? t0;
     let writes = 0, failures = 0, lastHeldCheck = Date.now();
     for (const offset of rungs) {
         const fed = Math.round((real + offset) * 10) / 10;
-        console.log(`\nRung ${offset >= 0 ? '+' : ''}${offset} K: feeding ${fed} °C for ${rungMin} min.`);
+        const end = offset === rungs[0] && resume ? resume.rungEnd : undefined;
+        console.log(`\nRung ${offset >= 0 ? '+' : ''}${offset} K: feeding ${fed} °C for ${end ? `the rest, until ${new Date(end).toLocaleTimeString()}` : `${rungMin} min`}.`);
         if (!(await feedAndVerify(fed))) throw new Error('input 1 did not follow the write. Is menu 7.5.9.2 enabled?');
         const tr = Date.now();
-        while (Date.now() - tr < rungMin * 60_000) {
+        while (Date.now() < (end ?? tr + rungMin * 60_000)) {
             await sleep(FEED_EVERY_MS);
             try { await writeBT1(fed); writes++; } catch (e) {
                 failures++;
@@ -622,9 +639,9 @@ async function ladder(rungs) {
             if (s[1017] !== undefined) points.push({rung: offset, x, dy: s[1017] - y0, at: now});
             console.log(`${stamp(t0)}  ${String(offset).padStart(4)} K   ${phaseLine(s, await realOutdoor())}  x ${x.toFixed(1)}`);
             if (indoor0 !== undefined && s[116] !== undefined && Math.abs(s[116] - indoor0) > maxIndoor)
-                throw new Error(`ABORT: indoor (116) moved ${indoor0} -> ${s[116]} °C, more than ${maxIndoor} K.`);
-            if (s[1029] === 1) throw new Error('ABORT: the immersion heater started (1029). That rung is too deep for this house today.');
-            if (s.dm !== undefined && s.dm < minDm) throw new Error(`ABORT: degree minutes ${s.dm} below ${minDm}.`);
+                breach('indoor', `indoor (116) moved ${indoor0} -> ${s[116]} °C, more than ${maxIndoor} K.`);
+            if (s[1029] === 1) breach('immersion', 'the immersion heater started (1029). That rung is too deep for this house today.');
+            if (s.dm !== undefined && s.dm < minDm) breach('dm', `degree minutes ${s.dm} below ${minDm}.`);
             if (Date.now() - lastHeldCheck > 10 * 60_000) { await checkHeld(); lastHeldCheck = Date.now(); }
         }
     }
@@ -641,7 +658,7 @@ async function ladder(rungs) {
         const last10 = pts.filter((p) => p.at >= end - 10 * 60_000);
         return {x: last10.reduce((a, p) => a + p.x, 0) / last10.length, dy: last10.reduce((a, p) => a + p.dy, 0) / last10.length};
     };
-    let prev = {x: 0, dy: 0};
+    let prev = resume?.prev ?? {x: 0, dy: 0};
     console.log('\nGain per rung (K supply per K colder; §3.1 measured 0.50 at ±5 K):');
     for (const rung of rungs) {
         const now = tail(rung);

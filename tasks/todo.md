@@ -25,8 +25,11 @@ FAQ claim "a few percent" "Ok".
 - [x] §3.3 pre-heat ladder on the S1155, 2026-11-02: gain 0.42/0.46/0.44/0.43 at −5…−20 K (0.44
       overall), all within 20 % of 0.50, so −20 K stands; 583 writes, 0 failures, DM ≥ −102, no
       immersion. Hot-water Flow re-enabled after the run.
-- [ ] §3.3 coast ladder (`--ladder 5,10,15,20`), another day, needs the maintainer's go-ahead.
-- [ ] Planner: check where it assumes the BT1 gain and use the measured 0.44, not 0.50.
+- [x] §3.3 coast ladder on the S1155, 2026-11-03: gain 0.45/0.52/0.59/0.77 at +5…+20 K (0.54
+      overall, rising as the fake warms); +20 K fails the 20 % band. Run resumed twice (`--resume`),
+      `--no-abort` added. Hot-water Flow re-enabled after the run.
+- [ ] Planner: replace the single BT1 gain (0.50) with the measured one: 0.44 on the pre-heat side,
+      0.45 → 0.77 on the coast side (a gain per fed temperature), or cap the coast bias at 15 K.
 - [ ] Shadow behind a hidden setting before any test-channel build.
 - [ ] The planner's doing-nothing is the curve alone; if shadow's live error tracks sun or indoor,
       model the room loop (or require it off, as M3 does anyway).
