@@ -11,6 +11,7 @@ test('presets set the table\'s coast caps and bias limits', () => {
     const s = limitsFor(PRESETS.save_some);
     const m = limitsFor(PRESETS.save_most);
     assert.deepEqual([c.maxBias, s.maxBias, m.maxBias], [6, 12, 20]);
+    assert.deepEqual([c.maxCoastBias, s.maxCoastBias, m.maxCoastBias], [4.5, 9, 15]);
     assert.ok(c.maxCoastH <= 2.4 && s.maxCoastH <= 5 && m.maxCoastH === 8);
     assert.equal(m.lower + m.upper, 6); // the 6 K swing
     assert.ok(Math.abs(c.margin - 0.6) < 1e-9 && Math.abs(m.margin - 0.1) < 1e-9);
@@ -21,9 +22,9 @@ test('presets set the table\'s coast caps and bias limits', () => {
 test('Custom at zero is trim only, and extremes stay in range', () => {
     const zero = limitsFor({coldest: 0, warmest: 0, price: 0, weather: 0, stored: 0});
     assert.deepEqual(zero, {lower: 0, upper: 0, margin: Infinity, forecastTrust: 0, maxCoastH: 0, preheatLeadTau: 0, maxBias: 0,
-        comfortWeight: 2});
+        maxCoastBias: 0, comfortWeight: 2});
     const wild = limitsFor({coldest: 9, warmest: -1, price: 2, weather: 2, stored: 2});
-    assert.deepEqual([wild.lower, wild.upper, wild.maxBias, wild.margin], [5, 0, 20, 0.1]);
+    assert.deepEqual([wild.lower, wild.upper, wild.maxBias, wild.maxCoastBias, wild.margin], [5, 0, 20, 15, 0.1]);
 });
 
 test('settings round-trip to their preset, anything else is Custom', () => {
@@ -31,7 +32,7 @@ test('settings round-trip to their preset, anything else is Custom', () => {
     assert.equal(presetOf({...PRESETS.save_some, price: 0.7}), 'custom');
 });
 
-const base = {real: 0, bias: 0, previousBias: 0, maxBias: 12, auto: true,
+const base = {real: 0, bias: 0, previousBias: 0, maxBias: 12, maxCoastBias: 12, auto: true,
     thresholds: {stopHeating: 17, startCooling: 25, stopAddHeat: -10}};
 
 test('fed = real − bias, limited by the profile and the ramp', () => {
@@ -39,6 +40,9 @@ test('fed = real − bias, limited by the profile and the ramp', () => {
     assert.deepEqual(fedValue({...base, bias: -9}), {fed: 2, bias: -2, clamped: ['ramp']});
     assert.deepEqual(fedValue({...base, bias: -30, previousBias: -11}), {fed: 12, bias: -12, clamped: ['max_bias']});
     assert.deepEqual(fedValue({...base, bias: -9, slots: 3}).bias, -6);
+    // The coast side has its own, smaller limit.
+    assert.deepEqual(fedValue({...base, maxCoastBias: 9, bias: -12, previousBias: -10}).bias, -9);
+    assert.deepEqual(fedValue({...base, real: 10, maxCoastBias: 9, bias: 12, previousBias: 10}).bias, 12);
 });
 
 test('a coast never feeds warm enough to stop heating', () => {
@@ -82,7 +86,7 @@ test('the planner buys the same comfort cheaper, inside each preset\'s band', ()
             assert.ok(plan.fairCost < plan.baselineFairCost, `${id}: no saving`);
             assert.ok(plan.plan.ti.every((t, k) => t >= Math.min(21 - limits.lower, plan.baseline.ti[k]) - 0.1
                 && t <= Math.max(21 + limits.upper, plan.baseline.ti[k]) + 0.1), `${id}: left the band`);
-            assert.ok(plan.biases.every((b) => Math.abs(b) <= limits.maxBias));
+            assert.ok(plan.biases.every((b) => b <= limits.maxBias && b >= -limits.maxCoastBias));
             const saving = 1 - plan.fairCost / plan.baselineFairCost;
             assert.ok(saving >= previous - 1e-9, `${id} saved less than a tighter preset`);
             previous = saving;

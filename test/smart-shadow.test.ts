@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {AHEAD, SHADOW_PRESETS, ShadowMemory, shadowForecast, shadowStep} from '../lib/smart/shadow';
+import {AHEAD, SHADOW_PRESETS, ShadowMemory, curveComfort, shadowForecast, shadowStep} from '../lib/smart/shadow';
+import {FIELDS, History} from '../lib/smart/history';
 import {steadyState, ForecastSlot} from '../lib/smart/planner';
 import {RADIATOR_HOUSE} from './smart-house-sim';
 import {RAMP_K_PER_SLOT} from '../lib/smart/actuator';
@@ -53,4 +54,18 @@ test('the forecast runs as far as the weather does, with the outdoor correction 
     assert.ok(out.every((s) => s.te === 0.5 && s.sun === 100 && s.sunE === 50));
     assert.equal(shadowForecast(10, weather, new Map(), () => 0)[0].price, 1);
     assert.equal(shadowForecast(9, weather, prices, () => 0).length, 0);
+});
+
+test('with room-sensor control off, comfort is where the curve has kept the house', () => {
+    const history = new History(200);
+    const put = (slot: number, ti: number, roomctl: number) =>
+        history.put(slot, {...Object.fromEntries(FIELDS.map((f) => [f, NaN])), ti, roomctl, flags: 0} as any);
+    for (let k = 0; k < 10; k++) put(1000 + k, 22.5, 1); // the room loop holding the setpoint
+    for (let k = 10; k < 20; k++) put(1000 + k, 21 + (k % 2), 0);
+    assert.equal(curveComfort(history, 1019, 21.3), 21.5); // only the loop-off slots count
+    put(1020, 22.5, 1);
+    assert.equal(curveComfort(history, 1020, 22.5), undefined); // loop on: the setpoint is comfort
+    put(1021, NaN, 0);
+    put(1021 + 200, 20, 0); // a day later the old slots have left the window
+    assert.equal(curveComfort(history, 1221, 20), 20);
 });

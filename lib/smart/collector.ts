@@ -14,7 +14,7 @@ import {
 import {DailyFit, HouseAnswers, HouseFit, drifting, fitHistory, readiness, recordDailyFit} from './house';
 import {houseInsights, insightsLine} from './insights';
 import {ForecastBias, forecastCorrection, learnForecastBias, newForecastBias, usableSensor} from './outdoor';
-import {SHADOW_PRESETS, ShadowMemory, shadowForecast, shadowStep} from './shadow';
+import {SHADOW_PRESETS, ShadowMemory, curveComfort, shadowForecast, shadowStep} from './shadow';
 import {PumpThresholds} from './actuator';
 
 const HOUR = 60 * 60 * 1000;
@@ -305,7 +305,8 @@ export class SmartCollector {
         const c = this.controls;
         if (!fit?.params || !fit.state) return skip('no model');
         if (!Number.isFinite(values.ti) || !Number.isFinite(values.te)) return skip('no reading');
-        if (c.comfort === undefined || c.mode === undefined) return skip('no settings');
+        const comfort = curveComfort(this.history, slot, values.ti) ?? c.comfort;
+        if (comfort === undefined || c.mode === undefined) return skip('no settings');
         if (c.mode === 2) return skip('immersion only');
         const next = slot + 1;
         const fresh = Date.now() - this.weatherAt < WEATHER_STALE_MS ? this.weather : new Map<number, WeatherSlot>();
@@ -316,14 +317,14 @@ export class SmartCollector {
         const out = shadowStep({
             house: fit.params, pump: fit.pump, ti: values.ti,
             // The mass moves slowly: the hourly fit's is close enough, the air is the reading.
-            tm: fit.state.tm, comfort: c.comfort, real: values.te, auto: c.mode === 0, thresholds: c.thresholds,
+            tm: fit.state.tm, comfort, real: values.te, auto: c.mode === 0, thresholds: c.thresholds,
             forecast, memory: this.shadowMemory,
             slots: this.shadowSlot !== undefined && slot > this.shadowSlot ? Math.min(4, slot - this.shadowSlot) : 1,
         });
         this.shadowMemory = out.memory;
         this.shadowSlot = slot;
         this.lastShadow = {slot: next, at: new Date(next * SLOT_MS).toISOString(), ti: values.ti, te: values.te,
-            comfort: c.comfort, mode: c.mode, horizon: forecast.length, ms: Date.now() - started,
+            comfort, setpoint: c.comfort, mode: c.mode, horizon: forecast.length, ms: Date.now() - started,
             fitSlot: fit.state.slot, baseline: out.baseline, presets: out.presets};
         appendLine(shadowLogName(this.fileName), this.lastShadow)
             .then(() => { this.shadowLines++; })

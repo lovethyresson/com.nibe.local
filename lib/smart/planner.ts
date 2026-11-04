@@ -217,7 +217,7 @@ export function planShift(house: HouseParams, comfort: number, state: PlanState,
     };
 
     const shapeOk = (j: number, value: number) => {
-        if (Math.abs(value) > limits.maxBias + 1e-9) return false;
+        if (value > limits.maxBias + 1e-9 || value < -limits.maxCoastBias - 1e-9) return false;
         const before = j === 0 ? state.bias : biases[j - 1];
         if (Math.abs(value - before) > RAMP_K_PER_SLOT + 1e-9) return false;
         if (j + 1 < n && Math.abs(biases[j + 1] - value) > RAMP_K_PER_SLOT + 1e-9) return false;
@@ -289,7 +289,7 @@ export function startingPoint(bias: number, n: number, limits: Limits, previous?
     const maxCoast = Math.round(limits.maxCoastH / SLOT_H);
     let run = 0;
     for (let k = 0; k < n; k++) {
-        let want = Math.max(-limits.maxBias, Math.min(limits.maxBias, previous?.[k] ?? 0));
+        let want = Math.max(-limits.maxCoastBias, Math.min(limits.maxBias, previous?.[k] ?? 0));
         want = Math.max(last - RAMP_K_PER_SLOT, Math.min(last + RAMP_K_PER_SLOT, want));
         if (want < 0 && run >= maxCoast) want = Math.min(0, last + RAMP_K_PER_SLOT);
         run = want < 0 ? run + 1 : 0;

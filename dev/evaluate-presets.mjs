@@ -111,7 +111,7 @@ function runDay(house, day, ahead, limits) {
         const m = Math.min(4, n - k);
         for (let j = 0; j < m; j++) {
             const out = fedValue({real: truth[k + j].te, bias: plan.biases[j], previousBias: previous,
-                maxBias: limits.maxBias, auto, thresholds});
+                maxBias: limits.maxBias, maxCoastBias: limits.maxCoastBias, auto, thresholds});
             applied.push(out.bias);
             previous = out.bias;
         }
@@ -142,8 +142,8 @@ const pct = (v) => `${(v * 100).toFixed(1)} %`;
 for (const [name, house] of Object.entries(houses)) {
     for (const id of ['comfortable', 'save_some', 'save_most']) {
         const limits = limitsFor(PRESETS[id]);
-        // Explore beyond the presets' ±20 K: scales each preset's bias limit by the same share.
-        if (maxBias) limits.maxBias = Number(maxBias) * PRESETS[id].stored;
+        // Explore beyond the presets' +20/−15 K: scales both sides' limit by the preset's share.
+        if (maxBias) limits.maxBias = limits.maxCoastBias = Number(maxBias) * PRESETS[id].stored;
         const runs = days.slice(0, -1).map((d, i) => runDay(house, d, days[i + 1], limits));
         console.log(`${name.padEnd(9)} ${id.padEnd(12)} fair ${pct(mean(runs.map((r) => r.fair))).padStart(6)}`
             + ` (best day ${pct(Math.max(...runs.map((r) => r.fair)))}), at comfort ${pct(mean(runs.map((r) => r.atComfort)))},`

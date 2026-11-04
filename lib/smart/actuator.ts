@@ -27,7 +27,9 @@ export interface ActuatorInput {
     bias: number;
     /** What was applied last slot; the ramp starts from here. */
     previousBias: number;
+    /** Largest bias on each side, K: pre-heat (bias > 0) and coast (bias < 0). */
     maxBias: number;
+    maxCoastBias: number;
     /** Operating mode Auto (237 = 0): only then do the thresholds act, so only then clamp. */
     auto: boolean;
     thresholds: PumpThresholds;
@@ -49,8 +51,8 @@ const round1 = (v: number) => Math.round(v * 10) / 10;
 export function fedValue(input: ActuatorInput): ActuatorOutput {
     const clamped: ClampReason[] = [];
     let bias = input.bias;
-    if (Math.abs(bias) > input.maxBias) {
-        bias = Math.sign(bias) * input.maxBias;
+    if (bias > input.maxBias || bias < -input.maxCoastBias) {
+        bias = Math.max(-input.maxCoastBias, Math.min(input.maxBias, bias));
         clamped.push('max_bias');
     }
     const step = RAMP_K_PER_SLOT * Math.max(1, input.slots ?? 1);

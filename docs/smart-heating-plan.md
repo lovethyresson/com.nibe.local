@@ -296,7 +296,7 @@ Calc supply reached 20 °C with no floor at 34, so min supply did not bind on th
 Rules:
 
 - **The bias is in kelvin of outdoor temperature.** Its limit comes from the Profile (§7.4), up
-  to about ±20 K.
+  to 20 K pre-heat and 15 K coast (`MAX_COAST_BIAS_K`, cut by the §3.3 ladder).
   - Measured on the S1155 at curve 5: about 0.5 K supply per K, so ±20 K buys about ±10 K of
     supply (M0.4, §4.5).
     That is the authority a ±3 offset never had.
@@ -874,7 +874,7 @@ may *use*.
 | **Warmest allowed** | 0–3 K above comfort | upper band edge, i.e. pre-heat headroom | no pre-heat |
 | **Price influence** | 0–100 % | scales the price term and the margin a shift needs (100 % → 10 %, 30 % → 60 %) | efficiency only: trim, no price shifting |
 | **Weather influence** | 0–100 % | scales forecast feed-forward: cold fronts, and how far forecast sun is trusted (×0.5 at 50 %, ×0.9 at 100 %) | react to measured indoor only |
-| **Use of stored heat** | 0–100 % | max coast length (0–8 h) and pre-heat lead (0–1 τ of the model); max bias scales with it, up to ±20 K | no coasting or pre-heat beyond trim |
+| **Use of stored heat** | 0–100 % | max coast length (0–8 h) and pre-heat lead (0–1 τ of the model); max bias scales with it, up to 20 K pre-heat and 15 K coast (§3.3) | no coasting or pre-heat beyond trim |
 
 Not exposed, deliberately: price-spread floor, ramp speed and solar discount curve. They are
 tuning constants that only make sense to us (PumpSteer and Nibe both learned this the hard way).
@@ -884,11 +884,11 @@ cycles); the extra 2 h is for the deep band of *Save the most*.
 **Presets.** Working labels; final copy in six languages comes with the strings. The values are
 **starting points to tune in M2 shadow**.
 
-| Preset | Coldest / warmest | Price | Weather | Stored heat | ≈ max bias | Who it is for |
+| Preset | Coldest / warmest | Price | Weather | Stored heat | ≈ max bias (pre-heat / coast) | Who it is for |
 |---|---|---|---|---|---|---|
-| **Comfortable** | −0.5 / +0.5 K | 30 % | 60 % | 30 % (≤ 2 h coast) | ±6 K | "I don't want to notice it" |
-| **Save some money** (default) | −1.5 / +1.0 K | 60 % | 80 % | 60 % (≤ 5 h coast) | ±12 K | most owners |
-| **Save the most** | −4.0 / +2.0 K (a 6 K swing) | 100 % | 100 % | 100 % (≤ 8 h coast) | ±20 K | "I don't mind it getting cooler" |
+| **Comfortable** | −0.5 / +0.5 K | 30 % | 60 % | 30 % (≤ 2 h coast) | 6 / 4.5 K | "I don't want to notice it" |
+| **Save some money** (default) | −1.5 / +1.0 K | 60 % | 80 % | 60 % (≤ 5 h coast) | 12 / 9 K | most owners |
+| **Save the most** | −4.0 / +2.0 K (a 6 K swing) | 100 % | 100 % | 100 % (≤ 8 h coast) | 20 / 15 K | "I don't mind it getting cooler" |
 | **Custom** | sliders above | | | | | owners who want to steer one thing |
 
 Rules:
@@ -1321,7 +1321,7 @@ four plus the Setup hub.
       2026-11-01; shadow running on the maintainer's Homey since 2026-11-01; the state machine,
       guards and its setting not started)
 - [x] **M2** §3.3 gain ladder to ±20 K on the S1155 (pre-heat 2026-11-02: 0.44 flat, −20 K stands;
-      coast 2026-11-03: 0.45/0.52/0.59/0.77, +20 K fails, coast limit 15 K or a gain per fed temperature)
+      coast 2026-11-03: 0.45/0.52/0.59/0.77, +20 K fails; coast limit cut to 15 K, the learned curve (§4.5) gives the gain per fed temperature)
 - [ ] **M2** two weeks of shadow on ≥ 3 houses (radiator, slab, air-source)
 - [ ] **M3** Verify/handover, live feed, capabilities, settings, Flow cards, write locks, reconciliation, savings, analytics
 - [ ] **M3** release (test → live)

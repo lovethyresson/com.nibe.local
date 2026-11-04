@@ -25,6 +25,8 @@ export const PRESETS: Record<PresetId, ProfileSettings> = {
 export const RANGES = {coldest: [0, 5], warmest: [0, 3]} as const;
 export const MAX_COAST_H = 8;
 export const MAX_BIAS_K = 20;
+/** The coast side stops sooner: on the S1155 the gain left its pass band past +15 K (§3.3). */
+export const MAX_COAST_BIAS_K = 15;
 
 export interface Limits {
     /** Band around comfort, K: [comfort − lower, comfort + upper]. */
@@ -38,8 +40,9 @@ export interface Limits {
     maxCoastH: number;
     /** Pre-heat lead as a share of the model's τ. */
     preheatLeadTau: number;
-    /** Largest outdoor bias, K either way. */
+    /** Largest outdoor bias, K: pre-heat (bias > 0) and coast (bias < 0). */
     maxBias: number;
+    maxCoastBias: number;
     /** What a degree-hour below comfort is worth, as a multiple of the heat that would cure it:
      *  1 trades comfort for money at cost, above 1 pays extra to stay at comfort. */
     comfortWeight: number;
@@ -61,6 +64,7 @@ export function limitsFor(s: ProfileSettings): Limits {
         maxCoastH: MAX_COAST_H * stored,
         preheatLeadTau: stored,
         maxBias: MAX_BIAS_K * stored,
+        maxCoastBias: MAX_COAST_BIAS_K * stored,
         // 100 % price → 1 (comfort at cost), 30 % → 1.7, 0 % → 2.
         comfortWeight: 2 - price,
     };

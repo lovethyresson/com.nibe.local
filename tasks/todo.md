@@ -34,6 +34,15 @@ FAQ claim "a few percent" "Ok".
 - [x] The curve learns only from slots with room-sensor control off (`roomctl` = 202 recorded). The
       fitted `factor × (setpoint − indoor)` term was dropped: on the S1155 the room loop integrates
       (1017 34 → 49 °C at steady BT1 on 2026-11-03), which no proportional term describes.
+- [x] Coast side capped at 15 K (`MAX_COAST_BIAS_K`, the ladder's pass rule); pre-heat keeps 20 K.
+      Presets now 6/4.5, 12/9, 20/15 K.
+- [x] With room-sensor control off, shadow comfort is indoor's mean over the last day of loop-off
+      slots (`curveComfort`), not the setpoint: the setpoint only steers the room loop, and planning
+      to it bought back a "deficit" the curve never meant to deliver. The log keeps `setpoint` too.
+- [x] The 2026-11-03 10:09 outage was this Mac's route to the pump (`EHOSTUNREACH`), not the pump:
+      the Homey's slots 10:00 and 10:15 have coverage 0.99/1.0 and no reconnect flag. No app change.
+- [ ] Room-sensor control off from 2026-11-04 ~20:30, curve offset +2: collect ~5 clean days, then
+      the curve fit and preset evaluation.
 - [ ] Shadow behind a hidden setting before any test-channel build.
 - [ ] The planner's doing-nothing is the curve alone; if shadow's live error tracks sun or indoor,
       model the room loop (or require it off, as M3 does anyway).

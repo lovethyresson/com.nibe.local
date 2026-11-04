@@ -12,12 +12,28 @@ import {HouseParams} from './model';
 import {ForecastSlot, PlanState, PumpCurve, planShift, simulate} from './planner';
 import {PRESETS, PresetId, limitsFor} from './presets';
 import {ClampReason, PumpThresholds, curveInput, fedValue} from './actuator';
+import {History} from './history';
 
 export const SHADOW_PRESETS: PresetId[] = ['comfortable', 'save_some', 'save_most'];
 /** 24 h: today's prices and, after 13:00, tomorrow's. */
 export const HORIZON = 96;
 /** The slots ahead the log keeps a prediction for: 1 h and 6 h. */
 export const AHEAD = [4, 24] as const;
+
+/** Comfort with room-sensor control off: indoor's mean over the last day of slots with it off,
+ *  else indoor now. The setpoint (2505) only steers the room loop, so with the loop off the house
+ *  sits where the curve puts it, and planning to the setpoint read the gap as a deficit to buy
+ *  back: on 2026-11-02 Comfortable pre-heated 71 % of slots against a setpoint 1 K above the
+ *  house. Undefined with the loop on (or not read): then the setpoint is comfort. */
+export function curveComfort(history: History, slot: number, ti: number): number | undefined {
+    if (history.get(slot)?.roomctl !== 0) return undefined;
+    const readings: number[] = [];
+    for (let s = slot - HORIZON + 1; s <= slot; s++) {
+        const v = history.get(s);
+        if (v && v.roomctl === 0 && Number.isFinite(v.ti)) readings.push(v.ti);
+    }
+    return readings.length ? readings.reduce((a, b) => a + b, 0) / readings.length : ti;
+}
 
 /** What each preset carries from one slot to the next. */
 export interface PresetMemory {
@@ -87,7 +103,7 @@ export function shadowStep(input: ShadowInput): ShadowOutput {
         const plan = planShift(input.house, input.comfort, state, discounted, limits, pump,
             previous.plan.slice(steps - 1));
         const applied = fedValue({real: input.real, bias: plan.biases[0], previousBias: previous.bias,
-            maxBias: limits.maxBias, auto: input.auto, thresholds: input.thresholds, slots: steps});
+            maxBias: limits.maxBias, maxCoastBias: limits.maxCoastBias, auto: input.auto, thresholds: input.thresholds, slots: steps});
         out.presets[id] = {
             bias: applied.bias, fed: applied.fed, clamped: applied.clamped, reason: plan.reason,
             ahead: AHEAD.map((k) => round(plan.plan.ti[k - 1] ?? NaN)),
