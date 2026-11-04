@@ -129,6 +129,25 @@ Offline only; nothing runs on the Homey yet. Design: `docs/smart-heating-plan.md
   yesterday. Save the most still spans −20…+20 K, and the ladder showed +20 K (coast) outside the
   20 % band, so the planner's coast range should stop at +15 K before any feed is live. Planned
   saving 6.6/6.9/5.4 %.
+- 2026-11-04 21:45 — 477 slots (30 Oct 20:45 → 4 Nov 21:15), 409 usable, **5 valid days**; no
+  new gaps, 0 partial today. Heat loss 244 W/K (first-order 165), τ 111 h, stored 27.2 kWh/K, sun
+  E/S/W 0.2/0.1/0.1 kW, lever 128 W/K, 6 h error 0.35 K. Learning (stability only): daily heat
+  loss 292 → 299 → 277 → 234 → 244 W/K, τ 64 → 72 → 95 → 110 → 111 h, so τ is settling. Outdoor
+  today: 86/86 slots from the sensor, 0 forecast; 21 flagged fed, but nothing fed: overnight BT1
+  ran 3–4.3 K warmer than the Homey sensor, past `FED_OUTDOOR_K` 3. Room-sensor control turned off
+  ~20:30 with curve offset +2 (30 readable from that slot, 1017 37.2 → 31.7 °C), yet `roomctl`
+  (202) still reads 1: 202 is legacy on zone firmware and has not changed since August, so the
+  curve learner and `curveComfort` see the loop as on. SPA off since 2 Nov 05:57 (843 = 0).
+  Shadow 336 slots: doing nothing 1 h 0.21 K (bias +0.02), 6 h 0.79 K (bias +0.08, down from
+  +0.23). Today the room loop held indoor 22.1–22.9 against 22.5, so presets mostly coasted
+  (Comfortable 67 %, Save some 70 %, Save the most 64 %, mean −6.6 K); Save the most still spans
+  −20 K on the installed build (ab8835a caps it at 15 K, not installed). Manual mode, so no
+  auto-stop risk from warm feeds. Planned saving 5.9/7.8/11.8 %.
+  Preset evaluation (step 4, 5 valid days; not "ready"), 31 SE3 days 5 Oct → 4 Nov, this model,
+  Manual, comfort 22.5, lever 0.525·H, Open-Meteo history, 15 K coast cap: fair saving
+  Comfortable 1.1 %, Save some 1.8 %, Save the most 7.2 % (best days 8/17/17 %); indoor
+  22.3–22.8 / 22.1–23.1 / 21.3–24.0 °C, off comfort 0.05/0.08/0.39 K RMS (doing nothing 0.04).
+  Planning on the day-ahead forecast instead changes nothing (1.1/1.8/7.2 %).
 
 ## Smart heating slice 1: data collection (branch `smart-heating/m1-data`)
 
