@@ -373,6 +373,13 @@ Rules for the source:
 
 Verify then refuses while room control is still on: input 5986 (BT50 active) must read 0.
 
+**Setup check (to build with this step).** Room-sensor control *is* readable on zone firmware:
+holding 2978 (`id:12671`, u8 0..3, one per climate system through 2985), proven 2026-11-05 by
+switching it at the display (202 never moved). So Pair, Repair and startup can check the heating
+system directly, read-only: 2978 (+ climate system − 1) = 0, SPA 843 = 0, 5986 = 0. Treat any
+non-zero 2978 as on until 2 and 3 are understood. 7.5.9 and 7.5.9.2 have no register; Verify's
+feed-and-read-back stays their check.
+
 Then **"Verify"** runs (handler `activate_smart`, 45 s client timeout):
 
 1. If M0.0 found an activation flag, read it.

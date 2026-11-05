@@ -359,3 +359,9 @@ most aggressive one should allow like 5-7 degree swings". It is now −4 / +2 K.
 
 **Rule:** the extreme preset is for owners who opted into discomfort; give it the full range and
 put the safety in the planner (add-heat-aware recovery, clamps), not in a timid band.
+
+**2026-11-05.** I wrote "smart heating" into proposed owner-facing text. The user: "we are not
+calling it smart heating". It is only the working name in code and docs.
+
+**Rule:** never put "smart heating" in anything an owner reads (warnings, setup lines,
+notifications, changelog). Ask for the name, or leave the feature unnamed in drafts.
