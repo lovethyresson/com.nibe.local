@@ -364,4 +364,4 @@ put the safety in the planner (add-heat-aware recovery, clamps), not in a timid 
 calling it smart heating". It is only the working name in code and docs.
 
 **Rule:** never put "smart heating" in anything an owner reads (warnings, setup lines,
-notifications, changelog). Ask for the name, or leave the feature unnamed in drafts.
+notifications, changelog). The owner-facing name is **Autopilot** (decided 2026-11-05).

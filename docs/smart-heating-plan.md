@@ -1,5 +1,8 @@
 # Smart heating: implementation plan
 
+Owners see it as **Autopilot** (named 2026-11-05, the same word in all six languages); "smart
+heating" is the working name in code and docs only.
+
 Status: **M0 done, go on BT1 (2026-10-30, §3.2); M1 not started.** Planned 2026-10-15. Companion to
 [smart-heating-research.md](smart-heating-research.md), which covers the why, the evidence and
 the scored ideas. This document covers the how, against the code as it stands at 1.4.6.
