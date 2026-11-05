@@ -1,10 +1,10 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {AHEAD, SHADOW_PRESETS, ShadowMemory, curveComfort, shadowForecast, shadowStep} from '../lib/smart/shadow';
-import {FIELDS, History, roomControlOff} from '../lib/smart/history';
-import {steadyState, ForecastSlot} from '../lib/smart/planner';
-import {RADIATOR_HOUSE} from './smart-house-sim';
-import {RAMP_K_PER_SLOT} from '../lib/smart/actuator';
+import {AHEAD, SHADOW_PRESETS, ShadowMemory, curveComfort, shadowForecast, shadowStep} from '../lib/autopilot/shadow';
+import {FIELDS, History, roomControlOff} from '../lib/autopilot/history';
+import {steadyState, ForecastSlot} from '../lib/autopilot/planner';
+import {RADIATOR_HOUSE} from './autopilot-house-sim';
+import {RAMP_K_PER_SLOT} from '../lib/autopilot/actuator';
 
 const house = RADIATOR_HOUSE;
 const peak = (k: number) => (k >= 24 && k < 40 ? 4 : 1);

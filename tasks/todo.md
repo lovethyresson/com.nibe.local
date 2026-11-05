@@ -4,7 +4,7 @@ Three things are live. Everything else that used to be here has shipped — the 
 commits and in the **Releases** table in [`README.md`](../README.md), the durable rules are in
 [`CLAUDE.md`](../CLAUDE.md), and the design write-ups are under [`docs/`](../docs).
 
-## Smart heating slice 4: shadow, weather feed-forward, sun per wall (2026-11-01)
+## Autopilot slice 4: shadow, weather feed-forward, sun per wall (2026-11-01)
 
 Maintainer's go: "Do it" (shadow), sun impact differing per window direction, ±20 K test "Ok",
 FAQ claim "a few percent" "Ok".
@@ -28,7 +28,7 @@ FAQ claim "a few percent" "Ok".
 - [x] §3.3 coast ladder on the S1155, 2026-11-03: gain 0.45/0.52/0.59/0.77 at +5…+20 K (0.54
       overall, rising as the fake warms); +20 K fails the 20 % band. Run resumed twice (`--resume`),
       `--no-abort` added. Hot-water Flow re-enabled after the run.
-- [x] Planner: the BT1 gain is the learned heat curve's slope where the feed lands (`lib/smart/curve.ts`,
+- [x] Planner: the BT1 gain is the learned heat curve's slope where the feed lands (`lib/autopilot/curve.ts`,
       plan §4.5), not 0.50. History records `bt1` and 26/30/34/38; a settings change starts a new
       curve. Bench: plan error to zero, savings within ±0.3 pp.
 - [x] The curve learns only from slots with room-sensor control off (`roomctl` = 202 recorded). The
@@ -54,11 +54,11 @@ FAQ claim "a few percent" "Ok".
 - [ ] The planner's doing-nothing is the curve alone; if shadow's live error tracks sun or indoor,
       model the room loop (or require it off, as M3 does anyway).
 
-## Smart heating slice 3: planner (offline)
+## Autopilot slice 3: planner (offline)
 
 - [x] `presets.ts`, `actuator.ts` (clamps on 184/183/185 in Auto, ramp, pass-through),
       `planner.ts` (cost at equal comfort, linear-response greedy). Tests in
-      `test/smart-control.test.ts`.
+      `test/autopilot-control.test.ts`.
 - [x] `dev/evaluate-presets.mjs`: 20 SE3 days, measured lever → 0.9 / 2.3 / 5.2 % at no-worse
       comfort (plan §7.3 has the table and the three rejected objectives).
 - [x] Why *Save the most* didn't use its depth: replans started from zero bias (fixed: warm
@@ -66,27 +66,27 @@ FAQ claim "a few percent" "Ok".
 - [ ] Rerun on the maintainer's learned house once the model is ready (`--model`).
 - [ ] Learn the lever live per pump (`estimateLever` over the history) and keep it in the model file.
 
-## Smart heating slice 2: house model (branch `smart-heating/m1-data`)
+## Autopilot slice 2: house model (branch `smart-heating/m1-data`)
 
-Offline only; nothing runs on the Homey yet. Design: `docs/smart-heating-plan.md` §4.2, §6.
+Offline only; nothing runs on the Homey yet. Design: `docs/autopilot-plan.md` §4.2, §6.
 
-- [x] `lib/smart/outdoor.ts`: real outdoor source (wired while not feeding, Homey sensor, forecast
+- [x] `lib/autopilot/outdoor.ts`: real outdoor source (wired while not feeding, Homey sensor, forecast
       + per-hour bias), 6 h degraded limit.
-- [x] `lib/smart/model.ts`: stage 1 RLS (heat-loss seed), stage 2 2R2C EKF with priors from the two
+- [x] `lib/autopilot/model.ts`: stage 1 RLS (heat-loss seed), stage 2 2R2C EKF with priors from the two
       Setup answers, gating, 6 h prediction RMSE, `toModelSlots`.
-- [x] `test/smart-house-sim.ts` + `test/smart-model.test.ts`: radiator and slab houses recovered
+- [x] `test/autopilot-house-sim.ts` + `test/autopilot-model.test.ts`: radiator and slab houses recovered
       within 10 % heat loss / 15 % τ; a wrong answer still predicts inside 0.35 K.
 - [x] `dev/fit-house-model.mjs` runs on the real file (day 1: 77/92 usable, 6 h RMSE 0.21 K;
       too short to read the parameters).
 - [ ] Fit again after ≥ 5 valid days. Passive data has no excitation (§6.3), so expect τ low.
 - [x] Run the model online: the collector refits over the whole history every hour
-      (`lib/smart/house.ts`; heat for a slot lands slots later, so a refit beats stepping) and
-      writes `smart-<id>.model.json` beside the history. Answers default to "Don't know".
-- [x] `lib/smart/insights.ts`: heat loss, cool-down from the heated steady state, stored heat,
+      (`lib/autopilot/house.ts`; heat for a slot lands slots later, so a refit beats stepping) and
+      writes `autopilot-<id>.model.json` beside the history. Answers default to "Don't know".
+- [x] `lib/autopilot/insights.ts`: heat loss, cool-down from the heated steady state, stored heat,
       sun, fast/slow; readiness (§6.4) and drift (§6.2) over one fit per day.
 - [x] A reinstall at 20:23 on 2026-10-31 lost the slots since the 19:46 save, and a second one
       confirmed `homey app install` ends the process before `onUninit` saves. Each closed slot is
-      now appended to `smart-<id>.bin.journal` (92 bytes, 100 since the wall fields) and replayed on load; the hourly save
+      now appended to `autopilot-<id>.bin.journal` (92 bytes, 100 since the wall fields) and replayed on load; the hourly save
       empties it.
 
 **Daily model log** (`dev/fit-house-model.mjs … --system radiators`, history + journal):
@@ -156,17 +156,17 @@ Offline only; nothing runs on the Homey yet. Design: `docs/smart-heating-plan.md
   22.3–22.8 / 22.1–23.1 / 21.3–24.0 °C, off comfort 0.05/0.08/0.39 K RMS (doing nothing 0.04).
   Planning on the day-ahead forecast instead changes nothing (1.1/1.8/7.2 %).
 
-## Smart heating slice 1: data collection (branch `smart-heating/m1-data`)
+## Autopilot slice 1: data collection (branch `smart-heating/m1-data`)
 
 **Goal.** Record what the house model will learn from, starting now, because learning needs weeks
 of history. Nothing new is shown to the owner and nothing is written to the pump. Design source:
-`docs/smart-heating-plan.md` §5.2–5.5.
+`docs/autopilot-plan.md` §5.2–5.5.
 
 **No switch (maintainer, 2026-10-30).** Collection runs on every Heating device in this build,
 which goes onto the maintainer's Homey with `homey app install`; it is not released. The
 owner-facing mode choice (`mode.ts`) gates it before anything ships.
 
-**Pure modules (`lib/smart/`, unit-tested with an injected clock):**
+**Pure modules (`lib/autopilot/`, unit-tested with an injected clock):**
 - [x] `prices.ts`: Homey Energy response → 15-min UTC slots. 60-min zones ×4; DST days (92/100
       slots); user-cost formula by a hand-written parser (numbers, + − * /, parentheses, unary
       minus; never `eval`) with the `highestPriceWithUserCosts` self-check, else spot and
@@ -181,16 +181,16 @@ owner-facing mode choice (`mode.ts`) gates it before anything ships.
       weighted by Hz; drop hot-water slots.
 
 **Glue:**
-- [x] `lib/smart/collector.ts`: one per pump, owned by Heating (the `indoorOwners` pattern).
+- [x] `lib/autopilot/collector.ts`: one per pump, owned by Heating (the `indoorOwners` pattern).
       It takes `onPollComplete`/`lastRawFor` samples and the pump's total electricity per poll.
       It runs a price timer (hourly, every 15 min from 12:45 to 16:00 until tomorrow appears) and a
       weather timer (hourly ± 5 min).
-- [x] `lib/smart/store-file.ts`: `/userdata/smart-<random>.bin`, with the random name held in the
+- [x] `lib/autopilot/store-file.ts`: `/userdata/autopilot-<random>.bin`, with the random name held in the
       device store. Writes go through a temp file and a rename. Flushed hourly and in `onUninit`.
 - [x] `wantedRegisters()` on Heating adds 1, 5, 7, 10, 11, 1017, 1046, 1577, 1028, 1029 and indoor
       while collecting.
 - [x] Hourly debug line: slots filled, partial count, price and weather age.
-- [x] `dev/read-smart-history.mjs`: download and decode the file, then print slots as CSV, so the
+- [x] `dev/read-autopilot-history.mjs`: download and decode the file, then print slots as CSV, so the
       data can be checked by eye.
 
 **Out of this slice:** the model, insights, mode choice, Setup/Repair UI, Insights backfill, the

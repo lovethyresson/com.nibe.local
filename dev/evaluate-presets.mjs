@@ -1,33 +1,33 @@
-// What each Smart heating preset would have saved, at equal comfort, on real price days.
+// What each Autopilot preset would have saved, at equal comfort, on real price days.
 // Offline: no pump, no Homey writes. Closed loop: replan every hour over 24 h (the next day's
 // prices as look-ahead), apply the first hour through the actuator, step the house, repeat.
 //
 // Saving is "fair": the plan's electricity plus any warmth it leaves owing (lower mean indoor,
 // less stored heat at the end) bought back at the day's mean price, against doing nothing
-// (lib/smart/planner.ts `fairCost`). A cooler house saves nothing here. Steadiness is reported
+// (lib/autopilot/planner.ts `fairCost`). A cooler house saves nothing here. Steadiness is reported
 // beside it: the RMS distance from comfort, with and without the planner.
 //
 //   for d in $(seq 1 30); do D=$(date -v-${d}d +%F)
 //     homey api energy fetch-dynamic-electricity-prices --date $D --json > prices/$D.json; done
-//   node --import tsx dev/evaluate-presets.mjs prices/ [--model <url or file of smart-….model.json>]
+//   node --import tsx dev/evaluate-presets.mjs prices/ [--model <url or file of autopilot-….model.json>]
 //       [--formula "(p+0.609)*1.25"] [--outdoor 2] [--lever 0.45] [--mode auto|manual] [--stop 17]
 //       [--comfort 21] [--max-bias 20] [--weather actual.json [--forecast day-ahead.json]]
 //
-// Without --model it runs the simulated houses from test/smart-house-sim.ts. Weather is a fixed
+// Without --model it runs the simulated houses from test/autopilot-house-sim.ts. Weather is a fixed
 // day shape around --outdoor, or with --weather the Open-Meteo history the house really saw:
 //   https://historical-forecast-api.open-meteo.com/v1/forecast?…&start_date=…&end_date=…
-//   (the hourly variables of lib/smart/weather.ts `openMeteoUrl`)
+//   (the hourly variables of lib/autopilot/weather.ts `openMeteoUrl`)
 // --forecast plans on what was forecast a day ahead instead, from the previous-runs API with
 // each variable suffixed `_previous_day1`; the house still runs on --weather. Forecast sun is
 // discounted by the preset's forecast trust, as the controller does.
 // --lever is the heat a K of bias moves, as a share of the house's heat loss: 1 for a curve
 // tuned to the house; the S1155 measured ~0.45 (planner.ts).
 import fs from 'node:fs';
-import {COP, planShift, simulate, steadyState} from '../lib/smart/planner.ts';
-import {PRESETS, limitsFor} from '../lib/smart/presets.ts';
-import {fedValue} from '../lib/smart/actuator.ts';
-import {weatherSlots} from '../lib/smart/weather.ts';
-import {RADIATOR_HOUSE, SLAB_HOUSE, WEST_HOUSE} from '../test/smart-house-sim.ts';
+import {COP, planShift, simulate, steadyState} from '../lib/autopilot/planner.ts';
+import {PRESETS, limitsFor} from '../lib/autopilot/presets.ts';
+import {fedValue} from '../lib/autopilot/actuator.ts';
+import {weatherSlots} from '../lib/autopilot/weather.ts';
+import {RADIATOR_HOUSE, SLAB_HOUSE, WEST_HOUSE} from '../test/autopilot-house-sim.ts';
 
 const option = (name, fallback) => {
     const at = process.argv.indexOf(`--${name}`);

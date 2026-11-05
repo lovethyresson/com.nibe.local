@@ -1,5 +1,5 @@
 /** M2 shadow: the whole controller runs, but nothing is fed. Pure. Design:
- *  docs/smart-heating-plan.md §7.5.
+ *  docs/autopilot-plan.md §7.5.
  *
  *  Every slot plans all three presets from the house as it is, and records what each would have
  *  fed and where it expected indoor to go. Each preset keeps its own would-be history (the bias

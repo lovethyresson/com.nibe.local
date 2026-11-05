@@ -1,8 +1,8 @@
 /** A simulated 2R2C house heated by a weather-compensated pump, for the model tests. It steps in
  *  1-minute Euler substeps, not the model's exact discretisation, and records slot means the way
  *  the history aggregator does, so a fit is not the model recognising itself. */
-import type {HouseParams, ModelSlot} from '../lib/smart/model';
-import {WALLS, sunPosition, wallIrradiance} from '../lib/smart/solar';
+import type {HouseParams, ModelSlot} from '../lib/autopilot/model';
+import {WALLS, sunPosition, wallIrradiance} from '../lib/autopilot/solar';
 
 /** Slot of 2026-10-01 00:00 UTC: the sim's sun is an October sun at the maintainer's latitude. */
 export const SIM_START_SLOT = Date.UTC(2026, 9, 1) / 900_000;

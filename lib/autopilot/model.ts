@@ -1,5 +1,5 @@
 /** The house model the planner predicts with. Pure: no timers, no I/O.
- *  Design: docs/smart-heating-plan.md §6.
+ *  Design: docs/autopilot-plan.md §6.
  *
  *  Two stages:
  *  1. A 1R1C ARX fitted by recursive least squares, reported alongside. Stage 2's heat-loss

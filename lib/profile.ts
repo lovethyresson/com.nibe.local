@@ -190,9 +190,9 @@ export interface ModelProfile {
     diagnosticTrace?: string[];
     diagnosticSweep?: {registers: Register[]; energy: Register[]};
     roomThermostat?: {sensor: string; enabled: string; target: string};
-    // Smart heating history (lib/smart/history.ts): which register feeds each numeric sample
+    // Autopilot history (lib/autopilot/history.ts): which register feeds each numeric sample
     // field, plus the priority value that means hot water and the immersion-heater flag.
-    smartHistory?: {
+    autopilotHistory?: {
         numeric: Partial<Record<'ti' | 'te' | 'tsup' | 'tret' | 'tcalc' | 'tbrine' | 'hz' | 'dm' | 'pw'
             | 'qmeter' | 'emeter' | 'hcurve' | 'hoffset' | 'supmin' | 'supmax' | 'tset' | 'roomctl', string>>;
         priority: {register: string; hotwater: number};

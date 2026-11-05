@@ -1,8 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {Aggregator, FIELDS, FLAG, History, RECORD_BYTES, applyJournal, encodeRecord} from '../lib/smart/history';
-import {electricityPerSlot, heatPerSlot} from '../lib/smart/heat';
-import {SLOT_MS} from '../lib/smart/prices';
+import {Aggregator, FIELDS, FLAG, History, RECORD_BYTES, applyJournal, encodeRecord} from '../lib/autopilot/history';
+import {electricityPerSlot, heatPerSlot} from '../lib/autopilot/heat';
+import {SLOT_MS} from '../lib/autopilot/prices';
 
 const t0 = 2_000_000 * SLOT_MS; // slot 2,000,000
 const price = {price: 2.5, spot: 1.2, costsApplied: true};

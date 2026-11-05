@@ -1,9 +1,9 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {CurvePoint, DEFAULT_GAIN, curveLine, curvePoints, fitSupplyCurve, gainBetween, supplyAt} from '../lib/smart/curve';
-import {FIELDS, FLAG, Field, History} from '../lib/smart/history';
-import {pumpHeat} from '../lib/smart/planner';
-import {RADIATOR_HOUSE} from './smart-house-sim';
+import {CurvePoint, DEFAULT_GAIN, curveLine, curvePoints, fitSupplyCurve, gainBetween, supplyAt} from '../lib/autopilot/curve';
+import {FIELDS, FLAG, Field, History} from '../lib/autopilot/history';
+import {pumpHeat} from '../lib/autopilot/planner';
+import {RADIATOR_HOUSE} from './autopilot-house-sim';
 
 // Calculated supply against what the curve saw on the S1155 at curve 5, min supply 20: the §3.3
 // ladders' rung ends (pre-heat 2026-11-02 from real 8.6 °C, coast 2026-11-03 from real 2.1 °C).

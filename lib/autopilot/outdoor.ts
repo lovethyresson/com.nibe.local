@@ -1,5 +1,5 @@
 /** The real outdoor temperature, which input 1 stops showing once the app feeds BT1. Pure.
- *  Design: docs/smart-heating-plan.md §4.2. M0.3 found no physical-BT1 copy while feeding, so
+ *  Design: docs/autopilot-plan.md §4.2. M0.3 found no physical-BT1 copy while feeding, so
  *  the sources are, in order: the Homey sensor the owner picked, the wired sensor (only while
  *  not feeding), and the forecast corrected by what the real readings taught it. */
 

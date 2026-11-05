@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {localDate, nextPriceFetchMs, normalisePrices, parseCostFormula, slotOf} from '../lib/smart/prices';
+import {localDate, nextPriceFetchMs, normalisePrices, parseCostFormula, slotOf} from '../lib/autopilot/prices';
 
 const live = JSON.parse(readFileSync(join(__dirname, 'fixtures/energy-prices-se3-2026-10-30.json'), 'utf8'));
 const formula = '{{([[price]]+0.041+0.36+0.208)*1.25}}';

@@ -1,5 +1,5 @@
 /** The pump's heat curve, learned from what it reports. Pure.
- *  Design: docs/smart-heating-plan.md §3.3, §4.5.
+ *  Design: docs/autopilot-plan.md §3.3, §4.5.
  *
  *  The planner moves heat by feeding BT1, and how much supply 1 K of feed moves is the slope of
  *  the heat curve where the feed lands. That slope is not one number: on the S1155 at curve 5 it

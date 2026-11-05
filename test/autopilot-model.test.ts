@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {
     BuildEra, HeatingSystem, HouseParams, balanceHeatLoss, envelopeTau, fitSeries, newRls, predictionRmse, priorFor, rlsHouse,
     rlsRegressors, rlsUpdate, stepHouse, usableSlot,
-} from '../lib/smart/model';
-import {RADIATOR_HOUSE, SLAB_HOUSE, WEST_HOUSE, simulateHouse} from './smart-house-sim';
+} from '../lib/autopilot/model';
+import {RADIATOR_HOUSE, SLAB_HOUSE, WEST_HOUSE, simulateHouse} from './autopilot-house-sim';
 
 const within = (actual: number, expected: number, share: number) =>
     assert.ok(Math.abs(actual / expected - 1) <= share, `${actual} not within ${share * 100} % of ${expected}`);

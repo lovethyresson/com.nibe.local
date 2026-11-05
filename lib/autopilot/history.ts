@@ -1,5 +1,5 @@
 /** 15-minute history of what the house model learns from. Pure: no timers, no I/O.
- *  Design: docs/smart-heating-plan.md §5.4. */
+ *  Design: docs/autopilot-plan.md §5.4. */
 import {SLOT_MS, slotOf} from './prices';
 import {recordedOutdoor} from './outdoor';
 
@@ -146,7 +146,7 @@ export function encodeRecord(slot: number, values: Record<Field, number>): Buffe
 
 /** Replay a journal into a history; a torn last record is ignored. Returns records applied.
  *  `fields` is how many fields the writer had: the saved file's count, since every start saves
- *  before it journals (`SmartCollector.start`). */
+ *  before it journals (`AutopilotCollector.start`). */
 export function applyJournal(history: History, journal: Buffer, fields: number = FIELDS.length): number {
     const bytes = 4 + 4 * fields;
     let applied = 0;

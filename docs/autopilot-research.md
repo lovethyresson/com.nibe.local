@@ -1,7 +1,7 @@
-# Smart heating: research and plan
+# Autopilot: research and plan
 
 Research note (2026-10-15). The implementation plan is in
-[smart-heating-plan.md](smart-heating-plan.md). It answers one question: can this app beat Nibe's Smart Price
+[autopilot-plan.md](autopilot-plan.md). It answers one question: can this app beat Nibe's Smart Price
 Adaption (SPA) by learning the house, using prices and weather, and steering the pump the way
 Ngenic does? Nothing here is built yet. Figures marked *[est]* are engineering estimates, not
 sourced findings.
@@ -91,7 +91,7 @@ Nothing reads prices or weather yet.
 > **Decided 2026-10-15: BT1 (5217).** The maintainer's experience is that ±3 curve-offset steps
 > come nowhere near the needed authority, so the curve offset is not a fallback. Weather comes
 > from Open-Meteo. The test house has radiators. See
-> [smart-heating-plan.md §0](smart-heating-plan.md).
+> [autopilot-plan.md §0](autopilot-plan.md).
 
 This decision gates everything. There are three candidates.
 
@@ -307,7 +307,7 @@ house before phase 4.
 - **Exit criterion:** 6-hour indoor prediction RMSE below 0.3 K on the maintainer's house.
 
 **Phase 2: Efficiency and hot water (M)** (ideas 3, 4, 5, 6, 9)
-- An opt-in "Smart heating" mode that turns SPA off while it runs.
+- An opt-in "Autopilot" mode that turns SPA off while it runs.
 - An indoor-feedback curve trim with a deadband and rate limit.
 - Solar pull-down.
 - Hot-water timing and the weekly legionella slot.
@@ -362,7 +362,7 @@ marked *[derived]*; unconfirmed ones *[unverified]*.
 | Ngenic Tune | learned | price adaptation on/off, spot-price factor 0–100 % (default 50) |
 | Tibber | learned *[insulation input unverified]* | target, day/night saving up to ~3 °C, away; needs a Nibe room sensor and turns SPA off |
 | tado Balance | – | comfort↔savings slider; hours per day it may act, 1–6 (default 2) |
-| Qvantum SmartControl | – | Eco / Balanced (default) / Comfort |
+| Qvantum AutopilotControl | – | Eco / Balanced (default) / Comfort |
 | MELCloud Optimizer (Homey) | learned | temperature flexibility 1–2 °C, comfort hours, hot water, weather pre-heat |
 | PumpSteer (HA, fakes outdoor) | asked | Saving Level 0–5 (drop 0.5–3 °C, pre-heat 0.3–1.5 °C), "Brake Ramp Time" 0.5–10 for inertia; both renamed from "aggressiveness" and "house inertia" |
 | Kompromiss (HA MPC) | asked as R and C | raw MPC weights: the anti-pattern |

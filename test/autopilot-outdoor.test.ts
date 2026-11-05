@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
     DEGRADED_LIMIT_MS, SENSOR_STALE_MS, forecastCorrection, learnForecastBias, newForecastBias, realOutdoor,
     recordedOutdoor, usableSensor,
-} from '../lib/smart/outdoor';
+} from '../lib/autopilot/outdoor';
 
 const now = 1_800_000_000_000;
 

@@ -1,14 +1,14 @@
-// Fits the smart heating house model to the history file, exactly as the app does every hour
-// (lib/smart/house.ts), and prints what it learned. Reads only. Same inputs as
-// read-smart-history.mjs. The app's own latest fit is beside the history as `….model.json`.
+// Fits the Autopilot house model to the history file, exactly as the app does every hour
+// (lib/autopilot/house.ts), and prints what it learned. Reads only. Same inputs as
+// read-autopilot-history.mjs. The app's own latest fit is beside the history as `….model.json`.
 //
 //   node --import tsx dev/fit-house-model.mjs <url or file> [--system radiators|slab|wooden_floor|both|unknown]
 //       [--era pre1960|1960_1979|1980_1999|2000_or_later|unknown] [--days <last n days only>]
 import fs from 'node:fs';
-import {History, applyJournal} from '../lib/smart/history.ts';
-import {curveLine} from '../lib/smart/curve.ts';
-import {fitHouse, modelSlotsFromHistory, pumpFromHistory, readiness} from '../lib/smart/house.ts';
-import {houseInsights, insightsLine} from '../lib/smart/insights.ts';
+import {History, applyJournal} from '../lib/autopilot/history.ts';
+import {curveLine} from '../lib/autopilot/curve.ts';
+import {fitHouse, modelSlotsFromHistory, pumpFromHistory, readiness} from '../lib/autopilot/house.ts';
+import {houseInsights, insightsLine} from '../lib/autopilot/insights.ts';
 
 const source = process.argv[2];
 if (!source) {
@@ -28,7 +28,7 @@ if (!history) {
     console.error('Not a history file this version can read.');
     process.exit(1);
 }
-// Slots closed since the last hourly save, as the app replays them (lib/smart/store-file.ts).
+// Slots closed since the last hourly save, as the app replays them (lib/autopilot/store-file.ts).
 const journal = await read(`${source}.journal`);
 // Journalled with the saved file's field count: every start saves before it journals.
 if (journal?.length) applyJournal(history, journal, History.fieldCount(file));

@@ -1,16 +1,16 @@
-// Reviews smart heating's shadow log (lib/smart/shadow.ts): what each preset would have fed, and
+// Reviews Autopilot's shadow log (lib/autopilot/shadow.ts): what each preset would have fed, and
 // how well the model predicted the house doing nothing, which is what the house really did.
 // Reads only.
 //
-// The log sits beside the history file (dev/read-smart-history.mjs says where), as
-// smart-….shadow.jsonl, one line per slot:
-//   node dev/review-shadow.mjs http://<homey-ip>/app/com.nibe.local/userdata/smart-….shadow.jsonl
-//   node dev/review-shadow.mjs ./smart-….shadow.jsonl [--tz Europe/Stockholm]
+// The log sits beside the history file (dev/read-autopilot-history.mjs says where), as
+// autopilot-….shadow.jsonl, one line per slot:
+//   node dev/review-shadow.mjs http://<homey-ip>/app/com.nibe.local/userdata/autopilot-….shadow.jsonl
+//   node dev/review-shadow.mjs ./autopilot-….shadow.jsonl [--tz Europe/Stockholm]
 import fs from 'node:fs';
 
 const source = process.argv[2];
 if (!source) {
-    console.error('usage: node dev/review-shadow.mjs <url or file of smart-….shadow.jsonl> [--tz <zone>]');
+    console.error('usage: node dev/review-shadow.mjs <url or file of autopilot-….shadow.jsonl> [--tz <zone>]');
     process.exit(1);
 }
 const tzAt = process.argv.indexOf('--tz');

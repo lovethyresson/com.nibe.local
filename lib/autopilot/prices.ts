@@ -1,5 +1,5 @@
 /** Homey Energy prices → 15-minute UTC slots. Pure: the collector does the fetching.
- *  Design: docs/smart-heating-plan.md §5.2. */
+ *  Design: docs/autopilot-plan.md §5.2. */
 
 export const SLOT_MS = 15 * 60 * 1000;
 export const slotOf = (ms: number) => Math.floor(ms / SLOT_MS);

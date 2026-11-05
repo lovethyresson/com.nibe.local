@@ -1,9 +1,9 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {PRESETS, limitsFor, presetOf} from '../lib/smart/presets';
-import {curveInput, fedValue} from '../lib/smart/actuator';
-import {comfortReference, estimateLever, owedHeat, planShift, simulate, startingPoint, steadyState, ForecastSlot} from '../lib/smart/planner';
-import {RADIATOR_HOUSE, SLAB_HOUSE, WEST_HOUSE, SIM_START_SLOT, simSun} from './smart-house-sim';
+import {PRESETS, limitsFor, presetOf} from '../lib/autopilot/presets';
+import {curveInput, fedValue} from '../lib/autopilot/actuator';
+import {comfortReference, estimateLever, owedHeat, planShift, simulate, startingPoint, steadyState, ForecastSlot} from '../lib/autopilot/planner';
+import {RADIATOR_HOUSE, SLAB_HOUSE, WEST_HOUSE, SIM_START_SLOT, simSun} from './autopilot-house-sim';
 import energyPrices from './fixtures/energy-prices-se3-2026-10-30.json';
 
 test('presets set the table\'s coast caps and bias limits', () => {

@@ -1,9 +1,9 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {DailyFit, HouseFit, drifting, fitHouse, heatingHours, pumpFromHistory, readiness, recordDailyFit, validDays} from '../lib/smart/house';
-import {FIELDS, FLAG, History} from '../lib/smart/history';
-import {coolDown, houseInsights} from '../lib/smart/insights';
-import {RADIATOR_HOUSE, SLAB_HOUSE, WEST_HOUSE, simulateHouse} from './smart-house-sim';
+import {DailyFit, HouseFit, drifting, fitHouse, heatingHours, pumpFromHistory, readiness, recordDailyFit, validDays} from '../lib/autopilot/house';
+import {FIELDS, FLAG, History} from '../lib/autopilot/history';
+import {coolDown, houseInsights} from '../lib/autopilot/insights';
+import {RADIATOR_HOUSE, SLAB_HOUSE, WEST_HOUSE, simulateHouse} from './autopilot-house-sim';
 
 const day = (d: number, heatLoss: number, tau: number): DailyFit => ({day: d, heatLoss, tau, rmse: 0.1});
 

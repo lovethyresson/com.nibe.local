@@ -1,5 +1,5 @@
 /** Sun on the house's walls, from where the sun is and what the forecast says reaches the ground.
- *  Pure. Design: docs/smart-heating-plan.md §5.3, §6.1.
+ *  Pure. Design: docs/autopilot-plan.md §5.3, §6.1.
  *
  *  Open-Meteo gives irradiance on one tilted surface per request. Three walls would take three
  *  requests, so the walls are computed here from direct-normal and diffuse light instead, with an

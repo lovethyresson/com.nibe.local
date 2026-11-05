@@ -1,5 +1,5 @@
 /** Bias → the value fed to BT1 (5217), with the profile's limit, the ramp limit and the pump's
- *  auto-stop clamps. Pure. Design: docs/smart-heating-plan.md §4.1, §4.5.
+ *  auto-stop clamps. Pure. Design: docs/autopilot-plan.md §4.1, §4.5.
  *
  *  `bias > 0` pre-heats (the pump sees a colder day), `bias < 0` coasts. Fed = real − bias. */
 

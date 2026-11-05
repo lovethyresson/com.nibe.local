@@ -1,5 +1,5 @@
 /** Planner v1: price shifting and weather feed-forward through the outdoor bias. Pure.
- *  Design: docs/smart-heating-plan.md §7.3.
+ *  Design: docs/autopilot-plan.md §7.3.
  *
  *  It minimises the cost at equal comfort (`fairCost`) inside the profile's band, so a plan
  *  that saves only by running the house cooler is worth nothing to it: that is not price

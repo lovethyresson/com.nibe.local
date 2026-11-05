@@ -1,5 +1,5 @@
 /** Open-Meteo forecast → 15-minute UTC slots. Pure: the collector does the fetching.
- *  Design: docs/smart-heating-plan.md §5.3. Weather data by Open-Meteo.com (CC BY 4.0). */
+ *  Design: docs/autopilot-plan.md §5.3. Weather data by Open-Meteo.com (CC BY 4.0). */
 import {SLOT_MS, slotOf} from './prices';
 import {WALLS, sunPosition, wallIrradiance} from './solar';
 
@@ -35,7 +35,7 @@ export function openMeteoUrl(latitude: number, longitude: number): string {
 }
 
 /** Where the weather is for: the Homey's own location, else a place the owner searched for in
- *  Setup (app setting `smartLocation`). */
+ *  Setup (app setting `autopilotLocation`). */
 export interface Place {
     name: string;
     /** County and country, to tell two places of one name apart. */

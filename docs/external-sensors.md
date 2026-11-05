@@ -52,7 +52,7 @@ Pump reports raw firmware code 1036 (not mapped to a display version).
 This establishes a BT1 input for experimenting with outdoor-temperature compensation. It does not
 establish a validated Ngenic-equivalent controller, loss-of-communication handling or energy savings.
 
-## Smart heating lever probes — S1155-16, 2026-10-15
+## Autopilot lever probes — S1155-16, 2026-10-15
 
 Run by Claude with the maintainer's go-ahead, using `dev/probe-bt1.mjs`. Before the runs, real
 BT1 was 10.5 °C, the BT1 average 37 was 8.8 °C, and calculated supply 1017 was 34.5 °C.
@@ -91,8 +91,8 @@ BT1 was 10.5 °C, the BT1 average 37 was 8.8 °C, and calculated supply 1017 was
 - **Superseded 2026-10-29:** room control was on here and masked the curve. With it off, the
   curve follows fed BT1 with τ ≈ 50 min, not through 37 (see below).
 - Consequence: a fed BT1 reaches the curve through the pump's own outdoor filter, the same path a
-  physical BT1 emulator (Ngenic) takes. Smart heating must model that filter and plan with lead
-  time (smart-heating-plan.md §4.5). Whether the 7.1.10.2 "filter time" setting governs the lag is
+  physical BT1 emulator (Ngenic) takes. Autopilot must model that filter and plan with lead
+  time (autopilot-plan.md §4.5). Whether the 7.1.10.2 "filter time" setting governs the lag is
   unverified.
 
 **0.4b: 3 h step, 2026-10-16.** BT1 was 14.1 °C, fed 9.1 °C (−5 K) every 30 s: 352 writes, 0

@@ -1,5 +1,5 @@
 /** Profile: a preset or Custom → the limits the planner works inside. Pure.
- *  Design: docs/smart-heating-plan.md §7.4. The preset values are starting points to tune in
+ *  Design: docs/autopilot-plan.md §7.4. The preset values are starting points to tune in
  *  M2 shadow, where all presets are planned every slot. */
 
 export type PresetId = 'comfortable' | 'save_some' | 'save_most';

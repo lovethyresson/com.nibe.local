@@ -1,8 +1,8 @@
 import {CaptureSummary, logCaptureSummary} from './diagnostic-capture';
 import {IndoorConfig, averageSensors, cleanIndoorConfig, selectedReadings} from './indoor-sensors';
-import {Controls, SmartCollector} from './smart/collector';
-import {newHistoryFileName} from './smart/store-file';
-import {Sample} from './smart/history';
+import {Controls, AutopilotCollector} from './autopilot/collector';
+import {newHistoryFileName} from './autopilot/store-file';
+import {Sample} from './autopilot/history';
 import {Device} from 'homey';
 import net from 'net';
 import {analyticsConsent, setAnalyticsConsent, track} from './analytics';
@@ -44,8 +44,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private thermostatSync: Promise<void> | null = null;
 
     private static indoorOwners = new Map<string, NibePumpDevice>();
-    // Smart heating history, collected on Heating (lib/smart). Reads only.
-    private smart: SmartCollector | null = null;
+    // Autopilot history, collected on Heating (lib/autopilot). Reads only.
+    private autopilot: AutopilotCollector | null = null;
     private indoorTimer: ReturnType<typeof setTimeout> | null = null;
     private indoorWork: Promise<any> | null = null;
     private indoorStopped = false;
@@ -1069,7 +1069,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 } else NibePumpDevice.indoorOwners.set(this.host(), this);
             }
             this.scheduleIndoor();
-            await this.startSmartHistory().catch(this.error);
+            await this.startAutopilotHistory().catch(this.error);
             if (this.getStoreValue('indoorSensors')?.state === 'pending')
                 await this.setWarning('Finish your Homey sensor setup in Heating → Repair.');
         }
@@ -1097,54 +1097,56 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const selected = registersForRole(this.profile, this.role, this.getSelection());
         if (this.role !== 'heating') return selected;
         const names = Object.values(this.profile.roomThermostat ?? {});
-        const smart = this.profile.smartHistory;
-        if (smart) names.push(...Object.values(smart.numeric) as string[], smart.priority.register, smart.immersion,
-            ...Object.values(smart.controls ?? {}) as string[]);
+        const autopilot = this.profile.autopilotHistory;
+        if (autopilot) names.push(...Object.values(autopilot.numeric) as string[], autopilot.priority.register, autopilot.immersion,
+            ...Object.values(autopilot.controls ?? {}) as string[]);
         const needed = names.map((n) => this.profile.registerByName[n]).filter((r) => r);
         // Selected last, so a register the user moved (Selection.addresses) keeps its address:
         // onRegisterRaw drops a reply from any other one, which froze the indoor reading.
         return [...new Map([...needed, ...selected].map((r) => [r.name, r])).values()];
     }
 
-    private async startSmartHistory() {
-        if (!this.profile.smartHistory || this.smart) return;
-        let file = this.getStoreValue('smartHistoryFile') as string | undefined;
-        if (!file) {
-            file = newHistoryFileName();
-            await this.setStoreValue('smartHistoryFile', file);
-        }
-        // Mirrored to an app setting so dev/read-smart-history.mjs can find it through the Homey
+    private async startAutopilotHistory() {
+        if (!this.profile.autopilotHistory || this.autopilot) return;
+        // Collected before the feature was named Autopilot under `smartHistoryFile`; carried over so
+        // that history keeps its file (whose name stays `smart-…`).
+        let file = (this.getStoreValue('autopilotHistoryFile') ?? this.getStoreValue('smartHistoryFile')) as string | undefined;
+        file ??= newHistoryFileName();
+        if (this.getStoreValue('autopilotHistoryFile') !== file) await this.setStoreValue('autopilotHistoryFile', file);
+        if (this.getStoreValue('smartHistoryFile') != null) await this.unsetStoreValue('smartHistoryFile');
+        // Mirrored to an app setting so dev/read-autopilot-history.mjs can find it through the Homey
         // API (`homey api apps get-app-setting`); a device store is not readable from outside.
-        this.homey.settings.set(`smartHistoryFile.${this.getData().id}`, file);
-        this.smart = new SmartCollector(this.homey, file, (...args) => this.log(...args));
-        await this.smart.start();
+        this.homey.settings.unset(`smartHistoryFile.${this.getData().id}`);
+        this.homey.settings.set(`autopilotHistoryFile.${this.getData().id}`, file);
+        this.autopilot = new AutopilotCollector(this.homey, file, (...args) => this.log(...args));
+        await this.autopilot.start();
     }
 
     // A register's value from this poll, decoded the same way capabilities are.
-    private smartValue(readNames: Set<string>, name?: string): number | undefined {
+    private autopilotValue(readNames: Set<string>, name?: string): number | undefined {
         if (!name) return undefined;
         const raw = readNames.has(name) ? this.connection?.lastRawFor(name) : undefined;
         const register = this.profile.registerByName[name];
         return raw === undefined || !register ? undefined : toNumericValue(register, raw);
     }
 
-    // The settings smart heating plans with, from this poll.
-    private smartControls(readNames: Set<string>): Controls {
-        const c = this.profile.smartHistory?.controls;
-        const value = (name?: string) => this.smartValue(readNames, name);
+    // The settings Autopilot plans with, from this poll.
+    private autopilotControls(readNames: Set<string>): Controls {
+        const c = this.profile.autopilotHistory?.controls;
+        const value = (name?: string) => this.autopilotValue(readNames, name);
         return {comfort: value(c?.comfort), mode: value(c?.mode), thresholds: {
             stopHeating: value(c?.stopHeating), stopAddHeat: value(c?.stopAddHeat), startCooling: value(c?.startCooling)}};
     }
 
-    // One poll's values for the smart history.
-    private smartSample(readNames: Set<string>): Sample {
-        const smart = this.profile.smartHistory!;
-        const value = (name: string) => this.smartValue(readNames, name);
+    // One poll's values for the Autopilot history.
+    private autopilotSample(readNames: Set<string>): Sample {
+        const autopilot = this.profile.autopilotHistory!;
+        const value = (name: string) => this.autopilotValue(readNames, name);
         const sample: Sample = {};
-        for (const [field, name] of Object.entries(smart.numeric)) sample[field as keyof typeof smart.numeric] = value(name!);
-        const priority = value(smart.priority.register);
-        if (priority !== undefined) sample.dhw = priority === smart.priority.hotwater;
-        const immersion = value(smart.immersion);
+        for (const [field, name] of Object.entries(autopilot.numeric)) sample[field as keyof typeof autopilot.numeric] = value(name!);
+        const priority = value(autopilot.priority.register);
+        if (priority !== undefined) sample.dhw = priority === autopilot.priority.hotwater;
+        const immersion = value(autopilot.immersion);
         if (immersion !== undefined) sample.aux = immersion !== 0;
         return sample;
     }
@@ -1457,7 +1459,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     onConnectionDown(problem: ConnectionProblem) {
-        this.smart?.markReconnect();
+        this.autopilot?.markReconnect();
         this.onEnergyUnavailable();
         this.resetDeliveredCheck();
         this.tankTopC = null;
@@ -1498,9 +1500,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     onPollComplete(readNames: Set<string>) {
-        if (this.smart && this.connection) {
-            this.smart.setControls(this.smartControls(readNames));
-            this.smart.sample(this.connection.currentPollSeconds(), this.smartSample(readNames));
+        if (this.autopilot && this.connection) {
+            this.autopilot.setControls(this.autopilotControls(readNames));
+            this.autopilot.sample(this.connection.currentPollSeconds(), this.autopilotSample(readNames));
         }
         if (this.dumpAfterPoll) {
             const reason = this.dumpAfterPoll;
@@ -1809,8 +1811,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     async onUninit() {
         // History first: an app update may not wait for the rest. If it doesn't wait at all, the
         // hourly save bounds the loss to an hour, and the model re-anchors across the gap.
-        await this.smart?.stop(this.connection?.currentPollSeconds() ?? 10).catch(this.error);
-        this.smart = null;
+        await this.autopilot?.stop(this.connection?.currentPollSeconds() ?? 10).catch(this.error);
+        this.autopilot = null;
         await this.stopIndoor();
         // Flush the debounced meter before going away, so an orderly restart or a repair keeps
         // the fraction of a kWh the 0.01 step was still holding.
@@ -1827,9 +1829,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     async onDeleted() {
         await this.stopIndoor();
-        await this.smart?.remove().catch(this.error);
-        this.smart = null;
-        this.homey.settings.unset(`smartHistoryFile.${this.getData().id}`);
+        await this.autopilot?.remove().catch(this.error);
+        this.autopilot = null;
+        this.homey.settings.unset(`autopilotHistoryFile.${this.getData().id}`);
         this.log('Nibe device has been deleted');
         track('Changed Device Set', {action: 'removed', role: roleOf(this.getData())});
         this.connection?.detach(this);

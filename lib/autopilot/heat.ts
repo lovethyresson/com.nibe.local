@@ -1,5 +1,5 @@
 /** Energy per slot from the pump's stepped counters: heat delivered to space heating (1577) and
- *  electricity consumed (3823). Design: docs/smart-heating-plan.md §5.5. */
+ *  electricity consumed (3823). Design: docs/autopilot-plan.md §5.5. */
 
 export interface HeatInput {
     slot: number;

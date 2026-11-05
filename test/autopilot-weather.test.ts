@@ -2,9 +2,9 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {openMeteoUrl, placeSearchUrl, placesFrom, weatherLocation, weatherSlots} from '../lib/smart/weather';
-import {slotOf} from '../lib/smart/prices';
-import {WALLS, sunPosition, wallIrradiance} from '../lib/smart/solar';
+import {openMeteoUrl, placeSearchUrl, placesFrom, weatherLocation, weatherSlots} from '../lib/autopilot/weather';
+import {slotOf} from '../lib/autopilot/prices';
+import {WALLS, sunPosition, wallIrradiance} from '../lib/autopilot/solar';
 
 const live = JSON.parse(readFileSync(join(__dirname, 'fixtures/open-meteo-2026-11-01.json'), 'utf8'));
 

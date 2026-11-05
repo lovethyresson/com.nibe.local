@@ -1,10 +1,10 @@
 // Maintainer tool (not shipped — see .homeyignore). Answers the M0 questions in
-// docs/smart-heating-plan.md §3: is feeding the outdoor sensor (BT1) through holding 5217 a safe
-// enough lever to build Smart heating on?
+// docs/autopilot-plan.md §3: is feeding the outdoor sensor (BT1) through holding 5217 a safe
+// enough lever to build Autopilot on?
 //
 // What is already known (docs/external-sensors.md, S1155, 2026-09-11): FC6 raw 149 to 5217 moved
 // input 1 from 148 to 149, the mailbox cleared to 0x8000 within ~1 s, and input 1 held the value
-// for at least 30 s without a refresh. What is NOT known is everything Smart heating rests on:
+// for at least 30 s without a refresh. What is NOT known is everything Autopilot rests on:
 //
 //   0.0  Is there a readable "external BT1 enabled" flag, like input 5986 for BT50?   --watch
 //   0.1  Does one write EXPIRE, and does the pump go back to the wired sensor?          --hold

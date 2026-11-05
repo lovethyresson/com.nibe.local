@@ -76,7 +76,7 @@ export function houseInsights(fit: HouseFit): HouseInsights | undefined {
 
 /** One line for the app log; the owner-facing labels come later. */
 export function insightsLine(fit: HouseFit, insights: HouseInsights | undefined, ready: Readiness): string {
-    const head = `Smart model: ${fit.usable}/${fit.slots} usable slots, ${fit.validDays} valid days, `
+    const head = `Autopilot model: ${fit.usable}/${fit.slots} usable slots, ${fit.validDays} valid days, `
         + `6 h error ${Number.isFinite(fit.rmse) ? fit.rmse.toFixed(2) : '-'} K, `
         + (ready.ready ? 'ready' : `learning (${ready.missing.join(', ')})`)
         + (fit.lever !== undefined ? `, lever ${Math.round(fit.lever * 1000)} W/K` : '')

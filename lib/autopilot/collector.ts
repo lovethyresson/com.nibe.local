@@ -1,7 +1,7 @@
-/** Collects the smart heating history for one pump: poll samples from the Heating device, prices
+/** Collects the Autopilot history for one pump: poll samples from the Heating device, prices
  *  from Homey Energy and weather from Open-Meteo; refits the house model hourly; and runs the
  *  controller in shadow every slot. Reads only; nothing here writes to the pump.
- *  Design: docs/smart-heating-plan.md §5.2–5.4, §6, §7.5. */
+ *  Design: docs/autopilot-plan.md §5.2–5.4, §6, §7.5. */
 import https from 'https';
 import {SensorRef, selectedReadings, withApi} from '../indoor-sensors';
 import {Aggregator, FLAG, Field, History, Sample, SlotContext, encodeRecord} from './history';
@@ -20,9 +20,9 @@ import {PumpThresholds} from './actuator';
 const HOUR = 60 * 60 * 1000;
 /** App setting: the Homey sensor the owner picked for outdoor, a SensorRef. Setup will write it
  *  (plan §4.2); until then it is set by hand, `homey api apps set-app-setting`. */
-export const OUTDOOR_SENSOR_SETTING = 'smartOutdoorSensor';
+export const OUTDOOR_SENSOR_SETTING = 'autopilotOutdoorSensor';
 /** App setting: a `Place` the owner searched for, used when the Homey has no location. */
-export const LOCATION_SETTING = 'smartLocation';
+export const LOCATION_SETTING = 'autopilotLocation';
 
 /** Setup's place search, for a Homey without a location (plan §8). */
 export async function searchPlaces(query: string, language = 'en'): Promise<Place[]> {
@@ -59,7 +59,7 @@ function getJson(url: string, timeoutMs = 15_000): Promise<any> {
     });
 }
 
-export class SmartCollector {
+export class AutopilotCollector {
     private history = new History();
     private aggregator: Aggregator;
     private prices = new Map<number, PriceSlot>();
@@ -94,14 +94,14 @@ export class SmartCollector {
 
     private journal(slot: number, values: Record<Field, number>) {
         appendJournal(this.fileName, encodeRecord(slot, values))
-            .catch((error) => this.log('Smart history: journal write failed:', error?.message ?? error));
+            .catch((error) => this.log('Autopilot history: journal write failed:', error?.message ?? error));
         // Off the poll's call stack: three plans take a moment on a Homey.
         this.homey.setTimeout(() => this.shadow(slot, values), 0);
     }
 
     async start() {
         const loaded = await loadHistory(this.fileName).catch((error) => {
-            this.log('Smart history: could not read the saved file, starting a new one:', error?.message ?? error);
+            this.log('Autopilot history: could not read the saved file, starting a new one:', error?.message ?? error);
             return undefined;
         });
         if (loaded) {
@@ -110,7 +110,7 @@ export class SmartCollector {
         }
         // Save before the first journal record: a journal is read with the saved file's field
         // count, so a file from before a field was appended must not gain new-format records.
-        await this.save().catch((error) => this.log('Smart history: save failed:', error?.message ?? error));
+        await this.save().catch((error) => this.log('Autopilot history: save failed:', error?.message ?? error));
         const model = await loadJson<{dailyFits?: DailyFit[]}>(modelFileName(this.fileName)).catch(() => undefined);
         this.dailyFits = Array.isArray(model?.dailyFits) ? model!.dailyFits : [];
         // `outdoorBias`, not the earlier `forecastBias`: that one learned from the BT1 test feeds of
@@ -121,7 +121,7 @@ export class SmartCollector {
         if (shadow?.outdoorBias?.mean?.length === 24) this.forecastBias = shadow.outdoorBias;
         this.shadowSlot = shadow?.slot;
         this.shadowLines = await trimLines(shadowLogName(this.fileName), SHADOW_KEEP).catch(() => 0);
-        this.log(`Smart history: ${this.history.range().length} slots in /userdata/${this.fileName}.`);
+        this.log(`Autopilot history: ${this.history.range().length} slots in /userdata/${this.fileName}.`);
         this.loop(() => this.fetchPrices(), 5_000);
         this.loop(() => this.fetchWeather(), 20_000);
         this.loop(() => this.readOutdoorSensor(), 30_000);
@@ -191,7 +191,7 @@ export class SmartCollector {
         const run = async () => {
             if (this.stopped) return;
             let next = 15 * 60 * 1000;
-            try { next = await job(); } catch (error: any) { this.log('Smart history:', error?.message ?? error); }
+            try { next = await job(); } catch (error: any) { this.log('Autopilot history:', error?.message ?? error); }
             if (!this.stopped) this.timers.push(this.homey.setTimeout(run, next));
         };
         this.timers.push(this.homey.setTimeout(run, firstMs));
@@ -214,7 +214,7 @@ export class SmartCollector {
             } else state = `${reading?.name ?? ref.deviceId} not usable (missing, unavailable, stale or out of range)`;
         }
         if (state !== this.sensorState) {
-            this.log(`Smart history: outdoor sensor ${state === 'none' ? 'not picked; the pump and the forecast stand in' : state}.`);
+            this.log(`Autopilot history: outdoor sensor ${state === 'none' ? 'not picked; the pump and the forecast stand in' : state}.`);
             this.sensorState = state;
         }
         return 60 * 1000;
@@ -250,7 +250,7 @@ export class SmartCollector {
         const location = weatherLocation(homeyLocation?.value, chosen);
         const state = location?.source === 'chosen' ? `the chosen place ${chosen!.name}` : location ? 'the Homey\'s location' : 'none';
         if (state !== this.locationState) {
-            this.log(`Smart history: weather for ${location ? state
+            this.log(`Autopilot history: weather for ${location ? state
                 : 'nowhere: the Homey has no location and no place is chosen (Setup will ask)'}.`);
             this.locationState = state;
         }
@@ -328,7 +328,7 @@ export class SmartCollector {
             fitSlot: fit.state.slot, baseline: out.baseline, presets: out.presets};
         appendLine(shadowLogName(this.fileName), this.lastShadow)
             .then(() => { this.shadowLines++; })
-            .catch((error) => this.log('Smart shadow: log write failed:', error?.message ?? error));
+            .catch((error) => this.log('Autopilot shadow: log write failed:', error?.message ?? error));
     }
 
     private async saveShadow() {
@@ -340,14 +340,14 @@ export class SmartCollector {
         const skipped = [...this.shadowSkipped].map(([why, n]) => `${n} ${why}`).join(', ');
         this.shadowSkipped.clear();
         if (!last) {
-            this.log(`Smart shadow: nothing planned yet${skipped ? ` (${skipped})` : ''}.`);
+            this.log(`Autopilot shadow: nothing planned yet${skipped ? ` (${skipped})` : ''}.`);
             return;
         }
         const presets = SHADOW_PRESETS.map((id) => {
             const p = last.presets[id];
             return p ? `${id} ${p.bias > 0 ? '+' : ''}${p.bias} K → ${p.fed} °C (${(p.saving * 100).toFixed(1)} %)` : `${id} -`;
         }).join(', ');
-        this.log(`Smart shadow: ${presets}; doing nothing ${last.baseline.join('/')} °C in 1/6 h; `
+        this.log(`Autopilot shadow: ${presets}; doing nothing ${last.baseline.join('/')} °C in 1/6 h; `
             + `${last.horizon} slots ahead, ${last.ms} ms${skipped ? `; skipped ${skipped}` : ''}.`);
     }
 
@@ -360,7 +360,7 @@ export class SmartCollector {
         const priced = day.filter((v) => Number.isFinite(v.price)).length;
         const weathered = day.filter((v) => Number.isFinite(v.gtiS)).length;
         const age = (at: number) => at ? `${Math.round((Date.now() - at) / 60000)} min` : 'never';
-        this.log(`Smart history: last 24 h ${day.length}/96 slots, ${partial} partial, ${priced} priced, `
+        this.log(`Autopilot history: last 24 h ${day.length}/96 slots, ${partial} partial, ${priced} priced, `
             + `${fed ? `${fed} with BT1 fed from elsewhere, ` : ''}${sensed ? `${sensed} outdoor from the sensor, ` : ''}`
             + `${weathered} with weather; prices ${age(this.pricesAt)} old (owner costs ${this.costsApplied ? 'on' : 'off'}), `
             + `weather ${age(this.weatherAt)} old; ${this.history.range().length} slots on file.`);

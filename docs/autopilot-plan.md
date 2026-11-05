@@ -1,10 +1,11 @@
-# Smart heating: implementation plan
+# Autopilot: implementation plan
 
-Owners see it as **Autopilot** (named 2026-11-05, the same word in all six languages); "smart
-heating" is the working name in code and docs only.
+Named **Autopilot** on 2026-11-05, the same word in all six languages and in code (`lib/autopilot/`).
+It was "smart heating" before; the branch `smart-heating/m1-data` and the history file collected
+before the rename keep the old name.
 
 Status: **M0 done, go on BT1 (2026-10-30, §3.2); M1 not started.** Planned 2026-10-15. Companion to
-[smart-heating-research.md](smart-heating-research.md), which covers the why, the evidence and
+[autopilot-research.md](autopilot-research.md), which covers the why, the evidence and
 the scored ideas. This document covers the how, against the code as it stands at 1.4.6.
 
 Platform facts marked **[live]** were checked on the maintainer's Homey Pro (Early 2023,
@@ -27,7 +28,7 @@ firmware 13.5.2-rc.5, SE3) with read-only `homey api` calls.
    owners; Custom exposes how much price, weather and stored heat may steer, plus the comfort band.
    It replaces the 2026-10-15 five-level "Aggressiveness", and with it the separate
    band, strength and margin settings (§7.4).
-5. **SPA and Smart heating are exclusive per pump**, chosen in Pair and Repair. Whichever is on
+5. **SPA and Autopilot are exclusive per pump**, chosen in Pair and Repair. Whichever is on
    owns its capabilities and Flow cards; the other's are removed (§10).
 
 ### M0 findings so far (S1155, 2026-10-15; details in [external-sensors.md](external-sensors.md))
@@ -44,7 +45,7 @@ firmware 13.5.2-rc.5, SE3) with read-only `homey api` calls.
   BT50 feed (5986 = 1) and the house at or above setpoint: DM sat at +100, and calculated supply
   was held low regardless of BT1.
   - Ngenic has the same precondition: any indoor sensor on the pump must be removed or disabled.
-  - **Smart heating requires the pump's room-sensor control to be off** (§4.3). The app keeps
+  - **Autopilot requires the pump's room-sensor control to be off** (§4.3). The app keeps
     reading indoor temperature for its own model, but stops feeding it to the pump.
 - **Fake indoor (BT50) was tested too, at the maintainer's request (2026-10-28).**
   - It is fast: the regulator's average (116) moves within about 5 min.
@@ -61,7 +62,7 @@ firmware 13.5.2-rc.5, SE3) with read-only `homey api` calls.
 
 ## 1. Scope and principles
 
-**Smart heating** is a price-control mode for a pump, owned by its **Heating** device. It does
+**Autopilot** is a price-control mode for a pump, owned by its **Heating** device. It does
 three things:
 
 1. **Learns the house** from 15-minute aggregates of pump, indoor, price and weather data, and
@@ -88,7 +89,7 @@ three things:
     warning cleared on recovery.
   - `setUnavailable` stays reserved for losing the pump.
 - **Pure core, thin glue.** The model, planner, actuator plan, price parsing and counterfactual are
-  pure `lib/smart/*.ts` modules with injected clocks, tested like `capabilitySyncPlan` and
+  pure `lib/autopilot/*.ts` modules with injected clocks, tested like `capabilitySyncPlan` and
   `lib/indoor-sensors.ts`.
 - **Six languages for every string.** That includes warnings and notifications, which the BT50
   feed currently hard-codes in English (`lib/device.ts:156,997,1002`). Fix those in passing.
@@ -108,15 +109,15 @@ three things:
 | M | Name | Pump writes | Ships to |
 |---|---|---|---|
 | **M0** | BT1 verification on hardware (`dev/probe-bt1.mjs`) | probes only | nothing (docs) |
-| **M1** | Mode choice SPA ⇄ Smart, data foundation, "House insights" | **none** | test → live |
+| **M1** | Mode choice SPA ⇄ Autopilot, data foundation, "House insights" | **none** | test → live |
 | **M2** | Shadow controller | **none** (logs what it would feed) | test |
 | **M3** | Controller v1: efficiency loop + price shifting through BT1, away mode, transparency (§19) | 5217, 843 | test → live |
-| **MW** | Widgets: a design of their own across the app, Smart heating's among them (§19.5) | none | test → live |
-| **M4** | Smart hot water (replaces SPA hot water) + solar surplus + add-heat guard (§12, §19.3) | DHW registers | test → live |
+| **MW** | Widgets: a design of their own across the app, Autopilot's among them (§19.5) | none | test → live |
+| **M4** | Autopilot hot water (replaces SPA hot water) + solar surplus + add-heat guard (§12, §19.3) | DHW registers | test → live |
 | **M5** | Predictive optimiser (DP, COP model, air-source, PV) | same lever | test → live |
 
-**On the timing of M4.** Choosing Smart heating turns SPA off for the whole pump, which includes
-SPA hot water. Until M4 ships, a Smart heating pump therefore has no price-aware hot water. The
+**On the timing of M4.** Choosing Autopilot turns SPA off for the whole pump, which includes
+SPA hot water. Until M4 ships, an Autopilot pump therefore has no price-aware hot water. The
 Repair screen says so in one line. Hot-water timing is the cheapest idea to build, so M4 can be
 pulled forward into M3 if shadow data allows.
 
@@ -142,7 +143,7 @@ app, and Claude can run it with the maintainer's go-ahead. Record the results in
 **Exit:** a written decision on whether BT1 is safe, plus its clamps, gain, latency, the
 activation flag and the real-outdoor source.
 
-**If 0.1 shows the value is held forever:** Smart heating does not ship as designed. Go back to
+**If 0.1 shows the value is held forever:** Autopilot does not ship as designed. Go back to
 the maintainer: options are a hardware relay/emulator (Ngenic-style) or SG Ready on models that
 have it.
 
@@ -194,7 +195,7 @@ Afterwards: SPA and room-sensor control back on.
 
 ### 3.2 M0 decision (2026-10-30): go on BT1
 
-**BT1 is safe and strong enough. Smart heating is built on it, and M1 starts.** Measured on the
+**BT1 is safe and strong enough. Autopilot is built on it, and M1 starts.** Measured on the
 maintainer's S1155 (ground source, radiators); details in [external-sensors.md](external-sensors.md).
 
 | # | Answer | What it fixes in the design |
@@ -210,7 +211,7 @@ maintainer's S1155 (ground source, radiators); details in [external-sensors.md](
 
 **Preconditions the product must enforce,** each learned the hard way in M0:
 - **Room-sensor control off.** With it on, the pump's indoor loop overrides the fed BT1 (§4.3).
-- **SPA off.** It moves supply on its own and is exclusive with Smart heating (§10).
+- **SPA off.** It moves supply on its own and is exclusive with Autopilot (§10).
 - **Not "Immersion heater only"** (237 = 2). Auto and Manual both run; Auto is recommended (§10.4).
 
 **What one pump cannot tell us.** The gain is curve-dependent (curve 5 here) and the house is a
@@ -335,7 +336,7 @@ no outdoor sensor, so requiring one would shut most of them out. In order:
 1. **A Homey outdoor sensor** the owner picks in Setup.
    - Reuse the BT50 picker (`sensorInventory`), with the range widened to −50..50 °C.
    - A reading counts while present, changed within 2 h, and in range (`outdoor.ts usableSensor`).
-   - Until Setup has the picker, the app setting `smartOutdoorSensor` (a `SensorRef`) is set by
+   - Until Setup has the picker, the app setting `autopilotOutdoorSensor` (a `SensorRef`) is set by
      hand; Setup will write the same setting.
 2. **The wired BT1 (input 1)**, only while nothing feeds it.
 3. **Open-Meteo, bias-corrected.** The app learns `real − forecast` per hour of day from 1 or 2,
@@ -353,7 +354,7 @@ Rules for the source:
 - **Display.** While feeding, Heating's outdoor capability (`measure_temperature.i1_outside`) shows
   the **real** value, not register 1, and the BT1 average shows a rolling mean of the real values
   computed by the app.
-- A new capability `measure_temperature.smart_fed` shows what the pump is being told (§10.1).
+- A new capability `measure_temperature.autopilot_fed` shows what the pump is being told (§10.1).
 - Every consumer that reads input 1 must be audited for this:
   - `reason.ts` explanations (e.g. auto-stop);
   - detection (`lib/detection.ts`);
@@ -362,7 +363,7 @@ Rules for the source:
 
 ### 4.3 Activation and handover (the BT50 pattern)
 
-**Activate** (Repair, Smart heating section). The owner sees three manual steps:
+**Activate** (Repair, Autopilot section). The owner sees three manual steps:
 
 1. Menu **7.5.9 Modbus TCP: writes allowed**.
 2. Menu **7.5.9.2 enable external BT1**.
@@ -383,10 +384,10 @@ system directly, read-only: 2978 (+ climate system − 1) = 0, SPA 843 = 0, 5986
 non-zero 2978 as on until 2 and 3 are understood. 7.5.9 and 7.5.9.2 have no register; Verify's
 feed-and-read-back stays their check.
 
-Then **"Verify"** runs (handler `activate_smart`, 45 s client timeout):
+Then **"Verify"** runs (handler `activate_autopilot`, 45 s client timeout):
 
 1. If M0.0 found an activation flag, read it.
-2. Snapshot SPA (843/844/845/846/902/848/849/850) into `smartHeating.spaSnapshot`, then persist.
+2. Snapshot SPA (843/844/845/846/902/848/849/850) into `autopilot.spaSnapshot`, then persist.
 3. Write 843 = 0 and verify.
 4. Feed the neutral value (the real temperature) and verify that input 1 follows within 3 s.
 5. Persist `state: 'learning'` or `'active'`, depending on model readiness, then start the loop.
@@ -414,7 +415,7 @@ average (it may still be what the auto-stop thresholds use).
   `supply ≈ curve(f)`.
   - `τc` and the gain start from the measured values, then are learned online from 1017, which
     is a measured output every slot, so the estimate corrects itself.
-  - The gain is curve-dependent; it is learned per pump, not hard-coded. **Done (`lib/smart/curve.ts`,
+  - The gain is curve-dependent; it is learned per pump, not hard-coded. **Done (`lib/autopilot/curve.ts`,
     2026-11-03):** the history keeps input 1 as the pump saw it (`bt1`, fed or not) and the four
     settings that shape the curve (26, 30, 34, 38). Every slot is a point (BT1 through the 49 min
     filter, 1017); a piecewise-linear curve on 2 K knots, smoothed and made non-increasing, is
@@ -450,12 +451,12 @@ average (it may still be what the auto-stop thresholds use).
 
 ### 4.4 Write locks
 
-While Smart heating is active, `NibePumpDevice.writeRegister` (`lib/device.ts:289`) rejects writes
-to 5217 and to the SPA registers, with a translated message ("Smart heating controls this; switch
+While Autopilot is active, `NibePumpDevice.writeRegister` (`lib/device.ts:289`) rejects writes
+to 5217 and to the SPA registers, with a translated message ("Autopilot controls this; switch
 to SPA or None in Repair"). This is the same mechanism as the lock on 5987 during the BT50 feed
 (`:291`).
 
-The existing `external_temperature.h5217_bt1.set` Flow card is unavailable in Smart mode anyway,
+The existing `external_temperature.h5217_bt1.set` Flow card is unavailable in Autopilot mode anyway,
 because its capability is removed (§10.1).
 
 ---
@@ -465,8 +466,8 @@ because its capability is removed (§10.1).
 ### 5.1 Module layout
 
 ```
-lib/smart/
-  mode.ts        PriceControl 'spa'|'smart'|'none': capability filter, pump-wide sync   (pure)
+lib/autopilot/
+  mode.ts        PriceControl 'spa'|'autopilot'|'none': capability filter, pump-wide sync   (pure)
   prices.ts      Homey Energy fetch + user-cost evaluator + slot normalisation       (pure core)
   weather.ts     Open-Meteo (primary) / MET Norway (fallback)                        (pure core)
   outdoor.ts     real-outdoor source selection + forecast bias learning              (pure)
@@ -563,7 +564,7 @@ them. So the app evaluates `mathExpression` itself:
 **Hook:** Heating's `onPollComplete(readNames)` + `connection.lastRawFor()`, as the
 room-thermostat sync does (`lib/device.ts:1379`). Bucket on UTC: `slot = floor(t / 900 000)`.
 
-**Polling:** while the mode is `smart`, Heating's `wantedRegisters()` adds what the aggregator
+**Polling:** while the mode is `autopilot`, Heating's `wantedRegisters()` adds what the aggregator
 needs, whatever the owner selected. This is the precedent at `lib/device.ts:1024`.
 
 | Field | Source | Aggregate |
@@ -588,11 +589,11 @@ needs, whatever the owner selected. This is the precedent at `lib/device.ts:1024
   bucket as partial.
 - **Storage:**
   - `Float32Array` ring, 28 days × 96 slots ≈ 230 KB.
-  - Kept in `/userdata/smart-<random>.bin`, which is publicly served, hence the unguessable name
+  - Kept in `/userdata/autopilot-<random>.bin`, which is publicly served, hence the unguessable name
     held in the device store.
   - Written via temp file + rename. Flushed hourly and in `onUninit`.
   - A version byte at the start; an unknown version means discard and relearn.
-  - Only the small `smartModel` state (~2 KB) goes in the store, written once a day.
+  - Only the small `autopilotModel` state (~2 KB) goes in the store, written once a day.
 - **Insights backfill:** on first enable, up to 14 days at 1 h resolution from the app's own logs,
   via `api.insights.getLogEntries({id:'homey:device:<id>:<cap>', resolution:'last14Days'})`
   **[live]**.
@@ -640,7 +641,7 @@ needs, whatever the owner selected. This is the precedent at `lib/device.ts:1024
    - The BT1 → supply lag (τ ≈ 49 min, §4.5) and the emitter lag are a **known actuator stage in
      front of the house model**, not states the EKF has to find. Lumping them into the house is
      how a radiator house gets credited with storage it doesn't have.
-   - **Measured on simulated houses (2026-10-31, `test/smart-model.test.ts`).** Over 21 days
+   - **Measured on simulated houses (2026-10-31, `test/autopilot-model.test.ts`).** Over 21 days
      with ±40 % excitation and the right answers, a radiator and a slab house came out within
      8 % on heat loss and 12 % on τ across six seeds (radiator within 3 %), with 6 h RMSE ≤ 0.05 K. Without excitation, τ
      came out ~20 % low (§6.3). With "Don't know" a slab's τ wandered ±30 %, and with the wrong
@@ -663,12 +664,12 @@ Two related rules:
 
 ### 6.3 Excitation
 
-**BT1 makes excitation cheap.** While learning in Smart mode, the controller may already feed
+**BT1 makes excitation cheap.** While learning in Autopilot mode, the controller may already feed
 small, slow steps: ±3 K bias, at most twice a day, during cheap hours, inside the *Comfortable*
 band.
 
 - This breaks the collinearity between heat input and losses within days instead of weeks.
-- It is covered by choosing Smart heating in Setup: the owner opted into control, and the steps are
+- It is covered by choosing Autopilot in Setup: the owner opted into control, and the steps are
   inside the tightest band.
 - Before control is activated (pending state), learning is passive.
 
@@ -694,7 +695,7 @@ Implausible values (heat loss outside 30–1,000 W/K, τ outside 5–400 h) show
 ### 6.6 Inertia: learned, started from two questions
 
 **Decision: learn it; ask two plain questions for the starting point; never ask for a number.**
-Evidence in [smart-heating-research.md](smart-heating-research.md#outcome-drivers-and-what-others-expose-2026-10-30).
+Evidence in [autopilot-research.md](autopilot-research.md#outcome-drivers-and-what-others-expose-2026-10-30).
 
 - **Why not just ask "radiators or floor heating".** Insulation moves a house's flexibility more
   than the emitter does. In one Danish simulation, floor heating added up to +44 % flexibility in
@@ -742,7 +743,7 @@ pending ──Repair verify──▶ learning ──model ready──▶ active
   heating setup in Heating → Repair".
 - **`learning`:** feeding. Trim plus excitation steps, *Comfortable* limits.
 - **`active`:** the full planner at the chosen profile. The `learning → active` transition
-  sends one notification: "Smart heating learned your house and now uses prices".
+  sends one notification: "Autopilot learned your house and now uses prices".
 - **Pause reasons** (an enum, used for i18n and analytics): `pump_offline`, `indoor_missing`,
   `outdoor_missing`, `spa_on`, `manual_mode`, `lever_error`, `model_drift`, `owner_pause`,
   `firmware_changed`.
@@ -760,7 +761,7 @@ pending ──Repair verify──▶ learning ──model ready──▶ active
 | Operating mode "Immersion heater only" | 237 = 2 | pause `manual_mode`: no compressor, nothing to steer. Auto (0) and Manual (1) both run; the 184/185 clamps apply in Auto only (§4.1) |
 | Real outdoor above auto-stop heating | 184 vs real | `idle`: neutral feed, no warning (summer) |
 | Cooling active | 1028 | `idle` |
-| SPA switched on elsewhere (display, myUplink, Greenely) | 843 | pause `spa_on`, warning "SPA was turned on at the pump; choose SPA or Smart heating in Repair". Never switch it off again |
+| SPA switched on elsewhere (display, myUplink, Greenely) | 843 | pause `spa_on`, warning "SPA was turned on at the pump; choose SPA or Autopilot in Repair". Never switch it off again |
 | Add heat running during pre-heat | 1029 | bias → min(bias, 0) at once |
 | DM approaching add-heat start during pre-heat | 11 vs DM start − 0.5 × 679 | cap the bias |
 | Feed verification fails ×3 | input 1 ≠ fed | pause `lever_error` |
@@ -780,7 +781,7 @@ Runs every 15 min and on new prices or weather. Horizon: 24–36 h of slots.
    - Every candidate is **simulated through the model and clamped to the band**.
    - A shift happens only when `p_high / p_low > 1 + margin`.
 
-**Built offline (2026-10-31, `lib/smart/planner.ts`, `dev/evaluate-presets.mjs`).**
+**Built offline (2026-10-31, `lib/autopilot/planner.ts`, `dev/evaluate-presets.mjs`).**
 - **Objective: cost at no-worse comfort.** Electricity bought, plus every degree-hour colder than
   doing nothing (H·Δt each) and any stored heat short at the end, bought back at the horizon's
   mean price. Warmth above doing nothing earns nothing and offsets nothing, so a pre-heat is
@@ -940,7 +941,7 @@ without making everyone read sliders.
 - **Exit:** two weeks on at least 3 houses (one radiator, one slab, one air-source), with no
   would-have plan leaving its band by more than 0.3 K under the realised weather.
 
-**Built (2026-11-01, `lib/smart/shadow.ts`, wired in `collector.ts`).** Every closed slot plans
+**Built (2026-11-01, `lib/autopilot/shadow.ts`, wired in `collector.ts`).** Every closed slot plans
 the next one for all three presets, off the poll's call stack, from: the hourly fit (parameters,
 lever, and the mass at the last slot the filter corrected), the slot's indoor reading, the real
 outdoor temperature (input 1: nothing is fed), the setpoint (2505), operating mode (237) and the
@@ -948,12 +949,12 @@ Auto thresholds (183/184/185) from the latest poll, and the forecast: Open-Meteo
 local hour by what the wired sensor taught (`outdoor.ts`), with prices where known, else the last
 one known. Each preset carries its own would-be bias, curve and plan between slots, so its log
 reads as the feed sequence it would really have sent.
-- **Log:** `smart-….shadow.jsonl` beside the history, one line per slot: indoor, outdoor,
+- **Log:** `autopilot-….shadow.jsonl` beside the history, one line per slot: indoor, outdoor,
   setpoint, mode, and per preset the bias, fed value, actuator clamps, planner reason, planned
   indoor 1 h and 6 h ahead and planned saving; plus where *doing nothing* was expected to be 1 h
   and 6 h ahead. Since nothing is fed, the house really is doing nothing, so that pair against
   what followed is the model's **live** error, forecast error included. Trimmed to 28 days. The
-  carried state is in `smart-….shadow.json`. One summary line in the app log per hour.
+  carried state is in `autopilot-….shadow.json`. One summary line in the app log per hour.
 - **Review:** `node dev/review-shadow.mjs <url of the .shadow.jsonl>`.
 - **Not yet behind a setting:** it runs on the maintainer's dev build. Before any test-channel
   build it goes behind the hidden setting above.
@@ -961,8 +962,8 @@ reads as the feed sequence it would really have sent.
 
 ### 7.6 Timers and lifecycle
 
-- One `SmartController` per pump host, with Heating as owner, via a static
-  `smartOwners: Map<host, device>` mirroring `indoorOwners`.
+- One `AutopilotController` per pump host, with Heating as owner, via a static
+  `autopilotOwners: Map<host, device>` mirroring `indoorOwners`.
 - A 30 s feed loop (self-rescheduling `setTimeout` with a mutex, as `scheduleIndoor` does) and a
   15-min planner loop aligned to slot + 20 s. Prices and weather run on separate jittered timers.
 
@@ -970,7 +971,7 @@ reads as the feed sequence it would really have sent.
 |---|---|
 | `onInit` | Load the state, claim ownership. A second Heating on the same host → warning, no control. Re-check the SPA snapshot vs 843 (§8). Resume `learning`/`active`/`paused` by feeding neutral first, then the plan. |
 | `onUninit` (app stop, update) | Flush history. **Feed neutral once** (best effort, 5 s). Persist the state as-is so it resumes. |
-| `onDeleted` | Feed neutral. If the mode was smart, the owner must still turn off 7.5.9.2: send a timeline notification saying so. Restore SPA from the snapshot. Delete the history file. Release ownership. |
+| `onDeleted` | Feed neutral. If the mode was autopilot, the owner must still turn off 7.5.9.2: send a timeline notification saying so. Restore SPA from the snapshot. Delete the history file. Release ownership. |
 | Pump relocated / address edit | Ownership follows (`reconnectTo`, `lib/device.ts:1363`). Unlike the BT50 address-edit refusal, allow it: the feed resumes on the new connection. |
 | Homey reboot, power loss, uninstall | Nothing runs. Safety then rests on M0.1: the pump must return to the wired sensor after the feed stops. This is the reason 0.1 is ship/no-ship. The FAQ explains uninstall: "Switch to SPA or None in Repair first". |
 
@@ -981,16 +982,16 @@ reads as the feed sequence it would really have sent.
 The store holds:
 
 ```
-smartHeating = {state, profile, custom?, houseAnswers, outdoorSource, spaSnapshot, pausedReason?, since}
+autopilot = {state, profile, custom?, houseAnswers, outdoorSource, spaSnapshot, pausedReason?, since}
 ```
 
 On `onInit`:
 
 | Situation | Action |
 |---|---|
-| Mode `smart`, 843 reads 0 | Resume by feeding neutral, then the plan |
-| Mode `smart`, 843 reads 1 | Someone enabled SPA while we were down → pause `spa_on` |
-| Mode `smart`, input 1 does not follow the neutral feed | `lever_error`: 7.5.9.2 may have been switched off at the display. Warning to re-verify in Repair |
+| Mode `autopilot`, 843 reads 0 | Resume by feeding neutral, then the plan |
+| Mode `autopilot`, 843 reads 1 | Someone enabled SPA while we were down → pause `spa_on` |
+| Mode `autopilot`, input 1 does not follow the neutral feed | `lever_error`: 7.5.9.2 may have been switched off at the display. Warning to re-verify in Repair |
 | Mode `pending` | Warning only |
 
 ---
@@ -999,7 +1000,7 @@ On `onInit`:
 
 | Situation | Detection | Response |
 |---|---|---|
-| The house changed | Drift (§6.2) | Notify "Smart heating is re-learning your house". Back to `learning` limits |
+| The house changed | Drift (§6.2) | Notify "Autopilot is re-learning your house". Back to `learning` limits |
 | Pump replaced or re-paired | `heatpump_type` (1497) or the firmware label changes | Reset COP η and BT1 gain; keep the house parameters |
 | Indoor source changed | `indoorSensors` state change | Keep the parameters, widen the covariance |
 | Outdoor source changed | `outdoorSource` change | Reset the forecast-bias learning |
@@ -1009,12 +1010,12 @@ On `onInit`:
 
 ---
 
-## 10. Mode choice: SPA ⇄ Smart heating ⇄ None
+## 10. Mode choice: SPA ⇄ Autopilot ⇄ None
 
 ### 10.1 The selection field and its capabilities
 
-A new **pump-wide** selection field, `selection.priceControl: 'spa' | 'smart' | 'none'`. It sits
-next to `groups`/`overrides` and is resolved in `lib/smart/mode.ts`.
+A new **pump-wide** selection field, `selection.priceControl: 'spa' | 'autopilot' | 'none'`. It sits
+next to `groups`/`overrides` and is resolved in `lib/autopilot/mode.ts`.
 
 - **Missing value means `spa`.** That is the upgrade path: existing devices keep exactly what they
   have today, in line with the "missing selection = everything" rule.
@@ -1023,14 +1024,14 @@ The pure `capabilitySyncPlan` (`lib/roles.ts:334`) gets one more filter:
 
 | Mode | Removed from every device of the pump | Added (Heating unless noted) |
 |---|---|---|
-| `spa` | the Smart capabilities below | – (today's SPA set: 843 on Main; 844/845 Heating; 846/902 Hot water; 848 Pool; 849/850 Cooling) |
-| `smart` | **all SPA registers** above, and `external_temperature.h5217_bt1` | `smart_heating_mode_NIBE`, `smart_profile_NIBE`, `measure_temperature.smart_fed`, `measure_temperature_offset_NIBE.smart_bias`, `measure_money_NIBE.smart_savings` |
+| `spa` | the Autopilot capabilities below | – (today's SPA set: 843 on Main; 844/845 Heating; 846/902 Hot water; 848 Pool; 849/850 Cooling) |
+| `autopilot` | **all SPA registers** above, and `external_temperature.h5217_bt1` | `autopilot_mode_NIBE`, `autopilot_profile_NIBE`, `measure_temperature.autopilot_fed`, `measure_temperature_offset_NIBE.autopilot_bias`, `measure_money_NIBE.autopilot_savings` |
 | `none` | both sets | – |
 
-- **SPA registers are still polled in `smart` mode.** They go in Heating's `wantedRegisters()`
+- **SPA registers are still polled in `autopilot` mode.** They go in Heating's `wantedRegisters()`
   without capabilities, so the `spa_on` guard can see 843.
 - **Flow cards follow the capabilities automatically.** Every SPA card is `$filter`ed on its
-  capability, and the Smart cards are filtered on `smart_heating_mode_NIBE`. So "whatever is on has
+  capability, and the Autopilot cards are filtered on `autopilot_mode_NIBE`. So "whatever is on has
   Flow cards" falls out of the capability sync with no extra wiring.
 - **Existing Flows break when a card's capability disappears.** Homey marks them broken. The Repair
   confirm step says so in one line, and the changelog says so for the release.
@@ -1045,29 +1046,29 @@ where numeric. A custom number without units fails install with "Invalid Capabil
 
 | Type | Kind | Notes |
 |---|---|---|
-| `smart_heating_mode_NIBE` | enum, read-only | `pending · learning · normal · preheat · coast · idle · paused` |
-| `smart_profile_NIBE` | enum, **setable** (picker) | the three presets plus Custom (Custom is shown, not settable from the tile). Tile and Flow use the same capability as the setting (§10.2) |
+| `autopilot_mode_NIBE` | enum, read-only | `pending · learning · normal · preheat · coast · idle · paused` |
+| `autopilot_profile_NIBE` | enum, **setable** (picker) | the three presets plus Custom (Custom is shown, not settable from the tile). Tile and Flow use the same capability as the setting (§10.2) |
 | `measure_temperature_offset_NIBE` | number, K | bias |
 | `measure_money_NIBE` | number, units overridden at runtime from `getCurrency()` | savings this month |
 
-`measure_temperature.smart_fed` uses the official type, so it lands in Insights correctly.
+`measure_temperature.autopilot_fed` uses the official type, so it lands in Insights correctly.
 
 Other rules:
 - No on/off capability: the mode choice is the on/off.
-  - Pausing is a Flow action, and a pause shows in `smart_heating_mode_NIBE`.
+  - Pausing is a Flow action, and a pause shows in `autopilot_mode_NIBE`.
   - This also avoids a second `onoff` on Heating (memory: multiple-onoff tile).
 - New names go in the collision test (`test/unit.test.ts:287`) and the "every extra has options"
   test (`:474`). Push options with `ensureCapabilityOptions`.
 - **Insights titles are snapshotted forever**, so get them right first time.
-- The `smart_profile_NIBE` picker `values` must equal its value list exactly (the existing picker
+- The `autopilot_profile_NIBE` picker `values` must equal its value list exactly (the existing picker
   test, `test/unit.test.ts:1290`).
 
-### 10.2 Settings (Heating; group "Smart heating", shown only meaningfully in smart mode)
+### 10.2 Settings (Heating; group "Autopilot", shown only meaningfully in Autopilot mode)
 
 | Setting | Type | Default |
 |---|---|---|
 | Comfort temperature | number 15–25 | mean indoor over the last 7 days, rounded to 0.5 |
-| Profile | dropdown: 3 presets + Custom | Save some money. **Mirrors the `smart_profile_NIBE` capability**: a change in either updates the other |
+| Profile | dropdown: 3 presets + Custom | Save some money. **Mirrors the `autopilot_profile_NIBE` capability**: a change in either updates the other |
 | Coldest allowed, Warmest allowed, Price influence, Weather influence, Use of stored heat | numbers (§7.4) | the selected preset's values; editable only with Profile = Custom |
 | Heating system, Built or last insulated | dropdowns (§6.6) | the Setup answers; changing one re-seeds the prior, it does not reset learning |
 | House insights | labels (§6.5) | – |
@@ -1075,9 +1076,9 @@ Other rules:
 
 - Each label and hint is one short line (memory: UI text is not an essay). The reasoning goes in
   the FAQ.
-- In `spa`/`none` mode the hint reads "Choose Smart heating in Repair to use these".
+- In `spa`/`none` mode the hint reads "Choose Autopilot in Repair to use these".
 
-### 10.3 Flow cards (custom, filtered `capabilities=smart_heating_mode_NIBE`, six languages)
+### 10.3 Flow cards (custom, filtered `capabilities=autopilot_mode_NIBE`, six languages)
 
 Add each card to the generic allowlist in `test/unit.test.ts:219`.
 
@@ -1085,11 +1086,11 @@ Add each card to the generic allowlist in `test/unit.test.ts:219`.
 |---|---|---|
 | Set profile | action | dropdown, 3 presets (Custom is set in settings) |
 | Set comfort temperature | action | number |
-| Pause smart heating for … | action | 1–48 h (guests, fireplace evening). Feeds neutral |
-| Resume smart heating | action | – |
-| Smart heating mode changed | trigger | `mode`, `reason` |
-| Smart heating paused | trigger | `reason` |
-| Smart heating is pre-heating / coasting / paused | condition | – |
+| Pause Autopilot for … | action | 1–48 h (guests, fireplace evening). Feeds neutral |
+| Resume Autopilot | action | – |
+| Autopilot mode changed | trigger | `mode`, `reason` |
+| Autopilot paused | trigger | `reason` |
+| Autopilot is pre-heating / coasting / paused | condition | – |
 | Profile is … | condition | dropdown |
 | Set away until … / Back home | action | date and time; ends away mode early (§19.2) |
 | Away mode is on | condition | – |
@@ -1103,29 +1104,29 @@ Also widen `LocalizedText` from `{en, sv}` to six languages (`lib/profile.ts:100
 ### 10.4 Pairing (`assets/pair/setup.js` hub)
 
 A new hub section, **"Price control"**. It is shown once per pump, on the Heating candidate, or on
-Main if Heating is not being created; in that case `smart` is unavailable. It is a radio group:
+Main if Heating is not being created; in that case `autopilot` is unavailable. It is a radio group:
 
 1. **Nibe Smart Price Adaption.** The default if the pump has SPA enabled (843 read during
    detection).
-2. **Smart heating (Nibe Live).** One line: "Learns your house and steers heating with prices and
+2. **Autopilot (Nibe Live).** One line: "Learns your house and steers heating with prices and
    weather".
 3. **None.**
 
-Choosing **Smart heating** shows the prerequisites from a `get_smart_prerequisites` handler:
+Choosing **Autopilot** shows the prerequisites from a `get_autopilot_prerequisites` handler:
 
 | Check | Pass | Fail |
 |---|---|---|
 | Indoor temperature source | Homey sensors are chosen in the Heating temperature section, or a NIBE room sensor is readable | Blocking: "Needs an indoor temperature", with a link into the Heating temperature section |
-| Room-sensor control | Shown as the step "Room-sensor control is turned off in Repair" | Not blocking at pairing. Repair Verify enforces it (§4.3). The BT50 feed and Smart heating are exclusive pump-side, because both use the indoor loop |
+| Room-sensor control | Shown as the step "Room-sensor control is turned off in Repair" | Not blocking at pairing. Repair Verify enforces it (§4.3). The BT50 feed and Autopilot are exclusive pump-side, because both use the indoor loop |
 | Real outdoor source | A Homey outdoor sensor picked here (reuses the picker), or none: the corrected forecast stands in (§4.2) | Optional |
 | Homey Energy prices | `dynamic` → "Uses your Homey Energy prices (SE3, 15 min)" | Not blocking: "Saves energy; add dynamic prices in Homey Energy to also use cheap hours" |
-| Location | Checked when Setup opens. With one: "Weather for your Homey's location". Without: a place search (Open-Meteo geocoding; only the typed name leaves the Homey, the result is kept to 2 decimals) saved as the app setting `smartLocation`; `searchPlaces()` and the fallback are built (2026-11-02) | Blocking only without an outdoor sensor, since the forecast is then the outdoor fallback. Otherwise "No location: no weather or sun" |
+| Location | Checked when Setup opens. With one: "Weather for your Homey's location". Without: a place search (Open-Meteo geocoding; only the typed name leaves the Homey, the result is kept to 2 decimals) saved as the app setting `autopilotLocation`; `searchPlaces()` and the fallback are built (2026-11-02) | Blocking only without an outdoor sensor, since the forecast is then the outdoor fallback. Otherwise "No location: no weather or sun" |
 | Model | Not applicable at pairing | – |
 | House questions (§6.6) | "How is the house heated?" and "When was it built (or last insulated)?", each with "Don't know" | Not blocking |
 | Operating mode (237) | Auto: "Recommended" | Not blocking. Manual: "Works. Auto is recommended: the pump then stops heating in summer and keeps the immersion heater off in mild weather by itself". Immersion heater only: blocking |
 
 The result goes into `selection.priceControl` on every created device. Heating's store also gets
-`smartHeating = {state: 'pending', profile, houseAnswers, outdoorSource}`. **No pump writes.** At
+`autopilot = {state: 'pending', profile, houseAnswers, outdoorSource}`. **No pump writes.** At
 `onInit`, the pending warning points to Repair (the BT50 pattern).
 
 `test/setup-ui.test.ts` cases:
@@ -1140,10 +1141,10 @@ The Repair views stay per device, but the Price control section is the same on e
 the pump: the mode is pump-wide.
 
 **On Main, Hot water and the other devices:** the radio group plus a one-line status. A switch
-*to* Smart from a non-Heating device sends the owner on: "Finish in Heating → Repair". The
+*to* Autopilot from a non-Heating device sends the owner on: "Finish in Heating → Repair". The
 activation needs the Heating context.
 
-**On Heating, in Smart mode:**
+**On Heating, in Autopilot mode:**
 - **Status:** the state and reason; model readiness ("day 9 · ± 0.2 °C"); the price, weather and
   outdoor-source lines; the hot-water note ("Hot water has no price control until a later update"
   until M4).
@@ -1158,15 +1159,15 @@ activation needs the Heating context.
 
 | From → To | Pump writes | Capabilities | Notes |
 |---|---|---|---|
-| spa → smart | at Verify: snapshot SPA, 843 = 0, start the feed | swap on all pump devices *after* Verify succeeds | If Verify fails, stay `spa` |
+| spa → autopilot | at Verify: snapshot SPA, 843 = 0, start the feed | swap on all pump devices *after* Verify succeeds | If Verify fails, stay `spa` |
 | spa → none | 843 = 0 (snapshot first) | remove SPA caps | Restorable by spa |
-| smart → spa | handover; restore 843 and the snapshot | swap | The model is kept in the store (dormant), so returning to smart skips most learning |
-| smart → none | handover; SPA stays off | remove smart caps | – |
+| autopilot → spa | handover; restore 843 and the snapshot | swap | The model is kept in the store (dormant), so returning to Autopilot skips most learning |
+| autopilot → none | handover; SPA stays off | remove Autopilot caps | – |
 | none → spa | write 843 = 1, or the snapshot if one exists | add SPA caps | – |
-| none → smart | as spa → smart without the snapshot | swap after Verify | – |
+| none → autopilot | as spa → autopilot without the snapshot | swap after Verify | – |
 
 Errors appear beside the button (`p.setup-error`). The device-side methods are
-`setPriceControl(mode)`, `activateSmart()` and `handoverSmart()`. They throw localised errors and
+`setPriceControl(mode)`, `activateAutopilot()` and `handoverAutopilot()`. They throw localised errors and
 never swallow them.
 
 ---
@@ -1183,7 +1184,7 @@ never swallow them.
   - Above 30 % → "check your settings", since the model is likelier wrong than the savings real.
   - The FAQ says it is an estimate.
 - **At equal average indoor temperature.** The counterfactual runs at the *achieved* mean indoor
-  temperature, so a colder house is not reported as smart savings. Report shifted cost and extra kWh
+  temperature, so a colder house is not reported as Autopilot savings. Report shifted cost and extra kWh
   separately: a Danish field test cut cost 12 % while electricity use rose 9.5 %.
 - On a fixed contract, savings = energy saved × the fixed price.
 - **Note for SPA owners switching over:** the counterfactual is "Nibe without SPA", not
@@ -1198,7 +1199,7 @@ never swallow them.
 
 ## 12. Hot-water timing and add-heat (M4)
 
-Hot-water timing replaces SPA hot water in Smart mode. First, extend M0 (0.8–0.10) to establish
+Hot-water timing replaces SPA hot water in Autopilot mode. First, extend M0 (0.8–0.10) to establish
 how to defer and advance hot water safely on the S1155.
 
 - **Advance:** 697 "more hot water" (2 h) in a cheap slot.
@@ -1247,11 +1248,11 @@ All events are edge-triggered, with enums and buckets only.
 
 | Event | Properties | When |
 |---|---|---|
-| `Changed Price Control` | `from`, `to`: `spa\|smart\|none`, `via: pair\|repair` | mode change |
-| `Activated Smart Heating` | `outdoor_source: nibe\|homey`, `price_mode: dynamic\|fixed\|none`, `weather: on\|off` | Verify succeeded |
-| `Paused Smart Heating` | `reason` (enum §7.1) | into paused |
+| `Changed Price Control` | `from`, `to`: `spa\|autopilot\|none`, `via: pair\|repair` | mode change |
+| `Activated Autopilot` | `outdoor_source: nibe\|homey`, `price_mode: dynamic\|fixed\|none`, `weather: on\|off` | Verify succeeded |
+| `Paused Autopilot` | `reason` (enum §7.1) | into paused |
 | `Learned House Model` | `days_bucket`, `rmse_bucket`, `system: fast\|slow` | learning → active |
-| `Changed Smart Heating Profile` | `profile` (preset or `custom`) | edge. Name to be checked against `docs/analytics-taxonomy.md` before it ships |
+| `Changed Autopilot Profile` | `profile` (preset or `custom`) | edge. Name to be checked against `docs/analytics-taxonomy.md` before it ships |
 
 Candidate user property: `price_control`. **Renaming a user property orphans it forever**, so
 decide the name once. Add rows to `docs/analytics.md`.
@@ -1299,9 +1300,9 @@ listing.
 Per CLAUDE.md "Releasing":
 - `docs/releases.md` row;
 - changelog in six languages, a few sentences, including the line "SPA Flow cards disappear when
-  you switch to Smart heating";
+  you switch to Autopilot";
 - FAQ entries:
-  - choosing SPA vs Smart;
+  - choosing SPA vs Autopilot;
   - why it is still learning;
   - how savings are counted;
   - what happens if Homey is offline;
@@ -1340,7 +1341,7 @@ four plus the Setup hub.
 
 ## 19. Roadmap decisions (maintainer, 2026-11-02)
 
-What makes Smart heating stand out against Nibe SPA, Tibber and Ngenic, decided after the M2
+What makes Autopilot stand out against Nibe SPA, Tibber and Ngenic, decided after the M2
 shadow results. **Out of scope:** running the whole house's energy (heat pump, EV, battery and
 solar under one fuse limit). That is an app of its own, not part of this one.
 
@@ -1383,7 +1384,7 @@ imported power. Every surplus kWh used at home is therefore worth about 1 kr mor
   ahead, so the planner can leave room for it instead of buying heat that morning.
 - **Research first:** read how Home Assistant users run Nibe pumps on surplus before building.
 
-### 19.4 Smart hot water (M4, §12)
+### 19.4 Autopilot hot water (M4, §12)
 
 Beyond the timing in §12: learn the household's draw pattern from the estimated litres, and have
 hot water ready before the usual peaks (for example morning showers), heated in cheap or surplus
@@ -1392,7 +1393,7 @@ hours. No boosts while away.
 ### 19.5 Widgets (milestone MW, maintainer 2026-11-02)
 
 Widgets get a broader look across the whole app, not one per feature, so they are a milestone of
-their own rather than part of M3. Smart heating's candidates:
+their own rather than part of M3. Autopilot's candidates:
 
 - **Planned heating:** the next 24 h, with planned indoor against comfort, the pre-heat and coast
   blocks, and the price beneath; redrawn when the plan changes.
@@ -1413,4 +1414,4 @@ their own rather than part of M3. Smart heating's candidates:
 1. Is a slab/underfloor tester available in the test channel? M5 cannot be judged on radiators
    alone.
 2. Should the default for an existing SPA-enabled pump stay `spa` after upgrade (proposed), or
-   should the app prompt once via the timeline to try Smart heating?
+   should the app prompt once via the timeline to try Autopilot?

@@ -199,7 +199,7 @@ export const sProfile = makeProfile({
     // "auto" is the default. Litres are NIBE's own published figures from the VPB/VPBS brochure
     // (639368-5 / 639721 CIL EN 1902-2); no entry may be added without an official source, since
     // a wrong figure here silently biases every estimate that trusts it.
-    smartHistory: {
+    autopilotHistory: {
         numeric: {
             ti: "measure_temperature",
             te: "measure_temperature.i1_outside",

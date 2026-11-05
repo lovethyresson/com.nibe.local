@@ -361,7 +361,8 @@ most aggressive one should allow like 5-7 degree swings". It is now −4 / +2 K.
 put the safety in the planner (add-heat-aware recovery, clamps), not in a timid band.
 
 **2026-11-05.** I wrote "smart heating" into proposed owner-facing text. The user: "we are not
-calling it smart heating". It is only the working name in code and docs.
+calling it smart heating". It was the working name; on 2026-11-05 it was renamed **Autopilot**
+everywhere, code and docs included.
 
-**Rule:** never put "smart heating" in anything an owner reads (warnings, setup lines,
-notifications, changelog). The owner-facing name is **Autopilot** (decided 2026-11-05).
+**Rule:** never write "smart heating" for this feature, in code, docs or owner-facing text. The
+name is **Autopilot**, the same word in all six languages.
