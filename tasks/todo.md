@@ -42,7 +42,14 @@ FAQ claim "a few percent" "Ok".
 - [x] The 2026-11-03 10:09 outage was this Mac's route to the pump (`EHOSTUNREACH`), not the pump:
       the Homey's slots 10:00 and 10:15 have coverage 0.99/1.0 and no reconnect flag. No app change.
 - [ ] Room-sensor control off from 2026-11-04 ~20:30, curve offset +2: collect ~5 clean days, then
-      the curve fit and preset evaluation.
+      the curve fit and preset evaluation. 2026-11-05 15:15: curve fitted, 71 slots over BT1
+      5.3–8.3 °C, gain 0.46 per K (ladder: 0.44); indoor settled at ~21.3 °C since 08:00.
+- [x] The real room-sensor flag on zone firmware is holding 2978 (`id:12671`, u8 0..3; 2978–2985
+      look like one per climate system). Sweep 2026-11-05: switched on 15:02 → 2978 0→1 next
+      pass; off 15:07 → back to 0. 202 never moved. Register 30 follows too, ~6 min late
+      (refused 15:08–15:13), so `roomControlOff` reads the stored slots right; the 15:02–15:08
+      on-spell counts as off there (about 2 slots).
+- [ ] Record 2978 as `roomctl` instead of 202 (a register-table entry + compose capability).
 - [ ] Shadow behind a hidden setting before any test-channel build.
 - [ ] The planner's doing-nothing is the curve alone; if shadow's live error tracks sun or indoor,
       model the room loop (or require it off, as M3 does anyway).
