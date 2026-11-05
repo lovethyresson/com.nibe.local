@@ -43,6 +43,14 @@ export type Field = typeof FIELDS[number];
  *  (neither: input 1). */
 export const FLAG = {partial: 1, reconnect: 2, costs: 4, fedOutdoor: 8, sensorOutdoor: 16, forecastOutdoor: 32} as const;
 
+/** Room-sensor control off in this slot. The S1155 on zone firmware keeps reporting 202 as on
+ *  whatever the menu says, but answers the curve offset (30) only with the loop off: on
+ *  2026-11-04 the owner switched it off at 20:30 and 30 answered from that slot on, while 202 still
+ *  read 1. So an offset read counts as off, which also reads the slots already stored right. */
+export function roomControlOff(v: Record<Field, number> | undefined): boolean {
+    return v !== undefined && (v.roomctl === 0 || Number.isFinite(v.hoffset));
+}
+
 const LAST: ReadonlySet<Field> = new Set(['qmeter', 'emeter', 'hcurve', 'hoffset', 'supmin', 'supmax', 'tset', 'roomctl']);
 export const PARTIAL_BELOW = 0.8;
 export const CAPACITY = 28 * 96;

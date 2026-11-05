@@ -14,7 +14,7 @@
  *  after a coast, 1017 climbed 34 → 49 °C at a steady BT1 while indoor closed in on its setpoint,
  *  and stayed there with indoor above it. No term in indoor's distance from the setpoint
  *  describes that, and left in it would read as a curve ~15 K too high. */
-import {FLAG, History} from './history';
+import {FLAG, History, roomControlOff} from './history';
 import {CURVE_TAU_H, curveInput} from './actuator';
 
 /** Supply K per K of what the curve sees, before a curve is learned (§3.1 measured 0.50). */
@@ -76,7 +76,7 @@ export function curvePoints(history: History): CurvePoint[] {
             warm++;
         }
         last = slot;
-        if (x !== undefined && warm >= WARMUP_SLOTS && v.roomctl === 0 && Number.isFinite(v.tcalc))
+        if (x !== undefined && warm >= WARMUP_SLOTS && roomControlOff(v) && Number.isFinite(v.tcalc))
             points.push({x, supply: v.tcalc});
     }
     return points;

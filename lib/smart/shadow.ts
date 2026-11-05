@@ -12,7 +12,7 @@ import {HouseParams} from './model';
 import {ForecastSlot, PlanState, PumpCurve, planShift, simulate} from './planner';
 import {PRESETS, PresetId, limitsFor} from './presets';
 import {ClampReason, PumpThresholds, curveInput, fedValue} from './actuator';
-import {History} from './history';
+import {History, roomControlOff} from './history';
 
 export const SHADOW_PRESETS: PresetId[] = ['comfortable', 'save_some', 'save_most'];
 /** 24 h: today's prices and, after 13:00, tomorrow's. */
@@ -26,11 +26,11 @@ export const AHEAD = [4, 24] as const;
  *  back: on 2026-11-02 Comfortable pre-heated 71 % of slots against a setpoint 1 K above the
  *  house. Undefined with the loop on (or not read): then the setpoint is comfort. */
 export function curveComfort(history: History, slot: number, ti: number): number | undefined {
-    if (history.get(slot)?.roomctl !== 0) return undefined;
+    if (!roomControlOff(history.get(slot))) return undefined;
     const readings: number[] = [];
     for (let s = slot - HORIZON + 1; s <= slot; s++) {
         const v = history.get(s);
-        if (v && v.roomctl === 0 && Number.isFinite(v.ti)) readings.push(v.ti);
+        if (v && roomControlOff(v) && Number.isFinite(v.ti)) readings.push(v.ti);
     }
     return readings.length ? readings.reduce((a, b) => a + b, 0) / readings.length : ti;
 }

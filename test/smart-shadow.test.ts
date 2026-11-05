@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {AHEAD, SHADOW_PRESETS, ShadowMemory, curveComfort, shadowForecast, shadowStep} from '../lib/smart/shadow';
-import {FIELDS, History} from '../lib/smart/history';
+import {FIELDS, History, roomControlOff} from '../lib/smart/history';
 import {steadyState, ForecastSlot} from '../lib/smart/planner';
 import {RADIATOR_HOUSE} from './smart-house-sim';
 import {RAMP_K_PER_SLOT} from '../lib/smart/actuator';
@@ -68,4 +68,12 @@ test('with room-sensor control off, comfort is where the curve has kept the hous
     put(1021, NaN, 0);
     put(1021 + 200, 20, 0); // a day later the old slots have left the window
     assert.equal(curveComfort(history, 1221, 20), 20);
+});
+
+test('room control counts as off when 202 says so or the offset answers', () => {
+    const v = (roomctl: number, hoffset: number) => ({...Object.fromEntries(FIELDS.map((f) => [f, NaN])), roomctl, hoffset}) as any;
+    assert.equal(roomControlOff(v(0, NaN)), true);
+    assert.equal(roomControlOff(v(1, 2)), true); // zone firmware: 202 stuck on, 30 answers with the loop off
+    assert.equal(roomControlOff(v(1, NaN)), false);
+    assert.equal(roomControlOff(undefined), false);
 });
