@@ -155,6 +155,24 @@ Offline only; nothing runs on the Homey yet. Design: `docs/autopilot-plan.md` §
   Comfortable 1.1 %, Save some 1.8 %, Save the most 7.2 % (best days 8/17/17 %); indoor
   22.3–22.8 / 22.1–23.1 / 21.3–24.0 °C, off comfort 0.05/0.08/0.39 K RMS (doing nothing 0.04).
   Planning on the day-ahead forecast instead changes nothing (1.1/1.8/7.2 %).
+- 2026-11-06 08:45 — 618 slots (30 Oct 20:45 → 6 Nov 08:30), 538 usable, 6 valid days; no new
+  gaps (the 5 Nov check did not run). Heat loss 236 W/K (first-order 189), τ 125 h, stored
+  29.5 kWh/K, sun E/S/W 0.1/0.1/0.1 kW, lever 119 W/K (0.50·H), 6 h error 0.31 K. The app's
+  `model.json` (07:37) says **ready**; `fit-house-model.mjs` still says learning (stability). Daily
+  heat loss 292 → 299 → 277 → 234 → 247 → 239 → 236 W/K, τ 64 → 72 → 95 → 110 → 111 → 122 → 125 h:
+  heat loss has settled, τ is still creeping up. Heat curve 141 points, gain 0.47 per 4 K.
+  Outdoor last 24 h: 96/97 slots from the sensor, 0 forecast; 60 flagged fed with nothing fed: this
+  morning BT1 read +1.5 °C against the sensor's −3.9 °C, so the 3 K `FED_OUTDOOR_K` false positive
+  now fires most of a cold night. Room control off since 4 Nov 20:30 (offset 30 = +2 readable;
+  202 still 1, legacy). Indoor 20.6–21.1 °C at −4 °C this morning, so +2 no longer holds 22.5.
+  Shadow 477 slots: doing nothing 1 h 0.19 K (bias +0.03), 6 h 0.70 K (bias +0.18). Bias range
+  Comfortable −6…6 K (coasting 30 %), Save some −12…12 K (36 %), Save the most −20…20 K (56 %);
+  ramp clamps ≤2 %; planned saving 6.2/7.1/8.1 %. Manual mode, so warm feeds cannot trip
+  auto-stop; nothing unsafe. SPA off since 2 Nov.
+  Preset evaluation (ready), 31 SE3 days 6 Oct → 5 Nov, this model, Manual, comfort 22.5, lever
+  0.505·H, Open-Meteo history: fair saving Comfortable 0.9 %, Save some 1.5 %, Save the most 7.1 %
+  (best days 6/13/16 %); gross 3.1/4.6/20.6 %; indoor 22.4–22.7 / 22.2–22.8 / 21.5–23.8 °C, off
+  comfort 0.04/0.06/0.33 K RMS (doing nothing 0.03). On the day-ahead forecast: 0.9/1.4/7.1 %.
 
 ## Autopilot slice 1: data collection (branch `smart-heating/m1-data`)
 
