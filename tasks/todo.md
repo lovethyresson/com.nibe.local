@@ -176,6 +176,24 @@ Offline only; nothing runs on the Homey yet. Design: `docs/autopilot-plan.md` §
 - 2026-11-06 15:09 — curve offset (30) raised +2 → +3 at the owner's request, read back 3. Indoor had
   slid 22.3 → 20.6 °C over the first 36 h of the room-off run as it turned colder (−4 °C). The run
   continues; `hoffset` is logged per slot, so the curve learner sees the step.
+- 2026-11-06 21:45 — 669 slots (30 Oct 20:45 → 6 Nov 21:15), 585 usable, 7 valid days; no new
+  gaps (31 Oct 19:30–20:30 and 2 Nov 10:45–11:45 remain), 0 partial or reconnect in 24 h. Heat
+  loss 228 W/K (first-order 159), τ 130 h, stored 29.7 kWh/K, sun E/S/W 0.1/0.2/0.1 kW, lever
+  127 W/K (0.56·H), 6 h error 0.31 K. The app's `model.json` (20:37) is back to **learning
+  (stability)** after saying ready this morning: daily τ 64 → 72 → 95 → 110 → 111 → 122 → 130 h
+  keeps creeping, heat loss 236 → 228 W/K. Heat curve learning, 254 W per K of supply.
+  Outdoor last 24 h: 96/96 slots from the sensor, 0 forecast, 66 flagged fed with nothing fed
+  (BT1 +1.4 °C against the sensor's −4.2 °C at 21:00: the lag false positive again). Since +3 at
+  15:09 indoor held 20.8–20.9 °C while outdoor fell +4.4 → −4.2 °C; the pump still steers on a BT1
+  ~5.5 K warmer, so the step has not shown fully yet. SPA off; room loop off.
+  Shadow 528 slots: doing nothing 1 h 0.18 K (bias +0.03), 6 h 0.67 K (bias +0.17). Bias range
+  Comfortable −6…6 K (coasting 36 %), Save some −12…12 K (42 %), Save the most −20…20 K (60 %);
+  ramp clamps 0 %; planned saving 6.0/6.9/8.2 %. Today all three mostly coasted (71–72 %) because
+  indoor sat well below 22.5 with nothing to recover cheaply. Manual mode; nothing unsafe.
+  Preset evaluation, 30 SE3 days 7 Oct → 5 Nov, this model, Manual, comfort 22.5, lever 0.557·H,
+  Open-Meteo history: fair saving Comfortable 0.9 %, Save some 1.2 %, Save the most 7.6 % (best
+  days 3/7/17 %); gross 3.2/4.7/22.7 %; indoor 22.4–22.7 / 22.2–22.9 / 21.5–23.7 °C, off comfort
+  0.04/0.06/0.33 K RMS (doing nothing 0.04). On the day-ahead forecast: 0.9/1.2/7.6 %.
 
 ## Autopilot slice 1: data collection (branch `smart-heating/m1-data`)
 
