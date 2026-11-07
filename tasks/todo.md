@@ -198,6 +198,10 @@ Offline only; nothing runs on the Homey yet. Design: `docs/autopilot-plan.md` §
   indoor slid 20.9 → 20.4 °C overnight (outdoor −5.2 → +0.9 °C) with supply tracking the curve
   (~35.5 °C, 21 Hz, DM ~−100, no immersion): the setting, not the pump, was short. Step back to +4
   if indoor heads past ~23 °C. The room-off run continues.
+- 2026-11-07 20:36 — curve offset (30) raised +5 → +6 at the owner's request, read back 6. On +5
+  indoor rose 20.4 → 21.1 °C by 13:30, then sat at ~21.0 °C as outdoor fell +3.7 → −0.7 °C (two
+  hot water runs, 10–12 and 14–15:30, each stalled it). Every offset so far loses ground when it
+  turns colder: curve 5 looks too flat for this house, which is what the run should show.
 
 ## Autopilot slice 1: data collection (branch `smart-heating/m1-data`)
 
