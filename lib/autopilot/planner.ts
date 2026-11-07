@@ -19,6 +19,7 @@ import {HouseParams, stepHouse} from './model';
 import {Limits} from './presets';
 import {CURVE_TAU_H, RAMP_K_PER_SLOT, curveInput} from './actuator';
 import {SupplyCurve, supplyAt} from './curve';
+import {comfortBias} from './trim';
 
 export const COP = 3;
 /** The pump's heat ceiling as the outdoor temperature its curve is designed for. */
@@ -62,14 +63,25 @@ export interface PumpCurve {
     heatPerSupplyK?: number;
 }
 
-/** Heat this slot, kWh: what holds comfort at `te`, moved by the bias the curve has seen so far
- *  (`te − curve`), between off and the pump's design output. */
-export function pumpHeat(house: HouseParams, comfort: number, te: number, curve: number, pump: PumpCurve = {}): number {
+/** Heat this slot, kWh, between off and the pump's design output.
+ *
+ *  With a learned curve and emission, and indoor `ti` known: what the pump really delivers,
+ *  `heatPerSupplyK × (supply − ti)` at the supply its curve gives for what it has seen (`curve`).
+ *  That does not hold comfort by itself; the comfort bias (trim.ts) is what makes it.
+ *
+ *  Otherwise: what holds comfort at `te`, moved by the bias the curve has seen so far
+ *  (`te − curve`). That assumes the curve holds comfort, which only a room loop makes true. */
+export function pumpHeat(house: HouseParams, comfort: number, te: number, curve: number, pump: PumpCurve = {}, ti?: number): number {
     const max = house.heatLoss * (comfort - DESIGN_OUTDOOR);
-    const moved = pump.supply && pump.heatPerSupplyK !== undefined
-        ? pump.heatPerSupplyK * (supplyAt(pump.supply, curve) - supplyAt(pump.supply, te))
-        : (pump.lever ?? house.heatLoss) * (te - curve);
-    const P = house.heatLoss * (comfort - te) - house.gains + moved;
+    let P: number;
+    if (pump.supply && pump.heatPerSupplyK !== undefined && ti !== undefined) {
+        P = pump.heatPerSupplyK * (supplyAt(pump.supply, curve) - ti);
+    } else {
+        const moved = pump.supply && pump.heatPerSupplyK !== undefined
+            ? pump.heatPerSupplyK * (supplyAt(pump.supply, curve) - supplyAt(pump.supply, te))
+            : (pump.lever ?? house.heatLoss) * (te - curve);
+        P = house.heatLoss * (comfort - te) - house.gains + moved;
+    }
     return Math.min(max, Math.max(0, P)) * SLOT_H;
 }
 
@@ -79,7 +91,7 @@ export function simulate(house: HouseParams, comfort: number, state: PlanState, 
     const out: Simulation = {ti: [], tm: [], heat: [], cost: 0, curveEnd: curve};
     forecast.forEach((slot, k) => {
         curve = curveInput(curve, slot.te - biases[k], SLOT_H, CURVE_TAU_H);
-        const heat = pumpHeat(house, comfort, slot.te, curve, pump);
+        const heat = pumpHeat(house, comfort, slot.te, curve, pump, ti);
         [ti, tm] = stepHouse(house, ti, tm, {te: slot.te, q: heat, sun: slot.sun, sunE: slot.sunE, sunW: slot.sunW});
         out.ti.push(ti);
         out.tm.push(tm);
@@ -91,15 +103,23 @@ export function simulate(house: HouseParams, comfort: number, state: PlanState, 
 }
 
 /** Air and mass when the curve has held `comfort` at outdoor `te` for long. */
-export function steadyState(house: HouseParams, comfort: number, te: number): PlanState {
+/** Air and mass when comfort has been held at outdoor `te` for long, and the curve's view and
+ *  bias that held it: the comfort bias, with a pump that needs one (trim.ts). */
+export function steadyState(house: HouseParams, comfort: number, te: number, pump?: PumpCurve): PlanState {
     const P = pumpHeat(house, comfort, te, te) / SLOT_H;
-    return {ti: comfort, tm: comfort + house.f * P * house.rim, curve: te, bias: 0};
+    const bias = comfortBias(house, pump, comfort, te);
+    return {ti: comfort, tm: comfort + house.f * P * house.rim, curve: te - bias, bias};
 }
 
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
 
 export interface Plan {
+    /** What to feed, as bias on the real outdoor temperature: `comfort + shift`, slot by slot. */
     biases: number[];
+    /** The bias that holds comfort (trim.ts), 0 where the pump is assumed to hold it itself. */
+    comfort: number[];
+    /** The price and weather shift the search chose on top of it. */
+    shift: number[];
     plan: Simulation;
     baseline: Simulation;
     /** Cost at equal comfort of the plan and of doing nothing (see `planShift`). */
@@ -158,7 +178,11 @@ export function planShift(house: HouseParams, comfort: number, state: PlanState,
                           limits: Limits, pump: PumpCurve = {}, previous?: number[], maxMoves = 2000): Plan {
     const n = forecast.length;
     const zero = new Array(n).fill(0);
-    const baseline = simulate(house, comfort, state, forecast, zero, pump);
+    // "Doing nothing" is holding comfort: the comfort bias every slot. The search works on the
+    // shift on top of it, which is what the profile's limits, ramp and coast cap govern.
+    const held = forecast.map((s) => comfortBias(house, pump, comfort, s.te));
+    const total = (shift: number[]) => shift.map((b, k) => b + held[k]);
+    const baseline = simulate(house, comfort, state, forecast, held, pump);
     const prices = forecast.map((s) => s.price);
     const meanPrice = mean(prices);
     const reference = comfortReference(house, comfort, forecast);
@@ -167,15 +191,16 @@ export function planShift(house: HouseParams, comfort: number, state: PlanState,
     const lo = Math.min(...prices);
     const hi = Math.max(...prices);
     const thin = !(hi > lo * (1 + limits.margin)) || hi <= 0;
-    const nothing = (reason: Plan['reason']): Plan => ({biases: zero, plan: baseline, baseline,
+    const nothing = (reason: Plan['reason']): Plan => ({biases: held, comfort: held, shift: zero, plan: baseline, baseline,
         fairCost: baselineFair, baselineFairCost: baselineFair, reason: reason === 'no_gain' && thin ? 'spread_below_margin' : reason});
     if (limits.maxBias === 0) return nothing('no_room');
 
     // Unit-bias responses at slot 0: indoor, mass and heat m slots later.
     const unit = [1, ...new Array(n - 1).fill(0)];
     const flat = forecast.map((f) => ({...f, te: forecast[0].te}));
-    const r0 = simulate(house, comfort, state, flat, zero, pump);
-    const r1 = simulate(house, comfort, state, flat, unit, pump);
+    const flatHeld = new Array(n).fill(held[0]);
+    const r0 = simulate(house, comfort, state, flat, flatHeld, pump);
+    const r1 = simulate(house, comfort, state, flat, unit.map((u) => u + held[0]), pump);
     const rti = r1.ti.map((v, m) => v - r0.ti[m]);
     const rtm = r1.tm.map((v, m) => v - r0.tm[m]);
     const rq = r1.heat.map((v, m) => v - r0.heat[m]);
@@ -197,7 +222,10 @@ export function planShift(house: HouseParams, comfort: number, state: PlanState,
     // Start where the pump is: the previous plan, shifted by the slots since, else a ramp from the
     // bias in force back to zero. Starting from zero everywhere looks free but isn't: the ramp
     // forces each replan to climb back, so a closed loop never got a coast deeper than −6 K.
-    const biases = startingPoint(state.bias, n, limits, previous);
+    // The ramp and warm start are on the shift: the bias in force and the previous plan, less
+    // the comfort bias under them.
+    const shiftNow = state.bias - held[0];
+    const biases = startingPoint(shiftNow, n, limits, previous?.map((b, k) => b - (held[k] ?? held[n - 1])));
     const ti = [...baseline.ti];
     const tm = [...baseline.tm];
     biases.forEach((b, j) => {
@@ -218,7 +246,7 @@ export function planShift(house: HouseParams, comfort: number, state: PlanState,
 
     const shapeOk = (j: number, value: number) => {
         if (value > limits.maxBias + 1e-9 || value < -limits.maxCoastBias - 1e-9) return false;
-        const before = j === 0 ? state.bias : biases[j - 1];
+        const before = j === 0 ? shiftNow : biases[j - 1];
         if (Math.abs(value - before) > RAMP_K_PER_SLOT + 1e-9) return false;
         if (j + 1 < n && Math.abs(biases[j + 1] - value) > RAMP_K_PER_SLOT + 1e-9) return false;
         // The coast cap limits living on stored heat, so only slots below comfort count: easing
@@ -261,12 +289,12 @@ export function planShift(house: HouseParams, comfort: number, state: PlanState,
     if (biases.every((b) => b === 0)) return nothing('no_gain');
     // From a warm start the search can end still holding a bias; an unchanged start is still a plan.
 
-    const plan = simulate(house, comfort, state, forecast, biases, pump);
+    const plan = simulate(house, comfort, state, forecast, total(biases), pump);
     // Clamps (pump at zero or flat out) break the linear picture; keep the band regardless.
     if (plan.ti.some((t, k) => t < floor[k] - 0.1 || t > ceiling[k] + 0.1)) return nothing('no_gain');
     const fair = fairCost(house, plan, reference, meanPrice, weight);
     if (fair >= baselineFair) return nothing('no_gain');
-    return {biases, plan, baseline, fairCost: fair, baselineFairCost: baselineFair};
+    return {biases: total(biases), comfort: held, shift: biases, plan, baseline, fairCost: fair, baselineFairCost: baselineFair};
 }
 
 /** The lever from history: hours of steady space heating (no hot water), heat against the

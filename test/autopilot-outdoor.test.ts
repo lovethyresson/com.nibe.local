@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {
     DEGRADED_LIMIT_MS, SENSOR_STALE_MS, forecastCorrection, learnForecastBias, newForecastBias, realOutdoor,
-    recordedOutdoor, usableSensor,
+    WIRED_TAU_H, recordedOutdoor, usableSensor, wiredExpected, wiredModel,
 } from '../lib/autopilot/outdoor';
 
 const now = 1_800_000_000_000;
@@ -76,4 +76,19 @@ test('a sensor stands for outdoor only when present, recent and in range', () =>
     assert.equal(usableSensor({...r, updatedAt: now - SENSOR_STALE_MS - 1}, now), undefined);
     assert.equal(usableSensor({...r, value: 85}, now), undefined);
     assert.equal(usableSensor(undefined, now), undefined);
+});
+
+test('the wired BT1 trails the sensor, and a slot is fed only when it leaves that', () => {
+    // A sensor stepping 5 → −3 °C: the wired reading follows over hours, 2.3 K warm.
+    const rows = [...Array.from({length: 96}, () => ({te: 5, bt1: 7.3})),
+        ...Array.from({length: 8}, (_, k) => ({te: -3, bt1: -3 + (5 - -3) * Math.exp(-(k + 1) * 0.25 / WIRED_TAU_H) + 2.3}))];
+    const model = wiredModel(rows)!;
+    assert.ok(Math.abs(model.offset - 2.3) < 0.05, `${model.offset}`);
+    const next = -3 + (model.lag - -3) * Math.exp(-0.25 / WIRED_TAU_H) + 2.3;
+    assert.ok(Math.abs(wiredExpected(model, -3) - next) < 0.05);
+    // Two hours into the drop input 1 is still ~5.6 K above the sensor: not fed.
+    assert.equal(recordedOutdoor(next, -3, undefined, model).fed, false);
+    assert.equal(recordedOutdoor(next, -3).fed, true, 'against the sensor alone it looked fed');
+    // A real feed 6 K off what the wired sensor should read is.
+    assert.equal(recordedOutdoor(next - 6, -3, undefined, model).fed, true);
 });

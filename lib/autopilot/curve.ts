@@ -243,3 +243,35 @@ function nonIncreasing(values: number[], weights: number[]): number[] {
     });
     return blocks.flatMap((b) => new Array(b.n).fill(b.v));
 }
+
+/** What the curve must see for `supply`: the inverse of `supplyAt`, end segments carried on. On a
+ *  flat stretch (min or max supply) any x there gives the same supply; the end nearer the rest of
+ *  the curve is returned, so a feed never goes further than it has to. Undefined when the curve
+ *  is flat everywhere. */
+export function curveInputFor(curve: SupplyCurve, supply: number): number | undefined {
+    const {knots, supply: s} = curve;
+    const n = knots.length;
+    if (s[0] - s[n - 1] < 1e-9) return undefined;
+    // Above the first knot's supply: carry the first sloped segment on to the left.
+    if (supply >= s[0]) {
+        const j = s.findIndex((v, i) => i > 0 && s[i - 1] - v > 1e-9);
+        // A flat top is max supply: nothing colder gives more.
+        if (j > 1) return knots[j - 1];
+        const slope = (s[j - 1] - s[j]) / KNOT_K;
+        return knots[j - 1] - (supply - s[j - 1]) / slope;
+    }
+    if (supply <= s[n - 1]) {
+        let j = n - 1;
+        while (j > 0 && s[j - 1] - s[j] <= 1e-9) j--;
+        const slope = (s[j - 1] - s[j]) / KNOT_K;
+        // On the flat floor any x past the last sloped knot gives min supply: stop where it starts.
+        return j === n - 1 ? knots[j] + (s[j] - supply) / slope : knots[j];
+    }
+    for (let j = 0; j + 1 < n; j++) {
+        if (supply <= s[j] && supply >= s[j + 1]) {
+            if (s[j] - s[j + 1] <= 1e-9) return knots[j];
+            return knots[j] + (s[j] - supply) / (s[j] - s[j + 1]) * KNOT_K;
+        }
+    }
+    return undefined;
+}

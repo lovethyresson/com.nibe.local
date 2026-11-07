@@ -26,6 +26,7 @@ import fs from 'node:fs';
 import {COP, planShift, simulate, steadyState} from '../lib/autopilot/planner.ts';
 import {PRESETS, limitsFor} from '../lib/autopilot/presets.ts';
 import {fedValue} from '../lib/autopilot/actuator.ts';
+import {comfortBias} from '../lib/autopilot/trim.ts';
 import {weatherSlots} from '../lib/autopilot/weather.ts';
 import {RADIATOR_HOUSE, SLAB_HOUSE, WEST_HOUSE} from '../test/autopilot-house-sim.ts';
 
@@ -65,15 +66,20 @@ const actual = loadWeather(option('weather'));
 const forecasted = loadWeather(option('forecast'), '_previous_day1') ?? actual;
 
 const houses = {};
+const learned = {};
 const model = option('model');
 if (model) {
     const text = /^https?:/.test(model) ? await (await fetch(model)).text() : fs.readFileSync(model, 'utf8');
-    const params = JSON.parse(text).fit?.params;
-    if (!params) {
+    const fit = JSON.parse(text).fit;
+    if (!fit?.params) {
         console.error('That model file has no fitted parameters yet.');
         process.exit(1);
     }
-    houses.yours = params;
+    houses.yours = fit.params;
+    // The learned curve and emission make the pump honest: doing nothing drifts with the weather
+    // and the comfort bias (trim.ts) is what holds comfort. --lever falls back to the old
+    // assumption that the curve holds comfort by itself.
+    if (fit.pump?.supply && fit.pump.heatPerSupplyK !== undefined && option('lever') === undefined) learned.yours = fit.pump;
 } else {
     houses.radiator = RADIATOR_HOUSE;
     houses.slab = SLAB_HOUSE;
@@ -88,30 +94,37 @@ const shape = (k) => {
 };
 const weatherAt = (source, slot, k) => source?.get(slot + k) ?? shape(k);
 
-function runDay(house, day, ahead, limits) {
-    const pump = {lever: leverShare * house.heatLoss};
+/** One day closed loop. `limits` undefined runs doing nothing (the bare curve) or, with `trim`,
+ *  the comfort bias alone; otherwise the planner at those limits. */
+function runDay(house, pump, day, ahead, limits, trim) {
     const prices = day.prices;
     const n = prices.length;
     const all = [...prices, ...ahead.prices];
     const truth = all.map((price, k) => ({price, ...weatherAt(actual, day.slot, k)}));
-    const trust = (w) => ({...w, sun: w.sun * limits.forecastTrust, sunE: (w.sunE ?? 0) * limits.forecastTrust,
-        sunW: (w.sunW ?? 0) * limits.forecastTrust});
+    const trustOf = limits?.forecastTrust ?? 1;
+    const trust = (w) => ({...w, sun: w.sun * trustOf, sunE: (w.sunE ?? 0) * trustOf, sunW: (w.sunW ?? 0) * trustOf});
     const forecast = all.map((price, k) => ({price, ...trust(weatherAt(forecasted, day.slot, k))}));
-    const start = steadyState(house, comfort, truth[0].te);
-    const base = simulate(house, comfort, start, truth.slice(0, n), new Array(n).fill(0), pump);
+    const start = steadyState(house, comfort, truth[0].te, pump);
     let state = {...start};
     let lastPlan;
     const ti = [];
     let cost = 0;
     for (let k = 0; k < n; k += 4) {
-        const plan = planShift(house, comfort, state, forecast.slice(k, k + 96), limits, pump, lastPlan);
-        lastPlan = plan.biases.slice(4);
+        const m = Math.min(4, n - k);
+        const held = forecast.slice(k, k + m).map((s) => comfortBias(house, pump, comfort, s.te));
+        let want;
+        if (limits) {
+            const plan = planShift(house, comfort, state, forecast.slice(k, k + 96), limits, pump, lastPlan);
+            lastPlan = plan.biases.slice(4);
+            want = plan.biases;
+        } else want = trim ? held : held.map(() => 0);
         const applied = [];
         let previous = state.bias;
-        const m = Math.min(4, n - k);
         for (let j = 0; j < m; j++) {
-            const out = fedValue({real: truth[k + j].te, bias: plan.biases[j], previousBias: previous,
-                maxBias: limits.maxBias, maxCoastBias: limits.maxCoastBias, auto, thresholds});
+            const out = limits || trim
+                ? fedValue({real: truth[k + j].te, bias: want[j], previousBias: previous, comfortBias: held[j],
+                    maxBias: limits?.maxBias ?? 0, maxCoastBias: limits?.maxCoastBias ?? 0, auto, thresholds})
+                : {bias: 0};
             applied.push(out.bias);
             previous = out.bias;
         }
@@ -120,35 +133,52 @@ function runDay(house, day, ahead, limits) {
         cost += sim.cost;
         state = {ti: sim.ti[m - 1], tm: sim.tm[m - 1], curve: sim.curveEnd, bias: applied[m - 1]};
     }
-    // Heat owed against a reference: degree-hours colder, plus stored heat short at the end.
-    // Warmth above it earns nothing (planner.ts `owedHeat`). Two references: doing nothing (the
-    // price-shift yardstick, which counts the sun's overshoot as comfort), and doing nothing
-    // capped at comfort (warmth above the setpoint is worth nothing, which credits easing off
-    // ahead of sun).
-    const owedAgainst = (refTi, refTm) => Math.max(0, house.ci * (refTi[n - 1] - state.ti) + house.cm * (refTm - state.tm))
-        + ti.reduce((a, t, k) => a + house.heatLoss * 0.25 * Math.max(0, refTi[k] - t), 0);
-    const owed = owedAgainst(base.ti, base.tm[n - 1]);
-    const steadyEnd = steadyState(house, comfort, truth[n - 1].te);
-    const capped = owedAgainst(base.ti.map((t) => Math.min(t, comfort)), Math.min(base.tm[n - 1], steadyEnd.tm));
     const rms = (xs) => Math.sqrt(mean(xs.map((t) => (t - comfort) ** 2)));
-    return {fair: 1 - (cost + owed / COP * mean(prices)) / base.cost, gross: 1 - cost / base.cost,
-        atComfort: 1 - (cost + capped / COP * mean(prices)) / base.cost,
-        min: Math.min(...ti), max: Math.max(...ti), rms: rms(ti), baseRms: rms(base.ti)};
+    return {ti, tmEnd: state.tm, tiEnd: state.ti, cost, min: Math.min(...ti), max: Math.max(...ti), rms: rms(ti),
+        mean: mean(ti), prices, n};
+}
+
+/** A run scored against a reference run of the same day: electricity saved, and saved once the
+ *  heat it owes the reference is bought back (planner.ts `owedHeat`: degree-hours colder, stored
+ *  heat short at the end, warmth above earning nothing), also against the reference capped at
+ *  comfort. */
+function score(house, run, ref) {
+    const {n} = run;
+    const owedAgainst = (refTi, refTiEnd, refTmEnd) => Math.max(0, house.ci * (refTiEnd - run.tiEnd) + house.cm * (refTmEnd - run.tmEnd))
+        + run.ti.reduce((a, t, k) => a + house.heatLoss * 0.25 * Math.max(0, refTi[k] - t), 0);
+    const owed = owedAgainst(ref.ti, ref.tiEnd, ref.tmEnd);
+    const capped = owedAgainst(ref.ti.map((t) => Math.min(t, comfort)), Math.min(ref.tiEnd, comfort), ref.tmEnd);
+    return {fair: 1 - (run.cost + owed / COP * mean(run.prices)) / ref.cost, gross: 1 - run.cost / ref.cost,
+        atComfort: 1 - (run.cost + capped / COP * mean(run.prices)) / ref.cost};
 }
 
 console.log(`${days.length - 1} days with look-ahead, ${days[0]?.date} → ${days.at(-2)?.date}, price = ${formula}, lever ${leverShare}·H, ${auto ? `Auto, stop ${thresholds.stopHeating} °C` : 'Manual'}, comfort ${comfort} °C, `
     + (actual ? `real weather${option('forecast') ? ', planned on the day-ahead forecast' : ', perfect forecast'}` : `weather shape around ${outdoor} °C`));
 const pct = (v) => `${(v * 100).toFixed(1)} %`;
+const indoor = (runs) => `indoor ${Math.min(...runs.map((r) => r.min)).toFixed(1)}–${Math.max(...runs.map((r) => r.max)).toFixed(1)} °C`
+    + ` (mean ${mean(runs.map((r) => r.mean)).toFixed(2)}), off comfort ${mean(runs.map((r) => r.rms)).toFixed(2)} K RMS`;
 for (const [name, house] of Object.entries(houses)) {
+    const pump = learned[name] ?? {lever: leverShare * house.heatLoss};
+    const each = (f) => days.slice(0, -1).map((d, i) => f(d, days[i + 1]));
+    const nothing = each((d, a) => runDay(house, pump, d, a));
+    const held = each((d, a) => runDay(house, pump, d, a, undefined, true));
+    if (learned[name]) {
+        console.log(`${name.padEnd(9)} pump: learned curve, ${(pump.heatPerSupplyK * 1000).toFixed(0)} W per K of supply`);
+        console.log(`${name.padEnd(9)} ${'nothing'.padEnd(12)} electricity ${mean(nothing.map((r) => r.cost)).toFixed(2)}/day, ${indoor(nothing)}`);
+        const vs = held.map((r, i) => score(house, r, nothing[i]));
+        console.log(`${name.padEnd(9)} ${'trim only'.padEnd(12)} electricity ${mean(held.map((r) => r.cost)).toFixed(2)}/day`
+            + ` (${pct(-mean(vs.map((v) => v.gross)))} vs nothing), ${indoor(held)}`);
+    }
     for (const id of ['comfortable', 'save_some', 'save_most']) {
         const limits = limitsFor(PRESETS[id]);
         // Explore beyond the presets' +20/−15 K: scales both sides' limit by the preset's share.
         if (maxBias) limits.maxBias = limits.maxCoastBias = Number(maxBias) * PRESETS[id].stored;
-        const runs = days.slice(0, -1).map((d, i) => runDay(house, d, days[i + 1], limits));
-        console.log(`${name.padEnd(9)} ${id.padEnd(12)} fair ${pct(mean(runs.map((r) => r.fair))).padStart(6)}`
-            + ` (best day ${pct(Math.max(...runs.map((r) => r.fair)))}), at comfort ${pct(mean(runs.map((r) => r.atComfort)))},`
-            + ` gross ${pct(mean(runs.map((r) => r.gross)))},`
-            + ` indoor ${Math.min(...runs.map((r) => r.min)).toFixed(1)}–${Math.max(...runs.map((r) => r.max)).toFixed(1)} °C,`
-            + ` off comfort ${mean(runs.map((r) => r.rms)).toFixed(2)} K RMS (doing nothing ${mean(runs.map((r) => r.baseRms)).toFixed(2)})`);
+        const runs = each((d, a) => runDay(house, pump, d, a, limits));
+        // Price shifting is judged against holding comfort: trim only (= doing nothing when the
+        // curve is assumed to hold comfort).
+        const s = runs.map((r, i) => score(house, r, held[i]));
+        console.log(`${name.padEnd(9)} ${id.padEnd(12)} fair ${pct(mean(s.map((r) => r.fair))).padStart(6)}`
+            + ` (best day ${pct(Math.max(...s.map((r) => r.fair)))}), at comfort ${pct(mean(s.map((r) => r.atComfort)))},`
+            + ` gross ${pct(mean(s.map((r) => r.gross)))}, ${indoor(runs)}`);
     }
 }

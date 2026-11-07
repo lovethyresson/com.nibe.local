@@ -14,7 +14,7 @@ import {
 import {DailyFit, HouseAnswers, HouseFit, drifting, fitHistory, readiness, recordDailyFit} from './house';
 import {houseInsights, insightsLine} from './insights';
 import {ForecastBias, forecastCorrection, learnForecastBias, newForecastBias, usableSensor} from './outdoor';
-import {SHADOW_PRESETS, ShadowMemory, curveComfort, shadowForecast, shadowStep} from './shadow';
+import {SHADOW_PRESETS, ShadowMemory, curveViewOf, shadowForecast, shadowStep, wiredOf} from './shadow';
 import {PumpThresholds} from './actuator';
 
 const HOUR = 60 * 60 * 1000;
@@ -180,6 +180,7 @@ export class AutopilotCollector {
             rh: weather.rh, cloud: weather.cloud};
         const sensor = this.sensorSums.get(slot);
         if (sensor && sensor.n >= SENSOR_MIN_READINGS) context.sensor = sensor.sum / sensor.n;
+        context.wired = wiredOf(this.history);
         for (const s of [...this.sensorSums.keys()]) if (s <= slot) this.sensorSums.delete(s);
         if (weather && Number.isFinite(weather.te))
             context.outdoor = weather.te + forecastCorrection(this.forecastBias, this.localHour(slot));
@@ -305,7 +306,8 @@ export class AutopilotCollector {
         const c = this.controls;
         if (!fit?.params || !fit.state) return skip('no model');
         if (!Number.isFinite(values.ti) || !Number.isFinite(values.te)) return skip('no reading');
-        const comfort = curveComfort(this.history, slot, values.ti) ?? c.comfort;
+        // The setpoint: Autopilot holds it itself (trim.ts), with room-sensor control off.
+        const comfort = c.comfort;
         if (comfort === undefined || c.mode === undefined) return skip('no settings');
         if (c.mode === 2) return skip('immersion only');
         const next = slot + 1;
@@ -318,7 +320,7 @@ export class AutopilotCollector {
             house: fit.params, pump: fit.pump, ti: values.ti,
             // The mass moves slowly: the hourly fit's is close enough, the air is the reading.
             tm: fit.state.tm, comfort, real: values.te, auto: c.mode === 0, thresholds: c.thresholds,
-            forecast, memory: this.shadowMemory,
+            forecast, memory: this.shadowMemory, wired: wiredOf(this.history), curveNow: curveViewOf(this.history),
             slots: this.shadowSlot !== undefined && slot > this.shadowSlot ? Math.min(4, slot - this.shadowSlot) : 1,
         });
         this.shadowMemory = out.memory;

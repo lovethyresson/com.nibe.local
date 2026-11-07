@@ -1,6 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {AHEAD, SHADOW_PRESETS, ShadowMemory, curveComfort, shadowForecast, shadowStep} from '../lib/autopilot/shadow';
+import {AHEAD, SHADOW_PRESETS, ShadowMemory, curveViewOf, shadowForecast, shadowStep, wiredOf} from '../lib/autopilot/shadow';
+import {fitSupplyCurve} from '../lib/autopilot/curve';
+import {comfortBias} from '../lib/autopilot/trim';
 import {FIELDS, History, roomControlOff} from '../lib/autopilot/history';
 import {steadyState, ForecastSlot} from '../lib/autopilot/planner';
 import {RADIATOR_HOUSE} from './autopilot-house-sim';
@@ -56,18 +58,50 @@ test('the forecast runs as far as the weather does, with the outdoor correction 
     assert.equal(shadowForecast(9, weather, prices, () => 0).length, 0);
 });
 
-test('with room-sensor control off, comfort is where the curve has kept the house', () => {
+test('with a learned curve, presets plan on top of the bias that holds comfort', () => {
+    // A curve well short of what 0 °C outdoor needs: doing nothing drifts cold.
+    const supply = fitSupplyCurve(Array.from({length: 200}, (_, i) => ({x: -10 + i * 0.15, supply: 30 - 0.5 * (-10 + i * 0.15)})))!;
+    const pump = {supply, heatPerSupplyK: 0.25};
+    const cold = Array.from({length: 96}, () => ({te: 0, sun: 0, price: 1}));
+    const step = (memory: ShadowMemory) => shadowStep({house, pump, ti: 21, tm: 21, comfort: 21, real: 0, auto: false,
+        thresholds: {}, forecast: cold, memory, curveNow: 0});
+    const held = comfortBias(house, pump, 21, 0);
+    assert.ok(held > 3, `${held}: the curve alone is short, so holding comfort pre-heats`);
+    // Flat prices: nothing to shift, so each preset ramps onto the comfort bias and stays there.
+    let out = step({});
+    const last: Record<string, number> = {comfortable: 0, save_some: 0, save_most: 0};
+    for (let k = 0; k < 8; k++) {
+        for (const id of SHADOW_PRESETS) {
+            const p = out.presets[id]!;
+            assert.equal(p.comfortBias, Math.round(held * 10) / 10);
+            assert.ok(p.bias - last[id] <= RAMP_K_PER_SLOT + 1e-9 && p.bias >= last[id] - 1e-9, `${id} ${k}: ${last[id]} → ${p.bias}`);
+            last[id] = p.bias;
+        }
+        out = step(out.memory);
+    }
+    for (const id of SHADOW_PRESETS) assert.ok(Math.abs(last[id] - held) < 0.6, `${id}: ${last[id]} vs ${held}`);
+    assert.ok(out.baseline[1] < 21 - 0.2, `${out.baseline}: doing nothing drifts below comfort`);
+});
+
+test('doing nothing feeds the wired BT1, which trails the outdoor temperature', () => {
+    const supply = fitSupplyCurve(Array.from({length: 200}, (_, i) => ({x: -10 + i * 0.15, supply: 40 - 0.5 * (-10 + i * 0.15)})))!;
+    const pump = {supply, heatPerSupplyK: 0.25};
+    const falling = Array.from({length: 96}, (_, k) => ({te: 5 - k * 0.1, sun: 0, price: 1}));
+    const base = {house, pump, ti: 21, tm: 21, comfort: 21, real: 5, auto: false, thresholds: {}, forecast: falling, memory: {}, curveNow: 5};
+    const plain = shadowStep(base).baseline;
+    const lagged = shadowStep({...base, wired: {lag: 5, offset: 0}}).baseline;
+    // The wired sensor still reads warm as it turns colder, so the pump gives less heat.
+    assert.ok(lagged[1] < plain[1], `${lagged} vs ${plain}`);
+});
+
+test('the wired BT1 model and the curve\'s view come from the history', () => {
     const history = new History(200);
-    const put = (slot: number, ti: number, roomctl: number) =>
-        history.put(slot, {...Object.fromEntries(FIELDS.map((f) => [f, NaN])), ti, roomctl, flags: 0} as any);
-    for (let k = 0; k < 10; k++) put(1000 + k, 22.5, 1); // the room loop holding the setpoint
-    for (let k = 10; k < 20; k++) put(1000 + k, 21 + (k % 2), 0);
-    assert.equal(curveComfort(history, 1019, 21.3), 21.5); // only the loop-off slots count
-    put(1020, 22.5, 1);
-    assert.equal(curveComfort(history, 1020, 22.5), undefined); // loop on: the setpoint is comfort
-    put(1021, NaN, 0);
-    put(1021 + 200, 20, 0); // a day later the old slots have left the window
-    assert.equal(curveComfort(history, 1221, 20), 20);
+    for (let k = 0; k < 100; k++)
+        history.put(1000 + k, {...Object.fromEntries(FIELDS.map((f) => [f, NaN])), te: 3, bt1: 5.3, flags: 0} as any);
+    const wired = wiredOf(history)!;
+    assert.ok(Math.abs(wired.lag - 3) < 1e-9);
+    assert.ok(Math.abs(wired.offset - 2.3) < 1e-6);
+    assert.ok(Math.abs(curveViewOf(history)! - 5.3) < 1e-6);
 });
 
 test('room control counts as off when 202 says so or the offset answers', () => {

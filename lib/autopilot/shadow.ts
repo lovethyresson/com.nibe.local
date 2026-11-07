@@ -7,12 +7,18 @@
  *  read as the sequence it would really have sent, ramps and coasts included, although the house
  *  it plans from is the one doing nothing. That is the evidence for the preset table (§7.4) and
  *  for the gain far from the real outdoor temperature (§7.4, M0 measured ±5 K only), before
- *  anything is fed. */
+ *  anything is fed.
+ *
+ *  Comfort is the setpoint. Each preset plans a shift on top of the comfort bias (trim.ts), the
+ *  feed that holds comfort with room-sensor control off, which Autopilot requires. "Doing
+ *  nothing" is the pump as it is: its curve on the wired BT1, which trails the real outdoor
+ *  temperature (outdoor.ts `WIRED_TAU_H`). */
 import {HouseParams} from './model';
 import {ForecastSlot, PlanState, PumpCurve, planShift, simulate} from './planner';
 import {PRESETS, PresetId, limitsFor} from './presets';
 import {ClampReason, PumpThresholds, curveInput, fedValue} from './actuator';
-import {History, roomControlOff} from './history';
+import {History} from './history';
+import {WIRED_TAU_H, WiredModel, wiredModel} from './outdoor';
 
 export const SHADOW_PRESETS: PresetId[] = ['comfortable', 'save_some', 'save_most'];
 /** 24 h: today's prices and, after 13:00, tomorrow's. */
@@ -20,19 +26,22 @@ export const HORIZON = 96;
 /** The slots ahead the log keeps a prediction for: 1 h and 6 h. */
 export const AHEAD = [4, 24] as const;
 
-/** Comfort with room-sensor control off: indoor's mean over the last day of slots with it off,
- *  else indoor now. The setpoint (2505) only steers the room loop, so with the loop off the house
- *  sits where the curve puts it, and planning to the setpoint read the gap as a deficit to buy
- *  back: on 2026-11-02 Comfortable pre-heated 71 % of slots against a setpoint 1 K above the
- *  house. Undefined with the loop on (or not read): then the setpoint is comfort. */
-export function curveComfort(history: History, slot: number, ti: number): number | undefined {
-    if (!roomControlOff(history.get(slot))) return undefined;
-    const readings: number[] = [];
-    for (let s = slot - HORIZON + 1; s <= slot; s++) {
-        const v = history.get(s);
-        if (v && roomControlOff(v) && Number.isFinite(v.ti)) readings.push(v.ti);
+/** The wired BT1 against the recorded outdoor temperature over the history (outdoor.ts). */
+export function wiredOf(history: History): WiredModel | undefined {
+    return wiredModel(history.range().map((slot) => {
+        const v = history.get(slot)!;
+        return {te: v.te, bt1: v.bt1};
+    }));
+}
+
+/** The curve's filtered view of input 1 after the last slot (§4.5), from the last 4 h. */
+export function curveViewOf(history: History): number | undefined {
+    let x: number | undefined;
+    for (const slot of history.range().slice(-16)) {
+        const bt1 = history.get(slot)!.bt1;
+        if (Number.isFinite(bt1)) x = x === undefined ? bt1 : curveInput(x, bt1);
     }
-    return readings.length ? readings.reduce((a, b) => a + b, 0) / readings.length : ti;
+    return x;
 }
 
 /** What each preset carries from one slot to the next. */
@@ -64,11 +73,17 @@ export interface ShadowInput {
     memory: ShadowMemory;
     /** Slots since the previous step, for the ramp and the warm start. */
     slots?: number;
+    /** The wired BT1 model and the curve's view of input 1 now: what doing nothing feeds. Without
+     *  them, doing nothing is the curve on the real outdoor temperature. */
+    wired?: WiredModel;
+    curveNow?: number;
 }
 
 export interface PresetEntry {
     /** Bias and fed value for the next slot, after the actuator's clamps. */
     bias: number;
+    /** Of that bias, what holds comfort (trim.ts); the rest is the preset's shift. */
+    comfortBias: number;
     fed: number;
     clamped: ClampReason[];
     reason?: string;
@@ -95,7 +110,7 @@ export function shadowStep(input: ShadowInput): ShadowOutput {
     const pump = input.pump ?? {};
     for (const id of SHADOW_PRESETS) {
         const limits = limitsFor(PRESETS[id]);
-        const previous = input.memory[id] ?? {bias: 0, curve: input.real, plan: []};
+        const previous = input.memory[id] ?? {bias: 0, curve: input.curveNow ?? input.real, plan: []};
         const trust = limits.forecastTrust;
         const discounted = forecast.map((s) => ({...s, sun: s.sun * trust,
             sunE: (s.sunE ?? 0) * trust, sunW: (s.sunW ?? 0) * trust}));
@@ -103,18 +118,24 @@ export function shadowStep(input: ShadowInput): ShadowOutput {
         const plan = planShift(input.house, input.comfort, state, discounted, limits, pump,
             previous.plan.slice(steps - 1));
         const applied = fedValue({real: input.real, bias: plan.biases[0], previousBias: previous.bias,
-            maxBias: limits.maxBias, maxCoastBias: limits.maxCoastBias, auto: input.auto, thresholds: input.thresholds, slots: steps});
+            comfortBias: plan.comfort[0], maxBias: limits.maxBias, maxCoastBias: limits.maxCoastBias, auto: input.auto, thresholds: input.thresholds, slots: steps});
         out.presets[id] = {
-            bias: applied.bias, fed: applied.fed, clamped: applied.clamped, reason: plan.reason,
+            bias: applied.bias, comfortBias: round(plan.comfort[0], 1), fed: applied.fed, clamped: applied.clamped, reason: plan.reason,
             ahead: AHEAD.map((k) => round(plan.plan.ti[k - 1] ?? NaN)),
             saving: round(1 - plan.fairCost / plan.baselineFairCost, 4),
         };
         out.memory[id] = {bias: applied.bias, curve: curveInput(previous.curve, applied.fed), plan: plan.biases.slice(1)};
     }
-    // What the house is really doing: nothing fed, the curve on the real outdoor temperature, the
-    // forecast's sun in full.
-    const nothing = simulate(input.house, input.comfort, {ti: input.ti, tm: input.tm, curve: input.real, bias: 0},
-        forecast, forecast.map(() => 0), pump);
+    // What the house is really doing: nothing fed, the curve on the wired BT1 (the forecast
+    // through the sensor's lag, plus its offset), the forecast's sun in full.
+    let lag = input.wired?.lag;
+    const unfed = forecast.map((s) => {
+        if (!input.wired || lag === undefined) return 0;
+        lag = s.te + (lag - s.te) * Math.exp(-0.25 / WIRED_TAU_H);
+        return s.te - (lag + input.wired.offset);
+    });
+    const nothing = simulate(input.house, input.comfort, {ti: input.ti, tm: input.tm, curve: input.curveNow ?? input.real, bias: 0},
+        forecast, unfed, pump);
     out.baseline = AHEAD.map((k) => round(nothing.ti[k - 1] ?? NaN));
     return out;
 }

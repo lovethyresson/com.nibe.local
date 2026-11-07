@@ -80,10 +80,47 @@ export function realOutdoor(input: OutdoorInput): OutdoorReading {
     return {goNeutral: input.feeding};
 }
 
-/** Input 1 further than this from the reference is a fed BT1, not the weather: a probe, a Flow
- *  card, another app. Forecast error after the per-hour correction is ~1–2 K; a fed offset worth
- *  testing is ≥ 5 K. */
+/** Input 1 further than this from what the wired sensor is expected to read is a fed BT1, not
+ *  the weather: a probe, a Flow card, another app. Unfed, the S1155's input 1 stays within 2.1 K
+ *  of the expectation (`wiredExpected`); a fed offset worth testing is ≥ 5 K. */
 export const FED_OUTDOOR_K = 3;
+
+/** The wired BT1 against the owner's sensor (S1155, 2026-11-04…07): the sensor through a
+ *  first-order lag of ~5.5 h, plus a fixed offset (+2.3 K there: a wall-mounted sensor reads
+ *  warm). Compared with the sensor directly, input 1 lagged by up to 6 K on a falling evening,
+ *  which flagged most cold nights as fed. */
+export const WIRED_TAU_H = 5.5;
+/** The offset is the median over this many recent slots, robust to the odd fed stretch. */
+const WIRED_OFFSET_SLOTS = 7 * 96;
+
+export interface WiredModel {
+    /** The reference outdoor temperature through the wired sensor's lag, at the last slot. */
+    lag: number;
+    /** Median of input 1 minus `lag`, K. */
+    offset: number;
+}
+
+/** Steps the lag over slots of reference outdoor `te` and input 1 `bt1`, oldest first. A missing
+ *  `te` restarts the lag. Undefined until a lag and an offset exist. */
+export function wiredModel(rows: {te: number; bt1: number}[], slotH = 0.25, tauH = WIRED_TAU_H): WiredModel | undefined {
+    let lag: number | undefined;
+    const diffs: number[] = [];
+    const a = Math.exp(-slotH / tauH);
+    for (const r of rows) {
+        if (!Number.isFinite(r.te)) { lag = undefined; continue; }
+        lag = lag === undefined ? r.te : r.te + (lag - r.te) * a;
+        if (Number.isFinite(r.bt1)) diffs.push(r.bt1 - lag);
+    }
+    if (lag === undefined || diffs.length === 0) return undefined;
+    const recent = diffs.slice(-WIRED_OFFSET_SLOTS).sort((x, y) => x - y);
+    return {lag, offset: recent[recent.length >> 1]};
+}
+
+/** What input 1 should read this slot when nothing feeds it, from the model after the previous
+ *  slot and this slot's reference outdoor temperature. */
+export function wiredExpected(model: WiredModel, te: number, slotH = 0.25, tauH = WIRED_TAU_H): number {
+    return te + (model.lag - te) * Math.exp(-slotH / tauH) + model.offset;
+}
 
 export interface RecordedOutdoor {
     value: number;
@@ -93,11 +130,14 @@ export interface RecordedOutdoor {
 }
 
 /** What a history slot records as outdoor: the owner's sensor, else the pump's wired reading
- *  unless it was fed, else the corrected forecast. `sensor` and `forecast` are slot means. */
-export function recordedOutdoor(wired: number, sensor?: number, forecast?: number): RecordedOutdoor {
+ *  unless it was fed, else the corrected forecast. `sensor` and `forecast` are slot means. With a
+ *  `model` of the wired sensor, fed is judged against what it should read (`wiredExpected`);
+ *  without one, against the reference itself. */
+export function recordedOutdoor(wired: number, sensor?: number, forecast?: number, model?: WiredModel): RecordedOutdoor {
     const finite = (v?: number): v is number => typeof v === 'number' && Number.isFinite(v);
     const reference = finite(sensor) ? sensor : forecast;
-    const fed = finite(wired) && finite(reference) && Math.abs(wired - reference) > FED_OUTDOOR_K;
+    const expected = finite(reference) && model ? wiredExpected(model, reference) : reference;
+    const fed = finite(wired) && finite(expected) && Math.abs(wired - expected) > FED_OUTDOOR_K;
     if (finite(sensor)) return {value: sensor, source: 'sensor', fed};
     if (finite(wired) && !fed) return {value: wired, source: 'wired', fed};
     if (finite(forecast)) return {value: forecast, source: 'forecast', fed};

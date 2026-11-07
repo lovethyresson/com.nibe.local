@@ -1,7 +1,7 @@
 /** 15-minute history of what the house model learns from. Pure: no timers, no I/O.
  *  Design: docs/autopilot-plan.md §5.4. */
 import {SLOT_MS, slotOf} from './prices';
-import {recordedOutdoor} from './outdoor';
+import {WiredModel, recordedOutdoor} from './outdoor';
 
 /** Per-slot fields, in storage order. Appending is safe (a file with fewer fields loads with the
  *  new ones missing); reordering needs a VERSION bump. */
@@ -67,6 +67,8 @@ export interface SlotContext {
     outdoor?: number;
     /** The owner's outdoor sensor, mean over the slot. */
     sensor?: number;
+    /** The wired BT1 against the recorded outdoor temperature up to the previous slot. */
+    wired?: WiredModel;
 }
 
 /** Ring buffer of closed slots. Missing values are NaN. */
@@ -211,11 +213,11 @@ export class Aggregator {
         values.coverage = Math.min(1, this.polls / expected);
         let flags = this.flags;
         if (values.coverage < PARTIAL_BELOW) flags |= FLAG.partial;
-        const {price, weather, outdoor, sensor} = this.context(slot);
+        const {price, weather, outdoor, sensor, wired} = this.context(slot);
         // Input 1 shows whatever BT1 is fed. The house model wants the real outdoor temperature;
         // the heat curve works from what was fed, so that is kept too.
         values.bt1 = values.te;
-        const te = recordedOutdoor(values.te, sensor, outdoor);
+        const te = recordedOutdoor(values.te, sensor, outdoor, wired);
         values.te = te.value;
         if (te.fed) flags |= FLAG.fedOutdoor;
         if (te.source === 'sensor') flags |= FLAG.sensorOutdoor;
