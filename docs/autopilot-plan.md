@@ -774,6 +774,21 @@ Runs every 15 min and on new prices or weather. Horizon: 24–36 h of slots.
 1. **Trim** (always on): a PI loop on `ti − comfort`, gain-scheduled by model τ.
    - Feed-forward from predicted solar gain (×0.7) and the outdoor forecast over τ/4.
    - This is the Ngenic-class efficiency loop. It needs no prices.
+   - **Built as feed-forward first (2026-11-07, `lib/autopilot/trim.ts`, shadow only).** The
+     room-off run (2026-11-04…07, room-sensor control off as Autopilot requires) showed the curve
+     alone does not hold comfort: indoor drifted ~1.5 K with the weather at every offset. So
+     "doing nothing holds comfort", the planner's first assumption, was dropped:
+     - The pump delivers `heatPerSupplyK × (supply − indoor)`, supply from the learned curve
+       (`pumpHeat`). On that run it predicts indoor as well as the heat meter does: 6 h 0.33 K,
+       24 h 0.49 K RMS against 0.30 / 0.48 K (`dev/check-supply-model.mjs`).
+     - The **comfort bias** inverts it: the supply that holds the setpoint at the outdoor
+       temperature, and what the curve must see for it. The planner's "doing nothing" is holding
+       comfort; presets plan a shift on top, and the profile's limits apply to the shift.
+     - Both the supply model and the meter run ~0.4 K cold over 24 h on that run (the house model,
+       not the pump), so a correction on measured indoor is still needed: the integral, in M3,
+       where there is a loop to close.
+   - **The wired BT1 trails the real outdoor temperature** (S1155: the sensor through a ~5.5 h
+     lag, +2.3 K). Shadow's doing nothing feeds that; the fed flag compares input 1 with it.
 2. **Price shift** (dynamic contract and model ready):
    - Coast in expensive blocks; pre-heat beforehand only when the model says the band can hold.
    - **With radiators** (short τ), coasting dominates: a few hours of −bias through a peak, with a

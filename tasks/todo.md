@@ -57,6 +57,16 @@ never built.
 closed-loop bench, the own-state fed flag, and the shadow log fields; installed so shadow plans
 with them. **5b (M3, after the exit criteria):** controller, guards, 5217 writes, switch.
 
+5a done 2026-11-07, installed 21:11 (commits 00cccb5, 6ec3658, and the review-shadow one):
+- [x] Curve learner keeps points through offset changes (1.49 K per step on the S1155).
+- [x] `pumpHeat` from supply; checked: 6 h 0.33 K / 24 h 0.49 K RMS, as good as the meter.
+- [x] `trim.ts` comfort bias (feed-forward); planner plans the shift on top; actuator limits the shift.
+- [x] Shadow: setpoint is comfort; doing nothing on the lagged wired BT1; entries log `comfortBias`.
+- [x] Fed flag against the wired-BT1 model (no false positives since 4 Nov; was 66 a day).
+- [x] Bench on the learned curve: trim only holds 22.56 °C, 0.09 K RMS (doing nothing at +6:
+      23.08 °C, 0.68 K); presets on top 1.1 / 1.8 / 7.2 %.
+- Not built, on purpose: the integral (needs a loop, M3). Own-state fed flag (nothing feeds yet).
+
 **Before it touches the pump.**
 - [ ] `trim.ts` + unit tests (steady state at comfort, step in outdoor, sensor bias, windup).
 - [ ] Planner baseline around the comfort bias + tests; the existing planner tests stay green.
