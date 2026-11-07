@@ -100,17 +100,22 @@ export interface WiredModel {
     offset: number;
 }
 
-/** Steps the lag over slots of reference outdoor `te` and input 1 `bt1`, oldest first. A missing
- *  `te` restarts the lag. Undefined until a lag and an offset exist. */
-export function wiredModel(rows: {te: number; bt1: number}[], slotH = 0.25, tauH = WIRED_TAU_H): WiredModel | undefined {
+/** Steps the lag over slots of reference outdoor `te` and input 1 `bt1`, oldest first, by the
+ *  time since the previous row (`slot` numbers; consecutive when absent). A missing `te`, or a
+ *  gap longer than the lag itself, restarts it. Undefined until a lag and an offset exist. */
+export function wiredModel(rows: {slot?: number; te: number; bt1: number}[], slotH = 0.25, tauH = WIRED_TAU_H): WiredModel | undefined {
     let lag: number | undefined;
+    let last: number | undefined;
     const diffs: number[] = [];
-    const a = Math.exp(-slotH / tauH);
-    for (const r of rows) {
-        if (!Number.isFinite(r.te)) { lag = undefined; continue; }
-        lag = lag === undefined ? r.te : r.te + (lag - r.te) * a;
+    rows.forEach((r, i) => {
+        const slot = r.slot ?? i;
+        const steps = last === undefined ? 1 : slot - last;
+        last = slot;
+        if (!Number.isFinite(r.te) || steps * slotH > tauH) lag = undefined;
+        if (!Number.isFinite(r.te)) return;
+        lag = lag === undefined ? r.te : r.te + (lag - r.te) * Math.exp(-steps * slotH / tauH);
         if (Number.isFinite(r.bt1)) diffs.push(r.bt1 - lag);
-    }
+    });
     if (lag === undefined || diffs.length === 0) return undefined;
     const recent = diffs.slice(-WIRED_OFFSET_SLOTS).sort((x, y) => x - y);
     return {lag, offset: recent[recent.length >> 1]};

@@ -164,10 +164,12 @@ for (const [name, house] of Object.entries(houses)) {
     const held = each((d, a) => runDay(house, pump, d, a, undefined, true));
     if (learned[name]) {
         console.log(`${name.padEnd(9)} pump: learned curve, ${(pump.heatPerSupplyK * 1000).toFixed(0)} W per K of supply`);
-        console.log(`${name.padEnd(9)} ${'nothing'.padEnd(12)} electricity ${mean(nothing.map((r) => r.cost)).toFixed(2)}/day, ${indoor(nothing)}`);
+        console.log(`${name.padEnd(9)} ${'nothing'.padEnd(12)} cost ${mean(nothing.map((r) => r.cost)).toFixed(2)}/day, ${indoor(nothing)}`);
         const vs = held.map((r, i) => score(house, r, nothing[i]));
-        console.log(`${name.padEnd(9)} ${'trim only'.padEnd(12)} electricity ${mean(held.map((r) => r.cost)).toFixed(2)}/day`
+        console.log(`${name.padEnd(9)} ${'trim only'.padEnd(12)} cost ${mean(held.map((r) => r.cost)).toFixed(2)}/day`
             + ` (${pct(-mean(vs.map((v) => v.gross)))} vs nothing), ${indoor(held)}`);
+        // The house here is the model itself, so trim holding comfort shows the inversion is
+        // consistent, not that it works on the house: dev/check-supply-model.mjs is that check.
     }
     for (const id of ['comfortable', 'save_some', 'save_most']) {
         const limits = limitsFor(PRESETS[id]);

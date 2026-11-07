@@ -91,4 +91,12 @@ test('the wired BT1 trails the sensor, and a slot is fed only when it leaves tha
     assert.equal(recordedOutdoor(next, -3).fed, true, 'against the sensor alone it looked fed');
     // A real feed 6 K off what the wired sensor should read is.
     assert.equal(recordedOutdoor(next - 6, -3, undefined, model).fed, true);
+
+    // A gap in the history decays the lag for the time it lasted, not for one slot.
+    const before = wiredModel([{slot: 0, te: 5, bt1: 5}, {slot: 1, te: 5, bt1: 5}])!;
+    const gap = wiredModel([{slot: 0, te: 5, bt1: 5}, {slot: 1, te: 5, bt1: 5}, {slot: 9, te: -3, bt1: 5}])!;
+    assert.ok(Math.abs(before.lag - 5) < 1e-9);
+    assert.ok(Math.abs(gap.lag - (-3 + 8 * Math.exp(-8 * 0.25 / WIRED_TAU_H))) < 1e-9, `${gap.lag}`);
+    // Longer than the lag itself: it starts over from the reading.
+    assert.equal(wiredModel([{slot: 0, te: 5, bt1: 5}, {slot: 40, te: -3, bt1: -1}])!.lag, -3);
 });

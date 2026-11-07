@@ -30,7 +30,7 @@ export const AHEAD = [4, 24] as const;
 export function wiredOf(history: History): WiredModel | undefined {
     return wiredModel(history.range().map((slot) => {
         const v = history.get(slot)!;
-        return {te: v.te, bt1: v.bt1};
+        return {slot, te: v.te, bt1: v.bt1};
     }));
 }
 

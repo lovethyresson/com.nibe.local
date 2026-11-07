@@ -102,7 +102,6 @@ export function simulate(house: HouseParams, comfort: number, state: PlanState, 
     return out;
 }
 
-/** Air and mass when the curve has held `comfort` at outdoor `te` for long. */
 /** Air and mass when comfort has been held at outdoor `te` for long, and the curve's view and
  *  bias that held it: the comfort bias, with a pump that needs one (trim.ts). */
 export function steadyState(house: HouseParams, comfort: number, te: number, pump?: PumpCurve): PlanState {
