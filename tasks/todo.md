@@ -67,6 +67,24 @@ with them. **5b (M3, after the exit criteria):** controller, guards, 5217 writes
       23.08 °C, 0.68 K); presets on top 1.1 / 1.8 / 7.2 %.
 - Not built, on purpose: the integral (needs a loop, M3). Own-state fed flag (nothing feeds yet).
 
+**Review (2026-11-07, after install).**
+- Fixed: the wired lag didn't decay across history gaps; a stale duplicate doc comment; the bench
+  printed cost as "electricity".
+- The bench's "trim only holds 0.09 K" runs the model against itself: it shows the inversion is
+  consistent, not that it holds a real house. The real check is `dev/check-supply-model.mjs`, and
+  24 h windows cannot test the static balance on a house with τ ≈ 130 h.
+- First live shadow entry (21:15): indoor 21.1 °C, outdoor 2.8 °C, setpoint 22.5, comfort bias
+  **−2.2 K** (coast). The comfort bias is steady state only: by the model, the curve at +6 holds
+  22.5 °C at 2.8 °C in the long run, and recovery from 1.4 K below is left to the planner.
+- **Testable prediction:** at +6 and ~3 °C the model's steady state is ~23.3 °C. If indoor
+  settles near 21–21.5 instead over the next days, the static balance (heat loss vs emission) is
+  off by ~2 K and the comfort bias is wrong in sign here; that would block 5b and point at the
+  heat-loss/emission fit, not the planner. Hot water took up to a third of the day's compressor
+  time on 7 Nov, which the steady-state balance does not count.
+- 5b will need: an integral on `ti − comfort`; the wired-BT1 offset learned from unfed slots only
+  (a fed stretch would dominate the median); the previous-plan warm start converted once after an
+  upgrade (old shadow memory holds pre-trim biases, a few slots of transient).
+
 **Before it touches the pump.**
 - [ ] `trim.ts` + unit tests (steady state at comfort, step in outdoor, sensor bias, windup).
 - [ ] Planner baseline around the comfort bias + tests; the existing planner tests stay green.
