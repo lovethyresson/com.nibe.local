@@ -366,3 +366,15 @@ everywhere, code and docs included.
 
 **Rule:** never write "smart heating" for this feature, in code, docs or owner-facing text. The
 name is **Autopilot**, the same word in all six languages.
+
+## A development test is read for the feature, not for the owner's settings
+
+**2026-11-07.** Asked what the room-off run was teaching us, I answered as if it were tuning the
+owner's own heat curve ("curve 5 is too flat, a steeper curve 6–7 would hold 22"). The user: "We
+are NOT doing this test to verify my desired heat curve. We are doing it as a part of the Autopilot
+development."
+
+**Rule:** a hardware run on the maintainer's pump exists to answer an Autopilot question (what the
+controller will see, learn, and have to do). Report findings in those terms: model, actuator,
+planner, guards, setup. Never turn it into advice about the maintainer's own settings, and say
+what a manual change mid-run costs the run (e.g. an offset change restarts the curve learner).
