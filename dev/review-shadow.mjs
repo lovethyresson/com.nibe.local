@@ -46,9 +46,15 @@ const summarise = (list) => presets.map((id) => {
     const clamps = {};
     for (const x of p) for (const c of x.clamped) clamps[c] = (clamps[c] ?? 0) + 1;
     const clamped = Object.entries(clamps).map(([c, n]) => `${c} ${Math.round(100 * n / p.length)} %`).join(', ');
-    return `  ${id.padEnd(12)} bias ${f(Math.min(...p.map((x) => x.bias)), 0)}…${f(Math.max(...p.map((x) => x.bias)), 0)} K `
-        + `(mean ${f(mean(p.map((x) => x.bias)), 1)}, coasting ${Math.round(100 * p.filter((x) => x.bias < 0).length / p.length)} %, `
-        + `pre-heating ${Math.round(100 * p.filter((x) => x.bias > 0).length / p.length)} %), `
+    // From 2026-11-07 each entry carries the comfort bias (trim.ts): coasting and pre-heating are
+    // the shift from it, not from the real outdoor temperature.
+    const held = p.map((x) => x.comfortBias ?? 0);
+    const shift = p.map((x, i) => x.bias - held[i]);
+    const comfort = p.some((x) => x.comfortBias !== undefined)
+        ? `comfort bias ${f(Math.min(...held), 1)}…${f(Math.max(...held), 1)} K (mean ${f(mean(held), 1)}), ` : '';
+    return `  ${id.padEnd(12)} bias ${f(Math.min(...p.map((x) => x.bias)), 0)}…${f(Math.max(...p.map((x) => x.bias)), 0)} K, ${comfort}`
+        + `shift mean ${f(mean(shift), 1)}, coasting ${Math.round(100 * shift.filter((x) => x < -0.05).length / p.length)} %, `
+        + `pre-heating ${Math.round(100 * shift.filter((x) => x > 0.05).length / p.length)} %, `
         + `planned saving ${f(100 * mean(p.map((x) => x.saving)), 1)} %${clamped ? `, clamped: ${clamped}` : ''}`;
 }).join('\n');
 
