@@ -4,7 +4,58 @@ Three things are live. Everything else that used to be here has shipped — the 
 commits and in the **Releases** table in [`README.md`](../README.md), the durable rules are in
 [`CLAUDE.md`](../CLAUDE.md), and the design write-ups are under [`docs/`](../docs).
 
-## Autopilot slice 4: shadow, weather feed-forward, sun per wall (2026-11-01)
+## Autopilot slice 5: live BT1 test build (planned 2026-11-07, for the run after the room-off run)
+
+**Goal.** The next hardware run steers the house through BT1 (5217) alone, holding comfort on the
+Homey's own indoor and outdoor sensors and saving where prices allow. The heat curve and its
+offset stay fixed for the whole run; nothing about the owner's curve is being tuned.
+
+**What the room-off run showed that this build must answer.** The planner assumes "doing nothing
+holds comfort" (`planner.ts` header). It doesn't: with room control off the curve let indoor
+drift ~1.5 K with the weather at every offset tried. Autopilot replaces the room loop, so comfort
+is its base job and price shifting sits on top. The trim (§7.3 step 1) was designed for this and
+never built.
+
+**Design.**
+- **Comfort bias = feed-forward + integral.** From the learned curve (`curve.ts`, supply vs BT1)
+  and the house model (heat loss, gains, sun), compute the BT1 the curve needs to hold comfort at
+  today's real outdoor; the difference from real outdoor is the feed-forward bias. An integral
+  term on `ti − comfort` (slow, τ-scheduled, anti-windup inside the preset's bias limits) corrects
+  what the model gets wrong. A small P term on the same error, no D. Pure, in `trim.ts`.
+- **Price shift on top.** `planShift()` plans around the comfort bias instead of around zero, so
+  "doing nothing" in its baseline becomes "hold comfort". Feed = real − (comfort bias + shift),
+  through `fedValue()` (ramp, max bias, Auto-mode clamps).
+- **Real outdoor** from `outdoor.ts`: the Homey sensor first, then the corrected forecast; never
+  input 1, which shows our own feed. Indoor from the Heating device's chosen sensors (1.5.0).
+- **Fed flag from our own state.** While the controller feeds, `FLAG.fedOutdoor` is set because
+  we wrote 5217, not inferred from |BT1 − sensor| > 3 K. That retires the lag false positive.
+- **Live loop** (`controller.ts` + device wiring): replan every 15 min, write 5217 every 30 s on
+  the write lane, verify against input 1 (4 × 750 ms). Guards from §7.2 that matter on this pump:
+  pump offline, indoor stale > 30 min, outdoor missing (forecast 6 h then stop), add heat running
+  → bias ≤ 0, feed verify fails ×3 → stop, SPA turned on → stop. Hot water running → hold the
+  bias (it does nothing during DHW), don't wind up the integral.
+- **Fail safe already measured (M0):** a 5217 write expires in ~5 min and the pump returns to the
+  wired BT1, so a crash, reboot or uninstall degrades to the plain curve.
+- **Switch:** an app setting (`autopilotLive.<device id>`, preset id or off), set from the CLI. No
+  Repair/Verify UI, no capabilities, no Flow cards, no changelog: this is a dev build on the
+  maintainer's Homey only, not a test-channel release.
+- **Log** every slot to the shadow log: comfort bias (FF and I parts), shift, fed value, clamps,
+  guard state, so the run can be read back with `review-shadow.mjs`.
+
+**Before it touches the pump.**
+- [ ] `trim.ts` + unit tests (steady state at comfort, step in outdoor, sensor bias, windup).
+- [ ] Planner baseline around the comfort bias + tests; the existing planner tests stay green.
+- [ ] Closed-loop bench: `evaluate-presets.mjs` runs the twin with a curve that does *not* hold
+      comfort (the room-off run's drift), comparing doing nothing, trim only, trim + each preset.
+- [ ] Controller + guards + tests; integration test against the fake pump (5217 write, input 1
+      readback, verify failure → stop, write expiry).
+- [ ] Typecheck, full test suite, `homey app validate`.
+- [ ] Install on the Homey with the switch off; confirm nothing is written; then switch on.
+
+**The run.** After the room-off run ends (~9 Nov evening). Room control off, SPA off, Manual mode,
+offset held where it is. Day 1 trim only (Comfortable limits, no price shifting) to prove the
+comfort loop; then Save some. Daily check as now, plus: indoor vs comfort (mean, RMS, min),
+bias range, saving against the doing-nothing baseline, add-heat starts, feed verify failures.
 
 Maintainer's go: "Do it" (shadow), sun impact differing per window direction, ±20 K test "Ok",
 FAQ claim "a few percent" "Ok".
