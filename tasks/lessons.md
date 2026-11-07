@@ -378,3 +378,12 @@ development."
 controller will see, learn, and have to do). Report findings in those terms: model, actuator,
 planner, guards, setup. Never turn it into advice about the maintainer's own settings, and say
 what a manual change mid-run costs the run (e.g. an offset change restarts the curve learner).
+
+**2026-11-07, same run.** Before each offset change (+3, +5, +6) I told the user the change "doesn't
+spoil the data" because the offset is logged per slot. I never opened `curvePoints()`, which
+discards its points on any change to 26/30/34/38, so each change restarted the in-app curve
+learner. The history file kept every slot, so nothing was lost from the record, but the claim was
+made up.
+
+**Rule:** before saying what a change does to a running test, read the code that consumes the data
+and quote it. If I have not read it, say so rather than reassure.
