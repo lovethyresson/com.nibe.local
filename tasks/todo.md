@@ -6,6 +6,17 @@ commits and in the **Releases** table in [`README.md`](../README.md), the durabl
 
 ## Autopilot slice 5: live BT1 test build (planned 2026-11-07, for the run after the room-off run)
 
+**Order (maintainer, 2026-11-07): nothing that writes 5217 is built until M2 is complete.** M2
+cannot complete without the comfort loop, because shadow's "doing nothing" assumes the curve holds
+comfort, which the room-off run disproved. So: 5a puts the trim and the planner baseline into
+**shadow** (no pump writes) and M2 runs on with it; 5b, the live loop, is built only once M2's
+exit criteria hold.
+
+**M2 exit criteria.** Daily τ moves < 5 % three days running; the model passes its own accuracy
+gate; the history has a day below −5 °C and a clear sunny day; ≥ 5 days of trim-in-shadow whose
+comfort bias matches what actually held comfort in the room-off run (offsets 2/3/5/6 give that
+ground truth); shadow 1 h / 6 h errors stay where they are (0.18 / 0.67 K).
+
 **Goal.** The next hardware run steers the house through BT1 (5217) alone, holding comfort on the
 Homey's own indoor and outdoor sensors and saving where prices allow. The heat curve and its
 offset stay fixed for the whole run; nothing about the owner's curve is being tuned.
@@ -41,6 +52,10 @@ never built.
   maintainer's Homey only, not a test-channel release.
 - **Log** every slot to the shadow log: comfort bias (FF and I parts), shift, fed value, clamps,
   guard state, so the run can be read back with `review-shadow.mjs`.
+
+**5a (M2, shadow only):** `trim.ts`, the planner baseline around the comfort bias, the
+closed-loop bench, the own-state fed flag, and the shadow log fields; installed so shadow plans
+with them. **5b (M3, after the exit criteria):** controller, guards, 5217 writes, switch.
 
 **Before it touches the pump.**
 - [ ] `trim.ts` + unit tests (steady state at comfort, step in outdoor, sensor bias, windup).
