@@ -23,6 +23,19 @@ const HOUR = 60 * 60 * 1000;
 export const OUTDOOR_SENSOR_SETTING = 'autopilotOutdoorSensor';
 /** App setting: a `Place` the owner searched for, used when the Homey has no location. */
 export const LOCATION_SETTING = 'autopilotLocation';
+/** App settings named before the feature was Autopilot (2026-11-05), carried over at start: the
+ *  rename shipped without this, and the maintainer's Homey lost its outdoor sensor on install. */
+export const RENAMED_SETTINGS: [string, string][] = [['smartOutdoorSensor', OUTDOOR_SENSOR_SETTING], ['smartLocation', LOCATION_SETTING]];
+
+/** Moves each old setting to its new name unless the new one is already set; drops the old. */
+export function carryRenamedSettings(settings: {get(key: string): unknown; set(key: string, value: unknown): void; unset(key: string): void}) {
+    for (const [old, name] of RENAMED_SETTINGS) {
+        const value = settings.get(old);
+        if (value == null) continue;
+        if (settings.get(name) == null) settings.set(name, value);
+        settings.unset(old);
+    }
+}
 
 /** Setup's place search, for a Homey without a location (plan §8). */
 export async function searchPlaces(query: string, language = 'en'): Promise<Place[]> {
@@ -100,6 +113,7 @@ export class AutopilotCollector {
     }
 
     async start() {
+        carryRenamedSettings(this.homey.settings);
         const loaded = await loadHistory(this.fileName).catch((error) => {
             this.log('Autopilot history: could not read the saved file, starting a new one:', error?.message ?? error);
             return undefined;
