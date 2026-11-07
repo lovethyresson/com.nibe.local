@@ -296,6 +296,30 @@ Offline only; nothing runs on the Homey yet. Design: `docs/autopilot-plan.md` §
   indoor rose 20.4 → 21.1 °C by 13:30, then sat at ~21.0 °C as outdoor fell +3.7 → −0.7 °C (two
   hot water runs, 10–12 and 14–15:30, each stalled it). Every offset so far loses ground when it
   turns colder: curve 5 looks too flat for this house, which is what the run should show.
+- 2026-11-07 22:15 — 765 slots (30 Oct 20:45 → 7 Nov 21:15), 659 usable, 8 valid days; no new
+  gaps, 2 partial (installs). Heat loss 218 W/K, τ 134 h (daily 122 → 132 → 134: settling, +1.5 %),
+  stored 29.3 kWh/K, sun E/S/W 0.1/0.9/0.1 kW (south jumped from 0.2), lever 119 W/K (0.55·H),
+  6 h error 0.35 K. The app's `model.json` says **ready** (accuracy 0.346 just under 0.35);
+  `fit-house-model.mjs` still says learning (stability). Curve learner on all three offsets: 285
+  slots, 0…10 °C, gain 0.46–0.47 per K, 1.49 K per offset step, 256 W per K of supply.
+  Supply model (`check-supply-model.mjs`, room-off run): 6 h 0.33 K / 24 h 0.49 K RMS, as good as
+  the meter (0.30 / 0.48); both ~0.4 K cold at 24 h.
+  Outdoor last 24 h: 93 sensor, 1 forecast, 20 fed — all under the old flag logic before 21:11
+  (the lag false positive). **Bug of mine, fixed:** the rename (a2a08b5) moved `smartOutdoorSensor`
+  to `autopilotOutdoorSensor` without carrying the value, so from the 21:11 install the 21:00 and
+  21:15 slots took outdoor from BT1 (2.8 °C against a real ~−1 °C). Carried over at start in
+  8f4acce, installed 21:44 (standing permission
+  to install, over this check's no-install rule, because every slot until then was wrong data);
+  22:00 slot back on the sensor (−1.5 °C, flag 16) and not flagged fed with BT1 4.1 K warmer.
+  Shadow 624 slots: doing nothing 1 h 0.17 K (bias +0.03), 6 h 0.62 K (bias +0.14). First entries
+  with the comfort bias (21:15 on): −2.2 K on the wrong 2.8 °C, **−1.7 K** on the real −1.5 °C,
+  with indoor 21.3 against 22.5: the model's steady state still says +6 holds more than 22.5.
+  Today's presets −4…6 / −9…12 / −15…20 K, planned saving 5.6/7.0/9.8 %, no clamps; Manual
+  mode, nothing unsafe. Room loop off, SPA off. Offset +6 from 20:36.
+  Preset evaluation, 31 SE3 days 8 Oct → 7 Nov, Manual, comfort 22.5, on the learned curve
+  (trim as baseline): Comfortable 1.1 %, Save some 1.8 %, Save the most 7.2 % (day-ahead
+  1.2/1.8/7.3; old lever 0.546·H 1.1/1.8/7.3). Doing nothing at +6 in October weather: 23.06 °C
+  mean; trim only 22.56 °C at 28 % lower cost (model against itself, see the 5a review).
 
 ## Autopilot slice 1: data collection (branch `smart-heating/m1-data`)
 
