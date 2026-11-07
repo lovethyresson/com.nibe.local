@@ -194,6 +194,10 @@ Offline only; nothing runs on the Homey yet. Design: `docs/autopilot-plan.md` §
   Open-Meteo history: fair saving Comfortable 0.9 %, Save some 1.2 %, Save the most 7.6 % (best
   days 3/7/17 %); gross 3.2/4.7/22.7 %; indoor 22.4–22.7 / 22.2–22.9 / 21.5–23.7 °C, off comfort
   0.04/0.06/0.33 K RMS (doing nothing 0.04). On the day-ahead forecast: 0.9/1.2/7.6 %.
+- 2026-11-07 08:56 — curve offset (30) raised +3 → +5 at the owner's request, read back 5. On +3
+  indoor slid 20.9 → 20.4 °C overnight (outdoor −5.2 → +0.9 °C) with supply tracking the curve
+  (~35.5 °C, 21 Hz, DM ~−100, no immersion): the setting, not the pump, was short. Step back to +4
+  if indoor heads past ~23 °C. The room-off run continues.
 
 ## Autopilot slice 1: data collection (branch `smart-heating/m1-data`)
 
