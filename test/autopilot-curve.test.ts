@@ -79,8 +79,42 @@ test('points follow BT1 through the curve\'s filter, restarting after a gap or a
     put(52, {bt1: 5, tcalc: 33, hcurve: 6, hoffset: NaN});
     put(53, {bt1: 5, tcalc: 33, hcurve: 6, hoffset: 0});
     assert.equal(curvePoints(history).length, 50 - 40 + 1 - 4 + 3);
-    put(54, {bt1: 5, tcalc: 33, hcurve: 6, hoffset: 2});
-    assert.equal(curvePoints(history).length, 1, 'a moved offset is a new curve');
+    // A moved offset keeps the points, each tagged with the offset it ran at.
+    put(54, {bt1: 5, tcalc: 36, hcurve: 6, hoffset: 2});
+    const kept = curvePoints(history);
+    assert.equal(kept.length, 50 - 40 + 1 - 4 + 4, 'a moved offset is the same curve, shifted');
+    assert.deepEqual([kept.at(-2)!.offset, kept.at(-1)!.offset], [0, 2]);
+    // A moved supply limit is a new curve, like the curve number.
+    put(55, {bt1: 5, tcalc: 36, hcurve: 6, hoffset: 2, supmin: 25});
+    assert.equal(curvePoints(history).length, 1);
+});
+
+test('points at several offsets are one curve plus a learned shift per step', () => {
+    // The S1155 room-off run: offsets 2, 3 and 5 over overlapping outdoor ranges, 1.53 K a step.
+    const at = (offset: number, lo: number, hi: number, n: number) =>
+        pointsOn((x) => measured(x) + 1.53 * (offset - 5), lo, hi, n).map((p) => ({...p, offset}));
+    const points = [...at(2, 1.5, 8.3, 166), ...at(3, 0.6, 4.6, 67), ...at(5, 2.8, 4.0, 43)];
+    const curve = fitSupplyCurve(points)!;
+    assert.ok(Math.abs(curve.offsetGain! - 1.53) < 0.05, `${curve.offsetGain}`);
+    assert.equal(curve.points, 276);
+    // The curve returned is at the newest offset, over the range all three traced.
+    for (const x of [1, 3, 5, 7]) assert.ok(Math.abs(supplyAt(curve, x) - measured(x)) < 0.3, `${x}`);
+    assert.match(curveLine(curve), /1\.5\d K per offset step$/);
+
+    // Alone, the newest offset's 43 points are too few for a curve.
+    assert.equal(fitSupplyCurve(at(5, 2.8, 4.0, 43)), undefined);
+    // An offset set an hour ago has traced little, but what it traced lies inside the rest.
+    const fresh = fitSupplyCurve([...points, ...at(6, 2.8, 3.2, 6)])!;
+    assert.ok(Math.abs(fresh.offsetGain! - 1.53) < 0.05, `${fresh.offsetGain}`);
+    assert.ok(Math.abs(supplyAt(fresh, 3) - measured(3) - 1.53) < 0.3);
+    // An earlier offset that shares no stretch of the curve with the rest is left out.
+    const apart = fitSupplyCurve([...at(2, 10, 18, 100), ...at(5, -2, 6, 100)])!;
+    assert.equal(apart.offsetGain, undefined);
+    assert.equal(apart.points, 100);
+    // A shift that comes out implausible falls back to the newest offset alone.
+    const wild = fitSupplyCurve([...at(2, 0, 8, 100).map((p) => ({...p, supply: p.supply + 30})), ...at(5, 0, 8, 100)])!;
+    assert.equal(wild.offsetGain, undefined);
+    assert.equal(wild.points, 100);
 });
 
 test('with a learned curve a bias moves heat by the curve\'s slope where the feed lands', () => {
