@@ -187,12 +187,21 @@ prices (to midnight, or the next midnight after about 13:00):
     or the compressor stalling (alarm 382 here); above it every kWh is immersion, COP 1.
 - **Cost per kWh of electricity:** the all-in import price, or the export price in a slot with
   surplus (§4.4). COP falls with tank temperature, from the charge model.
-- **Constraint:** stored heat never below a floor. The floor is the coming hours' 80th-percentile
-  draw plus a minimum reserve (default 60 L V40), so it rises ahead of each learned peak.
+- **Constraint:** no planned draw takes stored heat below the owner's "always keep at least"
+  reserve (default 40 L V40, about one shower; 0 = off). Only draws count against it: standing
+  loss below it is not worth a charge at any price, and the rescue covers a tank that is really
+  under it.
 - **Result:** the next charge slot and its target temperature. A new plan replaces the old one;
   only the next action is ever taken.
 - **Rescue:** if stored heat drops below the reserve anyway, charge now at any price. This
-  replaces the owner's rescue branch.
+  replaces the owner's rescue branch. **A tank top at or above 45 °C vetoes it:** after a big
+  draw the estimate keeps falling for hours with no water drawn (measured 2026-11-08 after a
+  bath: 71 → 52 L in 3 h while the top went 52 → 49 °C), and the rescue would buy a peak-price
+  charge for a reading.
+- **Why the reserve is on by default:** owners want the hot water guaranteed more than the last
+  few öre. The pump's own start temperature is no safety net to lean on: in demand mode Small
+  with start 5 °C, as on the S1155 here, it never starts a charge on its own (the tank sat at
+  52 L with BT6 at 14 °C for 3 h after the bath).
 
 ### 4.3 Knobs: what Autopilot changes on the pump
 
@@ -260,7 +269,7 @@ at 195).
 
 - **Hot water device:** an "Autopilot hot water" on/off, the next planned charge ("13:15,
   0.84 kr/kWh") and why ("before the evening peak", "solar surplus", "rescue").
-- **Settings:** minimum reserve (litres), solar surplus (on/off).
+- **Settings:** "Always keep at least … L of hot water" (default 40, off = 0), solar surplus (on/off).
 - **Flow cards** (six languages): action "Set day type to working / free / away"; trigger "Autopilot started a hot water charge" with a reason token;
   condition "A hot water charge is planned in the next … hours".
 - **Insight:** "Typical use: working day 11 kWh, free day 18 kWh; peaks 06:00 and 18–21".
@@ -297,7 +306,7 @@ Asked of the owner:
 |---|---|---|
 | Setup | tank size (the existing tank picker) | litres and stored heat |
 | Setup, only with < 14 days of history | people in the household; usual morning shower time on working days; evening or daytime use on free days | starting profile: about 2.5 kWh heat (70 L of 40 °C water) per person a day, free days 1.5×, peaks at the given times |
-| Setup | minimum reserve (default 60 L), use solar surplus | limits |
+| Setup | always keep at least (default 40 L, off possible), use solar surplus | the safety net |
 | Whenever it changes | day type working / free / away: Flow action card, or the picker on the main device | which profile applies; heating's away |
 
 ### 4.7 Guards
@@ -351,6 +360,21 @@ before it and sees only the prices known at the time.
   hid the standing loss and made the plan top up in slivers).
 - Summer, with surplus at export price, is not in this window; §2.3's 100–150 kr a month is
   still an estimate.
+
+**Reserve 40 L, draws-only floor (2026-11-08).** Same days, the reserve as the default
+"always keep at least" and only draws counted against it:
+
+| Strategy | kr/day | kr/month | slots below the reserve |
+|---|---|---|---|
+| Owner's Flow, simulated | 17.62 | 529 | 8 (of 40 L) |
+| **Planner, learned profile, 40 L** | **15.91** | **477** | 22 |
+| Planner, learned profile, 60 L | 16.40 | 492 | 22 |
+| Planner, draws known ahead, 40 L | 15.61 | 468 | 0 |
+
+- **About 10 % below the Flow, about 50 kr a month.** The safety net at 60 L costs 15 kr a
+  month more than at 40 L.
+- The 22 slots under the reserve are about one unforeseen draw a day, rescued within half an
+  hour.
 
 Hardware tests, each with the owner's go-ahead:
 

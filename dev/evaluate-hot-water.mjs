@@ -5,7 +5,7 @@
 // against the same planner with the draws known in advance.
 //
 //   node --import tsx dev/evaluate-hot-water.mjs --insights <dir> --prices <dir> [--weekends-free]
-//        [--tz Europe/Stockholm] [--reserve 60] [--min 45] [--max 60] [--formula "(x+0.609)*1.25"]
+//        [--tz Europe/Stockholm] [--reserve 40] [--min 45] [--max 60] [--formula "(x+0.609)*1.25"]
 //
 // <dir> for --insights is what `dev/learn-hot-water.mjs --save <dir>` writes. --prices holds one
 // Homey Energy `fetch-dynamic-electricity-prices` answer per day (`YYYY-MM-DD.json`).
@@ -24,7 +24,7 @@ const has = (name) => argv.includes(`--${name}`);
 const tz = flag('tz', 'Europe/Stockholm');
 const clock = localClock(tz);
 const formula = new Function('x', `return ${flag('formula', '(x+0.609)*1.25')};`);
-const reserve = reserveKwh(Number(flag('reserve', 60)));
+const reserve = reserveKwh(Number(flag('reserve', 40)));
 const minC = Number(flag('min', 45)), maxC = Number(flag('max', 60));
 const SLOT = 15 * 60_000, HOUR = 3_600_000;
 const slotOf = (ms) => Math.floor(ms / SLOT);

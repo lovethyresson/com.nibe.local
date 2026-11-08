@@ -57,8 +57,15 @@ export interface PlanInput {
     tank: TankSpec;
     charge: ChargeModel;
     loss: StandingLoss;
-    /** Heat that must always be left, kWh. */
+    /** Heat that must always be left, kWh: the owner's "always keep at least" setting
+     *  (`reserveKwh(DEFAULT_RESERVE_LITRES)` by default; 0 = off, the pump's own start
+     *  temperature is then the only safety net). */
     reserve: number;
+    /** Tank top now, °C. While it is at least `minC` the reserve counts as still there, whatever
+     *  the estimate says: after a big draw the estimate keeps falling for hours as the tank
+     *  settles, with no water drawn (measured 2026-11-08: 71 → 52 L in 3 h, top 52 → 49 °C),
+     *  and a floor that trusted it would buy a charge at any price for nothing. */
+    topC?: number;
     /** Lowest and highest charge target, °C (doc §4.2: derived, not asked). */
     minC: number;
     maxC: number;
@@ -121,6 +128,10 @@ function effective(slot: PlanSlot, kw: number): {price: number; surplus: number}
 
 export function plan(input: PlanInput): Plan {
     const {slots, tank, charge, loss, reserve} = input;
+    // Under the reserve: charge now at any price (the owner's safety net), unless a hot top
+    // vouches for the water (see `topC`) and the estimate is only settling.
+    const vouched = input.topC !== undefined && input.topC >= input.minC;
+    const rescue = !input.charging && input.stored < reserve && !vouched;
     const n = slots.length;
     const top = heatAt(tank, input.maxC);
     const levels = Math.max(2, Math.round(top / STEP_KWH) + 1);
@@ -145,19 +156,23 @@ export function plan(input: PlanInput): Plan {
         return v[c * levels + lo] + (v[c * levels + hi] - v[c * levels + lo]) * (x - lo);
     };
     const kw = charge.heatPerHour / Math.max(1, charge.cop);
+    /** Heat a draw takes below the floor (all of an unmet draw when the floor is 0). Standing
+     *  loss is left out: a tank resting at the floor is not worth a charge at any price to
+     *  replace a few hundredths of a kWh, and the rescue handles one that is really under it. */
+    const below = (kwh: number, draw: number) => Math.max(0, Math.min(kwh, floor) - (kwh - draw));
     /** Cost of each choice in slot k from stored heat `kwh`, with or without a charge running. */
     const choices = (k: number, c: number, kwh: number, cap = top) => {
         const slot = slots[k], v = values[k + 1];
         const lost = lossAt(loss, kwh) * SLOT_H;
         const idleAfter = Math.max(0, kwh - slot.draw - lost);
-        const idle = Math.max(0, floor - idleAfter) * SHORTFALL_KR_PER_KWH + value(v, 0, idleAfter);
+        const idle = below(kwh, slot.draw) * SHORTFALL_KR_PER_KWH + value(v, 0, idleAfter);
         let heat = INF, q = 0, el = 0;
         if ((c === 1 || !slot.reserved) && kwh < cap - 1e-9) {
             q = Math.min(heatPerSlot, cap - kwh);
             const after = Math.max(0, kwh + q - slot.draw - lost);
             el = q / copAt(charge, tempOf(tank, kwh + q));
             heat = el * effective(slot, kw).price + (c === 0 ? START_KR : 0)
-                + Math.max(0, floor - after) * SHORTFALL_KR_PER_KWH + value(v, 1, after);
+                + below(kwh + q, slot.draw) * SHORTFALL_KR_PER_KWH + value(v, 1, after);
         }
         // A running charge stops only at its target, which is at least the lowest allowed one.
         const mayStop = c === 0 || kwh >= minRunHeat - 1e-9 || heat === INF;
@@ -183,7 +198,8 @@ export function plan(input: PlanInput): Plan {
         const slot = slots[k];
         const lost = lossAt(loss, kwh) * SLOT_H;
         const choice = choices(k, c, kwh, runningTop ?? top);
-        const heat = choice.heat < INF && (runningTop !== undefined || choice.heat <= choice.idle);
+        const heat = choice.heat < INF
+            && (runningTop !== undefined || (k === 0 && rescue) || choice.heat <= choice.idle);
         if (heat) {
             const {q, el} = choice;
             const {price, surplus} = effective(slot, kw);
@@ -214,9 +230,13 @@ export function plan(input: PlanInput): Plan {
     // every slot otherwise turns forecast error into many short, mostly expensive, charges.
     const first = charges[0];
     const startNow = !input.charging && first?.start === 0
-        && (first.heat >= (input.minChargeKwh ?? MIN_CHARGE_KWH) || input.stored < reserve);
+        && (first.heat >= (input.minChargeKwh ?? MIN_CHARGE_KWH) || rescue);
     return {charges, stored, cost, shortfall, startNow};
 }
+
+/** The "always keep at least" default, litres of 40 °C water: about one shower. On by default,
+ *  because a household wants the hot water guaranteed more than the last few öre (2026-11-08). */
+export const DEFAULT_RESERVE_LITRES = 40;
 
 /** Litres of 40 °C water → kWh, for the reserve setting. */
 export const reserveKwh = (litres: number) => litres * KWH_PER_LITRE;

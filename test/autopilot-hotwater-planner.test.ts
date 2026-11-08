@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert';
-import {PlanInput, PlanSlot, heatAt, plan, reserveKwh, tempOf} from '../lib/autopilot/hotwater-planner';
+import {DEFAULT_RESERVE_LITRES, PlanInput, PlanSlot, heatAt, plan, reserveKwh, tempOf} from '../lib/autopilot/hotwater-planner';
 
 const near = (actual: number, expected: number, tolerance: number, what: string) =>
     assert.ok(Math.abs(actual - expected) <= tolerance, `${what}: expected ${expected} ± ${tolerance}, got ${actual}`);
@@ -95,4 +95,21 @@ test('a full tank and no draws: nothing to do', () => {
     const p = plan(input(day(price, () => 0), {stored: heatAt(tank, 58)}));
     assert.strictEqual(p.charges.length, 0);
     assert.strictEqual(p.startNow, false);
+});
+
+test('a hot top vouches for the reserve: a settling estimate is not rescued at a peak price', () => {
+    // After the bath: the estimate under the reserve, the top still at 49 °C, a cheap slot later.
+    const slots = day((h) => h < 3 ? 3.3 : 1.5, (h) => h === 20 ? 1.5 : 0);
+    const low = {stored: reserveKwh(30), reserve: reserveKwh(DEFAULT_RESERVE_LITRES)};
+    assert.ok(plan(input(slots, low)).startNow, 'trusting the estimate alone: charge now');
+    const p = plan(input(slots, {...low, topC: 49}));
+    assert.strictEqual(p.startNow, false, 'the top says the water is there: wait');
+    assert.ok(p.charges.length >= 1 && hourOf(p.charges[0].start) >= 3, 'and charge when it is cheap');
+    assert.ok(plan(input(slots, {...low, topC: 40})).startNow, 'a cold top: the reserve really is gone');
+});
+
+test('the reserve is on by default at about a shower, and 0 turns it off', () => {
+    assert.strictEqual(DEFAULT_RESERVE_LITRES, 40);
+    const p = plan(input(day(() => 3.3, () => 0), {stored: reserveKwh(10), reserve: 0}));
+    assert.strictEqual(p.startNow, false, 'off: nothing bought at a peak to hold a floor');
 });
