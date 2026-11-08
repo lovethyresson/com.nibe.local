@@ -342,6 +342,26 @@ Offline only; nothing runs on the Homey yet. Design: `docs/autopilot-plan.md` §
   (trim as baseline): Comfortable 1.1 %, Save some 1.8 %, Save the most 7.2 % (day-ahead
   1.2/1.8/7.3; old lever 0.546·H 1.1/1.8/7.3). Doing nothing at +6 in October weather: 23.06 °C
   mean; trim only 22.56 °C at 28 % lower cost (model against itself, see the 5a review).
+- 2026-11-08 21:40 — 861 slots (30 Oct 20:45 → 8 Nov 21:15), 739 usable, 9 valid days; no new
+  gaps, 1 partial today. Heat loss 222 W/K (first-order 180; daily 218 → 215 → 222), τ 136 h
+  (135.6 two days running: settled), stored 30.2 kWh/K, gains 0.59 kW, sun E/S/W 0.1/0.4/0.1 kW,
+  lever 117 W/K (0.53·H), 6 h error 0.34 K. `model.json` ready; `fit-house-model.mjs` still
+  learning (stability). Curve learner 377 slots, 1.52 K per offset step, 256 W per K of supply.
+  Outdoor last 24 h: 95 sensor, 0 forecast, 0 fed. Room loop off (202 still reads 1, legacy),
+  SPA off, offset +6 all day.
+  **The room-off verdict:** a full day at +6 held indoor flat at 21.2–21.4 °C (te −1.5…+2.7 °C),
+  dipping 0.3 K for each of two hot water runs (10–12, 16:30–18:30, the second after a bath). The
+  heat meter's ~4.5–5 kW matches the emission model; the house model needs ~4.1 kW to hold 21.3,
+  so its long-run balance is ~0.6 kW too warm (heat loss ~250 W/K, or gains/night gains lower).
+  With τ settled, slow-mass charging no longer explains it. Shadow 719 slots: doing nothing 1 h
+  0.17 K (bias +0.03), 6 h 0.59 K (bias +0.15, still warm). Comfort bias today −6.3…−0.7 K
+  (mean −3.3) while indoor sits 1.2 K under 22.5: wrong sign, so **5b stays blocked** until the
+  heat-loss/gains fit is fixed. Presets today −5…5 / −2…11 / −20…19 K; Save some pre-heated every
+  slot (shift +11.5 against the coast bias), Save the most hit ramp 21 % and max-bias 2 %;
+  Manual, nothing fed, nothing unsafe at the ladder's tested range. Planned saving 5.4/6.9/4.7 %.
+  Preset evaluation, 31 SE3 days 9 Oct → 8 Nov, Manual, comfort 22.5, lever 0.53: Comfortable
+  1.0 %, Save some 1.4 %, Save the most 7.0 % (day-ahead 1.0/1.3/7.1); built on the same
+  too-warm balance, so read as an upper bound.
 
 ## Autopilot slice 1: data collection (branch `smart-heating/m1-data`)
 
