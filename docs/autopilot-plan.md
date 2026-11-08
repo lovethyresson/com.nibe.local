@@ -28,8 +28,12 @@ firmware 13.5.2-rc.5, SE3) with read-only `homey api` calls.
    owners; Custom exposes how much price, weather and stored heat may steer, plus the comfort band.
    It replaces the 2026-10-15 five-level "Aggressiveness", and with it the separate
    band, strength and margin settings (§7.4).
-5. **SPA and Autopilot are exclusive per pump**, chosen in Pair and Repair. Whichever is on
-   owns its capabilities and Flow cards; the other's are removed (§10).
+5. **SPA and Autopilot are exclusive per function** (revised 2026-11-08, §2.1; was "per pump"),
+   chosen in Pair and Repair. Whichever is on for a function owns that function's capabilities
+   and Flow cards; the other's are removed (§10).
+6. **One Autopilot controller per function, one orchestrator per pump** (maintainer, 2026-11-08,
+   §2.1). The owner switches on Autopilot Heating, Autopilot Hot Water and later Pool and Cooling
+   one by one. The orchestrator plans what they share and breaks their ties; it is not a switch.
 
 ### M0 findings so far (S1155, 2026-10-15; details in [external-sensors.md](external-sensors.md))
 
@@ -62,8 +66,10 @@ firmware 13.5.2-rc.5, SE3) with read-only `homey api` calls.
 
 ## 1. Scope and principles
 
-**Autopilot** is a price-control mode for a pump, owned by its **Heating** device. It does
-three things:
+**Autopilot** is a set of price-control controllers, one per pump function (§2.1). This
+section and §4–§11 describe **Autopilot Heating**, owned by the **Heating** device; Autopilot
+Hot Water is in [autopilot-hot-water.md](autopilot-hot-water.md). Autopilot Heating does three
+things:
 
 1. **Learns the house** from 15-minute aggregates of pump, indoor, price and weather data, and
    shows the owner what it learned.
@@ -111,15 +117,122 @@ three things:
 | **M0** | BT1 verification on hardware (`dev/probe-bt1.mjs`) | probes only | nothing (docs) |
 | **M1** | Mode choice SPA ⇄ Autopilot, data foundation, "House insights" | **none** | test → live |
 | **M2** | Shadow controller | **none** (logs what it would feed) | test |
-| **M3** | Controller v1: efficiency loop + price shifting through BT1, away mode, transparency (§19) | 5217, 843 | test → live |
+| **M3** | Autopilot Heating v1: efficiency loop + price shifting through BT1, away mode, transparency (§19); the orchestrator's first real tie-break (§2.1) | 5217, 844 | test → live |
 | **MW** | Widgets: a design of their own across the app, Autopilot's among them (§19.5) | none | test → live |
-| **M4** | Autopilot hot water (replaces SPA hot water) + solar surplus + add-heat guard (§12, §19.3) | DHW registers | test → live |
-| **M5** | Predictive optimiser (DP, COP model, air-source, PV) | same lever | test → live |
+| **M4** | Autopilot Hot Water (replaces SPA hot water for that function) + solar surplus + add-heat guard (§12, §19.3); brings the orchestrator in its single-controller form (§2.1) | 697, 62 | test → live |
+| **M5** | Predictive optimiser (DP, COP model, air-source, PV): the joint orchestrator (§2.1) | same levers | test → live |
 
-**On the timing of M4.** Choosing Autopilot turns SPA off for the whole pump, which includes
-SPA hot water. Until M4 ships, an Autopilot pump therefore has no price-aware hot water. The
-Repair screen says so in one line. Hot-water timing is the cheapest idea to build, so M4 can be
-pulled forward into M3 if shadow data allows.
+**On the order of M3 and M4.** The maintainer asked on 2026-11-08 for Autopilot Hot Water to be
+built now, ahead of heating ([autopilot-hot-water.md](autopilot-hot-water.md)), so M4 may ship
+first. Because SPA is chosen per function (§2.1), an owner on Autopilot Hot Water keeps SPA
+heating if they want it, and the reverse; nobody loses price control on one function by choosing
+Autopilot for another.
+
+### 2.1 Controllers and the orchestrator (maintainer, 2026-11-08)
+
+**Why.** One compressor serves every function, and the pump runs one at a time (priority, 1028).
+A hot water charge is a stretch in which heating delivers nothing, and pool waits for both. So
+every Autopilot controller competes for the same compressor hours and the same solar surplus,
+and those need one owner per pump, whether one controller is on or four.
+
+**The pieces.**
+
+| Piece | Where | Owner sees | Writes |
+|---|---|---|---|
+| **Autopilot Heating** | Heating device | its mode choice, profile, status (§10) | 5217 |
+| **Autopilot Hot Water** | Hot water device | its on/off, next charge and why ([autopilot-hot-water.md](autopilot-hot-water.md) §4.5) | 697, 62 |
+| Autopilot Pool, Cooling | their devices | later; out of scope for v1 (§1) | – |
+| **Orchestrator** | a pure function, `lib/autopilot/orchestrator.ts`, called by a per-host registry beside `autopilotOwners` (§7.6), not by `PumpConnection` | one status line on Main: what runs next and why ("Hot water 13:15, then heating coasts 17–20") | **none** |
+| **Household state** | Main | day type: working, free, away, with an optional "away until" from the Flow card (hot water doc §4.1, §19.2) | none |
+
+- **The orchestrator never writes to the pump.** It only changes what each controller plans
+  against; the controllers act through their own levers, the write lane, persist-before-write
+  and restart reconciliation. A bug in it can make a plan worse, never a write wrong.
+- **It is not a switch.** It runs whenever at least one controller is on.
+- **Main is required once any Autopilot is on**, since it holds the household state and the
+  status line. Pairing and Repair add it if it is missing.
+
+**The contract: per-slot adjustments, not blocks.** The two planners decide differently:
+heating plans a bias per slot and the compressor runs under the curve whatever we grant (§7.3);
+hot water plans the next charge and its target from a tank state, so moving one charge moves all
+the later ones (hot water doc §4.2). Neither can quote "the cost of moving a block". What both
+already take is a **price per slot**. So the orchestrator hands each controller:
+
+1. **Delivery-free slots** (heating, from M3): slots in which a granted charge holds the compressor,
+   so the heating model plans them as zero delivery instead of being surprised by them.
+2. **Reserved slots** (hot water; empty in v1): slots it must not start a charge in. Nothing
+   fills them while hot water plans first; they exist for pool, cooling and M5.
+3. **Price adders** (M5): a per-slot shadow price on compressor time, iterated until the plans
+   agree. A reserved slot is an infinite adder, so all three share one interface.
+
+**One round per slot, in a fixed order.** On every slot boundary, and when prices, the forecast
+or household state change:
+
+1. **Hot water plans first** against the prices. Its charges are short, discrete and pinned by
+   the learned peaks, while heating is continuous and its thermal mass absorbs a 1–3 h gap; the
+   reverse order would plan heating blind to the charges that interrupt it. (Not because hot
+   water saves more: 50–70 kr a month there, hot water doc §3, against 1–7 % of a much larger
+   heating bill in the preset bench, `tasks/todo.md`.) Each planned charge occupies the slots
+   from its start to its predicted end, taken from the charge model at its target temperature
+   (up to about 3 h here), not a fixed 2 h.
+2. **Heating plans second**, with those slots as delivery-free: it pre-heats before a charge
+   or after it, never counting on heat during it.
+3. **Each controller acts** on its own next slot. Heating's 30-second feed (§7.6) keeps running
+   between rounds on the last plan.
+
+**Events that skip the round:**
+- **Hot water rescue** (stored heat below the reserve) charges at once, whatever heating planned.
+  The next round replans heating around it.
+- **Live solar surplus** (hot water doc §4.4) may start a charge between rounds. If that lands
+  in a planned heating pre-heat, the charge wins and the next round moves the pre-heat.
+
+**Tie-breaks**, when the order above is not enough: pump safety (each controller's own guards)
+before hard floors (hot water reserve, the indoor minimum), before comfort, before cost. In v1
+this only decides rescue against a pre-heat, and rescue wins.
+
+**What each controller keeps.** Its model, learner, planner, lever, guards and settings. The
+orchestrator holds no model of a house or a tank: it sees planned charge slots and pre-heat
+slots, and returns delivery-free and reserved slots.
+
+**What ships when.**
+- **M4 (hot water first):** household state on Main, the status line, the rescue guard, and
+  the reserved-slots input on the hot water planner, always empty for now. Nothing to arbitrate
+  yet.
+- **M3:** the round order above, delivery-free slots in the heating model, rescue against
+  pre-heat.
+- **M5:** price adders and the joint plan.
+
+**Failure and neutral.**
+- If the orchestrator throws, each controller plans with no reservations for that round, and the
+  Main status says so.
+- If a controller fails, it goes neutral on its own (§1), the others replan without it, and the
+  owner gets one timeline notification per incident.
+- **Neutral for hot water is not "off".** On a pump set up like the maintainer's (start 5 °C,
+  charges only on request), off means no hot water. So hot water neutral is a **rescue guard
+  outside the planner**: a plain threshold on the litres estimate that requests a charge, kept
+  running whenever the connection is up, even with the planner or orchestrator down. If the
+  litres estimate itself is unavailable, the app restores the owner's start temperature snapshot
+  (60/59/58, taken at activation) and says so.
+
+**SPA per function.** SPA has a whole-pump master (843, on Main) and per-function enables:
+844 heating, 846 hot water, 849 cooling. Pool has none and follows the master
+(`registers.ts` at 843).
+- A function on Autopilot has its SPA enable off; a function on SPA has it on. The master stays
+  on while any function is on SPA, and goes off only when none is.
+- **Pool is not a choice of its own.** `priceControl` has no pool entry until Autopilot Pool
+  exists; pool follows 843 as today.
+- **A function left on SPA is invisible to the orchestrator.** With heating on Autopilot and SPA
+  on hot water, SPA moves charges on its own schedule, possibly into a pre-heat. Heating sees
+  those charges only as they happen. Setup says so in one line; the full benefit needs both on
+  Autopilot.
+- **To verify before either goes live** (writes 843/844/846, each with the owner's go-ahead):
+  with 843 on and 844 off, SPA leaves heating alone (1918 never reads 30 "Heating"); with 843 on
+  and 846 off, it leaves hot water alone. If either fails, that function's Autopilot needs the
+  master off, and SPA is per pump again for it.
+- **Sections still written for the pump-wide choice**: §4.3 activation (843 = 0), §7.2 and §8
+  (watching 843), §10.1 and §10.5 (transitions as 843 writes). Each changes to the function's own
+  enable (844 for heating) when M3 is built; 843 is written only when the last function leaves
+  SPA. The snapshot drops 902, which does not answer on the S1155.
 
 ---
 
@@ -1029,8 +1142,12 @@ On `onInit`:
 
 ### 10.1 The selection field and its capabilities
 
-A new **pump-wide** selection field, `selection.priceControl: 'spa' | 'autopilot' | 'none'`. It sits
-next to `groups`/`overrides` and is resolved in `lib/autopilot/mode.ts`.
+A new selection field, **per function** since 2026-11-08 (§2.1):
+`selection.priceControl: {heating?, hotwater?, pool?, cooling?}`, each `'spa' | 'autopilot' | 'none'`.
+It sits next to `groups`/`overrides` and is resolved in `lib/autopilot/mode.ts`. Not built yet,
+so the shape costs no migration. The rest of this section was written for the pump-wide field and
+describes Heating; read "every device of the pump" as "that function's device", except for the
+master switch 843 on Main, which follows §2.1.
 
 - **Missing value means `spa`.** That is the upgrade path: existing devices keep exactly what they
   have today, in line with the "missing selection = everything" rule.
@@ -1222,19 +1339,13 @@ how to defer and advance hot water safely on the S1155.
 electricity lands at 16–20. A day-ahead tank planner is worth about 50–70 kr a month there, and
 phase A (offline) can run alongside M2.
 
-- **Advance:** 697 "more hot water" (2 h) in a cheap slot.
-  - Only when the tank top (BT7) is below stop − 3 K.
-  - At most once a day.
-  - Never within 2 h before a planned pre-heat, because hot water blocks space heating.
-- **Defer:** temporarily lower the start setpoint for the owner's demand mode (58/59/60) by up to
-  5 K, during expensive blocks of at most 3 h.
-  - Snapshot and restore it, with persist-before-write and restart reconciliation.
-  - It is an EEPROM setting, so at most 2 writes a day.
-  - **Never touch 195** (allow hot water).
+- **Superseded by [autopilot-hot-water.md](autopilot-hot-water.md) §4** (2026-11-08): the
+  first sketch here (one 697 boost a day, deferral by lowering start setpoints 58/59/60) is
+  replaced by the day-ahead tank planner, which writes only 697 (2 = one-time increase) and the
+  Large stop 62, and never the start setpoints. The rule against charging into a heating
+  pre-heat is gone: heating now plans around the charges (§2.1). **Never touch 195** (allow hot water) still holds.
 - **Legionella:** never change 65/66/92. Give advice only: "Your weekly boost runs at 03:00; this
   week's cheapest slot is Sunday 02:15".
-- **Comfort guard:** the estimated litres (`lib/hotwater.ts`) never go below the owner's recent
-  daily minimum during a defer.
 - **Add heat:** plan the bias so the predicted DM never crosses `start − 0.7 × 679`.
   - On ground source, add heat may optionally be capped during optimised periods.
   - Never on air-water pumps.
