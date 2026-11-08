@@ -194,10 +194,16 @@ are the owner's settings, set once; Autopilot works inside them.
 | Knob | How | Used for |
 |---|---|---|
 | **When**: start a charge | 697 "More hot water" = 2 | a planned slot, surplus, rescue; only when BT7 < the ceiling − 3 K; at most 3 a day |
-| **How hot**: end the charge early | 697 = 0 once BT6 reaches the planned temperature (read every poll) | a normal charge stops at what the coming peak needs; a hot charge runs on to the ceiling |
+| **How hot**: end the charge early | 697 = 0 once BT6 reaches the planned temperature (read every poll) | **unproven**: see below |
 | **Ceiling** | the owner's Large stop temperature (62), read only | the hottest charge Autopilot can plan; setup shows it and the owner may raise it once |
 | **Advice only** | periodic hot water 65/66/92 | "Your weekly boost runs at 03:00; the cheapest slot this week is Sunday 02:15"; never written |
 
+- **Ending a boost may not end the charge.** The register table records (`registers.ts`, at 195)
+  that 697 = 0 clears the boost request but the compressor finishes its current cycle; only
+  toggling 195 stopped one, and 195 is never touched. What that cycle finishes *at* was not
+  recorded. If it stops at the active demand mode's own stop temperature (Small 48 °C here), 697
+  = 0 is a working "how hot" with two levels, normal and the ceiling. If it runs on to the Large
+  stop, there is no "how hot" without EEPROM writes, and Autopilot only chooses when. H1 decides.
 - 697 is the register the owner's Flow already writes every day. Nibe does not document whether
   the pump keeps it in EEPROM; worth asking Nibe in the current contact. Two writes per charge
   (start, end), at most 6 a day.
@@ -288,7 +294,7 @@ Hardware tests, each with the owner's go-ahead:
 | Test | What it settles | Writes |
 |---|---|---|
 | **H0** Watch 1028 at 5-min for a week (runs in shadow) | Whether the pump starts its own charges at start 5 °C | none |
-| **H1** One midday 697 charge from a half-empty tank, ended with 697 = 0 at BT6 50 °C | That ending the boost stops the charge promptly and the pump returns to heating; charge rate and COP against tank temperature | 697 twice |
+| **H1** One midday 697 charge from a half-empty tank, 697 = 0 at BT6 45 °C | Where the charge stops after the boost is cleared: the demand mode's stop (48 °C), or on to the Large stop. Decides whether "how hot" exists without EEPROM. Also charge rate and COP against tank temperature | 697 twice |
 | **H3** Autopilot live for 7 days, Flow off | Real kr against the Flow's week, and comfort (no rescue caused by the plan) | 697 |
 
 **Exit for live on the maintainer's Homey:** the back-test beats the Flow by ≥ 10 % over 14 days
