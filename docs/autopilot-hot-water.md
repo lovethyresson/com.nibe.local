@@ -231,10 +231,11 @@ at 195).
   owner's start and stop temperatures and changes how the pump behaves without the app. Kept in
   reserve if deferring turns out to matter.
 - **Example, this house** (tank about 176 L, so about 235 L of 40 °C water at 50 °C and 290 L at
-  60 °C): a working day draws about 315 L and a free day about 515 L, so no single charge covers
-  a day; a free day always takes two or three. The planner's real choice is which slots and how
-  hot each: for a working day, say, a midday charge to 55 °C sized for the evening peak, and a
-  night charge only as hot as the morning needs.
+  60 °C). After standing loss, a working day draws about 240 L and a free day about 450 L. So a
+  working day *can* run on one charge to about 58 °C at night, at a lower COP and more loss
+  through the day; or on two: a night charge only as hot as the morning needs and a midday one
+  sized for the evening. A free day always takes two or three. Which is cheaper depends on that
+  day's prices and sun, which is why the temperature is planned, not set.
 - **Rejected: stopping a charge by toggling 195 (allow hot water) off and on.** It is the only
   way seen to end a running charge (`registers.ts` at 195), but it is two more likely-EEPROM
   writes, and if the app dies between them the house has no hot water at all. Setting 62
