@@ -175,7 +175,16 @@ S1155.
 Every 15 min, and whenever prices or the forecast change, a dynamic programme over the known
 prices (to midnight, or the next midnight after about 13:00):
 
-- **State:** stored heat. **Action per slot:** hold, normal charge or hot charge (§4.3).
+- **State:** stored heat. **Action per slot:** no charge, or a charge to a target temperature,
+  in 1 K steps between the floor and the ceiling below. The temperature is an output of the
+  plan, not a setting: the planner weighs one hot charge against two cooler ones, using the
+  learned draws until the next cheap or sunny slot, the tank's capacity at each temperature,
+  COP and standing loss against temperature, and the prices.
+- **Bounds, all derived, none asked:**
+  - *Floor:* the lowest stop that still gives 40 °C water at the top after a charge, about 45 °C.
+  - *Ceiling:* the lowest of the register's range for 62, and the highest stop the compressor
+    reaches on its own. The learner finds the latter from charges that ended with the immersion
+    or the compressor stalling (alarm 382 here); above it every kWh is immersion, COP 1.
 - **Cost per kWh of electricity:** the all-in import price, or the export price in a slot with
   surplus (§4.4). COP falls with tank temperature, from the charge model.
 - **Constraint:** stored heat never below a floor. The floor is the coming hours' 80th-percentile
@@ -207,7 +216,7 @@ at 195).
 | Knob | How | Used for |
 |---|---|---|
 | **When** | 697 = 2 | a planned slot, surplus, rescue; only when BT7 < the planned temperature − 3 K; at most 3 a day |
-| **How hot** | 62 before the charge, only when it changes | normal (what the coming peak needs, e.g. 50 °C) or hot (up to the owner's limit, e.g. 60 °C) for surplus and very cheap hours |
+| **How hot** | 62 before the charge, only when it changes | the target temperature the plan chose for that charge (§4.2) |
 | **Advice only** | periodic hot water 65/66/92 | "Your weekly boost runs at 03:00; the cheapest slot this week is Sunday 02:15"; never written |
 
 - **Writes:** one or two per charge, at most 6 a day. 62 is left at its last value, not restored:
@@ -221,8 +230,11 @@ at 195).
   Small to hold). It would also defer charges on every pump, but it rewrites all six of the
   owner's start and stop temperatures and changes how the pump behaves without the app. Kept in
   reserve if deferring turns out to matter.
-- A hot charge costs COP (2.2 against 2.85 measured), so the planner goes hot only when the
-  price gap or surplus pays for it.
+- **Example, this house** (tank about 176 L, so about 235 L of 40 °C water at 50 °C and 290 L at
+  60 °C): a working day draws about 315 L and a free day about 515 L, so no single charge covers
+  a day; a free day always takes two or three. The planner's real choice is which slots and how
+  hot each: for a working day, say, a midday charge to 55 °C sized for the evening peak, and a
+  night charge only as hot as the morning needs.
 - **Rejected: stopping a charge by toggling 195 (allow hot water) off and on.** It is the only
   way seen to end a running charge (`registers.ts` at 195), but it is two more likely-EEPROM
   writes, and if the app dies between them the house has no hot water at all. Setting 62
@@ -279,7 +291,7 @@ Asked of the owner:
 |---|---|---|
 | Setup | tank size (the existing tank picker) | litres and stored heat |
 | Setup, only with < 14 days of history | people in the household; usual morning shower time on working days; evening or daytime use on free days | starting profile: about 2.5 kWh heat (70 L of 40 °C water) per person a day, free days 1.5×, peaks at the given times |
-| Setup | minimum reserve (default 60 L), use solar surplus; the ceiling is the owner's Large stop | limits |
+| Setup | minimum reserve (default 60 L), use solar surplus | limits |
 | Whenever it changes | day type working / free / away: Flow action card, or the picker on the main device | which profile applies; heating's away |
 
 ### 4.7 Guards
@@ -296,7 +308,7 @@ Asked of the owner:
 | Slice | What | Writes to the pump |
 |---|---|---|
 | **1. Learner** | `lib/autopilot/hotwater-learner.ts` (pure): tank balance, standing loss, charge model, day-type profiles, away. Insights bootstrap. Tank fields (BT6, BT7, litres, hot water meters) in the history. Unit tests against the Insights extracts in this doc. | none |
-| **2. Planner** | `lib/autopilot/hotwater-planner.ts` (pure): DP, floor, hot/normal action, surplus pricing. `dev/evaluate-hot-water.mjs` back-test on real prices and draws, the draws *not* known ahead. | none |
+| **2. Planner** | `lib/autopilot/hotwater-planner.ts` (pure): DP over charge slot and target temperature, surplus pricing. `dev/evaluate-hot-water.mjs` back-test on real prices and draws, the draws *not* known ahead. | none |
 | **3. Shadow** | Run the planner every slot on the maintainer's Homey and log what it would do; show the next planned charge on the device. | none |
 | **4. Live** | 697 and 62 behind the on/off, guards, rescue, reconciliation; surplus live trigger; day type picker and Flow cards; settings; six-language strings. | 697, 62 |
 | **5. Docs** | `docs/` and FAQ; README row; analytics rows if events are added. | – |
