@@ -1,8 +1,8 @@
-# Autopilot hot water: exploration (M4)
+# Autopilot hot water
 
-Status: exploration, 2026-11-08. Nothing here writes a hot water register. This adds measured
-numbers and an approach to M4 ([autopilot-plan.md](autopilot-plan.md) §12, §19.3–19.4); the
-guard rules in §12 still apply.
+Status: design, 2026-11-08. The maintainer asked for it to be built now (2026-11-08), ahead of
+heating Autopilot. It extends M4 ([autopilot-plan.md](autopilot-plan.md) §12, §19.3–19.4).
+§1–§3 are the measurements, §4 is the feature, §5 is the build plan.
 
 ## 1. What the S1155 does today
 
@@ -20,10 +20,13 @@ Periodic hot water is off and SPA hot water (846) is off.
   and otherwise notifies the owners, who often start a manual charge.
 
 Home Assistant and Homey users do the same thing: they charge in the N cheapest hours, using a
-cheapest-hours sensor, a blueprint or SPA. Nobody we found learns the household's draw pattern
-or prices standing loss. That is the gap.
+cheapest-hours sensor, a blueprint or SPA. Nibe's own demand mode "Smart control" (56 = 4)
+learns past use but knows nothing of prices or solar. Nobody we found combines a learned draw
+pattern with prices and surplus. That is the gap.
 
-## 2. Measured (Insights, 25 Oct → 8 Nov, hourly; 5-min for the last 24 h)
+## 2. Measured
+
+### 2.1 The tank (Insights, 25 Oct → 8 Nov, hourly; 5-min for the last 24 h)
 
 | Quantity | Value | How |
 |---|---|---|
@@ -31,34 +34,78 @@ or prices standing loss. That is the gap.
 | Hot water heat | 17.8 kWh/day, **COP 2.82** | 1575 produced (30-day rolling COP shown is 2.74) |
 | Charges | 1.7/day, median **4.4 kWh el**, maximum 5.6 | Runs of hours above 0.15 kWh |
 | Charge rate | about 1.9 kWh el / 5.5 kWh heat per full hour | 36 full charging hours |
-| Usable tank | about 290 L V40 at full, about 10 kWh heat | Litres estimate 0 → 288 L |
+| Usable tank | about 290 L V40 at full, about 10 kWh heat | Litres estimate 0 → 288 L; 1 L V40 ≈ 0.035 kWh |
 | Standing loss | BT7 **−0.6 K/h** idle (57.8 → 49.3 °C over 14 h), about 0.1 kWh heat/h, **about 2.4 kWh/day** | 5-min night with no draws |
 | Immersion on hot water | 0.2 h in 14 days | 1069 |
-| Draw pattern | Peak at **06**, then **18–21**; a small midday hump | Litres drops outside charges |
-
-Electricity by hour of day against the mean all-in price:
-
-```
-hour  00-05  06-09  10-14  15   16   17   18   19   20   21-23
-kWh/d 0.21   0.60   1.50   0.23 0.41 0.57 0.51 0.74 0.75 0.75
-kr/kWh 1.95  2.66   2.40   2.86 3.19 3.30 3.26 3.03 2.75 2.29
-```
 
 **41 % of hot water electricity falls in 16–20, the most expensive hours of the day, and almost
 none in 01–04, the cheapest.** The tank empties at the evening showers, BT7 drops below 52 °C,
 and the next acceptable hour, or a person reacting to the rescue notification, refills it in
 the evening. The Flow charges *after* the peak demand. The cheap move is to charge *before* it.
 
-Two things in the data are unexplained:
+10 of 24 charges had no 697 boost within 2 h. Either the pump starts some charges itself despite
+start 5 °C, or the allocator counts some heating as hot water. H0 (§5) settles it.
 
-- **10 of 24 charges had no 697 boost within 2 h.** Either the pump starts some charges itself
-  despite start 5 °C, or the allocator counts some heating as hot water. Check this before
-  trusting the baseline (see H0).
-- **Visible draws add up to only 8.2 of 17.8 kWh/day.** Draws during a charge are hidden, and
-  the litres estimate saturates near the top. The draw profile's shape is usable; its absolute
-  size comes from the produced-heat meter.
+### 2.2 Working days and free days (Insights, 10 Aug → 8 Nov, 89 days)
 
-## 3. What it is worth (13 full days, 26 Oct → 7 Nov, SE3)
+Daily heat from the hot water produced meter (1575, 6-hour Insights):
+
+| Day | Days | Mean kWh heat | Median |
+|---|---|---|---|
+| Mon | 13 | 8.9 | 7.3 |
+| Tue | 13 | 12.2 | 11.7 |
+| Wed | 13 | 9.6 | 7.4 |
+| Thu | 13 | 11.1 | 10.3 |
+| Fri | 12 | 12.5 | 12.4 |
+| **Sat** | 13 | **19.1** | 19.8 |
+| **Sun** | 12 | **16.8** | 15.1 |
+
+- **Free days use 1.7× a working day:** 18.0 against 10.8 kWh heat. Saturday is the largest day,
+  Monday the smallest.
+- **The school autumn break (26–30 Oct) sat in between:** its weekdays averaged 14.4 kWh, 37 %
+  above the other weekdays (10.5). A calendar that knows only weekends and public holidays
+  would get such weeks wrong; a learner that scores each day after the fact would not.
+- **Day-to-day noise is large:** the standard deviation is 4–8 kWh on every weekday. Planning
+  for the mean would run short on one day in two, so the floor uses a high quantile (§4.2).
+- **Use rises into winter:** 11–13 kWh/day from August to October, 18.5 in the first week of
+  November. The inlet water gets colder, so each litre takes more heat. COP fell from about
+  3.3 in September to 2.9.
+- A few days are near zero (26 Aug, 16 Sep, 21 Sep: under 1.1 kWh). These are days without a
+  charge, not necessarily days without use. The meter only moves while the pump charges, so
+  daily totals are lumpy. The learner uses the tank balance instead (below).
+
+Hourly draw from the tank balance, draw = fall in stored heat + produced heat − standing loss.
+This also counts water drawn during a charge, which the litres estimate alone misses. kWh heat
+per hour, 14 days (10 working, 5 free):
+
+```
+hour     05  06  07  08  09  10  11  12  13  14  15  16  17  18  19  20  21  22   day
+working 0.2 1.6 0.4 0.5 0.2 0.3 1.1 0.1 0.1 0.1 0.3 0.5 0.6 1.6 1.9 1.7 1.4 0.3   13.2
+free    0.0 1.0 0.3 0.6 0.9 1.8 2.1 1.7 1.3 2.6 0.4 1.2 3.9 1.2 1.9 2.9 1.0 0.0   24.9
+```
+
+A working day has a short morning peak at 06 and a long evening one, 18–21. A free day has no
+early peak, draws all day from 09, and peaks again at 17 and 20. Two different shapes, not one
+shape scaled: one profile per day type is needed.
+
+### 2.3 Solar (Homey Energy, 2026)
+
+| Month | Generated (SolarEdge) | Exported to the grid |
+|---|---|---|
+| Apr | 926 kWh | 40 |
+| May–Aug | 980–1084 / month | **444–593 / month** |
+| Sep | 595 | 364 |
+| Oct | 296 | 214 |
+| Nov–Feb | under 200 | under 100 |
+
+Export is measured after the home battery has taken its share. Hot water takes 150–190 kWh of
+electricity a month, so from May to September the export alone could cover all of it. Every kWh
+used at home instead of sold is worth about 1 kr more (§19.3): **roughly 100–150 kr a month from
+May to August**, more than price shifting is worth in November. On a sunny day the tank is the
+best sink in the house. Storing more of the surplus means heating hotter, which is where the
+temperature knob earns its keep.
+
+## 3. What timing is worth (13 full days, 26 Oct → 7 Nov, SE3)
 
 Prices are all-in, `(spot + 0.609) × 1.25`, as in `dev/evaluate-presets.mjs`. The mean was
 2.48 kr/kWh. The simulation is an hourly tank: 10 kWh heat usable, a floor of 2.5 kWh (about
@@ -73,90 +120,125 @@ scaled to 17.8 kWh/day. The optimum is a dynamic programme over the 13 days.
 | Optimal timing, boosts to about 60 °C (COP 2.2 above normal) | 12.31 | 369 | −25 %, −125 kr |
 | Optimal timing, floor 4 kWh (about 115 L) | 13.52 | 406 | −18 % |
 
-The Flow paid 2.63 kr/kWh, 6 % above the mean price. It beats the pump alone by about 40 kr a
-month and leaves about 100 kr a month on the table.
+The Flow paid 2.63 kr/kWh, 6 % above the mean price. The optimum knows every draw in advance,
+which no controller will. A planner that learns the draw shape and keeps a margin should reach
+**50–70 kr a month in winter, 10–15 % of the hot water cost**, plus the summer surplus (§2.3).
 
-The optimum knows every draw in advance, which no controller will. A planner that learns the
-draw shape and keeps a margin should reach **50–70 kr a month here, 10–15 % of the hot water
-cost**, or about 600–850 kr a year at November prices. Boosts add about 20 kr a month more.
-They are not worth it on this pump, where charges to about 60 °C already trigger alarm 382
-(memory gp1-cap-inverter-limited).
+Alarm 382 on charges to about 60 °C is being taken up with Nibe as a probable setting fault, so
+hotter charges are not ruled out. They stay behind a setting until that is settled (§4.3).
 
-Hot water is about 15–25 % of the pump's energy. So this is small next to space heating, but it
-is the cheapest Autopilot part to build: its lever (697) is one the owner already pulls every
-day.
+## 4. The feature
 
-## 4. Approach
+Autopilot hot water learns when the household uses hot water, then decides **when** to charge and
+**how hot**, so the tank is full before each usual peak and is charged in the cheapest or sunniest
+hours. It is generic: everything below is learned per installation, nothing is tuned to the
+S1155.
 
-A **day-ahead tank planner**, built like the heating planner:
+### 4.1 Learner
 
-1. **State:** stored heat in kWh, from BT6, BT7 and the tank catalogue (`lib/hotwater.ts`).
-2. **Demand:** a learned hour-of-day draw profile, kept separately for weekdays and free days,
-   plus standing loss learned from draw-free nights.
-3. **Plan:** a dynamic programme over the next 24–36 h of prices. It keeps stored heat above a
-   floor that rises before each learned peak, for example "≥ 150 L at 06:00 and at 18:00".
-4. **Lever:** 697 in the planned slots only. One charge in the planned slot replaces the Flow's
-   reactive top-ups.
-5. **Guards** (§12): no charge within 2 h before a planned heating pre-heat, at most 2 planned
-   charges a day, no boosts while away, and refill before return. The rescue stays: below
-   the floor, charge now whatever the price.
-6. **Pumps that start charges themselves** (Medium or Large with a normal start temperature):
-   defer by lowering the start setpoint. That is an EEPROM write, at most 2 a day (§12).
-   Advancing alone captures most of the value, and it is all the owner's setup needs.
+- **Stored heat**, kWh, every poll: from the litres estimate (`lib/hotwater.ts`) when the owner
+  has picked a tank size, otherwise from BT6/BT7 and a tank size learned from full charges.
+- **Draw per 15 min:** the tank balance in §2.2. Standing loss is learned from draw-free nights
+  (stored heat falling slowly with no charge running), as a function of tank temperature.
+- **Charge model:** heat per hour and COP against the tank temperature, from the hot water
+  produced and consumed meters during charges. This prices "how hot" (§4.3).
+- **Day types:** a profile per weekday (96 slots, each with a median and an 80th percentile),
+  pulled toward one of two pooled profiles, *working* and *free*, while a weekday has few days
+  behind it. Public holidays for the Homey's country (the six the app ships in) count as free.
+  Each day is also scored after the fact by its own draws, so a week off from school becomes
+  "free" without a calendar entry, and the owner can say so ahead (§4.5).
+- **Away:** a day with near-zero draw is marked away, kept out of the profiles, and the tank
+  coasts until draws resume or the owner ends away.
+- **Seasonal drift:** recent days weigh more (half-life about 3 weeks), which tracks colder inlet
+  water in winter.
+- **Starts with history, not empty:** on first start the learner reads the app's own Homey
+  Insights through `homey-api` (`homey:manager:api` is approved): hourly for 14 days and 6-hourly
+  for up to a year for litres, BT6, BT7 and the hot water meters. A household that has had the
+  app a while gets a usable profile on day one. After that it learns from the 15-min history.
 
-**Interaction with heating:** a charge blocks space heating for about 1 h. At 1.7 charges a day
-the house model already sees this as `dhw` slots. A planned charge has to sit outside heating
-pre-heat blocks. Midday (10–14) is usually fine: it is cheap, and the house coasts then anyway.
+### 4.2 Planner
 
-## 5. Plan
+Every 15 min, and whenever prices or the forecast change, a dynamic programme over the known
+prices (to midnight, or the next midnight after about 13:00):
 
-### Phase A: offline, no pump writes (can start now, alongside M2)
+- **State:** stored heat. **Action per slot:** no charge, normal charge, or hot charge (§4.3).
+- **Cost per kWh of electricity:** the all-in import price, or the export price in a slot with
+  surplus (§4.4). COP falls with tank temperature, from the charge model.
+- **Constraint:** stored heat never below a floor. The floor is the coming hours' 80th-percentile
+  draw plus a minimum reserve (default 60 L V40), so it rises ahead of each learned peak.
+- **Result:** the next charge slot and its target temperature. A new plan replaces the old one;
+  only the next action is ever taken.
+- **Rescue:** if stored heat drops below the reserve anyway, charge now at any price. This
+  replaces the owner's rescue branch.
 
-- **A1. Collect tank state.** Add BT6, BT7 and litres to the Autopilot history (three fields).
-  Hourly Insights are too coarse for draws. This is a data-collection change installed on the
-  maintainer's Homey.
-- **A2. Draw and loss learner:** an hour-of-day profile by day type, standing loss from
-  draw-free nights, and charge rate and COP against tank temperature.
-- **A3. Offline planner and back-test:** `dev/evaluate-hot-water.mjs` replays real prices and
-  real draws, without the draws known in advance. It scores against the actual Flow and against
-  the optimum, and counts litres-floor violations.
-- **A4. Shadow:** log each day what the planner would have done, its predicted litres at 06 and
-  18, and what actually happened.
+### 4.3 Knobs: what Autopilot changes on the pump
 
-### Phase B: hardware tests (each needs the owner's go-ahead)
+| Knob | Register | Used for | Limit |
+|---|---|---|---|
+| **When**: start a charge | 697 "More hot water" | a planned slot, surplus, rescue | only when BT7 < stop − 3 K; at most 3 a day |
+| **How hot**: the charge's stop temperature | 62 (Large stop), written before a 697 charge | normal ≈ the owner's own stop; hot (up to 60 °C) for surplus and very cheap hours ahead of a peak | EEPROM: at most 2 writes a day; restored after |
+| **Hold off**: keep the pump from starting itself | the active demand mode's start temperature (58/59/60) | pumps in Medium/Large: defer a charge out of an expensive block | EEPROM: at most 2 writes a day; snapshot and restore; at most 3 h |
+| **Advice only** | periodic hot water 65/66/92 | "Your weekly boost runs at 03:00; the cheapest slot this week is Sunday 02:15" | never written |
+
+- A hot charge costs COP (2.2 against 2.85 measured), so the planner uses it only when the price
+  gap pays for it: surplus, or a very cheap hour before a peak that a normal charge cannot cover.
+- **Never touched:** 195 (allow hot water), the legionella settings, SPA hot water. Autopilot hot
+  water and SPA hot water (846) are mutually exclusive; turning one on turns the other off.
+- **Pumps that start charges themselves** (Medium or Large with a normal start): Autopilot
+  advances charges with 697 and defers them by lowering the start temperature. The owner's
+  setup (start 5 °C) needs only 697 and 62.
+
+### 4.4 Solar surplus
+
+- **Live:** Homey Energy's cumulative meter (P1 dongle, grid sensor) gives import and export.
+  Export above the compressor's hot water draw (learned, about 1.9 kW here) for 10 min, with room
+  in the tank, starts a charge. That charge is hot when the surplus is expected to last.
+- **Planned:** irradiance from the forecast (already in the history) against the Homey's own
+  generator devices gives an expected surplus per slot. The planner prices those slots at the
+  export value, so on a sunny day it leaves the tank room for the afternoon instead of buying a
+  full charge at night.
+- **A home battery** takes surplus before export. Using measured export means the tank only gets
+  what the battery would have sold.
+
+### 4.5 What the owner sees and controls
+
+- **Hot water device:** an "Autopilot hot water" on/off, the next planned charge ("13:15, to
+  55 °C, 0.84 kr/kWh") and why ("before the evening peak", "solar surplus", "rescue").
+- **Settings:** minimum reserve (litres), allow hot charges (on/off, max temperature), solar
+  surplus (on/off).
+- **Flow cards** (six languages): action "Treat today/tomorrow as a free day / working day /
+  away"; trigger "Autopilot started a hot water charge" with reason and temperature tokens;
+  condition "A hot water charge is planned in the next … hours".
+- **Insight:** "Typical use: working day 11 kWh, free day 18 kWh; peaks 06:00 and 18–21".
+- The owner's Flow ("Hot water (v2)") has to be turned off when this is on. Setup says so.
+
+### 4.6 Guards
+
+- No charge in the 2 h before a planned heating pre-heat (when heating Autopilot is on), since a
+  charge blocks space heating.
+- Every write goes through the existing write lane, persist-before-write, and restart
+  reconciliation restores 62/58–60 if the app stopped mid-charge.
+- Pump alarms, a blocked 195, or a register the model lacks turn the feature off with a reason on
+  the device. No silent failure.
+
+## 5. Build plan
+
+| Slice | What | Writes to the pump |
+|---|---|---|
+| **1. Learner** | `lib/autopilot/hotwater-learner.ts` (pure): tank balance, standing loss, charge model, day-type profiles, away. Insights bootstrap. Tank fields (BT6, BT7, litres, hot water meters) in the history. Unit tests against the Insights extracts in this doc. | none |
+| **2. Planner** | `lib/autopilot/hotwater-planner.ts` (pure): DP, floor, hot/normal action, surplus pricing. `dev/evaluate-hot-water.mjs` back-test on real prices and draws, the draws *not* known ahead. | none |
+| **3. Shadow** | Run the planner every slot on the maintainer's Homey and log what it would do; show the next planned charge on the device. | none |
+| **4. Live** | 697 and 62 behind the on/off, guards, rescue, reconciliation; surplus live trigger; Flow cards; settings; six-language strings. | 697, 62 (58–60 on Medium/Large pumps) |
+| **5. Docs** | `docs/` and FAQ; README row; analytics rows if events are added. | – |
+
+Hardware tests, each with the owner's go-ahead:
 
 | Test | What it settles | Writes |
 |---|---|---|
-| **H0** Watch 1028 at 5-min for a week | Whether the pump starts its own charges at start 5 °C (the 10 unexplained charges) | none |
-| **H1** One midday 697 charge from a half-empty tank | Charge rate and COP against BT6, and whether a midday charge covers the evening | 697 once |
-| **H2** One draw-free night logged at 5-min | Standing loss as a function of tank temperature | none |
-| **H3** Planner-driven 697 for 7 days, Flow paused | Real kr against the Flow's baseline week, and comfort (no rescue fired) | 697 ≤ 2/day |
-| **H4** (Medium/Large pumps only) Start setpoint −5 K for 3 h | Defer latency and restore | 59 twice |
+| **H0** Watch 1028 at 5-min for a week (runs in shadow) | Whether the pump starts its own charges at start 5 °C | none |
+| **H1** One midday 697 charge to 55 °C from a half-empty tank | Charge rate and COP against tank temperature; that a 62 write takes effect on a running boost | 697, 62 once |
+| **H3** Autopilot live for 7 days, Flow off | Real kr against the Flow's week, and comfort (no rescue caused by the plan) | 697, 62 |
 
-### Exit criteria for going live (test channel)
-
-- The back-test beats the actual Flow by ≥ 10 % over ≥ 14 days, with no floor violations.
-- The shadow's 6 h litres prediction is within ±50 L on ≥ 80 % of days.
-- H3 holds comfort (zero rescues caused by the plan) and shows a saving.
-- H0 has explained the unexplained charges.
-
-## 6. Recommendation
-
-Pull hot water forward as **phase A now, in parallel with M2**. It does not depend on the house
-model, the data is cheap to collect, and the lever is already in daily use.
-
-Keep the live step (H3 onward) behind the same rule as heating: nothing ships, not even to the
-test channel, until the back-test and shadow pass. The planner can go live before M3, because
-its only interaction with heating is the "no charge before a pre-heat" guard, and without M3
-there is no pre-heat to guard.
-
-## 7. Open questions
-
-1. On 2026-10-18 the owner did not want the app to own hot water charging. Does Autopilot
-   replacing the Flow change that, or should Autopilot only *suggest* slots that the Flow acts
-   on (for example a "planned hot water slot" condition card)?
-2. Which floor is right: a fixed number of litres before each peak, or the owner's recent minimum
-   (§12)?
-3. Free days versus working days: the Flow takes this from a Homey variable. Should the planner
-   use it, or learn it from the draws?
-4. Legionella: periodic hot water is off on this pump. Advice only (§12)?
+**Exit for live on the maintainer's Homey:** the back-test beats the Flow by ≥ 10 % over 14 days
+with no floor violations, and shadow's predicted litres at the peaks are within ±50 L on ≥ 80 %
+of days. Release to anyone else is a separate decision.
