@@ -190,6 +190,15 @@ prices (to midnight, or the next midnight after about 13:00):
 **Rule: as few writes to the pump's permanent memory (EEPROM) as possible.** Temperatures are set
 once; Autopilot works inside them.
 
+**How much EEPROM wear is acceptable.** Nibe publishes nothing. The only figure found is second
+hand: a Nibe reply quoted on energiesparhaus.at, 1 million writes per position, which that thread
+turns into a budget of 182 writes a day per setting over 15 years. At this design's limit (56 at
+most 6 a day, 697 at most 3) that is about 2,200 writes a year per register: 450 years at 1
+million, 45 years even at 100,000. Whether the controller levels wear is unknown. What does
+wear a pump out is a write every poll or every second (11.5 days at 1 million), which is why
+Autopilot never writes on a timer, only per planned charge. Home Assistant users already switch
+56 for solar surplus.
+
 **Proposed lever: the three demand modes as three presets** (maintainer's idea, 2026-11-08). The
 pump already keeps a start/stop pair per mode (56: Small 60/64, Medium 59/63, Large 58/62).
 Setup writes the six temperatures once, with the owner's consent, as:
