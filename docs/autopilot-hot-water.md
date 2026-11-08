@@ -314,18 +314,24 @@ Asked of the owner:
 
 | Slice | What | Writes to the pump |
 |---|---|---|
-| **1. Learner** | `lib/autopilot/hotwater-learner.ts` (pure): tank balance, standing loss, charge model, day-type profiles, away. Insights bootstrap. Tank fields (BT6, BT7, litres, hot water meters) in the history. Unit tests against the Insights extracts in this doc. | none |
+| **1. Learner** (built 2026-11-08, branch `autopilot/hot-water`) | `lib/autopilot/hotwater-learner.ts` (pure): tank balance, standing loss against stored heat, charge model with COP against tank top, profiles for `any`/working/free with the prior filling a young type's shortfall, away. `hotwater-insights.ts`: Insights → readings, finest resolution wins. `dev/learn-hot-water.mjs` runs it on a real device. Tank fields go into the per-pump history with the collector split (plan §2.1). | none |
 | **2. Planner** | `lib/autopilot/hotwater-planner.ts` (pure): DP over charge slot and target temperature, surplus pricing. `dev/evaluate-hot-water.mjs` back-test on real prices and draws, the draws *not* known ahead. | none |
 | **3. Shadow** | Run the planner every slot on the maintainer's Homey and log what it would do; show the next planned charge on the device. | none |
 | **4. Live** | 697 and 62 behind the on/off, guards, rescue, reconciliation; surplus live trigger; day type picker and Flow cards; settings; six-language strings. | 697, 62 |
 | **5. Docs** | `docs/` and FAQ; README row; analytics rows if events are added. | – |
+
+**Slice 1 on the S1155's Insights (8 Nov, 58 full days):** charge 6.1 kWh heat/h, COP 2.88 at a
+48 °C mean top, falling 0.022 per K; standing loss 0.018 kWh/h per kWh stored (0.18 kWh/h full,
+above the 0.1 from one 5-min night: the hourly litres estimate loses more than BT7 alone shows);
+13.2 kWh drawn a day, p80 18.5, peaks at 06 and 19–20; no away days. No day types yet: the
+picker does not exist, so everything is pooled until the owner sets them.
 
 Hardware tests, each with the owner's go-ahead:
 
 | Test | What it settles | Writes |
 |---|---|---|
 | **H0** Watch 1028 at 5-min for a week (runs in shadow) | Whether the pump starts its own charges at start 5 °C | none |
-| **H1** Midday, half-empty tank: 62 = 50, then 697 = 2; later 62 = 58 and another 697 | That the boost stops at the 62 just written, and a write to 62 takes effect on the next boost; charge rate and COP at 50 and 58 °C | 62 twice, 697 twice |
+| ~~H1~~ Skipped (maintainer, 2026-11-08): the charge model learns rate and COP from real charges, and the first live charges show whether a written 62 holds | – | – |
 | **H3** Autopilot live for 7 days, Flow off | Real kr against the Flow's week, and comfort (no rescue caused by the plan) | 697 |
 
 **Exit for live on the maintainer's Homey:** the back-test beats the Flow by ≥ 10 % over 14 days
