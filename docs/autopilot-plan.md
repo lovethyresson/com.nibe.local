@@ -204,8 +204,9 @@ widest level it is true for:
 - **Today this is all per Heating device.** `AutopilotCollector` (`lib/autopilot/collector.ts`)
   fetches prices and weather and owns the history for the one Heating device that runs it. The
   settings (location, outdoor sensor) are already app-wide. Splitting the collector into the
-  home service and the pump history is the first step of whichever controller ships second, so
-  hot water does not fetch the same prices again.
+  home service and the pump history is the first step of Heating's M3 work (hot water is
+  expected to ship first, standalone, with its own price fetch and tank history behind a small
+  interface); the split then moves hot water onto the shared inputs too.
 - **Day type is per home, not per pump.** Two pumps in one house share one day type. Every Main
   shows the same picker, and the Flow card sets the home value.
 - **Surplus is one budget.** When several functions could take it, the orchestrator grants it

@@ -74,6 +74,10 @@ never built.
 **5a (M2, shadow only):** `trim.ts`, the planner baseline around the comfort bias, the
 closed-loop bench, the own-state fed flag, and the shadow log fields; installed so shadow plans
 with them. **5b (M3, after the exit criteria):** controller, guards, 5217 writes, switch.
+**First step of M3, before 5b:** split `AutopilotCollector` into `lib/autopilot/inputs.ts` (home:
+prices, weather, surplus, day type) and the per-pump 15-min history (plan §2.1 shared inputs),
+then move hot water's own price fetch and tank history (branch `autopilot/hot-water`) onto them.
+Not before the room-off run ends: the collector is the test instrument, a reinstall interrupts it.
 
 5a done 2026-11-07, installed 21:11 (commits 00cccb5, 6ec3658, and the review-shadow one):
 - [x] Curve learner keeps points through offset changes (1.49 K per step on the S1155).
