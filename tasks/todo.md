@@ -4,6 +4,21 @@ Three things are live. Everything else that used to be here has shipped — the 
 commits and in the **Releases** table in [`README.md`](../README.md), the durable rules are in
 [`CLAUDE.md`](../CLAUDE.md), and the design write-ups are under [`docs/`](../docs).
 
+## Autopilot hot water: exploration (2026-11-08, [docs/autopilot-hot-water.md](../docs/autopilot-hot-water.md))
+
+Measured: 6.3 kWh el/day, COP 2.82, 1.7 charges/day, 41 % of the electricity at 16–20. Back-test:
+the owner's Flow costs 494 kr/month; optimal timing costs 390. A realistic gain is 50–70 kr/month.
+No pump writes in phase A.
+
+- [ ] Ask the owner: replace the "Hot water (v2)" Flow, or only suggest slots to it? (Open question 1)
+- [ ] A1: add BT6, BT7 and litres to the Autopilot history (data collection only)
+- [ ] A2: draw profile by hour and day type, standing loss, charge rate and COP against tank temperature
+- [ ] A3: `dev/evaluate-hot-water.mjs` back-test against the actual Flow, with draws not known in advance
+- [ ] A4: hot water shadow log (planned slots, predicted litres at 06 and 18)
+- [ ] H0 (no writes): log 1028 at 5-min for a week and explain the 10 of 24 charges with no 697 boost
+- [ ] H1–H3: each needs the owner's go-ahead (see the doc's table)
+- [ ] Exit: ≥ 10 % better than the Flow over 14 days, no floor violations, litres within ±50 L at 6 h on ≥ 80 % of days
+
 ## Autopilot slice 5: live BT1 test build (planned 2026-11-07, for the run after the room-off run)
 
 **Order (maintainer, 2026-11-07): nothing that writes 5217 is built until M2 is complete.** M2

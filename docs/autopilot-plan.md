@@ -1217,6 +1217,11 @@ never swallow them.
 Hot-water timing replaces SPA hot water in Autopilot mode. First, extend M0 (0.8–0.10) to establish
 how to defer and advance hot water safely on the S1155.
 
+**Exploration with measured numbers, approach and hardware tests:
+[autopilot-hot-water.md](autopilot-hot-water.md)** (2026-11-08). On the S1155, 41 % of hot water
+electricity lands at 16–20. A day-ahead tank planner is worth about 50–70 kr a month there, and
+phase A (offline) can run alongside M2.
+
 - **Advance:** 697 "more hot water" (2 h) in a cheap slot.
   - Only when the tank top (BT7) is below stop − 3 K.
   - At most once a day.
