@@ -1383,7 +1383,7 @@ The competitors are black boxes. Owners switch off what they don't understand.
 
 Our own, rather than the pump's holiday setting, so the planner knows when the owner returns.
 
-- **Set:** a Flow card or the device, with an end time. **Back home** ends it early.
+- **Set:** the main device's *Day type* = away ([autopilot-hot-water.md](autopilot-hot-water.md) §4.1), shared with hot water; the Flow card takes an optional end time. **Back home** ends it early.
 - **While away**, comfort drops to the away temperature (a setting, default 17 °C), and the
   planner coasts through expensive hours within it.
 - **Return:** the model's hours-per-degree says when to start warming, so the house is at

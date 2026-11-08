@@ -152,8 +152,10 @@ S1155.
   (stored heat falling slowly with no charge running), as a function of tank temperature.
 - **Charge model:** heat per hour and COP against the tank temperature, from the hot water
   produced and consumed meters during charges. This prices "how hot" (§4.3).
-- **Day type comes from the owner, through a Flow or by hand.** The Hot water device gets one
-  picker, *Day type*: working, free or away. A Flow card sets it ("Set day type to …"), so a
+- **Day type comes from the owner, through a Flow or by hand.** The **main device** (it serves every
+  function, as ventilation does since 1.4.7) gets one picker, *Day type*: working, free or away.
+  It is household state, so heating Autopilot reads the same value: its away mode (plan §19.2)
+  is this "away", not a second switch. A Flow card sets it ("Set day type to …"), so a
   calendar, a Homey variable or a presence Flow can drive it; the owner can also set it on the
   device. It holds until changed. Each slot is learned under the type set at the time, and the
   planner assumes the current type until it changes. No weekly pattern, holiday calendar or
@@ -260,7 +262,7 @@ Asked of the owner:
 | Setup | tank size (the existing tank picker) | litres and stored heat |
 | Setup, only with < 14 days of history | people in the household; usual morning shower time on working days; evening or daytime use on free days | starting profile: about 2.5 kWh heat (70 L of 40 °C water) per person a day, free days 1.5×, peaks at the given times |
 | Setup | minimum reserve (default 60 L), use solar surplus; the ceiling is the owner's Large stop | limits |
-| Whenever it changes | day type working / free / away: Flow action card, or the picker on the Hot water device | which profile applies |
+| Whenever it changes | day type working / free / away: Flow action card, or the picker on the main device | which profile applies; heating's away |
 
 ### 4.7 Guards
 
