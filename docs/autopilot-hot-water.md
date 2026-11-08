@@ -124,6 +124,16 @@ The Flow paid 2.63 kr/kWh, 6 % above the mean price. The optimum knows every dra
 which no controller will. A planner that learns the draw shape and keeps a margin should reach
 **50–70 kr a month in winter, 10–15 % of the hot water cost**, plus the summer surplus (§2.3).
 
+**Standing loss against timing.** The table above models loss as a constant 0.1 kWh/h, so it
+never charges for holding heat. Re-run with loss tied to stored heat (0.05 kWh/h near empty,
+0.10 full, the measured value): the optimum costs 12.74 kr/day instead of 12.59, about 5 kr a
+month. Loss is about 1.9 kWh heat a day either way, and most of it is unavoidable because the
+tank has to stay warm. Per charge: charging at 03:00 (1.95 kr/kWh) for an 18:00 peak instead of
+at 17:00 (3.30) holds a full tank 14 h longer, which loses about 0.7 kWh heat, 0.25 kWh
+electricity, 0.6 kr, against 5.9 kr saved on the 4.4 kWh charge. Holding wins whenever the price
+gap is above about 6 % of the price, so the planner needs loss in the model (§4.2) but loss
+rarely changes the answer. The empty-tank loss is assumed; the learner measures it.
+
 Alarm 382 on charges to about 60 °C is being taken up with Nibe as a probable setting fault, so
 hotter charges are not ruled out. They stay behind a setting until that is settled (§4.3).
 
@@ -142,16 +152,20 @@ S1155.
   (stored heat falling slowly with no charge running), as a function of tank temperature.
 - **Charge model:** heat per hour and COP against the tank temperature, from the hot water
   produced and consumed meters during charges. This prices "how hot" (§4.3).
-- **Day types:** a profile per weekday (96 slots, each with a median and an 80th percentile),
-  pulled toward one of two pooled profiles, *working* and *free*, while a weekday has few days
-  behind it. Public holidays for the Homey's country (the six the app ships in) count as free.
-  Each day is also scored after the fact by its own draws, so a week off from school becomes
-  "free" without a calendar entry, and the owner can say so ahead (§4.5).
-- **Away:** a day with near-zero draw is marked away, kept out of the profiles, and the tank
-  coasts until draws resume or the owner ends away.
+- **Day types come from the owner, not from guesses:** *working*, *free*, *guests* and *away*.
+  Each type has its own profile (96 slots, each with a median and an 80th percentile). Which
+  type a day is comes from, in order: what the owner set for that day (§4.7), the owner's weekly
+  pattern from setup (default Monday–Friday working), and public holidays for the Homey's
+  country, which setup shows for confirmation. A profile is learned only from days whose type
+  the app knew. A day whose draws look like another type (a weekday off from school drawing like
+  a free day) is shown as a suggestion, never relabelled silently.
+- **Away:** set by the owner (§4.7). A day with near-zero draw that was not marked away is kept
+  out of the profiles and prompts "Were you away on Tuesday?".
 - **Seasonal drift:** recent days weigh more (half-life about 3 weeks), which tracks colder inlet
   water in winter.
-- **Starts with history, not empty:** on first start the learner reads the app's own Homey
+- **Starting point:** with less than 14 days of history, setup asks a few questions (§4.7) and
+  the learner starts from them; learned values replace the answers as days accumulate.
+- **Starts with history where it exists:** on first start the learner reads the app's own Homey
   Insights through `homey-api` (`homey:manager:api` is approved): hourly for 14 days and 6-hourly
   for up to a year for litres, BT6, BT7 and the hot water meters. A household that has had the
   app a while gets a usable profile on day one. After that it learns from the 15-min history.
@@ -206,11 +220,44 @@ prices (to midnight, or the next midnight after about 13:00):
   55 °C, 0.84 kr/kWh") and why ("before the evening peak", "solar surplus", "rescue").
 - **Settings:** minimum reserve (litres), allow hot charges (on/off, max temperature), solar
   surplus (on/off).
-- **Flow cards** (six languages): action "Treat today/tomorrow as a free day / working day /
+- **Flow cards** (six languages): action "Set today/tomorrow to working day / free day / guests /
   away"; trigger "Autopilot started a hot water charge" with reason and temperature tokens;
   condition "A hot water charge is planned in the next … hours".
 - **Insight:** "Typical use: working day 11 kWh, free day 18 kWh; peaks 06:00 and 18–21".
-- The owner's Flow ("Hot water (v2)") has to be turned off when this is on. Setup says so.
+- Flows that switch "More hot water" fight the planner. Setup lists them (read through
+  `homey-api`) and asks the owner to turn them off.
+
+### 4.7 What the app reads and what the owner tells it
+
+Read without asking (S-series):
+
+| Need | Source |
+|---|---|
+| Tank temperatures BT6, BT7; priority (1028) | Modbus |
+| Hot water heat and electricity, COP | the pump's energy log (hot water produced 1575, consumption via the allocator, compressor power 2166); no extra power meter |
+| History to start from | the app's own Insights, via `homey-api` |
+| Prices | Homey Energy dynamic prices and the owner's cost formula (as heating Autopilot) |
+| Grid export (surplus) | Homey Energy's cumulative meter, *if* the owner has one in Homey (P1 dongle, grid sensor) |
+| Expected solar | Open-Meteo irradiance (already collected) against the Homey's generator devices, *if* any |
+| Country (public holidays), location | the Homey |
+| Flows that start hot water charges | `homey-api` flow list |
+
+Without dynamic prices the planner still keeps the tank as cool as the profile allows (less
+loss, better COP) and uses surplus. Without a grid meter there is no surplus feature, and setup
+says what to add. Other model families: which of these registers exist is checked per model,
+not yet done for the F-series.
+
+Asked of the owner:
+
+| When | What | Why |
+|---|---|---|
+| Setup | tank size (the existing tank picker) | litres and stored heat |
+| Setup | working days of the week (default Mon–Fri) | which profile a day uses |
+| Setup | public holidays shown for the Homey's country: confirm | free days |
+| Setup, only with < 14 days of history | people in the household; usual morning shower time on working days; evening or daytime use on free days | starting profile: about 2.5 kWh heat (70 L of 40 °C water) per person a day, free days 1.5×, peaks at the given times |
+| Setup | minimum reserve (default 60 L), hottest allowed charge (default the owner's Large stop), use solar surplus | limits |
+| Any day | today or tomorrow is working / free / guests / away: a picker on the Hot water device and a Flow action card | the day type; a calendar or presence Flow can drive it |
+| After an odd day | "Tuesday drew like a free day: count it as one?" | keeps the profiles clean |
 
 ### 4.6 Guards
 
