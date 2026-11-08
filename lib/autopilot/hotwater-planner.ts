@@ -95,6 +95,9 @@ export interface Plan {
     shortfall: number;
     /** Start a charge in the first slot. */
     startNow: boolean;
+    /** That start is the safety net, not the price: the tank is under the reserve and its top
+     *  does not vouch for it. */
+    rescue: boolean;
 }
 
 /** kWh of heat in the tank when all of it is at `c` °C. */
@@ -231,7 +234,7 @@ export function plan(input: PlanInput): Plan {
     const first = charges[0];
     const startNow = !input.charging && first?.start === 0
         && (first.heat >= (input.minChargeKwh ?? MIN_CHARGE_KWH) || rescue);
-    return {charges, stored, cost, shortfall, startNow};
+    return {charges, stored, cost, shortfall, startNow, rescue};
 }
 
 /** The "always keep at least" default, litres of 40 °C water: about one shower. On by default,

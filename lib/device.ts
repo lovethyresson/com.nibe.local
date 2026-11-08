@@ -2,6 +2,7 @@ import {CaptureSummary, logCaptureSummary} from './diagnostic-capture';
 import {IndoorConfig, averageSensors, cleanIndoorConfig, selectedReadings} from './indoor-sensors';
 import {Controls, AutopilotCollector} from './autopilot/collector';
 import {newHistoryFileName} from './autopilot/store-file';
+import {HotwaterShadow} from './autopilot/hotwater-shadow';
 import {Sample} from './autopilot/history';
 import {Device} from 'homey';
 import net from 'net';
@@ -46,6 +47,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private static indoorOwners = new Map<string, NibePumpDevice>();
     // Autopilot history, collected on Heating (lib/autopilot). Reads only.
     private autopilot: AutopilotCollector | null = null;
+    // Hot water Autopilot in shadow, on Hot water, while the app setting below is on. Reads only.
+    private hotwaterShadow: HotwaterShadow | null = null;
     private indoorTimer: ReturnType<typeof setTimeout> | null = null;
     private indoorWork: Promise<any> | null = null;
     private indoorStopped = false;
@@ -1073,6 +1076,34 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             if (this.getStoreValue('indoorSensors')?.state === 'pending')
                 await this.setWarning('Finish your Homey sensor setup in Heating → Repair.');
         }
+        if (this.role === 'hotwater') await this.startHotwaterShadow().catch(this.error);
+    }
+
+    // Off unless the app setting is on (set by hand while it is being tested:
+    // `homey api apps set-app-setting --name autopilotHotwaterShadow --value true`).
+    private async startHotwaterShadow() {
+        const spec = this.profile.autopilotHotwater;
+        if (!spec || this.hotwaterShadow || this.homey.settings.get('autopilotHotwaterShadow') !== true) return;
+        let file = this.getStoreValue('autopilotHotwaterFile') as string | undefined;
+        if (!file) await this.setStoreValue('autopilotHotwaterFile', file = newHistoryFileName());
+        // Mirrored to an app setting so the shadow log can be found through the Homey API.
+        this.homey.settings.set(`autopilotHotwaterFile.${this.getData().id}`, file);
+        const number = (name?: string) => {
+            if (!name || !this.hasCapability(name)) return undefined;
+            const value = Number(this.getCapabilityValue(name));
+            return Number.isFinite(value) ? value : undefined;
+        };
+        this.hotwaterShadow = new HotwaterShadow(this.homey, String(this.getData().id), file, spec.tank, () => {
+            const mode = number(spec.demandMode);
+            const {litres, inletC} = this.tankConfig();
+            return {
+                now: {litres: number(spec.tank.litres), top: number(spec.tank.top), powerW: number(spec.power),
+                    more: this.hasCapability(spec.more) ? this.getCapabilityValue(spec.more) === true : undefined,
+                    stopC: mode === undefined ? undefined : number(spec.stops[mode]), largeStopC: number(spec.largeStop)},
+                tank: litres === null ? undefined : {litres, inletC},
+            };
+        }, (...args) => this.log(...args));
+        await this.hotwaterShadow.start();
     }
 
     // ---- PumpSubscriber ----
@@ -1813,6 +1844,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // hourly save bounds the loss to an hour, and the model re-anchors across the gap.
         await this.autopilot?.stop(this.connection?.currentPollSeconds() ?? 10).catch(this.error);
         this.autopilot = null;
+        this.hotwaterShadow?.stop();
+        this.hotwaterShadow = null;
         await this.stopIndoor();
         // Flush the debounced meter before going away, so an orderly restart or a repair keeps
         // the fraction of a kWh the 0.01 step was still holding.
@@ -1831,6 +1864,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         await this.stopIndoor();
         await this.autopilot?.remove().catch(this.error);
         this.autopilot = null;
+        await this.hotwaterShadow?.remove().catch(this.error);
+        this.hotwaterShadow = null;
+        this.homey.settings.unset(`autopilotHotwaterFile.${this.getData().id}`);
         this.homey.settings.unset(`autopilotHistoryFile.${this.getData().id}`);
         this.log('Nibe device has been deleted');
         track('Changed Device Set', {action: 'removed', role: roleOf(this.getData())});
