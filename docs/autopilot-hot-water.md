@@ -192,47 +192,41 @@ once; Autopilot works inside them.
 
 **How much EEPROM wear is acceptable.** Nibe publishes nothing. The only figure found is second
 hand: a Nibe reply quoted on energiesparhaus.at, 1 million writes per position, which that thread
-turns into a budget of 182 writes a day per setting over 15 years. At this design's limit (56 at
-most 6 a day, 697 at most 3) that is about 2,200 writes a year per register: 450 years at 1
-million, 45 years even at 100,000. Whether the controller levels wear is unknown. What does
+turns into a budget of 182 writes a day per setting over 15 years. At this design's limit (697 at
+most 3 a day, 62 at most 3) that is about 1,100 writes a year per register: centuries at 1
+million, about 90 years even at 100,000. Whether the controller levels wear is unknown. What does
 wear a pump out is a write every poll or every second (11.5 days at 1 million), which is why
-Autopilot never writes on a timer, only per planned charge. Home Assistant users already switch
-56 for solar surplus.
+Autopilot never writes on a timer, only per planned charge.
 
-**Proposed lever: the three demand modes as three presets** (maintainer's idea, 2026-11-08). The
-pump already keeps a start/stop pair per mode (56: Small 60/64, Medium 59/63, Large 58/62).
-Setup writes the six temperatures once, with the owner's consent, as:
+**Lever (maintainer, 2026-11-08): "More hot water" plus the Large stop.** 697 always heats to the
+Large stop temperature (62). So a charge is: write 62 to the planned temperature if it differs
+from what is there, then 697 = 2. The pump stops at 62 by itself, so a charge never has to be
+stopped (which the pump will not do: 697 = 0 does not end a charge in progress, `registers.ts`
+at 195).
 
-| Mode | Start | Stop | Role |
-|---|---|---|---|
-| Small | low, the safety level (default 35 °C; the owner's current 5 °C is allowed) | the owner's normal stop | **Hold**: the pump charges itself only if the tank falls to the safety level, e.g. when the app is not running |
-| Medium | just under the stop (stop − 3 K) | normal (e.g. 50 °C) | **Normal charge** |
-| Large | just under the stop (stop − 3 K) | hot (e.g. 60 °C, up to the owner's limit) | **Hot charge**: surplus, very cheap hours before a big peak |
+| Knob | How | Used for |
+|---|---|---|
+| **When** | 697 = 2 | a planned slot, surplus, rescue; only when BT7 < the planned temperature − 3 K; at most 3 a day |
+| **How hot** | 62 before the charge, only when it changes | normal (what the coming peak needs, e.g. 50 °C) or hot (up to the owner's limit, e.g. 60 °C) for surplus and very cheap hours |
+| **Advice only** | periodic hot water 65/66/92 | "Your weekly boost runs at 03:00; the cheapest slot this week is Sunday 02:15"; never written |
 
-Autopilot then switches 56 only: to Medium or Large in a planned slot, so the pump starts a charge
-to that stop by itself, and back to Small once the charge has ended. That gives all three knobs,
-when, how hot and hold off, on every pump, including pumps that would otherwise start their own
-charges. The temperature is chosen when the charge starts, so a charge never has to be stopped
-(which the pump will not do: 697 = 0 does not end a charge in progress, `registers.ts` at 195).
-
-- **Cost:** two writes of 56 per charge, at most 6 a day. Nibe does not document whether 56 (or
-  697) is kept in EEPROM; worth asking in the current contact. 697 is written about as often by
-  the owner's Flow today.
-- **Hot charges can skip the switch:** "More hot water" (697) always heats to the Large stop
-  (maintainer, 2026-11-08), so a hot charge is 697 = 2 with 56 left on Small, one write. Only a
-  normal charge needs the Medium switch.
-- **Fallback, if H1 fails or the owner declines the presets:** 697 = 2 starts a charge to the
-  Large stop; Autopilot chooses *when* only. One write per charge.
-- **Fail-safe:** after a restart, the app puts 56 back to Small unless a planned charge is
-  running. If the app is gone for good, Small's safety start keeps hot water coming.
-- A hot charge costs COP (2.2 against 2.85 measured), so the planner uses Large only when the
+- **Writes:** one or two per charge, at most 6 a day. 62 is left at its last value, not restored:
+  only boosts use it, and a hotter or cooler tank afterwards is harmless if the app stops.
+- **Owners in demand mode Large:** 62 is also their own stop temperature, so changing it would
+  change every normal charge. For them Autopilot chooses *when* only and never writes 62.
+- **Pumps that start charges themselves** (Medium or Large with a normal start): Autopilot
+  advances charges but does not defer them, which would need start-temperature writes. Setup
+  says so and offers the owner's own setup (Small with a low start) as a one-time change.
+- **Considered: the three demand modes as presets** (switch 56 to Medium or Large to charge,
+  Small to hold). It would also defer charges on every pump, but it rewrites all six of the
+  owner's start and stop temperatures and changes how the pump behaves without the app. Kept in
+  reserve if deferring turns out to matter.
+- A hot charge costs COP (2.2 against 2.85 measured), so the planner goes hot only when the
   price gap or surplus pays for it.
-- **Advice only:** periodic hot water 65/66/92: "Your weekly boost runs at 03:00; the cheapest
-  slot this week is Sunday 02:15". Never written.
 - **Rejected: stopping a charge by toggling 195 (allow hot water) off and on.** It is the only
   way seen to end a running charge (`registers.ts` at 195), but it is two more likely-EEPROM
-  writes, and if the app dies between them the house has no hot water at all, not even the
-  safety charge. The presets make stopping unnecessary.
+  writes, and if the app dies between them the house has no hot water at all. Setting 62
+  before the charge makes stopping unnecessary.
 - **Never touched:** 195 (allow hot water), the legionella settings, SPA hot water, Smart control
   (56 = 4). Autopilot hot water and SPA hot water (846) are mutually exclusive.
 
@@ -304,7 +298,7 @@ Asked of the owner:
 | **1. Learner** | `lib/autopilot/hotwater-learner.ts` (pure): tank balance, standing loss, charge model, day-type profiles, away. Insights bootstrap. Tank fields (BT6, BT7, litres, hot water meters) in the history. Unit tests against the Insights extracts in this doc. | none |
 | **2. Planner** | `lib/autopilot/hotwater-planner.ts` (pure): DP, floor, hot/normal action, surplus pricing. `dev/evaluate-hot-water.mjs` back-test on real prices and draws, the draws *not* known ahead. | none |
 | **3. Shadow** | Run the planner every slot on the maintainer's Homey and log what it would do; show the next planned charge on the device. | none |
-| **4. Live** | 56 switching (or the 697 fallback) behind the on/off, presets in setup, guards, rescue, reconciliation; surplus live trigger; day type picker and Flow cards; settings; six-language strings. | 56 (presets once); 697 as fallback |
+| **4. Live** | 697 and 62 behind the on/off, guards, rescue, reconciliation; surplus live trigger; day type picker and Flow cards; settings; six-language strings. | 697, 62 |
 | **5. Docs** | `docs/` and FAQ; README row; analytics rows if events are added. | – |
 
 Hardware tests, each with the owner's go-ahead:
@@ -312,7 +306,7 @@ Hardware tests, each with the owner's go-ahead:
 | Test | What it settles | Writes |
 |---|---|---|
 | **H0** Watch 1028 at 5-min for a week (runs in shadow) | Whether the pump starts its own charges at start 5 °C | none |
-| **H1** With the presets set: switch 56 Small → Medium at midday from a half-empty tank; after it stops, Medium → Small; later the same with Large | That a mode switch starts a charge promptly and it ends at that mode's stop; what the pump does if switched back to Small mid-charge; charge rate and COP at 50 and 60 °C | 6 temperatures once, 56 four times |
+| **H1** Midday, half-empty tank: 62 = 50, then 697 = 2; later 62 = 58 and another 697 | That the boost stops at the 62 just written, and a write to 62 takes effect on the next boost; charge rate and COP at 50 and 58 °C | 62 twice, 697 twice |
 | **H3** Autopilot live for 7 days, Flow off | Real kr against the Flow's week, and comfort (no rescue caused by the plan) | 697 |
 
 **Exit for live on the maintainer's Homey:** the back-test beats the Flow by ≥ 10 % over 14 days
