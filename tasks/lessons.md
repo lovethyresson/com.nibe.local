@@ -387,3 +387,12 @@ made up.
 
 **Rule:** before saying what a change does to a running test, read the code that consumes the data
 and quote it. If I have not read it, say so rather than reassure.
+
+## Don't build managers for what the owner already automates (2026-11-08)
+
+I designed an in-app day-type manager for Autopilot hot water: weekly pattern, holiday calendar,
+"was this a free day?" prompts. The maintainer cut it: owners set the day type in their own Flows
+(they already keep "working day" variables) or by hand.
+
+**Rule:** when a Homey owner can already express an input in a Flow, expose one capability and one
+action card for it, and stop. Calendars, schedules and inference stay out unless asked for.

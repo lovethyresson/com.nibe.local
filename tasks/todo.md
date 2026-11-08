@@ -7,11 +7,12 @@ commits and in the **Releases** table in [`README.md`](../README.md), the durabl
 ## Autopilot hot water: build (2026-11-08, [docs/autopilot-hot-water.md](../docs/autopilot-hot-water.md))
 
 The maintainer asked for it now (2026-11-08): a generic learner of the household's hot water use
-(weekday/free day), price and solar surplus, knobs "when" (697) and "how hot" (62). Measured: free
+(weekday/free day), price and solar surplus, knobs "when" (697 = 2) and "how hot" (end the boost with 697 = 0); no EEPROM writes; day type set by the owner via Flow or by hand. Measured: free
 days use 1.7x a working day; worth 50-70 kr/month in winter and roughly 100-150 kr/month in summer
 from surplus.
 
-- [ ] Plan approved by the maintainer (lever for "how hot", release scope)
+- [x] Levers decided (2026-11-08): no EEPROM writes; day type only from Flows or by hand
+- [ ] Release scope beyond the maintainer's Homey
 - [ ] Slice 1: learner (pure) + Insights bootstrap + tank fields in the history, with tests
 - [ ] Slice 2: planner (pure) + `dev/evaluate-hot-water.mjs` back-test, draws not known ahead
 - [ ] Slice 3: shadow on the maintainer's Homey; next planned charge on the device
