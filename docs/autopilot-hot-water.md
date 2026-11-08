@@ -209,6 +209,9 @@ charges. The temperature is chosen when the charge starts, so a charge never has
 - **Cost:** two writes of 56 per charge, at most 6 a day. Nibe does not document whether 56 (or
   697) is kept in EEPROM; worth asking in the current contact. 697 is written about as often by
   the owner's Flow today.
+- **Hot charges can skip the switch:** "More hot water" (697) always heats to the Large stop
+  (maintainer, 2026-11-08), so a hot charge is 697 = 2 with 56 left on Small, one write. Only a
+  normal charge needs the Medium switch.
 - **Fallback, if H1 fails or the owner declines the presets:** 697 = 2 starts a charge to the
   Large stop; Autopilot chooses *when* only. One write per charge.
 - **Fail-safe:** after a restart, the app puts 56 back to Small unless a planned charge is
