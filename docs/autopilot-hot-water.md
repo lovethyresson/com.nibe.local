@@ -315,7 +315,7 @@ Asked of the owner:
 | Slice | What | Writes to the pump |
 |---|---|---|
 | **1. Learner** (built 2026-11-08, branch `autopilot/hot-water`) | `lib/autopilot/hotwater-learner.ts` (pure): tank balance, standing loss against stored heat, charge model with COP against tank top, profiles for `any`/working/free with the prior filling a young type's shortfall, away. `hotwater-insights.ts`: Insights → readings, finest resolution wins. `dev/learn-hot-water.mjs` runs it on a real device. Tank fields go into the per-pump history with the collector split (plan §2.1). | none |
-| **2. Planner** | `lib/autopilot/hotwater-planner.ts` (pure): DP over charge slot and target temperature, surplus pricing. `dev/evaluate-hot-water.mjs` back-test on real prices and draws, the draws *not* known ahead. | none |
+| **2. Planner** (built 2026-11-08) | `lib/autopilot/hotwater-planner.ts` (pure): DP over 15-min slots, state = stored heat and whether a charge runs (a run cannot be stopped, so each run's end is its target, 45–60 °C); COP and loss from the learner; surplus priced at export; reserved slots honoured; a running charge ends at the Large stop in force; a charge under 4 kWh waits unless the reserve is breached. `dev/evaluate-hot-water.mjs`: back-test, draws not known ahead. | none |
 | **3. Shadow** | Run the planner every slot on the maintainer's Homey and log what it would do; show the next planned charge on the device. | none |
 | **4. Live** | 697 and 62 behind the on/off, guards, rescue, reconciliation; surplus live trigger; day type picker and Flow cards; settings; six-language strings. | 697, 62 |
 | **5. Docs** | `docs/` and FAQ; README row; analytics rows if events are added. | – |
@@ -325,6 +325,32 @@ Asked of the owner:
 above the 0.1 from one 5-min night: the hourly litres estimate loses more than BT7 alone shows);
 13.2 kWh drawn a day, p80 18.5, peaks at 06 and 19–20; no away days. No day types yet: the
 picker does not exist, so everything is pooled until the owner sets them.
+
+**Slice 2 back-test (26 Oct → 8 Nov, 11 full days, SE3).** All rows but the first run on one
+simulated tank with the learned loss and COP; the planner relearns each midnight from readings
+before it and sees only the prices known at the time.
+
+| Strategy | kr/day | kr/month | charges/day | mean target | 15-min slots below the 60 L reserve |
+|---|---|---|---|---|---|
+| Owner's setup, as it ran (real meter) | 17.02 | 511 | – | – | – |
+| Owner's Flow, simulated | 17.62 | 529 | 2.9 | 60 °C | 60 |
+| Pump alone (start 42, stop 50 °C) | 18.39 | 552 | 5.8 | 50 °C | 2 |
+| **Planner, learned profile** (weekends set free) | **16.41** | **492** | 2.1 | 54 °C | 21 |
+| Planner, draws known ahead | 16.31 | 489 | 2.4 | 54 °C | 0 |
+
+- **About 7 % below the Flow on the same simulated tank, about 35 kr a month**, with a third of
+  the time under the reserve. Less than the 50–70 kr estimated in §3, whose optimum knew every
+  price for 13 days ahead; with only the published prices, even knowing the draws gains little
+  more (16.31). In November the prices, not the forecast, set the ceiling.
+- **Day types barely matter here** (16.41 against 16.52 without): only two weekends of hourly
+  shape exist yet. That changes once the owner sets the day type for real.
+- **Settled by the back-test:** no margin above the reserve (it kept the tank hot for nothing),
+  plan halfway between the mean draw and the 80th percentile, no charge under 4 kWh unless the
+  reserve is breached (replanning every slot otherwise made 10 short charges a day, many at
+  peak prices), a start cost of 1 kr, and the value function read between levels (rounding
+  hid the standing loss and made the plan top up in slivers).
+- Summer, with surplus at export price, is not in this window; §2.3's 100–150 kr a month is
+  still an estimate.
 
 Hardware tests, each with the owner's go-ahead:
 

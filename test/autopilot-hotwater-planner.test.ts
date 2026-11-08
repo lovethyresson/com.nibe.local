@@ -1,0 +1,98 @@
+import {test} from 'node:test';
+import assert from 'node:assert';
+import {PlanInput, PlanSlot, heatAt, plan, reserveKwh, tempOf} from '../lib/autopilot/hotwater-planner';
+
+const near = (actual: number, expected: number, tolerance: number, what: string) =>
+    assert.ok(Math.abs(actual - expected) <= tolerance, `${what}: expected ${expected} ± ${tolerance}, got ${actual}`);
+
+// The S1155's numbers: 176 L tank, 6 kWh heat an hour, COP 2.9 at 48 °C falling 0.02 per K.
+const tank = {litres: 176, inletC: 10};
+const charge = {heatPerHour: 6, cop: 2.9, copPerK: -0.02, atTop: 48, samples: 50};
+const loss = {base: 0.03, perKwh: 0.01, samples: 50};
+
+/** 24 h from midnight, 15-min slots: price by hour, draw kWh per hour by hour. */
+function day(price: (h: number) => number, draw: (h: number) => number, extra: (h: number) => Partial<PlanSlot> = () => ({})): PlanSlot[] {
+    return Array.from({length: 96}, (_, k) => {
+        const h = Math.floor(k / 4);
+        return {price: price(h), draw: draw(h) / 4, ...extra(h)};
+    });
+}
+const input = (slots: PlanSlot[], over: Partial<PlanInput> = {}): PlanInput => ({
+    slots, stored: heatAt(tank, 45), charging: false, tank, charge, loss, reserve: reserveKwh(60), minC: 45, maxC: 60, ...over,
+});
+const hourOf = (slot: number) => Math.floor(slot / 4);
+
+// Night cheap, a cheap midday, an expensive evening: the S1155's November shape.
+const price = (h: number) => h < 6 ? 1.9 : h >= 11 && h < 15 ? 2.2 : h >= 16 && h < 21 ? 3.3 : 2.7;
+const evening = (h: number) => h === 6 ? 1.6 : h >= 18 && h <= 21 ? 1.6 : 0;
+
+test('heatAt and tempOf are inverses', () => {
+    near(tempOf(tank, heatAt(tank, 55)), 55, 1e-9, 'round trip');
+    near(heatAt(tank, 60), 176 * 50 * 4.186 / 3600, 1e-9, 'heat at 60 °C');
+});
+
+test('charges land in cheap hours before the peaks, never in the expensive evening', () => {
+    const p = plan(input(day(price, evening)));
+    assert.ok(p.charges.length >= 1);
+    for (const c of p.charges)
+        for (let k = c.start; k < c.end; k++) assert.ok(!(hourOf(k) >= 16 && hourOf(k) < 21), `charge in the evening at slot ${k}`);
+    assert.strictEqual(p.shortfall, 0, 'the reserve holds');
+    assert.ok(p.stored.every((s) => s >= reserveKwh(60) - 1e-6), 'never below the reserve');
+});
+
+test('the target follows what has to be covered: a bigger evening needs a hotter charge', () => {
+    // Start near the reserve, so both evenings need a charge before them.
+    const low = {stored: reserveKwh(80)};
+    const small = plan(input(day(price, (h) => h >= 18 && h <= 19 ? 1.2 : 0), low));
+    const big = plan(input(day(price, (h) => h >= 17 && h <= 21 ? 1.9 : 0), low));
+    const lastBefore = (p: ReturnType<typeof plan>) => p.charges.filter((c) => hourOf(c.start) < 17).pop()!;
+    assert.ok(lastBefore(big).targetC > lastBefore(small).targetC,
+        `big ${lastBefore(big).targetC} °C vs small ${lastBefore(small).targetC} °C`);
+    for (const c of [...small.charges, ...big.charges]) assert.ok(c.targetC >= 45 && c.targetC <= 60);
+});
+
+test('solar surplus pulls the charge into the sunny hours and makes it hotter', () => {
+    const sunny = day(() => 2.5, evening, (h) => h >= 11 && h < 15 ? {surplusKw: 3, exportPrice: 0.6} : {});
+    const p = plan(input(sunny));
+    const midday = p.charges.find((c) => hourOf(c.start) >= 11 && hourOf(c.start) < 15);
+    assert.ok(midday, 'a charge in the surplus');
+    assert.ok(midday!.surplusShare > 0.9, `surplus share ${midday!.surplusShare}`);
+    const cloudy = plan(input(day(() => 2.5, evening)));
+    const hottest = (q: ReturnType<typeof plan>) => Math.max(...q.charges.map((c) => c.targetC));
+    assert.ok(hottest(p) >= hottest(cloudy), 'surplus is stored hotter, never cooler');
+    assert.ok(p.cost < cloudy.cost);
+});
+
+test('no charge starts in a reserved slot', () => {
+    const slots = day(price, evening, (h) => h < 6 || (h >= 11 && h < 15) ? {reserved: true} : {});
+    const p = plan(input(slots));
+    for (const c of p.charges) assert.ok(!slots[c.start].reserved, `started in reserved slot ${c.start}`);
+});
+
+test('a charge already running goes on to the Large stop in force', () => {
+    const p = plan(input(day(() => 3.3, () => 0), {charging: true, runningTargetC: 55, stored: heatAt(tank, 40)}));
+    assert.strictEqual(p.charges[0].start, 0);
+    near(p.charges[0].targetC, 55, 1, 'ends at the running stop');
+    assert.strictEqual(p.startNow, false, 'nothing new to start');
+});
+
+test('a tank under the reserve charges now at any price; one above it waits for the hour it is needed', () => {
+    const draws = (h: number) => h < 3 ? 2 : 0;
+    const under = plan(input(day(() => 3.3, draws), {stored: reserveKwh(50)}));
+    assert.ok(under.startNow, 'below the reserve: now');
+    const above = plan(input(day(() => 3.3, draws), {stored: reserveKwh(80)}));
+    assert.ok(above.charges[0].start < 4, 'within the hour');
+    assert.strictEqual(above.shortfall, 0, 'and the reserve holds');
+});
+
+test('a small top-up waits for a proper charge', () => {
+    // Prices flat, a slow trickle of draws: the plan would add a sliver now; it is not started.
+    const p = plan(input(day(() => 2.5, () => 0.3), {stored: reserveKwh(66)}));
+    if (p.charges[0]?.start === 0) assert.ok(p.charges[0].heat >= 4 || p.startNow === false);
+});
+
+test('a full tank and no draws: nothing to do', () => {
+    const p = plan(input(day(price, () => 0), {stored: heatAt(tank, 58)}));
+    assert.strictEqual(p.charges.length, 0);
+    assert.strictEqual(p.startNow, false);
+});
