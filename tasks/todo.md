@@ -359,6 +359,11 @@ Offline only; nothing runs on the Homey yet. Design: `docs/autopilot-plan.md` §
   heat-loss/gains fit is fixed. Presets today −5…5 / −2…11 / −20…19 K; Save some pre-heated every
   slot (shift +11.5 against the coast bias), Save the most hit ramp 21 % and max-bias 2 %;
   Manual, nothing fed, nothing unsafe at the ladder's tested range. Planned saving 5.4/6.9/4.7 %.
+  Preset evaluation (22:30 check), 29 SE3 days 9 Oct → 6 Nov, this model, Manual, comfort 22.5,
+  lever 0.527·H, Open-Meteo history, planned on the day-ahead forecast: fair saving Comfortable
+  1.0 %, Save some 1.3 %, Save the most 7.3 % (best days 3.2/6.4/16.9 %); gross 3.2/4.6/20.4 %;
+  off comfort 0.04/0.06/0.30 K RMS. Perfect forecast 1.0/1.4/7.2 %: forecast error costs nothing
+  measurable. Unchanged from 7 Nov, so the too-warm balance does not move the October verdict.
   Preset evaluation, 31 SE3 days 9 Oct → 8 Nov, Manual, comfort 22.5, lever 0.53: Comfortable
   1.0 %, Save some 1.4 %, Save the most 7.0 % (day-ahead 1.0/1.3/7.1); built on the same
   too-warm balance, so read as an upper bound.
