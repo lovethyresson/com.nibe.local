@@ -396,3 +396,12 @@ I designed an in-app day-type manager for Autopilot hot water: weekly pattern, h
 
 **Rule:** when a Homey owner can already express an input in a Flow, expose one capability and one
 action card for it, and stop. Calendars, schedules and inference stay out unless asked for.
+
+## Read the register notes before proposing a lever (2026-11-08)
+
+I designed "how hot" as ending a boost with 697 = 0 at a planned temperature. The register table
+already says 697 = 0 does not stop a charge in progress; the maintainer had to point it out.
+
+**Rule:** before a design relies on a register doing something, read that register's comments in
+`drivers/nibe_s/registers.ts` (and its neighbours') and the relevant memories, and quote what they
+say about it.
