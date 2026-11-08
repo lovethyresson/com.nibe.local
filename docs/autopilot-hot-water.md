@@ -154,16 +154,16 @@ S1155.
   produced and consumed meters during charges. This prices "how hot" (§4.3).
 - **Day types come from the owner, not from guesses:** *working*, *free*, *guests* and *away*.
   Each type has its own profile (96 slots, each with a median and an 80th percentile). Which
-  type a day is comes from, in order: what the owner set for that day (§4.7), the owner's weekly
+  type a day is comes from, in order: what the owner set for that day (§4.6), the owner's weekly
   pattern from setup (default Monday–Friday working), and public holidays for the Homey's
   country, which setup shows for confirmation. A profile is learned only from days whose type
   the app knew. A day whose draws look like another type (a weekday off from school drawing like
   a free day) is shown as a suggestion, never relabelled silently.
-- **Away:** set by the owner (§4.7). A day with near-zero draw that was not marked away is kept
+- **Away:** set by the owner (§4.6). A day with near-zero draw that was not marked away is kept
   out of the profiles and prompts "Were you away on Tuesday?".
 - **Seasonal drift:** recent days weigh more (half-life about 3 weeks), which tracks colder inlet
   water in winter.
-- **Starting point:** with less than 14 days of history, setup asks a few questions (§4.7) and
+- **Starting point:** with less than 14 days of history, setup asks a few questions (§4.6) and
   the learner starts from them; learned values replace the answers as days accumulate.
 - **Starts with history where it exists:** on first start the learner reads the app's own Homey
   Insights through `homey-api` (`homey:manager:api` is approved): hourly for 14 days and 6-hourly
@@ -227,7 +227,7 @@ prices (to midnight, or the next midnight after about 13:00):
 - Flows that switch "More hot water" fight the planner. Setup lists them (read through
   `homey-api`) and asks the owner to turn them off.
 
-### 4.7 What the app reads and what the owner tells it
+### 4.6 What the app reads and what the owner tells it
 
 Read without asking (S-series):
 
@@ -259,7 +259,7 @@ Asked of the owner:
 | Any day | today or tomorrow is working / free / guests / away: a picker on the Hot water device and a Flow action card | the day type; a calendar or presence Flow can drive it |
 | After an odd day | "Tuesday drew like a free day: count it as one?" | keeps the profiles clean |
 
-### 4.6 Guards
+### 4.7 Guards
 
 - No charge in the 2 h before a planned heating pre-heat (when heating Autopilot is on), since a
   charge blocks space heating.
