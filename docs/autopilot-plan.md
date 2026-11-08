@@ -181,7 +181,8 @@ or household state change:
    between rounds on the last plan.
 
 **Events that skip the round:**
-- **Hot water rescue** (stored heat below the reserve) charges at once, whatever heating planned.
+- **Hot water rescue** (below the owner's minimum litres, tank top under 45 °C) charges at once,
+  whatever heating planned.
   The next round replans heating around it.
 - **Live solar surplus** (hot water doc §4.4) may start a charge between rounds. If that lands
   in a planned heating pre-heat, the charge wins and the next round moves the pre-heat.
@@ -232,8 +233,11 @@ slots, and returns delivery-free and reserved slots.
   owner gets one timeline notification per incident.
 - **Neutral for hot water is not "off".** On a pump set up like the maintainer's (start 5 °C,
   charges only on request), off means no hot water. So hot water neutral is a **rescue guard
-  outside the planner**: a plain threshold on the litres estimate that requests a charge, kept
-  running whenever the connection is up, even with the planner or orchestrator down. If the
+  outside the planner**: the owner's "always keep at least" litres (default 40 L, hot water doc
+  §4), requesting a charge below it unless the tank top is still at 45 °C or more, kept running
+  whenever the connection is up, even with the planner or orchestrator down. An owner who sets
+  it to 0 relies on the pump's own start temperature, so on a pump like the maintainer's the
+  app restores the start temperature snapshot while Autopilot is neutral. If the
   litres estimate itself is unavailable, the app restores the owner's start temperature snapshot
   (60/59/58, taken at activation) and says so.
 
