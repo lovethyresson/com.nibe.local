@@ -220,6 +220,10 @@ charges. The temperature is chosen when the charge starts, so a charge never has
   price gap or surplus pays for it.
 - **Advice only:** periodic hot water 65/66/92: "Your weekly boost runs at 03:00; the cheapest
   slot this week is Sunday 02:15". Never written.
+- **Rejected: stopping a charge by toggling 195 (allow hot water) off and on.** It is the only
+  way seen to end a running charge (`registers.ts` at 195), but it is two more likely-EEPROM
+  writes, and if the app dies between them the house has no hot water at all, not even the
+  safety charge. The presets make stopping unnecessary.
 - **Never touched:** 195 (allow hot water), the legionella settings, SPA hot water, Smart control
   (56 = 4). Autopilot hot water and SPA hot water (846) are mutually exclusive.
 
