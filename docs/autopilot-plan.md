@@ -28,9 +28,10 @@ firmware 13.5.2-rc.5, SE3) with read-only `homey api` calls.
    owners; Custom exposes how much price, weather and stored heat may steer, plus the comfort band.
    It replaces the 2026-10-15 five-level "Aggressiveness", and with it the separate
    band, strength and margin settings (§7.4).
-5. **SPA and Autopilot are exclusive per function** (revised 2026-11-08, §2.1; was "per pump"),
-   chosen in Pair and Repair. Whichever is on for a function owns that function's capabilities
-   and Flow cards; the other's are removed (§10).
+5. **SPA and Autopilot are exclusive per pump** (confirmed 2026-11-08), chosen in Pair and
+   Repair. Whichever is on owns its capabilities and Flow cards; the other's are removed (§10).
+   Choosing Autopilot switches SPA off for every function, including those with no Autopilot
+   controller on.
 6. **One Autopilot controller per function, one orchestrator per pump** (maintainer, 2026-11-08,
    §2.1). The owner switches on Autopilot Heating, Autopilot Hot Water and later Pool and Cooling
    one by one. The orchestrator plans what they share and breaks their ties; it is not a switch.
@@ -117,16 +118,15 @@ things:
 | **M0** | BT1 verification on hardware (`dev/probe-bt1.mjs`) | probes only | nothing (docs) |
 | **M1** | Mode choice SPA ⇄ Autopilot, data foundation, "House insights" | **none** | test → live |
 | **M2** | Shadow controller | **none** (logs what it would feed) | test |
-| **M3** | Autopilot Heating v1: efficiency loop + price shifting through BT1, away mode, transparency (§19); the orchestrator's first real tie-break (§2.1) | 5217, 844 | test → live |
+| **M3** | Autopilot Heating v1: efficiency loop + price shifting through BT1, away mode, transparency (§19); the orchestrator's first real tie-break (§2.1) | 5217, 843 | test → live |
 | **MW** | Widgets: a design of their own across the app, Autopilot's among them (§19.5) | none | test → live |
 | **M4** | Autopilot Hot Water (replaces SPA hot water for that function) + solar surplus + add-heat guard (§12, §19.3); brings the orchestrator in its single-controller form (§2.1) | 697, 62 | test → live |
 | **M5** | Predictive optimiser (DP, COP model, air-source, PV): the joint orchestrator (§2.1) | same levers | test → live |
 
 **On the order of M3 and M4.** The maintainer asked on 2026-11-08 for Autopilot Hot Water to be
 built now, ahead of heating ([autopilot-hot-water.md](autopilot-hot-water.md)), so M4 may ship
-first. Because SPA is chosen per function (§2.1), an owner on Autopilot Hot Water keeps SPA
-heating if they want it, and the reverse; nobody loses price control on one function by choosing
-Autopilot for another.
+first. SPA and Autopilot stay exclusive per pump (§0.5), so until Autopilot Heating ships, an
+owner who chooses Autopilot for hot water gives up SPA heating. Repair says so in one line.
 
 ### 2.1 Controllers and the orchestrator (maintainer, 2026-11-08)
 
@@ -143,7 +143,7 @@ and those need one owner per pump, whether one controller is on or four.
 | **Autopilot Hot Water** | Hot water device | its on/off, next charge and why ([autopilot-hot-water.md](autopilot-hot-water.md) §4.5) | 697, 62 |
 | Autopilot Pool, Cooling | their devices | later; out of scope for v1 (§1) | – |
 | **Orchestrator** | a pure function, `lib/autopilot/orchestrator.ts`, called by a per-host registry beside `autopilotOwners` (§7.6), not by `PumpConnection` | one status line on Main: what runs next and why ("Hot water 13:15, then heating coasts 17–20") | **none** |
-| **Household state** | Main | day type: working, free, away, with an optional "away until" from the Flow card (hot water doc §4.1, §19.2) | none |
+| **Shared inputs** | home and pump level, below | Main shows the day type picker: working, free, away, with an optional "away until" from the Flow card (hot water doc §4.1, §19.2) | none |
 
 - **The orchestrator never writes to the pump.** It only changes what each controller plans
   against; the controllers act through their own levers, the write lane, persist-before-write
@@ -190,6 +190,29 @@ or household state change:
 before hard floors (hot water reserve, the indoor minimum), before comfort, before cost. In v1
 this only decides rescue against a pre-heat, and rescue wins.
 
+**Shared inputs (maintainer, 2026-11-08).** Anything more than one function is likely to use
+is collected once and shared, never fetched or learned per controller. Each input lives at the
+widest level it is true for:
+
+| Level | Inputs | Lives in |
+|---|---|---|
+| **Home** (one per Homey, every pump) | prices and the owner's cost formula; weather forecast with irradiance; location; the real outdoor temperature (owner's sensor, else forecast); grid import and export, so solar surplus, live and forecast; the Homey's solar generators; **day type** and "away until" | one app-level service, `lib/autopilot/inputs.ts`, started by the app, read by every controller on every pump |
+| **Pump** (one per host) | the 15-min history (heating *and* tank fields, one file); compressor state and priority (1028); the wired-BT1 lag model; the charge and COP model as functions of supply or tank temperature; the plan round and its grants | the per-host registry beside `autopilotOwners` |
+| **Controller** | its own model (house, tank draws), planner, lever, guards and settings | its device |
+
+- **Today this is all per Heating device.** `AutopilotCollector` (`lib/autopilot/collector.ts`)
+  fetches prices and weather and owns the history for the one Heating device that runs it. The
+  settings (location, outdoor sensor) are already app-wide. Splitting the collector into the
+  home service and the pump history is the first step of whichever controller ships second, so
+  hot water does not fetch the same prices again.
+- **Day type is per home, not per pump.** Two pumps in one house share one day type. Every Main
+  shows the same picker, and the Flow card sets the home value.
+- **Surplus is one budget.** When several functions could take it, the orchestrator grants it
+  (hot water first in v1: the tank stores it for hours). Two controllers never both count on the
+  same exported kW.
+- **New inputs follow the same rule:** occupancy, a power-tariff cap, grid CO₂ (§19.6) would each
+  be home-level, added once.
+
 **What each controller keeps.** Its model, learner, planner, lever, guards and settings. The
 orchestrator holds no model of a house or a tank: it sees planned charge slots and pre-heat
 slots, and returns delivery-free and reserved slots.
@@ -214,26 +237,16 @@ slots, and returns delivery-free and reserved slots.
   litres estimate itself is unavailable, the app restores the owner's start temperature snapshot
   (60/59/58, taken at activation) and says so.
 
-**SPA per function.** SPA has a whole-pump master (843, on Main) and per-function enables:
-844 heating, 846 hot water, 849 cooling. Pool has none and follows the master
-(`registers.ts` at 843).
-- A function on Autopilot has its SPA enable off; a function on SPA has it on. The master stays
-  on while any function is on SPA, and goes off only when none is.
-- **Pool is not a choice of its own.** `priceControl` has no pool entry until Autopilot Pool
-  exists; pool follows 843 as today.
-- **A function left on SPA is invisible to the orchestrator.** With heating on Autopilot and SPA
-  on hot water, SPA moves charges on its own schedule, possibly into a pre-heat. Heating sees
-  those charges only as they happen. Setup says so in one line; the full benefit needs both on
-  Autopilot.
-- **To verify before either goes live** (writes 843/844/846, each with the owner's go-ahead):
-  with 843 on and 844 off, SPA leaves heating alone (1918 never reads 30 "Heating"); with 843 on
-  and 846 off, it leaves hot water alone. If either fails, that function's Autopilot needs the
-  master off, and SPA is per pump again for it.
-- **Sections still written for the pump-wide choice**: §4.3 activation (843 = 0), §7.2 and §8
-  (watching 843), §10.1 and §10.5 (transitions as 843 writes). Each changes to the function's own
-  enable (844 for heating) when M3 is built; 843 is written only when the last function leaves
-  SPA. The snapshot drops 902, which does not answer on the S1155.
-
+**SPA and the controllers.** SPA and Autopilot are exclusive per pump (§0.5): the mode is
+pump-wide, and which controllers run is a per-function choice inside Autopilot.
+- **Switching the first controller on** switches SPA off (843 = 0, snapshot first, §4.3).
+  Switching the last one off leaves the pump in Autopilot with nothing on until the owner picks
+  SPA or None in Repair, which restores the snapshot.
+- **So the orchestrator sees every price-driven action on the pump.** No SPA schedule runs beside
+  it.
+- **A function with no Autopilot controller on has no price control.** Setup and Repair say so
+  in one line per function.
+- The snapshot drops 902, which does not answer on the S1155 (`registers.ts` at 902).
 ---
 
 ## 3. M0: BT1 verification (hardware, run by the maintainer)
@@ -1142,12 +1155,11 @@ On `onInit`:
 
 ### 10.1 The selection field and its capabilities
 
-A new selection field, **per function** since 2026-11-08 (§2.1):
-`selection.priceControl: {heating?, hotwater?, pool?, cooling?}`, each `'spa' | 'autopilot' | 'none'`.
-It sits next to `groups`/`overrides` and is resolved in `lib/autopilot/mode.ts`. Not built yet,
-so the shape costs no migration. The rest of this section was written for the pump-wide field and
-describes Heating; read "every device of the pump" as "that function's device", except for the
-master switch 843 on Main, which follows §2.1.
+A new selection field and its per-function companion (§2.1):
+`selection.priceControl: 'spa' | 'autopilot' | 'none'`, **pump-wide** (§0.5). Inside
+Autopilot, which controllers run is per function: `selection.autopilot: {heating?, hotwater?}`,
+each a boolean, set on that function's device (§2.1). Both sit next to `groups`/`overrides` and
+are resolved in `lib/autopilot/mode.ts`. Not built yet, so the shape costs no migration.
 
 - **Missing value means `spa`.** That is the upgrade path: existing devices keep exactly what they
   have today, in line with the "missing selection = everything" rule.

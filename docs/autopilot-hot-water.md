@@ -241,7 +241,8 @@ at 195).
   writes, and if the app dies between them the house has no hot water at all. Setting 62
   before the charge makes stopping unnecessary.
 - **Never touched:** 195 (allow hot water), the legionella settings, SPA hot water, Smart control
-  (56 = 4). Autopilot hot water and SPA hot water (846) are mutually exclusive.
+  (56 = 4). SPA and Autopilot are exclusive per pump ([autopilot-plan.md](autopilot-plan.md) §0.5), so
+  Autopilot hot water runs only with SPA off.
 
 ### 4.4 Solar surplus
 
@@ -268,7 +269,11 @@ at 195).
 
 ### 4.6 What the app reads and what the owner tells it
 
-Read without asking (S-series):
+Read without asking (S-series). Prices, weather, location, the real outdoor temperature, grid
+export, the solar generators and the day type are **shared inputs**, collected once per home for
+every controller, and the history is one file per pump ([autopilot-plan.md](autopilot-plan.md)
+§2.1). Only the tank's own readings are hot water's.
+
 
 | Need | Source |
 |---|---|
