@@ -433,6 +433,27 @@ Offline only; nothing runs on the Homey yet. Design: `docs/autopilot-plan.md` §
     sensor identity, and Hue → new sensor will not read as a change.
   - Steady-state over-prediction (~2 K on the last 24 h) remains in every variant, including
     met.no. It reads as the +6 transient (heat going into slow mass), not the outdoor source.
+- 2026-11-09 21:50 — 957 slots (30 Oct 20:45 → 9 Nov 21:15), 835 usable, 10 valid days; no new
+  gaps, 0 partial today. Heat loss 221 W/K (first-order 164), τ 120 h, stored 26.4 kWh/K, gains
+  0.37 kW, sun E/S/W 0.2/0.2/0.3 kW, lever 117 W/K (0.53·H), 6 h error 0.30 K: the local fit
+  already runs on the new gains prior from (d). The app's `model.json` (old build) still says
+  **ready**, heat loss 230, τ 136 h (daily 136.8 → 135.9), gains 0.61 kW;
+  `fit-house-model.mjs` still learning (stability). Curve learner 473 slots, 1.53 K per offset
+  step, 256 W per K of supply. Outdoor last 24 h: 96 sensor (Hue), 0 forecast, 0 fed; `tesrc`
+  empty because the (c) build is not installed. Room loop off (202 reads 1, legacy), SPA off
+  (843/846 = 0), offset +6 all day. Indoor 21.3–21.7 °C at te 0.4–5.0 °C.
+  Shadow 815 slots: doing nothing 1 h 0.16 K (bias +0.03), 6 h 0.56 K (bias +0.14, still warm).
+  Comfort bias today −7.7…−2.9 K (mean −4.6) with indoor ~1 K under 22.5: wrong sign and larger
+  than yesterday, so **5b stays blocked**. Presets today −5…3 / −13…9 / −23…17 K, coasting
+  3/16/55 %, planned saving 6.5/8.1/7.4 %; Save the most clamped ramp 15 %, max-bias 6 %, and its
+  −23 K is past the −20 K pre-heat the ladder tested (the max-bias clamp let it through). Manual
+  and nothing fed, so nothing unsafe happened, but the planner's range must stop at −20 K
+  pre-heat and +15 K coast before any feed goes live.
+  Preset evaluation, 30 SE3 days 10 Oct → 8 Nov (11-09 is look-ahead), app model, Manual, comfort
+  22.5, lever 0.53·H, Open-Meteo history: day-ahead Comfortable 0.9 %, Save some 1.2 %, Save the
+  most 7.2 % (best days 3.1/6.3/16.9 %; gross 3.1/4.4/19.5 %; off comfort 0.04/0.06/0.30 K RMS);
+  perfect forecast 1.0/1.3/7.0 %. Same as the last three days; still on the too-warm balance,
+  so an upper bound.
 - 2026-11-09 21:45 — 957 slots (30 Oct 20:45 → 9 Nov 21:15), 835 usable, 10 valid days; no new
   gaps, no partials today. Live `model.json` (installed build, old gains prior): heat loss 230
   W/K, τ 136 h (135.6/136.8/135.9 over three days: settled), gains 0.61 kW, 6 h error 0.32 K,
