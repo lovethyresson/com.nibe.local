@@ -367,6 +367,32 @@ Offline only; nothing runs on the Homey yet. Design: `docs/autopilot-plan.md` §
   Preset evaluation, 31 SE3 days 9 Oct → 8 Nov, Manual, comfort 22.5, lever 0.53: Comfortable
   1.0 %, Save some 1.4 %, Save the most 7.0 % (day-ahead 1.0/1.3/7.1); built on the same
   too-warm balance, so read as an upper bound.
+- **2026-11-09 — why the balance reads too warm (offline, read-only).** Free-run refits of the
+  2R2C over the 906-slot record (scratchpad `batchfit.mts`/`variants.mts`, Nelder–Mead on free-run
+  RMSE, mass start free):
+  1. *The outdoor input changed meaning mid-record.* Until 2026-11-02 pm `te` is the pump's BT1;
+     from then the picked outdoor sensor, a Hue motion sensor ("Rörelse"). Against met.no 2 m
+     temperature (Open-Meteo, 3–9 Nov) BT1 reads +0.7 K (+1.2 at night, −0.4 midday, a wall
+     sensor); the Hue reads −1.7 K, −3 K in the evening and +1.1 K at 11:00 (sun on it). So the
+     model learns from an outdoor that is ~2.4 K colder than before 2 Nov with a 4 K false daily
+     swing, which the sun and gains terms soak up. Unifying the series on either sensor moves
+     the EKF to H 238/gains 0.94 (Hue) or H 270/gains 0.82 (BT1): not a fix by itself.
+  2. *Heat loss and free heat cannot be told apart yet.* With the app's dynamics held, gains
+     0 → 0.8 kW fits with H 191 → 236 W/K at free-run RMSE 0.404 → 0.437 K. ΔT has only spanned
+     15–22 K; separating them needs a cold spell. The free-run fits also put sun at ~0 while the
+     EKF learns 0.4–1.0 kW south at 500 W/m²: sun is not identified either.
+  3. *Every model over-predicts the +6 period.* Fitted on data before 7 Nov 20:36 and run free
+     through the held-out +6 period, every variant (EKF, batch, either outdoor) ends 0.44–0.76 K
+     too warm after 37 h. The EKF's steady indoor for the last 24 h is 22.8–23.2 °C against
+     21.26 measured. The batch fits want a mass of 100–200 kWh/K (τ 550–800 h) and halve the
+     free-run error (0.40 → 0.20–0.23 K), but 9 days cannot pin a weeks-long mode either.
+  Verdict: the extra heat from +6 is not showing up at the indoor sensor(s) as the previous
+  week says it should, whichever parameters. Not explained by the outdoor switch alone.
+  Candidates left, not testable from the history: thermostatic radiator valves throttling the
+  sensed rooms (heat goes to unsensed rooms), indoor sensor placement or selection, or a real
+  slow mass. Next: ask the owner about TRVs and which indoor sensors are picked; move the
+  outdoor off the Hue sensor (BT1 or a shaded sensor) and record which source each slot used
+  (flag 16 already does); refit after a colder week. 5b stays blocked.
 
 ## Autopilot slice 1: data collection (branch `smart-heating/m1-data`)
 
