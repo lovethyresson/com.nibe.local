@@ -288,15 +288,32 @@ at 195).
   "Yesterday:" and "Last night:" (this date's small hours, an older date if a morning was missed),
   and the plan follows under "Today:". A recap that ran from yesterday morning to this morning
   in one list read as one day.
+- **Plan update** (when prices arrive or are revised): the plan is redone at once, and the owner
+  is told what the prices changed and why. Each change is one of four kinds: a charge
+  resized (by 3 K or more), moved (within 3 h), dropped, or added. Same-time charges are paired
+  first, so a charge that only moved cannot take another's partner. The why is concrete:
+  - "The charge tomorrow at 03:45 takes over the rest, at 1.62 kr/kWh". Not always cheaper per
+    kWh; nearer the use it loses less on the way.
+  - "The 14:00 hours now cost 3.90 instead of 2.21" for revised prices.
+  - "The tank covers the day without it".
+  The comparison is not with the morning plan. By afternoon the tank has drifted from the
+  morning's projection, and a first version reported that drift as a change every day ("53 →
+  45 °C, it needs less now"). It is with the plan the old prices give from the tank as it is
+  now, so every change told is the prices' doing. A charge only added in hours that had no
+  price before is no push: tomorrow's prices arrive every afternoon, and the charge message
+  and the next morning's recap tell it. The new plan becomes the one later charges are
+  compared with ("As planned", "Not in the plan"). Built in `planChanges()` and
+  `planUpdateText()`. Today the shadow fetches prices itself and calls this on any new or
+  revised slot. With the collector split the fetch moves to the home service, and this
+  becomes the hot water side of its "prices changed" event; heating needs the same event.
 - **Charge message** (when a charge starts): a short `reason` from the same vocabulary as the
   morning plan (Cheapest hours, In time for use, Solar surplus, Safety net, Started by the
   pump), and a `detailedReason` with the numbers. Those numbers are the target, the run
   length, the price against the day's mean, the tank and the safety net for a rescue, and the
   stop for a pump charge. It ends with how the charge compares with the morning plan:
-  - "As planned this morning": a planned charge within 45 min.
-  - "Changed: this morning's plan had it at 14:15": a price-driven start within 3 h of a planned
-    charge.
-  - "Not in this morning's plan": anything else.
+  - "As planned": a charge in the plan in force within 45 min.
+  - "Changed: the plan had it at 14:15": a price-driven start within 3 h of a planned charge.
+  - "Not in the plan": anything else.
   A safety-net start and the pump's own charge are never "the plan moved". They come on top of
   the plan, or a pump charge says "the plan had a charge then too". The two texts are the Flow
   trigger's tokens. The timeline hears only what the morning plan did not say: safety-net,

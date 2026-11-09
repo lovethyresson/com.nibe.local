@@ -282,7 +282,8 @@
       "tomorrow": "morgen om __time__",
       "cost_tomorrow": "Verwachte kosten __cost__. Prijzen zijn bekend tot morgen middernacht.",
       "today": "om __time__",
-      "today_heading": "Vandaag:"
+      "today_heading": "Vandaag:",
+      "tomorrow_bare": "morgen __time__"
     },
     "hotwater_charge": {
       "reason": {
@@ -301,10 +302,10 @@
         "pump_more": "Meer warm water staat aan, dus de warmtepomp warmt op tot __stop__ °C."
       },
       "plan": {
-        "as_planned": "Zoals vanochtend gepland.",
-        "moved": "Gewijzigd: het plan van vanochtend had hem om __time__.",
-        "unplanned": "Niet in het plan van vanochtend.",
-        "as_planned_pump": "Het plan van vanochtend had toen ook een opwarming."
+        "as_planned": "Zoals gepland.",
+        "moved": "Gewijzigd: het plan had hem om __time__.",
+        "unplanned": "Niet in het plan.",
+        "as_planned_pump": "Het plan had toen ook een opwarming."
       },
       "duration": "__h__ u __m__ min",
       "duration_min": "__m__ min",
@@ -322,6 +323,35 @@
         "last_night": "Vannacht:"
       },
       "duration_h": "__h__ u"
+    },
+    "hotwater_update": {
+      "title": {
+        "new_prices": "Warmwaterplan bijgewerkt: nieuwe prijzen zijn binnen.",
+        "revised": "Warmwaterplan bijgewerkt: prijzen gewijzigd."
+      },
+      "added": "Toegevoegd: __time__, tot __target__ °C voor __price__/kWh (__reason__).",
+      "added_new_hours": "Toegevoegd: __time__, tot __target__ °C voor __price__/kWh (__reason__), in uren die nu prijzen hebben.",
+      "moved": "Verschoven van __was__ naar __time__: tot __target__ °C voor __price__/kWh in plaats van __wasPrice__.",
+      "dropped": "Geschrapt: de opwarming van __time__ tot __target__ °C. __why__",
+      "resized": "Gewijzigd: __time__ nu tot __target__ °C in plaats van __was__ °C. __why__",
+      "why": {
+        "takes_over": "De opwarming __time__ neemt de rest over, voor __price__/kWh.",
+        "covered": "De boiler redt de dag zonder.",
+        "store_more": "De komende uren zijn duurder, dus nu wordt meer opgeslagen.",
+        "needs_less": "Er is nu minder nodig."
+      },
+      "cost": "Verwachte kosten __cost__. Prijzen zijn bekend tot vannacht middernacht.",
+      "cost_tomorrow": "Verwachte kosten __cost__. Prijzen zijn bekend tot morgen middernacht.",
+      "shadow": "Testrun: er verandert niets aan de warmtepomp.",
+      "reason": {
+        "cheap": "Goedkoopste uren",
+        "before_use": "Op tijd voor gebruik",
+        "surplus": "Zonne-overschot",
+        "reserve": "Veiligheidsmarge",
+        "running": "Warmt al op",
+        "pump": "Gestart door de warmtepomp"
+      },
+      "moved_repriced": "Verschoven van __was__ naar __time__: de uren van __was__ kosten nu __wasNow__/kWh in plaats van __wasPrice__, dus het warmt op tot __target__ °C voor __price__/kWh."
     }
   }
 }

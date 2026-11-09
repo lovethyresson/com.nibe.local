@@ -336,6 +336,83 @@ export function recapLines(events: ChargeEvent[], t: Translate, time: (ms: numbe
     return lines;
 }
 
+/** A charge the plan gained, lost, moved or resized between two plans. */
+export interface PlanChange {
+    kind: 'added' | 'dropped' | 'moved' | 'resized';
+    was?: ChargeFacts;
+    now?: ChargeFacts;
+}
+
+/** A target change this small is the replan's noise, not news. */
+const RESIZE_K = 3;
+
+/** What changed from `before` to `after` for the charges still ahead (`from`, ms). A charge is
+ *  the same one within 45 min, moved within 3 h, else dropped and another added. Pure. */
+export function planChanges(before: DailyPlan, after: DailyPlan, from: number): PlanChange[] {
+    const old = before.charges.filter((c) => c.at >= from && c.reason !== 'running');
+    const fresh = after.charges.filter((c) => c.reason !== 'running');
+    const used = new Set<ChargeFacts>();
+    const match = new Map<ChargeFacts, ChargeFacts>();
+    // Same-time pairs first, so a charge that only moved cannot take another's partner.
+    for (const within of [AS_PLANNED_MS, MOVED_MS]) for (const was of old) {
+        if (match.has(was)) continue;
+        const now = fresh.filter((c) => !used.has(c) && Math.abs(c.at - was.at) <= within)
+            .sort((x, y) => Math.abs(x.at - was.at) - Math.abs(y.at - was.at))[0];
+        if (now) { used.add(now); match.set(was, now); }
+    }
+    const changes: PlanChange[] = [];
+    for (const was of old) {
+        const now = match.get(was);
+        if (!now) changes.push({kind: 'dropped', was});
+        else if (Math.abs(now.at - was.at) > AS_PLANNED_MS) changes.push({kind: 'moved', was, now});
+        else if (Math.abs(now.targetC - was.targetC) >= RESIZE_K) changes.push({kind: 'resized', was, now});
+    }
+    for (const now of fresh) if (!used.has(now)) changes.push({kind: 'added', now});
+    return changes.sort((x, y) => (x.now ?? x.was)!.at - (y.now ?? y.was)!.at);
+}
+
+/** The plan update: why it was redone, each change with its reason, and the plan as it now
+ *  stands. `before` is the plan the old prices give from the same tank and slot as `after`, so
+ *  every change is the prices' doing. `t` reads `autopilot.hotwater_update`, `when` gives "14:15" or "tomorrow 03:45".
+ *  Undefined when nothing ahead changed except charges in hours that had no price before:
+ *  those are news for the next morning's recap and the charge message, not for a push. */
+export function planUpdateText(before: DailyPlan, after: DailyPlan, from: number, t: Translate,
+                               when: (ms: number, at?: boolean) => string, currency: string, shadow: boolean,
+                               priceNow?: (at: number, minutes: number) => number | undefined): string | undefined {
+    const changes = planChanges(before, after, from);
+    if (!changes.some((c) => c.kind !== 'added' || c.now!.at < before.until)) return undefined;
+    const money = (v: number) => `${v.toFixed(2)} ${currency}`.trim();
+    const reason = (c: ChargeFacts) => t(`reason.${c.reason}`);
+    /** The first charge the update added or moved after `at`: what takes over. Not always cheaper
+     *  per kWh; nearer the use it loses less heat on the way. */
+    const takesOver = (at: number) => changes.filter((c) => c.kind === 'added' || c.kind === 'moved')
+        .map((c) => c.now!).filter((c) => c.at > at).sort((x, y) => x.at - y.at)[0];
+    const lines = [t(after.until > before.until ? 'title.new_prices' : 'title.revised')];
+    for (const c of changes) {
+        const now = c.now, was = c.was;
+        if (c.kind === 'added') lines.push(t(now!.at >= before.until ? 'added_new_hours' : 'added',
+            {time: when(now!.at), target: now!.targetC, price: money(now!.price), reason: reason(now!)}));
+        else if (c.kind === 'moved') {
+            // Revised prices: say what the old hours cost now, which is why it moved.
+            const wasNow = priceNow?.(was!.at, was!.minutes);
+            lines.push(wasNow !== undefined && Math.abs(wasNow - was!.price) > 0.01 * was!.price
+                ? t('moved_repriced', {was: when(was!.at), time: when(now!.at), target: now!.targetC,
+                    price: money(now!.price), wasPrice: money(was!.price), wasNow: money(wasNow)})
+                : t('moved', {was: when(was!.at), time: when(now!.at), target: now!.targetC,
+                    price: money(now!.price), wasPrice: money(was!.price)}));
+        } else {
+            const over = takesOver(was!.at);
+            const why = over ? t('why.takes_over', {time: when(over.at, true), price: money(over.price)})
+                : c.kind === 'dropped' ? t('why.covered') : now!.targetC > was!.targetC ? t('why.store_more') : t('why.needs_less');
+            lines.push(c.kind === 'dropped' ? t('dropped', {time: when(was!.at), target: was!.targetC, why})
+                : t('resized', {time: when(now!.at), target: now!.targetC, was: was!.targetC, why}));
+        }
+    }
+    lines.push(t(after.untilDate === after.date ? 'cost' : 'cost_tomorrow', {cost: money(after.cost)}));
+    if (shadow) lines.push(t('shadow'));
+    return lines.join('\n');
+}
+
 /** One-line summary for the app log. */
 export function summary(entry: ShadowEntry): string {
     const next = entry.next ? `next charge ${entry.next.at.slice(11, 16)} UTC to ${entry.next.targetC} °C`
@@ -361,7 +438,8 @@ export class HotwaterShadow {
     private last?: ShadowEntry;
     private deviceId?: string;
     private currency = '';
-    /** Local date of the last morning plan sent, and the plan. */
+    /** Local date of the last morning plan sent, and the plan in force: the morning's, or the
+     *  replan after prices changed. Charges are compared with it. */
     private dailySent?: string;
     private morningPlan?: DailyPlan;
     /** Charges started since the last morning plan, for its recap. */
@@ -461,7 +539,13 @@ export class HotwaterShadow {
         });
         const keepFrom = slotOf(now - 24 * HOUR);
         for (const slot of [...this.prices.keys()]) if (slot < keepFrom) this.prices.delete(slot);
-        for (const day of days) for (const slot of day.slots) this.prices.set(slot.slot, slot);
+        const old = new Map(this.prices);
+        let changed = false;
+        for (const day of days) for (const slot of day.slots) {
+            if (this.prices.get(slot.slot)?.price !== slot.price) changed = true;
+            this.prices.set(slot.slot, slot);
+        }
+        if (changed) this.pricesChanged(old);
         return nextPriceFetchMs(now, timeZone, (days[1]?.slots.length ?? 0) > 0);
     }
 
@@ -507,6 +591,41 @@ export class HotwaterShadow {
         // or unplanned one. Charges as planned, and the pump's own, are for Flows and the recap.
         if (e.by !== 'autopilot' || (e.reason !== 'reserve' && e.plan === 'as_planned')) return;
         this.homey.notifications.createNotification({excerpt: chargeLine(e, t, this.time, this.currency, true)})
+            .catch((error: any) => this.log('Autopilot hot water: timeline failed:', error?.message ?? error));
+    }
+
+    /** New or revised prices: replan from now, and tell what the prices changed and why. The
+     *  plan they are told against is the one the old prices give from the tank as it is now, not
+     *  the morning's: by afternoon the tank has drifted from the morning's projection, and that
+     *  drift is not news. Only after the morning plan is out: before it there is no plan to have
+     *  changed. When the collector split moves the price fetch to the home service, this is its
+     *  "prices changed" event. */
+    private pricesChanged(old: Map<number, PriceSlot>) {
+        if (!this.morningPlan || this.stopped) return;
+        const {now, tank} = this.read();
+        if (!tank) return;
+        const at = slotOf(Date.now()) * SLOT_MS;
+        const input = {slot: slotOf(at), model: this.model, now, tank, clock: this.clock()};
+        const after = dailyPlan({...input, prices: this.prices});
+        if ('skip' in after) return this.log(`Autopilot hot water: prices changed, no replan (${after.skip}).`);
+        this.morningPlan = after;
+        const before = dailyPlan({...input, prices: old});
+        if ('skip' in before) return this.log(`Autopilot hot water: prices changed, replanned (nothing to compare: ${before.skip}).`);
+        this.log(`Autopilot hot water: prices changed, replanned: ${JSON.stringify(planChanges(before, after, at))}`);
+        const tDaily: Translate = (key, tokens) => this.homey.__(`autopilot.hotwater_daily.${key}`, tokens);
+        const when = (ms: number, at = false) => {
+            const today = this.clock()(ms).date === after.date;
+            return at ? tDaily(today ? 'today' : 'tomorrow', {time: this.time(ms)})
+                : today ? this.time(ms) : tDaily('tomorrow_bare', {time: this.time(ms)});
+        };
+        const priceNow = (from: number, minutes: number) => {
+            const run = Array.from({length: Math.max(1, minutes / 15)}, (_, k) => this.prices.get(slotOf(from) + k)?.price);
+            return run.every((v) => v !== undefined) ? run.reduce((x, y) => x! + y!, 0)! / run.length : undefined;
+        };
+        const text = planUpdateText(before, after, at, (key, tokens) => this.homey.__(`autopilot.hotwater_update.${key}`, tokens),
+            when, this.currency, true, priceNow);
+        if (!text) return;
+        this.homey.notifications.createNotification({excerpt: text})
             .catch((error: any) => this.log('Autopilot hot water: timeline failed:', error?.message ?? error));
     }
 

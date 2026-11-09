@@ -282,7 +282,8 @@
       "tomorrow": "i morgon kl. __time__",
       "cost_tomorrow": "Förväntad kostnad __cost__. Priserna är kända till midnatt i morgon.",
       "today": "kl. __time__",
-      "today_heading": "I dag:"
+      "today_heading": "I dag:",
+      "tomorrow_bare": "i morgon __time__"
     },
     "hotwater_charge": {
       "reason": {
@@ -301,10 +302,10 @@
         "pump_more": "Mer varmvatten är på, så värmepumpen laddar till __stop__ °C."
       },
       "plan": {
-        "as_planned": "Som planerat i morse.",
-        "moved": "Ändrat: morgonens plan hade den kl. __time__.",
-        "unplanned": "Fanns inte i morgonens plan.",
-        "as_planned_pump": "Morgonens plan hade också en laddning då."
+        "as_planned": "Som planerat.",
+        "moved": "Ändrat: planen hade den kl. __time__.",
+        "unplanned": "Fanns inte i planen.",
+        "as_planned_pump": "Planen hade också en laddning då."
       },
       "duration": "__h__ tim __m__ min",
       "duration_min": "__m__ min",
@@ -322,6 +323,35 @@
         "last_night": "I natt:"
       },
       "duration_h": "__h__ tim"
+    },
+    "hotwater_update": {
+      "title": {
+        "new_prices": "Varmvattenplanen uppdaterad: nya priser har kommit.",
+        "revised": "Varmvattenplanen uppdaterad: priserna har ändrats."
+      },
+      "added": "Tillagd: __time__, till __target__ °C för __price__/kWh (__reason__).",
+      "added_new_hours": "Tillagd: __time__, till __target__ °C för __price__/kWh (__reason__), i timmar som nu har priser.",
+      "moved": "Flyttad från __was__ till __time__: till __target__ °C för __price__/kWh i stället för __wasPrice__.",
+      "dropped": "Struken: laddningen __time__ till __target__ °C. __why__",
+      "resized": "Ändrad: __time__ nu till __target__ °C i stället för __was__ °C. __why__",
+      "why": {
+        "takes_over": "Laddningen __time__ tar över resten, för __price__/kWh.",
+        "covered": "Tanken räcker dagen ut utan den.",
+        "store_more": "Timmarna framöver är dyrare, så den lagrar mer nu.",
+        "needs_less": "Det behövs mindre nu."
+      },
+      "cost": "Förväntad kostnad __cost__. Priserna är kända till midnatt i natt.",
+      "cost_tomorrow": "Förväntad kostnad __cost__. Priserna är kända till midnatt i morgon.",
+      "shadow": "Testkörning: inget ändras i värmepumpen.",
+      "reason": {
+        "cheap": "Billigaste timmarna",
+        "before_use": "I tid för förbrukningen",
+        "surplus": "Solöverskott",
+        "reserve": "Säkerhetsnivå",
+        "running": "Laddar redan",
+        "pump": "Startad av värmepumpen"
+      },
+      "moved_repriced": "Flyttad från __was__ till __time__: timmarna __was__ kostar nu __wasNow__/kWh i stället för __wasPrice__, så den laddar till __target__ °C för __price__/kWh."
     }
   }
 }

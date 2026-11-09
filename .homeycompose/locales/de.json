@@ -189,7 +189,8 @@
       "tomorrow": "morgen um __time__",
       "cost_tomorrow": "Erwartete Kosten __cost__. Preise sind bis morgen Mitternacht bekannt.",
       "today": "um __time__",
-      "today_heading": "Heute:"
+      "today_heading": "Heute:",
+      "tomorrow_bare": "morgen __time__"
     },
     "hotwater_charge": {
       "reason": {
@@ -208,10 +209,10 @@
         "pump_more": "Mehr Warmwasser ist an, daher lädt die Wärmepumpe auf __stop__ °C."
       },
       "plan": {
-        "as_planned": "Wie heute Morgen geplant.",
-        "moved": "Geändert: der Plan von heute Morgen sah __time__ vor.",
-        "unplanned": "Nicht im Plan von heute Morgen.",
-        "as_planned_pump": "Der Plan von heute Morgen hatte dann auch eine Ladung."
+        "as_planned": "Wie geplant.",
+        "moved": "Geändert: der Plan sah __time__ vor.",
+        "unplanned": "Nicht im Plan.",
+        "as_planned_pump": "Der Plan hatte dann auch eine Ladung."
       },
       "duration": "__h__ Std. __m__ Min.",
       "duration_min": "__m__ Min.",
@@ -229,6 +230,35 @@
         "last_night": "Letzte Nacht:"
       },
       "duration_h": "__h__ Std."
+    },
+    "hotwater_update": {
+      "title": {
+        "new_prices": "Warmwasserplan aktualisiert: neue Preise sind da.",
+        "revised": "Warmwasserplan aktualisiert: Preise geändert."
+      },
+      "added": "Neu: __time__, auf __target__ °C zu __price__/kWh (__reason__).",
+      "added_new_hours": "Neu: __time__, auf __target__ °C zu __price__/kWh (__reason__), in Stunden, die jetzt Preise haben.",
+      "moved": "Verschoben von __was__ auf __time__: auf __target__ °C zu __price__/kWh statt __wasPrice__.",
+      "dropped": "Gestrichen: die Ladung um __time__ auf __target__ °C. __why__",
+      "resized": "Geändert: __time__ jetzt auf __target__ °C statt __was__ °C. __why__",
+      "why": {
+        "takes_over": "Die Ladung __time__ übernimmt den Rest, zu __price__/kWh.",
+        "covered": "Der Speicher reicht für den Tag ohne sie.",
+        "store_more": "Die kommenden Stunden sind teurer, daher wird jetzt mehr gespeichert.",
+        "needs_less": "Es wird jetzt weniger gebraucht."
+      },
+      "cost": "Erwartete Kosten __cost__. Preise sind bis heute Mitternacht bekannt.",
+      "cost_tomorrow": "Erwartete Kosten __cost__. Preise sind bis morgen Mitternacht bekannt.",
+      "shadow": "Testlauf: an der Wärmepumpe wird nichts geändert.",
+      "reason": {
+        "cheap": "Günstigste Stunden",
+        "before_use": "Rechtzeitig für den Verbrauch",
+        "surplus": "Solarüberschuss",
+        "reserve": "Sicherheitsreserve",
+        "running": "Lädt bereits",
+        "pump": "Von der Wärmepumpe gestartet"
+      },
+      "moved_repriced": "Verschoben von __was__ auf __time__: die Stunden ab __was__ kosten jetzt __wasNow__/kWh statt __wasPrice__, daher lädt sie auf __target__ °C zu __price__/kWh."
     }
   }
 }

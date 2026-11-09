@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import {HotwaterModel, KWH_PER_LITRE, localClock} from '../lib/autopilot/hotwater-learner';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {DAILY_HOUR, MIN_HORIZON, ShadowEntry, againstPlan, autopilotCharge, chargeLine, chargeText, dailyPlan, dailyPlanText, hotwaterShadowStep, ownDeviceId, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
+import {DAILY_HOUR, DailyPlan, MIN_HORIZON, ShadowEntry, againstPlan, planChanges, planUpdateText, autopilotCharge, chargeLine, chargeText, dailyPlan, dailyPlanText, hotwaterShadowStep, ownDeviceId, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
 import {SLOT_MS, slotOf} from '../lib/autopilot/prices';
 
 const clock = localClock('UTC');
@@ -171,7 +171,7 @@ test('a charge message has a short reason and a detailed one with the numbers', 
     assert.strictEqual(e.plan, 'as_planned');
     const {reason, detailedReason} = chargeText(e, translator('en', 'hotwater_charge'), hhmm, 'kr');
     assert.match(reason, /^(Cheapest hours|In time for use)$/);
-    assert.match(detailedReason, new RegExp(`^To ${e.targetC} °C, about (\\d+ h )?\\d+ min, at \\d\\.\\d\\d kr/kWh; the day averages \\d\\.\\d\\d kr\\. As planned this morning\\.$`));
+    assert.match(detailedReason, new RegExp(`^To ${e.targetC} °C, about \\d+ (h|min)( \\d+ min)?, at \\d\\.\\d\\d kr/kWh; the day averages \\d\\.\\d\\d kr\\. As planned\\.$`));
 });
 
 test('a safety-net start says why, and nothing is reported while the planner waits', () => {
@@ -194,7 +194,7 @@ test('a start is as planned within 45 min, moved within 6 h, else unplanned', ()
     assert.deepStrictEqual(againstPlan(planned), {});
     const text = chargeText({...charge({now: {litres: 20, top: 40}}), plan: 'moved', plannedAt: planned},
         translator('en', 'hotwater_charge'), hhmm, 'kr').detailedReason;
-    assert.match(text, new RegExp(`Changed: this morning's plan had it at ${hhmm(planned)}\\.$`));
+    assert.match(text, new RegExp(`Changed: the plan had it at ${hhmm(planned)}\\.$`));
 });
 
 test('the pump\'s own charge is reported as the pump\'s, with the stop it runs to', () => {
@@ -208,7 +208,7 @@ test('the pump\'s own charge is reported as the pump\'s, with the stop it runs t
     assert.match(chargeLine(boost, t, hhmm, 'kr', true), /^Hot water charge: Started by the pump\n/);
     assert.match(chargeLine(charge({now: {litres: 20, top: 40}}), t, hhmm, 'kr', true), /^Test run, would start a hot water charge: Safety net\n/);
     const atPlan = {...own, plan: 'as_planned' as const};
-    assert.match(chargeText(atPlan, t, hhmm, 'kr').detailedReason, /This morning's plan had a charge then too\.$/);
+    assert.match(chargeText(atPlan, t, hhmm, 'kr').detailedReason, /The plan had a charge then too\.$/);
     assert.match(chargeText({...charge({now: {litres: 20, top: 40}}), minutes: 60}, t, hhmm, 'kr').detailedReason, /about 1 h, at/);
 });
 
@@ -253,5 +253,57 @@ test('charge messages read in all six languages, with every token filled', () =>
         for (const e of events) for (const shadow of [true, false])
             assert.doesNotMatch(chargeLine(e, t, hhmm, 'kr', shadow), /__\w+__|undefined|NaN/, `${lang}: ${JSON.stringify(e)}`);
         assert.doesNotMatch(recapLines(events, t, hhmm, true, (ms) => new Date(ms).toISOString().slice(0, 10), '2026-11-10').join('\n'), /__\w+__|undefined|NaN/);
+    }
+});
+
+const HOUR = 3_600_000;
+const fact = (h: number, targetC: number, price: number, reason: 'cheap' | 'before_use' = 'cheap') =>
+    ({at: T0 + h * HOUR, targetC, minutes: 60, price, surplusShare: 0, cost: price * 2, reason});
+const planOf = (charges: ReturnType<typeof fact>[], untilH: number): DailyPlan => ({
+    date: '2026-11-09', reserveLitres: 40, nowLitres: 100, charges, meanPrice: 2.5,
+    cost: charges.reduce((x, c) => x + c.cost, 0), until: T0 + untilH * HOUR, chargeDates: [], untilDate: untilH > 24 ? '2026-11-10' : '2026-11-09'});
+const whenOf = (ms: number, at = false) => (ms >= T0 + 24 * HOUR ? (at ? 'tomorrow at ' : 'tomorrow ') : at ? 'at ' : '') + hhmm(ms);
+
+test('a replan tells same, resized, moved, dropped and added apart', () => {
+    const before = planOf([fact(14, 53, 2.21), fact(17, 50, 2.6), fact(20, 50, 3.4)], 24);
+    const after = planOf([fact(14.25, 45, 2.21), fact(19, 50, 2.5), fact(27.75, 60, 1.62)], 48);
+    const kinds = planChanges(before, after, T0 + 13.5 * HOUR).map((c) => `${c.kind} ${hhmm((c.now ?? c.was)!.at)}`);
+    // 14:00 → 14:15 is the same charge, 8 K smaller; 17:00 → 19:00 moved; 20:00 has nothing near: dropped.
+    assert.deepStrictEqual(kinds, ['resized 14:15', 'moved 19:00', 'dropped 20:00', 'added 03:45']);
+    // Charges already behind `from` are not news.
+    assert.deepStrictEqual(planChanges(before, planOf([fact(17, 50, 2.6), fact(20, 50, 3.4)], 24), T0 + 15 * HOUR), []);
+});
+
+test('the update explains each change by the prices, and stays quiet about new hours alone', () => {
+    const t = translator('en', 'hotwater_update');
+    const before = planOf([fact(14, 53, 2.21)], 24);
+    const after = planOf([fact(14, 45, 2.21), fact(27.75, 60, 1.62)], 48);
+    const text = planUpdateText(before, after, T0 + 13.5 * HOUR, t, whenOf, 'kr', true)!;
+    assert.strictEqual(text, ['Hot water plan updated: new prices are in.',
+        'Changed: 14:00 now to 45 °C instead of 53 °C. The charge tomorrow at 03:45 takes over the rest, at 1.62 kr/kWh.',
+        'Added: tomorrow 03:45, to 60 °C at 1.62 kr/kWh (Cheapest hours), in hours that now have prices.',
+        'Expected cost 7.66 kr. Prices are known until midnight tomorrow.',
+        'Test run: nothing is changed on the pump.'].join('\n'));
+    // Only a charge in the newly priced hours: the next morning and the charge message tell it.
+    assert.strictEqual(planUpdateText(before, planOf([fact(14, 53, 2.21), fact(27.75, 60, 1.62)], 48),
+        T0 + 13.5 * HOUR, t, whenOf, 'kr', true), undefined);
+    // Revised prices: the move says what the old hours cost now.
+    const moved = planUpdateText(planOf([fact(14, 53, 2.21)], 24), planOf([fact(16, 52, 2.66)], 24),
+        T0 + 13.5 * HOUR, t, whenOf, 'kr', false, () => 3.9)!;
+    assert.match(moved, /^Hot water plan updated: prices changed\.\nMoved from 14:00 to 16:00: the 14:00 hours now cost 3\.90 kr\/kWh instead of 2\.21 kr, so it charges to 52 °C at 2\.66 kr\/kWh\./);
+    // Dropped with nothing taking over: the tank covers it.
+    assert.match(planUpdateText(planOf([fact(20, 50, 3.4)], 24), planOf([], 24), T0 + 13.5 * HOUR, t, whenOf, 'kr', false)!,
+        /Dropped: the 20:00 charge to 50 °C\. The tank covers the day without it\./);
+});
+
+test('plan updates read in all six languages, with every token filled', () => {
+    const before = planOf([fact(14, 53, 2.21), fact(17, 50, 2.6), fact(20, 50, 3.4), fact(22, 48, 2.3)], 24);
+    const after = planOf([fact(14.25, 45, 2.21), fact(19, 50, 2.5), fact(22, 55, 2.3), fact(27.75, 60, 1.62)], 48);
+    // 14:00 and 22:00 resized, 17:00 moved to 19:00, 20:00 dropped, 03:45 added.
+    assert.deepStrictEqual(planChanges(before, after, T0 + 13.5 * HOUR).map((c) => c.kind), ['resized', 'moved', 'dropped', 'resized', 'added']);
+    for (const lang of LANGS) for (const priceNow of [undefined, () => 3.9]) {
+        const text = planUpdateText(before, after, T0 + 13.5 * HOUR, translator(lang, 'hotwater_update'), whenOf, 'kr', true, priceNow)!;
+        assert.doesNotMatch(text, /__\w+__|undefined|NaN/, `${lang}: ${text}`);
+        assert.strictEqual(text.split('\n').length, 8, `${lang}: title, five changes, cost, test run`);
     }
 });

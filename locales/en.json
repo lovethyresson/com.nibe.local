@@ -282,7 +282,8 @@
       "tomorrow": "tomorrow at __time__",
       "cost_tomorrow": "Expected cost __cost__. Prices are known until midnight tomorrow.",
       "today": "at __time__",
-      "today_heading": "Today:"
+      "today_heading": "Today:",
+      "tomorrow_bare": "tomorrow __time__"
     },
     "hotwater_charge": {
       "reason": {
@@ -301,10 +302,10 @@
         "pump_more": "More hot water is on, so the pump runs to __stop__ °C."
       },
       "plan": {
-        "as_planned": "As planned this morning.",
-        "moved": "Changed: this morning's plan had it at __time__.",
-        "unplanned": "Not in this morning's plan.",
-        "as_planned_pump": "This morning's plan had a charge then too."
+        "as_planned": "As planned.",
+        "moved": "Changed: the plan had it at __time__.",
+        "unplanned": "Not in the plan.",
+        "as_planned_pump": "The plan had a charge then too."
       },
       "duration": "__h__ h __m__ min",
       "duration_min": "__m__ min",
@@ -322,6 +323,35 @@
         "last_night": "Last night:"
       },
       "duration_h": "__h__ h"
+    },
+    "hotwater_update": {
+      "title": {
+        "new_prices": "Hot water plan updated: new prices are in.",
+        "revised": "Hot water plan updated: prices changed."
+      },
+      "added": "Added: __time__, to __target__ °C at __price__/kWh (__reason__).",
+      "added_new_hours": "Added: __time__, to __target__ °C at __price__/kWh (__reason__), in hours that now have prices.",
+      "moved": "Moved from __was__ to __time__: to __target__ °C at __price__/kWh instead of __wasPrice__.",
+      "dropped": "Dropped: the __time__ charge to __target__ °C. __why__",
+      "resized": "Changed: __time__ now to __target__ °C instead of __was__ °C. __why__",
+      "why": {
+        "takes_over": "The charge __time__ takes over the rest, at __price__/kWh.",
+        "covered": "The tank covers the day without it.",
+        "store_more": "The hours ahead are dearer, so it stores more now.",
+        "needs_less": "It needs less now."
+      },
+      "cost": "Expected cost __cost__. Prices are known until midnight tonight.",
+      "cost_tomorrow": "Expected cost __cost__. Prices are known until midnight tomorrow.",
+      "shadow": "Test run: nothing is changed on the pump.",
+      "reason": {
+        "cheap": "Cheapest hours",
+        "before_use": "In time for use",
+        "surplus": "Solar surplus",
+        "reserve": "Safety net",
+        "running": "Already charging",
+        "pump": "Started by the pump"
+      },
+      "moved_repriced": "Moved from __was__ to __time__: the __was__ hours now cost __wasNow__/kWh instead of __wasPrice__, so it charges to __target__ °C at __price__/kWh."
     }
   }
 }
