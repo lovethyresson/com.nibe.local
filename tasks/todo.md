@@ -393,6 +393,25 @@ Offline only; nothing runs on the Homey yet. Design: `docs/autopilot-plan.md` §
   slow mass. Next: ask the owner about TRVs and which indoor sensors are picked; move the
   outdoor off the Hue sensor (BT1 or a shaded sensor) and record which source each slot used
   (flag 16 already does); refit after a colder week. 5b stays blocked.
+  *Follow-up, same day: radiator valves and room sensors ruled out.* The owner has smart radiator
+  valves, which also report temperature, everywhere; bedrooms are set cooler, every other valve
+  is fully open. 16 of their Insights logs (hourly, 14 days) show every room moving together: after
+  +6, against 5–7 Nov, common rooms rose 0.26–0.55 K, the pump's own room sensor (the model's
+  `ti`, = MyUplink "room") 0.26 K. The sensors' house mean is 21.1 °C against the pump's 21.26.
+  Refitting on that mean instead of the pump sensor changes nothing: the held-out +6 drift stays
+  +0.57–0.89 K. Heat-meter sanity: heat/electricity per day 3.5–4.05, falling with supply
+  temperature as it should, so 1577 is not obviously inflated.
+  *What does agree:* the two near-steady days. On the BT1 basis, 31 Oct (3.86 kW, ΔT 16.7, indoor
+  +0.04 K over the day) and 8 Nov (4.15 kW, ΔT 17.5, +0.15 K) give 231 and 237 W/K with no free
+  heat: the same house. On the Hue basis 8 Nov reads 206 W/K: the outdoor source switch alone
+  makes the same house look different. The days between (ladders, room control on until 4 Nov
+  with its 1.5 K overshoot, a 2 K cool-down over 4–7 Nov, offsets 2/3/5/6) are transients that
+  the gains term (0.6 kW) and the window areas absorb.
+  Conclusions: (a) the pump sensor is representative; (b) drop the Hue outdoor sensor (BT1 tracks
+  met.no within ~1 K); (c) the fit should not mix outdoor sources: re-anchor or ignore slots on
+  a source change (the flag is there, nothing reads it); (d) internal gains need a tight prior
+  until a cold spell can separate them from heat loss; (e) refit on a steady week. 5b stays
+  blocked.
 
 ## Autopilot slice 1: data collection (branch `smart-heating/m1-data`)
 
