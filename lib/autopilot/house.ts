@@ -4,7 +4,8 @@
  *  The model is refitted from the whole history rather than stepped one slot at a time: heat for
  *  a slot is only known once 1577 steps again, which can be several slots later, and a refit
  *  needs no filter state to persist or migrate. 28 days is ~2,700 slots, cheap enough hourly. */
-import {FLAG, History} from './history';
+import {FLAG, History, outdoorSource} from './history';
+import {currentSourceStart} from './outdoor';
 import {heatPerSlot} from './heat';
 import {
     BuildEra, HeatingSystem, HouseParams, ModelSlot, envelopeTau, fitSeries, predictionRmse, rlsHouse, toModelSlots,
@@ -62,8 +63,23 @@ export function heatingHours(history: History): {heatKw: number; tcalc: number; 
     return hours;
 }
 
+/** Days a new outdoor source needs before the fit drops what came before it. On the maintainer's
+ *  history (2026-11-09) a fit over the 7 days since the sensor was picked was unidentifiable even
+ *  with the forecast as outdoor (6 h error 0.44–0.51 K against 0.30 K over all 10 days), so a
+ *  short run is worse than a mixed one. 14 days is a guess past that, not yet measured. */
+export const SOURCE_RUN_DAYS = 14;
+
+/** The slots the house model learns from: those since the outdoor source last changed
+ *  (outdoor.ts `currentSourceStart`), once that run is long enough to fit on its own; until then
+ *  all of them. */
+export function currentSourceSlots(history: History): number[] {
+    const slots = history.range();
+    const start = currentSourceStart(slots.map((s) => outdoorSource(history.get(s)!)));
+    return slots.length - start >= SOURCE_RUN_DAYS * DAY_SLOTS ? slots.slice(start) : slots;
+}
+
 export function modelSlotsFromHistory(history: History): ModelSlot[] {
-    const rows = history.range().map((slot) => ({slot, ...history.get(slot)!}));
+    const rows = currentSourceSlots(history).map((slot) => ({slot, ...history.get(slot)!}));
     const heat = heatPerSlot(rows.map((r) => ({slot: r.slot, qmeter: r.qmeter, hz: r.hz, dhw: r.dhw})));
     return toModelSlots(rows.map((r) => ({slot: r.slot, ti: r.ti, te: r.te, gtiS: r.gtiS, gtiE: r.gtiE, gtiW: r.gtiW, dhw: r.dhw,
         partial: (r.flags & FLAG.partial) !== 0, q: heat.get(r.slot)})));

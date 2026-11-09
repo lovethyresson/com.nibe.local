@@ -97,9 +97,10 @@ export function rlsHouse(rls: Rls): FirstOrderHouse | undefined {
  *  when the sun shows at different hours; until then they stay near the prior's split.
  *
  *  Learned in log space (f in logit space) so every parameter stays positive (f in 0..1):
- *  p = [1/(Ci·Rie), 1/(Ci·Rim), 1/(Cm·Rim), 1/Ci, AwS, f, Φ/Ci, AwE, AwW]. The window areas are
- *  absolute, not per Ci like the rates: a wall with no sun yet would otherwise drift with every
- *  change in Ci, and report sun the house never had.
+ *  p = [1/(Ci·Rie), 1/(Ci·Rim), 1/(Cm·Rim), 1/Ci, AwS, f, Φ, AwE, AwW]. The window areas and the
+ *  gains are absolute, not per Ci like the rates: a wall with no sun yet would otherwise drift
+ *  with every change in Ci, and report sun the house never had; and the gains' prior has to pin
+ *  the gains themselves (see `GAINS_SD`).
  */
 export const PARAMS = ['ie', 'im', 'mi', 'invCi', 'sun', 'f', 'gains', 'sunE', 'sunW'] as const;
 const NS = 2;
@@ -134,14 +135,14 @@ const sigmoid = (x: number) => 1 / (1 + Math.exp(-x));
 
 function toVector(p: HouseParams): number[] {
     const rates = [1 / (p.ci / p.heatLoss), 1 / (p.ci * p.rim), 1 / (p.cm * p.rim), 1 / p.ci, p.sun];
-    return [...rates.map(Math.log), logit(p.f), Math.log(p.gains / p.ci), Math.log(p.sunE), Math.log(p.sunW)];
+    return [...rates.map(Math.log), logit(p.f), Math.log(p.gains), Math.log(p.sunE), Math.log(p.sunW)];
 }
 
 function fromVector(v: number[]): HouseParams {
     const [ie, im, mi, invCi, sun] = v.slice(0, 5).map(Math.exp);
     const ci = 1 / invCi;
     const rim = 1 / (ci * im);
-    return {heatLoss: ie * ci, ci, cm: 1 / (mi * rim), rim, f: sigmoid(v[5]), sun, gains: Math.exp(v[6]) * ci,
+    return {heatLoss: ie * ci, ci, cm: 1 / (mi * rim), rim, f: sigmoid(v[5]), sun, gains: Math.exp(v[6]),
         sunE: Math.exp(v[7]), sunW: Math.exp(v[8])};
 }
 
@@ -200,6 +201,16 @@ const SYSTEM: Record<HeatingSystem, {f: number; massShare: number; couplingH: nu
     unknown: {f: 0.4, massShare: 0.8, couplingH: 1},
 };
 
+/** Household gains (people, appliances, lighting), kW: what a Swedish house averages (Sveby: ~30
+ *  kWh/m² a year of household electricity, ~70 % of it ending up as heat, plus the people). */
+export const GAINS_KW = 0.4;
+/** The gains' prior, in log space: about ±40 %, and not widened by unknown answers. Heat loss and
+ *  gains trade off exactly while indoor − outdoor stays in a narrow band: on the maintainer's
+ *  house (ΔT 15–22 K) gains 0 → 0.8 kW moved heat loss 191 → 236 W/K at almost the same error
+ *  (todo.md, 2026-11-09). Loose, the gains soaked up whatever the outdoor sensor got wrong; held
+ *  near a household's typical value, the heat loss carries it, which a cold spell then tests. */
+export const GAINS_SD = 0.35;
+
 export interface Prior {
     params: HouseParams;
     /** Standard deviation in the learned (log/logit) space, per parameter. */
@@ -214,13 +225,15 @@ export function priorFor(system: HeatingSystem, era: BuildEra, heatLoss?: number
     const total = ERA_TAU[era] * h;
     const ci = total * (1 - s.massShare);
     const params: HouseParams = {
-        heatLoss: h, ci, cm: total * s.massShare, rim: s.couplingH / ci, f: s.f, gains: 0.3,
+        heatLoss: h, ci, cm: total * s.massShare, rim: s.couplingH / ci, f: s.f, gains: GAINS_KW,
         // ~3 m² of effective glass per wall: a guess the sun corrects within a few clear days.
         sun: 0.003, sunE: 0.003, sunW: 0.003,
     };
     const wide = system === 'unknown' || era === 'unknown' ? 1.4 : 1;
     const hSd = heatLoss ? 0.3 : 0.7;
-    return {params, sd: [hSd, 0.8, 0.8, 0.6, 1, 1, 1, 1, 1].map((v) => v * wide)};
+    const sd = [hSd, 0.8, 0.8, 0.6, 1, 1, 1, 1, 1].map((v) => v * wide);
+    sd[PARAMS.indexOf('gains')] = GAINS_SD;
+    return {params, sd};
 }
 
 // ---- the filter ----

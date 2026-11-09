@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {Aggregator, FIELDS, FLAG, History, RECORD_BYTES, applyJournal, encodeRecord} from '../lib/autopilot/history';
+import {Aggregator, FIELDS, FLAG, History, RECORD_BYTES, applyJournal, encodeRecord, outdoorSource} from '../lib/autopilot/history';
+import {SOURCE_CODE, outdoorSourceCode} from '../lib/autopilot/outdoor';
 import {electricityPerSlot, heatPerSlot} from '../lib/autopilot/heat';
 import {SLOT_MS} from '../lib/autopilot/prices';
 
@@ -55,6 +56,15 @@ test('a BT1 fed from elsewhere is recognised against the forecast and replaced b
     const sensed = history.get(2_000_000)!;
     assert.ok(Math.abs(sensed.te - 7.2) < 1e-6);
     assert.equal(sensed.flags & (FLAG.sensorOutdoor | FLAG.fedOutdoor), FLAG.sensorOutdoor | FLAG.fedOutdoor);
+    // Which source, down to which sensor, so a fit can tell a switch.
+    assert.equal(sensed.tesrc, outdoorSourceCode('sensor', undefined));
+    assert.equal(outdoorSource(sensed), SOURCE_CODE.sensorUnknown);
+    assert.equal(fed.tesrc, SOURCE_CODE.forecast);
+    assert.equal(miss.tesrc, SOURCE_CODE.wired);
+    // A slot from before `tesrc` reads its source from the flags.
+    assert.equal(outdoorSource({...sensed, tesrc: NaN}), SOURCE_CODE.sensorUnknown);
+    assert.equal(outdoorSource({...miss, tesrc: NaN}), SOURCE_CODE.wired);
+    assert.equal(outdoorSource({...fed, tesrc: NaN}), SOURCE_CODE.forecast);
 });
 
 test('thin coverage and reconnects mark a slot partial', () => {

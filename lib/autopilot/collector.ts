@@ -193,7 +193,11 @@ export class AutopilotCollector {
         if (weather) context.weather = {gtiS: weather.gtiS, gtiE: weather.gtiE, gtiW: weather.gtiW, ghi: weather.ghi, wind: weather.wind,
             rh: weather.rh, cloud: weather.cloud};
         const sensor = this.sensorSums.get(slot);
-        if (sensor && sensor.n >= SENSOR_MIN_READINGS) context.sensor = sensor.sum / sensor.n;
+        if (sensor && sensor.n >= SENSOR_MIN_READINGS) {
+            context.sensor = sensor.sum / sensor.n;
+            const ref = this.homey.settings.get(OUTDOOR_SENSOR_SETTING) as SensorRef | null;
+            if (ref?.deviceId) context.sensorId = `${ref.deviceId}/${ref.capabilityId}`;
+        }
         context.wired = wiredOf(this.history);
         for (const s of [...this.sensorSums.keys()]) if (s <= slot) this.sensorSums.delete(s);
         if (weather && Number.isFinite(weather.te))

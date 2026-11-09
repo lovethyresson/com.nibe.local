@@ -1,7 +1,7 @@
 /** 15-minute history of what the house model learns from. Pure: no timers, no I/O.
  *  Design: docs/autopilot-plan.md §5.4. */
 import {SLOT_MS, slotOf} from './prices';
-import {WiredModel, recordedOutdoor} from './outdoor';
+import {SOURCE_CODE, WiredModel, outdoorSourceCode, recordedOutdoor} from './outdoor';
 
 /** Per-slot fields, in storage order. Appending is safe (a file with fewer fields loads with the
  *  new ones missing); reordering needs a VERSION bump. */
@@ -37,6 +37,7 @@ export const FIELDS = [
     'supmax',  // max supply °C (last)
     'tset',    // indoor setpoint °C (last)
     'roomctl', // room-sensor control on (1) or off (0) (last): while on, 1017 is not the curve alone
+    'tesrc',   // which outdoor source `te` came from (outdoor.ts outdoorSourceCode); older slots: `outdoorSource`
 ] as const;
 export type Field = typeof FIELDS[number];
 /** fedOutdoor: input 1 was a fed BT1. sensorOutdoor / forecastOutdoor: where `te` came from
@@ -49,6 +50,16 @@ export const FLAG = {partial: 1, reconnect: 2, costs: 4, fedOutdoor: 8, sensorOu
  *  read 1. So an offset read counts as off, which also reads the slots already stored right. */
 export function roomControlOff(v: Record<Field, number> | undefined): boolean {
     return v !== undefined && (v.roomctl === 0 || Number.isFinite(v.hoffset));
+}
+
+/** A slot's outdoor source code: recorded since `tesrc` was added, else read from the flags
+ *  (which say sensor, not which one). */
+export function outdoorSource(v: Record<Field, number>): number {
+    if (Number.isFinite(v.tesrc)) return v.tesrc;
+    if (!Number.isFinite(v.te)) return NaN;
+    if (v.flags & FLAG.sensorOutdoor) return SOURCE_CODE.sensorUnknown;
+    if (v.flags & FLAG.forecastOutdoor) return SOURCE_CODE.forecast;
+    return SOURCE_CODE.wired;
 }
 
 const LAST: ReadonlySet<Field> = new Set(['qmeter', 'emeter', 'hcurve', 'hoffset', 'supmin', 'supmax', 'tset', 'roomctl']);
@@ -67,6 +78,8 @@ export interface SlotContext {
     outdoor?: number;
     /** The owner's outdoor sensor, mean over the slot. */
     sensor?: number;
+    /** Which sensor that was (device and capability), so picking another one shows in `tesrc`. */
+    sensorId?: string;
     /** The wired BT1 against the recorded outdoor temperature up to the previous slot. */
     wired?: WiredModel;
 }
@@ -213,12 +226,13 @@ export class Aggregator {
         values.coverage = Math.min(1, this.polls / expected);
         let flags = this.flags;
         if (values.coverage < PARTIAL_BELOW) flags |= FLAG.partial;
-        const {price, weather, outdoor, sensor, wired} = this.context(slot);
+        const {price, weather, outdoor, sensor, sensorId, wired} = this.context(slot);
         // Input 1 shows whatever BT1 is fed. The house model wants the real outdoor temperature;
         // the heat curve works from what was fed, so that is kept too.
         values.bt1 = values.te;
         const te = recordedOutdoor(values.te, sensor, outdoor, wired);
         values.te = te.value;
+        values.tesrc = outdoorSourceCode(te.source, sensorId);
         if (te.fed) flags |= FLAG.fedOutdoor;
         if (te.source === 'sensor') flags |= FLAG.sensorOutdoor;
         if (te.source === 'forecast') flags |= FLAG.forecastOutdoor;

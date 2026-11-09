@@ -416,6 +416,23 @@ Offline only; nothing runs on the Homey yet. Design: `docs/autopilot-plan.md` §
   a source change (the flag is there, nothing reads it); (d) internal gains need a tight prior
   until a cold spell can separate them from heat loss; (e) refit on a steady week. 5b stays
   blocked.
+- **2026-11-09 — (c) and (d) built, offline, nothing installed.**
+  - (d) The gains are now learned absolute (not per Ci) with a prior of 0.4 kW, ±0.35 in log
+    space, not widened by unknown answers. On the live history: H 230 → 221 W/K, gains 0.62 →
+    0.37 kW, 6 h RMSE 0.303 → 0.301, open-loop drift over +6 0.92 → 0.73 K. With met.no as
+    outdoor the old prior ran off to H 405 / gains 3.5 kW; the new one gives 246 / 0.76 at the
+    same RMSE.
+  - (c) Each slot now records its outdoor source in `tesrc`, down to which sensor. Older slots
+    read it from the flags. A change counts once the new source holds 4 h, so short fallbacks
+    don't count. **A hard cut hurt:** fitting only the 7 days since the Hue gave RMSE 0.44–0.52
+    and nonsense parameters. That held even with met.no as outdoor, so the window is too short
+    or too confounded (+6, room control off), not the Hue. The cut therefore waits until the new
+    source has 14 days (`SOURCE_RUN_DAYS`); until then the fit runs over everything, as before.
+    14 is a guess and is not measured.
+  - **Swap the outdoor sensor only after this build is installed.** Before then, slots carry no
+    sensor identity, and Hue → new sensor will not read as a change.
+  - Steady-state over-prediction (~2 K on the last 24 h) remains in every variant, including
+    met.no. It reads as the +6 transient (heat going into slow mass), not the outdoor source.
 
 ## Autopilot slice 1: data collection (branch `smart-heating/m1-data`)
 

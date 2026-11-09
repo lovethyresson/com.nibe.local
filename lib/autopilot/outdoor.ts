@@ -159,3 +159,68 @@ export function usableSensor(r: {value: number | null; available: boolean; updat
     if (r.updatedAt !== null && now - r.updatedAt > SENSOR_STALE_MS) return undefined;
     return r.value;
 }
+
+/** Which outdoor source a history slot's `te` came from, as one number the history can hold
+ *  (field `tesrc`). The house model learns its heat loss and gains against one source: the Hue
+ *  sensor read 2.4 K below the wired BT1 at night and 1.1 K above it in morning sun, so a fit
+ *  across the switch learned a different house (todo.md, 2026-11-09). A sensor is told apart by
+ *  a hash of its device and capability, so picking another sensor counts as a change too. */
+export const SOURCE_CODE = {wired: 1, forecast: 2, sensorUnknown: 3} as const;
+const SENSOR_BASE = 1000;
+
+/** FNV-1a, folded below 2^23 so the code stays exact in a Float32. */
+function sensorHash(id: string): number {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 0x01000193) >>> 0;
+    return h % 0x7fff00;
+}
+
+export function outdoorSourceCode(source: RecordedOutdoor['source'], sensorId?: string): number {
+    if (source === 'wired') return SOURCE_CODE.wired;
+    if (source === 'forecast') return SOURCE_CODE.forecast;
+    if (source === 'sensor') return sensorId ? SENSOR_BASE + sensorHash(sensorId) : SOURCE_CODE.sensorUnknown;
+    return NaN;
+}
+
+export type SourceKind = 'wired' | 'sensor' | 'other';
+
+export function sourceKind(code: number): SourceKind {
+    if (code === SOURCE_CODE.wired) return 'wired';
+    if (code === SOURCE_CODE.sensorUnknown || code >= SENSOR_BASE) return 'sensor';
+    return 'other';
+}
+
+/** A source has to hold this long before it counts as a change: the wired BT1 standing in for a
+ *  sensor that missed a slot or three (2026-11-03, 11-07) is a fallback, not a new source. */
+export const SOURCE_CHANGE_SLOTS = 16;
+
+const sameSource = (a: number, b: number) => sourceKind(a) === sourceKind(b)
+    && (sourceKind(a) === 'wired' || a === b || a === SOURCE_CODE.sensorUnknown || b === SOURCE_CODE.sensorUnknown);
+
+/** Index into `codes` (oldest first) where the current outdoor source began: where the last
+ *  change between the wired BT1, one sensor and another started, once the new source had held
+ *  for `SOURCE_CHANGE_SLOTS`. The forecast and missing slots are fallbacks within a run, not a
+ *  change: the forecast is corrected toward whichever source is real. A sensor of unknown
+ *  identity (slots from before `tesrc` was recorded) matches the next known one, since nothing
+ *  recorded a switch. */
+export function currentSourceStart(codes: number[]): number {
+    let start = 0;
+    let current: number | undefined;
+    let candidate: {code: number; at: number; held: number} | undefined;
+    codes.forEach((code, i) => {
+        if (sourceKind(code) === 'other') return;
+        if (current === undefined || sameSource(code, current)) {
+            if (current === undefined || current === SOURCE_CODE.sensorUnknown) current = code;
+            candidate = undefined;
+            return;
+        }
+        if (!candidate || !sameSource(code, candidate.code)) candidate = {code, at: i, held: 0};
+        if (candidate.code === SOURCE_CODE.sensorUnknown) candidate.code = code;
+        if (++candidate.held >= SOURCE_CHANGE_SLOTS) {
+            start = candidate.at;
+            current = candidate.code;
+            candidate = undefined;
+        }
+    });
+    return start;
+}

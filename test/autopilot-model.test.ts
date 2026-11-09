@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    BuildEra, HeatingSystem, HouseParams, balanceHeatLoss, envelopeTau, fitSeries, newRls, predictionRmse, priorFor, rlsHouse,
+    BuildEra, GAINS_KW, GAINS_SD, HeatingSystem, HouseParams, PARAMS, balanceHeatLoss, envelopeTau, fitSeries, newRls, predictionRmse, priorFor, rlsHouse,
     rlsRegressors, rlsUpdate, stepHouse, usableSlot,
 } from '../lib/autopilot/model';
 import {RADIATOR_HOUSE, SLAB_HOUSE, WEST_HOUSE, simulateHouse} from './autopilot-house-sim';
@@ -69,6 +69,11 @@ test('the Setup answers set the prior: a slab starts slower and with more of its
     within(envelopeTau(radiator), 50, 0.001);
     assert.equal(priorFor('unknown', 'unknown').params.heatLoss, 0.15);
     assert.ok(priorFor('unknown', 'unknown').sd[0] > priorFor('radiators', '1960_1979').sd[0]);
+    // The gains are held near a household's whatever the answers: loose, they trade with the heat loss.
+    const g = PARAMS.indexOf('gains');
+    assert.equal(priorFor('unknown', 'unknown').sd[g], GAINS_SD);
+    assert.equal(priorFor('radiators', '1960_1979').sd[g], GAINS_SD);
+    assert.equal(priorFor('unknown', 'unknown').params.gains, GAINS_KW);
 });
 
 test('gating drops partial, hot-water and jumping slots', () => {

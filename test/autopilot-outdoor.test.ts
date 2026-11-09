@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
     DEGRADED_LIMIT_MS, SENSOR_STALE_MS, forecastCorrection, learnForecastBias, newForecastBias, realOutdoor,
     WIRED_TAU_H, recordedOutdoor, usableSensor, wiredExpected, wiredModel,
+    SOURCE_CHANGE_SLOTS, SOURCE_CODE, currentSourceStart, outdoorSourceCode,
 } from '../lib/autopilot/outdoor';
 
 const now = 1_800_000_000_000;
@@ -99,4 +100,23 @@ test('the wired BT1 trails the sensor, and a slot is fed only when it leaves tha
     assert.ok(Math.abs(gap.lag - (-3 + 8 * Math.exp(-8 * 0.25 / WIRED_TAU_H))) < 1e-9, `${gap.lag}`);
     // Longer than the lag itself: it starts over from the reading.
     assert.equal(wiredModel([{slot: 0, te: 5, bt1: 5}, {slot: 40, te: -3, bt1: -1}])!.lag, -3);
+});
+
+test('the current outdoor source starts at the last change that held, not at a fallback', () => {
+    const hue = outdoorSourceCode('sensor', 'hue/measure_temperature');
+    const shaded = outdoorSourceCode('sensor', 'shaded/measure_temperature');
+    assert.notEqual(hue, shaded);
+    assert.ok(Number.isInteger(hue) && Math.fround(hue) === hue, 'exact in a Float32');
+    const {wired, forecast, sensorUnknown} = SOURCE_CODE;
+    const run = (code: number, n: number) => new Array(n).fill(code);
+    // Wired, then a sensor that held: the run starts at the sensor.
+    assert.equal(currentSourceStart([...run(wired, 50), ...run(sensorUnknown, 40)]), 50);
+    // A few wired slots while the sensor missed, and the forecast, are fallbacks, not changes.
+    assert.equal(currentSourceStart([...run(wired, 50), ...run(hue, 40), ...run(wired, 3), ...run(forecast, 30), ...run(hue, 9)]), 50);
+    // A sensor of unknown identity (before `tesrc`) is the same as the next known one…
+    assert.equal(currentSourceStart([...run(sensorUnknown, 40), ...run(hue, 40)]), 0);
+    // …and picking another sensor is a change.
+    assert.equal(currentSourceStart([...run(sensorUnknown, 40), ...run(hue, 40), ...run(shaded, SOURCE_CHANGE_SLOTS)]), 80);
+    assert.equal(currentSourceStart([...run(hue, 40), ...run(shaded, SOURCE_CHANGE_SLOTS - 1)]), 0);
+    assert.equal(currentSourceStart([]), 0);
 });
