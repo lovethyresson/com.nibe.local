@@ -433,6 +433,27 @@ Offline only; nothing runs on the Homey yet. Design: `docs/autopilot-plan.md` §
     sensor identity, and Hue → new sensor will not read as a change.
   - Steady-state over-prediction (~2 K on the last 24 h) remains in every variant, including
     met.no. It reads as the +6 transient (heat going into slow mass), not the outdoor source.
+- 2026-11-09 21:45 — 957 slots (30 Oct 20:45 → 9 Nov 21:15), 835 usable, 10 valid days; no new
+  gaps, no partials today. Live `model.json` (installed build, old gains prior): heat loss 230
+  W/K, τ 136 h (135.6/136.8/135.9 over three days: settled), gains 0.61 kW, 6 h error 0.32 K,
+  ready. Worktree fit (ba76580, new gains prior): heat loss 221 W/K (first-order 164), τ 120 h,
+  stored 26.4 kWh/K, gains 0.37 kW, sun E/S/W 0.2/0.2/0.3 kW, lever 117 W/K (0.51·H), 6 h error
+  0.30 K, learning (stability: no daily log offline). Curve learner 473 slots, 1.53 K per offset
+  step, 256 W per K of supply. Outdoor last 24 h: 96 sensor, 0 forecast, 0 fed. Room loop off
+  (202 reads 1, legacy), SPA off, offset +6 all day, **no hot water run in 24 h**.
+  Balance: 106 kWh of heat held indoor at 21.44 °C over te 3.07 °C, 4.4 kW for 18.4 K, i.e. 240
+  W/K with no gains. The new fit needs 221 × 18.4 − 370 = 3.7 kW: still ~0.7 kW too warm, the
+  same gap as yesterday, now without hot water to blame.
+  Shadow 815 slots: doing nothing 1 h 0.16 K (bias +0.03), 6 h 0.56 K (bias +0.14, still warm).
+  Comfort bias today −7.7…−2.9 K (mean −4.6) with indoor 1 K under 22.5: wrong sign, more so
+  than yesterday, so **5b stays blocked**. Presets today −5…3 / −13…9 / −23…17 K; Save the most
+  clamped ramp 15 % and max-bias 6 %; Manual, nothing fed, nothing unsafe. Planned saving
+  6.5/8.1/7.4 %.
+  Preset evaluation, 31 SE3 days 9 Oct → 8 Nov, live model, Manual, comfort 22.5, lever 0.51,
+  Open-Meteo history, planned on the day-ahead forecast: fair saving Comfortable 0.9 %, Save
+  some 1.3 %, Save the most 6.9 % (best days 3.0/6.1/16.5 %; gross 3.2/4.5/18.7 %; off comfort
+  0.04/0.06/0.28 K RMS). Perfect forecast 1.0/1.3/6.9 %. Unchanged from 8 Nov; still an upper
+  bound on the too-warm balance.
 
 ## Autopilot slice 1: data collection (branch `smart-heating/m1-data`)
 
