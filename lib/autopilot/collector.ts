@@ -56,7 +56,7 @@ export interface Controls {
     thresholds: PumpThresholds;
 }
 
-function getJson(url: string, timeoutMs = 15_000): Promise<any> {
+export function getJson(url: string, timeoutMs = 15_000): Promise<any> {
     return new Promise((resolve, reject) => {
         const request = https.get(url, {headers: {'User-Agent': 'com.nibe.local (Homey app)'}}, (response) => {
             let body = '';

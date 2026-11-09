@@ -2,7 +2,8 @@ import {CaptureSummary, logCaptureSummary} from './diagnostic-capture';
 import {IndoorConfig, averageSensors, cleanIndoorConfig, selectedReadings} from './indoor-sensors';
 import {Controls, AutopilotCollector} from './autopilot/collector';
 import {newHistoryFileName} from './autopilot/store-file';
-import {HotwaterShadow} from './autopilot/hotwater-shadow';
+import {ChargeEvent, HotwaterAutopilot, HotwaterMode} from './autopilot/hotwater-shadow';
+import {DAY_TYPE_SETTING, readDayType} from './autopilot/day-type';
 import {Sample} from './autopilot/history';
 import {Device} from 'homey';
 import net from 'net';
@@ -13,7 +14,7 @@ import {
 } from './registers';
 import {
     ACTIVE_POWER_CAPABILITY, ALARM_ACTIVE_CAPABILITY, ALARM_TEXT_CAPABILITY,
-    FUNCTION_COP_CAPABILITY, HOTWATER_VOLUME_CAPABILITY, METER_CAPABILITY,
+    DAY_TYPE_CAPABILITY, FUNCTION_COP_CAPABILITY, HOTWATER_VOLUME_CAPABILITY, METER_CAPABILITY,
     PUMP_ACTIVE_CAPABILITY, Role, SOLAR_METER_CAPABILITY, TOTAL_COP_CAPABILITY,
     capabilitySyncPlan, extraCapabilities, extraCapabilityOptions, functionRoles, mirrorOptions,
     mirrorsForRole, registersForRole, roleClass, roleOf, roleRegisters, deviceClass, roomThermostatActive,
@@ -48,7 +49,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     // Autopilot history, collected on Heating (lib/autopilot). Reads only.
     private autopilot: AutopilotCollector | null = null;
     // Hot water Autopilot in shadow, on Hot water, while the app setting below is on. Reads only.
-    private hotwaterShadow: HotwaterShadow | null = null;
+    private hotwaterAutopilot: HotwaterAutopilot | null = null;
     private indoorTimer: ReturnType<typeof setTimeout> | null = null;
     private indoorWork: Promise<any> | null = null;
     private indoorStopped = false;
@@ -869,7 +870,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private async syncCapabilities(): Promise<string[]> {
         const selection = this.getSelection();
         const {registers: roleRegs, extras, toRemove} =
-            capabilitySyncPlan(this.profile, this.role, selection, this.getCapabilities());
+            capabilitySyncPlan(this.profile, this.role, selection, this.getCapabilities(), this.autopilotMode(this.pendingAutopilotSettings) !== 'off');
         const failed: string[] = [];
         const note = (name: string, what: string) => (error: any) => {
             this.error(`Failed to ${what} capability ${name}:`, error);
@@ -1048,6 +1049,17 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             // register whose listener is wired above.
             if (this.role === 'main' && this.hasCapability(PUMP_ACTIVE_CAPABILITY))
                 await this.setCapabilityValue(PUMP_ACTIVE_CAPABILITY, true).catch(this.error);
+
+            // The day type is household state in an app setting; the capability only shows and
+            // sets it. Registered whether or not the device carries it yet, like the registers
+            // above, so turning Autopilot on later needs no restart.
+            if (this.role === 'main' && this.profile.autopilotHotwater) {
+                this.registerCapabilityListener(DAY_TYPE_CAPABILITY, async (value) => {
+                    this.log(`Day type set to ${value}`);
+                    await (this.driver as any).setDayType(value);
+                });
+                await this.showDayType();
+            }
         } catch (err) {
             this.error('Capability setup failed in onInit; attaching to the pump anyway so '
                 + 'this device still receives its energy allocation', err);
@@ -1076,24 +1088,73 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             if (this.getStoreValue('indoorSensors')?.state === 'pending')
                 await this.setWarning('Finish your Homey sensor setup in Heating → Repair.');
         }
-        if (this.role === 'hotwater') await this.startHotwaterShadow().catch(this.error);
+        if (this.role === 'hotwater') await this.syncHotwaterAutopilot().catch(this.error);
     }
 
-    // Off unless the app setting is on (set by hand while it is being tested:
-    // `homey api apps set-app-setting --name autopilotHotwaterShadow --value true`).
-    private async startHotwaterShadow() {
+    /** Autopilot hot water for this pump: off, a test run, or live. A pump-wide setting, mirrored
+     *  on all of the pump's devices like the poll interval. */
+    autopilotMode(settings: Record<string, any> = this.getSettings()): 'off' | HotwaterMode {
+        const mode = settings.autopilotHotwater;
+        return mode === 'shadow' || mode === 'live' ? mode : 'off';
+    }
+
+    /** The Main device shows the household's day type while Autopilot is on. */
+    async showDayType() {
+        if (!this.hasCapability(DAY_TYPE_CAPABILITY)) return;
+        const type = readDayType(this.homey.settings.get(DAY_TYPE_SETTING))?.type ?? null;
+        if (this.getCapabilityValue(DAY_TYPE_CAPABILITY) !== type)
+            await this.setCapabilityValue(DAY_TYPE_CAPABILITY, type).catch(this.error);
+    }
+
+    /** Applies the pump's Autopilot settings to this device: Main gains or loses the day type,
+     *  the Hot water device starts or stops Autopilot. `settings` is passed during onSettings,
+     *  where Homey still exposes the old values. */
+    async applyAutopilot(settings: Record<string, any> = this.getSettings()) {
+        if (this.role === 'main' && this.capabilitiesSynced) {
+            const {toAdd, toRemove} = capabilitySyncPlan(this.profile, this.role, this.getSelection(), this.getCapabilities(),
+                this.autopilotMode(settings) !== 'off');
+            if (toAdd.length || toRemove.length) {
+                this.pendingAutopilotSettings = settings;
+                try { await this.syncCapabilities(); } finally { this.pendingAutopilotSettings = undefined; }
+            }
+            await this.showDayType();
+        }
+        if (this.role === 'hotwater') await this.syncHotwaterAutopilot(settings);
+    }
+    private pendingAutopilotSettings?: Record<string, any>;
+
+    /** For the Flow condition. False while Autopilot hot water is off. */
+    hotwaterChargePlannedWithin(hours: number): boolean {
+        return this.hotwaterAutopilot?.chargePlannedWithin(hours) ?? false;
+    }
+
+    private async syncHotwaterAutopilot(settings: Record<string, any> = this.getSettings()) {
         const spec = this.profile.autopilotHotwater;
-        if (!spec || this.hotwaterShadow || this.homey.settings.get('autopilotHotwaterShadow') !== true) return;
+        if (!spec) return;
+        if (this.autopilotMode(settings) === 'off') {
+            this.hotwaterAutopilot?.stop();
+            if (this.hotwaterAutopilot) this.log('Autopilot hot water stopped.');
+            this.hotwaterAutopilot = null;
+            await this.unsetWarning().catch(this.error);
+            return;
+        }
+        if (this.hotwaterAutopilot) return;
         let file = this.getStoreValue('autopilotHotwaterFile') as string | undefined;
         if (!file) await this.setStoreValue('autopilotHotwaterFile', file = newHistoryFileName());
-        // Mirrored to an app setting so the shadow log can be found through the Homey API.
+        // Mirrored to an app setting so the log can be found through the Homey API.
         this.homey.settings.set(`autopilotHotwaterFile.${this.getData().id}`, file);
         const number = (name?: string) => {
             if (!name || !this.hasCapability(name)) return undefined;
             const value = Number(this.getCapabilityValue(name));
             return Number.isFinite(value) ? value : undefined;
         };
-        this.hotwaterShadow = new HotwaterShadow(this.homey, String(this.getData().id), file, spec.tank, () => {
+        const register = (name: string) => this.profile.registerByName[name];
+        const readPump = async (name: string) => {
+            const value = register(name) ? await this.readRegister(register(name)).catch(() => undefined) : undefined;
+            return value ?? undefined;
+        };
+        const live = () => this.autopilotMode() === 'live' ? 'live' : 'shadow';
+        this.hotwaterAutopilot = new HotwaterAutopilot(this.homey, String(this.getData().id), file, spec.tank, () => {
             const mode = number(spec.demandMode);
             const {litres, inletC} = this.tankConfig();
             return {
@@ -1102,8 +1163,40 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     stopC: mode === undefined ? undefined : number(spec.stops[mode]), largeStopC: number(spec.largeStop)},
                 tank: litres === null ? undefined : {litres, inletC},
             };
-        }, (...args) => this.log(...args));
-        await this.hotwaterShadow.start();
+        }, (...args) => this.log(...args), {
+            mode: live,
+            reserveLitres: () => {
+                const v = Number(this.getSettings().autopilotReserve);
+                return Number.isFinite(v) && v >= 0 ? v : 40;
+            },
+            solar: () => this.getSettings().autopilotSolar !== false,
+            dayType: () => readDayType(this.homey.settings.get(DAY_TYPE_SETTING)),
+            pumpFacts: async () => {
+                const num = async (name: string) => {
+                    const v = Number(await readPump(name));
+                    return Number.isFinite(v) ? v : undefined;
+                };
+                const spa = await Promise.all(spec.spa.map((name) => readPump(name)));
+                return {top: await num(spec.tank.top), largeStopC: await num(spec.largeStop), demandMode: await num(spec.demandMode),
+                    allowed: (await readPump(spec.allowed)) as boolean | undefined, spaHotwater: spa.every((on) => on === true)};
+            },
+            write: async (what, value) => {
+                const name = what === 'stop' ? spec.largeStop : spec.more;
+                this.log(`Autopilot hot water: writing ${name} = ${value}`);
+                await this.writeRegister(register(name), value);
+            },
+            store: {get: (key) => this.getStoreValue(key), set: (key, value) => this.setStoreValue(key, value)},
+            charged: (e: ChargeEvent, text) => {
+                this.homey.flow.getDeviceTriggerCard((this.profile.flowPrefix ?? '') + 'hotwater_charge_started')
+                    .trigger(this, {reason: text.reason, detailed_reason: text.detailedReason, autopilot: e.by === 'autopilot'})
+                    .catch(this.error);
+            },
+            warn: (text) => {
+                (text ? this.setWarning(text) : this.unsetWarning()).catch(this.error);
+            },
+        });
+        this.log(`Autopilot hot water started (${live() === 'live' ? 'live' : 'test run'}).`);
+        await this.hotwaterAutopilot.start();
     }
 
     // ---- PumpSubscriber ----
@@ -1736,6 +1829,23 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     async onSettings({oldSettings, newSettings, changedKeys}: {
         oldSettings: {[key: string]: any}, newSettings: {[key: string]: any}, changedKeys: string[]
     }) {
+        const autopilotKeys = ['autopilotHotwater', 'autopilotReserve', 'autopilotSolar'].filter((key) => changedKeys.includes(key));
+        if (autopilotKeys.length) {
+            const hotwater = this.role === 'hotwater' ? this : this.sibling('hotwater');
+            if (this.autopilotMode(newSettings) !== 'off' && this.profile.autopilotHotwater) {
+                if (!hotwater) throw new Error(this.homey.__('autopilot.hotwater_setting.no_device'));
+                if (hotwater.tankConfig().litres === null) throw new Error(this.homey.__('autopilot.hotwater_setting.no_tank'));
+            }
+            // Pump-wide: every device of the pump shows the same values, and Main and Hot water
+            // act on them.
+            for (const key of autopilotKeys) await this.syncToSiblings(key, newSettings[key]);
+            this.log(`Autopilot hot water settings: ${autopilotKeys.map((key) => `${key} = ${newSettings[key]}`).join(', ')}`);
+            if (changedKeys.includes('autopilotHotwater')) {
+                await this.applyAutopilot(newSettings);
+                for (const device of this.driver.getDevices() as any[])
+                    if (device !== this && device.getSettings?.().address === this.host()) await device.applyAutopilot?.();
+            }
+        }
         if (changedKeys.includes('cumulativeEnergy')) {
             this.cumulativeEnergy = newSettings.cumulativeEnergy || 0;
             // The user just set the durable copy by hand; don't let the next poll's debounce
@@ -1844,8 +1954,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // hourly save bounds the loss to an hour, and the model re-anchors across the gap.
         await this.autopilot?.stop(this.connection?.currentPollSeconds() ?? 10).catch(this.error);
         this.autopilot = null;
-        this.hotwaterShadow?.stop();
-        this.hotwaterShadow = null;
+        this.hotwaterAutopilot?.stop();
+        this.hotwaterAutopilot = null;
         await this.stopIndoor();
         // Flush the debounced meter before going away, so an orderly restart or a repair keeps
         // the fraction of a kWh the 0.01 step was still holding.
@@ -1864,8 +1974,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         await this.stopIndoor();
         await this.autopilot?.remove().catch(this.error);
         this.autopilot = null;
-        await this.hotwaterShadow?.remove().catch(this.error);
-        this.hotwaterShadow = null;
+        await this.hotwaterAutopilot?.remove().catch(this.error);
+        this.hotwaterAutopilot = null;
         this.homey.settings.unset(`autopilotHotwaterFile.${this.getData().id}`);
         this.homey.settings.unset(`autopilotHistoryFile.${this.getData().id}`);
         this.log('Nibe device has been deleted');

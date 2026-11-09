@@ -322,7 +322,13 @@
         "on": "__date__:",
         "last_night": "I natt:"
       },
-      "duration_h": "__h__ t"
+      "duration_h": "__h__ t",
+      "write_failed": "Autopilot kunne ikke starte en varmtvannsoppvarming: __error__",
+      "blocked": {
+        "hot_water_off": "Autopilot varmtvann venter: varmtvann er slått av på pumpen.",
+        "spa": "Autopilot varmtvann venter: slå av Smart pristilpasning for varmtvann på pumpen.",
+        "smart_control": "Autopilot varmtvann venter: varmtvannsbehovet er satt til Smart styring."
+      }
     },
     "hotwater_update": {
       "title": {
@@ -352,6 +358,10 @@
         "pump": "Startet av varmepumpen"
       },
       "moved_repriced": "Flyttet fra __was__ til __time__: timene __was__ koster nå __wasNow__/kWh i stedet for __wasPrice__, så den varmer til __target__ °C for __price__/kWh."
+    },
+    "hotwater_setting": {
+      "no_device": "Autopilot varmtvann trenger pumpens Varmtvann-enhet. Legg den til først.",
+      "no_tank": "Velg berederens størrelse først: Varmtvann-enheten → Reparer."
     }
   }
 }

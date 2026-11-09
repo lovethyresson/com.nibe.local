@@ -255,6 +255,32 @@ at 195).
 
 ### 4.4 Solar surplus
 
+**Built (slice 4).** Surplus is measured at the grid meter, so a home battery and the house's own
+use come first and the tank only gets what would have been sold:
+
+- **Live:** Homey Energy's live report, once a minute. Surplus is the grid export, but never more
+  than the generators produce, so a battery selling at night is not taken for sun. The mean of
+  the last 10 minutes (8 readings at least) is the expected surplus for the next half hour.
+- **Planned:** every 3 h, the grid meter's hourly export over the last 14 days (Insights) is
+  fitted by least squares against Open-Meteo's sun on the ground for the same hours
+  (`shortwave_radiation`, `past_days=14`). Only hours with at least 50 W/m² count, and at least
+  20 such hours are needed. The fit, export = a × sun + b, turns the next two days' forecast into
+  expected export per slot. No panel size, orientation or inverter model is asked.
+- **Which meter:** of the devices that declare themselves cumulative with an export meter, the
+  one whose power is nearest the live report's grid figure. A P1 dongle and a battery's own grid
+  sensor can both measure the same connection, and adding them would count each kWh twice.
+  Without a generator device there is no surplus at all.
+- **Price:** an exported kWh is priced at the slot's spot price, what selling it would earn, near
+  enough.
+- **On the maintainer's Homey, 9 Nov:** 79 sunny hours in two weeks, a = 3.7 kW per 1000 W/m²,
+  b = −0.16 kW, R² 0.11. November export is small and noisy, so the forecast only shades the plan.
+  Only 3 of the 79 hours exported more than the inverter produced, so a battery selling by day
+  barely touches the fit. Capping each hour at the generator's output was tried and changed
+  a by 2 %, so it was left out. 32 kWh went out in sunless hours (the battery), which the
+  50 W/m² floor keeps out.
+
+The design as first written:
+
 - **Live:** Homey Energy's cumulative meter (P1 dongle, grid sensor) gives import and export.
   Export above the compressor's hot water draw (learned, about 1.9 kW here) for 10 min, with room
   in the tank, starts a charge. That charge is hot when the surplus is expected to last.
@@ -378,9 +404,8 @@ Asked of the owner:
 |---|---|---|
 | **1. Learner** (built 2026-11-08, branch `autopilot/hot-water`) | `lib/autopilot/hotwater-learner.ts` (pure): tank balance, standing loss against stored heat, charge model with COP against tank top, profiles for `any`/working/free with the prior filling a young type's shortfall, away. `hotwater-insights.ts`: Insights → readings, finest resolution wins. `dev/learn-hot-water.mjs` runs it on a real device. Tank fields go into the per-pump history with the collector split (plan §2.1). | none |
 | **2. Planner** (built 2026-11-08) | `lib/autopilot/hotwater-planner.ts` (pure): DP over 15-min slots, state = stored heat and whether a charge runs (a run cannot be stopped, so each run's end is its target, 45–60 °C); COP and loss from the learner; surplus priced at export; reserved slots honoured; a running charge ends at the Large stop in force; a charge under 4 kWh waits unless the reserve is breached. `dev/evaluate-hot-water.mjs`: back-test, draws not known ahead. | none |
-| **3. Shadow** (built 2026-11-08, not installed) | `lib/autopilot/hotwater-shadow.ts`: on the Hot water device while the app setting `autopilotHotwaterShadow` is on. Learns from the device's own Insights every 6 h, fetches prices itself, plans each 15-min slot from the tank as read and logs the action (rescue / start / running / wait) and the next planned charge to a JSON-lines file in /userdata (named in the app setting `autopilotHotwaterFile.<id>`), with an hourly summary in the app log. At 07:00 it sends the morning plan (§4.5) to the timeline and logs its facts as JSON. Each charge start, Autopilot's would-be or the pump's own, is logged with its reason; the timeline gets the off-plan ones (§4.5). The Flow trigger is slice 4. Standalone: hot water is likely to ship before heating, and the collector split is heating's (autopilot-plan.md, shared inputs). No day type yet: every day plans with the pooled profile. | none |
-| **3. Shadow** | Run the planner every slot on the maintainer's Homey and log what it would do; show the next planned charge on the device. | none |
-| **4. Live** | 697 and 62 behind the on/off, guards, rescue, reconciliation; surplus live trigger; day type picker and Flow cards; settings; six-language strings. | 697, 62 |
+| **3. Shadow** (built 2026-11-08, not installed) | `lib/autopilot/hotwater-shadow.ts`: on the Hot water device while Autopilot hot water is set to Test run (slice 4 replaced the hand-set app setting `autopilotHotwaterShadow`). Learns from the device's own Insights every 6 h, fetches prices itself, plans each 15-min slot from the tank as read and logs the action (rescue / start / running / wait) and the next planned charge to a JSON-lines file in /userdata (named in the app setting `autopilotHotwaterFile.<id>`), with an hourly summary in the app log. At 07:00 it sends the morning plan (§4.5) to the timeline and logs its facts as JSON. Each charge start, Autopilot's would-be or the pump's own, is logged with its reason; the timeline gets the off-plan ones (§4.5). The Flow trigger is slice 4. Standalone: hot water is likely to ship before heating, and the collector split is heating's (autopilot-plan.md, shared inputs). No day type yet: every day plans with the pooled profile. | none |
+| **4. Live** (built 2026-11-09, not installed) | **Setting** "Autopilot hot water": Off / Test run / On, with "Always keep at least … L" (default 40) and "Use solar surplus" (on). Pump-wide like the poll interval: set on any of the pump's devices, mirrored to all, and turning it on needs the Hot water device and a picked tank, or the save fails saying which. **Lever** (`hotwater-lever.ts`, pure): when the plan starts a charge, the pump is read first (BT7, 62, 56, 195, 843 and 846). Then 62 is written to the planned temperature if it differs by half a degree or more, then 697 = 2. The charge must leave BT7 at least 3 K under its target. Caps: 3 starts and 3 writes of 62 a day; past the 62 cap a charge runs to the stop already set. In demand mode Large, 62 is never written. Smart price adaption for hot water, Smart control (56 = 4) or hot water off (195) block it, with a warning on the device saying what to change. The charge and the day's write count are stored before the pump is written, so after a restart the charge is still Autopilot's, not reported as the pump's, and the writes still count. A failed write is a device warning. There is no restart reconciliation that ends a boost: 697 = 0 does not end a running charge (§4.3), and a charge to a planned temperature is harmless if the plan has since changed. **Day type** (`day-type.ts`): one app setting for the home (`autopilotDayType`) with every change and its time. The learner files each Insights reading under the type in force then. Main shows it as a picker (`day_type_NIBE`) only while Autopilot is on or in a test run. **Flow cards:** trigger "A hot water charge started" (`reason`, `detailed_reason`, `autopilot`: Autopilot's real starts and the pump's own, never a test run's would-be start); condition "A hot water charge is planned within … h" (a running charge counts); action "Set day type to …" on Main. **Solar surplus** (`hotwater-surplus.ts`): §4.4. Not built yet: the next planned charge shown on the device, setup's questions for a home with under 14 days of history, and the list of Flows that switch More hot water. | 697, 62 |
 | **5. Docs** | `docs/` and FAQ; README row; analytics rows if events are added. | – |
 
 **Slice 1 on the S1155's Insights (8 Nov, 58 full days):** charge 6.1 kWh heat/h, COP 2.88 at a

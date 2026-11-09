@@ -229,7 +229,13 @@
         "on": "__date__:",
         "last_night": "Vannacht:"
       },
-      "duration_h": "__h__ u"
+      "duration_h": "__h__ u",
+      "write_failed": "Autopilot kon het warme water niet opwarmen: __error__",
+      "blocked": {
+        "hot_water_off": "Autopilot warm water wacht: warm water staat uit op de pomp.",
+        "spa": "Autopilot warm water wacht: zet Slimme prijsaanpassing voor warm water uit op de pomp.",
+        "smart_control": "Autopilot warm water wacht: de warmwaterbehoefte staat op Smart control."
+      }
     },
     "hotwater_update": {
       "title": {
@@ -259,6 +265,10 @@
         "pump": "Gestart door de warmtepomp"
       },
       "moved_repriced": "Verschoven van __was__ naar __time__: de uren van __was__ kosten nu __wasNow__/kWh in plaats van __wasPrice__, dus het warmt op tot __target__ °C voor __price__/kWh."
+    },
+    "hotwater_setting": {
+      "no_device": "Autopilot warm water heeft het Warm water-apparaat van deze pomp nodig. Voeg het eerst toe.",
+      "no_tank": "Kies eerst de boilerinhoud: Warm water-apparaat → Herstellen."
     }
   }
 }

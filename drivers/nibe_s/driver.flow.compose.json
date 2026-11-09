@@ -539,6 +539,81 @@
           "example": 95
         }
       ]
+    },
+    {
+      "id": "hotwater_charge_started",
+      "title": {
+        "en": "A hot water charge started",
+        "sv": "En varmvattenladdning startade",
+        "de": "Eine Warmwasserladung hat begonnen",
+        "nl": "Warm water opwarmen is gestart",
+        "no": "En varmtvannsoppvarming startet",
+        "da": "En opvarmning af varmt vand startede"
+      },
+      "hint": {
+        "en": "By Autopilot or by the pump itself. Needs Autopilot hot water on or as a test run.",
+        "sv": "Av Autopilot eller av pumpen själv. Kräver att Autopilot varmvatten är på eller testkör.",
+        "de": "Durch Autopilot oder die Pumpe selbst. Erfordert Autopilot Warmwasser an oder im Testlauf.",
+        "nl": "Door Autopilot of door de pomp zelf. Vereist Autopilot warm water aan of als testrun.",
+        "no": "Av Autopilot eller av pumpen selv. Krever at Autopilot varmtvann er på eller testkjører.",
+        "da": "Af Autopilot eller af pumpen selv. Kræver at Autopilot varmt vand er tændt eller testkører."
+      },
+      "$filter": "capabilities=measure_volume_NIBE.hotwater_estimate",
+      "tokens": [
+        {
+          "type": "string",
+          "name": "reason",
+          "title": {
+            "en": "Reason",
+            "sv": "Anledning",
+            "de": "Grund",
+            "nl": "Reden",
+            "no": "Årsak",
+            "da": "Årsag"
+          },
+          "example": {
+            "en": "Cheapest hours",
+            "sv": "Billigaste timmarna",
+            "de": "Günstigste Stunden",
+            "nl": "Goedkoopste uren",
+            "no": "Billigste timer",
+            "da": "Billigste timer"
+          }
+        },
+        {
+          "type": "string",
+          "name": "detailed_reason",
+          "title": {
+            "en": "Detailed reason",
+            "sv": "Utförlig anledning",
+            "de": "Ausführlicher Grund",
+            "nl": "Uitgebreide reden",
+            "no": "Utfyllende årsak",
+            "da": "Uddybende årsag"
+          },
+          "example": {
+            "en": "To 55 °C, 1 h 30 min, at 0.84 SEK/kWh.",
+            "sv": "Till 55 °C, 1 h 30 min, för 0,84 SEK/kWh.",
+            "de": "Auf 55 °C, 1 h 30 min, zu 0,84 €/kWh.",
+            "nl": "Tot 55 °C, 1 u 30 min, voor 0,84 €/kWh.",
+            "no": "Til 55 °C, 1 t 30 min, til 0,84 NOK/kWh.",
+            "da": "Til 55 °C, 1 t 30 min, til 0,84 DKK/kWh."
+          }
+        },
+        {
+          "type": "boolean",
+          "name": "autopilot",
+          "title": {
+            "en": "Started by Autopilot",
+            "sv": "Startad av Autopilot",
+            "de": "Von Autopilot gestartet",
+            "nl": "Gestart door Autopilot",
+            "no": "Startet av Autopilot",
+            "da": "Startet af Autopilot"
+          },
+          "example": true
+        }
+      ]
     }
   ],
   "actions": [
@@ -2918,6 +2993,75 @@
           "step": 0.1
         }
       ]
+    },
+    {
+      "id": "set_day_type",
+      "title": {
+        "en": "Set day type",
+        "sv": "Ställ in dagtyp",
+        "de": "Tagestyp einstellen",
+        "nl": "Dagtype instellen",
+        "no": "Still inn dagtype",
+        "da": "Indstil dagtype"
+      },
+      "titleFormatted": {
+        "en": "Set day type to [[type]]",
+        "sv": "Ställ in dagtyp till [[type]]",
+        "de": "Tagestyp auf [[type]] setzen",
+        "nl": "Dagtype instellen op [[type]]",
+        "no": "Still inn dagtype til [[type]]",
+        "da": "Indstil dagtype til [[type]]"
+      },
+      "hint": {
+        "en": "Which day Autopilot plans hot water for. Holds until changed.",
+        "sv": "Vilken sorts dag Autopilot planerar varmvattnet för. Gäller tills den ändras.",
+        "de": "Für welchen Tag Autopilot das Warmwasser plant. Gilt bis zur Änderung.",
+        "nl": "Voor welk soort dag Autopilot het warme water plant. Geldt tot het wordt gewijzigd.",
+        "no": "Hvilken type dag Autopilot planlegger varmtvannet for. Gjelder til den endres.",
+        "da": "Hvilken slags dag Autopilot planlægger varmt vand for. Gælder indtil den ændres."
+      },
+      "$filter": "capabilities=day_type_NIBE",
+      "args": [
+        {
+          "type": "dropdown",
+          "name": "type",
+          "values": [
+            {
+              "id": "working",
+              "label": {
+                "en": "Working day",
+                "sv": "Arbetsdag",
+                "de": "Arbeitstag",
+                "nl": "Werkdag",
+                "no": "Arbeidsdag",
+                "da": "Arbejdsdag"
+              }
+            },
+            {
+              "id": "free",
+              "label": {
+                "en": "Day off",
+                "sv": "Ledig dag",
+                "de": "Freier Tag",
+                "nl": "Vrije dag",
+                "no": "Fridag",
+                "da": "Fridag"
+              }
+            },
+            {
+              "id": "away",
+              "label": {
+                "en": "Away",
+                "sv": "Bortrest",
+                "de": "Abwesend",
+                "nl": "Afwezig",
+                "no": "Bortreist",
+                "da": "Bortrejst"
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "conditions": [
@@ -3460,6 +3604,51 @@
             "nl": "Liter",
             "no": "Liter",
             "da": "Liter"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hotwater_charge_planned",
+      "title": {
+        "en": "A hot water charge is planned",
+        "sv": "En varmvattenladdning är planerad",
+        "de": "Eine Warmwasserladung ist geplant",
+        "nl": "Warm water opwarmen is gepland",
+        "no": "En varmtvannsoppvarming er planlagt",
+        "da": "En opvarmning af varmt vand er planlagt"
+      },
+      "titleFormatted": {
+        "en": "A hot water charge !{{is|is not}} planned within [[hours]] h",
+        "sv": "En varmvattenladdning !{{är|är inte}} planerad inom [[hours]] h",
+        "de": "Eine Warmwasserladung !{{ist|ist nicht}} innerhalb von [[hours]] h geplant",
+        "nl": "Warm water opwarmen !{{is|is niet}} gepland binnen [[hours]] u",
+        "no": "En varmtvannsoppvarming !{{er|er ikke}} planlagt innen [[hours]] t",
+        "da": "En opvarmning af varmt vand !{{er|er ikke}} planlagt inden for [[hours]] t"
+      },
+      "hint": {
+        "en": "A running charge counts. False while Autopilot hot water is off.",
+        "sv": "En pågående laddning räknas. Falskt när Autopilot varmvatten är av.",
+        "de": "Eine laufende Ladung zählt. Falsch, solange Autopilot Warmwasser aus ist.",
+        "nl": "Een lopende opwarming telt mee. Onwaar zolang Autopilot warm water uit staat.",
+        "no": "En pågående oppvarming teller. Usant når Autopilot varmtvann er av.",
+        "da": "En igangværende opvarmning tæller. Falsk når Autopilot varmt vand er slukket."
+      },
+      "$filter": "capabilities=measure_volume_NIBE.hotwater_estimate",
+      "args": [
+        {
+          "type": "number",
+          "name": "hours",
+          "min": 1,
+          "max": 48,
+          "step": 1,
+          "placeholder": {
+            "en": "Hours",
+            "sv": "Timmar",
+            "de": "Stunden",
+            "nl": "Uren",
+            "no": "Timer",
+            "da": "Timer"
           }
         }
       ]

@@ -117,7 +117,8 @@
     "measure_hour_NIBE.i279_compressor_usage_cooling",
     "meter_kwh_NIBE.i1579_cooling_produced",
     "meter_power.solar",
-    "measure_power.i2176_solar_current"
+    "measure_power.i2176_solar_current",
+    "day_type_NIBE"
   ],
   "capabilitiesOptions": {
     "meter_power.total": {
@@ -1426,6 +1427,121 @@
             "nl": "De gemeten temperatuur van het inkomende koude water. Wordt gebruikt om Beschikbaar warmtapwater te berekenen.",
             "no": "Målt temperatur på det inngående kaldtvannet. Brukes til å beregne Tilgjengelig varmtvann.",
             "da": "Den målte temperatur på det indgående kolde vand. Bruges til at beregne Tilgængeligt varmt vand."
+          }
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": {
+        "en": "Autopilot hot water",
+        "sv": "Autopilot varmvatten",
+        "de": "Autopilot Warmwasser",
+        "nl": "Autopilot warm water",
+        "no": "Autopilot varmtvann",
+        "da": "Autopilot varmt vand"
+      },
+      "children": [
+        {
+          "id": "autopilotHotwater",
+          "type": "dropdown",
+          "value": "off",
+          "label": {
+            "en": "Autopilot hot water",
+            "sv": "Autopilot varmvatten",
+            "de": "Autopilot Warmwasser",
+            "nl": "Autopilot warm water",
+            "no": "Autopilot varmtvann",
+            "da": "Autopilot varmt vand"
+          },
+          "hint": {
+            "en": "Charges the tank in the cheapest hours or on solar surplus. Test run only reports what it would do.",
+            "sv": "Laddar beredaren under de billigaste timmarna eller på solöverskott. Testkörning rapporterar bara vad den skulle göra.",
+            "de": "Lädt den Speicher in den günstigsten Stunden oder mit Solarüberschuss. Der Testlauf meldet nur, was er tun würde.",
+            "nl": "Warmt de boiler op in de goedkoopste uren of met zonne-overschot. Een testrun meldt alleen wat hij zou doen.",
+            "no": "Lader berederen i de billigste timene eller på soloverskudd. Testkjøring rapporterer bare hva den ville gjort.",
+            "da": "Opvarmer beholderen i de billigste timer eller på solcelleoverskud. Testkørsel rapporterer kun, hvad den ville gøre."
+          },
+          "values": [
+            {
+              "id": "off",
+              "label": {
+                "en": "Off",
+                "sv": "Av",
+                "de": "Aus",
+                "nl": "Uit",
+                "no": "Av",
+                "da": "Fra"
+              }
+            },
+            {
+              "id": "shadow",
+              "label": {
+                "en": "Test run",
+                "sv": "Testkörning",
+                "de": "Testlauf",
+                "nl": "Testrun",
+                "no": "Testkjøring",
+                "da": "Testkørsel"
+              }
+            },
+            {
+              "id": "live",
+              "label": {
+                "en": "On",
+                "sv": "På",
+                "de": "Ein",
+                "nl": "Aan",
+                "no": "På",
+                "da": "Til"
+              }
+            }
+          ]
+        },
+        {
+          "id": "autopilotReserve",
+          "type": "number",
+          "value": 40,
+          "min": 0,
+          "max": 500,
+          "step": 10,
+          "units": "L",
+          "label": {
+            "en": "Always keep at least",
+            "sv": "Behåll alltid minst",
+            "de": "Immer mindestens behalten",
+            "nl": "Altijd minstens houden",
+            "no": "Behold alltid minst",
+            "da": "Behold altid mindst"
+          },
+          "hint": {
+            "en": "Litres of 40 °C water. 0 leaves it to the pump.",
+            "sv": "Liter 40-gradigt vatten. 0 överlåter det åt pumpen.",
+            "de": "Liter Wasser mit 40 °C. 0 überlässt es der Pumpe.",
+            "nl": "Liter water van 40 °C. 0 laat het aan de pomp over.",
+            "no": "Liter vann på 40 °C. 0 overlater det til pumpen.",
+            "da": "Liter vand på 40 °C. 0 overlader det til pumpen."
+          }
+        },
+        {
+          "id": "autopilotSolar",
+          "type": "checkbox",
+          "value": true,
+          "label": {
+            "en": "Use solar surplus",
+            "sv": "Använd solöverskott",
+            "de": "Solarüberschuss nutzen",
+            "nl": "Zonne-overschot gebruiken",
+            "no": "Bruk soloverskudd",
+            "da": "Brug solcelleoverskud"
+          },
+          "hint": {
+            "en": "Needs solar panels and a grid meter in Homey Energy.",
+            "sv": "Kräver solpaneler och en elmätare i Homey Energi.",
+            "de": "Erfordert Solarmodule und einen Netzzähler in Homey Energie.",
+            "nl": "Vereist zonnepanelen en een netmeter in Homey Energie.",
+            "no": "Krever solcellepaneler og en strømmåler i Homey Energi.",
+            "da": "Kræver solceller og en elmåler i Homey Energi."
           }
         }
       ]

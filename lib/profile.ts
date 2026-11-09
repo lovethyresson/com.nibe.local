@@ -210,6 +210,10 @@ export interface ModelProfile {
         demandMode: string;
         stops: Record<number, string>;
         largeStop: string;
+        /** Allow hot water (195), and Smart price adaption's switches for hot water (every one on
+         *  means it is active): Autopilot never fights either. */
+        allowed: string;
+        spa: string[];
     };
     writeRequirements?: Record<string, {register: string; values: number[]; message: LocalizedText}>;
     indoorSensorFeed?: boolean;

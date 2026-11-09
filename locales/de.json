@@ -322,7 +322,13 @@
         "on": "__date__:",
         "last_night": "Letzte Nacht:"
       },
-      "duration_h": "__h__ Std."
+      "duration_h": "__h__ Std.",
+      "write_failed": "Autopilot konnte keine Warmwasserladung starten: __error__",
+      "blocked": {
+        "hot_water_off": "Autopilot Warmwasser wartet: Warmwasser ist an der Pumpe ausgeschaltet.",
+        "spa": "Autopilot Warmwasser wartet: Schalte die Smarte Preisanpassung für Warmwasser an der Pumpe aus.",
+        "smart_control": "Autopilot Warmwasser wartet: Der Warmwasserbedarf steht auf Smart Control."
+      }
     },
     "hotwater_update": {
       "title": {
@@ -352,6 +358,10 @@
         "pump": "Von der Wärmepumpe gestartet"
       },
       "moved_repriced": "Verschoben von __was__ auf __time__: die Stunden ab __was__ kosten jetzt __wasNow__/kWh statt __wasPrice__, daher lädt sie auf __target__ °C zu __price__/kWh."
+    },
+    "hotwater_setting": {
+      "no_device": "Autopilot Warmwasser braucht das Warmwasser-Gerät dieser Pumpe. Füge es zuerst hinzu.",
+      "no_tank": "Wähle zuerst die Speichergröße: Warmwasser-Gerät → Reparieren."
     }
   }
 }

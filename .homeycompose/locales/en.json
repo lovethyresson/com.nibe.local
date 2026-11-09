@@ -229,7 +229,13 @@
         "on": "__date__:",
         "last_night": "Last night:"
       },
-      "duration_h": "__h__ h"
+      "duration_h": "__h__ h",
+      "write_failed": "Autopilot could not start a hot water charge: __error__",
+      "blocked": {
+        "hot_water_off": "Autopilot hot water is waiting: hot water is turned off on the pump.",
+        "spa": "Autopilot hot water is waiting: turn off Smart price adaption for hot water on the pump.",
+        "smart_control": "Autopilot hot water is waiting: the hot water demand is set to Smart control."
+      }
     },
     "hotwater_update": {
       "title": {
@@ -259,6 +265,10 @@
         "pump": "Started by the pump"
       },
       "moved_repriced": "Moved from __was__ to __time__: the __was__ hours now cost __wasNow__/kWh instead of __wasPrice__, so it charges to __target__ °C at __price__/kWh."
+    },
+    "hotwater_setting": {
+      "no_device": "Autopilot hot water needs this pump's Hot water device. Add it first.",
+      "no_tank": "Pick your tank size first: Hot water device → Repair."
     }
   }
 }

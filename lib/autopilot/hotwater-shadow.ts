@@ -1,6 +1,6 @@
-/** Hot water Autopilot in shadow: every 15 minutes, plan from the tank as it is and log what the
- *  planner would do. Reads only; nothing here writes to the pump. Design:
- *  docs/autopilot-hot-water.md §5 (slice 3).
+/** Hot water Autopilot: every 15 minutes, plan from the tank as it is and log what the planner
+ *  does. As a test run it only reports; live it also starts the planned charges through
+ *  hotwater-lever.ts, the only writes. Design: docs/autopilot-hot-water.md §5 (slices 3 and 4).
  *
  *  Standalone on purpose. Hot water is likely to ship before heating, so it does not wait for the
  *  collector split (autopilot-plan.md, shared inputs): it learns from the device's own Insights,
@@ -12,6 +12,12 @@ import {DayProfile, DayType, HotwaterModel, KWH_PER_LITRE, LocalClock, learn, lo
 import {TankCapabilities, fetchTankInsights, pointsFromInsights} from './hotwater-insights';
 import {DEFAULT_RESERVE_LITRES, Plan, TankSpec, drawsFor, plan, reserveKwh} from './hotwater-planner';
 import {appendLine, deleteHistory, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
+import {DayTypeState, dayTypeAt} from './day-type';
+import {PumpFacts, countFor, leverDecision} from './hotwater-lever';
+import {LIVE_WINDOW, SurplusFit, fitSurplus, gridMeter, hasGenerator, hourlyExport, hourlyGhi, irradianceUrl, liveSurplusKw,
+    liveSurplusW, surplusForecast} from './hotwater-surplus';
+import {getJson, LOCATION_SETTING} from './collector';
+import {weatherLocation} from './weather';
 
 const HOUR = 3_600_000;
 /** Lowest and highest target the shadow plans with (doc §4.2). The ceiling will come from the
@@ -44,7 +50,10 @@ export interface TankNow {
 export interface ShadowStepInput {
     /** The slot to plan from. */
     slot: number;
-    prices: Map<number, {price: number}>;
+    /** Buy price per kWh, and spot: what an exported kWh earns, near enough. */
+    prices: Map<number, {price: number; spot?: number}>;
+    /** Expected export per slot, kW: the live reading for the next half hour, the forecast after. */
+    surplus?: Map<number, number>;
     model?: HotwaterModel;
     now: TankNow;
     tank: TankSpec;
@@ -86,7 +95,10 @@ function planFrom(input: ShadowStepInput): Planned | {skip: string} {
     const draws = drawsFor(slots.map(() => profile), slots.map((k) => input.clock(k * SLOT_MS).hour));
     const charging = (now.powerW ?? 0) > 0;
     const p = plan({
-        slots: slots.map((k, j) => ({price: input.prices.get(k)!.price, draw: draws[j]})),
+        slots: slots.map((k, j) => {
+            const price = input.prices.get(k)!;
+            return {price: price.price, draw: draws[j], surplusKw: input.surplus?.get(k), exportPrice: price.spot ?? 0};
+        }),
         stored: now.litres! * KWH_PER_LITRE, charging, runningTargetC: now.more ? now.largeStopC : now.stopC,
         topC: now.top, tank: input.tank, charge: model.charge, loss: model.loss,
         reserve: reserveKwh(input.reserveLitres ?? DEFAULT_RESERVE_LITRES), minC: MIN_C, maxC: MAX_C,
@@ -253,6 +265,8 @@ export interface ChargeEvent {
      *  none. Missing when there was no morning plan to compare with. */
     plan?: 'as_planned' | 'moved' | 'unplanned';
     plannedAt?: number;
+    /** A test run's would-be start: nothing was written. */
+    shadow?: boolean;
 }
 
 /** How near a planned charge has to be to count as this one, and how far a replanned one may
@@ -312,7 +326,7 @@ export function chargeText(e: ChargeEvent, t: Translate, time: (ms: number) => s
 export function chargeLine(e: ChargeEvent, t: Translate, time: (ms: number) => string, currency: string,
                            shadow: boolean): string {
     const {reason, detailedReason} = chargeText(e, t, time, currency);
-    return `${t(shadow && e.by === 'autopilot' ? 'title_would' : 'title', {reason})}\n${detailedReason}`;
+    return `${t((e.shadow ?? shadow) && e.by === 'autopilot' ? 'title_would' : 'title', {reason})}\n${detailedReason}`;
 }
 
 /** The morning recap: the charges since the last morning plan, by local day ("Yesterday:",
@@ -330,7 +344,7 @@ export function recapLines(events: ChargeEvent[], t: Translate, time: (ms: numbe
             lines.push(date === today ? t('recap.last_night') : date === yesterday ? t('recap.yesterday') : t('recap.on', {date}));
         }
         const plan = e.plan ? ` ${t(`recap.${e.plan}${e.by === 'pump' && e.plan === 'as_planned' ? '_pump' : ''}`)}` : '';
-        lines.push(t(shadow && e.by === 'autopilot' ? 'recap.would' : 'recap.item',
+        lines.push(t((e.shadow ?? shadow) && e.by === 'autopilot' ? 'recap.would' : 'recap.item',
             {time: time(e.at), target: e.targetC ?? '?', reason: t(`reason.${e.reason}`)}) + plan);
     }
     return lines;
@@ -427,8 +441,41 @@ export function ownDeviceId(devices: Record<string, any>, appId: string, dataId:
         && String(d?.data?.id) === dataId)?.[0];
 }
 
-/** Runs the shadow for one Hot water device. */
-export class HotwaterShadow {
+/** A test run plans and reports; live also starts the charges it plans. */
+export type HotwaterMode = 'shadow' | 'live';
+
+/** What the device gives the running Autopilot. Read on every use, so a settings change takes
+ *  effect at the next slot without a restart. */
+export interface HotwaterHooks {
+    mode(): HotwaterMode;
+    reserveLitres(): number;
+    solar(): boolean;
+    dayType(): DayTypeState | undefined;
+    /** The pump's state read just before a start, live from the pump. */
+    pumpFacts(): Promise<PumpFacts>;
+    /** The two writes of a start: the Large stop (62) in °C, then More hot water (697 = 2). */
+    write(what: 'stop' | 'more', value: number | boolean): Promise<void>;
+    store: {get(key: string): any; set(key: string, value: any): Promise<void>};
+    /** A real charge started, Autopilot's or the pump's: the Flow trigger. */
+    charged(e: ChargeEvent, text: {reason: string; detailedReason: string}): void;
+    /** A problem the owner must see on the device, or undefined to clear it. */
+    warn(text: string | undefined): void;
+}
+
+/** Device store keys: the charge Autopilot started last, and the day's writes. Both are written
+ *  before the pump is: after a restart the charge is still Autopilot's and the writes still count. */
+export const CHARGE_KEY = 'autopilotHotwaterCharge';
+export const WRITES_KEY = 'autopilotHotwaterWrites';
+/** The surplus model is relearned this often; the forecast comes with it. */
+const SURPLUS_EVERY_MS = 3 * HOUR;
+/** Slots ahead that take the live surplus rather than the forecast: what is exported now is the
+ *  best guess for the next half hour. */
+const LIVE_SLOTS = 2;
+/** Lever skips the owner must fix on the pump, and their locale key. */
+const BLOCKED: Partial<Record<string, string>> = {'hot water off': 'hot_water_off', 'smart price adaption': 'spa', 'smart control': 'smart_control'};
+
+/** Runs hot water Autopilot for one Hot water device, as a test run or live. */
+export class HotwaterAutopilot {
     private prices = new Map<number, PriceSlot>();
     private model?: HotwaterModel;
     private timers: any[] = [];
@@ -445,23 +492,40 @@ export class HotwaterShadow {
     /** Charges started since the last morning plan, for its recap. */
     private events: ChargeEvent[] = [];
     private wasCharging?: boolean;
-    /** End of the run Autopilot last (would have) started; and when it really started one, set by
-     *  the live lever (slice 4) so that its own charge is not also reported as the pump's. */
+    /** End of the run Autopilot last started (or, in a test run, would have), and when it really
+     *  started one, so that its own charge is not also reported as the pump's. */
     private wouldRunUntil = 0;
     private autopilotStartedAt = -Infinity;
+    /** Why the last planned start was not made, so a reason is logged once, not every slot. */
+    private leverSkip?: string;
+    private starting = false;
+    /** Solar: whether the home has what surplus needs, the fit, the sun ahead, the live readings. */
+    private solarState?: string;
+    private solarReady = false;
+    private surplusFit?: SurplusFit;
+    private ghi = new Map<number, number>();
+    private live: {at: number; w: number}[] = [];
 
     /** `dataId` is the device's pairing id (`getData().id`): the SDK does not expose the Homey
      *  device id that Insights are keyed by, so it is looked up through the Homey API. */
     constructor(private readonly homey: any, private readonly dataId: string, private readonly fileName: string,
                 private readonly caps: TankCapabilities,
                 private readonly read: () => {now: TankNow; tank?: TankSpec},
-                private readonly log: (...args: any[]) => void) {}
+                private readonly log: (...args: any[]) => void,
+                private readonly hooks: HotwaterHooks) {}
 
     async start() {
         this.lines = await trimLines(shadowLogName(this.fileName), KEEP).catch(() => 0);
+        const charge = this.hooks.store.get(CHARGE_KEY) as {at: number; minutes: number} | undefined;
+        if (charge && Date.now() - charge.at < 2 * HOUR) {
+            this.autopilotStartedAt = charge.at;
+            this.wouldRunUntil = charge.at + charge.minutes * 60_000;
+        }
         this.loop(() => this.fetchPrices(), 5_000);
         this.loop(async () => { await this.learn(); return LEARN_EVERY_MS; }, 60_000);
         this.loop(async () => { this.report(); return HOUR; }, 10 * 60_000);
+        this.loop(() => this.learnSurplus(), 90_000);
+        this.loop(() => this.sampleSurplus(), 2 * 60_000);
         this.scheduleStep();
     }
 
@@ -474,6 +538,14 @@ export class HotwaterShadow {
     async remove() {
         this.stop();
         await deleteHistory(this.fileName);
+    }
+
+    /** For the Flow condition: a charge running, or one planned to start within `hours`. Only a
+     *  plan from this slot or the last counts: an older one is no plan at all. */
+    chargePlannedWithin(hours: number): boolean {
+        const last = this.last;
+        if (!last || last.slot < slotOf(Date.now()) - 1) return false;
+        return last.charging || (!!last.next && Date.parse(last.next.at) < Date.now() + hours * HOUR);
     }
 
     private loop(job: () => Promise<number>, firstMs: number) {
@@ -498,6 +570,10 @@ export class HotwaterShadow {
         return localClock(this.homey.clock.getTimezone());
     }
 
+    private get shadow() {
+        return this.hooks.mode() !== 'live';
+    }
+
     private async learn() {
         const started = Date.now();
         const logs = await withApi(this.homey, async (api) => {
@@ -512,12 +588,17 @@ export class HotwaterShadow {
             this.log(`Autopilot hot water: ${points.length} readings in Insights, too few to learn from yet.`);
             return;
         }
-        // No day type yet (slice 4 puts it on Main): every day plans with the pooled profile.
+        // Each reading is learned under the day type in force when it was taken; before the
+        // owner first set one, under none (the pooled profile).
+        const dayTypes = this.hooks.dayType();
+        for (const point of points) point.dayType = dayTypeAt(dayTypes, point.t);
         const model = learn(points, this.clock(), started);
         this.model = model;
         const c = model.charge, any = model.profiles.any;
+        const typed = (['working', 'free'] as const).filter((type) => model.profiles[type]).join(' and ');
         this.log(`Autopilot hot water: learned from ${points.length} readings over ${model.days} days: `
             + `${any ? `${round(any.daily, 1)} kWh heat a day (p80 ${round(any.dailyP80, 1)})` : 'no day profile'}, `
+            + `${typed ? `own profiles for ${typed} days, ` : ''}`
             + `${c ? `COP ${round(c.cop)} at ${round(c.atTop, 0)} °C, ${round(c.heatPerHour, 1)} kWh/h` : 'no charge model'}, `
             + `loss ${round(model.loss.base, 3)} + ${round(model.loss.perKwh, 3)}/kWh an hour (${Date.now() - started} ms).`);
         await saveJson(modelFileName(this.fileName), {at: new Date(started).toISOString(), model});
@@ -549,14 +630,80 @@ export class HotwaterShadow {
         return nextPriceFetchMs(now, timeZone, (days[1]?.slots.length ?? 0) > 0);
     }
 
+    /** What surplus needs from the home (a generator and a grid meter Homey Energy counts), the
+     *  fit of export against the sun over the last two weeks, and the sun ahead. */
+    private async learnSurplus(): Promise<number> {
+        if (!this.hooks.solar()) {
+            this.solarReady = false;
+            this.surplusFit = undefined;
+            this.ghi.clear();
+            return SURPLUS_EVERY_MS;
+        }
+        const found = await withApi(this.homey, async (api) => {
+            const [devices, report] = await Promise.all([api.devices.getDevices({$cache: false, $timeout: 10_000}),
+                api.energy.getLiveReport({})]);
+            if (!hasGenerator(devices)) return 'no generator' as const;
+            const meter = gridMeter(devices, report);
+            if (!meter) return 'no grid meter' as const;
+            const uri = `homey:device:${meter.id}`;
+            const log = await api.insights.getLogEntries({uri, id: `${uri}:${meter.exported}`, resolution: 'last14Days', $timeout: 20_000});
+            const homeyLocation: any = await api.geolocation.getOptionLocation().catch(() => undefined);
+            return {log, location: weatherLocation(homeyLocation?.value, this.homey.settings.get(LOCATION_SETTING))};
+        });
+        if (typeof found === 'string' || !found.location) {
+            const state = typeof found === 'string' ? found : 'no location';
+            if (state !== this.solarState) this.log(`Autopilot hot water: no solar surplus (${state}).`);
+            this.solarState = state;
+            this.solarReady = false;
+            this.surplusFit = undefined;
+            return SURPLUS_EVERY_MS;
+        }
+        this.solarReady = true;
+        this.ghi = hourlyGhi(await getJson(irradianceUrl(found.location.latitude, found.location.longitude)));
+        this.surplusFit = fitSurplus(this.ghi, hourlyExport(found.log));
+        const state = this.surplusFit ? `${this.surplusFit.hours} sunny hours: ${round(this.surplusFit.a * 1000, 2)} kW `
+            + `per 1000 W/m², ${round(this.surplusFit.b, 2)} kW` : 'too few sunny hours to plan with; the live export still counts';
+        if (state !== this.solarState) this.log(`Autopilot hot water: solar surplus from ${state}.`);
+        this.solarState = state;
+        return SURPLUS_EVERY_MS;
+    }
+
+    /** One live reading a minute while surplus is on and the home has a generator. */
+    private async sampleSurplus(): Promise<number> {
+        if (!this.hooks.solar() || !this.solarReady) {
+            this.live = [];
+            return 60_000;
+        }
+        const now = Date.now();
+        const w = liveSurplusW(await withApi(this.homey, (api) => api.energy.getLiveReport({})));
+        if (w !== undefined) this.live.push({at: now, w});
+        this.live = this.live.filter((r) => r.at > now - LIVE_WINDOW * 60_000);
+        return 60_000;
+    }
+
+    /** Expected export per slot, kW: live for the next half hour, the forecast after. */
+    private surplus(slot: number): Map<number, number> | undefined {
+        if (!this.hooks.solar()) return undefined;
+        const live = liveSurplusKw(this.live, Date.now());
+        const ahead = Array.from({length: 2 * 96}, (_, j) => slot + j);
+        const forecast = surplusForecast(this.surplusFit, this.ghi, ahead.map((k) => k * SLOT_MS));
+        return new Map(ahead.map((k, j) => [k, j < LIVE_SLOTS && live !== undefined ? live : forecast[j]]));
+    }
+
+    private input(at: number, now: TankNow, tank: TankSpec): ShadowStepInput {
+        const slot = slotOf(at);
+        return {slot, prices: this.prices, surplus: this.surplus(slot), model: this.model, now, tank, clock: this.clock(),
+            dayType: this.hooks.dayType()?.type, reserveLitres: this.hooks.reserveLitres()};
+    }
+
     private step() {
         if (this.stopped) return;
         const {now, tank} = this.read();
         if (!tank) return this.skip('no tank size');
         const at = slotOf(Date.now()) * SLOT_MS;
-        const input = {slot: slotOf(at), prices: this.prices, model: this.model, now, tank, clock: this.clock()};
+        const input = this.input(at, now, tank);
         this.morning(input);
-        this.watchStarts(input, at);
+        this.watchStarts(input, at).catch((error) => this.log('Autopilot hot water: start failed:', error?.message ?? error));
         const out = hotwaterShadowStep(input);
         if ('skip' in out) return this.skip(out.skip);
         this.last = out.entry;
@@ -567,30 +714,75 @@ export class HotwaterShadow {
             .catch((error) => this.log('Autopilot hot water: log write failed:', error?.message ?? error));
     }
 
-    /** A charge Autopilot would start now, and one the pump started on its own since the last
-     *  slot. In shadow nothing is written, so a would-be start is told once per planned run, not
-     *  every slot until the planner's moment passes; and every real charge is the pump's. */
-    private watchStarts(input: ShadowStepInput, at: number) {
+    /** A charge Autopilot starts now (in a test run, would start), and one the pump started on
+     *  its own since the last slot. A would-be start is told once per planned run, not every slot
+     *  until the planner's moment passes. */
+    private async watchStarts(input: ShadowStepInput, at: number) {
         const charging = (input.now.powerW ?? 0) > 0;
         if (charging && this.wasCharging === false && at - this.autopilotStartedAt > 2 * SLOT_MS)
-            this.chargeStarted(pumpCharge(at, input.now, DEFAULT_RESERVE_LITRES, this.morningPlan));
+            this.chargeStarted(pumpCharge(at, input.now, input.reserveLitres ?? DEFAULT_RESERVE_LITRES, this.morningPlan));
         if (input.now.powerW !== undefined) this.wasCharging = charging;
-        if (at < this.wouldRunUntil) return;
+        if (at < this.wouldRunUntil || this.starting) return;
         const e = autopilotCharge(input, this.morningPlan);
-        if ('skip' in e) return;
-        this.wouldRunUntil = at + (e.minutes ?? 0) * 60_000;
-        this.chargeStarted(e);
+        if ('skip' in e) {
+            this.leverSkip = undefined;
+            return;
+        }
+        if (this.shadow) {
+            this.wouldRunUntil = at + (e.minutes ?? 0) * 60_000;
+            return this.chargeStarted({...e, shadow: true});
+        }
+        this.starting = true;
+        try { await this.startCharge(e, input.clock(at).date); } finally { this.starting = false; }
+    }
+
+    /** The live lever: 62 to the target if it differs, then 697 = 2. */
+    private async startCharge(e: ChargeEvent, date: string) {
+        const count = countFor(this.hooks.store.get(WRITES_KEY), date);
+        const d = leverDecision(e.targetC!, await this.hooks.pumpFacts(), count);
+        // A pump setting that keeps Autopilot out is the owner's to change, so it is on the device,
+        // not only in the log.
+        const blocked = 'skip' in d ? BLOCKED[d.skip] : undefined;
+        if (blocked) this.warn(this.homey.__(`autopilot.hotwater_charge.blocked.${blocked}`));
+        else this.warn(undefined);
+        if ('skip' in d) {
+            if (this.leverSkip !== d.skip) this.log(`Autopilot hot water: planned charge not started (${d.skip}).`);
+            this.leverSkip = d.skip;
+            return;
+        }
+        this.leverSkip = undefined;
+        await this.hooks.store.set(CHARGE_KEY, {at: e.at, targetC: d.targetC, minutes: e.minutes ?? 0});
+        await this.hooks.store.set(WRITES_KEY, {...count, starts: count.starts + 1, stops: count.stops + (d.writeStop ? 1 : 0)});
+        try {
+            if (d.writeStop) await this.hooks.write('stop', d.targetC);
+            await this.hooks.write('more', true);
+        } catch (error: any) {
+            this.warn(this.homey.__('autopilot.hotwater_charge.write_failed', {error: error?.message ?? String(error)}));
+            throw error;
+        }
+        this.autopilotStartedAt = e.at;
+        this.wouldRunUntil = e.at + (e.minutes ?? 0) * 60_000;
+        this.chargeStarted({...e, targetC: d.targetC});
+    }
+
+    /** The device warning, set or cleared only on a change. */
+    private warning?: string;
+    private warn(text: string | undefined) {
+        if (text === this.warning) return;
+        this.warning = text;
+        this.hooks.warn(text);
     }
 
     private chargeStarted(e: ChargeEvent) {
         this.events.push(e);
         const t: Translate = (key, tokens) => this.homey.__(`autopilot.hotwater_charge.${key}`, tokens);
-        const {reason, detailedReason} = chargeText(e, t, this.time, this.currency);
-        this.log(`Autopilot hot water charge (${e.by}): ${reason}. ${detailedReason} ${JSON.stringify(e)}`);
+        const text = chargeText(e, t, this.time, this.currency);
+        this.log(`Autopilot hot water charge (${e.by}${e.shadow ? ', test run' : ''}): ${text.reason}. ${text.detailedReason} ${JSON.stringify(e)}`);
+        if (!e.shadow) this.hooks.charged(e, text);
         // The timeline hears only what the morning plan did not say: a safety-net start, a moved
         // or unplanned one. Charges as planned, and the pump's own, are for Flows and the recap.
         if (e.by !== 'autopilot' || (e.reason !== 'reserve' && e.plan === 'as_planned')) return;
-        this.homey.notifications.createNotification({excerpt: chargeLine(e, t, this.time, this.currency, true)})
+        this.homey.notifications.createNotification({excerpt: chargeLine(e, t, this.time, this.currency, this.shadow)})
             .catch((error: any) => this.log('Autopilot hot water: timeline failed:', error?.message ?? error));
     }
 
@@ -605,8 +797,8 @@ export class HotwaterShadow {
         const {now, tank} = this.read();
         if (!tank) return;
         const at = slotOf(Date.now()) * SLOT_MS;
-        const input = {slot: slotOf(at), model: this.model, now, tank, clock: this.clock()};
-        const after = dailyPlan({...input, prices: this.prices});
+        const input = this.input(at, now, tank);
+        const after = dailyPlan(input);
         if ('skip' in after) return this.log(`Autopilot hot water: prices changed, no replan (${after.skip}).`);
         this.morningPlan = after;
         const before = dailyPlan({...input, prices: old});
@@ -623,7 +815,7 @@ export class HotwaterShadow {
             return run.every((v) => v !== undefined) ? run.reduce((x, y) => x! + y!, 0)! / run.length : undefined;
         };
         const text = planUpdateText(before, after, at, (key, tokens) => this.homey.__(`autopilot.hotwater_update.${key}`, tokens),
-            when, this.currency, true, priceNow);
+            when, this.currency, this.shadow, priceNow);
         if (!text) return;
         this.homey.notifications.createNotification({excerpt: text})
             .catch((error: any) => this.log('Autopilot hot water: timeline failed:', error?.message ?? error));
@@ -641,11 +833,11 @@ export class HotwaterShadow {
         if ('skip' in d) return this.log(`Autopilot hot water: no morning plan (${d.skip}).`);
         this.dailySent = date;
         const recap = recapLines(this.events, (key, tokens) => this.homey.__(`autopilot.hotwater_charge.${key}`, tokens),
-            this.time, true, (ms) => input.clock(ms).date, date);
+            this.time, this.shadow, (ms) => input.clock(ms).date, date);
         this.events = [];
         this.morningPlan = d;
         const text = dailyPlanText(d, (key, tokens) => this.homey.__(`autopilot.hotwater_daily.${key}`, tokens),
-            this.time, this.currency, true, recap);
+            this.time, this.currency, this.shadow, recap);
         this.log(`Autopilot hot water morning plan: ${JSON.stringify(d)}`);
         this.homey.notifications.createNotification({excerpt: text})
             .catch((error: any) => this.log('Autopilot hot water: timeline failed:', error?.message ?? error));
@@ -659,6 +851,6 @@ export class HotwaterShadow {
         const skipped = [...this.skipped].map(([why, n]) => `${n} ${why}`).join(', ');
         this.skipped.clear();
         this.log(this.last ? `${summary(this.last)}${skipped ? ` Skipped ${skipped}.` : ''}`
-            : `Autopilot hot water shadow: nothing planned yet${skipped ? ` (${skipped})` : ''}.`);
+            : `Autopilot hot water: nothing planned yet${skipped ? ` (${skipped})` : ''}.`);
     }
 }

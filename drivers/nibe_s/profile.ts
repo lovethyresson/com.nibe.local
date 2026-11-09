@@ -212,6 +212,8 @@ export const sProfile = makeProfile({
         stops: {0: "target_temperature.h64_hotwater_stop_small", 1: "target_temperature.h63_hotwater_stop",
             2: "target_temperature.h62_hotwater_stop_large"},
         largeStop: "target_temperature.h62_hotwater_stop_large",
+        allowed: "onoff.h195_enable_hotwater",
+        spa: ["boolean_NIBE.h843_spa_activated", "boolean_NIBE.h846_spa_hotwater_activated"],
     },
     autopilotHistory: {
         numeric: {
