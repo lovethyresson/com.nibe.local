@@ -405,3 +405,14 @@ already says 697 = 0 does not stop a charge in progress; the maintainer had to p
 **Rule:** before a design relies on a register doing something, read that register's comments in
 `drivers/nibe_s/registers.ts` (and its neighbours') and the relevant memories, and quote what they
 say about it.
+
+## 2026-11-09: input 1 is not the outdoor truth once Autopilot feeds BT1
+
+I recommended "use the pump's BT1 instead of the Hue sensor" for Autopilot's outdoor input, and
+used the history's `bt1` column as the real BT1 in fed slots. Both wrong: while 5217 is fed,
+input 1 shows the fed value (history.ts says so at the `bt1` field and in `close()`), and no copy
+of the wired BT1 is readable. The maintainer had to point it out.
+
+**Rule:** before recommending an input or using a history column, read its comment in
+`lib/autopilot/history.ts` and check the plan for whether Autopilot itself changes it. A lever
+can never also be the measurement.

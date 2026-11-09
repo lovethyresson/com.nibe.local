@@ -372,11 +372,13 @@ Offline only; nothing runs on the Homey yet. Design: `docs/autopilot-plan.md` §
   RMSE, mass start free):
   1. *The outdoor input changed meaning mid-record.* Until 2026-11-02 pm `te` is the pump's BT1;
      from then the picked outdoor sensor, a Hue motion sensor ("Rörelse"). Against met.no 2 m
-     temperature (Open-Meteo, 3–9 Nov) BT1 reads +0.7 K (+1.2 at night, −0.4 midday, a wall
-     sensor); the Hue reads −1.7 K, −3 K in the evening and +1.1 K at 11:00 (sun on it). So the
-     model learns from an outdoor that is ~2.4 K colder than before 2 Nov with a 4 K false daily
-     swing, which the sun and gains terms soak up. Unifying the series on either sensor moves
-     the EKF to H 238/gains 0.94 (Hue) or H 270/gains 0.82 (BT1): not a fix by itself.
+     temperature (Open-Meteo, 3–9 Nov, 391 unfed slots) BT1 reads +0.7 K (+1.2 at night, −0.4
+     midday, a wall sensor); the Hue reads −0.9 K, −1.5…−2.4 K in the evening and night and +1.1 K
+     at 11:00 (sun on it). So the model learns from an outdoor ~2.4 K colder than before 2 Nov,
+     with a ~3.5 K false daily swing that the sun and gains terms soak up. Unifying the series on
+     either sensor moves the EKF to H 238/gains 0.94 (Hue) or H 270/gains 0.82 (BT1): not a fix
+     by itself. (Correction: the BT1 variant used the `bt1` column in 169 fed slots, which is the
+     *fed* value, history.ts:217; that variant is contaminated, the Hue one is not.)
   2. *Heat loss and free heat cannot be told apart yet.* With the app's dynamics held, gains
      0 → 0.8 kW fits with H 191 → 236 W/K at free-run RMSE 0.404 → 0.437 K. ΔT has only spanned
      15–22 K; separating them needs a cold spell. The free-run fits also put sun at ~0 while the
@@ -407,8 +409,10 @@ Offline only; nothing runs on the Homey yet. Design: `docs/autopilot-plan.md` §
   makes the same house look different. The days between (ladders, room control on until 4 Nov
   with its 1.5 K overshoot, a 2 K cool-down over 4–7 Nov, offsets 2/3/5/6) are transients that
   the gains term (0.6 kW) and the window areas absorb.
-  Conclusions: (a) the pump sensor is representative; (b) drop the Hue outdoor sensor (BT1 tracks
-  met.no within ~1 K); (c) the fit should not mix outdoor sources: re-anchor or ignore slots on
+  Conclusions: (a) the pump sensor is representative; (b) replace the Hue outdoor sensor with a
+  shaded one. BT1 is *not* an option: once Autopilot feeds 5217, input 1 shows the fed value and
+  no copy of the wired BT1 is readable (plan §4.3), so the outdoor truth must be a Homey sensor,
+  with the forecast as fallback; (c) the fit should not mix outdoor sources: re-anchor or ignore slots on
   a source change (the flag is there, nothing reads it); (d) internal gains need a tight prior
   until a cold spell can separate them from heat loss; (e) refit on a steady week. 5b stays
   blocked.
