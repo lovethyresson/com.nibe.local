@@ -110,8 +110,54 @@ export function hotwaterShadowStep(input: ShadowStepInput): ShadowStep {
     }};
 }
 
-/** Why a charge is where it is, as the morning message tells it. */
-export type ChargeReason = 'running' | 'reserve' | 'surplus' | 'cheap' | 'before_use';
+/** Why a charge is where it is. One vocabulary for the morning plan, the charge message and the
+ *  morning recap, so a charge reads alike in all three. `pump`: the pump started it itself
+ *  (its start temperature, or More hot water). */
+export type ChargeReason = 'running' | 'reserve' | 'surplus' | 'cheap' | 'before_use' | 'pump';
+
+/** One planned charge, with the facts its wording needs. */
+export interface ChargeFacts {
+    at: number;
+    targetC: number;
+    /** Run length, minutes. */
+    minutes: number;
+    /** Mean buy price over the run, per kWh. */
+    price: number;
+    surplusShare: number;
+    cost: number;
+    reason: ChargeReason;
+}
+
+/** The plan's charges starting before `before` (ms), each with its reason, and the mean buy
+ *  price over the slots before it. Pure. */
+function chargesOf(input: ShadowStepInput, out: Planned, before: number): {charges: ChargeFacts[]; meanPrice: number} {
+    const {slots, plan: p, charging} = out;
+    const buy = (k: number) => input.prices.get(slots[k])!.price;
+    const day = slots.filter((k) => k * SLOT_MS < before);
+    /** Mean price of the cheapest `n` slots in [from, to): the best the run could have bought. */
+    const best = (from: number, to: number, n: number) => {
+        const window = [];
+        for (let k = from; k < to; k++) window.push(buy(k));
+        window.sort((x, y) => x - y);
+        const take = window.slice(0, Math.max(1, n));
+        return take.reduce((x, y) => x + y, 0) / take.length;
+    };
+    // "Cheap" when the run bought about as well as any run of its length could have, between the
+    // previous charge and its own end; a run that had to reach into dearer hours to be ready for
+    // the use that follows says so instead.
+    const charges = p.charges.filter((c) => slots[c.start] * SLOT_MS < before).map((c, i, all) => {
+        let sum = 0;
+        for (let k = c.start; k < c.end; k++) sum += buy(Math.min(k, slots.length - 1));
+        const price = sum / Math.max(1, c.end - c.start);
+        const reason: ChargeReason = charging && c.start === 0 ? 'running'
+            : i === 0 && c.start === 0 && p.rescue ? 'reserve' : c.surplusShare >= 0.5 ? 'surplus'
+            : price <= 1.02 * best(i ? all[i - 1].end : 0, Math.min(c.end, slots.length), c.end - c.start) + 1e-9
+                ? 'cheap' : 'before_use';
+        return {at: slots[c.start] * SLOT_MS, targetC: c.targetC, minutes: (c.end - c.start) * SLOT_MS / 60_000,
+            price: round(price), surplusShare: round(c.surplusShare), cost: round(c.cost), reason};
+    });
+    return {charges, meanPrice: round(day.reduce((sum, k) => sum + input.prices.get(k)!.price, 0) / Math.max(1, day.length))};
+}
 
 /** The morning message's facts: what goes into the day's plan and what comes out. Pure data,
  *  so it can be logged, tested and worded in any language. */
@@ -126,7 +172,7 @@ export interface DailyPlan {
     top?: number;
     reserveLitres: number;
     /** Charges starting within the next 24 h (or the known prices, if shorter). */
-    charges: {at: number; targetC: number; price: number; surplusShare: number; cost: number; reason: ChargeReason}[];
+    charges: ChargeFacts[];
     /** Mean buy price over the planned hours, per kWh. */
     meanPrice: number;
     cost: number;
@@ -143,39 +189,16 @@ const DAY_MS = 24 * 3_600_000;
 export function dailyPlan(input: ShadowStepInput): DailyPlan | {skip: string} {
     const out = planFrom(input);
     if ('skip' in out) return out;
-    const {slots, plan: p, charging, profile} = out;
+    const {slots, profile} = out;
     const start = slots[0] * SLOT_MS;
-    const buy = (k: number) => input.prices.get(slots[k])!.price;
-    const day = slots.filter((k) => k * SLOT_MS < start + DAY_MS);
-    /** Mean price of the cheapest `n` slots in [from, to): the best the run could have bought. */
-    const best = (from: number, to: number, n: number) => {
-        const window = [];
-        for (let k = from; k < to; k++) window.push(buy(k));
-        window.sort((a, b) => a - b);
-        const take = window.slice(0, Math.max(1, n));
-        return take.reduce((a, b) => a + b, 0) / take.length;
-    };
-    // "Cheap" when the run bought about as well as any run of its length could have, between the
-    // previous charge and its own end; a run that had to reach into dearer hours to be ready for
-    // the use that follows says so instead.
-    const charges = p.charges.filter((c) => slots[c.start] * SLOT_MS < start + DAY_MS).map((c, i, all) => {
-        let sum = 0;
-        for (let k = c.start; k < c.end; k++) sum += buy(Math.min(k, slots.length - 1));
-        const price = sum / Math.max(1, c.end - c.start);
-        const reason: ChargeReason = charging && c.start === 0 ? 'running'
-            : i === 0 && c.start === 0 && p.rescue ? 'reserve' : c.surplusShare >= 0.5 ? 'surplus'
-            : price <= 1.02 * best(i ? all[i - 1].end : 0, Math.min(c.end, slots.length), c.end - c.start) + 1e-9
-                ? 'cheap' : 'before_use';
-        return {at: slots[c.start] * SLOT_MS, targetC: c.targetC, price: round(price),
-            surplusShare: round(c.surplusShare), cost: round(c.cost), reason};
-    });
+    const {charges, meanPrice} = chargesOf(input, out, start + DAY_MS);
     return {
         date: input.clock(start).date, dayType: input.dayType,
         useLitres: profile && round(profile.daily / KWH_PER_LITRE, 0),
         useLitresP80: profile && round(profile.dailyP80 / KWH_PER_LITRE, 0),
         nowLitres: round(input.now.litres!, 0), top: input.now.top,
         reserveLitres: input.reserveLitres ?? DEFAULT_RESERVE_LITRES,
-        charges, meanPrice: round(day.reduce((sum, k) => sum + input.prices.get(k)!.price, 0) / day.length),
+        charges, meanPrice,
         cost: round(charges.reduce((sum, c) => sum + c.cost, 0)),
         until: (slots[slots.length - 1] + 1) * SLOT_MS,
         chargeDates: charges.map((c) => input.clock(c.at).date),
@@ -188,9 +211,9 @@ export type Translate = (key: string, tokens?: Record<string, string | number>) 
 
 /** The morning message, worded through `t`. `time` gives a local HH:MM. */
 export function dailyPlanText(d: DailyPlan, t: Translate, time: (ms: number) => string, currency: string,
-                              shadow: boolean): string {
+                              shadow: boolean, recap: string[] = []): string {
     const money = (v: number) => `${v.toFixed(2)} ${currency}`.trim();
-    const lines = [t(`title.${d.dayType ?? 'any'}`)];
+    const lines = [t(`title.${d.dayType ?? 'any'}`), ...recap];
     if (d.dayType === 'away') lines.push(t('away'));
     else if (d.useLitres !== undefined) lines.push(t('use', {litres: d.useLitres, p80: d.useLitresP80 ?? d.useLitres}));
     lines.push(d.reserveLitres > 0 ? t('tank', {litres: d.nowLitres, reserve: d.reserveLitres})
@@ -206,6 +229,99 @@ export function dailyPlanText(d: DailyPlan, t: Translate, time: (ms: number) => 
     lines.push(t(d.untilDate === d.date ? 'cost' : 'cost_tomorrow', {cost: money(d.cost)}));
     if (shadow) lines.push(t('shadow'));
     return lines.join('\n');
+}
+
+/** A charge starting: one Autopilot starts (or, in shadow, would start), or one the pump starts
+ *  itself. What the charge message and the morning recap are worded from. */
+export interface ChargeEvent {
+    at: number;
+    by: 'autopilot' | 'pump';
+    reason: ChargeReason;
+    /** Where the charge ends, °C: the planned target, or the stop the pump runs to. */
+    targetC?: number;
+    minutes?: number;
+    price?: number;
+    meanPrice?: number;
+    surplusShare?: number;
+    litres?: number;
+    top?: number;
+    reserveLitres: number;
+    /** More hot water (697) is on. */
+    more?: boolean;
+    /** Against the morning plan: a planned charge within 45 min, one elsewhere within 6 h, or
+     *  none. Missing when there was no morning plan to compare with. */
+    plan?: 'as_planned' | 'moved' | 'unplanned';
+    plannedAt?: number;
+}
+
+/** How near a planned charge has to be to count as this one, and how far a replanned one may
+ *  have moved. */
+const AS_PLANNED_MS = 45 * 60_000;
+const MOVED_MS = 3 * 3_600_000;
+
+/** This start against the morning plan. Pure. Only a start the prices moved can be the planned
+ *  one moved: a safety-net start comes on top of the plan, and the pump's own is not the plan's. */
+export function againstPlan(at: number, morning?: DailyPlan, canMove = true): Pick<ChargeEvent, 'plan' | 'plannedAt'> {
+    if (!morning) return {};
+    const nearest = morning.charges.filter((c) => c.reason !== 'running')
+        .reduce<ChargeFacts | undefined>((best, c) => !best || Math.abs(c.at - at) < Math.abs(best.at - at) ? c : best, undefined);
+    const off = nearest ? Math.abs(nearest.at - at) : Infinity;
+    if (off <= AS_PLANNED_MS) return {plan: 'as_planned'};
+    return canMove && off <= MOVED_MS ? {plan: 'moved', plannedAt: nearest!.at} : {plan: 'unplanned'};
+}
+
+/** The charge Autopilot starts in `input.slot`, or why there is none. Pure. */
+export function autopilotCharge(input: ShadowStepInput, morning?: DailyPlan): ChargeEvent | {skip: string} {
+    const out = planFrom(input);
+    if ('skip' in out) return out;
+    if (out.charging || !out.plan.startNow) return {skip: 'no start'};
+    const at = out.slots[0] * SLOT_MS;
+    const {charges, meanPrice} = chargesOf(input, out, at + DAY_MS);
+    const c = charges[0];
+    return {at, by: 'autopilot', reason: c.reason, targetC: c.targetC, minutes: c.minutes, price: c.price, meanPrice,
+        surplusShare: c.surplusShare, litres: round(input.now.litres!, 0), top: input.now.top,
+        reserveLitres: input.reserveLitres ?? DEFAULT_RESERVE_LITRES, ...againstPlan(at, morning, c.reason !== 'reserve')};
+}
+
+/** A charge the pump started itself. Pure. */
+export function pumpCharge(at: number, now: TankNow, reserveLitres: number, morning?: DailyPlan): ChargeEvent {
+    return {at, by: 'pump', reason: 'pump', targetC: now.more ? now.largeStopC : now.stopC, more: now.more,
+        litres: now.litres === undefined ? undefined : round(now.litres, 0), top: now.top, reserveLitres,
+        ...againstPlan(at, morning, false)};
+}
+
+/** The charge message: a short reason and a detailed one (the Flow trigger's two tokens), worded
+ *  through `t` (keys under `autopilot.hotwater_charge`). Pure. */
+export function chargeText(e: ChargeEvent, t: Translate, time: (ms: number) => string, currency: string):
+    {reason: string; detailedReason: string} {
+    const money = (v?: number) => `${(v ?? 0).toFixed(2)} ${currency}`.trim();
+    const m = Math.round(e.minutes ?? 0), duration = m < 60 ? t('duration_min', {m})
+        : m % 60 ? t('duration', {h: Math.floor(m / 60), m: m % 60}) : t('duration_h', {h: m / 60});
+    const run = {target: e.targetC ?? '?', duration, price: money(e.price), mean: money(e.meanPrice),
+        share: Math.round((e.surplusShare ?? 0) * 100), litres: e.litres ?? '?', reserve: e.reserveLitres,
+        top: e.top ?? '?', stop: e.targetC ?? '?'};
+    const detail = e.reason === 'pump' ? t(e.more ? 'detail.pump_more' : 'detail.pump', run)
+        : t(e.reason === 'reserve' || e.reason === 'surplus' ? `detail.${e.reason}` : 'detail.price', run);
+    const plan = e.plan === 'moved' ? t('plan.moved', {time: time(e.plannedAt!)})
+        : e.plan ? t(`plan.${e.plan}${e.by === 'pump' && e.plan === 'as_planned' ? '_pump' : ''}`) : '';
+    return {reason: t(`reason.${e.reason}`), detailedReason: plan ? `${detail} ${plan}` : detail};
+}
+
+/** The timeline line for a charge event. */
+export function chargeLine(e: ChargeEvent, t: Translate, time: (ms: number) => string, currency: string,
+                           shadow: boolean): string {
+    const {reason, detailedReason} = chargeText(e, t, time, currency);
+    return `${t(shadow && e.by === 'autopilot' ? 'title_would' : 'title', {reason})}\n${detailedReason}`;
+}
+
+/** The morning recap: one line per charge since the last morning plan. */
+export function recapLines(events: ChargeEvent[], t: Translate, time: (ms: number) => string, shadow: boolean): string[] {
+    if (events.length === 0) return [];
+    return [t('recap.title'), ...events.map((e) => {
+        const plan = e.plan ? ` ${t(`recap.${e.plan}${e.by === 'pump' && e.plan === 'as_planned' ? '_pump' : ''}`)}` : '';
+        return t(shadow && e.by === 'autopilot' ? 'recap.would' : 'recap.item',
+            {time: time(e.at), target: e.targetC ?? '?', reason: t(`reason.${e.reason}`)}) + plan;
+    })];
 }
 
 /** One-line summary for the app log. */
@@ -233,8 +349,16 @@ export class HotwaterShadow {
     private last?: ShadowEntry;
     private deviceId?: string;
     private currency = '';
-    /** Local date of the last morning plan sent. */
+    /** Local date of the last morning plan sent, and the plan. */
     private dailySent?: string;
+    private morningPlan?: DailyPlan;
+    /** Charges started since the last morning plan, for its recap. */
+    private events: ChargeEvent[] = [];
+    private wasCharging?: boolean;
+    /** End of the run Autopilot last (would have) started; and when it really started one, set by
+     *  the live lever (slice 4) so that its own charge is not also reported as the pump's. */
+    private wouldRunUntil = 0;
+    private autopilotStartedAt = -Infinity;
 
     /** `dataId` is the device's pairing id (`getData().id`): the SDK does not expose the Homey
      *  device id that Insights are keyed by, so it is looked up through the Homey API. */
@@ -333,8 +457,10 @@ export class HotwaterShadow {
         if (this.stopped) return;
         const {now, tank} = this.read();
         if (!tank) return this.skip('no tank size');
-        const input = {slot: slotOf(Date.now()), prices: this.prices, model: this.model, now, tank, clock: this.clock()};
+        const at = slotOf(Date.now()) * SLOT_MS;
+        const input = {slot: slotOf(at), prices: this.prices, model: this.model, now, tank, clock: this.clock()};
         this.morning(input);
+        this.watchStarts(input, at);
         const out = hotwaterShadowStep(input);
         if ('skip' in out) return this.skip(out.skip);
         this.last = out.entry;
@@ -345,18 +471,50 @@ export class HotwaterShadow {
             .catch((error) => this.log('Autopilot hot water: log write failed:', error?.message ?? error));
     }
 
-    /** Once a day at DAILY_HOUR: what the day's plan is and what it rests on, to the log and the
-     *  timeline. */
+    /** A charge Autopilot would start now, and one the pump started on its own since the last
+     *  slot. In shadow nothing is written, so a would-be start is told once per planned run, not
+     *  every slot until the planner's moment passes; and every real charge is the pump's. */
+    private watchStarts(input: ShadowStepInput, at: number) {
+        const charging = (input.now.powerW ?? 0) > 0;
+        if (charging && this.wasCharging === false && at - this.autopilotStartedAt > 2 * SLOT_MS)
+            this.chargeStarted(pumpCharge(at, input.now, DEFAULT_RESERVE_LITRES, this.morningPlan));
+        if (input.now.powerW !== undefined) this.wasCharging = charging;
+        if (at < this.wouldRunUntil) return;
+        const e = autopilotCharge(input, this.morningPlan);
+        if ('skip' in e) return;
+        this.wouldRunUntil = at + (e.minutes ?? 0) * 60_000;
+        this.chargeStarted(e);
+    }
+
+    private chargeStarted(e: ChargeEvent) {
+        this.events.push(e);
+        const t: Translate = (key, tokens) => this.homey.__(`autopilot.hotwater_charge.${key}`, tokens);
+        const {reason, detailedReason} = chargeText(e, t, this.time, this.currency);
+        this.log(`Autopilot hot water charge (${e.by}): ${reason}. ${detailedReason} ${JSON.stringify(e)}`);
+        // The timeline hears only what the morning plan did not say: a safety-net start, a moved
+        // or unplanned one. Charges as planned, and the pump's own, are for Flows and the recap.
+        if (e.by !== 'autopilot' || (e.reason !== 'reserve' && e.plan === 'as_planned')) return;
+        this.homey.notifications.createNotification({excerpt: chargeLine(e, t, this.time, this.currency, true)})
+            .catch((error: any) => this.log('Autopilot hot water: timeline failed:', error?.message ?? error));
+    }
+
+    private time = (ms: number) => new Date(ms).toLocaleTimeString('sv-SE',
+        {timeZone: this.homey.clock.getTimezone(), hour: '2-digit', minute: '2-digit'});
+
+    /** Once a day at DAILY_HOUR: the charges since the last morning, then what the day's plan is
+     *  and what it rests on, to the log and the timeline. */
     private morning(input: ShadowStepInput) {
         const {date, hour} = input.clock(input.slot * SLOT_MS);
         if (hour !== DAILY_HOUR || this.dailySent === date) return;
         const d = dailyPlan(input);
         if ('skip' in d) return this.log(`Autopilot hot water: no morning plan (${d.skip}).`);
         this.dailySent = date;
-        const timeZone = this.homey.clock.getTimezone();
-        const time = (ms: number) => new Date(ms).toLocaleTimeString('sv-SE', {timeZone, hour: '2-digit', minute: '2-digit'});
+        const recap = recapLines(this.events, (key, tokens) => this.homey.__(`autopilot.hotwater_charge.${key}`, tokens),
+            this.time, true);
+        this.events = [];
+        this.morningPlan = d;
         const text = dailyPlanText(d, (key, tokens) => this.homey.__(`autopilot.hotwater_daily.${key}`, tokens),
-            time, this.currency, true);
+            this.time, this.currency, true, recap);
         this.log(`Autopilot hot water morning plan: ${JSON.stringify(d)}`);
         this.homey.notifications.createNotification({excerpt: text})
             .catch((error: any) => this.log('Autopilot hot water: timeline failed:', error?.message ?? error));

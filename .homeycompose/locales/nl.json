@@ -189,6 +189,43 @@
       "tomorrow": "morgen om __time__",
       "cost_tomorrow": "Verwachte kosten __cost__. Prijzen zijn bekend tot morgen middernacht.",
       "today": "om __time__"
+    },
+    "hotwater_charge": {
+      "reason": {
+        "cheap": "Goedkoopste uren",
+        "before_use": "Op tijd voor gebruik",
+        "surplus": "Zonne-overschot",
+        "reserve": "Veiligheidsmarge",
+        "running": "Warmt al op",
+        "pump": "Gestart door de warmtepomp"
+      },
+      "detail": {
+        "price": "Tot __target__ °C, ongeveer __duration__, voor __price__/kWh; de dag gemiddeld __mean__.",
+        "surplus": "Tot __target__ °C, ongeveer __duration__, __share__ % uit zonne-overschot.",
+        "reserve": "De boiler heeft nog maar __litres__ L, onder de veiligheidsmarge van __reserve__ L, met de bovenkant op __top__ °C. Tot __target__ °C, ongeveer __duration__, voor __price__/kWh.",
+        "pump": "De warmtepomp startte op eigen starttemperatuur bij __top__ °C en warmt op tot __stop__ °C.",
+        "pump_more": "Meer warm water staat aan, dus de warmtepomp warmt op tot __stop__ °C."
+      },
+      "plan": {
+        "as_planned": "Zoals vanochtend gepland.",
+        "moved": "Gewijzigd: het plan van vanochtend had hem om __time__.",
+        "unplanned": "Niet in het plan van vanochtend.",
+        "as_planned_pump": "Het plan van vanochtend had toen ook een opwarming."
+      },
+      "duration": "__h__ u __m__ min",
+      "duration_min": "__m__ min",
+      "title": "Warm water opwarmen: __reason__",
+      "title_would": "Testrun, zou warm water gaan opwarmen: __reason__",
+      "recap": {
+        "title": "Sinds gisterochtend:",
+        "item": "__time__ tot __target__ °C: __reason__.",
+        "would": "__time__ zou hebben opgewarmd tot __target__ °C: __reason__.",
+        "as_planned": "Zoals gepland.",
+        "moved": "Verschoven.",
+        "unplanned": "Niet gepland.",
+        "as_planned_pump": "Toen ook gepland."
+      },
+      "duration_h": "__h__ u"
     }
   }
 }

@@ -189,6 +189,43 @@
       "tomorrow": "tomorrow at __time__",
       "cost_tomorrow": "Expected cost __cost__. Prices are known until midnight tomorrow.",
       "today": "at __time__"
+    },
+    "hotwater_charge": {
+      "reason": {
+        "cheap": "Cheapest hours",
+        "before_use": "In time for use",
+        "surplus": "Solar surplus",
+        "reserve": "Safety net",
+        "running": "Already charging",
+        "pump": "Started by the pump"
+      },
+      "detail": {
+        "price": "To __target__ °C, about __duration__, at __price__/kWh; the day averages __mean__.",
+        "surplus": "To __target__ °C, about __duration__, __share__ % from solar surplus.",
+        "reserve": "The tank is down to __litres__ L, under the __reserve__ L safety net, with the top at __top__ °C. To __target__ °C, about __duration__, at __price__/kWh.",
+        "pump": "The pump started it at __top__ °C on its own start temperature and runs to __stop__ °C.",
+        "pump_more": "More hot water is on, so the pump runs to __stop__ °C."
+      },
+      "plan": {
+        "as_planned": "As planned this morning.",
+        "moved": "Changed: this morning's plan had it at __time__.",
+        "unplanned": "Not in this morning's plan.",
+        "as_planned_pump": "This morning's plan had a charge then too."
+      },
+      "duration": "__h__ h __m__ min",
+      "duration_min": "__m__ min",
+      "title": "Hot water charge: __reason__",
+      "title_would": "Test run, would start a hot water charge: __reason__",
+      "recap": {
+        "title": "Since yesterday morning:",
+        "item": "__time__ to __target__ °C: __reason__.",
+        "would": "__time__ would have charged to __target__ °C: __reason__.",
+        "as_planned": "As planned.",
+        "moved": "Moved.",
+        "unplanned": "Not planned.",
+        "as_planned_pump": "Planned then too."
+      },
+      "duration_h": "__h__ h"
     }
   }
 }

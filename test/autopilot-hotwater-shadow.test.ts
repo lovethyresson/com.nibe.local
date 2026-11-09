@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import {HotwaterModel, KWH_PER_LITRE, localClock} from '../lib/autopilot/hotwater-learner';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {DAILY_HOUR, MIN_HORIZON, ShadowEntry, dailyPlan, dailyPlanText, hotwaterShadowStep, ownDeviceId, summary} from '../lib/autopilot/hotwater-shadow';
+import {DAILY_HOUR, MIN_HORIZON, ShadowEntry, againstPlan, autopilotCharge, chargeLine, chargeText, dailyPlan, dailyPlanText, hotwaterShadowStep, ownDeviceId, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
 import {SLOT_MS, slotOf} from '../lib/autopilot/prices';
 
 const clock = localClock('UTC');
@@ -80,11 +80,11 @@ test('ownDeviceId finds this app\'s device by its pairing id, not another app\'s
 });
 
 const LANGS = ['en', 'sv', 'nl', 'de', 'no', 'da'];
-const daily = (lang: string) => JSON.parse(readFileSync(join(__dirname, '..', '.homeycompose', 'locales', `${lang}.json`), 'utf8')).autopilot.hotwater_daily;
+const strings = (lang: string, area: string) => JSON.parse(readFileSync(join(__dirname, '..', '.homeycompose', 'locales', `${lang}.json`), 'utf8')).autopilot[area];
 /** Homey's `__`: a dotted key, `__token__` placeholders. */
-const translator = (lang: string) => (key: string, tokens: Record<string, string | number> = {}) => {
-    const text = key.split('.').reduce((node: any, part) => node?.[part], daily(lang));
-    assert.strictEqual(typeof text, 'string', `${lang}: missing autopilot.hotwater_daily.${key}`);
+const translator = (lang: string, area = 'hotwater_daily') => (key: string, tokens: Record<string, string | number> = {}) => {
+    const text = key.split('.').reduce((node: any, part) => node?.[part], strings(lang, area));
+    assert.strictEqual(typeof text, 'string', `${lang}: missing autopilot.${area}.${key}`);
     return Object.entries(tokens).reduce((out: string, [name, value]) => out.split(`__${name}__`).join(String(value)), text);
 };
 const hhmm = (ms: number) => new Date(ms).toISOString().slice(11, 16);
@@ -153,4 +153,87 @@ test('the morning plan reads in all six languages, with every token filled', () 
     assert.match(lateText, /known until midnight tomorrow/);
     for (const lang of LANGS) assert.doesNotMatch(dailyPlanText(late, translator(lang), hhmm, 'kr', true), /__\w+__/);
     assert.ok(DAILY_HOUR >= 5 && DAILY_HOUR <= 9, 'a morning hour');
+});
+
+const charge = (over: Partial<Parameters<typeof autopilotCharge>[0]> = {}, morning?: Parameters<typeof autopilotCharge>[1]) => {
+    const out = autopilotCharge({slot: S0, prices, model, tank, clock, now: {litres: 120, top: 50}, ...over}, morning);
+    assert.ok(!('skip' in out), `skipped: ${'skip' in out ? out.skip : ''}`);
+    return out as Exclude<ReturnType<typeof autopilotCharge>, {skip: string}>;
+};
+
+test('a charge message has a short reason and a detailed one with the numbers', () => {
+    // At the cheap night slot, with the morning-plan charge there: cheapest hours, as planned.
+    const morning = dailyOf({model: lightModel, dayType: 'working'});
+    const slot = morning.charges[0].at / SLOT_MS;
+    // The morning's tank, run forward to the planned start (planner's own stored heat there).
+    const e = charge({slot, model: lightModel, dayType: 'working', now: {litres: 45, top: 47}}, morning);
+    assert.strictEqual(e.by, 'autopilot');
+    assert.strictEqual(e.plan, 'as_planned');
+    const {reason, detailedReason} = chargeText(e, translator('en', 'hotwater_charge'), hhmm, 'kr');
+    assert.match(reason, /^(Cheapest hours|In time for use)$/);
+    assert.match(detailedReason, new RegExp(`^To ${e.targetC} °C, about (\\d+ h )?\\d+ min, at \\d\\.\\d\\d kr/kWh; the day averages \\d\\.\\d\\d kr\\. As planned this morning\\.$`));
+});
+
+test('a safety-net start says why, and nothing is reported while the planner waits', () => {
+    const e = charge({now: {litres: 20, top: 40}});
+    assert.strictEqual(e.reason, 'reserve');
+    assert.strictEqual(e.plan, undefined, 'no morning plan to compare with');
+    const {detailedReason} = chargeText(e, translator('en', 'hotwater_charge'), hhmm, 'kr');
+    assert.match(detailedReason, /down to 20 L, under the 40 L safety net, with the top at 40 °C/);
+    const waits = autopilotCharge({slot: S0 + 40, prices, model, tank, clock, now: {litres: 150, top: 55}});
+    assert.deepStrictEqual(waits, {skip: 'no start'});
+});
+
+test('a start is as planned within 45 min, moved within 6 h, else unplanned', () => {
+    const morning = dailyOf();
+    const planned = morning.charges[0].at;
+    assert.deepStrictEqual(againstPlan(planned + 30 * 60_000, morning), {plan: 'as_planned'});
+    assert.deepStrictEqual(againstPlan(planned + 2 * 3_600_000, morning), {plan: 'moved', plannedAt: planned});
+    assert.deepStrictEqual(againstPlan(planned + 2 * 3_600_000, morning, false), {plan: 'unplanned'}, 'a safety net or the pump is never the plan moved');
+    assert.deepStrictEqual(againstPlan(planned + 12 * 3_600_000, {...morning, charges: [morning.charges[0]]}), {plan: 'unplanned'});
+    assert.deepStrictEqual(againstPlan(planned), {});
+    const text = chargeText({...charge({now: {litres: 20, top: 40}}), plan: 'moved', plannedAt: planned},
+        translator('en', 'hotwater_charge'), hhmm, 'kr').detailedReason;
+    assert.match(text, new RegExp(`Changed: this morning's plan had it at ${hhmm(planned)}\\.$`));
+});
+
+test('the pump\'s own charge is reported as the pump\'s, with the stop it runs to', () => {
+    const t = translator('en', 'hotwater_charge');
+    const own = pumpCharge(T0, {litres: 50, top: 41, stopC: 48, largeStopC: 58}, 40);
+    assert.strictEqual(own.targetC, 48);
+    assert.match(chargeText(own, t, hhmm, 'kr').detailedReason, /started it at 41 °C on its own start temperature and runs to 48 °C/);
+    const boost = pumpCharge(T0, {litres: 50, top: 41, more: true, stopC: 48, largeStopC: 58}, 40);
+    assert.strictEqual(boost.targetC, 58);
+    assert.match(chargeText(boost, t, hhmm, 'kr').detailedReason, /More hot water is on, so the pump runs to 58 °C/);
+    assert.match(chargeLine(boost, t, hhmm, 'kr', true), /^Hot water charge: Started by the pump\n/);
+    assert.match(chargeLine(charge({now: {litres: 20, top: 40}}), t, hhmm, 'kr', true), /^Test run, would start a hot water charge: Safety net\n/);
+    const atPlan = {...own, plan: 'as_planned' as const};
+    assert.match(chargeText(atPlan, t, hhmm, 'kr').detailedReason, /This morning's plan had a charge then too\.$/);
+    assert.match(chargeText({...charge({now: {litres: 20, top: 40}}), minutes: 60}, t, hhmm, 'kr').detailedReason, /about 1 h, at/);
+});
+
+test('the morning plan opens with what charged since yesterday', () => {
+    const events = [{...pumpCharge(T0 + 3_600_000, {litres: 50, top: 41, stopC: 48}, 40), plan: 'unplanned' as const},
+        {...charge({now: {litres: 20, top: 40}}), plan: 'as_planned' as const}];
+    const recap = recapLines(events, translator('en', 'hotwater_charge'), hhmm, true);
+    assert.deepStrictEqual(recap, ['Since yesterday morning:', '01:00 to 48 °C: Started by the pump. Not planned.',
+        `00:00 would have charged to ${events[1].targetC} °C: Safety net. As planned.`]);
+    assert.deepStrictEqual(recapLines([], translator('en', 'hotwater_charge'), hhmm, true), []);
+    const text = dailyPlanText(dailyOf(), translator('en'), hhmm, 'kr', true, recap);
+    assert.match(text, /^Hot water today\nSince yesterday morning:\n01:00/);
+});
+
+test('charge messages read in all six languages, with every token filled', () => {
+    const morning = dailyOf();
+    const base = charge({now: {litres: 20, top: 40}});
+    const events = [base, {...base, reason: 'cheap' as const, plan: 'moved' as const, plannedAt: morning.charges[0].at},
+        {...base, reason: 'surplus' as const, surplusShare: 0.8, plan: 'as_planned' as const},
+        {...base, reason: 'before_use' as const, minutes: 45, plan: 'unplanned' as const},
+        pumpCharge(T0, {litres: 50, top: 41, stopC: 48}, 40), pumpCharge(T0, {litres: 50, top: 41, more: true, largeStopC: 58}, 40)];
+    for (const lang of LANGS) {
+        const t = translator(lang, 'hotwater_charge');
+        for (const e of events) for (const shadow of [true, false])
+            assert.doesNotMatch(chargeLine(e, t, hhmm, 'kr', shadow), /__\w+__|undefined|NaN/, `${lang}: ${JSON.stringify(e)}`);
+        assert.doesNotMatch(recapLines(events, t, hhmm, true).join('\n'), /__\w+__|undefined|NaN/);
+    }
 });

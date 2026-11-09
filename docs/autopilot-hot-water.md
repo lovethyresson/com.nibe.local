@@ -283,8 +283,27 @@ at 195).
   the night charge runs across the 06:00 shower. Built in `dailyPlan()` (the facts, pure)
   and `dailyPlanText()` (the wording) in `hotwater-shadow.ts`. In shadow it ends "Test run:
   nothing is changed on the pump". The plan is redone every slot, so the morning message says
-  what is planned, not what is promised.
-- **Flow cards** (six languages): action "Set day type to working / free / away"; trigger "Autopilot started a hot water charge" with a reason token;
+  what is planned, not what is promised. It opens with a recap: one line per charge since the
+  last morning, with its reason and whether the plan had it.
+- **Charge message** (when a charge starts): a short `reason` from the same vocabulary as the
+  morning plan (Cheapest hours, In time for use, Solar surplus, Safety net, Started by the
+  pump), and a `detailedReason` with the numbers. Those numbers are the target, the run
+  length, the price against the day's mean, the tank and the safety net for a rescue, and the
+  stop for a pump charge. It ends with how the charge compares with the morning plan:
+  - "As planned this morning": a planned charge within 45 min.
+  - "Changed: this morning's plan had it at 14:15": a price-driven start within 3 h of a planned
+    charge.
+  - "Not in this morning's plan": anything else.
+  A safety-net start and the pump's own charge are never "the plan moved". They come on top of
+  the plan, or a pump charge says "the plan had a charge then too". The two texts are the Flow
+  trigger's tokens. The timeline hears only what the morning plan did not say: safety-net,
+  moved and unplanned Autopilot starts. Charges as planned and the pump's own go to Flows and
+  the recap, since two expected messages a day is noise an owner learns to skip. There is no
+  "charge finished" message; the recap covers it. Built in `autopilotCharge()`, `pumpCharge()`,
+  `againstPlan()`, `chargeText()` and `recapLines()`. In shadow a would-be start is told once per
+  planned run ("Test run, would start…"). Every real charge is the pump's, so the recap compares
+  the two side by side.
+- **Flow cards** (six languages): action "Set day type to working / free / away"; trigger "Autopilot started a hot water charge" with `reason` and `detailedReason` tokens (below), and the same trigger for a charge the pump started itself;
   condition "A hot water charge is planned in the next … hours".
 - **Insight:** "Typical use: working day 11 kWh, free day 18 kWh; peaks 06:00 and 18–21".
 - Flows that switch "More hot water" fight the planner. Setup lists them (read through
@@ -339,7 +358,7 @@ Asked of the owner:
 |---|---|---|
 | **1. Learner** (built 2026-11-08, branch `autopilot/hot-water`) | `lib/autopilot/hotwater-learner.ts` (pure): tank balance, standing loss against stored heat, charge model with COP against tank top, profiles for `any`/working/free with the prior filling a young type's shortfall, away. `hotwater-insights.ts`: Insights → readings, finest resolution wins. `dev/learn-hot-water.mjs` runs it on a real device. Tank fields go into the per-pump history with the collector split (plan §2.1). | none |
 | **2. Planner** (built 2026-11-08) | `lib/autopilot/hotwater-planner.ts` (pure): DP over 15-min slots, state = stored heat and whether a charge runs (a run cannot be stopped, so each run's end is its target, 45–60 °C); COP and loss from the learner; surplus priced at export; reserved slots honoured; a running charge ends at the Large stop in force; a charge under 4 kWh waits unless the reserve is breached. `dev/evaluate-hot-water.mjs`: back-test, draws not known ahead. | none |
-| **3. Shadow** (built 2026-11-08, not installed) | `lib/autopilot/hotwater-shadow.ts`: on the Hot water device while the app setting `autopilotHotwaterShadow` is on. Learns from the device's own Insights every 6 h, fetches prices itself, plans each 15-min slot from the tank as read and logs the action (rescue / start / running / wait) and the next planned charge to a JSON-lines file in /userdata (named in the app setting `autopilotHotwaterFile.<id>`), with an hourly summary in the app log. At 07:00 it sends the morning plan (§4.5) to the timeline and logs its facts as JSON. Standalone: hot water is likely to ship before heating, and the collector split is heating's (autopilot-plan.md, shared inputs). No day type yet: every day plans with the pooled profile. | none |
+| **3. Shadow** (built 2026-11-08, not installed) | `lib/autopilot/hotwater-shadow.ts`: on the Hot water device while the app setting `autopilotHotwaterShadow` is on. Learns from the device's own Insights every 6 h, fetches prices itself, plans each 15-min slot from the tank as read and logs the action (rescue / start / running / wait) and the next planned charge to a JSON-lines file in /userdata (named in the app setting `autopilotHotwaterFile.<id>`), with an hourly summary in the app log. At 07:00 it sends the morning plan (§4.5) to the timeline and logs its facts as JSON. Each charge start, Autopilot's would-be or the pump's own, is logged with its reason; the timeline gets the off-plan ones (§4.5). The Flow trigger is slice 4. Standalone: hot water is likely to ship before heating, and the collector split is heating's (autopilot-plan.md, shared inputs). No day type yet: every day plans with the pooled profile. | none |
 | **3. Shadow** | Run the planner every slot on the maintainer's Homey and log what it would do; show the next planned charge on the device. | none |
 | **4. Live** | 697 and 62 behind the on/off, guards, rescue, reconciliation; surplus live trigger; day type picker and Flow cards; settings; six-language strings. | 697, 62 |
 | **5. Docs** | `docs/` and FAQ; README row; analytics rows if events are added. | – |

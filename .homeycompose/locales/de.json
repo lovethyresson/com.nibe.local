@@ -189,6 +189,43 @@
       "tomorrow": "morgen um __time__",
       "cost_tomorrow": "Erwartete Kosten __cost__. Preise sind bis morgen Mitternacht bekannt.",
       "today": "um __time__"
+    },
+    "hotwater_charge": {
+      "reason": {
+        "cheap": "Günstigste Stunden",
+        "before_use": "Rechtzeitig für den Verbrauch",
+        "surplus": "Solarüberschuss",
+        "reserve": "Sicherheitsreserve",
+        "running": "Lädt bereits",
+        "pump": "Von der Wärmepumpe gestartet"
+      },
+      "detail": {
+        "price": "Auf __target__ °C, etwa __duration__, zu __price__/kWh; Tagesmittel __mean__.",
+        "surplus": "Auf __target__ °C, etwa __duration__, __share__ % aus Solarüberschuss.",
+        "reserve": "Der Speicher hat nur noch __litres__ L, unter der Sicherheitsreserve von __reserve__ L, oben __top__ °C. Auf __target__ °C, etwa __duration__, zu __price__/kWh.",
+        "pump": "Die Wärmepumpe startete bei __top__ °C nach ihrer eigenen Starttemperatur und lädt auf __stop__ °C.",
+        "pump_more": "Mehr Warmwasser ist an, daher lädt die Wärmepumpe auf __stop__ °C."
+      },
+      "plan": {
+        "as_planned": "Wie heute Morgen geplant.",
+        "moved": "Geändert: der Plan von heute Morgen sah __time__ vor.",
+        "unplanned": "Nicht im Plan von heute Morgen.",
+        "as_planned_pump": "Der Plan von heute Morgen hatte dann auch eine Ladung."
+      },
+      "duration": "__h__ Std. __m__ Min.",
+      "duration_min": "__m__ Min.",
+      "title": "Warmwasserladung: __reason__",
+      "title_would": "Testlauf, würde eine Warmwasserladung starten: __reason__",
+      "recap": {
+        "title": "Seit gestern Morgen:",
+        "item": "__time__ auf __target__ °C: __reason__.",
+        "would": "__time__ hätte auf __target__ °C geladen, __reason__.",
+        "as_planned": "Wie geplant.",
+        "moved": "Verschoben.",
+        "unplanned": "Nicht geplant.",
+        "as_planned_pump": "Dann auch geplant."
+      },
+      "duration_h": "__h__ Std."
     }
   }
 }

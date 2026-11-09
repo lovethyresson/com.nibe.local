@@ -282,6 +282,43 @@
       "tomorrow": "i morgon kl. __time__",
       "cost_tomorrow": "Förväntad kostnad __cost__. Priserna är kända till midnatt i morgon.",
       "today": "kl. __time__"
+    },
+    "hotwater_charge": {
+      "reason": {
+        "cheap": "Billigaste timmarna",
+        "before_use": "I tid för förbrukningen",
+        "surplus": "Solöverskott",
+        "reserve": "Säkerhetsnivå",
+        "running": "Laddar redan",
+        "pump": "Startad av värmepumpen"
+      },
+      "detail": {
+        "price": "Till __target__ °C, cirka __duration__, för __price__/kWh; dagen ligger i snitt på __mean__.",
+        "surplus": "Till __target__ °C, cirka __duration__, __share__ % från solöverskott.",
+        "reserve": "Tanken har bara __litres__ L, under säkerhetsnivån __reserve__ L, och toppen är __top__ °C. Till __target__ °C, cirka __duration__, för __price__/kWh.",
+        "pump": "Värmepumpen startade den vid __top__ °C på sin egen starttemperatur och laddar till __stop__ °C.",
+        "pump_more": "Mer varmvatten är på, så värmepumpen laddar till __stop__ °C."
+      },
+      "plan": {
+        "as_planned": "Som planerat i morse.",
+        "moved": "Ändrat: morgonens plan hade den kl. __time__.",
+        "unplanned": "Fanns inte i morgonens plan.",
+        "as_planned_pump": "Morgonens plan hade också en laddning då."
+      },
+      "duration": "__h__ tim __m__ min",
+      "duration_min": "__m__ min",
+      "title": "Varmvattenladdning: __reason__",
+      "title_would": "Testkörning, skulle starta en varmvattenladdning: __reason__",
+      "recap": {
+        "title": "Sedan i går morse:",
+        "item": "__time__ till __target__ °C: __reason__.",
+        "would": "__time__ skulle ha laddat till __target__ °C: __reason__.",
+        "as_planned": "Som planerat.",
+        "moved": "Flyttad.",
+        "unplanned": "Inte planerad.",
+        "as_planned_pump": "Planerad då också."
+      },
+      "duration_h": "__h__ tim"
     }
   }
 }
