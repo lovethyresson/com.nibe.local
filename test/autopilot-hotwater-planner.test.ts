@@ -76,6 +76,14 @@ test('a charge already running goes on to the Large stop in force', () => {
     assert.strictEqual(p.startNow, false, 'nothing new to start');
 });
 
+test('a running charge ends at its stop instead of holding the tank there through the day\'s draws', () => {
+    const p = plan(input(day(() => 2.7, evening), {charging: true, runningTargetC: 50, stored: heatAt(tank, 30)}));
+    const run = p.charges[0];
+    assert.strictEqual(run.start, 0);
+    assert.ok(run.end <= 8, `ran until slot ${run.end}`);
+    near(run.targetC, 50, 1, 'ends at the running stop');
+});
+
 test('a tank under the reserve charges now at any price; one above it waits for the hour it is needed', () => {
     const draws = (h: number) => h < 3 ? 2 : 0;
     const under = plan(input(day(() => 3.3, draws), {stored: reserveKwh(50)}));

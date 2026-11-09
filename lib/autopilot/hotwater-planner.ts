@@ -219,6 +219,13 @@ export function plan(input: PlanInput): Plan {
             kwh += q;
             open.targetC = tempOf(tank, kwh);
             c = 1;
+            // The pump ends a running charge at its stop; it does not hold the tank there, topping
+            // up each draw. Anything after that is a new charge, priced and started as one.
+            if (runningTop !== undefined && kwh >= runningTop - STEP_KWH) {
+                c = 0;
+                open = undefined;
+                runningTop = undefined;
+            }
         } else {
             c = 0;
             open = undefined;

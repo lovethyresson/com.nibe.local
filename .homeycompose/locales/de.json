@@ -162,5 +162,33 @@
     "searching": "Wärmepumpe unter __host__ nicht erreichbar. Sie wird im Netzwerk gesucht…",
     "moved": "Nibe Live: Ihre Wärmepumpe ist von __from__ nach __to__ umgezogen. Die Geräte wurden aktualisiert.",
     "address_in_use": "Eine andere gekoppelte Wärmepumpe verwendet bereits __host__."
+  },
+  "autopilot": {
+    "hotwater_daily": {
+      "title": {
+        "any": "Warmwasser heute",
+        "working": "Warmwasser heute, ein Arbeitstag",
+        "free": "Warmwasser heute, ein freier Tag",
+        "away": "Warmwasser heute, abwesend"
+      },
+      "use": "Erwarteter Verbrauch: etwa __litres__ L Warmwasser, bis zu __p80__ L an einem starken Tag.",
+      "away": "Abwesend: nur die Sicherheitsreserve wird gehalten.",
+      "tank": "Der Speicher hat jetzt __litres__ L und hält immer mindestens __reserve__ L.",
+      "tank_no_reserve": "Der Speicher hat jetzt __litres__ L. Keine Sicherheitsreserve eingestellt.",
+      "none": "Keine Ladung nötig: der Speicher reicht für den Tag.",
+      "charge": "Laden auf __target__ °C __time__, zu __price__/kWh (__reason__).",
+      "reason": {
+        "cheap": "in den günstigsten Stunden; Tagesmittel __mean__",
+        "surplus": "__share__ % aus Solarüberschuss",
+        "reserve": "jetzt, um die Sicherheitsreserve zu halten",
+        "running": "lädt bereits",
+        "before_use": "rechtzeitig für den folgenden Verbrauch; Tagesmittel __mean__"
+      },
+      "cost": "Erwartete Kosten __cost__. Preise sind bis heute Mitternacht bekannt.",
+      "shadow": "Testlauf: an der Wärmepumpe wird nichts geändert.",
+      "tomorrow": "morgen um __time__",
+      "cost_tomorrow": "Erwartete Kosten __cost__. Preise sind bis morgen Mitternacht bekannt.",
+      "today": "um __time__"
+    }
   }
 }

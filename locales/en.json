@@ -255,5 +255,33 @@
   },
   "Blocking": "Blocking",
   "Low price": "Low price",
-  "Overcapacity": "Overcapacity"
+  "Overcapacity": "Overcapacity",
+  "autopilot": {
+    "hotwater_daily": {
+      "title": {
+        "any": "Hot water today",
+        "working": "Hot water today, a working day",
+        "free": "Hot water today, a day off",
+        "away": "Hot water today, away"
+      },
+      "use": "Expected use: about __litres__ L of hot water, up to __p80__ L on a heavy day.",
+      "away": "Away: only the safety net is kept.",
+      "tank": "The tank holds __litres__ L now and always keeps at least __reserve__ L.",
+      "tank_no_reserve": "The tank holds __litres__ L now. No safety net is set.",
+      "none": "No charge needed: the tank covers the day.",
+      "charge": "Charge to __target__ °C __time__, at __price__/kWh (__reason__).",
+      "reason": {
+        "cheap": "among the cheapest hours; the day averages __mean__",
+        "surplus": "__share__ % from solar surplus",
+        "reserve": "now, to keep the safety net",
+        "running": "already charging",
+        "before_use": "in time for the use that follows; the day averages __mean__"
+      },
+      "cost": "Expected cost __cost__. Prices are known until midnight tonight.",
+      "shadow": "Test run: nothing is changed on the pump.",
+      "tomorrow": "tomorrow at __time__",
+      "cost_tomorrow": "Expected cost __cost__. Prices are known until midnight tomorrow.",
+      "today": "at __time__"
+    }
+  }
 }

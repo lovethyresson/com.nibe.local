@@ -162,5 +162,33 @@
     "searching": "Warmtepomp op __host__ niet bereikbaar. Het netwerk wordt doorzocht…",
     "moved": "Nibe Live: je warmtepomp is verhuisd van __from__ naar __to__. De apparaten zijn bijgewerkt.",
     "address_in_use": "Een andere gekoppelde warmtepomp gebruikt __host__ al."
+  },
+  "autopilot": {
+    "hotwater_daily": {
+      "title": {
+        "any": "Warm water vandaag",
+        "working": "Warm water vandaag, een werkdag",
+        "free": "Warm water vandaag, een vrije dag",
+        "away": "Warm water vandaag, afwezig"
+      },
+      "use": "Verwacht gebruik: ongeveer __litres__ L warm water, tot __p80__ L op een drukke dag.",
+      "away": "Afwezig: alleen de veiligheidsmarge blijft.",
+      "tank": "De boiler heeft nu __litres__ L en houdt altijd minstens __reserve__ L.",
+      "tank_no_reserve": "De boiler heeft nu __litres__ L. Er is geen veiligheidsmarge ingesteld.",
+      "none": "Geen opwarming nodig: de boiler redt de dag.",
+      "charge": "Opwarmen tot __target__ °C __time__, voor __price__/kWh (__reason__).",
+      "reason": {
+        "cheap": "bij de goedkoopste uren; de dag gemiddeld __mean__",
+        "surplus": "__share__ % uit zonne-overschot",
+        "reserve": "nu, om de veiligheidsmarge te houden",
+        "running": "warmt al op",
+        "before_use": "op tijd voor het gebruik dat volgt; de dag gemiddeld __mean__"
+      },
+      "cost": "Verwachte kosten __cost__. Prijzen zijn bekend tot vannacht middernacht.",
+      "shadow": "Testrun: er verandert niets aan de warmtepomp.",
+      "tomorrow": "morgen om __time__",
+      "cost_tomorrow": "Verwachte kosten __cost__. Prijzen zijn bekend tot morgen middernacht.",
+      "today": "om __time__"
+    }
   }
 }

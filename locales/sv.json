@@ -255,5 +255,33 @@
   },
   "Blocking": "Blockering",
   "Low price": "Lågpris",
-  "Overcapacity": "Överkapacitet"
+  "Overcapacity": "Överkapacitet",
+  "autopilot": {
+    "hotwater_daily": {
+      "title": {
+        "any": "Varmvatten i dag",
+        "working": "Varmvatten i dag, en arbetsdag",
+        "free": "Varmvatten i dag, en ledig dag",
+        "away": "Varmvatten i dag, bortrest"
+      },
+      "use": "Förväntad förbrukning: cirka __litres__ L varmvatten, upp till __p80__ L en storförbrukardag.",
+      "away": "Bortrest: bara säkerhetsnivån hålls.",
+      "tank": "Tanken har __litres__ L nu och håller alltid minst __reserve__ L.",
+      "tank_no_reserve": "Tanken har __litres__ L nu. Ingen säkerhetsnivå är inställd.",
+      "none": "Ingen laddning behövs: tanken räcker dagen ut.",
+      "charge": "Ladda till __target__ °C __time__, för __price__/kWh (__reason__).",
+      "reason": {
+        "cheap": "bland de billigaste timmarna; dagen ligger i snitt på __mean__",
+        "surplus": "__share__ % från solöverskott",
+        "reserve": "nu, för att hålla säkerhetsnivån",
+        "running": "laddar redan",
+        "before_use": "i tid för förbrukningen som följer; dagen ligger i snitt på __mean__"
+      },
+      "cost": "Förväntad kostnad __cost__. Priserna är kända till midnatt i natt.",
+      "shadow": "Testkörning: inget ändras i värmepumpen.",
+      "tomorrow": "i morgon kl. __time__",
+      "cost_tomorrow": "Förväntad kostnad __cost__. Priserna är kända till midnatt i morgon.",
+      "today": "kl. __time__"
+    }
+  }
 }

@@ -1,7 +1,9 @@
 import {test} from 'node:test';
 import assert from 'node:assert';
 import {HotwaterModel, KWH_PER_LITRE, localClock} from '../lib/autopilot/hotwater-learner';
-import {MIN_HORIZON, ShadowEntry, hotwaterShadowStep, ownDeviceId, summary} from '../lib/autopilot/hotwater-shadow';
+import {readFileSync} from 'node:fs';
+import {join} from 'node:path';
+import {DAILY_HOUR, MIN_HORIZON, ShadowEntry, dailyPlan, dailyPlanText, hotwaterShadowStep, ownDeviceId, summary} from '../lib/autopilot/hotwater-shadow';
 import {SLOT_MS, slotOf} from '../lib/autopilot/prices';
 
 const clock = localClock('UTC');
@@ -75,4 +77,80 @@ test('ownDeviceId finds this app\'s device by its pairing id, not another app\'s
     };
     assert.strictEqual(ownDeviceId(devices, 'com.nibe.local', '10.0.0.5#hotwater'), 'c');
     assert.strictEqual(ownDeviceId(devices, 'com.nibe.local', '10.0.0.9#hotwater'), undefined);
+});
+
+const LANGS = ['en', 'sv', 'nl', 'de', 'no', 'da'];
+const daily = (lang: string) => JSON.parse(readFileSync(join(__dirname, '..', '.homeycompose', 'locales', `${lang}.json`), 'utf8')).autopilot.hotwater_daily;
+/** Homey's `__`: a dotted key, `__token__` placeholders. */
+const translator = (lang: string) => (key: string, tokens: Record<string, string | number> = {}) => {
+    const text = key.split('.').reduce((node: any, part) => node?.[part], daily(lang));
+    assert.strictEqual(typeof text, 'string', `${lang}: missing autopilot.hotwater_daily.${key}`);
+    return Object.entries(tokens).reduce((out: string, [name, value]) => out.split(`__${name}__`).join(String(value)), text);
+};
+const hhmm = (ms: number) => new Date(ms).toISOString().slice(11, 16);
+const dailyOf = (over: Partial<Parameters<typeof dailyPlan>[0]> = {}) => {
+    const out = dailyPlan({slot: S0, prices, model, tank, clock, now: {litres: 120, top: 50}, ...over});
+    assert.ok(!('skip' in out), 'planned');
+    return out as Exclude<ReturnType<typeof dailyPlan>, {skip: string}>;
+};
+
+/** A lighter day, small enough for one night charge to hold it. */
+const light = hours.map((v) => v * 0.6);
+const lightModel: HotwaterModel = {...model, profiles: {working: {days: 30, hours: light, p80: light.map((v) => v * 1.3), daily: 4.6, dailyP80: 6}}};
+
+test('the morning plan says what goes in (use, tank, safety net, prices) and what comes out', () => {
+    const d = dailyOf({dayType: 'working', model: lightModel});
+    assert.strictEqual(d.useLitres, Math.round(4.6 / KWH_PER_LITRE));
+    assert.strictEqual(d.useLitresP80, Math.round(6 / KWH_PER_LITRE));
+    assert.strictEqual(d.reserveLitres, 40);
+    assert.ok(d.charges.length >= 1);
+    const c = d.charges[0];
+    assert.strictEqual(c.reason, 'cheap');
+    assert.ok(new Date(c.at).getUTCHours() < 6, 'in the cheap night');
+    assert.ok(c.price < d.meanPrice, `charge price ${c.price} under the day's mean ${d.meanPrice}`);
+    const text = dailyPlanText(d, translator('en'), hhmm, 'kr', true);
+    assert.match(text, /^Hot water today, a working day\n/);
+    assert.match(text, new RegExp(`about ${d.useLitres} L of hot water, up to ${d.useLitresP80} L`));
+    assert.match(text, /holds 120 L now and always keeps at least 40 L/);
+    assert.match(text, new RegExp(`Charge to ${c.targetC} °C at ${hhmm(c.at)}, at ${c.price.toFixed(2)} kr/kWh \\(among the cheapest hours; the day averages ${d.meanPrice.toFixed(2)} kr\\)`));
+    assert.match(text, /Prices are known until midnight tonight\.\nTest run: nothing is changed on the pump\.$/);
+    assert.doesNotMatch(text, /__\w+__/, 'every token filled');
+});
+
+test('a charge that has to reach into dearer hours is not called cheap', () => {
+    // The heavier day does not fit a 60 °C tank, so its one charge runs across the 06:00 shower
+    // into the 2.70 hours: timed for the use, not the cheapest it could have bought.
+    const c = dailyOf().charges[0];
+    assert.strictEqual(c.reason, 'before_use');
+    assert.ok(c.price > 1.9 * 1.02, `bought at ${c.price}`);
+});
+
+test('the morning plan names a safety-net charge, a running one and a quiet day', () => {
+    assert.strictEqual(dailyOf({now: {litres: 20, top: 40}}).charges[0].reason, 'reserve');
+    assert.strictEqual(dailyOf({now: {litres: 60, top: 44, powerW: 2000, stopC: 48}}).charges[0].reason, 'running');
+    const full = dailyOf({model: {...model, profiles: {any: {days: 30, hours: hours.map(() => 0), p80: hours.map(() => 0), daily: 0, dailyP80: 0}}},
+        now: {litres: 176, top: 58}});
+    assert.strictEqual(full.charges.length, 0);
+    assert.match(dailyPlanText(full, translator('en'), hhmm, 'kr', false), /No charge needed/);
+    assert.match(dailyPlanText({...full, reserveLitres: 0}, translator('en'), hhmm, '', false), /No safety net is set/);
+});
+
+test('the morning plan reads in all six languages, with every token filled', () => {
+    const plans = [dailyOf({dayType: 'free'}), dailyOf({dayType: 'away'}), dailyOf({now: {litres: 20, top: 40}}),
+        dailyOf({now: {litres: 60, top: 44, powerW: 2000, stopC: 48}})];
+    plans.push({...plans[0], charges: [{...plans[0].charges[0], reason: 'surplus', surplusShare: 0.8},
+        {...plans[0].charges[0], reason: 'before_use'}]});
+    for (const lang of LANGS) for (const d of plans) {
+        const text = dailyPlanText(d, translator(lang), hhmm, 'kr', true);
+        assert.doesNotMatch(text, /__\w+__/, `${lang}: ${text}`);
+    }
+    const mixed = dailyPlanText(plans[4], translator('en'), hhmm, 'kr', false);
+    assert.match(mixed, /80 % from solar surplus/);
+    assert.match(mixed, /in time for the use that follows/);
+    // Once tomorrow's prices are out, a charge after midnight says so, and so does the horizon.
+    const late = dailyOf({prices: new Map(Array.from({length: 192}, (_, k) => [S0 + k, {price: (k % 96) < 24 ? 1.9 : 2.7}]))});
+    const lateText = dailyPlanText(late, translator('en'), hhmm, 'kr', false);
+    assert.match(lateText, /known until midnight tomorrow/);
+    for (const lang of LANGS) assert.doesNotMatch(dailyPlanText(late, translator(lang), hhmm, 'kr', true), /__\w+__/);
+    assert.ok(DAILY_HOUR >= 5 && DAILY_HOUR <= 9, 'a morning hour');
 });

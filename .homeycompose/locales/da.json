@@ -162,5 +162,33 @@
     "searching": "Kan ikke nå varmepumpen på __host__. Søger efter den på netværket…",
     "moved": "Nibe Live: din varmepumpe er flyttet fra __from__ til __to__. Enhederne er opdateret.",
     "address_in_use": "En anden parret varmepumpe bruger allerede __host__."
+  },
+  "autopilot": {
+    "hotwater_daily": {
+      "title": {
+        "any": "Varmt vand i dag",
+        "working": "Varmt vand i dag, en arbejdsdag",
+        "free": "Varmt vand i dag, en fridag",
+        "away": "Varmt vand i dag, bortrejst"
+      },
+      "use": "Forventet forbrug: omkring __litres__ L varmt vand, op til __p80__ L på en storforbrugsdag.",
+      "away": "Bortrejst: kun sikkerhedsniveauet holdes.",
+      "tank": "Tanken har __litres__ L nu og holder altid mindst __reserve__ L.",
+      "tank_no_reserve": "Tanken har __litres__ L nu. Intet sikkerhedsniveau er sat.",
+      "none": "Ingen opvarmning nødvendig: tanken klarer dagen.",
+      "charge": "Opvarm til __target__ °C __time__, til __price__/kWh (__reason__).",
+      "reason": {
+        "cheap": "blandt de billigste timer; dagen ligger i snit på __mean__",
+        "surplus": "__share__ % fra solcelleoverskud",
+        "reserve": "nu, for at holde sikkerhedsniveauet",
+        "running": "opvarmer allerede",
+        "before_use": "i tide til forbruget, der følger; dagen ligger i snit på __mean__"
+      },
+      "cost": "Forventet pris __cost__. Priserne er kendt til midnat i nat.",
+      "shadow": "Testkørsel: intet ændres på varmepumpen.",
+      "tomorrow": "i morgen kl. __time__",
+      "cost_tomorrow": "Forventet pris __cost__. Priserne er kendt til midnat i morgen.",
+      "today": "kl. __time__"
+    }
   }
 }
