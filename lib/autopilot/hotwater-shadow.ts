@@ -213,7 +213,8 @@ export type Translate = (key: string, tokens?: Record<string, string | number>) 
 export function dailyPlanText(d: DailyPlan, t: Translate, time: (ms: number) => string, currency: string,
                               shadow: boolean, recap: string[] = []): string {
     const money = (v: number) => `${v.toFixed(2)} ${currency}`.trim();
-    const lines = [t(`title.${d.dayType ?? 'any'}`), ...recap];
+    // Yesterday, last night, then today: the plan gets its own heading once a recap comes first.
+    const lines = [t(`title.${d.dayType ?? 'any'}`), ...recap, ...recap.length ? [t('today_heading')] : []];
     if (d.dayType === 'away') lines.push(t('away'));
     else if (d.useLitres !== undefined) lines.push(t('use', {litres: d.useLitres, p80: d.useLitresP80 ?? d.useLitres}));
     lines.push(d.reserveLitres > 0 ? t('tank', {litres: d.nowLitres, reserve: d.reserveLitres})
@@ -314,14 +315,25 @@ export function chargeLine(e: ChargeEvent, t: Translate, time: (ms: number) => s
     return `${t(shadow && e.by === 'autopilot' ? 'title_would' : 'title', {reason})}\n${detailedReason}`;
 }
 
-/** The morning recap: one line per charge since the last morning plan. */
-export function recapLines(events: ChargeEvent[], t: Translate, time: (ms: number) => string, shadow: boolean): string[] {
-    if (events.length === 0) return [];
-    return [t('recap.title'), ...events.map((e) => {
+/** The morning recap: the charges since the last morning plan, by local day ("Yesterday:",
+ *  "Last night:" for this date's small hours, an older date if a morning was missed), oldest first. `dateOf` gives a local date,
+ *  `today` is the morning's. */
+export function recapLines(events: ChargeEvent[], t: Translate, time: (ms: number) => string, shadow: boolean,
+                           dateOf: (ms: number) => string, today: string): string[] {
+    const yesterday = new Date(Date.parse(`${today}T12:00:00Z`) - 24 * 3_600_000).toISOString().slice(0, 10);
+    const lines: string[] = [];
+    let day: string | undefined;
+    for (const e of [...events].sort((x, y) => x.at - y.at)) {
+        const date = dateOf(e.at);
+        if (date !== day) {
+            day = date;
+            lines.push(date === today ? t('recap.last_night') : date === yesterday ? t('recap.yesterday') : t('recap.on', {date}));
+        }
         const plan = e.plan ? ` ${t(`recap.${e.plan}${e.by === 'pump' && e.plan === 'as_planned' ? '_pump' : ''}`)}` : '';
-        return t(shadow && e.by === 'autopilot' ? 'recap.would' : 'recap.item',
-            {time: time(e.at), target: e.targetC ?? '?', reason: t(`reason.${e.reason}`)}) + plan;
-    })];
+        lines.push(t(shadow && e.by === 'autopilot' ? 'recap.would' : 'recap.item',
+            {time: time(e.at), target: e.targetC ?? '?', reason: t(`reason.${e.reason}`)}) + plan);
+    }
+    return lines;
 }
 
 /** One-line summary for the app log. */
@@ -510,7 +522,7 @@ export class HotwaterShadow {
         if ('skip' in d) return this.log(`Autopilot hot water: no morning plan (${d.skip}).`);
         this.dailySent = date;
         const recap = recapLines(this.events, (key, tokens) => this.homey.__(`autopilot.hotwater_charge.${key}`, tokens),
-            this.time, true);
+            this.time, true, (ms) => input.clock(ms).date, date);
         this.events = [];
         this.morningPlan = d;
         const text = dailyPlanText(d, (key, tokens) => this.homey.__(`autopilot.hotwater_daily.${key}`, tokens),

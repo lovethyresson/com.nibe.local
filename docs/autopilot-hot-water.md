@@ -283,8 +283,11 @@ at 195).
   the night charge runs across the 06:00 shower. Built in `dailyPlan()` (the facts, pure)
   and `dailyPlanText()` (the wording) in `hotwater-shadow.ts`. In shadow it ends "Test run:
   nothing is changed on the pump". The plan is redone every slot, so the morning message says
-  what is planned, not what is promised. It opens with a recap: one line per charge since the
-  last morning, with its reason and whether the plan had it.
+  what is planned, not what is promised. It opens with a recap of the charges since the last
+  morning, each with its reason and whether the plan had it. The recap is grouped as
+  "Yesterday:" and "Last night:" (this date's small hours, an older date if a morning was missed),
+  and the plan follows under "Today:". A recap that ran from yesterday morning to this morning
+  in one list read as one day.
 - **Charge message** (when a charge starts): a short `reason` from the same vocabulary as the
   morning plan (Cheapest hours, In time for use, Solar surplus, Safety net, Started by the
   pump), and a `detailedReason` with the numbers. Those numbers are the target, the run

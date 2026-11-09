@@ -166,10 +166,10 @@
   "autopilot": {
     "hotwater_daily": {
       "title": {
-        "any": "Warmwasser heute",
-        "working": "Warmwasser heute, ein Arbeitstag",
-        "free": "Warmwasser heute, ein freier Tag",
-        "away": "Warmwasser heute, abwesend"
+        "any": "Warmwasser",
+        "working": "Warmwasser, ein Arbeitstag",
+        "free": "Warmwasser, ein freier Tag",
+        "away": "Warmwasser, abwesend"
       },
       "use": "Erwarteter Verbrauch: etwa __litres__ L Warmwasser, bis zu __p80__ L an einem starken Tag.",
       "away": "Abwesend: nur die Sicherheitsreserve wird gehalten.",
@@ -188,7 +188,8 @@
       "shadow": "Testlauf: an der Wärmepumpe wird nichts geändert.",
       "tomorrow": "morgen um __time__",
       "cost_tomorrow": "Erwartete Kosten __cost__. Preise sind bis morgen Mitternacht bekannt.",
-      "today": "um __time__"
+      "today": "um __time__",
+      "today_heading": "Heute:"
     },
     "hotwater_charge": {
       "reason": {
@@ -217,13 +218,15 @@
       "title": "Warmwasserladung: __reason__",
       "title_would": "Testlauf, würde eine Warmwasserladung starten: __reason__",
       "recap": {
-        "title": "Seit gestern Morgen:",
         "item": "__time__ auf __target__ °C: __reason__.",
         "would": "__time__ hätte auf __target__ °C geladen, __reason__.",
         "as_planned": "Wie geplant.",
         "moved": "Verschoben.",
         "unplanned": "Nicht geplant.",
-        "as_planned_pump": "Dann auch geplant."
+        "as_planned_pump": "Dann auch geplant.",
+        "yesterday": "Gestern:",
+        "on": "__date__:",
+        "last_night": "Letzte Nacht:"
       },
       "duration_h": "__h__ Std."
     }

@@ -166,10 +166,10 @@
   "autopilot": {
     "hotwater_daily": {
       "title": {
-        "any": "Warm water vandaag",
-        "working": "Warm water vandaag, een werkdag",
-        "free": "Warm water vandaag, een vrije dag",
-        "away": "Warm water vandaag, afwezig"
+        "any": "Warm water",
+        "working": "Warm water, een werkdag",
+        "free": "Warm water, een vrije dag",
+        "away": "Warm water, afwezig"
       },
       "use": "Verwacht gebruik: ongeveer __litres__ L warm water, tot __p80__ L op een drukke dag.",
       "away": "Afwezig: alleen de veiligheidsmarge blijft.",
@@ -188,7 +188,8 @@
       "shadow": "Testrun: er verandert niets aan de warmtepomp.",
       "tomorrow": "morgen om __time__",
       "cost_tomorrow": "Verwachte kosten __cost__. Prijzen zijn bekend tot morgen middernacht.",
-      "today": "om __time__"
+      "today": "om __time__",
+      "today_heading": "Vandaag:"
     },
     "hotwater_charge": {
       "reason": {
@@ -217,13 +218,15 @@
       "title": "Warm water opwarmen: __reason__",
       "title_would": "Testrun, zou warm water gaan opwarmen: __reason__",
       "recap": {
-        "title": "Sinds gisterochtend:",
         "item": "__time__ tot __target__ °C: __reason__.",
         "would": "__time__ zou hebben opgewarmd tot __target__ °C: __reason__.",
         "as_planned": "Zoals gepland.",
         "moved": "Verschoven.",
         "unplanned": "Niet gepland.",
-        "as_planned_pump": "Toen ook gepland."
+        "as_planned_pump": "Toen ook gepland.",
+        "yesterday": "Gisteren:",
+        "on": "__date__:",
+        "last_night": "Vannacht:"
       },
       "duration_h": "__h__ u"
     }

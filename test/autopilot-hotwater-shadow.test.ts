@@ -109,7 +109,7 @@ test('the morning plan says what goes in (use, tank, safety net, prices) and wha
     assert.ok(new Date(c.at).getUTCHours() < 6, 'in the cheap night');
     assert.ok(c.price < d.meanPrice, `charge price ${c.price} under the day's mean ${d.meanPrice}`);
     const text = dailyPlanText(d, translator('en'), hhmm, 'kr', true);
-    assert.match(text, /^Hot water today, a working day\n/);
+    assert.match(text, /^Hot water, a working day\n/);
     assert.match(text, new RegExp(`about ${d.useLitres} L of hot water, up to ${d.useLitresP80} L`));
     assert.match(text, /holds 120 L now and always keeps at least 40 L/);
     assert.match(text, new RegExp(`Charge to ${c.targetC} °C at ${hhmm(c.at)}, at ${c.price.toFixed(2)} kr/kWh \\(among the cheapest hours; the day averages ${d.meanPrice.toFixed(2)} kr\\)`));
@@ -212,15 +212,33 @@ test('the pump\'s own charge is reported as the pump\'s, with the stop it runs t
     assert.match(chargeText({...charge({now: {litres: 20, top: 40}}), minutes: 60}, t, hhmm, 'kr').detailedReason, /about 1 h, at/);
 });
 
-test('the morning plan opens with what charged since yesterday', () => {
-    const events = [{...pumpCharge(T0 + 3_600_000, {litres: 50, top: 41, stopC: 48}, 40), plan: 'unplanned' as const},
-        {...charge({now: {litres: 20, top: 40}}), plan: 'as_planned' as const}];
-    const recap = recapLines(events, translator('en', 'hotwater_charge'), hhmm, true);
-    assert.deepStrictEqual(recap, ['Since yesterday morning:', '01:00 to 48 °C: Started by the pump. Not planned.',
-        `00:00 would have charged to ${events[1].targetC} °C: Safety net. As planned.`]);
-    assert.deepStrictEqual(recapLines([], translator('en', 'hotwater_charge'), hhmm, true), []);
-    const text = dailyPlanText(dailyOf(), translator('en'), hhmm, 'kr', true, recap);
-    assert.match(text, /^Hot water today\nSince yesterday morning:\n01:00/);
+test('the morning recap tells yesterday and today apart, oldest first', () => {
+    const H = 3_600_000, t = translator('en', 'hotwater_charge');
+    const day = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+    // The morning of 10 Nov: a safety-net would-start yesterday 09:30, the pump at 18:30, a
+    // would-start at 03:45 today, the pump's own at 03:00 today. Given out of order.
+    const today = T0 + 24 * H;
+    const events = [
+        {...charge({now: {litres: 20, top: 40}}), at: today + 3.75 * H, plan: 'as_planned' as const},
+        {...pumpCharge(T0 + 18.5 * H, {litres: 50, top: 41, stopC: 48}, 40), plan: 'unplanned' as const},
+        {...pumpCharge(today + 3 * H, {litres: 70, top: 47, more: true, largeStopC: 58}, 40), plan: 'as_planned' as const},
+        {...charge({now: {litres: 20, top: 40}}), at: T0 + 9.5 * H, plan: 'unplanned' as const},
+    ];
+    const target = events[0].targetC;
+    assert.deepStrictEqual(recapLines(events, t, hhmm, true, day, day(today)), [
+        'Yesterday:',
+        `09:30 would have charged to ${target} °C: Safety net. Not planned.`,
+        '18:30 to 48 °C: Started by the pump. Not planned.',
+        'Last night:',
+        '03:00 to 58 °C: Started by the pump. Planned then too.',
+        `03:45 would have charged to ${target} °C: Safety net. As planned.`,
+    ]);
+    // A missed morning: the older day says its date.
+    assert.strictEqual(recapLines([events[1]], t, hhmm, true, day, day(today + 48 * H))[0], `${day(T0)}:`);
+    assert.deepStrictEqual(recapLines([], t, hhmm, true, day, day(today)), []);
+    const text = dailyPlanText(dailyOf(), translator('en'), hhmm, 'kr', true, recapLines(events, t, hhmm, true, day, day(today)));
+    assert.match(text, /^Hot water\nYesterday:\n09:30.*\nLast night:\n03:00.*\nToday:\nExpected use/s);
+    assert.doesNotMatch(dailyPlanText(dailyOf(), translator('en'), hhmm, 'kr', true), /Today:/, 'no heading without a recap');
 });
 
 test('charge messages read in all six languages, with every token filled', () => {
@@ -234,6 +252,6 @@ test('charge messages read in all six languages, with every token filled', () =>
         const t = translator(lang, 'hotwater_charge');
         for (const e of events) for (const shadow of [true, false])
             assert.doesNotMatch(chargeLine(e, t, hhmm, 'kr', shadow), /__\w+__|undefined|NaN/, `${lang}: ${JSON.stringify(e)}`);
-        assert.doesNotMatch(recapLines(events, t, hhmm, true).join('\n'), /__\w+__|undefined|NaN/);
+        assert.doesNotMatch(recapLines(events, t, hhmm, true, (ms) => new Date(ms).toISOString().slice(0, 10), '2026-11-10').join('\n'), /__\w+__|undefined|NaN/);
     }
 });

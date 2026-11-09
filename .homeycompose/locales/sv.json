@@ -166,10 +166,10 @@
   "autopilot": {
     "hotwater_daily": {
       "title": {
-        "any": "Varmvatten i dag",
-        "working": "Varmvatten i dag, en arbetsdag",
-        "free": "Varmvatten i dag, en ledig dag",
-        "away": "Varmvatten i dag, bortrest"
+        "any": "Varmvatten",
+        "working": "Varmvatten, en arbetsdag",
+        "free": "Varmvatten, en ledig dag",
+        "away": "Varmvatten, bortrest"
       },
       "use": "Förväntad förbrukning: cirka __litres__ L varmvatten, upp till __p80__ L en storförbrukardag.",
       "away": "Bortrest: bara säkerhetsnivån hålls.",
@@ -188,7 +188,8 @@
       "shadow": "Testkörning: inget ändras i värmepumpen.",
       "tomorrow": "i morgon kl. __time__",
       "cost_tomorrow": "Förväntad kostnad __cost__. Priserna är kända till midnatt i morgon.",
-      "today": "kl. __time__"
+      "today": "kl. __time__",
+      "today_heading": "I dag:"
     },
     "hotwater_charge": {
       "reason": {
@@ -217,13 +218,15 @@
       "title": "Varmvattenladdning: __reason__",
       "title_would": "Testkörning, skulle starta en varmvattenladdning: __reason__",
       "recap": {
-        "title": "Sedan i går morse:",
         "item": "__time__ till __target__ °C: __reason__.",
         "would": "__time__ skulle ha laddat till __target__ °C: __reason__.",
         "as_planned": "Som planerat.",
         "moved": "Flyttad.",
         "unplanned": "Inte planerad.",
-        "as_planned_pump": "Planerad då också."
+        "as_planned_pump": "Planerad då också.",
+        "yesterday": "I går:",
+        "on": "__date__:",
+        "last_night": "I natt:"
       },
       "duration_h": "__h__ tim"
     }

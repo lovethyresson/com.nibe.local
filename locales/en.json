@@ -259,10 +259,10 @@
   "autopilot": {
     "hotwater_daily": {
       "title": {
-        "any": "Hot water today",
-        "working": "Hot water today, a working day",
-        "free": "Hot water today, a day off",
-        "away": "Hot water today, away"
+        "any": "Hot water",
+        "working": "Hot water, a working day",
+        "free": "Hot water, a day off",
+        "away": "Hot water, away"
       },
       "use": "Expected use: about __litres__ L of hot water, up to __p80__ L on a heavy day.",
       "away": "Away: only the safety net is kept.",
@@ -281,7 +281,8 @@
       "shadow": "Test run: nothing is changed on the pump.",
       "tomorrow": "tomorrow at __time__",
       "cost_tomorrow": "Expected cost __cost__. Prices are known until midnight tomorrow.",
-      "today": "at __time__"
+      "today": "at __time__",
+      "today_heading": "Today:"
     },
     "hotwater_charge": {
       "reason": {
@@ -310,13 +311,15 @@
       "title": "Hot water charge: __reason__",
       "title_would": "Test run, would start a hot water charge: __reason__",
       "recap": {
-        "title": "Since yesterday morning:",
         "item": "__time__ to __target__ °C: __reason__.",
         "would": "__time__ would have charged to __target__ °C: __reason__.",
         "as_planned": "As planned.",
         "moved": "Moved.",
         "unplanned": "Not planned.",
-        "as_planned_pump": "Planned then too."
+        "as_planned_pump": "Planned then too.",
+        "yesterday": "Yesterday:",
+        "on": "__date__:",
+        "last_night": "Last night:"
       },
       "duration_h": "__h__ h"
     }
