@@ -23,6 +23,7 @@ its connection while a probe runs** and reconnects by itself afterwards.
 | `read-autopilot-history.mjs` | decodes the Autopilot history file from `/userdata` into CSV, one row per 15-min slot (reads a file or the Homey's URL, not the pump; run with `node --import tsx`) |
 | `evaluate-presets.mjs` | what each Autopilot preset would have saved at equal comfort over real price days, closed loop, on the simulated houses or a learned one (`--model`), and how steady indoor stayed; with `--weather`/`--forecast` on Open-Meteo's real weather, planned on its day-ahead forecast; offline, no pump |
 | `review-shadow.mjs` | reads the shadow log (`autopilot-….shadow.jsonl`): what each preset would have fed, how often it coasted or was clamped, and the model's live 1 h / 6 h error against what the house did; reads only |
+| `review-hotwater-shadow.mjs` | scores the hot water test run log (`autopilot-….shadow.jsonl` plus its `.model.json`): its no-charge litres prediction against the tank's readings, 1–12 h ahead and at the usage peaks, per day against the ±50 L go-live check; reads only |
 | `fit-house-model.mjs` | fits the Autopilot house model to that history file and prints heat loss, τ, stored heat and the 6 h prediction error (same inputs; `--system`/`--era` are the Setup answers) |
 | `analyse-energylog.mjs` | hour by hour, does the pump's own per-function split add up to its own total (reads a `homey app run` log, not the pump) |
 
