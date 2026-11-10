@@ -236,6 +236,8 @@ test('every Flow card resolves to a register that still exists', () => {
         // Derived rather than register-backed, so these two carry their own cards instead of
         // riding the autocomplete ones — see HOTWATER_VOLUME_CAPABILITY.
         'hotwater_volume_below', 'hotwater_volume_dropped_below',
+        // Autopilot hot water: about charges and the household's day type, not a register.
+        'hotwater_charge_started', 'hotwater_charge_planned', 'set_day_type',
     ]);
     const suffixes = ['set', 'onoff', 'enum', 'reset', 'changed', 'compare'];
     const byName = buildRegisterByName(registers);

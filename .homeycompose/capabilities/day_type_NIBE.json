@@ -1,0 +1,50 @@
+{
+  "title": {
+    "en": "Day type",
+    "sv": "Dagtyp",
+    "de": "Tagestyp",
+    "nl": "Dagtype",
+    "no": "Dagtype",
+    "da": "Dagtype"
+  },
+  "type": "enum",
+  "values": [
+    {
+      "id": "working",
+      "title": {
+        "en": "Working day",
+        "sv": "Arbetsdag",
+        "de": "Arbeitstag",
+        "nl": "Werkdag",
+        "no": "Arbeidsdag",
+        "da": "Arbejdsdag"
+      }
+    },
+    {
+      "id": "free",
+      "title": {
+        "en": "Day off",
+        "sv": "Ledig dag",
+        "de": "Freier Tag",
+        "nl": "Vrije dag",
+        "no": "Fridag",
+        "da": "Fridag"
+      }
+    },
+    {
+      "id": "away",
+      "title": {
+        "en": "Away",
+        "sv": "Bortrest",
+        "de": "Abwesend",
+        "nl": "Afwezig",
+        "no": "Bortreist",
+        "da": "Bortrejst"
+      }
+    }
+  ],
+  "getable": true,
+  "setable": true,
+  "uiComponent": "picker",
+  "icon": "/assets/images/time.svg"
+}

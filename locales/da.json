@@ -255,5 +255,113 @@
   },
   "Blocking": "Blokering",
   "Low price": "Lavpris",
-  "Overcapacity": "Overkapacitet"
+  "Overcapacity": "Overkapacitet",
+  "autopilot": {
+    "hotwater_daily": {
+      "title": {
+        "any": "Varmt vand",
+        "working": "Varmt vand, en arbejdsdag",
+        "free": "Varmt vand, en fridag",
+        "away": "Varmt vand, bortrejst"
+      },
+      "use": "Forventet forbrug: omkring __litres__ L varmt vand, op til __p80__ L på en storforbrugsdag.",
+      "away": "Bortrejst: kun sikkerhedsniveauet holdes.",
+      "tank": "Tanken har __litres__ L nu og holder altid mindst __reserve__ L.",
+      "tank_no_reserve": "Tanken har __litres__ L nu. Intet sikkerhedsniveau er sat.",
+      "none": "Ingen opvarmning nødvendig: tanken klarer dagen.",
+      "charge": "Opvarm til __target__ °C __time__, til __price__/kWh (__reason__).",
+      "reason": {
+        "cheap": "blandt de billigste timer; dagen ligger i snit på __mean__",
+        "surplus": "__share__ % fra solcelleoverskud",
+        "reserve": "nu, for at holde sikkerhedsniveauet",
+        "running": "opvarmer allerede",
+        "before_use": "i tide til forbruget, der følger; dagen ligger i snit på __mean__"
+      },
+      "cost": "Forventet pris __cost__. Priserne er kendt til midnat i nat.",
+      "shadow": "Testkørsel: intet ændres på varmepumpen.",
+      "tomorrow": "i morgen kl. __time__",
+      "cost_tomorrow": "Forventet pris __cost__. Priserne er kendt til midnat i morgen.",
+      "today": "kl. __time__",
+      "today_heading": "I dag:",
+      "tomorrow_bare": "i morgen __time__"
+    },
+    "hotwater_charge": {
+      "reason": {
+        "cheap": "Billigste timer",
+        "before_use": "I tide til forbruget",
+        "surplus": "Solcelleoverskud",
+        "reserve": "Sikkerhedsniveau",
+        "running": "Opvarmer allerede",
+        "pump": "Startet af varmepumpen"
+      },
+      "detail": {
+        "price": "Til __target__ °C, omkring __duration__, til __price__/kWh; dagen ligger i snit på __mean__.",
+        "surplus": "Til __target__ °C, omkring __duration__, __share__ % fra solcelleoverskud.",
+        "reserve": "Tanken har kun __litres__ L, under sikkerhedsniveauet på __reserve__ L, og toppen er __top__ °C. Til __target__ °C, omkring __duration__, til __price__/kWh.",
+        "pump": "Varmepumpen startede den ved __top__ °C på sin egen starttemperatur og opvarmer til __stop__ °C.",
+        "pump_more": "Mere varmt vand er slået til, så varmepumpen opvarmer til __stop__ °C."
+      },
+      "plan": {
+        "as_planned": "Som planlagt.",
+        "moved": "Ændret: planen havde den kl. __time__.",
+        "unplanned": "Ikke i planen.",
+        "as_planned_pump": "Planen havde også en opvarmning da."
+      },
+      "duration": "__h__ t __m__ min",
+      "duration_min": "__m__ min",
+      "title": "Opvarmning af varmt vand: __reason__",
+      "title_would": "Testkørsel, ville starte opvarmning af varmt vand: __reason__",
+      "recap": {
+        "item": "__time__ til __target__ °C: __reason__.",
+        "would": "__time__ ville have opvarmet til __target__ °C: __reason__.",
+        "as_planned": "Som planlagt.",
+        "moved": "Flyttet.",
+        "unplanned": "Ikke planlagt.",
+        "as_planned_pump": "Planlagt da også.",
+        "yesterday": "I går:",
+        "on": "__date__:",
+        "last_night": "I nat:"
+      },
+      "duration_h": "__h__ t",
+      "write_failed": "Autopilot kunne ikke starte en opvarmning af varmt vand: __error__",
+      "blocked": {
+        "hot_water_off": "Autopilot varmt vand venter: varmt vand er slået fra på pumpen.",
+        "spa": "Autopilot varmt vand venter: slå Smart pristilpasning for varmt vand fra på pumpen.",
+        "smart_control": "Autopilot varmt vand venter: varmtvandsbehovet står på Smart styring."
+      }
+    },
+    "hotwater_update": {
+      "title": {
+        "new_prices": "Varmtvandsplanen opdateret: nye priser er kommet.",
+        "revised": "Varmtvandsplanen opdateret: priserne er ændret."
+      },
+      "added": "Tilføjet: __time__, til __target__ °C til __price__/kWh (__reason__).",
+      "added_new_hours": "Tilføjet: __time__, til __target__ °C til __price__/kWh (__reason__), i timer der nu har priser.",
+      "moved": "Flyttet fra __was__ til __time__: til __target__ °C til __price__/kWh i stedet for __wasPrice__.",
+      "dropped": "Strøget: opvarmningen __time__ til __target__ °C. __why__",
+      "resized": "Ændret: __time__ nu til __target__ °C i stedet for __was__ °C. __why__",
+      "why": {
+        "takes_over": "Opvarmningen __time__ tager over resten, til __price__/kWh.",
+        "covered": "Tanken klarer dagen uden den.",
+        "store_more": "Timerne fremover er dyrere, så den gemmer mere nu.",
+        "needs_less": "Der skal bruges mindre nu."
+      },
+      "cost": "Forventet pris __cost__. Priserne er kendt til midnat i nat.",
+      "cost_tomorrow": "Forventet pris __cost__. Priserne er kendt til midnat i morgen.",
+      "shadow": "Testkørsel: intet ændres på varmepumpen.",
+      "reason": {
+        "cheap": "Billigste timer",
+        "before_use": "I tide til forbruget",
+        "surplus": "Solcelleoverskud",
+        "reserve": "Sikkerhedsniveau",
+        "running": "Opvarmer allerede",
+        "pump": "Startet af varmepumpen"
+      },
+      "moved_repriced": "Flyttet fra __was__ til __time__: timerne __was__ koster nu __wasNow__/kWh i stedet for __wasPrice__, så den opvarmer til __target__ °C til __price__/kWh."
+    },
+    "hotwater_setting": {
+      "no_device": "Autopilot varmt vand kræver pumpens Varmt vand-enhed. Tilføj den først.",
+      "no_tank": "Vælg beholderens størrelse først: Varmt vand-enheden → Reparer."
+    }
+  }
 }

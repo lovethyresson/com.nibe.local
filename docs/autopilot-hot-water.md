@@ -187,12 +187,21 @@ prices (to midnight, or the next midnight after about 13:00):
     or the compressor stalling (alarm 382 here); above it every kWh is immersion, COP 1.
 - **Cost per kWh of electricity:** the all-in import price, or the export price in a slot with
   surplus (§4.4). COP falls with tank temperature, from the charge model.
-- **Constraint:** stored heat never below a floor. The floor is the coming hours' 80th-percentile
-  draw plus a minimum reserve (default 60 L V40), so it rises ahead of each learned peak.
+- **Constraint:** no planned draw takes stored heat below the owner's "always keep at least"
+  reserve (default 40 L V40, about one shower; 0 = off). Only draws count against it: standing
+  loss below it is not worth a charge at any price, and the rescue covers a tank that is really
+  under it.
 - **Result:** the next charge slot and its target temperature. A new plan replaces the old one;
   only the next action is ever taken.
 - **Rescue:** if stored heat drops below the reserve anyway, charge now at any price. This
-  replaces the owner's rescue branch.
+  replaces the owner's rescue branch. **A tank top at or above 45 °C vetoes it:** after a big
+  draw the estimate keeps falling for hours with no water drawn (measured 2026-11-08 after a
+  bath: 71 → 52 L in 3 h while the top went 52 → 49 °C), and the rescue would buy a peak-price
+  charge for a reading.
+- **Why the reserve is on by default:** owners want the hot water guaranteed more than the last
+  few öre. The pump's own start temperature is no safety net to lean on: in demand mode Small
+  with start 5 °C, as on the S1155 here, it never starts a charge on its own (the tank sat at
+  52 L with BT6 at 14 °C for 3 h after the bath).
 
 ### 4.3 Knobs: what Autopilot changes on the pump
 
@@ -246,6 +255,32 @@ at 195).
 
 ### 4.4 Solar surplus
 
+**Built (slice 4).** Surplus is measured at the grid meter, so a home battery and the house's own
+use come first and the tank only gets what would have been sold:
+
+- **Live:** Homey Energy's live report, once a minute. Surplus is the grid export, but never more
+  than the generators produce, so a battery selling at night is not taken for sun. The mean of
+  the last 10 minutes (8 readings at least) is the expected surplus for the next half hour.
+- **Planned:** every 3 h, the grid meter's hourly export over the last 14 days (Insights) is
+  fitted by least squares against Open-Meteo's sun on the ground for the same hours
+  (`shortwave_radiation`, `past_days=14`). Only hours with at least 50 W/m² count, and at least
+  20 such hours are needed. The fit, export = a × sun + b, turns the next two days' forecast into
+  expected export per slot. No panel size, orientation or inverter model is asked.
+- **Which meter:** of the devices that declare themselves cumulative with an export meter, the
+  one whose power is nearest the live report's grid figure. A P1 dongle and a battery's own grid
+  sensor can both measure the same connection, and adding them would count each kWh twice.
+  Without a generator device there is no surplus at all.
+- **Price:** an exported kWh is priced at the slot's spot price, what selling it would earn, near
+  enough.
+- **On the maintainer's Homey, 9 Nov:** 79 sunny hours in two weeks, a = 3.7 kW per 1000 W/m²,
+  b = −0.16 kW, R² 0.11. November export is small and noisy, so the forecast only shades the plan.
+  Only 3 of the 79 hours exported more than the inverter produced, so a battery selling by day
+  barely touches the fit. Capping each hour at the generator's output was tried and changed
+  a by 2 %, so it was left out. 32 kWh went out in sunless hours (the battery), which the
+  50 W/m² floor keeps out.
+
+The design as first written:
+
 - **Live:** Homey Energy's cumulative meter (P1 dongle, grid sensor) gives import and export.
   Export above the compressor's hot water draw (learned, about 1.9 kW here) for 10 min, with room
   in the tank, starts a charge. That charge is hot when the surplus is expected to last.
@@ -260,8 +295,61 @@ at 195).
 
 - **Hot water device:** an "Autopilot hot water" on/off, the next planned charge ("13:15,
   0.84 kr/kWh") and why ("before the evening peak", "solar surplus", "rescue").
-- **Settings:** minimum reserve (litres), solar surplus (on/off).
-- **Flow cards** (six languages): action "Set day type to working / free / away"; trigger "Autopilot started a hot water charge" with a reason token;
+- **Settings:** "Always keep at least … L of hot water" (default 40, off = 0), solar surplus (on/off).
+- **Morning plan** (timeline, 07:00, six languages): what goes into the day's plan and what
+  comes out of it. The inputs are the day type, the expected use in litres (the learned mean,
+  and the 80th percentile as "a heavy day"), the tank now and the safety net. The output is
+  each charge starting in the next 24 h: target, start time, price, and a reason. The reasons
+  are "among the cheapest hours" (the day's mean price is given alongside), "in time for the
+  use that follows", "N % from solar surplus", "now, to keep the safety net" and "already
+  charging". The message ends with the expected cost and how far ahead prices are known.
+  A charge is called cheap only when it bought within 2 % of the cheapest run of its length
+  between the previous charge and its own end. A charge that had to reach into dearer hours
+  to be ready is told as timed for the use instead: when the day does not fit a 60 °C tank,
+  the night charge runs across the 06:00 shower. Built in `dailyPlan()` (the facts, pure)
+  and `dailyPlanText()` (the wording) in `hotwater-shadow.ts`. In shadow it ends "Test run:
+  nothing is changed on the pump". The plan is redone every slot, so the morning message says
+  what is planned, not what is promised. It opens with a recap of the charges since the last
+  morning, each with its reason and whether the plan had it. The recap is grouped as
+  "Yesterday:" and "Last night:" (this date's small hours, an older date if a morning was missed),
+  and the plan follows under "Today:". A recap that ran from yesterday morning to this morning
+  in one list read as one day.
+- **Plan update** (when prices arrive or are revised): the plan is redone at once, and the owner
+  is told what the prices changed and why. Each change is one of four kinds: a charge
+  resized (by 3 K or more), moved (within 3 h), dropped, or added. Same-time charges are paired
+  first, so a charge that only moved cannot take another's partner. The why is concrete:
+  - "The charge tomorrow at 03:45 takes over the rest, at 1.62 kr/kWh". Not always cheaper per
+    kWh; nearer the use it loses less on the way.
+  - "The 14:00 hours now cost 3.90 instead of 2.21" for revised prices.
+  - "The tank covers the day without it".
+  The comparison is not with the morning plan. By afternoon the tank has drifted from the
+  morning's projection, and a first version reported that drift as a change every day ("53 →
+  45 °C, it needs less now"). It is with the plan the old prices give from the tank as it is
+  now, so every change told is the prices' doing. A charge only added in hours that had no
+  price before is no push: tomorrow's prices arrive every afternoon, and the charge message
+  and the next morning's recap tell it. The new plan becomes the one later charges are
+  compared with ("As planned", "Not in the plan"). Built in `planChanges()` and
+  `planUpdateText()`. Today the shadow fetches prices itself and calls this on any new or
+  revised slot. With the collector split the fetch moves to the home service, and this
+  becomes the hot water side of its "prices changed" event; heating needs the same event.
+- **Charge message** (when a charge starts): a short `reason` from the same vocabulary as the
+  morning plan (Cheapest hours, In time for use, Solar surplus, Safety net, Started by the
+  pump), and a `detailedReason` with the numbers. Those numbers are the target, the run
+  length, the price against the day's mean, the tank and the safety net for a rescue, and the
+  stop for a pump charge. It ends with how the charge compares with the morning plan:
+  - "As planned": a charge in the plan in force within 45 min.
+  - "Changed: the plan had it at 14:15": a price-driven start within 3 h of a planned charge.
+  - "Not in the plan": anything else.
+  A safety-net start and the pump's own charge are never "the plan moved". They come on top of
+  the plan, or a pump charge says "the plan had a charge then too". The two texts are the Flow
+  trigger's tokens. The timeline hears only what the morning plan did not say: safety-net,
+  moved and unplanned Autopilot starts. Charges as planned and the pump's own go to Flows and
+  the recap, since two expected messages a day is noise an owner learns to skip. There is no
+  "charge finished" message; the recap covers it. Built in `autopilotCharge()`, `pumpCharge()`,
+  `againstPlan()`, `chargeText()` and `recapLines()`. In shadow a would-be start is told once per
+  planned run ("Test run, would start…"). Every real charge is the pump's, so the recap compares
+  the two side by side.
+- **Flow cards** (six languages): action "Set day type to working / free / away"; trigger "Autopilot started a hot water charge" with `reason` and `detailedReason` tokens (below), and the same trigger for a charge the pump started itself;
   condition "A hot water charge is planned in the next … hours".
 - **Insight:** "Typical use: working day 11 kWh, free day 18 kWh; peaks 06:00 and 18–21".
 - Flows that switch "More hot water" fight the planner. Setup lists them (read through
@@ -297,7 +385,7 @@ Asked of the owner:
 |---|---|---|
 | Setup | tank size (the existing tank picker) | litres and stored heat |
 | Setup, only with < 14 days of history | people in the household; usual morning shower time on working days; evening or daytime use on free days | starting profile: about 2.5 kWh heat (70 L of 40 °C water) per person a day, free days 1.5×, peaks at the given times |
-| Setup | minimum reserve (default 60 L), use solar surplus | limits |
+| Setup | always keep at least (default 40 L, off possible), use solar surplus | the safety net |
 | Whenever it changes | day type working / free / away: Flow action card, or the picker on the main device | which profile applies; heating's away |
 
 ### 4.7 Guards
@@ -314,18 +402,65 @@ Asked of the owner:
 
 | Slice | What | Writes to the pump |
 |---|---|---|
-| **1. Learner** | `lib/autopilot/hotwater-learner.ts` (pure): tank balance, standing loss, charge model, day-type profiles, away. Insights bootstrap. Tank fields (BT6, BT7, litres, hot water meters) in the history. Unit tests against the Insights extracts in this doc. | none |
-| **2. Planner** | `lib/autopilot/hotwater-planner.ts` (pure): DP over charge slot and target temperature, surplus pricing. `dev/evaluate-hot-water.mjs` back-test on real prices and draws, the draws *not* known ahead. | none |
-| **3. Shadow** | Run the planner every slot on the maintainer's Homey and log what it would do; show the next planned charge on the device. | none |
-| **4. Live** | 697 and 62 behind the on/off, guards, rescue, reconciliation; surplus live trigger; day type picker and Flow cards; settings; six-language strings. | 697, 62 |
+| **1. Learner** (built 2026-11-08, branch `autopilot/hot-water`) | `lib/autopilot/hotwater-learner.ts` (pure): tank balance, standing loss against stored heat, charge model with COP against tank top, profiles for `any`/working/free with the prior filling a young type's shortfall, away. `hotwater-insights.ts`: Insights → readings, finest resolution wins. `dev/learn-hot-water.mjs` runs it on a real device. Tank fields go into the per-pump history with the collector split (plan §2.1). | none |
+| **2. Planner** (built 2026-11-08) | `lib/autopilot/hotwater-planner.ts` (pure): DP over 15-min slots, state = stored heat and whether a charge runs (a run cannot be stopped, so each run's end is its target, 45–60 °C); COP and loss from the learner; surplus priced at export; reserved slots honoured; a running charge ends at the Large stop in force; a charge under 4 kWh waits unless the reserve is breached. `dev/evaluate-hot-water.mjs`: back-test, draws not known ahead. | none |
+| **3. Shadow** (built 2026-11-08, not installed) | `lib/autopilot/hotwater-shadow.ts`: on the Hot water device while Autopilot hot water is set to Test run (slice 4 replaced the hand-set app setting `autopilotHotwaterShadow`). Learns from the device's own Insights every 6 h, fetches prices itself, plans each 15-min slot from the tank as read and logs the action (rescue / start / running / wait) and the next planned charge to a JSON-lines file in /userdata (named in the app setting `autopilotHotwaterFile.<id>`), with an hourly summary in the app log. At 07:00 it sends the morning plan (§4.5) to the timeline and logs its facts as JSON. Each charge start, Autopilot's would-be or the pump's own, is logged with its reason; the timeline gets the off-plan ones (§4.5). The Flow trigger is slice 4. Standalone: hot water is likely to ship before heating, and the collector split is heating's (autopilot-plan.md, shared inputs). No day type yet: every day plans with the pooled profile. | none |
+| **4. Live** (built 2026-11-09, not installed) | **Setting** "Autopilot hot water": Off / Test run / On, with "Always keep at least … L" (default 40) and "Use solar surplus" (on). Pump-wide like the poll interval: set on any of the pump's devices, mirrored to all, and turning it on needs the Hot water device and a picked tank, or the save fails saying which. **Lever** (`hotwater-lever.ts`, pure): when the plan starts a charge, the pump is read first (BT7, 62, 56, 195, 843 and 846). Then 62 is written to the planned temperature if it differs by half a degree or more, then 697 = 2. The charge must leave BT7 at least 3 K under its target. Caps: 3 starts and 3 writes of 62 a day; past the 62 cap a charge runs to the stop already set. In demand mode Large, 62 is never written. Smart price adaption for hot water, Smart control (56 = 4) or hot water off (195) block it, with a warning on the device saying what to change. The charge and the day's write count are stored before the pump is written, so after a restart the charge is still Autopilot's, not reported as the pump's, and the writes still count. A failed write is a device warning. There is no restart reconciliation that ends a boost: 697 = 0 does not end a running charge (§4.3), and a charge to a planned temperature is harmless if the plan has since changed. **Day type** (`day-type.ts`): one app setting for the home (`autopilotDayType`) with every change and its time. The learner files each Insights reading under the type in force then. Main shows it as a picker (`day_type_NIBE`) only while Autopilot is on or in a test run. **Flow cards:** trigger "A hot water charge started" (`reason`, `detailed_reason`, `autopilot`: Autopilot's real starts and the pump's own, never a test run's would-be start); condition "A hot water charge is planned within … h" (a running charge counts); action "Set day type to …" on Main. **Solar surplus** (`hotwater-surplus.ts`): §4.4. Not built yet: the next planned charge shown on the device, setup's questions for a home with under 14 days of history, and the list of Flows that switch More hot water. | 697, 62 |
 | **5. Docs** | `docs/` and FAQ; README row; analytics rows if events are added. | – |
+
+**Slice 1 on the S1155's Insights (8 Nov, 58 full days):** charge 6.1 kWh heat/h, COP 2.88 at a
+48 °C mean top, falling 0.022 per K; standing loss 0.018 kWh/h per kWh stored (0.18 kWh/h full,
+above the 0.1 from one 5-min night: the hourly litres estimate loses more than BT7 alone shows);
+13.2 kWh drawn a day, p80 18.5, peaks at 06 and 19–20; no away days. No day types yet: the
+picker does not exist, so everything is pooled until the owner sets them.
+
+**Slice 2 back-test (26 Oct → 8 Nov, 11 full days, SE3).** All rows but the first run on one
+simulated tank with the learned loss and COP; the planner relearns each midnight from readings
+before it and sees only the prices known at the time.
+
+| Strategy | kr/day | kr/month | charges/day | mean target | 15-min slots below the 60 L reserve |
+|---|---|---|---|---|---|
+| Owner's setup, as it ran (real meter) | 17.02 | 511 | – | – | – |
+| Owner's Flow, simulated | 17.62 | 529 | 2.9 | 60 °C | 60 |
+| Pump alone (start 42, stop 50 °C) | 18.39 | 552 | 5.8 | 50 °C | 2 |
+| **Planner, learned profile** (weekends set free) | **16.41** | **492** | 2.1 | 54 °C | 21 |
+| Planner, draws known ahead | 16.31 | 489 | 2.4 | 54 °C | 0 |
+
+- **About 7 % below the Flow on the same simulated tank, about 35 kr a month**, with a third of
+  the time under the reserve. Less than the 50–70 kr estimated in §3, whose optimum knew every
+  price for 13 days ahead; with only the published prices, even knowing the draws gains little
+  more (16.31). In November the prices, not the forecast, set the ceiling.
+- **Day types barely matter here** (16.41 against 16.52 without): only two weekends of hourly
+  shape exist yet. That changes once the owner sets the day type for real.
+- **Settled by the back-test:** no margin above the reserve (it kept the tank hot for nothing),
+  plan halfway between the mean draw and the 80th percentile, no charge under 4 kWh unless the
+  reserve is breached (replanning every slot otherwise made 10 short charges a day, many at
+  peak prices), a start cost of 1 kr, and the value function read between levels (rounding
+  hid the standing loss and made the plan top up in slivers).
+- Summer, with surplus at export price, is not in this window; §2.3's 100–150 kr a month is
+  still an estimate.
+
+**Reserve 40 L, draws-only floor (2026-11-08).** Same days, the reserve as the default
+"always keep at least" and only draws counted against it:
+
+| Strategy | kr/day | kr/month | slots below the reserve |
+|---|---|---|---|
+| Owner's Flow, simulated | 17.62 | 529 | 8 (of 40 L) |
+| **Planner, learned profile, 40 L** | **15.91** | **477** | 22 |
+| Planner, learned profile, 60 L | 16.40 | 492 | 22 |
+| Planner, draws known ahead, 40 L | 15.61 | 468 | 0 |
+
+- **About 10 % below the Flow, about 50 kr a month.** The safety net at 60 L costs 15 kr a
+  month more than at 40 L.
+- The 22 slots under the reserve are about one unforeseen draw a day, rescued within half an
+  hour.
 
 Hardware tests, each with the owner's go-ahead:
 
 | Test | What it settles | Writes |
 |---|---|---|
 | **H0** Watch 1028 at 5-min for a week (runs in shadow) | Whether the pump starts its own charges at start 5 °C | none |
-| **H1** Midday, half-empty tank: 62 = 50, then 697 = 2; later 62 = 58 and another 697 | That the boost stops at the 62 just written, and a write to 62 takes effect on the next boost; charge rate and COP at 50 and 58 °C | 62 twice, 697 twice |
+| ~~H1~~ Skipped (maintainer, 2026-11-08): the charge model learns rate and COP from real charges, and the first live charges show whether a written 62 holds | – | – |
 | **H3** Autopilot live for 7 days, Flow off | Real kr against the Flow's week, and comfort (no rescue caused by the plan) | 697 |
 
 **Exit for live on the maintainer's Homey:** the back-test beats the Flow by ≥ 10 % over 14 days

@@ -14,6 +14,7 @@ import {
     roleNames, roleOf, roleRegisters
 } from './roles';
 import type {ModelProfile} from './profile';
+import {DAY_TYPE_SETTING, isDayType, readDayType, recordDayType} from './autopilot/day-type';
 import {
     AllOnesResponseError, DetectionResult, PROBE_PASSES, Recommendations, RegisterSample, SourceChoices,
     probeHost
@@ -509,6 +510,26 @@ export abstract class NibePumpDriver extends Driver {
                     });
                 return crossed;
             });
+
+        // Autopilot hot water (lib/autopilot/hotwater-shadow.ts): the charge trigger is fired by the
+        // device; these are the condition and the household's day type.
+        if (this.profile.autopilotHotwater) {
+            this.homey.flow.getConditionCard(this.flowId("hotwater_charge_planned"))
+                .registerRunListener(async (args: any) => args.device.hotwaterChargePlannedWithin(Number(args.hours)));
+            this.homey.flow.getActionCard(this.flowId("set_day_type"))
+                .registerRunListener(async (args: any) => this.setDayType(args.type));
+        }
+    }
+
+    /** The household's day type, set from the Main device or a Flow: one app setting for the home,
+     *  shown on every Main device that carries it. Throws on a value that is not a day type, so a
+     *  Flow says what went wrong. */
+    async setDayType(type: unknown) {
+        if (!isDayType(type)) throw new Error(`Unknown day type: ${String(type)}`);
+        const state = recordDayType(readDayType(this.homey.settings.get(DAY_TYPE_SETTING)), type, Date.now());
+        this.homey.settings.set(DAY_TYPE_SETTING, state);
+        for (const device of this.homey.drivers.getDrivers ? Object.values(this.homey.drivers.getDrivers()) as any[] : [this])
+            for (const d of device.getDevices() as any[]) await d.showDayType?.();
     }
 
     // Capabilities this pump cannot populate, according to a fresh detection pass: registers

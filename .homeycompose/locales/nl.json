@@ -162,5 +162,113 @@
     "searching": "Warmtepomp op __host__ niet bereikbaar. Het netwerk wordt doorzocht…",
     "moved": "Nibe Live: je warmtepomp is verhuisd van __from__ naar __to__. De apparaten zijn bijgewerkt.",
     "address_in_use": "Een andere gekoppelde warmtepomp gebruikt __host__ al."
+  },
+  "autopilot": {
+    "hotwater_daily": {
+      "title": {
+        "any": "Warm water",
+        "working": "Warm water, een werkdag",
+        "free": "Warm water, een vrije dag",
+        "away": "Warm water, afwezig"
+      },
+      "use": "Verwacht gebruik: ongeveer __litres__ L warm water, tot __p80__ L op een drukke dag.",
+      "away": "Afwezig: alleen de veiligheidsmarge blijft.",
+      "tank": "De boiler heeft nu __litres__ L en houdt altijd minstens __reserve__ L.",
+      "tank_no_reserve": "De boiler heeft nu __litres__ L. Er is geen veiligheidsmarge ingesteld.",
+      "none": "Geen opwarming nodig: de boiler redt de dag.",
+      "charge": "Opwarmen tot __target__ °C __time__, voor __price__/kWh (__reason__).",
+      "reason": {
+        "cheap": "bij de goedkoopste uren; de dag gemiddeld __mean__",
+        "surplus": "__share__ % uit zonne-overschot",
+        "reserve": "nu, om de veiligheidsmarge te houden",
+        "running": "warmt al op",
+        "before_use": "op tijd voor het gebruik dat volgt; de dag gemiddeld __mean__"
+      },
+      "cost": "Verwachte kosten __cost__. Prijzen zijn bekend tot vannacht middernacht.",
+      "shadow": "Testrun: er verandert niets aan de warmtepomp.",
+      "tomorrow": "morgen om __time__",
+      "cost_tomorrow": "Verwachte kosten __cost__. Prijzen zijn bekend tot morgen middernacht.",
+      "today": "om __time__",
+      "today_heading": "Vandaag:",
+      "tomorrow_bare": "morgen __time__"
+    },
+    "hotwater_charge": {
+      "reason": {
+        "cheap": "Goedkoopste uren",
+        "before_use": "Op tijd voor gebruik",
+        "surplus": "Zonne-overschot",
+        "reserve": "Veiligheidsmarge",
+        "running": "Warmt al op",
+        "pump": "Gestart door de warmtepomp"
+      },
+      "detail": {
+        "price": "Tot __target__ °C, ongeveer __duration__, voor __price__/kWh; de dag gemiddeld __mean__.",
+        "surplus": "Tot __target__ °C, ongeveer __duration__, __share__ % uit zonne-overschot.",
+        "reserve": "De boiler heeft nog maar __litres__ L, onder de veiligheidsmarge van __reserve__ L, met de bovenkant op __top__ °C. Tot __target__ °C, ongeveer __duration__, voor __price__/kWh.",
+        "pump": "De warmtepomp startte op eigen starttemperatuur bij __top__ °C en warmt op tot __stop__ °C.",
+        "pump_more": "Meer warm water staat aan, dus de warmtepomp warmt op tot __stop__ °C."
+      },
+      "plan": {
+        "as_planned": "Zoals gepland.",
+        "moved": "Gewijzigd: het plan had hem om __time__.",
+        "unplanned": "Niet in het plan.",
+        "as_planned_pump": "Het plan had toen ook een opwarming."
+      },
+      "duration": "__h__ u __m__ min",
+      "duration_min": "__m__ min",
+      "title": "Warm water opwarmen: __reason__",
+      "title_would": "Testrun, zou warm water gaan opwarmen: __reason__",
+      "recap": {
+        "item": "__time__ tot __target__ °C: __reason__.",
+        "would": "__time__ zou hebben opgewarmd tot __target__ °C: __reason__.",
+        "as_planned": "Zoals gepland.",
+        "moved": "Verschoven.",
+        "unplanned": "Niet gepland.",
+        "as_planned_pump": "Toen ook gepland.",
+        "yesterday": "Gisteren:",
+        "on": "__date__:",
+        "last_night": "Vannacht:"
+      },
+      "duration_h": "__h__ u",
+      "write_failed": "Autopilot kon het warme water niet opwarmen: __error__",
+      "blocked": {
+        "hot_water_off": "Autopilot warm water wacht: warm water staat uit op de pomp.",
+        "spa": "Autopilot warm water wacht: zet Slimme prijsaanpassing voor warm water uit op de pomp.",
+        "smart_control": "Autopilot warm water wacht: de warmwaterbehoefte staat op Smart control."
+      }
+    },
+    "hotwater_update": {
+      "title": {
+        "new_prices": "Warmwaterplan bijgewerkt: nieuwe prijzen zijn binnen.",
+        "revised": "Warmwaterplan bijgewerkt: prijzen gewijzigd."
+      },
+      "added": "Toegevoegd: __time__, tot __target__ °C voor __price__/kWh (__reason__).",
+      "added_new_hours": "Toegevoegd: __time__, tot __target__ °C voor __price__/kWh (__reason__), in uren die nu prijzen hebben.",
+      "moved": "Verschoven van __was__ naar __time__: tot __target__ °C voor __price__/kWh in plaats van __wasPrice__.",
+      "dropped": "Geschrapt: de opwarming van __time__ tot __target__ °C. __why__",
+      "resized": "Gewijzigd: __time__ nu tot __target__ °C in plaats van __was__ °C. __why__",
+      "why": {
+        "takes_over": "De opwarming __time__ neemt de rest over, voor __price__/kWh.",
+        "covered": "De boiler redt de dag zonder.",
+        "store_more": "De komende uren zijn duurder, dus nu wordt meer opgeslagen.",
+        "needs_less": "Er is nu minder nodig."
+      },
+      "cost": "Verwachte kosten __cost__. Prijzen zijn bekend tot vannacht middernacht.",
+      "cost_tomorrow": "Verwachte kosten __cost__. Prijzen zijn bekend tot morgen middernacht.",
+      "shadow": "Testrun: er verandert niets aan de warmtepomp.",
+      "reason": {
+        "cheap": "Goedkoopste uren",
+        "before_use": "Op tijd voor gebruik",
+        "surplus": "Zonne-overschot",
+        "reserve": "Veiligheidsmarge",
+        "running": "Warmt al op",
+        "pump": "Gestart door de warmtepomp"
+      },
+      "moved_repriced": "Verschoven van __was__ naar __time__: de uren van __was__ kosten nu __wasNow__/kWh in plaats van __wasPrice__, dus het warmt op tot __target__ °C voor __price__/kWh."
+    },
+    "hotwater_setting": {
+      "no_device": "Autopilot warm water heeft het Warm water-apparaat van deze pomp nodig. Voeg het eerst toe.",
+      "no_tank": "Kies eerst de boilerinhoud: Warm water-apparaat → Herstellen."
+    }
   }
 }

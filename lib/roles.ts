@@ -150,6 +150,13 @@ export const ALARM_ACTIVE_CAPABILITY = "alarm_generic";
 export const ALARM_TEXT_CAPABILITY = "alarm_text_NIBE";
 export const ALARM_CAPABILITIES = [ALARM_ACTIVE_CAPABILITY];
 
+// The household's day type (working / free / away) on the main device: household state, so it
+// sits on the device that serves every function. Only while Autopilot hot water is on or test
+// running on the pump (`autopilot` below): it is a control over nothing otherwise, and appearing
+// unasked on every Main after an update would look broken. The value lives in an app setting
+// (lib/autopilot/day-type.ts), not on the device.
+export const DAY_TYPE_CAPABILITY = "day_type_NIBE";
+
 // Main's on/off is pinned ON (the pump is always operating), so it reads simply as "On".
 export function pumpActiveTitle(): {en: string; sv: string; de: string; nl: string; no: string; da: string} {
     return {en: "On", sv: "På", de: "Ein", nl: "Aan", no: "På", da: "Til"};
@@ -245,15 +252,15 @@ export function extraCapabilitySupport(
 // detection found unsupported — where missing an entry causes a real bug rather than a hidden
 // feature (an option-less capability makes getCapabilityOptions() throw "Invalid Capability").
 export function possibleExtraCapabilities(profile: ModelProfile, role: Role): string[] {
-    return buildExtraCapabilities(profile, role, null, true);
+    return buildExtraCapabilities(profile, role, null, true, true);
 }
 
-export function extraCapabilities(profile: ModelProfile, role: Role, selection?: Selection | null): string[] {
-    return buildExtraCapabilities(profile, role, selection ?? null, false);
+export function extraCapabilities(profile: ModelProfile, role: Role, selection?: Selection | null, autopilot = false): string[] {
+    return buildExtraCapabilities(profile, role, selection ?? null, false, autopilot);
 }
 
 function buildExtraCapabilities(
-    profile: ModelProfile, role: Role, selection: Selection | null, superset: boolean
+    profile: ModelProfile, role: Role, selection: Selection | null, superset: boolean, autopilot: boolean
 ): string[] {
     // The energy-group extras all follow the same rule: an explicit per-capability override
     // wins, then the group toggle, then "on". A missing selection means everything is enabled
@@ -326,6 +333,8 @@ function buildExtraCapabilities(
             caps.push(...ENERGY_CAPABILITIES.filter(enabled));
         if (hasTotalCounters && enabled(TOTAL_COP_CAPABILITY))
             caps.push(TOTAL_COP_CAPABILITY);
+        if (profile.autopilotHotwater && autopilot)
+            caps.push(DAY_TYPE_CAPABILITY);
         return [...caps, ...mirrored];
     }
     // Function roles: the tile on/off is a real register (the "Allow X" enable capability), so
@@ -373,10 +382,10 @@ export function roleOf(data: any): Role {
 // anything the device carries that is no longer wanted goes, including capabilities whose
 // register no longer exists anywhere.
 export function capabilitySyncPlan(
-    profile: ModelProfile, role: Role, selection: Selection | null | undefined, current: string[]
+    profile: ModelProfile, role: Role, selection: Selection | null | undefined, current: string[], autopilot = false
 ): {registers: Register[]; extras: string[]; wanted: string[]; toAdd: string[]; toRemove: string[]} {
     const registers = registersForRole(profile, role, selection);
-    const extras = extraCapabilities(profile, role, selection);
+    const extras = extraCapabilities(profile, role, selection, autopilot);
     const wanted = [...registers.map((r) => r.name), ...extras];
     const wantedSet = new Set(wanted);
     const has = new Set(current);
@@ -482,6 +491,8 @@ export function extraCapabilityOptions(role: Role, name: string, profile?: Model
     // interpolates between them — but because the figure moves slowly enough that whole litres
     // made it look stuck: idle drift is ~1 K/h on the top sensor, which is one whole litre every
     // twenty minutes or so. A decimal makes a draw visible as it happens.
+    if (name === DAY_TYPE_CAPABILITY)
+        return {title: {en: "Day type", sv: "Dagtyp", de: "Tagestyp", nl: "Dagtype", no: "Dagtype", da: "Dagtype"}};
     if (name === HOTWATER_VOLUME_CAPABILITY)
         return {title: {en: "Hot water available", sv: "Tillgängligt varmvatten",
                         de: "Verfügbares Warmwasser", nl: "Beschikbaar warmtapwater",

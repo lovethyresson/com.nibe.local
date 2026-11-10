@@ -199,6 +199,22 @@ export const sProfile = makeProfile({
     // "auto" is the default. Litres are NIBE's own published figures from the VPB/VPBS brochure
     // (639368-5 / 639721 CIL EN 1902-2); no entry may be added without an official source, since
     // a wrong figure here silently biases every estimate that trusts it.
+    autopilotHotwater: {
+        tank: {
+            litres: "measure_volume_NIBE.hotwater_estimate",
+            produced: "meter_kwh_NIBE.i1575_hotwater_produced",
+            used: "meter_power.total",
+            top: "measure_temperature.i8_warmwater_top",
+        },
+        power: "measure_power",
+        more: "boolean_NIBE.h697_more_hotwater",
+        demandMode: "hotwater_demand_NIBE.h56_hotwater_demand_mode",
+        stops: {0: "target_temperature.h64_hotwater_stop_small", 1: "target_temperature.h63_hotwater_stop",
+            2: "target_temperature.h62_hotwater_stop_large"},
+        largeStop: "target_temperature.h62_hotwater_stop_large",
+        allowed: "onoff.h195_enable_hotwater",
+        spa: ["boolean_NIBE.h843_spa_activated", "boolean_NIBE.h846_spa_hotwater_activated"],
+    },
     autopilotHistory: {
         numeric: {
             ti: "measure_temperature",

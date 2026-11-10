@@ -201,6 +201,20 @@ export interface ModelProfile {
         // operating mode, and the Auto-mode thresholds the actuator keeps clear of.
         controls?: {comfort: string; mode: string; stopHeating?: string; stopAddHeat?: string; startCooling?: string};
     };
+    // Hot water Autopilot (lib/autopilot/hotwater-shadow.ts): the Hot water device's capabilities
+    // for the tank's state, and the stop temperature of each demand mode (56).
+    autopilotHotwater?: {
+        tank: {litres: string; produced: string; used: string; top: string};
+        power: string;
+        more: string;
+        demandMode: string;
+        stops: Record<number, string>;
+        largeStop: string;
+        /** Allow hot water (195), and Smart price adaption's switches for hot water (every one on
+         *  means it is active): Autopilot never fights either. */
+        allowed: string;
+        spa: string[];
+    };
     writeRequirements?: Record<string, {register: string; values: number[]; message: LocalizedText}>;
     indoorSensorFeed?: boolean;
     pollDeadlineMs?: number;
