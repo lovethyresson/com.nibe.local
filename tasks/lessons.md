@@ -416,3 +416,13 @@ of the wired BT1 is readable. The maintainer had to point it out.
 **Rule:** before recommending an input or using a history column, read its comment in
 `lib/autopilot/history.ts` and check the plan for whether Autopilot itself changes it. A lever
 can never also be the measurement.
+
+## Keep heating Autopilot and hot water apart (2026-11-10)
+
+I listed hot water slice 4 as step 4 of "what's next" for heating Autopilot, and let the hot
+water session run the heating daily check too. The maintainer called it messy: hot water has
+nothing to do with the heating Autopilot.
+
+**Rule:** heating Autopilot and hot water are separate tracks with separate sessions, plans and
+next steps. Report on one without the other unless asked. A recurring heating check belongs to
+the heating session only.
