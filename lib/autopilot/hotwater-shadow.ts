@@ -8,9 +8,9 @@
  *  price fetch moves to the home service and the tank fields to the per-pump history. */
 import {withApi} from '../indoor-sensors';
 import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, normalisePrices, slotOf} from './prices';
-import {DayProfile, DayType, HotwaterModel, KWH_PER_LITRE, LocalClock, learn, localClock, profileFor} from './hotwater-learner';
+import {DayProfile, DayType, HotwaterModel, KWH_PER_LITRE, LocalClock, learn, localClock, lossAt, profileFor} from './hotwater-learner';
 import {TankCapabilities, fetchTankInsights, pointsFromInsights} from './hotwater-insights';
-import {DEFAULT_RESERVE_LITRES, Plan, TankSpec, drawsFor, plan, reserveKwh} from './hotwater-planner';
+import {DEFAULT_RESERVE_LITRES, Plan, SLOT_H, TankSpec, drawsFor, plan, reserveKwh} from './hotwater-planner';
 import {appendLine, deleteHistory, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
 import {DayTypeState, dayTypeAt} from './day-type';
 import {PumpFacts, countFor, leverDecision} from './hotwater-lever';
@@ -29,6 +29,8 @@ export const MAX_C = 60;
 export const MIN_HORIZON = 8;
 /** Local hour the morning plan is sent. */
 export const DAILY_HOUR = 7;
+/** Hours ahead each log line predicts the tank for. */
+export const COAST_HOURS = 12;
 /** Log lines kept: 28 days of slots. */
 const KEEP = 28 * 96;
 /** The model is relearned this often from Insights. */
@@ -75,13 +77,18 @@ export interface ShadowEntry {
     next?: {at: string; targetC: number; heat: number; cost: number};
     cost: number;
     shortfall: number;
+    /** Litres predicted 1, 2, … COAST_HOURS h from `at` if nothing charges: the planned draws and
+     *  standing loss alone. Scored against the litres read then, over stretches with no real
+     *  charge, by dev/review-hotwater-shadow.mjs (the go-live check, doc §6). A plan's own
+     *  charges cannot be scored in a test run, since the pump's charges are what happen. */
+    coast?: number[];
 }
 
 export type ShadowStep = {entry: ShadowEntry} | {skip: string};
 
 const round = (v: number, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
 
-type Planned = {slots: number[]; plan: Plan; charging: boolean; profile?: DayProfile};
+type Planned = {slots: number[]; plan: Plan; charging: boolean; profile?: DayProfile; draws: number[]};
 
 /** The plan from `input.slot` over the contiguous run of known prices, or why there is none. */
 function planFrom(input: ShadowStepInput): Planned | {skip: string} {
@@ -103,14 +110,25 @@ function planFrom(input: ShadowStepInput): Planned | {skip: string} {
         topC: now.top, tank: input.tank, charge: model.charge, loss: model.loss,
         reserve: reserveKwh(input.reserveLitres ?? DEFAULT_RESERVE_LITRES), minC: MIN_C, maxC: MAX_C,
     });
-    return {slots, plan: p, charging, profile};
+    return {slots, plan: p, charging, profile, draws};
+}
+
+/** Litres at the end of each whole hour ahead with no charge: draws and standing loss only. */
+export function coastLitres(storedKwh: number, draws: number[], loss: HotwaterModel['loss'], hours = COAST_HOURS): number[] {
+    const out: number[] = [];
+    let kwh = Math.max(0, storedKwh);
+    for (let k = 0; k < Math.min(draws.length, hours * 4); k++) {
+        kwh = Math.max(0, kwh - draws[k] - lossAt(loss, kwh) * SLOT_H);
+        if (k % 4 === 3) out.push(round(kwh / KWH_PER_LITRE, 0));
+    }
+    return out;
 }
 
 /** One slot's plan. Pure. */
 export function hotwaterShadowStep(input: ShadowStepInput): ShadowStep {
     const out = planFrom(input);
     if ('skip' in out) return out;
-    const {slots, plan: p, charging} = out;
+    const {slots, plan: p, charging, draws} = out;
     const {slot, now} = input;
     const first = p.charges.find((c) => !(charging && c.start === 0));
     const iso = (k: number) => new Date(slots[k] * SLOT_MS).toISOString();
@@ -119,6 +137,7 @@ export function hotwaterShadowStep(input: ShadowStepInput): ShadowStep {
         action: charging ? 'running' : p.rescue ? 'rescue' : p.startNow ? 'start' : 'wait',
         next: first && {at: iso(first.start), targetC: first.targetC, heat: round(first.heat), cost: round(first.cost)},
         cost: round(p.cost), shortfall: round(p.shortfall),
+        coast: coastLitres(input.now.litres! * KWH_PER_LITRE, draws, input.model!.loss),
     }};
 }
 

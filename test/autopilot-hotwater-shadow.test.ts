@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import {HotwaterModel, KWH_PER_LITRE, localClock} from '../lib/autopilot/hotwater-learner';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {DAILY_HOUR, DailyPlan, MIN_HORIZON, ShadowEntry, againstPlan, planChanges, planUpdateText, autopilotCharge, chargeLine, chargeText, dailyPlan, dailyPlanText, hotwaterShadowStep, ownDeviceId, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
+import {COAST_HOURS, DAILY_HOUR, DailyPlan, MIN_HORIZON, ShadowEntry, coastLitres, againstPlan, planChanges, planUpdateText, autopilotCharge, chargeLine, chargeText, dailyPlan, dailyPlanText, hotwaterShadowStep, ownDeviceId, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
 import {SLOT_MS, slotOf} from '../lib/autopilot/prices';
 
 const clock = localClock('UTC');
@@ -306,4 +306,22 @@ test('plan updates read in all six languages, with every token filled', () => {
         assert.doesNotMatch(text, /__\w+__|undefined|NaN/, `${lang}: ${text}`);
         assert.strictEqual(text.split('\n').length, 8, `${lang}: title, five changes, cost, test run`);
     }
+});
+
+test('each log line predicts the litres ahead if nothing charges: falling, hourly, 12 h', () => {
+    const e = entry(step());
+    assert.strictEqual(e.coast?.length, COAST_HOURS);
+    assert.ok(e.coast!.every((v, i) => v <= (i ? e.coast![i - 1] : 120)), `never rises: ${e.coast}`);
+    assert.ok(e.coast!.at(-1)! < 120, 'draws and loss take something over 12 h');
+});
+
+test('the no-charge prediction is draws plus standing loss, and stops at empty', () => {
+    const loss = {base: 0, perKwh: 0, samples: 0};
+    const perLitre = 4.186 * 30 / 3600;
+    // 10 L of heat drawn per hour, no loss: 100 L → 90, 80, …
+    const draws = Array(16).fill(10 * perLitre / 4);
+    assert.deepStrictEqual(coastLitres(100 * perLitre, draws, loss, 4), [90, 80, 70, 60]);
+    assert.deepStrictEqual(coastLitres(15 * perLitre, draws, loss, 3), [5, 0, 0]);
+    // A short horizon gives fewer hours, never a made-up one.
+    assert.strictEqual(coastLitres(100 * perLitre, draws.slice(0, 6), loss).length, 1);
 });
