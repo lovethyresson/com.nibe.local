@@ -5,6 +5,7 @@ import {newHistoryFileName} from './autopilot/store-file';
 import {ChargeEvent, HotwaterAutopilot, HotwaterMode} from './autopilot/hotwater-shadow';
 import {DAY_TYPE_SETTING, readDayType} from './autopilot/day-type';
 import {Sample} from './autopilot/history';
+import {HeatingFeed, PumpFacts, liveMode, liveSettingName} from './autopilot/live';
 import {Device} from 'homey';
 import net from 'net';
 import {analyticsConsent, setAnalyticsConsent, track} from './analytics';
@@ -50,6 +51,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private autopilot: AutopilotCollector | null = null;
     // Hot water Autopilot in shadow, on Hot water, while the app setting below is on. Reads only.
     private hotwaterAutopilot: HotwaterAutopilot | null = null;
+    private heatingFeed: HeatingFeed | null = null;
+    private onAppSetting?: (key: string) => void;
     private indoorTimer: ReturnType<typeof setTimeout> | null = null;
     private indoorWork: Promise<any> | null = null;
     private indoorStopped = false;
@@ -359,6 +362,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.profile.readOnly) throw new Error("This driver is currently read-only.");
         if (register.name === 'external_temperature.h5987_bt50' && this.getStoreValue('indoorSensors')?.state === 'active')
             throw new Error('BT50 is managed by the automatic indoor sensor feed.');
+        if (register.name === this.profile.autopilotFeed?.bt1 && this.heatingFeed?.running)
+            throw new Error('BT1 is managed by Autopilot heating.');
         if (register.role && register.role !== this.role)
             throw new Error('This action is not available for this device');
         if (!this.connection)
@@ -1244,6 +1249,82 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.homey.settings.set(`autopilotHistoryFile.${this.getData().id}`, file);
         this.autopilot = new AutopilotCollector(this.homey, file, (...args) => this.log(...args));
         await this.autopilot.start();
+        this.startHeatingFeed();
+    }
+
+    /** Autopilot heating's shift-only live test (live.ts). Off unless the app setting
+     *  `autopilotLive.<this device's id>` is 'shift'; set from the CLI, no owner UI. */
+    private startHeatingFeed() {
+        const spec = this.profile.autopilotFeed;
+        const collector = this.autopilot;
+        if (!spec || !collector || this.heatingFeed) return;
+        const key = liveSettingName(this.getData().id);
+        const register = (name: string) => this.profile.registerByName[name];
+        const read = (name: string) => (register(name) ? this.readRegister(register(name)).catch(() => undefined) : undefined);
+        this.heatingFeed = new HeatingFeed({
+            mode: () => liveMode(this.homey.settings.get(key)),
+            plan: (slot) => this.autopilot?.liveInputs(slot),
+            pump: async (): Promise<PumpFacts> => {
+                const c = this.profile.autopilotHistory?.controls;
+                const num = async (name?: string) => {
+                    // A picker register (operating mode) reads back as its id in text: "0".
+                    const v = name ? await read(name) : undefined;
+                    const n = typeof v === 'string' && v.trim() !== '' ? Number(v) : v;
+                    return typeof n === 'number' && Number.isFinite(n) ? n : undefined;
+                };
+                const spa = await Promise.all(spec.spa.map((name) => read(name)));
+                const room = spec.roomControl === undefined ? undefined
+                    : await this.connection?.readRegisterRaw({address: spec.roomControl, direction: Dir.Out} as Register, false, 'write');
+                return {
+                    mode: await num(c?.mode),
+                    thresholds: {stopHeating: await num(c?.stopHeating), stopAddHeat: await num(c?.stopAddHeat),
+                        startCooling: await num(c?.startCooling)},
+                    spaHeating: spa.every((v) => v === true),
+                    roomControl: room === undefined || isUnavailableRaw(room) ? undefined : room & 0xff,
+                    addHeat: (await read(spec.addHeat)) === true,
+                };
+            },
+            outdoor: () => collector.outdoorNow(),
+            write: async (celsius) => {
+                if (!this.connection) throw new Error('Not connected to the heat pump');
+                await this.connection.writeRegisterValue(register(spec.bt1), encodeRegisterValue(register(spec.bt1), celsius));
+            },
+            readBack: async () => {
+                const raw = await this.connection?.readRegisterRaw(register(spec.outdoor), false, 'write');
+                return raw === undefined || isUnavailableRaw(raw) ? undefined : signedValue(raw) / 10;
+            },
+            feeding: (on) => collector.setFeeding(on),
+            warn: (message) => (message ? this.setWarning(message) : this.unsetWarning()).catch(this.error),
+            log: (...args) => this.log(...args),
+            record: (entry) => collector.recordLive(entry),
+            setTimeout: (fn, ms) => this.homey.setTimeout(fn, ms),
+            clearTimeout: (timer) => this.homey.clearTimeout(timer),
+            sleep: (ms) => new Promise((resolve) => this.homey.setTimeout(resolve, ms)),
+            now: () => Date.now(),
+        });
+        this.onAppSetting = (changed: string) => { if (changed === key) this.syncHeatingFeed(); };
+        this.homey.settings.on('set', this.onAppSetting);
+        this.homey.settings.on('unset', this.onAppSetting);
+        this.syncHeatingFeed();
+    }
+
+    /** Start or stop the feed to match its setting; a feed stopped by a guard starts again here. */
+    private syncHeatingFeed() {
+        const feed = this.heatingFeed;
+        if (!feed) return;
+        const on = liveMode(this.homey.settings.get(liveSettingName(this.getData().id))) === 'shift';
+        if (on && !feed.running) feed.start();
+        else if (!on && feed.running) feed.stop('mode_off').catch(this.error);
+    }
+
+    private async stopHeatingFeed() {
+        if (this.onAppSetting) {
+            this.homey.settings.off?.('set', this.onAppSetting);
+            this.homey.settings.off?.('unset', this.onAppSetting);
+            this.onAppSetting = undefined;
+        }
+        await this.heatingFeed?.stop('mode_off').catch(this.error);
+        this.heatingFeed = null;
     }
 
     // A register's value from this poll, decoded the same way capabilities are.
@@ -1473,6 +1554,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     onConnectionUp() {
         this.setAvailable().catch(this.error);
+        // A feed a connection loss stopped (three failed cycles) resumes once the pump answers.
+        if (this.role === 'heating') this.syncHeatingFeed();
         // Main's on/off is pinned ON — re-assert it on every (re)connect.
         if (this.role === 'main' && this.hasCapability(PUMP_ACTIVE_CAPABILITY))
             this.setCapabilityValue(PUMP_ACTIVE_CAPABILITY, true).catch(this.error);
@@ -1950,6 +2033,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     async onUninit() {
+        // BT1 back to the real outdoor temperature first, while the connection is still up.
+        await this.stopHeatingFeed();
         // History first: an app update may not wait for the rest. If it doesn't wait at all, the
         // hourly save bounds the loss to an hour, and the model re-anchors across the gap.
         await this.autopilot?.stop(this.connection?.currentPollSeconds() ?? 10).catch(this.error);
@@ -1971,6 +2056,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     async onDeleted() {
+        await this.stopHeatingFeed();
+        await this.homey.settings.unset(liveSettingName(this.getData().id));
         await this.stopIndoor();
         await this.autopilot?.remove().catch(this.error);
         this.autopilot = null;

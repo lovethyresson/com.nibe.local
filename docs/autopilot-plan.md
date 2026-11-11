@@ -1158,6 +1158,67 @@ On `onInit`:
 
 ## 10. Mode choice: SPA ⇄ Autopilot ⇄ None
 
+### 10.0 Owner UI (maintainer, 2026-11-11): supersedes the pump-wide radio below
+
+**SPA or Autopilot, per function, as one dropdown each.** SPA is three pump switches (843 master,
+844 heating, 846 hot water), and Autopilot hot water already checks only its own function. So the
+choice follows the pump: one pump-wide setting per function, mirrored on every device.
+
+| Setting | Values |
+|---|---|
+| Heating price control | Off · Nibe Smart price adaption · Autopilot (test run) · Autopilot |
+| Hot water price control | Off · Nibe Smart price adaption · Autopilot (test run) · Autopilot |
+
+- One value per function, so it is always one or the other. Autopilot writes that function's SPA
+  switch off at Verify (snapshot first); SPA writes it back on and stops Autopilot there. A test
+  run never writes.
+- **The pump stays the truth.** SPA switched on elsewhere (tile, display, myUplink) makes
+  Autopilot step aside for that function: the setting flips to SPA and the timeline says so once.
+  No silent skips (hot water's lever skips silently today; change it with this).
+- The SPA on/off tiles go; the SPA influence pickers stay while the function is on SPA.
+- One line under the group: "Choose one per function. Nibe's Smart price adaption runs on the
+  pump with its own prices; Autopilot runs in Homey and learns your house, sensors and weather."
+  Why both would fight over one compressor goes in the FAQ.
+- Migration: `autopilotHotwater` maps to the hot water value; a missing value reads today's SPA
+  state from the pump.
+
+**Settings layout.** Homey shows one driver's settings on every device, so fewer, grouped,
+pump-wide settings, each with a one-line hint: *Price control* (the two dropdowns) · *Autopilot
+heating* (profile, comfort, away temperature) · *Autopilot hot water* (keep at least … L, solar
+surplus) · *House insights* (labels) · the existing groups · *Advanced* (poll interval and debug
+logging only). One-off things (sensor pickers, pump checklist, Verify, Return to NIBE) live in
+Setup; settings hold the everyday knobs.
+
+**Setup** (Heating Setup hub, a new Autopilot step after the temperature source):
+1. Heating price control (the same value as the setting). With SPA heating on: "Autopilot turns
+   off Smart price adaption for heating when you verify".
+2. Checklist, one line each: indoor source (blocking); **outdoor sensor picker** (reuses the
+   sensor picker with live reading and age; "Use the weather forecast" needs a location; the
+   picker is not built, the maintainer's sensor was set through the API); prices (dynamic, or
+   "Fixed price: saves energy, no price shifting"); on the pump, for On only: 7.5.9 writes,
+   7.5.9.2 external BT1, room-sensor control off (2978, checked), SPA off (843).
+3. Comfort temperature (default: last 7 days' indoor mean, to 0.5) and profile.
+4. Verify (On only): feed the real outdoor once, input 1 follows within 3 s; error beside the button.
+5. Turn off / Return to NIBE: stop, feed the real outdoor once, remind to turn off 7.5.9.2.
+
+**What the owner sees.** Status on Heating (`autopilot_mode_NIBE`: Learning · Holding ·
+Pre-heating · Easing off · Paused · Off) with a one-line reason ("Easing off until 19:00: prices
+peak 17–19"). While the model learns, Autopilot is **shift-only** (`lib/autopilot/live.ts`): it
+keeps the owner's curve and only moves heat in time, and the status says "Shifting heat only
+while learning". Insights for the fed outdoor and the bias. Timeline only on a mode change. A
+savings label after 14 active days (§11). The 24 h plan as a widget (§19.5).
+
+**What the owner can tweak.** Profile (presets, Custom sliders of §7.4), comfort temperature,
+away temperature (settings, tile picker and Flows); pause for 1–48 h and resume (Flows); away via
+Main's day type, shared with hot water; the outdoor sensor and Verify in Setup. Flow cards as in
+§10.3.
+
+**Phasing.** Test build (maintainer only, now): app setting `autopilotLive.<id>` off/shift, no UI.
+First test-channel release: Setup steps 1–5 with the outdoor picker, status and reason, profile
+and comfort, pause/resume, Insights; learning phase = shift-only. Later: full comfort control once
+the steady level is confirmed (todo.md, 2026-11-11), away, savings, the remaining Flow cards,
+widgets.
+
 ### 10.1 The selection field and its capabilities
 
 A new selection field and its per-function companion (§2.1):

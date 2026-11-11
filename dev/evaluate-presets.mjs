@@ -22,12 +22,16 @@
 // discounted by the preset's forecast trust, as the controller does.
 // --lever is the heat a K of bias moves, as a share of the house's heat loss: 1 for a curve
 // tuned to the house; the S1155 measured ~0.45 (planner.ts).
+// --shift-only runs the live test build (lib/autopilot/live.ts): the curve holds the house, no
+// comfort bias, the model's own lever, and the test's ±3 K limits, reported with the bias range,
+// hours pre-heating and easing off, and the day's heat against doing nothing (energy-neutral).
 import fs from 'node:fs';
 import {COP, planShift, simulate, steadyState} from '../lib/autopilot/planner.ts';
 import {PRESETS, limitsFor} from '../lib/autopilot/presets.ts';
 import {fedValue} from '../lib/autopilot/actuator.ts';
 import {comfortBias} from '../lib/autopilot/trim.ts';
 import {weatherSlots} from '../lib/autopilot/weather.ts';
+import {LIVE_LIMITS} from '../lib/autopilot/live.ts';
 import {RADIATOR_HOUSE, SLAB_HOUSE, WEST_HOUSE} from '../test/autopilot-house-sim.ts';
 
 const option = (name, fallback) => {
@@ -48,6 +52,7 @@ const auto = option('mode', 'auto') === 'auto';
 const thresholds = {stopHeating: Number(option('stop', 17)), startCooling: 25};
 const comfort = Number(option('comfort', 21));
 const maxBias = option('max-bias');
+const shiftOnly = process.argv.includes('--shift-only');
 const days = fs.readdirSync(dir).filter((f) => f.endsWith('.json')).sort().map((f) => {
     const intervals = JSON.parse(fs.readFileSync(`${dir}/${f}`, 'utf8')).pricesPerInterval ?? [];
     return {date: f.slice(0, 10), prices: intervals.map((x) => allIn(x.value)),
@@ -76,10 +81,11 @@ if (model) {
         process.exit(1);
     }
     houses.yours = fit.params;
+    if (shiftOnly && fit.lever > 0) learned.lever = fit.lever;
     // The learned curve and emission make the pump honest: doing nothing drifts with the weather
     // and the comfort bias (trim.ts) is what holds comfort. --lever falls back to the old
     // assumption that the curve holds comfort by itself.
-    if (fit.pump?.supply && fit.pump.heatPerSupplyK !== undefined && option('lever') === undefined) learned.yours = fit.pump;
+    if (!shiftOnly && fit.pump?.supply && fit.pump.heatPerSupplyK !== undefined && option('lever') === undefined) learned.yours = fit.pump;
 } else {
     houses.radiator = RADIATOR_HOUSE;
     houses.slab = SLAB_HOUSE;
@@ -108,7 +114,9 @@ function runDay(house, pump, day, ahead, limits, trim) {
     let state = {...start};
     let lastPlan;
     const ti = [];
+    const biases = [];
     let cost = 0;
+    let heat = 0;
     for (let k = 0; k < n; k += 4) {
         const m = Math.min(4, n - k);
         const held = forecast.slice(k, k + m).map((s) => comfortBias(house, pump, comfort, s.te));
@@ -130,11 +138,13 @@ function runDay(house, pump, day, ahead, limits, trim) {
         }
         const sim = simulate(house, comfort, state, truth.slice(k, k + m), applied, pump);
         ti.push(...sim.ti);
+        biases.push(...applied);
         cost += sim.cost;
+        heat += sim.heat.reduce((a, b) => a + b, 0);
         state = {ti: sim.ti[m - 1], tm: sim.tm[m - 1], curve: sim.curveEnd, bias: applied[m - 1]};
     }
     const rms = (xs) => Math.sqrt(mean(xs.map((t) => (t - comfort) ** 2)));
-    return {ti, tmEnd: state.tm, tiEnd: state.ti, cost, min: Math.min(...ti), max: Math.max(...ti), rms: rms(ti),
+    return {ti, biases, heat, tmEnd: state.tm, tiEnd: state.ti, cost, min: Math.min(...ti), max: Math.max(...ti), rms: rms(ti),
         mean: mean(ti), prices, n};
 }
 
@@ -158,7 +168,7 @@ const pct = (v) => `${(v * 100).toFixed(1)} %`;
 const indoor = (runs) => `indoor ${Math.min(...runs.map((r) => r.min)).toFixed(1)}–${Math.max(...runs.map((r) => r.max)).toFixed(1)} °C`
     + ` (mean ${mean(runs.map((r) => r.mean)).toFixed(2)}), off comfort ${mean(runs.map((r) => r.rms)).toFixed(2)} K RMS`;
 for (const [name, house] of Object.entries(houses)) {
-    const pump = learned[name] ?? {lever: leverShare * house.heatLoss};
+    const pump = learned[name] ?? {lever: shiftOnly && learned.lever ? learned.lever : leverShare * house.heatLoss};
     const each = (f) => days.slice(0, -1).map((d, i) => f(d, days[i + 1]));
     const nothing = each((d, a) => runDay(house, pump, d, a));
     const held = each((d, a) => runDay(house, pump, d, a, undefined, true));
@@ -170,6 +180,17 @@ for (const [name, house] of Object.entries(houses)) {
             + ` (${pct(-mean(vs.map((v) => v.gross)))} vs nothing), ${indoor(held)}`);
         // The house here is the model itself, so trim holding comfort shows the inversion is
         // consistent, not that it works on the house: dev/check-supply-model.mjs is that check.
+    }
+    if (shiftOnly) {
+        const runs = each((d, a) => runDay(house, pump, d, a, LIVE_LIMITS));
+        const s = runs.map((r, i) => score(house, r, held[i]));
+        const all = runs.flatMap((r) => r.biases);
+        const heatDiff = runs.map((r, i) => r.heat / held[i].heat - 1);
+        console.log(`${name.padEnd(9)} ${'live test'.padEnd(12)} lever ${(pump.lever * 1000).toFixed(0)} W/K; fair ${pct(mean(s.map((r) => r.fair)))}`
+            + ` (best day ${pct(Math.max(...s.map((r) => r.fair)))}, worst ${pct(Math.min(...s.map((r) => r.fair)))}),`
+            + ` gross ${pct(mean(s.map((r) => r.gross)))}; bias ${Math.min(...all)}…${Math.max(...all)} K,`
+            + ` pre-heating ${pct(all.filter((b) => b > 0).length / all.length)}, easing off ${pct(all.filter((b) => b < 0).length / all.length)};`
+            + ` heat vs nothing ${pct(mean(heatDiff))} (days ${pct(Math.min(...heatDiff))}…${pct(Math.max(...heatDiff))}); ${indoor(runs)}`);
     }
     for (const id of ['comfortable', 'save_some', 'save_most']) {
         const limits = limitsFor(PRESETS[id]);

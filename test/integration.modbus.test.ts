@@ -1173,3 +1173,56 @@ test('the 8443 certificate subject is read without trusting the certificate', {t
         assert.equal(await tlsSubject('127.0.0.1', await closedPort()), undefined);
     } finally { await new Promise<void>((resolve) => server.close(() => resolve())); }
 });
+
+// Autopilot heating's live feed (lib/autopilot/live.ts) against the fake pump: what lands in
+// 5217 shows on input 1, as on the S1155 (docs/external-sensors.md), while `listening` is on.
+test('the live BT1 feed writes 5217, sees it on input 1, and stops when the pump stops taking it', {timeout: 20000}, async () => {
+    const {HeatingFeed} = await import('../lib/autopilot/live');
+    const {newForecastBias} = await import('../lib/autopilot/outdoor');
+    const {encodeRegisterValue} = await import('../lib/registers');
+    const pump = await startPump();
+    let listening = true;
+    const mirror = setInterval(() => { if (listening) pump.input.writeUInt16BE(pump.holding.readUInt16BE(5217 * 2), 2); }, 20);
+    try {
+        const bt1 = reg({address: 5217, name: 'bt1', direction: Dir.Out, scale: 10, min: -50, max: 60, writeOnly: true});
+        const outdoor = reg({address: 1, name: 'outdoor', scale: 10});
+        const profile = tinyProfile([bt1, outdoor]);
+        await withConnection(profile, {port: pump.port, unitId: 1}, new FakeSub('heating', []), async (c) => {
+            const writes: number[] = [];
+            const forecast = Array.from({length: 96}, (_, k) => ({te: -4, sun: 0, price: k >= 4 && k < 20 ? 4 : 1}));
+            const house = {heatLoss: 0.2, ci: 10, cm: 20, rim: 2, f: 0.1, gains: 0.3, sun: 0, sunE: 0, sunW: 0} as any;
+            let now = 1_800_000 * 900_000 + 1000;
+            const feed = new HeatingFeed({
+                mode: () => 'shift',
+                plan: () => ({house, lever: 0.1, ti: 21, tm: 21, mean: 21, curve: -4, bias: 0, forecast}),
+                pump: async () => ({mode: 1, thresholds: {}, spaHeating: false, roomControl: 0, addHeat: false}),
+                outdoor: () => ({sensor: -4, localHour: 12, bias: newForecastBias()}),
+                write: async (celsius) => { writes.push(celsius); await c.writeRegisterValue(bt1, encodeRegisterValue(bt1, celsius)); },
+                readBack: async () => {
+                    const raw = await c.readRegisterRaw(outdoor, false, 'write');
+                    return raw === undefined ? undefined : signedValue(raw) / 10;
+                },
+                feeding: () => undefined, warn: () => undefined, log: () => undefined, record: () => undefined,
+                setTimeout: () => 1, clearTimeout: () => undefined,
+                sleep: (ms) => new Promise((r) => setTimeout(r, ms / 10)),
+                now: () => now,
+            });
+            feed.start();
+            await feed.cycle();
+            assert.ok(feed.running);
+            assert.equal(signedValue(pump.holding.readUInt16BE(5217 * 2)) / 10, writes[0]);
+            assert.equal(feed.state.fed, writes[0], 'verified on input 1');
+
+            listening = false;
+            pump.input.writeUInt16BE(0x8000, 2);
+            for (let i = 0; i < 3; i++) { now += 30_000; await feed.cycle(); }
+            await new Promise((r) => setTimeout(r, 50));
+            assert.ok(!feed.running);
+            assert.equal(feed.state.stopped, 'feed_failed');
+            assert.equal(writes.at(-1), -4, 'handed back the real outdoor temperature');
+        });
+    } finally {
+        clearInterval(mirror);
+        await pump.close();
+    }
+});

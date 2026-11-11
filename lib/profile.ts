@@ -201,6 +201,10 @@ export interface ModelProfile {
         // operating mode, and the Auto-mode thresholds the actuator keeps clear of.
         controls?: {comfort: string; mode: string; stopHeating?: string; stopAddHeat?: string; startCooling?: string};
     };
+    // Autopilot heating's live BT1 feed (lib/autopilot/live.ts): the register it writes, the one
+    // that shows what the pump took, Smart price adaption's switches for heating (all on = active),
+    // the immersion heater, and room-sensor control's raw holding address (no capability).
+    autopilotFeed?: {bt1: string; outdoor: string; spa: string[]; addHeat: string; roomControl?: number};
     // Hot water Autopilot (lib/autopilot/hotwater-shadow.ts): the Hot water device's capabilities
     // for the tank's state, and the stop temperature of each demand mode (56).
     autopilotHotwater?: {

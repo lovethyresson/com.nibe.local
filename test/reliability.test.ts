@@ -848,3 +848,39 @@ test('Heating keeps a moved indoor sensor address when Autopilot adds its regist
     const indoor = d.wantedRegisters().filter((r: Register) => r.name === 'measure_temperature');
     assert.deepEqual(indoor.map((r: Register) => r.address), [26]);
 });
+
+test('Autopilot heating\'s live feed starts only on its setting, and owns BT1 while it runs', async () => {
+    const {d} = device();
+    d.role = 'heating';
+    const settings = new Map<string, any>();
+    const listeners: ((key: string) => void)[] = [];
+    const timers: any[] = [];
+    d.getData = () => ({id: 'heat-1'});
+    d.homey = {...d.homey, settings: {
+        get: (k: string) => settings.get(k), set: (k: string, v: any) => { settings.set(k, v); listeners.forEach((l) => l(k)); },
+        unset: (k: string) => { settings.delete(k); listeners.forEach((l) => l(k)); },
+        on: (_e: string, l: any) => listeners.push(l), off: () => undefined,
+    }, setTimeout: (fn: any, ms: number) => { timers.push({fn, ms}); return timers.length; }, clearTimeout: () => undefined};
+    const writes: number[] = [];
+    d.connection = {writeRegisterValue: async (r: Register, raw: number) => { writes.push(r.address); },
+        readRegisterRaw: async () => undefined};
+    d.autopilot = {liveInputs: () => undefined, outdoorNow: () => ({localHour: 0, bias: {mean: [], count: []}}),
+        setFeeding: () => undefined, recordLive: () => undefined};
+    d.startHeatingFeed();
+    assert.equal(d.heatingFeed.running, false, 'off by default: nothing scheduled, nothing written');
+    assert.equal(timers.length, 0);
+
+    const bt1 = sProfile.registerByName['external_temperature.h5217_bt1'];
+    await d.writeRegister(bt1, 5);
+    assert.deepEqual(writes, [5217], 'a Flow may write BT1 while the feed is off');
+
+    d.homey.settings.set('autopilotLive.heat-1', 'shift');
+    assert.equal(d.heatingFeed.running, true);
+    await assert.rejects(d.writeRegister(bt1, 5), /managed by Autopilot heating/);
+
+    d.homey.settings.set('autopilotLive.heat-1', 'off');
+    await new Promise((r) => setImmediate(r));
+    assert.equal(d.heatingFeed.running, false);
+    await d.stopHeatingFeed();
+    assert.equal(d.heatingFeed, null);
+});

@@ -475,6 +475,56 @@ Offline only; nothing runs on the Homey yet. Design: `docs/autopilot-plan.md` §
   some 1.3 %, Save the most 6.9 % (best days 3.0/6.1/16.5 %; gross 3.2/4.5/18.7 %; off comfort
   0.04/0.06/0.28 K RMS). Perfect forecast 1.0/1.3/6.9 %. Unchanged from 8 Nov; still an upper
   bound on the too-warm balance.
+- **2026-11-11 — the 0.7 kW gap re-checked (offline, read-only).** Scratchpad `balance/`.
+  - The model's heat input *is* the meter (1577 spread by Hz, heat.ts), so input vs meter cannot
+    disagree; the question is only the fit's split of heat loss vs free heat vs storage.
+  - **The 9 Nov "0.7 kW" left out storage.** Indoor was rising ~0.3 K/day; at Ci+Cm 27 kWh/K
+    that is ~0.3 kW. With it, the live model (H 227 W/K, gains 0.37 kW) against the meter over
+    the last three 24 h windows: +0.35, −0.03, +0.35 kW. Within daily noise (a daily regression
+    over 11 days leaves ±0.5 kW residuals whatever terms it gets).
+  - Rolling 24 h heat per K on met.no outdoor since offset +6 settled: 216 → 250 → 226 → 238 W/K,
+    no sun. A water-temperature loss term "explained" residuals only because it is the emission
+    law (supply is set by the curve, collinear with ΔT): rejected.
+  - **What still disagrees is the steady level.** At today's supply (38.0 °C, no hot water) the
+    model's equilibrium indoor is 22.9 °C on recorded te, 23.4 on met.no, hence the −4 K comfort
+    bias. The house sits at 21.9 °C and is still climbing at a fixed +6: 06–09 means 21.22,
+    21.34, 21.40, 21.96 (8–11 Nov). Either a slow mass the 2R2C under-represents (indoor keeps
+    climbing toward ~23) or heat loss/gains wrong (it levels near 22). **Test: leave +6 and
+    room control off for 3–5 days and read where indoor levels off.** Nothing to change.
+  - Confounder from today: the outdoor sensor moved Hue → Netatmo "Utetemperatur" (~21:20, app
+    setting `autopilotOutdoorSensor`), which reads ~1 K warmer. The fit mixes both until the new
+    source has 14 days. 5b stays blocked until the level-off is read.
+
+## Autopilot heating: shift-only live test (built 2026-11-11, not installed)
+
+**Why.** The comfort bias rests on the model's steady level, which the +6 run has not confirmed
+(entry above). Price shifting does not: `lib/autopilot/live.ts` plans with `pump = {lever}` (the
+curve holds the house), comfort = the house's 24 h indoor mean, ±3 K bias, coasts ≤ 3 h, band
+±0.5 K, no sun term. Feeds 5217 every 30 s, checks input 1 (4 × 750 ms); stops on 3 failed
+cycles, 6 h without the outdoor sensor, immersion-only mode, SPA heating on, room-sensor control
+on (2978), no model; no pre-heat while the immersion heater runs. Stop = one last feed of the
+real outdoor. A Flow cannot write 5217 while it runs. Own fed slots set `FLAG.fedOutdoor` and stay
+out of the wired-BT1 model. Switch: app setting `autopilotLive.<heating device id>` = `shift`.
+
+**Bench (33 SE3 days, 9 Oct → 10 Nov, live model, day-ahead forecast, Manual):** bias −3.1…+3.1 K
+(the 0.1 is the fed value's rounding), easing off 28 % of slots, pre-heating 9 %; fair saving
+0.7 % (best day 2.9 %, worst −3.1 %), gross 2.3 %; heat −1.3 % against doing nothing (single days
+−4.5…+3.8 %: plans move heat across midnight); indoor 21.4–21.7 °C. Tonight's plan on real
+prices: ease off at 22:00 (−2 K) and 07:00–08:30 (−3 K), indoor −0.05 K.
+
+**Test-run protocol (only after the maintainer's go to install):**
+- [ ] Install with the switch off; one slot later confirm nothing wrote 5217 (input 1 tracks the
+      wired BT1, log has no "Autopilot heating: started").
+- [ ] Preconditions: SPA heating off, room-sensor control off, menu 7.5.9.2 on, outdoor sensor
+      picked (Utetemperatur since 2026-11-11 21:15).
+- [ ] Turn on: `homey api raw -X PUT --path /api/manager/apps/app/com.nibe.local/setting/autopilotLive.<id>
+      --body '{"value":"shift"}'`, then read it back with `get-app-setting` (set-app-setting
+      stored a JSON object as text on 2026-11-11, so check the stored value).
+- [ ] First hour: "started" in the log, feed verified each cycle, bias as planned, no warning.
+- [ ] Daily check adds: live bias range, indoor against its 24 h mean, add-heat starts, verify
+      failures, stops (`dev/review-shadow.mjs` prints a "Live" line).
+- [ ] Turn off: set it to `off`; the log shows "stopped (mode_off)" and the last feed is the real
+      outdoor temperature.
 
 ## Autopilot slice 1: data collection (branch `smart-heating/m1-data`)
 

@@ -58,6 +58,18 @@ const summarise = (list) => presets.map((id) => {
         + `planned saving ${f(100 * mean(p.map((x) => x.saving)), 1)} %${clamped ? `, clamped: ${clamped}` : ''}`;
 }).join('\n');
 
+// The live test build (lib/autopilot/live.ts): what was really fed, slot by slot.
+const live = entries.filter((e) => e.live);
+if (live.length) {
+    const fed = live.filter((e) => !e.live.stopped);
+    const biases = fed.map((e) => e.live.bias);
+    const stops = live.filter((e) => e.live.stopped).map((e) => `${stamp.format(new Date(e.live.slot * 900_000))} ${e.live.stopped}`);
+    console.log(`\nLive (shift-only test): ${fed.length} slots fed, bias ${f(Math.min(...biases), 1)}…${f(Math.max(...biases), 1)} K, `
+        + `easing off ${fed.filter((e) => e.live.bias < 0).length}, pre-heating ${fed.filter((e) => e.live.bias > 0).length}, `
+        + `clamped ${fed.filter((e) => e.live.clamped?.length).length}, outdoor from ${[...new Set(fed.map((e) => e.live.source))].join('/') || '-'}`
+        + `${stops.length ? `; stopped: ${stops.join(', ')}` : ''}.`);
+}
+
 console.log('\nWhole log:');
 console.log(summarise(entries));
 const days = new Map();

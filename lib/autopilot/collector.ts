@@ -16,6 +16,7 @@ import {houseInsights, insightsLine} from './insights';
 import {ForecastBias, forecastCorrection, learnForecastBias, newForecastBias, usableSensor} from './outdoor';
 import {SHADOW_PRESETS, ShadowMemory, curveViewOf, shadowForecast, shadowStep, wiredOf} from './shadow';
 import {PumpThresholds} from './actuator';
+import {LiveEntry, ShiftInput, indoorMean} from './live';
 
 const HOUR = 60 * 60 * 1000;
 /** App setting: the Homey sensor the owner picked for outdoor, a SensorRef. Setup will write it
@@ -93,6 +94,11 @@ export class AutopilotCollector {
     private lastShadow?: any;
     private sensorSums = new Map<number, {sum: number; n: number}>();
     private sensorState = '';
+    /** The last usable outdoor sensor reading and when it was read, for the live feed. */
+    private sensorNow?: {value: number; at: number};
+    /** Slots the live feed fed BT1 in (live.ts), so the history never takes input 1 for outdoor. */
+    private fedSlots = new Set<number>();
+    private liveEntry?: LiveEntry;
     private locationState = '';
 
     constructor(private readonly homey: any, private readonly fileName: string,
@@ -185,6 +191,44 @@ export class AutopilotCollector {
         return this.history;
     }
 
+    /** The live feed (live.ts) fed BT1 now, or stopped: the current slot is ours either way once
+     *  it fed in it. */
+    setFeeding(on: boolean) {
+        if (on) this.fedSlots.add(slotOf(Date.now()));
+    }
+
+    /** The live feed's record for the slot it planned, logged with that slot's shadow line. */
+    recordLive(entry: LiveEntry) {
+        this.liveEntry = entry;
+    }
+
+    /** What the shift-only plan needs for the slot starting at `slot`; undefined until the model,
+     *  its lever, a day of indoor readings and 2 h of forecast exist. Reads only. */
+    liveInputs(slot: number): ShiftInput | undefined {
+        const fit = this.fit;
+        if (!fit?.params || !fit.state || !(fit.lever! > 0)) return undefined;
+        const range = this.history.range();
+        const last = range.length ? this.history.get(range[range.length - 1])! : undefined;
+        const mean = indoorMean(range.filter((s) => s >= slot - 96).map((s) => this.history.get(s)!.ti));
+        const curve = curveViewOf(this.history);
+        if (!last || !Number.isFinite(last.ti) || mean === undefined || curve === undefined) return undefined;
+        const fresh = Date.now() - this.weatherAt < WEATHER_STALE_MS ? this.weather : new Map<number, WeatherSlot>();
+        const forecast = shadowForecast(slot, fresh, this.prices, (s) => forecastCorrection(this.forecastBias, this.localHour(s)));
+        if (forecast.length < 8) return undefined;
+        return {house: fit.params, lever: fit.lever!, ti: last.ti, tm: fit.state.tm, mean, curve, bias: 0, forecast};
+    }
+
+    /** The real outdoor temperature's sources for now: the sensor's latest reading (≤ 2 min old,
+     *  it is read every minute) and the forecast for this slot, with the correction to apply. */
+    outdoorNow() {
+        const now = Date.now();
+        const sensor = this.sensorNow && now - this.sensorNow.at < 2 * 60 * 1000 ? this.sensorNow.value : undefined;
+        const fresh = now - this.weatherAt < WEATHER_STALE_MS;
+        const forecast = fresh ? this.weather.get(slotOf(now))?.te : undefined;
+        return {sensor, forecast: Number.isFinite(forecast) ? forecast : undefined, localHour: this.localHour(slotOf(now)),
+            bias: this.forecastBias};
+    }
+
     private context(slot: number): SlotContext {
         const context: SlotContext = {};
         const price = this.prices.get(slot);
@@ -199,6 +243,8 @@ export class AutopilotCollector {
             if (ref?.deviceId) context.sensorId = `${ref.deviceId}/${ref.capabilityId}`;
         }
         context.wired = wiredOf(this.history);
+        if (this.fedSlots.has(slot)) context.fedByUs = true;
+        for (const s of [...this.fedSlots]) if (s <= slot) this.fedSlots.delete(s);
         for (const s of [...this.sensorSums.keys()]) if (s <= slot) this.sensorSums.delete(s);
         if (weather && Number.isFinite(weather.te))
             context.outdoor = weather.te + forecastCorrection(this.forecastBias, this.localHour(slot));
@@ -225,6 +271,7 @@ export class AutopilotCollector {
         else {
             const reading = (await selectedReadings(this.homey, [ref]))[0];
             const value = usableSensor(reading, Date.now());
+            this.sensorNow = value === undefined ? undefined : {value, at: Date.now()};
             if (value !== undefined) {
                 const slot = slotOf(Date.now());
                 const sum = this.sensorSums.get(slot) ?? {sum: 0, n: 0};
@@ -345,7 +392,9 @@ export class AutopilotCollector {
         this.shadowSlot = slot;
         this.lastShadow = {slot: next, at: new Date(next * SLOT_MS).toISOString(), ti: values.ti, te: values.te,
             comfort, setpoint: c.comfort, mode: c.mode, horizon: forecast.length, ms: Date.now() - started,
-            fitSlot: fit.state.slot, baseline: out.baseline, presets: out.presets};
+            fitSlot: fit.state.slot, baseline: out.baseline, presets: out.presets,
+            ...(this.liveEntry ? {live: this.liveEntry} : {})};
+        this.liveEntry = undefined;
         appendLine(shadowLogName(this.fileName), this.lastShadow)
             .then(() => { this.shadowLines++; })
             .catch((error) => this.log('Autopilot shadow: log write failed:', error?.message ?? error));

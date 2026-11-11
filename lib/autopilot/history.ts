@@ -82,6 +82,8 @@ export interface SlotContext {
     sensorId?: string;
     /** The wired BT1 against the recorded outdoor temperature up to the previous slot. */
     wired?: WiredModel;
+    /** The app itself fed BT1 during the slot (live.ts): input 1 is not the outdoor temperature. */
+    fedByUs?: boolean;
 }
 
 /** Ring buffer of closed slots. Missing values are NaN. */
@@ -226,14 +228,15 @@ export class Aggregator {
         values.coverage = Math.min(1, this.polls / expected);
         let flags = this.flags;
         if (values.coverage < PARTIAL_BELOW) flags |= FLAG.partial;
-        const {price, weather, outdoor, sensor, sensorId, wired} = this.context(slot);
+        const {price, weather, outdoor, sensor, sensorId, wired, fedByUs} = this.context(slot);
         // Input 1 shows whatever BT1 is fed. The house model wants the real outdoor temperature;
         // the heat curve works from what was fed, so that is kept too.
         values.bt1 = values.te;
-        const te = recordedOutdoor(values.te, sensor, outdoor, wired);
+        // Our own feed is known, not guessed: input 1 then never stands for outdoor.
+        const te = recordedOutdoor(fedByUs ? NaN : values.te, sensor, outdoor, wired);
         values.te = te.value;
         values.tesrc = outdoorSourceCode(te.source, sensorId);
-        if (te.fed) flags |= FLAG.fedOutdoor;
+        if (te.fed || fedByUs) flags |= FLAG.fedOutdoor;
         if (te.source === 'sensor') flags |= FLAG.sensorOutdoor;
         if (te.source === 'forecast') flags |= FLAG.forecastOutdoor;
         if (price) {

@@ -215,6 +215,14 @@ export const sProfile = makeProfile({
         allowed: "onoff.h195_enable_hotwater",
         spa: ["boolean_NIBE.h843_spa_activated", "boolean_NIBE.h846_spa_hotwater_activated"],
     },
+    autopilotFeed: {
+        bt1: "external_temperature.h5217_bt1",
+        outdoor: "measure_temperature.i1_outside",
+        spa: ["boolean_NIBE.h843_spa_activated", "boolean_NIBE.h844_spa_heating_activated"],
+        addHeat: "status_NIBE.i1029_additive_heat_active",
+        // Room-sensor control, climate system 1 (id 12671, u8 0..3; docs/autopilot-plan.md §4.3).
+        roomControl: 2978,
+    },
     autopilotHistory: {
         numeric: {
             ti: "measure_temperature",

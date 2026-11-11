@@ -17,7 +17,7 @@ import {HouseParams} from './model';
 import {ForecastSlot, PlanState, PumpCurve, planShift, simulate} from './planner';
 import {PRESETS, PresetId, limitsFor} from './presets';
 import {ClampReason, PumpThresholds, curveInput, fedValue} from './actuator';
-import {History} from './history';
+import {FLAG, History} from './history';
 import {WIRED_TAU_H, WiredModel, wiredModel} from './outdoor';
 
 export const SHADOW_PRESETS: PresetId[] = ['comfortable', 'save_some', 'save_most'];
@@ -30,7 +30,8 @@ export const AHEAD = [4, 24] as const;
 export function wiredOf(history: History): WiredModel | undefined {
     return wiredModel(history.range().map((slot) => {
         const v = history.get(slot)!;
-        return {slot, te: v.te, bt1: v.bt1};
+        // A fed slot's input 1 is the feed, not the wired sensor: it would pull the offset.
+        return {slot, te: v.te, bt1: v.flags & FLAG.fedOutdoor ? NaN : v.bt1};
     }));
 }
 
