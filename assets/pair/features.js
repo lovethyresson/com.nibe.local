@@ -235,9 +235,11 @@ function render() {
         setupSections.push({id: 'heating', role: 'heating', title: Homey.__('pair.setup.heating'),
             description: Homey.__('pair.setup.heating_intro'), sources: sources, zones: zones});
     }
-    if (context.smart) setupSections.push({id: 'smart', role: 'smart', title: Homey.__('pair.setup.smart.title'),
+    // Heating's Smart mode is a step of Heating Setup (setup.js `steer`); hot water's is its own section.
+    var heatingFlow = context.smart && context.role === 'heating' && setupSections.some(function (s) { return s.role === 'heating'; });
+    if (context.smart && !heatingFlow) setupSections.push({id: 'smart', role: 'smart', title: Homey.__('pair.setup.smart.title'),
         description: Homey.__('pair.setup.smart.section_' + (context.role === 'hotwater' ? 'hotwater' : 'heating'))});
-    setup = new NibeSetup({mode: 'repair', indoorSensors: context.indoorSensors, indoorNativeAddress: context.indoorNativeAddress,
+    setup = new NibeSetup({mode: 'repair', smart: heatingFlow, indoorSensors: context.indoorSensors, indoorNativeAddress: context.indoorNativeAddress,
         summary: function () { return setupSections.map(function (s) { return s.title; }); }, commit: commitFeatures});
     document.getElementById('save').textContent = Homey.__('pair.setup.next');
     document.getElementById('save').style.display = 'block';

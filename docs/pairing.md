@@ -251,6 +251,20 @@ From 1.2.1, detection through an existing connection uses the shared wire queue 
 same sensor-choice detail as initial pairing. Leaving detection cancels its remaining reads;
 completed detection results remain available for the selection step.
 
+## Heating Setup as one flow (Autopilot branch, 2026-11-12)
+
+In Repair on a Heating device whose model has Autopilot, Heating Setup and Smart mode are one
+flow rather than two sections, because each step depends on the one before: the thermostat zone,
+then the indoor temperature (pump sensor or Homey sensors), then who steers heating (Smart mode:
+Autopilot, test run, Smart price adaption or Off), then **one pump checklist for that combination**
+and one Verify. The checklist used to come in two halves that could contradict each other: the
+indoor setup said "Use BT50 for heating" while Autopilot needs room-sensor control off. Now
+room-sensor control is required off for Autopilot and optional otherwise; BT50 steps appear only
+when Homey sensors are being started; BT1 and Modbus steps only when Autopilot still has to be
+verified. Verify starts the indoor feed first (if pending), then verifies BT1 or saves the mode.
+Later visits open on a summary with a Change link per step. Pairing is unchanged (no device yet,
+so no Smart mode). Hot water keeps Smart mode as its own Repair section.
+
 ## Device Setup and Homey indoor sensors (1.3.0)
 
 Device/features selection now opens a shared Device Setup overview. Heating Setup contains the

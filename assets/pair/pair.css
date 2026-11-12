@@ -657,3 +657,11 @@ body {
 .setup-check .homey-button-secondary { margin-top: .2em; }
 .setup-field { display: flex; align-items: center; justify-content: space-between; gap: 1em; margin: 1em 0 .3em; }
 .setup-field input { width: 6em; }
+
+/* Smart mode explainers: the mode comparison and what to expect. */
+.setup-compare dl { margin: 0; }
+.setup-task-group.setup-compare > h3 { font-size: 1.05em; opacity: 1; margin-bottom: .2em; }
+.setup-compare dt { font-size: 0.8em; font-weight: 600; opacity: 0.65; margin-top: 8px; }
+.setup-compare dd { margin: 2px 0 0; line-height: 1.4; }
+.setup-expect-list { margin: 6px 0 0; padding-left: 18px; line-height: 1.45; }
+.setup-expect-list li { margin: 3px 0; }
