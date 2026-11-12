@@ -10,6 +10,17 @@
   "type": "enum",
   "values": [
     {
+      "id": "off",
+      "title": {
+        "en": "Off (no shift)",
+        "sv": "Av (ingen förskjutning)",
+        "de": "Aus (keine Verschiebung)",
+        "nl": "Uit (geen verschuiving)",
+        "no": "Av (ingen forskyvning)",
+        "da": "Fra (ingen forskydning)"
+      }
+    },
+    {
       "id": "comfortable",
       "title": {
         "en": "Comfort (±0.5 °C)",

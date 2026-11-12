@@ -120,6 +120,9 @@ export interface FeedHooks {
     mode(): LiveMode;
     /** The owner's profile, read each slot. */
     limits(): Limits;
+    /** Comfort range Off: feed the real outdoor temperature, unshifted, and plan nothing. The
+     *  pump stays on the sensor Autopilot uses rather than going back to its own BT1. */
+    neutral(): boolean;
     /** The model and forecast for the slot about to start; undefined without them. */
     plan(slot: number): ShiftInput | undefined;
     pump(): Promise<PumpFacts>;
@@ -172,6 +175,10 @@ export interface FeedSnapshot {
     forecast?: ForecastSlot[];
     /** Why the plan shifts nothing, when it does not (planner `Plan.reason`). */
     planReason?: string;
+    /** The indoor temperature the plan expects at the end of each of its slots. */
+    indoor?: number[];
+    /** Comfort range Off: fed unshifted. */
+    neutral?: boolean;
 }
 
 /** The 30 s BT1 feed and the 15-min shift planner, on the Heating device. */
@@ -196,7 +203,8 @@ export class HeatingFeed {
     /** Whether the pump holds a value we wrote, so going idle or stopping hands it back. */
     private holding = false;
     private limits: Limits = LIVE_LIMITS;
-    private plan?: {slot: number; biases: number[]; forecast: ForecastSlot[]; reason?: string};
+    private plan?: {slot: number; biases: number[]; forecast: ForecastSlot[]; reason?: string; indoor?: number[]};
+    private neutral = false;
 
     constructor(private readonly hooks: FeedHooks) {}
 
@@ -204,7 +212,7 @@ export class HeatingFeed {
     get state(): FeedSnapshot {
         return {mode: this.stopped ? 'off' : this.hooks.mode(), bias: this.bias, target: this.target, fed: this.lastFed?.fed,
             real: this.real?.value, stopped: this.stopState, slot: this.plan?.slot, biases: this.plan?.biases,
-            forecast: this.plan?.forecast, planReason: this.plan?.reason};
+            forecast: this.plan?.forecast, planReason: this.plan?.reason, indoor: this.plan?.indoor, neutral: this.neutral || undefined};
     }
 
     start() {
@@ -264,7 +272,28 @@ export class HeatingFeed {
         if (mode === 'off') return this.halt('mode_off');
         const now = this.hooks.now();
         const slot = slotOf(now);
-        if (slot !== this.plannedSlot) {
+        const neutral = this.hooks.neutral();
+        if (neutral !== this.neutral) {
+            this.neutral = neutral;
+            // Into Off: drop the plan. Out of it: plan now rather than at the next slot.
+            this.plannedSlot = undefined;
+            this.target = 0;
+            this.slotBias = 0;
+            this.plan = undefined;
+            this.hooks.changed();
+        }
+        if (neutral) {
+            // No plan: the real outdoor temperature, fed as it is. The pump's guards still hold
+            // (SPA, room control, immersion only), re-checked each slot; learning does not stop it.
+            if (slot !== this.plannedSlot) {
+                this.plannedSlot = slot;
+                this.facts = await this.hooks.pump();
+                const wait = stopReason(this.facts, true);
+                if (wait) return this.idle(wait);
+            } else if (this.stopState && this.stopState !== 'no_outdoor') {
+                return;
+            }
+        } else if (slot !== this.plannedSlot) {
             this.plannedSlot = slot;
             const wait = await this.replan(slot);
             if (wait) return this.idle(wait);
@@ -330,7 +359,7 @@ export class HeatingFeed {
         const plan = planLive({...input!, bias: this.bias, previous: this.previous}, this.limits);
         this.target = plan.biases[0];
         this.previous = plan.biases.slice(1);
-        this.plan = {slot, biases: plan.biases, forecast: input!.forecast, reason: plan.reason};
+        this.plan = {slot, biases: plan.biases, forecast: input!.forecast, reason: plan.reason, indoor: plan.plan.ti};
         this.hooks.record({slot, bias: this.bias, fed: this.lastFed?.fed, real: this.real?.value, source: this.real?.source,
             clamped: this.lastFed?.clamped ?? [], planned: plan.biases.slice(0, 8), reason: plan.reason});
         this.hooks.changed();

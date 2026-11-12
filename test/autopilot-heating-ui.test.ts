@@ -51,6 +51,10 @@ test('learning shows progress; waits are paused with their reason; off is off', 
         'a feed that failed is not quietly off');
 });
 
+test('Comfort range Off is holding, and says why', () => {
+    assert.deepEqual(heatingStatus(live({neutral: true}), now, t, time), {status: 'holding', reason: 'range_off'});
+});
+
 test('a test run says so', () => {
     const s = live({mode: 'test', bias: -2, biases: [-2, 0], forecast: forecast([3, 1])});
     assert.match(heatingStatus(s, now, t, time).reason, /^test\(text=easing_off/);

@@ -299,7 +299,8 @@
           "feed_failed": "Stopped: the pump did not take the outdoor temperature",
           "mode_off": "Off",
           "no_model": "Learning your house"
-        }
+        },
+        "range_off": "Comfort range is Off: the pump sees the real outdoor temperature"
       },
       "status_name": {
         "learning": "Learning",
@@ -333,34 +334,38 @@
       }
     },
     "widget": {
-      "next24": "Next 24 hours",
       "price": "Price",
       "off": "Autopilot is off here. Turn it on in Repair → Smart mode.",
       "not_function": "Pick a Heating or Hot water device.",
       "test": "Test run",
       "starting": "Starting…",
-      "charge": "Charge",
-      "more_heat": "More heat",
-      "less_heat": "Less heat",
       "away": "Away · __c__ °C",
       "range": {
         "comfortable": "Comfort ±0.5 °C",
         "save_some": "Save ±3 °C",
-        "save_most": "I'd rather freeze ±6 °C"
+        "save_most": "I'd rather freeze ±6 °C",
+        "off": "Off"
       },
       "hotwater": {
         "next": "Next charge __time__, about __m__ min",
         "none": "No charge planned in the next 24 hours",
-        "litres": "__l__ L of 40 °C water now"
+        "litres": "__l__ L of 40 °C water now",
+        "share": "__share__ % from solar",
+        "solar_off": "Solar off",
+        "solar_total": "__share__ % of the planned charging runs on solar surplus."
       },
-      "house": {
-        "title": "Your house",
-        "cools": "With the heating off at __out__ °C outside, indoor falls 1 °C in about __h__ h.",
-        "cools_slow": "With the heating off at __out__ °C outside, indoor falls less than 1 °C in two days.",
-        "coast": "At __range__, Autopilot can ease off for up to __h__ h.",
-        "learned": "Learned from __days__ days of your house.",
-        "learning": "Still learning your house · day __day__ of __of__."
-      }
+      "indoor": "Indoor",
+      "expected": "Expected",
+      "offset": "BT1 offset",
+      "comfort": "Thermostat",
+      "axis_indoor": "Indoor °C",
+      "axis_offset": "Offset K",
+      "learning": "Learning your house · day __day__ of __of__. The expected indoor shows once it has learned.",
+      "surplus": "Solar surplus",
+      "charge_grid": "Charge from grid",
+      "charge_solar": "Charge from solar",
+      "axis_price": "Price /kWh",
+      "axis_surplus": "Surplus kW"
     }
   }
 }

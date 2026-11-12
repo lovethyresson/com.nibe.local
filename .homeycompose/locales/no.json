@@ -299,7 +299,8 @@
           "feed_failed": "Stoppet: pumpen tok ikke imot utetemperaturen",
           "mode_off": "Av",
           "no_model": "Lærer huset ditt"
-        }
+        },
+        "range_off": "Komfortområde er Av: pumpen ser den virkelige utetemperaturen"
       },
       "status_name": {
         "learning": "Lærer",
@@ -333,34 +334,38 @@
       }
     },
     "widget": {
-      "next24": "Neste 24 timer",
       "price": "Pris",
       "off": "Autopilot er av her. Slå den på i Reparer → Smartmodus.",
       "not_function": "Velg en Oppvarmings- eller Varmtvannsenhet.",
       "test": "Testkjøring",
       "starting": "Starter…",
-      "charge": "Lading",
-      "more_heat": "Mer varme",
-      "less_heat": "Mindre varme",
       "away": "Borte · __c__ °C",
       "range": {
         "comfortable": "Komfort ±0,5 °C",
         "save_some": "Spar ±3 °C",
-        "save_most": "Heller fryse ±6 °C"
+        "save_most": "Heller fryse ±6 °C",
+        "off": "Av"
       },
       "hotwater": {
         "next": "Neste lading __time__, omtrent __m__ min",
         "none": "Ingen lading planlagt de neste 24 timene",
-        "litres": "__l__ L 40-graders vann nå"
+        "litres": "__l__ L 40-graders vann nå",
+        "share": "__share__ % fra sol",
+        "solar_off": "Sol av",
+        "solar_total": "__share__ % av den planlagte ladingen går på soloverskudd."
       },
-      "house": {
-        "title": "Huset ditt",
-        "cools": "Med varmen av ved __out__ °C ute faller innetemperaturen 1 °C på omtrent __h__ t.",
-        "cools_slow": "Med varmen av ved __out__ °C ute faller innetemperaturen mindre enn 1 °C på to døgn.",
-        "coast": "Med __range__ kan Autopilot trappe ned i opptil __h__ t.",
-        "learned": "Har lært av __days__ dager i huset ditt.",
-        "learning": "Lærer fortsatt huset ditt · dag __day__ av __of__."
-      }
+      "indoor": "Inne",
+      "expected": "Forventet",
+      "offset": "BT1-forskyvning",
+      "comfort": "Termostat",
+      "axis_indoor": "Inne °C",
+      "axis_offset": "Forskyvning K",
+      "learning": "Lærer huset ditt · dag __day__ av __of__. Forventet innetemperatur vises når den har lært.",
+      "surplus": "Soloverskudd",
+      "charge_grid": "Lading fra nettet",
+      "charge_solar": "Lading fra sol",
+      "axis_price": "Pris /kWh",
+      "axis_surplus": "Overskudd kW"
     }
   }
 }

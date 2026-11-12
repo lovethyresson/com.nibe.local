@@ -1195,6 +1195,7 @@ test('the live BT1 feed writes 5217, sees it on input 1, and stops when the pump
             const feed = new HeatingFeed({
                 mode: () => 'live',
                 limits: () => LIVE_LIMITS,
+                neutral: () => false,
                 changed: () => undefined,
                 plan: () => ({house, lever: 0.1, ti: 21, tm: 21, mean: 21, curve: -4, bias: 0, forecast}),
                 pump: async () => ({mode: 1, thresholds: {}, spaHeating: false, roomControl: 0, addHeat: false}),

@@ -178,11 +178,11 @@
         "section_heating": "Wie de verwarming naar goedkopere uren verschuift.",
         "section_hotwater": "Wie het warm water naar goedkopere uren verschuift.",
         "intro": "Kies er één. Maar één kan de compressor sturen.",
-        "choose_on_desc_heating": "Leert uw huis kennen en verschuift warmte via de buitentemperatuur van de pomp.",
-        "choose_on_desc_hotwater": "Laadt het vat in goedkope uren en houdt uw reserve aan.",
+        "choose_on_desc_heating": "Draait in Nibe Live en leert uw huis kennen.",
+        "choose_on_desc_hotwater": "Draait in Nibe Live en leert uw warmwatergebruik kennen.",
         "choose_test": "Autopilot-testrun",
         "choose_spa": "Slimme prijsaanpassing",
-        "choose_spa_desc": "NIBEs eigen prijssturing, uitgevoerd door de pomp.",
+        "choose_spa_desc": "Van NIBE zelf, draait in de pomp.",
         "choose_off": "Uit",
         "choose_off_desc_heating": "De verwarming volgt alleen de stooklijn.",
         "choose_off_desc_hotwater": "Warm water volgt de eigen instellingen van de pomp.",
@@ -446,7 +446,8 @@
           "feed_failed": "Gestopt: de pomp nam de buitentemperatuur niet over",
           "mode_off": "Uit",
           "no_model": "Leert je huis kennen"
-        }
+        },
+        "range_off": "Comfortbereik staat Uit: de pomp ziet de echte buitentemperatuur"
       },
       "status_name": {
         "learning": "Leert",
@@ -480,34 +481,39 @@
       }
     },
     "widget": {
-      "next24": "Komende 24 uur",
       "price": "Prijs",
       "off": "Autopilot staat hier uit. Zet hem aan via Repareren → Slimme modus.",
       "not_function": "Kies een verwarmings- of warmwaterapparaat.",
       "test": "Testrun",
       "starting": "Bezig met starten…",
       "charge": "Opwarmen",
-      "more_heat": "Meer warmte",
-      "less_heat": "Minder warmte",
       "away": "Afwezig · __c__ °C",
       "range": {
         "comfortable": "Comfort ±0,5 °C",
         "save_some": "Besparen ±3 °C",
-        "save_most": "Liever kou lijden ±6 °C"
+        "save_most": "Liever kou lijden ±6 °C",
+        "off": "Uit"
       },
       "hotwater": {
         "next": "Volgende opwarming __time__, ongeveer __m__ min",
         "none": "Geen opwarming gepland in de komende 24 uur",
-        "litres": "Nu __l__ L water van 40 °C"
+        "litres": "Nu __l__ L water van 40 °C",
+        "share": "__share__ % van zon",
+        "solar_off": "Zon uit",
+        "solar_total": "__share__ % van het geplande opwarmen draait op zonne-overschot."
       },
-      "house": {
-        "title": "Uw huis",
-        "cools": "Met de verwarming uit bij __out__ °C buiten daalt het binnen in ongeveer __h__ u 1 °C.",
-        "cools_slow": "Met de verwarming uit bij __out__ °C buiten daalt het binnen in twee dagen minder dan 1 °C.",
-        "coast": "Met __range__ kan Autopilot tot __h__ u afbouwen.",
-        "learned": "Geleerd uit __days__ dagen van uw huis.",
-        "learning": "Leert uw huis nog kennen · dag __day__ van __of__."
-      }
+      "indoor": "Binnen",
+      "expected": "Verwacht",
+      "offset": "BT1-verschuiving",
+      "comfort": "Thermostaat",
+      "axis_indoor": "Binnen °C",
+      "axis_offset": "Verschuiving K",
+      "learning": "Leert uw huis kennen · dag __day__ van __of__. De verwachte binnentemperatuur verschijnt zodra het geleerd is.",
+      "surplus": "Zonne-overschot",
+      "charge_grid": "Opwarmen van het net",
+      "charge_solar": "Opwarmen op zon",
+      "axis_price": "Prijs /kWh",
+      "axis_surplus": "Overschot kW"
     }
   }
 }

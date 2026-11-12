@@ -9,7 +9,7 @@ import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, VERIFY_GAP_MS, VERIFY
 import {SMART_MODE_STORE, SmartFunction, SmartMode, autopilotRuns, shownSmartMode, smartMode, smartModeWrites, spaOn} from './autopilot/smart-mode';
 import {HeatingStatus, heatingStatus} from './autopilot/heating-status';
 import {forecastCorrection} from './autopilot/outdoor';
-import {WIDGET_SLOTS, WidgetData, houseLines, plannedShifts, ticks} from './autopilot/widget';
+import {AHEAD_SLOTS, BACK_SLOTS, HOTWATER_SLOTS, WidgetData, heatingSlots, ticks} from './autopilot/widget';
 import {slotOf} from './autopilot/prices';
 import {Device} from 'homey';
 import net from 'net';
@@ -1312,6 +1312,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.heatingFeed = new HeatingFeed({
             mode: () => this.heatingMode,
             limits: () => profileLimits(this.autopilotAway() ? 'save_most' : this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY)),
+            neutral: () => this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY) === 'off',
             plan: (slot) => this.autopilot?.liveInputs(slot),
             pump: () => this.heatingPumpFacts(),
             outdoor: () => collector.outdoorNow(),
@@ -1421,7 +1422,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         await set(AUTOPILOT_REASON_CAPABILITY, reason);
         const feeding = !state.stopped && state.fed !== undefined;
         await set(AUTOPILOT_FED_CAPABILITY, feeding ? Math.round(state.fed! * 10) / 10 : null);
-        await set(AUTOPILOT_SHIFT_CAPABILITY, feeding ? Math.round(state.bias * 10) / 10 : 0);
+        // What BT1 is fed minus the real outdoor temperature: below 0, the pump sees it colder and heats more.
+        await set(AUTOPILOT_SHIFT_CAPABILITY, feeding ? Math.round(-state.bias * 10) / 10 + 0 : 0);
         const before = this.heatingStatusShown;
         this.heatingStatusShown = status;
         if (before === undefined || before === status) return;
@@ -1581,49 +1583,48 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.widget.${key}`, tokens);
         const title = this.getName();
         const slot = slotOf(Date.now());
-        const start = slot * 15 * 60_000;
+        const slotStart = (k: number) => k * 15 * 60_000;
         const mode = this.role === 'heating' || this.role === 'hotwater' ? this.smartMode() : 'off';
-        const base = {title, chips: [] as string[], slots: [], ticks: [], house: [], chartTitle: t('next24'),
-            legend: {price: t('price')}};
+        const base = {title, chips: [] as string[], slots: [], ticks: [], legend: {}};
         if (!autopilotRuns(mode)) return {...base, kind: 'none', empty: t(this.role === 'heating' || this.role === 'hotwater' ? 'off' : 'not_function')};
         const chips = mode === 'test' ? [t('test')] : [];
         if (this.role === 'hotwater') {
-            const o = this.hotwaterAutopilot?.outlook(slot, WIDGET_SLOTS);
+            const o = this.hotwaterAutopilot?.outlook(slot, HOTWATER_SLOTS);
             if (!o) return {...base, kind: 'hotwater', chips, empty: t('starting')};
             const reason = o.next ? this.homey.__(`autopilot.hotwater_charge.reason.${o.next.reason}`) : undefined;
-            return {...base, kind: 'hotwater', chips, test: mode === 'test', start, slots: o.slots,
-                ticks: ticks(start, WIDGET_SLOTS, this.clock),
+            const solar = o.slots.some((s) => s.surplus !== undefined);
+            const share = o.next ? Math.round(o.next.solar * 100) : 0;
+            const charges = o.slots.filter((s) => s.charge !== undefined);
+            const fromSolar = charges.length ? charges.reduce((a, s) => a + s.charge!, 0) / charges.length : 0;
+            if (this.getSettings().autopilotSolar === false) chips.push(t('hotwater.solar_off'));
+            return {...base, kind: 'hotwater', chips, test: mode === 'test', slots: o.slots,
+                ticks: ticks(slotStart(slot), HOTWATER_SLOTS, this.clock),
                 status: o.next ? t('hotwater.next', {time: this.clock(o.next.at), m: o.next.minutes}) : t('hotwater.none'),
-                reason: [reason, o.litres === undefined ? undefined : t('hotwater.litres', {l: Math.round(o.litres)})]
-                    .filter(Boolean).join(' · '),
-                legend: {price: t('price'), charge: t('charge')}};
+                reason: [reason, share > 0 ? t('hotwater.share', {share}) : undefined,
+                    o.litres === undefined ? undefined : t('hotwater.litres', {l: Math.round(o.litres)})].filter(Boolean).join(' · '),
+                legend: {price: t('price'), surplus: solar ? t('surplus') : '', grid: t('charge_grid'), solar: solar ? t('charge_solar') : ''},
+                axes: {left: t('axis_price'), right: solar ? t('axis_surplus') : ''},
+                footnote: charges.length && solar ? t('hotwater.solar_total', {share: Math.round(fromSolar * 100)}) : undefined};
         }
-        const feed = this.heatingFeed?.state;
         const status = this.getCapabilityValue(AUTOPILOT_STATUS_CAPABILITY) as HeatingStatus | null;
         const range = String(this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY) ?? DEFAULT_PROFILE);
-        const rangeTitle = t(`range.${range}`);
-        chips.push(rangeTitle);
+        chips.push(t(`range.${range}`));
         if (this.autopilotAway()) chips.push(t('away', {c: this.getCapabilityValue(AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY) ?? AWAY_DEFAULT_C}));
-        const outlook = this.autopilot?.outlook(slot, WIDGET_SLOTS) ?? [];
-        const shifts = feed ? plannedShifts(feed, slot, WIDGET_SLOTS) : [];
-        const slots = outlook.map((o, k) => ({price: o.price, shift: shifts[k]}));
-        const house = this.autopilot?.house();
-        const o = this.autopilot?.outdoorNow();
-        const outdoor = o?.sensor ?? o?.forecast;
-        const temps = outlook.map((s) => s.te).filter((v): v is number => v !== undefined);
+        const from = slot - BACK_SLOTS;
+        const past = this.autopilot?.recent(from, BACK_SLOTS) ?? [];
         const thermostat = Number(this.getCapabilityValue('target_temperature'));
         const summary = this.autopilot?.houseSummary();
         return {
-            ...base, kind: 'heating', chips, test: mode === 'test', start, slots, ticks: ticks(start, WIDGET_SLOTS, this.clock),
+            ...base, kind: 'heating', chips, test: mode === 'test',
+            slots: heatingSlots(past, this.heatingFeed?.state, slot), now: BACK_SLOTS,
+            ticks: ticks(slotStart(from), BACK_SLOTS + AHEAD_SLOTS, this.clock),
             status: status ? this.homey.__(`autopilot.heating.status_name.${status}`) : undefined,
             reason: (this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) as string | null) ?? undefined,
-            legend: {price: t('price'), more: t('more_heat'), less: t('less_heat')},
-            houseTitle: t('house.title'),
-            house: houseLines(house?.params, t, {from: Number.isFinite(thermostat) ? thermostat : 21, outdoor,
-                coldest: temps.length ? Math.min(...temps) : undefined,
-                limits: profileLimits(this.autopilotAway() ? 'save_most' : range), rangeTitle}),
-            footnote: !summary ? undefined : summary.ready ? t('house.learned', {days: summary.days})
-                : t('house.learning', {day: Math.min(summary.days, summary.needed), of: summary.needed}),
+            legend: {indoor: t('indoor'), planned: t('expected'), offset: t('offset'), comfort: t('comfort')},
+            axes: {left: t('axis_indoor'), right: t('axis_offset')},
+            comfort: Number.isFinite(thermostat) ? thermostat : undefined,
+            footnote: !summary || summary.ready ? undefined
+                : t('learning', {day: Math.min(summary.days, summary.needed), of: summary.needed}),
         };
     }
 

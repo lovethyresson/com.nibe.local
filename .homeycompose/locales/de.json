@@ -299,7 +299,8 @@
           "feed_failed": "Gestoppt: Die Pumpe hat die Außentemperatur nicht übernommen",
           "mode_off": "Aus",
           "no_model": "Lernt Ihr Haus"
-        }
+        },
+        "range_off": "Komfortbereich ist Aus: die Pumpe sieht die echte Außentemperatur"
       },
       "status_name": {
         "learning": "Lernt",
@@ -333,34 +334,38 @@
       }
     },
     "widget": {
-      "next24": "Nächste 24 Stunden",
       "price": "Preis",
       "off": "Autopilot ist hier aus. Schalten Sie ihn unter Reparieren → Smart-Modus ein.",
       "not_function": "Wählen Sie ein Heizungs- oder Warmwassergerät.",
       "test": "Testlauf",
       "starting": "Startet…",
-      "charge": "Ladung",
-      "more_heat": "Mehr Wärme",
-      "less_heat": "Weniger Wärme",
       "away": "Abwesend · __c__ °C",
       "range": {
         "comfortable": "Komfort ±0,5 °C",
         "save_some": "Sparen ±3 °C",
-        "save_most": "Lieber frieren ±6 °C"
+        "save_most": "Lieber frieren ±6 °C",
+        "off": "Aus"
       },
       "hotwater": {
         "next": "Nächste Ladung __time__, etwa __m__ min",
         "none": "Keine Ladung in den nächsten 24 Stunden geplant",
-        "litres": "Jetzt __l__ L Wasser mit 40 °C"
+        "litres": "Jetzt __l__ L Wasser mit 40 °C",
+        "share": "__share__ % aus Solar",
+        "solar_off": "Solar aus",
+        "solar_total": "__share__ % der geplanten Ladung laufen mit Solarüberschuss."
       },
-      "house": {
-        "title": "Ihr Haus",
-        "cools": "Bei ausgeschalteter Heizung und __out__ °C draußen fällt es innen in etwa __h__ h um 1 °C.",
-        "cools_slow": "Bei ausgeschalteter Heizung und __out__ °C draußen fällt es innen in zwei Tagen um weniger als 1 °C.",
-        "coast": "Mit __range__ kann Autopilot bis zu __h__ h drosseln.",
-        "learned": "Aus __days__ Tagen in Ihrem Haus gelernt.",
-        "learning": "Lernt Ihr Haus noch · Tag __day__ von __of__."
-      }
+      "indoor": "Innen",
+      "expected": "Erwartet",
+      "offset": "BT1-Verschiebung",
+      "comfort": "Thermostat",
+      "axis_indoor": "Innen °C",
+      "axis_offset": "Verschiebung K",
+      "learning": "Lernt Ihr Haus · Tag __day__ von __of__. Die erwartete Innentemperatur erscheint, sobald es gelernt hat.",
+      "surplus": "Solarüberschuss",
+      "charge_grid": "Ladung aus dem Netz",
+      "charge_solar": "Ladung aus Solar",
+      "axis_price": "Preis /kWh",
+      "axis_surplus": "Überschuss kW"
     }
   }
 }

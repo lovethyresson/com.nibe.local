@@ -1,20 +1,25 @@
 /** The Autopilot dashboard widget's data (widgets/autopilot): what one function's Autopilot is
- *  doing, its next 24 h, and for heating the house in plain terms. Pure; the device gathers the
- *  inputs and the widget only draws. Strings arrive translated, so the widget needs no locales. */
-import {coolDown} from './insights';
-import {Limits} from './presets';
-import {HouseParams} from './model';
+ *  doing and, for heating, indoor temperature against the BT1 offset from 12 h back to 12 h ahead:
+ *  measured behind "now", the plan's expectation after it. Pure; the device gathers the inputs and
+ *  the widget only draws. Strings arrive translated, so the widget needs no locales. */
 import {FeedSnapshot} from './live';
 
 export type Translate = (key: string, tokens?: Record<string, string | number>) => string;
 
-export const WIDGET_SLOTS = 96;
+/** Heating: 12 h back, 12 h ahead. Hot water: 24 h ahead. */
+export const BACK_SLOTS = 48;
+export const AHEAD_SLOTS = 48;
+export const HOTWATER_SLOTS = 96;
 
-/** One 15-min slot of the chart: the price, and for heating the planned shift (+ more heat). */
+/** One 15-min slot. Heating: indoor °C and the BT1 offset (fed − real, K; below 0 the pump sees
+ *  it colder and heats more). Hot water: the price, the expected solar surplus (kW), and, where a
+ *  charge is planned, the share of it the surplus covers (0–1). */
 export interface WidgetSlot {
+    indoor?: number;
+    offset?: number;
     price?: number;
-    shift?: number;
-    charge?: boolean;
+    surplus?: number;
+    charge?: number;
 }
 
 export interface WidgetData {
@@ -24,49 +29,20 @@ export interface WidgetData {
     reason?: string;
     test?: boolean;
     chips: string[];
-    /** Slot start of `slots[0]`, ms, and hour labels to put under the chart. */
-    start?: number;
     slots: WidgetSlot[];
+    /** Index of the first slot that is a plan rather than a measurement (heating). */
+    now?: number;
     ticks: {at: number; label: string}[];
-    legend: {price: string; more?: string; less?: string; charge?: string};
-    chartTitle: string;
-    houseTitle?: string;
-    house: string[];
+    legend: Record<string, string>;
+    /** Axis titles, left and right (heating). */
+    axes?: {left: string; right: string};
+    /** The comfort temperature, drawn as a reference line on the indoor axis. */
+    comfort?: number;
     footnote?: string;
     empty?: string;
 }
 
-/** Hours until indoor falls `drop` °C with the heating off, from steady at `from` with `outdoor`
- *  outside; undefined past `maxH`. */
-export function hoursToDrop(p: HouseParams, drop: number, from: number, outdoor: number, maxH = 48): number | undefined {
-    const curve = coolDown(p, maxH, from, outdoor);
-    const k = curve.findIndex((t) => t <= from - drop);
-    return k < 0 ? undefined : k / 4;
-}
-
-const round = (h: number) => (h < 3 ? Math.round(h * 2) / 2 : Math.round(h));
-
-/** The house sentences: how fast it cools at today's outdoor temperature (and the coldest ahead,
- *  when that differs), and how long the chosen range lets Autopilot ease off. */
-export function houseLines(p: HouseParams | undefined, t: Translate, a: {from: number; outdoor?: number; coldest?: number;
-    limits: Limits; rangeTitle: string}): string[] {
-    if (!p) return [];
-    const lines: string[] = [];
-    const temps = [a.outdoor, a.coldest].filter((v): v is number => v !== undefined && Number.isFinite(v))
-        .map((v) => Math.round(v));
-    for (const outdoor of [...new Set(temps)]) {
-        const h = hoursToDrop(p, 1, a.from, outdoor);
-        lines.push(h === undefined ? t('house.cools_slow', {out: outdoor}) : t('house.cools', {out: outdoor, h: round(h)}));
-    }
-    if (temps.length) {
-        const drop = hoursToDrop(p, a.limits.lower, a.from, temps[0]);
-        const coast = Math.min(a.limits.maxCoastH, drop ?? Infinity);
-        lines.push(t('house.coast', {range: a.rangeTitle, h: round(coast)}));
-    }
-    return lines;
-}
-
-/** Hour labels every 6 h on the chart, local time. */
+/** Hour labels every `everyH` h, at their slot index from `start`, local time. */
 export function ticks(start: number, slots: number, clock: (ms: number) => string, everyH = 6): {at: number; label: string}[] {
     const out: {at: number; label: string}[] = [];
     const hour = 3_600_000;
@@ -75,13 +51,22 @@ export function ticks(start: number, slots: number, clock: (ms: number) => strin
     return out;
 }
 
-/** The planned shift per slot from `slot` on, read from the feed's plan (which starts at its own
- *  slot); undefined past the plan. */
-export function plannedShifts(state: FeedSnapshot, slot: number, n: number): (number | undefined)[] {
-    const from = state.slot === undefined ? undefined : slot - state.slot;
-    return Array.from({length: n}, (_, k) => {
-        if (from === undefined || !state.biases) return undefined;
-        const b = state.biases[from + k];
-        return b === undefined ? undefined : Math.round(b * 10) / 10;
+const tenth = (v: number) => Math.round(v * 10) / 10 + 0;
+
+/** The heating chart: the recorded past up to `slot`, then the feed's plan from `slot` on (the plan
+ *  was made at its own slot, so it is read from where now is). */
+export function heatingSlots(past: {indoor?: number; offset?: number}[], state: FeedSnapshot | undefined, slot: number,
+    ahead = AHEAD_SLOTS): WidgetSlot[] {
+    const back = past.map((p) => ({indoor: p.indoor === undefined ? undefined : tenth(p.indoor),
+        offset: p.offset === undefined ? undefined : tenth(p.offset)}));
+    const from = state?.slot === undefined ? undefined : slot - state.slot;
+    const next = Array.from({length: ahead}, (_, k): WidgetSlot => {
+        if (from === undefined || !state) return {};
+        const bias = state.biases?.[from + k];
+        const indoor = state.indoor?.[from + k];
+        return {indoor: indoor === undefined ? undefined : tenth(indoor), offset: bias === undefined ? undefined : tenth(-bias)};
     });
+    // Comfort range Off, or no plan yet while feeding: the offset ahead is 0 as long as it feeds.
+    if (state?.neutral) next.forEach((s) => { s.offset = 0; });
+    return [...back, ...next];
 }

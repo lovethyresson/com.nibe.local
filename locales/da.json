@@ -178,11 +178,11 @@
         "section_heating": "Hvem der flytter varmen til billigere timer.",
         "section_hotwater": "Hvem der flytter det varme vand til billigere timer.",
         "intro": "Vælg én. Kun én kan styre kompressoren.",
-        "choose_on_desc_heating": "Lærer dit hus og flytter varme ved at fodre pumpens udetemperatur.",
-        "choose_on_desc_hotwater": "Opvarmer tanken i billige timer og holder din reserve.",
+        "choose_on_desc_heating": "Kører i Nibe Live og lærer dit hus.",
+        "choose_on_desc_hotwater": "Kører i Nibe Live og lærer, hvordan I bruger varmt vand.",
         "choose_test": "Autopilot-testkørsel",
         "choose_spa": "Smart pristilpasning",
-        "choose_spa_desc": "NIBEs egen prisstyring, kørt af pumpen.",
+        "choose_spa_desc": "NIBEs egen, kører i pumpen.",
         "choose_off": "Fra",
         "choose_off_desc_heating": "Varmen følger kun kurven.",
         "choose_off_desc_hotwater": "Varmt vand følger pumpens egne indstillinger.",
@@ -446,7 +446,8 @@
           "feed_failed": "Stoppet: pumpen modtog ikke udetemperaturen",
           "mode_off": "Fra",
           "no_model": "Lærer dit hus"
-        }
+        },
+        "range_off": "Komfortinterval er Fra: pumpen ser den rigtige udetemperatur"
       },
       "status_name": {
         "learning": "Lærer",
@@ -480,34 +481,39 @@
       }
     },
     "widget": {
-      "next24": "De næste 24 timer",
       "price": "Pris",
       "off": "Autopilot er slået fra her. Slå den til under Reparer → Smart tilstand.",
       "not_function": "Vælg en Opvarmnings- eller Varmtvandsenhed.",
       "test": "Testkørsel",
       "starting": "Starter…",
       "charge": "Opvarmning",
-      "more_heat": "Mere varme",
-      "less_heat": "Mindre varme",
       "away": "Fraværende · __c__ °C",
       "range": {
         "comfortable": "Komfort ±0,5 °C",
         "save_some": "Spar ±3 °C",
-        "save_most": "Hellere fryse ±6 °C"
+        "save_most": "Hellere fryse ±6 °C",
+        "off": "Fra"
       },
       "hotwater": {
         "next": "Næste opvarmning __time__, cirka __m__ min",
         "none": "Ingen opvarmning planlagt de næste 24 timer",
-        "litres": "__l__ L 40-graders vand nu"
+        "litres": "__l__ L 40-graders vand nu",
+        "share": "__share__ % fra sol",
+        "solar_off": "Sol fra",
+        "solar_total": "__share__ % af den planlagte opvarmning kører på soloverskud."
       },
-      "house": {
-        "title": "Dit hus",
-        "cools": "Med varmen slukket ved __out__ °C ude falder indetemperaturen 1 °C på cirka __h__ t.",
-        "cools_slow": "Med varmen slukket ved __out__ °C ude falder indetemperaturen mindre end 1 °C på to døgn.",
-        "coast": "Med __range__ kan Autopilot skrue ned i op til __h__ t.",
-        "learned": "Har lært af __days__ dage i dit hus.",
-        "learning": "Lærer stadig dit hus · dag __day__ af __of__."
-      }
+      "indoor": "Inde",
+      "expected": "Forventet",
+      "offset": "BT1-forskydning",
+      "comfort": "Termostat",
+      "axis_indoor": "Inde °C",
+      "axis_offset": "Forskydning K",
+      "learning": "Lærer dit hus · dag __day__ af __of__. Forventet indetemperatur vises, når den har lært.",
+      "surplus": "Soloverskud",
+      "charge_grid": "Opvarmning fra nettet",
+      "charge_solar": "Opvarmning fra sol",
+      "axis_price": "Pris /kWh",
+      "axis_surplus": "Overskud kW"
     }
   }
 }

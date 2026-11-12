@@ -561,19 +561,26 @@ export class HotwaterAutopilot {
 
     /** For the Flow condition: a charge running, or one planned to start within `hours`. Only a
      *  plan from this slot or the last counts: an older one is no plan at all. */
-    /** What the Autopilot widget shows: prices and the plan's charges for `n` slots from `from`,
-     *  the tank now and the next charge. Reads only. */
-    outlook(from: number, n: number): {slots: {price?: number; charge: boolean}[]; litres?: number;
-        next?: {at: number; minutes: number; reason: ChargeReason}} {
+    /** What the Autopilot widget shows for `n` slots from `from`: the price, the expected solar
+     *  surplus (kW, only with solar on), and the plan's charges with the share each takes from the
+     *  surplus; the tank now and the next charge. Reads only. */
+    outlook(from: number, n: number): {slots: {price?: number; surplus?: number; charge?: number}[]; litres?: number;
+        next?: {at: number; minutes: number; reason: ChargeReason; solar: number}} {
         const charges = this.morningPlan?.charges ?? [];
-        const charging = (slot: number) => charges.some((c) => slot * SLOT_MS < c.at + c.minutes * 60_000
+        const covering = (slot: number) => charges.find((c) => slot * SLOT_MS < c.at + c.minutes * 60_000
             && (slot + 1) * SLOT_MS > c.at);
+        const surplus = this.surplus(from);
         const now = Date.now();
         const next = charges.find((c) => c.at + c.minutes * 60_000 > now);
         return {
-            slots: Array.from({length: n}, (_, k) => ({price: this.prices.get(from + k)?.price, charge: charging(from + k)})),
+            slots: Array.from({length: n}, (_, k) => {
+                const c = covering(from + k);
+                const kw = surplus?.get(from + k);
+                return {price: this.prices.get(from + k)?.price, surplus: kw === undefined ? undefined : Math.max(0, round(kw, 2)),
+                    charge: c ? c.surplusShare : undefined};
+            }),
             litres: this.last?.litres,
-            next: next && {at: next.at, minutes: next.minutes, reason: next.reason},
+            next: next && {at: next.at, minutes: next.minutes, reason: next.reason, solar: next.surplusShare},
         };
     }
 

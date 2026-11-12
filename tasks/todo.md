@@ -551,13 +551,13 @@ then the maintainer turns Autopilot on in Heating → Repair → Autopilot. That
       control heating Off, so the shift-only feed stopped. The setting is called Comfort range.
 - [x] Revised the same evening (maintainer): Price control → **Smart mode** in each function's
       Repair; Comfort range, Away and Away temperature are Heating capabilities; comfort is the
-      thermostat; no pause (Smart mode Off instead); house insights → Autopilot widget.
+      thermostat; Comfort range Off feeds unshifted; widget: indoor vs BT1 offset, ±12 h.
 - [ ] Repair → Smart mode on Heating: checklist shows indoor, Utetemperatur, dynamic prices, room
       control off; Verify passes; the SPA heating tiles go.
 - [ ] Hot water → Repair → Smart mode: choices save; SPA hot water tiles follow.
 - [ ] Away on: thermostat to the Away temperature; off: back. Unverified on hardware: whether 2505
       moves the curve with room-sensor control off (Autopilot needs it off).
-- [ ] Autopilot widget on a dashboard: chart, house lines, footnote read right.
+- [ ] Autopilot widget on a dashboard: indoor and offset axes read right; Comfort range Off feeds 0.
 - [ ] Heating tile: status, reason, fed outdoor, shift update each slot; Insights log them.
 
 ## Autopilot slice 1: data collection (branch `smart-heating/m1-data`)

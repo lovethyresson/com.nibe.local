@@ -50,6 +50,7 @@ export function heatingStatus(s: FeedSnapshot, now: number, t: Translate, time: 
             : t('learning_short'))};
     }
     if (s.stopped) return {status: 'paused', reason: say(t(`paused.${s.stopped}`))};
+    if (s.neutral) return {status: 'holding', reason: say(t('range_off'))};
     const biases = s.biases ?? [];
     const slot0 = s.slot ?? Math.floor(now / SLOT_MS);
     // Where in the plan "now" is: the plan was made at its slot's start.

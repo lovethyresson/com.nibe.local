@@ -1227,13 +1227,18 @@ once. The rest is Repair and capabilities:
   (`target_temperature.autopilot_away`), outdoor shift and fed outdoor while Autopilot runs it.
 - **Comfort is the thermostat.** Away keeps the thermostat's value, sets it to the Away
   temperature, and restores it when Away turns off; while Away the widest range applies.
-- **No pause** (maintainer, 2026-11-12): Comfort range has no Off and there are no pause/resume
-  Flow cards; turning Autopilot off is Smart mode Off. Leaving Autopilot while Away first puts the
-  thermostat back.
-- **House insights moved to the Autopilot dashboard widget** (`widgets/autopilot`,
-  `lib/autopilot/widget.ts`): status and reason, the next 24 h (price with the planned shift, or
-  hot water's charges), and the house in plain terms: how fast it cools at today's and the coldest
-  forecast outdoor temperature, and how long the chosen range lets it ease off.
+- **No pause; Comfort range Off instead** (maintainer, 2026-11-12): Off keeps feeding the real
+  outdoor temperature with no shift (the pump stays on the sensor Autopilot uses, never back on its
+  own BT1, which reads ~2 °C higher here) and plans nothing; the pump's guards still apply. Smart
+  mode Off is what hands BT1 back. Leaving Autopilot while Away first puts the thermostat back.
+- **The outdoor shift capability is what BT1 is fed minus the real outdoor temperature**: below 0
+  the pump sees it colder and heats more (the planner's bias with the sign flipped).
+- **The Autopilot dashboard widget** (`widgets/autopilot`, `lib/autopilot/widget.ts`) replaces the
+  House insights labels: status and reason, then indoor temperature (left axis; measured, then the
+  plan's expectation, thermostat dotted) against the BT1 offset (right axis) from 12 h back to
+  12 h ahead. Hot water shows the next 24 h: price (left axis) against the expected solar
+  surplus (right axis, kW), with each planned charge split into its solar and grid parts. The repair choices are named "Autopilot"
+  (runs in Nibe Live) and "Smart price adaption" (NIBE's own, runs in the pump).
 Profiles map to shift limits in `PROFILE_LIMITS` (`live.ts`). Not built yet: Custom sliders,
 pre-heating before Away ends, savings.
 

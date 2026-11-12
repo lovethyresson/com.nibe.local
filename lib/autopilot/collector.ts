@@ -256,6 +256,17 @@ export class AutopilotCollector {
         });
     }
 
+    /** Indoor and BT1 offset (what was fed minus the real outdoor, 0 in slots nobody fed) for `n`
+     *  slots from `from`, as recorded: the widget's past. */
+    recent(from: number, n: number): {indoor?: number; offset?: number}[] {
+        return Array.from({length: n}, (_, k) => {
+            const v = this.history.get(from + k);
+            if (!v) return {};
+            const fed = (v.flags & FLAG.fedOutdoor) !== 0 && Number.isFinite(v.bt1) && Number.isFinite(v.te);
+            return {indoor: Number.isFinite(v.ti) ? v.ti : undefined, offset: fed ? v.bt1 - v.te : 0};
+        });
+    }
+
     /** The fitted house and how many days it rests on; undefined before the first fit. */
     house(): {params?: HouseParams; validDays: number} | undefined {
         return this.fit ? {params: this.fit.params, validDays: this.fit.validDays} : undefined;

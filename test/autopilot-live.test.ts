@@ -85,13 +85,14 @@ function harness(over: {mode?: LiveMode; facts?: Partial<PumpFacts>; sensor?: nu
     let input1: number | undefined;
     const state = {
         mode: over.mode ?? 'live' as LiveMode, writes: [] as number[], records: [] as LiveEntry[], warnings: [] as (StopReason | undefined)[],
-        changes: 0,
+        changes: 0, neutral: false,
         feeding: [] as boolean[], sensor: ('sensor' in over ? over.sensor : 3) as number | undefined, deaf: over.deaf ?? false,
         facts: {mode: 1, thresholds: {}, spaHeating: false, roomControl: 0, ...over.facts} as PumpFacts,
     };
     const hooks: FeedHooks = {
         mode: () => state.mode,
         limits: () => LIVE_LIMITS,
+        neutral: () => state.neutral,
         plan: () => ('plan' in over ? over.plan : input({curve: 3})),
         pump: async () => state.facts,
         outdoor: () => ({sensor: state.sensor, forecast: over.forecast, localHour: 12, bias: newForecastBias()}),
@@ -145,6 +146,33 @@ test('switching from live to test hands BT1 back once', async () => {
     await feed.cycle();
     await feed.cycle();
     assert.deepEqual(state.writes.slice(1), [3], 'one neutral write, then nothing');
+});
+
+test('Comfort range Off feeds the real outdoor temperature, unshifted, and plans again when it is back', async () => {
+    const {feed, state} = harness({plan: input({curve: 3, forecast: Array.from({length: 96}, (_, k) => ({te: 3, sun: 0, price: k < 16 ? 4 : 1}))})});
+    feed.start();
+    await feed.cycle();
+    assert.notEqual(state.writes.at(-1), 3, 'shifting while the range is on');
+    state.neutral = true;
+    await feed.cycle();
+    assert.equal(state.writes.at(-1), 3, 'the real outdoor temperature');
+    assert.equal(feed.state.bias, 0);
+    assert.equal(feed.state.neutral, true);
+    assert.equal(feed.state.stopped, undefined, 'still feeding, not a wait');
+    await feed.cycle();
+    assert.equal(state.writes.at(-1), 3, 'and again: the pump stays on the chosen sensor');
+    state.neutral = false;
+    await feed.cycle();
+    assert.notEqual(state.writes.at(-1), 3, 'shifting again within the slot');
+});
+
+test('Comfort range Off still stands aside for SPA', async () => {
+    const {feed, state} = harness({facts: {spaHeating: true}});
+    state.neutral = true;
+    feed.start();
+    await feed.cycle();
+    assert.equal(feed.state.stopped, 'spa_on');
+    assert.deepEqual(state.writes, []);
 });
 
 test('three failed cycles stop the feed with a warning', async () => {

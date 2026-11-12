@@ -1,38 +1,18 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {PROFILE_LIMITS} from '../lib/autopilot/live';
-import {hoursToDrop, houseLines, plannedShifts, ticks} from '../lib/autopilot/widget';
-import {RADIATOR_HOUSE} from './autopilot-house-sim';
+import {heatingSlots, ticks} from '../lib/autopilot/widget';
 
-const t = (key: string, tokens?: Record<string, string | number>) =>
-    key + (tokens ? `(${Object.entries(tokens).map(([k, v]) => `${k}=${v}`).join(',')})` : '');
-
-test('a house cools faster the colder it is outside', () => {
-    const mild = hoursToDrop(RADIATOR_HOUSE, 1, 21, 5)!;
-    const cold = hoursToDrop(RADIATOR_HOUSE, 1, 21, -15)!;
-    assert.ok(cold < mild, `${cold} h at -15 °C, ${mild} h at 5 °C`);
-    assert.ok(hoursToDrop(RADIATOR_HOUSE, 3, 21, 0)! > hoursToDrop(RADIATOR_HOUSE, 1, 21, 0)!);
-});
-
-test('the house lines say how fast it cools at today\'s and the coldest outdoor temperature, and how long it may ease off', () => {
-    const lines = houseLines(RADIATOR_HOUSE, t, {from: 21, outdoor: 4.6, coldest: -3.2, limits: PROFILE_LIMITS.save_some,
-        rangeTitle: 'Save'});
-    assert.equal(lines.length, 3);
-    assert.match(lines[0], /^house\.cools\(out=5,h=\d+(\.5)?\)$/);
-    assert.match(lines[1], /^house\.cools\(out=-3,/);
-    assert.match(lines[2], /^house\.coast\(range=Save,h=\d+/);
-    const coast = Number(/h=([\d.]+)/.exec(lines[2])![1]);
-    assert.ok(coast <= PROFILE_LIMITS.save_some.maxCoastH, 'never longer than the range allows');
-    assert.equal(houseLines(RADIATOR_HOUSE, t, {from: 21, outdoor: 4, coldest: 4.2, limits: PROFILE_LIMITS.comfortable,
-        rangeTitle: 'Comfort'}).length, 2, 'the same temperature twice is said once');
-    assert.deepEqual(houseLines(undefined, t, {from: 21, outdoor: 4, limits: PROFILE_LIMITS.comfortable, rangeTitle: 'C'}), [],
-        'nothing before the first fit');
-});
-
-test('the chart reads the plan from now, not from the slot it was made in', () => {
-    const shifts = plannedShifts({mode: 'live', bias: 0, target: 0, slot: 100, biases: [0, -1, -2.04, 1]}, 101, 4);
-    assert.deepEqual(shifts, [-1, -2, 1, undefined]);
-    assert.deepEqual(plannedShifts({mode: 'off', bias: 0, target: 0}, 101, 2), [undefined, undefined]);
+test('the heating chart is the recorded past, then the plan read from now; offset is fed minus real', () => {
+    const past = [{indoor: 21.04, offset: 0}, {indoor: 21.2, offset: -1.96}, {}];
+    const state = {mode: 'live' as const, bias: 0, target: 0, slot: 100, biases: [0, 2, -3], indoor: [21.3, 21.5, 21.1]};
+    const slots = heatingSlots(past, state, 101, 3);
+    assert.deepEqual(slots, [
+        {indoor: 21, offset: 0}, {indoor: 21.2, offset: -2}, {indoor: undefined, offset: undefined},
+        {indoor: 21.5, offset: -2}, {indoor: 21.1, offset: 3}, {indoor: undefined, offset: undefined},
+    ], 'pre-heating feeds BT1 colder: a negative offset');
+    assert.deepEqual(heatingSlots([], undefined, 101, 2), [{}, {}], 'nothing ahead without a plan');
+    assert.deepEqual(heatingSlots([], {mode: 'live', bias: 0, target: 0, neutral: true}, 101, 2).map((s) => s.offset), [0, 0],
+        'Comfort range Off: 0 ahead');
 });
 
 test('hour ticks every 6 h, at their slot', () => {
