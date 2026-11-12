@@ -193,7 +193,7 @@
         "is_on": "Autopilot er til",
         "is_paused": "Autopilot er på pause",
         "change_outdoor": "Udetemperatur",
-        "change_profile": "Profil og komfort",
+        "change_profile": "Komfortinterval",
         "return_nibe": "Giv tilbage til NIBE",
         "checklist_intro": "Det her bruger Autopilot.",
         "indoor": "Indetemperatur",
@@ -224,7 +224,7 @@
         "comfort": "Komforttemperatur (°C)",
         "comfort_hint": "Bruges, når Autopilot har lært dit hus.",
         "start_test": "Start testkørsel",
-        "saved_profile": "Profil gemt",
+        "saved_profile": "Komfortinterval gemt",
         "saved_test": "Testkørsel startet",
         "verify_intro": "Autopilot tjekker, at pumpen modtager udetemperaturen.",
         "verify_confirm": "Begge er til",
@@ -240,7 +240,8 @@
         "saved_returned": "Givet tilbage til NIBE",
         "outdoor_intro": "Vælg en sensor i skyggen, eller brug udsigten.",
         "use_forecast": "Brug vejrudsigten",
-        "use_forecast_desc": "For din Homeys placering."
+        "use_forecast_desc": "For din Homeys placering.",
+        "profile_title": "Komfortinterval"
       }
     },
     "gateway": {

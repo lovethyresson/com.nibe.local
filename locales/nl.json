@@ -193,7 +193,7 @@
         "is_on": "Autopilot staat aan",
         "is_paused": "Autopilot is gepauzeerd",
         "change_outdoor": "Buitentemperatuur",
-        "change_profile": "Profiel en comfort",
+        "change_profile": "Comfortbereik",
         "return_nibe": "Teruggeven aan NIBE",
         "checklist_intro": "Dit gebruikt Autopilot.",
         "indoor": "Binnentemperatuur",
@@ -224,7 +224,7 @@
         "comfort": "Comforttemperatuur (°C)",
         "comfort_hint": "Geldt zodra Autopilot je huis kent.",
         "start_test": "Testrun starten",
-        "saved_profile": "Profiel opgeslagen",
+        "saved_profile": "Comfortbereik opgeslagen",
         "saved_test": "Testrun gestart",
         "verify_intro": "Autopilot controleert of de pomp zijn buitentemperatuur overneemt.",
         "verify_confirm": "Beide staan aan",
@@ -240,7 +240,8 @@
         "saved_returned": "Teruggegeven aan NIBE",
         "outdoor_intro": "Kies een sensor in de schaduw, of gebruik de verwachting.",
         "use_forecast": "Weersverwachting gebruiken",
-        "use_forecast_desc": "Voor de locatie van je Homey."
+        "use_forecast_desc": "Voor de locatie van je Homey.",
+        "profile_title": "Comfortbereik"
       }
     },
     "gateway": {

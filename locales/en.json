@@ -193,7 +193,7 @@
         "is_on": "Autopilot is on",
         "is_paused": "Autopilot is paused",
         "change_outdoor": "Outdoor temperature",
-        "change_profile": "Profile and comfort",
+        "change_profile": "Comfort range",
         "return_nibe": "Return to NIBE",
         "checklist_intro": "What Autopilot uses.",
         "indoor": "Indoor temperature",
@@ -224,7 +224,7 @@
         "comfort": "Comfort temperature (°C)",
         "comfort_hint": "Used once Autopilot has learned your house.",
         "start_test": "Start test run",
-        "saved_profile": "Profile saved",
+        "saved_profile": "Comfort range saved",
         "saved_test": "Test run started",
         "verify_intro": "Autopilot checks that the pump takes its outdoor temperature.",
         "verify_confirm": "Both are on",
@@ -240,7 +240,8 @@
         "saved_returned": "Handed back to NIBE",
         "outdoor_intro": "Pick a sensor in the shade, or use the forecast.",
         "use_forecast": "Use the weather forecast",
-        "use_forecast_desc": "For your Homey's location."
+        "use_forecast_desc": "For your Homey's location.",
+        "profile_title": "Comfort range"
       }
     },
     "gateway": {

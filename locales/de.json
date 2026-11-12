@@ -193,7 +193,7 @@
         "is_on": "Autopilot ist an",
         "is_paused": "Autopilot ist pausiert",
         "change_outdoor": "Außentemperatur",
-        "change_profile": "Profil und Komfort",
+        "change_profile": "Komfortbereich",
         "return_nibe": "An NIBE zurückgeben",
         "checklist_intro": "Das nutzt Autopilot.",
         "indoor": "Innentemperatur",
@@ -224,7 +224,7 @@
         "comfort": "Komforttemperatur (°C)",
         "comfort_hint": "Gilt, sobald Autopilot Ihr Haus gelernt hat.",
         "start_test": "Testlauf starten",
-        "saved_profile": "Profil gespeichert",
+        "saved_profile": "Komfortbereich gespeichert",
         "saved_test": "Testlauf gestartet",
         "verify_intro": "Autopilot prüft, ob die Pumpe seine Außentemperatur übernimmt.",
         "verify_confirm": "Beides ist an",
@@ -240,7 +240,8 @@
         "saved_returned": "An NIBE zurückgegeben",
         "outdoor_intro": "Einen Sensor im Schatten wählen oder die Vorhersage nutzen.",
         "use_forecast": "Wettervorhersage nutzen",
-        "use_forecast_desc": "Für den Standort Ihres Homey."
+        "use_forecast_desc": "Für den Standort Ihres Homey.",
+        "profile_title": "Komfortbereich"
       }
     },
     "gateway": {

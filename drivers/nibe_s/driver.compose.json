@@ -1483,12 +1483,12 @@
           "type": "dropdown",
           "value": "comfortable",
           "label": {
-            "en": "Profile",
-            "sv": "Profil",
-            "de": "Profil",
-            "nl": "Profiel",
-            "no": "Profil",
-            "da": "Profil"
+            "en": "Comfort range",
+            "sv": "Komfortspann",
+            "de": "Komfortbereich",
+            "nl": "Comfortbereik",
+            "no": "Komfortområde",
+            "da": "Komfortinterval"
           },
           "hint": {
             "en": "How far indoor may drift from its usual level to save money.",

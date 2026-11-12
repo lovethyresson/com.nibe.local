@@ -193,7 +193,7 @@
         "is_on": "Autopilot är på",
         "is_paused": "Autopilot är pausad",
         "change_outdoor": "Utetemperatur",
-        "change_profile": "Profil och komfort",
+        "change_profile": "Komfortspann",
         "return_nibe": "Lämna tillbaka till NIBE",
         "checklist_intro": "Det här använder Autopilot.",
         "indoor": "Inomhustemperatur",
@@ -224,7 +224,7 @@
         "comfort": "Komforttemperatur (°C)",
         "comfort_hint": "Används när Autopilot har lärt sig ditt hus.",
         "start_test": "Starta testkörning",
-        "saved_profile": "Profil sparad",
+        "saved_profile": "Komfortspann sparat",
         "saved_test": "Testkörning startad",
         "verify_intro": "Autopilot kontrollerar att pumpen tar emot dess utetemperatur.",
         "verify_confirm": "Båda är på",
@@ -240,7 +240,8 @@
         "saved_returned": "Lämnat tillbaka till NIBE",
         "outdoor_intro": "Välj en givare i skugga, eller använd prognosen.",
         "use_forecast": "Använd väderprognosen",
-        "use_forecast_desc": "För din Homeys plats."
+        "use_forecast_desc": "För din Homeys plats.",
+        "profile_title": "Komfortspann"
       }
     },
     "gateway": {

@@ -390,7 +390,7 @@ function NibeSetup(options) {
         shell.appendChild(next); back(autopilot);
     }
     function profileStep() {
-        clear(a('title'), a('profile_intro'));
+        clear(a('profile_title'), a('profile_intro'));
         shell.appendChild(radios('autopilot-profile', [
             {id: 'comfortable', title: a('profile_comfortable'), description: a('profile_comfortable_desc')},
             {id: 'save_some', title: a('profile_save_some'), description: a('profile_save_some_desc')},

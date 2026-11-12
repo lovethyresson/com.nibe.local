@@ -3185,20 +3185,20 @@
     {
       "id": "autopilot_heating_set_profile",
       "title": {
-        "en": "Set Autopilot heating profile",
-        "sv": "Ställ in profil för Autopilot uppvärmning",
-        "de": "Profil für Autopilot Heizung einstellen",
-        "nl": "Profiel van Autopilot verwarming instellen",
-        "no": "Still inn profil for Autopilot oppvarming",
-        "da": "Indstil profil for Autopilot opvarmning"
+        "en": "Set Autopilot heating comfort range",
+        "sv": "Ställ in komfortspann för Autopilot uppvärmning",
+        "de": "Komfortbereich für Autopilot Heizung einstellen",
+        "nl": "Comfortbereik van Autopilot verwarming instellen",
+        "no": "Still inn komfortområde for Autopilot oppvarming",
+        "da": "Indstil komfortinterval for Autopilot opvarmning"
       },
       "titleFormatted": {
-        "en": "Set Autopilot heating profile to [[profile]]",
-        "sv": "Ställ in profil för Autopilot uppvärmning till [[profile]]",
-        "de": "Profil für Autopilot Heizung auf [[profile]] setzen",
-        "nl": "Profiel van Autopilot verwarming instellen op [[profile]]",
-        "no": "Still inn profil for Autopilot oppvarming til [[profile]]",
-        "da": "Indstil profil for Autopilot opvarmning til [[profile]]"
+        "en": "Set Autopilot heating comfort range to [[profile]]",
+        "sv": "Ställ in komfortspann för Autopilot uppvärmning till [[profile]]",
+        "de": "Komfortbereich für Autopilot Heizung auf [[profile]] setzen",
+        "nl": "Comfortbereik van Autopilot verwarming instellen op [[profile]]",
+        "no": "Still inn komfortområde for Autopilot oppvarming til [[profile]]",
+        "da": "Indstil komfortinterval for Autopilot opvarmning til [[profile]]"
       },
       "$filter": "capabilities=autopilot_status_NIBE",
       "args": [

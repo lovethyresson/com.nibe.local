@@ -193,7 +193,7 @@
         "is_on": "Autopilot er på",
         "is_paused": "Autopilot er satt på pause",
         "change_outdoor": "Utetemperatur",
-        "change_profile": "Profil og komfort",
+        "change_profile": "Komfortområde",
         "return_nibe": "Gi tilbake til NIBE",
         "checklist_intro": "Dette bruker Autopilot.",
         "indoor": "Innetemperatur",
@@ -224,7 +224,7 @@
         "comfort": "Komforttemperatur (°C)",
         "comfort_hint": "Brukes når Autopilot har lært huset ditt.",
         "start_test": "Start testkjøring",
-        "saved_profile": "Profil lagret",
+        "saved_profile": "Komfortområde lagret",
         "saved_test": "Testkjøring startet",
         "verify_intro": "Autopilot sjekker at pumpen tar imot utetemperaturen.",
         "verify_confirm": "Begge er på",
@@ -240,7 +240,8 @@
         "saved_returned": "Gitt tilbake til NIBE",
         "outdoor_intro": "Velg en sensor i skyggen, eller bruk varselet.",
         "use_forecast": "Bruk værvarselet",
-        "use_forecast_desc": "For Homeyens plassering."
+        "use_forecast_desc": "For Homeyens plassering.",
+        "profile_title": "Komfortområde"
       }
     },
     "gateway": {
