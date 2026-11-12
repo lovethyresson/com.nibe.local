@@ -5,7 +5,10 @@ import {newHistoryFileName} from './autopilot/store-file';
 import {ChargeEvent, HotwaterAutopilot, HotwaterMode} from './autopilot/hotwater-shadow';
 import {DAY_TYPE_SETTING, readDayType} from './autopilot/day-type';
 import {Sample} from './autopilot/history';
-import {HeatingFeed, PumpFacts, liveMode, liveSettingName} from './autopilot/live';
+import {HeatingFeed, LiveMode, PumpFacts, StopReason, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits} from './autopilot/live';
+import {PRICE_SETTING, PriceControl, PriceFunction, priceControl, priceControlWrites, spaOn} from './autopilot/price-control';
+import {HeatingStatus, heatingStatus} from './autopilot/heating-status';
+import {forecastCorrection} from './autopilot/outdoor';
 import {Device} from 'homey';
 import net from 'net';
 import {analyticsConsent, setAnalyticsConsent, track} from './analytics';
@@ -14,7 +17,8 @@ import {
     resolvedAddress, signedValue, withResolvedAddresses
 } from './registers';
 import {
-    ACTIVE_POWER_CAPABILITY, ALARM_ACTIVE_CAPABILITY, ALARM_TEXT_CAPABILITY,
+    ACTIVE_POWER_CAPABILITY, ALARM_ACTIVE_CAPABILITY, ALARM_TEXT_CAPABILITY, AUTOPILOT_FED_CAPABILITY,
+    AUTOPILOT_REASON_CAPABILITY, AUTOPILOT_SHIFT_CAPABILITY, AUTOPILOT_STATUS_CAPABILITY,
     DAY_TYPE_CAPABILITY, FUNCTION_COP_CAPABILITY, HOTWATER_VOLUME_CAPABILITY, METER_CAPABILITY,
     PUMP_ACTIVE_CAPABILITY, Role, SOLAR_METER_CAPABILITY, TOTAL_COP_CAPABILITY,
     capabilitySyncPlan, extraCapabilities, extraCapabilityOptions, functionRoles, mirrorOptions,
@@ -52,7 +56,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     // Hot water Autopilot in shadow, on Hot water, while the app setting below is on. Reads only.
     private hotwaterAutopilot: HotwaterAutopilot | null = null;
     private heatingFeed: HeatingFeed | null = null;
-    private onAppSetting?: (key: string) => void;
+    // The heating Price control and profile as last applied (applyAutopilot): onSettings still
+    // exposes the old values, and the feed reads these on its own timer.
+    private heatingMode: LiveMode = 'off';
+    private heatingProfile: unknown;
+    private heatingStatusShown?: HeatingStatus;
+    // Hosts whose SPA switches Price control is writing right now, so its own writes are not
+    // taken for the pump (or the owner) turning SPA on.
+    private static priceWriting = new Set<string>();
     private indoorTimer: ReturnType<typeof setTimeout> | null = null;
     private indoorWork: Promise<any> | null = null;
     private indoorStopped = false;
@@ -616,6 +627,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             this.noteExternalChange(register, oldValue, value);
             this.checkTrigger(register, value);
             this.checkChangedTrigger(register, oldValue, value);
+            const spa = this.profile.spaSwitches;
+            if (value === true && oldValue !== null && spa && Object.values(spa).includes(register.name))
+                this.spaSwitchedOn().catch(this.error);
         }
     }
 
@@ -875,7 +889,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private async syncCapabilities(): Promise<string[]> {
         const selection = this.getSelection();
         const {registers: roleRegs, extras, toRemove} =
-            capabilitySyncPlan(this.profile, this.role, selection, this.getCapabilities(), this.autopilotMode(this.pendingAutopilotSettings) !== 'off');
+            capabilitySyncPlan(this.profile, this.role, selection, this.getCapabilities(), this.autopilotOn(this.pendingAutopilotSettings));
         const failed: string[] = [];
         const note = (name: string, what: string) => (error: any) => {
             this.error(`Failed to ${what} capability ${name}:`, error);
@@ -1096,11 +1110,18 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.role === 'hotwater') await this.syncHotwaterAutopilot().catch(this.error);
     }
 
-    /** Autopilot hot water for this pump: off, a test run, or live. A pump-wide setting, mirrored
-     *  on all of the pump's devices like the poll interval. */
+    /** Autopilot hot water for this pump: off, a test run, or live, from the hot water Price
+     *  control. A pump-wide setting, mirrored on all of the pump's devices like the poll interval. */
     autopilotMode(settings: Record<string, any> = this.getSettings()): 'off' | HotwaterMode {
-        const mode = settings.autopilotHotwater;
-        return mode === 'shadow' || mode === 'live' ? mode : 'off';
+        const mode = priceControl(settings.priceHotwater);
+        return mode === 'test' ? 'shadow' : mode === 'autopilot' ? 'live' : 'off';
+    }
+
+    /** Whether this device carries Autopilot capabilities: Main while hot water's is on (day type),
+     *  Heating while heating's is (status, reason, fed, shift). */
+    private autopilotOn(settings: Record<string, any> = this.getSettings()): boolean {
+        if (this.role === 'heating') return liveMode(settings.priceHeating) !== 'off';
+        return this.autopilotMode(settings) !== 'off';
     }
 
     /** The Main device shows the household's day type while Autopilot is on. */
@@ -1115,16 +1136,17 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
      *  the Hot water device starts or stops Autopilot. `settings` is passed during onSettings,
      *  where Homey still exposes the old values. */
     async applyAutopilot(settings: Record<string, any> = this.getSettings()) {
-        if (this.role === 'main' && this.capabilitiesSynced) {
+        if ((this.role === 'main' || this.role === 'heating') && this.capabilitiesSynced) {
             const {toAdd, toRemove} = capabilitySyncPlan(this.profile, this.role, this.getSelection(), this.getCapabilities(),
-                this.autopilotMode(settings) !== 'off');
+                this.autopilotOn(settings));
             if (toAdd.length || toRemove.length) {
                 this.pendingAutopilotSettings = settings;
                 try { await this.syncCapabilities(); } finally { this.pendingAutopilotSettings = undefined; }
             }
-            await this.showDayType();
+            if (this.role === 'main') await this.showDayType();
         }
         if (this.role === 'hotwater') await this.syncHotwaterAutopilot(settings);
+        if (this.role === 'heating') this.syncHeatingFeed(settings);
     }
     private pendingAutopilotSettings?: Record<string, any>;
 
@@ -1252,49 +1274,24 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.startHeatingFeed();
     }
 
-    /** Autopilot heating's shift-only live test (live.ts). Off unless the app setting
-     *  `autopilotLive.<this device's id>` is 'shift'; set from the CLI, no owner UI. */
+    /** Autopilot heating (live.ts), run by the heating Price control: `test` plans and reports,
+     *  `autopilot` feeds BT1. */
     private startHeatingFeed() {
         const spec = this.profile.autopilotFeed;
         const collector = this.autopilot;
         if (!spec || !collector || this.heatingFeed) return;
-        const key = liveSettingName(this.getData().id);
-        const register = (name: string) => this.profile.registerByName[name];
-        const read = (name: string) => (register(name) ? this.readRegister(register(name)).catch(() => undefined) : undefined);
         this.heatingFeed = new HeatingFeed({
-            mode: () => liveMode(this.homey.settings.get(key)),
+            mode: () => (this.heatingMode === 'live' && this.pausedUntil() > Date.now() ? 'paused' : this.heatingMode),
+            limits: () => profileLimits(this.heatingProfile),
             plan: (slot) => this.autopilot?.liveInputs(slot),
-            pump: async (): Promise<PumpFacts> => {
-                const c = this.profile.autopilotHistory?.controls;
-                const num = async (name?: string) => {
-                    // A picker register (operating mode) reads back as its id in text: "0".
-                    const v = name ? await read(name) : undefined;
-                    const n = typeof v === 'string' && v.trim() !== '' ? Number(v) : v;
-                    return typeof n === 'number' && Number.isFinite(n) ? n : undefined;
-                };
-                const spa = await Promise.all(spec.spa.map((name) => read(name)));
-                const room = spec.roomControl === undefined ? undefined
-                    : await this.connection?.readRegisterRaw({address: spec.roomControl, direction: Dir.Out} as Register, false, 'write');
-                return {
-                    mode: await num(c?.mode),
-                    thresholds: {stopHeating: await num(c?.stopHeating), stopAddHeat: await num(c?.stopAddHeat),
-                        startCooling: await num(c?.startCooling)},
-                    spaHeating: spa.every((v) => v === true),
-                    roomControl: room === undefined || isUnavailableRaw(room) ? undefined : room & 0xff,
-                    addHeat: (await read(spec.addHeat)) === true,
-                };
-            },
+            pump: () => this.heatingPumpFacts(),
             outdoor: () => collector.outdoorNow(),
-            write: async (celsius) => {
-                if (!this.connection) throw new Error('Not connected to the heat pump');
-                await this.connection.writeRegisterValue(register(spec.bt1), encodeRegisterValue(register(spec.bt1), celsius));
-            },
-            readBack: async () => {
-                const raw = await this.connection?.readRegisterRaw(register(spec.outdoor), false, 'write');
-                return raw === undefined || isUnavailableRaw(raw) ? undefined : signedValue(raw) / 10;
-            },
+            write: (celsius) => this.writeBt1(celsius),
+            readBack: () => this.readFedOutdoor(),
             feeding: (on) => collector.setFeeding(on),
-            warn: (message) => (message ? this.setWarning(message) : this.unsetWarning()).catch(this.error),
+            warn: (reason) => (reason ? this.setWarning(this.homey.__(`autopilot.heating.warning.${reason}`))
+                : this.unsetWarning()).catch(this.error),
+            changed: () => { this.showHeatingStatus().catch(this.error); },
             log: (...args) => this.log(...args),
             record: (entry) => collector.recordLive(entry),
             setTimeout: (fn, ms) => this.homey.setTimeout(fn, ms),
@@ -1302,29 +1299,298 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             sleep: (ms) => new Promise((resolve) => this.homey.setTimeout(resolve, ms)),
             now: () => Date.now(),
         });
-        this.onAppSetting = (changed: string) => { if (changed === key) this.syncHeatingFeed(); };
-        this.homey.settings.on('set', this.onAppSetting);
-        this.homey.settings.on('unset', this.onAppSetting);
+        collector.onFit = () => { this.showHouseInsights().catch(this.error); };
+        this.showHouseInsights().catch(this.error);
         this.syncHeatingFeed();
     }
 
-    /** Start or stop the feed to match its setting; a feed stopped by a guard starts again here. */
-    private syncHeatingFeed() {
+    private register(name: string): Register {
+        return this.profile.registerByName[name];
+    }
+
+    private async readNamed(name: string): Promise<any> {
+        return this.register(name) ? await this.readRegister(this.register(name)).catch(() => undefined) : undefined;
+    }
+
+    /** Room-sensor control for climate system 1 (2978), or undefined where it does not read. */
+    private async readRoomControl(): Promise<number | undefined> {
+        const address = this.profile.autopilotFeed?.roomControl;
+        if (address === undefined) return undefined;
+        const raw = await this.connection?.readRegisterRaw({address, direction: Dir.Out} as Register, false, 'write');
+        return raw === undefined || isUnavailableRaw(raw) ? undefined : raw & 0xff;
+    }
+
+    private async heatingPumpFacts(): Promise<PumpFacts> {
+        const spec = this.profile.autopilotFeed!;
+        const c = this.profile.autopilotHistory?.controls;
+        const num = async (name?: string) => {
+            // A picker register (operating mode) reads back as its id in text: "0".
+            const v = name ? await this.readNamed(name) : undefined;
+            const n = typeof v === 'string' && v.trim() !== '' ? Number(v) : v;
+            return typeof n === 'number' && Number.isFinite(n) ? n : undefined;
+        };
+        const spa = await Promise.all(spec.spa.map((name) => this.readNamed(name)));
+        return {
+            mode: await num(c?.mode),
+            thresholds: {stopHeating: await num(c?.stopHeating), stopAddHeat: await num(c?.stopAddHeat),
+                startCooling: await num(c?.startCooling)},
+            spaHeating: spa.every((v) => v === true),
+            roomControl: await this.readRoomControl(),
+            addHeat: (await this.readNamed(spec.addHeat)) === true,
+        };
+    }
+
+    /** Write BT1 (5217) directly: the feed and Verify own it; Flows are locked out (writeRegister). */
+    private async writeBt1(celsius: number) {
+        const spec = this.profile.autopilotFeed!;
+        if (!this.connection) throw new Error('Not connected to the heat pump');
+        await this.connection.writeRegisterValue(this.register(spec.bt1), encodeRegisterValue(this.register(spec.bt1), celsius));
+    }
+
+    /** What the pump takes as outdoor temperature (input 1), °C. */
+    private async readFedOutdoor(): Promise<number | undefined> {
+        const raw = await this.connection?.readRegisterRaw(this.register(this.profile.autopilotFeed!.outdoor), false, 'write');
+        return raw === undefined || isUnavailableRaw(raw) ? undefined : signedValue(raw) / 10;
+    }
+
+    private pausedUntil(): number {
+        const until = Number(this.getStoreValue('autopilotPausedUntil'));
+        return Number.isFinite(until) ? until : 0;
+    }
+
+    /** Start or stop the feed to match the heating Price control. */
+    private syncHeatingFeed(settings: Record<string, any> = this.getSettings()) {
         const feed = this.heatingFeed;
+        this.heatingMode = liveMode(settings.priceHeating);
+        this.heatingProfile = settings.autopilotProfile;
         if (!feed) return;
-        const on = liveMode(this.homey.settings.get(liveSettingName(this.getData().id))) === 'shift';
+        const on = this.heatingMode !== 'off';
         if (on && !feed.running) feed.start();
         else if (!on && feed.running) feed.stop('mode_off').catch(this.error);
+        this.showHeatingStatus().catch(this.error);
     }
 
     private async stopHeatingFeed() {
-        if (this.onAppSetting) {
-            this.homey.settings.off?.('set', this.onAppSetting);
-            this.homey.settings.off?.('unset', this.onAppSetting);
-            this.onAppSetting = undefined;
-        }
         await this.heatingFeed?.stop('mode_off').catch(this.error);
         this.heatingFeed = null;
+    }
+
+    private clock = (ms: number) => new Date(ms).toLocaleTimeString('sv-SE',
+        {timeZone: this.homey.clock.getTimezone(), hour: '2-digit', minute: '2-digit'});
+
+    /** For the Flow condition: what Autopilot heating is doing now. */
+    heatingStatusNow(): HeatingStatus {
+        return (this.getCapabilityValue(AUTOPILOT_STATUS_CAPABILITY) as HeatingStatus | null) ?? 'off';
+    }
+
+    /** Status, reason, fed temperature and shift on the Heating device, a Flow trigger when the
+     *  status changes, and a timeline line only when it pauses, resumes or finishes learning. */
+    private async showHeatingStatus() {
+        const feed = this.heatingFeed;
+        if (!feed || !this.hasCapability(AUTOPILOT_STATUS_CAPABILITY)) return;
+        const house = this.autopilot?.houseSummary();
+        const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.heating.status.${key}`, tokens);
+        const state = feed.state;
+        const {status, reason} = heatingStatus(state, Date.now(), t, this.clock,
+            house ? {days: house.days, needed: house.needed} : undefined);
+        const set = async (name: string, value: any) => {
+            if (this.hasCapability(name) && this.getCapabilityValue(name) !== value) await this.setCapabilityValue(name, value);
+        };
+        await set(AUTOPILOT_STATUS_CAPABILITY, status);
+        await set(AUTOPILOT_REASON_CAPABILITY, reason);
+        const feeding = !state.stopped && state.fed !== undefined;
+        await set(AUTOPILOT_FED_CAPABILITY, feeding ? Math.round(state.fed! * 10) / 10 : null);
+        await set(AUTOPILOT_SHIFT_CAPABILITY, feeding ? Math.round(state.bias * 10) / 10 : 0);
+        const before = this.heatingStatusShown;
+        this.heatingStatusShown = status;
+        if (before === undefined || before === status) return;
+        this.homey.flow.getDeviceTriggerCard((this.profile.flowPrefix ?? '') + 'autopilot_heating_status_changed')
+            .trigger(this, {status: this.homey.__(`autopilot.heating.status_name.${status}`), reason}).catch(this.error);
+        // Paused by the owner's own Flow needs no timeline line: they know.
+        const ownPause = state.stopped === 'paused';
+        const line = status === 'paused' && !ownPause ? 'timeline.paused'
+            : before === 'paused' && status !== 'off' && !ownPause ? 'timeline.resumed'
+                : before === 'learning' && status !== 'paused' && status !== 'off' ? 'timeline.learned' : undefined;
+        if (line) this.homey.notifications.createNotification({excerpt: this.homey.__(`autopilot.heating.${line}`, {reason})})
+            .catch(this.error);
+    }
+
+    /** The House insights labels in Settings, on every device of the pump, after each refit. */
+    private async showHouseInsights() {
+        const house = this.autopilot?.houseSummary();
+        if (!house) return;
+        const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.house.${key}`, tokens);
+        const labels: Record<string, string> = {
+            houseLearning: house.ready ? t('ready') : t('learning', {day: Math.min(house.days, house.needed), of: house.needed}),
+            houseHeatLoss: house.insights ? t('heat_loss', {w: Math.round(house.insights.heatLoss)}) : '—',
+            houseHoldsHeat: house.insights ? t('holds_heat', {h: house.insights.hoursPerDegree.toFixed(1)}) : '—',
+        };
+        for (const device of this.pumpDevices())
+            if (Object.entries(labels).some(([key, value]) => device.getSettings()[key] !== value))
+                await device.setSettings(labels).catch(this.error);
+    }
+
+    /** This device and its siblings: every device of the pump. */
+    private pumpDevices(): NibePumpDevice[] {
+        const host = this.host();
+        return (this.driver.getDevices() as NibePumpDevice[]).filter((d) => d === this || d.getSettings?.().address === host);
+    }
+
+    /** Set a pump-wide setting on every device of the pump and apply it, outside onSettings. */
+    private async applyPumpSetting(values: Record<string, any>) {
+        for (const device of this.pumpDevices())
+            if (Object.entries(values).some(([key, value]) => device.getSettings()[key] !== value))
+                await device.setSettings(values);
+        for (const device of this.pumpDevices()) await device.applyAutopilot();
+    }
+
+    /** Refuse a Price control choice this pump cannot take; throws the owner-facing reason. */
+    private checkPriceControl(fn: PriceFunction, value: PriceControl) {
+        const t = (key: string) => this.homey.__(`autopilot.price.${key}`);
+        if (value === 'spa' && !this.profile.spaSwitches) throw new Error(t('no_spa'));
+        if (value !== 'test' && value !== 'autopilot') return;
+        if (fn === 'hotwater') {
+            const hotwater = this.role === 'hotwater' ? this : this.sibling('hotwater');
+            if (!this.profile.autopilotHotwater || !hotwater) throw new Error(this.homey.__('autopilot.hotwater_setting.no_device'));
+            if (hotwater.tankConfig().litres === null) throw new Error(this.homey.__('autopilot.hotwater_setting.no_tank'));
+            return;
+        }
+        const heating = this.role === 'heating' ? this : this.sibling('heating');
+        if (!this.profile.autopilotFeed || !heating) throw new Error(t('no_heating'));
+        if (value === 'autopilot' && heating.getStoreValue('autopilotHeatingVerified') !== true) throw new Error(t('verify_first'));
+    }
+
+    /** Write SPA's switches for a Price control choice, through the device that carries each. */
+    private async writePriceControl(fn: PriceFunction, value: PriceControl) {
+        const spa = this.profile.spaSwitches;
+        if (!spa) return;
+        NibePumpDevice.priceWriting.add(this.host());
+        try {
+            for (const [name, on] of priceControlWrites(fn, value, spa)) {
+                const holder = this.pumpDevices().find((d) => d.hasCapability(name)) ?? this;
+                if (await holder.readNamed(name) === on) continue;
+                this.log(`Price control (${fn} = ${value}): writing ${name} = ${on}`);
+                await holder.writeRegister(this.register(name), on);
+            }
+        } finally {
+            NibePumpDevice.priceWriting.delete(this.host());
+        }
+    }
+
+    /** The pump stays the truth: SPA for a function turned on (pump display, myUplink, a tile)
+     *  while that function is on Autopilot or its test run flips it to SPA, said once. */
+    private async spaSwitchedOn() {
+        const spa = this.profile.spaSwitches;
+        if (!spa || NibePumpDevice.priceWriting.has(this.host())) return;
+        const master = await this.readNamed(spa.master);
+        for (const fn of ['heating', 'hotwater'] as PriceFunction[]) {
+            const value = priceControl(this.getSettings()[PRICE_SETTING[fn]]);
+            if ((value !== 'test' && value !== 'autopilot') || !spaOn(master, await this.readNamed(spa[fn]))) continue;
+            this.log(`Price control: Smart price adaption turned on for ${fn}; Autopilot steps aside.`);
+            await this.applyPumpSetting({[PRICE_SETTING[fn]]: 'spa'});
+            await this.homey.notifications.createNotification({excerpt: this.homey.__(`autopilot.price.spa_took_over.${fn}`)})
+                .catch(this.error);
+        }
+    }
+
+    /** Heating Setup → Autopilot → Verify: SPA heating off, the real outdoor temperature fed once
+     *  and seen on input 1, then the heating Price control set to Autopilot pump-wide. On failure
+     *  SPA heating is put back and nothing is saved. */
+    async activateAutopilotHeating(): Promise<{fed: number}> {
+        const t = (key: string) => this.homey.__(`autopilot.heating.verify.${key}`);
+        if (this.role !== 'heating' || !this.profile.autopilotFeed || !this.autopilot) throw new Error(t('not_heating'));
+        if (!this.connection) throw new Error('Not connected to the heat pump');
+        if ((await this.readRoomControl() ?? 0) !== 0) throw new Error(t('room_control'));
+        const o = this.autopilot.outdoorNow();
+        const real = o.sensor ?? (o.forecast === undefined ? undefined : o.forecast + forecastCorrection(o.bias, o.localHour));
+        if (real === undefined) throw new Error(t('no_outdoor'));
+        const fed = Math.round(real * 10) / 10;
+        const spa = this.profile.spaSwitches;
+        const spaWas = spa ? await this.readNamed(spa.heating) : undefined;
+        try {
+            if (spaWas === true) await this.writePriceControl('heating', 'autopilot');
+            await this.writeBt1(fed);
+            let seen: number | undefined;
+            for (let i = 0; i < VERIFY_TRIES; i++) {
+                await new Promise((resolve) => this.homey.setTimeout(resolve, VERIFY_GAP_MS));
+                seen = await this.readFedOutdoor();
+                if (seen !== undefined && Math.abs(seen - fed) < 0.05) break;
+            }
+            if (seen === undefined || Math.abs(seen - fed) >= 0.05) throw new Error(t('not_followed'));
+        } catch (error) {
+            if (spaWas === true) await this.writePriceControl('heating', 'spa').catch(this.error);
+            throw error;
+        }
+        await this.setStoreValue('autopilotHeatingVerified', true);
+        await this.unsetStoreValue('autopilotPausedUntil');
+        await this.applyPumpSetting({priceHeating: 'autopilot'});
+        this.log(`Autopilot heating verified: fed ${fed} °C, the pump took it.`);
+        return {fed};
+    }
+
+    /** Heating Setup → Return to NIBE: Autopilot stops (feeding the real outdoor once) and the
+     *  heating Price control becomes the owner's choice of SPA or none. */
+    async deactivateAutopilotHeating(handover: 'spa' | 'off') {
+        if (this.role !== 'heating') throw new Error(this.homey.__('autopilot.heating.verify.not_heating'));
+        await this.writePriceControl('heating', handover);
+        await this.unsetStoreValue('autopilotHeatingVerified');
+        await this.unsetStoreValue('autopilotPausedUntil');
+        await this.applyPumpSetting({priceHeating: handover});
+        this.log(`Autopilot heating handed back to NIBE (${handover}).`);
+    }
+
+    /** What Heating Setup → Autopilot shows: the choice, the checklist's facts and the defaults. */
+    async heatingSetupStatus() {
+        const spa = this.profile.spaSwitches;
+        const indoor = Number(this.getCapabilityValue('measure_temperature'));
+        const mean = this.autopilot?.indoorMeanOver(7);
+        const settings = this.getSettings();
+        return {
+            mode: priceControl(settings.priceHeating),
+            verified: this.getStoreValue('autopilotHeatingVerified') === true,
+            paused: this.pausedUntil() > Date.now(),
+            profile: settings.autopilotProfile ?? 'save_some',
+            comfort: mean === undefined ? settings.autopilotComfort ?? 21 : Math.round(mean * 2) / 2,
+            spaHeating: spa ? spaOn(await this.readNamed(spa.master), await this.readNamed(spa.heating)) : false,
+            roomControl: await this.readRoomControl() ?? null,
+            indoor: Number.isFinite(indoor) ? indoor : null,
+            outdoor: this.autopilot?.outdoorNow().sensor ?? null,
+            prices: this.autopilot?.hasPrices() ?? false,
+            house: this.autopilot?.houseSummary() ?? null,
+            status: this.hasCapability(AUTOPILOT_REASON_CAPABILITY) ? this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) : null,
+        };
+    }
+
+    /** Heating Setup → Autopilot: the profile and comfort chosen there, pump-wide. */
+    async setAutopilotChoices(profile?: string, comfort?: number) {
+        const values: Record<string, any> = {};
+        if (profile === 'comfortable' || profile === 'save_some' || profile === 'save_most') values.autopilotProfile = profile;
+        if (Number.isFinite(comfort) && comfort! >= 15 && comfort! <= 25) values.autopilotComfort = comfort;
+        if (Object.keys(values).length) await this.applyPumpSetting(values);
+    }
+
+    /** Heating Setup → Autopilot: a test run (or off) needs no Verify. */
+    async chooseAutopilotHeating(value: 'test' | 'off', profile?: string) {
+        if (profile) await this.setAutopilotChoices(profile);
+        this.checkPriceControl('heating', value);
+        await this.writePriceControl('heating', value);
+        await this.applyPumpSetting({priceHeating: value});
+    }
+
+    async pauseAutopilotHeating(hours: number) {
+        if (this.heatingMode !== 'live') throw new Error(this.homey.__('autopilot.heating.not_on'));
+        const h = Math.min(48, Math.max(0.25, Number(hours) || 1));
+        await this.setStoreValue('autopilotPausedUntil', Date.now() + h * 3600_000);
+        this.log(`Autopilot heating paused for ${h} h.`);
+    }
+
+    async resumeAutopilotHeating() {
+        await this.unsetStoreValue('autopilotPausedUntil');
+        this.log('Autopilot heating resumed.');
+    }
+
+    async setAutopilotProfile(profile: string) {
+        await this.applyPumpSetting({autopilotProfile: profile});
     }
 
     // A register's value from this poll, decoded the same way capabilities are.
@@ -1912,22 +2178,22 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     async onSettings({oldSettings, newSettings, changedKeys}: {
         oldSettings: {[key: string]: any}, newSettings: {[key: string]: any}, changedKeys: string[]
     }) {
-        const autopilotKeys = ['autopilotHotwater', 'autopilotReserve', 'autopilotSolar'].filter((key) => changedKeys.includes(key));
+        const autopilotKeys = ['priceHeating', 'priceHotwater', 'autopilotProfile', 'autopilotComfort', 'autopilotAway',
+            'autopilotReserve', 'autopilotSolar'].filter((key) => changedKeys.includes(key));
         if (autopilotKeys.length) {
-            const hotwater = this.role === 'hotwater' ? this : this.sibling('hotwater');
-            if (this.autopilotMode(newSettings) !== 'off' && this.profile.autopilotHotwater) {
-                if (!hotwater) throw new Error(this.homey.__('autopilot.hotwater_setting.no_device'));
-                if (hotwater.tankConfig().litres === null) throw new Error(this.homey.__('autopilot.hotwater_setting.no_tank'));
-            }
-            // Pump-wide: every device of the pump shows the same values, and Main and Hot water
-            // act on them.
+            const prices = (['heating', 'hotwater'] as PriceFunction[]).filter((fn) => changedKeys.includes(PRICE_SETTING[fn]));
+            // Check every choice before writing any: a refused one leaves the pump untouched.
+            for (const fn of prices) this.checkPriceControl(fn, priceControl(newSettings[PRICE_SETTING[fn]]));
+            for (const fn of prices) await this.writePriceControl(fn, priceControl(newSettings[PRICE_SETTING[fn]]));
+            if (prices.includes('heating') && priceControl(newSettings.priceHeating) !== 'autopilot')
+                await (this.role === 'heating' ? this : this.sibling('heating'))?.unsetStoreValue('autopilotPausedUntil');
+            // Pump-wide: every device of the pump shows the same values, and Main, Heating and
+            // Hot water act on them.
             for (const key of autopilotKeys) await this.syncToSiblings(key, newSettings[key]);
-            this.log(`Autopilot hot water settings: ${autopilotKeys.map((key) => `${key} = ${newSettings[key]}`).join(', ')}`);
-            if (changedKeys.includes('autopilotHotwater')) {
-                await this.applyAutopilot(newSettings);
-                for (const device of this.driver.getDevices() as any[])
-                    if (device !== this && device.getSettings?.().address === this.host()) await device.applyAutopilot?.();
-            }
+            this.log(`Autopilot settings: ${autopilotKeys.map((key) => `${key} = ${newSettings[key]}`).join(', ')}`);
+            await this.applyAutopilot(newSettings);
+            for (const device of this.driver.getDevices() as any[])
+                if (device !== this && device.getSettings?.().address === this.host()) await device.applyAutopilot?.();
         }
         if (changedKeys.includes('cumulativeEnergy')) {
             this.cumulativeEnergy = newSettings.cumulativeEnergy || 0;
@@ -2057,7 +2323,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     async onDeleted() {
         await this.stopHeatingFeed();
-        await this.homey.settings.unset(liveSettingName(this.getData().id));
         await this.stopIndoor();
         await this.autopilot?.remove().catch(this.error);
         this.autopilot = null;

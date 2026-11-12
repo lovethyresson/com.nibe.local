@@ -269,6 +269,75 @@
     "hotwater_setting": {
       "no_device": "Autopilot Warmwasser braucht das Warmwasser-Gerät dieser Pumpe. Füge es zuerst hinzu.",
       "no_tank": "Wähle zuerst die Speichergröße: Warmwasser-Gerät → Reparieren."
+    },
+    "heating": {
+      "warning": {
+        "feed_failed": "Autopilot Heizung gestoppt: Die Pumpe hat die Außentemperatur nicht übernommen. Menü 7.5.9.2 prüfen und unter Heizung → Reparieren wieder einschalten.",
+        "no_outdoor": "Autopilot Heizung pausiert: keine Außentemperatur.",
+        "spa_on": "Autopilot Heizung pausiert: Smart price adaption ist für die Heizung an.",
+        "room_control": "Autopilot Heizung pausiert: Raumfühlerregelung ist in der Pumpe an.",
+        "immersion_only": "Autopilot Heizung pausiert: Die Pumpe läuft nur mit dem Heizstab.",
+        "no_model": "Autopilot Heizung lernt Ihr Haus noch.",
+        "paused": "Autopilot Heizung ist pausiert.",
+        "mode_off": "Autopilot Heizung ist aus."
+      },
+      "status": {
+        "test": "Testlauf: __text__",
+        "learning": "Lernt Ihr Haus · Tag __day__ von __of__",
+        "learning_short": "Lernt Ihr Haus",
+        "peak": "Preisspitze __from__–__to__",
+        "easing_off": "Drosselt bis __until__",
+        "preheating": "Heizt vor bis __until__",
+        "holding": "Hält: Verschieben lohnt sich gerade nicht",
+        "holding_even": "Hält: Preise zu gleichmäßig zum Verschieben",
+        "next_easing_off": "Hält · drosselt um __at__",
+        "next_preheating": "Hält · heizt vor um __at__",
+        "paused": {
+          "paused": "Von Ihnen pausiert",
+          "no_outdoor": "Pausiert: Außentemperatur meldet nicht mehr",
+          "spa_on": "Pausiert: Smart price adaption ist für die Heizung an",
+          "room_control": "Pausiert: Raumfühlerregelung ist an",
+          "immersion_only": "Pausiert: Die Pumpe läuft nur mit dem Heizstab",
+          "feed_failed": "Gestoppt: Die Pumpe hat die Außentemperatur nicht übernommen",
+          "mode_off": "Aus",
+          "no_model": "Lernt Ihr Haus"
+        }
+      },
+      "status_name": {
+        "learning": "Lernt",
+        "holding": "Hält",
+        "preheating": "Heizt vor",
+        "easing_off": "Drosselt",
+        "paused": "Pausiert",
+        "off": "Aus"
+      },
+      "timeline": {
+        "paused": "Autopilot Heizung: __reason__",
+        "resumed": "Autopilot Heizung läuft wieder.",
+        "learned": "Autopilot Heizung hat Ihr Haus gelernt und verschiebt nun Wärme aus teuren Stunden."
+      },
+      "verify": {
+        "not_heating": "Autopilot Heizung wird am Gerät Heizung eingerichtet.",
+        "room_control": "Zuerst die Raumfühlerregelung in der Pumpe ausschalten.",
+        "no_outdoor": "Noch keine Außentemperatur: Sensor wählen oder Standort für die Wettervorhersage festlegen.",
+        "not_followed": "Die Pumpe hat die Außentemperatur nicht übernommen. Prüfen, ob Menü 7.5.9.2 einen externen BT1 erlaubt."
+      },
+      "not_on": "Autopilot Heizung ist nicht an."
+    },
+    "price": {
+      "no_spa": "Diese Pumpe hat keine Smart price adaption.",
+      "no_heating": "Zuerst das Gerät Heizung hinzufügen.",
+      "verify_first": "Autopilot unter Heizung → Reparieren → Autopilot einschalten: Dort wird zuerst geprüft, ob die Pumpe die Außentemperatur übernimmt.",
+      "spa_took_over": {
+        "heating": "Smart price adaption wurde für die Heizung eingeschaltet, daher hat Autopilot Heizung gestoppt.",
+        "hotwater": "Smart price adaption wurde für Warmwasser eingeschaltet, daher hat Autopilot Warmwasser gestoppt."
+      }
+    },
+    "house": {
+      "ready": "Hat Ihr Haus gelernt",
+      "learning": "Lernt · Tag __day__ von __of__",
+      "heat_loss": "__w__ W pro °C",
+      "holds_heat": "__h__ h, bis es 1 °C abkühlt"
     }
   }
 }

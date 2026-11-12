@@ -614,6 +614,68 @@
           "example": true
         }
       ]
+    },
+    {
+      "id": "autopilot_heating_status_changed",
+      "title": {
+        "en": "Autopilot heating changed what it does",
+        "sv": "Autopilot uppvärmning ändrade vad den gör",
+        "de": "Autopilot Heizung hat geändert, was sie tut",
+        "nl": "Autopilot verwarming veranderde wat hij doet",
+        "no": "Autopilot oppvarming endret hva den gjør",
+        "da": "Autopilot opvarmning ændrede, hvad den gør"
+      },
+      "hint": {
+        "en": "For example from holding to easing off before expensive hours.",
+        "sv": "Till exempel från håller till drar ner inför dyra timmar.",
+        "de": "Zum Beispiel von Halten zu Drosseln vor teuren Stunden.",
+        "nl": "Bijvoorbeeld van vasthouden naar afbouwen voor dure uren.",
+        "no": "For eksempel fra holder til trapper ned før dyre timer.",
+        "da": "For eksempel fra holder til skruer ned før dyre timer."
+      },
+      "$filter": "capabilities=autopilot_status_NIBE",
+      "tokens": [
+        {
+          "type": "string",
+          "name": "status",
+          "title": {
+            "en": "Status",
+            "sv": "Status",
+            "de": "Status",
+            "nl": "Status",
+            "no": "Status",
+            "da": "Status"
+          },
+          "example": {
+            "en": "Easing off",
+            "sv": "Drar ner",
+            "de": "Drosselt",
+            "nl": "Bouwt af",
+            "no": "Trapper ned",
+            "da": "Skruer ned"
+          }
+        },
+        {
+          "type": "string",
+          "name": "reason",
+          "title": {
+            "en": "Reason",
+            "sv": "Anledning",
+            "de": "Grund",
+            "nl": "Reden",
+            "no": "Årsak",
+            "da": "Årsag"
+          },
+          "example": {
+            "en": "Easing off until 19:00: prices peak 17:00–19:00",
+            "sv": "Drar ner till 19:00: priserna toppar 17:00–19:00",
+            "de": "Drosselt bis 19:00: Preisspitze 17:00–19:00",
+            "nl": "Bouwt af tot 19:00: prijzen pieken 17:00–19:00",
+            "no": "Trapper ned til 19:00: prisene topper 17:00–19:00",
+            "da": "Skruer ned til 19:00: priserne topper 17:00–19:00"
+          }
+        }
+      ]
     }
   ],
   "actions": [
@@ -3062,6 +3124,124 @@
           ]
         }
       ]
+    },
+    {
+      "id": "autopilot_heating_pause",
+      "title": {
+        "en": "Pause Autopilot heating",
+        "sv": "Pausa Autopilot uppvärmning",
+        "de": "Autopilot Heizung pausieren",
+        "nl": "Autopilot verwarming pauzeren",
+        "no": "Sett Autopilot oppvarming på pause",
+        "da": "Sæt Autopilot opvarmning på pause"
+      },
+      "titleFormatted": {
+        "en": "Pause Autopilot heating for [[hours]] h",
+        "sv": "Pausa Autopilot uppvärmning i [[hours]] h",
+        "de": "Autopilot Heizung für [[hours]] h pausieren",
+        "nl": "Autopilot verwarming [[hours]] u pauzeren",
+        "no": "Sett Autopilot oppvarming på pause i [[hours]] t",
+        "da": "Sæt Autopilot opvarmning på pause i [[hours]] t"
+      },
+      "hint": {
+        "en": "The pump follows its own curve meanwhile. Resumes by itself.",
+        "sv": "Pumpen följer sin egen kurva under tiden. Återupptas av sig själv.",
+        "de": "Die Pumpe folgt solange ihrer eigenen Kurve. Läuft danach von selbst weiter.",
+        "nl": "De pomp volgt intussen zijn eigen curve. Gaat daarna vanzelf verder.",
+        "no": "Pumpen følger sin egen kurve så lenge. Fortsetter av seg selv.",
+        "da": "Pumpen følger sin egen kurve imens. Fortsætter af sig selv."
+      },
+      "$filter": "capabilities=autopilot_status_NIBE",
+      "args": [
+        {
+          "type": "number",
+          "name": "hours",
+          "min": 1,
+          "max": 48,
+          "step": 1,
+          "placeholder": {
+            "en": "Hours",
+            "sv": "Timmar",
+            "de": "Stunden",
+            "nl": "Uren",
+            "no": "Timer",
+            "da": "Timer"
+          }
+        }
+      ]
+    },
+    {
+      "id": "autopilot_heating_resume",
+      "title": {
+        "en": "Resume Autopilot heating",
+        "sv": "Återuppta Autopilot uppvärmning",
+        "de": "Autopilot Heizung fortsetzen",
+        "nl": "Autopilot verwarming hervatten",
+        "no": "Gjenoppta Autopilot oppvarming",
+        "da": "Genoptag Autopilot opvarmning"
+      },
+      "$filter": "capabilities=autopilot_status_NIBE"
+    },
+    {
+      "id": "autopilot_heating_set_profile",
+      "title": {
+        "en": "Set Autopilot heating profile",
+        "sv": "Ställ in profil för Autopilot uppvärmning",
+        "de": "Profil für Autopilot Heizung einstellen",
+        "nl": "Profiel van Autopilot verwarming instellen",
+        "no": "Still inn profil for Autopilot oppvarming",
+        "da": "Indstil profil for Autopilot opvarmning"
+      },
+      "titleFormatted": {
+        "en": "Set Autopilot heating profile to [[profile]]",
+        "sv": "Ställ in profil för Autopilot uppvärmning till [[profile]]",
+        "de": "Profil für Autopilot Heizung auf [[profile]] setzen",
+        "nl": "Profiel van Autopilot verwarming instellen op [[profile]]",
+        "no": "Still inn profil for Autopilot oppvarming til [[profile]]",
+        "da": "Indstil profil for Autopilot opvarmning til [[profile]]"
+      },
+      "$filter": "capabilities=autopilot_status_NIBE",
+      "args": [
+        {
+          "type": "dropdown",
+          "name": "profile",
+          "values": [
+            {
+              "id": "comfortable",
+              "label": {
+                "en": "Comfortable",
+                "sv": "Bekväm",
+                "de": "Komfortabel",
+                "nl": "Comfortabel",
+                "no": "Komfortabel",
+                "da": "Komfortabel"
+              }
+            },
+            {
+              "id": "save_some",
+              "label": {
+                "en": "Save some money",
+                "sv": "Spara lite pengar",
+                "de": "Etwas sparen",
+                "nl": "Wat besparen",
+                "no": "Spar litt penger",
+                "da": "Spar lidt penge"
+              }
+            },
+            {
+              "id": "save_most",
+              "label": {
+                "en": "Save the most",
+                "sv": "Spara mest",
+                "de": "Am meisten sparen",
+                "nl": "Het meest besparen",
+                "no": "Spar mest",
+                "da": "Spar mest"
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "conditions": [
@@ -3650,6 +3830,89 @@
             "no": "Timer",
             "da": "Timer"
           }
+        }
+      ]
+    },
+    {
+      "id": "autopilot_heating_status_is",
+      "title": {
+        "en": "Autopilot heating is …",
+        "sv": "Autopilot uppvärmning …",
+        "de": "Autopilot Heizung …",
+        "nl": "Autopilot verwarming …",
+        "no": "Autopilot oppvarming …",
+        "da": "Autopilot opvarmning …"
+      },
+      "titleFormatted": {
+        "en": "Autopilot heating !{{is|is not}} [[status]]",
+        "sv": "Autopilot uppvärmning !{{är|är inte}} [[status]]",
+        "de": "Autopilot Heizung !{{ist|ist nicht}} [[status]]",
+        "nl": "Autopilot verwarming !{{is|is niet}} [[status]]",
+        "no": "Autopilot oppvarming !{{er|er ikke}} [[status]]",
+        "da": "Autopilot opvarmning !{{er|er ikke}} [[status]]"
+      },
+      "$filter": "capabilities=autopilot_status_NIBE",
+      "args": [
+        {
+          "type": "dropdown",
+          "name": "status",
+          "values": [
+            {
+              "id": "learning",
+              "label": {
+                "en": "Learning",
+                "sv": "Lär sig",
+                "de": "Lernt",
+                "nl": "Leert",
+                "no": "Lærer",
+                "da": "Lærer"
+              }
+            },
+            {
+              "id": "holding",
+              "label": {
+                "en": "Holding",
+                "sv": "Håller",
+                "de": "Hält",
+                "nl": "Houdt vast",
+                "no": "Holder",
+                "da": "Holder"
+              }
+            },
+            {
+              "id": "preheating",
+              "label": {
+                "en": "Pre-heating",
+                "sv": "Förvärmer",
+                "de": "Heizt vor",
+                "nl": "Verwarmt voor",
+                "no": "Forvarmer",
+                "da": "Forvarmer"
+              }
+            },
+            {
+              "id": "easing_off",
+              "label": {
+                "en": "Easing off",
+                "sv": "Drar ner",
+                "de": "Drosselt",
+                "nl": "Bouwt af",
+                "no": "Trapper ned",
+                "da": "Skruer ned"
+              }
+            },
+            {
+              "id": "paused",
+              "label": {
+                "en": "Paused",
+                "sv": "Pausad",
+                "de": "Pausiert",
+                "nl": "Gepauzeerd",
+                "no": "Satt på pause",
+                "da": "På pause"
+              }
+            }
+          ]
         }
       ]
     }

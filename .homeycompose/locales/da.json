@@ -269,6 +269,75 @@
     "hotwater_setting": {
       "no_device": "Autopilot varmt vand kræver pumpens Varmt vand-enhed. Tilføj den først.",
       "no_tank": "Vælg beholderens størrelse først: Varmt vand-enheden → Reparer."
+    },
+    "heating": {
+      "warning": {
+        "feed_failed": "Autopilot opvarmning stoppede: pumpen modtog ikke udetemperaturen. Tjek menu 7.5.9.2 og slå den til igen under Opvarmning → Reparer.",
+        "no_outdoor": "Autopilot opvarmning på pause: ingen udetemperatur.",
+        "spa_on": "Autopilot opvarmning på pause: Smart price adaption er slået til for opvarmning.",
+        "room_control": "Autopilot opvarmning på pause: rumføler-styring er slået til i pumpen.",
+        "immersion_only": "Autopilot opvarmning på pause: pumpen kører kun på elpatron.",
+        "no_model": "Autopilot opvarmning lærer stadig dit hus.",
+        "paused": "Autopilot opvarmning er på pause.",
+        "mode_off": "Autopilot opvarmning er slået fra."
+      },
+      "status": {
+        "test": "Testkørsel: __text__",
+        "learning": "Lærer dit hus · dag __day__ af __of__",
+        "learning_short": "Lærer dit hus",
+        "peak": "priserne topper __from__–__to__",
+        "easing_off": "Skruer ned til __until__",
+        "preheating": "Forvarmer til __until__",
+        "holding": "Holder: intet at vinde ved at flytte nu",
+        "holding_even": "Holder: priserne er for jævne til at flytte",
+        "next_easing_off": "Holder · skruer ned kl. __at__",
+        "next_preheating": "Holder · forvarmer kl. __at__",
+        "paused": {
+          "paused": "Sat på pause af dig",
+          "no_outdoor": "Pause: udetemperaturen holdt op med at rapportere",
+          "spa_on": "Pause: Smart price adaption er slået til for opvarmning",
+          "room_control": "Pause: rumføler-styring er slået til i pumpen",
+          "immersion_only": "Pause: pumpen kører kun på elpatron",
+          "feed_failed": "Stoppet: pumpen modtog ikke udetemperaturen",
+          "mode_off": "Fra",
+          "no_model": "Lærer dit hus"
+        }
+      },
+      "status_name": {
+        "learning": "Lærer",
+        "holding": "Holder",
+        "preheating": "Forvarmer",
+        "easing_off": "Skruer ned",
+        "paused": "På pause",
+        "off": "Fra"
+      },
+      "timeline": {
+        "paused": "Autopilot opvarmning: __reason__",
+        "resumed": "Autopilot opvarmning kører igen.",
+        "learned": "Autopilot opvarmning har lært dit hus og flytter nu varme væk fra dyre timer."
+      },
+      "verify": {
+        "not_heating": "Autopilot opvarmning sættes op på enheden Opvarmning.",
+        "room_control": "Slå rumføler-styring fra i pumpen først.",
+        "no_outdoor": "Ingen udetemperatur endnu: vælg en sensor eller angiv din placering til vejrudsigten.",
+        "not_followed": "Pumpen modtog ikke udetemperaturen. Tjek at menu 7.5.9.2 tillader ekstern BT1."
+      },
+      "not_on": "Autopilot opvarmning er ikke slået til."
+    },
+    "price": {
+      "no_spa": "Denne pumpe har ingen Smart price adaption.",
+      "no_heating": "Tilføj enheden Opvarmning først.",
+      "verify_first": "Slå Autopilot til under Opvarmning → Reparer → Autopilot: den tjekker først, at pumpen modtager udetemperaturen.",
+      "spa_took_over": {
+        "heating": "Smart price adaption blev slået til for opvarmning, så Autopilot opvarmning stoppede.",
+        "hotwater": "Smart price adaption blev slået til for varmt vand, så Autopilot varmt vand stoppede."
+      }
+    },
+    "house": {
+      "ready": "Har lært dit hus",
+      "learning": "Lærer · dag __day__ af __of__",
+      "heat_loss": "__w__ W pr. °C",
+      "holds_heat": "__h__ t før det køler 1 °C"
     }
   }
 }

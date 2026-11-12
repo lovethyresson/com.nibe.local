@@ -58,7 +58,8 @@ function NibeSetup(options) {
     function fail(err) { error.textContent = err && err.message || String(err); }
     function emit(event, data) {
         return new Promise(function (resolve, reject) {
-            var timeout = setTimeout(function () { reject(new Error(t('request_timeout'))); }, event === 'activate_indoor' ? 45000 : 20000);
+            var slow = event === 'activate_indoor' || event === 'activate_autopilot';
+            var timeout = setTimeout(function () { reject(new Error(t('request_timeout'))); }, slow ? 45000 : 20000);
             Homey.emit(event, data || {}, function (err, result) {
                 clearTimeout(timeout); if (err) reject(err); else resolve(result);
             });
@@ -303,7 +304,210 @@ function NibeSetup(options) {
         stop.disabled = true; confirmed.onchange = function () { stop.disabled = !confirmed.checked; };
         shell.appendChild(stop); back(temperature);
     }
+    // ---- Autopilot heating (Repair only): choose, checklist, profile, Verify, Return to NIBE ----
+    var ap = {status: null, choice: 'autopilot', profile: 'save_some', comfort: 21};
+    function a(key, tokens) {
+        var text = Homey.__('pair.setup.autopilot.' + key);
+        Object.keys(tokens || {}).forEach(function (k) { text = text.split('__' + k + '__').join(tokens[k]); });
+        return text;
+    }
+    function apBadge(status) {
+        return a(status.mode === 'autopilot' ? (status.paused ? 'badge_paused' : 'badge_on')
+            : status.mode === 'test' ? 'badge_test' : status.mode === 'spa' ? 'badge_spa' : 'badge_off');
+    }
+    function radios(name, values, current, onchange) {
+        var box = el('div', undefined, 'setup-choices');
+        values.forEach(function (v) {
+            var card = el('label', undefined, 'setup-source-card setup-choice' + (v.id === current ? ' is-selected' : ''));
+            var input = document.createElement('input'); input.type = 'radio'; input.name = name; input.value = v.id;
+            input.checked = v.id === current;
+            input.onchange = function () {
+                box.querySelectorAll('.setup-choice').forEach(function (c) { c.classList.remove('is-selected'); });
+                card.classList.add('is-selected'); onchange(v.id);
+            };
+            var copy = el('span', undefined, 'setup-source-copy');
+            copy.appendChild(el('span', v.title, 'setup-source-title'));
+            if (v.description) copy.appendChild(el('span', v.description, 'setup-source-description'));
+            card.append(input, copy); box.appendChild(card);
+        });
+        return box;
+    }
+    function checkRow(ok, title, detail, action) {
+        var row = el('li', undefined, 'setup-check ' + (ok === true ? 'is-ok' : ok === false ? 'is-blocking' : 'is-info'));
+        row.appendChild(el('span', ok === true ? '✓' : ok === false ? '!' : '·', 'setup-check-mark'));
+        var copy = el('div'); copy.appendChild(el('strong', title));
+        if (detail) copy.appendChild(el('p', detail));
+        if (action) copy.appendChild(action);
+        row.appendChild(copy); return row;
+    }
+    async function autopilot() {
+        clear(a('title'), a('intro'));
+        var loading = el('p', t('checking')); shell.appendChild(loading); back(hub);
+        try { ap.status = await emit('autopilot_status'); } catch (err) { loading.remove(); fail(err); return; }
+        loading.remove();
+        var st = ap.status;
+        ap.profile = st.profile; ap.comfort = st.comfort;
+        if (st.mode === 'autopilot' && st.verified) { autopilotOn(); return; }
+        ap.choice = st.mode === 'test' ? 'test' : 'autopilot';
+        shell.appendChild(radios('autopilot-choice', [
+            {id: 'autopilot', title: a('choose_on'), description: a('choose_on_desc')},
+            {id: 'test', title: a('choose_test'), description: a('choose_test_desc')},
+            {id: 'off', title: a('choose_off'), description: a('choose_off_desc')},
+        ], ap.choice, function (v) { ap.choice = v; }));
+        if (st.spaHeating) shell.appendChild(el('p', a('spa_note'), 'register-desc'));
+        shell.appendChild(button(t('next'), function () {
+            if (ap.choice === 'off') busy(this, async function () {
+                await emit('autopilot_choose', {value: 'off'}); done(a('saved_off'));
+            }.bind(this)); else checklist();
+        }, true));
+    }
+    function autopilotOn() {
+        var st = ap.status;
+        var box = el('section', undefined, 'setup-temperature-summary');
+        box.append(el('h3', a(st.paused ? 'is_paused' : 'is_on')), el('p', st.status || ''));
+        shell.appendChild(box);
+        shell.appendChild(button(a('change_outdoor'), function () { outdoorPicker(autopilot); }));
+        shell.appendChild(button(a('change_profile'), function () { ap.choice = 'autopilot'; profileStep(); }));
+        shell.appendChild(button(a('return_nibe'), returnToNibe, true));
+    }
+    function checklist() {
+        var st = ap.status;
+        clear(a('title'), a('checklist_intro'));
+        var list = el('ul', undefined, 'setup-checklist');
+        var indoorOk = st.indoor !== null;
+        list.appendChild(checkRow(indoorOk, a('indoor'), indoorOk ? st.indoor + ' °C' : a('indoor_missing')));
+        var outdoorText = st.outdoorSensor ? (st.outdoorName || a('sensor')) + (st.outdoor !== null ? ' · ' + st.outdoor + ' °C' : ' · ' + a('no_reading'))
+            : a('outdoor_forecast');
+        list.appendChild(checkRow(st.outdoorSensor && st.outdoor !== null ? true : null, a('outdoor'), outdoorText,
+            button(a('choose_outdoor'), function () { outdoorPicker(checklist); })));
+        list.appendChild(checkRow(st.prices ? true : null, a('prices'), a(st.prices ? 'prices_dynamic' : 'prices_fixed')));
+        var roomOk = st.roomControl === null ? null : st.roomControl === 0;
+        list.appendChild(checkRow(roomOk, a('room_control'), a(roomOk === false ? 'room_control_on' : roomOk ? 'room_control_off' : 'room_control_unknown')));
+        if (ap.choice === 'autopilot') list.appendChild(checkRow(null, a('bt1'), a('bt1_detail')));
+        shell.appendChild(list);
+        var next = button(t('next'), profileStep, true);
+        next.disabled = !indoorOk || roomOk === false;
+        shell.appendChild(next); back(autopilot);
+    }
+    function profileStep() {
+        clear(a('title'), a('profile_intro'));
+        shell.appendChild(radios('autopilot-profile', [
+            {id: 'comfortable', title: a('profile_comfortable'), description: a('profile_comfortable_desc')},
+            {id: 'save_some', title: a('profile_save_some'), description: a('profile_save_some_desc')},
+            {id: 'save_most', title: a('profile_save_most'), description: a('profile_save_most_desc')},
+        ], ap.profile, function (v) { ap.profile = v; }));
+        var label = el('label', undefined, 'setup-field');
+        label.appendChild(el('span', a('comfort')));
+        var comfort = document.createElement('input'); comfort.type = 'number'; comfort.min = 15; comfort.max = 25; comfort.step = 0.5;
+        comfort.value = ap.comfort; comfort.oninput = function () { ap.comfort = Number(comfort.value); };
+        label.appendChild(comfort); shell.appendChild(label);
+        shell.appendChild(el('p', a('comfort_hint'), 'register-desc'));
+        var on = ap.status.mode === 'autopilot' && ap.status.verified;
+        var next = button(on ? t('save_section') : ap.choice === 'autopilot' ? t('next') : a('start_test'), function () {
+            if (!comfort.checkValidity()) { comfort.reportValidity(); return; }
+            if (on) busy(next, async function () {
+                await emit('autopilot_choose_profile', {profile: ap.profile, comfort: ap.comfort}); done(a('saved_profile'));
+            }); else if (ap.choice === 'autopilot') verifyStep();
+            else busy(next, async function () {
+                await emit('autopilot_choose', {value: 'test', profile: ap.profile, comfort: ap.comfort}); done(a('saved_test'));
+            });
+        }, true);
+        shell.appendChild(next); back(on ? autopilot : checklist);
+    }
+    function verifyStep() {
+        clear(a('title'), a('verify_intro'));
+        var group = el('section', undefined, 'setup-task-group');
+        group.appendChild(el('h3', t('on_pump')));
+        var steps = el('ol', undefined, 'setup-pump-steps');
+        [['bt1', 'bt1_detail'], ['modbus', 'modbus_detail']].forEach(function (k) {
+            var step = el('li'); var copy = el('div'); copy.append(el('strong', a(k[0])), el('p', a(k[1])));
+            step.appendChild(copy); steps.appendChild(step);
+        });
+        group.appendChild(steps); shell.appendChild(group);
+        if (ap.status.spaHeating) shell.appendChild(el('p', a('spa_note'), 'register-desc'));
+        var confirm = document.createElement('input'); confirm.type = 'checkbox';
+        var label = el('label', undefined, 'setup-option'); label.append(confirm, el('span', a('verify_confirm')));
+        shell.appendChild(label);
+        var verify = button(t('verify'), function () { busy(verify, async function () {
+            var result = await emit('activate_autopilot', {profile: ap.profile, comfort: ap.comfort});
+            clear(a('title'), '');
+            var success = el('section', undefined, 'setup-success'); success.setAttribute('role', 'status');
+            var check = el('div', '✓', 'setup-success-check'); check.setAttribute('aria-hidden', 'true');
+            success.append(check, el('h2', a('success_title')), el('p', a('success_description')));
+            var reading = el('div', undefined, 'setup-success-reading');
+            reading.append(el('strong', result.fed + ' °C'), el('span', a('success_received')));
+            success.appendChild(reading); shell.appendChild(success);
+            shell.appendChild(toHub());
+        }); }, true);
+        verify.disabled = true; confirm.onchange = function () { verify.disabled = !confirm.checked; };
+        shell.appendChild(verify); back(profileStep);
+    }
+    function returnToNibe() {
+        clear(a('title'), a('return_intro'));
+        var handover = ap.status.spaHeating ? 'spa' : 'off';
+        shell.appendChild(radios('autopilot-handover', [
+            {id: 'spa', title: a('handover_spa'), description: a('handover_spa_desc')},
+            {id: 'off', title: a('handover_off'), description: a('handover_off_desc')},
+        ], handover, function (v) { handover = v; }));
+        shell.appendChild(el('p', a('return_reminder'), 'register-desc'));
+        var stop = button(a('return_nibe'), function () { busy(stop, async function () {
+            await emit('deactivate_autopilot', {handover: handover}); done(a('saved_returned'));
+        }); }, true);
+        shell.appendChild(stop); back(autopilot);
+    }
+    function done(message) {
+        clear(a('title'), '');
+        var success = el('section', undefined, 'setup-success'); success.setAttribute('role', 'status');
+        var check = el('div', '✓', 'setup-success-check'); check.setAttribute('aria-hidden', 'true');
+        success.append(check, el('h2', message)); shell.appendChild(success);
+        shell.appendChild(toHub());
+    }
+    /** Back to the hub with the Autopilot badge brought up to date. */
+    function toHub() {
+        var b = button(t('next'), function () { busy(b, async function () {
+            ap.status = await emit('autopilot_status').catch(function () { return ap.status; }); hub();
+        }); }, true);
+        return b;
+    }
+    function outdoorPicker(then) {
+        clear(a('title'), a('outdoor_intro'));
+        var current = ap.status && ap.status.outdoorSensor;
+        var choice = current ? current.deviceId + ':' + current.capabilityId : 'forecast';
+        var search = document.createElement('input'); search.type = 'search'; search.placeholder = t('search');
+        search.setAttribute('aria-label', t('search')); search.className = 'setup-search';
+        var results = el('div'); results.setAttribute('aria-live', 'polite');
+        var save = button(t('save_section'), function () { busy(save, async function () {
+            var ref = choice === 'forecast' ? null : list.find(function (s) { return key(s) === choice; });
+            await emit('set_outdoor_sensor', ref ? {deviceId: ref.deviceId, capabilityId: ref.capabilityId} : null);
+            ap.status = await emit('autopilot_status'); then();
+        }); }, true);
+        shell.append(search, results, save); back(then);
+        var list = [];
+        function row(id, title, detail, reading, enabled) {
+            var r = el('label', undefined, 'setup-sensor');
+            var input = document.createElement('input'); input.type = 'radio'; input.name = 'outdoor'; input.checked = choice === id;
+            input.disabled = !enabled && choice !== id;
+            input.onchange = function () { choice = id; };
+            var info = el('span', title); if (detail) info.appendChild(el('small', detail));
+            r.append(input, info, el('span', reading || '')); results.appendChild(r);
+        }
+        function draw() {
+            results.replaceChildren();
+            row('forecast', a('use_forecast'), a('use_forecast_desc'), '', true);
+            var q = search.value.trim().toLowerCase();
+            list.filter(function (s) { return !q || [s.name, s.room, s.app].join(' ').toLowerCase().includes(q); }).slice(0, 30)
+                .forEach(function (s) {
+                    var valid = s.available && s.value !== null && s.value >= -50 && s.value <= 50;
+                    var age = s.updatedAt ? new Date(s.updatedAt).toLocaleString() : t('unknown_age');
+                    row(key(s), s.name, [s.room, age].filter(Boolean).join(' · '), valid ? s.value + ' °C' : t('unavailable'), valid);
+                });
+        }
+        search.oninput = draw;
+        emit('get_outdoor_sensors').then(function (all) { list = all; draw(); }).catch(fail);
+        draw();
+    }
     function open(section) {
+        if (section.role === 'autopilot') { autopilot(); return; }
         if (section.role === 'heating') { heating = section; temperature(); return; }
         clear(section.title, section.description);
         shell.appendChild(section.content);
@@ -317,7 +521,9 @@ function NibeSetup(options) {
         sections.forEach(function (section) {
             var menu = button('', function () { open(section); }); menu.className = 'setup-menu';
             var text = el('span'); text.append(el('strong', section.title), el('small', section.description));
-            menu.append(text, el('span', (ready[section.id] ? t('ready') : t('needs_setup')) + ' ›')); shell.appendChild(menu);
+            var badge = section.role === 'autopilot' ? (ap.status ? apBadge(ap.status) : '')
+                : ready[section.id] ? t('ready') : t('needs_setup');
+            menu.append(text, el('span', badge + ' ›')); shell.appendChild(menu);
         });
         var next = button(t(options.mode === 'repair' ? 'save_changes' : 'review'), function () {
             if (options.mode === 'repair') busy(next, async function () { await options.commit(); });
@@ -344,6 +550,10 @@ function NibeSetup(options) {
     }
     api.start = function (entries) {
         sections = entries;
+        // Autopilot acts on its own (Verify, Return to NIBE); it never holds up Save changes.
+        sections.forEach(function (s) { if (s.role === 'autopilot') ready[s.id] = true; });
+        if (sections.some(function (s) { return s.role === 'autopilot'; }))
+            emit('autopilot_status').then(function (st) { ap.status = st; }).catch(function () {});
         sections.forEach(function (s) { if (s.sources) parking.appendChild(s.sources); if (s.content) parking.appendChild(s.content); });
         hub();
     };

@@ -1179,8 +1179,7 @@ choice follows the pump: one pump-wide setting per function, mirrored on every d
 - One line under the group: "Choose one per function. Nibe's Smart price adaption runs on the
   pump with its own prices; Autopilot runs in Homey and learns your house, sensors and weather."
   Why both would fight over one compressor goes in the FAQ.
-- Migration: `autopilotHotwater` maps to the hot water value; a missing value reads today's SPA
-  state from the pump.
+- No migration: `autopilotHotwater` was never released, so `priceHotwater` simply replaced it.
 
 **Settings layout.** Homey shows one driver's settings on every device, so fewer, grouped,
 pump-wide settings, each with a one-line hint: *Price control* (the two dropdowns) · *Autopilot
@@ -1213,8 +1212,20 @@ away temperature (settings, tile picker and Flows); pause for 1–48 h and resum
 Main's day type, shared with hot water; the outdoor sensor and Verify in Setup. Flow cards as in
 §10.3.
 
-**Phasing.** Test build (maintainer only, now): app setting `autopilotLive.<id>` off/shift, no UI.
-First test-channel release: Setup steps 1–5 with the outdoor picker, status and reason, profile
+**As built (dev build, 2026-11-12).** Settings `priceHeating` / `priceHotwater` (off · spa · test ·
+autopilot), mirrored pump-wide; SPA switches written from `priceControlWrites`
+(`lib/autopilot/price-control.ts`), and SPA turned on elsewhere flips the function to `spa` with one
+timeline line. Heating `autopilot` from Settings is refused until Heating Setup's Verify
+(`activateAutopilotHeating`, store `autopilotHeatingVerified`). Status, reason, fed outdoor and
+shift are `autopilot_status_NIBE`, `autopilot_reason_NIBE`, `measure_temperature.autopilot_fed`,
+`autopilot_shift_NIBE` on Heating while its Price control is test or on; text from
+`heatingStatus()` (`lib/autopilot/heating-status.ts`). Profiles map to shift limits
+(`PROFILE_LIMITS` in `live.ts`: ±1.5 / ±3 / ±4 K). Waits (no model, SPA, room control, immersion
+only, no outdoor, paused) hand BT1 back and resume by themselves; only a failed feed ends it.
+Comfort and Away are shown but take effect only with full comfort control. Not built yet:
+Custom sliders, away via day type, savings, removing the SPA tiles.
+
+**Phasing.** First test-channel release: Setup steps 1–5 with the outdoor picker, status and reason, profile
 and comfort, pause/resume, Insights; learning phase = shift-only. Later: full comfort control once
 the steady level is confirmed (todo.md, 2026-11-11), away, savings, the remaining Flow cards,
 widgets.

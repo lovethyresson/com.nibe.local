@@ -529,6 +529,25 @@ prices: ease off at 22:00 (−2 K) and 07:00–08:30 (−3 K), indoor −0.05 K.
 - [ ] Turn off: set it to `off`; the log shows "stopped (mode_off)" and the last feed is the real
       outdoor temperature.
 
+## Autopilot heating: owner UI (built 2026-11-12, not installed)
+
+Replaces the hidden `autopilotLive.*` switch with the Price control settings, Heating Setup →
+Autopilot (choose, checklist, outdoor sensor picker, profile + comfort, Verify, Return to NIBE),
+status + reason + Insights on Heating, and Flow cards (status changed, status is, pause, resume,
+set profile). Design and as-built notes: `docs/autopilot-plan.md` §10.0.
+
+**Bench, profiles (34 SE3 days, live model, day-ahead forecast):** Comfortable fair 0.3 %, bias
+±1.1 K, heat −1.0 % (days −2.9…0.9 %); Save some 0.7 %, ±3.1 K, −1.4 % (−4.7…3.8 %); Save the most
+0.9 %, ±4.1 K, −1.7 % (−6.1…5.2 %). Indoor 21.4–21.7 °C in all three.
+
+**Installing it switches the running feed off** (the old setting is gone): BT1 is handed back,
+then the maintainer turns Autopilot on in Heating → Repair → Autopilot. That is the UI test.
+- [ ] Install on the maintainer's go.
+- [ ] Setup: checklist shows indoor, Utetemperatur, dynamic prices, room control off; Verify passes.
+- [ ] Heating tile: status, reason, fed outdoor, shift update each slot; Insights log them.
+- [ ] Settings: Price control shows Autopilot for heating on every device; nothing else written.
+- [ ] Pause Flow for 1 h: BT1 handed back, status Paused, resumes by itself.
+
 ## Autopilot slice 1: data collection (branch `smart-heating/m1-data`)
 
 **Goal.** Record what the house model will learn from, starting now, because learning needs weeks

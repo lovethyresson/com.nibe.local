@@ -40,6 +40,7 @@ function device() {
         setCapabilityValue: async (name: string, value: any) => { caps.set(name, value); },
         getStoreValue: (name: string) => store.get(name),
         setStoreValue: async (name: string, value: any) => { store.set(name, value); },
+        unsetStoreValue: async (name: string) => { store.delete(name); },
         setUnavailable: async () => {}, setSettings: async () => {}, getSettings: () => ({}),
         log: () => {}, error: () => {}, noteExternalChange: () => {},
         homey: {__: (key: string) => key, i18n: {getLanguage: () => 'en'}}
@@ -849,23 +850,17 @@ test('Heating keeps a moved indoor sensor address when Autopilot adds its regist
     assert.deepEqual(indoor.map((r: Register) => r.address), [26]);
 });
 
-test('Autopilot heating\'s live feed starts only on its setting, and owns BT1 while it runs', async () => {
+test('Autopilot heating\'s feed follows the heating Price control, and owns BT1 while it runs', async () => {
     const {d} = device();
     d.role = 'heating';
-    const settings = new Map<string, any>();
-    const listeners: ((key: string) => void)[] = [];
     const timers: any[] = [];
     d.getData = () => ({id: 'heat-1'});
-    d.homey = {...d.homey, settings: {
-        get: (k: string) => settings.get(k), set: (k: string, v: any) => { settings.set(k, v); listeners.forEach((l) => l(k)); },
-        unset: (k: string) => { settings.delete(k); listeners.forEach((l) => l(k)); },
-        on: (_e: string, l: any) => listeners.push(l), off: () => undefined,
-    }, setTimeout: (fn: any, ms: number) => { timers.push({fn, ms}); return timers.length; }, clearTimeout: () => undefined};
+    d.homey = {...d.homey, setTimeout: (fn: any, ms: number) => { timers.push({fn, ms}); return timers.length; }, clearTimeout: () => undefined,
+        flow: {getDeviceTriggerCard: () => ({trigger: async () => undefined})}};
     const writes: number[] = [];
-    d.connection = {writeRegisterValue: async (r: Register, raw: number) => { writes.push(r.address); },
-        readRegisterRaw: async () => undefined};
+    d.connection = {writeRegisterValue: async (r: Register) => { writes.push(r.address); }, readRegisterRaw: async () => undefined};
     d.autopilot = {liveInputs: () => undefined, outdoorNow: () => ({localHour: 0, bias: {mean: [], count: []}}),
-        setFeeding: () => undefined, recordLive: () => undefined};
+        setFeeding: () => undefined, recordLive: () => undefined, houseSummary: () => undefined};
     d.startHeatingFeed();
     assert.equal(d.heatingFeed.running, false, 'off by default: nothing scheduled, nothing written');
     assert.equal(timers.length, 0);
@@ -874,13 +869,80 @@ test('Autopilot heating\'s live feed starts only on its setting, and owns BT1 wh
     await d.writeRegister(bt1, 5);
     assert.deepEqual(writes, [5217], 'a Flow may write BT1 while the feed is off');
 
-    d.homey.settings.set('autopilotLive.heat-1', 'shift');
-    assert.equal(d.heatingFeed.running, true);
+    await d.applyAutopilot({priceHeating: 'test'});
+    assert.equal(d.heatingFeed.running, true, 'a test run runs the planner');
+    await d.applyAutopilot({priceHeating: 'autopilot'});
     await assert.rejects(d.writeRegister(bt1, 5), /managed by Autopilot heating/);
 
-    d.homey.settings.set('autopilotLive.heat-1', 'off');
+    await d.applyAutopilot({priceHeating: 'spa'});
     await new Promise((r) => setImmediate(r));
     assert.equal(d.heatingFeed.running, false);
     await d.stopHeatingFeed();
     assert.equal(d.heatingFeed, null);
+});
+
+/** A pump with Main and Heating, their settings, and SPA switches read from and written to `spa`. */
+function pricePump(initial: Record<string, any>) {
+    const {d: main} = device(); const {d: heating, store} = device();
+    main.role = 'main'; heating.role = 'heating';
+    const settings: Record<string, any> = {address: 'pump-a', ...initial};
+    const heatingSettings: Record<string, any> = {...settings};
+    main.getSettings = () => settings; heating.getSettings = () => heatingSettings;
+    main.setSettings = async (next: any) => { Object.assign(settings, next); };
+    heating.setSettings = async (next: any) => { Object.assign(heatingSettings, next); };
+    main.getData = () => ({role: 'main'}); heating.getData = () => ({role: 'heating'});
+    const devices = [main, heating];
+    for (const d of devices) {
+        d.driver = {getDevices: () => devices};
+        d.applyAutopilot = async () => undefined;
+    }
+    const spa: Record<string, boolean> = {};
+    const written: [string, boolean][] = [];
+    const notes: string[] = [];
+    for (const d of devices) {
+        d.readRegister = async (r: Register) => spa[r.name];
+        d.writeRegister = async (r: Register, v: boolean) => { written.push([r.name, v]); spa[r.name] = v; };
+        d.homey = {...d.homey, notifications: {createNotification: async (n: any) => { notes.push(n.excerpt); }}};
+    }
+    return {main, heating, store, settings, heatingSettings, spa, written, notes};
+}
+const SPA_MASTER = 'boolean_NIBE.h843_spa_activated';
+const SPA_HEATING = 'boolean_NIBE.h844_spa_heating_activated';
+
+test('Price control: Autopilot from Settings needs Heating Setup\'s Verify; nothing is written when refused', async () => {
+    const p = pricePump({priceHeating: 'spa'});
+    p.spa[SPA_MASTER] = true; p.spa[SPA_HEATING] = true;
+    await assert.rejects(p.main.onSettings({oldSettings: {...p.settings}, newSettings: {...p.settings, priceHeating: 'autopilot'},
+        changedKeys: ['priceHeating']}), /autopilot.price.verify_first/);
+    assert.deepEqual(p.written, []);
+    p.store.set('autopilotHeatingVerified', true);
+    await p.main.onSettings({oldSettings: {...p.settings}, newSettings: {...p.settings, priceHeating: 'autopilot'},
+        changedKeys: ['priceHeating']});
+    assert.deepEqual(p.written, [[SPA_HEATING, false]], 'SPA heating off; the master stays for hot water');
+    assert.equal(p.heatingSettings.priceHeating, 'autopilot', 'mirrored to every device of the pump');
+});
+
+test('Price control: choosing SPA turns it on; a test run turns SPA heating off', async () => {
+    const p = pricePump({priceHeating: 'off'});
+    await p.main.onSettings({oldSettings: {...p.settings}, newSettings: {...p.settings, priceHeating: 'spa'}, changedKeys: ['priceHeating']});
+    assert.deepEqual(p.written, [[SPA_MASTER, true], [SPA_HEATING, true]]);
+    Object.assign(p.settings, {priceHeating: 'spa'});
+    await p.main.onSettings({oldSettings: {...p.settings}, newSettings: {...p.settings, priceHeating: 'test'}, changedKeys: ['priceHeating']});
+    assert.deepEqual(p.written.at(-1), [SPA_HEATING, false]);
+});
+
+test('the pump stays the truth: SPA turned on elsewhere flips Autopilot to SPA, said once', async () => {
+    const p = pricePump({priceHeating: 'autopilot', priceHotwater: 'off'});
+    p.spa[SPA_MASTER] = true; p.spa[SPA_HEATING] = true;
+    const caps = new Map<string, any>([[SPA_HEATING, false]]);
+    p.heating.getCapabilityValue = (n: string) => caps.get(n);
+    p.heating.setCapabilityValue = async (n: string, v: any) => { caps.set(n, v); };
+    p.heating.publishMirrors = async () => undefined;
+    p.heating.checkTrigger = () => undefined; p.heating.checkChangedTrigger = () => undefined;
+    await p.heating.setValue(sProfile.registerByName[SPA_HEATING], true);
+    await new Promise((r) => setTimeout(r, 10));
+    assert.equal(p.settings.priceHeating, 'spa');
+    assert.equal(p.heatingSettings.priceHeating, 'spa');
+    assert.deepEqual(p.notes, ['autopilot.price.spa_took_over.heating']);
+    assert.deepEqual(p.written, [], 'nothing written back to the pump');
 });

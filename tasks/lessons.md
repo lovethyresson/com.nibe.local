@@ -426,3 +426,13 @@ nothing to do with the heating Autopilot.
 **Rule:** heating Autopilot and hot water are separate tracks with separate sessions, plans and
 next steps. Report on one without the other unless asked. A recurring heating check belongs to
 the heating session only.
+
+## 2026-11-12: unreleased branch work needs no migration talk
+
+I framed replacing an unreleased setting (`autopilotHotwater`, the hidden `autopilotLive.*`) as a
+"hard cut, no migration" decision and asked about it. The maintainer: "This is still a branch off
+main and nothing has been released."
+
+**Rule:** a setting, capability or store key that exists only on an unreleased branch is just
+code: change or delete it. Migrations (`renamedRegisters`, `migrateSelection`) are only for what
+has shipped to the store. Don't raise migration as a question for branch-only work.

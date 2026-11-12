@@ -1,0 +1,26 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Autopilot shift",
+    "sv": "Autopilot förskjutning",
+    "de": "Autopilot-Verschiebung",
+    "nl": "Autopilot-verschuiving",
+    "no": "Autopilot-forskyvning",
+    "da": "Autopilot-forskydning"
+  },
+  "uiComponent": "sensor",
+  "chartType": "stepLine",
+  "getable": true,
+  "setable": false,
+  "units": {
+    "en": "°C",
+    "sv": "°C",
+    "de": "°C",
+    "nl": "°C",
+    "no": "°C",
+    "da": "°C"
+  },
+  "decimals": 1,
+  "insights": true,
+  "icon": "/assets/images/time.svg"
+}

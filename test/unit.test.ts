@@ -238,6 +238,9 @@ test('every Flow card resolves to a register that still exists', () => {
         'hotwater_volume_below', 'hotwater_volume_dropped_below',
         // Autopilot hot water: about charges and the household's day type, not a register.
         'hotwater_charge_started', 'hotwater_charge_planned', 'set_day_type',
+        // Autopilot heating: its status, pause and profile, not a register.
+        'autopilot_heating_status_changed', 'autopilot_heating_status_is', 'autopilot_heating_pause',
+        'autopilot_heating_resume', 'autopilot_heating_set_profile',
     ]);
     const suffixes = ['set', 'onoff', 'enum', 'reset', 'changed', 'compare'];
     const byName = buildRegisterByName(registers);

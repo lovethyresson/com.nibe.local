@@ -1177,7 +1177,7 @@ test('the 8443 certificate subject is read without trusting the certificate', {t
 // Autopilot heating's live feed (lib/autopilot/live.ts) against the fake pump: what lands in
 // 5217 shows on input 1, as on the S1155 (docs/external-sensors.md), while `listening` is on.
 test('the live BT1 feed writes 5217, sees it on input 1, and stops when the pump stops taking it', {timeout: 20000}, async () => {
-    const {HeatingFeed} = await import('../lib/autopilot/live');
+    const {HeatingFeed, LIVE_LIMITS} = await import('../lib/autopilot/live');
     const {newForecastBias} = await import('../lib/autopilot/outdoor');
     const {encodeRegisterValue} = await import('../lib/registers');
     const pump = await startPump();
@@ -1193,7 +1193,9 @@ test('the live BT1 feed writes 5217, sees it on input 1, and stops when the pump
             const house = {heatLoss: 0.2, ci: 10, cm: 20, rim: 2, f: 0.1, gains: 0.3, sun: 0, sunE: 0, sunW: 0} as any;
             let now = 1_800_000 * 900_000 + 1000;
             const feed = new HeatingFeed({
-                mode: () => 'shift',
+                mode: () => 'live',
+                limits: () => LIVE_LIMITS,
+                changed: () => undefined,
                 plan: () => ({house, lever: 0.1, ti: 21, tm: 21, mean: 21, curve: -4, bias: 0, forecast}),
                 pump: async () => ({mode: 1, thresholds: {}, spaHeating: false, roomControl: 0, addHeat: false}),
                 outdoor: () => ({sensor: -4, localHour: 12, bias: newForecastBias()}),
@@ -1220,6 +1222,40 @@ test('the live BT1 feed writes 5217, sees it on input 1, and stops when the pump
             assert.ok(!feed.running);
             assert.equal(feed.state.stopped, 'feed_failed');
             assert.equal(writes.at(-1), -4, 'handed back the real outdoor temperature');
+
+            // Heating Setup's Verify over the same wire: the pump follows → Autopilot on, pump-wide.
+            // lib/device extends Homey's Device; outside Homey the SDK module is stubbed, as in reliability.test.ts.
+            const loader = require('module');
+            const originalLoad = loader._load;
+            let NibePumpDevice: any;
+            try {
+                loader._load = function (id: string, ...args: any[]) {
+                    return id === 'homey' ? {Device: class {}, Driver: class {}} : originalLoad.call(this, id, ...args);
+                };
+                NibePumpDevice = require('../lib/device').NibePumpDevice;
+            } finally {
+                loader._load = originalLoad;
+            }
+            const d: any = Object.create(NibePumpDevice.prototype);
+            const settings: Record<string, any> = {address: 'pump-a', priceHeating: 'off'};
+            const store = new Map<string, any>();
+            Object.assign(d, {
+                role: 'heating', connection: c,
+                profile: {...profile, autopilotFeed: {bt1: 'bt1', outdoor: 'outdoor', spa: [], addHeat: 'none'}},
+                autopilot: {outdoorNow: () => ({sensor: 2.5, localHour: 12, bias: newForecastBias()})},
+                getSettings: () => settings, setSettings: async (v: any) => { Object.assign(settings, v); },
+                getStoreValue: (k: string) => store.get(k), setStoreValue: async (k: string, v: any) => { store.set(k, v); },
+                unsetStoreValue: async (k: string) => { store.delete(k); },
+                driver: {getDevices: () => [d]}, applyAutopilot: async () => undefined,
+                homey: {__: (k: string) => k, setTimeout: (fn: any, ms: number) => setTimeout(fn, ms)}, log: () => undefined,
+            });
+            listening = false;
+            await assert.rejects(d.activateAutopilotHeating(), /not_followed/, 'a deaf pump fails Verify');
+            assert.equal(settings.priceHeating, 'off', 'nothing saved');
+            listening = true;
+            assert.deepEqual(await d.activateAutopilotHeating(), {fed: 2.5});
+            assert.equal(settings.priceHeating, 'autopilot');
+            assert.equal(store.get('autopilotHeatingVerified'), true);
         });
     } finally {
         clearInterval(mirror);

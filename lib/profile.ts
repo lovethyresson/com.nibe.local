@@ -1,3 +1,4 @@
+import {SpaSwitches} from './autopilot/price-control';
 import {Dir, GroupId, Register, buildPickerPrimary, buildRegisterByName} from './registers';
 import type {AlarmSeries} from './alarms';
 import type {Role} from './roles';
@@ -205,6 +206,9 @@ export interface ModelProfile {
     // that shows what the pump took, Smart price adaption's switches for heating (all on = active),
     // the immersion heater, and room-sensor control's raw holding address (no capability).
     autopilotFeed?: {bt1: string; outdoor: string; spa: string[]; addHeat: string; roomControl?: number};
+    // Smart price adaption's master switch and each function's own: Price control (price-control.ts)
+    // writes them, and flips a function to SPA when the pump turns its switch on by itself.
+    spaSwitches?: SpaSwitches;
     // Hot water Autopilot (lib/autopilot/hotwater-shadow.ts): the Hot water device's capabilities
     // for the tank's state, and the stop temperature of each demand mode (56).
     autopilotHotwater?: {

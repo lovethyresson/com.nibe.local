@@ -118,7 +118,11 @@
     "meter_kwh_NIBE.i1579_cooling_produced",
     "meter_power.solar",
     "measure_power.i2176_solar_current",
-    "day_type_NIBE"
+    "day_type_NIBE",
+    "autopilot_status_NIBE",
+    "autopilot_reason_NIBE",
+    "measure_temperature.autopilot_fed",
+    "autopilot_shift_NIBE"
   ],
   "capabilitiesOptions": {
     "meter_power.total": {
@@ -1319,6 +1323,375 @@
     {
       "type": "group",
       "label": {
+        "en": "Price control",
+        "sv": "Prisstyrning",
+        "de": "Preissteuerung",
+        "nl": "Prijssturing",
+        "no": "Prisstyring",
+        "da": "Prisstyring"
+      },
+      "children": [
+        {
+          "id": "priceHeating",
+          "type": "dropdown",
+          "value": "off",
+          "label": {
+            "en": "Heating",
+            "sv": "Uppvärmning",
+            "de": "Heizung",
+            "nl": "Verwarming",
+            "no": "Oppvarming",
+            "da": "Opvarmning"
+          },
+          "hint": {
+            "en": "Choose one per function. Smart price adaption runs on the pump; Autopilot runs in Homey and learns your house. Turn Autopilot on in Heating → Repair.",
+            "sv": "Välj en per funktion. Smart price adaption körs i pumpen; Autopilot körs i Homey och lär sig ditt hus. Slå på Autopilot under Uppvärmning → Reparera.",
+            "de": "Eine pro Funktion wählen. Smart price adaption läuft in der Pumpe; Autopilot läuft in Homey und lernt Ihr Haus. Autopilot unter Heizung → Reparieren einschalten.",
+            "nl": "Kies er één per functie. Smart price adaption draait in de pomp; Autopilot draait in Homey en leert je huis kennen. Zet Autopilot aan via Verwarming → Repareren.",
+            "no": "Velg én per funksjon. Smart price adaption kjører i pumpen; Autopilot kjører i Homey og lærer huset ditt. Slå på Autopilot under Oppvarming → Reparer.",
+            "da": "Vælg én pr. funktion. Smart price adaption kører i pumpen; Autopilot kører i Homey og lærer dit hus. Slå Autopilot til under Opvarmning → Reparer."
+          },
+          "values": [
+            {
+              "id": "off",
+              "label": {
+                "en": "Off",
+                "sv": "Av",
+                "de": "Aus",
+                "nl": "Uit",
+                "no": "Av",
+                "da": "Fra"
+              }
+            },
+            {
+              "id": "spa",
+              "label": {
+                "en": "Nibe Smart price adaption",
+                "sv": "Nibe Smart price adaption",
+                "de": "Nibe Smart price adaption",
+                "nl": "Nibe Smart price adaption",
+                "no": "Nibe Smart price adaption",
+                "da": "Nibe Smart price adaption"
+              }
+            },
+            {
+              "id": "test",
+              "label": {
+                "en": "Autopilot (test run)",
+                "sv": "Autopilot (testkörning)",
+                "de": "Autopilot (Testlauf)",
+                "nl": "Autopilot (testrun)",
+                "no": "Autopilot (testkjøring)",
+                "da": "Autopilot (testkørsel)"
+              }
+            },
+            {
+              "id": "autopilot",
+              "label": {
+                "en": "Autopilot",
+                "sv": "Autopilot",
+                "de": "Autopilot",
+                "nl": "Autopilot",
+                "no": "Autopilot",
+                "da": "Autopilot"
+              }
+            }
+          ]
+        },
+        {
+          "id": "priceHotwater",
+          "type": "dropdown",
+          "value": "off",
+          "label": {
+            "en": "Hot water",
+            "sv": "Varmvatten",
+            "de": "Warmwasser",
+            "nl": "Warm water",
+            "no": "Varmtvann",
+            "da": "Varmt vand"
+          },
+          "hint": {
+            "en": "Autopilot charges the tank in the cheapest hours or on solar surplus. A test run only reports what it would do.",
+            "sv": "Autopilot laddar beredaren under de billigaste timmarna eller på solöverskott. En testkörning rapporterar bara vad den skulle göra.",
+            "de": "Autopilot lädt den Speicher in den günstigsten Stunden oder mit Solarüberschuss. Ein Testlauf meldet nur, was er tun würde.",
+            "nl": "Autopilot warmt de boiler op in de goedkoopste uren of met zonne-overschot. Een testrun meldt alleen wat hij zou doen.",
+            "no": "Autopilot lader berederen i de billigste timene eller på soloverskudd. En testkjøring rapporterer bare hva den ville gjort.",
+            "da": "Autopilot opvarmer beholderen i de billigste timer eller på solcelleoverskud. En testkørsel rapporterer kun, hvad den ville gøre."
+          },
+          "values": [
+            {
+              "id": "off",
+              "label": {
+                "en": "Off",
+                "sv": "Av",
+                "de": "Aus",
+                "nl": "Uit",
+                "no": "Av",
+                "da": "Fra"
+              }
+            },
+            {
+              "id": "spa",
+              "label": {
+                "en": "Nibe Smart price adaption",
+                "sv": "Nibe Smart price adaption",
+                "de": "Nibe Smart price adaption",
+                "nl": "Nibe Smart price adaption",
+                "no": "Nibe Smart price adaption",
+                "da": "Nibe Smart price adaption"
+              }
+            },
+            {
+              "id": "test",
+              "label": {
+                "en": "Autopilot (test run)",
+                "sv": "Autopilot (testkörning)",
+                "de": "Autopilot (Testlauf)",
+                "nl": "Autopilot (testrun)",
+                "no": "Autopilot (testkjøring)",
+                "da": "Autopilot (testkørsel)"
+              }
+            },
+            {
+              "id": "autopilot",
+              "label": {
+                "en": "Autopilot",
+                "sv": "Autopilot",
+                "de": "Autopilot",
+                "nl": "Autopilot",
+                "no": "Autopilot",
+                "da": "Autopilot"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": {
+        "en": "Autopilot heating",
+        "sv": "Autopilot uppvärmning",
+        "de": "Autopilot Heizung",
+        "nl": "Autopilot verwarming",
+        "no": "Autopilot oppvarming",
+        "da": "Autopilot opvarmning"
+      },
+      "children": [
+        {
+          "id": "autopilotProfile",
+          "type": "dropdown",
+          "value": "save_some",
+          "label": {
+            "en": "Profile",
+            "sv": "Profil",
+            "de": "Profil",
+            "nl": "Profiel",
+            "no": "Profil",
+            "da": "Profil"
+          },
+          "hint": {
+            "en": "How hard Autopilot moves heat away from expensive hours.",
+            "sv": "Hur mycket Autopilot flyttar värme bort från dyra timmar.",
+            "de": "Wie stark Autopilot Wärme aus teuren Stunden verschiebt.",
+            "nl": "Hoe sterk Autopilot warmte uit dure uren verschuift.",
+            "no": "Hvor mye Autopilot flytter varme bort fra dyre timer.",
+            "da": "Hvor meget Autopilot flytter varme væk fra dyre timer."
+          },
+          "values": [
+            {
+              "id": "comfortable",
+              "label": {
+                "en": "Comfortable",
+                "sv": "Bekväm",
+                "de": "Komfortabel",
+                "nl": "Comfortabel",
+                "no": "Komfortabel",
+                "da": "Komfortabel"
+              }
+            },
+            {
+              "id": "save_some",
+              "label": {
+                "en": "Save some money",
+                "sv": "Spara lite pengar",
+                "de": "Etwas sparen",
+                "nl": "Wat besparen",
+                "no": "Spar litt penger",
+                "da": "Spar lidt penge"
+              }
+            },
+            {
+              "id": "save_most",
+              "label": {
+                "en": "Save the most",
+                "sv": "Spara mest",
+                "de": "Am meisten sparen",
+                "nl": "Het meest besparen",
+                "no": "Spar mest",
+                "da": "Spar mest"
+              }
+            }
+          ]
+        },
+        {
+          "id": "autopilotComfort",
+          "type": "number",
+          "value": 21,
+          "min": 15,
+          "max": 25,
+          "step": 0.5,
+          "units": "°C",
+          "label": {
+            "en": "Comfort temperature",
+            "sv": "Komforttemperatur",
+            "de": "Komforttemperatur",
+            "nl": "Comforttemperatuur",
+            "no": "Komforttemperatur",
+            "da": "Komforttemperatur"
+          },
+          "hint": {
+            "en": "Comfort and Away apply once Autopilot has learned your house.",
+            "sv": "Komfort och Bortrest gäller när Autopilot har lärt sig ditt hus.",
+            "de": "Komfort und Abwesend gelten, sobald Autopilot Ihr Haus gelernt hat.",
+            "nl": "Comfort en Afwezig gelden zodra Autopilot je huis kent.",
+            "no": "Komfort og Bortreist gjelder når Autopilot har lært huset ditt.",
+            "da": "Komfort og Bortrejst gælder, når Autopilot har lært dit hus."
+          }
+        },
+        {
+          "id": "autopilotAway",
+          "type": "number",
+          "value": 17,
+          "min": 10,
+          "max": 22,
+          "step": 0.5,
+          "units": "°C",
+          "label": {
+            "en": "Away temperature",
+            "sv": "Bortrest-temperatur",
+            "de": "Abwesenheitstemperatur",
+            "nl": "Afwezigheidstemperatuur",
+            "no": "Bortreist-temperatur",
+            "da": "Bortrejst-temperatur"
+          }
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": {
+        "en": "Autopilot hot water",
+        "sv": "Autopilot varmvatten",
+        "de": "Autopilot Warmwasser",
+        "nl": "Autopilot warm water",
+        "no": "Autopilot varmtvann",
+        "da": "Autopilot varmt vand"
+      },
+      "children": [
+        {
+          "id": "autopilotReserve",
+          "type": "number",
+          "value": 40,
+          "min": 0,
+          "max": 500,
+          "step": 10,
+          "units": "L",
+          "label": {
+            "en": "Always keep at least",
+            "sv": "Behåll alltid minst",
+            "de": "Immer mindestens behalten",
+            "nl": "Altijd minstens houden",
+            "no": "Behold alltid minst",
+            "da": "Behold altid mindst"
+          },
+          "hint": {
+            "en": "Litres of 40 °C water. 0 leaves it to the pump.",
+            "sv": "Liter 40-gradigt vatten. 0 överlåter det åt pumpen.",
+            "de": "Liter Wasser mit 40 °C. 0 überlässt es der Pumpe.",
+            "nl": "Liter water van 40 °C. 0 laat het aan de pomp over.",
+            "no": "Liter vann på 40 °C. 0 overlater det til pumpen.",
+            "da": "Liter vand på 40 °C. 0 overlader det til pumpen."
+          }
+        },
+        {
+          "id": "autopilotSolar",
+          "type": "checkbox",
+          "value": true,
+          "label": {
+            "en": "Use solar surplus",
+            "sv": "Använd solöverskott",
+            "de": "Solarüberschuss nutzen",
+            "nl": "Zonne-overschot gebruiken",
+            "no": "Bruk soloverskudd",
+            "da": "Brug solcelleoverskud"
+          },
+          "hint": {
+            "en": "Needs solar panels and a grid meter in Homey Energy.",
+            "sv": "Kräver solpaneler och en elmätare i Homey Energi.",
+            "de": "Erfordert Solarmodule und einen Netzzähler in Homey Energie.",
+            "nl": "Vereist zonnepanelen en een netmeter in Homey Energie.",
+            "no": "Krever solcellepaneler og en strømmåler i Homey Energi.",
+            "da": "Kræver solceller og en elmåler i Homey Energi."
+          }
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": {
+        "en": "House insights",
+        "sv": "Husinsikter",
+        "de": "Haus-Einblicke",
+        "nl": "Inzicht in je huis",
+        "no": "Husinnsikt",
+        "da": "Husindsigt"
+      },
+      "children": [
+        {
+          "id": "houseLearning",
+          "type": "label",
+          "value": "—",
+          "label": {
+            "en": "Autopilot",
+            "sv": "Autopilot",
+            "de": "Autopilot",
+            "nl": "Autopilot",
+            "no": "Autopilot",
+            "da": "Autopilot"
+          }
+        },
+        {
+          "id": "houseHeatLoss",
+          "type": "label",
+          "value": "—",
+          "label": {
+            "en": "Heat loss",
+            "sv": "Värmeförlust",
+            "de": "Wärmeverlust",
+            "nl": "Warmteverlies",
+            "no": "Varmetap",
+            "da": "Varmetab"
+          }
+        },
+        {
+          "id": "houseHoldsHeat",
+          "type": "label",
+          "value": "—",
+          "label": {
+            "en": "Holds heat",
+            "sv": "Håller värmen",
+            "de": "Hält Wärme",
+            "nl": "Houdt warmte vast",
+            "no": "Holder på varmen",
+            "da": "Holder på varmen"
+          }
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": {
         "en": "Connection",
         "sv": "Anslutning",
         "de": "Verbindung",
@@ -1434,177 +1807,6 @@
     {
       "type": "group",
       "label": {
-        "en": "Autopilot hot water",
-        "sv": "Autopilot varmvatten",
-        "de": "Autopilot Warmwasser",
-        "nl": "Autopilot warm water",
-        "no": "Autopilot varmtvann",
-        "da": "Autopilot varmt vand"
-      },
-      "children": [
-        {
-          "id": "autopilotHotwater",
-          "type": "dropdown",
-          "value": "off",
-          "label": {
-            "en": "Autopilot hot water",
-            "sv": "Autopilot varmvatten",
-            "de": "Autopilot Warmwasser",
-            "nl": "Autopilot warm water",
-            "no": "Autopilot varmtvann",
-            "da": "Autopilot varmt vand"
-          },
-          "hint": {
-            "en": "Charges the tank in the cheapest hours or on solar surplus. Test run only reports what it would do.",
-            "sv": "Laddar beredaren under de billigaste timmarna eller på solöverskott. Testkörning rapporterar bara vad den skulle göra.",
-            "de": "Lädt den Speicher in den günstigsten Stunden oder mit Solarüberschuss. Der Testlauf meldet nur, was er tun würde.",
-            "nl": "Warmt de boiler op in de goedkoopste uren of met zonne-overschot. Een testrun meldt alleen wat hij zou doen.",
-            "no": "Lader berederen i de billigste timene eller på soloverskudd. Testkjøring rapporterer bare hva den ville gjort.",
-            "da": "Opvarmer beholderen i de billigste timer eller på solcelleoverskud. Testkørsel rapporterer kun, hvad den ville gøre."
-          },
-          "values": [
-            {
-              "id": "off",
-              "label": {
-                "en": "Off",
-                "sv": "Av",
-                "de": "Aus",
-                "nl": "Uit",
-                "no": "Av",
-                "da": "Fra"
-              }
-            },
-            {
-              "id": "shadow",
-              "label": {
-                "en": "Test run",
-                "sv": "Testkörning",
-                "de": "Testlauf",
-                "nl": "Testrun",
-                "no": "Testkjøring",
-                "da": "Testkørsel"
-              }
-            },
-            {
-              "id": "live",
-              "label": {
-                "en": "On",
-                "sv": "På",
-                "de": "Ein",
-                "nl": "Aan",
-                "no": "På",
-                "da": "Til"
-              }
-            }
-          ]
-        },
-        {
-          "id": "autopilotReserve",
-          "type": "number",
-          "value": 40,
-          "min": 0,
-          "max": 500,
-          "step": 10,
-          "units": "L",
-          "label": {
-            "en": "Always keep at least",
-            "sv": "Behåll alltid minst",
-            "de": "Immer mindestens behalten",
-            "nl": "Altijd minstens houden",
-            "no": "Behold alltid minst",
-            "da": "Behold altid mindst"
-          },
-          "hint": {
-            "en": "Litres of 40 °C water. 0 leaves it to the pump.",
-            "sv": "Liter 40-gradigt vatten. 0 överlåter det åt pumpen.",
-            "de": "Liter Wasser mit 40 °C. 0 überlässt es der Pumpe.",
-            "nl": "Liter water van 40 °C. 0 laat het aan de pomp over.",
-            "no": "Liter vann på 40 °C. 0 overlater det til pumpen.",
-            "da": "Liter vand på 40 °C. 0 overlader det til pumpen."
-          }
-        },
-        {
-          "id": "autopilotSolar",
-          "type": "checkbox",
-          "value": true,
-          "label": {
-            "en": "Use solar surplus",
-            "sv": "Använd solöverskott",
-            "de": "Solarüberschuss nutzen",
-            "nl": "Zonne-overschot gebruiken",
-            "no": "Bruk soloverskudd",
-            "da": "Brug solcelleoverskud"
-          },
-          "hint": {
-            "en": "Needs solar panels and a grid meter in Homey Energy.",
-            "sv": "Kräver solpaneler och en elmätare i Homey Energi.",
-            "de": "Erfordert Solarmodule und einen Netzzähler in Homey Energie.",
-            "nl": "Vereist zonnepanelen en een netmeter in Homey Energie.",
-            "no": "Krever solcellepaneler og en strømmåler i Homey Energi.",
-            "da": "Kræver solceller og en elmåler i Homey Energi."
-          }
-        }
-      ]
-    },
-    {
-      "type": "group",
-      "label": {
-        "en": "Advanced",
-        "sv": "Avancerat",
-        "de": "Erweitert",
-        "nl": "Geavanceerd",
-        "no": "Avansert",
-        "da": "Avanceret"
-      },
-      "children": [
-        {
-          "id": "pollInterval",
-          "type": "number",
-          "label": {
-            "en": "Poll interval (seconds)",
-            "sv": "Avläsningsintervall (sekunder)",
-            "de": "Abfrageintervall (Sekunden)",
-            "nl": "Uitleesinterval (seconden)",
-            "no": "Avlesningsintervall (sekunder)",
-            "da": "Aflæsningsinterval (sekunder)"
-          },
-          "hint": {
-            "en": "How often the heat pump is read. Set this on the Nibe Main device; the other devices follow it. Lower is more responsive but puts more load on the pump; above roughly a minute the per-function energy split gets less accurate.",
-            "sv": "Hur ofta värmepumpen läses av. Ställ in detta på enheten Nibe Main; övriga enheter följer den. Lägre värde ger snabbare uppdatering men belastar värmepumpen mer; över ungefär en minut blir energifördelningen per funktion mindre exakt.",
-            "de": "Wie oft die Wärmepumpe abgefragt wird. Stellen Sie dies am Gerät Nibe Main ein; die übrigen Geräte übernehmen den Wert. Ein kleinerer Wert reagiert schneller, belastet die Wärmepumpe aber stärker; oberhalb von etwa einer Minute wird die Energieaufteilung pro Funktion ungenauer.",
-            "nl": "Hoe vaak de warmtepomp wordt uitgelezen. Stel dit in op het apparaat Nibe Main; de overige apparaten volgen die waarde. Lager reageert sneller maar belast de warmtepomp meer; boven ongeveer een minuut wordt de energieverdeling per functie minder nauwkeurig.",
-            "no": "Hvor ofte varmepumpen leses av. Angi dette på enheten Nibe Main; de øvrige enhetene følger den. Lavere gir raskere oppdatering, men belaster varmepumpen mer; over omtrent ett minutt blir energifordelingen per funksjon mindre nøyaktig.",
-            "da": "Hvor ofte varmepumpen aflæses. Indstil dette på enheden Nibe Main; de øvrige enheder følger den. Lavere giver hurtigere opdatering, men belaster varmepumpen mere; over cirka et minut bliver energifordelingen pr. funktion mindre nøjagtig."
-          },
-          "value": 10,
-          "min": 5,
-          "max": 60,
-          "units": {
-            "en": "s"
-          }
-        },
-        {
-          "id": "debugLogging",
-          "type": "checkbox",
-          "label": {
-            "en": "Debug logging",
-            "sv": "Felsökningsloggning",
-            "de": "Debug-Protokollierung",
-            "nl": "Debug-logboek",
-            "no": "Feilsøkingslogg",
-            "da": "Fejlsøgningslog"
-          },
-          "hint": {
-            "en": "Log polling, connection and energy-allocation detail. Normally the app only logs pairing, Flow actions and manual changes. Turn this on when troubleshooting or before sending logs for support.",
-            "sv": "Logga avläsning, anslutning och energifördelning i detalj. Normalt loggas bara parkoppling, flödeskort och manuella ändringar. Slå på vid felsökning eller innan du skickar loggar för support."
-          },
-          "value": false
-        }
-      ]
-    },
-    {
-      "type": "group",
-      "label": {
         "en": "Heat pump",
         "sv": "Värmepump",
         "de": "Wärmepumpe",
@@ -1704,6 +1906,66 @@
             "nl": "Standaard uit. Verzendt warmtepompmodel, gekoppelde apparaten, uitgevoerde Flow-kaarten en alarmcodes. Nooit metingen, IP, serienummer of namen.",
             "no": "Av som standard. Sender varmepumpemodell, parede enheter, kjørte flytkort og alarmkoder. Aldri målinger, IP, serienummer eller navn.",
             "da": "Fra som standard. Sender varmepumpemodel, parrede enheder, kørte Flow-kort og alarmkoder. Aldrig målinger, IP, serienummer eller navne."
+          },
+          "value": false
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": {
+        "en": "Advanced",
+        "sv": "Avancerat",
+        "de": "Erweitert",
+        "nl": "Geavanceerd",
+        "no": "Avansert",
+        "da": "Avanceret"
+      },
+      "children": [
+        {
+          "id": "pollInterval",
+          "type": "number",
+          "label": {
+            "en": "Poll interval (seconds)",
+            "sv": "Avläsningsintervall (sekunder)",
+            "de": "Abfrageintervall (Sekunden)",
+            "nl": "Uitleesinterval (seconden)",
+            "no": "Avlesningsintervall (sekunder)",
+            "da": "Aflæsningsinterval (sekunder)"
+          },
+          "hint": {
+            "en": "How often the heat pump is read. Set this on the Nibe Main device; the other devices follow it. Lower is more responsive but puts more load on the pump; above roughly a minute the per-function energy split gets less accurate.",
+            "sv": "Hur ofta värmepumpen läses av. Ställ in detta på enheten Nibe Main; övriga enheter följer den. Lägre värde ger snabbare uppdatering men belastar värmepumpen mer; över ungefär en minut blir energifördelningen per funktion mindre exakt.",
+            "de": "Wie oft die Wärmepumpe abgefragt wird. Stellen Sie dies am Gerät Nibe Main ein; die übrigen Geräte übernehmen den Wert. Ein kleinerer Wert reagiert schneller, belastet die Wärmepumpe aber stärker; oberhalb von etwa einer Minute wird die Energieaufteilung pro Funktion ungenauer.",
+            "nl": "Hoe vaak de warmtepomp wordt uitgelezen. Stel dit in op het apparaat Nibe Main; de overige apparaten volgen die waarde. Lager reageert sneller maar belast de warmtepomp meer; boven ongeveer een minuut wordt de energieverdeling per functie minder nauwkeurig.",
+            "no": "Hvor ofte varmepumpen leses av. Angi dette på enheten Nibe Main; de øvrige enhetene følger den. Lavere gir raskere oppdatering, men belaster varmepumpen mer; over omtrent ett minutt blir energifordelingen per funksjon mindre nøyaktig.",
+            "da": "Hvor ofte varmepumpen aflæses. Indstil dette på enheden Nibe Main; de øvrige enheder følger den. Lavere giver hurtigere opdatering, men belaster varmepumpen mere; over cirka et minut bliver energifordelingen pr. funktion mindre nøjagtig."
+          },
+          "value": 10,
+          "min": 5,
+          "max": 60,
+          "units": {
+            "en": "s"
+          }
+        },
+        {
+          "id": "debugLogging",
+          "type": "checkbox",
+          "label": {
+            "en": "Debug logging",
+            "sv": "Felsökningsloggning",
+            "de": "Debug-Protokollierung",
+            "nl": "Debug-logboek",
+            "no": "Feilsøkingslogg",
+            "da": "Fejlsøgningslog"
+          },
+          "hint": {
+            "en": "Log polling, connection and energy-allocation detail. Normally the app only logs pairing, Flow actions and manual changes. Turn this on when troubleshooting or before sending logs for support.",
+            "sv": "Logga avläsning, anslutning och energifördelning i detalj. Normalt loggas bara parkoppling, flödeskort och manuella ändringar. Slå på vid felsökning eller innan du skickar loggar för support.",
+            "de": "Abfrage, Verbindung und Energieaufteilung im Detail protokollieren. Normalerweise protokolliert die App nur Kopplung, Flow-Aktionen und manuelle Änderungen. Bei der Fehlersuche oder vor dem Senden von Protokollen an den Support einschalten.",
+            "nl": "Log uitlezen, verbinding en energieverdeling in detail. Normaal logt de app alleen koppelen, Flow-acties en handmatige wijzigingen. Zet dit aan bij het oplossen van problemen of voordat je logs naar support stuurt.",
+            "no": "Logg avlesning, tilkobling og energifordeling i detalj. Normalt logger appen bare paring, Flow-handlinger og manuelle endringer. Slå på ved feilsøking eller før du sender logger til support.",
+            "da": "Log aflæsning, forbindelse og energifordeling i detaljer. Normalt logger appen kun parring, Flow-handlinger og manuelle ændringer. Slå til ved fejlfinding eller før du sender logs til support."
           },
           "value": false
         }

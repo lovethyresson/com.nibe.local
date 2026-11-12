@@ -1,0 +1,84 @@
+{
+  "title": {
+    "en": "Autopilot",
+    "sv": "Autopilot",
+    "de": "Autopilot",
+    "nl": "Autopilot",
+    "no": "Autopilot",
+    "da": "Autopilot"
+  },
+  "type": "enum",
+  "values": [
+    {
+      "id": "learning",
+      "title": {
+        "en": "Learning",
+        "sv": "Lär sig",
+        "de": "Lernt",
+        "nl": "Leert",
+        "no": "Lærer",
+        "da": "Lærer"
+      }
+    },
+    {
+      "id": "holding",
+      "title": {
+        "en": "Holding",
+        "sv": "Håller",
+        "de": "Hält",
+        "nl": "Houdt vast",
+        "no": "Holder",
+        "da": "Holder"
+      }
+    },
+    {
+      "id": "preheating",
+      "title": {
+        "en": "Pre-heating",
+        "sv": "Förvärmer",
+        "de": "Heizt vor",
+        "nl": "Verwarmt voor",
+        "no": "Forvarmer",
+        "da": "Forvarmer"
+      }
+    },
+    {
+      "id": "easing_off",
+      "title": {
+        "en": "Easing off",
+        "sv": "Drar ner",
+        "de": "Drosselt",
+        "nl": "Bouwt af",
+        "no": "Trapper ned",
+        "da": "Skruer ned"
+      }
+    },
+    {
+      "id": "paused",
+      "title": {
+        "en": "Paused",
+        "sv": "Pausad",
+        "de": "Pausiert",
+        "nl": "Gepauzeerd",
+        "no": "Satt på pause",
+        "da": "På pause"
+      }
+    },
+    {
+      "id": "off",
+      "title": {
+        "en": "Off",
+        "sv": "Av",
+        "de": "Aus",
+        "nl": "Uit",
+        "no": "Av",
+        "da": "Fra"
+      }
+    }
+  ],
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "insights": true,
+  "icon": "/assets/images/time.svg"
+}

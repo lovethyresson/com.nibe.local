@@ -172,7 +172,76 @@
       "success_received": "Confirmed by your heat pump",
       "success_one": "1 sensor connected",
       "success_many": "sensors working together",
-      "save_changes": "Save changes"
+      "save_changes": "Save changes",
+      "autopilot": {
+        "title": "Autopilot",
+        "section": "Moves heat away from expensive hours.",
+        "intro": "Autopilot heats a little more before expensive hours and less during them. Your heat curve stays in charge of the temperature.",
+        "badge_on": "On",
+        "badge_paused": "Paused",
+        "badge_test": "Test run",
+        "badge_spa": "Smart price adaption",
+        "badge_off": "Off",
+        "choose_on": "Autopilot",
+        "choose_on_desc": "Shifts heat by feeding the pump's outdoor temperature.",
+        "choose_test": "Test run",
+        "choose_test_desc": "Shows what it would do. Changes nothing.",
+        "choose_off": "Not now",
+        "choose_off_desc": "Price control for heating off.",
+        "spa_note": "Autopilot turns off Smart price adaption for heating.",
+        "saved_off": "Price control for heating is off",
+        "is_on": "Autopilot is on",
+        "is_paused": "Autopilot is paused",
+        "change_outdoor": "Outdoor temperature",
+        "change_profile": "Profile and comfort",
+        "return_nibe": "Return to NIBE",
+        "checklist_intro": "What Autopilot uses.",
+        "indoor": "Indoor temperature",
+        "indoor_missing": "Set up the indoor temperature under Heating first.",
+        "sensor": "Sensor",
+        "no_reading": "no reading",
+        "outdoor": "Outdoor temperature",
+        "outdoor_forecast": "Weather forecast. A sensor in the shade is more accurate.",
+        "choose_outdoor": "Choose",
+        "prices": "Electricity prices",
+        "prices_dynamic": "Your Homey Energy prices.",
+        "prices_fixed": "Fixed price: nothing to shift. Set dynamic prices in Homey Energy.",
+        "room_control": "Room-sensor control",
+        "room_control_off": "Off, as Autopilot needs.",
+        "room_control_on": "On in the pump. Turn it off first: it fights Autopilot.",
+        "room_control_unknown": "Could not be read. Keep it off.",
+        "bt1": "Allow an external outdoor sensor",
+        "bt1_detail": "Menu 7.5.9.2 on the pump: turn on external BT1.",
+        "modbus": "Modbus writes allowed",
+        "modbus_detail": "Menu 7.5.9 on the pump.",
+        "profile_intro": "How hard Autopilot shifts.",
+        "profile_comfortable": "Comfortable",
+        "profile_comfortable_desc": "Small shifts. Indoor stays within ±0.3 °C.",
+        "profile_save_some": "Save some money",
+        "profile_save_some_desc": "Indoor within ±0.5 °C.",
+        "profile_save_most": "Save the most",
+        "profile_save_most_desc": "Larger shifts. Indoor within ±0.7 °C.",
+        "comfort": "Comfort temperature (°C)",
+        "comfort_hint": "Used once Autopilot has learned your house.",
+        "start_test": "Start test run",
+        "saved_profile": "Profile saved",
+        "saved_test": "Test run started",
+        "verify_intro": "Autopilot checks that the pump takes its outdoor temperature.",
+        "verify_confirm": "Both are on",
+        "success_title": "Autopilot is on",
+        "success_description": "Status and reason show on the Heating device.",
+        "success_received": "taken by the pump",
+        "return_intro": "Autopilot stops and the pump uses its own outdoor sensor again.",
+        "handover_spa": "Hand over to Smart price adaption",
+        "handover_spa_desc": "The pump's own price control for heating.",
+        "handover_off": "No price control",
+        "handover_off_desc": "Heating follows the curve only.",
+        "return_reminder": "Then turn off external BT1 in menu 7.5.9.2.",
+        "saved_returned": "Handed back to NIBE",
+        "outdoor_intro": "Pick a sensor in the shade, or use the forecast.",
+        "use_forecast": "Use the weather forecast",
+        "use_forecast_desc": "For your Homey's location."
+      }
     },
     "gateway": {
       "title": "Gateway connection",
@@ -362,6 +431,75 @@
     "hotwater_setting": {
       "no_device": "Autopilot hot water needs this pump's Hot water device. Add it first.",
       "no_tank": "Pick your tank size first: Hot water device → Repair."
+    },
+    "heating": {
+      "warning": {
+        "feed_failed": "Autopilot heating stopped: the pump did not take the outdoor temperature. Check menu 7.5.9.2, then turn it on again in Heating → Repair.",
+        "no_outdoor": "Autopilot heating paused: no outdoor temperature.",
+        "spa_on": "Autopilot heating paused: Smart price adaption is on for heating.",
+        "room_control": "Autopilot heating paused: room-sensor control is on in the pump.",
+        "immersion_only": "Autopilot heating paused: the pump runs on the immersion heater only.",
+        "no_model": "Autopilot heating is still learning your house.",
+        "paused": "Autopilot heating is paused.",
+        "mode_off": "Autopilot heating is off."
+      },
+      "status": {
+        "test": "Test run: __text__",
+        "learning": "Learning your house · day __day__ of __of__",
+        "learning_short": "Learning your house",
+        "peak": "prices peak __from__–__to__",
+        "easing_off": "Easing off until __until__",
+        "preheating": "Pre-heating until __until__",
+        "holding": "Holding: nothing to gain from shifting now",
+        "holding_even": "Holding: prices are too even to shift",
+        "next_easing_off": "Holding · easing off at __at__",
+        "next_preheating": "Holding · pre-heating at __at__",
+        "paused": {
+          "paused": "Paused by you",
+          "no_outdoor": "Paused: outdoor temperature stopped reporting",
+          "spa_on": "Paused: Smart price adaption is on for heating",
+          "room_control": "Paused: room-sensor control is on in the pump",
+          "immersion_only": "Paused: the pump runs on the immersion heater only",
+          "feed_failed": "Stopped: the pump did not take the outdoor temperature",
+          "mode_off": "Off",
+          "no_model": "Learning your house"
+        }
+      },
+      "status_name": {
+        "learning": "Learning",
+        "holding": "Holding",
+        "preheating": "Pre-heating",
+        "easing_off": "Easing off",
+        "paused": "Paused",
+        "off": "Off"
+      },
+      "timeline": {
+        "paused": "Autopilot heating: __reason__",
+        "resumed": "Autopilot heating is running again.",
+        "learned": "Autopilot heating has learned your house and now moves heat away from expensive hours."
+      },
+      "verify": {
+        "not_heating": "Autopilot heating is set up on the Heating device.",
+        "room_control": "Turn off room-sensor control in the pump first.",
+        "no_outdoor": "No outdoor temperature yet: choose a sensor or set your location for the weather forecast.",
+        "not_followed": "The pump did not take the outdoor temperature. Check that menu 7.5.9.2 allows an external BT1."
+      },
+      "not_on": "Autopilot heating is not on."
+    },
+    "price": {
+      "no_spa": "This pump has no Smart price adaption.",
+      "no_heating": "Add the Heating device first.",
+      "verify_first": "Turn Autopilot on in Heating → Repair → Autopilot: it checks the pump takes the outdoor temperature first.",
+      "spa_took_over": {
+        "heating": "Smart price adaption was turned on for heating, so Autopilot heating stopped.",
+        "hotwater": "Smart price adaption was turned on for hot water, so Autopilot hot water stopped."
+      }
+    },
+    "house": {
+      "ready": "Has learned your house",
+      "learning": "Learning · day __day__ of __of__",
+      "heat_loss": "__w__ W per °C",
+      "holds_heat": "__h__ h before it cools 1 °C"
     }
   }
 }

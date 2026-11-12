@@ -1,8 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    FeedHooks, HeatingFeed, LIVE_LIMITS, LiveEntry, LiveMode, PumpFacts, ShiftInput, cycleBias, indoorMean, liveMode, planLive,
-    stopReason,
+    FeedHooks, HeatingFeed, LIVE_LIMITS, LiveEntry, LiveMode, PROFILE_LIMITS, PumpFacts, ShiftInput, StopReason, cycleBias,
+    indoorMean, liveMode, planLive, profileLimits, stopReason,
 } from '../lib/autopilot/live';
 import {newForecastBias} from '../lib/autopilot/outdoor';
 import {ForecastSlot, steadyState} from '../lib/autopilot/planner';
@@ -16,10 +16,22 @@ const forecast = (): ForecastSlot[] => Array.from({length: 96}, (_, k) => ({te: 
 const input = (over: Partial<ShiftInput> = {}): ShiftInput => ({house, lever: 0.5 * house.heatLoss, ti: start.ti, tm: start.tm,
     mean: 21.5, curve: 3, bias: 0, forecast: forecast(), ...over});
 
-test('the setting is off unless it says shift', () => {
+test('the heating Price control decides the feed mode', () => {
     assert.equal(liveMode(undefined), 'off');
-    assert.equal(liveMode('live'), 'off');
-    assert.equal(liveMode('shift'), 'shift');
+    assert.equal(liveMode('spa'), 'off');
+    assert.equal(liveMode('test'), 'test');
+    assert.equal(liveMode('autopilot'), 'live');
+});
+
+test('profiles widen the shift from Comfortable to Save the most; unknown is Save some', () => {
+    assert.equal(profileLimits(undefined), LIVE_LIMITS);
+    assert.equal(profileLimits('save_some'), LIVE_LIMITS);
+    assert.ok(PROFILE_LIMITS.comfortable.maxBias < LIVE_LIMITS.maxBias && LIVE_LIMITS.maxBias < PROFILE_LIMITS.save_most.maxBias);
+    assert.ok(PROFILE_LIMITS.comfortable.margin > PROFILE_LIMITS.save_most.margin);
+    for (const id of ['comfortable', 'save_some', 'save_most'] as const) {
+        const plan = planLive(input(), PROFILE_LIMITS[id]);
+        assert.ok(plan.biases.every((b) => Math.abs(b) <= PROFILE_LIMITS[id].maxBias + 1e-9), id);
+    }
 });
 
 test('shift-only plans no comfort bias and stays inside ±3 K', () => {
@@ -71,12 +83,14 @@ function harness(over: {mode?: LiveMode; facts?: Partial<PumpFacts>; sensor?: nu
     let now = 1_800_000 * SLOT_MS + 1000;
     let input1: number | undefined;
     const state = {
-        mode: over.mode ?? 'shift' as LiveMode, writes: [] as number[], records: [] as LiveEntry[], warnings: [] as (string | undefined)[],
+        mode: over.mode ?? 'live' as LiveMode, writes: [] as number[], records: [] as LiveEntry[], warnings: [] as (StopReason | undefined)[],
+        changes: 0,
         feeding: [] as boolean[], sensor: ('sensor' in over ? over.sensor : 3) as number | undefined, deaf: over.deaf ?? false,
         facts: {mode: 1, thresholds: {}, spaHeating: false, roomControl: 0, ...over.facts} as PumpFacts,
     };
     const hooks: FeedHooks = {
         mode: () => state.mode,
+        limits: () => LIVE_LIMITS,
         plan: () => ('plan' in over ? over.plan : input({curve: 3})),
         pump: async () => state.facts,
         outdoor: () => ({sensor: state.sensor, forecast: over.forecast, localHour: 12, bias: newForecastBias()}),
@@ -84,6 +98,7 @@ function harness(over: {mode?: LiveMode; facts?: Partial<PumpFacts>; sensor?: nu
         readBack: async () => input1,
         feeding: (on) => state.feeding.push(on),
         warn: (m) => state.warnings.push(m),
+        changed: () => { state.changes++; },
         log: () => undefined,
         record: (e) => state.records.push(e),
         setTimeout: () => 1,
@@ -103,8 +118,49 @@ test('a cycle feeds the real outdoor minus the plan\'s bias and checks the pump 
     assert.equal(state.writes[0], Math.round((3 - feed.state.bias) * 10) / 10);
     assert.equal(state.feeding.at(-1), true);
     assert.equal(state.records.length, 1, 'one record for the new slot');
+    assert.ok(state.changes > 0, 'the owner-facing status is told');
+    assert.equal(feed.state.slot, 1_800_000, 'the snapshot carries the plan');
     await feed.cycle();
     assert.equal(state.records.length, 1, 'no replan within the slot');
+});
+
+test('a test run plans and reports but never writes', async () => {
+    const {feed, state} = harness({mode: 'test'});
+    feed.start();
+    await feed.cycle();
+    await feed.cycle();
+    assert.equal(state.writes.length, 0);
+    assert.ok(feed.state.biases?.length, 'it has a plan to show');
+    assert.equal(feed.state.stopped, undefined);
+    await feed.stop();
+    assert.equal(state.writes.length, 0, 'nothing to hand back');
+});
+
+test('switching from live to test hands BT1 back once', async () => {
+    const {feed, state} = harness();
+    feed.start();
+    await feed.cycle();
+    state.mode = 'test';
+    await feed.cycle();
+    await feed.cycle();
+    assert.deepEqual(state.writes.slice(1), [3], 'one neutral write, then nothing');
+});
+
+test('paused hands BT1 back and resumes by itself', async () => {
+    const {feed, state} = harness();
+    feed.start();
+    await feed.cycle();
+    state.mode = 'paused';
+    await feed.cycle();
+    assert.equal(feed.state.stopped, 'paused');
+    assert.equal(state.writes.at(-1), 3);
+    assert.ok(feed.running, 'paused is a wait, not an end');
+    assert.ok(!state.warnings.includes('paused'), 'the owner paused it: no warning');
+    state.mode = 'live';
+    const before = state.writes.length;
+    await feed.cycle();
+    assert.equal(feed.state.stopped, undefined);
+    assert.equal(state.writes.length, before + 1, 'feeding again within the slot');
 });
 
 test('three failed cycles stop the feed with a warning', async () => {
@@ -117,11 +173,11 @@ test('three failed cycles stop the feed with a warning', async () => {
     await new Promise((r) => setImmediate(r));
     assert.ok(!feed.running);
     assert.equal(feed.state.stopped, 'feed_failed');
-    assert.ok(state.warnings.some((w) => w?.includes('7.5.9.2')));
+    assert.ok(state.warnings.includes('feed_failed'));
     assert.equal(state.feeding.at(-1), false);
 });
 
-test('SPA on, immersion-only or no model stop before anything is written', async () => {
+test('SPA on, immersion-only or no model wait before anything is written, and keep checking', async () => {
     for (const [over, reason] of [[{facts: {spaHeating: true}}, 'spa_on'], [{facts: {mode: 2}}, 'immersion_only'],
         [{plan: undefined}, 'no_model']] as const) {
         const {feed, state} = harness(over as any);
@@ -130,7 +186,23 @@ test('SPA on, immersion-only or no model stop before anything is written', async
         await new Promise((r) => setImmediate(r));
         assert.equal(state.writes.length, 0, reason);
         assert.equal(feed.state.stopped, reason);
+        assert.ok(feed.running, `${reason} is a wait`);
     }
+});
+
+test('a wait clears at the next slot', async () => {
+    const {feed, state, advance} = harness({facts: {spaHeating: true}});
+    feed.start();
+    await feed.cycle();
+    assert.equal(feed.state.stopped, 'spa_on');
+    state.facts.spaHeating = false;
+    await feed.cycle();
+    assert.equal(state.writes.length, 0, 'not within the same slot');
+    advance(SLOT_MS);
+    await feed.cycle();
+    assert.equal(feed.state.stopped, undefined);
+    assert.equal(state.writes.length, 1);
+    assert.equal(state.warnings.at(-1), undefined, 'its warning cleared');
 });
 
 test('turning the setting off stops and hands back the real outdoor temperature', async () => {
@@ -154,6 +226,7 @@ test('without the sensor it runs on the forecast for 6 h, then stops', async () 
     await feed.cycle();
     await new Promise((r) => setImmediate(r));
     assert.equal(feed.state.stopped, 'no_outdoor');
+    assert.ok(state.warnings.includes('no_outdoor'));
 });
 
 test('stop on a feed that never ran writes nothing', async () => {

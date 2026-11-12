@@ -644,3 +644,16 @@ body {
     opacity: 0.65;
     margin: 1em 0 0;
 }
+
+/* Heating Setup → Autopilot */
+.setup-choice { display: flex; gap: .7em; align-items: flex-start; padding: .8em 1em; cursor: pointer; }
+.setup-checklist { list-style: none; padding: 0; margin: 0 0 1em; }
+.setup-check { display: flex; gap: .7em; align-items: flex-start; padding: .6em 0; border-bottom: 1px solid var(--surface-border); }
+.setup-check p { margin: .15em 0 .4em; color: var(--muted, #666); }
+.setup-check-mark { flex: 0 0 1.4em; height: 1.4em; border-radius: 50%; text-align: center; line-height: 1.4em; font-weight: 600; }
+.setup-check.is-ok .setup-check-mark { background: #e3f4e6; color: #1f7a33; }
+.setup-check.is-blocking .setup-check-mark { background: rgba(216,30,40,.1); color: var(--accent); }
+.setup-check.is-info .setup-check-mark { background: var(--surface-border); }
+.setup-check .homey-button-secondary { margin-top: .2em; }
+.setup-field { display: flex; align-items: center; justify-content: space-between; gap: 1em; margin: 1em 0 .3em; }
+.setup-field input { width: 6em; }

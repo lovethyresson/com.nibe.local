@@ -31,7 +31,7 @@ import {PRESETS, limitsFor} from '../lib/autopilot/presets.ts';
 import {fedValue} from '../lib/autopilot/actuator.ts';
 import {comfortBias} from '../lib/autopilot/trim.ts';
 import {weatherSlots} from '../lib/autopilot/weather.ts';
-import {LIVE_LIMITS} from '../lib/autopilot/live.ts';
+import {PROFILE_LIMITS} from '../lib/autopilot/live.ts';
 import {RADIATOR_HOUSE, SLAB_HOUSE, WEST_HOUSE} from '../test/autopilot-house-sim.ts';
 
 const option = (name, fallback) => {
@@ -181,12 +181,12 @@ for (const [name, house] of Object.entries(houses)) {
         // The house here is the model itself, so trim holding comfort shows the inversion is
         // consistent, not that it works on the house: dev/check-supply-model.mjs is that check.
     }
-    if (shiftOnly) {
-        const runs = each((d, a) => runDay(house, pump, d, a, LIVE_LIMITS));
+    if (shiftOnly) for (const [id, limits] of Object.entries(PROFILE_LIMITS)) {
+        const runs = each((d, a) => runDay(house, pump, d, a, limits));
         const s = runs.map((r, i) => score(house, r, held[i]));
         const all = runs.flatMap((r) => r.biases);
         const heatDiff = runs.map((r, i) => r.heat / held[i].heat - 1);
-        console.log(`${name.padEnd(9)} ${'live test'.padEnd(12)} lever ${(pump.lever * 1000).toFixed(0)} W/K; fair ${pct(mean(s.map((r) => r.fair)))}`
+        console.log(`${name.padEnd(9)} ${('live ' + id).padEnd(16)} lever ${(pump.lever * 1000).toFixed(0)} W/K; fair ${pct(mean(s.map((r) => r.fair)))}`
             + ` (best day ${pct(Math.max(...s.map((r) => r.fair)))}, worst ${pct(Math.min(...s.map((r) => r.fair)))}),`
             + ` gross ${pct(mean(s.map((r) => r.gross)))}; bias ${Math.min(...all)}…${Math.max(...all)} K,`
             + ` pre-heating ${pct(all.filter((b) => b > 0).length / all.length)}, easing off ${pct(all.filter((b) => b < 0).length / all.length)};`

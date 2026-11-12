@@ -11,8 +11,8 @@ import {
     appendJournal, appendLine, deleteHistory, loadHistory, loadJson, modelFileName, saveHistory, saveJson, shadowLogName,
     shadowStateName, trimLines,
 } from './store-file';
-import {DailyFit, HouseAnswers, HouseFit, drifting, fitHistory, readiness, recordDailyFit} from './house';
-import {houseInsights, insightsLine} from './insights';
+import {DailyFit, HouseAnswers, HouseFit, drifting, fitHistory, READY_DAYS, readiness, recordDailyFit} from './house';
+import {HouseInsights, houseInsights, insightsLine} from './insights';
 import {ForecastBias, forecastCorrection, learnForecastBias, newForecastBias, usableSensor} from './outdoor';
 import {SHADOW_PRESETS, ShadowMemory, curveViewOf, shadowForecast, shadowStep, wiredOf} from './shadow';
 import {PumpThresholds} from './actuator';
@@ -197,6 +197,31 @@ export class AutopilotCollector {
         if (on) this.fedSlots.add(slotOf(Date.now()));
     }
 
+    /** What the owner sees of the model: learning progress and, once plausible, the house's
+     *  heat loss and how long it holds a degree. */
+    houseSummary(): {days: number; needed: number; ready: boolean; insights?: HouseInsights} | undefined {
+        if (!this.fit) return undefined;
+        return {days: this.fit.validDays, needed: READY_DAYS, ready: readiness(this.fit, this.dailyFits).ready,
+            insights: houseInsights(this.fit)};
+    }
+
+    /** Whether Homey Energy gives this home dynamic prices (anything to shift against). */
+    hasPrices(): boolean {
+        return this.prices.size > 0;
+    }
+
+    /** The indoor mean over the last `days` days, for Setup's comfort default. */
+    indoorMeanOver(days: number): number | undefined {
+        const range = this.history.range();
+        if (!range.length) return undefined;
+        const from = range[range.length - 1] - days * 96;
+        const values = range.filter((s) => s > from).map((s) => this.history.get(s)!.ti).filter(Number.isFinite);
+        return values.length >= 48 ? values.reduce((a, b) => a + b, 0) / values.length : undefined;
+    }
+
+    /** Called after each hourly refit, for the owner-facing labels. */
+    onFit?: () => void;
+
     /** The live feed's record for the slot it planned, logged with that slot's shadow line. */
     recordLive(entry: LiveEntry) {
         this.liveEntry = entry;
@@ -341,6 +366,7 @@ export class AutopilotCollector {
         const insights = houseInsights(fit);
         const drift = drifting(this.dailyFits);
         this.log(`${insightsLine(fit, insights, ready)}${drift ? '; DRIFT' : ''} (${Date.now() - started} ms)`);
+        this.onFit?.();
         await saveJson(modelFileName(this.fileName), {
             at: new Date(started).toISOString(), answers: this.answers, fit, ready, insights, drift,
             dailyFits: this.dailyFits,

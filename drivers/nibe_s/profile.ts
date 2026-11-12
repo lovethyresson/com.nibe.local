@@ -223,6 +223,8 @@ export const sProfile = makeProfile({
         // Room-sensor control, climate system 1 (id 12671, u8 0..3; docs/autopilot-plan.md §4.3).
         roomControl: 2978,
     },
+    spaSwitches: {master: "boolean_NIBE.h843_spa_activated", heating: "boolean_NIBE.h844_spa_heating_activated",
+        hotwater: "boolean_NIBE.h846_spa_hotwater_activated"},
     autopilotHistory: {
         numeric: {
             ti: "measure_temperature",

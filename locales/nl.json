@@ -172,7 +172,76 @@
       "success_received": "Bevestigd door je warmtepomp",
       "success_one": "1 sensor verbonden",
       "success_many": "sensoren werken samen",
-      "save_changes": "Wijzigingen opslaan"
+      "save_changes": "Wijzigingen opslaan",
+      "autopilot": {
+        "title": "Autopilot",
+        "section": "Verschuift warmte uit dure uren.",
+        "intro": "Autopilot verwarmt iets meer vóór dure uren en minder tijdens. Je stooklijn blijft de temperatuur bepalen.",
+        "badge_on": "Aan",
+        "badge_paused": "Gepauzeerd",
+        "badge_test": "Testrun",
+        "badge_spa": "Smart price adaption",
+        "badge_off": "Uit",
+        "choose_on": "Autopilot",
+        "choose_on_desc": "Verschuift warmte via de buitentemperatuur van de pomp.",
+        "choose_test": "Testrun",
+        "choose_test_desc": "Toont wat hij zou doen. Verandert niets.",
+        "choose_off": "Niet nu",
+        "choose_off_desc": "Prijssturing voor verwarming uit.",
+        "spa_note": "Autopilot zet Smart price adaption voor verwarming uit.",
+        "saved_off": "Prijssturing voor verwarming staat uit",
+        "is_on": "Autopilot staat aan",
+        "is_paused": "Autopilot is gepauzeerd",
+        "change_outdoor": "Buitentemperatuur",
+        "change_profile": "Profiel en comfort",
+        "return_nibe": "Teruggeven aan NIBE",
+        "checklist_intro": "Dit gebruikt Autopilot.",
+        "indoor": "Binnentemperatuur",
+        "indoor_missing": "Stel eerst de binnentemperatuur in onder Verwarming.",
+        "sensor": "Sensor",
+        "no_reading": "geen meting",
+        "outdoor": "Buitentemperatuur",
+        "outdoor_forecast": "Weersverwachting. Een sensor in de schaduw is nauwkeuriger.",
+        "choose_outdoor": "Kiezen",
+        "prices": "Stroomprijzen",
+        "prices_dynamic": "Je prijzen uit Homey Energie.",
+        "prices_fixed": "Vaste prijs: niets te verschuiven. Stel dynamische prijzen in bij Homey Energie.",
+        "room_control": "Ruimtevoelerregeling",
+        "room_control_off": "Uit, zoals Autopilot nodig heeft.",
+        "room_control_on": "Aan in de pomp. Zet hem eerst uit: hij werkt Autopilot tegen.",
+        "room_control_unknown": "Kon niet worden gelezen. Laat hem uit.",
+        "bt1": "Externe buitenvoeler toestaan",
+        "bt1_detail": "Menu 7.5.9.2 op de pomp: externe BT1 aanzetten.",
+        "modbus": "Modbus-schrijven toegestaan",
+        "modbus_detail": "Menu 7.5.9 op de pomp.",
+        "profile_intro": "Hoe sterk Autopilot verschuift.",
+        "profile_comfortable": "Comfortabel",
+        "profile_comfortable_desc": "Kleine verschuivingen. Binnen blijft binnen ±0,3 °C.",
+        "profile_save_some": "Wat besparen",
+        "profile_save_some_desc": "Binnen binnen ±0,5 °C.",
+        "profile_save_most": "Het meest besparen",
+        "profile_save_most_desc": "Grotere verschuivingen. Binnen binnen ±0,7 °C.",
+        "comfort": "Comforttemperatuur (°C)",
+        "comfort_hint": "Geldt zodra Autopilot je huis kent.",
+        "start_test": "Testrun starten",
+        "saved_profile": "Profiel opgeslagen",
+        "saved_test": "Testrun gestart",
+        "verify_intro": "Autopilot controleert of de pomp zijn buitentemperatuur overneemt.",
+        "verify_confirm": "Beide staan aan",
+        "success_title": "Autopilot staat aan",
+        "success_description": "Status en reden staan op het apparaat Verwarming.",
+        "success_received": "overgenomen door de pomp",
+        "return_intro": "Autopilot stopt en de pomp gebruikt weer zijn eigen buitenvoeler.",
+        "handover_spa": "Overdragen aan Smart price adaption",
+        "handover_spa_desc": "De eigen prijssturing van de pomp voor verwarming.",
+        "handover_off": "Geen prijssturing",
+        "handover_off_desc": "Verwarming volgt alleen de stooklijn.",
+        "return_reminder": "Zet daarna externe BT1 uit in menu 7.5.9.2.",
+        "saved_returned": "Teruggegeven aan NIBE",
+        "outdoor_intro": "Kies een sensor in de schaduw, of gebruik de verwachting.",
+        "use_forecast": "Weersverwachting gebruiken",
+        "use_forecast_desc": "Voor de locatie van je Homey."
+      }
     },
     "gateway": {
       "title": "Gatewayverbinding",
@@ -362,6 +431,75 @@
     "hotwater_setting": {
       "no_device": "Autopilot warm water heeft het Warm water-apparaat van deze pomp nodig. Voeg het eerst toe.",
       "no_tank": "Kies eerst de boilerinhoud: Warm water-apparaat → Herstellen."
+    },
+    "heating": {
+      "warning": {
+        "feed_failed": "Autopilot verwarming gestopt: de pomp nam de buitentemperatuur niet over. Controleer menu 7.5.9.2 en zet het opnieuw aan via Verwarming → Repareren.",
+        "no_outdoor": "Autopilot verwarming gepauzeerd: geen buitentemperatuur.",
+        "spa_on": "Autopilot verwarming gepauzeerd: Smart price adaption staat aan voor verwarming.",
+        "room_control": "Autopilot verwarming gepauzeerd: ruimtevoelerregeling staat aan in de pomp.",
+        "immersion_only": "Autopilot verwarming gepauzeerd: de pomp draait alleen op het elektrisch element.",
+        "no_model": "Autopilot verwarming leert je huis nog kennen.",
+        "paused": "Autopilot verwarming is gepauzeerd.",
+        "mode_off": "Autopilot verwarming staat uit."
+      },
+      "status": {
+        "test": "Testrun: __text__",
+        "learning": "Leert je huis kennen · dag __day__ van __of__",
+        "learning_short": "Leert je huis kennen",
+        "peak": "prijzen pieken __from__–__to__",
+        "easing_off": "Bouwt af tot __until__",
+        "preheating": "Verwarmt voor tot __until__",
+        "holding": "Houdt vast: verschuiven levert nu niets op",
+        "holding_even": "Houdt vast: prijzen te gelijk om te verschuiven",
+        "next_easing_off": "Houdt vast · bouwt af om __at__",
+        "next_preheating": "Houdt vast · verwarmt voor om __at__",
+        "paused": {
+          "paused": "Door jou gepauzeerd",
+          "no_outdoor": "Gepauzeerd: buitentemperatuur meldt niet meer",
+          "spa_on": "Gepauzeerd: Smart price adaption staat aan voor verwarming",
+          "room_control": "Gepauzeerd: ruimtevoelerregeling staat aan",
+          "immersion_only": "Gepauzeerd: de pomp draait alleen op het element",
+          "feed_failed": "Gestopt: de pomp nam de buitentemperatuur niet over",
+          "mode_off": "Uit",
+          "no_model": "Leert je huis kennen"
+        }
+      },
+      "status_name": {
+        "learning": "Leert",
+        "holding": "Houdt vast",
+        "preheating": "Verwarmt voor",
+        "easing_off": "Bouwt af",
+        "paused": "Gepauzeerd",
+        "off": "Uit"
+      },
+      "timeline": {
+        "paused": "Autopilot verwarming: __reason__",
+        "resumed": "Autopilot verwarming draait weer.",
+        "learned": "Autopilot verwarming kent je huis nu en verschuift warmte uit dure uren."
+      },
+      "verify": {
+        "not_heating": "Autopilot verwarming stel je in op het apparaat Verwarming.",
+        "room_control": "Zet eerst de ruimtevoelerregeling in de pomp uit.",
+        "no_outdoor": "Nog geen buitentemperatuur: kies een sensor of stel je locatie in voor de weersverwachting.",
+        "not_followed": "De pomp nam de buitentemperatuur niet over. Controleer of menu 7.5.9.2 een externe BT1 toestaat."
+      },
+      "not_on": "Autopilot verwarming staat niet aan."
+    },
+    "price": {
+      "no_spa": "Deze pomp heeft geen Smart price adaption.",
+      "no_heating": "Voeg eerst het apparaat Verwarming toe.",
+      "verify_first": "Zet Autopilot aan via Verwarming → Repareren → Autopilot: daar wordt eerst gecontroleerd of de pomp de buitentemperatuur overneemt.",
+      "spa_took_over": {
+        "heating": "Smart price adaption is aangezet voor verwarming, dus Autopilot verwarming is gestopt.",
+        "hotwater": "Smart price adaption is aangezet voor warm water, dus Autopilot warm water is gestopt."
+      }
+    },
+    "house": {
+      "ready": "Kent je huis",
+      "learning": "Leert · dag __day__ van __of__",
+      "heat_loss": "__w__ W per °C",
+      "holds_heat": "__h__ u voordat het 1 °C afkoelt"
     }
   }
 }

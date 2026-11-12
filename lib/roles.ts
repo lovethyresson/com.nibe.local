@@ -157,6 +157,16 @@ export const ALARM_CAPABILITIES = [ALARM_ACTIVE_CAPABILITY];
 // (lib/autopilot/day-type.ts), not on the device.
 export const DAY_TYPE_CAPABILITY = "day_type_NIBE";
 
+// Autopilot heating on the Heating device, only while its Price control is a test run or on
+// (`autopilot` below): what it is doing and why, the outdoor temperature it feeds BT1, and its
+// shift. Insights titles are snapshotted on first add, so these names and titles are final.
+export const AUTOPILOT_STATUS_CAPABILITY = "autopilot_status_NIBE";
+export const AUTOPILOT_REASON_CAPABILITY = "autopilot_reason_NIBE";
+export const AUTOPILOT_FED_CAPABILITY = "measure_temperature.autopilot_fed";
+export const AUTOPILOT_SHIFT_CAPABILITY = "autopilot_shift_NIBE";
+export const AUTOPILOT_HEATING_CAPABILITIES = [AUTOPILOT_STATUS_CAPABILITY, AUTOPILOT_REASON_CAPABILITY,
+    AUTOPILOT_FED_CAPABILITY, AUTOPILOT_SHIFT_CAPABILITY];
+
 // Main's on/off is pinned ON (the pump is always operating), so it reads simply as "On".
 export function pumpActiveTitle(): {en: string; sv: string; de: string; nl: string; no: string; da: string} {
     return {en: "On", sv: "På", de: "Ein", nl: "Aan", no: "På", da: "Til"};
@@ -345,16 +355,17 @@ function buildExtraCapabilities(
     // The tank estimate survives this early return alongside mirrors: it is derived from the
     // pump's own sensors and delivered-energy counter, not from the allocator, so a model with
     // no readable power register still gets it.
+    const autopilotCaps = role === "heating" && profile.autopilotFeed && autopilot ? AUTOPILOT_HEATING_CAPABILITIES : [];
     if (!hasConsumedPower)
-        return [...tankCaps, ...mirrored];
+        return [...autopilotCaps, ...tankCaps, ...mirrored];
     const energyCaps = ENERGY_CAPABILITIES.filter(enabled);
     // Rolling COP needs the used energy (from the allocator, energy group) alongside the
     // function's produced register — offer it whenever the energy pair is present and the
     // function has a produced register.
     const hasProduced = !!profile.role.producedRegisterForRole[role];
     return energyCaps.length && hasProduced && enabled(FUNCTION_COP_CAPABILITY)
-        ? [...energyCaps, FUNCTION_COP_CAPABILITY, ...tankCaps, ...mirrored]
-        : [...energyCaps, ...tankCaps, ...mirrored];
+        ? [...autopilotCaps, ...energyCaps, FUNCTION_COP_CAPABILITY, ...tankCaps, ...mirrored]
+        : [...autopilotCaps, ...energyCaps, ...tankCaps, ...mirrored];
 }
 
 // Read the role off a device's `data`. Defaults to "main" defensively; every device
@@ -491,6 +502,19 @@ export function extraCapabilityOptions(role: Role, name: string, profile?: Model
     // interpolates between them — but because the figure moves slowly enough that whole litres
     // made it look stuck: idle drift is ~1 K/h on the top sensor, which is one whole litre every
     // twenty minutes or so. A decimal makes a draw visible as it happens.
+    if (name === AUTOPILOT_STATUS_CAPABILITY)
+        return {title: {en: "Autopilot", sv: "Autopilot", de: "Autopilot", nl: "Autopilot", no: "Autopilot", da: "Autopilot"}};
+    if (name === AUTOPILOT_REASON_CAPABILITY)
+        return {title: {en: "Autopilot now", sv: "Autopilot nu", de: "Autopilot jetzt", nl: "Autopilot nu",
+                        no: "Autopilot nå", da: "Autopilot nu"}};
+    if (name === AUTOPILOT_FED_CAPABILITY)
+        return {title: {en: "Outdoor temperature fed", sv: "Utetemperatur som matas in", de: "Eingespeiste Außentemperatur",
+                        nl: "Ingevoerde buitentemperatuur", no: "Innmatet utetemperatur", da: "Indfødt udetemperatur"},
+                decimals: 1};
+    if (name === AUTOPILOT_SHIFT_CAPABILITY)
+        return {title: {en: "Autopilot shift", sv: "Autopilot förskjutning", de: "Autopilot-Verschiebung",
+                        nl: "Autopilot-verschuiving", no: "Autopilot-forskyvning", da: "Autopilot-forskydning"},
+                decimals: 1};
     if (name === DAY_TYPE_CAPABILITY)
         return {title: {en: "Day type", sv: "Dagtyp", de: "Tagestyp", nl: "Dagtype", no: "Dagtype", da: "Dagtype"}};
     if (name === HOTWATER_VOLUME_CAPABILITY)

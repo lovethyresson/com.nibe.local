@@ -227,6 +227,8 @@ function render() {
         setupSections.push({id: 'heating', role: 'heating', title: Homey.__('pair.setup.heating'),
             description: Homey.__('pair.setup.heating_intro'), sources: sources});
     }
+    if (context.autopilot) setupSections.push({id: 'autopilot', role: 'autopilot', title: Homey.__('pair.setup.autopilot.title'),
+        description: Homey.__('pair.setup.autopilot.section')});
     setup = new NibeSetup({mode: 'repair', indoorSensors: context.indoorSensors, indoorNativeAddress: context.indoorNativeAddress,
         summary: function () { return setupSections.map(function (s) { return s.title; }); }, commit: commitFeatures});
     document.getElementById('save').textContent = Homey.__('pair.setup.next');
