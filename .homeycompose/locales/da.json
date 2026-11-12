@@ -278,7 +278,8 @@
         "room_control": "Autopilot opvarmning på pause: rumføler-styring er slået til i din enhed.",
         "immersion_only": "Autopilot opvarmning på pause: din enhed kører kun på elpatron.",
         "no_model": "Autopilot opvarmning lærer stadig dit hus.",
-        "mode_off": "Autopilot opvarmning er slået fra."
+        "mode_off": "Autopilot opvarmning er slået fra.",
+        "cooling": "Autopilot opvarmning sat på pause: din enhed køler."
       },
       "status": {
         "test": "Testkørsel: __text__",
@@ -298,9 +299,11 @@
           "immersion_only": "Pause: din enhed kører kun på elpatron",
           "feed_failed": "Stoppet: din enhed modtog ikke udetemperaturen",
           "mode_off": "Fra",
-          "no_model": "Lærer dit hus"
+          "no_model": "Lærer dit hus",
+          "cooling": "På pause: din enhed køler"
         },
-        "range_off": "Komfortinterval er Fra: din enhed ser den rigtige udetemperatur"
+        "range_off": "Komfortinterval er Fra: din enhed ser den rigtige udetemperatur",
+        "sun": "sol ventet __from__–__to__"
       },
       "status_name": {
         "learning": "Lærer",
@@ -331,7 +334,8 @@
       "spa_took_over": {
         "heating": "Smart price adaption blev slået til for opvarmning, så Autopilot opvarmning stoppede.",
         "hotwater": "Smart price adaption blev slået til for varmt vand, så Autopilot varmt vand stoppede."
-      }
+      },
+      "soon": "Autopilot til dette kommer snart."
     },
     "widget": {
       "price": "Pris",
@@ -365,7 +369,8 @@
       "charge_grid": "Opvarmning fra nettet",
       "charge_solar": "Opvarmning fra sol",
       "axis_price": "Pris /kWh",
-      "axis_surplus": "Overskud kW"
+      "axis_surplus": "Overskud kW",
+      "experimental": "Eksperimentel"
     }
   }
 }

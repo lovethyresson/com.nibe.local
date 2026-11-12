@@ -5,12 +5,13 @@ import {newHistoryFileName} from './autopilot/store-file';
 import {ChargeEvent, HotwaterAutopilot, HotwaterMode} from './autopilot/hotwater-shadow';
 import {DAY_TYPE_SETTING, readDayType} from './autopilot/day-type';
 import {Sample} from './autopilot/history';
-import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits} from './autopilot/live';
-import {SMART_MODE_STORE, SmartFunction, SmartMode, autopilotRuns, shownSmartMode, smartMode, smartModeWrites, spaOn} from './autopilot/smart-mode';
+import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits, sunTrust, surplusPrices} from './autopilot/live';
+import {AUTOPILOT_FUNCTIONS, SMART_MODE_STORE, SmartFunction, SmartMode, autopilotRuns, shownSmartMode, smartMode, smartModeWrites, spaOn} from './autopilot/smart-mode';
 import {HeatingStatus, heatingStatus} from './autopilot/heating-status';
 import {forecastCorrection} from './autopilot/outdoor';
 import {AHEAD_SLOTS, BACK_SLOTS, HOTWATER_SLOTS, WidgetData, heatingSlots, ticks} from './autopilot/widget';
 import {slotOf} from './autopilot/prices';
+import {SolarSurplus} from './autopilot/solar-surplus';
 import {Device} from 'homey';
 import net from 'net';
 import {analyticsConsent, setAnalyticsConsent, track} from './analytics';
@@ -1157,10 +1158,16 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         return mode === 'test' ? 'shadow' : mode === 'autopilot' ? 'live' : 'off';
     }
 
-    /** The Smart mode that decides this device's capabilities: its own for Heating and Hot water
-     *  (Autopilot's capabilities, or SPA's), hot water's for Main (the day type). */
+    /** Whether this device's function has a Smart mode: heating, hot water, pool and cooling. */
+    private smartFunction(): SmartFunction | undefined {
+        const fn = this.role as SmartFunction;
+        return fn === 'heating' || fn === 'hotwater' || fn === 'pool' || fn === 'cooling' ? fn : undefined;
+    }
+
+    /** The Smart mode that decides this device's capabilities: its own for a function (Autopilot's
+     *  capabilities, or SPA's), hot water's for Main (the day type). */
     private capabilitySmartMode(): SmartMode {
-        if (this.role === 'heating' || this.role === 'hotwater') return this.smartMode();
+        if (this.smartFunction()) return this.smartMode();
         if (this.role === 'main') return this.smartModeOf('hotwater');
         return 'off';
     }
@@ -1234,6 +1241,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 return Number.isFinite(v) && v >= 0 ? v : 40;
             },
             solar: () => this.getSettings().autopilotSolar !== false,
+            surplus: (slot) => this.solarSurplus().forUser('hotwater', slot),
+            reserveSurplus: (kw) => this.solarSurplus().budget.reserve('hotwater', kw),
             dayType: () => readDayType(this.homey.settings.get(DAY_TYPE_SETTING)),
             pumpFacts: async () => {
                 const num = async (name: string) => {
@@ -1321,7 +1330,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             mode: () => this.heatingMode,
             limits: () => profileLimits(this.autopilotAway() ? 'save_most' : this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY)),
             neutral: () => this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY) === 'off',
-            plan: (slot) => this.autopilot?.liveInputs(slot),
+            sunTrust: () => this.autopilot?.sunReady()
+                ? sunTrust(this.autopilotAway() ? 'save_most' : this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY)) : 0,
+            plan: (slot) => {
+                const input = this.autopilot?.liveInputs(slot);
+                // Solar surplus left for heating after hot water took its share makes those slots cheap.
+                if (!input || this.getSettings().autopilotSolar === false) return input;
+                return {...input, forecast: surplusPrices(input.forecast, slot, this.solarSurplus().forUser('heating', slot), input.lever)};
+            },
             pump: () => this.heatingPumpFacts(),
             outdoor: () => collector.outdoorNow(),
             write: (celsius) => this.writeBt1(celsius),
@@ -1359,6 +1375,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private async heatingPumpFacts(): Promise<PumpFacts> {
         const spec = this.profile.autopilotFeed!;
         const c = this.profile.autopilotHistory?.controls;
+        const priority = this.profile.autopilotHistory?.priority;
         const num = async (name?: string) => {
             // A picker register (operating mode) reads back as its id in text: "0".
             const v = name ? await this.readNamed(name) : undefined;
@@ -1373,6 +1390,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             spaHeating: spa.every((v) => v === true),
             roomControl: await this.readRoomControl(),
             addHeat: (await this.readNamed(spec.addHeat)) === true,
+            cooling: priority?.cooling !== undefined && await num(priority.register) === priority.cooling,
         };
     }
 
@@ -1444,6 +1462,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             .catch(this.error);
     }
 
+    private surplusService?: SolarSurplus;
+    /** The home's solar surplus (solar-surplus.ts), shared by every function's Autopilot. */
+    private solarSurplus(): SolarSurplus {
+        return this.surplusService ??= SolarSurplus.acquire(this.homey, (...args: any[]) => this.log(...args), this);
+    }
+
     /** This device and its siblings: every device of the pump. */
     private pumpDevices(): NibePumpDevice[] {
         const host = this.host();
@@ -1468,6 +1492,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const t = (key: string) => this.homey.__(`autopilot.smart.${key}`);
         if (value === 'spa' && !this.profile.spaSwitches) throw new Error(t('no_spa'));
         if (!autopilotRuns(value)) return;
+        if (!AUTOPILOT_FUNCTIONS.includes(this.role as SmartFunction)) throw new Error(t('soon'));
         if (this.role === 'hotwater') {
             if (!this.profile.autopilotHotwater) throw new Error(this.homey.__('autopilot.hotwater_setting.no_device'));
             if (this.tankConfig().litres === null) throw new Error(this.homey.__('autopilot.hotwater_setting.no_tank'));
@@ -1481,17 +1506,28 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
      *  (or this one: a hidden switch is still written). */
     private async writeSmartMode(value: SmartMode) {
         const spa = this.profile.spaSwitches;
-        if (!spa || (this.role !== 'heating' && this.role !== 'hotwater')) return;
+        const fn = this.smartFunction();
+        if (!spa || !fn) return;
         NibePumpDevice.smartWriting.add(this.host());
         try {
-            for (const [name, on] of smartModeWrites(this.role, value, spa)) {
+            // The pool's SPA off is its influence at 0: keep what the owner had, to put it back.
+            if (fn === 'pool' && spa.poolInfluence && value !== 'spa') {
+                const had = Number(await this.readNamed(spa.poolInfluence));
+                if (had > 0) await this.setStoreValue('spaPoolInfluence', had);
+            }
+            const restore = Number(this.getStoreValue('spaPoolInfluence')) || undefined;
+            for (const [name, want] of smartModeWrites(fn, value, spa, restore)) {
                 const holder = this.pumpDevices().find((d) => d.hasCapability(name)) ?? this;
                 const now = await holder.readNamed(name);
-                // Turning a switch off that does not read on is nothing to do: with SPA's master off
-                // the S1155 refuses a write to 844 with Modbus exception 1 (seen 2026-11-12).
-                if (now === on || (!on && now !== true)) continue;
-                this.log(`Smart mode (${this.role} = ${value}): writing ${name} = ${on}`);
-                await holder.writeRegister(this.register(name), on);
+                if (typeof want === 'number') {
+                    if (Number(now) === want) continue;
+                } else if (now === want || (!want && now !== true)) {
+                    // Turning a switch off that does not read on is nothing to do: with SPA's master
+                    // off the S1155 refuses a write to 844 with Modbus exception 1 (seen 2026-11-12).
+                    continue;
+                }
+                this.log(`Smart mode (${fn} = ${value}): writing ${name} = ${want}`);
+                await holder.writeRegister(this.register(name), typeof want === 'number' ? String(want) : want);
             }
         } finally {
             NibePumpDevice.smartWriting.delete(this.host());
@@ -1516,7 +1552,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const spa = this.profile.spaSwitches;
         if (!spa || NibePumpDevice.smartWriting.has(this.host())) return;
         const master = await this.readNamed(spa.master);
-        for (const fn of ['heating', 'hotwater'] as SmartFunction[]) {
+        for (const fn of ['heating', 'hotwater'] as const) {
             const device = (this.role === fn ? this : this.sibling(fn)) as NibePumpDevice | undefined;
             if (!device || !autopilotRuns(device.smartMode()) || !spaOn(master, await this.readNamed(spa[fn]))) continue;
             this.log(`Smart mode: Smart price adaption turned on for ${fn}; Autopilot steps aside.`);
@@ -1564,10 +1600,15 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     /** What Repair → Smart mode shows: the choice, and for heating the checklist's facts. */
     async smartModeStatus() {
         const spa = this.profile.spaSwitches;
-        const fn = this.role === 'hotwater' ? 'hotwater' : 'heating';
-        const spaIsOn = spa ? spaOn(await this.readNamed(spa.master), await this.readNamed(spa[fn])) : false;
-        const base = {role: fn, mode: shownSmartMode(this.smartMode(), spaIsOn), spa: !!spa, spaOn: spaIsOn};
-        if (this.role !== 'heating') return {...base, tank: this.tankConfig().litres !== null};
+        const fn = this.smartFunction() ?? 'heating';
+        const master = spa ? await this.readNamed(spa.master) : undefined;
+        // The pool's SPA is on when the master is and its influence is above 0.
+        const own = !spa ? undefined : fn === 'pool' ? (spa.poolInfluence ? Number(await this.readNamed(spa.poolInfluence)) > 0 : undefined)
+            : await this.readNamed(fn === 'cooling' ? spa.cooling ?? '' : spa[fn]);
+        const spaIsOn = spa ? spaOn(master, own) : false;
+        const base = {role: fn, mode: shownSmartMode(this.smartMode(), spaIsOn), spa: !!spa && (fn !== 'cooling' || !!spa.cooling)
+            && (fn !== 'pool' || !!spa.poolInfluence), spaOn: spaIsOn, autopilot: AUTOPILOT_FUNCTIONS.includes(fn)};
+        if (this.role !== 'heating') return {...base, tank: this.role === 'hotwater' ? this.tankConfig().litres !== null : undefined};
         const indoor = Number(this.getCapabilityValue('measure_temperature'));
         return {
             ...base,
@@ -1598,7 +1639,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const mode = this.role === 'heating' || this.role === 'hotwater' ? this.smartMode() : 'off';
         const base = {title, chips: [] as string[], slots: [], ticks: [], legend: {}};
         if (!autopilotRuns(mode)) return {...base, kind: 'none', empty: t(this.role === 'heating' || this.role === 'hotwater' ? 'off' : 'not_function')};
-        const chips = mode === 'test' ? [t('test')] : [];
+        const chips = [t('experimental'), ...(mode === 'test' ? [t('test')] : [])];
         if (this.role === 'hotwater') {
             const o = this.hotwaterAutopilot?.outlook(slot, HOTWATER_SLOTS);
             if (!o) return {...base, kind: 'hotwater', chips, empty: t('starting')};
@@ -2384,6 +2425,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.autopilot = null;
         this.hotwaterAutopilot?.stop();
         this.hotwaterAutopilot = null;
+        this.surplusService?.release(this);
+        this.surplusService = undefined;
         await this.stopIndoor();
         // Flush the debounced meter before going away, so an orderly restart or a repair keeps
         // the fraction of a kWh the 0.01 step was still holding.

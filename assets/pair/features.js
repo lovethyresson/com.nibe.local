@@ -238,7 +238,7 @@ function render() {
     // Heating's Smart mode is a step of Heating Setup (setup.js `steer`); hot water's is its own section.
     var heatingFlow = context.smart && context.role === 'heating' && setupSections.some(function (s) { return s.role === 'heating'; });
     if (context.smart && !heatingFlow) setupSections.push({id: 'smart', role: 'smart', title: Homey.__('pair.setup.smart.title'),
-        description: Homey.__('pair.setup.smart.section_' + (context.role === 'hotwater' ? 'hotwater' : 'heating'))});
+        description: Homey.__('pair.setup.smart.section_' + context.role)});
     setup = new NibeSetup({mode: 'repair', smart: heatingFlow, indoorSensors: context.indoorSensors, indoorNativeAddress: context.indoorNativeAddress,
         summary: function () { return setupSections.map(function (s) { return s.title; }); }, commit: commitFeatures});
     document.getElementById('save').textContent = Homey.__('pair.setup.next');

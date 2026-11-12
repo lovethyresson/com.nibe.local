@@ -529,6 +529,21 @@ prices: ease off at 22:00 (−2 K) and 07:00–08:30 (−3 K), indoor −0.05 K.
 - [ ] Turn off: set it to `off`; the log shows "stopped (mode_off)" and the last feed is the real
       outdoor temperature.
 
+## Autopilot: solar, and pool and cooling (2026-11-12)
+
+Plan: `~/.claude/plans/atomic-chasing-brooks.md`. As built: `docs/autopilot-plan.md` §10.0 "Solar".
+- [x] Shared solar surplus service and budget; hot water moved onto it unchanged.
+- [x] Heating: cooling guard, surplus effective price, sun gate (`sunReady`) and sun in live plans.
+- [x] Smart mode for pool (848) and cooling (849), Autopilot "Soon".
+- [ ] Read the sun gate on the S1155 over sunny days (daily fits log `sunOn`/`sunOff`).
+- [ ] Heating reserves its surplus once cooling uses the budget.
+- [ ] One weather fetch per home (the collector's GTI and the surplus GHI history).
+- [ ] Heating widget: draw the surplus.
+- **Phase 2: Pool and Cooling Autopilot** (design in the plan file):
+  - Pool: band 687/689 at most 4 writes a day, plus a GHI gain coefficient for an outdoor pool.
+  - Cooling: lever by probe (975 or 988, never BT1), pre-cool on price and surplus.
+  - Both ship live, guarded; testers confirm.
+
 ## Autopilot heating: owner UI (built 2026-11-12, not installed)
 
 Replaces the hidden `autopilotLive.*` switch with the Price control settings, Heating Setup →

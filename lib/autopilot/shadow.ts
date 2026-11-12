@@ -145,7 +145,7 @@ export function shadowStep(input: ShadowInput): ShadowOutput {
  *  the wired sensor taught (outdoor.ts), and the price where known, else the last one known
  *  (flat: no shifting on a guess), else 1. */
 export function shadowForecast(from: number, weather: Map<number, {te: number; gtiS: number; gtiE: number; gtiW: number}>,
-                               prices: Map<number, {price: number}>, correction: (slot: number) => number,
+                               prices: Map<number, {price: number; spot?: number}>, correction: (slot: number) => number,
                                n = HORIZON): ForecastSlot[] {
     const out: ForecastSlot[] = [];
     let price = [...prices.entries()].filter(([s]) => s < from).sort((a, b) => b[0] - a[0])[0]?.[1].price ?? 1;
@@ -153,7 +153,8 @@ export function shadowForecast(from: number, weather: Map<number, {te: number; g
         const w = weather.get(from + k);
         if (!w || ![w.te, w.gtiS, w.gtiE, w.gtiW].every(Number.isFinite)) break;
         price = prices.get(from + k)?.price ?? price;
-        out.push({te: w.te + correction(from + k), sun: w.gtiS, sunE: w.gtiE, sunW: w.gtiW, price});
+        const spot = prices.get(from + k)?.spot;
+        out.push({te: w.te + correction(from + k), sun: w.gtiS, sunE: w.gtiE, sunW: w.gtiW, price, ...(spot === undefined ? {} : {spot})});
     }
     return out;
 }

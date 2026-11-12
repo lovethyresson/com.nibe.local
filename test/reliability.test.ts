@@ -986,3 +986,22 @@ test('Away moves the thermostat and back; leaving Autopilot while Away puts it b
     assert.equal(p.store.get('autopilotHome'), undefined);
     assert.equal(caps.get('boolean_NIBE.autopilot_away'), false);
 });
+
+test('pool and cooling offer SPA and Off; Autopilot is not selectable yet', async () => {
+    const {d: pool, store} = device();
+    pool.role = 'pool';
+    pool.getSettings = () => ({address: 'pump-a'});
+    pool.driver = {getDevices: () => [pool]};
+    pool.applyAutopilot = async () => undefined;
+    const values: Record<string, any> = {'spa_influence_NIBE.h848_spa_pool_influence': '6', 'boolean_NIBE.h843_spa_activated': true};
+    const written: [string, any][] = [];
+    pool.readRegister = async (r: Register) => values[r.name];
+    pool.writeRegister = async (r: Register, v: any) => { written.push([r.name, v]); values[r.name] = v; };
+    await assert.rejects(pool.chooseSmartMode('autopilot'), /autopilot.smart.soon/);
+    await assert.rejects(pool.chooseSmartMode('test'), /autopilot.smart.soon/);
+    await pool.chooseSmartMode('off');
+    assert.deepEqual(written, [['spa_influence_NIBE.h848_spa_pool_influence', '0']]);
+    assert.equal(store.get('spaPoolInfluence'), 6, 'what the owner had is kept');
+    await pool.chooseSmartMode('spa');
+    assert.deepEqual(written.at(-1), ['spa_influence_NIBE.h848_spa_pool_influence', '6'], 'and comes back with SPA');
+});

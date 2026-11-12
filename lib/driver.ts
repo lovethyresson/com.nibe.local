@@ -1353,8 +1353,10 @@ export abstract class NibePumpDriver extends Driver {
 
         this.registerAnalyticsHandlers(session);
         this.registerIndoorHandlers(session, device);
+        const spa = this.profile.spaSwitches;
         const smart = (role === 'heating' && !!this.profile.autopilotFeed)
-            || (role === 'hotwater' && (!!this.profile.autopilotHotwater || !!this.profile.spaSwitches));
+            || (role === 'hotwater' && (!!this.profile.autopilotHotwater || !!spa))
+            || (role === 'pool' && !!spa?.poolInfluence) || (role === 'cooling' && !!spa?.cooling);
         if (smart) this.registerSmartModeHandlers(session, device);
 
         session.setHandler('get_context', async () => ({

@@ -225,8 +225,12 @@ export const sProfile = makeProfile({
     },
     spaSwitches: {master: "boolean_NIBE.h843_spa_activated", heating: "boolean_NIBE.h844_spa_heating_activated",
         hotwater: "boolean_NIBE.h846_spa_hotwater_activated",
+        cooling: "boolean_NIBE.h849_spa_cooling_activated",
+        poolInfluence: "spa_influence_NIBE.h848_spa_pool_influence",
         controls: {heating: ["boolean_NIBE.h844_spa_heating_activated", "spa_heating_influence_NIBE.h845_spa_heating_influence"],
-            hotwater: ["boolean_NIBE.h846_spa_hotwater_activated", "spa_hotwater_influence_NIBE.h902_spa_hotwater_influence"]}},
+            hotwater: ["boolean_NIBE.h846_spa_hotwater_activated", "spa_hotwater_influence_NIBE.h902_spa_hotwater_influence"],
+            cooling: ["boolean_NIBE.h849_spa_cooling_activated", "spa_influence_NIBE.h850_spa_cooling_influence"],
+            pool: ["spa_influence_NIBE.h848_spa_pool_influence"]}},
     autopilotHistory: {
         numeric: {
             ti: "measure_temperature",
@@ -247,7 +251,7 @@ export const sProfile = makeProfile({
             tset: "target_temperature",
             roomctl: "boolean_NIBE.h202_use_room_sensor",
         },
-        priority: {register: "measure_priority_NIBE.i1028_priority_value", hotwater: 20},
+        priority: {register: "measure_priority_NIBE.i1028_priority_value", hotwater: 20, cooling: 60},
         immersion: "status_NIBE.i1029_additive_heat_active",
         controls: {
             comfort: "target_temperature",

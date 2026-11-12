@@ -280,7 +280,16 @@
         "price_spot": "Bara spot",
         "row_covers": "Vad det omfattar",
         "covers_auto": "Värme, varmvatten",
-        "covers_spa": "Värme, varmvatten, pool, kyla"
+        "covers_spa": "Värme, varmvatten, pool, kyla",
+        "covers_auto_soon": "Pool och kyla snart",
+        "soon": "Snart",
+        "section_pool": "Vem som flyttar poolvärmen till billigare timmar.",
+        "section_cooling": "Vem som flyttar kylan till billigare timmar.",
+        "choose_on_desc_pool": "Kommer att värma poolen under billiga och soliga timmar, inom ett spann du väljer.",
+        "choose_on_desc_cooling": "Kommer att förkyla inför pristoppar och på solöverskott.",
+        "choose_off_desc_pool": "Poolen följer din enhets egna inställningar.",
+        "choose_off_desc_cooling": "Kylan följer din enhets egna inställningar.",
+        "experimental": "Experimentell"
       }
     },
     "gateway": {
@@ -480,7 +489,8 @@
         "room_control": "Autopilot uppvärmning pausad: rumsgivarstyrning är på i din enhet.",
         "immersion_only": "Autopilot uppvärmning pausad: din enhet går endast på elpatron.",
         "no_model": "Autopilot uppvärmning lär sig fortfarande ditt hus.",
-        "mode_off": "Autopilot uppvärmning är av."
+        "mode_off": "Autopilot uppvärmning är av.",
+        "cooling": "Autopilot uppvärmning pausad: din enhet kyler."
       },
       "status": {
         "test": "Testkörning: __text__",
@@ -500,9 +510,11 @@
           "immersion_only": "Pausad: din enhet går endast på elpatron",
           "feed_failed": "Stoppad: din enhet tog inte emot utetemperaturen",
           "mode_off": "Av",
-          "no_model": "Lär sig ditt hus"
+          "no_model": "Lär sig ditt hus",
+          "cooling": "Pausad: din enhet kyler"
         },
-        "range_off": "Komfortspann är Av: din enhet ser den verkliga utetemperaturen"
+        "range_off": "Komfortspann är Av: din enhet ser den verkliga utetemperaturen",
+        "sun": "sol väntas __from__–__to__"
       },
       "status_name": {
         "learning": "Lär sig",
@@ -533,7 +545,8 @@
       "spa_took_over": {
         "heating": "Smart price adaption slogs på för uppvärmning, så Autopilot uppvärmning stoppade.",
         "hotwater": "Smart price adaption slogs på för varmvatten, så Autopilot varmvatten stoppade."
-      }
+      },
+      "soon": "Autopilot för detta kommer snart."
     },
     "widget": {
       "price": "Pris",
@@ -568,7 +581,8 @@
       "charge_grid": "Laddning från nätet",
       "charge_solar": "Laddning från solen",
       "axis_price": "Pris /kWh",
-      "axis_surplus": "Överskott kW"
+      "axis_surplus": "Överskott kW",
+      "experimental": "Experimentell"
     }
   }
 }

@@ -1,4 +1,4 @@
-import {SmartMode, autopilotRuns} from './autopilot/smart-mode';
+import {SmartFunction, SmartMode, autopilotRuns} from './autopilot/smart-mode';
 import {GroupId, Register, Selection, isRegisterEnabled, withResolvedAddresses} from './registers';
 import type {CapabilityMirror, ModelProfile} from './profile';
 
@@ -421,8 +421,8 @@ export function capabilitySyncPlan(
  *  the pump turning SPA on is still seen. */
 export function hiddenBySmartMode(profile: ModelProfile, role: Role, smart: SmartMode): string[] {
     const controls = profile.spaSwitches?.controls;
-    if (!controls || !autopilotRuns(smart) || (role !== 'heating' && role !== 'hotwater')) return [];
-    return controls[role];
+    if (!controls || !autopilotRuns(smart)) return [];
+    return controls[role as SmartFunction] ?? [];
 }
 
 export function registersForRole(profile: ModelProfile, role: Role, selection: Selection | null | undefined): Register[] {

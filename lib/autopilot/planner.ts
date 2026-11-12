@@ -35,6 +35,9 @@ export interface ForecastSlot {
     sunW?: number;
     /** Price per kWh of electricity. */
     price: number;
+    /** What an exported kWh earns (spot), where known: the price of electricity the solar surplus
+     *  covers (live.ts `surplusPrices`). */
+    spot?: number;
 }
 
 export interface PlanState {

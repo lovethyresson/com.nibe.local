@@ -14,10 +14,6 @@ import {DEFAULT_RESERVE_LITRES, Plan, SLOT_H, TankSpec, drawsFor, plan, reserveK
 import {appendLine, deleteHistory, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
 import {DayTypeState, dayTypeAt} from './day-type';
 import {PumpFacts, countFor, leverDecision} from './hotwater-lever';
-import {LIVE_WINDOW, SurplusFit, fitSurplus, gridMeter, hasGenerator, hourlyExport, hourlyGhi, irradianceUrl, liveSurplusKw,
-    liveSurplusW, surplusForecast} from './hotwater-surplus';
-import {getJson, LOCATION_SETTING} from './collector';
-import {weatherLocation} from './weather';
 
 const HOUR = 3_600_000;
 /** Lowest and highest target the shadow plans with (doc §4.2). The ceiling will come from the
@@ -469,6 +465,11 @@ export interface HotwaterHooks {
     mode(): HotwaterMode;
     reserveLitres(): number;
     solar(): boolean;
+    /** Solar surplus left for hot water from `slot`, kW per slot (solar-surplus.ts), or undefined
+     *  without a generator. */
+    surplus(slot: number): Map<number, number> | undefined;
+    /** What the plan's charges take from the surplus, kW per slot, so later users see the rest. */
+    reserveSurplus(kw: Map<number, number>): void;
     dayType(): DayTypeState | undefined;
     /** The pump's state read just before a start, live from the pump. */
     pumpFacts(): Promise<PumpFacts>;
@@ -518,12 +519,6 @@ export class HotwaterAutopilot {
     /** Why the last planned start was not made, so a reason is logged once, not every slot. */
     private leverSkip?: string;
     private starting = false;
-    /** Solar: whether the home has what surplus needs, the fit, the sun ahead, the live readings. */
-    private solarState?: string;
-    private solarReady = false;
-    private surplusFit?: SurplusFit;
-    private ghi = new Map<number, number>();
-    private live: {at: number; w: number}[] = [];
 
     /** `dataId` is the device's pairing id (`getData().id`): the SDK does not expose the Homey
      *  device id that Insights are keyed by, so it is looked up through the Homey API. */
@@ -543,8 +538,6 @@ export class HotwaterAutopilot {
         this.loop(() => this.fetchPrices(), 5_000);
         this.loop(async () => { await this.learn(); return LEARN_EVERY_MS; }, 60_000);
         this.loop(async () => { this.report(); return HOUR; }, 10 * 60_000);
-        this.loop(() => this.learnSurplus(), 90_000);
-        this.loop(() => this.sampleSurplus(), 2 * 60_000);
         this.scheduleStep();
     }
 
@@ -672,64 +665,23 @@ export class HotwaterAutopilot {
         return nextPriceFetchMs(now, timeZone, (days[1]?.slots.length ?? 0) > 0);
     }
 
-    /** What surplus needs from the home (a generator and a grid meter Homey Energy counts), the
-     *  fit of export against the sun over the last two weeks, and the sun ahead. */
-    private async learnSurplus(): Promise<number> {
-        if (!this.hooks.solar()) {
-            this.solarReady = false;
-            this.surplusFit = undefined;
-            this.ghi.clear();
-            return SURPLUS_EVERY_MS;
-        }
-        const found = await withApi(this.homey, async (api) => {
-            const [devices, report] = await Promise.all([api.devices.getDevices({$cache: false, $timeout: 10_000}),
-                api.energy.getLiveReport({})]);
-            if (!hasGenerator(devices)) return 'no generator' as const;
-            const meter = gridMeter(devices, report);
-            if (!meter) return 'no grid meter' as const;
-            const uri = `homey:device:${meter.id}`;
-            const log = await api.insights.getLogEntries({uri, id: `${uri}:${meter.exported}`, resolution: 'last14Days', $timeout: 20_000});
-            const homeyLocation: any = await api.geolocation.getOptionLocation().catch(() => undefined);
-            return {log, location: weatherLocation(homeyLocation?.value, this.homey.settings.get(LOCATION_SETTING))};
-        });
-        if (typeof found === 'string' || !found.location) {
-            const state = typeof found === 'string' ? found : 'no location';
-            if (state !== this.solarState) this.log(`Autopilot hot water: no solar surplus (${state}).`);
-            this.solarState = state;
-            this.solarReady = false;
-            this.surplusFit = undefined;
-            return SURPLUS_EVERY_MS;
-        }
-        this.solarReady = true;
-        this.ghi = hourlyGhi(await getJson(irradianceUrl(found.location.latitude, found.location.longitude)));
-        this.surplusFit = fitSurplus(this.ghi, hourlyExport(found.log));
-        const state = this.surplusFit ? `${this.surplusFit.hours} sunny hours: ${round(this.surplusFit.a * 1000, 2)} kW `
-            + `per 1000 W/m², ${round(this.surplusFit.b, 2)} kW` : 'too few sunny hours to plan with; the live export still counts';
-        if (state !== this.solarState) this.log(`Autopilot hot water: solar surplus from ${state}.`);
-        this.solarState = state;
-        return SURPLUS_EVERY_MS;
-    }
-
-    /** One live reading a minute while surplus is on and the home has a generator. */
-    private async sampleSurplus(): Promise<number> {
-        if (!this.hooks.solar() || !this.solarReady) {
-            this.live = [];
-            return 60_000;
-        }
-        const now = Date.now();
-        const w = liveSurplusW(await withApi(this.homey, (api) => api.energy.getLiveReport({})));
-        if (w !== undefined) this.live.push({at: now, w});
-        this.live = this.live.filter((r) => r.at > now - LIVE_WINDOW * 60_000);
-        return 60_000;
-    }
-
-    /** Expected export per slot, kW: live for the next half hour, the forecast after. */
+    /** Expected surplus left for hot water per slot, kW, while solar is on. */
     private surplus(slot: number): Map<number, number> | undefined {
-        if (!this.hooks.solar()) return undefined;
-        const live = liveSurplusKw(this.live, Date.now());
-        const ahead = Array.from({length: 2 * 96}, (_, j) => slot + j);
-        const forecast = surplusForecast(this.surplusFit, this.ghi, ahead.map((k) => k * SLOT_MS));
-        return new Map(ahead.map((k, j) => [k, j < LIVE_SLOTS && live !== undefined ? live : forecast[j]]));
+        return this.hooks.solar() ? this.hooks.surplus(slot) : undefined;
+    }
+
+    /** The plan in force takes the surplus in the slots its solar charges run in. */
+    private reserveFor(plan: DailyPlan) {
+        const kw = new Map<number, number>();
+        const surplus = this.surplus(Math.floor(Date.now() / SLOT_MS));
+        for (const c of plan.charges) {
+            if (!(c.surplusShare > 0)) continue;
+            for (let at = c.at; at < c.at + c.minutes * 60_000; at += SLOT_MS) {
+                const slot = Math.floor(at / SLOT_MS);
+                kw.set(slot, surplus?.get(slot) ?? 0);
+            }
+        }
+        this.hooks.reserveSurplus(kw);
     }
 
     private input(at: number, now: TankNow, tank: TankSpec): ShadowStepInput {
@@ -843,6 +795,7 @@ export class HotwaterAutopilot {
         const after = dailyPlan(input);
         if ('skip' in after) return this.log(`Autopilot hot water: prices changed, no replan (${after.skip}).`);
         this.morningPlan = after;
+        this.reserveFor(after);
         const before = dailyPlan({...input, prices: old});
         if ('skip' in before) return this.log(`Autopilot hot water: prices changed, replanned (nothing to compare: ${before.skip}).`);
         this.log(`Autopilot hot water: prices changed, replanned: ${JSON.stringify(planChanges(before, after, at))}`);
@@ -878,6 +831,7 @@ export class HotwaterAutopilot {
             this.time, this.shadow, (ms) => input.clock(ms).date, date);
         this.events = [];
         this.morningPlan = d;
+        this.reserveFor(d);
         const text = dailyPlanText(d, (key, tokens) => this.homey.__(`autopilot.hotwater_daily.${key}`, tokens),
             this.time, this.currency, this.shadow, recap);
         this.log(`Autopilot hot water morning plan: ${JSON.stringify(d)}`);

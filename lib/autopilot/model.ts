@@ -402,6 +402,33 @@ export function predictionRmse(params: HouseParams, slots: ModelSlot[], states: 
     return {rmse: n ? Math.sqrt(sum / n) : NaN, windows: n};
 }
 
+/** Sun in a window counts as sunny above this mean on the south wall, W/m². */
+export const SUNNY_W = 150;
+
+/** The 6 h prediction error over sunny windows only, with the model's sun term as fitted and with
+ *  it removed: the sun term earns its place in a plan only when it predicts sunny days better. */
+export function sunScore(params: HouseParams, slots: ModelSlot[], states: Map<number, [number, number]>,
+                         horizon = HORIZON_SLOTS): {windows: number; rmseOn: number; rmseOff: number} {
+    const noSun = {...params, sun: 0, sunE: 0, sunW: 0};
+    let on = 0, off = 0, n = 0;
+    for (let start = 0; start + horizon < slots.length; start += 4) {
+        const state = states.get(slots[start].slot);
+        if (!state) continue;
+        const window = slots.slice(start + 1, start + 1 + horizon);
+        if (window.some((s, i) => s.slot !== slots[start].slot + i + 1 || !s.usable)) continue;
+        if (window.reduce((sum, s) => sum + s.inputs.sun, 0) / window.length < SUNNY_W) continue;
+        let [a, am] = state, [b, bm] = state;
+        for (const s of window) {
+            [a, am] = stepHouse(params, a, am, s.inputs);
+            [b, bm] = stepHouse(noSun, b, bm, s.inputs);
+        }
+        on += (a - window.at(-1)!.ti) ** 2;
+        off += (b - window.at(-1)!.ti) ** 2;
+        n += 1;
+    }
+    return {windows: n, rmseOn: n ? Math.sqrt(on / n) : NaN, rmseOff: n ? Math.sqrt(off / n) : NaN};
+}
+
 /** Heat loss from the energy balance: heat delivered over degree-hours indoor above outdoor.
  *  It ignores sun, internal gains and what the house stored meanwhile, so it reads low by their
  *  share (10–25 % on the simulated houses), but it never strays far. Stage 1's ARX over the same

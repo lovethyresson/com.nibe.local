@@ -12,7 +12,8 @@
 import {ActuatorOutput, PumpThresholds, fedValue} from './actuator';
 import {HouseParams} from './model';
 import {ForecastBias, OutdoorReading, realOutdoor} from './outdoor';
-import {ForecastSlot, Plan, planShift} from './planner';
+import {COP, ForecastSlot, Plan, planShift} from './planner';
+import {effectivePrice} from './solar-surplus';
 import {Limits, PresetId} from './presets';
 import {slotOf} from './prices';
 
@@ -74,11 +75,38 @@ export interface ShiftInput {
     previous?: number[];
 }
 
-/** The shift-only plan: the curve holds the house (no comfort bias), sun left out. */
-export function planLive(input: ShiftInput, limits: Limits = LIVE_LIMITS): Plan {
-    const forecast = input.forecast.map((s) => ({te: s.te, sun: 0, price: s.price}));
+/** How far live plans trust forecast sun, per profile, once the sun term has earned it (house.ts
+ *  `sunReady`): the same discount as the shadow's `limitsFor`. Before that, 0. */
+export const SUN_TRUST: Record<PresetId, number> = {comfortable: 0.58, save_some: 0.74, save_most: 0.9};
+export function sunTrust(profile: unknown): number {
+    return SUN_TRUST[profile as PresetId] ?? SUN_TRUST[DEFAULT_PROFILE];
+}
+
+/** The shift-only plan: the curve holds the house (no comfort bias). Forecast sun counts at
+ *  `trust`, 0 until the sun term has proven itself on sunny days. */
+export function planLive(input: ShiftInput, limits: Limits = LIVE_LIMITS, trust = 0): Plan {
+    const forecast = input.forecast.map((s) => ({te: s.te, sun: s.sun * trust, sunE: (s.sunE ?? 0) * trust,
+        sunW: (s.sunW ?? 0) * trust, price: s.price}));
     return planShift(input.house, input.mean, {ti: input.ti, tm: input.tm, curve: input.curve, bias: input.bias},
         forecast, limits, {lever: input.lever}, input.previous);
+}
+
+/** The extra heat a pre-heat on surplus is sized for, K of shift: the electricity it takes is what
+ *  the surplus has to cover for a slot to count as solar. */
+export const SURPLUS_SHIFT_K = 2;
+
+/** The forecast with each slot's price lowered by the solar surplus left for heating: the share of
+ *  a pre-heat's extra draw the surplus covers is priced at what an export earns. Prices stay a
+ *  number per slot, so the planner stays linear. */
+export function surplusPrices(forecast: ForecastSlot[], from: number, surplus: Map<number, number> | undefined,
+    leverKwPerK: number): ForecastSlot[] {
+    if (!surplus) return forecast;
+    const drawKw = leverKwPerK * SURPLUS_SHIFT_K / COP;
+    return forecast.map((s, k) => {
+        const kw = surplus.get(from + k);
+        if (!kw || kw <= 0) return s;
+        return {...s, price: effectivePrice(s.price, s.spot ?? 0, kw, drawKw).price};
+    });
 }
 
 /** What the pump says, read when a slot is planned. */
@@ -92,18 +120,21 @@ export interface PumpFacts {
     roomControl?: number;
     /** The immersion heater is running (1029). */
     addHeat?: boolean;
+    /** The pump is cooling (priority 1028 = 60): heating has nothing to shift. */
+    cooling?: boolean;
 }
 
 /** Why the feed is not feeding. `mode_off` and `feed_failed` end it (the owner turns it on again,
  *  or re-verifies); the rest are waits it re-checks every slot (`no_outdoor` every cycle) and
  *  leaves by itself. */
 export type StopReason = 'mode_off' | 'feed_failed' | 'no_model' | 'immersion_only' | 'spa_on' | 'room_control'
-    | 'no_outdoor';
+    | 'no_outdoor' | 'cooling';
 
 /** Reasons the feed must not run at all; undefined when it may. */
 export function stopReason(facts: PumpFacts, haveModel: boolean): StopReason | undefined {
     if (!haveModel) return 'no_model';
     if (facts.mode === 2) return 'immersion_only';
+    if (facts.cooling) return 'cooling';
     if (facts.spaHeating) return 'spa_on';
     if (facts.roomControl !== undefined && facts.roomControl !== 0) return 'room_control';
     return undefined;
@@ -120,6 +151,8 @@ export interface FeedHooks {
     mode(): LiveMode;
     /** The owner's profile, read each slot. */
     limits(): Limits;
+    /** How far forecast sun counts in the plan, read each slot: 0 until it has earned it. */
+    sunTrust(): number;
     /** Comfort range Off: feed the real outdoor temperature, unshifted, and plan nothing. The
      *  pump stays on the sensor Autopilot uses rather than going back to its own BT1. */
     neutral(): boolean;
@@ -179,6 +212,8 @@ export interface FeedSnapshot {
     indoor?: number[];
     /** Comfort range Off: fed unshifted. */
     neutral?: boolean;
+    /** The plan counts forecast sun (the sun term has earned it). */
+    sunTrusted?: boolean;
 }
 
 /** The 30 s BT1 feed and the 15-min shift planner, on the Heating device. */
@@ -212,7 +247,8 @@ export class HeatingFeed {
     get state(): FeedSnapshot {
         return {mode: this.stopped ? 'off' : this.hooks.mode(), bias: this.bias, target: this.target, fed: this.lastFed?.fed,
             real: this.real?.value, stopped: this.stopState, slot: this.plan?.slot, biases: this.plan?.biases,
-            forecast: this.plan?.forecast, planReason: this.plan?.reason, indoor: this.plan?.indoor, neutral: this.neutral || undefined};
+            forecast: this.plan?.forecast, planReason: this.plan?.reason, indoor: this.plan?.indoor, neutral: this.neutral || undefined,
+            sunTrusted: this.hooks.sunTrust() > 0 || undefined};
     }
 
     start() {
@@ -356,7 +392,7 @@ export class HeatingFeed {
         if (wait) return wait;
         this.slotBias = this.bias;
         // `input.curve` is the curve's view of what the pump saw (history `bt1`), our feed included.
-        const plan = planLive({...input!, bias: this.bias, previous: this.previous}, this.limits);
+        const plan = planLive({...input!, bias: this.bias, previous: this.previous}, this.limits, this.hooks.sunTrust());
         this.target = plan.biases[0];
         this.previous = plan.biases.slice(1);
         this.plan = {slot, biases: plan.biases, forecast: input!.forecast, reason: plan.reason, indoor: plan.plan.ti};

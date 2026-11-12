@@ -12,7 +12,7 @@ import {
     appendJournal, appendLine, deleteHistory, loadHistory, loadJson, modelFileName, saveHistory, saveJson, shadowLogName,
     shadowStateName, trimLines,
 } from './store-file';
-import {DailyFit, HouseAnswers, HouseFit, drifting, fitHistory, READY_DAYS, readiness, recordDailyFit} from './house';
+import {DailyFit, HouseAnswers, HouseFit, drifting, fitHistory, READY_DAYS, readiness, recordDailyFit, sunReady} from './house';
 import {HouseInsights, houseInsights, insightsLine} from './insights';
 import {ForecastBias, forecastCorrection, learnForecastBias, newForecastBias, usableSensor} from './outdoor';
 import {SHADOW_PRESETS, ShadowMemory, curveViewOf, shadowForecast, shadowStep, wiredOf} from './shadow';
@@ -265,6 +265,11 @@ export class AutopilotCollector {
             const fed = (v.flags & FLAG.fedOutdoor) !== 0 && Number.isFinite(v.bt1) && Number.isFinite(v.te);
             return {indoor: Number.isFinite(v.ti) ? v.ti : undefined, offset: fed ? v.bt1 - v.te : 0};
         });
+    }
+
+    /** Whether the sun term has predicted sunny days better than leaving it out (house.ts). */
+    sunReady(): boolean {
+        return sunReady(this.dailyFits);
     }
 
     /** The fitted house and how many days it rests on; undefined before the first fit. */

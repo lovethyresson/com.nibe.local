@@ -1242,6 +1242,34 @@ once. The rest is Repair and capabilities:
 Profiles map to shift limits in `PROFILE_LIMITS` (`live.ts`). Not built yet: Custom sliders,
 pre-heating before Away ends, savings.
 
+**Experimental.** Autopilot carries an "Experimental" badge wherever an owner chooses or sees it: the Smart mode
+choice, the comparison grid and a widget pill.
+
+**Solar, as built (2026-11-12).** The sun reaches Autopilot two ways from one forecast, kept apart:
+- **Solar gain** (heat through windows) enters the house model as a heat input. Live plans count
+  forecast sun only once it has earned it (`sunReady`, `lib/autopilot/house.ts`). The test is:
+  - On at least 5 days (`SUN_DAYS`), the sun term predicted sunny 6 h windows (south > 150 W/m²,
+    at least 3 per day) better than leaving it out (`sunScore`, `model.ts`).
+  - Its size has moved under 30 % across the last three daily fits. That is looser than τ's 15 %:
+    the sun swung 0.1–1.1 kW in November.
+  - Until both hold, trust is 0, exactly as before. After that it is 0.58 / 0.74 / 0.9 by Comfort
+    range (`SUN_TRUST`).
+  - The status names the sun ("sun expected 11:00–15:00") when it is easing off with no price peak
+    to name, and only when the plan counts the sun.
+- **Solar surplus** (PV export) is one service per home (`lib/autopilot/solar-surplus.ts`), shared by
+  hot water and heating. It holds one fit, one live reading, and one budget granted in the order hot
+  water → pool → heating → cooling.
+  - Hot water reserves the slots its solar charges run in.
+  - Heating prices the rest as an effective price (`surplusPrices`, `live.ts`): the share of a 2 K
+    pre-heat's extra draw the surplus covers costs what an export earns.
+  - Heating does not reserve yet; it is the last user until cooling exists.
+  - The collector's weather (GTI per wall) is still its own fetch. Hot water's GHI history fetch
+    moved into the service, so it now runs once per home instead of once per hot water device.
+- Heating's feed idles while the pump cools (priority 1028 = 60, `stopReason` `cooling`).
+- **Pool and cooling** get Smart mode (SPA or Off). Cooling switches 849. The pool has no switch of
+  its own: its influence 848 = 0 is off, and the owner's value is kept to restore. Autopilot is shown
+  as "Soon". The design for their Autopilot is phase 2 in `tasks/todo.md`.
+
 **Phasing.** First test-channel release: Setup steps 1–5 with the outdoor picker, status and reason, profile
 and comfort, pause/resume, Insights; learning phase = shift-only. Later: full comfort control once
 the steady level is confirmed (todo.md, 2026-11-11), away, savings, the remaining Flow cards,

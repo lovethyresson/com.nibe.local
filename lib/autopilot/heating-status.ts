@@ -33,6 +33,15 @@ export function pricePeak(prices: number[]): {from: number; to: number} | undefi
     return {from, to: to + 1};
 }
 
+/** The sunny run in the forecast between `from` and `to`, slots from the plan's start. */
+function sunRun(forecast: {sun: number}[], from: number, to: number): {from: number; to: number} | undefined {
+    const k = forecast.findIndex((f, i) => i >= from && i < to && f.sun >= 150);
+    if (k < 0) return undefined;
+    let end = k;
+    while (end < forecast.length && forecast[end].sun >= 150) end++;
+    return {from: k, to: end};
+}
+
 /** Where the plan's current sign ends: slots from the plan's start. */
 function runEnd(biases: number[], from: number, sign: number): number {
     let k = from;
@@ -61,9 +70,13 @@ export function heatingStatus(s: FeedSnapshot, now: number, t: Translate, time: 
     const peakText = peak ? t('peak', {from: clock(at + peak.from), to: clock(at + peak.to)}) : '';
     const sign = Math.abs(s.bias) < SHIFT_K ? 0 : Math.sign(s.bias);
     if (sign !== 0) {
-        const until = clock(runEnd(biases, at, sign));
+        const end = runEnd(biases, at, sign);
+        const until = clock(end);
         const key = sign < 0 ? 'easing_off' : 'preheating';
-        return {status: sign < 0 ? 'easing_off' : 'preheating', reason: say(t(key, {until}) + (peakText ? `: ${peakText}` : ''))};
+        // Easing off with no price peak to name: the sun, when the plan counts it.
+        const sunny = sign < 0 && !peakText && s.sunTrusted ? sunRun(s.forecast ?? [], at, end + 16) : undefined;
+        const why = peakText || (sunny ? t('sun', {from: clock(sunny.from), to: clock(sunny.to)}) : '');
+        return {status: sign < 0 ? 'easing_off' : 'preheating', reason: say(t(key, {until}) + (why ? `: ${why}` : ''))};
     }
     const next = biases.findIndex((b, k) => k > at && Math.abs(b) >= SHIFT_K);
     if (next < 0) return {status: 'holding', reason: say(t(s.planReason === 'spread_below_margin' ? 'holding_even' : 'holding'))};

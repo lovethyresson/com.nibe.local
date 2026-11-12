@@ -280,7 +280,16 @@
         "price_spot": "Alleen spot",
         "row_covers": "Wat het omvat",
         "covers_auto": "Verwarming, warm water",
-        "covers_spa": "Verwarming, warm water, zwembad, koeling"
+        "covers_spa": "Verwarming, warm water, zwembad, koeling",
+        "covers_auto_soon": "Zwembad en koeling binnenkort",
+        "soon": "Binnenkort",
+        "section_pool": "Wie de zwembadverwarming naar goedkopere uren verschuift.",
+        "section_cooling": "Wie de koeling naar goedkopere uren verschuift.",
+        "choose_on_desc_pool": "Gaat het zwembad verwarmen in goedkope en zonnige uren, binnen een bereik dat u kiest.",
+        "choose_on_desc_cooling": "Gaat voorkoelen voor prijspieken en op zonne-overschot.",
+        "choose_off_desc_pool": "Het zwembad volgt de eigen instellingen van uw apparaat.",
+        "choose_off_desc_cooling": "De koeling volgt de eigen instellingen van uw apparaat.",
+        "experimental": "Experimenteel"
       }
     },
     "gateway": {
@@ -480,7 +489,8 @@
         "room_control": "Autopilot verwarming gepauzeerd: ruimtevoelerregeling staat aan in uw apparaat.",
         "immersion_only": "Autopilot verwarming gepauzeerd: uw apparaat draait alleen op het elektrisch element.",
         "no_model": "Autopilot verwarming leert je huis nog kennen.",
-        "mode_off": "Autopilot verwarming staat uit."
+        "mode_off": "Autopilot verwarming staat uit.",
+        "cooling": "Autopilot verwarming gepauzeerd: uw apparaat koelt."
       },
       "status": {
         "test": "Testrun: __text__",
@@ -500,9 +510,11 @@
           "immersion_only": "Gepauzeerd: uw apparaat draait alleen op het element",
           "feed_failed": "Gestopt: uw apparaat nam de buitentemperatuur niet over",
           "mode_off": "Uit",
-          "no_model": "Leert je huis kennen"
+          "no_model": "Leert je huis kennen",
+          "cooling": "Gepauzeerd: uw apparaat koelt"
         },
-        "range_off": "Comfortbereik staat Uit: uw apparaat ziet de echte buitentemperatuur"
+        "range_off": "Comfortbereik staat Uit: uw apparaat ziet de echte buitentemperatuur",
+        "sun": "zon verwacht __from__–__to__"
       },
       "status_name": {
         "learning": "Leert",
@@ -533,7 +545,8 @@
       "spa_took_over": {
         "heating": "Smart price adaption is aangezet voor verwarming, dus Autopilot verwarming is gestopt.",
         "hotwater": "Smart price adaption is aangezet voor warm water, dus Autopilot warm water is gestopt."
-      }
+      },
+      "soon": "Autopilot hiervoor komt binnenkort."
     },
     "widget": {
       "price": "Prijs",
@@ -568,7 +581,8 @@
       "charge_grid": "Opwarmen van het net",
       "charge_solar": "Opwarmen op zon",
       "axis_price": "Prijs /kWh",
-      "axis_surplus": "Overschot kW"
+      "axis_surplus": "Overschot kW",
+      "experimental": "Experimenteel"
     }
   }
 }

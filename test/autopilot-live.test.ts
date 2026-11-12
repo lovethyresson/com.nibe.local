@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {
     FeedHooks, HeatingFeed, LIVE_LIMITS, LiveEntry, LiveMode, PROFILE_LIMITS, PumpFacts, ShiftInput, StopReason, cycleBias,
-    indoorMean, liveMode, planLive, profileLimits, stopReason,
+    indoorMean, liveMode, planLive, profileLimits, stopReason, surplusPrices, SURPLUS_SHIFT_K,
 } from '../lib/autopilot/live';
 import {newForecastBias} from '../lib/autopilot/outdoor';
 import {ForecastSlot, steadyState} from '../lib/autopilot/planner';
@@ -93,6 +93,7 @@ function harness(over: {mode?: LiveMode; facts?: Partial<PumpFacts>; sensor?: nu
         mode: () => state.mode,
         limits: () => LIVE_LIMITS,
         neutral: () => state.neutral,
+        sunTrust: () => 0,
         plan: () => ('plan' in over ? over.plan : input({curve: 3})),
         pump: async () => state.facts,
         outdoor: () => ({sensor: state.sensor, forecast: over.forecast, localHour: 12, bias: newForecastBias()}),
@@ -245,4 +246,30 @@ test('stop on a feed that never ran writes nothing', async () => {
     const {feed, state} = harness();
     await feed.stop();
     assert.equal(state.writes.length, 0);
+});
+
+test('the feed stands aside while the pump is cooling', () => {
+    assert.equal(stopReason({thresholds: {}, cooling: true}, true), 'cooling');
+    assert.equal(stopReason({thresholds: {}, cooling: false}, true), undefined);
+});
+
+test('solar surplus left for heating lowers those slots\' price toward what an export earns', () => {
+    const forecast = [{te: 3, sun: 0, price: 2, spot: 0.4}, {te: 3, sun: 0, price: 2, spot: 0.4}, {te: 3, sun: 0, price: 2}];
+    const lever = 0.15; // kW per K: a 2 K pre-heat draws 0.1 kW of electricity at COP 3
+    const draw = lever * SURPLUS_SHIFT_K / 3;
+    const out = surplusPrices(forecast, 100, new Map([[100, draw], [101, draw / 2], [102, 5]]), lever);
+    assert.equal(out[0].price, 0.4, 'fully covered: the export price');
+    assert.ok(Math.abs(out[1].price - 1.2) < 1e-9, 'half covered: half and half');
+    assert.equal(out[2].price, 0, 'no spot known: an export earns nothing');
+    assert.equal(surplusPrices(forecast, 100, undefined, lever), forecast, 'no generator: unchanged');
+});
+
+test('live plans count forecast sun only at the trust given, 0 until the sun term has earned it', () => {
+    const sunny = input({forecast: Array.from({length: 96}, (_, k) => ({te: 3, sun: k >= 40 && k < 56 ? 600 : 0, price: 1}))});
+    const without = planLive(sunny, PROFILE_LIMITS.save_some, 0);
+    const withSun = planLive(sunny, PROFILE_LIMITS.save_some, 0.74);
+    assert.ok(Math.min(...withSun.biases.slice(36, 56)) <= Math.min(...without.biases.slice(36, 56)),
+        'with sun expected it eases off at least as much around it');
+    assert.deepEqual(without.biases, planLive({...sunny, forecast: sunny.forecast.map((s) => ({...s, sun: 0}))}, PROFILE_LIMITS.save_some).biases,
+        'trust 0 is the same as no sun at all');
 });

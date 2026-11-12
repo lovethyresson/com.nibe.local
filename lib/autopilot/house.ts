@@ -8,7 +8,7 @@ import {FLAG, History, outdoorSource} from './history';
 import {currentSourceStart} from './outdoor';
 import {heatPerSlot} from './heat';
 import {
-    BuildEra, HeatingSystem, HouseParams, ModelSlot, envelopeTau, fitSeries, predictionRmse, rlsHouse, toModelSlots,
+    BuildEra, HeatingSystem, HouseParams, ModelSlot, envelopeTau, fitSeries, predictionRmse, rlsHouse, sunScore, toModelSlots,
 } from './model';
 import {PumpCurve, estimateLever} from './planner';
 import {DEFAULT_GAIN, SupplyCurve, curvePoints, fitSupplyCurve, gainBetween} from './curve';
@@ -40,6 +40,8 @@ export interface HouseFit {
     curve?: SupplyCurve;
     /** What the planner moves heat with (planner.ts `PumpCurve`). */
     pump?: PumpCurve;
+    /** Sunny 6 h windows of the last 7 days, predicted with and without the sun term. */
+    sun?: {windows: number; rmseOn: number; rmseOff: number};
     /** The filter's air and mass at the last slot it saw: where a plan starts (shadow.ts). */
     state?: {slot: number; ti: number; tm: number};
 }
@@ -104,6 +106,7 @@ export function fitHouse(slots: ModelSlot[], answers: HouseAnswers, lever?: numb
     const fit = fitSeries(slots, answers.system, answers.era, {warmupSlots});
     const recent = slots.slice(-7 * DAY_SLOTS);
     const quality = fit.params ? predictionRmse(fit.params, recent, fit.states) : {rmse: NaN, windows: 0};
+    const sun = fit.params ? sunScore(fit.params, recent, fit.states) : undefined;
     // The last slot the filter corrected: slots after it wait for 1577 to step, so it ran them
     // with no heat, which leaves its state there too cold.
     const lastUsable = [...slots].reverse().find((s) => s.usable && fit.states.has(s.slot));
@@ -116,6 +119,7 @@ export function fitHouse(slots: ModelSlot[], answers: HouseAnswers, lever?: numb
         slots: slots.length,
         usable: slots.filter((s) => s.usable).length,
         validDays: validDays(slots),
+        sun,
         lever,
         curve: curve?.supply,
         pump: curve?.supply && curve.heatPerSupplyK !== undefined
@@ -148,6 +152,11 @@ export interface DailyFit {
     heatLoss: number;
     tau: number;
     rmse: number;
+    /** kW through all walls' windows at 500 W/m², and the day's sunny-window score. */
+    sun?: number;
+    sunWindows?: number;
+    sunOn?: number;
+    sunOff?: number;
 }
 
 export const KEEP_DAYS = 30;
@@ -155,7 +164,9 @@ export const KEEP_DAYS = 30;
 /** Replace or append today's entry. */
 export function recordDailyFit(log: DailyFit[], day: number, fit: HouseFit): DailyFit[] {
     if (!fit.params) return log;
-    const entry = {day, heatLoss: fit.params.heatLoss, tau: envelopeTau(fit.params), rmse: fit.rmse};
+    const p = fit.params;
+    const entry: DailyFit = {day, heatLoss: p.heatLoss, tau: envelopeTau(p), rmse: fit.rmse, sun: (p.sun + p.sunE + p.sunW) * 500,
+        ...(fit.sun && fit.sun.windows ? {sunWindows: fit.sun.windows, sunOn: fit.sun.rmseOn, sunOff: fit.sun.rmseOff} : {})};
     return [...log.filter((d) => d.day !== day), entry].sort((a, b) => a.day - b.day).slice(-KEEP_DAYS);
 }
 
@@ -178,6 +189,21 @@ export function readiness(fit: HouseFit, log: DailyFit[]): Readiness {
     const stable = last.length === 3 && Math.max(...last.map((d) => d.tau)) / Math.min(...last.map((d) => d.tau)) - 1 <= TAU_STABLE;
     if (!stable) missing.push('stability');
     return {ready: missing.length === 0, missing};
+}
+
+/** Days on which the sun term predicted sunny windows better than leaving it out, before live
+ *  plans may count on forecast sun; and how far the fitted sun may move across the last three days
+ *  (looser than τ's 15 %: on 2026-11 data it swung 0.1–1.1 kW and is the slowest term to settle). */
+export const SUN_DAYS = 5;
+export const SUN_WINDOWS_PER_DAY = 3;
+export const SUN_STABLE = 0.3;
+
+/** Whether the sun term has earned a place in live plans (solar plan §2). */
+export function sunReady(log: DailyFit[]): boolean {
+    const better = log.filter((d) => (d.sunWindows ?? 0) >= SUN_WINDOWS_PER_DAY && d.sunOn! < d.sunOff!).length;
+    const last = log.slice(-3).map((d) => d.sun ?? NaN);
+    const stable = last.length === 3 && last.every((v) => v > 0) && Math.max(...last) / Math.min(...last) - 1 <= SUN_STABLE;
+    return better >= SUN_DAYS && stable;
 }
 
 export const DRIFT_PER_DAY = 0.2;

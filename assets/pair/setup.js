@@ -342,7 +342,7 @@ function NibeSetup(options) {
         var st = ap.status;
         if (!ap.picked) ap.choice = st.mode;
         var choices = [
-            {id: 'autopilot', title: a('choose_on'), description: a('choose_on_desc_heating')},
+            {id: 'autopilot', title: a('choose_on'), description: a('choose_on_desc_heating'), badge: a('experimental')},
             {id: 'test', title: a('choose_test'), description: a('choose_test_desc')},
         ];
         if (st.spa) choices.push({id: 'spa', title: a('choose_spa'), description: a('choose_spa_desc')});
@@ -394,7 +394,11 @@ function NibeSetup(options) {
         var grid = el('div', undefined, 'setup-compare-grid');
         grid.style.gridTemplateColumns = 'minmax(0, 1fr) repeat(' + cols.length + ', 4.6em)';
         grid.appendChild(el('span'));
-        cols.forEach(function (c) { grid.appendChild(el('strong', a(c[1]), 'setup-compare-head')); });
+        cols.forEach(function (c) {
+            var head = el('strong', a(c[1]), 'setup-compare-head');
+            if (c[0] === 'auto') head.appendChild(el('span', a('experimental'), 'setup-soon setup-compare-badge'));
+            grid.appendChild(head);
+        });
         rows.forEach(function (r) {
             grid.appendChild(el('span', a(r[0]), 'setup-compare-label'));
             cols.forEach(function (c) {
@@ -405,6 +409,7 @@ function NibeSetup(options) {
                     var no = v.charAt(0) === '!';
                     cell.appendChild(icon(no ? 'no' : 'yes', no ? 'is-no' : 'is-yes'));
                     cell.appendChild(el('small', a(no ? v.slice(1) : v)));
+                    if (r[0] === 'row_covers' && c[0] === 'auto') cell.appendChild(el('small', a('covers_auto_soon'), 'setup-compare-soon'));
                 }
                 else cell.appendChild(icon(v ? 'yes' : 'no', v ? 'is-yes' : 'is-no'));
                 grid.appendChild(cell);
@@ -554,12 +559,15 @@ function NibeSetup(options) {
             var card = el('label', undefined, 'setup-source-card setup-choice' + (v.id === current ? ' is-selected' : ''));
             var input = document.createElement('input'); input.type = 'radio'; input.name = name; input.value = v.id;
             input.checked = v.id === current;
+            if (v.disabled) { input.disabled = true; card.classList.add('is-disabled'); }
             input.onchange = function () {
                 box.querySelectorAll('.setup-choice').forEach(function (c) { c.classList.remove('is-selected'); });
                 card.classList.add('is-selected'); onchange(v.id);
             };
             var copy = el('span', undefined, 'setup-source-copy');
-            copy.appendChild(el('span', v.title, 'setup-source-title'));
+            var title = el('span', v.title, 'setup-source-title');
+            if (v.badge) title.appendChild(el('span', v.badge, 'setup-soon'));
+            copy.appendChild(title);
             if (v.description) copy.appendChild(el('span', v.description, 'setup-source-description'));
             card.append(input, copy); box.appendChild(card);
         });
@@ -588,10 +596,12 @@ function NibeSetup(options) {
             shell.appendChild(box);
             shell.appendChild(button(a('change_outdoor'), function () { outdoorPicker(smart); }));
         }
-        var choices = [
-            {id: 'autopilot', title: a('choose_on'), description: a('choose_on_desc_' + st.role)},
-            {id: 'test', title: a('choose_test'), description: a('choose_test_desc')},
-        ];
+        // Pool and cooling: Autopilot is coming; shown, not selectable, and no test run.
+        var soon = st.autopilot === false;
+        var choices = soon
+            ? [{id: 'autopilot', title: a('choose_on'), description: a('choose_on_desc_' + st.role), disabled: true, badge: a('soon')}]
+            : [{id: 'autopilot', title: a('choose_on'), description: a('choose_on_desc_' + st.role), badge: a('experimental')},
+               {id: 'test', title: a('choose_test'), description: a('choose_test_desc')}];
         if (st.spa) choices.push({id: 'spa', title: a('choose_spa'), description: a('choose_spa_desc')});
         choices.push({id: 'off', title: a('choose_off'), description: a('choose_off_desc_' + st.role)});
         shell.appendChild(radios('smart-choice', choices, ap.choice, function (v) { ap.choice = v; }));

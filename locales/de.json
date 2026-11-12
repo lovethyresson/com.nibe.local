@@ -280,7 +280,16 @@
         "price_spot": "Nur Spot",
         "row_covers": "Was er abdeckt",
         "covers_auto": "Heizung, Warmwasser",
-        "covers_spa": "Heizung, Warmwasser, Pool, Kühlung"
+        "covers_spa": "Heizung, Warmwasser, Pool, Kühlung",
+        "covers_auto_soon": "Pool und Kühlung bald",
+        "soon": "Bald",
+        "section_pool": "Wer die Poolheizung in günstigere Stunden verschiebt.",
+        "section_cooling": "Wer die Kühlung in günstigere Stunden verschiebt.",
+        "choose_on_desc_pool": "Wird den Pool in günstigen und sonnigen Stunden heizen, innerhalb eines von Ihnen gewählten Bereichs.",
+        "choose_on_desc_cooling": "Wird vor Preisspitzen und mit Solarüberschuss vorkühlen.",
+        "choose_off_desc_pool": "Der Pool folgt den eigenen Einstellungen Ihres Geräts.",
+        "choose_off_desc_cooling": "Die Kühlung folgt den eigenen Einstellungen Ihres Geräts.",
+        "experimental": "Experimentell"
       }
     },
     "gateway": {
@@ -480,7 +489,8 @@
         "room_control": "Autopilot Heizung pausiert: Raumfühlerregelung ist in Ihrem Gerät an.",
         "immersion_only": "Autopilot Heizung pausiert: Ihr Gerät läuft nur mit dem Heizstab.",
         "no_model": "Autopilot Heizung lernt Ihr Haus noch.",
-        "mode_off": "Autopilot Heizung ist aus."
+        "mode_off": "Autopilot Heizung ist aus.",
+        "cooling": "Autopilot Heizung pausiert: Ihr Gerät kühlt."
       },
       "status": {
         "test": "Testlauf: __text__",
@@ -500,9 +510,11 @@
           "immersion_only": "Pausiert: Ihr Gerät läuft nur mit dem Heizstab",
           "feed_failed": "Gestoppt: Ihr Gerät hat die Außentemperatur nicht übernommen",
           "mode_off": "Aus",
-          "no_model": "Lernt Ihr Haus"
+          "no_model": "Lernt Ihr Haus",
+          "cooling": "Pausiert: Ihr Gerät kühlt"
         },
-        "range_off": "Komfortbereich ist Aus: Ihr Gerät sieht die echte Außentemperatur"
+        "range_off": "Komfortbereich ist Aus: Ihr Gerät sieht die echte Außentemperatur",
+        "sun": "Sonne erwartet __from__–__to__"
       },
       "status_name": {
         "learning": "Lernt",
@@ -533,7 +545,8 @@
       "spa_took_over": {
         "heating": "Smart price adaption wurde für die Heizung eingeschaltet, daher hat Autopilot Heizung gestoppt.",
         "hotwater": "Smart price adaption wurde für Warmwasser eingeschaltet, daher hat Autopilot Warmwasser gestoppt."
-      }
+      },
+      "soon": "Autopilot dafür kommt bald."
     },
     "widget": {
       "price": "Preis",
@@ -568,7 +581,8 @@
       "charge_grid": "Ladung aus dem Netz",
       "charge_solar": "Ladung aus Solar",
       "axis_price": "Preis /kWh",
-      "axis_surplus": "Überschuss kW"
+      "axis_surplus": "Überschuss kW",
+      "experimental": "Experimentell"
     }
   }
 }
