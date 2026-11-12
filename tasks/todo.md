@@ -518,9 +518,11 @@ prices: ease off at 22:00 (−2 K) and 07:00–08:30 (−3 K), indoor −0.05 K.
       so the pump is on its wired BT1, not a feed.
 - [ ] Preconditions: SPA heating off, room-sensor control off, menu 7.5.9.2 on, outdoor sensor
       picked (Utetemperatur since 2026-11-11 21:15).
-- [ ] Turn on: `homey api raw -X PUT --path /api/manager/apps/app/com.nibe.local/setting/autopilotLive.<id>
-      --body '{"value":"shift"}'`, then read it back with `get-app-setting` (set-app-setting
-      stored a JSON object as text on 2026-11-11, so check the stored value).
+- [x] Turned on 2026-11-12 12:58:44 UTC: `homey api raw -X PUT --path
+      /api/manager/apps/app/com.nibe.local/setting/autopilotLive.10.136.1.93%23heating --body
+      '{"value":"shift"}'`. **`<id>` is the device's data id (`<ip>#heating`, `#` URL-encoded), not
+      its Homey UUID**; the first try used the UUID, did nothing, and was deleted. Input 1 moved
+      6.9 → 6.3 °C that second (sensor 5.3, so bias −1: easing off).
 - [ ] First hour: "started" in the log, feed verified each cycle, bias as planned, no warning.
 - [ ] Daily check adds: live bias range, indoor against its 24 h mean, add-heat starts, verify
       failures, stops (`dev/review-shadow.mjs` prints a "Live" line).
