@@ -1478,7 +1478,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         try {
             for (const [name, on] of smartModeWrites(this.role, value, spa)) {
                 const holder = this.pumpDevices().find((d) => d.hasCapability(name)) ?? this;
-                if (await holder.readNamed(name) === on) continue;
+                const now = await holder.readNamed(name);
+                // Turning a switch off that does not read on is nothing to do: with SPA's master off
+                // the S1155 refuses a write to 844 with Modbus exception 1 (seen 2026-11-12).
+                if (now === on || (!on && now !== true)) continue;
                 this.log(`Smart mode (${this.role} = ${value}): writing ${name} = ${on}`);
                 await holder.writeRegister(this.register(name), on);
             }

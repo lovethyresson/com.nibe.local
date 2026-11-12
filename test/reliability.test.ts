@@ -920,6 +920,15 @@ test('Smart mode: Autopilot heating only through Verify; SPA turns SPA on; a tes
     assert.equal(p.store.get('smartMode'), 'test');
 });
 
+test('a test run writes nothing when SPA heating is not on: the pump refuses that write with the master off', async () => {
+    const p = smartPump();
+    p.spa[SPA_MASTER] = false;
+    p.heating.writeRegister = async () => { throw new Error('Modbus exception 1: Illegal function'); };
+    for (const d of [p.main, p.hotwater]) d.writeRegister = p.heating.writeRegister;
+    await p.heating.chooseSmartMode('test');
+    assert.equal(p.store.get('smartMode'), 'test');
+});
+
 test('Smart mode for hot water lives on the Hot water device; Main follows it for the day type', async () => {
     const p = smartPump();
     await p.hotwater.chooseSmartMode('autopilot');
