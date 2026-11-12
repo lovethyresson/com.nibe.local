@@ -173,28 +173,30 @@
       "success_one": "1 sensor tilkoblet",
       "success_many": "sensorer samarbeider",
       "save_changes": "Lagre endringer",
-      "autopilot": {
-        "title": "Autopilot",
-        "section": "Flytter varme bort fra dyre timer.",
-        "intro": "Autopilot varmer litt mer før dyre timer og mindre under dem. Varmekurven din styrer fortsatt temperaturen.",
+      "smart": {
+        "title": "Smartmodus",
+        "section_heating": "Hvem som flytter varmen til billigere timer.",
+        "section_hotwater": "Hvem som flytter varmtvannet til billigere timer.",
+        "intro": "Velg én. Bare én kan styre kompressoren.",
+        "choose_on_desc_heating": "Lærer huset ditt og flytter varme ved å mate pumpens utetemperatur.",
+        "choose_on_desc_hotwater": "Lader tanken i billige timer og holder reserven din.",
+        "choose_test": "Autopilot-testkjøring",
+        "choose_spa": "Smart pristilpasning",
+        "choose_spa_desc": "NIBEs egen prisstyring, kjørt av pumpen.",
+        "choose_off": "Av",
+        "choose_off_desc_heating": "Varmen følger bare kurven.",
+        "choose_off_desc_hotwater": "Varmtvannet følger pumpens egne innstillinger.",
+        "saved": "Smartmodus lagret",
+        "success_description": "Komfortområde, Borte og status ligger på Oppvarming. Termostaten bestemmer komforttemperaturen.",
         "badge_on": "På",
-        "badge_paused": "Pause",
         "badge_test": "Testkjøring",
         "badge_spa": "Smart price adaption",
         "badge_off": "Av",
         "choose_on": "Autopilot",
-        "choose_on_desc": "Flytter varme ved å mate pumpens utetemperatur.",
-        "choose_test": "Testkjøring",
         "choose_test_desc": "Viser hva den ville gjort. Endrer ingenting.",
-        "choose_off": "Ikke nå",
-        "choose_off_desc": "Prisstyring for oppvarming av.",
         "spa_note": "Autopilot slår av Smart price adaption for oppvarming.",
-        "saved_off": "Prisstyring for oppvarming er av",
         "is_on": "Autopilot er på",
-        "is_paused": "Autopilot er satt på pause",
         "change_outdoor": "Utetemperatur",
-        "change_profile": "Komfortområde",
-        "return_nibe": "Gi tilbake til NIBE",
         "checklist_intro": "Dette bruker Autopilot.",
         "indoor": "Innetemperatur",
         "indoor_missing": "Sett opp innetemperaturen under Oppvarming først.",
@@ -214,34 +216,16 @@
         "bt1_detail": "Meny 7.5.9.2 på pumpen: slå på ekstern BT1.",
         "modbus": "Modbus-skriving tillatt",
         "modbus_detail": "Meny 7.5.9 på pumpen.",
-        "profile_intro": "Hvor langt innetemperaturen kan avvike fra sitt vanlige nivå for å spare penger.",
-        "profile_comfortable": "Komfort (±0,5 °C)",
-        "profile_comfortable_desc": "Inne holder seg innenfor ±0,5 °C av det vanlige.",
-        "profile_save_some": "Spar (±3 °C)",
-        "profile_save_some_desc": "Inne kan avvike ±3 °C når prisene er høye.",
-        "profile_save_most": "Heller fryse (±6 °C)",
-        "profile_save_most_desc": "Inne kan avvike ±6 °C. Billigst, kaldest.",
-        "comfort": "Komforttemperatur (°C)",
-        "comfort_hint": "Brukes når Autopilot har lært huset ditt.",
         "start_test": "Start testkjøring",
-        "saved_profile": "Komfortområde lagret",
         "saved_test": "Testkjøring startet",
         "verify_intro": "Autopilot sjekker at pumpen tar imot utetemperaturen.",
         "verify_confirm": "Begge er på",
         "success_title": "Autopilot er på",
-        "success_description": "Status og årsak vises på enheten Oppvarming.",
         "success_received": "mottatt av pumpen",
-        "return_intro": "Autopilot stopper og pumpen bruker sin egen uteføler igjen.",
-        "handover_spa": "Overlat til Smart price adaption",
-        "handover_spa_desc": "Pumpens egen prisstyring for oppvarming.",
-        "handover_off": "Ingen prisstyring",
-        "handover_off_desc": "Oppvarmingen følger bare kurven.",
         "return_reminder": "Slå deretter av ekstern BT1 i meny 7.5.9.2.",
-        "saved_returned": "Gitt tilbake til NIBE",
         "outdoor_intro": "Velg en sensor i skyggen, eller bruk varselet.",
         "use_forecast": "Bruk værvarselet",
-        "use_forecast_desc": "For Homeyens plassering.",
-        "profile_title": "Komfortområde"
+        "use_forecast_desc": "For Homeyens plassering."
       }
     },
     "gateway": {
@@ -441,7 +425,6 @@
         "room_control": "Autopilot oppvarming satt på pause: romføler-styring er på i pumpen.",
         "immersion_only": "Autopilot oppvarming satt på pause: pumpen går bare på elkolbe.",
         "no_model": "Autopilot oppvarming lærer fortsatt huset ditt.",
-        "paused": "Autopilot oppvarming er satt på pause.",
         "mode_off": "Autopilot oppvarming er av."
       },
       "status": {
@@ -456,7 +439,6 @@
         "next_easing_off": "Holder · trapper ned kl. __at__",
         "next_preheating": "Holder · forvarmer kl. __at__",
         "paused": {
-          "paused": "Satt på pause av deg",
           "no_outdoor": "Pause: utetemperaturen sluttet å rapportere",
           "spa_on": "Pause: Smart price adaption er på for oppvarming",
           "room_control": "Pause: romføler-styring er på i pumpen",
@@ -485,22 +467,47 @@
         "no_outdoor": "Ingen utetemperatur ennå: velg en sensor eller angi plasseringen for værvarselet.",
         "not_followed": "Pumpen tok ikke imot utetemperaturen. Sjekk at meny 7.5.9.2 tillater ekstern BT1."
       },
-      "not_on": "Autopilot oppvarming er ikke på."
+      "not_on": "Autopilot oppvarming er ikke på.",
+      "no_thermostat": "Oppvarming har ingen termostat å stille inn."
     },
-    "price": {
+    "smart": {
       "no_spa": "Denne pumpen har ingen Smart price adaption.",
       "no_heating": "Legg til enheten Oppvarming først.",
-      "verify_first": "Slå på Autopilot under Oppvarming → Reparer → Autopilot: den sjekker først at pumpen tar imot utetemperaturen.",
+      "verify_first": "Slå på Autopilot i Oppvarming → Reparer → Smartmodus: der sjekkes det først at pumpen tar imot utetemperaturen.",
       "spa_took_over": {
         "heating": "Smart price adaption ble slått på for oppvarming, så Autopilot oppvarming stoppet.",
         "hotwater": "Smart price adaption ble slått på for varmtvann, så Autopilot varmtvann stoppet."
       }
     },
-    "house": {
-      "ready": "Har lært huset ditt",
-      "learning": "Lærer · dag __day__ av __of__",
-      "heat_loss": "__w__ W per °C",
-      "holds_heat": "__h__ t før det kjøles 1 °C"
+    "widget": {
+      "next24": "Neste 24 timer",
+      "price": "Pris",
+      "off": "Autopilot er av her. Slå den på i Reparer → Smartmodus.",
+      "not_function": "Velg en Oppvarmings- eller Varmtvannsenhet.",
+      "test": "Testkjøring",
+      "starting": "Starter…",
+      "charge": "Lading",
+      "more_heat": "Mer varme",
+      "less_heat": "Mindre varme",
+      "away": "Borte · __c__ °C",
+      "range": {
+        "comfortable": "Komfort ±0,5 °C",
+        "save_some": "Spar ±3 °C",
+        "save_most": "Heller fryse ±6 °C"
+      },
+      "hotwater": {
+        "next": "Neste lading __time__, omtrent __m__ min",
+        "none": "Ingen lading planlagt de neste 24 timene",
+        "litres": "__l__ L 40-graders vann nå"
+      },
+      "house": {
+        "title": "Huset ditt",
+        "cools": "Med varmen av ved __out__ °C ute faller innetemperaturen 1 °C på omtrent __h__ t.",
+        "cools_slow": "Med varmen av ved __out__ °C ute faller innetemperaturen mindre enn 1 °C på to døgn.",
+        "coast": "Med __range__ kan Autopilot trappe ned i opptil __h__ t.",
+        "learned": "Har lært av __days__ dager i huset ditt.",
+        "learning": "Lærer fortsatt huset ditt · dag __day__ av __of__."
+      }
     }
   }
 }

@@ -2,9 +2,9 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {heatingStatus, pricePeak} from '../lib/autopilot/heating-status';
 import {FeedSnapshot} from '../lib/autopilot/live';
-import {priceControl, priceControlWrites, spaOn} from '../lib/autopilot/price-control';
+import {shownSmartMode, smartMode, smartModeWrites, spaOn} from '../lib/autopilot/smart-mode';
 import {SLOT_MS} from '../lib/autopilot/prices';
-import {AUTOPILOT_HEATING_CAPABILITIES, capabilitySyncPlan, extraCapabilities, possibleExtraCapabilities} from '../lib/roles';
+import {AUTOPILOT_HEATING_CAPABILITIES, capabilitySyncPlan, extraCapabilities, hiddenBySmartMode, possibleExtraCapabilities} from '../lib/roles';
 import {sProfile} from '../drivers/nibe_s/profile';
 
 // Keys and tokens echoed back, so a test reads which text was chosen and with what.
@@ -61,27 +61,53 @@ test('the plan is read from where now is, not from its first slot', () => {
     assert.match(heatingStatus(s, now + 2 * SLOT_MS, t, time).reason, /^easing_off\(until=s4\)/);
 });
 
-const spa = {master: 'm', heating: 'h', hotwater: 'w'};
+const spa = {master: 'm', heating: 'h', hotwater: 'w', controls: {heating: ['h'], hotwater: ['w']}};
 
-test('Price control: SPA turns its master and function on; anything else turns only the function off', () => {
-    assert.deepEqual(priceControlWrites('heating', 'spa', spa), [['m', true], ['h', true]]);
-    assert.deepEqual(priceControlWrites('hotwater', 'spa', spa), [['m', true], ['w', true]]);
+test('Smart mode: SPA turns its master and function on; anything else turns only the function off', () => {
+    assert.deepEqual(smartModeWrites('heating', 'spa', spa), [['m', true], ['h', true]]);
+    assert.deepEqual(smartModeWrites('hotwater', 'spa', spa), [['m', true], ['w', true]]);
     for (const value of ['off', 'test', 'autopilot'] as const) {
-        assert.deepEqual(priceControlWrites('heating', value, spa), [['h', false]], value);
-        assert.deepEqual(priceControlWrites('hotwater', value, spa), [['w', false]], value);
+        assert.deepEqual(smartModeWrites('heating', value, spa), [['h', false]], value);
+        assert.deepEqual(smartModeWrites('hotwater', value, spa), [['w', false]], value);
     }
-    assert.equal(priceControl('nonsense'), 'off');
-    assert.equal(priceControl(undefined), 'off');
+    assert.equal(smartMode('nonsense'), 'off');
+    assert.equal(smartMode(undefined), 'off');
     assert.ok(spaOn(true, true) && !spaOn(true, false) && !spaOn(false, true) && !spaOn(undefined, true));
 });
 
-test('the Heating device carries the Autopilot capabilities only while heating Price control is on', () => {
+test('Repair shows Off or SPA as the pump has it, and Autopilot as stored', () => {
+    assert.equal(shownSmartMode('off', true), 'spa', 'SPA turned on on the pump shows as SPA');
+    assert.equal(shownSmartMode('spa', false), 'off', 'and turned off as Off');
+    assert.equal(shownSmartMode('autopilot', true), 'autopilot');
+    assert.equal(shownSmartMode('test', false), 'test');
+});
+
+test('the Heating device carries the Autopilot capabilities only while Smart mode runs Autopilot', () => {
     assert.ok(AUTOPILOT_HEATING_CAPABILITIES.every((c) => possibleExtraCapabilities(sProfile, 'heating').includes(c)));
-    assert.ok(AUTOPILOT_HEATING_CAPABILITIES.every((c) => !extraCapabilities(sProfile, 'heating', null, false).includes(c)));
-    assert.ok(AUTOPILOT_HEATING_CAPABILITIES.every((c) => extraCapabilities(sProfile, 'heating', null, true).includes(c)));
+    for (const mode of ['off', 'spa'] as const)
+        assert.ok(AUTOPILOT_HEATING_CAPABILITIES.every((c) => !extraCapabilities(sProfile, 'heating', null, mode).includes(c)), mode);
+    for (const mode of ['test', 'autopilot'] as const)
+        assert.ok(AUTOPILOT_HEATING_CAPABILITIES.every((c) => extraCapabilities(sProfile, 'heating', null, mode).includes(c)), mode);
     for (const role of ['main', 'hotwater', 'pool', 'cooling', 'solar'] as const)
         assert.ok(AUTOPILOT_HEATING_CAPABILITIES.every((c) => !possibleExtraCapabilities(sProfile, role).includes(c)), role);
-    const on = capabilitySyncPlan(sProfile, 'heating', null, [], true);
-    const off = capabilitySyncPlan(sProfile, "heating", null, on.wanted, false);
+    const on = capabilitySyncPlan(sProfile, 'heating', null, [], 'autopilot');
+    const off = capabilitySyncPlan(sProfile, "heating", null, on.wanted, 'off');
+    const spaControls = sProfile.spaSwitches!.controls.heating;
     assert.deepEqual([...off.toRemove].sort(), [...AUTOPILOT_HEATING_CAPABILITIES].sort());
+    assert.deepEqual([...off.toAdd].sort(), [...spaControls].sort(), 'the SPA tiles come back');
+});
+
+test('a function shows SPA\'s controls only while Autopilot does not run it', () => {
+    for (const role of ['heating', 'hotwater'] as const) {
+        const controls = sProfile.spaSwitches!.controls[role];
+        assert.ok(controls.every((c) => sProfile.registerByName[c]), `${role}: real registers`);
+        for (const mode of ['off', 'spa'] as const) {
+            assert.deepEqual(hiddenBySmartMode(sProfile, role, mode), [], `${role} ${mode}`);
+            assert.ok(controls.every((c) => capabilitySyncPlan(sProfile, role, null, [], mode).wanted.includes(c)), `${role} ${mode}`);
+        }
+        for (const mode of ['test', 'autopilot'] as const)
+            assert.ok(controls.every((c) => !capabilitySyncPlan(sProfile, role, null, [], mode).wanted.includes(c)), `${role} ${mode}`);
+    }
+    assert.ok(capabilitySyncPlan(sProfile, 'main', null, [], 'autopilot').wanted.includes(sProfile.spaSwitches!.master),
+        'the master stays on Main: pool and cooling use it too');
 });

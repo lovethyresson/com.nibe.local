@@ -175,10 +175,10 @@ test('the day type is on Main only, and only while Autopilot hot water is on', (
     for (const role of allRoles)
         assert.strictEqual(possibleExtraCapabilities(sProfile, role).includes(DAY_TYPE_CAPABILITY), role === 'main', role);
     assert.ok(!extraCapabilities(sProfile, 'main', null).includes(DAY_TYPE_CAPABILITY));
-    assert.ok(extraCapabilities(sProfile, 'main', null, true).includes(DAY_TYPE_CAPABILITY));
-    assert.ok(!extraCapabilities(sProfile, 'hotwater', null, true).includes(DAY_TYPE_CAPABILITY));
+    assert.ok(extraCapabilities(sProfile, 'main', null, 'autopilot').includes(DAY_TYPE_CAPABILITY));
+    assert.ok(!extraCapabilities(sProfile, 'hotwater', null, 'autopilot').includes(DAY_TYPE_CAPABILITY));
     assert.ok(extraCapabilityOptions('main', DAY_TYPE_CAPABILITY)?.title?.en);
-    const off = capabilitySyncPlan(sProfile, 'main', null, [DAY_TYPE_CAPABILITY], false);
+    const off = capabilitySyncPlan(sProfile, 'main', null, [DAY_TYPE_CAPABILITY], 'off');
     assert.ok(off.toRemove.includes(DAY_TYPE_CAPABILITY), 'turning Autopilot off takes it away again');
     assert.ok(sProfile.compose.capabilities.includes(DAY_TYPE_CAPABILITY), 'in the compose superset');
 });

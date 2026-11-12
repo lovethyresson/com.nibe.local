@@ -1,3 +1,4 @@
+import {HouseParams} from './model';
 /** Collects the Autopilot history for one pump: poll samples from the Heating device, prices
  *  from Homey Energy and weather from Open-Meteo; refits the house model hourly; and runs the
  *  controller in shadow every slot. Reads only; nothing here writes to the pump.
@@ -245,6 +246,21 @@ export class AutopilotCollector {
 
     /** The real outdoor temperature's sources for now: the sensor's latest reading (≤ 2 min old,
      *  it is read every minute) and the forecast for this slot, with the correction to apply. */
+    /** Prices and forecast outdoor temperature for `n` slots from `from`, as far as known: what the
+     *  Autopilot widget draws when there is no plan yet. */
+    outlook(from: number, n: number): {price?: number; te?: number}[] {
+        const fresh = Date.now() - this.weatherAt < WEATHER_STALE_MS;
+        return Array.from({length: n}, (_, k) => {
+            const te = fresh ? this.weather.get(from + k)?.te : undefined;
+            return {price: this.prices.get(from + k)?.price, te: Number.isFinite(te) ? te : undefined};
+        });
+    }
+
+    /** The fitted house and how many days it rests on; undefined before the first fit. */
+    house(): {params?: HouseParams; validDays: number} | undefined {
+        return this.fit ? {params: this.fit.params, validDays: this.fit.validDays} : undefined;
+    }
+
     outdoorNow() {
         const now = Date.now();
         const sensor = this.sensorNow && now - this.sensorNow.at < 2 * 60 * 1000 ? this.sensorNow.value : undefined;

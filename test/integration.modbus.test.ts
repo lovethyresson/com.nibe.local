@@ -1223,7 +1223,7 @@ test('the live BT1 feed writes 5217, sees it on input 1, and stops when the pump
             assert.equal(feed.state.stopped, 'feed_failed');
             assert.equal(writes.at(-1), -4, 'handed back the real outdoor temperature');
 
-            // Heating Setup's Verify over the same wire: the pump follows → Autopilot on, pump-wide.
+            // Repair → Smart mode → Verify over the same wire: the pump follows → Autopilot on.
             // lib/device extends Homey's Device; outside Homey the SDK module is stubbed, as in reliability.test.ts.
             const loader = require('module');
             const originalLoad = loader._load;
@@ -1237,7 +1237,7 @@ test('the live BT1 feed writes 5217, sees it on input 1, and stops when the pump
                 loader._load = originalLoad;
             }
             const d: any = Object.create(NibePumpDevice.prototype);
-            const settings: Record<string, any> = {address: 'pump-a', priceHeating: 'off'};
+            const settings: Record<string, any> = {address: 'pump-a'};
             const store = new Map<string, any>();
             Object.assign(d, {
                 role: 'heating', connection: c,
@@ -1251,10 +1251,10 @@ test('the live BT1 feed writes 5217, sees it on input 1, and stops when the pump
             });
             listening = false;
             await assert.rejects(d.activateAutopilotHeating(), /not_followed/, 'a deaf pump fails Verify');
-            assert.equal(settings.priceHeating, 'off', 'nothing saved');
+            assert.equal(store.get('smartMode'), undefined, 'nothing saved');
             listening = true;
             assert.deepEqual(await d.activateAutopilotHeating(), {fed: 2.5});
-            assert.equal(settings.priceHeating, 'autopilot');
+            assert.equal(store.get('smartMode'), 'autopilot');
             assert.equal(store.get('autopilotHeatingVerified'), true);
         });
     } finally {

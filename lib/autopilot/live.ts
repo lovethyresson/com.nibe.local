@@ -7,8 +7,8 @@
  *  `pump = {lever}` the planner takes the curve as holding the temperature and only plans the
  *  shift (planner.ts `pumpHeat`), and comfort is the house's own 24 h mean, not the setpoint.
  *
- *  Switched by the pump-wide device setting `priceHeating` (Price control): `test` plans and reports
- *  without writing, `autopilot` feeds. Design: docs/autopilot-plan.md §4.1, §7.2, §7.6, §10.0. */
+ *  Switched by heating's Smart mode (smart-mode.ts): `test` plans and reports without writing,
+ *  `autopilot` feeds. Design: docs/autopilot-plan.md §4.1, §7.2, §7.6, §10.0. */
 import {ActuatorOutput, PumpThresholds, fedValue} from './actuator';
 import {HouseParams} from './model';
 import {ForecastBias, OutdoorReading, realOutdoor} from './outdoor';
@@ -16,12 +16,11 @@ import {ForecastSlot, Plan, planShift} from './planner';
 import {Limits, PresetId} from './presets';
 import {slotOf} from './prices';
 
-/** `test` plans and reports without writing; `live` feeds BT1; `paused` is a live feed the owner
- *  paused (Flow), which hands BT1 back until it resumes. */
-export type LiveMode = 'off' | 'test' | 'live' | 'paused';
-/** The heating Price control value (`priceHeating`) as a feed mode. */
-export function liveMode(priceHeating: unknown): LiveMode {
-    return priceHeating === 'autopilot' ? 'live' : priceHeating === 'test' ? 'test' : 'off';
+/** `test` plans and reports without writing; `live` feeds BT1. */
+export type LiveMode = 'off' | 'test' | 'live';
+/** Heating's Smart mode as a feed mode. */
+export function liveMode(smartMode: unknown): LiveMode {
+    return smartMode === 'autopilot' ? 'live' : smartMode === 'test' ? 'test' : 'off';
 }
 
 /** Save some money's limits: a small, symmetric shift (±3 K of fed outdoor, ~0.35 kW on the
@@ -99,7 +98,7 @@ export interface PumpFacts {
  *  or re-verifies); the rest are waits it re-checks every slot (`no_outdoor` every cycle) and
  *  leaves by itself. */
 export type StopReason = 'mode_off' | 'feed_failed' | 'no_model' | 'immersion_only' | 'spa_on' | 'room_control'
-    | 'no_outdoor' | 'paused';
+    | 'no_outdoor';
 
 /** Reasons the feed must not run at all; undefined when it may. */
 export function stopReason(facts: PumpFacts, haveModel: boolean): StopReason | undefined {
@@ -263,9 +262,6 @@ export class HeatingFeed {
         if (this.stopped) return;
         const mode = this.hooks.mode();
         if (mode === 'off') return this.halt('mode_off');
-        if (mode === 'paused') return this.idle('paused');
-        // Resumed: plan now rather than at the next slot.
-        if (this.stopState === 'paused') this.plannedSlot = undefined;
         const now = this.hooks.now();
         const slot = slotOf(now);
         if (slot !== this.plannedSlot) {
@@ -356,7 +352,7 @@ export class HeatingFeed {
         this.target = 0;
         this.plan = undefined;
         this.hooks.record({slot: slotOf(this.hooks.now()), bias: 0, clamped: [], planned: [], stopped: reason});
-        if (reason !== 'paused') this.warn(reason);
+        this.warn(reason);
         if (first || this.holding) this.hooks.log(`Autopilot heating: waiting (${reason}).`);
         await this.handBack();
         this.hooks.changed();

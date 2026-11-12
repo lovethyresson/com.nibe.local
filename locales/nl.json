@@ -173,28 +173,30 @@
       "success_one": "1 sensor verbonden",
       "success_many": "sensoren werken samen",
       "save_changes": "Wijzigingen opslaan",
-      "autopilot": {
-        "title": "Autopilot",
-        "section": "Verschuift warmte uit dure uren.",
-        "intro": "Autopilot verwarmt iets meer vóór dure uren en minder tijdens. Je stooklijn blijft de temperatuur bepalen.",
+      "smart": {
+        "title": "Slimme modus",
+        "section_heating": "Wie de verwarming naar goedkopere uren verschuift.",
+        "section_hotwater": "Wie het warm water naar goedkopere uren verschuift.",
+        "intro": "Kies er één. Maar één kan de compressor sturen.",
+        "choose_on_desc_heating": "Leert uw huis kennen en verschuift warmte via de buitentemperatuur van de pomp.",
+        "choose_on_desc_hotwater": "Laadt het vat in goedkope uren en houdt uw reserve aan.",
+        "choose_test": "Autopilot-testrun",
+        "choose_spa": "Slimme prijsaanpassing",
+        "choose_spa_desc": "NIBEs eigen prijssturing, uitgevoerd door de pomp.",
+        "choose_off": "Uit",
+        "choose_off_desc_heating": "De verwarming volgt alleen de stooklijn.",
+        "choose_off_desc_hotwater": "Warm water volgt de eigen instellingen van de pomp.",
+        "saved": "Slimme modus opgeslagen",
+        "success_description": "Comfortbereik, Afwezig en status staan op het verwarmingsapparaat. De thermostaat bepaalt de comforttemperatuur.",
         "badge_on": "Aan",
-        "badge_paused": "Gepauzeerd",
         "badge_test": "Testrun",
         "badge_spa": "Smart price adaption",
         "badge_off": "Uit",
         "choose_on": "Autopilot",
-        "choose_on_desc": "Verschuift warmte via de buitentemperatuur van de pomp.",
-        "choose_test": "Testrun",
         "choose_test_desc": "Toont wat hij zou doen. Verandert niets.",
-        "choose_off": "Niet nu",
-        "choose_off_desc": "Prijssturing voor verwarming uit.",
         "spa_note": "Autopilot zet Smart price adaption voor verwarming uit.",
-        "saved_off": "Prijssturing voor verwarming staat uit",
         "is_on": "Autopilot staat aan",
-        "is_paused": "Autopilot is gepauzeerd",
         "change_outdoor": "Buitentemperatuur",
-        "change_profile": "Comfortbereik",
-        "return_nibe": "Teruggeven aan NIBE",
         "checklist_intro": "Dit gebruikt Autopilot.",
         "indoor": "Binnentemperatuur",
         "indoor_missing": "Stel eerst de binnentemperatuur in onder Verwarming.",
@@ -214,34 +216,16 @@
         "bt1_detail": "Menu 7.5.9.2 op de pomp: externe BT1 aanzetten.",
         "modbus": "Modbus-schrijven toegestaan",
         "modbus_detail": "Menu 7.5.9 op de pomp.",
-        "profile_intro": "Hoeveel de binnentemperatuur van het gewone niveau mag afwijken om geld te besparen.",
-        "profile_comfortable": "Comfort (±0,5 °C)",
-        "profile_comfortable_desc": "Binnen blijft binnen ±0,5 °C van normaal.",
-        "profile_save_some": "Besparen (±3 °C)",
-        "profile_save_some_desc": "Binnen mag ±3 °C afwijken bij hoge prijzen.",
-        "profile_save_most": "Liever kou lijden (±6 °C)",
-        "profile_save_most_desc": "Binnen mag ±6 °C afwijken. Goedkoopst, koudst.",
-        "comfort": "Comforttemperatuur (°C)",
-        "comfort_hint": "Geldt zodra Autopilot je huis kent.",
         "start_test": "Testrun starten",
-        "saved_profile": "Comfortbereik opgeslagen",
         "saved_test": "Testrun gestart",
         "verify_intro": "Autopilot controleert of de pomp zijn buitentemperatuur overneemt.",
         "verify_confirm": "Beide staan aan",
         "success_title": "Autopilot staat aan",
-        "success_description": "Status en reden staan op het apparaat Verwarming.",
         "success_received": "overgenomen door de pomp",
-        "return_intro": "Autopilot stopt en de pomp gebruikt weer zijn eigen buitenvoeler.",
-        "handover_spa": "Overdragen aan Smart price adaption",
-        "handover_spa_desc": "De eigen prijssturing van de pomp voor verwarming.",
-        "handover_off": "Geen prijssturing",
-        "handover_off_desc": "Verwarming volgt alleen de stooklijn.",
         "return_reminder": "Zet daarna externe BT1 uit in menu 7.5.9.2.",
-        "saved_returned": "Teruggegeven aan NIBE",
         "outdoor_intro": "Kies een sensor in de schaduw, of gebruik de verwachting.",
         "use_forecast": "Weersverwachting gebruiken",
-        "use_forecast_desc": "Voor de locatie van je Homey.",
-        "profile_title": "Comfortbereik"
+        "use_forecast_desc": "Voor de locatie van je Homey."
       }
     },
     "gateway": {
@@ -441,7 +425,6 @@
         "room_control": "Autopilot verwarming gepauzeerd: ruimtevoelerregeling staat aan in de pomp.",
         "immersion_only": "Autopilot verwarming gepauzeerd: de pomp draait alleen op het elektrisch element.",
         "no_model": "Autopilot verwarming leert je huis nog kennen.",
-        "paused": "Autopilot verwarming is gepauzeerd.",
         "mode_off": "Autopilot verwarming staat uit."
       },
       "status": {
@@ -456,7 +439,6 @@
         "next_easing_off": "Houdt vast · bouwt af om __at__",
         "next_preheating": "Houdt vast · verwarmt voor om __at__",
         "paused": {
-          "paused": "Door jou gepauzeerd",
           "no_outdoor": "Gepauzeerd: buitentemperatuur meldt niet meer",
           "spa_on": "Gepauzeerd: Smart price adaption staat aan voor verwarming",
           "room_control": "Gepauzeerd: ruimtevoelerregeling staat aan",
@@ -485,22 +467,47 @@
         "no_outdoor": "Nog geen buitentemperatuur: kies een sensor of stel je locatie in voor de weersverwachting.",
         "not_followed": "De pomp nam de buitentemperatuur niet over. Controleer of menu 7.5.9.2 een externe BT1 toestaat."
       },
-      "not_on": "Autopilot verwarming staat niet aan."
+      "not_on": "Autopilot verwarming staat niet aan.",
+      "no_thermostat": "Het verwarmingsapparaat heeft geen thermostaat om in te stellen."
     },
-    "price": {
+    "smart": {
       "no_spa": "Deze pomp heeft geen Smart price adaption.",
       "no_heating": "Voeg eerst het apparaat Verwarming toe.",
-      "verify_first": "Zet Autopilot aan via Verwarming → Repareren → Autopilot: daar wordt eerst gecontroleerd of de pomp de buitentemperatuur overneemt.",
+      "verify_first": "Zet Autopilot aan via Verwarming → Repareren → Slimme modus: daar wordt eerst gecontroleerd of de pomp de buitentemperatuur overneemt.",
       "spa_took_over": {
         "heating": "Smart price adaption is aangezet voor verwarming, dus Autopilot verwarming is gestopt.",
         "hotwater": "Smart price adaption is aangezet voor warm water, dus Autopilot warm water is gestopt."
       }
     },
-    "house": {
-      "ready": "Kent je huis",
-      "learning": "Leert · dag __day__ van __of__",
-      "heat_loss": "__w__ W per °C",
-      "holds_heat": "__h__ u voordat het 1 °C afkoelt"
+    "widget": {
+      "next24": "Komende 24 uur",
+      "price": "Prijs",
+      "off": "Autopilot staat hier uit. Zet hem aan via Repareren → Slimme modus.",
+      "not_function": "Kies een verwarmings- of warmwaterapparaat.",
+      "test": "Testrun",
+      "starting": "Bezig met starten…",
+      "charge": "Opwarmen",
+      "more_heat": "Meer warmte",
+      "less_heat": "Minder warmte",
+      "away": "Afwezig · __c__ °C",
+      "range": {
+        "comfortable": "Comfort ±0,5 °C",
+        "save_some": "Besparen ±3 °C",
+        "save_most": "Liever kou lijden ±6 °C"
+      },
+      "hotwater": {
+        "next": "Volgende opwarming __time__, ongeveer __m__ min",
+        "none": "Geen opwarming gepland in de komende 24 uur",
+        "litres": "Nu __l__ L water van 40 °C"
+      },
+      "house": {
+        "title": "Uw huis",
+        "cools": "Met de verwarming uit bij __out__ °C buiten daalt het binnen in ongeveer __h__ u 1 °C.",
+        "cools_slow": "Met de verwarming uit bij __out__ °C buiten daalt het binnen in twee dagen minder dan 1 °C.",
+        "coast": "Met __range__ kan Autopilot tot __h__ u afbouwen.",
+        "learned": "Geleerd uit __days__ dagen van uw huis.",
+        "learning": "Leert uw huis nog kennen · dag __day__ van __of__."
+      }
     }
   }
 }

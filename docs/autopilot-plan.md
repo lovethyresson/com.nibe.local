@@ -1212,18 +1212,30 @@ away temperature (settings, tile picker and Flows); pause for 1–48 h and resum
 Main's day type, shared with hot water; the outdoor sensor and Verify in Setup. Flow cards as in
 §10.3.
 
-**As built (dev build, 2026-11-12).** Settings `priceHeating` / `priceHotwater` (off · spa · test ·
-autopilot), mirrored pump-wide; SPA switches written from `priceControlWrites`
-(`lib/autopilot/price-control.ts`), and SPA turned on elsewhere flips the function to `spa` with one
-timeline line. Heating `autopilot` from Settings is refused until Heating Setup's Verify
-(`activateAutopilotHeating`, store `autopilotHeatingVerified`). Status, reason, fed outdoor and
-shift are `autopilot_status_NIBE`, `autopilot_reason_NIBE`, `measure_temperature.autopilot_fed`,
-`autopilot_shift_NIBE` on Heating while its Price control is test or on; text from
-`heatingStatus()` (`lib/autopilot/heating-status.ts`). Profiles map to shift limits
-(`PROFILE_LIMITS` in `live.ts`: ±1.5 / ±3 / ±4 K). Waits (no model, SPA, room control, immersion
-only, no outdoor, paused) hand BT1 back and resume by themselves; only a failed feed ends it.
-Comfort and Away are shown but take effect only with full comfort control. Not built yet:
-Custom sliders, away via day type, savings, removing the SPA tiles.
+**As built (dev build, 2026-11-12, revised the same evening).** Settings are only for what is set
+once. The rest is Repair and capabilities:
+- **Smart mode** (off · spa · test · autopilot) is chosen per function in that function's Repair and
+  stored on its device (store `smartMode`, `lib/autopilot/smart-mode.ts`); Main's day type follows
+  hot water's. Off and SPA show as the pump has them. SPA switches are written from
+  `smartModeWrites`; SPA turned on elsewhere while Autopilot runs flips the function to `spa` with
+  one timeline line, seen even with the tile hidden (`spaSeen` in `setValue`). Autopilot heating
+  only through Verify (`activateAutopilotHeating`, store `autopilotHeatingVerified`, cleared when
+  leaving for Off or SPA).
+- **A device carries only its mode's controls**: the function's SPA tiles (844/845, 846/902) go
+  while Autopilot runs it (`hiddenBySmartMode`; still polled); Heating gains status, reason,
+  Comfort range (`autopilot_range_NIBE`), Away (`boolean_NIBE.autopilot_away`), Away temperature
+  (`target_temperature.autopilot_away`), outdoor shift and fed outdoor while Autopilot runs it.
+- **Comfort is the thermostat.** Away keeps the thermostat's value, sets it to the Away
+  temperature, and restores it when Away turns off; while Away the widest range applies.
+- **No pause** (maintainer, 2026-11-12): Comfort range has no Off and there are no pause/resume
+  Flow cards; turning Autopilot off is Smart mode Off. Leaving Autopilot while Away first puts the
+  thermostat back.
+- **House insights moved to the Autopilot dashboard widget** (`widgets/autopilot`,
+  `lib/autopilot/widget.ts`): status and reason, the next 24 h (price with the planned shift, or
+  hot water's charges), and the house in plain terms: how fast it cools at today's and the coldest
+  forecast outdoor temperature, and how long the chosen range lets it ease off.
+Profiles map to shift limits in `PROFILE_LIMITS` (`live.ts`). Not built yet: Custom sliders,
+pre-heating before Away ends, savings.
 
 **Phasing.** First test-channel release: Setup steps 1–5 with the outdoor picker, status and reason, profile
 and comfort, pause/resume, Insights; learning phase = shift-only. Later: full comfort control once

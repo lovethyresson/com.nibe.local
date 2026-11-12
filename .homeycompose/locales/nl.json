@@ -278,7 +278,6 @@
         "room_control": "Autopilot verwarming gepauzeerd: ruimtevoelerregeling staat aan in de pomp.",
         "immersion_only": "Autopilot verwarming gepauzeerd: de pomp draait alleen op het elektrisch element.",
         "no_model": "Autopilot verwarming leert je huis nog kennen.",
-        "paused": "Autopilot verwarming is gepauzeerd.",
         "mode_off": "Autopilot verwarming staat uit."
       },
       "status": {
@@ -293,7 +292,6 @@
         "next_easing_off": "Houdt vast · bouwt af om __at__",
         "next_preheating": "Houdt vast · verwarmt voor om __at__",
         "paused": {
-          "paused": "Door jou gepauzeerd",
           "no_outdoor": "Gepauzeerd: buitentemperatuur meldt niet meer",
           "spa_on": "Gepauzeerd: Smart price adaption staat aan voor verwarming",
           "room_control": "Gepauzeerd: ruimtevoelerregeling staat aan",
@@ -322,22 +320,47 @@
         "no_outdoor": "Nog geen buitentemperatuur: kies een sensor of stel je locatie in voor de weersverwachting.",
         "not_followed": "De pomp nam de buitentemperatuur niet over. Controleer of menu 7.5.9.2 een externe BT1 toestaat."
       },
-      "not_on": "Autopilot verwarming staat niet aan."
+      "not_on": "Autopilot verwarming staat niet aan.",
+      "no_thermostat": "Het verwarmingsapparaat heeft geen thermostaat om in te stellen."
     },
-    "price": {
+    "smart": {
       "no_spa": "Deze pomp heeft geen Smart price adaption.",
       "no_heating": "Voeg eerst het apparaat Verwarming toe.",
-      "verify_first": "Zet Autopilot aan via Verwarming → Repareren → Autopilot: daar wordt eerst gecontroleerd of de pomp de buitentemperatuur overneemt.",
+      "verify_first": "Zet Autopilot aan via Verwarming → Repareren → Slimme modus: daar wordt eerst gecontroleerd of de pomp de buitentemperatuur overneemt.",
       "spa_took_over": {
         "heating": "Smart price adaption is aangezet voor verwarming, dus Autopilot verwarming is gestopt.",
         "hotwater": "Smart price adaption is aangezet voor warm water, dus Autopilot warm water is gestopt."
       }
     },
-    "house": {
-      "ready": "Kent je huis",
-      "learning": "Leert · dag __day__ van __of__",
-      "heat_loss": "__w__ W per °C",
-      "holds_heat": "__h__ u voordat het 1 °C afkoelt"
+    "widget": {
+      "next24": "Komende 24 uur",
+      "price": "Prijs",
+      "off": "Autopilot staat hier uit. Zet hem aan via Repareren → Slimme modus.",
+      "not_function": "Kies een verwarmings- of warmwaterapparaat.",
+      "test": "Testrun",
+      "starting": "Bezig met starten…",
+      "charge": "Opwarmen",
+      "more_heat": "Meer warmte",
+      "less_heat": "Minder warmte",
+      "away": "Afwezig · __c__ °C",
+      "range": {
+        "comfortable": "Comfort ±0,5 °C",
+        "save_some": "Besparen ±3 °C",
+        "save_most": "Liever kou lijden ±6 °C"
+      },
+      "hotwater": {
+        "next": "Volgende opwarming __time__, ongeveer __m__ min",
+        "none": "Geen opwarming gepland in de komende 24 uur",
+        "litres": "Nu __l__ L water van 40 °C"
+      },
+      "house": {
+        "title": "Uw huis",
+        "cools": "Met de verwarming uit bij __out__ °C buiten daalt het binnen in ongeveer __h__ u 1 °C.",
+        "cools_slow": "Met de verwarming uit bij __out__ °C buiten daalt het binnen in twee dagen minder dan 1 °C.",
+        "coast": "Met __range__ kan Autopilot tot __h__ u afbouwen.",
+        "learned": "Geleerd uit __days__ dagen van uw huis.",
+        "learning": "Leert uw huis nog kennen · dag __day__ van __of__."
+      }
     }
   }
 }

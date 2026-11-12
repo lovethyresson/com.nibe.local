@@ -525,12 +525,10 @@ export abstract class NibePumpDriver extends Driver {
         if (this.profile.autopilotFeed) {
             this.homey.flow.getConditionCard(this.flowId("autopilot_heating_status_is"))
                 .registerRunListener(async (args: any) => args.device.heatingStatusNow() === args.status);
-            this.homey.flow.getActionCard(this.flowId("autopilot_heating_pause"))
-                .registerRunListener(async (args: any) => args.device.pauseAutopilotHeating(Number(args.hours)));
-            this.homey.flow.getActionCard(this.flowId("autopilot_heating_resume"))
-                .registerRunListener(async (args: any) => args.device.resumeAutopilotHeating());
             this.homey.flow.getActionCard(this.flowId("autopilot_heating_set_profile"))
                 .registerRunListener(async (args: any) => args.device.setAutopilotProfile(args.profile));
+            this.homey.flow.getActionCard(this.flowId("autopilot_heating_away"))
+                .registerRunListener(async (args: any) => args.device.setAutopilotAway(args.away === 'on'));
         }
     }
 
@@ -1179,15 +1177,23 @@ export abstract class NibePumpDriver extends Driver {
         };
     }
 
-    /** Heating Setup → Autopilot (assets/pair/setup.js `autopilot`). */
-    private registerAutopilotHandlers(session: PairSession, device: any) {
-        session.setHandler('autopilot_status', async () => {
+    /** Repair → Smart mode (assets/pair/setup.js `smart`), on Heating and Hot water. */
+    private registerSmartModeHandlers(session: PairSession, device: any) {
+        session.setHandler('smart_status', async () => {
+            const status = await device.smartModeStatus();
+            if (status.role !== 'heating') return status;
             const ref = this.homey.settings.get(OUTDOOR_SENSOR_SETTING) as {deviceId: string; capabilityId: string} | null;
             const sensor = ref ? (await indoorInventory(this.homey).catch(() => []))
                 .find((s) => s.deviceId === ref.deviceId && s.capabilityId === ref.capabilityId) : undefined;
-            return {...await device.heatingSetupStatus(), outdoorSensor: ref ?? null,
+            return {...status, outdoorSensor: ref ?? null,
                 outdoorName: sensor ? `${sensor.name}${sensor.room ? ' · ' + sensor.room.split(' / ').slice(-1)[0] : ''}` : null};
         });
+        session.setHandler('smart_choose', async (data: any) => {
+            const value = data?.value;
+            await device.chooseSmartMode(value === 'spa' || value === 'test' || value === 'autopilot' ? value : 'off');
+            return true;
+        });
+        if (device.role !== 'heating') return;
         session.setHandler('get_outdoor_sensors', async () => indoorInventory(this.homey));
         session.setHandler('set_outdoor_sensor', async (ref: any) => {
             if (ref && typeof ref.deviceId === 'string' && typeof ref.capabilityId === 'string')
@@ -1195,21 +1201,7 @@ export abstract class NibePumpDriver extends Driver {
             else this.homey.settings.unset(OUTDOOR_SENSOR_SETTING);
             return true;
         });
-        session.setHandler('autopilot_choose', async (data: any) => {
-            await device.setAutopilotChoices(data?.profile, Number(data?.comfort));
-            await device.chooseAutopilotHeating(data?.value === 'test' ? 'test' : 'off');
-            return true;
-        });
-        session.setHandler('autopilot_choose_profile', async (data: any) => {
-            await device.setAutopilotChoices(data?.profile, Number(data?.comfort));
-            return true;
-        });
-        session.setHandler('activate_autopilot', async (data: any) => {
-            await device.setAutopilotChoices(data?.profile, Number(data?.comfort));
-            return device.activateAutopilotHeating();
-        });
-        session.setHandler('deactivate_autopilot', async (data: any) =>
-            device.deactivateAutopilotHeating(data?.handover === 'spa' ? 'spa' : 'off'));
+        session.setHandler('activate_autopilot', async () => device.activateAutopilotHeating());
     }
 
     private registerIndoorHandlers(session: PairSession, device?: any) {
@@ -1353,7 +1345,9 @@ export abstract class NibePumpDriver extends Driver {
 
         this.registerAnalyticsHandlers(session);
         this.registerIndoorHandlers(session, device);
-        if (role === 'heating' && this.profile.autopilotFeed) this.registerAutopilotHandlers(session, device);
+        const smart = (role === 'heating' && !!this.profile.autopilotFeed)
+            || (role === 'hotwater' && (!!this.profile.autopilotHotwater || !!this.profile.spaSwitches));
+        if (smart) this.registerSmartModeHandlers(session, device);
 
         session.setHandler('get_context', async () => ({
             mode: 'repair',
@@ -1361,7 +1355,7 @@ export abstract class NibePumpDriver extends Driver {
             role,
             indoorSensors: device.getStoreValue('indoorSensors') ?? null,
             indoorNativeAddress: device.getStoreValue('indoorNativeAddress') ?? 116,
-            autopilot: role === 'heating' && !!this.profile.autopilotFeed,
+            smart,
             groups: this.groupInfo(role),
             selection: (device.getStoreValue('selection') ?? null) as Selection | null,
             // Only the hot water view uses this, but the role is right here and inferring it in

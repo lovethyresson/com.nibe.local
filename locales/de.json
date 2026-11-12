@@ -173,28 +173,30 @@
       "success_one": "1 Sensor verbunden",
       "success_many": "Sensoren arbeiten zusammen",
       "save_changes": "Änderungen speichern",
-      "autopilot": {
-        "title": "Autopilot",
-        "section": "Verschiebt Wärme aus teuren Stunden.",
-        "intro": "Autopilot heizt vor teuren Stunden etwas mehr und währenddessen weniger. Ihre Heizkurve bestimmt weiter die Temperatur.",
+      "smart": {
+        "title": "Smart-Modus",
+        "section_heating": "Wer die Heizung in günstigere Stunden verschiebt.",
+        "section_hotwater": "Wer das Warmwasser in günstigere Stunden verschiebt.",
+        "intro": "Wählen Sie eines. Nur eines kann den Verdichter steuern.",
+        "choose_on_desc_heating": "Lernt Ihr Haus und verschiebt Wärme über die Außentemperatur der Pumpe.",
+        "choose_on_desc_hotwater": "Lädt den Speicher in günstigen Stunden und hält Ihre Reserve.",
+        "choose_test": "Autopilot-Testlauf",
+        "choose_spa": "Smarte Preisanpassung",
+        "choose_spa_desc": "NIBEs eigene Preissteuerung, von der Pumpe ausgeführt.",
+        "choose_off": "Aus",
+        "choose_off_desc_heating": "Die Heizung folgt nur der Kurve.",
+        "choose_off_desc_hotwater": "Warmwasser folgt den eigenen Einstellungen der Pumpe.",
+        "saved": "Smart-Modus gespeichert",
+        "success_description": "Komfortbereich, Abwesend und Status stehen auf dem Heizungsgerät. Das Thermostat bestimmt die Komforttemperatur.",
         "badge_on": "An",
-        "badge_paused": "Pausiert",
         "badge_test": "Testlauf",
         "badge_spa": "Smart price adaption",
         "badge_off": "Aus",
         "choose_on": "Autopilot",
-        "choose_on_desc": "Verschiebt Wärme über die Außentemperatur der Pumpe.",
-        "choose_test": "Testlauf",
         "choose_test_desc": "Zeigt, was er tun würde. Ändert nichts.",
-        "choose_off": "Jetzt nicht",
-        "choose_off_desc": "Preissteuerung für Heizung aus.",
         "spa_note": "Autopilot schaltet Smart price adaption für die Heizung aus.",
-        "saved_off": "Preissteuerung für Heizung ist aus",
         "is_on": "Autopilot ist an",
-        "is_paused": "Autopilot ist pausiert",
         "change_outdoor": "Außentemperatur",
-        "change_profile": "Komfortbereich",
-        "return_nibe": "An NIBE zurückgeben",
         "checklist_intro": "Das nutzt Autopilot.",
         "indoor": "Innentemperatur",
         "indoor_missing": "Zuerst die Innentemperatur unter Heizung einrichten.",
@@ -214,34 +216,16 @@
         "bt1_detail": "Menü 7.5.9.2 an der Pumpe: externen BT1 einschalten.",
         "modbus": "Modbus-Schreiben erlaubt",
         "modbus_detail": "Menü 7.5.9 an der Pumpe.",
-        "profile_intro": "Wie weit die Innentemperatur von ihrem üblichen Wert abweichen darf, um Geld zu sparen.",
-        "profile_comfortable": "Komfort (±0,5 °C)",
-        "profile_comfortable_desc": "Innen bleibt innerhalb ±0,5 °C vom Üblichen.",
-        "profile_save_some": "Sparen (±3 °C)",
-        "profile_save_some_desc": "Innen darf bei hohen Preisen um ±3 °C abweichen.",
-        "profile_save_most": "Lieber frieren (±6 °C)",
-        "profile_save_most_desc": "Innen darf um ±6 °C abweichen. Am günstigsten, am kältesten.",
-        "comfort": "Komforttemperatur (°C)",
-        "comfort_hint": "Gilt, sobald Autopilot Ihr Haus gelernt hat.",
         "start_test": "Testlauf starten",
-        "saved_profile": "Komfortbereich gespeichert",
         "saved_test": "Testlauf gestartet",
         "verify_intro": "Autopilot prüft, ob die Pumpe seine Außentemperatur übernimmt.",
         "verify_confirm": "Beides ist an",
         "success_title": "Autopilot ist an",
-        "success_description": "Status und Grund erscheinen am Gerät Heizung.",
         "success_received": "von der Pumpe übernommen",
-        "return_intro": "Autopilot stoppt und die Pumpe nutzt wieder ihren eigenen Außenfühler.",
-        "handover_spa": "An Smart price adaption übergeben",
-        "handover_spa_desc": "Die eigene Preissteuerung der Pumpe für die Heizung.",
-        "handover_off": "Keine Preissteuerung",
-        "handover_off_desc": "Die Heizung folgt nur der Kurve.",
         "return_reminder": "Danach externen BT1 in Menü 7.5.9.2 ausschalten.",
-        "saved_returned": "An NIBE zurückgegeben",
         "outdoor_intro": "Einen Sensor im Schatten wählen oder die Vorhersage nutzen.",
         "use_forecast": "Wettervorhersage nutzen",
-        "use_forecast_desc": "Für den Standort Ihres Homey.",
-        "profile_title": "Komfortbereich"
+        "use_forecast_desc": "Für den Standort Ihres Homey."
       }
     },
     "gateway": {
@@ -441,7 +425,6 @@
         "room_control": "Autopilot Heizung pausiert: Raumfühlerregelung ist in der Pumpe an.",
         "immersion_only": "Autopilot Heizung pausiert: Die Pumpe läuft nur mit dem Heizstab.",
         "no_model": "Autopilot Heizung lernt Ihr Haus noch.",
-        "paused": "Autopilot Heizung ist pausiert.",
         "mode_off": "Autopilot Heizung ist aus."
       },
       "status": {
@@ -456,7 +439,6 @@
         "next_easing_off": "Hält · drosselt um __at__",
         "next_preheating": "Hält · heizt vor um __at__",
         "paused": {
-          "paused": "Von Ihnen pausiert",
           "no_outdoor": "Pausiert: Außentemperatur meldet nicht mehr",
           "spa_on": "Pausiert: Smart price adaption ist für die Heizung an",
           "room_control": "Pausiert: Raumfühlerregelung ist an",
@@ -485,22 +467,47 @@
         "no_outdoor": "Noch keine Außentemperatur: Sensor wählen oder Standort für die Wettervorhersage festlegen.",
         "not_followed": "Die Pumpe hat die Außentemperatur nicht übernommen. Prüfen, ob Menü 7.5.9.2 einen externen BT1 erlaubt."
       },
-      "not_on": "Autopilot Heizung ist nicht an."
+      "not_on": "Autopilot Heizung ist nicht an.",
+      "no_thermostat": "Das Heizungsgerät hat kein Thermostat zum Einstellen."
     },
-    "price": {
+    "smart": {
       "no_spa": "Diese Pumpe hat keine Smart price adaption.",
       "no_heating": "Zuerst das Gerät Heizung hinzufügen.",
-      "verify_first": "Autopilot unter Heizung → Reparieren → Autopilot einschalten: Dort wird zuerst geprüft, ob die Pumpe die Außentemperatur übernimmt.",
+      "verify_first": "Schalten Sie Autopilot unter Heizung → Reparieren → Smart-Modus ein: dort wird zuerst geprüft, dass die Pumpe die Außentemperatur übernimmt.",
       "spa_took_over": {
         "heating": "Smart price adaption wurde für die Heizung eingeschaltet, daher hat Autopilot Heizung gestoppt.",
         "hotwater": "Smart price adaption wurde für Warmwasser eingeschaltet, daher hat Autopilot Warmwasser gestoppt."
       }
     },
-    "house": {
-      "ready": "Hat Ihr Haus gelernt",
-      "learning": "Lernt · Tag __day__ von __of__",
-      "heat_loss": "__w__ W pro °C",
-      "holds_heat": "__h__ h, bis es 1 °C abkühlt"
+    "widget": {
+      "next24": "Nächste 24 Stunden",
+      "price": "Preis",
+      "off": "Autopilot ist hier aus. Schalten Sie ihn unter Reparieren → Smart-Modus ein.",
+      "not_function": "Wählen Sie ein Heizungs- oder Warmwassergerät.",
+      "test": "Testlauf",
+      "starting": "Startet…",
+      "charge": "Ladung",
+      "more_heat": "Mehr Wärme",
+      "less_heat": "Weniger Wärme",
+      "away": "Abwesend · __c__ °C",
+      "range": {
+        "comfortable": "Komfort ±0,5 °C",
+        "save_some": "Sparen ±3 °C",
+        "save_most": "Lieber frieren ±6 °C"
+      },
+      "hotwater": {
+        "next": "Nächste Ladung __time__, etwa __m__ min",
+        "none": "Keine Ladung in den nächsten 24 Stunden geplant",
+        "litres": "Jetzt __l__ L Wasser mit 40 °C"
+      },
+      "house": {
+        "title": "Ihr Haus",
+        "cools": "Bei ausgeschalteter Heizung und __out__ °C draußen fällt es innen in etwa __h__ h um 1 °C.",
+        "cools_slow": "Bei ausgeschalteter Heizung und __out__ °C draußen fällt es innen in zwei Tagen um weniger als 1 °C.",
+        "coast": "Mit __range__ kann Autopilot bis zu __h__ h drosseln.",
+        "learned": "Aus __days__ Tagen in Ihrem Haus gelernt.",
+        "learning": "Lernt Ihr Haus noch · Tag __day__ von __of__."
+      }
     }
   }
 }

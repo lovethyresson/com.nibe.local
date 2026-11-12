@@ -850,8 +850,8 @@ test('Heating keeps a moved indoor sensor address when Autopilot adds its regist
     assert.deepEqual(indoor.map((r: Register) => r.address), [26]);
 });
 
-test('Autopilot heating\'s feed follows the heating Price control, and owns BT1 while it runs', async () => {
-    const {d} = device();
+test('Autopilot heating\'s feed follows heating\'s Smart mode, and owns BT1 while it runs', async () => {
+    const {d, store} = device();
     d.role = 'heating';
     const timers: any[] = [];
     d.getData = () => ({id: 'heat-1'});
@@ -869,33 +869,31 @@ test('Autopilot heating\'s feed follows the heating Price control, and owns BT1 
     await d.writeRegister(bt1, 5);
     assert.deepEqual(writes, [5217], 'a Flow may write BT1 while the feed is off');
 
-    await d.applyAutopilot({priceHeating: 'test'});
+    store.set('smartMode', 'test'); await d.applyAutopilot();
     assert.equal(d.heatingFeed.running, true, 'a test run runs the planner');
-    await d.applyAutopilot({priceHeating: 'autopilot'});
+    store.set('smartMode', 'autopilot'); await d.applyAutopilot();
     await assert.rejects(d.writeRegister(bt1, 5), /managed by Autopilot heating/);
 
-    await d.applyAutopilot({priceHeating: 'spa'});
+    store.set('smartMode', 'spa'); await d.applyAutopilot();
     await new Promise((r) => setImmediate(r));
     assert.equal(d.heatingFeed.running, false);
     await d.stopHeatingFeed();
     assert.equal(d.heatingFeed, null);
 });
 
-/** A pump with Main and Heating, their settings, and SPA switches read from and written to `spa`. */
-function pricePump(initial: Record<string, any>) {
-    const {d: main} = device(); const {d: heating, store} = device();
-    main.role = 'main'; heating.role = 'heating';
-    const settings: Record<string, any> = {address: 'pump-a', ...initial};
-    const heatingSettings: Record<string, any> = {...settings};
-    main.getSettings = () => settings; heating.getSettings = () => heatingSettings;
-    main.setSettings = async (next: any) => { Object.assign(settings, next); };
-    heating.setSettings = async (next: any) => { Object.assign(heatingSettings, next); };
-    main.getData = () => ({role: 'main'}); heating.getData = () => ({role: 'heating'});
-    const devices = [main, heating];
+/** A pump with Main, Heating and Hot water, and SPA switches read from and written to `spa`. */
+function smartPump() {
+    const {d: main} = device(); const {d: heating, store} = device(); const {d: hotwater, store: hotwaterStore} = device();
+    main.role = 'main'; heating.role = 'heating'; hotwater.role = 'hotwater';
+    const devices = [main, heating, hotwater];
+    const applied: string[] = [];
     for (const d of devices) {
+        d.getSettings = () => ({address: 'pump-a'});
+        d.getData = () => ({role: d.role});
         d.driver = {getDevices: () => devices};
-        d.applyAutopilot = async () => undefined;
+        d.applyAutopilot = async () => { applied.push(d.role); };
     }
+    hotwater.tankConfig = () => ({litres: 180, inletC: 10});
     const spa: Record<string, boolean> = {};
     const written: [string, boolean][] = [];
     const notes: string[] = [];
@@ -904,45 +902,78 @@ function pricePump(initial: Record<string, any>) {
         d.writeRegister = async (r: Register, v: boolean) => { written.push([r.name, v]); spa[r.name] = v; };
         d.homey = {...d.homey, notifications: {createNotification: async (n: any) => { notes.push(n.excerpt); }}};
     }
-    return {main, heating, store, settings, heatingSettings, spa, written, notes};
+    return {main, heating, hotwater, store, hotwaterStore, spa, written, notes, applied};
 }
 const SPA_MASTER = 'boolean_NIBE.h843_spa_activated';
 const SPA_HEATING = 'boolean_NIBE.h844_spa_heating_activated';
 
-test('Price control: Autopilot from Settings needs Heating Setup\'s Verify; nothing is written when refused', async () => {
-    const p = pricePump({priceHeating: 'spa'});
-    p.spa[SPA_MASTER] = true; p.spa[SPA_HEATING] = true;
-    await assert.rejects(p.main.onSettings({oldSettings: {...p.settings}, newSettings: {...p.settings, priceHeating: 'autopilot'},
-        changedKeys: ['priceHeating']}), /autopilot.price.verify_first/);
+test('Smart mode: Autopilot heating only through Verify; SPA turns SPA on; a test run turns SPA heating off', async () => {
+    const p = smartPump();
+    await assert.rejects(p.heating.chooseSmartMode('autopilot'), /autopilot.smart.verify_first/);
     assert.deepEqual(p.written, []);
-    p.store.set('autopilotHeatingVerified', true);
-    await p.main.onSettings({oldSettings: {...p.settings}, newSettings: {...p.settings, priceHeating: 'autopilot'},
-        changedKeys: ['priceHeating']});
-    assert.deepEqual(p.written, [[SPA_HEATING, false]], 'SPA heating off; the master stays for hot water');
-    assert.equal(p.heatingSettings.priceHeating, 'autopilot', 'mirrored to every device of the pump');
-});
-
-test('Price control: choosing SPA turns it on; a test run turns SPA heating off', async () => {
-    const p = pricePump({priceHeating: 'off'});
-    await p.main.onSettings({oldSettings: {...p.settings}, newSettings: {...p.settings, priceHeating: 'spa'}, changedKeys: ['priceHeating']});
+    await p.heating.chooseSmartMode('spa');
     assert.deepEqual(p.written, [[SPA_MASTER, true], [SPA_HEATING, true]]);
-    Object.assign(p.settings, {priceHeating: 'spa'});
-    await p.main.onSettings({oldSettings: {...p.settings}, newSettings: {...p.settings, priceHeating: 'test'}, changedKeys: ['priceHeating']});
-    assert.deepEqual(p.written.at(-1), [SPA_HEATING, false]);
+    assert.equal(p.store.get('smartMode'), 'spa');
+    assert.deepEqual(p.applied.sort(), ['heating', 'hotwater', 'main'], 'every device of the pump applies it');
+    await p.heating.chooseSmartMode('test');
+    assert.deepEqual(p.written.at(-1), [SPA_HEATING, false], 'SPA heating off; the master stays for hot water');
+    assert.equal(p.store.get('smartMode'), 'test');
 });
 
-test('the pump stays the truth: SPA turned on elsewhere flips Autopilot to SPA, said once', async () => {
-    const p = pricePump({priceHeating: 'autopilot', priceHotwater: 'off'});
-    p.spa[SPA_MASTER] = true; p.spa[SPA_HEATING] = true;
-    const caps = new Map<string, any>([[SPA_HEATING, false]]);
-    p.heating.getCapabilityValue = (n: string) => caps.get(n);
-    p.heating.setCapabilityValue = async (n: string, v: any) => { caps.set(n, v); };
+test('Smart mode for hot water lives on the Hot water device; Main follows it for the day type', async () => {
+    const p = smartPump();
+    await p.hotwater.chooseSmartMode('autopilot');
+    assert.equal(p.hotwaterStore.get('smartMode'), 'autopilot', 'no Verify for hot water');
+    assert.equal(p.main.autopilotMode(), 'live');
+    assert.equal(p.main.capabilitySmartMode(), 'autopilot');
+    assert.equal(p.heating.capabilitySmartMode(), 'off', 'heating keeps its own');
+    p.hotwater.tankConfig = () => ({litres: null, inletC: 10});
+    await assert.rejects(p.hotwater.chooseSmartMode('test'), /no_tank/);
+});
+
+test('leaving live Autopilot heating for Off clears Verify, so it is proved again next time', async () => {
+    const p = smartPump();
+    p.store.set('autopilotHeatingVerified', true); p.store.set('smartMode', 'autopilot');
+    await p.heating.chooseSmartMode('off');
+    assert.equal(p.store.get('autopilotHeatingVerified'), undefined);
+    assert.equal(p.store.get('smartMode'), 'off');
+});
+
+test('the pump stays the truth: SPA turned on elsewhere flips Autopilot to SPA, said once, even with the tile hidden', async () => {
+    const p = smartPump();
+    p.store.set('smartMode', 'autopilot'); p.store.set('autopilotHeatingVerified', true);
+    p.spa[SPA_MASTER] = true;
+    p.heating.hasCapability = () => false;
     p.heating.publishMirrors = async () => undefined;
-    p.heating.checkTrigger = () => undefined; p.heating.checkChangedTrigger = () => undefined;
+    await p.heating.setValue(sProfile.registerByName[SPA_HEATING], false);
+    p.spa[SPA_HEATING] = true;
     await p.heating.setValue(sProfile.registerByName[SPA_HEATING], true);
     await new Promise((r) => setTimeout(r, 10));
-    assert.equal(p.settings.priceHeating, 'spa');
-    assert.equal(p.heatingSettings.priceHeating, 'spa');
-    assert.deepEqual(p.notes, ['autopilot.price.spa_took_over.heating']);
+    assert.equal(p.store.get('smartMode'), 'spa');
+    assert.equal(p.store.get('autopilotHeatingVerified'), undefined);
+    assert.deepEqual(p.notes, ['autopilot.smart.spa_took_over.heating']);
     assert.deepEqual(p.written, [], 'nothing written back to the pump');
+});
+
+
+test('Away moves the thermostat and back; leaving Autopilot while Away puts it back first', async () => {
+    const p = smartPump();
+    const h = p.heating;
+    const caps = new Map<string, any>([['target_temperature', 21.5], ['boolean_NIBE.autopilot_away', false],
+        ['target_temperature.autopilot_away', 16]]);
+    h.hasCapability = (n: string) => caps.has(n);
+    h.getCapabilityValue = (n: string) => caps.get(n);
+    h.setCapabilityValue = async (n: string, v: any) => { caps.set(n, v); };
+    const thermostat: number[] = [];
+    h.triggerCapabilityListener = async (n: string, v: number) => { assert.equal(n, 'target_temperature'); thermostat.push(v); };
+    await h.setAutopilotAway(true);
+    assert.deepEqual(thermostat, [16]);
+    assert.equal(p.store.get('autopilotHome'), 21.5);
+    await h.setAutopilotAway(true);
+    assert.deepEqual(thermostat, [16], 'Away twice changes nothing');
+    p.store.set('smartMode', 'autopilot');
+    await h.chooseSmartMode('off');
+    assert.deepEqual(thermostat, [16, 21.5], 'the home temperature is back before Autopilot\'s controls go');
+    assert.equal(p.store.get('autopilotHome'), undefined);
+    assert.equal(caps.get('boolean_NIBE.autopilot_away'), false);
 });

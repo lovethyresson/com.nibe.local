@@ -1,3 +1,4 @@
+import {SmartMode, autopilotRuns} from './autopilot/smart-mode';
 import {GroupId, Register, Selection, isRegisterEnabled, withResolvedAddresses} from './registers';
 import type {CapabilityMirror, ModelProfile} from './profile';
 
@@ -157,15 +158,20 @@ export const ALARM_CAPABILITIES = [ALARM_ACTIVE_CAPABILITY];
 // (lib/autopilot/day-type.ts), not on the device.
 export const DAY_TYPE_CAPABILITY = "day_type_NIBE";
 
-// Autopilot heating on the Heating device, only while its Price control is a test run or on
-// (`autopilot` below): what it is doing and why, the outdoor temperature it feeds BT1, and its
-// shift. Insights titles are snapshotted on first add, so these names and titles are final.
+// Autopilot heating on the Heating device, only while its Smart mode is Autopilot or a test run
+// (`smart` below): what it is doing and why, how far it shifts the outdoor temperature the pump
+// sees (and the value fed), the owner's comfort range, and Away. Comfort itself is the thermostat.
+// Insights titles are snapshotted on first add, so these names and titles are final.
 export const AUTOPILOT_STATUS_CAPABILITY = "autopilot_status_NIBE";
 export const AUTOPILOT_REASON_CAPABILITY = "autopilot_reason_NIBE";
+export const AUTOPILOT_RANGE_CAPABILITY = "autopilot_range_NIBE";
+export const AUTOPILOT_AWAY_CAPABILITY = "boolean_NIBE.autopilot_away";
+export const AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY = "target_temperature.autopilot_away";
 export const AUTOPILOT_FED_CAPABILITY = "measure_temperature.autopilot_fed";
 export const AUTOPILOT_SHIFT_CAPABILITY = "autopilot_shift_NIBE";
 export const AUTOPILOT_HEATING_CAPABILITIES = [AUTOPILOT_STATUS_CAPABILITY, AUTOPILOT_REASON_CAPABILITY,
-    AUTOPILOT_FED_CAPABILITY, AUTOPILOT_SHIFT_CAPABILITY];
+    AUTOPILOT_RANGE_CAPABILITY, AUTOPILOT_AWAY_CAPABILITY, AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY,
+    AUTOPILOT_SHIFT_CAPABILITY, AUTOPILOT_FED_CAPABILITY];
 
 // Main's on/off is pinned ON (the pump is always operating), so it reads simply as "On".
 export function pumpActiveTitle(): {en: string; sv: string; de: string; nl: string; no: string; da: string} {
@@ -265,8 +271,10 @@ export function possibleExtraCapabilities(profile: ModelProfile, role: Role): st
     return buildExtraCapabilities(profile, role, null, true, true);
 }
 
-export function extraCapabilities(profile: ModelProfile, role: Role, selection?: Selection | null, autopilot = false): string[] {
-    return buildExtraCapabilities(profile, role, selection ?? null, false, autopilot);
+/** `smart` is the Smart mode that decides this role's Autopilot capabilities: its own for a
+ *  function, hot water's for Main (the day type). */
+export function extraCapabilities(profile: ModelProfile, role: Role, selection?: Selection | null, smart: SmartMode = 'off'): string[] {
+    return buildExtraCapabilities(profile, role, selection ?? null, false, autopilotRuns(smart));
 }
 
 function buildExtraCapabilities(
@@ -393,10 +401,11 @@ export function roleOf(data: any): Role {
 // anything the device carries that is no longer wanted goes, including capabilities whose
 // register no longer exists anywhere.
 export function capabilitySyncPlan(
-    profile: ModelProfile, role: Role, selection: Selection | null | undefined, current: string[], autopilot = false
+    profile: ModelProfile, role: Role, selection: Selection | null | undefined, current: string[], smart: SmartMode = 'off'
 ): {registers: Register[]; extras: string[]; wanted: string[]; toAdd: string[]; toRemove: string[]} {
-    const registers = registersForRole(profile, role, selection);
-    const extras = extraCapabilities(profile, role, selection, autopilot);
+    const hidden = new Set(hiddenBySmartMode(profile, role, smart));
+    const registers = registersForRole(profile, role, selection).filter((r) => !hidden.has(r.name));
+    const extras = extraCapabilities(profile, role, selection, smart);
     const wanted = [...registers.map((r) => r.name), ...extras];
     const wantedSet = new Set(wanted);
     const has = new Set(current);
@@ -405,6 +414,15 @@ export function capabilitySyncPlan(
         toAdd: wanted.filter((name) => !has.has(name)),
         toRemove: current.filter((name) => !wantedSet.has(name)),
     };
+}
+
+/** A function's SPA controls while Autopilot runs it: one control per function, so the SPA tiles
+ *  go while Autopilot holds it and come back with Off or SPA. Still polled (wantedRegisters), so
+ *  the pump turning SPA on is still seen. */
+export function hiddenBySmartMode(profile: ModelProfile, role: Role, smart: SmartMode): string[] {
+    const controls = profile.spaSwitches?.controls;
+    if (!controls || !autopilotRuns(smart) || (role !== 'heating' && role !== 'hotwater')) return [];
+    return controls[role];
 }
 
 export function registersForRole(profile: ModelProfile, role: Role, selection: Selection | null | undefined): Register[] {
@@ -507,6 +525,15 @@ export function extraCapabilityOptions(role: Role, name: string, profile?: Model
     if (name === AUTOPILOT_REASON_CAPABILITY)
         return {title: {en: "Autopilot now", sv: "Autopilot nu", de: "Autopilot jetzt", nl: "Autopilot nu",
                         no: "Autopilot nå", da: "Autopilot nu"}};
+    if (name === AUTOPILOT_RANGE_CAPABILITY)
+        return {title: {en: "Comfort range", sv: "Komfortspann", de: "Komfortbereich", nl: "Comfortbereik",
+                        no: "Komfortområde", da: "Komfortinterval"}};
+    if (name === AUTOPILOT_AWAY_CAPABILITY)
+        return {title: {en: "Away", sv: "Borta", de: "Abwesend", nl: "Afwezig", no: "Borte", da: "Fraværende"}};
+    if (name === AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY)
+        return {title: {en: "Away temperature", sv: "Bortatemperatur", de: "Abwesenheitstemperatur", nl: "Afwezigheidstemperatuur",
+                        no: "Bortetemperatur", da: "Fraværstemperatur"},
+                setable: true, min: 10, max: 25, step: 0.5, decimals: 1};
     if (name === AUTOPILOT_FED_CAPABILITY)
         return {title: {en: "Outdoor temperature fed", sv: "Utetemperatur som matas in", de: "Eingespeiste Außentemperatur",
                         nl: "Ingevoerde buitentemperatuur", no: "Innmatet utetemperatur", da: "Indfødt udetemperatur"},

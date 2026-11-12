@@ -436,3 +436,15 @@ main and nothing has been released."
 **Rule:** a setting, capability or store key that exists only on an unreleased branch is just
 code: change or delete it. Migrations (`renamedRegisters`, `migrateSelection`) are only for what
 has shipped to the store. Don't raise migration as a question for branch-only work.
+
+## 2026-11-12: everyday controls are capabilities, not device settings
+
+I put Autopilot's comfort temperature, Away and Price control in the device's Advanced settings.
+The maintainer: comfort is the thermostat; a choice that adds or removes capabilities belongs in
+Repair; what the owner changes day to day is a capability; and "Has learned your house" in a
+settings label says nothing without context.
+
+**Rule:** before adding a setting, ask how often the owner touches it. Set once → settings or
+Repair (Repair if it changes what the device carries). Changed day to day → a capability, with
+Insights and Flow cards. Never a second control for something a capability already is (the
+thermostat). Facts that need context (a chart, an outdoor temperature) → the widget, not a label.

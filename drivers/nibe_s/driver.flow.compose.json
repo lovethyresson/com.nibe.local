@@ -3126,63 +3126,6 @@
       ]
     },
     {
-      "id": "autopilot_heating_pause",
-      "title": {
-        "en": "Pause Autopilot heating",
-        "sv": "Pausa Autopilot uppvärmning",
-        "de": "Autopilot Heizung pausieren",
-        "nl": "Autopilot verwarming pauzeren",
-        "no": "Sett Autopilot oppvarming på pause",
-        "da": "Sæt Autopilot opvarmning på pause"
-      },
-      "titleFormatted": {
-        "en": "Pause Autopilot heating for [[hours]] h",
-        "sv": "Pausa Autopilot uppvärmning i [[hours]] h",
-        "de": "Autopilot Heizung für [[hours]] h pausieren",
-        "nl": "Autopilot verwarming [[hours]] u pauzeren",
-        "no": "Sett Autopilot oppvarming på pause i [[hours]] t",
-        "da": "Sæt Autopilot opvarmning på pause i [[hours]] t"
-      },
-      "hint": {
-        "en": "The pump follows its own curve meanwhile. Resumes by itself.",
-        "sv": "Pumpen följer sin egen kurva under tiden. Återupptas av sig själv.",
-        "de": "Die Pumpe folgt solange ihrer eigenen Kurve. Läuft danach von selbst weiter.",
-        "nl": "De pomp volgt intussen zijn eigen curve. Gaat daarna vanzelf verder.",
-        "no": "Pumpen følger sin egen kurve så lenge. Fortsetter av seg selv.",
-        "da": "Pumpen følger sin egen kurve imens. Fortsætter af sig selv."
-      },
-      "$filter": "capabilities=autopilot_status_NIBE",
-      "args": [
-        {
-          "type": "number",
-          "name": "hours",
-          "min": 1,
-          "max": 48,
-          "step": 1,
-          "placeholder": {
-            "en": "Hours",
-            "sv": "Timmar",
-            "de": "Stunden",
-            "nl": "Uren",
-            "no": "Timer",
-            "da": "Timer"
-          }
-        }
-      ]
-    },
-    {
-      "id": "autopilot_heating_resume",
-      "title": {
-        "en": "Resume Autopilot heating",
-        "sv": "Återuppta Autopilot uppvärmning",
-        "de": "Autopilot Heizung fortsetzen",
-        "nl": "Autopilot verwarming hervatten",
-        "no": "Gjenoppta Autopilot oppvarming",
-        "da": "Genoptag Autopilot opvarmning"
-      },
-      "$filter": "capabilities=autopilot_status_NIBE"
-    },
-    {
       "id": "autopilot_heating_set_profile",
       "title": {
         "en": "Set Autopilot heating comfort range",
@@ -3237,6 +3180,64 @@
                 "nl": "Liever kou lijden (±6 °C)",
                 "no": "Heller fryse (±6 °C)",
                 "da": "Hellere fryse (±6 °C)"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "autopilot_heating_away",
+      "title": {
+        "en": "Set Autopilot heating Away",
+        "sv": "Ställ in Borta för Autopilot uppvärmning",
+        "de": "Abwesend für Autopilot Heizung einstellen",
+        "nl": "Afwezig van Autopilot verwarming instellen",
+        "no": "Still inn Borte for Autopilot oppvarming",
+        "da": "Indstil Fraværende for Autopilot opvarmning"
+      },
+      "titleFormatted": {
+        "en": "Turn Autopilot heating Away [[away]]",
+        "sv": "Slå [[away]] Borta för Autopilot uppvärmning",
+        "de": "Abwesend für Autopilot Heizung [[away]]",
+        "nl": "Afwezig van Autopilot verwarming [[away]]",
+        "no": "Slå [[away]] Borte for Autopilot oppvarming",
+        "da": "Slå Fraværende for Autopilot opvarmning [[away]]"
+      },
+      "hint": {
+        "en": "Away sets the thermostat to the Away temperature; turning it off puts the thermostat back.",
+        "sv": "Borta ställer termostaten på bortatemperaturen; av ställer tillbaka termostaten.",
+        "de": "Abwesend stellt das Thermostat auf die Abwesenheitstemperatur; aus stellt es zurück.",
+        "nl": "Afwezig zet de thermostaat op de afwezigheidstemperatuur; uit zet hem terug.",
+        "no": "Borte setter termostaten til bortetemperaturen; av setter den tilbake.",
+        "da": "Fraværende sætter termostaten til fraværstemperaturen; fra sætter den tilbage."
+      },
+      "$filter": "capabilities=autopilot_status_NIBE",
+      "args": [
+        {
+          "type": "dropdown",
+          "name": "away",
+          "values": [
+            {
+              "id": "on",
+              "label": {
+                "en": "on",
+                "sv": "på",
+                "de": "an",
+                "nl": "aan",
+                "no": "på",
+                "da": "til"
+              }
+            },
+            {
+              "id": "off",
+              "label": {
+                "en": "off",
+                "sv": "av",
+                "de": "aus",
+                "nl": "uit",
+                "no": "av",
+                "da": "fra"
               }
             }
           ]

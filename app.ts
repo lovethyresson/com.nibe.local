@@ -27,7 +27,33 @@ class NibeApp extends Homey.App {
 
     void announceRelease(this.homey).catch(error => this.error('Release announcement failed:', error));
 
+    this.registerAutopilotWidget();
+
     this.log('Nibe Live app has been initialized');
+  }
+
+  /** Every Heating and Hot water device, the ones Autopilot runs first. */
+  private autopilotDevices(): any[] {
+    const devices = Object.values(this.homey.drivers.getDrivers()).flatMap((driver: any) => driver.getDevices() as any[]);
+    return devices.filter((d) => d.role === 'heating' || d.role === 'hotwater')
+      .sort((a, b) => Number(b.smartMode?.() === 'autopilot' || b.smartMode?.() === 'test')
+        - Number(a.smartMode?.() === 'autopilot' || a.smartMode?.() === 'test'));
+  }
+
+  /** The Autopilot widget (widgets/autopilot): its device picker, and its data by device. */
+  private registerAutopilotWidget() {
+    const widget = (this.homey as any).dashboards?.getWidget?.('autopilot');
+    widget?.registerSettingAutocompleteListener('device', async (query: string) => this.autopilotDevices()
+      .map((d) => ({id: String(d.getData().id), name: d.getName()}))
+      .filter((d) => !query || d.name.toLowerCase().includes(query.toLowerCase())));
+  }
+
+  /** For widgets/autopilot/api.js. Throws in the owner's language when the device is gone. */
+  autopilotWidget(id: unknown) {
+    const devices = this.autopilotDevices();
+    const device = devices.find((d) => String(d.getData().id) === String(id)) ?? (id ? undefined : devices[0]);
+    if (!device) throw new Error(this.homey.__('autopilot.widget.not_function'));
+    return device.autopilotWidget();
   }
 
 }

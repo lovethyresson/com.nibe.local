@@ -224,7 +224,9 @@ export const sProfile = makeProfile({
         roomControl: 2978,
     },
     spaSwitches: {master: "boolean_NIBE.h843_spa_activated", heating: "boolean_NIBE.h844_spa_heating_activated",
-        hotwater: "boolean_NIBE.h846_spa_hotwater_activated"},
+        hotwater: "boolean_NIBE.h846_spa_hotwater_activated",
+        controls: {heating: ["boolean_NIBE.h844_spa_heating_activated", "spa_heating_influence_NIBE.h845_spa_heating_influence"],
+            hotwater: ["boolean_NIBE.h846_spa_hotwater_activated", "spa_hotwater_influence_NIBE.h902_spa_hotwater_influence"]}},
     autopilotHistory: {
         numeric: {
             ti: "measure_temperature",

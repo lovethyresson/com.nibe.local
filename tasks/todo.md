@@ -549,10 +549,16 @@ midnight). All rests on the model; the live run has only tested 2 K so far.
 then the maintainer turns Autopilot on in Heating → Repair → Autopilot. That is the UI test.
 - [x] Installed 2026-11-12 15:00 local (c27c2bf): app running, all devices available, Price
       control heating Off, so the shift-only feed stopped. The setting is called Comfort range.
-- [ ] Setup: checklist shows indoor, Utetemperatur, dynamic prices, room control off; Verify passes.
+- [x] Revised the same evening (maintainer): Price control → **Smart mode** in each function's
+      Repair; Comfort range, Away and Away temperature are Heating capabilities; comfort is the
+      thermostat; no pause (Smart mode Off instead); house insights → Autopilot widget.
+- [ ] Repair → Smart mode on Heating: checklist shows indoor, Utetemperatur, dynamic prices, room
+      control off; Verify passes; the SPA heating tiles go.
+- [ ] Hot water → Repair → Smart mode: choices save; SPA hot water tiles follow.
+- [ ] Away on: thermostat to the Away temperature; off: back. Unverified on hardware: whether 2505
+      moves the curve with room-sensor control off (Autopilot needs it off).
+- [ ] Autopilot widget on a dashboard: chart, house lines, footnote read right.
 - [ ] Heating tile: status, reason, fed outdoor, shift update each slot; Insights log them.
-- [ ] Settings: Price control shows Autopilot for heating on every device; nothing else written.
-- [ ] Pause Flow for 1 h: BT1 handed back, status Paused, resumes by itself.
 
 ## Autopilot slice 1: data collection (branch `smart-heating/m1-data`)
 

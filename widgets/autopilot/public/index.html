@@ -1,0 +1,136 @@
+<html>
+  <head>
+    <style>
+      .ap { padding: var(--homey-su-2, 8px) var(--homey-su-3, 12px); }
+      .ap-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+      .ap-title { opacity: 0.6; }
+      .ap-status { margin: 2px 0 0; font-size: 1.35em; font-weight: 600; }
+      .ap-reason { margin: 2px 0 0; opacity: 0.8; }
+      .ap-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+      .ap-chip { font-size: 0.8em; padding: 2px 8px; border-radius: 999px; background: rgba(127, 127, 127, 0.15); }
+      .ap-section { margin: 14px 0 4px; font-weight: 600; font-size: 0.9em; }
+      .ap-chart { width: 100%; height: 110px; display: block; }
+      .ap-ticks { position: relative; height: 14px; font-size: 0.7em; opacity: 0.6; }
+      .ap-ticks span { position: absolute; transform: translateX(-50%); }
+      .ap-legend { display: flex; gap: 12px; font-size: 0.75em; opacity: 0.8; margin-top: 4px; }
+      .ap-key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+      .ap-house p { margin: 4px 0; }
+      .ap-foot { margin-top: 8px; font-size: 0.75em; opacity: 0.6; }
+      .ap-empty { opacity: 0.7; margin: 12px 0; }
+      .more { fill: #e8833a; background: #e8833a; }
+      .less { fill: #3a8ee8; background: #3a8ee8; }
+      .charge { fill: #e8833a; background: #e8833a; }
+      .price { fill: currentColor; opacity: 0.14; background: rgba(127, 127, 127, 0.35); }
+    </style>
+  </head>
+
+  <body class="homey-widget">
+    <div class="ap" id="ap"></div>
+
+    <script type="text/javascript">
+      function el(tag, cls, text) {
+        var n = document.createElement(tag);
+        if (cls) n.className = cls;
+        if (text !== undefined) n.textContent = text;
+        return n;
+      }
+
+      // Price as a soft background, the plan on top: heating's shift as bars up (more heat) and
+      // down (less heat) from the middle, hot water's charges as full-height bars.
+      function chart(data) {
+        var ns = 'http://www.w3.org/2000/svg';
+        var n = data.slots.length, w = 4, h = 110, mid = h / 2;
+        var svg = document.createElementNS(ns, 'svg');
+        svg.setAttribute('viewBox', '0 0 ' + n * w + ' ' + h);
+        svg.setAttribute('preserveAspectRatio', 'none');
+        svg.setAttribute('class', 'ap-chart');
+        var prices = data.slots.map(function (s) { return s.price; }).filter(function (p) { return typeof p === 'number'; });
+        var max = Math.max.apply(null, prices.concat([0.0001])), min = Math.min.apply(null, prices.concat([max]));
+        var span = Math.max(max - min, max * 0.2, 0.0001);
+        var shiftMax = Math.max.apply(null, data.slots.map(function (s) { return Math.abs(s.shift || 0); }).concat([1]));
+        data.slots.forEach(function (s, k) {
+          if (typeof s.price === 'number') {
+            var ph = 12 + (h - 12) * (s.price - min + span * 0.1) / (span * 1.1);
+            var r = document.createElementNS(ns, 'rect');
+            r.setAttribute('x', k * w); r.setAttribute('width', w); r.setAttribute('y', h - ph); r.setAttribute('height', ph);
+            r.setAttribute('class', 'price'); svg.appendChild(r);
+          }
+          if (s.charge) {
+            var c = document.createElementNS(ns, 'rect');
+            c.setAttribute('x', k * w + 0.5); c.setAttribute('width', w - 1); c.setAttribute('y', h - 18); c.setAttribute('height', 18);
+            c.setAttribute('class', 'charge'); svg.appendChild(c);
+          }
+          if (s.shift) {
+            var bh = (mid - 4) * Math.abs(s.shift) / shiftMax;
+            var b = document.createElementNS(ns, 'rect');
+            b.setAttribute('x', k * w + 0.5); b.setAttribute('width', w - 1);
+            b.setAttribute('y', s.shift > 0 ? mid - bh : mid); b.setAttribute('height', bh);
+            b.setAttribute('class', s.shift > 0 ? 'more' : 'less'); svg.appendChild(b);
+          }
+        });
+        if (data.kind === 'heating') {
+          var line = document.createElementNS(ns, 'line');
+          line.setAttribute('x1', 0); line.setAttribute('x2', n * w); line.setAttribute('y1', mid); line.setAttribute('y2', mid);
+          line.setAttribute('stroke', 'currentColor'); line.setAttribute('stroke-opacity', '0.3'); line.setAttribute('stroke-width', '0.5');
+          svg.appendChild(line);
+        }
+        return svg;
+      }
+
+      function render(data) {
+        var root = document.getElementById('ap');
+        root.replaceChildren();
+        var head = el('div', 'ap-head');
+        head.appendChild(el('span', 'ap-title homey-text-small', data.title));
+        root.appendChild(head);
+        if (data.empty) { root.appendChild(el('p', 'ap-empty', data.empty)); return; }
+        if (data.status) root.appendChild(el('p', 'ap-status', data.status));
+        if (data.reason) root.appendChild(el('p', 'ap-reason homey-text-small', data.reason));
+        if (data.chips.length) {
+          var chips = el('div', 'ap-chips');
+          data.chips.forEach(function (c) { chips.appendChild(el('span', 'ap-chip', c)); });
+          root.appendChild(chips);
+        }
+        if (data.slots.some(function (s) { return typeof s.price === 'number' || s.shift || s.charge; })) {
+          root.appendChild(el('div', 'ap-section', data.chartTitle));
+          root.appendChild(chart(data));
+          var ticks = el('div', 'ap-ticks');
+          data.ticks.forEach(function (t) {
+            var s = el('span', '', t.label); s.style.left = (100 * t.at / data.slots.length) + '%'; ticks.appendChild(s);
+          });
+          root.appendChild(ticks);
+          var legend = el('div', 'ap-legend');
+          [['price', data.legend.price], ['more', data.legend.more], ['less', data.legend.less], ['charge', data.legend.charge]]
+            .forEach(function (l) {
+              if (!l[1]) return;
+              var item = el('span'); item.appendChild(el('span', 'ap-key ' + l[0])); item.appendChild(document.createTextNode(l[1]));
+              legend.appendChild(item);
+            });
+          root.appendChild(legend);
+        }
+        if (data.house.length) {
+          root.appendChild(el('div', 'ap-section', data.houseTitle));
+          var house = el('div', 'ap-house homey-text-small');
+          data.house.forEach(function (line) { house.appendChild(el('p', '', line)); });
+          root.appendChild(house);
+        }
+        if (data.footnote) root.appendChild(el('p', 'ap-foot', data.footnote));
+      }
+
+      function onHomeyReady(Homey) {
+        var settings = Homey.getSettings() || {};
+        var device = settings.device && settings.device.id;
+        function load() {
+          return Homey.api('GET', '/' + (device ? '?device=' + encodeURIComponent(device) : ''), {})
+            .then(render)
+            .catch(function (err) {
+              var root = document.getElementById('ap');
+              root.replaceChildren(el('p', 'ap-empty', (err && err.message) || String(err)));
+            });
+        }
+        load().finally(function () { Homey.ready(); });
+        setInterval(load, 60000);
+      }
+    </script>
+  </body>
+</html>

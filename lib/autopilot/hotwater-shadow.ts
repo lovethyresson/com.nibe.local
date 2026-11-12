@@ -561,6 +561,22 @@ export class HotwaterAutopilot {
 
     /** For the Flow condition: a charge running, or one planned to start within `hours`. Only a
      *  plan from this slot or the last counts: an older one is no plan at all. */
+    /** What the Autopilot widget shows: prices and the plan's charges for `n` slots from `from`,
+     *  the tank now and the next charge. Reads only. */
+    outlook(from: number, n: number): {slots: {price?: number; charge: boolean}[]; litres?: number;
+        next?: {at: number; minutes: number; reason: ChargeReason}} {
+        const charges = this.morningPlan?.charges ?? [];
+        const charging = (slot: number) => charges.some((c) => slot * SLOT_MS < c.at + c.minutes * 60_000
+            && (slot + 1) * SLOT_MS > c.at);
+        const now = Date.now();
+        const next = charges.find((c) => c.at + c.minutes * 60_000 > now);
+        return {
+            slots: Array.from({length: n}, (_, k) => ({price: this.prices.get(from + k)?.price, charge: charging(from + k)})),
+            litres: this.last?.litres,
+            next: next && {at: next.at, minutes: next.minutes, reason: next.reason},
+        };
+    }
+
     chargePlannedWithin(hours: number): boolean {
         const last = this.last;
         if (!last || last.slot < slotOf(Date.now()) - 1) return false;

@@ -278,7 +278,6 @@
         "room_control": "Autopilot uppvärmning pausad: rumsgivarstyrning är på i pumpen.",
         "immersion_only": "Autopilot uppvärmning pausad: pumpen går endast på elpatron.",
         "no_model": "Autopilot uppvärmning lär sig fortfarande ditt hus.",
-        "paused": "Autopilot uppvärmning är pausad.",
         "mode_off": "Autopilot uppvärmning är av."
       },
       "status": {
@@ -293,7 +292,6 @@
         "next_easing_off": "Håller · drar ner kl. __at__",
         "next_preheating": "Håller · förvärmer kl. __at__",
         "paused": {
-          "paused": "Pausad av dig",
           "no_outdoor": "Pausad: utetemperaturen slutade rapportera",
           "spa_on": "Pausad: Smart price adaption är på för uppvärmning",
           "room_control": "Pausad: rumsgivarstyrning är på i pumpen",
@@ -322,22 +320,47 @@
         "no_outdoor": "Ingen utetemperatur än: välj en givare eller ange din plats för väderprognosen.",
         "not_followed": "Pumpen tog inte emot utetemperaturen. Kontrollera att meny 7.5.9.2 tillåter extern BT1."
       },
-      "not_on": "Autopilot uppvärmning är inte på."
+      "not_on": "Autopilot uppvärmning är inte på.",
+      "no_thermostat": "Uppvärmning har ingen termostat att ställa in."
     },
-    "price": {
+    "smart": {
       "no_spa": "Den här pumpen har ingen Smart price adaption.",
       "no_heating": "Lägg till enheten Uppvärmning först.",
-      "verify_first": "Slå på Autopilot under Uppvärmning → Reparera → Autopilot: den kontrollerar först att pumpen tar emot utetemperaturen.",
+      "verify_first": "Slå på Autopilot i Uppvärmning → Reparera → Smart läge: där kontrolleras först att pumpen tar emot utetemperaturen.",
       "spa_took_over": {
         "heating": "Smart price adaption slogs på för uppvärmning, så Autopilot uppvärmning stoppade.",
         "hotwater": "Smart price adaption slogs på för varmvatten, så Autopilot varmvatten stoppade."
       }
     },
-    "house": {
-      "ready": "Har lärt sig ditt hus",
-      "learning": "Lär sig · dag __day__ av __of__",
-      "heat_loss": "__w__ W per °C",
-      "holds_heat": "__h__ h innan det svalnat 1 °C"
+    "widget": {
+      "next24": "Kommande 24 timmar",
+      "price": "Pris",
+      "off": "Autopilot är av här. Slå på den i Reparera → Smart läge.",
+      "not_function": "Välj en Uppvärmnings- eller Varmvattenenhet.",
+      "test": "Testkörning",
+      "starting": "Startar…",
+      "charge": "Laddning",
+      "more_heat": "Mer värme",
+      "less_heat": "Mindre värme",
+      "away": "Borta · __c__ °C",
+      "range": {
+        "comfortable": "Komfort ±0,5 °C",
+        "save_some": "Spara ±3 °C",
+        "save_most": "Hellre frysa ±6 °C"
+      },
+      "hotwater": {
+        "next": "Nästa laddning __time__, cirka __m__ min",
+        "none": "Ingen laddning planerad de kommande 24 timmarna",
+        "litres": "__l__ L 40-gradigt vatten nu"
+      },
+      "house": {
+        "title": "Ditt hus",
+        "cools": "Med värmen av vid __out__ °C ute sjunker inomhus 1 °C på cirka __h__ h.",
+        "cools_slow": "Med värmen av vid __out__ °C ute sjunker inomhus mindre än 1 °C på två dygn.",
+        "coast": "Med __range__ kan Autopilot dra ner i upp till __h__ h.",
+        "learned": "Har lärt sig av __days__ dagar i ditt hus.",
+        "learning": "Lär sig fortfarande ditt hus · dag __day__ av __of__."
+      }
     }
   }
 }

@@ -278,7 +278,6 @@
         "room_control": "Autopilot heating paused: room-sensor control is on in the pump.",
         "immersion_only": "Autopilot heating paused: the pump runs on the immersion heater only.",
         "no_model": "Autopilot heating is still learning your house.",
-        "paused": "Autopilot heating is paused.",
         "mode_off": "Autopilot heating is off."
       },
       "status": {
@@ -293,7 +292,6 @@
         "next_easing_off": "Holding · easing off at __at__",
         "next_preheating": "Holding · pre-heating at __at__",
         "paused": {
-          "paused": "Paused by you",
           "no_outdoor": "Paused: outdoor temperature stopped reporting",
           "spa_on": "Paused: Smart price adaption is on for heating",
           "room_control": "Paused: room-sensor control is on in the pump",
@@ -322,22 +320,47 @@
         "no_outdoor": "No outdoor temperature yet: choose a sensor or set your location for the weather forecast.",
         "not_followed": "The pump did not take the outdoor temperature. Check that menu 7.5.9.2 allows an external BT1."
       },
-      "not_on": "Autopilot heating is not on."
+      "not_on": "Autopilot heating is not on.",
+      "no_thermostat": "The Heating device has no thermostat to set."
     },
-    "price": {
+    "smart": {
       "no_spa": "This pump has no Smart price adaption.",
       "no_heating": "Add the Heating device first.",
-      "verify_first": "Turn Autopilot on in Heating → Repair → Autopilot: it checks the pump takes the outdoor temperature first.",
+      "verify_first": "Turn Autopilot on in Heating → Repair → Smart mode: it checks the pump takes the outdoor temperature first.",
       "spa_took_over": {
         "heating": "Smart price adaption was turned on for heating, so Autopilot heating stopped.",
         "hotwater": "Smart price adaption was turned on for hot water, so Autopilot hot water stopped."
       }
     },
-    "house": {
-      "ready": "Has learned your house",
-      "learning": "Learning · day __day__ of __of__",
-      "heat_loss": "__w__ W per °C",
-      "holds_heat": "__h__ h before it cools 1 °C"
+    "widget": {
+      "next24": "Next 24 hours",
+      "price": "Price",
+      "off": "Autopilot is off here. Turn it on in Repair → Smart mode.",
+      "not_function": "Pick a Heating or Hot water device.",
+      "test": "Test run",
+      "starting": "Starting…",
+      "charge": "Charge",
+      "more_heat": "More heat",
+      "less_heat": "Less heat",
+      "away": "Away · __c__ °C",
+      "range": {
+        "comfortable": "Comfort ±0.5 °C",
+        "save_some": "Save ±3 °C",
+        "save_most": "I'd rather freeze ±6 °C"
+      },
+      "hotwater": {
+        "next": "Next charge __time__, about __m__ min",
+        "none": "No charge planned in the next 24 hours",
+        "litres": "__l__ L of 40 °C water now"
+      },
+      "house": {
+        "title": "Your house",
+        "cools": "With the heating off at __out__ °C outside, indoor falls 1 °C in about __h__ h.",
+        "cools_slow": "With the heating off at __out__ °C outside, indoor falls less than 1 °C in two days.",
+        "coast": "At __range__, Autopilot can ease off for up to __h__ h.",
+        "learned": "Learned from __days__ days of your house.",
+        "learning": "Still learning your house · day __day__ of __of__."
+      }
     }
   }
 }

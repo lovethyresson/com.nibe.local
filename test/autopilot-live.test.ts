@@ -16,7 +16,7 @@ const forecast = (): ForecastSlot[] => Array.from({length: 96}, (_, k) => ({te: 
 const input = (over: Partial<ShiftInput> = {}): ShiftInput => ({house, lever: 0.5 * house.heatLoss, ti: start.ti, tm: start.tm,
     mean: 21.5, curve: 3, bias: 0, forecast: forecast(), ...over});
 
-test('the heating Price control decides the feed mode', () => {
+test('heating\'s Smart mode decides the feed mode', () => {
     assert.equal(liveMode(undefined), 'off');
     assert.equal(liveMode('spa'), 'off');
     assert.equal(liveMode('test'), 'test');
@@ -145,23 +145,6 @@ test('switching from live to test hands BT1 back once', async () => {
     await feed.cycle();
     await feed.cycle();
     assert.deepEqual(state.writes.slice(1), [3], 'one neutral write, then nothing');
-});
-
-test('paused hands BT1 back and resumes by itself', async () => {
-    const {feed, state} = harness();
-    feed.start();
-    await feed.cycle();
-    state.mode = 'paused';
-    await feed.cycle();
-    assert.equal(feed.state.stopped, 'paused');
-    assert.equal(state.writes.at(-1), 3);
-    assert.ok(feed.running, 'paused is a wait, not an end');
-    assert.ok(!state.warnings.includes('paused'), 'the owner paused it: no warning');
-    state.mode = 'live';
-    const before = state.writes.length;
-    await feed.cycle();
-    assert.equal(feed.state.stopped, undefined);
-    assert.equal(state.writes.length, before + 1, 'feeding again within the slot');
 });
 
 test('three failed cycles stop the feed with a warning', async () => {
