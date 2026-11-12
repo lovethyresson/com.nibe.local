@@ -547,7 +547,8 @@ midnight). All rests on the model; the live run has only tested 2 K so far.
 
 **Installing it switches the running feed off** (the old setting is gone): BT1 is handed back,
 then the maintainer turns Autopilot on in Heating → Repair → Autopilot. That is the UI test.
-- [ ] Install on the maintainer's go.
+- [x] Installed 2026-11-12 15:00 local (c27c2bf): app running, all devices available, Price
+      control heating Off, so the shift-only feed stopped. The setting is called Comfort range.
 - [ ] Setup: checklist shows indoor, Utetemperatur, dynamic prices, room control off; Verify passes.
 - [ ] Heating tile: status, reason, fed outdoor, shift update each slot; Insights log them.
 - [ ] Settings: Price control shows Autopilot for heating on every device; nothing else written.
