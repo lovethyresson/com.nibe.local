@@ -8,26 +8,26 @@
     "title": "NIBE S-configuratie",
     "ok": "OK",
     "valid_ip_address": "Voer een geldig IP-adres in (xxx.xxx.xxx.xxx)",
-    "not_connected": "Geen verbinding met de warmtepomp",
+    "not_connected": "Geen verbinding met uw apparaat",
     "detect": {
       "title": "Functies detecteren",
-      "intro": "Er wordt verbinding gemaakt met de warmtepomp en gekeken welke waarden veranderen. Dit duurt ongeveer een halve minuut.",
+      "intro": "Er wordt verbinding gemaakt met uw apparaat en gekeken welke waarden veranderen. Dit duurt ongeveer een halve minuut.",
       "status": "Registers uitlezen",
-      "failed": "Kan niet uitlezen van de warmtepomp",
-      "no_data": "Er antwoordt iets op dit adres, maar het levert geen warmtepompgegevens. Controleer of het IP-adres van de pomp zelf is en of Modbus TCP aan staat (menu 7.5.9).",
+      "failed": "Kan uw apparaat niet uitlezen",
+      "no_data": "Er antwoordt iets op dit adres, maar het levert geen NIBE-gegevens. Controleer of het IP-adres van uw apparaat zelf is en of Modbus TCP aan staat (menu 7.5.9).",
       "retry": "Opnieuw proberen",
       "skip": "Detectie overslaan"
     },
     "features": {
       "title": "Functies selecteren",
-      "intro": "Kies welke functies je wilt bewaken. De aanbevelingen zijn gebaseerd op wat de warmtepomp heeft gemeld.",
+      "intro": "Kies welke functies u wilt bewaken. De aanbevelingen zijn gebaseerd op wat uw apparaat heeft gemeld.",
       "insights_note": "Als je een functie uitschakelt, worden de bijbehorende mogelijkheden verwijderd, inclusief hun Insights-geschiedenis."
     },
     "evidence": {
       "moving": "waarden veranderen",
       "plausible": "lijkt aanwezig",
       "none": "geen activiteit gedetecteerd",
-      "unsupported": "niet ondersteund door de warmtepomp"
+      "unsupported": "niet ondersteund door uw apparaat"
     },
     "badge": {
       "adjustable": "Instelbaar",
@@ -35,21 +35,21 @@
     },
     "devices": {
       "title": "Apparaten toevoegen",
-      "intro": "Elke functie van je warmtepomp wordt een eigen apparaat. De functies waarvoor live data is gevonden, zijn aangevinkt, maar je kunt ze allemaal toevoegen.",
+      "intro": "Elke functie van uw apparaat wordt een eigen apparaat in Homey. De functies waarvoor live data is gevonden, zijn aangevinkt, maar u kunt ze allemaal toevoegen.",
       "add": "Geselecteerde apparaten toevoegen",
       "detected": "Data gedetecteerd",
       "notdetected": "Geen data",
       "select_one": "Selecteer minstens één apparaat om toe te voegen.",
       "main_desc": "Overzicht: buitentemperatuur, bedrijfsprioriteit en bedrijfsstand, plus diagnose en statistieken",
       "analytics": "Anonieme gebruiksgegevens delen",
-      "analytics_desc": "Helpt de maker van de app te zien welke warmtepompmodellen en functies echt gebruikt worden, en waar het instellen misgaat. Geen persoonlijke gegevens, geen metingen uit je huis, geen netwerkgegevens. Je kunt dit later wijzigen in de app-instellingen."
+      "analytics_desc": "Helpt de maker van de app te zien welke modellen en functies echt gebruikt worden, en waar het instellen misgaat. Geen persoonlijke gegevens, geen metingen uit je huis, geen netwerkgegevens. Je kunt dit later wijzigen in de app-instellingen."
     },
     "discover": {
       "title": "Zoek je warmtepomp",
       "searching": "Je netwerk wordt doorzocht op NIBE warmtepompen…",
       "confirm": "Warmtepomp gevonden — tik om te bevestigen",
       "found": "Selecteer je warmtepomp",
-      "none_found": "Er is automatisch geen warmtepomp gevonden. Controleer of Modbus TCP is ingeschakeld op de warmtepomp (menu 7.5.9) of voer hieronder het IP-adres in.",
+      "none_found": "Er is automatisch geen warmtepomp gevonden. Controleer of Modbus TCP is ingeschakeld op uw apparaat (menu 7.5.9) of voer hieronder het IP-adres in.",
       "manual": "Voer het IP-adres handmatig in",
       "refresh": "Opnieuw zoeken",
       "pump": "NIBE warmtepomp",
@@ -73,17 +73,17 @@
       "unit": "Modbus-ID",
       "hint": "Kies hoe NIBE-register 40025 via uw verbinding wordt geadresseerd. Controleer dit met een werkende Modbus-query. De instelling geldt voor alle lees- en schrijfopdrachten.",
       "invalid": "Kies een gateway, poort van 1–65535 en Modbus-ID van 1–247.",
-      "detect_intro": "De waarden van je warmtepomp worden gecontroleerd. Afhankelijk van de gateway kan dit enkele minuten duren."
+      "detect_intro": "De waarden van uw apparaat worden gecontroleerd. Afhankelijk van de gateway kan dit enkele minuten duren."
     },
     "firmware": {
-      "title": "Werk eerst je warmtepomp bij",
-      "intro": "Veel functies hebben recente software in de warmtepomp nodig. Oudere versies missen waarden die de app gebruikt en kunnen zelfs verkeerde energiecijfers geven.",
+      "title": "Werk eerst uw apparaat bij",
+      "intro": "Veel functies hebben recente software in uw apparaat nodig. Oudere versies missen waarden die de app gebruikt en kunnen zelfs verkeerde energiecijfers geven.",
       "online_title": "Via internet met myUplink",
-      "online_body": "Staat er een update klaar, keur die dan goed in de myUplink-app – of op het display van de pomp: veeg naar het productoverzicht en tik op Bijwerken.",
+      "online_body": "Staat er een update klaar, keur die dan goed in de myUplink-app – of op het display van uw apparaat: veeg naar het productoverzicht en tik op Bijwerken.",
       "usb_title": "Met een USB-stick",
       "usb_body": "Download de nieuwste software van myuplink.com en zet die op een USB-stick. Steek die in de poort boven het display en open menu 8.1.",
       "f_title": "Via myUplink of een USB-stick",
-      "f_body": "De stappen verschillen per model – de handleiding van je warmtepomp laat zien hoe.",
+      "f_body": "De stappen verschillen per model – de handleiding van uw apparaat laat zien hoe.",
       "note": "Duurt een paar minuten. Je instellingen blijven behouden.",
       "continue": "Doorgaan"
     }
@@ -154,13 +154,13 @@
   "12 hours": "12 uur",
   "One-time increase": "Eenmalige verhoging",
   "connection": {
-    "connecting": "Verbinden met de warmtepomp…",
-    "unreachable": "Warmtepomp op __host__ niet bereikbaar. Controleer of hij op het netwerk zit en of het IP-adres niet is veranderd.",
-    "refused": "De warmtepomp op __host__ weigerde de verbinding. Controleer of Modbus TCP op de pomp is ingeschakeld.",
-    "silent": "De warmtepomp op __host__ reageert niet meer. Opnieuw verbinden…",
-    "no_data": "Er antwoordt iets op __host__, maar het levert geen warmtepompgegevens. Controleer of het IP-adres van de pomp zelf is en of Modbus TCP aan staat (menu 7.5.9).",
-    "searching": "Warmtepomp op __host__ niet bereikbaar. Het netwerk wordt doorzocht…",
-    "moved": "Nibe Live: je warmtepomp is verhuisd van __from__ naar __to__. De apparaten zijn bijgewerkt.",
+    "connecting": "Verbinden met uw apparaat…",
+    "unreachable": "Uw apparaat op __host__ is niet bereikbaar. Controleer of het op het netwerk zit en of het IP-adres niet is veranderd.",
+    "refused": "Uw apparaat op __host__ weigerde de verbinding. Controleer of Modbus TCP erop is ingeschakeld.",
+    "silent": "Uw apparaat op __host__ reageert niet meer. Opnieuw verbinden…",
+    "no_data": "Er antwoordt iets op __host__, maar het levert geen NIBE-gegevens. Controleer of het IP-adres van uw apparaat zelf is en of Modbus TCP aan staat (menu 7.5.9).",
+    "searching": "Uw apparaat op __host__ is niet bereikbaar. Het netwerk wordt doorzocht…",
+    "moved": "Nibe Live: uw apparaat is verhuisd van __from__ naar __to__. De apparaten in Homey zijn bijgewerkt.",
     "address_in_use": "Een andere gekoppelde warmtepomp gebruikt __host__ al."
   },
   "autopilot": {
@@ -185,7 +185,7 @@
         "before_use": "op tijd voor het gebruik dat volgt; de dag gemiddeld __mean__"
       },
       "cost": "Verwachte kosten __cost__. Prijzen zijn bekend tot vannacht middernacht.",
-      "shadow": "Testrun: er verandert niets aan de warmtepomp.",
+      "shadow": "Testrun: er verandert niets aan uw apparaat.",
       "tomorrow": "morgen om __time__",
       "cost_tomorrow": "Verwachte kosten __cost__. Prijzen zijn bekend tot morgen middernacht.",
       "today": "om __time__",
@@ -199,14 +199,14 @@
         "surplus": "Zonne-overschot",
         "reserve": "Veiligheidsmarge",
         "running": "Warmt al op",
-        "pump": "Gestart door de warmtepomp"
+        "pump": "Gestart door uw apparaat"
       },
       "detail": {
         "price": "Tot __target__ °C, ongeveer __duration__, voor __price__/kWh; de dag gemiddeld __mean__.",
         "surplus": "Tot __target__ °C, ongeveer __duration__, __share__ % uit zonne-overschot.",
         "reserve": "De boiler heeft nog maar __litres__ L, onder de veiligheidsmarge van __reserve__ L, met de bovenkant op __top__ °C. Tot __target__ °C, ongeveer __duration__, voor __price__/kWh.",
-        "pump": "De warmtepomp startte op eigen starttemperatuur bij __top__ °C en warmt op tot __stop__ °C.",
-        "pump_more": "Meer warm water staat aan, dus de warmtepomp warmt op tot __stop__ °C."
+        "pump": "Uw apparaat startte op eigen starttemperatuur bij __top__ °C en warmt op tot __stop__ °C.",
+        "pump_more": "Meer warm water staat aan, dus uw apparaat warmt op tot __stop__ °C."
       },
       "plan": {
         "as_planned": "Zoals gepland.",
@@ -232,8 +232,8 @@
       "duration_h": "__h__ u",
       "write_failed": "Autopilot kon het warme water niet opwarmen: __error__",
       "blocked": {
-        "hot_water_off": "Autopilot warm water wacht: warm water staat uit op de pomp.",
-        "spa": "Autopilot warm water wacht: zet Slimme prijsaanpassing voor warm water uit op de pomp.",
+        "hot_water_off": "Autopilot warm water wacht: warm water staat uit op uw apparaat.",
+        "spa": "Autopilot warm water wacht: zet Slimme prijsaanpassing voor warm water uit op uw apparaat.",
         "smart_control": "Autopilot warm water wacht: de warmwaterbehoefte staat op Smart control."
       }
     },
@@ -255,28 +255,28 @@
       },
       "cost": "Verwachte kosten __cost__. Prijzen zijn bekend tot vannacht middernacht.",
       "cost_tomorrow": "Verwachte kosten __cost__. Prijzen zijn bekend tot morgen middernacht.",
-      "shadow": "Testrun: er verandert niets aan de warmtepomp.",
+      "shadow": "Testrun: er verandert niets aan uw apparaat.",
       "reason": {
         "cheap": "Goedkoopste uren",
         "before_use": "Op tijd voor gebruik",
         "surplus": "Zonne-overschot",
         "reserve": "Veiligheidsmarge",
         "running": "Warmt al op",
-        "pump": "Gestart door de warmtepomp"
+        "pump": "Gestart door uw apparaat"
       },
       "moved_repriced": "Verschoven van __was__ naar __time__: de uren van __was__ kosten nu __wasNow__/kWh in plaats van __wasPrice__, dus het warmt op tot __target__ °C voor __price__/kWh."
     },
     "hotwater_setting": {
-      "no_device": "Autopilot warm water heeft het Warm water-apparaat van deze pomp nodig. Voeg het eerst toe.",
+      "no_device": "Autopilot warm water heeft het Warm water-apparaat nodig. Voeg het eerst toe.",
       "no_tank": "Kies eerst de boilerinhoud: Warm water-apparaat → Herstellen."
     },
     "heating": {
       "warning": {
-        "feed_failed": "Autopilot verwarming gestopt: de pomp nam de buitentemperatuur niet over. Controleer menu 7.5.9.2 en zet het opnieuw aan via Verwarming → Repareren.",
+        "feed_failed": "Autopilot verwarming gestopt: uw apparaat nam de buitentemperatuur niet over. Controleer menu 7.5.9.2 en zet het opnieuw aan via Verwarming → Repareren.",
         "no_outdoor": "Autopilot verwarming gepauzeerd: geen buitentemperatuur.",
         "spa_on": "Autopilot verwarming gepauzeerd: Smart price adaption staat aan voor verwarming.",
-        "room_control": "Autopilot verwarming gepauzeerd: ruimtevoelerregeling staat aan in de pomp.",
-        "immersion_only": "Autopilot verwarming gepauzeerd: de pomp draait alleen op het elektrisch element.",
+        "room_control": "Autopilot verwarming gepauzeerd: ruimtevoelerregeling staat aan in uw apparaat.",
+        "immersion_only": "Autopilot verwarming gepauzeerd: uw apparaat draait alleen op het elektrisch element.",
         "no_model": "Autopilot verwarming leert je huis nog kennen.",
         "mode_off": "Autopilot verwarming staat uit."
       },
@@ -294,13 +294,13 @@
         "paused": {
           "no_outdoor": "Gepauzeerd: buitentemperatuur meldt niet meer",
           "spa_on": "Gepauzeerd: Smart price adaption staat aan voor verwarming",
-          "room_control": "Gepauzeerd: ruimtevoelerregeling staat aan",
-          "immersion_only": "Gepauzeerd: de pomp draait alleen op het element",
-          "feed_failed": "Gestopt: de pomp nam de buitentemperatuur niet over",
+          "room_control": "Gepauzeerd: ruimtevoelerregeling staat aan in uw apparaat",
+          "immersion_only": "Gepauzeerd: uw apparaat draait alleen op het element",
+          "feed_failed": "Gestopt: uw apparaat nam de buitentemperatuur niet over",
           "mode_off": "Uit",
           "no_model": "Leert je huis kennen"
         },
-        "range_off": "Comfortbereik staat Uit: de pomp ziet de echte buitentemperatuur"
+        "range_off": "Comfortbereik staat Uit: uw apparaat ziet de echte buitentemperatuur"
       },
       "status_name": {
         "learning": "Leert",
@@ -317,17 +317,17 @@
       },
       "verify": {
         "not_heating": "Autopilot verwarming stel je in op het apparaat Verwarming.",
-        "room_control": "Zet eerst de ruimtevoelerregeling in de pomp uit.",
+        "room_control": "Zet eerst de ruimtevoelerregeling in uw apparaat uit.",
         "no_outdoor": "Nog geen buitentemperatuur: kies een sensor of stel je locatie in voor de weersverwachting.",
-        "not_followed": "De pomp nam de buitentemperatuur niet over. Controleer of menu 7.5.9.2 een externe BT1 toestaat."
+        "not_followed": "Uw apparaat nam de buitentemperatuur niet over. Controleer of menu 7.5.9.2 een externe BT1 toestaat."
       },
       "not_on": "Autopilot verwarming staat niet aan.",
       "no_thermostat": "Het verwarmingsapparaat heeft geen thermostaat om in te stellen."
     },
     "smart": {
-      "no_spa": "Deze pomp heeft geen Smart price adaption.",
+      "no_spa": "Uw apparaat heeft geen Smart price adaption.",
       "no_heating": "Voeg eerst het apparaat Verwarming toe.",
-      "verify_first": "Zet Autopilot aan via Verwarming → Repareren → Slimme modus: daar wordt eerst gecontroleerd of de pomp de buitentemperatuur overneemt.",
+      "verify_first": "Zet Autopilot aan via Verwarming → Repareren → Slimme modus: daar wordt eerst gecontroleerd of uw apparaat de buitentemperatuur overneemt.",
       "spa_took_over": {
         "heating": "Smart price adaption is aangezet voor verwarming, dus Autopilot verwarming is gestopt.",
         "hotwater": "Smart price adaption is aangezet voor warm water, dus Autopilot warm water is gestopt."

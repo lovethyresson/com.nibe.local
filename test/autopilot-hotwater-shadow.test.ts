@@ -113,7 +113,7 @@ test('the morning plan says what goes in (use, tank, safety net, prices) and wha
     assert.match(text, new RegExp(`about ${d.useLitres} L of hot water, up to ${d.useLitresP80} L`));
     assert.match(text, /holds 120 L now and always keeps at least 40 L/);
     assert.match(text, new RegExp(`Charge to ${c.targetC} °C at ${hhmm(c.at)}, at ${c.price.toFixed(2)} kr/kWh \\(among the cheapest hours; the day averages ${d.meanPrice.toFixed(2)} kr\\)`));
-    assert.match(text, /Prices are known until midnight tonight\.\nTest run: nothing is changed on the pump\.$/);
+    assert.match(text, /Prices are known until midnight tonight\.\nTest run: nothing is changed on your device\.$/);
     assert.doesNotMatch(text, /__\w+__/, 'every token filled');
 });
 
@@ -204,8 +204,8 @@ test('the pump\'s own charge is reported as the pump\'s, with the stop it runs t
     assert.match(chargeText(own, t, hhmm, 'kr').detailedReason, /started it at 41 °C on its own start temperature and runs to 48 °C/);
     const boost = pumpCharge(T0, {litres: 50, top: 41, more: true, stopC: 48, largeStopC: 58}, 40);
     assert.strictEqual(boost.targetC, 58);
-    assert.match(chargeText(boost, t, hhmm, 'kr').detailedReason, /More hot water is on, so the pump runs to 58 °C/);
-    assert.match(chargeLine(boost, t, hhmm, 'kr', true), /^Hot water charge: Started by the pump\n/);
+    assert.match(chargeText(boost, t, hhmm, 'kr').detailedReason, /More hot water is on, so your device runs to 58 °C/);
+    assert.match(chargeLine(boost, t, hhmm, 'kr', true), /^Hot water charge: Started by your device\n/);
     assert.match(chargeLine(charge({now: {litres: 20, top: 40}}), t, hhmm, 'kr', true), /^Test run, would start a hot water charge: Safety net\n/);
     const atPlan = {...own, plan: 'as_planned' as const};
     assert.match(chargeText(atPlan, t, hhmm, 'kr').detailedReason, /The plan had a charge then too\.$/);
@@ -228,9 +228,9 @@ test('the morning recap tells yesterday and today apart, oldest first', () => {
     assert.deepStrictEqual(recapLines(events, t, hhmm, true, day, day(today)), [
         'Yesterday:',
         `09:30 would have charged to ${target} °C: Safety net. Not planned.`,
-        '18:30 to 48 °C: Started by the pump. Not planned.',
+        '18:30 to 48 °C: Started by your device. Not planned.',
         'Last night:',
-        '03:00 to 58 °C: Started by the pump. Planned then too.',
+        '03:00 to 58 °C: Started by your device. Planned then too.',
         `03:45 would have charged to ${target} °C: Safety net. As planned.`,
     ]);
     // A missed morning: the older day says its date.
@@ -283,7 +283,7 @@ test('the update explains each change by the prices, and stays quiet about new h
         'Changed: 14:00 now to 45 °C instead of 53 °C. The charge tomorrow at 03:45 takes over the rest, at 1.62 kr/kWh.',
         'Added: tomorrow 03:45, to 60 °C at 1.62 kr/kWh (Cheapest hours), in hours that now have prices.',
         'Expected cost 7.66 kr. Prices are known until midnight tomorrow.',
-        'Test run: nothing is changed on the pump.'].join('\n'));
+        'Test run: nothing is changed on your device.'].join('\n'));
     // Only a charge in the newly priced hours: the next morning and the charge message tell it.
     assert.strictEqual(planUpdateText(before, planOf([fact(14, 53, 2.21), fact(27.75, 60, 1.62)], 48),
         T0 + 13.5 * HOUR, t, whenOf, 'kr', true), undefined);

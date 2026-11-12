@@ -8,26 +8,26 @@
     "title": "NIBE S-konfiguration",
     "ok": "OK",
     "valid_ip_address": "Indtast en gyldig IP-adresse (xxx.xxx.xxx.xxx)",
-    "not_connected": "Ikke forbundet til varmepumpen",
+    "not_connected": "Ikke forbundet til din enhed",
     "detect": {
       "title": "Registrerer funktioner",
-      "intro": "Opretter forbindelse til varmepumpen og ser, hvilke værdier der ændrer sig. Det tager cirka et halvt minut.",
+      "intro": "Opretter forbindelse til din enhed og ser, hvilke værdier der ændrer sig. Det tager cirka et halvt minut.",
       "status": "Aflæser registre",
-      "failed": "Kunne ikke læse fra varmepumpen",
-      "no_data": "Noget svarer på denne adresse, men sender ingen varmepumpedata. Tjek at IP-adressen er pumpens egen, og at Modbus TCP er slået til (menu 7.5.9).",
+      "failed": "Kunne ikke læse fra din enhed",
+      "no_data": "Noget svarer på denne adresse, men sender ingen NIBE-data. Tjek at IP-adressen er din enheds egen, og at Modbus TCP er slået til (menu 7.5.9).",
       "retry": "Prøv igen",
       "skip": "Spring registrering over"
     },
     "features": {
       "title": "Vælg funktioner",
-      "intro": "Vælg hvilke funktioner der skal overvåges. Anbefalingerne er baseret på det, varmepumpen rapporterede.",
+      "intro": "Vælg hvilke funktioner der skal overvåges. Anbefalingerne er baseret på det, din enhed rapporterede.",
       "insights_note": "Hvis du deaktiverer en funktion, fjernes dens egenskaber, inklusive deres Insights-historik."
     },
     "evidence": {
       "moving": "værdier ændrer sig",
       "plausible": "ser ud til at findes",
       "none": "ingen aktivitet registreret",
-      "unsupported": "understøttes ikke af varmepumpen"
+      "unsupported": "understøttes ikke af din enhed"
     },
     "badge": {
       "adjustable": "Justerbar",
@@ -35,21 +35,21 @@
     },
     "devices": {
       "title": "Tilføj enheder",
-      "intro": "Hver funktion i varmepumpen bliver en selvstændig enhed. De, vi fandt aktive data for, er markeret, men du kan tilføje dem alle.",
+      "intro": "Hver funktion i din enhed bliver en selvstændig enhed i Homey. De, vi fandt aktive data for, er markeret, men du kan tilføje dem alle.",
       "add": "Tilføj valgte enheder",
       "detected": "Data registreret",
       "notdetected": "Ingen data",
       "select_one": "Vælg mindst én enhed, der skal tilføjes.",
       "main_desc": "Oversigt: udetemperatur, driftsprioritering og driftsindstilling samt diagnostik og statistik",
       "analytics": "Del anonyme brugsdata",
-      "analytics_desc": "Hjælper appens udvikler med at se, hvilke varmepumpemodeller og funktioner der reelt bruges, og hvor opsætningen fejler. Ingen personlige oplysninger, ingen målinger fra dit hjem, ingen netværksoplysninger. Du kan ændre dette senere i appens indstillinger."
+      "analytics_desc": "Hjælper appens udvikler med at se, hvilke modeller og funktioner der reelt bruges, og hvor opsætningen fejler. Ingen personlige oplysninger, ingen målinger fra dit hjem, ingen netværksoplysninger. Du kan ændre dette senere i appens indstillinger."
     },
     "discover": {
       "title": "Find din varmepumpe",
       "searching": "Søger på netværket efter NIBE varmepumper …",
       "confirm": "Fandt varmepumpen – tryk for at bekræfte",
       "found": "Vælg din varmepumpe",
-      "none_found": "Der blev ikke fundet en varmepumpe automatisk. Kontrollér, at Modbus TCP er aktiveret på varmepumpen (menu 7.5.9), eller indtast IP-adressen nedenfor.",
+      "none_found": "Der blev ikke fundet en varmepumpe automatisk. Kontrollér, at Modbus TCP er aktiveret på din enhed (menu 7.5.9), eller indtast IP-adressen nedenfor.",
       "manual": "Indtast IP-adressen manuelt",
       "refresh": "Søg igen",
       "pump": "NIBE varmepumpe",
@@ -73,17 +73,17 @@
       "unit": "Modbus-ID",
       "hint": "Vælg, hvordan NIBE-register 40025 adresseres via forbindelsen. Bekræft med en fungerende Modbus-forespørgsel. Samme adressering bruges til al læsning og skrivning.",
       "invalid": "Vælg gateway, port fra 1–65535 og Modbus-ID fra 1–247.",
-      "detect_intro": "Kontrollerer værdierne fra varmepumpen. Afhængigt af gateway kan det tage flere minutter."
+      "detect_intro": "Kontrollerer værdierne fra din enhed. Afhængigt af gateway kan det tage flere minutter."
     },
     "firmware": {
-      "title": "Opdater varmepumpen først",
-      "intro": "Mange funktioner kræver ny software i varmepumpen. Ældre versioner mangler værdier, som appen bruger, og kan endda vise forkerte energital.",
+      "title": "Opdater din enhed først",
+      "intro": "Mange funktioner kræver ny software i din enhed. Ældre versioner mangler værdier, som appen bruger, og kan endda vise forkerte energital.",
       "online_title": "Via internettet med myUplink",
-      "online_body": "Når en opdatering venter, så godkend den i myUplink-appen – eller på pumpens display: swipe til produktoversigten, og tryk på Opdater.",
+      "online_body": "Når en opdatering venter, så godkend den i myUplink-appen – eller på din enheds display: swipe til produktoversigten, og tryk på Opdater.",
       "usb_title": "Med en USB-nøgle",
       "usb_body": "Hent den nyeste software fra myuplink.com, og læg den på en USB-nøgle. Sæt den i porten over displayet, og åbn menu 8.1.",
       "f_title": "Via myUplink eller en USB-nøgle",
-      "f_body": "Trinnene er forskellige fra model til model – varmepumpens manual viser hvordan.",
+      "f_body": "Trinnene er forskellige fra model til model – din enheds manual viser hvordan.",
       "note": "Tager et par minutter. Dine indstillinger bevares.",
       "continue": "Fortsæt"
     }
@@ -154,13 +154,13 @@
   "12 hours": "12 timer",
   "One-time increase": "Engangsforøgelse",
   "connection": {
-    "connecting": "Forbinder til varmepumpen…",
-    "unreachable": "Kan ikke nå varmepumpen på __host__. Tjek, at den er på netværket, og at IP-adressen ikke er ændret.",
-    "refused": "Varmepumpen på __host__ afviste forbindelsen. Tjek, at Modbus TCP er slået til på pumpen.",
-    "silent": "Varmepumpen på __host__ holdt op med at svare. Forbinder igen…",
-    "no_data": "Noget på __host__ svarer, men sender ingen varmepumpedata. Tjek at IP-adressen er pumpens egen, og at Modbus TCP er slået til (menu 7.5.9).",
-    "searching": "Kan ikke nå varmepumpen på __host__. Søger efter den på netværket…",
-    "moved": "Nibe Live: din varmepumpe er flyttet fra __from__ til __to__. Enhederne er opdateret.",
+    "connecting": "Forbinder til din enhed…",
+    "unreachable": "Kan ikke nå din enhed på __host__. Tjek, at den er på netværket, og at IP-adressen ikke er ændret.",
+    "refused": "Din enhed på __host__ afviste forbindelsen. Tjek, at Modbus TCP er slået til på den.",
+    "silent": "Din enhed på __host__ holdt op med at svare. Forbinder igen…",
+    "no_data": "Noget på __host__ svarer, men sender ingen NIBE-data. Tjek at IP-adressen er din enheds egen, og at Modbus TCP er slået til (menu 7.5.9).",
+    "searching": "Kan ikke nå din enhed på __host__. Søger efter den på netværket…",
+    "moved": "Nibe Live: din enhed er flyttet fra __from__ til __to__. Enhederne i Homey er opdateret.",
     "address_in_use": "En anden parret varmepumpe bruger allerede __host__."
   },
   "autopilot": {
@@ -185,7 +185,7 @@
         "before_use": "i tide til forbruget, der følger; dagen ligger i snit på __mean__"
       },
       "cost": "Forventet pris __cost__. Priserne er kendt til midnat i nat.",
-      "shadow": "Testkørsel: intet ændres på varmepumpen.",
+      "shadow": "Testkørsel: intet ændres på din enhed.",
       "tomorrow": "i morgen kl. __time__",
       "cost_tomorrow": "Forventet pris __cost__. Priserne er kendt til midnat i morgen.",
       "today": "kl. __time__",
@@ -199,14 +199,14 @@
         "surplus": "Solcelleoverskud",
         "reserve": "Sikkerhedsniveau",
         "running": "Opvarmer allerede",
-        "pump": "Startet af varmepumpen"
+        "pump": "Startet af din enhed"
       },
       "detail": {
         "price": "Til __target__ °C, omkring __duration__, til __price__/kWh; dagen ligger i snit på __mean__.",
         "surplus": "Til __target__ °C, omkring __duration__, __share__ % fra solcelleoverskud.",
         "reserve": "Tanken har kun __litres__ L, under sikkerhedsniveauet på __reserve__ L, og toppen er __top__ °C. Til __target__ °C, omkring __duration__, til __price__/kWh.",
-        "pump": "Varmepumpen startede den ved __top__ °C på sin egen starttemperatur og opvarmer til __stop__ °C.",
-        "pump_more": "Mere varmt vand er slået til, så varmepumpen opvarmer til __stop__ °C."
+        "pump": "Din enhed startede den ved __top__ °C på sin egen starttemperatur og opvarmer til __stop__ °C.",
+        "pump_more": "Mere varmt vand er slået til, så din enhed opvarmer til __stop__ °C."
       },
       "plan": {
         "as_planned": "Som planlagt.",
@@ -232,8 +232,8 @@
       "duration_h": "__h__ t",
       "write_failed": "Autopilot kunne ikke starte en opvarmning af varmt vand: __error__",
       "blocked": {
-        "hot_water_off": "Autopilot varmt vand venter: varmt vand er slået fra på pumpen.",
-        "spa": "Autopilot varmt vand venter: slå Smart pristilpasning for varmt vand fra på pumpen.",
+        "hot_water_off": "Autopilot varmt vand venter: varmt vand er slået fra på din enhed.",
+        "spa": "Autopilot varmt vand venter: slå Smart pristilpasning for varmt vand fra på din enhed.",
         "smart_control": "Autopilot varmt vand venter: varmtvandsbehovet står på Smart styring."
       }
     },
@@ -255,28 +255,28 @@
       },
       "cost": "Forventet pris __cost__. Priserne er kendt til midnat i nat.",
       "cost_tomorrow": "Forventet pris __cost__. Priserne er kendt til midnat i morgen.",
-      "shadow": "Testkørsel: intet ændres på varmepumpen.",
+      "shadow": "Testkørsel: intet ændres på din enhed.",
       "reason": {
         "cheap": "Billigste timer",
         "before_use": "I tide til forbruget",
         "surplus": "Solcelleoverskud",
         "reserve": "Sikkerhedsniveau",
         "running": "Opvarmer allerede",
-        "pump": "Startet af varmepumpen"
+        "pump": "Startet af din enhed"
       },
       "moved_repriced": "Flyttet fra __was__ til __time__: timerne __was__ koster nu __wasNow__/kWh i stedet for __wasPrice__, så den opvarmer til __target__ °C til __price__/kWh."
     },
     "hotwater_setting": {
-      "no_device": "Autopilot varmt vand kræver pumpens Varmt vand-enhed. Tilføj den først.",
+      "no_device": "Autopilot varmt vand kræver Varmt vand-enheden. Tilføj den først.",
       "no_tank": "Vælg beholderens størrelse først: Varmt vand-enheden → Reparer."
     },
     "heating": {
       "warning": {
-        "feed_failed": "Autopilot opvarmning stoppede: pumpen modtog ikke udetemperaturen. Tjek menu 7.5.9.2 og slå den til igen under Opvarmning → Reparer.",
+        "feed_failed": "Autopilot opvarmning stoppede: din enhed modtog ikke udetemperaturen. Tjek menu 7.5.9.2 og slå den til igen under Opvarmning → Reparer.",
         "no_outdoor": "Autopilot opvarmning på pause: ingen udetemperatur.",
         "spa_on": "Autopilot opvarmning på pause: Smart price adaption er slået til for opvarmning.",
-        "room_control": "Autopilot opvarmning på pause: rumføler-styring er slået til i pumpen.",
-        "immersion_only": "Autopilot opvarmning på pause: pumpen kører kun på elpatron.",
+        "room_control": "Autopilot opvarmning på pause: rumføler-styring er slået til i din enhed.",
+        "immersion_only": "Autopilot opvarmning på pause: din enhed kører kun på elpatron.",
         "no_model": "Autopilot opvarmning lærer stadig dit hus.",
         "mode_off": "Autopilot opvarmning er slået fra."
       },
@@ -294,13 +294,13 @@
         "paused": {
           "no_outdoor": "Pause: udetemperaturen holdt op med at rapportere",
           "spa_on": "Pause: Smart price adaption er slået til for opvarmning",
-          "room_control": "Pause: rumføler-styring er slået til i pumpen",
-          "immersion_only": "Pause: pumpen kører kun på elpatron",
-          "feed_failed": "Stoppet: pumpen modtog ikke udetemperaturen",
+          "room_control": "Pause: rumføler-styring er slået til i din enhed",
+          "immersion_only": "Pause: din enhed kører kun på elpatron",
+          "feed_failed": "Stoppet: din enhed modtog ikke udetemperaturen",
           "mode_off": "Fra",
           "no_model": "Lærer dit hus"
         },
-        "range_off": "Komfortinterval er Fra: pumpen ser den rigtige udetemperatur"
+        "range_off": "Komfortinterval er Fra: din enhed ser den rigtige udetemperatur"
       },
       "status_name": {
         "learning": "Lærer",
@@ -317,17 +317,17 @@
       },
       "verify": {
         "not_heating": "Autopilot opvarmning sættes op på enheden Opvarmning.",
-        "room_control": "Slå rumføler-styring fra i pumpen først.",
+        "room_control": "Slå rumføler-styring fra i din enhed først.",
         "no_outdoor": "Ingen udetemperatur endnu: vælg en sensor eller angiv din placering til vejrudsigten.",
-        "not_followed": "Pumpen modtog ikke udetemperaturen. Tjek at menu 7.5.9.2 tillader ekstern BT1."
+        "not_followed": "Din enhed modtog ikke udetemperaturen. Tjek at menu 7.5.9.2 tillader ekstern BT1."
       },
       "not_on": "Autopilot opvarmning er ikke slået til.",
       "no_thermostat": "Opvarmning har ingen termostat at indstille."
     },
     "smart": {
-      "no_spa": "Denne pumpe har ingen Smart price adaption.",
+      "no_spa": "Din enhed har ingen Smart price adaption.",
       "no_heating": "Tilføj enheden Opvarmning først.",
-      "verify_first": "Slå Autopilot til under Opvarmning → Reparer → Smart tilstand: der tjekkes først, at pumpen modtager udetemperaturen.",
+      "verify_first": "Slå Autopilot til under Opvarmning → Reparer → Smart tilstand: der tjekkes først, at din enhed modtager udetemperaturen.",
       "spa_took_over": {
         "heating": "Smart price adaption blev slået til for opvarmning, så Autopilot opvarmning stoppede.",
         "hotwater": "Smart price adaption blev slået til for varmt vand, så Autopilot varmt vand stoppede."

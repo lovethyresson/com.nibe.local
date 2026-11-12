@@ -8,26 +8,26 @@
     "title": "Nibe S configuration",
     "ok": "OK",
     "valid_ip_address": "Enter a valid IP address (xxx.xxx.xxx.xxx)",
-    "not_connected": "Not connected to the heat pump",
+    "not_connected": "Not connected to your device",
     "detect": {
       "title": "Detecting features",
-      "intro": "Connecting to the heat pump and watching which values change. This takes about half a minute.",
+      "intro": "Connecting to your device and watching which values change. This takes about half a minute.",
       "status": "Sampling registers",
-      "failed": "Could not read from the heat pump",
-      "no_data": "Something answers at this address, but it returns no heat pump data. Check the IP is the pump's own and that Modbus TCP is on (menu 7.5.9).",
+      "failed": "Could not read from your device",
+      "no_data": "Something answers at this address, but it returns no NIBE data. Check the IP is your device's own and that Modbus TCP is on (menu 7.5.9).",
       "retry": "Retry",
       "skip": "Skip detection"
     },
     "features": {
       "title": "Select features",
-      "intro": "Choose which features to monitor. Recommendations are based on what the heat pump reported.",
+      "intro": "Choose which features to monitor. Recommendations are based on what your device reported.",
       "insights_note": "Disabling a feature removes its capabilities, including their Insights history."
     },
     "evidence": {
       "moving": "values changing",
       "plausible": "looks present",
       "none": "no activity detected",
-      "unsupported": "not supported by the pump"
+      "unsupported": "not supported by your device"
     },
     "badge": {
       "adjustable": "Adjustable",
@@ -39,21 +39,21 @@
     },
     "devices": {
       "title": "Add devices",
-      "intro": "Each function of your pump becomes its own device. The ones we found live data for are checked, but you can add any of them.",
+      "intro": "Each function of your device becomes its own device in Homey. The ones we found live data for are checked, but you can add any of them.",
       "add": "Add selected devices",
       "detected": "Data detected",
       "notdetected": "No data",
       "select_one": "Select at least one device to add.",
       "main_desc": "Overview: outdoor temperature, operating priority and mode, plus diagnostics and statistics",
       "analytics": "Share anonymous usage data",
-      "analytics_desc": "Helps the app author see which pump models and features are actually used, and where setup fails. No personal data, no readings from your home, no network details. You can change this later under app settings."
+      "analytics_desc": "Helps the app author see which models and features are actually used, and where setup fails. No personal data, no readings from your home, no network details. You can change this later under app settings."
     },
     "discover": {
       "title": "Find your heat pump",
       "searching": "Searching your network for Nibe heat pumps…",
       "confirm": "Found your heat pump — tap to confirm",
       "found": "Select your heat pump",
-      "none_found": "No heat pump found automatically. Check that Modbus TCP is enabled on the pump (menu 7.5.9) or enter its IP address below.",
+      "none_found": "No heat pump found automatically. Check that Modbus TCP is enabled on your device (menu 7.5.9) or enter its IP address below.",
       "manual": "Enter the IP address manually",
       "refresh": "Search again",
       "pump": "Nibe heat pump",
@@ -73,17 +73,17 @@
       "unit": "Modbus ID",
       "hint": "Choose how NIBE register 40025 is addressed on your connection. Confirm with a working Modbus query. The same convention applies to all reads and writes.",
       "invalid": "Choose a gateway, a port from 1–65535 and a Modbus ID from 1–247.",
-      "detect_intro": "Checking the values your heat pump reports. Depending on the gateway, this can take several minutes."
+      "detect_intro": "Checking the values your device reports. Depending on the gateway, this can take several minutes."
     },
     "firmware": {
-      "title": "Update your heat pump first",
-      "intro": "Many features need recent heat pump software. Older versions miss readings the app relies on and can even report wrong energy figures.",
+      "title": "Update your device first",
+      "intro": "Many features need recent software on your device. Older versions miss readings the app relies on and can even report wrong energy figures.",
       "online_title": "Over the internet with myUplink",
-      "online_body": "When an update is waiting, approve it in the myUplink app — or on the pump's display: swipe to the product overview and tap Update.",
+      "online_body": "When an update is waiting, approve it in the myUplink app — or on your device's display: swipe to the product overview and tap Update.",
       "usb_title": "With a USB stick",
       "usb_body": "Download the latest software from myuplink.com and put it on a USB stick. Insert it in the port above the display and open menu 8.1.",
       "f_title": "Via myUplink or a USB stick",
-      "f_body": "The steps differ between models — your heat pump's manual shows how.",
+      "f_body": "The steps differ between models — your device's manual shows how.",
       "note": "Takes a few minutes. Your settings are kept.",
       "continue": "Continue"
     }
@@ -154,13 +154,13 @@
   "12 hours": "12 hours",
   "One-time increase": "One-time increase",
   "connection": {
-    "connecting": "Connecting to the heat pump…",
-    "unreachable": "Can't reach the heat pump at __host__. Check that it's on the network and that its IP address hasn't changed.",
-    "refused": "The heat pump at __host__ refused the connection. Check that Modbus TCP is enabled on the pump.",
-    "silent": "The heat pump at __host__ stopped answering. Reconnecting…",
-    "no_data": "Something at __host__ answers, but returns no heat pump data. Check the IP is the pump's own and that Modbus TCP is on (menu 7.5.9).",
-    "searching": "Can't reach the heat pump at __host__. Searching the network for it…",
-    "moved": "Nibe Live: your heat pump moved from __from__ to __to__. Its devices have been updated.",
+    "connecting": "Connecting to your device…",
+    "unreachable": "Can't reach your device at __host__. Check that it's on the network and that its IP address hasn't changed.",
+    "refused": "Your device at __host__ refused the connection. Check that Modbus TCP is enabled on it.",
+    "silent": "Your device at __host__ stopped answering. Reconnecting…",
+    "no_data": "Something at __host__ answers, but returns no NIBE data. Check the IP is your device's own and that Modbus TCP is on (menu 7.5.9).",
+    "searching": "Can't reach your device at __host__. Searching the network for it…",
+    "moved": "Nibe Live: your device moved from __from__ to __to__. Its Homey devices have been updated.",
     "address_in_use": "Another paired heat pump already uses __host__."
   },
   "autopilot": {
@@ -185,7 +185,7 @@
         "before_use": "in time for the use that follows; the day averages __mean__"
       },
       "cost": "Expected cost __cost__. Prices are known until midnight tonight.",
-      "shadow": "Test run: nothing is changed on the pump.",
+      "shadow": "Test run: nothing is changed on your device.",
       "tomorrow": "tomorrow at __time__",
       "cost_tomorrow": "Expected cost __cost__. Prices are known until midnight tomorrow.",
       "today": "at __time__",
@@ -199,14 +199,14 @@
         "surplus": "Solar surplus",
         "reserve": "Safety net",
         "running": "Already charging",
-        "pump": "Started by the pump"
+        "pump": "Started by your device"
       },
       "detail": {
         "price": "To __target__ °C, about __duration__, at __price__/kWh; the day averages __mean__.",
         "surplus": "To __target__ °C, about __duration__, __share__ % from solar surplus.",
         "reserve": "The tank is down to __litres__ L, under the __reserve__ L safety net, with the top at __top__ °C. To __target__ °C, about __duration__, at __price__/kWh.",
-        "pump": "The pump started it at __top__ °C on its own start temperature and runs to __stop__ °C.",
-        "pump_more": "More hot water is on, so the pump runs to __stop__ °C."
+        "pump": "Your device started it at __top__ °C on its own start temperature and runs to __stop__ °C.",
+        "pump_more": "More hot water is on, so your device runs to __stop__ °C."
       },
       "plan": {
         "as_planned": "As planned.",
@@ -232,8 +232,8 @@
       "duration_h": "__h__ h",
       "write_failed": "Autopilot could not start a hot water charge: __error__",
       "blocked": {
-        "hot_water_off": "Autopilot hot water is waiting: hot water is turned off on the pump.",
-        "spa": "Autopilot hot water is waiting: turn off Smart price adaption for hot water on the pump.",
+        "hot_water_off": "Autopilot hot water is waiting: hot water is turned off on your device.",
+        "spa": "Autopilot hot water is waiting: turn off Smart price adaption for hot water on your device.",
         "smart_control": "Autopilot hot water is waiting: the hot water demand is set to Smart control."
       }
     },
@@ -255,28 +255,28 @@
       },
       "cost": "Expected cost __cost__. Prices are known until midnight tonight.",
       "cost_tomorrow": "Expected cost __cost__. Prices are known until midnight tomorrow.",
-      "shadow": "Test run: nothing is changed on the pump.",
+      "shadow": "Test run: nothing is changed on your device.",
       "reason": {
         "cheap": "Cheapest hours",
         "before_use": "In time for use",
         "surplus": "Solar surplus",
         "reserve": "Safety net",
         "running": "Already charging",
-        "pump": "Started by the pump"
+        "pump": "Started by your device"
       },
       "moved_repriced": "Moved from __was__ to __time__: the __was__ hours now cost __wasNow__/kWh instead of __wasPrice__, so it charges to __target__ °C at __price__/kWh."
     },
     "hotwater_setting": {
-      "no_device": "Autopilot hot water needs this pump's Hot water device. Add it first.",
+      "no_device": "Autopilot hot water needs the Hot water device. Add it first.",
       "no_tank": "Pick your tank size first: Hot water device → Repair."
     },
     "heating": {
       "warning": {
-        "feed_failed": "Autopilot heating stopped: the pump did not take the outdoor temperature. Check menu 7.5.9.2, then turn it on again in Heating → Repair.",
+        "feed_failed": "Autopilot heating stopped: your device did not take the outdoor temperature. Check menu 7.5.9.2, then turn it on again in Heating → Repair.",
         "no_outdoor": "Autopilot heating paused: no outdoor temperature.",
         "spa_on": "Autopilot heating paused: Smart price adaption is on for heating.",
-        "room_control": "Autopilot heating paused: room-sensor control is on in the pump.",
-        "immersion_only": "Autopilot heating paused: the pump runs on the immersion heater only.",
+        "room_control": "Autopilot heating paused: room-sensor control is on in your device.",
+        "immersion_only": "Autopilot heating paused: your device runs on the immersion heater only.",
         "no_model": "Autopilot heating is still learning your house.",
         "mode_off": "Autopilot heating is off."
       },
@@ -294,13 +294,13 @@
         "paused": {
           "no_outdoor": "Paused: outdoor temperature stopped reporting",
           "spa_on": "Paused: Smart price adaption is on for heating",
-          "room_control": "Paused: room-sensor control is on in the pump",
-          "immersion_only": "Paused: the pump runs on the immersion heater only",
-          "feed_failed": "Stopped: the pump did not take the outdoor temperature",
+          "room_control": "Paused: room-sensor control is on in your device",
+          "immersion_only": "Paused: your device runs on the immersion heater only",
+          "feed_failed": "Stopped: your device did not take the outdoor temperature",
           "mode_off": "Off",
           "no_model": "Learning your house"
         },
-        "range_off": "Comfort range is Off: the pump sees the real outdoor temperature"
+        "range_off": "Comfort range is Off: your device sees the real outdoor temperature"
       },
       "status_name": {
         "learning": "Learning",
@@ -317,17 +317,17 @@
       },
       "verify": {
         "not_heating": "Autopilot heating is set up on the Heating device.",
-        "room_control": "Turn off room-sensor control in the pump first.",
+        "room_control": "Turn off room-sensor control in your device first.",
         "no_outdoor": "No outdoor temperature yet: choose a sensor or set your location for the weather forecast.",
-        "not_followed": "The pump did not take the outdoor temperature. Check that menu 7.5.9.2 allows an external BT1."
+        "not_followed": "Your device did not take the outdoor temperature. Check that menu 7.5.9.2 allows an external BT1."
       },
       "not_on": "Autopilot heating is not on.",
       "no_thermostat": "The Heating device has no thermostat to set."
     },
     "smart": {
-      "no_spa": "This pump has no Smart price adaption.",
+      "no_spa": "Your device has no Smart price adaption.",
       "no_heating": "Add the Heating device first.",
-      "verify_first": "Turn Autopilot on in Heating → Repair → Smart mode: it checks the pump takes the outdoor temperature first.",
+      "verify_first": "Turn Autopilot on in Heating → Repair → Smart mode: it checks your device takes the outdoor temperature first.",
       "spa_took_over": {
         "heating": "Smart price adaption was turned on for heating, so Autopilot heating stopped.",
         "hotwater": "Smart price adaption was turned on for hot water, so Autopilot hot water stopped."

@@ -108,7 +108,7 @@ test('temperature source choices explain which sensors supply the reading', () =
     const doc = f.win.document.getElementById('nibe-pair-setup');
     const cards = doc.querySelectorAll('.setup-source-card');
     assert.equal(cards.length, 2);
-    assert.match(cards[0].textContent, /heat pump’s native temperature sensor/);
+    assert.match(cards[0].textContent, /your device’s own temperature sensor/);
     assert.match(cards[1].textContent, /own Homey temperature sensors/);
     assert.ok(cards[1].contains(doc.querySelector('.setup-source-description')));
     assert.equal(doc.querySelector('.pair-hero-title').textContent, 'Choose your temperature source');
@@ -143,7 +143,7 @@ test('pump instructions are grouped and successful verification celebrates confi
     f.click('Choose sensors'); await new Promise(resolve => setImmediate(resolve));
     f.click('Show all sensors'); f.win.document.querySelector('.setup-sensor input').click();
     f.click('Review sensors'); await new Promise(resolve => setImmediate(resolve));
-    f.click('Setup your heat pump');
+    f.click('Set up your device');
     const groups = f.win.document.querySelectorAll('.setup-task-group');
     assert.equal(groups.length, 2);
     assert.equal(groups[0].querySelectorAll('li strong').length, 3);

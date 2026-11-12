@@ -356,40 +356,84 @@ function NibeSetup(options) {
             if (starting) expect(); else pumpStep();
         }, true));
     }
-    /** The modes side by side: what each does, what the owner sees, what it needs. */
+    // Small stroke icons for the explainers, drawn in currentColor.
+    var ICONS = {
+        thermostat: '<circle cx="12" cy="12" r="8"/><path d="M12 12l3-3"/><path d="M12 4v2M20 12h-2M12 20v-2M4 12h2"/>',
+        range: '<path d="M12 4v16"/><path d="M8 7l4-3 4 3M8 17l4 3 4-3"/>',
+        away: '<path d="M4 11l8-6 8 6v8H4z"/><path d="M14 19v-5h-4v5"/><path d="M17 4l3 3"/>',
+        off: '<path d="M12 4v8"/><path d="M7 7a7 7 0 1 0 10 0"/>',
+        yes: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+        no: '<path d="M7 12h10"/>',
+    };
+    function icon(name, cls) {
+        var span = el('span', undefined, 'setup-icon' + (cls ? ' ' + cls : ''));
+        span.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICONS[name] + '</svg>';
+        return span;
+    }
+    /** The modes side by side, as a grid of what each one does. */
     function compare() {
-        clear(t('heating'), '');
-        view.querySelector('.pair-hero-title').textContent = a('compare_title');
+        clear(a('cmp_title'), '');
         view.querySelector('.pair-hero-title').hidden = false;
-        var modes = [['auto', 'choose_on'], ['test', 'choose_test']];
-        if (ap.status && ap.status.spa) modes.push(['spa', 'choose_spa']);
-        modes.push(['off', 'choose_off']);
-        modes.forEach(function (m) {
-            var card = el('section', undefined, 'setup-task-group setup-compare');
-            card.appendChild(el('h3', a(m[1])));
-            var list = el('dl');
-            ['does', 'see', 'needs'].forEach(function (k) { list.append(el('dt', a(k)), el('dd', a(m[0] + '_' + k))); });
-            card.appendChild(list); shell.appendChild(card);
+        var cols = [['auto', 'col_auto']];
+        if (ap.status && ap.status.spa) cols.push(['spa', 'col_spa']);
+        cols.push(['off', 'col_off']);
+        // Each row: what is true for Autopilot, SPA and Off; a string is a yes with a qualifier.
+        // Balanced against NIBE's own SPA info sheet (2025): SPA uses next-day prices, heats extra
+        // when cheap and less when dear, for heating, hot water, pool and cooling, at three levels.
+        var rows = [
+            ['row_cheaper', {auto: true, spa: true, off: false}],
+            ['row_covers', {auto: 'covers_auto', spa: 'covers_spa', off: false}],
+            ['row_levels', {auto: 'levels_auto', spa: 'levels_spa', off: false}],
+            ['row_starts', {auto: false, spa: true, off: true}],
+            ['row_learns', {auto: true, spa: false, off: false}],
+            ['row_forecast', {auto: true, spa: false, off: false}],
+            ['row_price', {auto: true, spa: '!price_spot', off: false}],
+            ['row_solar', {auto: 'solar_hotwater', spa: false, off: false}],
+            ['row_homey_off', {auto: false, spa: true, off: true}],
+        ];
+        var grid = el('div', undefined, 'setup-compare-grid');
+        grid.style.gridTemplateColumns = 'minmax(0, 1fr) repeat(' + cols.length + ', 4.6em)';
+        grid.appendChild(el('span'));
+        cols.forEach(function (c) { grid.appendChild(el('strong', a(c[1]), 'setup-compare-head')); });
+        rows.forEach(function (r) {
+            grid.appendChild(el('span', a(r[0]), 'setup-compare-label'));
+            cols.forEach(function (c) {
+                var v = r[1][c[0]];
+                var cell = el('span', undefined, 'setup-compare-cell');
+                // 'key' is a yes with a qualifier, '!key' a no with one.
+                if (typeof v === 'string') {
+                    var no = v.charAt(0) === '!';
+                    cell.appendChild(icon(no ? 'no' : 'yes', no ? 'is-no' : 'is-yes'));
+                    cell.appendChild(el('small', a(no ? v.slice(1) : v)));
+                }
+                else cell.appendChild(icon(v ? 'yes' : 'no', v ? 'is-yes' : 'is-no'));
+                grid.appendChild(cell);
+            });
         });
+        shell.appendChild(grid);
+        shell.appendChild(el('p', a('cmp_note'), 'register-desc'));
         shell.appendChild(button(t('back'), steer, true));
         back(steer);
     }
-    /** Before Autopilot's pump checklist: learning first, then shifting, and what stays the owner's. */
+    /** Before Autopilot's pump checklist: it learns first, then acts; and what stays the owner's. */
     function expect() {
-        clear(t('heating'), '');
-        view.querySelector('.pair-hero-title').textContent = a('expect_title');
+        clear(a('exp_title'), '');
         view.querySelector('.pair-hero-title').hidden = false;
-        var steps = el('ol', undefined, 'setup-pump-steps');
-        [['expect_learn', 'expect_learn_body'], ['expect_then', 'expect_then_body']].forEach(function (k) {
-            var step = el('li'); var copy = el('div'); copy.append(el('strong', a(k[0])), el('p', a(k[1])));
-            step.appendChild(copy); steps.appendChild(step);
+        var line = el('div', undefined, 'setup-timeline');
+        [['is-learning', 'exp_learning', 'exp_learning_sub'], ['is-acting', 'exp_acting', 'exp_acting_sub']].forEach(function (p) {
+            var phase = el('div', undefined, 'setup-phase ' + p[0]);
+            phase.append(el('span', undefined, 'setup-phase-bar'), el('strong', a(p[1])), el('small', a(p[2])));
+            line.appendChild(phase);
         });
-        var group = el('section', undefined, 'setup-task-group'); group.appendChild(steps); shell.appendChild(group);
-        var controls = el('section', undefined, 'setup-task-group');
-        controls.appendChild(el('h3', a('expect_control')));
-        var list = el('ul', undefined, 'setup-expect-list');
-        ['control_thermostat', 'control_range', 'control_away', 'control_off'].forEach(function (k) { list.appendChild(el('li', a(k))); });
-        controls.appendChild(list); shell.appendChild(controls);
+        shell.appendChild(line);
+        shell.appendChild(el('h3', a('exp_control'), 'setup-tiles-title'));
+        var tiles = el('div', undefined, 'setup-tiles');
+        [['thermostat', 'ctl_thermostat'], ['range', 'ctl_range'], ['away', 'ctl_away'], ['off', 'ctl_off']].forEach(function (c) {
+            var tile = el('div', undefined, 'setup-tile');
+            tile.append(icon(c[0]), el('strong', a(c[1])), el('small', a(c[1] + '_sub')));
+            tiles.appendChild(tile);
+        });
+        shell.appendChild(tiles);
         shell.appendChild(button(t('next'), pumpStep, true));
         back(steer);
     }

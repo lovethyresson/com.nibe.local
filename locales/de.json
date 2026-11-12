@@ -31,26 +31,26 @@
     "title": "NIBE S Konfiguration",
     "ok": "OK",
     "valid_ip_address": "Geben Sie eine gültige IP-Adresse ein (xxx.xxx.xxx.xxx)",
-    "not_connected": "Keine Verbindung zur Wärmepumpe",
+    "not_connected": "Keine Verbindung zu Ihrem Gerät",
     "detect": {
       "title": "Funktionen werden erkannt",
-      "intro": "Verbindung zur Wärmepumpe wird hergestellt und beobachtet, welche Werte sich ändern. Dies dauert etwa eine halbe Minute.",
+      "intro": "Verbindung zu Ihrem Gerät wird hergestellt und beobachtet, welche Werte sich ändern. Dies dauert etwa eine halbe Minute.",
       "status": "Register werden abgefragt",
-      "failed": "Die Wärmepumpe konnte nicht gelesen werden",
-      "no_data": "An dieser Adresse antwortet etwas, liefert aber keine Wärmepumpendaten. Prüfe, ob die IP die der Pumpe ist und Modbus TCP aktiv ist (Menü 7.5.9).",
+      "failed": "Ihr Gerät konnte nicht gelesen werden",
+      "no_data": "An dieser Adresse antwortet etwas, liefert aber keine NIBE-Daten. Prüfen Sie, ob die IP die Ihres Geräts ist und Modbus TCP aktiv ist (Menü 7.5.9).",
       "retry": "Erneut versuchen",
       "skip": "Erkennung überspringen"
     },
     "features": {
       "title": "Funktionen auswählen",
-      "intro": "Wählen Sie, welche Funktionen überwacht werden sollen. Die Empfehlungen basieren auf den Rückmeldungen der Wärmepumpe.",
+      "intro": "Wählen Sie, welche Funktionen überwacht werden sollen. Die Empfehlungen basieren auf den Rückmeldungen Ihres Geräts.",
       "insights_note": "Wird eine Funktion deaktiviert, werden ihre Fähigkeiten entfernt – einschließlich des Insights-Verlaufs."
     },
     "evidence": {
       "moving": "Werte ändern sich",
       "plausible": "scheint vorhanden",
       "none": "keine Aktivität erkannt",
-      "unsupported": "von der Wärmepumpe nicht unterstützt"
+      "unsupported": "von Ihrem Gerät nicht unterstützt"
     },
     "badge": {
       "adjustable": "Einstellbar",
@@ -59,7 +59,7 @@
     "discover": {
       "searching": "Das Netzwerk wird nach NIBE Wärmepumpen durchsucht …",
       "found": "Wärmepumpe auswählen",
-      "none_found": "Es wurde automatisch keine Wärmepumpe gefunden. Prüfen Sie, ob Modbus TCP an der Wärmepumpe aktiviert ist (Menü 7.5.9), oder geben Sie die IP-Adresse unten ein.",
+      "none_found": "Es wurde automatisch keine Wärmepumpe gefunden. Prüfen Sie, ob Modbus TCP an Ihrem Gerät aktiviert ist (Menü 7.5.9), oder geben Sie die IP-Adresse unten ein.",
       "manual": "IP-Adresse manuell eingeben",
       "refresh": "Erneut suchen",
       "pump": "NIBE Wärmepumpe",
@@ -69,14 +69,14 @@
     },
     "devices": {
       "title": "Geräte hinzufügen",
-      "intro": "Jede Funktion Ihrer Wärmepumpe wird zu einem eigenen Gerät. Die Funktionen, für die Live-Daten gefunden wurden, sind ausgewählt – Sie können aber alle hinzufügen.",
+      "intro": "Jede Funktion Ihres Geräts wird zu einem eigenen Gerät in Homey. Die Funktionen, für die Live-Daten gefunden wurden, sind ausgewählt – Sie können aber alle hinzufügen.",
       "add": "Ausgewählte Geräte hinzufügen",
       "detected": "Daten erkannt",
       "notdetected": "Keine Daten",
       "select_one": "Wählen Sie mindestens ein Gerät aus.",
       "main_desc": "Übersicht: Außentemperatur, Betriebspriorität und Betriebsmodus sowie Diagnose und Statistik",
       "analytics": "Anonyme Nutzungsdaten teilen",
-      "analytics_desc": "Hilft dem App-Autor zu sehen, welche Wärmepumpenmodelle und Funktionen tatsächlich genutzt werden und wo die Einrichtung scheitert. Keine personenbezogenen Daten, keine Messwerte aus Ihrem Zuhause, keine Netzwerkdaten. Sie können dies später in den App-Einstellungen ändern."
+      "analytics_desc": "Hilft dem App-Autor zu sehen, welche Modelle und Funktionen tatsächlich genutzt werden und wo die Einrichtung scheitert. Keine personenbezogenen Daten, keine Messwerte aus Ihrem Zuhause, keine Netzwerkdaten. Sie können dies später in den App-Einstellungen ändern."
     },
     "sources": {
       "prompt": "Mehr als ein Fühler kann dies melden. Wählen Sie den regelnden aus:",
@@ -104,10 +104,10 @@
       "ready": "Bereit",
       "needs_setup": "Einrichten",
       "save_section": "Einrichtung speichern",
-      "nibe": "Den eigenen Temperatursensor der Wärmepumpe verwenden",
+      "nibe": "Den eigenen Temperatursensor Ihres Geräts verwenden",
       "homey": "Eigene Homey-Temperatursensoren verwenden",
       "promise": "Lassen Sie Ihre Räume die Heizung steuern",
-      "promise_desc": "Nutzen Sie die Temperatursensoren, die Sie bereits in Homey haben. Wählen Sie einen Raum oder den Durchschnitt mehrerer Räume. Thermostat und Smart Price Adaption bleiben bei der Wärmepumpe.",
+      "promise_desc": "Nutzen Sie die Temperatursensoren, die Sie bereits in Homey haben. Wählen Sie einen Raum oder den Durchschnitt mehrerer Räume. Thermostat und Smart Price Adaption bleiben bei Ihrem Gerät.",
       "choose_sensors": "Sensoren wählen",
       "picker_intro": "Suchen Sie nach Name, Raum, Gerätetyp oder App. Wählen Sie einen oder mehrere Sensoren.",
       "search": "Sensoren suchen",
@@ -130,27 +130,27 @@
       "average": "Zu sendende Durchschnittstemperatur",
       "temperature": "Zu sendende Temperatur",
       "pending_hint": "Fügen Sie zuerst die Geräte hinzu und öffnen Sie dann Heizung → Reparieren. Bis dahin bleibt Ihr NIBE-Sensor zuständig. Während der Kopplung werden keine Temperaturen gesendet.",
-      "setup_pump": "Wärmepumpe einrichten",
-      "pump_intro": "Prüfen Sie diese Einstellungen an der Wärmepumpe und bestätigen Sie sie hier.",
+      "setup_pump": "Ihr Gerät einrichten",
+      "pump_intro": "Prüfen Sie diese Einstellungen an Ihrem Gerät und bestätigen Sie sie hier.",
       "pump_enable": "Externen Raumsensor BT50 in Menü 7.5.9.2 aktivieren.",
       "pump_zone": "BT50 der Heizzone zuordnen (Raumsensor-/Zoneneinstellungen 1.3.3 / 1.3.4).",
       "pump_control": "BT50 für die Heizungsregelung auswählen. Bei einem Austausch den vorherigen Regelsensor entfernen.",
       "zone_confirm": "BT50 regelt die gewünschte Zone.",
-      "feed_warning": "Die Prüfung startet regelmäßige Temperaturübertragungen, auch nach dem Schließen von Reparieren. Fallen Homey oder Sensorwerte aus, kann BT50 einen Alarm auslösen. Stellen Sie den NIBE-Sensor wieder her und deaktivieren Sie externen BT50 an der Pumpe. Führen Sie dies mit Zugang zur Pumpe durch.",
+      "feed_warning": "Die Prüfung startet regelmäßige Temperaturübertragungen, auch nach dem Schließen von Reparieren. Fallen Homey oder Sensorwerte aus, kann BT50 einen Alarm auslösen. Stellen Sie den NIBE-Sensor wieder her und deaktivieren Sie externen BT50 an Ihrem Gerät. Führen Sie dies mit Zugang zu Ihrem Gerät durch.",
       "verify": "Einstellungen prüfen",
-      "verified": "Die Pumpe hat die Temperatur an BT50 empfangen.",
+      "verified": "Ihr Gerät hat die Temperatur an BT50 empfangen.",
       "active_note": "Temperaturen werden im Hintergrund weiter übertragen. Wechseln Sie zuerst über die Heizungseinrichtung zurück zum NIBE-Sensor, um dies zu beenden.",
       "return_nibe": "Zurück zum NIBE-Sensor",
-      "handover_hint": "Wählen Sie an der Pumpe den ursprünglichen Sensor zur Zonenregelung und deaktivieren Sie externen BT50. Die Übertragung läuft bis zur Prüfung hier weiter.",
+      "handover_hint": "Wählen Sie an Ihrem Gerät den ursprünglichen Sensor zur Zonenregelung und deaktivieren Sie externen BT50. Die Übertragung läuft bis zur Prüfung hier weiter.",
       "handover_confirm": "Mein NIBE-Sensor regelt die Zone wieder.",
       "no_nibe_sources": "Keine aktiven NIBE-Quellen erkannt. Die aktuelle bzw. voreingestellte Quelle bleibt erhalten.",
       "thermostat_zone_title": "Welche Zone soll der Thermostat einstellen?",
-      "thermostat_zone_intro": "Ihre Wärmepumpe hat mehr als eine Zone. Wählen Sie die Zone, die die Heizung regelt: An der Wärmepumpe ist der Raumfühler dieser Zone auf Steuern eingestellt (Menü 1.3.3).",
+      "thermostat_zone_intro": "Ihr Gerät hat mehr als eine Zone. Wählen Sie die Zone, die die Heizung regelt: An Ihrem Gerät ist der Raumfühler dieser Zone auf Steuern eingestellt (Menü 1.3.3).",
       "thermostat_zone_target": "Sollwert __value__ °C",
       "thermostat_zone_review": "Heizung: der Thermostat stellt __zone__ ein",
       "analytics_title": "Helfen Sie, Nibe Live zu verbessern",
       "analytics_benefit": "Nibe Live wird von einer Person mit einer Wärmepumpe entwickelt. Ihre Nutzungsdaten helfen, Kompatibilitätsprobleme zu erkennen, die Einrichtung zu verbessern und nützliche Funktionen zu priorisieren.",
-      "analytics_details": "Enthält Pumpenmodell, verwendete App-Funktionen und technische Ereignisse wie Einrichtungs- und Verbindungsfehler. Temperaturwerte, Gerätenamen und Flow-Namen werden nie übertragen.",
+      "analytics_details": "Enthält das Modell Ihres Geräts, verwendete App-Funktionen und technische Ereignisse wie Einrichtungs- und Verbindungsfehler. Temperaturwerte, Gerätenamen und Flow-Namen werden nie übertragen.",
       "analytics_optional": "Freiwillig. Jederzeit in den Geräteeinstellungen → Datenschutz abschaltbar.",
       "zone_temperature": "Zonentemperatur",
       "checking": "Wird geprüft…",
@@ -158,12 +158,12 @@
       "previous_page": "Vorherige Seite",
       "source_title": "Temperaturquelle wählen",
       "source_intro": "Wählen Sie den Sensor für die Innentemperatur Ihrer Heizungsregelung.",
-      "source_homey_desc": "Nutzen Sie einen Sensor oder den Durchschnitt mehrerer Räume. Die Wärmepumpe behält die Regelung.",
+      "source_homey_desc": "Nutzen Sie einen Sensor oder den Durchschnitt mehrerer Räume. Ihr Gerät behält die Regelung.",
       "source_cs1": "Durchschnitt Klimasystem 1",
       "source_wireless": "Funk-Raumfühler",
       "feed_short": "Die Prüfung startet regelmäßige Temperaturupdates, auch nach dem Schließen von Reparieren.",
-      "feed_recovery": "Bei Ausfall von Homey oder einem Sensor kann BT50 einen Alarm auslösen. Stellen Sie den NIBE-Sensor wieder her und deaktivieren Sie externen BT50.",
-      "on_pump": "An der Wärmepumpe",
+      "feed_recovery": "Bei Ausfall von Homey oder einem Sensor kann BT50 einen Alarm auslösen. Stellen Sie den NIBE-Sensor wieder her und deaktivieren Sie externen BT50 an Ihrem Gerät.",
+      "on_pump": "An Ihrem Gerät",
       "in_homey": "In Homey",
       "enable_title": "BT50 aktivieren",
       "enable_detail": "Menü 7.5.9.2 · Externer Raumsensor",
@@ -173,8 +173,8 @@
       "control_detail": "Bei Bedarf den bisherigen Regelsensor ersetzen.",
       "if_readings_stop": "Wenn Messwerte ausbleiben",
       "success_title": "Alles bereit!",
-      "success_description": "Ihre Wärmepumpe empfängt jetzt Temperaturen von Ihren Homey-Sensoren.",
-      "success_received": "Von der Wärmepumpe bestätigt",
+      "success_description": "Ihr Gerät empfängt jetzt Temperaturen von Ihren Homey-Sensoren.",
+      "success_received": "Von Ihrem Gerät bestätigt",
       "success_one": "1 Sensor verbunden",
       "success_many": "Sensoren arbeiten zusammen",
       "save_changes": "Änderungen speichern",
@@ -247,32 +247,40 @@
         "indoor_homey": "Homey-Sensoren (__n__)",
         "indoor_pump": "Der eigene Sensor Ihres Geräts",
         "compare_link": "Worin unterscheiden sie sich?",
-        "compare_title": "Die Modi",
-        "does": "Was er tut",
-        "see": "Was Sie sehen",
-        "needs": "Was er braucht",
-        "off_does": "Heizt nach der Kurve. Preise ändern nichts.",
-        "off_see": "Nichts Neues.",
-        "off_needs": "Nichts.",
-        "spa_does": "Ihr Gerät verschiebt seine Kurve nach dem Stundenpreis. Es kennt Ihr Haus nicht und kann daher nicht vor einer Spitze vorheizen.",
-        "spa_see": "Seinen Status in myUplink und am Gerät.",
-        "spa_needs": "Preise in myUplink. Funktioniert auch ohne Homey.",
-        "auto_does": "Lernt, wie schnell Ihr Haus warm wird und abkühlt, und heizt dann vor teuren Stunden mehr und während ihnen weniger, innerhalb Ihres Komfortbereichs.",
-        "auto_see": "Status und Grund auf Heizung, die Außentemperatur-Verschiebung und das Autopilot-Widget.",
-        "auto_needs": "Laufendes Homey, dynamische Preise und einen Außensensor oder die Vorhersage.",
-        "test_does": "Autopilot plant und zeigt, was er tun würde. Ihr Gerät bleibt unberührt.",
-        "test_see": "Derselbe Status, formuliert als das, was er tun würde.",
-        "test_needs": "Dasselbe wie Autopilot. Eine gute erste Woche.",
-        "expect_title": "Was Sie erwartet",
-        "expect_learn": "Die ersten Tage",
-        "expect_learn_body": "Autopilot lernt Ihr Haus, etwa fünf Tage. Noch wird nichts verschoben.",
-        "expect_then": "Danach",
-        "expect_then_body": "Er verlagert Wärme um Preisspitzen. Die Innentemperatur kann innerhalb Ihres Komfortbereichs schwanken: ±0,5 °C bei Komfort, ±3 °C bei Sparen.",
-        "expect_control": "Was Sie steuern",
-        "control_thermostat": "Das Thermostat ist Ihre Komforttemperatur.",
-        "control_range": "Der Komfortbereich legt fest, wie weit die Innentemperatur schwanken darf. Aus stoppt das Verschieben.",
-        "control_away": "Abwesend hält die Abwesenheitstemperatur, solange Sie weg sind.",
-        "control_off": "Smart-Modus Aus gibt alles an Ihr Gerät zurück."
+        "cmp_title": "Die Unterschiede",
+        "col_auto": "Autopilot",
+        "col_spa": "Smarter Preis",
+        "col_off": "Aus",
+        "row_cheaper": "Heizt mehr bei günstigem Strom, weniger bei teurem",
+        "row_learns": "Lernt, wie Ihr Haus Wärme hält",
+        "row_solar": "Nutzt Solarüberschuss",
+        "row_homey_off": "Funktioniert ohne Homey",
+        "solar_hotwater": "Warmwasser",
+        "cmp_note": "Die smarte Preisanpassung ist NIBEs eigene: Sie läuft in Ihrem Gerät und holt Preise über myUplink.",
+        "exp_title": "Was Sie erwartet",
+        "exp_learning": "Lernen",
+        "exp_learning_sub": "Mindestens 5 Tage. Noch ändert sich nichts.",
+        "exp_acting": "Handeln",
+        "exp_acting_sub": "Wärme wird um Preisspitzen verlagert, innerhalb Ihres Komfortbereichs.",
+        "exp_control": "Sie steuern",
+        "ctl_thermostat": "Thermostat",
+        "ctl_thermostat_sub": "Ihre Komforttemperatur",
+        "ctl_range": "Komfortbereich",
+        "ctl_range_sub": "Wie weit innen abweichen darf",
+        "ctl_away": "Abwesend",
+        "ctl_away_sub": "Eine niedrigere Temperatur, wenn Sie weg sind",
+        "ctl_off": "Smart-Modus Aus",
+        "ctl_off_sub": "Ihr Gerät übernimmt wieder",
+        "row_levels": "Einstellung Komfort oder Sparen",
+        "levels_auto": "± °C",
+        "levels_spa": "3 Stufen",
+        "row_starts": "Wirkt ab dem ersten Tag",
+        "row_forecast": "Nutzt die Wettervorhersage",
+        "row_price": "Nutzt Ihren vollen Strompreis",
+        "price_spot": "Nur Spot",
+        "row_covers": "Was er abdeckt",
+        "covers_auto": "Heizung, Warmwasser",
+        "covers_spa": "Heizung, Warmwasser, Pool, Kühlung"
       }
     },
     "gateway": {
@@ -282,17 +290,17 @@
       "unit": "Modbus-ID",
       "hint": "Wählen Sie, wie NIBE-Register 40025 über Ihre Verbindung adressiert wird. Prüfen Sie dies mit einer funktionierenden Modbus-Abfrage. Die Einstellung gilt für alle Lese- und Schreibzugriffe.",
       "invalid": "Gateway, Port von 1–65535 und Modbus-ID von 1–247 auswählen.",
-      "detect_intro": "Die gemeldeten Werte der Wärmepumpe werden geprüft. Je nach Gateway kann dies mehrere Minuten dauern."
+      "detect_intro": "Die gemeldeten Werte Ihres Geräts werden geprüft. Je nach Gateway kann dies mehrere Minuten dauern."
     },
     "firmware": {
-      "title": "Aktualisiere zuerst deine Wärmepumpe",
-      "intro": "Viele Funktionen brauchen eine aktuelle Software in der Wärmepumpe. Ältere Versionen liefern Werte nicht, die die App braucht, und können sogar falsche Energiewerte melden.",
+      "title": "Aktualisieren Sie zuerst Ihr Gerät",
+      "intro": "Viele Funktionen brauchen eine aktuelle Software in Ihrem Gerät. Ältere Versionen liefern Werte nicht, die die App braucht, und können sogar falsche Energiewerte melden.",
       "online_title": "Über das Internet mit myUplink",
-      "online_body": "Wenn ein Update bereitsteht, bestätige es in der myUplink-App – oder am Display der Pumpe: zur Produktübersicht wischen und auf Aktualisieren tippen.",
+      "online_body": "Wenn ein Update bereitsteht, bestätigen Sie es in der myUplink-App – oder am Display Ihres Geräts: zur Produktübersicht wischen und auf Aktualisieren tippen.",
       "usb_title": "Mit einem USB-Stick",
       "usb_body": "Lade die neueste Software von myuplink.com auf einen USB-Stick. Stecke ihn in den Anschluss über dem Display und öffne Menü 8.1.",
       "f_title": "Über myUplink oder einen USB-Stick",
-      "f_body": "Die Schritte unterscheiden sich je nach Modell – das Handbuch deiner Wärmepumpe zeigt, wie es geht.",
+      "f_body": "Die Schritte unterscheiden sich je nach Modell – das Handbuch Ihres Geräts zeigt, wie es geht.",
       "note": "Dauert ein paar Minuten. Deine Einstellungen bleiben erhalten.",
       "continue": "Weiter"
     }
@@ -345,13 +353,13 @@
   "12 hours": "12 Stunden",
   "One-time increase": "Einmalige Erhöhung",
   "connection": {
-    "connecting": "Verbindung zur Wärmepumpe wird hergestellt…",
-    "unreachable": "Wärmepumpe unter __host__ nicht erreichbar. Prüfen Sie, ob sie im Netzwerk ist und ob sich ihre IP-Adresse geändert hat.",
-    "refused": "Die Wärmepumpe unter __host__ hat die Verbindung abgelehnt. Prüfen Sie, ob Modbus TCP an der Pumpe aktiviert ist.",
-    "silent": "Die Wärmepumpe unter __host__ antwortet nicht mehr. Verbindung wird neu aufgebaut…",
-    "no_data": "Unter __host__ antwortet etwas, liefert aber keine Wärmepumpendaten. Prüfe, ob die IP die der Pumpe ist und Modbus TCP aktiv ist (Menü 7.5.9).",
-    "searching": "Wärmepumpe unter __host__ nicht erreichbar. Sie wird im Netzwerk gesucht…",
-    "moved": "Nibe Live: Ihre Wärmepumpe ist von __from__ nach __to__ umgezogen. Die Geräte wurden aktualisiert.",
+    "connecting": "Verbindung zu Ihrem Gerät wird hergestellt…",
+    "unreachable": "Ihr Gerät unter __host__ ist nicht erreichbar. Prüfen Sie, ob es im Netzwerk ist und ob sich seine IP-Adresse geändert hat.",
+    "refused": "Ihr Gerät unter __host__ hat die Verbindung abgelehnt. Prüfen Sie, ob Modbus TCP am Gerät aktiviert ist.",
+    "silent": "Ihr Gerät unter __host__ antwortet nicht mehr. Verbindung wird neu aufgebaut…",
+    "no_data": "Unter __host__ antwortet etwas, liefert aber keine NIBE-Daten. Prüfen Sie, ob die IP die Ihres Geräts ist und Modbus TCP aktiv ist (Menü 7.5.9).",
+    "searching": "Ihr Gerät unter __host__ ist nicht erreichbar. Es wird im Netzwerk gesucht…",
+    "moved": "Nibe Live: Ihr Gerät ist von __from__ nach __to__ umgezogen. Die Geräte in Homey wurden aktualisiert.",
     "address_in_use": "Eine andere gekoppelte Wärmepumpe verwendet bereits __host__."
   },
   "Blocking": "Sperre",
@@ -379,7 +387,7 @@
         "before_use": "rechtzeitig für den folgenden Verbrauch; Tagesmittel __mean__"
       },
       "cost": "Erwartete Kosten __cost__. Preise sind bis heute Mitternacht bekannt.",
-      "shadow": "Testlauf: an der Wärmepumpe wird nichts geändert.",
+      "shadow": "Testlauf: an Ihrem Gerät wird nichts geändert.",
       "tomorrow": "morgen um __time__",
       "cost_tomorrow": "Erwartete Kosten __cost__. Preise sind bis morgen Mitternacht bekannt.",
       "today": "um __time__",
@@ -393,14 +401,14 @@
         "surplus": "Solarüberschuss",
         "reserve": "Sicherheitsreserve",
         "running": "Lädt bereits",
-        "pump": "Von der Wärmepumpe gestartet"
+        "pump": "Von Ihrem Gerät gestartet"
       },
       "detail": {
         "price": "Auf __target__ °C, etwa __duration__, zu __price__/kWh; Tagesmittel __mean__.",
         "surplus": "Auf __target__ °C, etwa __duration__, __share__ % aus Solarüberschuss.",
         "reserve": "Der Speicher hat nur noch __litres__ L, unter der Sicherheitsreserve von __reserve__ L, oben __top__ °C. Auf __target__ °C, etwa __duration__, zu __price__/kWh.",
-        "pump": "Die Wärmepumpe startete bei __top__ °C nach ihrer eigenen Starttemperatur und lädt auf __stop__ °C.",
-        "pump_more": "Mehr Warmwasser ist an, daher lädt die Wärmepumpe auf __stop__ °C."
+        "pump": "Ihr Gerät startete bei __top__ °C nach seiner eigenen Starttemperatur und lädt auf __stop__ °C.",
+        "pump_more": "Mehr Warmwasser ist an, daher lädt Ihr Gerät auf __stop__ °C."
       },
       "plan": {
         "as_planned": "Wie geplant.",
@@ -426,8 +434,8 @@
       "duration_h": "__h__ Std.",
       "write_failed": "Autopilot konnte keine Warmwasserladung starten: __error__",
       "blocked": {
-        "hot_water_off": "Autopilot Warmwasser wartet: Warmwasser ist an der Pumpe ausgeschaltet.",
-        "spa": "Autopilot Warmwasser wartet: Schalte die Smarte Preisanpassung für Warmwasser an der Pumpe aus.",
+        "hot_water_off": "Autopilot Warmwasser wartet: Warmwasser ist an Ihrem Gerät ausgeschaltet.",
+        "spa": "Autopilot Warmwasser wartet: Schalten Sie die Smarte Preisanpassung für Warmwasser an Ihrem Gerät aus.",
         "smart_control": "Autopilot Warmwasser wartet: Der Warmwasserbedarf steht auf Smart Control."
       }
     },
@@ -449,28 +457,28 @@
       },
       "cost": "Erwartete Kosten __cost__. Preise sind bis heute Mitternacht bekannt.",
       "cost_tomorrow": "Erwartete Kosten __cost__. Preise sind bis morgen Mitternacht bekannt.",
-      "shadow": "Testlauf: an der Wärmepumpe wird nichts geändert.",
+      "shadow": "Testlauf: an Ihrem Gerät wird nichts geändert.",
       "reason": {
         "cheap": "Günstigste Stunden",
         "before_use": "Rechtzeitig für den Verbrauch",
         "surplus": "Solarüberschuss",
         "reserve": "Sicherheitsreserve",
         "running": "Lädt bereits",
-        "pump": "Von der Wärmepumpe gestartet"
+        "pump": "Von Ihrem Gerät gestartet"
       },
       "moved_repriced": "Verschoben von __was__ auf __time__: die Stunden ab __was__ kosten jetzt __wasNow__/kWh statt __wasPrice__, daher lädt sie auf __target__ °C zu __price__/kWh."
     },
     "hotwater_setting": {
-      "no_device": "Autopilot Warmwasser braucht das Warmwasser-Gerät dieser Pumpe. Füge es zuerst hinzu.",
+      "no_device": "Autopilot Warmwasser braucht das Warmwasser-Gerät. Fügen Sie es zuerst hinzu.",
       "no_tank": "Wähle zuerst die Speichergröße: Warmwasser-Gerät → Reparieren."
     },
     "heating": {
       "warning": {
-        "feed_failed": "Autopilot Heizung gestoppt: Die Pumpe hat die Außentemperatur nicht übernommen. Menü 7.5.9.2 prüfen und unter Heizung → Reparieren wieder einschalten.",
+        "feed_failed": "Autopilot Heizung gestoppt: Ihr Gerät hat die Außentemperatur nicht übernommen. Menü 7.5.9.2 prüfen und unter Heizung → Reparieren wieder einschalten.",
         "no_outdoor": "Autopilot Heizung pausiert: keine Außentemperatur.",
         "spa_on": "Autopilot Heizung pausiert: Smart price adaption ist für die Heizung an.",
-        "room_control": "Autopilot Heizung pausiert: Raumfühlerregelung ist in der Pumpe an.",
-        "immersion_only": "Autopilot Heizung pausiert: Die Pumpe läuft nur mit dem Heizstab.",
+        "room_control": "Autopilot Heizung pausiert: Raumfühlerregelung ist in Ihrem Gerät an.",
+        "immersion_only": "Autopilot Heizung pausiert: Ihr Gerät läuft nur mit dem Heizstab.",
         "no_model": "Autopilot Heizung lernt Ihr Haus noch.",
         "mode_off": "Autopilot Heizung ist aus."
       },
@@ -488,13 +496,13 @@
         "paused": {
           "no_outdoor": "Pausiert: Außentemperatur meldet nicht mehr",
           "spa_on": "Pausiert: Smart price adaption ist für die Heizung an",
-          "room_control": "Pausiert: Raumfühlerregelung ist an",
-          "immersion_only": "Pausiert: Die Pumpe läuft nur mit dem Heizstab",
-          "feed_failed": "Gestoppt: Die Pumpe hat die Außentemperatur nicht übernommen",
+          "room_control": "Pausiert: Raumfühlerregelung ist in Ihrem Gerät an",
+          "immersion_only": "Pausiert: Ihr Gerät läuft nur mit dem Heizstab",
+          "feed_failed": "Gestoppt: Ihr Gerät hat die Außentemperatur nicht übernommen",
           "mode_off": "Aus",
           "no_model": "Lernt Ihr Haus"
         },
-        "range_off": "Komfortbereich ist Aus: die Pumpe sieht die echte Außentemperatur"
+        "range_off": "Komfortbereich ist Aus: Ihr Gerät sieht die echte Außentemperatur"
       },
       "status_name": {
         "learning": "Lernt",
@@ -511,17 +519,17 @@
       },
       "verify": {
         "not_heating": "Autopilot Heizung wird am Gerät Heizung eingerichtet.",
-        "room_control": "Zuerst die Raumfühlerregelung in der Pumpe ausschalten.",
+        "room_control": "Zuerst die Raumfühlerregelung in Ihrem Gerät ausschalten.",
         "no_outdoor": "Noch keine Außentemperatur: Sensor wählen oder Standort für die Wettervorhersage festlegen.",
-        "not_followed": "Die Pumpe hat die Außentemperatur nicht übernommen. Prüfen, ob Menü 7.5.9.2 einen externen BT1 erlaubt."
+        "not_followed": "Ihr Gerät hat die Außentemperatur nicht übernommen. Prüfen, ob Menü 7.5.9.2 einen externen BT1 erlaubt."
       },
       "not_on": "Autopilot Heizung ist nicht an.",
       "no_thermostat": "Das Heizungsgerät hat kein Thermostat zum Einstellen."
     },
     "smart": {
-      "no_spa": "Diese Pumpe hat keine Smart price adaption.",
+      "no_spa": "Ihr Gerät hat keine Smart price adaption.",
       "no_heating": "Zuerst das Gerät Heizung hinzufügen.",
-      "verify_first": "Schalten Sie Autopilot unter Heizung → Reparieren → Smart-Modus ein: dort wird zuerst geprüft, dass die Pumpe die Außentemperatur übernimmt.",
+      "verify_first": "Schalten Sie Autopilot unter Heizung → Reparieren → Smart-Modus ein: dort wird zuerst geprüft, dass Ihr Gerät die Außentemperatur übernimmt.",
       "spa_took_over": {
         "heating": "Smart price adaption wurde für die Heizung eingeschaltet, daher hat Autopilot Heizung gestoppt.",
         "hotwater": "Smart price adaption wurde für Warmwasser eingeschaltet, daher hat Autopilot Warmwasser gestoppt."

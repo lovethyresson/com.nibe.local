@@ -48,6 +48,16 @@ sourced findings.
   - Has no PV awareness and no offline price cache.
 - **On this app:** SPA overwrites the indoor setpoint (2505), so any optimiser we build must turn
   SPA off (843) while it runs.
+- **What NIBE itself says (2025 info sheet, read 2026-11-12):** it fetches the next day's EPEX
+  prices through myUplink and heats extra when the price is low and less when it is high, for
+  heating, hot water, pool and cooling. Levels per function on S firmware: Off / Comfort / Save /
+  Save PLUS. It looks at the bare spot price only, not taxes or grid fees. Needs internet and an
+  active myUplink account; no premium subscription. NIBE claims 25 % lower cost in a reference
+  home, against fixed or variable tariffs without SPA. No mention of PV, weather forecasts or a
+  house model. The owner UI's comparison (Repair → Smart mode) is built on these facts: both
+  shift heat by price and have a comfort/savings setting; Autopilot adds a house model, the
+  forecast, the full price and solar surplus (hot water); SPA starts at once, covers pool and
+  cooling, and works with Homey off.
 
 ### Ngenic Tune
 - **How it acts:** an inline resistor emulator on the BT1 wire. The pump sees a fake outdoor

@@ -658,10 +658,28 @@ body {
 .setup-field { display: flex; align-items: center; justify-content: space-between; gap: 1em; margin: 1em 0 .3em; }
 .setup-field input { width: 6em; }
 
-/* Smart mode explainers: the mode comparison and what to expect. */
-.setup-compare dl { margin: 0; }
-.setup-task-group.setup-compare > h3 { font-size: 1.05em; opacity: 1; margin-bottom: .2em; }
-.setup-compare dt { font-size: 0.8em; font-weight: 600; opacity: 0.65; margin-top: 8px; }
-.setup-compare dd { margin: 2px 0 0; line-height: 1.4; }
-.setup-expect-list { margin: 6px 0 0; padding-left: 18px; line-height: 1.45; }
-.setup-expect-list li { margin: 3px 0; }
+/* Smart mode explainers: the mode comparison grid, and what to expect as a timeline and tiles. */
+.setup-icon { display: inline-flex; width: 1.5em; height: 1.5em; }
+.setup-icon svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.setup-compare-grid { display: grid; align-items: center; column-gap: .25em; margin: .25em 0 .75em; }
+.setup-compare-head { font-size: .78em; text-align: center; line-height: 1.2; padding-bottom: .6em; align-self: end; }
+.setup-compare-label { font-size: .9em; line-height: 1.3; padding: .7em 0; border-top: 1px solid var(--surface-border); }
+.setup-compare-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; align-self: stretch;
+    border-top: 1px solid var(--surface-border); }
+.setup-compare-cell small { font-size: .68em; opacity: .7; line-height: 1.1; text-align: center; }
+.setup-compare-cell .is-yes { color: #1f7a33; }
+.setup-compare-cell .is-partial { color: #b07d00; }
+.setup-compare-cell .is-no { opacity: .3; }
+.setup-timeline { display: grid; grid-template-columns: 2fr 3fr; gap: .4em; margin: .5em 0 1.4em; }
+.setup-phase { display: flex; flex-direction: column; gap: .25em; min-width: 0; }
+.setup-phase-bar { height: .55em; border-radius: 99px; }
+.setup-phase.is-learning .setup-phase-bar { background: repeating-linear-gradient(135deg, rgba(128,128,128,.45) 0 5px, rgba(128,128,128,.15) 5px 10px); }
+.setup-phase.is-acting .setup-phase-bar { background: linear-gradient(90deg, #e8833a, #5b8def); }
+.setup-phase strong { font-size: .95em; }
+.setup-phase small { font-size: .8em; opacity: .7; line-height: 1.35; }
+.setup-tiles-title { font-size: .85em; font-weight: 600; opacity: .65; margin: 0 0 .6em; }
+.setup-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6em; margin-bottom: 1.25em; }
+.setup-tile { display: flex; flex-direction: column; gap: .2em; padding: .85em; border: 1px solid var(--surface-border); border-radius: 12px; min-width: 0; }
+.setup-tile .setup-icon { color: var(--accent); margin-bottom: .2em; }
+.setup-tile strong { font-size: .92em; }
+.setup-tile small { font-size: .78em; opacity: .7; line-height: 1.3; }

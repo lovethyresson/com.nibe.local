@@ -8,26 +8,26 @@
     "title": "NIBE S Konfiguration",
     "ok": "OK",
     "valid_ip_address": "Geben Sie eine gültige IP-Adresse ein (xxx.xxx.xxx.xxx)",
-    "not_connected": "Keine Verbindung zur Wärmepumpe",
+    "not_connected": "Keine Verbindung zu Ihrem Gerät",
     "detect": {
       "title": "Funktionen werden erkannt",
-      "intro": "Verbindung zur Wärmepumpe wird hergestellt und beobachtet, welche Werte sich ändern. Dies dauert etwa eine halbe Minute.",
+      "intro": "Verbindung zu Ihrem Gerät wird hergestellt und beobachtet, welche Werte sich ändern. Dies dauert etwa eine halbe Minute.",
       "status": "Register werden abgefragt",
-      "failed": "Die Wärmepumpe konnte nicht gelesen werden",
-      "no_data": "An dieser Adresse antwortet etwas, liefert aber keine Wärmepumpendaten. Prüfe, ob die IP die der Pumpe ist und Modbus TCP aktiv ist (Menü 7.5.9).",
+      "failed": "Ihr Gerät konnte nicht gelesen werden",
+      "no_data": "An dieser Adresse antwortet etwas, liefert aber keine NIBE-Daten. Prüfen Sie, ob die IP die Ihres Geräts ist und Modbus TCP aktiv ist (Menü 7.5.9).",
       "retry": "Erneut versuchen",
       "skip": "Erkennung überspringen"
     },
     "features": {
       "title": "Funktionen auswählen",
-      "intro": "Wählen Sie, welche Funktionen überwacht werden sollen. Die Empfehlungen basieren auf den Rückmeldungen der Wärmepumpe.",
+      "intro": "Wählen Sie, welche Funktionen überwacht werden sollen. Die Empfehlungen basieren auf den Rückmeldungen Ihres Geräts.",
       "insights_note": "Wird eine Funktion deaktiviert, werden ihre Fähigkeiten entfernt – einschließlich des Insights-Verlaufs."
     },
     "evidence": {
       "moving": "Werte ändern sich",
       "plausible": "scheint vorhanden",
       "none": "keine Aktivität erkannt",
-      "unsupported": "von der Wärmepumpe nicht unterstützt"
+      "unsupported": "von Ihrem Gerät nicht unterstützt"
     },
     "badge": {
       "adjustable": "Einstellbar",
@@ -35,21 +35,21 @@
     },
     "devices": {
       "title": "Geräte hinzufügen",
-      "intro": "Jede Funktion Ihrer Wärmepumpe wird zu einem eigenen Gerät. Die Funktionen, für die Live-Daten gefunden wurden, sind ausgewählt – Sie können aber alle hinzufügen.",
+      "intro": "Jede Funktion Ihres Geräts wird zu einem eigenen Gerät in Homey. Die Funktionen, für die Live-Daten gefunden wurden, sind ausgewählt – Sie können aber alle hinzufügen.",
       "add": "Ausgewählte Geräte hinzufügen",
       "detected": "Daten erkannt",
       "notdetected": "Keine Daten",
       "select_one": "Wählen Sie mindestens ein Gerät aus.",
       "main_desc": "Übersicht: Außentemperatur, Betriebspriorität und Betriebsmodus sowie Diagnose und Statistik",
       "analytics": "Anonyme Nutzungsdaten teilen",
-      "analytics_desc": "Hilft dem App-Autor zu sehen, welche Wärmepumpenmodelle und Funktionen tatsächlich genutzt werden und wo die Einrichtung scheitert. Keine personenbezogenen Daten, keine Messwerte aus Ihrem Zuhause, keine Netzwerkdaten. Sie können dies später in den App-Einstellungen ändern."
+      "analytics_desc": "Hilft dem App-Autor zu sehen, welche Modelle und Funktionen tatsächlich genutzt werden und wo die Einrichtung scheitert. Keine personenbezogenen Daten, keine Messwerte aus Ihrem Zuhause, keine Netzwerkdaten. Sie können dies später in den App-Einstellungen ändern."
     },
     "discover": {
       "title": "Wärmepumpe suchen",
       "searching": "Das Netzwerk wird nach NIBE Wärmepumpen durchsucht …",
       "confirm": "Wärmepumpe gefunden – zum Bestätigen tippen",
       "found": "Wärmepumpe auswählen",
-      "none_found": "Es wurde automatisch keine Wärmepumpe gefunden. Prüfen Sie, ob Modbus TCP an der Wärmepumpe aktiviert ist (Menü 7.5.9), oder geben Sie die IP-Adresse unten ein.",
+      "none_found": "Es wurde automatisch keine Wärmepumpe gefunden. Prüfen Sie, ob Modbus TCP an Ihrem Gerät aktiviert ist (Menü 7.5.9), oder geben Sie die IP-Adresse unten ein.",
       "manual": "IP-Adresse manuell eingeben",
       "refresh": "Erneut suchen",
       "pump": "NIBE Wärmepumpe",
@@ -73,17 +73,17 @@
       "unit": "Modbus-ID",
       "hint": "Wählen Sie, wie NIBE-Register 40025 über Ihre Verbindung adressiert wird. Prüfen Sie dies mit einer funktionierenden Modbus-Abfrage. Die Einstellung gilt für alle Lese- und Schreibzugriffe.",
       "invalid": "Gateway, Port von 1–65535 und Modbus-ID von 1–247 auswählen.",
-      "detect_intro": "Die gemeldeten Werte der Wärmepumpe werden geprüft. Je nach Gateway kann dies mehrere Minuten dauern."
+      "detect_intro": "Die gemeldeten Werte Ihres Geräts werden geprüft. Je nach Gateway kann dies mehrere Minuten dauern."
     },
     "firmware": {
-      "title": "Aktualisiere zuerst deine Wärmepumpe",
-      "intro": "Viele Funktionen brauchen eine aktuelle Software in der Wärmepumpe. Ältere Versionen liefern Werte nicht, die die App braucht, und können sogar falsche Energiewerte melden.",
+      "title": "Aktualisieren Sie zuerst Ihr Gerät",
+      "intro": "Viele Funktionen brauchen eine aktuelle Software in Ihrem Gerät. Ältere Versionen liefern Werte nicht, die die App braucht, und können sogar falsche Energiewerte melden.",
       "online_title": "Über das Internet mit myUplink",
-      "online_body": "Wenn ein Update bereitsteht, bestätige es in der myUplink-App – oder am Display der Pumpe: zur Produktübersicht wischen und auf Aktualisieren tippen.",
+      "online_body": "Wenn ein Update bereitsteht, bestätigen Sie es in der myUplink-App – oder am Display Ihres Geräts: zur Produktübersicht wischen und auf Aktualisieren tippen.",
       "usb_title": "Mit einem USB-Stick",
       "usb_body": "Lade die neueste Software von myuplink.com auf einen USB-Stick. Stecke ihn in den Anschluss über dem Display und öffne Menü 8.1.",
       "f_title": "Über myUplink oder einen USB-Stick",
-      "f_body": "Die Schritte unterscheiden sich je nach Modell – das Handbuch deiner Wärmepumpe zeigt, wie es geht.",
+      "f_body": "Die Schritte unterscheiden sich je nach Modell – das Handbuch Ihres Geräts zeigt, wie es geht.",
       "note": "Dauert ein paar Minuten. Deine Einstellungen bleiben erhalten.",
       "continue": "Weiter"
     }
@@ -154,13 +154,13 @@
   "12 hours": "12 Stunden",
   "One-time increase": "Einmalige Erhöhung",
   "connection": {
-    "connecting": "Verbindung zur Wärmepumpe wird hergestellt…",
-    "unreachable": "Wärmepumpe unter __host__ nicht erreichbar. Prüfen Sie, ob sie im Netzwerk ist und ob sich ihre IP-Adresse geändert hat.",
-    "refused": "Die Wärmepumpe unter __host__ hat die Verbindung abgelehnt. Prüfen Sie, ob Modbus TCP an der Pumpe aktiviert ist.",
-    "silent": "Die Wärmepumpe unter __host__ antwortet nicht mehr. Verbindung wird neu aufgebaut…",
-    "no_data": "Unter __host__ antwortet etwas, liefert aber keine Wärmepumpendaten. Prüfe, ob die IP die der Pumpe ist und Modbus TCP aktiv ist (Menü 7.5.9).",
-    "searching": "Wärmepumpe unter __host__ nicht erreichbar. Sie wird im Netzwerk gesucht…",
-    "moved": "Nibe Live: Ihre Wärmepumpe ist von __from__ nach __to__ umgezogen. Die Geräte wurden aktualisiert.",
+    "connecting": "Verbindung zu Ihrem Gerät wird hergestellt…",
+    "unreachable": "Ihr Gerät unter __host__ ist nicht erreichbar. Prüfen Sie, ob es im Netzwerk ist und ob sich seine IP-Adresse geändert hat.",
+    "refused": "Ihr Gerät unter __host__ hat die Verbindung abgelehnt. Prüfen Sie, ob Modbus TCP am Gerät aktiviert ist.",
+    "silent": "Ihr Gerät unter __host__ antwortet nicht mehr. Verbindung wird neu aufgebaut…",
+    "no_data": "Unter __host__ antwortet etwas, liefert aber keine NIBE-Daten. Prüfen Sie, ob die IP die Ihres Geräts ist und Modbus TCP aktiv ist (Menü 7.5.9).",
+    "searching": "Ihr Gerät unter __host__ ist nicht erreichbar. Es wird im Netzwerk gesucht…",
+    "moved": "Nibe Live: Ihr Gerät ist von __from__ nach __to__ umgezogen. Die Geräte in Homey wurden aktualisiert.",
     "address_in_use": "Eine andere gekoppelte Wärmepumpe verwendet bereits __host__."
   },
   "autopilot": {
@@ -185,7 +185,7 @@
         "before_use": "rechtzeitig für den folgenden Verbrauch; Tagesmittel __mean__"
       },
       "cost": "Erwartete Kosten __cost__. Preise sind bis heute Mitternacht bekannt.",
-      "shadow": "Testlauf: an der Wärmepumpe wird nichts geändert.",
+      "shadow": "Testlauf: an Ihrem Gerät wird nichts geändert.",
       "tomorrow": "morgen um __time__",
       "cost_tomorrow": "Erwartete Kosten __cost__. Preise sind bis morgen Mitternacht bekannt.",
       "today": "um __time__",
@@ -199,14 +199,14 @@
         "surplus": "Solarüberschuss",
         "reserve": "Sicherheitsreserve",
         "running": "Lädt bereits",
-        "pump": "Von der Wärmepumpe gestartet"
+        "pump": "Von Ihrem Gerät gestartet"
       },
       "detail": {
         "price": "Auf __target__ °C, etwa __duration__, zu __price__/kWh; Tagesmittel __mean__.",
         "surplus": "Auf __target__ °C, etwa __duration__, __share__ % aus Solarüberschuss.",
         "reserve": "Der Speicher hat nur noch __litres__ L, unter der Sicherheitsreserve von __reserve__ L, oben __top__ °C. Auf __target__ °C, etwa __duration__, zu __price__/kWh.",
-        "pump": "Die Wärmepumpe startete bei __top__ °C nach ihrer eigenen Starttemperatur und lädt auf __stop__ °C.",
-        "pump_more": "Mehr Warmwasser ist an, daher lädt die Wärmepumpe auf __stop__ °C."
+        "pump": "Ihr Gerät startete bei __top__ °C nach seiner eigenen Starttemperatur und lädt auf __stop__ °C.",
+        "pump_more": "Mehr Warmwasser ist an, daher lädt Ihr Gerät auf __stop__ °C."
       },
       "plan": {
         "as_planned": "Wie geplant.",
@@ -232,8 +232,8 @@
       "duration_h": "__h__ Std.",
       "write_failed": "Autopilot konnte keine Warmwasserladung starten: __error__",
       "blocked": {
-        "hot_water_off": "Autopilot Warmwasser wartet: Warmwasser ist an der Pumpe ausgeschaltet.",
-        "spa": "Autopilot Warmwasser wartet: Schalte die Smarte Preisanpassung für Warmwasser an der Pumpe aus.",
+        "hot_water_off": "Autopilot Warmwasser wartet: Warmwasser ist an Ihrem Gerät ausgeschaltet.",
+        "spa": "Autopilot Warmwasser wartet: Schalten Sie die Smarte Preisanpassung für Warmwasser an Ihrem Gerät aus.",
         "smart_control": "Autopilot Warmwasser wartet: Der Warmwasserbedarf steht auf Smart Control."
       }
     },
@@ -255,28 +255,28 @@
       },
       "cost": "Erwartete Kosten __cost__. Preise sind bis heute Mitternacht bekannt.",
       "cost_tomorrow": "Erwartete Kosten __cost__. Preise sind bis morgen Mitternacht bekannt.",
-      "shadow": "Testlauf: an der Wärmepumpe wird nichts geändert.",
+      "shadow": "Testlauf: an Ihrem Gerät wird nichts geändert.",
       "reason": {
         "cheap": "Günstigste Stunden",
         "before_use": "Rechtzeitig für den Verbrauch",
         "surplus": "Solarüberschuss",
         "reserve": "Sicherheitsreserve",
         "running": "Lädt bereits",
-        "pump": "Von der Wärmepumpe gestartet"
+        "pump": "Von Ihrem Gerät gestartet"
       },
       "moved_repriced": "Verschoben von __was__ auf __time__: die Stunden ab __was__ kosten jetzt __wasNow__/kWh statt __wasPrice__, daher lädt sie auf __target__ °C zu __price__/kWh."
     },
     "hotwater_setting": {
-      "no_device": "Autopilot Warmwasser braucht das Warmwasser-Gerät dieser Pumpe. Füge es zuerst hinzu.",
+      "no_device": "Autopilot Warmwasser braucht das Warmwasser-Gerät. Fügen Sie es zuerst hinzu.",
       "no_tank": "Wähle zuerst die Speichergröße: Warmwasser-Gerät → Reparieren."
     },
     "heating": {
       "warning": {
-        "feed_failed": "Autopilot Heizung gestoppt: Die Pumpe hat die Außentemperatur nicht übernommen. Menü 7.5.9.2 prüfen und unter Heizung → Reparieren wieder einschalten.",
+        "feed_failed": "Autopilot Heizung gestoppt: Ihr Gerät hat die Außentemperatur nicht übernommen. Menü 7.5.9.2 prüfen und unter Heizung → Reparieren wieder einschalten.",
         "no_outdoor": "Autopilot Heizung pausiert: keine Außentemperatur.",
         "spa_on": "Autopilot Heizung pausiert: Smart price adaption ist für die Heizung an.",
-        "room_control": "Autopilot Heizung pausiert: Raumfühlerregelung ist in der Pumpe an.",
-        "immersion_only": "Autopilot Heizung pausiert: Die Pumpe läuft nur mit dem Heizstab.",
+        "room_control": "Autopilot Heizung pausiert: Raumfühlerregelung ist in Ihrem Gerät an.",
+        "immersion_only": "Autopilot Heizung pausiert: Ihr Gerät läuft nur mit dem Heizstab.",
         "no_model": "Autopilot Heizung lernt Ihr Haus noch.",
         "mode_off": "Autopilot Heizung ist aus."
       },
@@ -294,13 +294,13 @@
         "paused": {
           "no_outdoor": "Pausiert: Außentemperatur meldet nicht mehr",
           "spa_on": "Pausiert: Smart price adaption ist für die Heizung an",
-          "room_control": "Pausiert: Raumfühlerregelung ist an",
-          "immersion_only": "Pausiert: Die Pumpe läuft nur mit dem Heizstab",
-          "feed_failed": "Gestoppt: Die Pumpe hat die Außentemperatur nicht übernommen",
+          "room_control": "Pausiert: Raumfühlerregelung ist in Ihrem Gerät an",
+          "immersion_only": "Pausiert: Ihr Gerät läuft nur mit dem Heizstab",
+          "feed_failed": "Gestoppt: Ihr Gerät hat die Außentemperatur nicht übernommen",
           "mode_off": "Aus",
           "no_model": "Lernt Ihr Haus"
         },
-        "range_off": "Komfortbereich ist Aus: die Pumpe sieht die echte Außentemperatur"
+        "range_off": "Komfortbereich ist Aus: Ihr Gerät sieht die echte Außentemperatur"
       },
       "status_name": {
         "learning": "Lernt",
@@ -317,17 +317,17 @@
       },
       "verify": {
         "not_heating": "Autopilot Heizung wird am Gerät Heizung eingerichtet.",
-        "room_control": "Zuerst die Raumfühlerregelung in der Pumpe ausschalten.",
+        "room_control": "Zuerst die Raumfühlerregelung in Ihrem Gerät ausschalten.",
         "no_outdoor": "Noch keine Außentemperatur: Sensor wählen oder Standort für die Wettervorhersage festlegen.",
-        "not_followed": "Die Pumpe hat die Außentemperatur nicht übernommen. Prüfen, ob Menü 7.5.9.2 einen externen BT1 erlaubt."
+        "not_followed": "Ihr Gerät hat die Außentemperatur nicht übernommen. Prüfen, ob Menü 7.5.9.2 einen externen BT1 erlaubt."
       },
       "not_on": "Autopilot Heizung ist nicht an.",
       "no_thermostat": "Das Heizungsgerät hat kein Thermostat zum Einstellen."
     },
     "smart": {
-      "no_spa": "Diese Pumpe hat keine Smart price adaption.",
+      "no_spa": "Ihr Gerät hat keine Smart price adaption.",
       "no_heating": "Zuerst das Gerät Heizung hinzufügen.",
-      "verify_first": "Schalten Sie Autopilot unter Heizung → Reparieren → Smart-Modus ein: dort wird zuerst geprüft, dass die Pumpe die Außentemperatur übernimmt.",
+      "verify_first": "Schalten Sie Autopilot unter Heizung → Reparieren → Smart-Modus ein: dort wird zuerst geprüft, dass Ihr Gerät die Außentemperatur übernimmt.",
       "spa_took_over": {
         "heating": "Smart price adaption wurde für die Heizung eingeschaltet, daher hat Autopilot Heizung gestoppt.",
         "hotwater": "Smart price adaption wurde für Warmwasser eingeschaltet, daher hat Autopilot Warmwasser gestoppt."
