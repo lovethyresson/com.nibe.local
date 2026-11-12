@@ -32,14 +32,18 @@ export const LIVE_LIMITS: Limits = {
     maxBias: 3, maxCoastBias: 3, comfortWeight: 1.4,
 };
 
-/** The owner's profile as shift limits: how far, how long and on how small a price spread. */
+/** The owner's profile is an indoor tolerance (maintainer, 2026-11-12): Comfort ±0.5 °C, Save
+ *  ±3 °C, I'd rather freeze ±6 °C around the house's usual level. The outdoor shift, coast length
+ *  and price spread follow from it, sized like Ngenic's ±10 K and beyond; the tolerance, not the
+ *  shift, is the owner's promise. Lower comfort weights let the wider profiles use their room. */
 export const PROFILE_LIMITS: Record<PresetId, Limits> = {
-    comfortable: {...LIVE_LIMITS, lower: 0.3, upper: 0.3, margin: 0.6, maxCoastH: 2, maxBias: 1.5, maxCoastBias: 1.5},
-    save_some: LIVE_LIMITS,
-    save_most: {...LIVE_LIMITS, lower: 0.7, upper: 0.7, margin: 0.25, maxCoastH: 4, maxBias: 4, maxCoastBias: 4},
+    comfortable: {...LIVE_LIMITS, lower: 0.5, upper: 0.5, margin: 0.2, maxCoastH: 6, maxBias: 10, maxCoastBias: 10},
+    save_some: {...LIVE_LIMITS, lower: 3, upper: 3, margin: 0.1, maxCoastH: 12, maxBias: 15, maxCoastBias: 15, comfortWeight: 1.2},
+    save_most: {...LIVE_LIMITS, lower: 6, upper: 6, margin: 0, maxCoastH: 24, maxBias: 20, maxCoastBias: 20, comfortWeight: 1},
 };
+export const DEFAULT_PROFILE: PresetId = 'comfortable';
 export function profileLimits(profile: unknown): Limits {
-    return PROFILE_LIMITS[profile as PresetId] ?? LIVE_LIMITS;
+    return PROFILE_LIMITS[profile as PresetId] ?? PROFILE_LIMITS[DEFAULT_PROFILE];
 }
 
 export const FEED_EVERY_MS = 30_000;

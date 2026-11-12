@@ -1481,7 +1481,7 @@
         {
           "id": "autopilotProfile",
           "type": "dropdown",
-          "value": "save_some",
+          "value": "comfortable",
           "label": {
             "en": "Profile",
             "sv": "Profil",
@@ -1491,45 +1491,45 @@
             "da": "Profil"
           },
           "hint": {
-            "en": "How hard Autopilot moves heat away from expensive hours.",
-            "sv": "Hur mycket Autopilot flyttar värme bort från dyra timmar.",
-            "de": "Wie stark Autopilot Wärme aus teuren Stunden verschiebt.",
-            "nl": "Hoe sterk Autopilot warmte uit dure uren verschuift.",
-            "no": "Hvor mye Autopilot flytter varme bort fra dyre timer.",
-            "da": "Hvor meget Autopilot flytter varme væk fra dyre timer."
+            "en": "How far indoor may drift from its usual level to save money.",
+            "sv": "Hur långt inomhustemperaturen får avvika från sin vanliga nivå för att spara pengar.",
+            "de": "Wie weit die Innentemperatur von ihrem üblichen Wert abweichen darf, um Geld zu sparen.",
+            "nl": "Hoeveel de binnentemperatuur van het gewone niveau mag afwijken om geld te besparen.",
+            "no": "Hvor langt innetemperaturen kan avvike fra sitt vanlige nivå for å spare penger.",
+            "da": "Hvor langt indetemperaturen må afvige fra sit normale niveau for at spare penge."
           },
           "values": [
             {
               "id": "comfortable",
               "label": {
-                "en": "Comfortable",
-                "sv": "Bekväm",
-                "de": "Komfortabel",
-                "nl": "Comfortabel",
-                "no": "Komfortabel",
-                "da": "Komfortabel"
+                "en": "Comfort (±0.5 °C)",
+                "sv": "Komfort (±0,5 °C)",
+                "de": "Komfort (±0,5 °C)",
+                "nl": "Comfort (±0,5 °C)",
+                "no": "Komfort (±0,5 °C)",
+                "da": "Komfort (±0,5 °C)"
               }
             },
             {
               "id": "save_some",
               "label": {
-                "en": "Save some money",
-                "sv": "Spara lite pengar",
-                "de": "Etwas sparen",
-                "nl": "Wat besparen",
-                "no": "Spar litt penger",
-                "da": "Spar lidt penge"
+                "en": "Save (±3 °C)",
+                "sv": "Spara (±3 °C)",
+                "de": "Sparen (±3 °C)",
+                "nl": "Besparen (±3 °C)",
+                "no": "Spar (±3 °C)",
+                "da": "Spar (±3 °C)"
               }
             },
             {
               "id": "save_most",
               "label": {
-                "en": "Save the most",
-                "sv": "Spara mest",
-                "de": "Am meisten sparen",
-                "nl": "Het meest besparen",
-                "no": "Spar mest",
-                "da": "Spar mest"
+                "en": "I'd rather freeze (±6 °C)",
+                "sv": "Hellre frysa (±6 °C)",
+                "de": "Lieber frieren (±6 °C)",
+                "nl": "Liever kou lijden (±6 °C)",
+                "no": "Heller fryse (±6 °C)",
+                "da": "Hellere fryse (±6 °C)"
               }
             }
           ]

@@ -536,9 +536,14 @@ Autopilot (choose, checklist, outdoor sensor picker, profile + comfort, Verify, 
 status + reason + Insights on Heating, and Flow cards (status changed, status is, pause, resume,
 set profile). Design and as-built notes: `docs/autopilot-plan.md` §10.0.
 
-**Bench, profiles (34 SE3 days, live model, day-ahead forecast):** Comfortable fair 0.3 %, bias
-±1.1 K, heat −1.0 % (days −2.9…0.9 %); Save some 0.7 %, ±3.1 K, −1.4 % (−4.7…3.8 %); Save the most
-0.9 %, ±4.1 K, −1.7 % (−6.1…5.2 %). Indoor 21.4–21.7 °C in all three.
+**Profiles are how far indoor may drift (maintainer, 2026-11-12):** Comfort ±0.5 °C, Save ±3 °C,
+I'd rather freeze ±6 °C; the outdoor shift follows (±10 / ±15 / ±20 K, Ngenic went ±10). The first
+±1.5 / ±3 / ±4 K limits were too timid: shift size alone barely mattered (±10 K at the old 3 h and
+39 % spread: 0.9 %); coast length, price spread and comfort weight did. Bench (34 SE3 days, live
+model, day-ahead forecast), fair / gross / heat vs nothing / indoor: Comfort 1.4 % / 4.4 % / −2.2 % /
+21.1–21.8; Save 4.4 % / 10.2 % / −3.8 % / 20.6–22.1; Freeze 8.3 % / 25.5 % / −15.3 % / 20.1–22.6
+(mean 21.45: part of it is running colder). Single days swing far more (heat moved across
+midnight). All rests on the model; the live run has only tested 2 K so far.
 
 **Installing it switches the running feed off** (the old setting is gone): BT1 is handed back,
 then the maintainer turns Autopilot on in Heating → Repair → Autopilot. That is the UI test.

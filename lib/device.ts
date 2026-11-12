@@ -5,7 +5,7 @@ import {newHistoryFileName} from './autopilot/store-file';
 import {ChargeEvent, HotwaterAutopilot, HotwaterMode} from './autopilot/hotwater-shadow';
 import {DAY_TYPE_SETTING, readDayType} from './autopilot/day-type';
 import {Sample} from './autopilot/history';
-import {HeatingFeed, LiveMode, PumpFacts, StopReason, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits} from './autopilot/live';
+import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, StopReason, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits} from './autopilot/live';
 import {PRICE_SETTING, PriceControl, PriceFunction, priceControl, priceControlWrites, spaOn} from './autopilot/price-control';
 import {HeatingStatus, heatingStatus} from './autopilot/heating-status';
 import {forecastCorrection} from './autopilot/outdoor';
@@ -1549,7 +1549,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             mode: priceControl(settings.priceHeating),
             verified: this.getStoreValue('autopilotHeatingVerified') === true,
             paused: this.pausedUntil() > Date.now(),
-            profile: settings.autopilotProfile ?? 'save_some',
+            profile: settings.autopilotProfile ?? DEFAULT_PROFILE,
             comfort: mean === undefined ? settings.autopilotComfort ?? 21 : Math.round(mean * 2) / 2,
             spaHeating: spa ? spaOn(await this.readNamed(spa.master), await this.readNamed(spa.heating)) : false,
             roomControl: await this.readRoomControl() ?? null,

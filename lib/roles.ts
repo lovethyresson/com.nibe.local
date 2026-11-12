@@ -512,8 +512,8 @@ export function extraCapabilityOptions(role: Role, name: string, profile?: Model
                         nl: "Ingevoerde buitentemperatuur", no: "Innmatet utetemperatur", da: "Indfødt udetemperatur"},
                 decimals: 1};
     if (name === AUTOPILOT_SHIFT_CAPABILITY)
-        return {title: {en: "Autopilot shift", sv: "Autopilot förskjutning", de: "Autopilot-Verschiebung",
-                        nl: "Autopilot-verschuiving", no: "Autopilot-forskyvning", da: "Autopilot-forskydning"},
+        return {title: {en: "Outdoor temperature shift", sv: "Förskjutning av utetemperatur", de: "Verschiebung der Außentemperatur",
+                        nl: "Verschuiving buitentemperatuur", no: "Forskyvning av utetemperatur", da: "Forskydning af udetemperatur"},
                 decimals: 1};
     if (name === DAY_TYPE_CAPABILITY)
         return {title: {en: "Day type", sv: "Dagtyp", de: "Tagestyp", nl: "Dagtype", no: "Dagtype", da: "Dagtype"}};

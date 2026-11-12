@@ -3209,34 +3209,34 @@
             {
               "id": "comfortable",
               "label": {
-                "en": "Comfortable",
-                "sv": "Bekväm",
-                "de": "Komfortabel",
-                "nl": "Comfortabel",
-                "no": "Komfortabel",
-                "da": "Komfortabel"
+                "en": "Comfort (±0.5 °C)",
+                "sv": "Komfort (±0,5 °C)",
+                "de": "Komfort (±0,5 °C)",
+                "nl": "Comfort (±0,5 °C)",
+                "no": "Komfort (±0,5 °C)",
+                "da": "Komfort (±0,5 °C)"
               }
             },
             {
               "id": "save_some",
               "label": {
-                "en": "Save some money",
-                "sv": "Spara lite pengar",
-                "de": "Etwas sparen",
-                "nl": "Wat besparen",
-                "no": "Spar litt penger",
-                "da": "Spar lidt penge"
+                "en": "Save (±3 °C)",
+                "sv": "Spara (±3 °C)",
+                "de": "Sparen (±3 °C)",
+                "nl": "Besparen (±3 °C)",
+                "no": "Spar (±3 °C)",
+                "da": "Spar (±3 °C)"
               }
             },
             {
               "id": "save_most",
               "label": {
-                "en": "Save the most",
-                "sv": "Spara mest",
-                "de": "Am meisten sparen",
-                "nl": "Het meest besparen",
-                "no": "Spar mest",
-                "da": "Spar mest"
+                "en": "I'd rather freeze (±6 °C)",
+                "sv": "Hellre frysa (±6 °C)",
+                "de": "Lieber frieren (±6 °C)",
+                "nl": "Liever kou lijden (±6 °C)",
+                "no": "Heller fryse (±6 °C)",
+                "da": "Hellere fryse (±6 °C)"
               }
             }
           ]

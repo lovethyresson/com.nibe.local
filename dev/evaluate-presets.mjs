@@ -181,7 +181,14 @@ for (const [name, house] of Object.entries(houses)) {
         // The house here is the model itself, so trim holding comfort shows the inversion is
         // consistent, not that it works on the house: dev/check-supply-model.mjs is that check.
     }
-    if (shiftOnly) for (const [id, limits] of Object.entries(PROFILE_LIMITS)) {
+    // --shift-grid bias:band[:coastH[:margin]],… adds shift-only rows with other limits (e.g. 6:0.5,10:1).
+    const grid = (option('shift-grid') ?? '').split(',').filter(Boolean).map((g) => {
+        const [bias, band, coast, margin] = g.split(':').map(Number);
+        return [`±${bias}K/±${band}${coast ? '/' + coast + 'h' : ''}${margin !== undefined ? '/m' + margin : ''}`,
+            {...PROFILE_LIMITS.save_some, maxBias: bias, maxCoastBias: bias, lower: band, upper: band,
+                ...(coast ? {maxCoastH: coast} : {}), ...(margin !== undefined ? {margin} : {})}];
+    });
+    if (shiftOnly) for (const [id, limits] of [...Object.entries(PROFILE_LIMITS), ...grid]) {
         const runs = each((d, a) => runDay(house, pump, d, a, limits));
         const s = runs.map((r, i) => score(house, r, held[i]));
         const all = runs.flatMap((r) => r.biases);

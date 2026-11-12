@@ -1,12 +1,12 @@
 {
   "type": "number",
   "title": {
-    "en": "Autopilot shift",
-    "sv": "Autopilot förskjutning",
-    "de": "Autopilot-Verschiebung",
-    "nl": "Autopilot-verschuiving",
-    "no": "Autopilot-forskyvning",
-    "da": "Autopilot-forskydning"
+    "en": "Outdoor temperature shift",
+    "sv": "Förskjutning av utetemperatur",
+    "de": "Verschiebung der Außentemperatur",
+    "nl": "Verschuiving buitentemperatuur",
+    "no": "Forskyvning av utetemperatur",
+    "da": "Forskydning af udetemperatur"
   },
   "uiComponent": "sensor",
   "chartType": "stepLine",

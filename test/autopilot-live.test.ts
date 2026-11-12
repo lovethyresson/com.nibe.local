@@ -23,10 +23,11 @@ test('the heating Price control decides the feed mode', () => {
     assert.equal(liveMode('autopilot'), 'live');
 });
 
-test('profiles widen the shift from Comfortable to Save the most; unknown is Save some', () => {
-    assert.equal(profileLimits(undefined), LIVE_LIMITS);
-    assert.equal(profileLimits('save_some'), LIVE_LIMITS);
-    assert.ok(PROFILE_LIMITS.comfortable.maxBias < LIVE_LIMITS.maxBias && LIVE_LIMITS.maxBias < PROFILE_LIMITS.save_most.maxBias);
+test('profiles are indoor tolerances, ±0.5 / ±3 / ±6 °C, and widen the shift with them; unknown is Comfort', () => {
+    assert.equal(profileLimits(undefined), PROFILE_LIMITS.comfortable);
+    assert.deepEqual(['comfortable', 'save_some', 'save_most'].map((id) => profileLimits(id).lower), [0.5, 3, 6]);
+    assert.ok(PROFILE_LIMITS.comfortable.maxBias < PROFILE_LIMITS.save_some.maxBias
+        && PROFILE_LIMITS.save_some.maxBias < PROFILE_LIMITS.save_most.maxBias);
     assert.ok(PROFILE_LIMITS.comfortable.margin > PROFILE_LIMITS.save_most.margin);
     for (const id of ['comfortable', 'save_some', 'save_most'] as const) {
         const plan = planLive(input(), PROFILE_LIMITS[id]);

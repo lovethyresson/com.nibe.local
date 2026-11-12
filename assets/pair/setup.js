@@ -305,7 +305,7 @@ function NibeSetup(options) {
         shell.appendChild(stop); back(temperature);
     }
     // ---- Autopilot heating (Repair only): choose, checklist, profile, Verify, Return to NIBE ----
-    var ap = {status: null, choice: 'autopilot', profile: 'save_some', comfort: 21};
+    var ap = {status: null, choice: 'autopilot', profile: 'comfortable', comfort: 21};
     function a(key, tokens) {
         var text = Homey.__('pair.setup.autopilot.' + key);
         Object.keys(tokens || {}).forEach(function (k) { text = text.split('__' + k + '__').join(tokens[k]); });
