@@ -495,7 +495,7 @@ Offline only; nothing runs on the Homey yet. Design: `docs/autopilot-plan.md` §
     setting `autopilotOutdoorSensor`), which reads ~1 K warmer. The fit mixes both until the new
     source has 14 days. 5b stays blocked until the level-off is read.
 
-## Autopilot heating: shift-only live test (built 2026-11-11, not installed)
+## Autopilot heating: shift-only live test (built 2026-11-11, installed switched off 2026-11-12)
 
 **Why.** The comfort bias rests on the model's steady level, which the +6 run has not confirmed
 (entry above). Price shifting does not: `lib/autopilot/live.ts` plans with `pump = {lever}` (the
@@ -513,8 +513,9 @@ out of the wired-BT1 model. Switch: app setting `autopilotLive.<heating device i
 prices: ease off at 22:00 (−2 K) and 07:00–08:30 (−3 K), indoor −0.05 K.
 
 **Test-run protocol (only after the maintainer's go to install):**
-- [ ] Install with the switch off; one slot later confirm nothing wrote 5217 (input 1 tracks the
-      wired BT1, log has no "Autopilot heating: started").
+- [x] Install with the switch off (2026-11-12 ~13:55, f57b79e): app running, all four devices
+      available, no `autopilotLive.*` setting. Input 1 read 6.9 °C against Utetemperatur 5.3 °C,
+      so the pump is on its wired BT1, not a feed.
 - [ ] Preconditions: SPA heating off, room-sensor control off, menu 7.5.9.2 on, outdoor sensor
       picked (Utetemperatur since 2026-11-11 21:15).
 - [ ] Turn on: `homey api raw -X PUT --path /api/manager/apps/app/com.nibe.local/setting/autopilotLive.<id>
