@@ -71,6 +71,17 @@ for permissions, missing readings and returning to your native sensor.
 Hot Water Setup retains the tank catalogue, automatic estimate and custom capacity options.
 Repair saves directly with **Save changes**.
 
+### Wireless room sensors and zones
+
+With NIBE wireless room sensors, the Heating thermostat can show one sensor's temperature instead of
+the pump's average, and each sensor can have its own temperature on the Heating device. The pump
+doesn't name its sensors, so Heating Setup lists each one with its current reading: pick the one that
+matches the room.
+
+On a pump with more than one zone, Heating Setup first asks which zone the thermostat sets. Pick the
+zone whose room sensor controls the heating (menu 1.3.3). Run **Repair** on the Heating device to set
+up either one.
+
 ### Set outdoor temperature (BT1)
 
 The Heating device's **Set outdoor temperature (BT1)** Flow action only takes effect when

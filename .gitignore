@@ -19,3 +19,4 @@ advancedflow*.json
 /homey-dump/
 # Working plan, kept local.
 /docs/multiple-climate-systems-plan.md
+/docs/zones-plan.md

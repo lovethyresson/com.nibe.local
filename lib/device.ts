@@ -72,6 +72,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     // pump turning SPA on is still seen.
     private spaSeen = new Map<string, any>();
     private indoorTimer: ReturnType<typeof setTimeout> | null = null;
+    // When a selection was last applied. A Repair can move a register to another address (a
+    // different zone or sensor), and the first read there is not a change made on the pump.
+    private selectionAppliedAt = 0;
     private indoorWork: Promise<any> | null = null;
     private indoorStopped = false;
     private indoorStatus: any = {state: 'idle'};
@@ -593,6 +596,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // degree minutes in one — and nobody "changed" those, the pump just recomputed them.
         if (register.noAction)
             return;
+        // Right after Repair the "old" value may belong to another address: switching the
+        // thermostat from zone 1 to zone 2 logged zone 2's setpoint as a pump-side change.
+        if (Date.now() - this.selectionAppliedAt < NibePumpDevice.WRITE_ECHO_MS)
+            return;
         const ours = this.recentWrites.get(register.name);
         if (ours && ours.value === value && Date.now() - ours.at < NibePumpDevice.WRITE_ECHO_MS)
             return;
@@ -943,6 +950,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     async applySelection(selection: Selection) {
         this.log("Applying selection", JSON.stringify(selection));
+        this.selectionAppliedAt = Date.now();
         await this.setStoreValue('selection', selection);
         // The owner has now chosen moved groups here themselves; no handover may overwrite that.
         for (const move of movedGroups)

@@ -29,6 +29,19 @@ Notification errors are logged and retry on the next app start. Delivery and set
 an atomic transaction: a crash after Homey accepts a notification but before its ID is saved can repeat it.
 This is a timeline entry; phone push behavior follows Homey's notification settings.
 
+## Announcement in 1.5.0
+
+The active `1.5.0-update` replaces `1.4.7-update` and covers everything since live 1.4.8 (test-only
+1.4.9–1.4.11). The ventilation and Flow card snippets are gone: 1.4.7 delivered them, and anyone skipping
+from earlier gets only current news. The 0xFFFF fix needs nothing from the owner, so it has no snippet.
+
+### S-series heating device
+
+Your Heating thermostat can now follow one NIBE wireless room sensor, and on pumps with several zones you choose which zone it sets. Run Repair on your Nibe Heating device to set it up.
+
+Both features live on the same Repair screen (Heating Setup), so they share one snippet and one step.
+S-series only: the zone setpoints and wireless slots are in the S register table. All six languages.
+
 ## Announcement in 1.4.7
 
 The active `1.4.7-update` replaces `1.4.5-update` (never live) and summarises everything since 1.4.2. It leads with

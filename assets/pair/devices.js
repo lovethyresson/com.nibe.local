@@ -47,7 +47,7 @@ function renderSources(deviceIndex, candidate, capName, parent) {
         only.className = 'register-sources';
         var text = document.createElement('div');
         text.className = 'register-desc';
-        text.textContent = Homey.__('pair.sources.using') + ' ' + (sources[0].address === 116 ? Homey.__('pair.setup.source_cs1') : sources[0].label)
+        text.textContent = Homey.__('pair.sources.using') + ' ' + nibeSourceLabel(sources[0])
             + (sources[0].value === undefined || sources[0].value === null
                 ? '' : ' · ' + sources[0].value + ' °C');
         only.appendChild(text);
@@ -81,9 +81,9 @@ function renderSources(deviceIndex, candidate, capName, parent) {
         radio.dataset.device = deviceIndex;
         radio.dataset.source = capName;
         option.appendChild(radio);
-        var text = ' ' + source.label;
+        var text = ' ' + nibeSourceLabel(source);
         if (source.value !== undefined && source.value !== null)
-            text += ' — ' + source.value;
+            text += ' — ' + source.value + ' °C';
         option.appendChild(document.createTextNode(text));
         box.appendChild(option);
     });
@@ -180,8 +180,12 @@ function render() {
             var sources = document.createElement('div');
             renderSources(index, candidate, 'measure_temperature', sources);
             if (!sources.childNodes.length) sources.textContent = Homey.__('pair.setup.no_nibe_sources');
+            // Never preselected when pairing: zone 1 is only detection's default, and on a pump
+            // whose zone 1 merely displays, a silent default is exactly the wrong thermostat.
+            var zones = nibeZoneCards((candidate.choices || {}).target_temperature,
+                {name: 'source:' + index + ':target_temperature', device: index});
             setupSections[index] = {id: String(index), role: candidate.role,
-                title: Homey.__('pair.setup.heating'), description: candidate.description, sources: sources};
+                title: Homey.__('pair.setup.heating'), description: candidate.description, sources: sources, zones: zones};
         }
 
         if (groups.length) {

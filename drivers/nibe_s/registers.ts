@@ -55,6 +55,16 @@ export const sgReadyModeMap = Object({
     3: "Overcapacity"
 });
 
+// Wireless room sensors (input 2800.., step 2), found on Pro-Z's S1156 (fw 4.14.6) by a scan of the
+// whole input space: 2800 = 24.8 and 2802 = 22.0, and their mean is exactly climate system 1's
+// average at 116 (23.4). NIBE's changelog 2.27.5 added "registers to read data from wireless units"
+// without naming them. The slot order is NOT the zone order (1.3.4) and NOT the wireless-unit order
+// (5.4): his first slot is the sensor listed second in both. So the app never names a slot — each is
+// offered with its live reading and the user picks by value. 2801/2803 mirrored 2800/2802 exactly and
+// are left unmapped. Eight slots, not NIBE's forty units: one house rarely has more, and each costs a
+// detection read and a compose entry.
+export const wirelessSlots = Array.from({length: 8}, (_, i) => 2800 + 2 * i);
+
 export const registers: Register[] = [
     // External sensor mailboxes, not persistent settings or displayed measurements.
     // Live S1155 test: FC6 writes are accepted, then the pump clears the mailbox to
@@ -106,9 +116,15 @@ export const registers: Register[] = [
      sources: [
          {address: 116, label: {en: "Climate system 1 average — wired or wireless room sensors", sv: "Medelvärde klimatsystem 1 — trådade eller trådlösa rumsgivare"}},
          {address: 111, label: {en: "Climate system 6 average", sv: "Medelvärde klimatsystem 6"}},
-         {address:  26, label: {en: "Room sensor BT50 — wired or external input", sv: "Rumsgivare BT50 — trådad eller extern ingång"}}
+         {address:  26, label: {en: "Room sensor BT50 — wired or external input", sv: "Rumsgivare BT50 — trådad eller extern ingång"}},
+         ...wirelessSlots.map((address) => ({address, label: {en: "Wireless room sensor", sv: "Trådlös rumsgivare"}}))
      ],
      info: {en: "Indoor temperature used to regulate climate system 1", sv: "Inomhustemperatur som reglerar klimatsystem 1"}},
+    // One wireless room sensor each, read-only. Opt-in: offered only where detection read a room
+    // temperature at that slot, so a pump without wireless sensors never gets eight empty rows.
+    ...wirelessSlots.map((address, i): Register => ({address, name: `measure_temperature.i${address}_wireless_${i + 1}`,
+     direction: Dir.In, group: "heating", scale: 10, optIn: true, plausible: {min: 5, max: 40},
+     info: {en: "The temperature at one wireless room sensor. NIBE's slot order follows neither the zones nor menu 5.4, so match it by its reading", sv: "Temperaturen vid en trådlös rumsgivare. NIBE:s ordning följer varken zonerna eller meny 5.4, så känn igen den på värdet"}})),
     // Rad 2 Framledning
     {address: 1017, name: "measure_temperature.i1017_calculated_supply", direction: Dir.In, group: "heating", scale:  10, // Beräknad framledning klimatsystem 1
      info: {en: "Supply temperature the pump is aiming for (climate system 1)", sv: "Framledningstemperatur pumpen siktar på (klimatsystem 1)"}},
@@ -364,14 +380,19 @@ export const registers: Register[] = [
     // Not register 206: that one accepts writes and the controller ignores them — a controlled
     // A/B/A experiment swung it 10 °C either side of the room temperature and moved neither the
     // calculated supply nor the degree-minute rate (dev/experiment-room-control.mjs).
+    //
+    // Zones 2-40 sit at 2507..2583 (step 2, same shape), in the order menu 1.3.4 lists them. The
+    // thermostat drives ONE zone, and which one is the user's call: Pro-Z's S1156 (fw 4.14.6) has
+    // zone 1 display-only and zone 2 controlling, so a thermostat hard-wired to 2505 set a zone
+    // that regulates nothing. NIBE's own model (Smart Home manual M12858): each zone computes a
+    // supply and the hottest one drives the climate system, so a zone is a demand signal on a
+    // shared circuit, never a room heated on its own — which is why zones are a choice of
+    // thermostat target here and not devices. An unconfigured zone reads a flat 0, which
+    // altPlausible rejects, so only real zones are offered; a single-zone pump has nothing to pick.
     {address: 2505, name: "target_temperature",                                direction: Dir.Out, group: "heating",    scale: 10, size: 32, min: 5, max: 35,
-     plausible: {min: 5, max: 35}, // Rumstemperatur börvärde zon 1
-     info: {en: "The indoor temperature the pump aims for (menu 1.1, zone 1)", sv: "Inomhustemperaturen pumpen siktar på (meny 1.1, zon 1)"}},
-    // Zones 2-40 exist at 2507..2583 (step 2, same shape) but are deliberately NOT mapped. A
-    // setpoint on its own is not zone support: without per-zone temperatures and names it is a
-    // row of anonymous sliders, and on a single-zone pump they all answer anyway (reading a flat
-    // 0 rather than their documented default). Add them together with the rest of the zone model
-    // or not at all.
+     plausible: {min: 5, max: 35}, altPlausible: {min: 5, max: 35}, // Rumstemperatur börvärde zon 1
+     sources: Array.from({length: 40}, (_, i) => ({address: 2505 + 2 * i, label: {en: `Zone ${i + 1}`, sv: `Zon ${i + 1}`}})),
+     info: {en: "The indoor temperature the pump aims for (menu 1.1, the chosen zone)", sv: "Inomhustemperaturen pumpen siktar på (meny 1.1, vald zon)"}},
     //
     // Smart Price Adaption. Worth having as a setting in its own right, and it is also the prime
     // suspect for why writes to the zone setpoint (2505) are accepted and then discarded: SPA

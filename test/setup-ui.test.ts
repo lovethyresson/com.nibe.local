@@ -3,29 +3,33 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const {JSDOM} = require('jsdom');
 const english = JSON.parse(readFileSync('locales/en.json', 'utf8'));
-function fixture(mode = 'pair', role = 'hotwater') {
+function fixture(mode = 'pair', role = 'hotwater', zoneCount = 0, storedZone?: number) {
     const dom = new JSDOM(readFileSync(mode === 'pair' ? 'drivers/nibe_s/pair/devices.html' : 'drivers/nibe_s/repair/features.html', 'utf8'), {runScripts: 'outside-only'});
     const win = dom.window;
     const created: any[] = []; const emitted: any[] = [];
     const sources = [{address: 116, label: 'Climate system 1', value: 22}, {address: 26, label: 'BT50', value: 21}];
     const tanks = {minLitres: 20, maxLitres: 1000, tanks: [{id: 'vpb', litres: 180, name: 'VPB 200'}]};
+    const zones = Array.from({length: zoneCount}, (_, i) => ({address: 2505 + 2 * i, label: 'Zone ' + (i + 1), value: 20 + i}));
     const group = {id: 'heating', name: 'Heating', selected: true,
-        caps: [{name: 'measure_temperature', title: 'Indoor temperature', detected: true}],
-        registers: [{name: 'measure_temperature', title: 'Indoor temperature'}]};
+        caps: [{name: 'measure_temperature', title: 'Indoor temperature', detected: true},
+            {name: 'target_temperature', title: 'Target temperature', detected: true}],
+        registers: [{name: 'measure_temperature', title: 'Indoor temperature'}, {name: 'target_temperature', title: 'Target temperature'}]};
+    const heatingChoices = zoneCount ? {measure_temperature: sources, target_temperature: zones} : {measure_temperature: sources};
     const candidates = ['heating', 'hotwater'].map((role, i) => ({role, name: role, description: role + ' description', detected: true,
         device: {name: role, data: {id: role}, store: {selection: {addresses: {measure_temperature: 116}}}},
-        groups: [group], choices: i ? {} : {measure_temperature: sources}, tanks: i ? tanks : null}));
+        groups: [group], choices: i ? {} : heatingChoices, tanks: i ? tanks : null}));
     win.Homey = {__: (key: string) => key.split('.').reduce((o: any, k: string) => o?.[k], english) ?? key,
         setTitle() {}, showLoadingOverlay() {}, hideLoadingOverlay() {}, done() {}, alert(message: string) { throw new Error(message); },
         createDevice: async (d: any) => { created.push(d); },
         emit(name: string, data: any, callback: any) {
             emitted.push({name, data});
             const results: any = {get_context: {mode, role, groups: [group], tanks,
-                selection: {groups: {heating: true}, hotwater: {tankId: 'custom', litres: 275, inletC: 9}}},
+                selection: {groups: {heating: true}, hotwater: {tankId: 'custom', litres: 275, inletC: 9},
+                    addresses: storedZone ? {target_temperature: storedZone} : {}}},
                 get_indoor_sensors: Array.from({length: 30}, (_, i) => ({deviceId: 'sensor' + i, capabilityId: 'measure_temperature', name: 'Sensor ' + i, room: i < 15 ? 'Home / Ground floor' : 'Home / Upstairs', type: 'sensor', app: 'test', value: 20 + i / 10, available: true, updatedAt: Date.now()})),
                 activate_indoor: {measured: 21},
                 validate_indoor_sensors: {config: {...data, state: 'pending'}, value: 21},
-                get_pairing_devices: candidates, get_detection: {choices: {measure_temperature: sources}}};
+                get_pairing_devices: candidates, get_detection: {choices: heatingChoices}};
             callback(null, results[name]);
         }};
     win.document.querySelectorAll('[data-i18n]').forEach((n: any) => { n.textContent = win.Homey.__(n.dataset.i18n); });
@@ -151,4 +155,53 @@ test('pump instructions are grouped and successful verification celebrates confi
     assert.match(success.textContent, /21 °C/); assert.match(success.textContent, /1 sensor connected/);
     f.click('Continue'); assert.ok(f.win.document.querySelector('.setup-menu'));
     f.dom.window.close();
+});
+
+test('pairing asks for the thermostat zone as its own step, with nothing preselected', async () => {
+    const f = fixture('pair', 'hotwater', 2); const {win, click, menu} = f;
+    click('Continue'); menu('Heating Setup');
+    const doc = win.document.getElementById('nibe-pair-setup');
+    assert.equal(doc.querySelector('.pair-hero-title').textContent, 'Which zone should the thermostat set?');
+    const cards = doc.querySelectorAll('.setup-shell .setup-source-card');
+    assert.equal(cards.length, 2);
+    assert.match(cards[1].textContent, /Zone 2.*Target 21 °C/);
+    assert.equal(doc.querySelector('input[data-source="target_temperature"]:checked'), null, 'no silent zone 1 default');
+    const next = [...doc.querySelectorAll('.setup-shell button')].find((b: any) => b.textContent === 'Continue') as any;
+    assert.equal(next.disabled, true);
+    const zone2 = doc.querySelector('input[data-source="target_temperature"][value="2507"]');
+    zone2.click();
+    assert.equal(next.disabled, false);
+    assert.ok(cards[1].classList.contains('is-selected'));
+    click('Continue');
+    assert.equal(doc.querySelector('.pair-hero-title').textContent, 'Choose your temperature source');
+    assert.equal(doc.querySelector('.setup-shell input[data-source="target_temperature"]'), null, 'zone not repeated');
+    click('Back');
+    assert.equal(doc.querySelector('input[data-source="target_temperature"]:checked').value, '2507', 'Back keeps the pick');
+    click('Continue'); click('Save setup'); menu('Hot Water Setup'); click('Save setup'); click('Review setup');
+    assert.match(doc.querySelector('.setup-shell').textContent, /the thermostat sets Zone 2/);
+    click('Add selected devices'); await new Promise(resolve => setImmediate(resolve));
+    assert.equal(f.created[0].store.selection.addresses.target_temperature, 2507);
+    f.dom.window.close();
+});
+
+test('Repair preselects the stored zone and saves a new pick; a single zone skips the step', () => {
+    const f = fixture('repair', 'heating', 3);
+    f.click('Continue'); f.menu('Heating Setup');
+    const doc = f.win.document.getElementById('nibe-repair-setup');
+    assert.equal(doc.querySelector('.pair-hero-title').textContent, 'Which zone should the thermostat set?');
+    doc.querySelector('input[data-source="target_temperature"][value="2509"]').click();
+    f.click('Continue'); f.click('Save setup'); f.menu('Hot Water Setup'); f.click('Save setup'); f.click('Save changes');
+    const saved = f.emitted.find(e => e.name === 'selection_done');
+    assert.equal(saved.data.sources.target_temperature, 2509);
+    f.dom.window.close();
+
+    const again = fixture('repair', 'heating', 3, 2507);
+    again.click('Continue'); again.menu('Heating Setup');
+    assert.equal(again.win.document.querySelector('input[data-source="target_temperature"]:checked').value, '2507');
+    again.dom.window.close();
+
+    const one = fixture('repair', 'heating', 1); one.click('Continue'); one.menu('Heating Setup');
+    assert.equal(one.win.document.getElementById('nibe-repair-setup').querySelector('.pair-hero-title').textContent, 'Choose your temperature source');
+    assert.equal(one.win.document.querySelector('input[data-source="target_temperature"]'), null);
+    one.dom.window.close();
 });

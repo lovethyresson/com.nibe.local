@@ -39,6 +39,10 @@ function registerChecked(group, register, checked) {
     // knew better would stay ticked and be re-applied every time.
     if (checked && unsupported(register))
         return false;
+    // Opt-in registers (wireless sensor slots) are off unless this detection pass read them.
+    if (register.optIn)
+        return checked && !!(detection && detection.samples && detection.samples[register.name]
+            && detection.samples[register.name].read);
     return checked;
 }
 
@@ -78,7 +82,7 @@ function renderSources(register, parent) {
     if (sources.length === 1) {
         var only = document.createElement('div');
         only.className = 'register-desc';
-        only.textContent = Homey.__('pair.sources.using') + ' ' + (sources[0].address === 116 ? Homey.__('pair.setup.source_cs1') : sources[0].label)
+        only.textContent = Homey.__('pair.sources.using') + ' ' + nibeSourceLabel(sources[0])
             + (sources[0].value === undefined || sources[0].value === null
                 ? '' : ' · ' + sources[0].value + ' °C');
         box.appendChild(only);
@@ -103,9 +107,9 @@ function renderSources(register, parent) {
         radio.dataset.source = register.name;
         option.appendChild(radio);
 
-        var text = ' ' + source.label;
+        var text = ' ' + nibeSourceLabel(source);
         if (source.value !== undefined && source.value !== null)
-            text += ' — ' + source.value;
+            text += ' — ' + source.value + ' °C';
         option.appendChild(document.createTextNode(text));
         box.appendChild(option);
     });
@@ -224,8 +228,12 @@ function render() {
             if (r.name === 'measure_temperature') renderSources(r, sources);
         }); });
         if (!sources.childNodes.length) sources.textContent = Homey.__('pair.setup.no_nibe_sources');
+        // Repair preselects the zone stored by an earlier choice; a device that never chose has none.
+        var stored = context.selection && context.selection.addresses && context.selection.addresses.target_temperature;
+        var zones = nibeZoneCards(detection && detection.choices && detection.choices.target_temperature,
+            {name: 'source:target_temperature', stored: stored});
         setupSections.push({id: 'heating', role: 'heating', title: Homey.__('pair.setup.heating'),
-            description: Homey.__('pair.setup.heating_intro'), sources: sources});
+            description: Homey.__('pair.setup.heating_intro'), sources: sources, zones: zones});
     }
     if (context.smart) setupSections.push({id: 'smart', role: 'smart', title: Homey.__('pair.setup.smart.title'),
         description: Homey.__('pair.setup.smart.section_' + (context.role === 'hotwater' ? 'hotwater' : 'heating'))});
