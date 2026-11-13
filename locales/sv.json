@@ -512,8 +512,8 @@
         "learning": "Lär sig ditt hus · dag __day__ av __of__",
         "learning_short": "Lär sig ditt hus",
         "peak": "priserna toppar __from__–__to__",
-        "easing_off": "Drar ner till __until__",
-        "preheating": "Förvärmer till __until__",
+        "easing_off": "Till __until__",
+        "preheating": "Till __until__",
         "holding": "Håller: inget att vinna på att flytta nu",
         "holding_even": "Håller: priserna är för jämna för att flytta",
         "next_easing_off": "Håller · drar ner kl. __at__",
@@ -530,7 +530,8 @@
         },
         "range_off": "Komfortspann är Av: din enhet ser den verkliga utetemperaturen",
         "sun": "sol väntas __from__–__to__",
-        "waiting": "Startar: väntar på prognosen"
+        "waiting": "Startar: väntar på prognosen",
+        "before": "innan __why__"
       },
       "status_name": {
         "learning": "Lär sig",
@@ -575,7 +576,7 @@
       "range": {
         "comfortable": "Komfort ±0,5 °C",
         "save_some": "Spara ±3 °C",
-        "save_most": "Hellre frysa ±6 °C",
+        "save_most": "Frysa ±6 °C",
         "off": "Av"
       },
       "hotwater": {

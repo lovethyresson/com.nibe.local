@@ -80,7 +80,9 @@ export function heatingStatus(s: FeedSnapshot, now: number, t: Translate, time: 
         // Easing off with no price peak to name: the sun, when the plan counts it.
         const sunny = sign < 0 && !peakText && s.sunTrusted ? sunRun(s.forecast ?? [], at, end + 16) : undefined;
         const why = peakText || (sunny ? t('sun', {from: clock(sunny.from), to: clock(sunny.to)}) : '');
-        return {status: sign < 0 ? 'easing_off' : 'preheating', reason: say(t(key, {until}) + (why ? `: ${why}` : ''))};
+        // The status already says pre-heating or easing off, so the reason starts at "until".
+        const tail = !why ? '' : sign > 0 ? `, ${t('before', {why})}` : `: ${why}`;
+        return {status: sign < 0 ? 'easing_off' : 'preheating', reason: say(t(key, {until}) + tail)};
     }
     const next = biases.findIndex((b, k) => k > at && Math.abs(b) >= SHIFT_K);
     if (next < 0) return {status: 'holding', reason: say(t(s.planReason === 'spread_below_margin' ? 'holding_even' : 'holding'))};

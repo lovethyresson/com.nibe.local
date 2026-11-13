@@ -287,8 +287,9 @@
         "learning_short": "Lernt Ihr Haus",
         "waiting": "Startet: wartet auf die Prognose",
         "peak": "Preisspitze __from__–__to__",
-        "easing_off": "Drosselt bis __until__",
-        "preheating": "Heizt vor bis __until__",
+        "easing_off": "Bis __until__",
+        "preheating": "Bis __until__",
+        "before": "vor der __why__",
         "holding": "Hält: Verschieben lohnt sich gerade nicht",
         "holding_even": "Hält: Preise zu gleichmäßig zum Verschieben",
         "next_easing_off": "Hält · drosselt um __at__",
@@ -348,7 +349,7 @@
       "range": {
         "comfortable": "Komfort ±0,5 °C",
         "save_some": "Sparen ±3 °C",
-        "save_most": "Lieber frieren ±6 °C",
+        "save_most": "Frieren ±6 °C",
         "off": "Aus"
       },
       "hotwater": {

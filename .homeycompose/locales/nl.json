@@ -287,8 +287,9 @@
         "learning_short": "Leert je huis kennen",
         "waiting": "Start: wacht op de voorspelling",
         "peak": "prijzen pieken __from__–__to__",
-        "easing_off": "Bouwt af tot __until__",
-        "preheating": "Verwarmt voor tot __until__",
+        "easing_off": "Tot __until__",
+        "preheating": "Tot __until__",
+        "before": "voordat __why__",
         "holding": "Houdt vast: verschuiven levert nu niets op",
         "holding_even": "Houdt vast: prijzen te gelijk om te verschuiven",
         "next_easing_off": "Houdt vast · bouwt af om __at__",
@@ -348,7 +349,7 @@
       "range": {
         "comfortable": "Comfort ±0,5 °C",
         "save_some": "Besparen ±3 °C",
-        "save_most": "Liever kou lijden ±6 °C",
+        "save_most": "Koud ±6 °C",
         "off": "Uit"
       },
       "hotwater": {

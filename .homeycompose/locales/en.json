@@ -287,8 +287,9 @@
         "learning_short": "Learning your house",
         "waiting": "Starting: waiting for the forecast",
         "peak": "prices peak __from__–__to__",
-        "easing_off": "Easing off until __until__",
-        "preheating": "Pre-heating until __until__",
+        "easing_off": "Until __until__",
+        "preheating": "Until __until__",
+        "before": "before __why__",
         "holding": "Holding: nothing to gain from shifting now",
         "holding_even": "Holding: prices are too even to shift",
         "next_easing_off": "Holding · easing off at __at__",
@@ -348,7 +349,7 @@
       "range": {
         "comfortable": "Comfort ±0.5 °C",
         "save_some": "Save ±3 °C",
-        "save_most": "I'd rather freeze ±6 °C",
+        "save_most": "Freeze ±6 °C",
         "off": "Off"
       },
       "hotwater": {

@@ -512,8 +512,8 @@
         "learning": "Leert je huis kennen · dag __day__ van __of__",
         "learning_short": "Leert je huis kennen",
         "peak": "prijzen pieken __from__–__to__",
-        "easing_off": "Bouwt af tot __until__",
-        "preheating": "Verwarmt voor tot __until__",
+        "easing_off": "Tot __until__",
+        "preheating": "Tot __until__",
         "holding": "Houdt vast: verschuiven levert nu niets op",
         "holding_even": "Houdt vast: prijzen te gelijk om te verschuiven",
         "next_easing_off": "Houdt vast · bouwt af om __at__",
@@ -530,7 +530,8 @@
         },
         "range_off": "Comfortbereik staat Uit: uw apparaat ziet de echte buitentemperatuur",
         "sun": "zon verwacht __from__–__to__",
-        "waiting": "Start: wacht op de voorspelling"
+        "waiting": "Start: wacht op de voorspelling",
+        "before": "voordat __why__"
       },
       "status_name": {
         "learning": "Leert",
@@ -575,7 +576,7 @@
       "range": {
         "comfortable": "Comfort ±0,5 °C",
         "save_some": "Besparen ±3 °C",
-        "save_most": "Liever kou lijden ±6 °C",
+        "save_most": "Koud ±6 °C",
         "off": "Uit"
       },
       "hotwater": {

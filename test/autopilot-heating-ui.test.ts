@@ -31,7 +31,7 @@ test('easing off says until when and why', () => {
 test('pre-heating says until when', () => {
     const s = live({bias: 1.5, biases: [1.5, 1, 0, -2], forecast: forecast([1, 1, 1, 5])});
     assert.equal(heatingStatus(s, now, t, time).status, 'preheating');
-    assert.match(heatingStatus(s, now, t, time).reason, /^preheating\(until=s2\)/);
+    assert.match(heatingStatus(s, now, t, time).reason, /^preheating\(until=s2\), before\(why=peak/);
 });
 
 test('holding names the next move, or why there is none', () => {

@@ -287,8 +287,9 @@
         "learning_short": "Lærer dit hus",
         "waiting": "Starter: venter på prognosen",
         "peak": "priserne topper __from__–__to__",
-        "easing_off": "Skruer ned til __until__",
-        "preheating": "Forvarmer til __until__",
+        "easing_off": "Til __until__",
+        "preheating": "Til __until__",
+        "before": "før __why__",
         "holding": "Holder: intet at vinde ved at flytte nu",
         "holding_even": "Holder: priserne er for jævne til at flytte",
         "next_easing_off": "Holder · skruer ned kl. __at__",
@@ -348,7 +349,7 @@
       "range": {
         "comfortable": "Komfort ±0,5 °C",
         "save_some": "Spar ±3 °C",
-        "save_most": "Hellere fryse ±6 °C",
+        "save_most": "Fryse ±6 °C",
         "off": "Fra"
       },
       "hotwater": {
