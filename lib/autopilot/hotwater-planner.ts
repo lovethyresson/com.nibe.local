@@ -113,13 +113,34 @@ export function tempOf(tank: TankSpec, kwh: number): number {
 /** Share of the way from the mean draw to the 80th percentile that a plan counts on. */
 export const DRAW_QUANTILE_BLEND = 0.5;
 
-/** The draw to plan for over a horizon: each slot takes a quarter of its local hour's profile. */
+/** Per local hour, the draw a day is planned with: the hours give the shape, the day totals the
+ *  amount. The hours alone over-forecast twice over. Each hour's draw is clipped at 0, so reading
+ *  noise only ever adds (measured 2026-11-13: hourly means summing to 21.8 kWh against a 13.9 kWh
+ *  mean day). And a busy-day figure per hour, summed, plans a day busy in every hour at once
+ *  (42 kWh against a 21.4 kWh busy day). So the mean hours are scaled to the mean day, and the
+ *  hours' busy-day excess to the busy day's: the planned day is `daily + blend × (dailyP80 −
+ *  daily)`, placed where draws happen and leaning to the hours that vary. Unchanged when the
+ *  day totals are unknown. */
+export function plannedHours(p: DayProfile, blend = DRAW_QUANTILE_BLEND): number[] {
+    const mean = p.hours.map((v) => Number.isFinite(v) ? Math.max(0, v) : 0);
+    const excess = p.p80.map((v, h) => Number.isFinite(v) ? Math.max(0, v - mean[h]) : 0);
+    const sum = (xs: number[]) => xs.reduce((s, v) => s + v, 0);
+    const meanSum = sum(mean), excessSum = sum(excess);
+    const meanScale = Number.isFinite(p.daily) && meanSum > 0 ? Math.max(0, p.daily) / meanSum : 1;
+    const busy = Number.isFinite(p.daily) && Number.isFinite(p.dailyP80) ? Math.max(0, p.dailyP80 - p.daily) : NaN;
+    const excessScale = Number.isFinite(busy) ? (excessSum > 0 ? busy / excessSum : 0) : 1;
+    return mean.map((v, h) => v * meanScale + blend * excess[h] * excessScale);
+}
+
+/** The draw to plan for over a horizon: each slot takes a quarter of its local hour's planned draw. */
 export function drawsFor(profiles: (DayProfile | undefined)[], hours: number[], blend = DRAW_QUANTILE_BLEND): number[] {
+    const planned = new Map<DayProfile, number[]>();
     return hours.map((h, k) => {
         const p = profiles[k];
-        const mean = p && Number.isFinite(p.hours[h]) ? p.hours[h] : 0;
-        const p80 = p && Number.isFinite(p.p80[h]) ? Math.max(mean, p.p80[h]) : mean;
-        return (mean + blend * (p80 - mean)) * SLOT_H;
+        if (!p) return 0;
+        let byHour = planned.get(p);
+        if (!byHour) planned.set(p, byHour = plannedHours(p, blend));
+        return byHour[h] * SLOT_H;
     });
 }
 
