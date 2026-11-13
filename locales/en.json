@@ -586,15 +586,6 @@
         "solar_off": "Solar off",
         "solar_total": "__share__ % of the planned charging runs on solar surplus."
       },
-      "week": {
-        "title": "Hot water use, litres of 40 °C water",
-        "working": "Working day",
-        "free": "Day off",
-        "away": "Away",
-        "today": "Today, expected",
-        "typical": "Typical",
-        "at_least": "≥ At least: the tank ran low"
-      },
       "indoor": "Indoor",
       "expected": "Expected",
       "offset": "BT1 offset",
@@ -618,6 +609,21 @@
       "next": "Next charge __time__ to __target__ °C · __reason__",
       "none": "No charge needed until __until__",
       "test": "Test run: __text__"
+    },
+    "hotwater_use": {
+      "title": "Litres of 40 °C water a day",
+      "expected": "About __l__ L expected today",
+      "expected_away": "Away: about __l__ L today",
+      "typical_of": "typical __l__ L",
+      "working": "Working day",
+      "free": "Day off",
+      "away": "Away",
+      "today": "Today, expected",
+      "typical": "Typical",
+      "at_least": "≥ At least: the tank ran low",
+      "learning": "Learning your hot water use",
+      "off": "Autopilot hot water is off here. Turn it on in Repair → Smart mode.",
+      "pick": "Pick a Hot water device."
     }
   }
 }

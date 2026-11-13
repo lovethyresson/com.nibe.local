@@ -11,7 +11,8 @@ import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, VERIFY_GAP_MS, VERIFY
 import {AUTOPILOT_FUNCTIONS, SMART_MODE_STORE, SmartFunction, SmartMode, autopilotRuns, shownSmartMode, smartMode, smartModeWrites, spaOn} from './autopilot/smart-mode';
 import {HeatingStatus, heatingStatus} from './autopilot/heating-status';
 import {forecastCorrection} from './autopilot/outdoor';
-import {AHEAD_SLOTS, BACK_SLOTS, HOTWATER_SLOTS, WeekData, WidgetData, heatingSlots, hotwaterWeek, ticks} from './autopilot/widget';
+import {AHEAD_SLOTS, BACK_SLOTS, HOTWATER_SLOTS, WidgetData, heatingSlots, ticks} from './autopilot/widget';
+import {HotwaterUseData, hotwaterWeek} from './autopilot/hotwater-use';
 import {slotOf} from './autopilot/prices';
 import {SolarSurplus} from './autopilot/solar-surplus';
 import {Device} from 'homey';
@@ -1734,8 +1735,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     o.litres === undefined ? undefined : t('hotwater.litres', {l: Math.round(o.litres)})].filter(Boolean).join(' · '),
                 legend: {price: t('price'), surplus: solar ? t('surplus') : '', grid: t('charge_grid'), solar: solar ? t('charge_solar') : ''},
                 axes: {left: t('axis_price'), right: solar ? t('axis_surplus') : ''},
-                footnote: charges.length && solar ? t('hotwater.solar_total', {share: Math.round(fromSolar * 100)}) : undefined,
-                week: this.hotwaterWeekData(t)};
+                footnote: charges.length && solar ? t('hotwater.solar_total', {share: Math.round(fromSolar * 100)}) : undefined};
         }
         const status = this.getCapabilityValue(AUTOPILOT_STATUS_CAPABILITY) as HeatingStatus | null;
         const range = String(this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY) ?? DEFAULT_PROFILE);
@@ -1761,18 +1761,28 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         };
     }
 
-    /** The widget's week chart: hot water use per day, once Autopilot has learned. */
-    private hotwaterWeekData(t: (key: string) => string): WeekData | undefined {
+    // ---- The Hot water use widget (widgets/hotwater_use) ----
+
+    /** What the Hot water use widget draws: the use Autopilot expects today, against the last six
+     *  days and a typical day of each type. Every string translated here. */
+    hotwaterUseWidget(): HotwaterUseData {
+        const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.hotwater_use.${key}`, tokens);
+        const title = this.getName();
+        if (this.role !== 'hotwater') return {title, empty: t('pick')};
+        if (!autopilotRuns(this.smartMode())) return {title, empty: t('off')};
         const usage = this.hotwaterAutopilot?.usage();
-        if (!usage) return undefined;
+        if (!usage) return {title, empty: t('learning')};
         const format = new Intl.DateTimeFormat(this.homey.i18n.getLanguage(), {weekday: 'short', timeZone: 'UTC'});
         const week = hotwaterWeek(usage, (date) => format.format(new Date(`${date}T12:00:00Z`)));
         const has = (kind: string) => week.bars.some((bar) => bar.kind === kind);
-        return {...week, title: t('week.title'),
-            legend: {working: has('working') ? t('week.working') : '', free: has('free') ? t('week.free') : '',
-                away: has('away') ? t('week.away') : '',
-                today: t('week.today'), typical: t('week.typical'),
-                at_least: week.bars.some((b) => b.atLeast) ? t('week.at_least') : ''}};
+        const today = week.bars[week.bars.length - 1];
+        const typical = today.kind === 'away' ? undefined : week.typical[today.kind];
+        return {title, ...week,
+            status: today.litres === undefined ? undefined : t(today.kind === 'away' ? 'expected_away' : 'expected', {l: today.litres}),
+            reason: [t(today.kind), typical === undefined ? undefined : t('typical_of', {l: typical})].filter(Boolean).join(' · '),
+            legend: {title: t('title'), working: has('working') ? t('working') : '', free: has('free') ? t('free') : '',
+                away: has('away') ? t('away') : '', today: t('today'), typical: t('typical'),
+                at_least: week.bars.some((b) => b.atLeast) ? t('at_least') : ''}};
     }
 
     // ---- Away: the thermostat goes to the Away temperature and comes back ----

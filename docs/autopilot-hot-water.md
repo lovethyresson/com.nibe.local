@@ -368,8 +368,9 @@ The design as first written:
 - **Flow cards** (six languages): action "Set day type to working / free / away"; trigger "Autopilot started a hot water charge" with `reason` and `detailedReason` tokens (below), and the same trigger for a charge the pump started itself;
   condition "A hot water charge is planned in the next … hours".
 - **Insight:** "Typical use: working day 11 kWh, free day 18 kWh; peaks 06:00 and 18–21".
-- **Widget, week chart** (below the 24 h plan): litres of 40 °C water per day for the six days
-  before today, from the learner's days (`HotwaterModel.recent`, 28 days kept). Each bar is
+- **Hot water use widget** (`widgets/hotwater_use`, separate from the Autopilot widget): the use
+  Autopilot expects today as the headline, the day type and its typical day under it, and a bar
+  chart of litres of 40 °C water per day for the six days before today and today, from the learner's days (`HotwaterModel.recent`, 28 days kept). Each bar is
   coloured by the day type in force that day, exactly as set (working, free or away). The chart
   never guesses a type from the weekday, and neither does the learner. Today's bar is the use Autopilot expects. Dashed lines mark a typical day of
   each type over the four weeks, recency-weighted as in learning. A day with under 22 h of

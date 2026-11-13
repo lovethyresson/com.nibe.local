@@ -28,6 +28,7 @@ class NibeApp extends Homey.App {
     void announceRelease(this.homey).catch(error => this.error('Release announcement failed:', error));
 
     this.registerAutopilotWidget();
+    this.registerHotwaterUseWidget();
 
     this.log('Nibe Live app has been initialized');
   }
@@ -54,6 +55,23 @@ class NibeApp extends Homey.App {
     const device = devices.find((d) => String(d.getData().id) === String(id)) ?? (id ? undefined : devices[0]);
     if (!device) throw new Error(this.homey.__('autopilot.widget.not_function'));
     return device.autopilotWidget();
+  }
+
+  /** The Hot water use widget (widgets/hotwater_use): its picker offers the Hot water devices. */
+  private registerHotwaterUseWidget() {
+    const widget = (this.homey as any).dashboards?.getWidget?.('hotwater_use');
+    widget?.registerSettingAutocompleteListener('device', async (query: string) => this.autopilotDevices()
+      .filter((d) => d.role === 'hotwater')
+      .map((d) => ({id: String(d.getData().id), name: d.getName()}))
+      .filter((d) => !query || d.name.toLowerCase().includes(query.toLowerCase())));
+  }
+
+  /** For widgets/hotwater_use/api.js. Throws in the owner's language when the device is gone. */
+  hotwaterUseWidget(id: unknown) {
+    const devices = this.autopilotDevices().filter((d) => d.role === 'hotwater');
+    const device = devices.find((d) => String(d.getData().id) === String(id)) ?? (id ? undefined : devices[0]);
+    if (!device) throw new Error(this.homey.__('autopilot.hotwater_use.pick'));
+    return device.hotwaterUseWidget();
   }
 
 }

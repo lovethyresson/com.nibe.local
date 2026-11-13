@@ -359,15 +359,6 @@
         "solar_off": "Sol fra",
         "solar_total": "__share__ % af den planlagte opvarmning kører på soloverskud."
       },
-      "week": {
-        "title": "Varmtvandsforbrug, liter 40 °C vand",
-        "working": "Arbejdsdag",
-        "free": "Fridag",
-        "away": "Væk",
-        "today": "I dag, forventet",
-        "typical": "Typisk",
-        "at_least": "≥ Mindst: tanken løb tør en tid"
-      },
       "indoor": "Inde",
       "expected": "Forventet",
       "offset": "BT1-forskydning",
@@ -391,6 +382,21 @@
       "next": "Næste opvarmning __time__ til __target__ °C · __reason__",
       "none": "Ingen opvarmning nødvendig før __until__",
       "test": "Testkørsel: __text__"
+    },
+    "hotwater_use": {
+      "title": "Liter 40 °C vand om dagen",
+      "expected": "Omkring __l__ L forventet i dag",
+      "expected_away": "Væk: omkring __l__ L i dag",
+      "typical_of": "typisk __l__ L",
+      "working": "Arbejdsdag",
+      "free": "Fridag",
+      "away": "Væk",
+      "today": "I dag, forventet",
+      "typical": "Typisk",
+      "at_least": "≥ Mindst: tanken løb tør en tid",
+      "learning": "Lærer dit varmtvandsforbrug",
+      "off": "Autopilot for varmt vand er slået fra her. Slå den til under Reparer → Smart tilstand.",
+      "pick": "Vælg en varmtvandsenhed."
     }
   }
 }

@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {dayKind, heatingSlots, hotwaterWeek, ticks} from '../lib/autopilot/widget';
+import {heatingSlots, ticks} from '../lib/autopilot/widget';
+import {dayKind, hotwaterWeek} from '../lib/autopilot/hotwater-use';
 import {KWH_PER_LITRE, learn, localClock, TankPoint} from '../lib/autopilot/hotwater-learner';
 
 test('the heating chart is the recorded past, then the plan read from now; offset is fed minus real', () => {

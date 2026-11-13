@@ -1,0 +1,126 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <style>
+      .hw { padding: var(--homey-su-2, 8px) var(--homey-su-3, 12px); }
+      .hw-title { opacity: 0.6; }
+      .hw-status { margin: 2px 0 0; font-size: 1.35em; font-weight: 600; }
+      .hw-reason { margin: 2px 0 0; opacity: 0.8; }
+      .hw-sub { margin-top: 12px; font-size: 0.75em; opacity: 0.6; }
+      .hw-chart { width: 100%; height: auto; display: block; margin-top: 4px; overflow: visible; }
+      .hw-chart text { font-size: 9px; fill: currentColor; opacity: 0.6; }
+      .hw-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.75em; opacity: 0.8; margin-top: 6px; }
+      .hw-key { display: inline-block; width: 12px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; box-sizing: border-box; }
+      .hw-key.line { height: 3px; vertical-align: 3px; }
+      .hw-empty { opacity: 0.7; margin: 12px 0; }
+      :root { --hw-working: #5b8def; --hw-free: #2bb3a3; --hw-away: rgba(127, 127, 127, 0.35); }
+    </style>
+  </head>
+
+  <body class="homey-widget">
+    <div class="hw" id="hw"></div>
+
+    <script type="text/javascript">
+      var NS = 'http://www.w3.org/2000/svg';
+      var KIND = {working: 'var(--hw-working)', free: 'var(--hw-free)', away: 'var(--hw-away)'};
+      function el(tag, cls, text) {
+        var n = document.createElement(tag);
+        if (cls) n.className = cls;
+        if (text !== undefined) n.textContent = text;
+        return n;
+      }
+      function svgEl(tag, attrs, text) {
+        var n = document.createElementNS(NS, tag);
+        Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+        if (text !== undefined) n.textContent = text;
+        return n;
+      }
+      function nums(list) { return list.filter(function (v) { return typeof v === 'number'; }); }
+
+      // A bar per day, coloured by its day type: the last six days as measured (light and marked
+      // "at least" where part of the day is unknown), today as the use Autopilot expects
+      // (outlined), and a dashed line at a typical day of each type.
+      function weekChart(data) {
+        var W = 360, H = 132, L = 30, R = 330, T = 14, B = 110, n = data.bars.length, step = (R - L) / n, bw = Math.min(28, step * 0.62);
+        var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, class: 'hw-chart', role: 'img'});
+        var values = nums(data.bars.map(function (b) { return b.litres; })).concat(nums([data.typical.working, data.typical.free]));
+        var max = Math.max(100, Math.ceil(Math.max.apply(null, values.concat([0])) * 1.1 / 100) * 100);
+        var y = function (v) { return B - (B - T) * v / max; };
+        [0, max / 2, max].forEach(function (v) {
+          svg.appendChild(svgEl('line', {x1: L, x2: R, y1: y(v), y2: y(v), stroke: 'currentColor', 'stroke-opacity': 0.08}));
+          svg.appendChild(svgEl('text', {x: L - 4, y: y(v) + 3, 'text-anchor': 'end'}, String(Math.round(v))));
+        });
+        data.bars.forEach(function (b, k) {
+          var cx = L + (k + 0.5) * step, color = KIND[b.kind] || KIND.working;
+          if (typeof b.litres === 'number') {
+            var top = y(b.litres);
+            svg.appendChild(svgEl('rect', b.today
+              ? {x: cx - bw / 2 + 0.6, y: top + 0.6, width: bw - 1.2, height: Math.max(0, B - top - 0.6), rx: 2, fill: color, 'fill-opacity': 0.2,
+                stroke: color, 'stroke-width': 1.2, 'stroke-dasharray': '3 2'}
+              : {x: cx - bw / 2, y: top, width: bw, height: B - top, rx: 2, fill: color, 'fill-opacity': b.atLeast ? 0.4 : 0.85}));
+            svg.appendChild(svgEl('text', {x: cx, y: top - 3, 'text-anchor': 'middle'}, (b.atLeast ? '≥' : '') + b.litres));
+          } else {
+            svg.appendChild(svgEl('text', {x: cx, y: B - 3, 'text-anchor': 'middle'}, '–'));
+          }
+          var label = svgEl('text', {x: cx, y: H - 6, 'text-anchor': 'middle'}, b.label);
+          if (b.today) label.setAttribute('font-weight', '700');
+          svg.appendChild(label);
+        });
+        ['working', 'free'].forEach(function (kind) {
+          var v = data.typical[kind];
+          if (typeof v !== 'number') return;
+          svg.appendChild(svgEl('line', {x1: L, x2: R, y1: y(v), y2: y(v), stroke: KIND[kind], 'stroke-width': 1.2, 'stroke-dasharray': '4 3'}));
+          var t = svgEl('text', {x: R + 4, y: y(v) + 3}, String(v)); t.setAttribute('fill', KIND[kind]); svg.appendChild(t);
+        });
+        return svg;
+      }
+
+      function legend(items) {
+        var box = el('div', 'hw-legend');
+        items.forEach(function (i) {
+          if (!i.text) return;
+          var item = el('span'), key = el('span', 'hw-key' + (i.line ? ' line' : ''));
+          key.style.cssText = i.style;
+          item.appendChild(key); item.appendChild(document.createTextNode(i.text)); box.appendChild(item);
+        });
+        return box;
+      }
+
+      function render(data) {
+        var root = document.getElementById('hw');
+        root.replaceChildren(el('div', 'hw-title homey-text-small', data.title));
+        if (data.empty) { root.appendChild(el('p', 'hw-empty', data.empty)); return; }
+        if (data.status) root.appendChild(el('p', 'hw-status', data.status));
+        if (data.reason) root.appendChild(el('p', 'hw-reason homey-text-small', data.reason));
+        var l = data.legend;
+        root.appendChild(el('div', 'hw-sub', l.title));
+        root.appendChild(weekChart(data));
+        root.appendChild(legend([
+          {text: l.working, style: 'background: var(--hw-working);'},
+          {text: l.free, style: 'background: var(--hw-free);'},
+          {text: l.away, style: 'background: var(--hw-away);'},
+          {text: l.today, style: 'border: 1px dashed currentColor;'},
+          {text: l.typical, line: true, style: 'background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px);'},
+          {text: l.at_least, style: 'background: currentColor; opacity: 0.25;'},
+        ]));
+      }
+
+      function onHomeyReady(Homey) {
+        var settings = Homey.getSettings() || {};
+        var device = settings.device && settings.device.id;
+        function fit() { if (Homey.setHeight) Homey.setHeight(document.getElementById('hw').scrollHeight + 16); }
+        function load() {
+          return Homey.api('GET', '/' + (device ? '?device=' + encodeURIComponent(device) : ''), {})
+            .then(render)
+            .catch(function (err) {
+              document.getElementById('hw').replaceChildren(el('p', 'hw-empty', (err && err.message) || String(err)));
+            })
+            .then(fit);
+        }
+        load().finally(function () { Homey.ready(); });
+        // The days change slowly: every 5 minutes is plenty.
+        setInterval(load, 300000);
+      }
+    </script>
+  </body>
+</html>

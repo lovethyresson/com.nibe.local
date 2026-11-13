@@ -586,15 +586,6 @@
         "solar_off": "Sol av",
         "solar_total": "__share__ % av den planerade laddningen går på solöverskott."
       },
-      "week": {
-        "title": "Varmvattenanvändning, liter 40 °C vatten",
-        "working": "Arbetsdag",
-        "free": "Ledig dag",
-        "away": "Borta",
-        "today": "I dag, förväntat",
-        "typical": "Typiskt",
-        "at_least": "≥ Minst: tanken tog slut en stund"
-      },
       "indoor": "Inomhus",
       "expected": "Förväntat",
       "offset": "BT1-förskjutning",
@@ -618,6 +609,21 @@
       "next": "Nästa laddning __time__ till __target__ °C · __reason__",
       "none": "Ingen laddning behövs före __until__",
       "test": "Testkörning: __text__"
+    },
+    "hotwater_use": {
+      "title": "Liter 40 °C vatten per dag",
+      "expected": "Cirka __l__ L väntas i dag",
+      "expected_away": "Borta: cirka __l__ L i dag",
+      "typical_of": "typiskt __l__ L",
+      "working": "Arbetsdag",
+      "free": "Ledig dag",
+      "away": "Borta",
+      "today": "I dag, förväntat",
+      "typical": "Typiskt",
+      "at_least": "≥ Minst: tanken tog slut en stund",
+      "learning": "Lär sig din varmvattenanvändning",
+      "off": "Autopilot för varmvatten är av här. Slå på den i Reparera → Smart läge.",
+      "pick": "Välj en varmvattenenhet."
     }
   }
 }

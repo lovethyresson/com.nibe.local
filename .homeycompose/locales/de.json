@@ -359,15 +359,6 @@
         "solar_off": "Solar aus",
         "solar_total": "__share__ % der geplanten Ladung laufen mit Solarüberschuss."
       },
-      "week": {
-        "title": "Warmwasserverbrauch, Liter 40 °C Wasser",
-        "working": "Arbeitstag",
-        "free": "Freier Tag",
-        "away": "Abwesend",
-        "today": "Heute, erwartet",
-        "typical": "Üblich",
-        "at_least": "≥ Mindestens: der Speicher lief leer"
-      },
       "indoor": "Innen",
       "expected": "Erwartet",
       "offset": "BT1-Verschiebung",
@@ -391,6 +382,21 @@
       "next": "Nächste Ladung __time__ auf __target__ °C · __reason__",
       "none": "Keine Ladung nötig bis __until__",
       "test": "Testlauf: __text__"
+    },
+    "hotwater_use": {
+      "title": "Liter 40 °C Wasser pro Tag",
+      "expected": "Heute etwa __l__ L erwartet",
+      "expected_away": "Abwesend: heute etwa __l__ L",
+      "typical_of": "üblich __l__ L",
+      "working": "Arbeitstag",
+      "free": "Freier Tag",
+      "away": "Abwesend",
+      "today": "Heute, erwartet",
+      "typical": "Üblich",
+      "at_least": "≥ Mindestens: der Speicher lief leer",
+      "learning": "Lernt Ihren Warmwasserverbrauch",
+      "off": "Autopilot für Warmwasser ist hier aus. Schalten Sie ihn unter Reparieren → Smart-Modus ein.",
+      "pick": "Wählen Sie ein Warmwasser-Gerät."
     }
   }
 }
