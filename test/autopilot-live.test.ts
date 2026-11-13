@@ -215,6 +215,18 @@ test('SPA on, immersion-only or no model wait before anything is written, and ke
     }
 });
 
+test('without a model it plans as soon as one lands, not at the next slot', async () => {
+    const over: {plan?: any} = {plan: undefined};
+    const {feed, state} = harness(over as any);
+    feed.start();
+    await feed.cycle();
+    assert.equal(feed.state.stopped, 'no_model');
+    over.plan = input({curve: 3});
+    await feed.cycle();
+    assert.equal(feed.state.stopped, undefined, 'the first fit after a restart, a cycle later');
+    assert.equal(state.writes.length, 1);
+});
+
 test('a wait clears at the next slot', async () => {
     const {feed, state, advance} = harness({facts: {spaHeating: true}});
     feed.start();

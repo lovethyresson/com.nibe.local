@@ -340,7 +340,8 @@ export class HeatingFeed {
             } else if (this.stopState && this.stopState !== 'no_outdoor') {
                 return;
             }
-        } else if (slot !== this.plannedSlot) {
+        } else if (slot !== this.plannedSlot || this.stopState === 'no_model') {
+            // Without a model, retry each cycle: the first fit and the weather land minutes after a start.
             this.plannedSlot = slot;
             const wait = await this.replan(slot);
             if (wait) return this.idle(wait);

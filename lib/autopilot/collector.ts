@@ -74,6 +74,16 @@ export function getJson(url: string, timeoutMs = 15_000): Promise<any> {
     });
 }
 
+/** A saved fit is used at start only while its state is recent: the plan starts from that air
+ *  and mass, and the refit two minutes later replaces it anyway. */
+export const RESTORE_FIT_SLOTS = 8;
+
+export function restoredFit(saved: HouseFit | undefined, slot: number): HouseFit | undefined {
+    const at = saved?.state?.slot;
+    if (!saved?.params || !(saved.lever! > 0) || typeof at !== 'number') return undefined;
+    return slot - at <= RESTORE_FIT_SLOTS ? saved : undefined;
+}
+
 export class AutopilotCollector {
     private history = new History();
     private aggregator: Aggregator;
@@ -132,8 +142,10 @@ export class AutopilotCollector {
         // Save before the first journal record: a journal is read with the saved file's field
         // count, so a file from before a field was appended must not gain new-format records.
         await this.save().catch((error) => this.log('Autopilot history: save failed:', error?.message ?? error));
-        const model = await loadJson<{dailyFits?: DailyFit[]}>(modelFileName(this.fileName)).catch(() => undefined);
+        const model = await loadJson<{dailyFits?: DailyFit[]; fit?: HouseFit}>(modelFileName(this.fileName)).catch(() => undefined);
         this.dailyFits = Array.isArray(model?.dailyFits) ? model!.dailyFits : [];
+        // The last fit, so a restart plans at once instead of showing "learning" until the refit.
+        this.fit = restoredFit(model?.fit, slotOf(Date.now()));
         // `outdoorBias`, not the earlier `forecastBias`: that one learned from the BT1 test feeds of
         // 2026-11-02 before fed slots were recognised, and starts over.
         const shadow = await loadJson<{memory?: ShadowMemory; outdoorBias?: ForecastBias; slot?: number}>(
