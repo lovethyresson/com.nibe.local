@@ -182,3 +182,24 @@ test('the day type is on Main only, and only while Autopilot hot water is on', (
     assert.ok(off.toRemove.includes(DAY_TYPE_CAPABILITY), 'turning Autopilot off takes it away again');
     assert.ok(sProfile.compose.capabilities.includes(DAY_TYPE_CAPABILITY), 'in the compose superset');
 });
+
+test('Away is a trip: a nightly working/free Flow does not end it, and Away off goes back to the latest of them', async () => {
+    const {setAway} = await import('../lib/autopilot/day-type');
+    let state = recordDayType(undefined, 'free', 1000);
+    state = setAway(state, true, 2000)!;
+    assert.strictEqual(state.type, 'away');
+    assert.strictEqual(state.base, 'free');
+    state = recordDayType(state, 'working', 3000, true);
+    assert.strictEqual(state.type, 'away', 'the nightly card keeps Away');
+    assert.strictEqual(state.base, 'working');
+    assert.strictEqual(dayTypeAt(state, 3500), 'away', 'not logged: the learner still files the day as away');
+    state = setAway(state, false, 4000)!;
+    assert.strictEqual(state.type, 'working');
+    assert.strictEqual(state.base, undefined);
+    assert.strictEqual(dayTypeAt(state, 4000), 'working');
+    assert.strictEqual(setAway(state, false, 5000), state, 'off when not away changes nothing');
+    assert.strictEqual(recordDayType(setAway(state, true, 6000)!, 'free', 7000).type, 'free', 'the Main picker, without keepAway, ends Away');
+    assert.strictEqual(setAway(setAway(undefined, true, 1)!, false, 2)!.type, 'working', 'no type before Away: back to working');
+    assert.deepStrictEqual(readDayType({type: 'away', log: [], base: 'free'})?.base, 'free');
+    assert.strictEqual(readDayType({type: 'away', log: [], base: 'away'})?.base, undefined);
+});

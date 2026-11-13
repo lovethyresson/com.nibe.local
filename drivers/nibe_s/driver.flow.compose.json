@@ -3075,12 +3075,12 @@
         "da": "Indstil dagtype til [[type]]"
       },
       "hint": {
-        "en": "Which day Autopilot plans hot water for. Holds until changed.",
-        "sv": "Vilken sorts dag Autopilot planerar varmvattnet för. Gäller tills den ändras.",
-        "de": "Für welchen Tag Autopilot das Warmwasser plant. Gilt bis zur Änderung.",
-        "nl": "Voor welk soort dag Autopilot het warme water plant. Geldt tot het wordt gewijzigd.",
-        "no": "Hvilken type dag Autopilot planlegger varmtvannet for. Gjelder til den endres.",
-        "da": "Hvilken slags dag Autopilot planlægger varmt vand for. Gælder indtil den ændres."
+        "en": "Which day Autopilot plans for. Away is for the whole home; Working day or Day off set while away apply when Away ends.",
+        "sv": "Vilken sorts dag Autopilot planerar för. Bortrest gäller hela hemmet; Arbetsdag eller Ledig dag under bortavaron gäller när Bortrest slutar.",
+        "de": "Für welchen Tag Autopilot plant. Abwesend gilt für das ganze Zuhause; Arbeitstag oder Freier Tag während der Abwesenheit gelten, wenn sie endet.",
+        "nl": "Voor welk soort dag Autopilot plant. Afwezig geldt voor het hele huis; Werkdag of Vrije dag tijdens afwezigheid gelden zodra die eindigt.",
+        "no": "Hvilken type dag Autopilot planlegger for. Bortreist gjelder hele hjemmet; Arbeidsdag eller Fridag satt mens du er borte gjelder når det slutter.",
+        "da": "Hvilken slags dag Autopilot planlægger for. Bortrejst gælder hele hjemmet; Arbejdsdag eller Fridag sat imens gælder, når det slutter."
       },
       "$filter": "capabilities=day_type_NIBE",
       "args": [
@@ -3216,12 +3216,12 @@
         "da": "Slå Fraværende for Autopilot opvarmning [[away]]"
       },
       "hint": {
-        "en": "Away sets the thermostat to the Away temperature; turning it off puts the thermostat back.",
-        "sv": "Borta ställer termostaten på bortatemperaturen; av ställer tillbaka termostaten.",
-        "de": "Abwesend stellt das Thermostat auf die Abwesenheitstemperatur; aus stellt es zurück.",
-        "nl": "Afwezig zet de thermostaat op de afwezigheidstemperatuur; uit zet hem terug.",
-        "no": "Borte setter termostaten til bortetemperaturen; av setter den tilbake.",
-        "da": "Fraværende sætter termostaten til fraværstemperaturen; fra sætter den tilbage."
+        "en": "Away is for the whole home: the thermostat goes to the Away temperature and hot water keeps only its safety net. Off puts both back.",
+        "sv": "Borta gäller hela hemmet: termostaten går till bortatemperaturen och varmvattnet håller bara säkerhetsnivån. Av ställer tillbaka båda.",
+        "de": "Abwesend gilt für das ganze Zuhause: das Thermostat geht auf die Abwesenheitstemperatur, Warmwasser hält nur die Sicherheitsreserve. Aus stellt beides zurück.",
+        "nl": "Afwezig geldt voor het hele huis: de thermostaat gaat naar de afwezigheidstemperatuur en warm water houdt alleen de veiligheidsmarge. Uit zet beide terug.",
+        "no": "Borte gjelder hele hjemmet: termostaten går til bortetemperaturen og varmtvannet holder bare sikkerhetsnivået. Av setter begge tilbake.",
+        "da": "Fraværende gælder hele hjemmet: termostaten går til fraværstemperaturen og varmt vand holder kun sikkerhedsniveauet. Fra sætter begge tilbage."
       },
       "$filter": "capabilities=autopilot_status_NIBE",
       "args": [

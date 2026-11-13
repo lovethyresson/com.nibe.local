@@ -15,7 +15,7 @@ import {
     roleNames, roleOf, roleRegisters
 } from './roles';
 import type {ModelProfile} from './profile';
-import {DAY_TYPE_SETTING, isDayType, readDayType, recordDayType} from './autopilot/day-type';
+import {DAY_TYPE_SETTING, DayTypeState, isDayType, readDayType, recordDayType, setAway} from './autopilot/day-type';
 import {
     AllOnesResponseError, DetectionResult, PROBE_PASSES, Recommendations, RegisterSample, SourceChoices,
     probeHost
@@ -518,7 +518,7 @@ export abstract class NibePumpDriver extends Driver {
             this.homey.flow.getConditionCard(this.flowId("hotwater_charge_planned"))
                 .registerRunListener(async (args: any) => args.device.hotwaterChargePlannedWithin(Number(args.hours)));
             this.homey.flow.getActionCard(this.flowId("set_day_type"))
-                .registerRunListener(async (args: any) => this.setDayType(args.type));
+                .registerRunListener(async (args: any) => this.setDayType(args.type, true));
         }
 
         // Autopilot heating (lib/autopilot/live.ts): the status trigger is fired by the device.
@@ -534,13 +534,34 @@ export abstract class NibePumpDriver extends Driver {
 
     /** The household's day type, set from the Main device or a Flow: one app setting for the home,
      *  shown on every Main device that carries it. Throws on a value that is not a day type, so a
-     *  Flow says what went wrong. */
-    async setDayType(type: unknown) {
+     *  Flow says what went wrong. A Flow card sets it with `keepAway`: a nightly working/free Flow
+     *  must not end a trip (see day-type.ts). */
+    async setDayType(type: unknown, keepAway = false) {
         if (!isDayType(type)) throw new Error(`Unknown day type: ${String(type)}`);
-        const state = recordDayType(readDayType(this.homey.settings.get(DAY_TYPE_SETTING)), type, Date.now());
-        this.homey.settings.set(DAY_TYPE_SETTING, state);
-        for (const device of this.homey.drivers.getDrivers ? Object.values(this.homey.drivers.getDrivers()) as any[] : [this])
-            for (const d of device.getDevices() as any[]) await d.showDayType?.();
+        await this.storeDayType(recordDayType(this.dayTypeState(), type, Date.now(), keepAway));
+    }
+
+    /** The home's one Away: the day type, and every Autopilot heating device's thermostat. */
+    async setAway(on: boolean) {
+        await this.storeDayType(setAway(this.dayTypeState(), on, Date.now()));
+    }
+
+    private dayTypeState() {
+        return readDayType(this.homey.settings.get(DAY_TYPE_SETTING));
+    }
+
+    /** Store the state and bring every device in line with it: Main shows the day type, Autopilot
+     *  heating follows Away. Every device is tried; the first failure is thrown afterwards. */
+    private async storeDayType(state: DayTypeState | undefined) {
+        if (state) this.homey.settings.set(DAY_TYPE_SETTING, state);
+        const away = state?.type === 'away';
+        let failure: unknown;
+        for (const driver of this.homey.drivers.getDrivers ? Object.values(this.homey.drivers.getDrivers()) as any[] : [this])
+            for (const d of driver.getDevices() as any[]) {
+                await d.showDayType?.();
+                await d.applyAway?.(away).catch((error: unknown) => { failure ??= error; });
+            }
+        if (failure) throw failure;
     }
 
     // Capabilities this pump cannot populate, according to a fresh detection pass: registers

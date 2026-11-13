@@ -161,6 +161,12 @@ S1155.
   guessing in the app. If the owner never sets it, every day is one type and the learner keeps a
   single profile.
 - **Away:** while the type is away, no draws are planned for and the tank coasts to the reserve.
+- **Away is a trip, not a kind of day** (maintainer, 2026-11-13). The heating Away switch, its Flow
+  card and the day type "away" are one state (`setAway()` in `lib/autopilot/day-type.ts`). A
+  *Set day type* Flow card run while away (a nightly "working day" Flow) does not end it: it only
+  sets `base`, the type the home goes back to when Away is turned off. The Main picker is a
+  deliberate act and does end it. Away does not touch the pump's own hot water demand mode, so the
+  pump still keeps its own start temperature; Autopilot only stops adding charges.
 - **Seasonal drift:** recent days weigh more (half-life about 3 weeks), which tracks colder inlet
   water in winter.
 - **Starting point:** with less than 14 days of history, setup asks a few questions (§4.6) and

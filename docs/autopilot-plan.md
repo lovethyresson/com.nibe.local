@@ -1227,10 +1227,14 @@ once. The rest is Repair and capabilities:
   (`target_temperature.autopilot_away`), outdoor shift and fed outdoor while Autopilot runs it.
 - **Comfort is the thermostat.** Away keeps the thermostat's value, sets it to the Away
   temperature, and restores it when Away turns off; while Away the widest range applies.
+  Away is the home's one Away, the day type "away" shared with hot water (hot water doc §4.1):
+  the switch, its card and *Set day type to Away* all set it, and every Autopilot heating device
+  follows. A nightly working/free card does not end it.
 - **No pause; Comfort range Off instead** (maintainer, 2026-11-12): Off keeps feeding the real
   outdoor temperature with no shift (the pump stays on the sensor Autopilot uses, never back on its
   own BT1, which reads ~2 °C higher here) and plans nothing; the pump's guards still apply. Smart
-  mode Off is what hands BT1 back. Leaving Autopilot while Away first puts the thermostat back.
+  mode Off is what hands BT1 back. Leaving Autopilot while Away first puts the thermostat back;
+  the home stays away for hot water.
 - **The outdoor shift capability is what BT1 is fed minus the real outdoor temperature**: below 0
   the pump sees it colder and heats more (the planner's bias with the sign flipped).
 - **The Autopilot dashboard widget** (`widgets/autopilot`, `lib/autopilot/widget.ts`) replaces the

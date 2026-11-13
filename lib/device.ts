@@ -1188,7 +1188,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 this.capabilitySmartMode());
             if (toAdd.length || toRemove.length) await this.syncCapabilities();
             if (this.role === 'main') await this.showDayType();
-            if (this.role === 'heating') await this.initAutopilotControls();
+            if (this.role === 'heating') {
+                await this.initAutopilotControls();
+                // Autopilot heating turned on while the home is away goes away with it.
+                await this.applyAway(readDayType(this.homey.settings.get(DAY_TYPE_SETTING))?.type === 'away').catch(this.error);
+            }
         }
         if (this.role === 'hotwater') await this.syncHotwaterAutopilot();
         if (this.role === 'heating') this.syncHeatingFeed();
@@ -1481,9 +1485,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             await this.setStoreValue(SMART_MODE_STORE, mode);
             this.log(`Smart mode: ${this.role} = ${mode}`);
         }
-        // Leaving Autopilot while Away: the thermostat goes back before its controls do.
+        // Leaving Autopilot while Away: the thermostat goes back before its controls do. The home
+        // stays away: hot water keeps following it.
         if (this.role === 'heating' && !autopilotRuns(mode) && this.getStoreValue('autopilotHome') != null)
-            await this.setAutopilotAway(false);
+            await this.applyAway(false);
         for (const device of this.pumpDevices()) await device.applyAutopilot();
     }
 
@@ -1693,10 +1698,18 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         await this.setCapabilityValue('target_temperature', celsius);
     }
 
-    /** Away on: the thermostat's temperature is kept and the thermostat set to the Away
-     *  temperature, and Autopilot may use the widest range. Away off: the thermostat goes back. */
+    /** Away, from the switch or the Flow card: the home's one Away, so hot water and every
+     *  Autopilot heating device follow (lib/autopilot/day-type.ts). */
     async setAutopilotAway(on: boolean) {
         if (!this.hasCapability(AUTOPILOT_AWAY_CAPABILITY)) throw new Error(this.homey.__('autopilot.heating.not_on'));
+        await (this.driver as any).setAway(on);
+    }
+
+    /** Follow the home's Away. On: the thermostat's temperature is kept and the thermostat set to
+     *  the Away temperature, and Autopilot may use the widest range. Off: the thermostat goes back.
+     *  Nothing on a device not running Autopilot heating. */
+    async applyAway(on: boolean) {
+        if (!this.hasCapability(AUTOPILOT_AWAY_CAPABILITY)) return;
         if (on === this.autopilotAway() && (on ? this.getStoreValue('autopilotHome') != null : true)) return;
         if (on) {
             const home = Number(this.getCapabilityValue('target_temperature'));
