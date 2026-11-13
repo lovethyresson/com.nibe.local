@@ -5,6 +5,8 @@
       .ap-title { opacity: 0.6; }
       .ap-status { margin: 2px 0 0; font-size: 1.35em; font-weight: 600; }
       .ap-reason { margin: 2px 0 0; opacity: 0.8; }
+      .ap-status { display: flex; justify-content: space-between; gap: 8px; }
+      .ap-now { color: var(--ap-indoor); font-variant-numeric: tabular-nums; }
       .ap-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
       .ap-chips { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; margin: 0; min-width: 0; }
       .ap-chip { font-size: 0.8em; padding: 2px 8px; border-radius: 999px; background: rgba(127, 127, 127, 0.15); }
@@ -39,6 +41,21 @@
 
       // The offset axis fits the bars: from the lowest to the highest offset, 0 always on it, at
       // least 0.5 K tall, in a round step (0.25 to 5 K) with at most four intervals.
+      // The row under a chart: the axes' units at either end and the hours between them. An hour
+      // that would touch a unit is left out. Widths are estimated: 9px text is about 5.2 units a
+      // character in the 360-wide viewBox.
+      function bottomRow(svg, ticks, y, W, axes) {
+        var CHAR = 5.2, GAP = 4;
+        var leftEnd = (axes.left || '').length * CHAR + GAP, rightStart = W - (axes.right || '').length * CHAR - GAP;
+        ticks.forEach(function (t) {
+          var half = t.label.length * CHAR / 2;
+          if (t.x - half < leftEnd || t.x + half > rightStart) return;
+          var l = svgEl('text', {x: t.x, y: y, 'text-anchor': 'middle'}); l.textContent = t.label; svg.appendChild(l);
+        });
+        if (axes.left) { var aL = svgEl('text', {x: 0, y: y}); aL.textContent = axes.left; svg.appendChild(aL); }
+        if (axes.right) { var aR = svgEl('text', {x: W, y: y, 'text-anchor': 'end'}); aR.textContent = axes.right; svg.appendChild(aR); }
+      }
+
       function offsetAxis(values) {
         var min = Math.min.apply(null, values.concat([0])), max = Math.max.apply(null, values.concat([0]));
         if (max - min < 0.5) { if (max > 0) max = 0.5; else if (min < 0) min = -0.5; else { min = -0.5; max = 0.5; } }
@@ -105,11 +122,7 @@
 
         // Now, and the hours.
         svg.appendChild(svgEl('line', {x1: x(data.now), x2: x(data.now), y1: T, y2: B, stroke: 'currentColor', 'stroke-opacity': 0.35}));
-        data.ticks.forEach(function (t) {
-          var label = svgEl('text', {x: x(t.at), y: H - 8, 'text-anchor': 'middle'}); label.textContent = t.label; svg.appendChild(label);
-        });
-        var axisL = svgEl('text', {x: 0, y: H - 8}); axisL.textContent = data.axes.left; svg.appendChild(axisL);
-        var axisR = svgEl('text', {x: W, y: H - 8, 'text-anchor': 'end'}); axisR.textContent = data.axes.right; svg.appendChild(axisR);
+        bottomRow(svg, data.ticks.map(function (t) { return {x: x(t.at), label: t.label}; }), H - 8, W, data.axes);
         return svg;
       }
 
@@ -133,15 +146,22 @@
         if (surplus.length) [0, sMax / 2, sMax].forEach(function (v) {
           var t = svgEl('text', {x: R + 4, y: ys(v) + 3}); t.textContent = (Math.round(v * 10) / 10).toString(); svg.appendChild(t);
         });
-        // Price: a step area.
-        var d = '', pen = false;
+        // Price: a step area, each run of known prices closed down to 0 at its own ends, so the
+        // hours past the last known price stay empty.
+        var d = '', area = '', pen = false, start = 0;
         data.slots.forEach(function (s, k) {
-          if (typeof s.price !== 'number') { pen = false; return; }
-          d += (pen ? 'L' : 'M') + x(k).toFixed(1) + ' ' + yp(s.price).toFixed(1) + 'L' + x(k + 1).toFixed(1) + ' ' + yp(s.price).toFixed(1);
+          var known = typeof s.price === 'number';
+          if (!known && pen) area += 'L' + x(k).toFixed(1) + ' ' + B + 'L' + x(start).toFixed(1) + ' ' + B + 'Z';
+          if (!known) { pen = false; return; }
+          var seg = x(k).toFixed(1) + ' ' + yp(s.price).toFixed(1) + 'L' + x(k + 1).toFixed(1) + ' ' + yp(s.price).toFixed(1);
+          if (!pen) start = k;
+          d += (pen ? 'L' : 'M') + seg;
+          area += (pen ? 'L' : 'M') + seg;
           pen = true;
         });
+        if (pen) area += 'L' + x(data.slots.length).toFixed(1) + ' ' + B + 'L' + x(start).toFixed(1) + ' ' + B + 'Z';
         if (d) {
-          svg.appendChild(svgEl('path', {d: d + 'L' + R + ' ' + B + 'L' + L + ' ' + B + 'Z', fill: 'var(--ap-price)', 'fill-opacity': 0.5}));
+          svg.appendChild(svgEl('path', {d: area, fill: 'var(--ap-price)', 'fill-opacity': 0.5}));
           svg.appendChild(svgEl('path', {d: d, fill: 'none', stroke: 'var(--ap-price-line)', 'stroke-width': 1}));
         }
         // Surplus: an area from 0.
@@ -158,9 +178,7 @@
           if (solar > 0) svg.appendChild(svgEl('rect', {x: x(k) + 0.3, width: step - 0.6, y: CB - solar, height: solar, fill: 'var(--ap-solar)'}));
           if (h - solar > 0) svg.appendChild(svgEl('rect', {x: x(k) + 0.3, width: step - 0.6, y: B + 4, height: h - solar, fill: 'var(--ap-indoor)'}));
         });
-        data.ticks.forEach(function (t) { var l = svgEl('text', {x: x(t.at), y: H - 6, 'text-anchor': 'middle'}); l.textContent = t.label; svg.appendChild(l); });
-        var aL = svgEl('text', {x: 0, y: H - 6}); aL.textContent = data.axes.left; svg.appendChild(aL);
-        if (data.axes.right) { var aR = svgEl('text', {x: W, y: H - 6, 'text-anchor': 'end'}); aR.textContent = data.axes.right; svg.appendChild(aR); }
+        bottomRow(svg, data.ticks.map(function (t) { return {x: x(t.at), label: t.label}; }), H - 6, W, data.axes);
         return svg;
       }
 
@@ -186,7 +204,13 @@
         }
         root.replaceChildren(head);
         if (data.empty) { root.appendChild(el('p', 'ap-empty', data.empty)); return; }
-        if (data.status) root.appendChild(el('p', 'ap-status', data.status));
+        if (data.status) {
+          var status = el('p', 'ap-status');
+          status.appendChild(el('span', '', data.status));
+          // Indoor now, in the indoor line's colour.
+          if (typeof data.indoorNow === 'number') status.appendChild(el('span', 'ap-now', data.indoorNow.toFixed(1) + ' °C'));
+          root.appendChild(status);
+        }
         if (data.reason) root.appendChild(el('p', 'ap-reason homey-text-small', data.reason));
         if (data.kind === 'heating') {
           root.appendChild(heatingChart(data));

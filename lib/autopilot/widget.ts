@@ -40,6 +40,8 @@ export interface WidgetData {
     comfort?: number;
     footnote?: string;
     empty?: string;
+    /** Indoor temperature now, °C (heating), shown beside the status. */
+    indoorNow?: number;
 }
 
 /** Hour labels every `everyH` h, at their slot index from `start`, local time. */

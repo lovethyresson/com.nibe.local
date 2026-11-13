@@ -1744,6 +1744,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             ...base, kind: 'heating', chips, test: mode === 'test',
             slots: heatingSlots(past, this.heatingFeed?.state, slot), now: BACK_SLOTS,
             ticks: ticks(slotStart(from), BACK_SLOTS + AHEAD_SLOTS, this.clock),
+        const indoorNow = this.getCapabilityValue('measure_temperature') ?? NaN;
             status: status ? this.homey.__(`autopilot.heating.status_name.${status}`) : undefined,
             reason: (this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) as string | null) ?? undefined,
             legend: {indoor: t('indoor'), planned: t('expected'), offset: t('offset'), comfort: t('comfort')},
@@ -1754,6 +1755,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         };
     }
 
+            indoorNow: Number.isFinite(indoorNow) ? Math.round(indoorNow * 10) / 10 : undefined,
     // ---- Away: the thermostat goes to the Away temperature and comes back ----
 
     private autopilotAway(): boolean {
