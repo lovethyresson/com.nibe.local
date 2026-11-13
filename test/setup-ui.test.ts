@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const {JSDOM} = require('jsdom');
 const english = JSON.parse(readFileSync('locales/en.json', 'utf8'));
-function fixture(mode = 'pair', role = 'hotwater', zoneCount = 0, storedZone?: number) {
+function fixture(mode = 'pair', role = 'hotwater', zoneCount = 0, storedZone?: number, extra: {context?: any; results?: any} = {}) {
     const dom = new JSDOM(readFileSync(mode === 'pair' ? 'drivers/nibe_s/pair/devices.html' : 'drivers/nibe_s/repair/features.html', 'utf8'), {runScripts: 'outside-only'});
     const win = dom.window;
     const created: any[] = []; const emitted: any[] = [];
@@ -23,7 +23,7 @@ function fixture(mode = 'pair', role = 'hotwater', zoneCount = 0, storedZone?: n
         createDevice: async (d: any) => { created.push(d); },
         emit(name: string, data: any, callback: any) {
             emitted.push({name, data});
-            const results: any = {get_context: {mode, role, groups: [group], tanks,
+            const results: any = {...extra.results, get_context: {...extra.context, mode, role, groups: [group], tanks,
                 selection: {groups: {heating: true}, hotwater: {tankId: 'custom', litres: 275, inletC: 9},
                     addresses: storedZone ? {target_temperature: storedZone} : {}}},
                 get_indoor_sensors: Array.from({length: 30}, (_, i) => ({deviceId: 'sensor' + i, capabilityId: 'measure_temperature', name: 'Sensor ' + i, room: i < 15 ? 'Home / Ground floor' : 'Home / Upstairs', type: 'sensor', app: 'test', value: 20 + i / 10, available: true, updatedAt: Date.now()})),
@@ -204,4 +204,41 @@ test('Repair preselects the stored zone and saves a new pick; a single zone skip
     assert.equal(one.win.document.getElementById('nibe-repair-setup').querySelector('.pair-hero-title').textContent, 'Choose your temperature source');
     assert.equal(one.win.document.querySelector('input[data-source="target_temperature"]'), null);
     one.dom.window.close();
+});
+
+const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+async function hotwaterSmart(status: any) {
+    const f = fixture('repair', 'hotwater', 0, undefined, {context: {smart: true},
+        results: {smart_status: {role: 'hotwater', mode: 'off', spa: true, spaOn: false, autopilot: true, tank: true,
+            starterDays: 14, household: null, ...status}, hotwater_household: true, smart_choose: true}});
+    f.click('Continue'); f.menu('Smart mode'); await tick();
+    const test = f.win.document.querySelector('input[name="smart-choice"][value="test"]');
+    test.checked = true; test.dispatchEvent(new f.win.Event('change'));
+    f.click('Continue'); await tick();
+    return f;
+}
+test('Autopilot hot water setup lists the Flows that switch More hot water, and asks a young home about its household', async () => {
+    const f = await hotwaterSmart({flows: [{id: 'a', name: 'Cheap hot water', advanced: true}], historyDays: 3});
+    const text = f.win.document.body.textContent;
+    assert.ok(text.includes('Cheap hot water'));
+    assert.ok(text.includes(english.pair.setup.smart.hw_flows_found));
+    assert.ok(text.includes('3 days'));
+    const people = f.win.document.querySelector('select[aria-label="' + english.pair.setup.smart.hw_people + '"]');
+    people.value = '4'; people.dispatchEvent(new f.win.Event('change'));
+    const daytime = f.win.document.querySelector('input[name="hw-free"][value="daytime"]');
+    daytime.checked = true; daytime.dispatchEvent(new f.win.Event('change'));
+    f.click(english.pair.setup.smart.start_test); await tick(); await tick();
+    assert.equal(JSON.stringify(f.emitted.find((e) => e.name === 'hotwater_household')?.data), JSON.stringify({people: 4, morningHour: 7, freeDay: 'daytime'}));
+    assert.equal(f.emitted.find((e) => e.name === 'smart_choose')?.data?.value, 'test');
+    f.dom.window.close();
+});
+test('a home with enough history is not asked about its household, and no Flows is said plainly', async () => {
+    const f = await hotwaterSmart({flows: [], historyDays: 60});
+    const text = f.win.document.body.textContent;
+    assert.ok(text.includes(english.pair.setup.smart.hw_flows_none));
+    assert.ok(!text.includes(english.pair.setup.smart.hw_household));
+    f.click(english.pair.setup.smart.start_test); await tick(); await tick();
+    assert.equal(f.emitted.some((e) => e.name === 'hotwater_household'), false);
+    assert.equal(f.emitted.find((e) => e.name === 'smart_choose')?.data?.value, 'test');
+    f.dom.window.close();
 });

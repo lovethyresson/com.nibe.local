@@ -289,7 +289,22 @@
         "choose_on_desc_cooling": "Gaat voorkoelen voor prijspieken en op zonne-overschot.",
         "choose_off_desc_pool": "Het zwembad volgt de eigen instellingen van uw apparaat.",
         "choose_off_desc_cooling": "De koeling volgt de eigen instellingen van uw apparaat.",
-        "experimental": "Experimenteel"
+        "experimental": "Experimenteel",
+        "hw_intro": "Twee dingen voordat Autopilot het warm water overneemt.",
+        "hw_flows": "Flows die Meer warm water inschakelen",
+        "hw_flows_none": "Geen. Alleen Autopilot start opwarmingen.",
+        "hw_flows_found": "Deze starten opwarmingen die Autopilot niet heeft gepland. Zet ze uit, of laat ze alleen meldingen sturen:",
+        "hw_flows_unknown": "Je flows konden niet worden gelezen. Zet flows uit die Meer warm water volgens schema inschakelen.",
+        "hw_household": "Je huishouden",
+        "hw_household_intro": "Je apparaat heeft __days__ dagen warmwatergeschiedenis. Tot het twee weken is, gaat Autopilot ook uit van deze antwoorden.",
+        "hw_household_intro_unknown": "Tot je apparaat twee weken warmwatergeschiedenis heeft, gaat Autopilot uit van deze antwoorden.",
+        "hw_people": "Personen thuis",
+        "hw_morning": "Ochtenddouche op een werkdag",
+        "hw_free": "Op een vrije dag wordt het meeste warm water gebruikt",
+        "hw_free_morning": "'s Ochtends",
+        "hw_free_daytime": "Overdag",
+        "hw_free_evening": "'s Avonds",
+        "household_invalid": "Kies hoeveel mensen er wonen en een douchetijd."
       }
     },
     "gateway": {
@@ -583,6 +598,16 @@
       "axis_price": "Prijs /kWh",
       "axis_surplus": "Overschot kW",
       "experimental": "Experimenteel"
+    },
+    "hotwater_status": {
+      "learning": "Leert je warmwatergebruik kennen",
+      "no_prices": "Wacht op stroomprijzen",
+      "charging": "Verwarmt de boiler",
+      "charging_reason": "Verwarmt de boiler · __reason__",
+      "starting": "Start opwarmen tot __target__ °C · __reason__",
+      "next": "Volgende opwarming __time__ tot __target__ °C · __reason__",
+      "none": "Geen opwarming nodig tot __until__",
+      "test": "Testrun: __text__"
     }
   }
 }

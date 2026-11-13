@@ -607,6 +607,7 @@ function NibeSetup(options) {
         shell.appendChild(radios('smart-choice', choices, ap.choice, function (v) { ap.choice = v; }));
         if (heating && st.spaOn) shell.appendChild(el('p', a('spa_note'), 'register-desc'));
         var next = button(t('next'), function () {
+            if (st.role === 'hotwater' && (ap.choice === 'autopilot' || ap.choice === 'test')) { hotwaterStep(); return; }
             if (ap.choice === st.mode && (ap.choice !== 'autopilot' || !heating || live)) { hub(); return; }
             if (heating && (ap.choice === 'autopilot' || ap.choice === 'test')) { checklist(); return; }
             busy(next, async function () {
@@ -615,6 +616,53 @@ function NibeSetup(options) {
             });
         }, true);
         shell.appendChild(next);
+    }
+    /** Autopilot hot water: the Flows that would fight it, and for a home with a short history
+     *  the household answers it starts from. */
+    function hotwaterStep() {
+        var st = ap.status;
+        clear(a('title'), a('hw_intro'));
+        var list = el('ul', undefined, 'setup-checklist');
+        if (st.flows === null) list.appendChild(checkRow(null, a('hw_flows'), a('hw_flows_unknown')));
+        else if (!st.flows.length) list.appendChild(checkRow(true, a('hw_flows'), a('hw_flows_none')));
+        else {
+            var names = el('ul', undefined, 'setup-flow-list');
+            st.flows.forEach(function (f) { names.appendChild(el('li', f.name)); });
+            list.appendChild(checkRow(null, a('hw_flows'), a('hw_flows_found'), names));
+        }
+        shell.appendChild(list);
+        var saved = st.household;
+        var ask = !!saved || st.historyDays === null || st.historyDays < st.starterDays;
+        var answers = {people: saved ? saved.people : 2, morningHour: saved ? saved.morningHour : 7, freeDay: saved ? saved.freeDay : 'evening'};
+        if (ask) {
+            var group = el('section', undefined, 'setup-task-group');
+            group.appendChild(el('h3', a('hw_household')));
+            group.appendChild(el('p', st.historyDays === null ? a('hw_household_intro_unknown')
+                : a('hw_household_intro', {days: st.historyDays}), 'register-desc'));
+            var field = function (label, values, current, onchange) {
+                var row = el('label', undefined, 'setup-field');
+                var select = document.createElement('select'); select.setAttribute('aria-label', label);
+                values.forEach(function (v) { select.add(new Option(v[1], String(v[0]))); });
+                select.value = String(current);
+                select.onchange = function () { onchange(Number(select.value)); };
+                row.append(el('span', label), select); return row;
+            };
+            var people = [1, 2, 3, 4, 5, 6, 7, 8].map(function (n) { return [n, String(n)]; });
+            var hours = [4, 5, 6, 7, 8, 9, 10].map(function (h) { return [h, (h < 10 ? '0' : '') + h + ':00']; });
+            group.appendChild(field(a('hw_people'), people, answers.people, function (v) { answers.people = v; }));
+            group.appendChild(field(a('hw_morning'), hours, answers.morningHour, function (v) { answers.morningHour = v; }));
+            group.appendChild(el('p', a('hw_free'), 'setup-tiles-title'));
+            group.appendChild(radios('hw-free', ['morning', 'daytime', 'evening'].map(function (id) {
+                return {id: id, title: a('hw_free_' + id)};
+            }), answers.freeDay, function (v) { answers.freeDay = v; }));
+            shell.appendChild(group);
+        }
+        var go = button(ap.choice === 'test' ? a('start_test') : t('save_section'), function () { busy(go, async function () {
+            if (ask) await emit('hotwater_household', answers);
+            if (ap.choice !== st.mode) await emit('smart_choose', {value: ap.choice});
+            done(ap.choice === 'test' ? a('saved_test') : a('saved'));
+        }); }, true);
+        shell.appendChild(go); back(smart);
     }
     function checklist() {
         var st = ap.status;

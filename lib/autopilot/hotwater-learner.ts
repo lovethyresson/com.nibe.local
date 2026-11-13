@@ -275,8 +275,72 @@ function profileOf(list: Day[], weight: (d: Day) => number, prior?: DayProfile):
         dailyP80: Number.isFinite(dailyP80) ? blend(dailyP80, total, prior?.dailyP80) : prior?.dailyP80 ?? NaN};
 }
 
-/** Learns from readings in time order. `now` sets the age weights. */
-export function learn(points: TankPoint[], clock: LocalClock, now: number, halfLifeDays = HALF_LIFE_DAYS): HotwaterModel {
+/** What setup asks a home with under STARTER_DAYS of history (docs/autopilot-hot-water.md §4.6). */
+export interface Household {
+    /** People living there. */
+    people: number;
+    /** Usual morning shower on a working day, local hour. */
+    morningHour: number;
+    /** When a free day's main use is. */
+    freeDay: 'morning' | 'daytime' | 'evening';
+}
+
+/** Below this many days of history, setup asks about the household. */
+export const STARTER_DAYS = 14;
+/** kWh heat a person draws on a working day: about 70 L of 40 °C water. Free days 1.5×. */
+const KWH_PER_PERSON = 2.5;
+const FREE_DAY_FACTOR = 1.5;
+/** A heavy day against a typical one, and an hour's 80th percentile against its mean, until
+ *  the home's own days say otherwise. */
+const STARTER_P80_DAY = 1.35;
+const STARTER_P80_HOUR = 1.6;
+
+/** Clamps what setup stored into a household, or undefined when it is not one. */
+export function readHousehold(raw: any): Household | undefined {
+    const people = Math.round(Number(raw?.people)), morningHour = Math.round(Number(raw?.morningHour));
+    if (!(people >= 1 && people <= 12) || !(morningHour >= 0 && morningHour <= 23)) return undefined;
+    const freeDay = raw?.freeDay === 'morning' || raw?.freeDay === 'daytime' ? raw.freeDay : 'evening';
+    return {people, morningHour, freeDay};
+}
+
+/** A starting day profile from the household's answers: the day's heat placed at the given
+ *  times. A prior, not a model: the learner leans on it only until the home has SHRINK_DAYS of
+ *  its own days of each type. */
+export function starterProfiles(h: Household): {any: DayProfile; working: DayProfile; free: DayProfile} {
+    /** Shares of the day per local hour, from (hour, weight) peaks plus a little spread over waking hours. */
+    const shape = (peaks: [number, number][]) => {
+        const w = new Array(24).fill(0);
+        for (let hour = 7; hour < 23; hour++) w[hour] = 0.15 / 16;
+        for (const [hour, weight] of peaks) w[((hour % 24) + 24) % 24] += weight;
+        const total = w.reduce((a, b) => a + b, 0);
+        return w.map((v) => v / total);
+    };
+    const m = h.morningHour;
+    const profile = (daily: number, shares: number[]): DayProfile => ({
+        days: 0, daily, dailyP80: daily * STARTER_P80_DAY,
+        hours: shares.map((x) => x * daily), p80: shares.map((x) => x * daily * STARTER_P80_HOUR),
+    });
+    const workDaily = h.people * KWH_PER_PERSON, freeDaily = workDaily * FREE_DAY_FACTOR;
+    const working = profile(workDaily, shape([[m, 0.35], [m + 1, 0.15], [18, 0.1], [19, 0.1], [20, 0.1], [21, 0.05]]));
+    const freePeaks: Record<Household['freeDay'], [number, number][]> = {
+        morning: [[m + 2, 0.3], [m + 3, 0.2], [19, 0.15], [20, 0.1]],
+        daytime: [[11, 0.15], [12, 0.15], [13, 0.1], [14, 0.1], [19, 0.15], [20, 0.1]],
+        evening: [[m + 2, 0.15], [18, 0.15], [19, 0.2], [20, 0.15], [21, 0.1]],
+    };
+    const free = profile(freeDaily, shape(freePeaks[h.freeDay]));
+    // The pooled day is five working days to two free ones.
+    const any: DayProfile = {
+        days: 0, daily: (5 * workDaily + 2 * freeDaily) / 7, dailyP80: (5 * working.dailyP80 + 2 * free.dailyP80) / 7,
+        hours: working.hours.map((v, k) => (5 * v + 2 * free.hours[k]) / 7),
+        p80: working.p80.map((v, k) => (5 * v + 2 * free.p80[k]) / 7),
+    };
+    return {any, working, free};
+}
+
+/** Learns from readings in time order. `now` sets the age weights. `household`, when setup asked
+ *  it, is the prior a young history leans on. */
+export function learn(points: TankPoint[], clock: LocalClock, now: number, halfLifeDays = HALF_LIFE_DAYS,
+                      household?: Household): HotwaterModel {
     const loss = learnLoss(points, clock);
     const spans = intervals(points, loss);
     const all = days(spans, clock);
@@ -285,12 +349,15 @@ export function learn(points: TankPoint[], clock: LocalClock, now: number, halfL
     const typical = weightedQuantile(present.map((d) => d.draw), present.map(weight), 0.5);
     const away = all.filter((d) => d.dayType === 'away' || (!d.dayType && Number.isFinite(typical) && d.draw < AWAY_SHARE * typical));
     const kept = present.filter((d) => !away.includes(d));
-    const any = profileOf(kept, weight);
+    const start = household && starterProfiles(household);
+    const any = profileOf(kept, weight, start?.any);
     const profiles: HotwaterModel['profiles'] = {};
     if (any) profiles.any = any;
     for (const type of ['working', 'free'] as const) {
         const own = kept.filter((d) => d.dayType === type);
-        if (own.length) profiles[type] = profileOf(own, weight, any);
+        // With a household the type has its own prior (a free day draws more, at other hours);
+        // without one it leans on the pooled day.
+        if (own.length || start) profiles[type] = profileOf(own, weight, start?.[type] ?? any);
     }
     return {loss, charge: learnCharge(spans), profiles, away: away.map((d) => d.date), days: all.length};
 }

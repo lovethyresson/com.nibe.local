@@ -371,6 +371,16 @@
       "axis_price": "Price /kWh",
       "axis_surplus": "Surplus kW",
       "experimental": "Experimental"
+    },
+    "hotwater_status": {
+      "learning": "Learning your hot water use",
+      "no_prices": "Waiting for electricity prices",
+      "charging": "Heating the tank",
+      "charging_reason": "Heating the tank · __reason__",
+      "starting": "Starting a charge to __target__ °C · __reason__",
+      "next": "Next charge __time__ to __target__ °C · __reason__",
+      "none": "No charge needed until __until__",
+      "test": "Test run: __text__"
     }
   }
 }

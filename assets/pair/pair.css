@@ -657,6 +657,7 @@ body {
 .setup-check .homey-button-secondary { margin-top: .2em; }
 .setup-field { display: flex; align-items: center; justify-content: space-between; gap: 1em; margin: 1em 0 .3em; }
 .setup-field input { width: 6em; }
+.setup-flow-list { margin: .2em 0 .4em; padding-left: 1.2em; }
 
 /* Smart mode explainers: the mode comparison grid, and what to expect as a timeline and tiles. */
 .setup-icon { display: inline-flex; width: 1.5em; height: 1.5em; }

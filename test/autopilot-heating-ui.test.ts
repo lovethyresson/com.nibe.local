@@ -4,7 +4,7 @@ import {heatingStatus, pricePeak} from '../lib/autopilot/heating-status';
 import {FeedSnapshot} from '../lib/autopilot/live';
 import {POOL_INFLUENCE_DEFAULT, shownSmartMode, smartMode, smartModeWrites, spaOn} from '../lib/autopilot/smart-mode';
 import {SLOT_MS} from '../lib/autopilot/prices';
-import {AUTOPILOT_HEATING_CAPABILITIES, capabilitySyncPlan, extraCapabilities, hiddenBySmartMode, possibleExtraCapabilities} from '../lib/roles';
+import {AUTOPILOT_HEATING_CAPABILITIES, AUTOPILOT_HOTWATER_CAPABILITIES, capabilitySyncPlan, extraCapabilities, hiddenBySmartMode, possibleExtraCapabilities} from '../lib/roles';
 import {sProfile} from '../drivers/nibe_s/profile';
 
 // Keys and tokens echoed back, so a test reads which text was chosen and with what.
@@ -93,6 +93,15 @@ test('Repair shows Off or SPA as the pump has it, and Autopilot as stored', () =
     assert.equal(shownSmartMode('test', false), 'test');
 });
 
+test('the Hot water device carries the "Autopilot now" line only while its Smart mode runs Autopilot', () => {
+    for (const mode of ['off', 'spa'] as const)
+        assert.ok(AUTOPILOT_HOTWATER_CAPABILITIES.every((c) => !extraCapabilities(sProfile, 'hotwater', null, mode).includes(c)), mode);
+    for (const mode of ['test', 'autopilot'] as const)
+        assert.ok(AUTOPILOT_HOTWATER_CAPABILITIES.every((c) => extraCapabilities(sProfile, 'hotwater', null, mode).includes(c)), mode);
+    for (const role of ['main', 'pool', 'cooling', 'solar'] as const)
+        assert.ok(AUTOPILOT_HOTWATER_CAPABILITIES.every((c) => !extraCapabilities(sProfile, role, null, 'autopilot').includes(c)), role);
+});
+
 test('the Heating device carries the Autopilot capabilities only while Smart mode runs Autopilot', () => {
     assert.ok(AUTOPILOT_HEATING_CAPABILITIES.every((c) => possibleExtraCapabilities(sProfile, 'heating').includes(c)));
     for (const mode of ['off', 'spa'] as const)
@@ -100,7 +109,8 @@ test('the Heating device carries the Autopilot capabilities only while Smart mod
     for (const mode of ['test', 'autopilot'] as const)
         assert.ok(AUTOPILOT_HEATING_CAPABILITIES.every((c) => extraCapabilities(sProfile, 'heating', null, mode).includes(c)), mode);
     for (const role of ['main', 'hotwater', 'pool', 'cooling', 'solar'] as const)
-        assert.ok(AUTOPILOT_HEATING_CAPABILITIES.every((c) => !possibleExtraCapabilities(sProfile, role).includes(c)), role);
+        assert.ok(AUTOPILOT_HEATING_CAPABILITIES.filter((c) => !AUTOPILOT_HOTWATER_CAPABILITIES.includes(c))
+            .every((c) => !possibleExtraCapabilities(sProfile, role).includes(c)), role);
     const on = capabilitySyncPlan(sProfile, 'heating', null, [], 'autopilot');
     const off = capabilitySyncPlan(sProfile, "heating", null, on.wanted, 'off');
     const spaControls = sProfile.spaSwitches!.controls.heating!;

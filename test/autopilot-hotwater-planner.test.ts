@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert';
-import {DEFAULT_RESERVE_LITRES, PlanInput, PlanSlot, heatAt, plan, reserveKwh, tempOf} from '../lib/autopilot/hotwater-planner';
+import {DEFAULT_RESERVE_LITRES, PlanInput, PlanSlot, SLOT_H, drawsFor, heatAt, plan, plannedHours, reserveKwh, tempOf} from '../lib/autopilot/hotwater-planner';
+import {DayProfile} from '../lib/autopilot/hotwater-learner';
 
 const near = (actual: number, expected: number, tolerance: number, what: string) =>
     assert.ok(Math.abs(actual - expected) <= tolerance, `${what}: expected ${expected} ± ${tolerance}, got ${actual}`);
@@ -120,4 +121,38 @@ test('the reserve is on by default at about a shower, and 0 turns it off', () =>
     assert.strictEqual(DEFAULT_RESERVE_LITRES, 40);
     const p = plan(input(day(() => 3.3, () => 0), {stored: reserveKwh(10), reserve: 0}));
     assert.strictEqual(p.startNow, false, 'off: nothing bought at a peak to hold a floor');
+});
+
+/** A day with a morning and an evening peak whose hours sum past the day totals, as clipped
+ *  hourly draws do (measured: 21.8 kWh of hours against a 13.9 kWh mean day). */
+const noisyDay = (): DayProfile => {
+    const hours = new Array(24).fill(0.4), p80 = new Array(24).fill(1.2);
+    hours[7] = hours[19] = 3; p80[7] = p80[19] = 6;
+    return {days: 20, hours, p80, daily: 14, dailyP80: 21};
+};
+const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+
+test('a planned day adds up to between the mean day and the busy day, not to every hour busy at once', () => {
+    const p = noisyDay();
+    assert.ok(sum(p.hours) + 0.5 * sum(p.p80.map((v, h) => v - p.hours[h])) > 25, 'read hour by hour it plans over 25 kWh');
+    const planned = plannedHours(p);
+    assert.ok(Math.abs(sum(planned) - (14 + 0.5 * 7)) < 1e-9, `planned ${sum(planned)}`);
+    assert.ok(Math.abs(sum(plannedHours(p, 0)) - 14) < 1e-9, 'blend 0 is the mean day');
+    assert.ok(Math.abs(sum(plannedHours(p, 1)) - 21) < 1e-9, 'blend 1 is the busy day');
+});
+
+test('the planned draws keep the profile\'s shape: the peaks stay the peaks', () => {
+    const planned = plannedHours(noisyDay());
+    const order = planned.map((v, h) => [v, h]).sort((a, b) => b[0] - a[0]).map(([, h]) => h);
+    assert.deepStrictEqual(order.slice(0, 2).sort((a, b) => a - b), [7, 19]);
+});
+
+test('without day totals the hours are planned as they are', () => {
+    const p = {...noisyDay(), daily: NaN, dailyP80: NaN};
+    assert.deepStrictEqual(plannedHours(p), p.hours.map((m, h) => m + 0.5 * (p.p80[h] - m)));
+});
+
+test('drawsFor gives each slot a quarter of its hour, and nothing on an away day', () => {
+    const p = noisyDay(), planned = plannedHours(p);
+    assert.deepStrictEqual(drawsFor([p, p, undefined], [7, 19, 7]), [planned[7] * SLOT_H, planned[19] * SLOT_H, 0]);
 });

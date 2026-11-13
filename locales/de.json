@@ -289,7 +289,22 @@
         "choose_on_desc_cooling": "Wird vor Preisspitzen und mit Solarüberschuss vorkühlen.",
         "choose_off_desc_pool": "Der Pool folgt den eigenen Einstellungen Ihres Geräts.",
         "choose_off_desc_cooling": "Die Kühlung folgt den eigenen Einstellungen Ihres Geräts.",
-        "experimental": "Experimentell"
+        "experimental": "Experimentell",
+        "hw_intro": "Zwei Dinge, bevor Autopilot das Warmwasser übernimmt.",
+        "hw_flows": "Flows, die Mehr Warmwasser einschalten",
+        "hw_flows_none": "Keine. Nur Autopilot startet Ladungen.",
+        "hw_flows_found": "Diese starten Ladungen, die Autopilot nicht geplant hat. Schalten Sie sie aus oder lassen Sie sie nur Benachrichtigungen senden:",
+        "hw_flows_unknown": "Ihre Flows konnten nicht gelesen werden. Schalten Sie alle aus, die Mehr Warmwasser nach Zeitplan einschalten.",
+        "hw_household": "Ihr Haushalt",
+        "hw_household_intro": "Ihr Gerät hat __days__ Tage Warmwasser-Verlauf. Bis es zwei Wochen sind, geht Autopilot auch von diesen Antworten aus.",
+        "hw_household_intro_unknown": "Bis Ihr Gerät zwei Wochen Warmwasser-Verlauf hat, geht Autopilot von diesen Antworten aus.",
+        "hw_people": "Personen im Haushalt",
+        "hw_morning": "Morgendusche an einem Arbeitstag",
+        "hw_free": "An einem freien Tag wird das meiste Warmwasser verbraucht",
+        "hw_free_morning": "Morgens",
+        "hw_free_daytime": "Tagsüber",
+        "hw_free_evening": "Abends",
+        "household_invalid": "Wählen Sie, wie viele Personen dort wohnen, und eine Duschzeit."
       }
     },
     "gateway": {
@@ -583,6 +598,16 @@
       "axis_price": "Preis /kWh",
       "axis_surplus": "Überschuss kW",
       "experimental": "Experimentell"
+    },
+    "hotwater_status": {
+      "learning": "Lernt Ihren Warmwasserverbrauch",
+      "no_prices": "Wartet auf Strompreise",
+      "charging": "Heizt den Speicher",
+      "charging_reason": "Heizt den Speicher · __reason__",
+      "starting": "Startet eine Ladung auf __target__ °C · __reason__",
+      "next": "Nächste Ladung __time__ auf __target__ °C · __reason__",
+      "none": "Keine Ladung nötig bis __until__",
+      "test": "Testlauf: __text__"
     }
   }
 }

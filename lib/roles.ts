@@ -173,6 +173,10 @@ export const AUTOPILOT_HEATING_CAPABILITIES = [AUTOPILOT_STATUS_CAPABILITY, AUTO
     AUTOPILOT_RANGE_CAPABILITY, AUTOPILOT_AWAY_CAPABILITY, AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY,
     AUTOPILOT_SHIFT_CAPABILITY, AUTOPILOT_FED_CAPABILITY];
 
+// Autopilot hot water on the Hot water device, only while its Smart mode is Autopilot or a test
+// run: the next planned charge and why, on heating's "Autopilot now" line.
+export const AUTOPILOT_HOTWATER_CAPABILITIES = [AUTOPILOT_REASON_CAPABILITY];
+
 // Main's on/off is pinned ON (the pump is always operating), so it reads simply as "On".
 export function pumpActiveTitle(): {en: string; sv: string; de: string; nl: string; no: string; da: string} {
     return {en: "On", sv: "På", de: "Ein", nl: "Aan", no: "På", da: "Til"};
@@ -363,7 +367,8 @@ function buildExtraCapabilities(
     // The tank estimate survives this early return alongside mirrors: it is derived from the
     // pump's own sensors and delivered-energy counter, not from the allocator, so a model with
     // no readable power register still gets it.
-    const autopilotCaps = role === "heating" && profile.autopilotFeed && autopilot ? AUTOPILOT_HEATING_CAPABILITIES : [];
+    const autopilotCaps = role === "heating" && profile.autopilotFeed && autopilot ? AUTOPILOT_HEATING_CAPABILITIES
+        : role === "hotwater" && profile.autopilotHotwater && autopilot ? AUTOPILOT_HOTWATER_CAPABILITIES : [];
     if (!hasConsumedPower)
         return [...autopilotCaps, ...tankCaps, ...mirrored];
     const energyCaps = ENERGY_CAPABILITIES.filter(enabled);
