@@ -399,8 +399,12 @@ Asked of the owner:
 - Charges and heating pre-heats are sequenced by the orchestrator ([autopilot-plan.md](autopilot-plan.md)
   §2.1): hot water plans first, and heating Autopilot plans around its charges. The earlier
   "no charge in the 2 h before a pre-heat" rule is gone.
-- Every write goes through the existing write lane, persist-before-write, and restart
-  reconciliation ends a boost the app started if the plan no longer wants it after a restart.
+- Every write goes through the existing write lane, persist-before-write. A restart does not
+  end a boost the app started: 697 = 0 does not end a running charge (§4.3), and a charge to a
+  planned temperature is harmless if the plan has since changed. What a restart keeps (device
+  store `autopilotHotwaterPlan`, `resumePlan()`): the plan in force, the charges since the last
+  morning for its recap, and that the morning message went out, so it is not sent twice. With
+  no current plan saved, the plan from now becomes the one in force, without a message.
 - Pump alarms, a blocked 195, or a register the model lacks turn the feature off with a reason on
   the device. No silent failure.
 

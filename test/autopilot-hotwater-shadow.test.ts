@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import {HotwaterModel, KWH_PER_LITRE, localClock} from '../lib/autopilot/hotwater-learner';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {COAST_HOURS, DAILY_HOUR, DailyPlan, MIN_HORIZON, ShadowEntry, coastLitres, againstPlan, planChanges, planUpdateText, autopilotCharge, chargeLine, chargeText, dailyPlan, dailyPlanText, hotwaterShadowStep, hotwaterStatusText, ownDeviceId, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
+import {COAST_HOURS, DAILY_HOUR, DailyPlan, MIN_HORIZON, ShadowEntry, coastLitres, againstPlan, planChanges, planUpdateText, autopilotCharge, chargeLine, chargeText, dailyPlan, dailyPlanText, hotwaterShadowStep, hotwaterStatusText, ownDeviceId, resumePlan, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
 import {SLOT_MS, slotOf} from '../lib/autopilot/prices';
 
 const clock = localClock('UTC');
@@ -364,4 +364,20 @@ test('every "Autopilot now" key is worded in all six languages', () => {
         const status = JSON.parse(readFileSync(join(__dirname, '..', '.homeycompose', 'locales', `${lang}.json`), 'utf8')).autopilot.hotwater_status;
         for (const key of used) assert.ok(typeof status?.[key] === 'string' && status[key].length, `${lang}: ${key}`);
     }
+});
+
+test('a restart resumes the plan in force and the recap, and remembers the morning message went out', () => {
+    const d = dailyPlan({slot: S0, prices, model, tank, clock, now: {litres: 120, top: 50}});
+    assert.ok(!('skip' in d));
+    const plan = d as DailyPlan;
+    const e = {...pumpCharge(T0 + 3_600_000, {litres: 50, top: 45, stopC: 48}, 40, plan)};
+    const saved = {dailySent: plan.date, plan, events: [e]};
+    assert.deepStrictEqual(resumePlan(saved, T0 + 2 * 3_600_000), saved);
+    // Past the prices it was made over, the plan is no longer the one in force; the recap stays.
+    const later = resumePlan(saved, plan.until + 1);
+    assert.strictEqual(later?.plan, undefined);
+    assert.strictEqual(later?.dailySent, plan.date);
+    // A charge older than two days is no longer recap.
+    assert.deepStrictEqual(resumePlan(saved, e.at + 3 * 86_400_000)?.events, []);
+    assert.strictEqual(resumePlan(undefined, T0), undefined);
 });
