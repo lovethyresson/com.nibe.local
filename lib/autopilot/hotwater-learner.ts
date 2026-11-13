@@ -86,7 +86,29 @@ export interface HotwaterModel {
     away: string[];
     /** Local dates with a full day of readings. */
     days: number;
+    /** The last RECENT_DAYS full days, oldest first: what the widget's week chart draws. */
+    recent?: DayDraw[];
 }
+
+/** One full day's hot water use. */
+export interface DayDraw {
+    /** Local date, YYYY-MM-DD. */
+    date: string;
+    /** kWh heat drawn. */
+    draw: number;
+    dayType?: DayType;
+    /** Left out of learning as away. */
+    away?: boolean;
+    /** Hours of the day whose draw is known, when not a full day: `draw` is then a lower bound. */
+    partial?: number;
+}
+
+/** Hours of known draw that make a full day. */
+const FULL_DAY_HOURS = 22;
+
+/** Full days the model keeps for the week chart: four weeks, so a typical working day and day off
+ *  each have a few days behind them. */
+export const RECENT_DAYS = 28;
 
 /** Local date and hour of an instant. */
 export type LocalClock = (ms: number) => {date: string; hour: number};
@@ -244,7 +266,7 @@ function days(spans: Interval[], clock: LocalClock): Day[] {
             if (i.dayType) day.votes.set(i.dayType, (day.votes.get(i.dayType) ?? 0) + i.hours / steps);
         }
     }
-    return [...map.values()].filter((d) => d.hoursCovered >= 22).map(({votes, ...day}) => {
+    return [...map.values()].map(({votes, ...day}) => {
         const top = [...votes].sort((x, y) => y[1] - x[1])[0];
         return {...day, dayType: top?.[0]};
     }).sort((x, y) => x.t - y.t);
@@ -343,7 +365,10 @@ export function learn(points: TankPoint[], clock: LocalClock, now: number, halfL
                       household?: Household): HotwaterModel {
     const loss = learnLoss(points, clock);
     const spans = intervals(points, loss);
-    const all = days(spans, clock);
+    // A day the tank ran low for a while (top under 40 °C: the draw is not knowable) is not a
+    // full day: it is left out of learning, and shown as "at least" in the week chart.
+    const every = days(spans, clock);
+    const all = every.filter((d) => d.hoursCovered >= FULL_DAY_HOURS);
     const weight = (d: Day) => 0.5 ** (Math.max(0, now - d.t) / 86_400_000 / halfLifeDays);
     const present = all.filter((d) => d.dayType !== 'away');
     const typical = weightedQuantile(present.map((d) => d.draw), present.map(weight), 0.5);
@@ -359,7 +384,12 @@ export function learn(points: TankPoint[], clock: LocalClock, now: number, halfL
         // without one it leans on the pooled day.
         if (own.length || start) profiles[type] = profileOf(own, weight, start?.[type] ?? any);
     }
-    return {loss, charge: learnCharge(spans), profiles, away: away.map((d) => d.date), days: all.length};
+    const today = clock(now).date;
+    const recent = every.filter((d) => d.date < today).slice(-RECENT_DAYS).map((d): DayDraw => ({date: d.date,
+        draw: Math.round(d.draw * 100) / 100, ...(d.dayType ? {dayType: d.dayType} : {}),
+        ...(away.includes(d) ? {away: true} : {}),
+        ...(d.hoursCovered < FULL_DAY_HOURS ? {partial: Math.round(d.hoursCovered * 10) / 10} : {})}));
+    return {loss, charge: learnCharge(spans), profiles, away: away.map((d) => d.date), days: all.length, recent};
 }
 
 /** The profile to plan a day with: its type's, else the pooled one. */

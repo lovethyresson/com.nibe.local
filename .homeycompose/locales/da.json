@@ -359,6 +359,15 @@
         "solar_off": "Sol fra",
         "solar_total": "__share__ % af den planlagte opvarmning kører på soloverskud."
       },
+      "week": {
+        "title": "Varmtvandsforbrug, liter 40 °C vand",
+        "working": "Arbejdsdag",
+        "free": "Fridag",
+        "away": "Væk",
+        "today": "I dag, forventet",
+        "typical": "Typisk",
+        "at_least": "≥ Mindst: tanken løb tør en tid"
+      },
       "indoor": "Inde",
       "expected": "Forventet",
       "offset": "BT1-forskydning",

@@ -586,6 +586,15 @@
         "solar_off": "Solar off",
         "solar_total": "__share__ % of the planned charging runs on solar surplus."
       },
+      "week": {
+        "title": "Hot water use, litres of 40 °C water",
+        "working": "Working day",
+        "free": "Day off",
+        "away": "Away",
+        "today": "Today, expected",
+        "typical": "Typical",
+        "at_least": "≥ At least: the tank ran low"
+      },
       "indoor": "Indoor",
       "expected": "Expected",
       "offset": "BT1 offset",

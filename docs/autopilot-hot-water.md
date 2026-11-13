@@ -158,8 +158,9 @@ S1155.
   calendar, a Homey variable or a presence Flow can drive it; the owner can also set it on the
   device. It holds until changed. Each slot is learned under the type set at the time, and the
   planner assumes the current type until it changes. No weekly pattern, holiday calendar or
-  guessing in the app. If the owner never sets it, every day is one type and the learner keeps a
-  single profile.
+  guessing in the app. There is always a day type (maintainer, 2026-11-13): Main stores working
+  when none was ever set, and a day from before the first change counts as working
+  (`DEFAULT_DAY_TYPE`, `dayTypeAt()`). An owner who never changes it gets one profile, working.
 - **Away:** while the type is away, no draws are planned for and the tank coasts to the reserve.
 - **Away is a trip, not a kind of day** (maintainer, 2026-11-13). The heating Away switch, its Flow
   card and the day type "away" are one state (`setAway()` in `lib/autopilot/day-type.ts`). A
@@ -367,6 +368,13 @@ The design as first written:
 - **Flow cards** (six languages): action "Set day type to working / free / away"; trigger "Autopilot started a hot water charge" with `reason` and `detailedReason` tokens (below), and the same trigger for a charge the pump started itself;
   condition "A hot water charge is planned in the next … hours".
 - **Insight:** "Typical use: working day 11 kWh, free day 18 kWh; peaks 06:00 and 18–21".
+- **Widget, week chart** (below the 24 h plan): litres of 40 °C water per day for the six days
+  before today, from the learner's days (`HotwaterModel.recent`, 28 days kept). Each bar is
+  coloured by the day type in force that day, exactly as set (working, free or away). The chart
+  never guesses a type from the weekday, and neither does the learner. Today's bar is the use Autopilot expects. Dashed lines mark a typical day of
+  each type over the four weeks, recency-weighted as in learning. A day with under 22 h of
+  knowable draw is a light bar marked "≥": the tank top fell below 40 °C for a while, so the
+  draw is a lower bound. Such a day is left out of the typical lines, as it is out of learning.
 - Flows that switch "More hot water" fight the planner. Setup lists them (read through
   `homey-api`) and asks the owner to turn them off.
 

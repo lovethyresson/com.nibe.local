@@ -8,11 +8,11 @@
  *  price fetch moves to the home service and the tank fields to the per-pump history. */
 import {withApi} from '../indoor-sensors';
 import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, normalisePrices, slotOf} from './prices';
-import {DayProfile, DayType, HotwaterModel, Household, KWH_PER_LITRE, LocalClock, learn, localClock, lossAt, profileFor} from './hotwater-learner';
+import {DayDraw, DayProfile, DayType, HotwaterModel, Household, KWH_PER_LITRE, LocalClock, learn, localClock, lossAt, profileFor} from './hotwater-learner';
 import {TankCapabilities, fetchTankInsights, pointsFromInsights} from './hotwater-insights';
 import {DEFAULT_RESERVE_LITRES, Plan, SLOT_H, TankSpec, drawsFor, plan, reserveKwh} from './hotwater-planner';
 import {appendLine, deleteHistory, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
-import {DayTypeState, dayTypeAt} from './day-type';
+import {DEFAULT_DAY_TYPE, DayTypeState, dayTypeAt} from './day-type';
 import {PumpFacts, countFor, leverDecision} from './hotwater-lever';
 
 const HOUR = 3_600_000;
@@ -639,6 +639,16 @@ export class HotwaterAutopilot {
         this.learn().catch((error) => this.log('Autopilot hot water:', error?.message ?? error));
     }
 
+    /** What the widget's week chart needs: the learned full days, today's local date and day
+     *  type, and the heat Autopilot expects drawn today (kWh). Undefined until it has learned. */
+    usage(): {recent: DayDraw[]; today: string; dayType?: DayType; expected?: number} | undefined {
+        if (!this.model?.recent) return undefined;
+        const dayType = dayTypeAt(this.hooks.dayType(), Date.now());
+        const expected = profileFor(this.model, dayType)?.daily;
+        return {recent: this.model.recent, today: this.clock()(Date.now()).date, dayType,
+            expected: Number.isFinite(expected) ? expected : undefined};
+    }
+
     /** Full days of tank history behind the model, once it has learned. */
     historyDays(): number | undefined {
         return this.model?.days;
@@ -691,7 +701,7 @@ export class HotwaterAutopilot {
             return;
         }
         // Each reading is learned under the day type in force when it was taken; before the
-        // owner first set one, under none (the pooled profile).
+        // owner first set one, the default (working).
         const dayTypes = this.hooks.dayType();
         for (const point of points) point.dayType = dayTypeAt(dayTypes, point.t);
         const model = learn(points, this.clock(), started, undefined, this.hooks.household());
@@ -754,7 +764,7 @@ export class HotwaterAutopilot {
     private input(at: number, now: TankNow, tank: TankSpec): ShadowStepInput {
         const slot = slotOf(at);
         return {slot, prices: this.prices, surplus: this.surplus(slot), model: this.model, now, tank, clock: this.clock(),
-            dayType: this.hooks.dayType()?.type, reserveLitres: this.hooks.reserveLitres()};
+            dayType: this.hooks.dayType()?.type ?? DEFAULT_DAY_TYPE, reserveLitres: this.hooks.reserveLitres()};
     }
 
     private step() {

@@ -162,7 +162,8 @@ test('the day type keeps its history, and every past moment has the type in forc
     assert.strictEqual(state.log.length, 1, 'the same type again changes nothing');
     state = recordDayType(state, 'away', 5000);
     assert.strictEqual(state.type, 'away');
-    assert.strictEqual(dayTypeAt(state, 500), undefined, 'before the first was set');
+    assert.strictEqual(dayTypeAt(state, 500), 'working', 'before the first was set: there is always a day type');
+    assert.strictEqual(dayTypeAt(undefined, 500), 'working', 'never set: working');
     assert.strictEqual(dayTypeAt(state, 4999), 'working');
     assert.strictEqual(dayTypeAt(state, 5000), 'away');
     assert.deepStrictEqual(readDayType({type: 'free', log: [{at: 1, type: 'free'}, {at: 'x', type: 'free'}, {at: 2, type: 'holiday'}]}),

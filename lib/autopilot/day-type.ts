@@ -14,6 +14,8 @@ import {DAY_TYPES, DayType} from './hotwater-learner';
 
 export const DAY_TYPE_SETTING = 'autopilotDayType';
 export const DAY_TYPE_CAPABILITY = 'day_type_NIBE';
+/** There is always a day type: until the owner first sets one, every day is a working day. */
+export const DEFAULT_DAY_TYPE: DayType = 'working';
 /** Changes kept: years of a type set every day. */
 const KEEP = 1000;
 
@@ -52,9 +54,9 @@ export function setAway(state: DayTypeState | undefined, on: boolean, at: number
     return recordDayType(state, state.base ?? 'working', at);
 }
 
-/** The type in force at `t`, or undefined before the first one was set. */
-export function dayTypeAt(state: DayTypeState | undefined, t: number): DayType | undefined {
-    let found: DayType | undefined;
+/** The type in force at `t`: before the first one was set, the default. */
+export function dayTypeAt(state: DayTypeState | undefined, t: number): DayType {
+    let found: DayType = DEFAULT_DAY_TYPE;
     for (const e of state?.log ?? []) {
         if (e.at > t) break;
         found = e.type;

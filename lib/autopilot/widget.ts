@@ -3,6 +3,8 @@
  *  measured behind "now", the plan's expectation after it. Pure; the device gathers the inputs and
  *  the widget only draws. Strings arrive translated, so the widget needs no locales. */
 import {FeedSnapshot} from './live';
+import {DayDraw, DayType, HALF_LIFE_DAYS, KWH_PER_LITRE} from './hotwater-learner';
+import {DEFAULT_DAY_TYPE} from './day-type';
 
 export type Translate = (key: string, tokens?: Record<string, string | number>) => string;
 
@@ -38,10 +40,80 @@ export interface WidgetData {
     axes?: {left: string; right: string};
     /** The comfort temperature, drawn as a reference line on the indoor axis. */
     comfort?: number;
-    footnote?: string;
-    empty?: string;
     /** Indoor temperature now, °C (heating), shown beside the status. */
     indoorNow?: number;
+    footnote?: string;
+    empty?: string;
+    /** Hot water: use over the last week, below the plan. */
+    week?: WeekData;
+}
+
+/** A day in the week chart: the day type in force that day, exactly as set. */
+export type DayKind = DayType;
+
+export interface WeekBar {
+    /** Weekday, short, in the owner's language. */
+    label: string;
+    kind: DayKind;
+    /** Litres of 40 °C water drawn; for today, what Autopilot expects. Missing: no full day read. */
+    litres?: number;
+    today?: boolean;
+    /** Part of the day's use is not known (the tank ran low): `litres` is a lower bound. */
+    atLeast?: boolean;
+}
+
+export interface WeekData {
+    title: string;
+    bars: WeekBar[];
+    /** A typical day of each type over the last four weeks, litres. */
+    typical: {working?: number; free?: number};
+    legend: Record<string, string>;
+}
+
+/** Days the week chart shows: today and the six before it. */
+export const WEEK_DAYS = 7;
+
+const shiftDate = (date: string, days: number) => {
+    const d = new Date(`${date}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+};
+const litresOf = (kwh: number) => Math.round(kwh / KWH_PER_LITRE / 5) * 5;
+
+export function dayKind(dayType: DayType = DEFAULT_DAY_TYPE, away?: boolean): DayKind {
+    return away ? 'away' : dayType;
+}
+
+/** The week chart's bars and typical days, from the learned full days. `weekday` labels a local
+ *  date. Strings are the caller's. */
+export function hotwaterWeek(usage: {recent: DayDraw[]; today: string; dayType?: DayType; expected?: number},
+    weekday: (date: string) => string): Pick<WeekData, 'bars' | 'typical'> {
+    const byDate = new Map(usage.recent.map((d) => [d.date, d]));
+    const bars: WeekBar[] = [];
+    for (let k = 1 - WEEK_DAYS; k <= 0; k++) {
+        const date = shiftDate(usage.today, k);
+        if (k === 0) {
+            bars.push({label: weekday(date), kind: dayKind(usage.dayType), today: true,
+                litres: usage.expected === undefined ? undefined : litresOf(usage.expected)});
+            continue;
+        }
+        const day = byDate.get(date);
+        bars.push({label: weekday(date), kind: dayKind(day?.dayType, day?.away),
+            litres: day ? litresOf(day.draw) : undefined, ...(day?.partial !== undefined ? {atLeast: true} : {})});
+    }
+    // Recent days weigh more, as in learning.
+    const typical: WeekData['typical'] = {};
+    const todayMs = Date.parse(`${usage.today}T12:00:00Z`);
+    for (const kind of ['working', 'free'] as const) {
+        let sum = 0, weights = 0;
+        for (const d of usage.recent) {
+            if (d.partial !== undefined || dayKind(d.dayType, d.away) !== kind) continue;
+            const w = 0.5 ** ((todayMs - Date.parse(`${d.date}T12:00:00Z`)) / 86_400_000 / HALF_LIFE_DAYS);
+            sum += d.draw * w; weights += w;
+        }
+        if (weights > 0) typical[kind] = litresOf(sum / weights);
+    }
+    return {bars, typical};
 }
 
 /** Hour labels every `everyH` h, at their slot index from `start`, local time. */

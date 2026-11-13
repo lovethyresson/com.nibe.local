@@ -586,6 +586,15 @@
         "solar_off": "Zon uit",
         "solar_total": "__share__ % van het geplande opwarmen draait op zonne-overschot."
       },
+      "week": {
+        "title": "Warmwatergebruik, liter water van 40 °C",
+        "working": "Werkdag",
+        "free": "Vrije dag",
+        "away": "Afwezig",
+        "today": "Vandaag, verwacht",
+        "typical": "Gebruikelijk",
+        "at_least": "≥ Minstens: de boiler raakte leeg"
+      },
       "indoor": "Binnen",
       "expected": "Verwacht",
       "offset": "BT1-verschuiving",

@@ -5,13 +5,13 @@ import {newHistoryFileName} from './autopilot/store-file';
 import {ChargeEvent, HotwaterAutopilot, HotwaterMode, ownDeviceId} from './autopilot/hotwater-shadow';
 import {FlowConflict, moreHotwaterFlows} from './autopilot/hotwater-flows';
 import {STARTER_DAYS, readHousehold} from './autopilot/hotwater-learner';
-import {DAY_TYPE_SETTING, readDayType} from './autopilot/day-type';
+import {DAY_TYPE_SETTING, DEFAULT_DAY_TYPE, DayTypeState, readDayType} from './autopilot/day-type';
 import {Sample} from './autopilot/history';
 import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits, sunTrust, surplusPrices} from './autopilot/live';
 import {AUTOPILOT_FUNCTIONS, SMART_MODE_STORE, SmartFunction, SmartMode, autopilotRuns, shownSmartMode, smartMode, smartModeWrites, spaOn} from './autopilot/smart-mode';
 import {HeatingStatus, heatingStatus} from './autopilot/heating-status';
 import {forecastCorrection} from './autopilot/outdoor';
-import {AHEAD_SLOTS, BACK_SLOTS, HOTWATER_SLOTS, WidgetData, heatingSlots, ticks} from './autopilot/widget';
+import {AHEAD_SLOTS, BACK_SLOTS, HOTWATER_SLOTS, WeekData, WidgetData, heatingSlots, hotwaterWeek, ticks} from './autopilot/widget';
 import {slotOf} from './autopilot/prices';
 import {SolarSurplus} from './autopilot/solar-surplus';
 import {Device} from 'homey';
@@ -1180,10 +1180,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         return 'off';
     }
 
-    /** The household's day type on Main while Autopilot hot water runs. */
+    /** The household's day type on Main while Autopilot hot water runs. There is always one: when
+     *  none was ever set, Main stores the default (working), with no change logged, so every past
+     *  day is a working day too. */
     async showDayType() {
+        if (!readDayType(this.homey.settings.get(DAY_TYPE_SETTING)))
+            this.homey.settings.set(DAY_TYPE_SETTING, {type: DEFAULT_DAY_TYPE, log: []} satisfies DayTypeState);
         if (!this.hasCapability(DAY_TYPE_CAPABILITY)) return;
-        const type = readDayType(this.homey.settings.get(DAY_TYPE_SETTING))?.type ?? null;
+        const type = readDayType(this.homey.settings.get(DAY_TYPE_SETTING))!.type;
         if (this.getCapabilityValue(DAY_TYPE_CAPABILITY) !== type)
             await this.setCapabilityValue(DAY_TYPE_CAPABILITY, type).catch(this.error);
     }
@@ -1730,7 +1734,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     o.litres === undefined ? undefined : t('hotwater.litres', {l: Math.round(o.litres)})].filter(Boolean).join(' · '),
                 legend: {price: t('price'), surplus: solar ? t('surplus') : '', grid: t('charge_grid'), solar: solar ? t('charge_solar') : ''},
                 axes: {left: t('axis_price'), right: solar ? t('axis_surplus') : ''},
-                footnote: charges.length && solar ? t('hotwater.solar_total', {share: Math.round(fromSolar * 100)}) : undefined};
+                footnote: charges.length && solar ? t('hotwater.solar_total', {share: Math.round(fromSolar * 100)}) : undefined,
+                week: this.hotwaterWeekData(t)};
         }
         const status = this.getCapabilityValue(AUTOPILOT_STATUS_CAPABILITY) as HeatingStatus | null;
         const range = String(this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY) ?? DEFAULT_PROFILE);
@@ -1739,23 +1744,37 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const from = slot - BACK_SLOTS;
         const past = this.autopilot?.recent(from, BACK_SLOTS) ?? [];
         const thermostat = Number(this.getCapabilityValue('target_temperature'));
+        const indoorNow = this.getCapabilityValue('measure_temperature') ?? NaN;
         const summary = this.autopilot?.houseSummary();
         return {
             ...base, kind: 'heating', chips, test: mode === 'test',
             slots: heatingSlots(past, this.heatingFeed?.state, slot), now: BACK_SLOTS,
             ticks: ticks(slotStart(from), BACK_SLOTS + AHEAD_SLOTS, this.clock),
-        const indoorNow = this.getCapabilityValue('measure_temperature') ?? NaN;
             status: status ? this.homey.__(`autopilot.heating.status_name.${status}`) : undefined,
             reason: (this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) as string | null) ?? undefined,
             legend: {indoor: t('indoor'), planned: t('expected'), offset: t('offset'), comfort: t('comfort')},
             axes: {left: t('axis_indoor'), right: t('axis_offset')},
             comfort: Number.isFinite(thermostat) ? thermostat : undefined,
+            indoorNow: Number.isFinite(indoorNow) ? Math.round(indoorNow * 10) / 10 : undefined,
             footnote: !summary || summary.ready ? undefined
                 : t('learning', {day: Math.min(summary.days, summary.needed), of: summary.needed}),
         };
     }
 
-            indoorNow: Number.isFinite(indoorNow) ? Math.round(indoorNow * 10) / 10 : undefined,
+    /** The widget's week chart: hot water use per day, once Autopilot has learned. */
+    private hotwaterWeekData(t: (key: string) => string): WeekData | undefined {
+        const usage = this.hotwaterAutopilot?.usage();
+        if (!usage) return undefined;
+        const format = new Intl.DateTimeFormat(this.homey.i18n.getLanguage(), {weekday: 'short', timeZone: 'UTC'});
+        const week = hotwaterWeek(usage, (date) => format.format(new Date(`${date}T12:00:00Z`)));
+        const has = (kind: string) => week.bars.some((bar) => bar.kind === kind);
+        return {...week, title: t('week.title'),
+            legend: {working: has('working') ? t('week.working') : '', free: has('free') ? t('week.free') : '',
+                away: has('away') ? t('week.away') : '',
+                today: t('week.today'), typical: t('week.typical'),
+                at_least: week.bars.some((b) => b.atLeast) ? t('week.at_least') : ''}};
+    }
+
     // ---- Away: the thermostat goes to the Away temperature and comes back ----
 
     private autopilotAway(): boolean {

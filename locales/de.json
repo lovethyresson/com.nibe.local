@@ -586,6 +586,15 @@
         "solar_off": "Solar aus",
         "solar_total": "__share__ % der geplanten Ladung laufen mit Solarüberschuss."
       },
+      "week": {
+        "title": "Warmwasserverbrauch, Liter 40 °C Wasser",
+        "working": "Arbeitstag",
+        "free": "Freier Tag",
+        "away": "Abwesend",
+        "today": "Heute, erwartet",
+        "typical": "Üblich",
+        "at_least": "≥ Mindestens: der Speicher lief leer"
+      },
       "indoor": "Innen",
       "expected": "Erwartet",
       "offset": "BT1-Verschiebung",
