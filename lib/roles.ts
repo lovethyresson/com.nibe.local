@@ -538,7 +538,8 @@ export function extraCapabilityOptions(role: Role, name: string, profile?: Model
     if (name === AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY)
         return {title: {en: "Away temperature", sv: "Bortatemperatur", de: "Abwesenheitstemperatur", nl: "Afwezigheidstemperatuur",
                         no: "Bortetemperatur", da: "Fraværstemperatur"},
-                setable: true, min: 10, max: 25, step: 0.5, decimals: 1};
+                // A setting, not a reading: nothing to chart.
+                setable: true, min: 10, max: 25, step: 0.5, decimals: 1, preventInsights: true};
     if (name === AUTOPILOT_FED_CAPABILITY)
         return {title: {en: "Outdoor temperature fed", sv: "Utetemperatur som matas in", de: "Eingespeiste Außentemperatur",
                         nl: "Ingevoerde buitentemperatuur", no: "Innmatet utetemperatur", da: "Indfødt udetemperatur"},
