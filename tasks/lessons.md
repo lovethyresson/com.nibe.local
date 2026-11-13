@@ -448,3 +448,13 @@ settings label says nothing without context.
 Repair (Repair if it changes what the device carries). Changed day to day → a capability, with
 Insights and Flow cards. Never a second control for something a capability already is (the
 thermostat). Facts that need context (a chart, an outdoor temperature) → the widget, not a label.
+
+## Read the pump through what the app already learned (2026-11-13)
+
+I told the owner room control was on because 202 read 1, and that the curve runs on the BT1
+average (37). Both were already settled in the repo: on zone firmware 202 always reads 1 and a
+readable curve offset (30) is the real "off" (`roomControlOff()` in `lib/autopilot/history.ts`),
+and the curve follows fed BT1 through a ~49 min filter, not 37 (`docs/autopilot-plan.md` §2).
+
+**Rule:** before explaining live pump behaviour, check the register against `lib/autopilot/` and
+`docs/autopilot-plan.md` findings; a raw register's CSV meaning is not what it means on this pump.
