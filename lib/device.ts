@@ -1271,6 +1271,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             warn: (text) => {
                 (text ? this.setWarning(text) : this.unsetWarning()).catch(this.error);
             },
+            status: (text) => {
+                if (this.hasCapability(AUTOPILOT_REASON_CAPABILITY) && this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) !== text)
+                    this.setCapabilityValue(AUTOPILOT_REASON_CAPABILITY, text).catch(this.error);
+            },
         });
         this.log(`Autopilot hot water started (${live() === 'live' ? 'live' : 'test run'}).`);
         await this.hotwaterAutopilot.start();

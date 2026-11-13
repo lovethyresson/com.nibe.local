@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import {HotwaterModel, KWH_PER_LITRE, localClock} from '../lib/autopilot/hotwater-learner';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {COAST_HOURS, DAILY_HOUR, DailyPlan, MIN_HORIZON, ShadowEntry, coastLitres, againstPlan, planChanges, planUpdateText, autopilotCharge, chargeLine, chargeText, dailyPlan, dailyPlanText, hotwaterShadowStep, ownDeviceId, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
+import {COAST_HOURS, DAILY_HOUR, DailyPlan, MIN_HORIZON, ShadowEntry, coastLitres, againstPlan, planChanges, planUpdateText, autopilotCharge, chargeLine, chargeText, dailyPlan, dailyPlanText, hotwaterShadowStep, hotwaterStatusText, ownDeviceId, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
 import {SLOT_MS, slotOf} from '../lib/autopilot/prices';
 
 const clock = localClock('UTC');
@@ -324,4 +324,44 @@ test('the no-charge prediction is draws plus standing loss, and stops at empty',
     assert.deepStrictEqual(coastLitres(15 * perLitre, draws, loss, 3), [5, 0, 0]);
     // A short horizon gives fewer hours, never a made-up one.
     assert.strictEqual(coastLitres(100 * perLitre, draws.slice(0, 6), loss).length, 1);
+});
+
+/** Wording that shows the key and its tokens, so a test reads which line was chosen. */
+const keys = (key: string, tokens?: Record<string, string | number>) =>
+    tokens ? `${key}(${Object.entries(tokens).map(([k, v]) => `${k}=${v}`).join(',')})` : key;
+
+test('the step gives the next charge with its reason, and where the known prices end', () => {
+    const out = step();
+    assert.ok('entry' in out);
+    assert.ok(out.next, 'a charge is planned');
+    assert.strictEqual(out.next!.at, Date.parse(out.entry.next!.at));
+    assert.ok(['cheap', 'before_use'].includes(out.next!.reason), out.next!.reason);
+    assert.strictEqual(out.until, T0 + 96 * SLOT_MS);
+});
+
+test('a running charge is not the next charge', () => {
+    const out = step({now: {litres: 60, top: 44, powerW: 2000, stopC: 48}});
+    assert.ok('entry' in out);
+    assert.ok(!out.next || out.next.reason !== 'running');
+});
+
+test('the "Autopilot now" line says the next charge, when it starts now, and what it waits for', () => {
+    const next = {at: T0 + 3 * 3_600_000, targetC: 52, minutes: 60, price: 1.9, surplusShare: 0, cost: 3, reason: 'cheap' as const};
+    const planned = {state: 'planned' as const, next, until: T0 + 86_400_000, now: T0};
+    assert.strictEqual(hotwaterStatusText(planned, keys, hhmm, false),
+        'hotwater_status.next(time=03:00,target=52,reason=hotwater_charge.reason.cheap)');
+    assert.match(hotwaterStatusText({...planned, now: next.at}, keys, hhmm, false), /^hotwater_status\.starting/);
+    assert.strictEqual(hotwaterStatusText({...planned, next: undefined}, keys, hhmm, false), 'hotwater_status.none(until=00:00)');
+    assert.strictEqual(hotwaterStatusText({state: 'charging', reason: 'pump'}, keys, hhmm, false),
+        'hotwater_status.charging_reason(reason=hotwater_charge.reason.pump)');
+    assert.strictEqual(hotwaterStatusText({state: 'charging'}, keys, hhmm, false), 'hotwater_status.charging');
+    assert.strictEqual(hotwaterStatusText({state: 'learning'}, keys, hhmm, true), 'hotwater_status.test(text=hotwater_status.learning)');
+});
+
+test('every "Autopilot now" key is worded in all six languages', () => {
+    const used = ['learning', 'no_prices', 'charging', 'charging_reason', 'starting', 'next', 'none', 'test'];
+    for (const lang of ['en', 'sv', 'de', 'nl', 'no', 'da']) {
+        const status = JSON.parse(readFileSync(join(__dirname, '..', '.homeycompose', 'locales', `${lang}.json`), 'utf8')).autopilot.hotwater_status;
+        for (const key of used) assert.ok(typeof status?.[key] === 'string' && status[key].length, `${lang}: ${key}`);
+    }
 });

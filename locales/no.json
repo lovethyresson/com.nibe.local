@@ -583,6 +583,16 @@
       "axis_price": "Pris /kWh",
       "axis_surplus": "Overskudd kW",
       "experimental": "Eksperimentell"
+    },
+    "hotwater_status": {
+      "learning": "Lærer varmtvannsbruken deres",
+      "no_prices": "Venter på strømpriser",
+      "charging": "Varmer opp tanken",
+      "charging_reason": "Varmer opp tanken · __reason__",
+      "starting": "Starter oppvarming til __target__ °C · __reason__",
+      "next": "Neste oppvarming __time__ til __target__ °C · __reason__",
+      "none": "Ingen oppvarming trengs før __until__",
+      "test": "Testkjøring: __text__"
     }
   }
 }

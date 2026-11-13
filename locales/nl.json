@@ -583,6 +583,16 @@
       "axis_price": "Prijs /kWh",
       "axis_surplus": "Overschot kW",
       "experimental": "Experimenteel"
+    },
+    "hotwater_status": {
+      "learning": "Leert je warmwatergebruik kennen",
+      "no_prices": "Wacht op stroomprijzen",
+      "charging": "Verwarmt de boiler",
+      "charging_reason": "Verwarmt de boiler · __reason__",
+      "starting": "Start opwarmen tot __target__ °C · __reason__",
+      "next": "Volgende opwarming __time__ tot __target__ °C · __reason__",
+      "none": "Geen opwarming nodig tot __until__",
+      "test": "Testrun: __text__"
     }
   }
 }

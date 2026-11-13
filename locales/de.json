@@ -583,6 +583,16 @@
       "axis_price": "Preis /kWh",
       "axis_surplus": "Überschuss kW",
       "experimental": "Experimentell"
+    },
+    "hotwater_status": {
+      "learning": "Lernt Ihren Warmwasserverbrauch",
+      "no_prices": "Wartet auf Strompreise",
+      "charging": "Heizt den Speicher",
+      "charging_reason": "Heizt den Speicher · __reason__",
+      "starting": "Startet eine Ladung auf __target__ °C · __reason__",
+      "next": "Nächste Ladung __time__ auf __target__ °C · __reason__",
+      "none": "Keine Ladung nötig bis __until__",
+      "test": "Testlauf: __text__"
     }
   }
 }

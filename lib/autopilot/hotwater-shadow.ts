@@ -80,7 +80,9 @@ export interface ShadowEntry {
     coast?: number[];
 }
 
-export type ShadowStep = {entry: ShadowEntry} | {skip: string};
+/** A slot's plan: the log line, the first charge after any running one, with its reason, and
+ *  the end of the known prices (ms). */
+export type ShadowStep = {entry: ShadowEntry; next?: ChargeFacts; until: number} | {skip: string};
 
 const round = (v: number, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
 
@@ -128,13 +130,35 @@ export function hotwaterShadowStep(input: ShadowStepInput): ShadowStep {
     const {slot, now} = input;
     const first = p.charges.find((c) => !(charging && c.start === 0));
     const iso = (k: number) => new Date(slots[k] * SLOT_MS).toISOString();
-    return {entry: {
+    const next = chargesOf(input, out, Infinity).charges.find((c) => c.reason !== 'running');
+    return {next, until: (slots[slots.length - 1] + 1) * SLOT_MS, entry: {
         slot, at: iso(0), litres: round(now.litres!, 1), top: now.top, charging, horizon: slots.length,
         action: charging ? 'running' : p.rescue ? 'rescue' : p.startNow ? 'start' : 'wait',
         next: first && {at: iso(first.start), targetC: first.targetC, heat: round(first.heat), cost: round(first.cost)},
         cost: round(p.cost), shortfall: round(p.shortfall),
         coast: coastLitres(input.now.litres! * KWH_PER_LITRE, draws, input.model!.loss),
     }};
+}
+
+/** What the Hot water device's "Autopilot now" line says. */
+export type HotwaterStatus =
+    | {state: 'learning' | 'no_prices'}
+    | {state: 'charging'; reason?: ChargeReason}
+    | {state: 'planned'; next?: ChargeFacts; until: number; now: number};
+
+/** The "Autopilot now" line, worded through `t` (keys under `autopilot.`). `when` gives a local
+ *  time, with "tomorrow" when it is not today. Pure. */
+export function hotwaterStatusText(s: HotwaterStatus, t: Translate, when: (ms: number) => string, shadow: boolean): string {
+    const reason = (r: ChargeReason) => t(`hotwater_charge.reason.${r}`);
+    const text = s.state === 'planned'
+        ? s.next ? t(s.next.at <= s.now ? 'hotwater_status.starting' : 'hotwater_status.next',
+            {time: when(s.next.at), target: s.next.targetC, reason: reason(s.next.reason)})
+            : t('hotwater_status.none', {until: when(s.until)})
+        : s.state === 'charging'
+            ? s.reason && s.reason !== 'running' ? t('hotwater_status.charging_reason', {reason: reason(s.reason)})
+                : t('hotwater_status.charging')
+            : t(`hotwater_status.${s.state}`);
+    return shadow ? t('hotwater_status.test', {text}) : text;
 }
 
 /** Why a charge is where it is. One vocabulary for the morning plan, the charge message and the
@@ -480,6 +504,8 @@ export interface HotwaterHooks {
     charged(e: ChargeEvent, text: {reason: string; detailedReason: string}): void;
     /** A problem the owner must see on the device, or undefined to clear it. */
     warn(text: string | undefined): void;
+    /** The device's "Autopilot now" line: the next planned charge and why, or what it waits for. */
+    status(text: string): void;
 }
 
 /** Device store keys: the charge Autopilot started last, and the day's writes. Both are written
@@ -519,6 +545,8 @@ export class HotwaterAutopilot {
     /** Why the last planned start was not made, so a reason is logged once, not every slot. */
     private leverSkip?: string;
     private starting = false;
+    /** The last real charge start, Autopilot's or the pump's: why the tank is heating now. */
+    private lastStart?: ChargeEvent;
 
     /** `dataId` is the device's pairing id (`getData().id`): the SDK does not expose the Homey
      *  device id that Insights are keyed by, so it is looked up through the Homey API. */
@@ -699,6 +727,7 @@ export class HotwaterAutopilot {
         this.morning(input);
         this.watchStarts(input, at).catch((error) => this.log('Autopilot hot water: start failed:', error?.message ?? error));
         const out = hotwaterShadowStep(input);
+        this.showStatus(input, out);
         if ('skip' in out) return this.skip(out.skip);
         this.last = out.entry;
         appendLine(shadowLogName(this.fileName), out.entry)
@@ -759,6 +788,22 @@ export class HotwaterAutopilot {
         this.chargeStarted({...e, targetC: d.targetC});
     }
 
+    /** The "Autopilot now" line from this slot's plan. A skip without an owner-facing reason
+     *  (no reading this slot) leaves the line as it was. */
+    private showStatus(input: ShadowStepInput, out: ShadowStep) {
+        let s: HotwaterStatus | undefined;
+        if ('skip' in out) s = out.skip === 'no model' ? {state: 'learning'} : out.skip === 'no prices' ? {state: 'no_prices'} : undefined;
+        else if (out.entry.charging) {
+            const last = this.lastStart;
+            s = {state: 'charging', reason: last && input.slot * SLOT_MS - last.at < 6 * HOUR ? last.reason : undefined};
+        } else s = {state: 'planned', next: out.next, until: out.until, now: input.slot * SLOT_MS};
+        if (!s) return;
+        const today = input.clock(input.slot * SLOT_MS).date;
+        const when = (ms: number) => input.clock(ms).date === today ? this.time(ms)
+            : this.homey.__('autopilot.hotwater_daily.tomorrow_bare', {time: this.time(ms)});
+        this.hooks.status(hotwaterStatusText(s, (key, tokens) => this.homey.__(`autopilot.${key}`, tokens), when, this.shadow));
+    }
+
     /** The device warning, set or cleared only on a change. */
     private warning?: string;
     private warn(text: string | undefined) {
@@ -769,6 +814,7 @@ export class HotwaterAutopilot {
 
     private chargeStarted(e: ChargeEvent) {
         this.events.push(e);
+        if (!e.shadow) this.lastStart = e;
         const t: Translate = (key, tokens) => this.homey.__(`autopilot.hotwater_charge.${key}`, tokens);
         const text = chargeText(e, t, this.time, this.currency);
         this.log(`Autopilot hot water charge (${e.by}${e.shadow ? ', test run' : ''}): ${text.reason}. ${text.detailedReason} ${JSON.stringify(e)}`);
