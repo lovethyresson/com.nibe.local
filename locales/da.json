@@ -289,7 +289,22 @@
         "choose_on_desc_cooling": "Vil forkøle før pristoppe og på soloverskud.",
         "choose_off_desc_pool": "Poolen følger din enheds egne indstillinger.",
         "choose_off_desc_cooling": "Kølingen følger din enheds egne indstillinger.",
-        "experimental": "Eksperimentel"
+        "experimental": "Eksperimentel",
+        "hw_intro": "To ting, før Autopilot overtager det varme vand.",
+        "hw_flows": "Flows, der slår Mere varmt vand til",
+        "hw_flows_none": "Ingen. Kun Autopilot starter opvarmninger.",
+        "hw_flows_found": "Disse starter opvarmninger, som Autopilot ikke har planlagt. Slå dem fra, eller lad dem kun sende notifikationer:",
+        "hw_flows_unknown": "Dine flows kunne ikke læses. Slå dem fra, der slår Mere varmt vand til efter tidsplan.",
+        "hw_household": "Jeres husstand",
+        "hw_household_intro": "Din enhed har __days__ dages historik for varmt vand. Indtil den har to uger, tager Autopilot også udgangspunkt i disse svar.",
+        "hw_household_intro_unknown": "Indtil din enhed har to ugers historik for varmt vand, tager Autopilot udgangspunkt i disse svar.",
+        "hw_people": "Personer hjemme",
+        "hw_morning": "Morgenbad på en arbejdsdag",
+        "hw_free": "På en fridag bruges mest varmt vand",
+        "hw_free_morning": "Om morgenen",
+        "hw_free_daytime": "I løbet af dagen",
+        "hw_free_evening": "Om aftenen",
+        "household_invalid": "Vælg, hvor mange der bor der, og et badetidspunkt."
       }
     },
     "gateway": {

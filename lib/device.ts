@@ -1,8 +1,10 @@
 import {CaptureSummary, logCaptureSummary} from './diagnostic-capture';
-import {IndoorConfig, averageSensors, cleanIndoorConfig, selectedReadings} from './indoor-sensors';
+import {IndoorConfig, averageSensors, cleanIndoorConfig, selectedReadings, withApi} from './indoor-sensors';
 import {Controls, AutopilotCollector} from './autopilot/collector';
 import {newHistoryFileName} from './autopilot/store-file';
-import {ChargeEvent, HotwaterAutopilot, HotwaterMode} from './autopilot/hotwater-shadow';
+import {ChargeEvent, HotwaterAutopilot, HotwaterMode, ownDeviceId} from './autopilot/hotwater-shadow';
+import {FlowConflict, moreHotwaterFlows} from './autopilot/hotwater-flows';
+import {STARTER_DAYS, readHousehold} from './autopilot/hotwater-learner';
 import {DAY_TYPE_SETTING, readDayType} from './autopilot/day-type';
 import {Sample} from './autopilot/history';
 import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits, sunTrust, surplusPrices} from './autopilot/live';
@@ -40,6 +42,8 @@ import {ConnectionProblem, PumpConnection, PumpSubscriber, POLL_SECONDS_DEFAULT,
 
 // The Away temperature until the owner sets one.
 const AWAY_DEFAULT_C = 17;
+/** Device store key (Hot water): setup's household answers, Autopilot hot water's starting profile. */
+const HOUSEHOLD_STORE = 'autopilotHotwaterHousehold';
 
 // How long the indoor feed may keep failing before the user is told (10 missed 30 s updates).
 const INDOOR_ALERT_AFTER_MS = 5 * 60 * 1000;
@@ -1198,6 +1202,55 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.role === 'heating') this.syncHeatingFeed();
     }
 
+    /** Enabled Flows that switch More hot water on by themselves, on any of this pump's devices.
+     *  Undefined when the Flows could not be read. */
+    async hotwaterFlowConflicts(): Promise<FlowConflict[] | undefined> {
+        const spec = this.profile.autopilotHotwater;
+        if (!spec) return [];
+        const more = this.profile.registerByName[spec.more];
+        const capabilities = this.profile.registers.filter((r) => r.address === more?.address && r.direction === more?.direction)
+            .map((r) => r.name);
+        const dataIds = new Set(this.pumpDevices().map((d) => String(d.getData().id)));
+        const appId = this.homey.manifest?.id ?? 'com.nibe.local';
+        return withApi(this.homey, async (api) => {
+            const devices = await api.devices.getDevices({$timeout: 10_000});
+            const deviceIds = Object.entries(devices ?? {}).filter(([, d]: [string, any]) =>
+                String(d?.driverId ?? '').startsWith(`homey:app:${appId}:`) && dataIds.has(String(d?.data?.id))).map(([id]) => id);
+            const [flows, advanced] = await Promise.all([api.flow.getFlows({$timeout: 10_000}), api.flow.getAdvancedFlows({$timeout: 10_000})]);
+            return moreHotwaterFlows(flows, advanced, {deviceIds, capabilities, prefix: this.profile.flowPrefix});
+        }).catch((error: any) => {
+            this.log('Autopilot hot water: could not read the Flows:', error?.message ?? error);
+            return undefined;
+        });
+    }
+
+    /** Days of tank history: the running model's full days, else the days the tank's Insights
+     *  hold. Undefined when neither can be read. */
+    async hotwaterHistoryDays(): Promise<number | undefined> {
+        const learned = this.hotwaterAutopilot?.historyDays();
+        if (learned !== undefined) return learned;
+        const litres = this.profile.autopilotHotwater?.tank.litres;
+        if (!litres) return undefined;
+        const appId = this.homey.manifest?.id ?? 'com.nibe.local';
+        return withApi(this.homey, async (api) => {
+            const id = ownDeviceId(await api.devices.getDevices({$timeout: 10_000}), appId, String(this.getData().id));
+            if (!id) return undefined;
+            const uri = `homey:device:${id}`;
+            const log = await api.insights.getLogEntries({uri, id: `${uri}:${litres}`, resolution: 'last3Months', $timeout: 20_000});
+            const dates = new Set((log?.values ?? []).filter((v: any) => typeof v?.v === 'number').map((v: any) => String(v.t).slice(0, 10)));
+            return dates.size;
+        }).catch(() => undefined);
+    }
+
+    /** Setup's answers for a home with a short history: stored, and learned from at once. */
+    async setHousehold(raw: any) {
+        const household = raw == null ? undefined : readHousehold(raw);
+        if (raw != null && !household) throw new Error(this.homey.__('pair.setup.smart.household_invalid'));
+        await this.setStoreValue(HOUSEHOLD_STORE, household ?? null);
+        this.log(`Autopilot hot water household: ${household ? JSON.stringify(household) : 'cleared'}`);
+        this.hotwaterAutopilot?.relearn();
+    }
+
     /** For the Flow condition. False while Autopilot hot water is off. */
     hotwaterChargePlannedWithin(hours: number): boolean {
         return this.hotwaterAutopilot?.chargePlannedWithin(hours) ?? false;
@@ -1271,6 +1324,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             warn: (text) => {
                 (text ? this.setWarning(text) : this.unsetWarning()).catch(this.error);
             },
+            household: () => readHousehold(this.getStoreValue(HOUSEHOLD_STORE)),
             status: (text) => {
                 if (this.hasCapability(AUTOPILOT_REASON_CAPABILITY) && this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) !== text)
                     this.setCapabilityValue(AUTOPILOT_REASON_CAPABILITY, text).catch(this.error);
@@ -1617,7 +1671,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const spaIsOn = spa ? spaOn(master, own) : false;
         const base = {role: fn, mode: shownSmartMode(this.smartMode(), spaIsOn), spa: !!spa && (fn !== 'cooling' || !!spa.cooling)
             && (fn !== 'pool' || !!spa.poolInfluence), spaOn: spaIsOn, autopilot: AUTOPILOT_FUNCTIONS.includes(fn)};
-        if (this.role !== 'heating') return {...base, tank: this.role === 'hotwater' ? this.tankConfig().litres !== null : undefined};
+        if (this.role === 'hotwater') {
+            const [flows, historyDays] = await Promise.all([this.hotwaterFlowConflicts(), this.hotwaterHistoryDays()]);
+            return {...base, tank: this.tankConfig().litres !== null, flows: flows ?? null, historyDays: historyDays ?? null,
+                starterDays: STARTER_DAYS, household: readHousehold(this.getStoreValue(HOUSEHOLD_STORE)) ?? null};
+        }
+        if (this.role !== 'heating') return {...base, tank: undefined};
         const indoor = Number(this.getCapabilityValue('measure_temperature'));
         return {
             ...base,

@@ -289,7 +289,22 @@
         "choose_on_desc_cooling": "Vil forkjøle før pristopper og på soloverskudd.",
         "choose_off_desc_pool": "Bassenget følger enhetens egne innstillinger.",
         "choose_off_desc_cooling": "Kjølingen følger enhetens egne innstillinger.",
-        "experimental": "Eksperimentell"
+        "experimental": "Eksperimentell",
+        "hw_intro": "To ting før Autopilot tar over varmtvannet.",
+        "hw_flows": "Flyter som slår på Mer varmtvann",
+        "hw_flows_none": "Ingen. Bare Autopilot starter oppvarming.",
+        "hw_flows_found": "Disse starter oppvarming Autopilot ikke har planlagt. Slå dem av, eller la dem bare sende varsler:",
+        "hw_flows_unknown": "Flytene dine kunne ikke leses. Slå av de som slår på Mer varmtvann etter tidsplan.",
+        "hw_household": "Husholdningen deres",
+        "hw_household_intro": "Enheten din har __days__ dager med varmtvannshistorikk. Til den har to uker, tar Autopilot også utgangspunkt i disse svarene.",
+        "hw_household_intro_unknown": "Til enheten din har to uker med varmtvannshistorikk, tar Autopilot utgangspunkt i disse svarene.",
+        "hw_people": "Personer hjemme",
+        "hw_morning": "Morgendusj på en arbeidsdag",
+        "hw_free": "På en fridag brukes mest varmtvann",
+        "hw_free_morning": "Om morgenen",
+        "hw_free_daytime": "På dagtid",
+        "hw_free_evening": "Om kvelden",
+        "household_invalid": "Velg hvor mange som bor der og et dusjtidspunkt."
       }
     },
     "gateway": {

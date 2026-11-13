@@ -289,7 +289,22 @@
         "choose_on_desc_cooling": "Will pre-cool before price peaks and on solar surplus.",
         "choose_off_desc_pool": "The pool follows your device's own settings.",
         "choose_off_desc_cooling": "Cooling follows your device's own settings.",
-        "experimental": "Experimental"
+        "experimental": "Experimental",
+        "hw_intro": "Two things before Autopilot takes over hot water.",
+        "hw_flows": "Flows that switch More hot water",
+        "hw_flows_none": "None. Only Autopilot will start charges.",
+        "hw_flows_found": "These start charges Autopilot did not plan. Turn them off, or keep them for notifications only:",
+        "hw_flows_unknown": "Your Flows could not be read. Turn off any that switch More hot water on a schedule.",
+        "hw_household": "Your household",
+        "hw_household_intro": "Your device has __days__ days of hot water history. Until it has two weeks, Autopilot also starts from these answers.",
+        "hw_household_intro_unknown": "Until your device has two weeks of hot water history, Autopilot starts from these answers.",
+        "hw_people": "People at home",
+        "hw_morning": "Morning shower on a working day",
+        "hw_free": "On a day off, most hot water is used",
+        "hw_free_morning": "In the morning",
+        "hw_free_daytime": "During the day",
+        "hw_free_evening": "In the evening",
+        "household_invalid": "Choose how many people live there and a shower time."
       }
     },
     "gateway": {

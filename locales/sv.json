@@ -289,7 +289,22 @@
         "choose_on_desc_cooling": "Kommer att förkyla inför pristoppar och på solöverskott.",
         "choose_off_desc_pool": "Poolen följer din enhets egna inställningar.",
         "choose_off_desc_cooling": "Kylan följer din enhets egna inställningar.",
-        "experimental": "Experimentell"
+        "experimental": "Experimentell",
+        "hw_intro": "Två saker innan Autopilot tar över varmvattnet.",
+        "hw_flows": "Flöden som slår på Mer varmvatten",
+        "hw_flows_none": "Inga. Bara Autopilot startar laddningar.",
+        "hw_flows_found": "De här startar laddningar som Autopilot inte planerat. Stäng av dem, eller låt dem bara skicka notiser:",
+        "hw_flows_unknown": "Dina flöden gick inte att läsa. Stäng av de som slår på Mer varmvatten enligt schema.",
+        "hw_household": "Ert hushåll",
+        "hw_household_intro": "Din enhet har __days__ dagars varmvattenhistorik. Tills den har två veckor utgår Autopilot också från de här svaren.",
+        "hw_household_intro_unknown": "Tills din enhet har två veckors varmvattenhistorik utgår Autopilot från de här svaren.",
+        "hw_people": "Personer hemma",
+        "hw_morning": "Morgondusch en arbetsdag",
+        "hw_free": "En ledig dag går mest varmvatten",
+        "hw_free_morning": "På morgonen",
+        "hw_free_daytime": "Under dagen",
+        "hw_free_evening": "På kvällen",
+        "household_invalid": "Välj hur många som bor där och en duschtid."
       }
     },
     "gateway": {

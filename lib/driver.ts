@@ -1222,6 +1222,8 @@ export abstract class NibePumpDriver extends Driver {
             await device.chooseSmartMode(value === 'spa' || value === 'test' || value === 'autopilot' ? value : 'off');
             return true;
         });
+        if (device.role === 'hotwater')
+            session.setHandler('hotwater_household', async (data: any) => { await device.setHousehold(data ?? null); return true; });
         if (device.role !== 'heating') return;
         session.setHandler('get_outdoor_sensors', async () => indoorInventory(this.homey));
         session.setHandler('set_outdoor_sensor', async (ref: any) => {

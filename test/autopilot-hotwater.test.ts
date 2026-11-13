@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert';
 import {
-    DEFAULT_LOSS, KWH_PER_LITRE, TankPoint, copAt, intervals, learn, learnCharge, learnLoss, localClock, lossAt, profileFor,
+    DEFAULT_LOSS, KWH_PER_LITRE, TankPoint, copAt, readHousehold, starterProfiles, intervals, learn, learnCharge, learnLoss, localClock, lossAt, profileFor,
 } from '../lib/autopilot/hotwater-learner';
 import {fetchTankInsights, pointsFromInsights, RESOLUTIONS} from '../lib/autopilot/hotwater-insights';
 
@@ -150,4 +150,37 @@ test('fetchTankInsights asks for each field at every resolution and survives a f
     assert.strictEqual(calls.length, 4 * RESOLUTIONS.length);
     assert.deepStrictEqual(calls[0], {uri: 'homey:device:dev1', id: 'homey:device:dev1:l', resolution: 'last14Days', $timeout: 20_000});
     assert.deepStrictEqual(logs.used, RESOLUTIONS.map(() => ({})));
+});
+
+test('the household answers give a starting day: per person, a bigger free day, peaks where they were put', () => {
+    const start = starterProfiles({people: 3, morningHour: 6, freeDay: 'daytime'});
+    const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+    near(start.working.daily, 7.5, 1e-9, 'working day, 2.5 kWh a person');
+    near(start.free.daily, 11.25, 1e-9, 'free day 1.5x');
+    near(sum(start.working.hours), start.working.daily, 1e-9, 'the hours make the day');
+    near(start.any.daily, (5 * 7.5 + 2 * 11.25) / 7, 1e-9, 'pooled five to two');
+    const peak = (xs: number[]) => xs.indexOf(Math.max(...xs));
+    assert.strictEqual(peak(start.working.hours), 6);
+    assert.ok(start.free.hours[12] > start.free.hours[6], 'a day off leans to midday');
+    assert.ok(start.working.dailyP80 > start.working.daily && start.working.p80[6] > start.working.hours[6]);
+});
+
+test('a young history leans on the household; a long one is its own', () => {
+    const household = {people: 4, morningHour: 7, freeDay: 'evening' as const};
+    const young = simulate(2, (_, hour) => workingDay(hour));
+    const leaned = learn(young, clock, young[young.length - 1].t, undefined, household).profiles.any!;
+    const own = learn(young, clock, young[young.length - 1].t).profiles.any!;
+    const prior = starterProfiles(household).any.daily;
+    assert.ok(Math.abs(leaned.daily - prior) < Math.abs(own.daily - prior), 'pulled toward the answers');
+    assert.ok(learn(young, clock, young[young.length - 1].t, undefined, household).profiles.free, 'a free day is planned before one is seen');
+    const old = simulate(42, (_, hour) => workingDay(hour));
+    const long = learn(old, clock, old[old.length - 1].t, undefined, household).profiles.any!;
+    near(long.daily, 1.6 + 4 * 1.5, 0.6, 'six weeks of its own days outweigh the answers');
+});
+
+test('stored household answers are checked before use', () => {
+    assert.deepStrictEqual(readHousehold({people: '3', morningHour: 6.4, freeDay: 'daytime'}), {people: 3, morningHour: 6, freeDay: 'daytime'});
+    assert.strictEqual(readHousehold({people: 0, morningHour: 6}), undefined);
+    assert.strictEqual(readHousehold(null), undefined);
+    assert.strictEqual(readHousehold({people: 2, morningHour: 7, freeDay: 'nonsense'})?.freeDay, 'evening');
 });

@@ -8,7 +8,7 @@
  *  price fetch moves to the home service and the tank fields to the per-pump history. */
 import {withApi} from '../indoor-sensors';
 import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, normalisePrices, slotOf} from './prices';
-import {DayProfile, DayType, HotwaterModel, KWH_PER_LITRE, LocalClock, learn, localClock, lossAt, profileFor} from './hotwater-learner';
+import {DayProfile, DayType, HotwaterModel, Household, KWH_PER_LITRE, LocalClock, learn, localClock, lossAt, profileFor} from './hotwater-learner';
 import {TankCapabilities, fetchTankInsights, pointsFromInsights} from './hotwater-insights';
 import {DEFAULT_RESERVE_LITRES, Plan, SLOT_H, TankSpec, drawsFor, plan, reserveKwh} from './hotwater-planner';
 import {appendLine, deleteHistory, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
@@ -506,6 +506,8 @@ export interface HotwaterHooks {
     warn(text: string | undefined): void;
     /** The device's "Autopilot now" line: the next planned charge and why, or what it waits for. */
     status(text: string): void;
+    /** What setup asked a home with a short history, the learner's prior; undefined if not asked. */
+    household(): Household | undefined;
 }
 
 /** Device store keys: the charge Autopilot started last, and the day's writes. Both are written
@@ -632,6 +634,16 @@ export class HotwaterAutopilot {
         };
     }
 
+    /** Learns again now, after the household answers changed. */
+    relearn() {
+        this.learn().catch((error) => this.log('Autopilot hot water:', error?.message ?? error));
+    }
+
+    /** Full days of tank history behind the model, once it has learned. */
+    historyDays(): number | undefined {
+        return this.model?.days;
+    }
+
     chargePlannedWithin(hours: number): boolean {
         const last = this.last;
         if (!last || last.slot < slotOf(Date.now()) - 1) return false;
@@ -682,7 +694,7 @@ export class HotwaterAutopilot {
         // owner first set one, under none (the pooled profile).
         const dayTypes = this.hooks.dayType();
         for (const point of points) point.dayType = dayTypeAt(dayTypes, point.t);
-        const model = learn(points, this.clock(), started);
+        const model = learn(points, this.clock(), started, undefined, this.hooks.household());
         this.model = model;
         const c = model.charge, any = model.profiles.any;
         const typed = (['working', 'free'] as const).filter((type) => model.profiles[type]).join(' and ');
