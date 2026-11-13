@@ -285,6 +285,7 @@
         "test": "Testrun: __text__",
         "learning": "Leert je huis kennen · dag __day__ van __of__",
         "learning_short": "Leert je huis kennen",
+        "waiting": "Start: wacht op de voorspelling",
         "peak": "prijzen pieken __from__–__to__",
         "easing_off": "Bouwt af tot __until__",
         "preheating": "Verwarmt voor tot __until__",

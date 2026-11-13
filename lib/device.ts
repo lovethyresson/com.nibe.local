@@ -1409,7 +1409,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             write: (celsius) => this.writeBt1(celsius),
             readBack: () => this.readFedOutdoor(),
             feeding: (on) => collector.setFeeding(on),
-            warn: (reason) => (reason ? this.setWarning(this.homey.__(`autopilot.heating.warning.${reason}`))
+            // Waiting on the forecast with a model in hand is not a problem to warn about.
+            warn: (reason) => (reason && !(reason === 'no_model' && this.autopilot?.houseSummary()) ? this.setWarning(this.homey.__(`autopilot.heating.warning.${reason}`))
                 : this.unsetWarning()).catch(this.error),
             changed: () => { this.showHeatingStatus().catch(this.error); },
             log: (...args) => this.log(...args),
@@ -1506,7 +1507,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.heating.status.${key}`, tokens);
         const state = feed.state;
         const {status, reason} = heatingStatus(state, Date.now(), t, this.clock,
-            house ? {days: house.days, needed: house.needed} : undefined);
+            house ? {days: house.days, needed: house.needed, hasModel: true} : undefined);
         const set = async (name: string, value: any) => {
             if (this.hasCapability(name) && this.getCapabilityValue(name) !== value) await this.setCapabilityValue(name, value);
         };

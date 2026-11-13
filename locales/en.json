@@ -529,7 +529,8 @@
           "cooling": "Paused: your device is cooling"
         },
         "range_off": "Comfort range is Off: your device sees the real outdoor temperature",
-        "sun": "sun expected __from__–__to__"
+        "sun": "sun expected __from__–__to__",
+        "waiting": "Starting: waiting for the forecast"
       },
       "status_name": {
         "learning": "Learning",

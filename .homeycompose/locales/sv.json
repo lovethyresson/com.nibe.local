@@ -285,6 +285,7 @@
         "test": "Testkörning: __text__",
         "learning": "Lär sig ditt hus · dag __day__ av __of__",
         "learning_short": "Lär sig ditt hus",
+        "waiting": "Startar: väntar på prognosen",
         "peak": "priserna toppar __from__–__to__",
         "easing_off": "Drar ner till __until__",
         "preheating": "Förvärmer till __until__",

@@ -12,6 +12,9 @@ export const SHIFT_K = 0.25;
 export interface Learning {
     days: number;
     needed: number;
+    /** A house model exists (fitted or restored), so a plan that cannot be made waits on the
+     *  forecast, not on learning: after a restart, or while weather or prices are missing. */
+    hasModel?: boolean;
 }
 
 export type Translate = (key: string, tokens?: Record<string, string | number>) => string;
@@ -54,6 +57,7 @@ export function heatingStatus(s: FeedSnapshot, now: number, t: Translate, time: 
     const test = s.mode === 'test';
     const say = (text: string) => (test ? t('test', {text}) : text);
     if (s.mode === 'off' && s.stopped !== 'feed_failed') return {status: 'off', reason: ''};
+    if (s.stopped === 'no_model' && learning?.hasModel) return {status: 'holding', reason: say(t('waiting'))};
     if (s.stopped === 'no_model') {
         return {status: 'learning', reason: say(learning ? t('learning', {day: Math.min(learning.days, learning.needed), of: learning.needed})
             : t('learning_short'))};

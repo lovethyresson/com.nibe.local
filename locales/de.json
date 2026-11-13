@@ -529,7 +529,8 @@
           "cooling": "Pausiert: Ihr Gerät kühlt"
         },
         "range_off": "Komfortbereich ist Aus: Ihr Gerät sieht die echte Außentemperatur",
-        "sun": "Sonne erwartet __from__–__to__"
+        "sun": "Sonne erwartet __from__–__to__",
+        "waiting": "Startet: wartet auf die Prognose"
       },
       "status_name": {
         "learning": "Lernt",

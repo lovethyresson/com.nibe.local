@@ -529,7 +529,8 @@
           "cooling": "Pausad: din enhet kyler"
         },
         "range_off": "Komfortspann är Av: din enhet ser den verkliga utetemperaturen",
-        "sun": "sol väntas __from__–__to__"
+        "sun": "sol väntas __from__–__to__",
+        "waiting": "Startar: väntar på prognosen"
       },
       "status_name": {
         "learning": "Lär sig",

@@ -529,7 +529,8 @@
           "cooling": "På pause: din enhed køler"
         },
         "range_off": "Komfortinterval er Fra: din enhed ser den rigtige udetemperatur",
-        "sun": "sol ventet __from__–__to__"
+        "sun": "sol ventet __from__–__to__",
+        "waiting": "Starter: venter på prognosen"
       },
       "status_name": {
         "learning": "Lærer",

@@ -529,7 +529,8 @@
           "cooling": "Gepauzeerd: uw apparaat koelt"
         },
         "range_off": "Comfortbereik staat Uit: uw apparaat ziet de echte buitentemperatuur",
-        "sun": "zon verwacht __from__–__to__"
+        "sun": "zon verwacht __from__–__to__",
+        "waiting": "Start: wacht op de voorspelling"
       },
       "status_name": {
         "learning": "Leert",
