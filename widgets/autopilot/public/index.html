@@ -37,6 +37,19 @@
       }
       function nums(list) { return list.filter(function (v) { return typeof v === 'number'; }); }
 
+      // The offset axis fits the bars: from the lowest to the highest offset, 0 always on it, at
+      // least 0.5 K tall, in a round step (0.25 to 5 K) with at most four intervals.
+      function offsetAxis(values) {
+        var min = Math.min.apply(null, values.concat([0])), max = Math.max.apply(null, values.concat([0]));
+        if (max - min < 0.5) { if (max > 0) max = 0.5; else if (min < 0) min = -0.5; else { min = -0.5; max = 0.5; } }
+        var steps = [0.25, 0.5, 1, 2, 5], step = steps[steps.length - 1];
+        for (var i = 0; i < steps.length; i++)
+          if (Math.ceil(max / steps[i] - 1e-9) - Math.floor(min / steps[i] + 1e-9) <= 4) { step = steps[i]; break; }
+        var lo = Math.floor(min / step + 1e-9) * step, hi = Math.ceil(max / step - 1e-9) * step, ticks = [];
+        for (var v = lo; v <= hi + 1e-9; v += step) ticks.push(Math.round(v * 100) / 100);
+        return {lo: lo, hi: hi, ticks: ticks};
+      }
+
       // Heating: indoor °C on the left axis (measured solid, expected dashed, thermostat dotted),
       // the BT1 offset in K on the right axis as bars from 0, and a line at now.
       function heatingChart(data) {
@@ -48,10 +61,9 @@
         var hi = Math.ceil((Math.max.apply(null, indoor.concat([-99])) + 0.5) * 2) / 2;
         if (!indoor.length) { lo = 19; hi = 23; }
         if (hi - lo < 2) { var c = (hi + lo) / 2; lo = c - 1; hi = c + 1; }
-        var off = nums(data.slots.map(function (s) { return s.offset; })).map(Math.abs);
-        var m = Math.max(2, Math.ceil(Math.max.apply(null, off.concat([0]))));
+        var oa = offsetAxis(nums(data.slots.map(function (s) { return s.offset; })));
         var yi = function (v) { return B - (B - T) * (v - lo) / (hi - lo); };
-        var yo = function (v) { return (T + B) / 2 - (B - T) / 2 * v / m; };
+        var yo = function (v) { return B - (B - T) * (v - oa.lo) / (oa.hi - oa.lo); };
         var x = function (k) { return L + k * step; };
 
         // Axes and grid: three labels each side.
@@ -59,7 +71,7 @@
           svg.appendChild(svgEl('line', {x1: L, x2: R, y1: yi(v), y2: yi(v), stroke: 'currentColor', 'stroke-opacity': 0.08}));
           var t = svgEl('text', {x: L - 4, y: yi(v) + 3, 'text-anchor': 'end'}); t.textContent = (Math.round(v * 10) / 10).toString(); svg.appendChild(t);
         });
-        [-m, 0, m].forEach(function (v) {
+        oa.ticks.forEach(function (v) {
           var t = svgEl('text', {x: R + 4, y: yo(v) + 3}); t.textContent = (v > 0 ? '+' : '') + v; svg.appendChild(t);
         });
         svg.appendChild(svgEl('line', {x1: L, x2: R, y1: yo(0), y2: yo(0), stroke: 'var(--ap-offset)', 'stroke-opacity': 0.4, 'stroke-width': 0.6}));

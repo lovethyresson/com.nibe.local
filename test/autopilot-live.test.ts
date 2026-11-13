@@ -127,6 +127,18 @@ test('a cycle feeds the real outdoor minus the plan\'s bias and checks the pump 
     assert.equal(state.records.length, 1, 'no replan within the slot');
 });
 
+test('an owner change replans within the slot, not at the next one', async () => {
+    const {feed, state} = harness();
+    feed.start();
+    await feed.cycle();
+    assert.equal(state.records.length, 1);
+    feed.replanSoon();
+    await feed.cycle();
+    assert.equal(state.records.length, 2, 'replanned at once after a Comfort range or thermostat change');
+    await feed.cycle();
+    assert.equal(state.records.length, 2, 'and then holds until the next slot');
+});
+
 test('a test run plans and reports but never writes', async () => {
     const {feed, state} = harness({mode: 'test'});
     feed.start();

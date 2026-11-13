@@ -263,6 +263,17 @@ export class HeatingFeed {
         this.schedule(0);
     }
 
+    /** Plan again shortly rather than at the next slot: an owner's change (Comfort range,
+     *  thermostat, Away) should show in the plan and the widget now. Delayed so Homey has stored
+     *  the new value before the plan reads it. During a cycle the next one (30 s) replans. */
+    replanSoon(ms = 2000) {
+        if (this.stopped) return;
+        this.plannedSlot = undefined;
+        if (this.work) return;
+        if (this.timer) this.hooks.clearTimeout(this.timer);
+        this.schedule(ms);
+    }
+
     /** Stop and hand BT1 back: one last feed of the real outdoor temperature, so the pump does
      *  not hold a shifted value for the ~5 min a write lasts. */
     async stop(reason: StopReason = 'mode_off') {

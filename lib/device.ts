@@ -941,7 +941,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             if (this.getClass() !== wanted) await this.setClass(wanted as any).catch(note('class', 'set'));
             if (this.hasCapability('target_temperature')) {
                 const source = this.profile.registerByName[this.profile.roomThermostat.target];
-                this.registerCapabilityListener('target_temperature', async (value) => this.writeRegister(source, value));
+                this.registerCapabilityListener('target_temperature', async (value) => {
+                    await this.writeRegister(source, value);
+                    this.heatingFeed?.replanSoon(); // the thermostat is Autopilot's comfort target
+                });
                 const value = this.getCapabilityValue(source.name);
                 if (typeof value === 'number') await this.setCapabilityValue('target_temperature', value);
             }
@@ -1102,6 +1105,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             if (this.role === 'heating' && this.profile.autopilotFeed) {
                 this.registerCapabilityListener(AUTOPILOT_RANGE_CAPABILITY, async (value) => {
                     this.log(`Comfort range set to ${value}`);
+                    this.heatingFeed?.replanSoon();
                 });
                 this.registerCapabilityListener(AUTOPILOT_AWAY_CAPABILITY, async (value) => this.setAutopilotAway(value === true));
                 this.registerCapabilityListener(AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY, async (value) => {
@@ -1630,6 +1634,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (!this.hasCapability(AUTOPILOT_RANGE_CAPABILITY)) throw new Error(this.homey.__('autopilot.heating.not_on'));
         await this.setCapabilityValue(AUTOPILOT_RANGE_CAPABILITY, profile);
         this.log(`Comfort range set to ${profile}.`);
+        this.heatingFeed?.replanSoon();
     }
 
     // ---- The Autopilot dashboard widget (widgets/autopilot) ----
