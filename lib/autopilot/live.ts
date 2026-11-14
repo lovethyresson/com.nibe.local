@@ -17,6 +17,7 @@ import {SupplyCurve, curveInputFor} from './curve';
 import {effectivePrice} from './solar-surplus';
 import {Limits, PresetId} from './presets';
 import {slotOf} from './prices';
+import {TrimState, nextTrim} from './setpoint';
 
 /** `test` plans and reports without writing; `live` feeds BT1. */
 export type LiveMode = 'off' | 'test' | 'live';
@@ -195,6 +196,12 @@ export interface FeedHooks {
     neutral(): boolean;
     /** The model and forecast for the slot about to start; undefined without them. */
     plan(slot: number): ShiftInput | undefined;
+    /** The thermostat setpoint the house is steered to (setpoint.ts), or undefined to leave the
+     *  level to the curve. */
+    setpoint?(): number | undefined;
+    /** The setpoint trim's integral, kept across restarts. */
+    loadTrim?(): TrimState;
+    saveTrim?(state: TrimState): void;
     pump(): Promise<PumpFacts>;
     /** The outdoor sensor's live reading (already checked for freshness) and the corrected
      *  forecast for now; the feed never uses input 1, which shows its own value. */
@@ -221,6 +228,9 @@ export interface FeedHooks {
 export interface LiveEntry {
     slot: number;
     bias: number;
+    /** The setpoint trim inside `bias`, and the setpoint it steers to. */
+    trim?: number;
+    setpoint?: number;
     fed?: number;
     real?: number;
     source?: string;
@@ -235,6 +245,9 @@ export interface FeedSnapshot {
     mode: LiveMode;
     bias: number;
     target: number;
+    /** The part of the bias that steers the house to the setpoint, and that setpoint. */
+    trim?: number;
+    setpoint?: number;
     fed?: number;
     real?: number;
     /** Why it is not feeding (a wait or an end), undefined while it feeds or test-runs. */
@@ -277,6 +290,11 @@ export class HeatingFeed {
     private limits: Limits = LIVE_LIMITS;
     private plan?: {slot: number; biases: number[]; forecast: ForecastSlot[]; reason?: string; indoor?: number[]};
     private neutral = false;
+    /** The setpoint trim in force (setpoint.ts), the setpoint it steers to, and the slot it last moved. */
+    private trim = 0;
+    private setpoint?: number;
+    private trimSlot?: number;
+    private trimState?: TrimState;
 
     constructor(private readonly hooks: FeedHooks) {}
 
@@ -285,7 +303,7 @@ export class HeatingFeed {
         return {mode: this.stopped ? 'off' : this.hooks.mode(), bias: this.bias, target: this.target, fed: this.lastFed?.fed,
             real: this.real?.value, stopped: this.stopState, slot: this.plan?.slot, biases: this.plan?.biases,
             forecast: this.plan?.forecast, planReason: this.plan?.reason, indoor: this.plan?.indoor, neutral: this.neutral || undefined,
-            sunTrusted: this.hooks.sunTrust() > 0 || undefined};
+            sunTrusted: this.hooks.sunTrust() > 0 || undefined, trim: this.trim || undefined, setpoint: this.setpoint};
     }
 
     start() {
@@ -392,8 +410,10 @@ export class HeatingFeed {
         this.degradedSince = this.real.degradedSince;
         if (this.real.value === undefined || this.real.goNeutral) return this.idle('no_outdoor');
 
-        const want = cycleBias(this.target, this.facts.addHeat);
-        const out = fedValue({real: this.real.value, bias: want, previousBias: this.slotBias, maxBias: this.limits.maxBias,
+        // The trim holds the setpoint and is never a pre-heat to drop: the immersion rule is the shift's.
+        const trim = this.neutral ? 0 : this.trim;
+        const want = cycleBias(this.target, this.facts.addHeat) + trim;
+        const out = fedValue({real: this.real.value, bias: want, comfortBias: trim, previousBias: this.slotBias, maxBias: this.limits.maxBias,
             maxCoastBias: this.limits.maxCoastBias, auto: this.facts.mode === 0, thresholds: this.facts.thresholds});
         const was = {bias: this.bias, stopped: this.stopState};
         if (mode === 'test') {
@@ -441,14 +461,36 @@ export class HeatingFeed {
         if (wait) return wait;
         this.slotBias = this.bias;
         // `input.curve` is the curve's view of what the pump saw (history `bt1`), our feed included.
-        const plan = planLive({...input!, bias: this.bias, previous: this.previous}, this.limits, this.hooks.sunTrust());
+        this.steer(slot, input!);
+        // The planner plans the shift alone, around the house's level: the trim is under it.
+        const plan = planLive({...input!, bias: this.bias - this.trim, previous: this.previous}, this.limits, this.hooks.sunTrust());
         this.target = plan.biases[0];
         this.previous = plan.biases.slice(1);
         this.plan = {slot, biases: plan.biases, forecast: input!.forecast, reason: plan.reason, indoor: plan.plan.ti};
-        this.hooks.record({slot, bias: this.bias, fed: this.lastFed?.fed, real: this.real?.value, source: this.real?.source,
-            clamped: this.lastFed?.clamped ?? [], planned: plan.biases.slice(0, 8), reason: plan.reason});
+        this.hooks.record({slot, bias: this.bias, trim: this.trim, setpoint: this.setpoint, fed: this.lastFed?.fed, real: this.real?.value,
+            source: this.real?.source, clamped: this.lastFed?.clamped ?? [], planned: plan.biases.slice(0, 8), reason: plan.reason});
         this.hooks.changed();
         return undefined;
+    }
+
+    /** Move the setpoint trim for this slot. Live integrates; Simulation holds the integral and
+     *  shows what the proportional part would add. At most an hour counts, so a restart or a pause
+     *  does not land as one big step. */
+    private steer(slot: number, input: ShiftInput) {
+        const setpoint = this.hooks.setpoint?.();
+        this.setpoint = setpoint !== undefined && Number.isFinite(setpoint) ? setpoint : undefined;
+        if (this.setpoint === undefined) { this.trim = 0; return; }
+        this.trimState ??= this.hooks.loadTrim?.() ?? {integral: 0};
+        const hours = this.trimSlot === undefined ? 0 : Math.min(1, Math.max(0, (slot - this.trimSlot) * 0.25));
+        const next = nextTrim(this.trimState, {setpoint: this.setpoint, mean: input.mean, ti: input.ti,
+            band: Math.max(this.limits.lower, this.limits.upper), heatLoss: input.house.heatLoss,
+            lever: input.lever, hours, integrate: this.hooks.mode() === 'live'});
+        this.trimSlot = slot;
+        this.trim = Math.round(next.trim * 10) / 10;
+        if (next.state.integral !== this.trimState.integral) {
+            this.trimState = next.state;
+            this.hooks.saveTrim?.(next.state);
+        }
     }
 
     private warn(reason?: StopReason) {

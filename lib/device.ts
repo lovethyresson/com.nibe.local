@@ -11,6 +11,7 @@ import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, StopReason, VERIFY_GA
 import {AUTOPILOT_FUNCTIONS, SMART_MODE_STORE, SmartFunction, SmartMode, autopilotRuns, shownSmartMode, smartMode, smartModeWrites, spaOn} from './autopilot/smart-mode';
 import {HeatingStatus, heatingStatus} from './autopilot/heating-status';
 import {forecastCorrection} from './autopilot/outdoor';
+import {readTrim} from './autopilot/setpoint';
 import {WidgetData, chargeBands, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks, todaySlots} from './autopilot/widget';
 import {HotwaterUseData, hotwaterWeek} from './autopilot/hotwater-use';
 import {SLOT_MS, slotOf} from './autopilot/prices';
@@ -42,6 +43,8 @@ import type {LocalizedText, ModelProfile} from './profile';
 import {ConnectionProblem, PumpConnection, PumpSubscriber, POLL_SECONDS_DEFAULT, Transport,
     clampPollSeconds, inLanguage} from './connection';
 
+/** The setpoint trim's integral (autopilot/setpoint.ts), kept across restarts. */
+const TRIM_STORE = 'autopilotTrim';
 // The Away temperature until the owner sets one.
 const AWAY_DEFAULT_C = 17;
 /** Device store key (Hot water): setup's household answers, Autopilot hot water's starting profile. */
@@ -1465,6 +1468,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 if (!this.solarAllowed()) return input;
                 return {...input, forecast: surplusPrices(input.forecast, slot, this.solarSurplus().forUser('heating', slot), input.lever)};
             },
+            // The thermostat is the goal (setpoint.ts): Away sets it to the Away temperature.
+            setpoint: () => {
+                const v = Number(this.getCapabilityValue('target_temperature'));
+                return this.hasCapability('target_temperature') && Number.isFinite(v) ? v : undefined;
+            },
+            loadTrim: () => readTrim(this.getStoreValue(TRIM_STORE)),
+            saveTrim: (state) => { this.setStoreValue(TRIM_STORE, state).catch(this.error); },
             pump: () => this.heatingPumpFacts(),
             outdoor: () => collector.outdoorNow(),
             write: (celsius) => this.writeBt1(celsius),

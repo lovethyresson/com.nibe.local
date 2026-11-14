@@ -82,12 +82,12 @@ test('no pre-heat while the immersion heater runs; coasting is still allowed', (
 
 /** A fake pump: 5217 writes show on input 1 unless `deaf`. Timers run by hand. */
 function harness(over: {mode?: LiveMode; facts?: Partial<PumpFacts>; sensor?: number; forecast?: number; deaf?: boolean;
-    plan?: ShiftInput | undefined} = {}) {
+    plan?: ShiftInput | undefined; setpoint?: number} = {}) {
     let now = 1_800_000 * SLOT_MS + 1000;
     let input1: number | undefined;
     const state = {
         mode: over.mode ?? 'live' as LiveMode, writes: [] as number[], records: [] as LiveEntry[], warnings: [] as (StopReason | undefined)[],
-        changes: 0, neutral: false,
+        changes: 0, neutral: false, setpoint: over.setpoint, trim: {integral: 0}, saves: 0,
         feeding: [] as boolean[], sensor: ('sensor' in over ? over.sensor : 3) as number | undefined, deaf: over.deaf ?? false,
         facts: {mode: 1, thresholds: {}, spaHeating: false, roomControl: 0, ...over.facts} as PumpFacts,
     };
@@ -97,6 +97,9 @@ function harness(over: {mode?: LiveMode; facts?: Partial<PumpFacts>; sensor?: nu
         neutral: () => state.neutral,
         sunTrust: () => 0,
         plan: () => ('plan' in over ? over.plan : input({curve: 3})),
+        setpoint: () => state.setpoint,
+        loadTrim: () => state.trim,
+        saveTrim: (t) => { state.trim = t; state.saves++; },
         pump: async () => state.facts,
         outdoor: () => ({sensor: state.sensor, forecast: over.forecast, localHour: 12, bias: newForecastBias()}),
         write: async (c) => { state.writes.push(c); if (!state.deaf) input1 = c; },
@@ -348,4 +351,46 @@ test('while hot water has the compressor the house gets nothing, and the pump ca
     assert.ok(Math.abs(sum(run.heat) - sum(free.heat)) < 0.05 * sum(free.heat), `${sum(run.heat)} vs ${sum(free.heat)}`);
     assert.ok(run.heat[16] > free.heat[16], 'it catches up straight after');
     assert.deepEqual(withHotwater(forecast().slice(0, 2), [false, true]).map((s) => !!s.busy), [false, true]);
+});
+
+// A flat price: the planner shifts nothing, so what is fed is the setpoint trim alone.
+const flat = (): ShiftInput => input({curve: 3, forecast: Array.from({length: 96}, () => ({te: 3, sun: 0, price: 1}))});
+
+test('Autopilot steers the house to the thermostat setpoint, not to where it happens to sit', async () => {
+    // The house sits at 21.5 °C (its 24 h mean); the thermostat says 20.5. Gain 2 K of BT1 per K.
+    const {feed, state} = harness({plan: flat(), setpoint: 20.5});
+    feed.start();
+    await feed.cycle();
+    assert.equal(feed.state.trim, -2, 'one K too warm: ease off by the model\'s 2 K');
+    assert.equal(feed.state.setpoint, 20.5);
+    assert.equal(state.writes[0], 5, 'fed 2 K warmer than the real 3 °C, so the pump heats less');
+    assert.equal(state.records[0].trim, -2, 'the shadow log carries the trim');
+});
+
+test('a colder house than the setpoint is fed colder, and the integral keeps closing the gap while live', async () => {
+    const {feed, state, advance} = harness({plan: flat(), setpoint: 22.5});
+    feed.start();
+    await feed.cycle();
+    assert.equal(feed.state.trim, 2);
+    assert.equal(state.writes[0], 1);
+    for (let i = 0; i < 8; i++) { advance(SLOT_MS); await feed.cycle(); }
+    assert.ok(state.trim.integral > 0, 'two hours of a 1 K error add to the integral');
+    assert.ok(state.saves > 0, 'and it is kept across restarts');
+});
+
+test('Simulation shows the trim but never winds the integral up against a pump it does not steer', async () => {
+    const {feed, state, advance} = harness({plan: flat(), setpoint: 22.5, mode: 'test'});
+    feed.start();
+    for (let i = 0; i < 8; i++) { await feed.cycle(); advance(SLOT_MS); }
+    assert.equal(feed.state.trim, 2, 'the proportional part is shown');
+    assert.equal(state.trim.integral, 0);
+    assert.equal(state.writes.length, 0, 'and nothing is written');
+});
+
+test('without a thermostat the level stays the curve\'s, as before', async () => {
+    const {feed, state} = harness({plan: flat()});
+    feed.start();
+    await feed.cycle();
+    assert.equal(feed.state.trim, undefined);
+    assert.equal(state.writes[0], 3);
 });
