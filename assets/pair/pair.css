@@ -868,3 +868,8 @@ body {
 #nibe-pair-setup .register-label > input[type=checkbox]:checked::after, #nibe-repair-setup .register-label > input[type=checkbox]:checked::after { transform: translateX(1.15em); }
 #nibe-pair-setup .feature-label > input:focus-visible, #nibe-repair-setup .feature-label > input:focus-visible,
 #nibe-pair-setup .register-label > input:focus-visible, #nibe-repair-setup .register-label > input:focus-visible { outline: 2px solid var(--sel); outline-offset: 3px; }
+
+/* Homey styles every form label as a small grey capitals caption. In these views a label is a
+   whole tappable card or row, so it takes the page's own text. */
+#nibe-pair-setup form label, #nibe-repair-setup form label { text-transform: none; letter-spacing: normal; color: inherit; }
+#nibe-pair-setup form label.setup-choice, #nibe-repair-setup form label.setup-choice { font-size: 1em; line-height: 1.4; font-weight: 400; }
