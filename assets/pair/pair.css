@@ -689,3 +689,126 @@ body {
 .setup-soon { display: inline-block; margin-left: .5em; padding: .05em .55em; border-radius: 99px; font-size: .72em; font-weight: 600;
     background: var(--surface); border: 1px solid var(--surface-border); vertical-align: .1em; }
 .setup-compare-badge { display: block; margin: .3em auto 0; width: fit-content; font-size: .8em; }
+
+/* ===================================================================================
+   Setup and Repair, in the help pages' look (help/assets/site.css): one idea per block,
+   generous spacing, cards for choices, a calm blue for what is selected and red only for
+   errors. Neutrals are translucent so they follow Homey's light and dark themes; text
+   colours are inherited from Homey. Overrides the older rules above.
+   =================================================================================== */
+.setup-shell, .pair-hero.setup-hero, .setup-navigation {
+    --sel: #0a84ff;
+    --sel-tint: rgba(10, 132, 255, .09);
+    --hair: rgba(128, 128, 128, .22);
+    --fill: rgba(128, 128, 128, .07);
+    --ok: #248a3d;
+    --ok-tint: rgba(52, 199, 89, .16);
+    --warn: #b25000;
+    --warn-tint: rgba(255, 159, 10, .16);
+}
+@media (prefers-color-scheme: dark) {
+    .setup-shell, .pair-hero.setup-hero, .setup-navigation { --sel: #409cff; --sel-tint: rgba(64, 156, 255, .16); --ok: #30d158; --warn: #ffb340; }
+}
+
+/* The screen's one line of intro, under Homey's own title. */
+.pair-hero.setup-hero { text-align: left; padding: .2em 0 1.1em; }
+.pair-hero.setup-hero .pair-hero-sub { margin: 0; font-size: 1.06em; line-height: 1.45; opacity: .78; }
+.setup-navigation button.setup-back { color: var(--sel); font-weight: 500; }
+
+/* Choices: big tappable cards, a custom dot, a blue ring when picked. */
+.setup-choices { display: grid; gap: .65em; margin: 0 0 1.4em; }
+.setup-shell .setup-source-card.setup-choice { position: relative; display: flex; gap: .85em; align-items: flex-start;
+    margin: 0; padding: 1.05em 1.1em; border: 1px solid var(--hair); border-radius: 16px; background: var(--fill);
+    cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; }
+.setup-shell .setup-source-card.setup-choice.is-selected { border-color: var(--sel); background: var(--sel-tint);
+    box-shadow: 0 0 0 1px var(--sel); }
+.setup-shell .setup-source-card.setup-choice.is-disabled { opacity: .5; cursor: default; }
+.setup-choice input[type=radio] { appearance: none; -webkit-appearance: none; flex: 0 0 auto; width: 1.3em; height: 1.3em;
+    margin: .1em 0 0; border: 2px solid rgba(128, 128, 128, .55); border-radius: 50%; background: transparent; }
+.setup-choice input[type=radio]:checked { border-color: var(--sel); background: radial-gradient(var(--sel) 0 42%, transparent 46%); }
+.setup-choice input[type=checkbox] { appearance: none; -webkit-appearance: none; flex: 0 0 auto; position: relative;
+    width: 2.9em; height: 1.75em; margin: 0; border-radius: 99px; background: rgba(128, 128, 128, .32); transition: background .2s; }
+.setup-choice input[type=checkbox]::after { content: ""; position: absolute; top: .15em; left: .15em; width: 1.45em; height: 1.45em;
+    border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .22); transition: transform .2s; }
+.setup-choice input[type=checkbox]:checked { background: #34c759; }
+.setup-choice input[type=checkbox]:checked::after { transform: translateX(1.15em); }
+.setup-choice input:focus-visible { outline: 2px solid var(--sel); outline-offset: 3px; }
+.setup-shell .setup-source-title { display: flex; flex-wrap: wrap; align-items: center; gap: .45em; font-size: 1.06em; font-weight: 600; letter-spacing: -.01em; }
+.setup-shell .setup-source-description { margin-top: .3em; font-size: .92em; line-height: 1.45; opacity: .72; }
+.setup-shell .setup-soon { margin: 0; padding: .15em .6em; font-size: .7em; font-weight: 600; letter-spacing: .01em;
+    border: 0; background: rgba(128, 128, 128, .16); }
+
+/* Sections: a heading that reads as a heading, and a quiet card around what belongs together. */
+.setup-shell .setup-task-group { border: 0; border-radius: 16px; background: var(--fill); padding: 1.15em 1.15em 1.2em; margin: 0 0 1.1em; }
+.setup-shell .setup-task-group > h3 { margin: 0 0 .75em; font-size: 1.06em; font-weight: 600; opacity: 1; letter-spacing: -.01em; }
+.setup-shell .setup-tiles-title { margin: 1em 0 .5em; font-size: .95em; font-weight: 600; opacity: .85; }
+
+/* Checklist: one card, rows separated by hairlines, a status dot in front. */
+.setup-shell .setup-checklist { margin: 0 0 1.25em; padding: .2em 1.1em; border-radius: 16px; background: var(--fill); }
+.setup-shell .setup-check { gap: .85em; padding: .9em 0; border-bottom: 1px solid var(--hair); }
+.setup-shell .setup-check:last-child { border-bottom: 0; }
+.setup-shell .setup-check strong { display: block; font-weight: 600; }
+.setup-shell .setup-check p { margin: .2em 0 0; font-size: .9em; line-height: 1.45; color: inherit; opacity: .72; }
+.setup-shell .setup-check-mark { flex: 0 0 1.6em; height: 1.6em; line-height: 1.6em; font-size: .85em; margin-top: .05em; }
+.setup-shell .setup-check.is-ok .setup-check-mark { background: var(--ok-tint); color: var(--ok); }
+.setup-shell .setup-check.is-info .setup-check-mark { background: rgba(128, 128, 128, .16); }
+.setup-shell .setup-check.is-blocking .setup-check-mark { background: rgba(255, 69, 58, .14); color: #d70015; }
+.setup-shell .setup-flow-list { margin: .5em 0 .2em; padding-left: 1.1em; font-size: .9em; }
+
+/* Fields: label above, a full-width control. */
+.setup-shell .setup-field { display: grid; gap: .4em; margin: .9em 0 0; justify-content: stretch; }
+.setup-shell .setup-field > span { font-size: .95em; font-weight: 500; }
+.setup-shell .setup-task-group > select,
+.setup-shell .setup-field select { width: 100%; box-sizing: border-box; min-height: 2.9em; padding: .55em .8em;
+    font: inherit; border: 1px solid var(--hair); border-radius: 12px; background-color: rgba(128, 128, 128, .05); color: inherit; }
+.setup-shell .register-desc { font-size: .9em; line-height: 1.45; opacity: .72; margin: .6em 0 0; }
+
+/* Steps on the heat pump: numbered, with the menu code kept and set apart. */
+.setup-shell .setup-task-group .setup-pump-steps li::before { background: var(--sel-tint); border: 0; color: var(--sel); font-weight: 600; }
+.setup-shell .setup-pump-steps strong { font-weight: 600; }
+
+/* Explainer tiles and the comparison: the same quiet cards. */
+.setup-shell .setup-tile { border: 0; background: var(--fill); border-radius: 16px; padding: 1em; }
+.setup-shell .setup-tile .setup-icon { color: var(--sel); }
+.setup-shell .setup-tile strong { font-size: .98em; }
+.setup-shell .setup-compare-label { font-size: .92em; }
+
+/* Errors stay red, and only errors. */
+.setup-shell .setup-error { color: #d70015; }
+@media (prefers-color-scheme: dark) { .setup-shell .setup-error { color: #ff6961; } }
+/* A switch is its own state: its card does not light up as "picked". The temperature-source
+   cards share the blue ring. */
+.setup-shell .setup-source-card.setup-choice.is-selected:has(input[type=checkbox]) { border-color: var(--hair); background: var(--fill); box-shadow: none; }
+.setup-shell .setup-source-card { border-radius: 16px; border-color: var(--hair); background: var(--fill); }
+.setup-shell .setup-source-card.is-selected { border-color: var(--sel); background: var(--sel-tint); box-shadow: 0 0 0 1px var(--sel); }
+.setup-shell .setup-source-label > input { accent-color: var(--sel); }
+/* Info rows get an "i", not a dot that reads as nothing. */
+.setup-shell .setup-check.is-info .setup-check-mark { position: relative; color: transparent; background: var(--sel-tint); }
+.setup-shell .setup-check.is-info .setup-check-mark::after { content: "i"; position: absolute; inset: 0; color: var(--sel);
+    font-weight: 700; font-style: italic; font-family: Georgia, "Times New Roman", serif; }
+/* Answers inside a section sit on a raised surface, so they don't melt into the section. */
+.setup-shell .setup-task-group { --raised: rgba(255, 255, 255, .85); }
+@media (prefers-color-scheme: dark) { .setup-shell .setup-task-group { --raised: rgba(255, 255, 255, .06); } }
+.setup-shell .setup-task-group .setup-source-card.setup-choice:not(.is-selected) { background: var(--raised); }
+.setup-shell .setup-task-group .setup-field select,
+.setup-shell .setup-task-group > select { background-color: var(--raised); }
+/* A picker inside a checklist row is a real control too. */
+.setup-shell .setup-check select { display: block; width: 100%; box-sizing: border-box; margin-top: .55em; min-height: 2.6em;
+    padding: .45em .7em; font: inherit; font-size: .95em; border: 1px solid var(--hair); border-radius: 10px;
+    background-color: rgba(128, 128, 128, .05); color: inherit; }
+.setup-shell > .register-desc { margin: -.4em 0 .9em; }
+/* Small text actions read as links. */
+.setup-shell button.setup-small-action { color: var(--sel); font-size: .95em; padding: .5em 0; }
+/* A list inside a section is raised, like the answers. */
+.setup-shell .setup-task-group .setup-checklist { background: var(--raised); margin-bottom: 0; }
+/* The setup hub: each part is a card to tap, title first. */
+.setup-shell .setup-menu { padding: 1.05em 1.1em; border: 0; border-radius: 16px; background: var(--fill); margin-bottom: .65em; }
+.setup-shell .setup-menu > span:first-child { font-size: 1.06em; font-weight: 600; letter-spacing: -.01em; }
+.setup-shell .setup-menu small { font-size: .85em; font-weight: 400; line-height: 1.4; opacity: .7; margin-top: .3em; }
+.setup-shell .setup-menu > span:last-child { color: var(--sel); font-weight: 500; }
+@media (prefers-color-scheme: dark) { .setup-shell .setup-check.is-blocking .setup-check-mark { color: #ff6961; background: rgba(255, 105, 97, .18); } }
+.setup-shell .setup-source-label { padding: 1.05em 1.1em; gap: .85em; }
+.setup-shell .setup-source-label > input[type=radio] { appearance: none; -webkit-appearance: none; width: 1.3em; height: 1.3em;
+    margin: .1em 0 0; border: 2px solid rgba(128, 128, 128, .55); border-radius: 50%; background: transparent; }
+.setup-shell .setup-source-label > input[type=radio]:checked { border-color: var(--sel); background: radial-gradient(var(--sel) 0 42%, transparent 46%); }
+.setup-shell .setup-native-detail { padding: 0 1.1em 1.05em 3.25em; font-size: .92em; opacity: .8; }
