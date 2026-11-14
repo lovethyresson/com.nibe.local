@@ -113,8 +113,10 @@ Flow cards, timeline messages, status lines, widgets) and the store changelog. T
   Heating device", "the Main device".
 - Quote on-screen names exactly, in sentence case: "Heating setup", "Hot water setup", "Device
   setup", "Smart mode", "Smart price adaption".
-- The Smart mode that plans without acting is **Simulation** (code value `test`; it was "Test
-  run"). The comfort ranges are Comfort, Save and Save more. The safety net setting is "Always
+- Smart mode lists Autopilot once, with **Live** or **Simulated** inside it: "Autopilot · Simulated"
+  plans without acting (code value `test`; it was "Simulation", and before that "Test run").
+  Smart mode is a step of Heating setup and Hot water setup (and Pool or Cooling setup), never a
+  setup of its own. The comfort ranges are Comfort, Save and Save more. The safety net setting is "Always
   enough for a shower" with 20 L (a rinse or the dishes), 40 L (one quick shower, the default) and
   60 L (a longer shower).
 - **Dutch is informal**: "je", "jouw", "jij", never "u"/"uw" (maintainer, 2026-11-14). German

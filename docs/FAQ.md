@@ -55,6 +55,19 @@ No. The app supplies the measured indoor temperature. The pump still controls he
 existing target temperature and Smart Price Adaption settings. BT50 and the zone's averaged
 temperature can differ if the pump combines BT50 with other room sensors.
 
+### Does Autopilot follow my thermostat?
+
+Yes. The Heating device's thermostat is Autopilot's goal. Autopilot steers the house to it
+through the outdoor temperature it sends (BT1), and moves heat in time around it within your
+comfort range. Change the thermostat and it follows; Away sets the thermostat to the
+Away temperature, so the house cools to that. A small steady offset is corrected slowly, over a
+few days. With Comfort range Off it neither shifts nor steers.
+
+Room-sensor control on the heat pump must stay off, because Autopilot does that job itself. Your
+Homey sensors are then only read, never sent to the heat pump as BT50: in **Heating → Repair →
+Heating setup**, Autopilot asks which indoor temperature to hold (the heat pump's own sensor, or
+Homey sensors) right after Smart mode.
+
 ### Why does the app need permission to access other Homey devices?
 
 It uses Homey's API permission to discover temperature sensors, show their rooms, and read their
@@ -112,8 +125,8 @@ Open **Hot Water → Repair → Hot Water Setup**. The existing tank catalogue, 
 custom capacity and no-estimate choices remain available. **Save changes** saves directly.
 
 The incoming cold water temperature is now **Incoming water** on the Hot water device, and
-Autopilot's **Always keep at least** is in **Hot Water → Repair → Smart mode**, next to the other
-Autopilot hot water choices. Your earlier value carries over.
+Autopilot's **Always keep at least** is in **Hot Water → Repair → Hot Water Setup**, in Smart
+mode after the tank, next to the other Autopilot hot water choices. Your earlier value carries over.
 
 ## Numbers that don't match myUplink or the pump
 

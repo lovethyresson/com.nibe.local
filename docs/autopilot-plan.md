@@ -918,6 +918,35 @@ Runs every 15 min and on new prices or weather. Horizon: 24–36 h of slots.
      - Both the supply model and the meter run ~0.4 K cold over 24 h on that run (the house model,
        not the pump), so a correction on measured indoor is still needed: the integral, in M3,
        where there is a loop to close.
+   - **Setpoint trim, closed loop (built 2026-11-14, `lib/autopilot/setpoint.ts`, 09f1322; not
+     yet run on hardware).** Shift-only live planned around the house's own 24 h mean and never
+     read the thermostat, so with room-sensor control off nothing steered the house to the
+     setpoint, and Away's lower setpoint did nothing. A slow trim now sits *under* the price
+     shift (`HeatingFeed.steer`, `live.ts`): fed bias = shift + trim, and the planner plans the
+     shift alone around the level the trim sets.
+     - **Why closed loop, not the comfort bias.** The model's gain is good, but its steady level
+       was ~1 K off on the S1155 (`tasks/todo.md`, 2026-11-11: equilibrium 22.9 °C predicted
+       against 21.9 measured), so a model-only trim (`trim.ts` `comfortBias`) would hold the
+       wrong temperature. A PI on measured indoor corrects whatever the model gets wrong.
+     - **P:** gain = heat loss / lever (K of BT1 per K indoors, ~2 on the S1155), clamped to
+       0.5–3 (`GAIN_RANGE`).
+     - **I:** `TRIM_KI` 0.02 K of trim per K·h of error (a 1 K error closes over ~4 days, slower
+       than the S1155's ~5 day time constant could overshoot). It moves only while live (in
+       Simulated the pump is not steered, so it would wind up against a house it cannot move)
+       and only within 1 K of the setpoint (`INTEGRATE_WITHIN`), so a jump such as Away and
+       back neither winds it up nor teaches it the transient. It stops where the total would
+       pass the clamp, and is kept across restarts (store `autopilotTrim`). At most an hour
+       counts per step.
+     - **Error:** setpoint − the 24 h indoor mean while indoor now is within the comfort range
+       (+0.5 K, `FAST_MARGIN`); the shift moves indoor inside the range on purpose and the mean
+       sees through it, so the trim does not fight the shift. Past that, setpoint − indoor now,
+       since the mean lags a setpoint jump by most of a day.
+     - **Clamp:** ±10 K (`TRIM_RANGE`); past that it is a model or sensor gone wrong, not a
+       house. The trim is never dropped as a pre-heat by the immersion rule (it is
+       `comfortBias` to `fedValue`), and is 0 while neutral (Comfort range Off).
+     - **Away is just another setpoint:** Away sets the thermostat to the Away temperature, and
+       the trim steers to whatever the thermostat says. The trim and setpoint are in each live
+       log entry and in the feed snapshot.
    - **The wired BT1 trails the real outdoor temperature** (S1155: the sensor through a ~5.5 h
      lag, +2.3 K). Shadow's doing nothing feeds that; the fed flag compares input 1 with it.
 2. **Price shift** (dynamic contract and model ready):
@@ -1220,7 +1249,8 @@ Setup; settings hold the everyday knobs.
 **What the owner sees.** Status on Heating (`autopilot_mode_NIBE`: Learning · Holding ·
 Pre-heating · Easing off · Paused · Off) with a one-line reason ("Easing off until 19:00: prices
 peak 17–19"). While the model learns, Autopilot is **shift-only** (`lib/autopilot/live.ts`): it
-keeps the owner's curve and only moves heat in time, and the status says "Shifting heat only
+keeps the owner's curve and only moves heat in time (since 2026-11-14 on top of the setpoint trim,
+§7.3, which holds the thermostat), and the status says "Shifting heat only
 while learning". Insights for the fed outdoor and the bias. Timeline only on a mode change. A
 savings label after 14 active days (§11). The 24 h plan as a widget (§19.5).
 
@@ -1231,7 +1261,10 @@ Main's day type, shared with hot water; the outdoor sensor and Verify in Setup. 
 
 **As built (dev build, 2026-11-12, revised the same evening).** Settings are only for what is set
 once. The rest is Repair and capabilities:
-- **Smart mode** (off · spa · test · autopilot) is chosen per function in that function's Repair and
+- **Smart mode** (off · spa · test · autopilot) is chosen per function in that function's Repair, and
+  since 2026-11-14 also in pairing (ffd1421: Verify over a short pairing connection,
+  `lib/pairing-pump.ts`; Heating setup asks Smart mode first, Hot water setup after the tank; the
+  UI lists Autopilot once with Live or Simulated inside it). It is
   stored on its device (store `smartMode`, `lib/autopilot/smart-mode.ts`); Main's day type follows
   hot water's. Off and SPA show as the pump has them. SPA switches are written from
   `smartModeWrites`; SPA turned on elsewhere while Autopilot runs flips the function to `spa` with

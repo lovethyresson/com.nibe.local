@@ -529,6 +529,29 @@ prices: ease off at 22:00 (−2 K) and 07:00–08:30 (−3 K), indoor −0.05 K.
 - [ ] Turn off: set it to `off`; the log shows "stopped (mode_off)" and the last feed is the real
       outdoor temperature.
 
+## Autopilot heating: setpoint trim (built 2026-11-14, 09f1322, untested on hardware)
+
+**What.** Autopilot heating now holds the Heating thermostat (`lib/autopilot/setpoint.ts`, design
+in `docs/autopilot-plan.md` §7.3 "Setpoint trim"): a PI trim under the price shift, P = heat loss /
+lever (0.5–3), I = 0.02 K per K·h, learning only while live and within 1 K of the setpoint, error on
+the 24 h mean inside the comfort range and on indoor now beyond range + 0.5 K, clamped ±10 K. Away
+is just another setpoint. Unit-tested only; nothing has run on the S1155 yet. Pairing now sets up
+Smart mode too (ffd1421), and setup ends on What gets added / What changes (9d47329).
+
+**Test plan (only after the maintainer's go to install):**
+- [ ] Confounders held first: SPA heating off, room-sensor control off (2978), curve offset settled
+      (no change in the days before), outdoor sensor unchanged.
+- [ ] Simulated first on the S1155: watch `trim` and `setpoint` in each live log entry (the
+      integral stays at 0 in Simulated; only the P part shows). Check the sign (house below the
+      setpoint → positive trim, fed colder) and the size against the 24 h mean error.
+      `dev/review-shadow.mjs` does not print them yet.
+- [ ] Then live, with the same confounders held, for at least 4–5 days (the integral closes 1 K in
+      ~4 days).
+- [ ] **Success:** the indoor 24 h mean converges to the setpoint and stays within the comfort range,
+      without oscillation; the integral (store `autopilotTrim`) levels off well inside ±10 K.
+- [ ] Then Away on and off once: indoor heads to the Away temperature on indoor now, and the
+      integral does not wind up during the jump.
+
 ## Autopilot: solar, and pool and cooling (2026-11-12)
 
 Plan: `~/.claude/plans/atomic-chasing-brooks.md`. As built: `docs/autopilot-plan.md` §10.0 "Solar".

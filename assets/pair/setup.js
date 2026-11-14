@@ -602,8 +602,8 @@ function NibeSetup(options) {
         shell.appendChild(button(t('next'), function () { ready[heating.id] = true; hub(); }, true));
         back(hub);
     }
-    // ---- Smart mode (Repair only, Heating and Hot water): choose, then for Autopilot heating the
-    // checklist and Verify. Comfort range and Away are capabilities on the device, not steps here.
+    // ---- Smart mode (pairing and Repair, a step of its function's setup): choose, then for
+    // Autopilot heating the checklist and Verify. Comfort range and Away are capabilities on the device, not steps here.
     // One Smart mode state per function: pairing sets up heating and hot water in one session.
     var aps = {};
     var ap = {status: null, choice: 'off'};
