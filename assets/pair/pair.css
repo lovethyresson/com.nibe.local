@@ -882,3 +882,17 @@ body {
 .setup-shell button.setup-segment-option.is-on { background: #fff; color: #1d1d1f; font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, .15); }
 @media (prefers-color-scheme: dark) { .setup-shell button.setup-segment-option.is-on { background: rgba(255, 255, 255, .22); color: inherit; } }
 .setup-segment-note { margin: .55em 0 0; font-size: .85em; line-height: 1.4; opacity: .72; }
+
+/* What changes / What gets added: one card per device, a row per reason. */
+.setup-change-device { margin: 0 0 .75em; padding: .9em 1.1em .4em; border: 1px solid rgba(128, 128, 128, .22);
+    border-radius: 16px; background: rgba(128, 128, 128, .07); }
+.setup-change-device h3 { margin: 0 0 .45em; font-size: 1.06em; }
+.setup-change { display: flex; gap: .7em; padding: .5em 0; border-top: 1px solid rgba(128, 128, 128, .18); }
+.setup-change-device h3 + .setup-change { border-top: 0; padding-top: 0; }
+.setup-change-mark { flex: 0 0 1.4em; height: 1.4em; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .85em; margin-top: .05em; }
+.setup-change.is-add .setup-change-mark { background: rgba(52, 199, 89, .18); color: #1f7a3a; }
+.setup-change.is-remove .setup-change-mark { background: rgba(128, 128, 128, .18); }
+.setup-change strong { display: block; font-size: .95em; font-weight: 600; }
+.setup-change span:not(.setup-change-mark) { display: block; margin-top: .1em; font-size: .85em; opacity: .65; }
+@media (prefers-color-scheme: dark) { .setup-change.is-add .setup-change-mark { color: #30d158; } }

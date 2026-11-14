@@ -13,7 +13,8 @@ import {
     HOTWATER_TANK_CAPABILITIES, HOTWATER_VOLUME_CAPABILITY, METER_CAPABILITY, possibleExtraCapabilities,
     Role, TOTAL_COP_CAPABILITY, allRoles, energyTitle, extraCapabilities, extraCapabilityOptions,
     extraCapabilitySupport, functionRoles, powerTitle, registersForRole, roleClass, roleGroups, deviceClass, roomThermostatActive,
-    roleNames, roleOf, roleRegisters
+    roleNames, roleOf, roleRegisters, autopilotInputs, hiddenBySmartMode, capabilitySyncPlan, AUTOPILOT_HEATING_CAPABILITIES,
+    AUTOPILOT_HOTWATER_CAPABILITIES, DAY_TYPE_CAPABILITY, changeReason
 } from './roles';
 import type {ModelProfile} from './profile';
 import {DAY_TYPE_SETTING, DayTypeState, dayTypeAt, isDayType, readDayType, recordDayType, setAway, typeSet} from './autopilot/day-type';
@@ -28,7 +29,7 @@ import {Transport, destroyAllConnections, existingConnection} from './connection
 import {DiscoveryOptions, choosePumpCandidate, diagnoseNoData, discoverPumps} from './discovery';
 import {CONSENT_SETTING, InstallProfile, analyticsConsent, reportInstallProfile, setAnalyticsConsent, track} from './analytics';
 import {DEFAULT_INLET_C, MAX_TANK_LITRES, MIN_TANK_LITRES, cleanTankChoice} from './hotwater';
-import type {SmartMode} from './autopilot/smart-mode';
+import {SmartMode, smartMode} from './autopilot/smart-mode';
 
 // Optional per-device transport entered during F pairing (the gateway port / unit id).
 interface PairTransport {port?: number; unitId?: number; addressMode?: string}
@@ -1296,6 +1297,46 @@ export abstract class NibePumpDriver extends Driver {
         });
     }
 
+    /** A capability's name as the owner sees it, in their language, derived ones included. */
+    private ownerTitle(role: Role, name: string): string {
+        const language = this.homey.i18n.getLanguage();
+        const title = this.options(name)?.title ?? extraCapabilityOptions(role, name, this.profile)?.title;
+        return title?.[language] || title?.en || name;
+    }
+
+    /** The changes from `before` to `after`, grouped by reason and named for the owner. */
+    private changeGroups(role: Role, before: string[], after: string[], smart: SmartMode) {
+        const groups = new Map<string, {kind: 'add' | 'remove'; reason: string; names: string[]}>();
+        const put = (name: string, added: boolean) => {
+            const reason = changeReason(this.profile, role, name, added, smart);
+            const key = (added ? '+' : '-') + reason;
+            if (!groups.has(key)) groups.set(key, {kind: added ? 'add' : 'remove', reason, names: []});
+            groups.get(key)!.names.push(this.ownerTitle(role, name));
+        };
+        after.filter((n) => !before.includes(n)).forEach((n) => put(n, true));
+        before.filter((n) => !after.includes(n)).forEach((n) => put(n, false));
+        return [...groups.values()];
+    }
+
+    /** What pairing will add, per device: how many readings and settings, and what Autopilot and
+     *  the tank bring, from the same plan the device will follow when it first runs. */
+    private pairingPreview(raw: any) {
+        const devices = Array.isArray(raw?.devices) ? raw.devices : [];
+        return devices.map((d: any) => {
+            const role = roleOf(d?.data);
+            const smart = smartMode(d?.store?.pairedSmartMode?.mode);
+            const wanted = capabilitySyncPlan(this.profile, role, d?.store?.selection ?? null, [], smart).wanted;
+            const own = [...AUTOPILOT_HEATING_CAPABILITIES, ...AUTOPILOT_HOTWATER_CAPABILITIES, DAY_TYPE_CAPABILITY];
+            const special = (n: string) => own.includes(n) || HOTWATER_TANK_CAPABILITIES.includes(n);
+            const groups: any[] = [{kind: 'add', reason: 'count', count: wanted.filter((n) => !special(n)).length, names: []}];
+            const autopilot = wanted.filter((n) => own.includes(n)).map((n) => this.ownerTitle(role, n));
+            if (autopilot.length) groups.push({kind: 'add', reason: smart === 'test' ? 'autopilot_simulated' : 'autopilot', names: autopilot});
+            const tank = wanted.filter((n) => HOTWATER_TANK_CAPABILITIES.includes(n)).map((n) => this.ownerTitle(role, n));
+            if (tank.length) groups.push({kind: 'add', reason: 'tank', names: tank});
+            return {name: d?.name ?? role, groups};
+        });
+    }
+
     /** The heating status's outdoor-sensor facts, from the app setting. */
     private async outdoorFacts(): Promise<{outdoorSensor: any; outdoorName: string | null; outdoor: number | null}> {
         const ref = this.homey.settings.get(OUTDOOR_SENSOR_SETTING) as {deviceId: string; capabilityId: string} | null;
@@ -1403,6 +1444,7 @@ export abstract class NibePumpDriver extends Driver {
         let verified: {undo: [string, boolean][]} | null = null;
         session.setHandler('smart_status', async (data: any) =>
             this.pairSmartStatus(data?.role, ipAddress!, pairTransport, detection));
+        session.setHandler('preview_devices', async (data: any) => this.pairingPreview(data));
         session.setHandler('activate_autopilot', async () => {
             if (!this.profile.autopilotFeed) throw new Error(this.homey.__('autopilot.heating.verify.not_heating'));
             const real = (await this.outdoorFacts()).outdoor ?? undefined;
@@ -1491,8 +1533,24 @@ export abstract class NibePumpDriver extends Driver {
         });
     }
 
+    /** The selection Repair would save, cleaned as it will be stored: Save changes and What changes
+     *  both use it, so the preview is exactly what saving does. */
+    private pendingSelection(raw: any, device: any, detection: DetectionResult | null, role: Role): {selection: Selection} {
+        const resolved = detection?.addresses ?? (device.getStoreValue('selection') as Selection | null)?.addresses;
+        const selection = this.cleanSelection(raw, resolved);
+        const previousTank = (device.getStoreValue('selection') as Selection | null)?.hotwater;
+        if (selection.hotwater && previousTank?.inletC !== undefined && raw?.hotwater?.inletC === undefined)
+            selection.hotwater.inletC = previousTank.inletC;
+        if (role === 'heating' && device.getStoreValue('indoorSensors')?.state === 'active') {
+            selection.addresses = {...selection.addresses, measure_temperature: 26};
+            selection.overrides = {...selection.overrides, measure_temperature: true};
+        }
+        return {selection};
+    }
+
     async onRepair(session: PairSession, device: any): Promise<void> {
         const role = roleOf(device.getData());
+        const openedWith: string[] = [...device.getCapabilities()];
         this.log(`onRepair: started for role ${role} —`,
             JSON.stringify(device.getStoreValue('selection') ?? null));
         let detection: DetectionResult | null = null;
@@ -1575,18 +1633,16 @@ export abstract class NibePumpDriver extends Driver {
                 : null;
         });
 
+        // What changes: against what the device had when Repair opened, so a Smart mode chosen in
+        // this Repair (saved at once) shows with the rest.
+        session.setHandler('preview_changes', async (raw) => {
+            const {selection} = this.pendingSelection(raw, device, detection, role);
+            const {wanted, smart} = device.previewCapabilities(selection);
+            return [{name: device.getName(), groups: this.changeGroups(role, openedWith, wanted, smart)}];
+        });
         session.setHandler('selection_done', async (raw) => {
-            const resolved = (detection as DetectionResult | null)?.addresses
-                ?? (device.getStoreValue('selection') as Selection | null)?.addresses;
-            const selection = this.cleanSelection(raw, resolved);
-            const previousTank = (device.getStoreValue('selection') as Selection | null)?.hotwater;
-            if (selection.hotwater && previousTank?.inletC !== undefined && raw?.hotwater?.inletC === undefined)
-                selection.hotwater.inletC = previousTank.inletC;
+            const {selection} = this.pendingSelection(raw, device, detection, role);
             this.log('onRepair: selection:', JSON.stringify(selection));
-            if (role === 'heating' && device.getStoreValue('indoorSensors')?.state === 'active') {
-                selection.addresses = {...selection.addresses, measure_temperature: 26};
-                selection.overrides = {...selection.overrides, measure_temperature: true};
-            }
             await device.applySelection(selection);
             // After the device has the new selection, not before — the profile must describe what
             // the install now is, and applySelection() can throw.

@@ -278,6 +278,16 @@ function buildDevice(candidate, index) {
 
 // Keep successful creations across a retry if one later device fails.
 var createdIds = new Set();
+function previewDevices() {
+    var chosen = [];
+    document.querySelectorAll('input[data-index]').forEach(function (box) {
+        if (box.checked) chosen.push(buildDevice(candidates[box.dataset.index], box.dataset.index));
+    });
+    return new Promise(function (resolve, reject) {
+        Homey.emit('preview_devices', {devices: chosen}, function (err, result) { if (err) reject(err); else resolve(result || []); });
+    });
+}
+
 async function commitDevices() {
     var chosen = [];
     document.querySelectorAll('input[data-index]').forEach(function (box) {
@@ -305,7 +315,7 @@ async function commitDevices() {
 var setupOptions = {mode: 'pair', smart: false, consent: document.getElementById('consent-row'),
     summary: function () { return candidates.filter(function (c, i) {
         return document.querySelector('input[data-index="' + i + '"]').checked;
-    }).map(function (c) { return c.name; }); }, commit: commitDevices};
+    }).map(function (c) { return c.name; }); }, preview: previewDevices, commit: commitDevices};
 setup = new NibeSetup(setupOptions);
 document.getElementById('add').onclick = function (e) {
     e.preventDefault();

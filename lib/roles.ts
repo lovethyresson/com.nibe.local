@@ -447,6 +447,17 @@ export function autopilotInputs(profile: ModelProfile, role: Role, smart: SmartM
     });
 }
 
+/** Why a capability comes or goes, for setup's What changes: Autopilot's own, what it acts on,
+ *  what it takes over from SPA, the tank's, or the owner's own choice. Pure. */
+export function changeReason(profile: ModelProfile, role: Role, name: string, added: boolean, smart: SmartMode): string {
+    const own = [...AUTOPILOT_HEATING_CAPABILITIES, ...AUTOPILOT_HOTWATER_CAPABILITIES, DAY_TYPE_CAPABILITY];
+    if (own.includes(name)) return added ? 'autopilot' : 'autopilot_off';
+    if (HOTWATER_TANK_CAPABILITIES.includes(name)) return 'tank';
+    if (hiddenBySmartMode(profile, role, 'autopilot').includes(name)) return added ? 'spa_back' : 'autopilot_handles';
+    if (added && autopilotInputs(profile, role, smart).includes(name)) return 'autopilot_uses';
+    return added ? 'you_on' : 'you_off';
+}
+
 /** The selection as a running Autopilot sees it: its inputs switched on whatever the owner ticked.
  *  The stored selection is left alone, so turning Autopilot off brings back the owner's choice, and
  *  the order of setup does not matter (features first, Autopilot later). Pure. */

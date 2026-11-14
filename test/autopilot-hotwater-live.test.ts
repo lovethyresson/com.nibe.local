@@ -11,7 +11,7 @@ import {
 } from '../lib/autopilot/hotwater-surplus';
 import {BELOW_TARGET_K, DEMAND_LARGE, DEMAND_SMART, MAX_STARTS_PER_DAY, MAX_STOP_WRITES_PER_DAY, countFor, leverDecision} from '../lib/autopilot/hotwater-lever';
 import {dayTypeAt, readDayType, recordDayType} from '../lib/autopilot/day-type';
-import {DAY_TYPE_CAPABILITY, allRoles, autopilotInputs, capabilitySyncPlan, extraCapabilities, extraCapabilityOptions, possibleExtraCapabilities} from '../lib/roles';
+import {DAY_TYPE_CAPABILITY, allRoles, autopilotInputs, capabilitySyncPlan, changeReason, extraCapabilities, extraCapabilityOptions, possibleExtraCapabilities} from '../lib/roles';
 import {sProfile} from '../drivers/nibe_s/profile';
 
 const HOUR = 3_600_000;
@@ -301,4 +301,16 @@ test('a running Autopilot keeps what it reads, whatever was ticked, and gives th
         assert.ok(heat.includes(name), name);
     assert.ok(!heat.includes('measure_frequency.i1046_compressor'), 'compressor speed is on Main');
     assert.deepStrictEqual(autopilotInputs(sProfile, 'hotwater', 'spa'), []);
+});
+
+test('What changes says why: Autopilot\'s own, what it acts on, what it takes over, and the owner\'s own', () => {
+    const spec = sProfile.autopilotHotwater!;
+    assert.equal(changeReason(sProfile, 'heating', 'autopilot_status_NIBE', true, 'autopilot'), 'autopilot');
+    assert.equal(changeReason(sProfile, 'heating', 'autopilot_status_NIBE', false, 'off'), 'autopilot_off');
+    assert.equal(changeReason(sProfile, 'heating', 'boolean_NIBE.h844_spa_heating_activated', false, 'autopilot'), 'autopilot_handles');
+    assert.equal(changeReason(sProfile, 'heating', 'boolean_NIBE.h844_spa_heating_activated', true, 'off'), 'spa_back');
+    assert.equal(changeReason(sProfile, 'hotwater', spec.tank.top, true, 'autopilot'), 'autopilot_uses');
+    assert.equal(changeReason(sProfile, 'hotwater', spec.tank.top, true, 'off'), 'you_on', 'without Autopilot it is the owner\'s pick');
+    assert.equal(changeReason(sProfile, 'hotwater', spec.tank.litres, true, 'autopilot'), 'tank');
+    assert.equal(changeReason(sProfile, 'heating', 'measure_temperature.i5_heating_supply', false, 'off'), 'you_off');
 });

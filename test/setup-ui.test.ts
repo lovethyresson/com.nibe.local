@@ -76,6 +76,9 @@ test('hot water Repair retains catalogue and custom tank without saving when nav
     assert.equal(f.win.document.querySelector('#repair-litres').value, '275');
     f.click('Back'); assert.equal(f.emitted.some(e => e.name === 'selection_done'), false);
     f.menu('Hot water setup'); f.click('Save setup'); f.click('Save changes');
+    // Save changes opens What changes, which asks the driver for the preview; saving is the next click.
+    assert.ok(f.emitted.some(e => e.name === 'preview_changes')); assert.equal(f.emitted.some(e => e.name === 'selection_done'), false);
+    f.click('Save changes');
     const saved = f.emitted.find(e => e.name === 'selection_done');
     assert.ok(saved); assert.equal(saved.data.hotwater.litres, 275);
     f.dom.window.close();
@@ -190,7 +193,7 @@ test('Repair preselects the stored zone and saves a new pick; a single zone skip
     const doc = f.win.document.getElementById('nibe-repair-setup');
     assert.equal(doc.querySelector('.pair-hero-title').textContent, 'Which zone should the thermostat set?');
     doc.querySelector('input[data-source="target_temperature"][value="2509"]').click();
-    f.click('Continue'); f.click('Save setup'); f.menu('Hot water setup'); f.click('Save setup'); f.click('Save changes');
+    f.click('Continue'); f.click('Save setup'); f.menu('Hot water setup'); f.click('Save setup'); f.click('Save changes'); f.click('Save changes');
     const saved = f.emitted.find(e => e.name === 'selection_done');
     assert.equal(saved.data.sources.target_temperature, 2509);
     f.dom.window.close();

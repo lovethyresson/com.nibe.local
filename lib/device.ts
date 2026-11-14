@@ -1250,6 +1250,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         }
     }
 
+    /** What applySelection would leave this device with, for Repair's What changes: the same plan
+     *  syncCapabilities follows, with this device's Smart mode as it now is. */
+    previewCapabilities(selection: Selection): {wanted: string[]; smart: SmartMode} {
+        const smart = this.capabilitySmartMode();
+        return {wanted: capabilitySyncPlan(this.profile, this.role, selection, this.getCapabilities(), smart).wanted, smart};
+    }
+
     /** This function's Smart mode, stored on its own device (Heating or Hot water). */
     smartMode(): SmartMode {
         return smartMode(this.getStoreValue(SMART_MODE_STORE));

@@ -243,12 +243,13 @@ function render() {
     else if (context.smart && !heatingFlow) setupSections.push({id: 'smart', role: 'smart', title: Homey.__('pair.setup.smart.title'),
         description: Homey.__('pair.setup.smart.section_' + context.role)});
     setup = new NibeSetup({mode: 'repair', role: context.role, smart: heatingFlow, indoorSensors: context.indoorSensors, indoorNativeAddress: context.indoorNativeAddress,
-        summary: function () { return setupSections.map(function (s) { return s.title; }); }, commit: commitFeatures});
+        summary: function () { return setupSections.map(function (s) { return s.title; }); }, preview: previewFeatures, commit: commitFeatures});
     document.getElementById('save').textContent = Homey.__('pair.setup.next');
     document.getElementById('save').style.display = 'block';
 }
 
-function commitFeatures() {
+// The selection as Save changes would send it, for What changes and the save itself.
+function buildSelection() {
     var selection = {groups: {}, overrides: {}};
     document.querySelectorAll('input[data-group]').forEach(function (toggle) {
         selection.groups[toggle.dataset.group] = toggle.checked;
@@ -263,6 +264,17 @@ function commitFeatures() {
     var tank = tankValue('repair');
     if (tank)
         selection.hotwater = tank;
+    return selection;
+}
+
+function previewFeatures() {
+    return new Promise(function (resolve, reject) {
+        Homey.emit('preview_changes', buildSelection(), function (err, result) { if (err) reject(err); else resolve(result || []); });
+    });
+}
+
+function commitFeatures() {
+    var selection = buildSelection();
     Homey.showLoadingOverlay();
     Homey.emit('track_ui', {view: 'repair_features', button: 'save'}, function () {});
     // This view is used by the repair flow only (pairing uses the device picker);

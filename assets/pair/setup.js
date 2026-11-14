@@ -658,8 +658,9 @@ function NibeSetup(options) {
         return text;
     }
     function apBadge(status) {
-        return a(status.mode === 'autopilot' ? 'badge_on'
-            : status.mode === 'test' ? 'badge_test' : status.mode === 'spa' ? 'badge_spa' : 'badge_off');
+        if (status.mode === 'autopilot') return a('choose_on');
+        if (status.mode === 'test') return a('choose_on') + ' · ' + a('mode_simulated');
+        return a(status.mode === 'spa' ? 'badge_spa' : 'badge_off');
     }
     function radios(name, values, current, onchange) {
         var box = el('div', undefined, 'setup-choices');
@@ -1003,10 +1004,7 @@ function NibeSetup(options) {
             var badge = !ready[section.id] ? t('needs_setup') : mine && mine.status ? apBadge(mine.status) : t('ready');
             menu.append(text, el('span', badge + ' ›')); shell.appendChild(menu);
         });
-        var next = button(t(options.mode === 'repair' ? 'save_changes' : 'review'), function () {
-            if (options.mode === 'repair') busy(next, async function () { await options.commit(); });
-            else review();
-        }, true);
+        var next = button(t(options.mode === 'repair' ? 'save_changes' : 'review'), review, true);
         next.disabled = sections.some(function (s) { return !ready[s.id]; }); shell.appendChild(next);
         back(function () {
             shell.hidden = true; navigation.hidden = true;
@@ -1016,16 +1014,40 @@ function NibeSetup(options) {
             heading(originalTitle, originalIntro);
         });
     }
+    /** The last step: what saving does to the devices, grouped by why, from the same plan the
+     *  devices follow (pairing: what gets added; Repair: what changes). */
     function review() {
-        clear(t('review'), t('review_hint'));
-        options.summary().forEach(function (s) { shell.appendChild(el('p', s)); });
-        if (zoneLabel()) shell.appendChild(el('p', t('thermostat_zone_review').replace('__zone__', zoneLabel())));
-        if (useHomey) shell.appendChild(el('p', options.mode === 'pair' ? t('pending_hint') : t('active_note')));
+        var pair = options.mode === 'pair';
+        clear(t(pair ? 'gets_added' : 'what_changes'), t(pair ? 'gets_added_intro' : 'what_changes_intro'));
+        var list = el('div', undefined, 'setup-changes'); shell.appendChild(list);
+        var loading = el('p', t('checking')); list.appendChild(loading);
+        if (zoneLabel()) shell.appendChild(el('p', t('thermostat_zone_review').replace('__zone__', zoneLabel()), 'register-desc'));
+        if (useHomey) shell.appendChild(el('p', pair ? t('pending_hint') : t('active_note'), 'register-desc'));
         if (options.consent) { options.consent.hidden = false; options.consent.style.display = 'block'; shell.appendChild(options.consent); }
-        var save = button(Homey.__(options.mode === 'pair' ? 'pair.devices.add' : 'pair.ok'), function () {
+        var save = button(pair ? Homey.__('pair.devices.add') : t('save_changes'), function () {
             busy(save, async function () { await options.commit(); });
         }, true);
         shell.appendChild(save); back(hub);
+        (options.preview ? options.preview() : Promise.resolve([])).then(function (devices) {
+            loading.remove();
+            var any = false;
+            devices.forEach(function (d) {
+                if (!d.groups.length) return;
+                any = true;
+                var card = el('section', undefined, 'setup-change-device');
+                card.appendChild(el('h3', d.name));
+                d.groups.forEach(function (g) {
+                    var row = el('div', undefined, 'setup-change ' + (g.kind === 'add' ? 'is-add' : 'is-remove'));
+                    row.appendChild(el('span', g.kind === 'add' ? '+' : '−', 'setup-change-mark'));
+                    var copy = el('div');
+                    copy.append(el('strong', g.reason === 'count' ? t('changes.count').replace('__n__', g.count) : g.names.join(', ')),
+                        el('span', g.reason === 'count' ? t('changes.count_detail') : t('changes.' + g.reason)));
+                    row.appendChild(copy); card.appendChild(row);
+                });
+                list.appendChild(card);
+            });
+            if (!any) list.appendChild(el('p', t('changes.none')));
+        }).catch(function (err) { loading.remove(); fail(err); });
     }
     api.start = function (entries) {
         sections = entries;
