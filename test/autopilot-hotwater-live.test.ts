@@ -55,15 +55,8 @@ test('the fit recovers export against sun, and refuses without enough sunny hour
 
 test('live surplus is the export the sun made: a battery selling or no grid meter is none', () => {
     assert.strictEqual(liveSurplusW({totalCumulative: {W: -2500}, totalGenerated: {W: 4000}}), 2500);
-    assert.strictEqual(liveSurplusW({totalCumulative: {W: -2500}, totalGenerated: {W: 0}}), 0, 'export with no sun is a battery selling');
-    assert.strictEqual(liveSurplusW({totalCumulative: {W: -2500}, totalGenerated: {W: -1500}}), 1500, 'either sign of generation');
+    assert.strictEqual(liveSurplusW({totalCumulative: {W: -2500}, totalGenerated: {W: 0}}), 2500, 'export is export, whatever the inverter says');
     assert.strictEqual(liveSurplusW({totalCumulative: {W: 6260}, totalGenerated: {W: 3423}}), 0, 'the sun all going into a battery is no surplus');
-    // 14 Nov 10:14: 3.5 kW of sun, the battery discharging 1.0 kW, 1.3 kW exported.
-    const battery = (w: number) => [{type: 'device', isHomeBattery: true, values: {W: w}}, {type: 'device', values: {W: 2610}}];
-    assert.strictEqual(liveSurplusW({totalCumulative: {W: -1277}, totalGenerated: {W: 3493}, items: battery(-1008)}), 269,
-        'the battery\'s share of the export is not the sun\'s');
-    assert.strictEqual(liveSurplusW({totalCumulative: {W: -1277}, totalGenerated: {W: 3493}, items: battery(2000)}), 1277,
-        'a charging battery has already taken its share');
     assert.strictEqual(liveSurplusW({totalCumulative: {W: 800}, totalGenerated: {W: 3000}}), 0, 'importing');
     assert.strictEqual(liveSurplusW({totalGenerated: {W: 3000}}), undefined);
     const now = T0 + HOUR;
