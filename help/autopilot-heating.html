@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autopilot for heating · Nibe Live</title>
+<meta name="description" content="Autopilot heats your home a bit more before expensive hours and a bit less during them, within the comfort range you pick.">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<nav class="nav"><div class="in"><a class="brand" href="index.html"><b>Nibe Live</b></a><div class="links"><a href="getting-started.html">Get started</a><a href="heating.html">Heating</a><a href="hot-water.html">Hot water</a><a href="energy.html">Energy</a><a href="smart-mode.html" class="on">Autopilot</a><a href="flows.html">Flows</a><a href="troubleshooting.html">Questions</a></div><a class="menu" href="index.html">All topics</a></div></nav>
+
+<header class="hero center">
+  <div class="wrap">
+    <p class="eyebrow display reveal">Autopilot</p>
+    <h1 class="display reveal">Warm home. Smarter hours.</h1>
+    <p class="lead reveal">Autopilot looks at prices and the weather, then heats a bit more before expensive hours and a bit less during them. <b>Always within the comfort range you pick.</b></p>
+    <div class="chart reveal">
+      <svg class="daychart" viewBox="0 0 1000 380" role="img" aria-label="Through a day: indoor temperature rises a little before each price peak and dips a little during it, always staying inside the comfort range around your thermostat.">
+<defs><linearGradient id="pfade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9f0a" stop-opacity=".32"/><stop offset="1" stop-color="#ff9f0a" stop-opacity="0"/></linearGradient></defs>
+<rect class="band" x="20" y="50" width="960" height="140" rx="12"/>
+<path class="parea" d="M20.0,292.0 C33.3,293.3 46.7,294.7 60.0,296.0 C73.3,297.3 86.7,299.0 100.0,300.0 C113.3,301.0 126.7,302.0 140.0,302.0 C153.3,302.0 166.7,302.0 180.0,300.0 C193.3,298.0 206.7,296.3 220.0,290.0 C233.3,283.7 246.7,273.3 260.0,262.0 C273.3,250.7 286.7,230.7 300.0,222.0 C313.3,213.3 326.7,210.0 340.0,210.0 C353.3,210.0 366.7,226.3 380.0,236.0 C393.3,245.7 406.7,260.3 420.0,268.0 C433.3,275.7 446.7,278.7 460.0,282.0 C473.3,285.3 486.7,288.0 500.0,288.0 C513.3,288.0 526.7,287.3 540.0,286.0 C553.3,284.7 566.7,283.3 580.0,280.0 C593.3,276.7 606.7,273.3 620.0,266.0 C633.3,258.7 646.7,246.0 660.0,236.0 C673.3,226.0 686.7,212.7 700.0,206.0 C713.3,199.3 726.7,196.0 740.0,196.0 C753.3,196.0 766.7,198.7 780.0,206.0 C793.3,213.3 806.7,229.7 820.0,240.0 C833.3,250.3 846.7,261.0 860.0,268.0 C873.3,275.0 886.7,278.3 900.0,282.0 C913.3,285.7 926.7,288.3 940.0,290.0 C953.3,291.7 966.7,291.3 980.0,292.0 L980.0,320 L20.0,320 Z"/>
+<path class="pline" d="M20.0,292.0 C33.3,293.3 46.7,294.7 60.0,296.0 C73.3,297.3 86.7,299.0 100.0,300.0 C113.3,301.0 126.7,302.0 140.0,302.0 C153.3,302.0 166.7,302.0 180.0,300.0 C193.3,298.0 206.7,296.3 220.0,290.0 C233.3,283.7 246.7,273.3 260.0,262.0 C273.3,250.7 286.7,230.7 300.0,222.0 C313.3,213.3 326.7,210.0 340.0,210.0 C353.3,210.0 366.7,226.3 380.0,236.0 C393.3,245.7 406.7,260.3 420.0,268.0 C433.3,275.7 446.7,278.7 460.0,282.0 C473.3,285.3 486.7,288.0 500.0,288.0 C513.3,288.0 526.7,287.3 540.0,286.0 C553.3,284.7 566.7,283.3 580.0,280.0 C593.3,276.7 606.7,273.3 620.0,266.0 C633.3,258.7 646.7,246.0 660.0,236.0 C673.3,226.0 686.7,212.7 700.0,206.0 C713.3,199.3 726.7,196.0 740.0,196.0 C753.3,196.0 766.7,198.7 780.0,206.0 C793.3,213.3 806.7,229.7 820.0,240.0 C833.3,250.3 846.7,261.0 860.0,268.0 C873.3,275.0 886.7,278.3 900.0,282.0 C913.3,285.7 926.7,288.3 940.0,290.0 C953.3,291.7 966.7,291.3 980.0,292.0"/>
+<line class="net" x1="20" x2="980" y1="120" y2="120"/>
+<path class="tline" d="M20.0,122.0 C33.3,122.7 46.7,123.5 60.0,124.0 C73.3,124.5 86.7,125.0 100.0,125.0 C113.3,125.0 126.7,125.0 140.0,124.0 C153.3,123.0 166.7,121.3 180.0,118.0 C193.3,114.7 206.7,109.3 220.0,104.0 C233.3,98.7 246.7,90.3 260.0,86.0 C273.3,81.7 286.7,78.0 300.0,78.0 C313.3,78.0 326.7,85.7 340.0,92.0 C353.3,98.3 366.7,109.0 380.0,116.0 C393.3,123.0 406.7,134.0 420.0,134.0 C433.3,134.0 446.7,131.7 460.0,130.0 C473.3,128.3 486.7,125.3 500.0,124.0 C513.3,122.7 526.7,123.3 540.0,122.0 C553.3,120.7 566.7,119.3 580.0,116.0 C593.3,112.7 606.7,107.3 620.0,102.0 C633.3,96.7 646.7,88.3 660.0,84.0 C673.3,79.7 686.7,76.0 700.0,76.0 C713.3,76.0 726.7,86.7 740.0,96.0 C753.3,105.3 766.7,121.7 780.0,132.0 C793.3,142.3 806.7,156.0 820.0,158.0 C833.3,160.0 846.7,160.0 860.0,160.0 C873.3,160.0 886.7,152.3 900.0,148.0 C913.3,143.7 926.7,138.0 940.0,134.0 C953.3,130.0 966.7,127.3 980.0,124.0"/>
+<circle class="tdot" cx="700.0" cy="76.0" r="7"/>
+<text class="lab strong" x="682" y="66" text-anchor="end">Pre-heating</text>
+<text class="lab strong" x="840" y="186" text-anchor="middle">Easing off</text>
+<text class="lab muted" x="40" y="76">Your comfort range</text>
+<text class="lab muted" x="500" y="110" text-anchor="middle">Your thermostat</text>
+<text class="lab" x="740" y="236" text-anchor="middle">Expensive</text>
+<g class="ticks"><text x="20" y="372" text-anchor="middle">00</text><text x="180" y="372" text-anchor="middle">04</text><text x="340" y="372" text-anchor="middle">08</text><text x="500" y="372" text-anchor="middle">12</text><text x="660" y="372" text-anchor="middle">16</text><text x="820" y="372" text-anchor="middle">20</text><text x="980" y="372" text-anchor="middle">24</text></g>
+</svg>
+      <p class="phone-note">Indoor temperature rises a little before each price peak and dips a little during it, and never leaves the comfort range around your thermostat.</p>
+      <div class="legend"><span><i style="background:var(--water)"></i>Indoor temperature</span><span><i style="background:var(--water);opacity:.2"></i>Your comfort range</span><span><i style="background:var(--warm);opacity:.5"></i>Electricity price</span></div>
+    </div>
+  </div>
+</header>
+
+<section class="center">
+  <div class="wrap">
+    <h2 class="display reveal">Your house is a battery.</h2>
+    <p class="lead reveal">Walls, floors and furniture hold heat for hours. Autopilot learns how long yours does, and uses it.</p>
+    <div class="how">
+      <div class="reveal"><div class="n">01</div><h3>It looks ahead.</h3><p>Today's and tomorrow's prices from Homey Energy, and the weather forecast for your home.</p></div>
+      <div class="reveal"><div class="n">02</div><h3>It stores a little warmth.</h3><p>Before prices climb, your home gets slightly warmer than usual. Never past your comfort range.</p></div>
+      <div class="reveal"><div class="n">03</div><h3>It coasts through the peak.</h3><p>While power is expensive, your heat pump does less, and the house gives back what it stored.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2 class="display center reveal">It speaks your heat pump's language.</h2>
+    <p class="lead center reveal">No new controls inside your heat pump. Autopilot changes one thing it already listens to.</p>
+
+    <div class="bento">
+      <div class="tile s4 reveal">
+        <h3>A nudge on the thermometer.</h3>
+        <p>Your heat pump decides how hard to heat from the outdoor temperature it sees. Autopilot sends it a slightly different one: a touch colder before a price peak, so it heats more, and a touch milder during it, so it heats less. Your heat pump does the rest, same as always.</p>
+        <div class="flow" style="margin-top:26px"><span style="background:var(--page)">Real outdoor</span><i>›</i><span style="background:var(--page)">Autopilot's nudge</span><i>›</i><span class="end">What your heat pump sees</span></div>
+      </div>
+      <div class="tile s2 dark reveal">
+        <h3>That's why setup asks.</h3>
+        <p>To take the outdoor temperature from Autopilot, your heat pump has to allow an external outdoor sensor. Setup shows you where, and checks it worked.</p>
+      </div>
+
+      <div class="tile s6 reveal">
+        <h3>How far it may go.</h3>
+        <p>Your thermostat still sets the temperature you want. The comfort range says how far indoors may drift from it. A wider range leaves more room to move heat out of expensive hours.</p>
+        <div class="tanks">
+          <div class="tk"><div class="glass"><b style="height:0"></b></div><div class="v">Off</div><div class="w">No shift</div></div>
+          <div class="tk def"><div class="glass"><b style="height:12%"></b></div><div class="v">±0.5 °C</div><div class="w">Comfort · default</div></div>
+          <div class="tk"><div class="glass"><b style="height:50%"></b></div><div class="v">±3 °C</div><div class="w">Save</div></div>
+          <div class="tk"><div class="glass"><b style="height:100%"></b></div><div class="v">±6 °C</div><div class="w">Save more</div></div>
+        </div>
+      </div>
+
+      <div class="tile s3 dark reveal">
+        <h3>Away, for the holidays.</h3>
+        <p>For a week or more away, not a day at work. Turn on Away and the thermostat drops to your Away temperature. Turn it off and it goes back to where it was. If Autopilot runs your hot water too, the tank keeps only its safety net while you're gone.</p>
+        <div class="big">17 °C</div>
+        <p>The Away temperature to start with. Change it on the Heating device.</p>
+      </div>
+      <div class="tile s3 reveal">
+        <h3>It needs to feel the room.</h3>
+        <p>Autopilot steers by indoor temperature, so it needs one. Your own Homey sensors work, or your heat pump's room sensor. You pick them in Heating setup.</p>
+        <div class="toggles">
+          <div class="tg"><span class="sw on"></span><div><b>Indoor temperature</b><p>Your Homey sensors, or your heat pump's own.</p></div></div>
+          <div class="tg"><span class="sw on"></span><div><b>Outdoor temperature</b><p>A sensor in the shade, or the weather forecast.</p></div></div>
+          <div class="tg"><span class="sw on"></span><div><b>Electricity prices</b><p>Hourly prices in Homey Energy.</p></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="center">
+  <div class="wrap">
+    <h2 class="display reveal">Always says what it's doing.</h2>
+    <p class="lead reveal">Your Heating device shows Autopilot's state, and a line called <b>Autopilot now</b> with the reason.</p>
+    <div class="status reveal">Easing off · Until 19:00: <em>prices peak 17:00–19:00</em></div>
+    <div class="reasons">
+      <div class="pill reveal" style="--c:var(--sub)"><b>Learning</b><p>Getting to know your house. At least five days, and nothing changes yet.</p></div>
+      <div class="pill reveal" style="--c:var(--water)"><b>Holding</b><p>Nothing to gain right now, or prices are too even to bother.</p></div>
+      <div class="pill reveal" style="--c:var(--warm)"><b>Pre-heating</b><p>Storing a little warmth before expensive hours.</p></div>
+      <div class="pill reveal" style="--c:var(--green)"><b>Easing off</b><p>Heating less while power is expensive.</p></div>
+      <div class="pill reveal" style="--c:var(--red)"><b>Paused</b><p>Something it needs is missing, like the outdoor temperature. The line says what.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="center">
+  <div class="wrap">
+    <h2 class="display reveal">Watch first. Then hand over.</h2>
+    <p class="lead reveal">In <b>Simulation</b>, Autopilot learns, plans and fills in Autopilot now as if it were running, without touching your heat pump. When the plans look right to you, switch to Autopilot.</p>
+    <div class="crumbs reveal"><span>Heating</span><i>›</i><span>Repair</span><i>›</i><span>Smart mode</span></div>
+    <div class="steps">
+      <div class="tile reveal"><div class="k">Before you start</div><h3>Room-sensor control off.</h3><p>Otherwise your heat pump corrects by room temperature and undoes what Autopilot does. Setup checks it.</p></div>
+      <div class="tile reveal"><div class="k">Before you start</div><h3>External outdoor sensor allowed.</h3><p>On your heat pump's display. Setup shows the menu and waits until it works.</p></div>
+      <div class="tile reveal"><div class="k">Before you start</div><h3>One planner.</h3><p>Autopilot turns off Smart price adaption for heating when it takes over.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2 class="display center reveal">Good to know.</h2>
+    <div class="faq reveal">
+      <details><summary>How long until it does something?</summary><p>It learns your house for at least five days first, and changes nothing meanwhile. Your Homey timeline tells you when it's done and starts moving heat away from expensive hours.</p></details>
+      <details><summary>Will my house get cold?</summary><p>It stays within the comfort range you picked. On Comfort, that's half a degree either side of your thermostat.</p></details>
+      <details><summary>Can I pause it for a while?</summary><p>Set Comfort range to Off. Your heat pump then sees the real outdoor temperature and Autopilot shifts nothing, until you pick a range again.</p></details>
+      <details><summary>What does it do while my heat pump is cooling?</summary><p>It pauses, and Autopilot now says so. It picks up again when heating does.</p></details>
+      <details><summary>How do I hand heating back to my heat pump?</summary><p>Set Smart mode to Off in Heating › Repair. Then turn off the external outdoor sensor on your heat pump, in menu 7.5.9.2. Setup reminds you.</p></details>
+      <details><summary>Where can I see the plan?</summary><p>In the Autopilot widget on your Homey dashboard: indoor temperature, measured and expected, for the last and next twelve hours.</p></details>
+    </div>
+  </div>
+</section>
+
+<section><div class="wrap"><div class="next">
+<a href="smart-mode.html"><small>Previous</small><b>Smart mode</b></a>
+<a class="r" href="autopilot-hot-water.html"><small>Next</small><b>Autopilot for hot water</b></a>
+</div></div></section>
+
+<footer><div class="wrap">Nibe Live is a Homey app for Nibe heat pumps. Questions? Ask in the <a href="https://community.homey.app/t/app-pro-nibe-live-local-nibe-control-split-into-the-devices-you-actually-automate/157330">community thread</a>.</div></footer>
+
+<script src="assets/site.js" defer></script>
+</body>
+</html>

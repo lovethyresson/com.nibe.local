@@ -73,10 +73,72 @@ Review these together when preparing a release:
    Configure only the latest announcement in `lib/release-announcements.ts`; keep its ID stable across
    patches and copy edits. See `docs/release-announcements.md` for delivery rules and current release copy.
 
+8. **The help pages in `help/` must match the release before it goes up. No release ships with
+   them out of date.** Walk every owner-visible change (a screen, a setting, a capability or Flow
+   card name, a default, a new or removed feature) and update the page that covers it, using the
+   exact on-screen names. Check that no page still says something the app no longer does. Render
+   each touched page in light, dark and at 375 px before calling it done. This is a gate, not a
+   nice-to-have: a help page that contradicts the app is worse than none.
+
 Per release, not per build — these are documentation, not generated artifacts.
 
 Verify with `npm test`, `npm run typecheck`, `npx homey app validate --level publish` — the same
 four steps CI runs (`.github/workflows/ci.yml`).
+
+## Owner-facing writing: style and tone
+
+Applies to the help pages, every in-app string (pairing, Repair, capability titles, settings,
+Flow cards, timeline messages, status lines, widgets) and the store changelog. The reference is
+`help/autopilot-hot-water.html`, which the maintainer approved; when in doubt, match it.
+
+**Voice**
+- Casual and warm, like a person explaining it at the kitchen table. Contractions. Sentences of
+  varied length: a short one after a long one.
+- Lead with what it does for the owner, then how. "Heats the tank in the cheapest hours", not
+  "steers the compressor".
+- Full stops, not colons, to deliver the point ("Autopilot is waiting. Turn off…", not "waiting:
+  turn off…"). No em dashes as asides, no semicolons in UI text, no exclamation marks.
+- No "simply", "just", "seamless", "please". No marketing claims or savings figures that aren't
+  measured.
+- Plain words. No "register", "allocator", "bias", "degree minutes", "fed". Developer words stay in
+  code and `docs/`.
+- **Keep the link to the real heat pump.** Sensor codes and menu numbers stay next to the plain
+  wording, because owners and installers find them on the display: "Let Autopilot send the outdoor
+  temperature (BT1)", "On your heat pump, menu 7.5.9.2. Turn on external BT1." Plain action first, the
+  code or menu after it. Never drop BTx, menu numbers or Modbus where the owner has to act on them.
+
+**Names**
+- The physical machine is **"your heat pump"**, in the app and in the help pages alike
+  (maintainer, 2026-11-14; it replaced "your device"). "Device" is only ever a Homey tile: "the
+  Heating device", "the Main device".
+- Quote on-screen names exactly, in sentence case: "Heating setup", "Hot water setup", "Device
+  setup", "Smart mode", "Smart price adaption".
+- The Smart mode that plans without acting is **Simulation** (code value `test`; it was "Test
+  run"). The comfort ranges are Comfort, Save and Save more. The safety net setting is "Always
+  enough for a shower" with 20 L (a rinse or the dishes), 40 L (one quick shower, the default) and
+  60 L (a longer shower).
+- **Dutch is informal**: "je", "jouw", "jij", never "u"/"uw" (maintainer, 2026-11-14). German
+  stays formal "Sie", as Homey's own German does. The Nordic languages have no formal form.
+- **Away** is for a holiday of a week or more, not for leaving the house for the day. Never
+  suggest presence-based Away (maintainer, 2026-11-14).
+
+**Length**
+- UI text is one short line. A hint is one or two sentences. Reasoning, edge cases and history
+  go in the help pages or `docs/`, never in a hint.
+- Timeline messages put the decision first ("Charge at 22:00 to 56 °C · Cheapest hours"), then the
+  why, then the numbers.
+
+**Help page design** (`help/assets/site.css`, shared by every page)
+- Apple feature-page style: a centred hero with an eyebrow and a short two-part headline with full
+  stops ("Hot water. When it's cheap."), one idea per section, generous whitespace, a bento grid of
+  tiles with a big number or a visual, light and dark tiles alternating.
+- Visuals over prose: inline SVG charts with smooth monotone curves (never step lines), CSS visuals
+  like the tank glasses, `crumbs` for menu paths, pills for reasons. Labels never sit on a curve.
+- Only the CSS variables, so light and dark both work; text meets WCAG AA contrast. Must fit a
+  375 px phone with no sideways scroll. Every page ends with "Good to know" questions and
+  previous/next links.
+- Facts are checked against the code before they go on a page. If it can't be verified, leave it
+  out.
 
 ## Architecture
 
