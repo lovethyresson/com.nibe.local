@@ -205,7 +205,7 @@
         // Surplus first, so the price curve and the bands sit on top of it.
         if (right) {
           var pts = data.slots.map(function (s, k) { return [x(k) + step / 2, ys(s.surplus || 0)]; });
-          svg.appendChild(svgEl('path', {d: monotone(pts) + 'L' + pts[pts.length - 1][0].toFixed(1) + ' ' + B + 'L' + pts[0][0].toFixed(1) + ' ' + B + 'Z', fill: 'var(--ap-surplus)'}));
+          svg.appendChild(svgEl('path', {d: monotone(pts) + 'L' + pts[pts.length - 1][0].toFixed(1) + ' ' + ys(0).toFixed(1) + 'L' + pts[0][0].toFixed(1) + ' ' + ys(0).toFixed(1) + 'Z', fill: 'var(--ap-surplus)'}));
         }
         // Price: each run of known prices is a smooth curve with a soft fade under it. Hours with no known
         // price stay empty.

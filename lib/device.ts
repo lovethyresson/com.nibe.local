@@ -1852,7 +1852,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             return {...base, kind: 'hotwater', chips, badge, test: mode === 'test', slots: o.slots,
                 ticks: ticks(start, HOTWATER_SLOTS, this.clock),
                 scale: {left: niceAxis(0, Math.max(0, ...prices), {steps: [0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100]}),
-                    right: solar ? niceAxis(0, Math.max(0, ...surplus), {minSpan: 1, steps: [0.5, 1, 2, 5, 10]}) : undefined},
+                    right: solar ? niceAxis(0, Math.max(1, ...surplus), {steps: [0.5, 1, 2, 5, 10]}) : undefined},
                 bands,
                 dayBreak: day === undefined ? undefined : {at: day, label: t('tomorrow')},
                 status: o.next ? t('hotwater.next', {when}) : t('hotwater.none'),
