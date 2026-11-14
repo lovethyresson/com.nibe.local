@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Something looks wrong? · Nibe Live</title>
+<meta name="description" content="Short answers to the questions Nibe Live owners ask most, from connection trouble to blank values and failed Flows.">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<nav class="nav"><div class="in"><a class="brand" href="index.html"><b>Nibe Live</b></a><div class="links"><a href="getting-started.html">Get started</a><a href="heating.html">Heating</a><a href="hot-water.html">Hot water</a><a href="energy.html">Energy</a><a href="smart-mode.html">Autopilot</a><a href="flows.html">Flows</a><a href="troubleshooting.html" class="on">Questions</a></div><a class="menu" href="index.html">All topics</a></div></nav>
+
+<header class="hero center">
+  <div class="wrap">
+    <p class="eyebrow display reveal">Questions</p>
+    <h1 class="display reveal">Something looks wrong?</h1>
+    <p class="lead reveal">The questions owners ask most, answered in a few lines. <b>Most have a simple cause.</b></p>
+    <div class="status reveal">Can't reach your heat pump at 192.168.1.40 · <em>Retrying on its own</em></div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2 class="display center reveal">Connection.</h2>
+    <div class="faq reveal">
+      <details><summary>“Can't reach your heat pump”</summary><p>Nothing answered at your heat pump's address. Usually your router gave it a new IP address, or it dropped off the network. Wi-Fi is the usual suspect. Nibe Live keeps retrying, and after three minutes it searches your network. If it finds exactly one heat pump of the same model, it moves your devices there and lets you know. It won't guess between two.</p><p>To stop it happening again, reserve an IP address for your heat pump in your router. To change the address yourself, edit <b>IP address</b> in the settings of any one of its devices. The others follow.</p></details>
+      <details><summary>“Refused the connection”</summary><p>Something is at that address, but Modbus TCP is turned off. Turn it on in menu 7.5.9 on your heat pump.</p></details>
+      <details><summary>“Answers, but returns no NIBE data”</summary><p>Something at that address replies, but it isn't your heat pump. Check the IP address is your heat pump's own, and that Modbus TCP is on in menu 7.5.9.</p></details>
+      <details><summary>Pairing didn't find my heat pump.</summary><p>Your heat pump doesn't announce itself, so Nibe Live looks for it on your Homey's network. That only works when Modbus TCP is on (menu 7.5.9) and Homey is on the same network. If it still isn't found, type the IP address in. That always works.</p></details>
+      <details><summary>Can I keep using myUplink?</summary><p>Yes. myUplink works through Nibe's cloud and doesn't get in Nibe Live's way. What can clash is another app talking to your heat pump over Modbus at the same time, so if you're moving over from one, turn it off.</p></details>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2 class="display center reveal">Values.</h2>
+    <div class="faq reveal">
+      <details><summary>A value stays blank.</summary><p>Your model probably doesn't have that reading. Turn on <b>Debug logging</b> and the log names every reading that failed, which is exactly what to send if you ask for help.</p><div class="crumbs" style="justify-content:flex-start;margin:-8px 0 24px"><span>Device settings</span><i>›</i><span>Advanced</span><i>›</i><span>Debug logging</span></div></details>
+      <details><summary>A number doesn't match my heat pump's display.</summary><p>Temperatures, states and settings should match exactly. They're read straight from your heat pump. If one doesn't, that's a bug, and worth reporting.</p><p>Energy is different. It counts from when you added the device, so compare how much it changed over a day, not the totals. More on the <a href="energy.html">Energy page</a>.</p></details>
+      <details><summary>Power right now doesn't match myUplink.</summary><p>Both are probably right. Nibe Live reads your heat pump directly, while myUplink goes through Nibe's cloud and can lag by minutes.</p></details>
+      <details><summary>COP is blank.</summary><p>It needs some history first, so it's blank for a while after adding a device. A job that barely runs, like a pool you don't have, stays blank rather than showing a made-up number.</p></details>
+      <details><summary>A value went blank for a moment.</summary><p>If a reading is missing, Nibe Live shows nothing rather than mixing a fresh number with an old one. It comes back on the next good reading.</p></details>
+      <details><summary>Lots of things look off or missing.</summary><p>Update your heat pump's software if you can. Many readings only exist on recent versions. Afterwards, run Repair on each device so Nibe Live checks what's now available.</p></details>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2 class="display center reveal">Hot water.</h2>
+    <div class="faq reveal">
+      <details><summary>Hot water available says 0 L, but the tank isn't empty.</summary><p>That's correct. It counts water you could still shower in at 40 °C. Once the hottest water in the tank is below that, there's none, even though the tank is full of lukewarm water.</p></details>
+      <details><summary>Hot water available is missing.</summary><p>Pick your tank first: Hot water device, Repair, Hot water setup. Without a tank there's no estimate.</p></details>
+      <details><summary>A boost heated past my stop temperature, or stopped short.</summary><p>A boost heats to <b>Hot water stop (Large)</b>, whatever mode you usually use. If it stops well short, the immersion heater probably isn't allowed to help. The <a href="hot-water.html">Hot water page</a> explains both.</p></details>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2 class="display center reveal">Flows.</h2>
+    <div class="faq reveal">
+      <details><summary>A Flow action failed.</summary><p>Your heat pump refuses changes to something it has switched off. The classic one: with <b>Allow hot water</b> off, it rejects More hot water and hot water demand changes. Turn the feature on first. With Debug logging on, the log says exactly what was refused.</p></details>
+      <details><summary>It says my heat pump didn't confirm a setting.</summary><p>After every change, Nibe Live reads the setting back to check it stuck. If it couldn't confirm, look at the current value before trying again.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="center">
+  <div class="wrap">
+    <h2 class="display reveal">Still stuck?</h2>
+    <p class="lead reveal">Ask in the <a href="https://community.homey.app/t/app-pro-nibe-live-local-nibe-control-split-into-the-devices-you-actually-automate/157330">community thread</a>. Turning on Debug logging first means the log already holds the answer.</p>
+  </div>
+</section>
+
+<section><div class="wrap"><div class="next">
+<a href="flows.html"><small>Previous</small><b>Flows</b></a>
+<a class="r" href="index.html"><small>Next</small><b>Overview</b></a>
+</div></div></section>
+
+<footer><div class="wrap">Nibe Live is a Homey app for Nibe heat pumps. Questions? Ask in the <a href="https://community.homey.app/t/app-pro-nibe-live-local-nibe-control-split-into-the-devices-you-actually-automate/157330">community thread</a>.</div></footer>
+
+<script src="assets/site.js" defer></script>
+</body>
+</html>
