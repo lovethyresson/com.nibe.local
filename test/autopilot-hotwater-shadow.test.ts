@@ -127,6 +127,12 @@ test('a charge that has to reach into dearer hours is not called cheap', () => {
 
 test('the morning plan names a safety-net charge, a running one and a quiet day', () => {
     assert.strictEqual(dailyOf({now: {litres: 20, top: 40}}).charges[0].reason, 'reserve');
+    // 2026-11-14 16:00: under the safety net with a hot top (no rescue), an evening's use ahead
+    // and cheap hours only after it; the charge starts at the price peak and read "Cheapest hours".
+    const evening = new Map(Array.from({length: 48}, (_, k) => [S0 + 64 + k, {price: k < 20 ? 3.3 : 1.9}]));
+    const peak = dailyOf({slot: S0 + 64, prices: evening, now: {litres: 30, top: 47}}).charges[0];
+    assert.ok(peak.price > 3, 'bought in the peak, before the evening use');
+    assert.strictEqual(peak.reason, 'before_use', 'cheaper hours come later: timed for the use, not cheap');
     assert.strictEqual(dailyOf({now: {litres: 60, top: 44, powerW: 2000, stopC: 48}}).charges[0].reason, 'running');
     const full = dailyOf({model: {...model, profiles: {any: {days: 30, hours: hours.map(() => 0), p80: hours.map(() => 0), daily: 0, dailyP80: 0}}},
         now: {litres: 176, top: 58}});

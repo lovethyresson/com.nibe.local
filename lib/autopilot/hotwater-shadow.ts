@@ -195,15 +195,19 @@ function chargesOf(input: ShadowStepInput, out: Planned, before: number): {charg
         return take.reduce((x, y) => x + y, 0) / take.length;
     };
     // "Cheap" when the run bought about as well as any run of its length could have, between the
-    // previous charge and its own end; a run that had to reach into dearer hours to be ready for
-    // the use that follows says so instead.
+    // previous charge and the next one (or the end of the known prices); a run that had to reach
+    // into dearer hours to be ready for the use that follows says so instead. Up to 2026-11-14 the
+    // window ended at the run's own end, so a charge starting now was always "cheap": one started
+    // at the day's 16:00 peak read "Cheapest hours". A charge starting now with the tank under the
+    // safety net is the safety net's, rescue or not (a hot top only spares it the rescue).
+    const under = (input.now.litres ?? Infinity) < (input.reserveLitres ?? DEFAULT_RESERVE_LITRES);
     const charges = p.charges.filter((c) => slots[c.start] * SLOT_MS < before).map((c, i, all) => {
         let sum = 0;
         for (let k = c.start; k < c.end; k++) sum += buy(Math.min(k, slots.length - 1));
         const price = sum / Math.max(1, c.end - c.start);
         const reason: ChargeReason = charging && c.start === 0 ? 'running'
-            : i === 0 && c.start === 0 && p.rescue ? 'reserve' : c.surplusShare >= 0.5 ? 'surplus'
-            : price <= 1.02 * best(i ? all[i - 1].end : 0, Math.min(c.end, slots.length), c.end - c.start) + 1e-9
+            : i === 0 && c.start === 0 && (p.rescue || under) ? 'reserve' : c.surplusShare >= 0.5 ? 'surplus'
+            : price <= 1.02 * best(i ? all[i - 1].end : 0, i + 1 < all.length ? all[i + 1].start : slots.length, c.end - c.start) + 1e-9
                 ? 'cheap' : 'before_use';
         return {at: slots[c.start] * SLOT_MS, targetC: c.targetC, minutes: (c.end - c.start) * SLOT_MS / 60_000,
             price: round(price), surplusShare: round(c.surplusShare), cost: round(c.cost), reason};
