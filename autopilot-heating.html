@@ -67,7 +67,7 @@
 
       <div class="tile s6 reveal">
         <h3>How far it may go.</h3>
-        <p>Your thermostat still sets the temperature you want. The comfort range says how far indoors may drift from it. A wider range leaves more room to move heat out of expensive hours.</p>
+        <p>Your thermostat still sets the temperature you want, and Autopilot keeps the house there. The comfort range says how far indoors may drift from it. A wider range leaves more room to move heat out of expensive hours.</p>
         <div class="tanks">
           <div class="tk"><div class="glass"><b style="height:0"></b></div><div class="v">Off</div><div class="w">No shift</div></div>
           <div class="tk def"><div class="glass"><b style="height:12%"></b></div><div class="v">±0.5 °C</div><div class="w">Comfort · default</div></div>
@@ -78,13 +78,13 @@
 
       <div class="tile s3 dark reveal">
         <h3>Away, for the holidays.</h3>
-        <p>For a week or more away, not a day at work. Turn on Away and the thermostat drops to your Away temperature. Turn it off and it goes back to where it was. If Autopilot runs your hot water too, the tank keeps only its safety net while you're gone.</p>
+        <p>For a week or more away, not a day at work. Turn on Away and the thermostat drops to your Away temperature, and Autopilot lets the house cool to it. Turn it off and it goes back to where it was. If Autopilot runs your hot water too, the tank keeps only its safety net while you're gone.</p>
         <div class="big">17 °C</div>
         <p>The Away temperature to start with. Change it on the Heating device.</p>
       </div>
       <div class="tile s3 reveal">
         <h3>It needs to feel the room.</h3>
-        <p>Autopilot steers by indoor temperature, so it needs one. Your own Homey sensors work, or your heat pump's room sensor. You pick them in Heating setup.</p>
+        <p>Autopilot keeps the indoor temperature at your thermostat, so it needs one. Your heat pump's own sensor works, or your Homey sensors, which it only reads. You pick in Heating setup, right after Smart mode.</p>
         <div class="toggles">
           <div class="tg"><span class="sw on"></span><div><b>Indoor temperature</b><p>Your Homey sensors, or your heat pump's own.</p></div></div>
           <div class="tg"><span class="sw on"></span><div><b>Outdoor temperature</b><p>A sensor in the shade, or the weather forecast.</p></div></div>
@@ -113,10 +113,10 @@
 <section class="center">
   <div class="wrap">
     <h2 class="display reveal">Watch first. Then hand over.</h2>
-    <p class="lead reveal">In <b>Simulation</b>, Autopilot learns, plans and fills in Autopilot now as if it were running, without touching your heat pump. When the plans look right to you, switch to Autopilot.</p>
-    <div class="crumbs reveal"><span>Heating</span><i>›</i><span>Repair</span><i>›</i><span>Smart mode</span></div>
+    <p class="lead reveal">Pick Autopilot, then <b>Simulated</b>. Autopilot learns, plans and fills in Autopilot now as if it were running, without touching your heat pump. When the plans look right to you, switch to <b>Live</b>.</p>
+    <div class="crumbs reveal"><span>Heating</span><i>›</i><span>Repair</span><i>›</i><span>Heating setup</span></div>
     <div class="steps">
-      <div class="tile reveal"><div class="k">Before you start</div><h3>Room-sensor control off.</h3><p>Otherwise your heat pump corrects by room temperature and undoes what Autopilot does. Setup checks it.</p></div>
+      <div class="tile reveal"><div class="k">Before you start</div><h3>Room-sensor control off.</h3><p>Otherwise your heat pump corrects by room temperature and undoes what Autopilot does. Autopilot holds the room temperature itself. Setup checks it.</p></div>
       <div class="tile reveal"><div class="k">Before you start</div><h3>External outdoor sensor allowed.</h3><p>On your heat pump's display. Setup shows the menu and waits until it works.</p></div>
       <div class="tile reveal"><div class="k">Before you start</div><h3>One planner.</h3><p>Autopilot turns off Smart price adaption for heating when it takes over.</p></div>
     </div>
@@ -128,10 +128,12 @@
     <h2 class="display center reveal">Good to know.</h2>
     <div class="faq reveal">
       <details><summary>How long until it does something?</summary><p>It learns your house for at least five days first, and changes nothing meanwhile. Your Homey timeline tells you when it's done and starts moving heat away from expensive hours.</p></details>
+      <details><summary>Does it keep my thermostat temperature?</summary><p>Yes. Autopilot steers the house to your thermostat and moves heat around it within your comfort range. Change the thermostat and it follows. A small, steady offset it corrects slowly, over a few days.</p></details>
       <details><summary>Will my house get cold?</summary><p>It stays within the comfort range you picked. On Comfort, that's half a degree either side of your thermostat.</p></details>
-      <details><summary>Can I pause it for a while?</summary><p>Set Comfort range to Off. Your heat pump then sees the real outdoor temperature and Autopilot shifts nothing, until you pick a range again.</p></details>
+      <details><summary>Can I pause it for a while?</summary><p>Set Comfort range to Off. Your heat pump then sees the real outdoor temperature, and Autopilot neither shifts heat nor steers to your thermostat, until you pick a range again.</p></details>
       <details><summary>What does it do while my heat pump is cooling?</summary><p>It pauses, and Autopilot now says so. It picks up again when heating does.</p></details>
-      <details><summary>How do I hand heating back to my heat pump?</summary><p>Set Smart mode to Off in Heating › Repair. Then turn off the external outdoor sensor on your heat pump, in menu 7.5.9.2. Setup reminds you.</p></details>
+      <details><summary>How do I hand heating back to my heat pump?</summary><p>Set Smart mode to Off in Heating setup, under Repair on the Heating device. Then turn off the external outdoor sensor on your heat pump, in menu 7.5.9.2. Setup reminds you.</p></details>
+      <details><summary>Can I set it up while pairing?</summary><p>Yes. Heating setup asks for Smart mode first, then the indoor temperature, the checks on your heat pump and Verify. Later, it's all under Repair on the Heating device.</p></details>
       <details><summary>Where can I see the plan?</summary><p>In the Autopilot widget on your Homey dashboard: indoor temperature, measured and expected, for the last and next twelve hours.</p></details>
     </div>
   </div>

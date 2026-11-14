@@ -126,7 +126,8 @@
       <details><summary>Can I set up sensors while pairing?</summary><p>You can pick them, and they're saved. Sending starts once you've opened Heating, then Repair, and pressed <b>Verify settings</b>.</p></details>
       <details><summary>How do I go back to my heat pump's own sensor?</summary><p>On your heat pump, make your original sensor control the zone again and turn off the external room sensor. Then choose <b>Use your heat pump’s own temperature sensor</b> in Heating setup. Homey checks before it stops sending.</p></details>
       <details><summary>Will it work on my heat pump?</summary><p>It needs a heat pump and software that support an external room sensor. It has been confirmed on an S1155. Menus can be named or numbered differently on other models.</p></details>
-      <details><summary>Heating setup asks about Smart mode.</summary><p>That's who moves heating to cheaper hours: Autopilot, Simulation, Smart price adaption or Off. See <a href="autopilot-heating.html">Autopilot for heating</a>.</p></details>
+      <details><summary>I use Autopilot. Are my sensors sent to my heat pump?</summary><p>No. With Autopilot, your Homey sensors are only read, and Autopilot keeps that temperature at your thermostat. Room-sensor control on your heat pump stays off. Sending them as an external room sensor is for Smart price adaption or Off.</p></details>
+      <details><summary>Heating setup asks about Smart mode.</summary><p>That's who moves heating to cheaper hours: Autopilot, Smart price adaption or Off. It comes first, because Autopilot asks for the indoor temperature its own way, and never uses the external room sensor. See <a href="autopilot-heating.html">Autopilot for heating</a>.</p></details>
     </div>
   </div>
 </section>
