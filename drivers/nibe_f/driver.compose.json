@@ -141,7 +141,7 @@
             "en": "Choose how NIBE register 40025 is addressed on your connection. Confirm with a working Modbus query. The same convention applies to all reads and writes.",
             "sv": "Välj hur NIBE-register 40025 adresseras via din anslutning. Kontrollera med en fungerande Modbus-fråga. Samma adressering används för alla läsningar och skrivningar.",
             "de": "Wählen Sie, wie NIBE-Register 40025 über Ihre Verbindung adressiert wird. Prüfen Sie dies mit einer funktionierenden Modbus-Abfrage. Die Einstellung gilt für alle Lese- und Schreibzugriffe.",
-            "nl": "Kies hoe NIBE-register 40025 via uw verbinding wordt geadresseerd. Controleer dit met een werkende Modbus-query. De instelling geldt voor alle lees- en schrijfopdrachten.",
+            "nl": "Kies hoe NIBE-register 40025 via je verbinding wordt geadresseerd. Controleer dit met een werkende Modbus-query. De instelling geldt voor alle lees- en schrijfopdrachten.",
             "no": "Velg hvordan NIBE-register 40025 adresseres via tilkoblingen. Bekreft med en fungerende Modbus-spørring. Samme adressering brukes for all lesing og skriving.",
             "da": "Vælg, hvordan NIBE-register 40025 adresseres via forbindelsen. Bekræft med en fungerende Modbus-forespørgsel. Samme adressering bruges til al læsning og skrivning."
           }

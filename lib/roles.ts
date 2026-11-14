@@ -548,12 +548,12 @@ export function extraCapabilityOptions(role: Role, name: string, profile?: Model
                 // A setting, not a reading: nothing to chart.
                 setable: true, min: 10, max: 25, step: 0.5, decimals: 1, preventInsights: true};
     if (name === AUTOPILOT_FED_CAPABILITY)
-        return {title: {en: "Outdoor temperature fed", sv: "Utetemperatur som matas in", de: "Eingespeiste Außentemperatur",
-                        nl: "Ingevoerde buitentemperatuur", no: "Innmatet utetemperatur", da: "Indfødt udetemperatur"},
+        return {title: {en: "Outdoor temperature sent (BT1)", sv: "Utetemperatur som skickas (BT1)", de: "Gesendete Außentemperatur (BT1)",
+                        nl: "Verzonden buitentemperatuur (BT1)", no: "Utetemperatur som sendes (BT1)", da: "Sendt udetemperatur (BT1)"},
                 decimals: 1};
     if (name === AUTOPILOT_SHIFT_CAPABILITY)
-        return {title: {en: "Outdoor temperature shift", sv: "Förskjutning av utetemperatur", de: "Verschiebung der Außentemperatur",
-                        nl: "Verschuiving buitentemperatuur", no: "Forskyvning av utetemperatur", da: "Forskydning af udetemperatur"},
+        return {title: {en: "Outdoor shift (BT1)", sv: "Förskjutning av utetemperatur (BT1)", de: "Verschiebung der Außentemperatur (BT1)",
+                        nl: "Verschuiving buitentemperatuur (BT1)", no: "Forskyvning av utetemperatur (BT1)", da: "Forskydning af udetemperatur (BT1)"},
                 decimals: 1};
     if (name === DAY_TYPE_CAPABILITY)
         return {title: {en: "Day type", sv: "Dagtyp", de: "Tagestyp", nl: "Dagtype", no: "Dagtype", da: "Dagtype"}};

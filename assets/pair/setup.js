@@ -669,7 +669,10 @@ function NibeSetup(options) {
         var safety = el('section', undefined, 'setup-task-group');
         safety.appendChild(el('h3', a('hw_reserve')));
         var pick = document.createElement('select'); pick.setAttribute('aria-label', a('hw_reserve'));
-        levels.forEach(function (l) { pick.add(new Option(l ? l + ' L' : a('hw_reserve_off'), String(l))); });
+        // The usual choices say what they cover, as the help page does; an old custom value is just litres.
+        levels.forEach(function (l) {
+            pick.add(new Option(!l ? a('hw_reserve_off') : l === 20 || l === 40 || l === 60 ? a('hw_reserve_' + l) : l + ' L', String(l)));
+        });
         pick.value = String(reserve); pick.onchange = function () { reserve = Number(pick.value); };
         safety.append(pick, el('p', a('hw_reserve_hint'), 'register-desc'));
         shell.appendChild(safety);

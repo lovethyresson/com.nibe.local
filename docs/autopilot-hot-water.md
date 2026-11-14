@@ -367,9 +367,11 @@ The design as first written:
 
 - **Hot water device:** "Autopilot now": the next planned charge, its target and why ("Next
   charge 13:15 to 52 °C · Cheapest hours"), what is heating the tank now, or what it waits for
-  (learning, prices). Prefixed "Test run:" in a test run. The Smart mode is the on/off.
+  (learning, prices). Prefixed "Simulation:" in a simulation. The Smart mode is the on/off.
+  **Naming (2026-11-14):** the Smart mode the code calls `test` is shown to owners as
+  **Simulation** (it was "Test run"); older entries below keep the name they had then.
 - **Settings (moved 2026-11-14):** none in the device settings. Repair → Smart mode, hot water
-  step: "Always keep at least" (Off / 20 / 40 / 60 L, default 40; stored on the Hot water device,
+  step: "Always enough for a shower" (was "Always keep at least"; Up to your device / 20 / 40 / 60 L, default 40; stored on the Hot water device,
   `autopilotReserve`, carried over from the old setting that was shown and mirrored on every
   device of the pump). Solar is two home-wide switches in the next step (§4.4). The tank is picked
   in Repair's Hot water section; the incoming water it learns is a capability on the Hot water

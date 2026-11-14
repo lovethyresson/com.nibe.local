@@ -275,19 +275,20 @@ export function dailyPlanText(d: DailyPlan, t: Translate, time: (ms: number) => 
                               shadow: boolean, recap: string[] = []): string {
     const money = (v: number) => `${v.toFixed(2)} ${currency}`.trim();
     // Yesterday, last night, then today: the plan gets its own heading once a recap comes first.
+    // The decision first (what charges, when and why), then the use and the tank behind it. Prices
+    // per kWh are in each charge's own message, not here.
     const lines = [t(`title.${d.dayType ?? 'any'}`), ...recap, ...recap.length ? [t('today_heading')] : []];
     if (d.dayType === 'away') lines.push(t('away'));
-    else if (d.useLitres !== undefined) lines.push(t('use', {litres: d.useLitres, p80: d.useLitresP80 ?? d.useLitres}));
-    lines.push(d.reserveLitres > 0 ? t('tank', {litres: d.nowLitres, reserve: d.reserveLitres})
-        : t('tank_no_reserve', {litres: d.nowLitres}));
     if (d.charges.length === 0) lines.push(t('none'));
     const when = (ms: number, date: string) => t(date === d.date ? 'today' : 'tomorrow', {time: time(ms)});
     for (const [i, c] of d.charges.entries()) {
-        const reason = c.reason === 'cheap' || c.reason === 'before_use' ? t(`reason.${c.reason}`, {mean: money(d.meanPrice)})
-            : c.reason === 'surplus' ? t('reason.surplus', {share: Math.round(c.surplusShare * 100)})
+        const reason = c.reason === 'surplus' ? t('reason.surplus', {share: Math.round(c.surplusShare * 100)})
             : t(`reason.${c.reason}`);
-        lines.push(t('charge', {target: c.targetC, time: when(c.at, d.chargeDates[i]), price: money(c.price), reason}));
+        lines.push(t('charge', {target: c.targetC, time: when(c.at, d.chargeDates[i]), reason}));
     }
+    if (d.dayType !== 'away' && d.useLitres !== undefined) lines.push(t('use', {litres: d.useLitres, p80: d.useLitresP80 ?? d.useLitres}));
+    lines.push(d.reserveLitres > 0 ? t('tank', {litres: d.nowLitres, reserve: d.reserveLitres})
+        : t('tank_no_reserve', {litres: d.nowLitres}));
     lines.push(t(d.untilDate === d.date ? 'cost' : 'cost_tomorrow', {cost: money(d.cost)}));
     if (shadow) lines.push(t('shadow'));
     return lines.join('\n');

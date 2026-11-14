@@ -43,7 +43,7 @@ capabilities on devices such as smoke alarms. It excludes Nibe Live's own readin
 The setup screen guides you through enabling external room sensor BT50 in menu **7.5.9.2**,
 assigning BT50 to the intended zone in room sensor / zone settings (**1.3.3 / 1.3.4**),
 and selecting it to control heating. Replace the previous controlling sensor if that is your intent.
-Menus and support vary by model and firmware; effective BT50 writes were verified on an S1155-16.
+Menus and support vary by model and firmware; effective BT50 writes were verified on an S1155-16. Unchanged temperatures are resent every 30 seconds.
 
 Use **Verify settings** in Repair to start updates and check the pump's BT50 reading.
 This verifies receipt of the temperature; it cannot prove which zone the pump uses for control.

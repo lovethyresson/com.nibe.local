@@ -50,16 +50,16 @@ function fixture(mode = 'pair', role = 'hotwater', zoneCount = 0, storedZone?: n
 }
 test('pairing preserves native source and custom tank through overview and Back, commits only at final review', async () => {
     const f = fixture(); const {win, click, menu} = f;
-    click('Continue'); menu('Heating Setup');
+    click('Continue'); menu('Heating setup');
     const source = win.document.querySelector('input[data-source][value="26"]'); source.checked = true;
-    click('Save setup'); menu('Hot Water Setup');
+    click('Save setup'); menu('Hot water setup');
     const tank = win.document.querySelector('#pair1-tank');
     assert.ok([...tank.options].some((o: any) => o.textContent.includes('VPB 200')));
     tank.value = 'custom'; tank.dispatchEvent(new win.Event('change'));
     win.document.querySelector('#pair1-litres').value = '275';
     click('Save setup'); click('Back');
     assert.equal(f.created.length, 0);
-    click('Continue'); menu('Hot Water Setup');
+    click('Continue'); menu('Hot water setup');
     assert.equal(win.document.querySelector('#pair1-litres').value, '275');
     click('Save setup'); click('Review setup');
     assert.equal(win.document.querySelectorAll('#analytics-consent').length, 1);
@@ -71,11 +71,11 @@ test('pairing preserves native source and custom tank through overview and Back,
     f.dom.window.close();
 });
 test('hot water Repair retains catalogue and custom tank without saving when navigating', () => {
-    const f = fixture('repair'); f.click('Continue'); f.menu('Hot Water Setup');
+    const f = fixture('repair'); f.click('Continue'); f.menu('Hot water setup');
     assert.equal(f.win.document.querySelector('#repair-tank').value, 'custom');
     assert.equal(f.win.document.querySelector('#repair-litres').value, '275');
     f.click('Back'); assert.equal(f.emitted.some(e => e.name === 'selection_done'), false);
-    f.menu('Hot Water Setup'); f.click('Save setup'); f.click('Save changes');
+    f.menu('Hot water setup'); f.click('Save setup'); f.click('Save changes');
     const saved = f.emitted.find(e => e.name === 'selection_done');
     assert.ok(saved); assert.equal(saved.data.hotwater.litres, 275);
     f.dom.window.close();
@@ -83,7 +83,7 @@ test('hot water Repair retains catalogue and custom tank without saving when nav
 
 test('Homey picker is search-first, preserves selections across searches, and pairs a pending feed without writes', async () => {
     const f = fixture(); const {win, click, menu} = f;
-    click('Continue'); menu('Heating Setup');
+    click('Continue'); menu('Heating setup');
     const homey = win.document.querySelectorAll('input[name="temperature-mode"]')[1]; homey.click();
     click('Choose sensors'); await new Promise(resolve => setImmediate(resolve));
     assert.equal(win.document.querySelectorAll('.setup-sensor').length, 0);
@@ -95,7 +95,7 @@ test('Homey picker is search-first, preserves selections across searches, and pa
     assert.equal(win.document.querySelectorAll('.setup-sensor').length, 1);
     win.document.querySelector('.setup-sensor input').click();
     click('Review sensors'); await new Promise(resolve => setImmediate(resolve));
-    click('Save setup'); menu('Hot Water Setup'); click('Save setup'); click('Review setup');
+    click('Save setup'); menu('Hot water setup'); click('Save setup'); click('Review setup');
     click('Add selected devices'); await new Promise(resolve => setImmediate(resolve));
     assert.equal(f.created[0].store.indoorSensors.state, 'pending');
     assert.deepEqual(Array.from(f.created[0].store.indoorSensors.sensors, (s: any) => s.deviceId), ['sensor0', 'sensor29']);
@@ -104,11 +104,11 @@ test('Homey picker is search-first, preserves selections across searches, and pa
 });
 
 test('temperature source choices explain which sensors supply the reading', () => {
-    const f = fixture(); f.click('Continue'); f.menu('Heating Setup');
+    const f = fixture(); f.click('Continue'); f.menu('Heating setup');
     const doc = f.win.document.getElementById('nibe-pair-setup');
     const cards = doc.querySelectorAll('.setup-source-card');
     assert.equal(cards.length, 2);
-    assert.match(cards[0].textContent, /your device’s own temperature sensor/);
+    assert.match(cards[0].textContent, /your heat pump’s own temperature sensor/);
     assert.match(cards[1].textContent, /own Homey temperature sensors/);
     assert.ok(cards[1].contains(doc.querySelector('.setup-source-description')));
     assert.equal(doc.querySelector('.pair-hero-title').textContent, 'Choose your temperature source');
@@ -116,7 +116,7 @@ test('temperature source choices explain which sensors supply the reading', () =
 });
 
 test('review failures appear beside the action and leave a working retry button', async () => {
-    const f = fixture(); f.click('Continue'); f.menu('Heating Setup');
+    const f = fixture(); f.click('Continue'); f.menu('Heating setup');
     f.win.document.querySelectorAll('input[name="temperature-mode"]')[1].click();
     f.click('Choose sensors'); await new Promise(resolve => setImmediate(resolve));
     f.click('Show all sensors'); f.win.document.querySelector('.setup-sensor input').click();
@@ -138,12 +138,12 @@ test('review failures appear beside the action and leave a working retry button'
 });
 
 test('pump instructions are grouped and successful verification celebrates confirmed receipt', async () => {
-    const f = fixture('repair', 'heating'); f.click('Continue'); f.menu('Heating Setup');
+    const f = fixture('repair', 'heating'); f.click('Continue'); f.menu('Heating setup');
     f.win.document.querySelectorAll('input[name="temperature-mode"]')[1].click();
     f.click('Choose sensors'); await new Promise(resolve => setImmediate(resolve));
     f.click('Show all sensors'); f.win.document.querySelector('.setup-sensor input').click();
     f.click('Review sensors'); await new Promise(resolve => setImmediate(resolve));
-    f.click('Set up your device');
+    f.click('Set up your heat pump');
     const groups = f.win.document.querySelectorAll('.setup-task-group');
     assert.equal(groups.length, 2);
     assert.equal(groups[0].querySelectorAll('li strong').length, 3);
@@ -159,7 +159,7 @@ test('pump instructions are grouped and successful verification celebrates confi
 
 test('pairing asks for the thermostat zone as its own step, with nothing preselected', async () => {
     const f = fixture('pair', 'hotwater', 2); const {win, click, menu} = f;
-    click('Continue'); menu('Heating Setup');
+    click('Continue'); menu('Heating setup');
     const doc = win.document.getElementById('nibe-pair-setup');
     assert.equal(doc.querySelector('.pair-hero-title').textContent, 'Which zone should the thermostat set?');
     const cards = doc.querySelectorAll('.setup-shell .setup-source-card');
@@ -177,7 +177,7 @@ test('pairing asks for the thermostat zone as its own step, with nothing presele
     assert.equal(doc.querySelector('.setup-shell input[data-source="target_temperature"]'), null, 'zone not repeated');
     click('Back');
     assert.equal(doc.querySelector('input[data-source="target_temperature"]:checked').value, '2507', 'Back keeps the pick');
-    click('Continue'); click('Save setup'); menu('Hot Water Setup'); click('Save setup'); click('Review setup');
+    click('Continue'); click('Save setup'); menu('Hot water setup'); click('Save setup'); click('Review setup');
     assert.match(doc.querySelector('.setup-shell').textContent, /the thermostat sets Zone 2/);
     click('Add selected devices'); await new Promise(resolve => setImmediate(resolve));
     assert.equal(f.created[0].store.selection.addresses.target_temperature, 2507);
@@ -186,21 +186,21 @@ test('pairing asks for the thermostat zone as its own step, with nothing presele
 
 test('Repair preselects the stored zone and saves a new pick; a single zone skips the step', () => {
     const f = fixture('repair', 'heating', 3);
-    f.click('Continue'); f.menu('Heating Setup');
+    f.click('Continue'); f.menu('Heating setup');
     const doc = f.win.document.getElementById('nibe-repair-setup');
     assert.equal(doc.querySelector('.pair-hero-title').textContent, 'Which zone should the thermostat set?');
     doc.querySelector('input[data-source="target_temperature"][value="2509"]').click();
-    f.click('Continue'); f.click('Save setup'); f.menu('Hot Water Setup'); f.click('Save setup'); f.click('Save changes');
+    f.click('Continue'); f.click('Save setup'); f.menu('Hot water setup'); f.click('Save setup'); f.click('Save changes');
     const saved = f.emitted.find(e => e.name === 'selection_done');
     assert.equal(saved.data.sources.target_temperature, 2509);
     f.dom.window.close();
 
     const again = fixture('repair', 'heating', 3, 2507);
-    again.click('Continue'); again.menu('Heating Setup');
+    again.click('Continue'); again.menu('Heating setup');
     assert.equal(again.win.document.querySelector('input[data-source="target_temperature"]:checked').value, '2507');
     again.dom.window.close();
 
-    const one = fixture('repair', 'heating', 1); one.click('Continue'); one.menu('Heating Setup');
+    const one = fixture('repair', 'heating', 1); one.click('Continue'); one.menu('Heating setup');
     assert.equal(one.win.document.getElementById('nibe-repair-setup').querySelector('.pair-hero-title').textContent, 'Choose your temperature source');
     assert.equal(one.win.document.querySelector('input[data-source="target_temperature"]'), null);
     one.dom.window.close();
@@ -249,7 +249,7 @@ test('the hot water step sets how much to always keep; an unchanged choice is no
     const s = english.pair.setup.smart;
     let f = await hotwaterSmart({flows: [], historyDays: 60, reserve: 35});
     const pick = f.win.document.querySelector('select[aria-label="' + s.hw_reserve + '"]');
-    assert.deepEqual([...pick.options].map((o: any) => o.textContent), [s.hw_reserve_off, '20 L', '35 L', '40 L', '60 L'],
+    assert.deepEqual([...pick.options].map((o: any) => o.textContent), [s.hw_reserve_off, s.hw_reserve_20, '35 L', s.hw_reserve_40, s.hw_reserve_60],
         'an old value that is not a choice is kept as one');
     assert.equal(pick.value, '35');
     pick.value = '60'; pick.dispatchEvent(new f.win.Event('change'));

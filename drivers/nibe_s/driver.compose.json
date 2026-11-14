@@ -1209,7 +1209,7 @@
     "boolean_NIBE.h843_spa_activated": {
       "insights": true,
       "title": {
-        "en": "Smart Price Adaption",
+        "en": "Smart price adaption",
         "sv": "Smart prisanpassning",
         "de": "Smart Price Adaption",
         "nl": "Smart Price Adaption",
@@ -1220,7 +1220,7 @@
     "boolean_NIBE.h844_spa_heating_activated": {
       "insights": true,
       "title": {
-        "en": "Smart Price Adaption",
+        "en": "Smart price adaption",
         "sv": "Smart prisanpassning",
         "de": "Smart Price Adaption",
         "nl": "Smart Price Adaption",
@@ -1231,7 +1231,7 @@
     "boolean_NIBE.h846_spa_hotwater_activated": {
       "insights": true,
       "title": {
-        "en": "Smart Price Adaption",
+        "en": "Smart price adaption",
         "sv": "Smart prisanpassning",
         "de": "Smart Price Adaption",
         "nl": "Smart Price Adaption",
@@ -1272,7 +1272,7 @@
     "boolean_NIBE.h849_spa_cooling_activated": {
       "insights": true,
       "title": {
-        "en": "Smart Price Adaption",
+        "en": "Smart price adaption",
         "sv": "Smart prisanpassning",
         "de": "Smart Price Adaption",
         "nl": "Smart Price Adaption",
@@ -1508,12 +1508,12 @@
           "id": "heatpump_type",
           "type": "label",
           "label": {
-            "en": "Heat pump type code",
-            "sv": "Värmepumpstypkod",
-            "de": "Wärmepumpen-Typcode",
-            "nl": "Warmtepomp-typecode",
-            "no": "Varmepumpe-typekode",
-            "da": "Varmepumpe-typekode"
+            "en": "Model code",
+            "sv": "Modellkod",
+            "de": "Modellcode",
+            "nl": "Modelcode",
+            "no": "Modellkode",
+            "da": "Modelkode"
           },
           "value": ""
         }
@@ -1542,12 +1542,12 @@
             "da": "Seneste alarm"
           },
           "hint": {
-            "en": "The most recent alarm reported by your device. For the full history — with NIBE's cause and suggested action for each alarm — open this app's own settings: Homey app → More → Apps → Nibe Live → Configure.",
-            "sv": "Det senaste larmet som din enhet rapporterat. För hela historiken — med NIBE:s orsak och åtgärd för varje larm — öppna appens egna inställningar: Homey-appen → Mer → Appar → Nibe Live → Konfigurera.",
-            "de": "Der jüngste von Ihrem Gerät gemeldete Alarm. Die vollständige Historie — mit NIBEs Ursache und empfohlener Maßnahme je Alarm — finden Sie in den Einstellungen dieser App: Homey-App → Mehr → Apps → Nibe Live → Konfigurieren.",
-            "nl": "Het meest recente alarm van uw apparaat. De volledige historie — met NIBE's oorzaak en aanbevolen actie per alarm — vindt u in de instellingen van deze app: Homey-app → Meer → Apps → Nibe Live → Configureren.",
-            "no": "Den nyeste alarmen enheten din har rapportert. Hele historikken — med NIBEs årsak og tiltak for hver alarm — finner du i appens egne innstillinger: Homey-appen → Mer → Apper → Nibe Live → Konfigurer.",
-            "da": "Den seneste alarm som din enhed har rapporteret. Hele historikken — med NIBEs årsag og anbefalede handling for hver alarm — finder du i appens egne indstillinger: Homey-appen → Mere → Apps → Nibe Live → Konfigurer."
+            "en": "The latest alarm from your heat pump. The full history is in the app's settings.",
+            "sv": "Det senaste larmet från din värmepump. Hela historiken finns i appens inställningar.",
+            "de": "Der letzte Alarm Ihrer Wärmepumpe. Die ganze Historie finden Sie in den Einstellungen der App.",
+            "nl": "Het laatste alarm van je warmtepomp. De volledige historie staat in de instellingen van de app.",
+            "no": "Den siste alarmen fra varmepumpen din. Hele historikken finner du i appens innstillinger.",
+            "da": "Den seneste alarm fra din varmepumpe. Hele historikken finder du i appens indstillinger."
           },
           "value": ""
         }
@@ -1576,12 +1576,12 @@
             "da": "Del anonyme brugsdata"
           },
           "hint": {
-            "en": "Off by default. Sends your device's model, which devices you paired, which Flow cards ran, alarm codes, and how Autopilot is set up and how each day went. Never readings, IP, serial or names.",
-            "sv": "Av som standard. Skickar din enhets modell, vilka enheter du parkopplat, vilka flödeskort som körts, larmkoder samt hur Autopilot är inställd och hur varje dag gick. Aldrig mätvärden, IP, serienummer eller namn.",
-            "de": "Standardmäßig aus. Sendet das Modell Ihres Geräts, gekoppelte Geräte, ausgeführte Flow-Karten, Alarmcodes sowie die Einstellungen von Autopilot und wie jeder Tag lief. Nie Messwerte, IP, Seriennummer oder Namen.",
-            "nl": "Standaard uit. Verzendt het model van uw apparaat, gekoppelde apparaten, uitgevoerde Flow-kaarten, alarmcodes en hoe Autopilot is ingesteld en hoe elke dag ging. Nooit metingen, IP, serienummer of namen.",
-            "no": "Av som standard. Sender enhetens modell, parede enheter, kjørte flytkort, alarmkoder og hvordan Autopilot er satt opp og hvordan hver dag gikk. Aldri målinger, IP, serienummer eller navn.",
-            "da": "Fra som standard. Sender din enheds model, parrede enheder, kørte Flow-kort, alarmkoder og hvordan Autopilot er sat op, og hvordan hver dag gik. Aldrig målinger, IP, serienummer eller navne."
+            "en": "Off by default. Sends your heat pump's model, which devices you paired, which Flow cards ran, alarm codes, and how Autopilot is set up and how each day went. Never readings, IP, serial or names.",
+            "sv": "Av som standard. Skickar din värmepumps modell, vilka enheter du parkopplat, vilka flödeskort som körts, larmkoder samt hur Autopilot är inställd och hur varje dag gick. Aldrig mätvärden, IP, serienummer eller namn.",
+            "de": "Standardmäßig aus. Sendet das Modell Ihrer Wärmepumpe, gekoppelte Geräte, ausgeführte Flow-Karten, Alarmcodes sowie die Einstellungen von Autopilot und wie jeder Tag lief. Nie Messwerte, IP, Seriennummer oder Namen.",
+            "nl": "Standaard uit. Verzendt het model van je warmtepomp, gekoppelde apparaten, uitgevoerde Flow-kaarten, alarmcodes en hoe Autopilot is ingesteld en hoe elke dag ging. Nooit metingen, IP, serienummer of namen.",
+            "no": "Av som standard. Sender varmepumpens modell, parede enheter, kjørte flytkort, alarmkoder og hvordan Autopilot er satt opp og hvordan hver dag gikk. Aldri målinger, IP, serienummer eller navn.",
+            "da": "Fra som standard. Sender din varmepumpes model, parrede enheder, kørte Flow-kort, alarmkoder og hvordan Autopilot er sat op, og hvordan hver dag gik. Aldrig målinger, IP, serienummer eller navne."
           },
           "value": false
         }
@@ -1610,12 +1610,12 @@
             "da": "Aflæsningsinterval (sekunder)"
           },
           "hint": {
-            "en": "How often your device is read. Set this on the Nibe Main device; the other devices follow it. Lower is more responsive but puts more load on your device; above roughly a minute the per-function energy split gets less accurate.",
-            "sv": "Hur ofta din enhet läses av. Ställ in detta på enheten Nibe Main; övriga enheter följer den. Lägre värde ger snabbare uppdatering men belastar din enhet mer; över ungefär en minut blir energifördelningen per funktion mindre exakt.",
-            "de": "Wie oft Ihr Gerät abgefragt wird. Stellen Sie dies am Gerät Nibe Main ein; die übrigen Geräte übernehmen den Wert. Ein kleinerer Wert reagiert schneller, belastet Ihr Gerät aber stärker; oberhalb von etwa einer Minute wird die Energieaufteilung pro Funktion ungenauer.",
-            "nl": "Hoe vaak uw apparaat wordt uitgelezen. Stel dit in op het apparaat Nibe Main; de overige apparaten volgen die waarde. Lager reageert sneller maar belast uw apparaat meer; boven ongeveer een minuut wordt de energieverdeling per functie minder nauwkeurig.",
-            "no": "Hvor ofte enheten din leses av. Angi dette på enheten Nibe Main; de øvrige enhetene følger den. Lavere gir raskere oppdatering, men belaster enheten din mer; over omtrent ett minutt blir energifordelingen per funksjon mindre nøyaktig.",
-            "da": "Hvor ofte din enhed aflæses. Indstil dette på enheden Nibe Main; de øvrige enheder følger den. Lavere giver hurtigere opdatering, men belaster din enhed mere; over cirka et minut bliver energifordelingen pr. funktion mindre nøjagtig."
+            "en": "How often Homey reads your heat pump. Set it on Nibe Main. Shorter is quicker but busier.",
+            "sv": "Hur ofta Homey läser av din värmepump. Ställ in det på Nibe Main. Kortare är snabbare men mer belastande.",
+            "de": "Wie oft Homey Ihre Wärmepumpe abfragt. Stellen Sie es an Nibe Main ein. Kürzer ist schneller, aber belastender.",
+            "nl": "Hoe vaak Homey je warmtepomp uitleest. Stel het in op Nibe Main. Korter is sneller, maar drukker.",
+            "no": "Hvor ofte Homey leser av varmepumpen din. Still det inn på Nibe Main. Kortere er raskere, men mer belastende.",
+            "da": "Hvor ofte Homey aflæser din varmepumpe. Indstil det på Nibe Main. Kortere er hurtigere, men mere belastende."
           },
           "value": 10,
           "min": 5,
@@ -1636,12 +1636,12 @@
             "da": "Fejlsøgningslog"
           },
           "hint": {
-            "en": "Log polling, connection and energy-allocation detail. Normally the app only logs pairing, Flow actions and manual changes. Turn this on when troubleshooting or before sending logs for support.",
-            "sv": "Logga avläsning, anslutning och energifördelning i detalj. Normalt loggas bara parkoppling, flödeskort och manuella ändringar. Slå på vid felsökning eller innan du skickar loggar för support.",
-            "de": "Abfrage, Verbindung und Energieaufteilung im Detail protokollieren. Normalerweise protokolliert die App nur Kopplung, Flow-Aktionen und manuelle Änderungen. Bei der Fehlersuche oder vor dem Senden von Protokollen an den Support einschalten.",
-            "nl": "Log uitlezen, verbinding en energieverdeling in detail. Normaal logt de app alleen koppelen, Flow-acties en handmatige wijzigingen. Zet dit aan bij het oplossen van problemen of voordat je logs naar support stuurt.",
-            "no": "Logg avlesning, tilkobling og energifordeling i detalj. Normalt logger appen bare paring, Flow-handlinger og manuelle endringer. Slå på ved feilsøking eller før du sender logger til support.",
-            "da": "Log aflæsning, forbindelse og energifordeling i detaljer. Normalt logger appen kun parring, Flow-handlinger og manuelle ændringer. Slå til ved fejlfinding eller før du sender logs til support."
+            "en": "Turn this on before you send logs for support.",
+            "sv": "Slå på det här innan du skickar loggar till support.",
+            "de": "Schalten Sie das ein, bevor Sie Protokolle an den Support senden.",
+            "nl": "Zet dit aan voordat je logs naar support stuurt.",
+            "no": "Slå på dette før du sender logger til support.",
+            "da": "Slå dette til, før du sender logs til support."
           },
           "value": false
         }

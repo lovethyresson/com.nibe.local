@@ -45,12 +45,12 @@
     {
       "id": "save_most",
       "title": {
-        "en": "I'd rather freeze (±6 °C)",
-        "sv": "Hellre frysa (±6 °C)",
-        "de": "Lieber frieren (±6 °C)",
-        "nl": "Liever kou lijden (±6 °C)",
-        "no": "Heller fryse (±6 °C)",
-        "da": "Hellere fryse (±6 °C)"
+        "en": "Save more (±6 °C)",
+        "sv": "Spara mer (±6 °C)",
+        "de": "Mehr sparen (±6 °C)",
+        "nl": "Meer besparen (±6 °C)",
+        "no": "Spar mer (±6 °C)",
+        "da": "Spar mere (±6 °C)"
       }
     }
   ],

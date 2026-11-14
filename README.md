@@ -1,6 +1,6 @@
 # Nibe Live
 
-**Control your Nibe heat pump from Homey, over your own network — no cloud account, no waiting.**
+**Control your Nibe heat pump from Homey, over your own network. No cloud account, no waiting.**
 
 A [Homey](https://homey.app/) app for **Nibe S-series** heat pumps. It talks to the pump directly over
 Modbus TCP on your local network, so it keeps working when myUplink is down or your internet is out, and
@@ -45,8 +45,8 @@ with each sensor contributing equally. Your heat pump keeps its thermostat and S
 
 ### Set up your heating sensors
 
-1. Open your **Heating** device, choose **Repair**, and open **Heating Setup** from Device Setup.
-2. Choose **Use the heat pump’s native temperature sensor** to keep a detected pump source, or
+1. Open your **Heating** device, choose **Repair**, and open **Heating setup** from Device setup.
+2. Choose **Use your device’s own temperature sensor** to keep a detected pump source, or
    **Use your own Homey temperature sensors** to supply temperatures from Homey.
 3. For Homey sensors, search by name, room or device type, or choose **Show all**.
    Rooms follow Homey's order. Select one sensor or several, then review their readings and the
@@ -56,19 +56,17 @@ with each sensor contributing equally. Your heat pump keeps its thermostat and S
 5. Confirm the zone selection and press **Verify settings**. This starts regular temperature updates
    and checks that the pump's BT50 reading matches. A successful check confirms receipt; the zone
    assignment is the setting you confirm on the pump.
-6. Continue back to Device Setup and press **Save changes**. The activated temperature feed keeps
+6. Continue back to Device setup and press **Save changes**. The activated temperature feed keeps
    running after you close Repair.
 
 When adding a new Heating device, pairing can save your sensor choices. Finish activation in
 **Repair** once the device has been created. You can also return to Repair to change sensors.
 
-This requires a pump and firmware supporting external BT50. Effective writes have been verified on
-an S1155-16; support and menu layout can differ on other models. Homey and every selected sensor
-must remain available with valid readings; unchanged temperatures are resent every 30 seconds. See the [sensor FAQ](docs/FAQ.md#homey-temperature-sensors)
-for permissions, missing readings and returning to your native sensor.
+This needs a heat pump and firmware that support external BT50, and Homey and every selected sensor
+must keep reporting. See the [sensor FAQ](docs/FAQ.md#homey-temperature-sensors) for which models
+are confirmed, permissions, missing readings and returning to your own sensor.
 
-**Heating Setup** and **Hot Water Setup** now group configuration separately from feature selection.
-Hot Water Setup retains the tank catalogue, automatic estimate and custom capacity options.
+**Hot water setup** holds the tank choice: the catalogue, the automatic estimate or a custom size.
 Repair saves directly with **Save changes**.
 
 ### Wireless room sensors and zones
