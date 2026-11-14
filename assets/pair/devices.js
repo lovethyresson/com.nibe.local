@@ -200,7 +200,7 @@ function render() {
                 e.preventDefault();
                 var open = details.style.display !== 'none';
                 details.style.display = open ? 'none' : 'block';
-                expand.textContent = open ? '▸' : '▾';
+                expand.textContent = open ? '▸' : '▾'; expand.classList.toggle('open', !open);
             };
         }
 

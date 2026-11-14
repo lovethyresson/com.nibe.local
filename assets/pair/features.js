@@ -207,7 +207,7 @@ function render() {
             if (!open)
                 Homey.emit('track_ui', {view: 'repair_features', button: 'expand_group'}, function () {});
             details.style.display = open ? 'none' : 'block';
-            expand.textContent = open ? '▸' : '▾';
+            expand.textContent = open ? '▸' : '▾'; expand.classList.toggle('open', !open);
         };
 
         // Toggling a group resets its per-capability overrides

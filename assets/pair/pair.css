@@ -812,3 +812,59 @@ body {
     margin: .1em 0 0; border: 2px solid rgba(128, 128, 128, .55); border-radius: 50%; background: transparent; }
 .setup-shell .setup-source-label > input[type=radio]:checked { border-color: var(--sel); background: radial-gradient(var(--sel) 0 42%, transparent 46%); }
 .setup-shell .setup-native-detail { padding: 0 1.1em 1.05em 3.25em; font-size: .92em; opacity: .8; }
+
+/* ==== The first screen of pairing (devices) and Repair (features), in the setup look ====
+   Homey shows the title at the top, so the hero keeps only its line of intro. Rows are cards
+   with a switch, the name in sentence case (Homey's form labels are small capitals), and a
+   chevron at the far end that turns when the row opens. */
+#nibe-pair-setup, #nibe-repair-setup { --sel: #0a84ff; --hair: rgba(128, 128, 128, .22); --fill: rgba(128, 128, 128, .07); }
+@media (prefers-color-scheme: dark) { #nibe-pair-setup, #nibe-repair-setup { --sel: #409cff; } }
+#nibe-pair-setup .pair-hero:not(.setup-source-hero) .pair-hero-icon,
+#nibe-pair-setup .pair-hero:not(.setup-source-hero) .pair-hero-title,
+#nibe-repair-setup .pair-hero:not(.setup-source-hero) .pair-hero-icon,
+#nibe-repair-setup .pair-hero:not(.setup-source-hero) .pair-hero-title { display: none; }
+#nibe-pair-setup .pair-hero:not(.setup-source-hero),
+#nibe-repair-setup .pair-hero:not(.setup-source-hero) { text-align: left; padding: .2em 0 1.1em; }
+#nibe-pair-setup .pair-hero:not(.setup-source-hero) .pair-hero-sub,
+#nibe-repair-setup .pair-hero:not(.setup-source-hero) .pair-hero-sub { margin: 0; font-size: 1.06em; line-height: 1.45; opacity: .78; }
+
+#nibe-pair-setup .feature-group, #nibe-repair-setup .feature-group { margin: 0 0 .65em; padding: 0; overflow: hidden;
+    border: 1px solid var(--hair); border-radius: 16px; background: var(--fill); }
+#nibe-pair-setup .feature-row, #nibe-repair-setup .feature-row { display: flex; align-items: center; gap: .6em;
+    min-height: 3.4em; padding: .55em .5em .55em 1.1em; }
+#nibe-pair-setup form label.feature-label, #nibe-repair-setup form label.feature-label { flex: 1 1 auto; display: flex;
+    align-items: center; gap: .8em; min-width: 0; margin: 0; padding: 0; color: inherit; opacity: 1; font-size: 1.06em;
+    font-weight: 600; line-height: 1.3; letter-spacing: -.01em; text-transform: none; cursor: pointer; }
+#nibe-pair-setup .feature-row > .badge, #nibe-repair-setup .feature-row > .badge,
+#nibe-pair-setup .feature-row > .evidence, #nibe-repair-setup .feature-row > .evidence { flex: 0 1 auto; white-space: nowrap; }
+#nibe-pair-setup .feature-row > .expand, #nibe-repair-setup .feature-row > .expand { flex: 0 0 auto; display: flex;
+    align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; font-size: 0; opacity: 1;
+    color: inherit; text-decoration: none; }
+#nibe-pair-setup .expand::before, #nibe-repair-setup .expand::before { content: ""; display: block; flex: none; width: 9px; height: 9px;
+    margin-left: -4px; border-right: 2px solid; border-bottom: 2px solid; opacity: .45; transform: rotate(-45deg); transition: transform .2s; }
+#nibe-pair-setup .expand.open::before, #nibe-repair-setup .expand.open::before { margin: -4px 0 0; transform: rotate(45deg); }
+
+#nibe-pair-setup .registers, #nibe-repair-setup .registers { margin: 0; padding: .3em 1.1em .7em; border-top: 1px solid var(--hair); }
+#nibe-pair-setup form label.register-label, #nibe-repair-setup form label.register-label { display: flex; flex-wrap: wrap;
+    align-items: center; gap: .35em .65em; margin: 0; padding: .65em 0; color: inherit; opacity: 1; font-size: .95em;
+    font-weight: 500; line-height: 1.35; letter-spacing: normal; text-transform: none; }
+#nibe-pair-setup .register-label + .register-label, #nibe-repair-setup .register-label + .register-label { border-top: 1px solid var(--hair); }
+#nibe-pair-setup .register-label > .register-desc, #nibe-repair-setup .register-label > .register-desc { flex-basis: 100%;
+    margin: 0 0 0 2.97em; font-size: .9em; font-weight: 400; opacity: .7; }
+
+/* Switches, the same as the setup steps'. */
+#nibe-pair-setup .feature-label > input[type=checkbox], #nibe-repair-setup .feature-label > input[type=checkbox],
+#nibe-pair-setup .register-label > input[type=checkbox], #nibe-repair-setup .register-label > input[type=checkbox] {
+    appearance: none; -webkit-appearance: none; flex: 0 0 auto; position: relative; width: 2.9em; height: 1.75em; margin: 0;
+    border: 0; border-radius: 99px; background: rgba(128, 128, 128, .32); transition: background .2s; cursor: pointer; }
+#nibe-pair-setup .register-label > input[type=checkbox], #nibe-repair-setup .register-label > input[type=checkbox] { font-size: .8em; }
+#nibe-pair-setup .feature-label > input[type=checkbox]::after, #nibe-repair-setup .feature-label > input[type=checkbox]::after,
+#nibe-pair-setup .register-label > input[type=checkbox]::after, #nibe-repair-setup .register-label > input[type=checkbox]::after {
+    content: ""; position: absolute; top: .15em; left: .15em; width: 1.45em; height: 1.45em; border-radius: 50%;
+    background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .22); transition: transform .2s; }
+#nibe-pair-setup .feature-label > input[type=checkbox]:checked, #nibe-repair-setup .feature-label > input[type=checkbox]:checked,
+#nibe-pair-setup .register-label > input[type=checkbox]:checked, #nibe-repair-setup .register-label > input[type=checkbox]:checked { background: #34c759; }
+#nibe-pair-setup .feature-label > input[type=checkbox]:checked::after, #nibe-repair-setup .feature-label > input[type=checkbox]:checked::after,
+#nibe-pair-setup .register-label > input[type=checkbox]:checked::after, #nibe-repair-setup .register-label > input[type=checkbox]:checked::after { transform: translateX(1.15em); }
+#nibe-pair-setup .feature-label > input:focus-visible, #nibe-repair-setup .feature-label > input:focus-visible,
+#nibe-pair-setup .register-label > input:focus-visible, #nibe-repair-setup .register-label > input:focus-visible { outline: 2px solid var(--sel); outline-offset: 3px; }
