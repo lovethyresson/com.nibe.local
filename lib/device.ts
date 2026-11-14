@@ -1848,18 +1848,19 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const prices = o.slots.flatMap((s) => (s.price === undefined ? [] : [s.price]));
             const surplus = o.slots.flatMap((s) => (s.surplus === undefined ? [] : [s.surplus]));
             const day = dayBreakSlot(start, HOTWATER_SLOTS, dayOf);
+            const bands = chargeBands(o.slots, start, this.clock, (from, to) => t('hotwater.band', {from, to}));
             return {...base, kind: 'hotwater', chips, badge, test: mode === 'test', slots: o.slots,
                 ticks: ticks(start, HOTWATER_SLOTS, this.clock),
                 scale: {left: niceAxis(0, Math.max(0, ...prices), {steps: [0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100]}),
                     right: solar ? niceAxis(0, Math.max(0, ...surplus), {minSpan: 1, steps: [0.5, 1, 2, 5, 10]}) : undefined},
-                bands: chargeBands(o.slots, start, this.clock, (from, to) => t('hotwater.band', {from, to})),
+                bands,
                 dayBreak: day === undefined ? undefined : {at: day, label: t('tomorrow')},
                 status: o.next ? t('hotwater.next', {when}) : t('hotwater.none'),
                 reason: o.next ? [t('hotwater.about', {duration}), reason].join(' · ') : litres,
                 detail: o.next ? [share > 0 ? t('hotwater.share', {share}) : undefined, litres].filter(Boolean).join(' · ') || undefined : undefined,
                 legend: {price: t('price'), surplus: solar ? t('surplus') : '', grid: t('charge_grid'), solar: solar ? t('charge_solar') : ''},
                 axes: {left: t('axis_price'), right: solar ? t('axis_surplus') : ''},
-                footnote: charges.length && solar ? t('hotwater.solar_total', {share: Math.round(fromSolar * 100)}) : undefined};
+                footnote: bands.length > 1 && solar ? t('hotwater.solar_total', {share: Math.round(fromSolar * 100)}) : undefined};
         }
         const status = this.getCapabilityValue(AUTOPILOT_STATUS_CAPABILITY) as HeatingStatus | null;
         const range = String(this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY) ?? DEFAULT_PROFILE);
