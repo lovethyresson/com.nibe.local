@@ -602,7 +602,7 @@
         "off": "Aus"
       },
       "hotwater": {
-        "next": "Nächste Ladung __when__, etwa __duration__",
+        "next": "Nächste Ladung __when__",
         "none": "In den nächsten 24 Stunden ist keine Ladung nötig",
         "litres": "Jetzt __l__ L Wasser mit 40 °C",
         "share": "__share__ % aus Solar",
@@ -611,7 +611,8 @@
         "solar_total": "__share__ % der geplanten Ladung laufen mit Solarüberschuss.",
         "tomorrow": "morgen __time__",
         "no_prices": "Wartet auf Strompreise",
-        "band": "__from__ bis __to__"
+        "band": "__from__ bis __to__",
+        "about": "Etwa __duration__"
       },
       "indoor": "Innen",
       "expected": "Erwartet",
@@ -638,7 +639,8 @@
         "cooling": "Ihre Wärmepumpe kühlt. Autopilot wartet."
       },
       "shift_hint": "Unter 0 hält Ihre Wärmepumpe es für kälter und heizt mehr. Über 0 nimmt sie sich zurück.",
-      "error": "Autopilot konnte nicht geladen werden. Neuer Versuch in einer Minute."
+      "error": "Autopilot konnte nicht geladen werden. Neuer Versuch in einer Minute.",
+      "comfort_now": "Thermostat __c__ °C"
     },
     "hotwater_status": {
       "learning": "Lernt Ihren Warmwasserverbrauch",

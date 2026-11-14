@@ -39,6 +39,13 @@ export interface ChargeBand {
     label: string;
 }
 
+/** An hour of the outdoor shift as one bar: slots `at` up to `to`, the shift (K) averaged over them. */
+export interface ShiftBar {
+    at: number;
+    to: number;
+    value: number;
+}
+
 export interface WidgetData {
     kind: 'heating' | 'hotwater' | 'none';
     title: string;
@@ -56,6 +63,10 @@ export interface WidgetData {
     dayBreak?: {at: number; label: string};
     /** One line under the chart on how to read it. */
     hint?: string;
+    /** Heating: the shift as hourly bars. */
+    bars?: ShiftBar[];
+    /** A second, quieter line under the reason. */
+    detail?: string;
     slots: WidgetSlot[];
     /** Index of the first slot that is a plan rather than a measurement (heating). */
     now?: number;
@@ -172,4 +183,18 @@ export function stripLead(text: string, leads: string[]): string {
         }
     }
     return out ? out[0].toUpperCase() + out.slice(1) : out;
+}
+
+/** The outdoor shift as bars, one per `per` slots (an hour): the mean of the slots that have a
+ *  value, to a tenth. A run with no value, or a mean of 0, has no bar. The plan and the past never
+ *  share a bar as long as `per` divides the slot where now is. */
+export function shiftBars(slots: WidgetSlot[], per = 4): ShiftBar[] {
+    const bars: ShiftBar[] = [];
+    for (let at = 0; at < slots.length; at += per) {
+        const values = slots.slice(at, at + per).flatMap((s) => (s.offset === undefined ? [] : [s.offset]));
+        if (!values.length) continue;
+        const value = tenth(values.reduce((a, b) => a + b, 0) / values.length);
+        if (value !== 0) bars.push({at, to: Math.min(at + per, slots.length), value});
+    }
+    return bars;
 }

@@ -349,7 +349,7 @@
         "off": "Av"
       },
       "hotwater": {
-        "next": "Neste lading __when__, omtrent __duration__",
+        "next": "Neste lading __when__",
         "none": "Ingen lading trengs de neste 24 timene",
         "litres": "__l__ L 40-graders vann nå",
         "share": "__share__ % fra sol",
@@ -358,7 +358,8 @@
         "solar_total": "__share__ % av den planlagte ladingen går på soloverskudd.",
         "tomorrow": "i morgen __time__",
         "no_prices": "Venter på strømpriser",
-        "band": "__from__ til __to__"
+        "band": "__from__ til __to__",
+        "about": "Omtrent __duration__"
       },
       "indoor": "Inne",
       "expected": "Forventet",
@@ -385,7 +386,8 @@
         "cooling": "Varmepumpen din kjøler. Autopilot venter."
       },
       "shift_hint": "Under 0 tror varmepumpen din at det er kaldere, og varmer mer. Over 0 skrur den ned.",
-      "error": "Kunne ikke laste Autopilot. Prøver igjen om et minutt."
+      "error": "Kunne ikke laste Autopilot. Prøver igjen om et minutt.",
+      "comfort_now": "Termostat __c__ °C"
     },
     "hotwater_status": {
       "learning": "Lærer varmtvannsbruken deres",

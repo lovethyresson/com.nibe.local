@@ -349,7 +349,7 @@
         "off": "Uit"
       },
       "hotwater": {
-        "next": "Volgende opwarming __when__, ongeveer __duration__",
+        "next": "Volgende opwarming __when__",
         "none": "Geen opwarming nodig in de komende 24 uur",
         "litres": "Nu __l__ L water van 40 °C",
         "share": "__share__ % van zon",
@@ -358,7 +358,8 @@
         "solar_total": "__share__ % van het geplande opwarmen draait op zonne-overschot.",
         "tomorrow": "morgen __time__",
         "no_prices": "Wacht op stroomprijzen",
-        "band": "__from__ tot __to__"
+        "band": "__from__ tot __to__",
+        "about": "Ongeveer __duration__"
       },
       "indoor": "Binnen",
       "expected": "Verwacht",
@@ -385,7 +386,8 @@
         "cooling": "Je warmtepomp koelt. Autopilot wacht."
       },
       "shift_hint": "Onder 0 denkt je warmtepomp dat het kouder is en verwarmt hij meer. Boven 0 gaat hij terug.",
-      "error": "Kon Autopilot niet laden. Over een minuut probeer ik het opnieuw."
+      "error": "Kon Autopilot niet laden. Over een minuut probeer ik het opnieuw.",
+      "comfort_now": "Thermostaat __c__ °C"
     },
     "hotwater_status": {
       "learning": "Leert je warmwatergebruik kennen",

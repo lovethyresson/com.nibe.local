@@ -602,7 +602,7 @@
         "off": "Off"
       },
       "hotwater": {
-        "next": "Next charge __when__, about __duration__",
+        "next": "Next charge __when__",
         "none": "No charge needed in the next 24 hours",
         "litres": "__l__ L of 40 °C water now",
         "share": "__share__ % from solar",
@@ -611,7 +611,8 @@
         "solar_total": "__share__ % of the planned charging runs on solar surplus.",
         "tomorrow": "tomorrow __time__",
         "no_prices": "Waiting for electricity prices",
-        "band": "__from__ to __to__"
+        "band": "__from__ to __to__",
+        "about": "About __duration__"
       },
       "indoor": "Indoor",
       "expected": "Expected",
@@ -638,7 +639,8 @@
         "cooling": "Your heat pump is cooling. Autopilot waits."
       },
       "shift_hint": "Below 0, your heat pump thinks it's colder and heats more. Above 0, it eases off.",
-      "error": "Couldn't load Autopilot. Trying again in a minute."
+      "error": "Couldn't load Autopilot. Trying again in a minute.",
+      "comfort_now": "Thermostat __c__ °C"
     },
     "hotwater_status": {
       "learning": "Learning your hot water use",

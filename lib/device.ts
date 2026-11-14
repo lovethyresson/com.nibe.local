@@ -11,7 +11,7 @@ import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, StopReason, VERIFY_GA
 import {AUTOPILOT_FUNCTIONS, SMART_MODE_STORE, SmartFunction, SmartMode, autopilotRuns, shownSmartMode, smartMode, smartModeWrites, spaOn} from './autopilot/smart-mode';
 import {HeatingStatus, heatingStatus} from './autopilot/heating-status';
 import {forecastCorrection} from './autopilot/outdoor';
-import {AHEAD_SLOTS, BACK_SLOTS, HOTWATER_SLOTS, WidgetData, chargeBands, dayBreakSlot, formatDuration, heatingSlots, niceAxis, stripLead, ticks} from './autopilot/widget';
+import {AHEAD_SLOTS, BACK_SLOTS, HOTWATER_SLOTS, WidgetData, chargeBands, dayBreakSlot, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks} from './autopilot/widget';
 import {HotwaterUseData, hotwaterWeek} from './autopilot/hotwater-use';
 import {SLOT_MS, slotOf} from './autopilot/prices';
 import {Edge, FORECAST_SLOTS, BlockedBy, HeatingDay, analyticsSmartMode, heatingBlock, reserveBucket} from './autopilot/analytics';
@@ -1854,8 +1854,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     right: solar ? niceAxis(0, Math.max(0, ...surplus), {minSpan: 1, steps: [0.5, 1, 2, 5, 10]}) : undefined},
                 bands: chargeBands(o.slots, start, this.clock, (from, to) => t('hotwater.band', {from, to})),
                 dayBreak: day === undefined ? undefined : {at: day, label: t('tomorrow')},
-                status: o.next ? t('hotwater.next', {when, duration}) : t('hotwater.none'),
-                reason: [reason, share > 0 ? t('hotwater.share', {share}) : undefined, litres].filter(Boolean).join(' · '),
+                status: o.next ? t('hotwater.next', {when}) : t('hotwater.none'),
+                reason: o.next ? [t('hotwater.about', {duration}), reason].join(' · ') : litres,
+                detail: o.next ? [share > 0 ? t('hotwater.share', {share}) : undefined, litres].filter(Boolean).join(' · ') || undefined : undefined,
                 legend: {price: t('price'), surplus: solar ? t('surplus') : '', grid: t('charge_grid'), solar: solar ? t('charge_solar') : ''},
                 axes: {left: t('axis_price'), right: solar ? t('axis_surplus') : ''},
                 footnote: charges.length && solar ? t('hotwater.solar_total', {share: Math.round(fromSolar * 100)}) : undefined};
@@ -1893,7 +1894,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             hint: shifts.some((v) => v !== 0) ? t('shift_hint') : undefined,
             status: statusName,
             reason,
-            legend: {indoor: t('indoor'), planned: t('expected'), offset: t('offset'), comfort: t('comfort')},
+            bars: shiftBars(slots),
+            legend: {indoor: t('indoor'), planned: t('expected'), offset: t('offset'),
+                comfort: Number.isFinite(thermostat) ? t('comfort_now', {c: thermostat.toFixed(1)}) : t('comfort')},
             axes: {left: t('axis_indoor'), right: t('axis_offset')},
             comfort: Number.isFinite(thermostat) ? thermostat : undefined,
             indoorNow: Number.isFinite(indoorNow) ? Math.round(indoorNow * 10) / 10 : undefined,

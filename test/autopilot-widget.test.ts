@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {chargeBands, dayBreakSlot, formatDuration, heatingSlots, niceAxis, stripLead, ticks} from '../lib/autopilot/widget';
+import {chargeBands, dayBreakSlot, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks} from '../lib/autopilot/widget';
 import {dayKind, hotwaterWeek} from '../lib/autopilot/hotwater-use';
 import {KWH_PER_LITRE, learn, localClock, TankPoint} from '../lib/autopilot/hotwater-learner';
 
@@ -146,4 +146,15 @@ test('a reason loses the word the status already says', () => {
     assert.equal(stripLead('Holding.', ['Holding']), '', 'only the lead: nothing left');
     assert.equal(stripLead('Håller. Inget att vinna', ['Håller']), 'Inget att vinna');
     assert.equal(stripLead('Anything', ['a(b']), 'Anything', 'a lead with regex characters is safe');
+});
+
+test('the shift is one bar an hour: the mean of its slots, none for a calm hour', () => {
+    const slots = [{offset: 2}, {offset: 2}, {offset: 1}, {offset: 1}, {offset: 0}, {offset: 0}, {offset: 0}, {offset: 0},
+        {offset: -1}, {}, {offset: -2}, {}, {}, {}, {}, {}, {offset: 0.3}, {offset: -0.3}, {offset: 0}, {offset: 0}];
+    assert.deepEqual(shiftBars(slots), [
+        {at: 0, to: 4, value: 1.5},
+        {at: 8, to: 12, value: -1.5},
+    ], 'a calm hour, an hour with no value and an hour that averages 0 have no bar');
+    assert.deepEqual(shiftBars([{offset: 1}, {offset: 1}], 4), [{at: 0, to: 2, value: 1}], 'a short last hour is a short bar');
+    assert.deepEqual(shiftBars([]), []);
 });

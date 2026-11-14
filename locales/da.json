@@ -602,7 +602,7 @@
         "off": "Fra"
       },
       "hotwater": {
-        "next": "Næste opvarmning __when__, cirka __duration__",
+        "next": "Næste opvarmning __when__",
         "none": "Ingen opvarmning nødvendig de næste 24 timer",
         "litres": "__l__ L 40-graders vand nu",
         "share": "__share__ % fra sol",
@@ -611,7 +611,8 @@
         "solar_total": "__share__ % af den planlagte opvarmning kører på soloverskud.",
         "tomorrow": "i morgen __time__",
         "no_prices": "Venter på elpriser",
-        "band": "__from__ til __to__"
+        "band": "__from__ til __to__",
+        "about": "Cirka __duration__"
       },
       "indoor": "Inde",
       "expected": "Forventet",
@@ -638,7 +639,8 @@
         "cooling": "Din varmepumpe køler. Autopilot venter."
       },
       "shift_hint": "Under 0 tror din varmepumpe, at det er koldere, og varmer mere. Over 0 skruer den ned.",
-      "error": "Kunne ikke indlæse Autopilot. Prøver igen om et minut."
+      "error": "Kunne ikke indlæse Autopilot. Prøver igen om et minut.",
+      "comfort_now": "Termostat __c__ °C"
     },
     "hotwater_status": {
       "learning": "Lærer jeres forbrug af varmt vand",

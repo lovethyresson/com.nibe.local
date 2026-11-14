@@ -9,17 +9,15 @@
       .hw-sub { margin-top: 12px; font-size: 0.8em; opacity: 0.75; }
       .hw-chart { display: block; margin-top: 4px; overflow: visible; }
       .hw-chart text { font-size: 11px; fill: currentColor; opacity: 0.75; }
-      /* A halo keeps a number readable where a dashed line runs through it. */
-      .hw-chart text.halo { paint-order: stroke; stroke: var(--hw-halo); stroke-width: 3px; stroke-linejoin: round; opacity: 1; }
       .hw-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.8em; opacity: 0.85; margin-top: 8px; }
       .hw-key { display: inline-block; width: 12px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; box-sizing: border-box; }
       .hw-key.line { height: 3px; vertical-align: 3px; margin-right: 2px; }
       .hw-empty { opacity: 0.8; margin: 12px 0; }
       /* Light values meet 4.4:1 on white; away is a solid grey that holds 3:1 on both cards. */
-      :root { --hw-working: #3d6fd8; --hw-free: #0f8374; --hw-away: #8e8e93; --hw-halo: #ffffff; }
-      :root[data-theme="dark"] { --hw-working: #5b8def; --hw-free: #2bb3a3; --hw-away: #77777d; --hw-halo: #1c1c1e; }
+      :root { --hw-working: #3d6fd8; --hw-free: #0f8374; --hw-away: #8e8e93; --hw-on: #ffffff; }
+      :root[data-theme="dark"] { --hw-working: #5b8def; --hw-free: #2bb3a3; --hw-away: #77777d; --hw-on: #101012; }
       @media (prefers-color-scheme: dark) {
-        :root:not([data-theme="light"]) { --hw-working: #5b8def; --hw-free: #2bb3a3; --hw-away: #77777d; --hw-halo: #1c1c1e; }
+        :root:not([data-theme="light"]) { --hw-working: #5b8def; --hw-free: #2bb3a3; --hw-away: #77777d; --hw-on: #101012; }
       }
     </style>
   </head>
@@ -94,18 +92,29 @@
               : {x: cx - bw / 2, y: top, width: bw, height: B - top, rx: 2, fill: color, 'fill-opacity': b.atLeast ? 0.45 : 0.9}));
           }
         });
-        // Typical days go on top of the bars, and the numbers go on top of the lines with a halo.
+        // Typical days go on top of the bars; their numbers sit to the right of the chart.
         ['working', 'free'].forEach(function (kind) {
           var v = data.typical[kind];
           if (typeof v !== 'number') return;
           svg.appendChild(svgEl('line', {x1: L, x2: R, y1: y(v), y2: y(v), stroke: KIND[kind], 'stroke-width': 1.4, 'stroke-dasharray': '4 3'}));
-          var t = svgEl('text', {x: R + 5, y: y(v) + 4, class: 'halo'}, String(v)); t.style.fill = KIND[kind]; svg.appendChild(t);
+          var t = svgEl('text', {x: R + 5, y: y(v) + 4}, String(v)); t.style.fill = KIND[kind]; svg.appendChild(t);
         });
+        // Each number goes where nothing crosses it: above its bar, or inside the bar's top when a
+        // dashed line runs there. A number never sits on a line.
+        var lines = ['working', 'free'].filter(function (kind) { return typeof data.typical[kind] === 'number'; }).map(function (kind) { return y(data.typical[kind]); });
+        var clear = function (base) { return lines.every(function (ly) { return ly < base - 13 || ly > base + 4; }); };
         data.bars.forEach(function (b, k) {
           var cx = L + (k + 0.5) * step;
-          if (typeof b.litres === 'number')
-            svg.appendChild(svgEl('text', {x: cx, y: y(b.litres) - 4, 'text-anchor': 'middle', class: 'halo'}, (b.atLeast ? '≥' : '') + b.litres));
-          else svg.appendChild(svgEl('text', {x: cx, y: B - 4, 'text-anchor': 'middle'}, '–'));
+          if (typeof b.litres === 'number') {
+            var top = y(b.litres), above = top - 5, inside = top + 15, solid = !b.today && !b.atLeast;
+            var text = (b.atLeast ? '≥' : '') + b.litres;
+            if (clear(above)) svg.appendChild(svgEl('text', {x: cx, y: above, 'text-anchor': 'middle'}, text));
+            else if (B - top >= 22 && clear(inside)) {
+              var inner = svgEl('text', {x: cx, y: inside, 'text-anchor': 'middle'}, text);
+              if (solid) { inner.style.fill = 'var(--hw-on)'; inner.style.opacity = 1; inner.setAttribute('font-weight', '600'); }
+              svg.appendChild(inner);
+            } else svg.appendChild(svgEl('text', {x: cx, y: Math.min(above, ...lines.filter(function (ly) { return ly < above; }).map(function (ly) { return ly - 6; })), 'text-anchor': 'middle'}, text));
+          } else svg.appendChild(svgEl('text', {x: cx, y: B - 4, 'text-anchor': 'middle'}, '–'));
           var label = svgEl('text', {x: cx, y: H - 6, 'text-anchor': 'middle'}, b.label);
           if (b.today) label.setAttribute('font-weight', '700');
           svg.appendChild(label);

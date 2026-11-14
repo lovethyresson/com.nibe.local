@@ -6,24 +6,25 @@
       .ap-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
       .ap-chip { font-size: 0.8em; padding: 2px 8px; border-radius: 999px; background: rgba(127, 127, 127, 0.15); }
       .ap-chip.quiet { background: transparent; border: 1px solid rgba(127, 127, 127, 0.4); opacity: 0.75; }
-      .ap-status { text-wrap: balance; margin: 12px 0 0; font-size: 1.45em; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; }
+      .ap-status { text-wrap: balance; margin: 12px 0 0; font-size: 1.35em; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; }
       .ap-now { color: var(--ap-indoor); font-variant-numeric: tabular-nums; white-space: nowrap; }
       .ap-reason { margin: 4px 0 0; opacity: 0.85; }
+      .ap-detail { margin-top: 2px; opacity: 0.65; }
       .ap-chart { display: block; margin-top: 14px; overflow: visible; }
       .ap-chart text { font-size: 11px; fill: currentColor; opacity: 0.75; }
-      .ap-chart text.halo { paint-order: stroke; stroke: var(--ap-halo); stroke-width: 3px; stroke-linejoin: round; opacity: 1; }
-      .ap-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.8em; opacity: 0.85; margin-top: 8px; }
-      .ap-key { display: inline-block; width: 12px; height: 3px; border-radius: 2px; margin-right: 4px; vertical-align: 3px; }
-      .ap-key.box { height: 10px; vertical-align: -1px; }
+      .ap-chart text.axis-title { font-size: 10.5px; opacity: 0.6; }
+      .ap-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.8em; opacity: 0.9; margin-top: 10px; }
+      .ap-key { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; box-sizing: border-box; }
+      .ap-key.line { height: 3px; border-radius: 2px; vertical-align: 3px; }
       .ap-foot { margin: 8px 0 0; font-size: 0.8em; opacity: 0.75; }
       .ap-empty { opacity: 0.8; margin: 12px 0; }
-      /* Light values meet 4.4:1 on white; dark values keep the brighter originals. The theme is read
-         from the text colour Homey gives the page (see applyTheme), with the media query as the start. */
-      :root { --ap-indoor: #c4580d; --ap-offset: #3d6fd8; --ap-solar: #9a7200; --ap-grid: #3d6fd8; --ap-price: rgba(127, 127, 127, 0.3);
-        --ap-price-line: rgba(127, 127, 127, 0.75); --ap-halo: #ffffff; }
-      :root[data-theme="dark"] { --ap-indoor: #e8833a; --ap-offset: #5b8def; --ap-solar: #e3b505; --ap-grid: #5b8def; --ap-halo: #1c1c1e; }
+      /* Light values meet 3:1 or better on white; dark values are the brighter originals. The theme is
+         read from the text colour Homey gives the page (see applyTheme), with the media query as the start. */
+      :root { --ap-indoor: #c4580d; --ap-offset: #2d6bd6; --ap-solar: #d46a00; --ap-surplus: rgba(212, 106, 0, 0.18); --ap-grid: #2d6bd6;
+        --ap-price-line: rgba(127, 127, 127, 0.9); --ap-price-top: rgba(127, 127, 127, 0.3); }
+      :root[data-theme="dark"] { --ap-indoor: #e8833a; --ap-offset: #4da3ff; --ap-solar: #ff9f0a; --ap-surplus: rgba(255, 159, 10, 0.22); --ap-grid: #4da3ff; }
       @media (prefers-color-scheme: dark) {
-        :root:not([data-theme="light"]) { --ap-indoor: #e8833a; --ap-offset: #5b8def; --ap-solar: #e3b505; --ap-grid: #5b8def; --ap-halo: #1c1c1e; }
+        :root:not([data-theme="light"]) { --ap-indoor: #e8833a; --ap-offset: #4da3ff; --ap-solar: #ff9f0a; --ap-surplus: rgba(255, 159, 10, 0.22); --ap-grid: #4da3ff; }
       }
     </style>
   </head>
@@ -75,33 +76,67 @@
         return Math.max(240, Math.floor(ap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)));
       }
 
-      // The row under a chart: the axes' titles at either end and the hours between them. An hour
-      // that would touch a title is left out. Text is 11 px: about 6.2 px a character.
-      function bottomRow(svg, ticks, y, W, axes) {
-        var CHAR = 6.2, GAP = 6;
-        var leftEnd = (axes.left || '').length * CHAR + GAP, rightStart = W - (axes.right || '').length * CHAR - GAP;
-        ticks.forEach(function (t) {
-          var half = t.label.length * CHAR / 2;
-          if (t.x - half < leftEnd || t.x + half > rightStart) return;
-          svg.appendChild(svgEl('text', {x: t.x, y: y, 'text-anchor': 'middle'}, t.label));
+      // A smooth curve through points, monotone cubic (no overshoot), as on the help pages.
+      function monotone(pts) {
+        var n = pts.length;
+        if (!n) return '';
+        var d = 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1);
+        if (n < 2) return d;
+        var dx = [], m = [], s = [], i;
+        for (i = 0; i < n - 1; i++) { dx[i] = pts[i + 1][0] - pts[i][0]; m[i] = (pts[i + 1][1] - pts[i][1]) / dx[i]; }
+        s[0] = m[0]; s[n - 1] = m[n - 2];
+        for (i = 1; i < n - 1; i++) s[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+        for (i = 0; i < n - 1; i++) {
+          if (m[i] === 0) { s[i] = 0; s[i + 1] = 0; continue; }
+          var a = s[i] / m[i], b = s[i + 1] / m[i], h = a * a + b * b;
+          if (h > 9) { var tau = 3 / Math.sqrt(h); s[i] = tau * a * m[i]; s[i + 1] = tau * b * m[i]; }
+        }
+        for (i = 0; i < n - 1; i++)
+          d += 'C' + (pts[i][0] + dx[i] / 3).toFixed(1) + ' ' + (pts[i][1] + s[i] * dx[i] / 3).toFixed(1) + ' '
+            + (pts[i + 1][0] - dx[i] / 3).toFixed(1) + ' ' + (pts[i + 1][1] - s[i + 1] * dx[i] / 3).toFixed(1) + ' '
+            + pts[i + 1][0].toFixed(1) + ' ' + pts[i + 1][1].toFixed(1);
+        return d;
+      }
+      // Runs of consecutive slots that have a value: [[first, last], ...].
+      function runs(slots, pick) {
+        var out = [], from = -1;
+        slots.forEach(function (s, k) {
+          var has = typeof pick(s) === 'number';
+          if (has && from < 0) from = k;
+          if (!has && from >= 0) { out.push([from, k - 1]); from = -1; }
         });
-        if (axes.left) svg.appendChild(svgEl('text', {x: 0, y: y}, axes.left));
-        if (axes.right) svg.appendChild(svgEl('text', {x: W, y: y, 'text-anchor': 'end'}, axes.right));
+        if (from >= 0) out.push([from, slots.length - 1]);
+        return out;
       }
 
-      // Where the next day starts: a faint line and its word, at the top of the chart.
-      function dayBreak(svg, data, x, T, B, W, L, R) {
+      // The top of a chart is a header band with two rows: the axis titles (small, muted) above their
+      // axes, and under them the word for the next day. Nothing in it sits on a bar or a line.
+      var TOP = 40;
+      function header(svg, data, x, W, L, R, B) {
+        if (data.axes && data.axes.left) svg.appendChild(svgEl('text', {x: 0, y: 11, class: 'axis-title'}, data.axes.left));
+        if (data.axes && data.axes.right) svg.appendChild(svgEl('text', {x: W, y: 11, class: 'axis-title', 'text-anchor': 'end'}, data.axes.right));
         if (!data.dayBreak) return;
         var bx = x(data.dayBreak.at);
-        svg.appendChild(svgEl('line', {x1: bx, x2: bx, y1: T, y2: B, stroke: 'currentColor', 'stroke-opacity': 0.3, 'stroke-dasharray': '2 3'}));
-        var room = R - bx > data.dayBreak.label.length * 6.4 + 6;
-        svg.appendChild(svgEl('text', {x: room ? bx + 4 : bx - 4, y: T - 3, 'text-anchor': room ? 'start' : 'end'}, data.dayBreak.label));
+        svg.appendChild(svgEl('line', {x1: bx, x2: bx, y1: TOP - 8, y2: B, stroke: 'currentColor', 'stroke-opacity': 0.3, 'stroke-dasharray': '2 3'}));
+        var room = R - bx > data.dayBreak.label.length * 6.4 + 8;
+        svg.appendChild(svgEl('text', {x: room ? bx + 5 : bx - 5, y: TOP - 12, 'text-anchor': room ? 'start' : 'end'}, data.dayBreak.label));
       }
 
-      // Heating: indoor °C on the left axis (measured solid, expected dashed, thermostat dotted with its
-      // value), the BT1 shift on the right axis as bars from 0, and a line at now.
+      // The hours under a chart. An hour never touches its neighbour: text is about 6.2 px a character.
+      function hours(svg, ticks, y) {
+        var CHAR = 6.2, edge = -1e9;
+        ticks.forEach(function (t) {
+          var half = t.label.length * CHAR / 2;
+          if (t.x - half < edge + 8) return;
+          svg.appendChild(svgEl('text', {x: t.x, y: y, 'text-anchor': 'middle'}, t.label));
+          edge = t.x + half;
+        });
+      }
+
+      // Heating: indoor °C on the left axis (measured solid, expected dashed, thermostat dotted), the
+      // BT1 shift on the right axis as one solid bar an hour from 0, and a line at now.
       function heatingChart(data) {
-        var W = chartWidth(), L = 34, R = W - 40, T = 16, PH = Math.max(110, Math.min(170, Math.round(W * 0.36))), B = T + PH, H = B + 24;
+        var W = chartWidth(), L = 34, R = W - 40, PH = Math.max(110, Math.min(170, Math.round(W * 0.36))), B = TOP + PH, H = B + 24;
         var n = data.slots.length, step = (R - L) / n;
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'ap-chart', role: 'img'});
         var left = data.scale.left, right = data.scale.right;
@@ -116,57 +151,55 @@
         right.ticks.forEach(function (v) {
           svg.appendChild(svgEl('text', {x: R + 5, y: yo(v) + 4}, (v > 0 ? '+' : '') + fmt(v, right.decimals)));
         });
-        svg.appendChild(svgEl('line', {x1: L, x2: R, y1: yo(0), y2: yo(0), stroke: 'var(--ap-offset)', 'stroke-opacity': 0.5, 'stroke-width': 0.8}));
+        svg.appendChild(svgEl('line', {x1: L, x2: R, y1: yo(0), y2: yo(0), stroke: 'currentColor', 'stroke-opacity': 0.25, 'stroke-width': 0.8}));
 
-        // Shift bars, the plan lighter than what was fed.
-        data.slots.forEach(function (s, k) {
-          if (!s.offset) return;
-          var y0 = yo(0), y1 = yo(s.offset);
-          svg.appendChild(svgEl('rect', {x: x(k) + 0.3, width: Math.max(step - 0.6, 0.5), y: Math.min(y0, y1), height: Math.abs(y1 - y0),
-            fill: 'var(--ap-offset)', 'fill-opacity': k >= data.now ? 0.38 : 0.75}));
+        // Shift: one solid, slightly rounded bar an hour with a gap between them; the plan is lighter.
+        (data.bars || []).forEach(function (b) {
+          var y0 = yo(0), y1 = yo(b.value), h = Math.max(Math.abs(y1 - y0), 2);
+          svg.appendChild(svgEl('rect', {x: x(b.at) + 1.5, width: Math.max((b.to - b.at) * step - 3, 2), y: b.value > 0 ? y0 - h : y0, height: h, rx: 2.5,
+            fill: 'var(--ap-offset)', 'fill-opacity': b.at >= data.now ? 0.4 : 0.9}));
         });
 
-        // Thermostat, with its value on the line.
-        if (typeof data.comfort === 'number') {
-          var yc = yi(data.comfort);
-          svg.appendChild(svgEl('line', {x1: L, x2: R, y1: yc, y2: yc, stroke: 'var(--ap-indoor)', 'stroke-opacity': 0.7, 'stroke-dasharray': '2 3', 'stroke-width': 1.4}));
-          var label = svgEl('text', {x: R - 3, y: Math.max(T + 10, yc - 4), 'text-anchor': 'end', class: 'halo'}, fmt(data.comfort, 1) + ' °C');
-          label.style.fill = 'var(--ap-indoor)';
-          svg.appendChild(label);
-        }
+        // Thermostat: a dotted line. Its value is in the legend, so no text sits on the chart.
+        if (typeof data.comfort === 'number')
+          svg.appendChild(svgEl('line', {x1: L, x2: R, y1: yi(data.comfort), y2: yi(data.comfort), stroke: 'var(--ap-indoor)', 'stroke-opacity': 0.8,
+            'stroke-dasharray': '2 3', 'stroke-width': 1.4}));
 
-        // Indoor: measured up to now, expected after.
-        function path(from, to) {
-          var d = '', pen = false;
+        // Indoor: measured up to now, expected after, both smooth.
+        function curve(from, to) {
+          var pts = [];
           for (var k = from; k < to; k++) {
             var v = data.slots[k] && data.slots[k].indoor;
-            if (typeof v !== 'number') { pen = false; continue; }
-            d += (pen ? 'L' : 'M') + (x(k) + step / 2).toFixed(1) + ' ' + yi(v).toFixed(1); pen = true;
+            if (typeof v === 'number') pts.push([x(k) + step / 2, yi(v)]);
           }
-          return d;
+          return monotone(pts);
         }
-        var past = path(0, data.now), ahead = path(data.now - 1, n);
-        if (past) svg.appendChild(svgEl('path', {d: past, fill: 'none', stroke: 'var(--ap-indoor)', 'stroke-width': 2, 'stroke-linejoin': 'round'}));
-        if (ahead) svg.appendChild(svgEl('path', {d: ahead, fill: 'none', stroke: 'var(--ap-indoor)', 'stroke-width': 1.8, 'stroke-dasharray': '4 3'}));
+        var past = curve(0, data.now), ahead = curve(data.now - 1, n);
+        if (past) svg.appendChild(svgEl('path', {d: past, fill: 'none', stroke: 'var(--ap-indoor)', 'stroke-width': 2.2, 'stroke-linecap': 'round'}));
+        if (ahead) svg.appendChild(svgEl('path', {d: ahead, fill: 'none', stroke: 'var(--ap-indoor)', 'stroke-width': 2, 'stroke-dasharray': '4 4', 'stroke-linecap': 'round'}));
 
-        svg.appendChild(svgEl('line', {x1: x(data.now), x2: x(data.now), y1: T, y2: B, stroke: 'currentColor', 'stroke-opacity': 0.4}));
-        dayBreak(svg, data, x, T, B, W, L, R);
-        bottomRow(svg, data.ticks.map(function (t) { return {x: x(t.at), label: t.label}; }), H - 6, W, data.axes);
+        svg.appendChild(svgEl('line', {x1: x(data.now), x2: x(data.now), y1: TOP - 8, y2: B, stroke: 'currentColor', 'stroke-opacity': 0.4}));
+        header(svg, data, x, W, L, R, B);
+        hours(svg, data.ticks.map(function (t) { return {x: x(t.at), label: t.label}; }), H - 6);
         return svg;
       }
 
-      // Hot water: the price (left axis) as a soft step area, the expected solar surplus (right axis,
-      // kW) as a gold area, and each planned charge as a labelled band under the chart, split into the
-      // part the surplus covers and the part bought from the grid.
+      var clips = 0;
+      // Hot water: the price as a smooth curve over a soft fade (left axis), the expected solar surplus
+      // as a light warm area (right axis, kW), and each planned charge as a real band on the time axis
+      // from its start to its end, split inside into the solar part (solid warm) and the grid part (blue).
       function hotwaterChart(data) {
-        var W = chartWidth(), L = 34, R = W - (data.scale.right ? 34 : 6), T = 16, PH = Math.max(100, Math.min(150, Math.round(W * 0.33))), B = T + PH;
-        var bands = data.bands || [], H = B + (bands.length ? 50 : 14) + 20;
+        var W = chartWidth(), L = 34, R = W - (data.scale.right ? 34 : 6), PH = Math.max(100, Math.min(150, Math.round(W * 0.33))), B = TOP + PH;
+        var bands = data.bands || [], tickY = bands.length ? B + 56 : B + 18, H = tickY + 6;
         var n = data.slots.length, step = (R - L) / n;
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'ap-chart', role: 'img'});
         var left = data.scale.left, right = data.scale.right;
         var yp = function (v) { return B - PH * (v - left.lo) / (left.hi - left.lo); };
         var ys = function (v) { return B - PH * (v - right.lo) / (right.hi - right.lo); };
         var x = function (k) { return L + k * step; };
+        var fade = 'apfade' + (++clips);
+        svg.appendChild(svgEl('defs', {})).innerHTML = '<linearGradient id="' + fade + '" x1="0" y1="0" x2="0" y2="1">'
+          + '<stop offset="0" stop-color="var(--ap-price-top)"/><stop offset="1" stop-color="var(--ap-price-top)" stop-opacity="0"/></linearGradient>';
         left.ticks.forEach(function (v) {
           svg.appendChild(svgEl('line', {x1: L, x2: R, y1: yp(v), y2: yp(v), stroke: 'currentColor', 'stroke-opacity': 0.1}));
           svg.appendChild(svgEl('text', {x: L - 5, y: yp(v) + 4, 'text-anchor': 'end'}, fmt(v, left.decimals)));
@@ -174,42 +207,36 @@
         if (right) right.ticks.forEach(function (v) {
           svg.appendChild(svgEl('text', {x: R + 5, y: ys(v) + 4}, fmt(v, right.decimals)));
         });
-        // Price: a step area, each run of known prices closed down to the floor at its own ends, so the
-        // hours past the last known price stay empty.
-        var d = '', area = '', pen = false, start = 0;
-        data.slots.forEach(function (s, k) {
-          var known = typeof s.price === 'number';
-          if (!known && pen) area += 'L' + x(k).toFixed(1) + ' ' + B + 'L' + x(start).toFixed(1) + ' ' + B + 'Z';
-          if (!known) { pen = false; return; }
-          var seg = x(k).toFixed(1) + ' ' + yp(s.price).toFixed(1) + 'L' + x(k + 1).toFixed(1) + ' ' + yp(s.price).toFixed(1);
-          if (!pen) start = k;
-          d += (pen ? 'L' : 'M') + seg;
-          area += (pen ? 'L' : 'M') + seg;
-          pen = true;
-        });
-        if (pen) area += 'L' + x(n).toFixed(1) + ' ' + B + 'L' + x(start).toFixed(1) + ' ' + B + 'Z';
-        if (d) {
-          svg.appendChild(svgEl('path', {d: area, fill: 'var(--ap-price)', 'fill-opacity': 0.5}));
-          svg.appendChild(svgEl('path', {d: d, fill: 'none', stroke: 'var(--ap-price-line)', 'stroke-width': 1.2}));
-        }
+        // Surplus first, so the price curve and the bands sit on top of it.
         if (right) {
-          var a = 'M' + L + ' ' + B;
-          data.slots.forEach(function (s, k) { a += 'L' + (x(k) + step / 2).toFixed(1) + ' ' + ys(s.surplus || 0).toFixed(1); });
-          svg.appendChild(svgEl('path', {d: a + 'L' + R + ' ' + B + 'Z', fill: 'var(--ap-solar)', 'fill-opacity': 0.35, stroke: 'var(--ap-solar)', 'stroke-width': 1.4}));
+          var pts = data.slots.map(function (s, k) { return [x(k) + step / 2, ys(s.surplus || 0)]; });
+          svg.appendChild(svgEl('path', {d: monotone(pts) + 'L' + pts[pts.length - 1][0].toFixed(1) + ' ' + B + 'L' + pts[0][0].toFixed(1) + ' ' + B + 'Z', fill: 'var(--ap-surplus)'}));
         }
-        dayBreak(svg, data, x, T, B, W, L, R);
-        // Charge bands: solar part first, then grid part, each with its time range underneath.
-        var edge = L;
-        bands.forEach(function (b) {
-          var bx = x(b.from), bw = Math.max(x(b.to) - bx, 3), by = B + 8, bh = 12, sw = bw * b.solar;
-          if (sw > 0) svg.appendChild(svgEl('rect', {x: bx, y: by, width: sw, height: bh, rx: 2, fill: 'var(--ap-solar)'}));
-          if (bw - sw > 0) svg.appendChild(svgEl('rect', {x: bx + sw, y: by, width: bw - sw, height: bh, rx: 2, fill: 'var(--ap-grid)'}));
-          var half = b.label.length * 3.2, cx = Math.min(R - half, Math.max(L + half, bx + bw / 2));
-          if (cx - half < edge) return;
-          svg.appendChild(svgEl('text', {x: cx, y: by + bh + 14, 'text-anchor': 'middle'}, b.label));
-          edge = cx + half + 8;
+        // Price: each run of known prices is a smooth curve with a soft fade under it. Hours with no known
+        // price stay empty.
+        runs(data.slots, function (s) { return s.price; }).forEach(function (r) {
+          var p = [];
+          for (var k = r[0]; k <= r[1]; k++) p.push([x(k) + step / 2, yp(data.slots[k].price)]);
+          var line = monotone(p);
+          svg.appendChild(svgEl('path', {d: line + 'L' + p[p.length - 1][0].toFixed(1) + ' ' + B + 'L' + p[0][0].toFixed(1) + ' ' + B + 'Z', fill: 'url(#' + fade + ')'}));
+          svg.appendChild(svgEl('path', {d: line, fill: 'none', stroke: 'var(--ap-price-line)', 'stroke-width': 2, 'stroke-linecap': 'round'}));
         });
-        bottomRow(svg, data.ticks.map(function (t) { return {x: x(t.at), label: t.label}; }), H - 6, W, data.axes);
+        // Charge bands: a rounded band from start to end, 14 px tall, with its time range under it.
+        var edge = L - 100;
+        bands.forEach(function (b) {
+          var bx = x(b.from), bw = Math.max(x(b.to) - bx, 6), by = B + 10, bh = 14, sw = bw * b.solar, id = 'apclip' + (++clips);
+          svg.appendChild(svgEl('defs', {})).innerHTML = '<clipPath id="' + id + '"><rect x="' + bx + '" y="' + by + '" width="' + bw + '" height="' + bh + '" rx="5"/></clipPath>';
+          var g = svgEl('g', {'clip-path': 'url(#' + id + ')'});
+          g.appendChild(svgEl('rect', {x: bx, y: by, width: bw, height: bh, fill: 'var(--ap-grid)'}));
+          if (sw > 0) g.appendChild(svgEl('rect', {x: bx, y: by, width: sw, height: bh, fill: 'var(--ap-solar)'}));
+          svg.appendChild(g);
+          var half = b.label.length * 3.1, cx = Math.min(R - half, Math.max(L + half, bx + bw / 2));
+          if (cx - half < edge + 8) return;
+          svg.appendChild(svgEl('text', {x: cx, y: by + bh + 14, 'text-anchor': 'middle'}, b.label));
+          edge = cx + half;
+        });
+        header(svg, data, x, W, L, R, B);
+        hours(svg, data.ticks.map(function (t) { return {x: x(t.at), label: t.label}; }), tickY);
         return svg;
       }
 
@@ -217,8 +244,8 @@
         var box = el('div', 'ap-legend');
         items.forEach(function (i) {
           if (!i.text) return;
-          var item = el('span'); var key = el('span', 'ap-key' + (i.box ? ' box' : ''));
-          key.style.background = i.color;
+          var item = el('span'); var key = el('span', 'ap-key' + (i.line ? ' line' : ''));
+          key.style.cssText = i.style;
           item.appendChild(key); item.appendChild(document.createTextNode(i.text)); box.appendChild(item);
         });
         return box;
@@ -249,19 +276,21 @@
           root.appendChild(status);
         }
         if (data.reason) root.appendChild(el('p', 'ap-reason homey-text-small', data.reason));
+        if (data.detail) root.appendChild(el('p', 'ap-reason homey-text-small ap-detail', data.detail));
         if (data.kind === 'heating' && data.slots.length) {
           root.appendChild(heatingChart(data));
           root.appendChild(legend([
-            {text: data.legend.indoor, color: 'var(--ap-indoor)'},
-            {text: data.legend.planned, color: 'repeating-linear-gradient(90deg, var(--ap-indoor) 0 4px, transparent 4px 7px)'},
-            {text: data.legend.comfort, color: 'repeating-linear-gradient(90deg, var(--ap-indoor) 0 2px, transparent 2px 4px)'},
-            {text: data.legend.offset, color: 'var(--ap-offset)', box: true},
+            {text: data.legend.indoor, line: true, style: 'background: var(--ap-indoor);'},
+            {text: data.legend.planned, line: true, style: 'background: repeating-linear-gradient(90deg, var(--ap-indoor) 0 4px, transparent 4px 7px);'},
+            {text: data.legend.comfort, line: true, style: 'background: repeating-linear-gradient(90deg, var(--ap-indoor) 0 2px, transparent 2px 4px);'},
+            {text: data.legend.offset, style: 'background: var(--ap-offset);'},
           ]));
         } else if (data.kind === 'hotwater' && data.slots.length) {
           root.appendChild(hotwaterChart(data));
-          root.appendChild(legend([{text: data.legend.price, color: 'var(--ap-price)', box: true},
-            {text: data.legend.surplus, color: 'var(--ap-solar)', box: true},
-            {text: data.legend.solar, color: 'var(--ap-solar)', box: true}, {text: data.legend.grid, color: 'var(--ap-grid)', box: true}]));
+          root.appendChild(legend([
+            {text: data.legend.price, style: 'border-top: 2px solid var(--ap-price-line); background: linear-gradient(to bottom, var(--ap-price-top), transparent);'},
+            {text: data.legend.surplus, style: 'background: var(--ap-surplus);'},
+            {text: data.legend.solar, style: 'background: var(--ap-solar);'}, {text: data.legend.grid, style: 'background: var(--ap-grid);'}]));
         }
         if (data.hint) root.appendChild(el('p', 'ap-foot', data.hint));
         if (data.footnote) root.appendChild(el('p', 'ap-foot', data.footnote));
