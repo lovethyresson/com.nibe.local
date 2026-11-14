@@ -91,6 +91,14 @@ export function fitSurplus(ghi: Map<number, number>, exported: Map<number, numbe
     return {a, b: my - a * mx, hours: n};
 }
 
+/** Whether the forecast has sun at `ms`: only then is live export the sun's. With none, export is a
+ *  battery selling, and it is not surplus. Needs only the grid meter and the weather already
+ *  fetched, no battery or inverter device (maintainer, 2026-11-14). */
+export function sunNow(ghi: Map<number, number>, ms: number): boolean {
+    const g = ghi.get(Math.floor(ms / HOUR) * HOUR);
+    return g !== undefined && g >= SUNNY_GHI;
+}
+
 /** Expected export per slot, kW: the hour's forecast sun through the fit; 0 where there is no sun
  *  forecast or no fit. */
 export function surplusForecast(fit: SurplusFit | undefined, ghi: Map<number, number>, slotStarts: number[]): number[] {

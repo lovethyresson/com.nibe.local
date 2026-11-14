@@ -281,9 +281,10 @@ use come first and the tank only gets what would have been sold:
   else; what the inverter makes is not looked at (maintainer, 2026-11-14: a battery, the house or
   a car can take all of it, and then there is no surplus, as on 14 Nov with 3.4 kW of sun all going
   into the battery). The grid meter is the one device every owner with surplus has, so nothing
-  else is read. Known limit: a battery that sells, or covers our charge to hold its own grid
-  target, shows as export and is taken for surplus (14 Nov 10:14: 1.3 kW exported, 1.0 kW of it
-  the battery's). The mean of the last 10 minutes (8 readings at least) is the expected surplus
+  else is read. Live export counts only in an hour the forecast has sun (≥ 50 W/m², the weather
+  already fetched for the plan): at night it is a battery selling. Known limit: by day, a battery
+  that sells, or covers our charge to hold its own grid target, still shows as export and is taken
+  for surplus (14 Nov 10:14: 1.3 kW exported, 1.0 kW of it the battery's). The mean of the last 10 minutes (8 readings at least) is the expected surplus
   for the next half hour.
 - **Planned:** every 3 h, the grid meter's hourly export over the last 14 days (Insights) is
   fitted by least squares against Open-Meteo's sun on the ground for the same hours

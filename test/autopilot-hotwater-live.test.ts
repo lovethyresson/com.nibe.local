@@ -6,7 +6,7 @@ import {dailyPlan, hotwaterShadowStep} from '../lib/autopilot/hotwater-shadow';
 import {slotOf} from '../lib/autopilot/prices';
 import {
     LIVE_MIN_READINGS, MIN_SUNNY_HOURS, SUNNY_GHI, fitSurplus, gridMeter, hourlyExport, hourlyGhi,
-    liveSurplusKw, liveSurplusW, surplusForecast,
+    liveSurplusKw, liveSurplusW, sunNow, surplusForecast,
 } from '../lib/autopilot/hotwater-surplus';
 import {BELOW_TARGET_K, DEMAND_LARGE, DEMAND_SMART, MAX_STARTS_PER_DAY, MAX_STOP_WRITES_PER_DAY, countFor, leverDecision} from '../lib/autopilot/hotwater-lever';
 import {dayTypeAt, readDayType, recordDayType} from '../lib/autopilot/day-type';
@@ -201,4 +201,12 @@ test('Away is a trip: a nightly working/free Flow does not end it, and Away off 
     assert.strictEqual(setAway(setAway(undefined, true, 1)!, false, 2)!.type, 'working', 'no type before Away: back to working');
     assert.deepStrictEqual(readDayType({type: 'away', log: [], base: 'free'})?.base, 'free');
     assert.strictEqual(readDayType({type: 'away', log: [], base: 'away'})?.base, undefined);
+});
+
+test('live export is the sun\'s only while the forecast has sun', () => {
+    const hour = Date.UTC(2026, 10, 14, 9);
+    const ghi = new Map([[hour, 180], [hour + 3_600_000, 0]]);
+    assert.ok(sunNow(ghi, hour + 20 * 60_000));
+    assert.ok(!sunNow(ghi, hour + 70 * 60_000), 'night: a battery selling');
+    assert.ok(!sunNow(ghi, hour + 3 * 3_600_000), 'no forecast for the hour');
 });

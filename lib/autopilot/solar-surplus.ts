@@ -6,7 +6,7 @@
 import {withApi} from '../indoor-sensors';
 import {SLOT_MS} from './prices';
 import {LIVE_WINDOW, SurplusFit, fitSurplus, gridMeter, hourlyExport, hourlyGhi, irradianceUrl, liveSurplusKw,
-    liveSurplusW, surplusForecast} from './hotwater-surplus';
+    liveSurplusW, sunNow, surplusForecast} from './hotwater-surplus';
 import {getJson, LOCATION_SETTING} from './collector';
 import {weatherLocation} from './weather';
 
@@ -87,7 +87,8 @@ export class SolarSurplus {
     /** Expected export per slot from `slot`, kW: live for the next half hour, the forecast after. */
     forecast(slot: number): Map<number, number> | undefined {
         if (!this.ready) return undefined;
-        const live = liveSurplusKw(this.live, Date.now());
+        // Live export counts only while the forecast has sun: at night it is a battery selling.
+        const live = sunNow(this.ghi, Date.now()) ? liveSurplusKw(this.live, Date.now()) : 0;
         const ahead = Array.from({length: AHEAD_SLOTS}, (_, j) => slot + j);
         const forecast = surplusForecast(this.fit, this.ghi, ahead.map((k) => k * SLOT_MS));
         return new Map(ahead.map((k, j) => [k, j < LIVE_SLOTS && live !== undefined ? live : forecast[j]]));
