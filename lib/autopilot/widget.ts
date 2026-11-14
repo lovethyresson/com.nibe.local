@@ -1,15 +1,11 @@
 /** The Autopilot dashboard widget's data (widgets/autopilot): what one function's Autopilot is
- *  doing and, for heating, indoor temperature against the BT1 offset from 12 h back to 12 h ahead:
+ *  doing and, for heating, indoor temperature against the BT1 offset over today, 00:00 to 24:00:
  *  measured behind "now", the plan's expectation after it. Pure; the device gathers the inputs and
  *  the widget only draws. Strings arrive translated, so the widget needs no locales. */
 import {FeedSnapshot} from './live';
 
 export type Translate = (key: string, tokens?: Record<string, string | number>) => string;
 
-/** Heating: 12 h back, 12 h ahead. Hot water: 24 h ahead. */
-export const BACK_SLOTS = 48;
-export const AHEAD_SLOTS = 48;
-export const HOTWATER_SLOTS = 96;
 
 /** One 15-min slot. Heating: indoor °C and the BT1 offset (fed − real, K; below 0 the pump sees
  *  it colder and heats more). Hot water: the price, the expected solar surplus (kW), and, where a
@@ -59,8 +55,6 @@ export interface WidgetData {
     scale?: {left?: Axis; right?: Axis};
     /** Planned charges (hot water). */
     bands?: ChargeBand[];
-    /** Where the next local day starts, and its word ("Today", "Tomorrow"). */
-    dayBreak?: {at: number; label: string};
     /** One line under the chart on how to read it. */
     hint?: string;
     /** Heating: the shift as hourly bars. */
@@ -82,11 +76,21 @@ export interface WidgetData {
 
 /** Hour labels every `everyH` h, at their slot index from `start`, local time. */
 export function ticks(start: number, slots: number, clock: (ms: number) => string, everyH = 6): {at: number; label: string}[] {
+    // Stepped from the chart's start, which is local midnight: 00:00, 06:00, 12:00, 18:00.
     const out: {at: number; label: string}[] = [];
-    const hour = 3_600_000;
-    for (let at = Math.ceil(start / (everyH * hour)) * everyH * hour; at < start + slots * 15 * 60_000; at += everyH * hour)
-        out.push({at: (at - start) / (15 * 60_000), label: clock(at)});
+    for (let k = 0; k < slots; k += everyH * 4) out.push({at: k, label: clock(start + k * 15 * 60_000)});
     return out;
+}
+
+/** Today in local time as slots: its first slot and how many it has (96, or 92/100 on the day the
+ *  clocks change). Both widget charts show exactly this day. */
+export function todaySlots(slot: number, dayOf: (ms: number) => string, slotMs = 15 * 60_000): {from: number; n: number} {
+    const today = dayOf(slot * slotMs);
+    let from = slot;
+    while (from > slot - 104 && dayOf((from - 1) * slotMs) === today) from--;
+    let to = slot + 1;
+    while (to < from + 104 && dayOf(to * slotMs) === today) to++;
+    return {from, n: to - from};
 }
 
 const tenth = (v: number) => Math.round(v * 10) / 10 + 0;
@@ -94,7 +98,7 @@ const tenth = (v: number) => Math.round(v * 10) / 10 + 0;
 /** The heating chart: the recorded past up to `slot`, then the feed's plan from `slot` on (the plan
  *  was made at its own slot, so it is read from where now is). */
 export function heatingSlots(past: {indoor?: number; offset?: number}[], state: FeedSnapshot | undefined, slot: number,
-    ahead = AHEAD_SLOTS): WidgetSlot[] {
+    ahead: number): WidgetSlot[] {
     const back = past.map((p) => ({indoor: p.indoor === undefined ? undefined : tenth(p.indoor),
         offset: p.offset === undefined ? undefined : tenth(p.offset)}));
     const from = state?.slot === undefined ? undefined : slot - state.slot;
@@ -139,13 +143,6 @@ export function formatDuration(minutes: number, say: (key: 'duration' | 'duratio
     const m = Math.round(minutes);
     if (m < 60) return say('duration_min', {m});
     return m % 60 ? say('duration', {h: Math.floor(m / 60), m: m % 60}) : say('duration_h', {h: m / 60});
-}
-
-/** The first slot, after the first, that starts a new local day: the chart's midnight. */
-export function dayBreakSlot(start: number, slots: number, dayOf: (ms: number) => string, slotMs = 15 * 60_000): number | undefined {
-    for (let k = 1; k < slots; k++)
-        if (dayOf(start + k * slotMs) !== dayOf(start + (k - 1) * slotMs)) return k;
-    return undefined;
 }
 
 /** Runs of consecutive planned-charge slots, each labelled from its first slot's start to its last

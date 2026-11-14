@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {chargeBands, dayBreakSlot, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks} from '../lib/autopilot/widget';
+import {chargeBands, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks, todaySlots} from '../lib/autopilot/widget';
 import {dayKind, hotwaterWeek} from '../lib/autopilot/hotwater-use';
 import {KWH_PER_LITRE, learn, localClock, TankPoint} from '../lib/autopilot/hotwater-learner';
 
@@ -17,12 +17,11 @@ test('the heating chart is the recorded past, then the plan read from now; offse
         'Comfort range Off: 0 ahead');
 });
 
-test('hour ticks every 6 h, at their slot', () => {
-    const hour = 3_600_000;
-    const start = 1000 * 24 * hour + 5 * hour; // 05:00 UTC
+test('hour ticks every 6 h from the chart\'s midnight', () => {
+    const start = Date.parse('2026-11-14T00:00:00Z');
     const marks = ticks(start, 96, (ms) => String(new Date(ms).getUTCHours()));
-    assert.deepEqual(marks.map((m) => m.label), ['6', '12', '18', '0']);
-    assert.equal(marks[0].at, 4, '06:00 is four slots after 05:00');
+    assert.deepEqual(marks.map((m) => m.label), ['0', '6', '12', '18']);
+    assert.deepEqual(marks.map((m) => m.at), [0, 24, 48, 72]);
 });
 
 // 2026-11-13 is a Friday.
@@ -113,14 +112,22 @@ test('durations are hours and minutes, as in the timeline', () => {
     assert.equal(formatDuration(59.6, say), 'duration_h:1', 'rounded first');
 });
 
-test('the chart finds midnight, in the owner\'s time zone', () => {
-    const hour = 3_600_000;
-    const start = Date.parse('2026-11-14T16:00:00Z');
-    const dayOf = (ms: number) => new Date(ms).toISOString().slice(0, 10);
-    assert.equal(dayBreakSlot(start, 96, dayOf), 32, '16:00 to 00:00 is eight hours, 32 slots');
-    assert.equal(dayBreakSlot(start, 20, dayOf), undefined, 'no midnight in the window');
-    const plus1 = (ms: number) => dayOf(ms + hour);
-    assert.equal(dayBreakSlot(start, 96, plus1), 28, 'a zone an hour ahead reaches midnight an hour sooner');
+test('the charts show today, local midnight to midnight', () => {
+    const slotMs = 15 * 60_000;
+    const slot = Date.parse('2026-11-14T16:10:00Z') / slotMs | 0;
+    const utc = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+    const day = todaySlots(slot, utc);
+    assert.equal(day.n, 96);
+    assert.equal(new Date(day.from * slotMs).toISOString(), '2026-11-14T00:00:00.000Z');
+    // An hour ahead of UTC: the day starts an hour earlier in UTC terms.
+    const plus1 = (ms: number) => utc(ms + 3_600_000);
+    assert.equal(new Date(todaySlots(slot, plus1).from * slotMs).toISOString(), '2026-11-13T23:00:00.000Z');
+    // The day the clocks go forward in Stockholm has 23 hours.
+    const sthlm = (ms: number) => new Date(ms).toLocaleDateString('sv-SE', {timeZone: 'Europe/Stockholm'});
+    const spring = Date.parse('2026-03-29T12:00:00Z') / slotMs | 0;
+    assert.equal(todaySlots(spring, sthlm).n, 92);
+    const autumn = Date.parse('2026-10-25T12:00:00Z') / slotMs | 0;
+    assert.equal(todaySlots(autumn, sthlm).n, 100);
 });
 
 test('a planned charge is one labelled band, with the share the sun covers', () => {

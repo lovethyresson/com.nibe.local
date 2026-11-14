@@ -109,17 +109,12 @@
         return out;
       }
 
-      // The top of a chart is a header band with two rows: the axis titles (small, muted) above their
-      // axes, and under them the word for the next day. Nothing in it sits on a bar or a line.
-      var TOP = 40;
+      // The top of a chart is a header band: the axis titles, small and muted, above their axes.
+      // Both charts show today, so no day word is needed.
+      var TOP = 28;
       function header(svg, data, x, W, L, R, B) {
         if (data.axes && data.axes.left) svg.appendChild(svgEl('text', {x: 0, y: 11, class: 'axis-title'}, data.axes.left));
         if (data.axes && data.axes.right) svg.appendChild(svgEl('text', {x: W, y: 11, class: 'axis-title', 'text-anchor': 'end'}, data.axes.right));
-        if (!data.dayBreak) return;
-        var bx = x(data.dayBreak.at);
-        svg.appendChild(svgEl('line', {x1: bx, x2: bx, y1: TOP - 8, y2: B, stroke: 'currentColor', 'stroke-opacity': 0.3, 'stroke-dasharray': '2 3'}));
-        var room = R - bx > data.dayBreak.label.length * 6.4 + 8;
-        svg.appendChild(svgEl('text', {x: room ? bx + 5 : bx - 5, y: TOP - 12, 'text-anchor': room ? 'start' : 'end'}, data.dayBreak.label));
       }
 
       // The hours under a chart. An hour never touches its neighbour: text is about 6.2 px a character.
@@ -216,6 +211,9 @@
           svg.appendChild(svgEl('path', {d: line + 'L' + p[p.length - 1][0].toFixed(1) + ' ' + B + 'L' + p[0][0].toFixed(1) + ' ' + B + 'Z', fill: 'url(#' + fade + ')'}));
           svg.appendChild(svgEl('path', {d: line, fill: 'none', stroke: 'var(--ap-price-line)', 'stroke-width': 2, 'stroke-linecap': 'round'}));
         });
+        // Now: the same thin line as the heating chart. Prices and charges before it are today's past.
+        if (typeof data.now === 'number')
+          svg.appendChild(svgEl('line', {x1: x(data.now), x2: x(data.now), y1: TOP - 8, y2: B, stroke: 'currentColor', 'stroke-opacity': 0.4}));
         // Charge bands: a rounded band from start to end, 14 px tall, with its time range under it.
         var edge = L - 100;
         bands.forEach(function (b) {

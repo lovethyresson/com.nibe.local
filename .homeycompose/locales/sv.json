@@ -373,8 +373,6 @@
       "axis_price": "Pris per kWh",
       "axis_surplus": "Överskott kW",
       "experimental": "Experimentell",
-      "tomorrow": "I morgon",
-      "today": "I dag",
       "learning_day": "Dag __day__ av __of__",
       "paused": {
         "no_outdoor": "Autopilot har ingen utetemperatur. Välj en givare i Smart läge eller använd prognosen.",

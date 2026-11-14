@@ -373,8 +373,6 @@
       "axis_price": "Prijs per kWh",
       "axis_surplus": "Overschot kW",
       "experimental": "Experimenteel",
-      "tomorrow": "Morgen",
-      "today": "Vandaag",
       "learning_day": "Dag __day__ van __of__",
       "paused": {
         "no_outdoor": "Autopilot heeft geen buitentemperatuur. Kies een sensor in Slimme modus of gebruik de weersverwachting.",
