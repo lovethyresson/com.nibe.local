@@ -353,44 +353,45 @@ test('while hot water has the compressor the house gets nothing, and the pump ca
     assert.deepEqual(withHotwater(forecast().slice(0, 2), [false, true]).map((s) => !!s.busy), [false, true]);
 });
 
-// A flat price: the planner shifts nothing, so what is fed is the setpoint trim alone.
+// A flat price, so the plan is about the thermostat, not the price. The house sits at 21.5 °C.
 const flat = (): ShiftInput => input({curve: 3, forecast: Array.from({length: 96}, () => ({te: 3, sun: 0, price: 1}))});
 
-test('Autopilot steers the house to the thermostat setpoint, not to where it happens to sit', async () => {
-    // The house sits at 21.5 °C (its 24 h mean); the thermostat says 20.5. Gain 2 K of BT1 per K.
+test('Autopilot plans around the thermostat: a house below it is pre-heated, and Expected climbs to it', async () => {
+    const {feed, state} = harness({plan: flat(), setpoint: 22.5});
+    feed.start();
+    await feed.cycle();
+    assert.ok(feed.state.bias > 0, 'pre-heats: fed colder than the real outdoor temperature');
+    assert.ok(state.writes[0] < 3);
+    const indoor = feed.state.indoor!;
+    assert.ok(indoor[indoor.length - 1] > 22.3, 'the expected path reaches the thermostat within the plan');
+    assert.equal(feed.state.setpoint, 22.5);
+    assert.equal(state.records[0].setpoint, 22.5, 'the shadow log carries the setpoint');
+});
+
+test('a house above the thermostat is eased off toward it', async () => {
     const {feed, state} = harness({plan: flat(), setpoint: 20.5});
     feed.start();
     await feed.cycle();
-    assert.equal(feed.state.trim, -2, 'one K too warm: ease off by the model\'s 2 K');
-    assert.equal(feed.state.setpoint, 20.5);
-    assert.equal(state.writes[0], 5, 'fed 2 K warmer than the real 3 °C, so the pump heats less');
-    assert.equal(state.records[0].trim, -2, 'the shadow log carries the trim');
+    assert.ok(feed.state.bias < 0 && state.writes[0] > 3, 'fed warmer, so the pump heats less');
 });
 
-test('a colder house than the setpoint is fed colder, and the integral keeps closing the gap while live', async () => {
-    const {feed, state, advance} = harness({plan: flat(), setpoint: 22.5});
-    feed.start();
-    await feed.cycle();
-    assert.equal(feed.state.trim, 2);
-    assert.equal(state.writes[0], 1);
-    for (let i = 0; i < 8; i++) { advance(SLOT_MS); await feed.cycle(); }
-    assert.ok(state.trim.integral > 0, 'two hours of a 1 K error add to the integral');
-    assert.ok(state.saves > 0, 'and it is kept across restarts');
+test('live, the trim learns the level the curve misses; Simulated holds it', async () => {
+    const live = harness({plan: flat(), setpoint: 22});
+    live.feed.start();
+    for (let i = 0; i < 8; i++) { live.advance(SLOT_MS); await live.feed.cycle(); }
+    assert.ok(live.state.trim.integral > 0, 'the house mean sits 0.5 K below the thermostat: it learns a pre-heat');
+    assert.ok(live.state.saves > 0, 'and it is kept across restarts');
+    const sim = harness({plan: flat(), setpoint: 22, mode: 'test'});
+    sim.feed.start();
+    for (let i = 0; i < 8; i++) { await sim.feed.cycle(); sim.advance(SLOT_MS); }
+    assert.equal(sim.state.trim.integral, 0);
+    assert.equal(sim.state.writes.length, 0, 'and nothing is written');
 });
 
-test('Simulation shows the trim but never winds the integral up against a pump it does not steer', async () => {
-    const {feed, state, advance} = harness({plan: flat(), setpoint: 22.5, mode: 'test'});
-    feed.start();
-    for (let i = 0; i < 8; i++) { await feed.cycle(); advance(SLOT_MS); }
-    assert.equal(feed.state.trim, 2, 'the proportional part is shown');
-    assert.equal(state.trim.integral, 0);
-    assert.equal(state.writes.length, 0, 'and nothing is written');
-});
-
-test('without a thermostat the level stays the curve\'s, as before', async () => {
+test('without a thermostat the plan centres on the house\'s own level, as before', async () => {
     const {feed, state} = harness({plan: flat()});
     feed.start();
     await feed.cycle();
-    assert.equal(feed.state.trim, undefined);
-    assert.equal(state.writes[0], 3);
+    assert.equal(feed.state.setpoint, undefined);
+    assert.equal(state.writes[0], 3, 'a flat price and a house at its level: nothing to shift');
 });

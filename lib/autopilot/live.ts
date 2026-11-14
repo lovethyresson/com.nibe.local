@@ -5,7 +5,9 @@
  *  Why shift-only first: the comfort bias (trim.ts) rests on the house model's steady level,
  *  which the +6 run has not confirmed (tasks/todo.md, 2026-11-11). Price shifting does not: with
  *  `pump = {lever}` the planner takes the curve as holding the temperature and only plans the
- *  shift (planner.ts `pumpHeat`), and comfort is the house's own 24 h mean, not the setpoint.
+ *  shift (planner.ts `pumpHeat`). Comfort is the thermostat (since 2026-11-14; the house's own 24 h
+ *  mean without one): the band is setpoint ± range, and a learned trim (setpoint.ts) makes "no
+ *  shift" really hold it.
  *
  *  Switched by heating's Smart mode (smart-mode.ts): `test` plans and reports without writing,
  *  `autopilot` feeds. Design: docs/autopilot-plan.md §4.1, §7.2, §7.6, §10.0. */
@@ -462,8 +464,10 @@ export class HeatingFeed {
         this.slotBias = this.bias;
         // `input.curve` is the curve's view of what the pump saw (history `bt1`), our feed included.
         this.steer(slot, input!);
-        // The planner plans the shift alone, around the house's level: the trim is under it.
-        const plan = planLive({...input!, bias: this.bias - this.trim, previous: this.previous}, this.limits, this.hooks.sunTrust());
+        // The planner aims at the thermostat (setpoint.ts): its band is setpoint ± range and its
+        // expected path heads there. It plans the shift; the learned trim is under it.
+        const plan = planLive({...input!, mean: this.setpoint ?? input!.mean, bias: this.bias - this.trim, previous: this.previous},
+            this.limits, this.hooks.sunTrust());
         this.target = plan.biases[0];
         this.previous = plan.biases.slice(1);
         this.plan = {slot, biases: plan.biases, forecast: input!.forecast, reason: plan.reason, indoor: plan.plan.ti};
@@ -473,18 +477,16 @@ export class HeatingFeed {
         return undefined;
     }
 
-    /** Move the setpoint trim for this slot. Live integrates; Simulation holds the integral and
-     *  shows what the proportional part would add. At most an hour counts, so a restart or a pause
-     *  does not land as one big step. */
+    /** Move the learned trim for this slot. Live learns; Simulated holds it. At most an hour
+     *  counts, so a restart or a pause does not land as one big step. */
     private steer(slot: number, input: ShiftInput) {
         const setpoint = this.hooks.setpoint?.();
         this.setpoint = setpoint !== undefined && Number.isFinite(setpoint) ? setpoint : undefined;
         if (this.setpoint === undefined) { this.trim = 0; return; }
         this.trimState ??= this.hooks.loadTrim?.() ?? {integral: 0};
         const hours = this.trimSlot === undefined ? 0 : Math.min(1, Math.max(0, (slot - this.trimSlot) * 0.25));
-        const next = nextTrim(this.trimState, {setpoint: this.setpoint, mean: input.mean, ti: input.ti,
-            band: Math.max(this.limits.lower, this.limits.upper), heatLoss: input.house.heatLoss,
-            lever: input.lever, hours, integrate: this.hooks.mode() === 'live'});
+        const next = nextTrim(this.trimState, {setpoint: this.setpoint, mean: input.mean, hours,
+            integrate: this.hooks.mode() === 'live'});
         this.trimSlot = slot;
         this.trim = Math.round(next.trim * 10) / 10;
         if (next.state.integral !== this.trimState.integral) {

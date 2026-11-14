@@ -918,35 +918,28 @@ Runs every 15 min and on new prices or weather. Horizon: 24–36 h of slots.
      - Both the supply model and the meter run ~0.4 K cold over 24 h on that run (the house model,
        not the pump), so a correction on measured indoor is still needed: the integral, in M3,
        where there is a loop to close.
-   - **Setpoint trim, closed loop (built 2026-11-14, `lib/autopilot/setpoint.ts`, 09f1322; not
-     yet run on hardware).** Shift-only live planned around the house's own 24 h mean and never
-     read the thermostat, so with room-sensor control off nothing steered the house to the
-     setpoint, and Away's lower setpoint did nothing. A slow trim now sits *under* the price
-     shift (`HeatingFeed.steer`, `live.ts`): fed bias = shift + trim, and the planner plans the
-     shift alone around the level the trim sets.
-     - **Why closed loop, not the comfort bias.** The model's gain is good, but its steady level
-       was ~1 K off on the S1155 (`tasks/todo.md`, 2026-11-11: equilibrium 22.9 °C predicted
-       against 21.9 measured), so a model-only trim (`trim.ts` `comfortBias`) would hold the
-       wrong temperature. A PI on measured indoor corrects whatever the model gets wrong.
-     - **P:** gain = heat loss / lever (K of BT1 per K indoors, ~2 on the S1155), clamped to
-       0.5–3 (`GAIN_RANGE`).
-     - **I:** `TRIM_KI` 0.02 K of trim per K·h of error (a 1 K error closes over ~4 days, slower
-       than the S1155's ~5 day time constant could overshoot). It moves only while live (in
-       Simulated the pump is not steered, so it would wind up against a house it cannot move)
-       and only within 1 K of the setpoint (`INTEGRATE_WITHIN`), so a jump such as Away and
-       back neither winds it up nor teaches it the transient. It stops where the total would
-       pass the clamp, and is kept across restarts (store `autopilotTrim`). At most an hour
-       counts per step.
-     - **Error:** setpoint − the 24 h indoor mean while indoor now is within the comfort range
-       (+0.5 K, `FAST_MARGIN`); the shift moves indoor inside the range on purpose and the mean
-       sees through it, so the trim does not fight the shift. Past that, setpoint − indoor now,
-       since the mean lags a setpoint jump by most of a day.
-     - **Clamp:** ±10 K (`TRIM_RANGE`); past that it is a model or sensor gone wrong, not a
-       house. The trim is never dropped as a pre-heat by the immersion rule (it is
-       `comfortBias` to `fedValue`), and is 0 while neutral (Comfort range Off).
-     - **Away is just another setpoint:** Away sets the thermostat to the Away temperature, and
-       the trim steers to whatever the thermostat says. The trim and setpoint are in each live
-       log entry and in the feed snapshot.
+   - **Planning around the thermostat (built 2026-11-14, 09f1322 then revised the same night;
+     `lib/autopilot/setpoint.ts`, `live.ts`).** Shift-only live planned around the house's own
+     24 h mean and never read the thermostat, so with room-sensor control off nothing steered the
+     house to the setpoint, and Away's lower setpoint did nothing.
+     - **The planner aims at the thermostat.** `planLive` gets the setpoint as its comfort
+       reference: the band is setpoint ± the comfort range, heat below the setpoint is owed, and
+       the expected indoor path (the widget's Expected) heads for the setpoint, timed by price. A
+       house 1 K below a 22.5 setpoint is pre-heated and reaches it within the 24 h plan; one
+       above eases off; one at it only shifts around peaks (probe, 2026-11-14). Without a
+       thermostat the reference stays the 24 h mean.
+     - **A learned trim makes "no shift" hold the setpoint.** The shift-only model assumes feeding
+       the real outdoor temperature holds the reference; a real house holds whatever the curve
+       gives (the model's steady level was ~1 K off on the S1155, `tasks/todo.md` 2026-11-11). The
+       trim is that difference, fed *under* the planner's shift (`comfortBias` to `fedValue`):
+       integral only, `TRIM_KI` 0.02 K per K·h on setpoint − 24 h mean, learning only while live
+       and within 1 K of the setpoint (a jump is the planner's to close), ±10 K, stored in
+       `autopilotTrim`, 0 while neutral.
+     - **First version (09f1322), replaced:** a proportional trim on top of a planner that still
+       aimed at the 24 h mean. It steered, but the planner's band and Expected curve ignored the
+       setpoint, so the owner saw the house expected to stay where it was while it was being
+       warmed (maintainer, 2026-11-14).
+     - **Away is just another setpoint**, with the widest range.
    - **The wired BT1 trails the real outdoor temperature** (S1155: the sensor through a ~5.5 h
      lag, +2.3 K). Shadow's doing nothing feeds that; the fed flag compares input 1 with it.
 2. **Price shift** (dynamic contract and model ready):
