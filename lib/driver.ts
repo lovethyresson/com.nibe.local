@@ -1,5 +1,6 @@
 import {averageSensors, cleanIndoorConfig, indoorInventory} from './indoor-sensors';
 import {OUTDOOR_SENSOR_SETTING} from './autopilot/collector';
+import {SOLAR_SETTING, SolarSurplus, scanSolar} from './autopilot/solar-surplus';
 import {Driver, FlowCard} from 'homey';
 import PairSession from "homey/lib/PairSession";
 import net from "net";
@@ -1224,6 +1225,14 @@ export abstract class NibePumpDriver extends Driver {
         });
         if (device.role === 'hotwater')
             session.setHandler('hotwater_household', async (data: any) => { await device.setHousehold(data ?? null); return true; });
+        // Solar is the home's, not the device's: asked in hot water's setup, read by every function.
+        session.setHandler('solar_scan', async () => scanSolar(this.homey));
+        session.setHandler('solar_save', async (data: any) => {
+            if (typeof data?.panels !== 'boolean') throw new Error('panels must be yes or no');
+            this.homey.settings.set(SOLAR_SETTING, {panels: data.panels, ...(typeof data.meter === 'string' ? {meter: data.meter} : {})});
+            SolarSurplus.refresh();
+            return true;
+        });
         if (device.role !== 'heating') return;
         session.setHandler('get_outdoor_sensors', async () => indoorInventory(this.homey));
         session.setHandler('set_outdoor_sensor', async (ref: any) => {

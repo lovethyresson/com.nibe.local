@@ -304,7 +304,23 @@
         "hw_free_morning": "Om morgenen",
         "hw_free_daytime": "I løbet af dagen",
         "hw_free_evening": "Om aftenen",
-        "household_invalid": "Vælg, hvor mange der bor der, og et badetidspunkt."
+        "household_invalid": "Vælg, hvor mange der bor der, og et badetidspunkt.",
+        "solar_intro": "Autopilot kan varme med din egen solstrøm.",
+        "solar_scanning": "Leder efter energimålere i dit hjem…",
+        "solar_meter": "Elmåler",
+        "solar_meter_none": "Ingen fundet i Homey Energi",
+        "solar_meter_pick": "Flere fundet. Vælg den, der måler hele hjemmet.",
+        "solar_panels": "Solceller",
+        "solar_panels_none": "Ingen fundet i Homey",
+        "solar_evidence": "De seneste uger sendte du op til __kw__ kW ud på nettet i solrige timer.",
+        "solar_evidence_plain": "Din måler sender strøm ud på nettet i solrige timer.",
+        "solar_use": "Varme med din egen solstrøm?",
+        "solar_have": "Har du solceller?",
+        "solar_yes": "Ja",
+        "solar_no": "Nej",
+        "solar_how": "Varmtvandet varmes med den, når det betaler sig. Nogle gange betaler det sig mere at sælge strømmen og varme i en billigere time.",
+        "solar_no_meter_found": "Vi fandt dine solceller, men ingen elmåler, der måler det, du sælger, som en P1-læser. Tilføj den i Homey Energi, og kom så tilbage hertil.",
+        "solar_need_meter": "Solvarme kræver en elmåler, der måler det, du sælger, som en P1-læser. Tilføj den i Homey Energi, og kom så tilbage hertil."
       }
     },
     "gateway": {

@@ -1454,27 +1454,6 @@
             "no": "Liter vann på 40 °C. 0 overlater det til enheten din.",
             "da": "Liter vand på 40 °C. 0 overlader det til din enhed."
           }
-        },
-        {
-          "id": "autopilotSolar",
-          "type": "checkbox",
-          "value": true,
-          "label": {
-            "en": "Use solar surplus",
-            "sv": "Använd solöverskott",
-            "de": "Solarüberschuss nutzen",
-            "nl": "Zonne-overschot gebruiken",
-            "no": "Bruk soloverskudd",
-            "da": "Brug solcelleoverskud"
-          },
-          "hint": {
-            "en": "Needs solar panels and a grid meter in Homey Energy.",
-            "sv": "Kräver solpaneler och en elmätare i Homey Energi.",
-            "de": "Erfordert Solarmodule und einen Netzzähler in Homey Energie.",
-            "nl": "Vereist zonnepanelen en een netmeter in Homey Energie.",
-            "no": "Krever solcellepaneler og en strømmåler i Homey Energi.",
-            "da": "Kræver solceller og en elmåler i Homey Energi."
-          }
         }
       ]
     },

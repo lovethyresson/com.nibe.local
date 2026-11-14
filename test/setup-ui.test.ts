@@ -207,10 +207,12 @@ test('Repair preselects the stored zone and saves a new pick; a single zone skip
 });
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
-async function hotwaterSmart(status: any) {
+const NO_SOLAR = {meters: [], meter: null, solar: [], followsSun: false, peakKw: null, panels: null};
+async function hotwaterSmart(status: any, scan: any = NO_SOLAR) {
     const f = fixture('repair', 'hotwater', 0, undefined, {context: {smart: true},
         results: {smart_status: {role: 'hotwater', mode: 'off', spa: true, spaOn: false, autopilot: true, tank: true,
-            starterDays: 14, household: null, ...status}, hotwater_household: true, smart_choose: true}});
+            starterDays: 14, household: null, ...status}, hotwater_household: true, smart_choose: true,
+            solar_scan: scan, solar_save: true}});
     f.click('Continue'); f.menu('Smart mode'); await tick();
     const test = f.win.document.querySelector('input[name="smart-choice"][value="test"]');
     test.checked = true; test.dispatchEvent(new f.win.Event('change'));
@@ -227,6 +229,7 @@ test('Autopilot hot water setup lists the Flows that switch More hot water, and 
     people.value = '4'; people.dispatchEvent(new f.win.Event('change'));
     const daytime = f.win.document.querySelector('input[name="hw-free"][value="daytime"]');
     daytime.checked = true; daytime.dispatchEvent(new f.win.Event('change'));
+    f.click('Continue'); await tick(); await tick();
     f.click(english.pair.setup.smart.start_test); await tick(); await tick();
     assert.equal(JSON.stringify(f.emitted.find((e) => e.name === 'hotwater_household')?.data), JSON.stringify({people: 4, morningHour: 7, freeDay: 'daytime'}));
     assert.equal(f.emitted.find((e) => e.name === 'smart_choose')?.data?.value, 'test');
@@ -237,8 +240,51 @@ test('a home with enough history is not asked about its household, and no Flows 
     const text = f.win.document.body.textContent;
     assert.ok(text.includes(english.pair.setup.smart.hw_flows_none));
     assert.ok(!text.includes(english.pair.setup.smart.hw_household));
+    f.click('Continue'); await tick(); await tick();
     f.click(english.pair.setup.smart.start_test); await tick(); await tick();
     assert.equal(f.emitted.some((e) => e.name === 'hotwater_household'), false);
     assert.equal(f.emitted.find((e) => e.name === 'smart_choose')?.data?.value, 'test');
+    f.dom.window.close();
+});
+
+test('the Solar step shows the meter and panels it found and asks to heat with them, on by default', async () => {
+    const f = await hotwaterSmart({flows: [], historyDays: 60}, {meters: [{id: 'p1', name: 'P1 Meter', w: -1200}], meter: 'p1',
+        solar: [{id: 'se', name: 'SolarEdge', w: 3400}], followsSun: true, peakKw: 2.4, panels: null});
+    f.click('Continue'); await tick(); await tick();
+    const text = f.win.document.body.textContent;
+    const s = english.pair.setup.smart;
+    assert.ok(text.includes('P1 Meter · 1.2 kW') && text.includes('SolarEdge · 3.4 kW'), text);
+    assert.ok(text.includes(s.solar_evidence.replace('__kw__', '2.4')));
+    assert.ok(text.includes(s.solar_use) && text.includes(s.solar_how));
+    f.click(s.start_test); await tick(); await tick();
+    assert.equal(JSON.stringify(f.emitted.find((e) => e.name === 'solar_save')?.data), JSON.stringify({panels: true, meter: 'p1'}));
+    f.dom.window.close();
+});
+
+test('with nothing found the Solar step asks, and a yes without a meter says what to add', async () => {
+    const f = await hotwaterSmart({flows: [], historyDays: 60});
+    f.click('Continue'); await tick(); await tick();
+    const s = english.pair.setup.smart;
+    let text = f.win.document.body.textContent;
+    assert.ok(text.includes(s.solar_have) && text.includes(s.solar_meter_none) && !text.includes(s.solar_need_meter));
+    const yes = f.win.document.querySelector('input[name="solar-answer"][value="yes"]');
+    yes.checked = true; yes.dispatchEvent(new f.win.Event('change'));
+    text = f.win.document.body.textContent;
+    assert.ok(text.includes(s.solar_need_meter));
+    f.click(s.start_test); await tick(); await tick();
+    assert.equal(JSON.stringify(f.emitted.find((e) => e.name === 'solar_save')?.data), JSON.stringify({panels: true}));
+    f.dom.window.close();
+});
+
+test('several grid meters: the owner picks the one for the whole home', async () => {
+    const f = await hotwaterSmart({flows: [], historyDays: 60}, {meters: [{id: 'a', name: 'Grid Sensor', w: 5869}, {id: 'b', name: 'Home', w: 5883}],
+        meter: 'a', solar: [], followsSun: false, peakKw: null, panels: false});
+    f.click('Continue'); await tick(); await tick();
+    const s = english.pair.setup.smart;
+    const pick = f.win.document.querySelector('select[aria-label="' + s.solar_meter + '"]');
+    assert.ok(pick && f.win.document.body.textContent.includes(s.solar_meter_pick));
+    pick.value = 'b'; pick.dispatchEvent(new f.win.Event('change'));
+    f.click(s.start_test); await tick(); await tick();
+    assert.equal(JSON.stringify(f.emitted.find((e) => e.name === 'solar_save')?.data), JSON.stringify({panels: false, meter: 'b'}), 'a saved no is kept');
     f.dom.window.close();
 });

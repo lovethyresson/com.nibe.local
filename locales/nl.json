@@ -304,7 +304,23 @@
         "hw_free_morning": "'s Ochtends",
         "hw_free_daytime": "Overdag",
         "hw_free_evening": "'s Avonds",
-        "household_invalid": "Kies hoeveel mensen er wonen en een douchetijd."
+        "household_invalid": "Kies hoeveel mensen er wonen en een douchetijd.",
+        "solar_intro": "Autopilot kan verwarmen met uw eigen zonnestroom.",
+        "solar_scanning": "Zoeken naar energiemeters in uw huis…",
+        "solar_meter": "Elektriciteitsmeter",
+        "solar_meter_none": "Geen gevonden in Homey Energie",
+        "solar_meter_pick": "Meerdere gevonden. Kies die voor uw hele huis.",
+        "solar_panels": "Zonnepanelen",
+        "solar_panels_none": "Geen gevonden in Homey",
+        "solar_evidence": "De afgelopen weken leverde u tot __kw__ kW terug aan het net op zonnige uren.",
+        "solar_evidence_plain": "Uw meter levert stroom terug aan het net op zonnige uren.",
+        "solar_use": "Verwarmen met uw eigen zonnestroom?",
+        "solar_have": "Heeft u zonnepanelen?",
+        "solar_yes": "Ja",
+        "solar_no": "Nee",
+        "solar_how": "Warm water wordt ermee verwarmd als dat loont. Soms levert terugleveren meer op en wordt in een goedkoper uur verwarmd.",
+        "solar_no_meter_found": "Uw zonnepanelen zijn gevonden, maar geen elektriciteitsmeter die meet wat u teruglevert, zoals een P1-lezer. Voeg die toe aan Homey Energie en kom dan hier terug.",
+        "solar_need_meter": "Verwarmen met zonnestroom vraagt een elektriciteitsmeter die meet wat u teruglevert, zoals een P1-lezer. Voeg die toe aan Homey Energie en kom dan hier terug."
       }
     },
     "gateway": {

@@ -304,7 +304,23 @@
         "hw_free_morning": "In the morning",
         "hw_free_daytime": "During the day",
         "hw_free_evening": "In the evening",
-        "household_invalid": "Choose how many people live there and a shower time."
+        "household_invalid": "Choose how many people live there and a shower time.",
+        "solar_intro": "Autopilot can heat with your own solar power.",
+        "solar_scanning": "Looking for energy meters in your home…",
+        "solar_meter": "Electricity meter",
+        "solar_meter_none": "None found in Homey Energy",
+        "solar_meter_pick": "Several found. Pick the one for your whole home.",
+        "solar_panels": "Solar panels",
+        "solar_panels_none": "None found in Homey",
+        "solar_evidence": "In recent weeks you sent up to __kw__ kW to the grid on sunny hours.",
+        "solar_evidence_plain": "Your meter sends power to the grid on sunny hours.",
+        "solar_use": "Heat with your own solar power?",
+        "solar_have": "Do you have solar panels?",
+        "solar_yes": "Yes",
+        "solar_no": "No",
+        "solar_how": "Hot water is heated with it when that pays. Sometimes it pays more to sell the power and heat in a cheaper hour.",
+        "solar_no_meter_found": "Found your solar panels, but no electricity meter that measures what you sell, like a P1 reader. Add it to Homey Energy, then come back here.",
+        "solar_need_meter": "Solar heating needs an electricity meter that measures what you sell, like a P1 reader. Add it to Homey Energy, then come back here."
       }
     },
     "gateway": {

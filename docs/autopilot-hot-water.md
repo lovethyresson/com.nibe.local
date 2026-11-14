@@ -282,19 +282,33 @@ use come first and the tank only gets what would have been sold:
   a car can take all of it, and then there is no surplus, as on 14 Nov with 3.4 kW of sun all going
   into the battery). The grid meter is the one device every owner with surplus has, so nothing
   else is read. Live export counts only in an hour the forecast has sun (≥ 50 W/m², the weather
-  already fetched for the plan): at night it is a battery selling. It also counts only once the
-  planned fit below exists: export that follows the sun over 14 days is the proof this home has
-  panels, so a home with only a battery never sees surplus. Known limit: by day, a battery
+  already fetched for the plan): at night it is a battery selling. Whether the home has panels
+  is the owner's answer in setup (below). Before they have answered, live export counts only once
+  the planned fit exists, which stands in as the proof. Known limit: by day, a battery
   that sells, or covers our charge to hold its own grid target, still shows as export and is taken
   for surplus (14 Nov 10:14: 1.3 kW exported, 1.0 kW of it the battery's). The mean of the last 10 minutes (8 readings at least) is the expected surplus
   for the next half hour.
-- **Planned:** every 3 h, the grid meter's hourly export over the last 14 days (Insights) is
-  fitted by least squares against Open-Meteo's sun on the ground for the same hours
-  (`shortwave_radiation`, `past_days=14`). Only hours with at least 50 W/m² count, and at least
-  20 such hours are needed. The fit, export = a × sun + b, turns the next two days' forecast into
-  expected export per slot. No panel size, orientation or inverter model is asked.
-- **Which meter:** of the devices that declare themselves cumulative with an export meter, the
-  one whose power is nearest the live report's grid figure. A P1 dongle and a battery's own grid
+- **Planned:** every 3 h, the grid meter's export history (Insights: hourly for 14 days, 6-hourly
+  back to about three months) is fitted by weighted least squares against Open-Meteo's sun on the
+  ground for the same hours (`shortwave_radiation`, `past_days=92`). An hourly bucket counts when
+  it had at least 50 W/m²; a coarser one only when every hour in it did, so night export (a battery
+  selling) never enters. At least 20 sunny hours are needed. Older hours weigh less, halving every
+  30 days, because winter sun lands on tilted panels differently from summer sun. The fit, export
+  = a × sun + b, turns the next two days' forecast into expected export per slot. No panel size,
+  orientation or inverter model is asked. Looking back three months (changed 2026-11-14, was 14
+  days) means a meter that has been in Homey since late summer has its fit on the setup screen,
+  even in a grey November.
+- **Setup (2026-11-14):** after the hot water questions, a Solar step scans the home: grid meters
+  (as below) and devices Homey Energy counts as generators, each with its live power, plus the fit
+  from the meter's history ("In recent weeks you sent up to 2.4 kW to the grid on sunny hours").
+  Then one question: "Heat with your own solar power?" when panels or sun-following export were
+  found, "Do you have solar panels?" otherwise. Without a grid meter it says what to add. The
+  answer is home-wide (app setting `autopilotSolar`, with the meter chosen when there are several)
+  and replaces the old per-pump "Use solar surplus" setting; an owner who had turned that off is
+  carried over as a no. The generators are only shown, never read for surplus.
+- **Which meter:** the one the owner picked in setup; otherwise, of the devices that declare
+  themselves cumulative with an export meter, the one whose power is nearest the live report's
+  grid figure. A P1 dongle and a battery's own grid
   sensor can both measure the same connection, and adding them would count each kWh twice.
   Without a grid meter there is no surplus at all; a home without panels learns no fit (export
   does not follow the sun), so it never sees surplus, live or planned.
@@ -306,6 +320,14 @@ use come first and the tank only gets what would have been sold:
   barely touches the fit. Capping each hour at the generator's output was tried and changed
   a by 2 %, so it was left out. 32 kWh went out in sunless hours (the battery), which the
   50 W/m² floor keeps out.
+- **Same Homey, 14 Nov, three months back:** 226 sunny hours (64 hourly, the rest 6-hourly from
+  August on), a = 1.6 kW per 1000 W/m², b = +0.21 kW. Graded one day ahead over the last 7 days
+  (21 sunny hours, 1.6 kWh actually exported): the 14-day hourly fit errs by 0.67 kWh an hour, the
+  three-month fit by 0.43, and predicting no export at all by 0.12. The battery now takes nearly
+  all the sun, so export has stopped following it, and every fit overpredicts 6–7×. Neither a
+  shorter half-life (3–30 days) nor scaling the forecast by the last 3 or 7 days' realised share
+  fixed it. Open: planned surplus in a home whose battery soaks up the sun. Live surplus is
+  unaffected; it is what the meter exports now.
 
 The design as first written:
 

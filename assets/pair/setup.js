@@ -58,7 +58,7 @@ function NibeSetup(options) {
     function fail(err) { error.textContent = err && err.message || String(err); }
     function emit(event, data) {
         return new Promise(function (resolve, reject) {
-            var slow = event === 'activate_indoor' || event === 'activate_autopilot';
+            var slow = event === 'activate_indoor' || event === 'activate_autopilot' || event === 'solar_scan';
             var timeout = setTimeout(function () { reject(new Error(t('request_timeout'))); }, slow ? 45000 : 20000);
             Homey.emit(event, data || {}, function (err, result) {
                 clearTimeout(timeout); if (err) reject(err); else resolve(result);
@@ -657,12 +657,59 @@ function NibeSetup(options) {
             }), answers.freeDay, function (v) { answers.freeDay = v; }));
             shell.appendChild(group);
         }
+        shell.appendChild(button(t('next'), function () {
+            solarStep(async function () {
+                if (ask) await emit('hotwater_household', answers);
+                if (ap.choice !== st.mode) await emit('smart_choose', {value: ap.choice});
+                done(ap.choice === 'test' ? a('saved_test') : a('saved'));
+            });
+        }, true));
+        back(smart);
+    }
+    /** Solar: what a scan of the home found, then one question. The answer is the home's, read by
+     *  every function; hot water asks it because surplus pays most there. `finish` saves the rest. */
+    function solarStep(finish) {
+        clear(a('title'), a('solar_intro'));
+        var loading = el('p', a('solar_scanning')); shell.appendChild(loading);
+        back(hotwaterStep);
+        emit('solar_scan').then(function (scan) { loading.remove(); drawSolar(scan, finish); })
+            .catch(function (err) { loading.remove(); fail(err); });
+    }
+    function kw(w) { return w === null || w === undefined ? '' : ' · ' + Math.round(Math.abs(w) / 100) / 10 + ' kW'; }
+    function drawSolar(scan, finish) {
+        var list = el('ul', undefined, 'setup-checklist');
+        var hasMeter = scan.meters.length > 0;
+        var meter = scan.meter;
+        if (scan.meters.length > 1) {
+            var pick = document.createElement('select'); pick.setAttribute('aria-label', a('solar_meter'));
+            scan.meters.forEach(function (m) { pick.add(new Option(m.name + kw(m.w), m.id)); });
+            pick.value = meter; pick.onchange = function () { meter = pick.value; };
+            list.appendChild(checkRow(true, a('solar_meter'), a('solar_meter_pick'), pick));
+        } else if (hasMeter) list.appendChild(checkRow(true, a('solar_meter'), scan.meters[0].name + kw(scan.meters[0].w)));
+        else list.appendChild(checkRow(null, a('solar_meter'), a('solar_meter_none')));
+        list.appendChild(scan.solar.length
+            ? checkRow(true, a('solar_panels'), scan.solar.map(function (d) { return d.name + kw(d.w); }).join(', '))
+            : checkRow(null, a('solar_panels'), a('solar_panels_none')));
+        shell.appendChild(list);
+        if (scan.followsSun) shell.appendChild(el('p', scan.peakKw ? a('solar_evidence', {kw: scan.peakKw}) : a('solar_evidence_plain'), 'register-desc'));
+        var found = scan.solar.length > 0 || scan.followsSun;
+        var answer = scan.panels !== null ? scan.panels : found;
+        var group = el('section', undefined, 'setup-task-group');
+        group.appendChild(el('h3', a(found && hasMeter ? 'solar_use' : 'solar_have')));
+        var hint = el('p', '', 'register-desc');
+        var update = function () {
+            hint.textContent = !answer ? '' : !hasMeter ? a(scan.solar.length ? 'solar_no_meter_found' : 'solar_need_meter') : a('solar_how');
+            hint.hidden = !hint.textContent;
+        };
+        group.appendChild(radios('solar-answer', [{id: 'yes', title: a('solar_yes')}, {id: 'no', title: a('solar_no')}],
+            answer ? 'yes' : 'no', function (v) { answer = v === 'yes'; update(); }));
+        group.appendChild(hint); update();
+        shell.appendChild(group);
         var go = button(ap.choice === 'test' ? a('start_test') : t('save_section'), function () { busy(go, async function () {
-            if (ask) await emit('hotwater_household', answers);
-            if (ap.choice !== st.mode) await emit('smart_choose', {value: ap.choice});
-            done(ap.choice === 'test' ? a('saved_test') : a('saved'));
+            await emit('solar_save', hasMeter && meter ? {panels: answer, meter: meter} : {panels: answer});
+            await finish();
         }); }, true);
-        shell.appendChild(go); back(smart);
+        shell.appendChild(go);
     }
     function checklist() {
         var st = ap.status;

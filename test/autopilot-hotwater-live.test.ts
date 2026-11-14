@@ -5,7 +5,8 @@ import {HotwaterModel, localClock} from '../lib/autopilot/hotwater-learner';
 import {dailyPlan, hotwaterShadowStep} from '../lib/autopilot/hotwater-shadow';
 import {slotOf} from '../lib/autopilot/prices';
 import {
-    LIVE_MIN_READINGS, MIN_SUNNY_HOURS, SUNNY_GHI, fitSurplus, gridMeter, hourlyExport, hourlyGhi,
+    ExportBucket, LIVE_MIN_READINGS, MIN_SUNNY_HOURS, SUNNY_GHI, exportBuckets, fitSurplus, gridMeter, gridMeters, hourlyExport, hourlyGhi,
+    mergeBuckets, peakExportKw, solarDevices,
     liveSurplusKw, liveSurplusW, sunNow, surplusForecast,
 } from '../lib/autopilot/hotwater-surplus';
 import {BELOW_TARGET_K, DEMAND_LARGE, DEMAND_SMART, MAX_STARTS_PER_DAY, MAX_STOP_WRITES_PER_DAY, countFor, leverDecision} from '../lib/autopilot/hotwater-lever';
@@ -34,23 +35,59 @@ test('a cumulative meter becomes kWh per hour; a reset or a gap is not counted',
     assert.strictEqual(hourlyExport({step: 6 * HOUR, values}).size, 0, 'too coarse to place in an hour');
 });
 
+test('coarse Insights buckets keep their span, and finer ones win where both cover a time', () => {
+    const step = 6 * HOUR;
+    const at = (k: number) => new Date(T0 + k * step).toISOString();
+    const coarse = exportBuckets({step, values: [{t: at(0), v: 0}, {t: at(1), v: 6}, {t: at(2), v: 9}]});
+    assert.deepStrictEqual(coarse, [{start: T0 + 3 * HOUR, hours: 6, kwh: 6}, {start: T0 + 9 * HOUR, hours: 6, kwh: 3}]);
+    const fine = [{start: T0 + 12 * HOUR, hours: 1, kwh: 1}];
+    assert.deepStrictEqual(mergeBuckets([fine, coarse]).map((b) => b.start), [T0 + 3 * HOUR, T0 + 12 * HOUR],
+        'the 6-hour bucket overlapping the hourly data is dropped');
+    assert.strictEqual(peakExportKw([...coarse, ...fine, {start: T0, hours: 1, kwh: 2.4}]), 2.4);
+    assert.strictEqual(peakExportKw(coarse), undefined, 'no hourly data, no peak to show');
+});
+
 test('the fit recovers export against sun, and refuses without enough sunny hours or a rising line', () => {
-    const ghi = new Map<number, number>(), exported = new Map<number, number>();
+    const ghi = new Map<number, number>();
+    const buckets: ExportBucket[] = [];
     for (let h = 0; h < 40; h++) {
         const g = 100 + 20 * h;
         ghi.set(T0 + h * HOUR, g);
-        exported.set(T0 + h * HOUR, 0.006 * g - 0.8);
+        buckets.push({start: T0 + h * HOUR, hours: 1, kwh: 0.006 * g - 0.8});
     }
-    ghi.set(T0 + 50 * HOUR, 10); exported.set(T0 + 50 * HOUR, 3); // a battery selling at night: ignored
-    const fit = fitSurplus(ghi, exported)!;
+    ghi.set(T0 + 50 * HOUR, 10); buckets.push({start: T0 + 50 * HOUR, hours: 1, kwh: 3}); // a battery selling at night: ignored
+    const fit = fitSurplus(ghi, buckets, T0 + 60 * HOUR)!;
     assert.ok(Math.abs(fit.a - 0.006) < 1e-9 && Math.abs(fit.b + 0.8) < 1e-9, JSON.stringify(fit));
     assert.strictEqual(fit.hours, 40);
-    const few = new Map([...ghi].slice(0, MIN_SUNNY_HOURS - 1));
-    assert.strictEqual(fitSurplus(few, exported), undefined);
-    const flat = new Map([...exported].map(([k]) => [k, 0]));
-    assert.strictEqual(fitSurplus(ghi, flat), undefined, 'more sun, no more export: no panels to plan with');
+    assert.strictEqual(fitSurplus(ghi, buckets.slice(0, MIN_SUNNY_HOURS - 1)), undefined);
+    assert.strictEqual(fitSurplus(ghi, buckets.map((b) => ({...b, kwh: 0}))), undefined, 'more sun, no more export: no panels to plan with');
     const ahead = surplusForecast(fit, new Map([[T0, 800], [T0 + HOUR, SUNNY_GHI - 1]]), [T0 + 15 * 60_000, T0 + HOUR, T0 + 2 * HOUR]);
     assert.deepStrictEqual(ahead.map((v) => Math.round(v * 100) / 100), [4, 0, 0]);
+});
+
+test('older, coarser history extends the fit: a 6-hour bucket counts only when sunny all through', () => {
+    const ghi = new Map<number, number>();
+    const buckets: ExportBucket[] = [];
+    // Two weeks of winter: 5 sunny hours, too few on their own.
+    const now = T0 + 90 * 24 * HOUR;
+    for (let h = 0; h < 5; h++) {
+        const t = now - 24 * HOUR + h * HOUR, g = 100 + 40 * h;
+        ghi.set(t, g); buckets.push({start: t, hours: 1, kwh: 0.005 * g - 0.3});
+    }
+    assert.strictEqual(fitSurplus(ghi, buckets, now), undefined);
+    // Autumn, 6-hour buckets: sunny all through on 4 days, one with a dark hour (left out).
+    for (let d = 0; d < 5; d++) {
+        const start = now - (60 - d) * 24 * HOUR;
+        let kwh = 0;
+        for (let h = 0; h < 6; h++) {
+            const g = d === 4 && h === 5 ? 20 : 150 + 50 * h + 30 * d;
+            ghi.set(start + h * HOUR, g); kwh += 0.005 * g - 0.3;
+        }
+        buckets.push({start, hours: 6, kwh: d === 4 ? kwh + 5 : kwh});
+    }
+    const fit = fitSurplus(ghi, buckets, now)!;
+    assert.strictEqual(fit.hours, 29);
+    assert.ok(Math.abs(fit.a - 0.005) < 1e-9 && Math.abs(fit.b + 0.3) < 1e-9, JSON.stringify(fit));
 });
 
 test('live surplus is the export the sun made: a battery selling or no grid meter is none', () => {
@@ -74,6 +111,11 @@ test('the grid meter is the one Homey Energy counts; a home without a generator 
     };
     assert.deepStrictEqual(gridMeter(devices, {totalCumulative: {W: -327}}), {id: 'dongle', exported: 'meter_power.exported'});
     assert.strictEqual(gridMeter({battery: devices.battery}, {}), undefined);
+    assert.deepStrictEqual(gridMeter(devices, {totalCumulative: {W: -327}}, 'sensor'), {id: 'sensor', exported: 'meter_power.exported'},
+        'the owner picked the other meter in setup');
+    assert.deepStrictEqual(gridMeter(devices, {totalCumulative: {W: -327}}, 'gone'), {id: 'dongle', exported: 'meter_power.exported'});
+    assert.deepStrictEqual(gridMeters(devices, {totalCumulative: {W: -327}}).map((m) => m.id), ['dongle', 'sensor']);
+    assert.deepStrictEqual(solarDevices(devices), [{id: 'panels', name: 'panels', w: 0}]);
 });
 
 // ---- The planner with surplus ----

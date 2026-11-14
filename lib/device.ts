@@ -14,7 +14,7 @@ import {forecastCorrection} from './autopilot/outdoor';
 import {AHEAD_SLOTS, BACK_SLOTS, HOTWATER_SLOTS, WidgetData, heatingSlots, ticks} from './autopilot/widget';
 import {HotwaterUseData, hotwaterWeek} from './autopilot/hotwater-use';
 import {slotOf} from './autopilot/prices';
-import {SolarSurplus} from './autopilot/solar-surplus';
+import {SOLAR_SETTING, SolarSurplus, readSolarAnswer} from './autopilot/solar-surplus';
 import {Device} from 'homey';
 import net from 'net';
 import {analyticsConsent, setAnalyticsConsent, track} from './analytics';
@@ -994,6 +994,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // renamed, so an upgraded device keeps its overrides and its resolved addresses.
         await this.migrateRenamedRegisters();
         await this.migrateMovedGroups().catch(this.error);
+        this.migrateSolarSetting();
         this.debug(`Device init: role ${this.role}, host ${this.host()}, groups [${this.enabledGroupsSummary()}]`);
 
         const wantedClass = deviceClass(this.profile, this.role, this.getSelection());
@@ -1311,7 +1312,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 const v = Number(this.getSettings().autopilotReserve);
                 return Number.isFinite(v) && v >= 0 ? v : 40;
             },
-            solar: () => this.getSettings().autopilotSolar !== false,
+            solar: () => this.solarAllowed(),
             surplus: (slot) => this.solarSurplus().forUser('hotwater', slot),
             reserveSurplus: (kw) => this.solarSurplus().budget.reserve('hotwater', kw),
             dayType: () => readDayType(this.homey.settings.get(DAY_TYPE_SETTING)),
@@ -1415,7 +1416,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 const busy = this.pumpDevices().find((d) => d.role === 'hotwater')?.hotwaterChargeSlots(slot, planned.forecast.length);
                 const input = {...planned, forecast: withHotwater(planned.forecast, busy)};
                 // Solar surplus left for heating after hot water took its share makes those slots cheap.
-                if (this.getSettings().autopilotSolar === false) return input;
+                if (!this.solarAllowed()) return input;
                 return {...input, forecast: surplusPrices(input.forecast, slot, this.solarSurplus().forUser('heating', slot), input.lever)};
             },
             pump: () => this.heatingPumpFacts(),
@@ -1547,6 +1548,20 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     /** The home's solar surplus (solar-surplus.ts), shared by every function's Autopilot. */
     private solarSurplus(): SolarSurplus {
         return this.surplusService ??= SolarSurplus.acquire(this.homey, (...args: any[]) => this.log(...args), this);
+    }
+
+    /** Whether Autopilot may use solar surplus: the owner's answer in setup, home-wide. Before
+     *  they answered, the old per-pump setting (on unless turned off), which the first
+     *  start after the update carries into the answer when it was off. */
+    private solarAllowed(): boolean {
+        const answer = readSolarAnswer(this.homey.settings.get(SOLAR_SETTING));
+        return answer ? answer.panels : this.getSettings().autopilotSolar !== false;
+    }
+
+    /** One-off: an owner who had turned the old "Use solar surplus" setting off has answered no. */
+    private migrateSolarSetting() {
+        if (this.getSettings().autopilotSolar === false && !readSolarAnswer(this.homey.settings.get(SOLAR_SETTING)))
+            this.homey.settings.set(SOLAR_SETTING, {panels: false});
     }
 
     /** This device and its siblings: every device of the pump. */
@@ -1736,7 +1751,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const share = o.next ? Math.round(o.next.solar * 100) : 0;
             const charges = o.slots.filter((s) => s.charge !== undefined);
             const fromSolar = charges.length ? charges.reduce((a, s) => a + s.charge!, 0) / charges.length : 0;
-            if (this.getSettings().autopilotSolar === false) chips.push(t('hotwater.solar_off'));
+            if (!this.solarAllowed()) chips.push(t('hotwater.solar_off'));
             return {...base, kind: 'hotwater', chips, test: mode === 'test', slots: o.slots,
                 ticks: ticks(slotStart(slot), HOTWATER_SLOTS, this.clock),
                 status: o.next ? t('hotwater.next', {time: this.clock(o.next.at), m: o.next.minutes}) : t('hotwater.none'),
@@ -2433,7 +2448,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         oldSettings: {[key: string]: any}, newSettings: {[key: string]: any}, changedKeys: string[]
     }) {
         // Autopilot hot water's settings are pump-wide: every device of the pump shows the same.
-        for (const key of ['autopilotReserve', 'autopilotSolar'].filter((k) => changedKeys.includes(k)))
+        for (const key of ['autopilotReserve'].filter((k) => changedKeys.includes(k)))
             await this.syncToSiblings(key, newSettings[key]);
         if (changedKeys.includes('cumulativeEnergy')) {
             this.cumulativeEnergy = newSettings.cumulativeEnergy || 0;

@@ -5,8 +5,9 @@
  *  Design: docs/autopilot-plan.md §1 of the solar plan (2026-11-12), §19.3. */
 import {withApi} from '../indoor-sensors';
 import {SLOT_MS} from './prices';
-import {LIVE_WINDOW, SurplusFit, fitSurplus, gridMeter, hourlyExport, hourlyGhi, irradianceUrl, liveSurplusKw,
-    liveSurplusW, sunNow, surplusForecast} from './hotwater-surplus';
+import {ExportBucket, LIVE_WINDOW, SurplusFit, exportBuckets, fitSurplus, gridMeter, gridMeters, hourlyGhi, irradianceUrl,
+    liveSurplusKw, liveSurplusW, mergeBuckets, peakExportKw, solarDevices, sunNow, surplusForecast} from './hotwater-surplus';
+import {RESOLUTIONS} from './hotwater-insights';
 import {getJson, LOCATION_SETTING} from './collector';
 import {weatherLocation} from './weather';
 
@@ -51,6 +52,72 @@ export function effectivePrice(price: number, exportPrice: number, surplusKw: nu
     return {price: share * exportPrice + (1 - share) * price, share};
 }
 
+/** The owner's answer from setup (app setting, one per home): whether the home has panels, and
+ *  which grid meter to read when there are several. Unset until setup asks; then live export
+ *  counts only once the export-vs-sun fit exists, the proof there are panels at all. */
+export const SOLAR_SETTING = 'autopilotSolar';
+export interface SolarAnswer {
+    panels: boolean;
+    meter?: string;
+}
+
+export function readSolarAnswer(raw: any): SolarAnswer | undefined {
+    if (!raw || typeof raw.panels !== 'boolean') return undefined;
+    return {panels: raw.panels, meter: typeof raw.meter === 'string' ? raw.meter : undefined};
+}
+
+/** Whether live export counts as surplus right now. Never without forecast sun (at night it is a
+ *  battery selling). With sun: once the owner said they have panels, or, before they answered,
+ *  once the fit shows export that follows the sun. Pure. */
+export function liveCounts(answer: SolarAnswer | undefined, fitted: boolean, sun: boolean): boolean {
+    if (!sun || answer?.panels === false) return false;
+    return answer?.panels === true || fitted;
+}
+
+/** What the home has for surplus: its grid meters and solar devices, the meter's export history
+ *  as far back as Insights keeps it, and the sun over the same time and two days ahead. */
+async function survey(homey: any, preferred?: string) {
+    return withApi(homey, async (api) => {
+        const [devices, report] = await Promise.all([api.devices.getDevices({$cache: false, $timeout: 10_000}),
+            api.energy.getLiveReport({})]);
+        const meters = gridMeters(devices, report);
+        const solar = solarDevices(devices);
+        const meter = gridMeter(devices, report, preferred);
+        if (!meter) return {meters, solar};
+        const uri = `homey:device:${meter.id}`;
+        const logs: ExportBucket[][] = [];
+        for (const resolution of RESOLUTIONS) {
+            const log = await api.insights.getLogEntries({uri, id: `${uri}:${meter.exported}`, resolution, $timeout: 20_000})
+                .catch(() => undefined);
+            logs.push(exportBuckets(log));
+        }
+        const homeyLocation: any = await api.geolocation.getOptionLocation().catch(() => undefined);
+        return {meters, solar, meter, buckets: mergeBuckets(logs),
+            location: weatherLocation(homeyLocation?.value, homey.settings.get(LOCATION_SETTING))};
+    });
+}
+
+/** What setup shows (assets/pair/setup.js `solarStep`): the meters and panels found with their
+ *  live power, and whether the meter's history shows export that follows the sun. */
+export async function scanSolar(homey: any) {
+    const answer = readSolarAnswer(homey.settings.get(SOLAR_SETTING));
+    const found = await survey(homey, answer?.meter);
+    let fit: SurplusFit | undefined;
+    if (found.buckets?.length && found.location) {
+        const ghi = hourlyGhi(await getJson(irradianceUrl(found.location.latitude, found.location.longitude)));
+        fit = fitSurplus(ghi, found.buckets);
+    }
+    const peak = found.buckets ? peakExportKw(found.buckets) : undefined;
+    return {
+        meters: found.meters.map((m) => ({id: m.id, name: m.name, w: m.w ?? null})),
+        meter: found.meter?.id ?? null,
+        solar: found.solar.map((d) => ({id: d.id, name: d.name, w: d.w ?? null})),
+        followsSun: !!fit,
+        peakKw: fit && peak !== undefined ? Math.round(peak * 10) / 10 : null,
+        panels: answer?.panels ?? null,
+    };
+}
+
 /** The home's surplus service: one per Homey, started by its first user and stopped by its last. */
 export class SolarSurplus {
     private static instance?: SolarSurplus;
@@ -87,10 +154,7 @@ export class SolarSurplus {
     /** Expected export per slot from `slot`, kW: live for the next half hour, the forecast after. */
     forecast(slot: number): Map<number, number> | undefined {
         if (!this.ready) return undefined;
-        // Live export counts only while the forecast has sun (at night it is a battery selling) and
-        // once 14 days of export against sun have been learned: the fit is the proof this home
-        // has panels that export. Before that a battery selling by day would read as surplus.
-        const live = this.fit && sunNow(this.ghi, Date.now()) ? liveSurplusKw(this.live, Date.now()) : 0;
+        const live = liveCounts(this.answer(), !!this.fit, sunNow(this.ghi, Date.now())) ? liveSurplusKw(this.live, Date.now()) : 0;
         const ahead = Array.from({length: AHEAD_SLOTS}, (_, j) => slot + j);
         const forecast = surplusForecast(this.fit, this.ghi, ahead.map((k) => k * SLOT_MS));
         return new Map(ahead.map((k, j) => [k, j < LIVE_SLOTS && live !== undefined ? live : forecast[j]]));
@@ -100,6 +164,18 @@ export class SolarSurplus {
     forUser(user: SurplusUser, slot: number): Map<number, number> | undefined {
         return this.budget.available(user, this.forecast(slot));
     }
+
+    private answer(): SolarAnswer | undefined {
+        return readSolarAnswer(this.homey.settings.get(SOLAR_SETTING));
+    }
+
+    /** Relearn now: the owner just answered setup. */
+    refresh() {
+        if (!this.users.size) return;
+        this.learn().catch((error: any) => this.log('Solar surplus:', error?.message ?? error));
+    }
+
+    static refresh() { SolarSurplus.instance?.refresh(); }
 
     private start() {
         this.loop(() => this.learn(), 90_000);
@@ -116,21 +192,13 @@ export class SolarSurplus {
         this.timers.push(this.homey.setTimeout(run, firstMs));
     }
 
-    /** What surplus needs from the home (a grid meter Homey Energy counts), the
-     *  fit of export against the sun over the last two weeks, and the sun ahead. */
+    /** What surplus needs from the home (a grid meter Homey Energy counts and the owner's yes, or
+     *  no answer yet), the fit of export against the sun over the meter's history, and the sun ahead. */
     private async learn(): Promise<number> {
-        const found = await withApi(this.homey, async (api) => {
-            const [devices, report] = await Promise.all([api.devices.getDevices({$cache: false, $timeout: 10_000}),
-                api.energy.getLiveReport({})]);
-            const meter = gridMeter(devices, report);
-            if (!meter) return 'no grid meter' as const;
-            const uri = `homey:device:${meter.id}`;
-            const log = await api.insights.getLogEntries({uri, id: `${uri}:${meter.exported}`, resolution: 'last14Days', $timeout: 20_000});
-            const homeyLocation: any = await api.geolocation.getOptionLocation().catch(() => undefined);
-            return {log, location: weatherLocation(homeyLocation?.value, this.homey.settings.get(LOCATION_SETTING))};
-        });
-        if (typeof found === 'string' || !found?.location) {
-            const state = typeof found === 'string' ? found : 'no location';
+        const answer = this.answer();
+        const found = answer?.panels === false ? undefined : await survey(this.homey, answer?.meter);
+        if (!found?.meter || !found.location) {
+            const state = answer?.panels === false ? 'the owner has no panels' : !found?.meter ? 'no grid meter' : 'no location';
             if (state !== this.state) this.log(`Solar surplus: none (${state}).`);
             this.state = state;
             this.ready = false;
@@ -139,9 +207,10 @@ export class SolarSurplus {
         }
         this.ready = true;
         this.ghi = hourlyGhi(await getJson(irradianceUrl(found.location.latitude, found.location.longitude)));
-        this.fit = fitSurplus(this.ghi, hourlyExport(found.log));
-        const state = this.fit ? `${this.fit.hours} sunny hours: ${Math.round(this.fit.a * 1000 * 100) / 100} kW `
-            + `per 1000 W/m², ${Math.round(this.fit.b * 100) / 100} kW` : 'too few sunny hours yet; no surplus until there are';
+        this.fit = fitSurplus(this.ghi, found.buckets ?? []);
+        const state = (this.fit ? `${this.fit.hours} sunny hours: ${Math.round(this.fit.a * 1000 * 100) / 100} kW `
+            + `per 1000 W/m², ${Math.round(this.fit.b * 100) / 100} kW` : 'too few sunny hours yet to plan ahead')
+            + (answer?.panels ? '; live export counts (owner has panels)' : this.fit ? '' : '; no surplus until there are');
         if (state !== this.state) this.log(`Solar surplus from ${state}.`);
         this.state = state;
         return LEARN_EVERY_MS;

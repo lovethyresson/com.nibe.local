@@ -304,7 +304,23 @@
         "hw_free_morning": "Morgens",
         "hw_free_daytime": "Tagsüber",
         "hw_free_evening": "Abends",
-        "household_invalid": "Wählen Sie, wie viele Personen dort wohnen, und eine Duschzeit."
+        "household_invalid": "Wählen Sie, wie viele Personen dort wohnen, und eine Duschzeit.",
+        "solar_intro": "Autopilot kann mit Ihrem eigenen Solarstrom heizen.",
+        "solar_scanning": "Suche nach Energiezählern in Ihrem Zuhause…",
+        "solar_meter": "Stromzähler",
+        "solar_meter_none": "Keiner in Homey Energie gefunden",
+        "solar_meter_pick": "Mehrere gefunden. Wählen Sie den für Ihr ganzes Zuhause.",
+        "solar_panels": "Solarmodule",
+        "solar_panels_none": "Keine in Homey gefunden",
+        "solar_evidence": "In den letzten Wochen haben Sie in sonnigen Stunden bis zu __kw__ kW ins Netz eingespeist.",
+        "solar_evidence_plain": "Ihr Zähler speist in sonnigen Stunden Strom ins Netz ein.",
+        "solar_use": "Mit eigenem Solarstrom heizen?",
+        "solar_have": "Haben Sie Solarmodule?",
+        "solar_yes": "Ja",
+        "solar_no": "Nein",
+        "solar_how": "Warmwasser wird damit bereitet, wenn es sich lohnt. Manchmal lohnt es sich mehr, den Strom zu verkaufen und in einer günstigeren Stunde zu heizen.",
+        "solar_no_meter_found": "Ihre Solarmodule wurden gefunden, aber kein Stromzähler, der die Einspeisung misst, etwa ein P1-Leser. Fügen Sie ihn in Homey Energie hinzu und kommen Sie dann hierher zurück.",
+        "solar_need_meter": "Heizen mit Solarstrom braucht einen Stromzähler, der die Einspeisung misst, etwa einen P1-Leser. Fügen Sie ihn in Homey Energie hinzu und kommen Sie dann hierher zurück."
       }
     },
     "gateway": {
