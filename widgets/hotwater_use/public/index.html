@@ -3,17 +3,24 @@
     <meta charset="utf-8">
     <style>
       .hw { padding: var(--homey-su-2, 8px) var(--homey-su-3, 12px); }
-      .hw-title { opacity: 0.6; }
-      .hw-status { margin: 2px 0 0; font-size: 1.35em; font-weight: 600; }
-      .hw-reason { margin: 2px 0 0; opacity: 0.8; }
-      .hw-sub { margin-top: 12px; font-size: 0.75em; opacity: 0.6; }
-      .hw-chart { width: 100%; height: auto; display: block; margin-top: 4px; overflow: visible; }
-      .hw-chart text { font-size: 9px; fill: currentColor; opacity: 0.6; }
-      .hw-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.75em; opacity: 0.8; margin-top: 6px; }
+      .hw-title { opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .hw-status { text-wrap: balance; margin: 2px 0 0; font-size: 1.35em; font-weight: 600; }
+      .hw-reason { margin: 2px 0 0; opacity: 0.85; }
+      .hw-sub { margin-top: 12px; font-size: 0.8em; opacity: 0.75; }
+      .hw-chart { display: block; margin-top: 4px; overflow: visible; }
+      .hw-chart text { font-size: 11px; fill: currentColor; opacity: 0.75; }
+      /* A halo keeps a number readable where a dashed line runs through it. */
+      .hw-chart text.halo { paint-order: stroke; stroke: var(--hw-halo); stroke-width: 3px; stroke-linejoin: round; opacity: 1; }
+      .hw-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.8em; opacity: 0.85; margin-top: 8px; }
       .hw-key { display: inline-block; width: 12px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; box-sizing: border-box; }
-      .hw-key.line { height: 3px; vertical-align: 3px; }
-      .hw-empty { opacity: 0.7; margin: 12px 0; }
-      :root { --hw-working: #5b8def; --hw-free: #2bb3a3; --hw-away: rgba(127, 127, 127, 0.35); }
+      .hw-key.line { height: 3px; vertical-align: 3px; margin-right: 2px; }
+      .hw-empty { opacity: 0.8; margin: 12px 0; }
+      /* Light values meet 4.4:1 on white; away is a solid grey that holds 3:1 on both cards. */
+      :root { --hw-working: #3d6fd8; --hw-free: #0f8374; --hw-away: #8e8e93; --hw-halo: #ffffff; }
+      :root[data-theme="dark"] { --hw-working: #5b8def; --hw-free: #2bb3a3; --hw-away: #77777d; --hw-halo: #1c1c1e; }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) { --hw-working: #5b8def; --hw-free: #2bb3a3; --hw-away: #77777d; --hw-halo: #1c1c1e; }
+      }
     </style>
   </head>
 
@@ -23,6 +30,20 @@
     <script type="text/javascript">
       var NS = 'http://www.w3.org/2000/svg';
       var KIND = {working: 'var(--hw-working)', free: 'var(--hw-free)', away: 'var(--hw-away)'};
+      // Used only when the app cannot be reached at all, so it cannot send a translated line.
+      var FALLBACK = {
+        en: {loading: 'Loading…', error: 'Couldn’t load this widget. Trying again in a minute.'},
+        sv: {loading: 'Laddar…', error: 'Det gick inte att läsa in widgeten. Försöker igen om en minut.'},
+        nl: {loading: 'Laden…', error: 'Kon de widget niet laden. Over een minuut probeer ik het opnieuw.'},
+        de: {loading: 'Lädt…', error: 'Das Widget konnte nicht geladen werden. Neuer Versuch in einer Minute.'},
+        no: {loading: 'Laster…', error: 'Kunne ikke laste widgeten. Prøver igjen om et minutt.'},
+        da: {loading: 'Indlæser…', error: 'Kunne ikke indlæse widgetten. Prøver igen om et minut.'}
+      };
+      function words() {
+        var lang = String((navigator.language || 'en')).slice(0, 2).toLowerCase();
+        if (lang === 'nb' || lang === 'nn') lang = 'no';
+        return FALLBACK[lang] || FALLBACK.en;
+      }
       function el(tag, cls, text) {
         var n = document.createElement(tag);
         if (cls) n.className = cls;
@@ -37,18 +58,31 @@
       }
       function nums(list) { return list.filter(function (v) { return typeof v === 'number'; }); }
 
+      // Light or dark, from the text colour Homey gives the page: light text means a dark card.
+      function applyTheme() {
+        var rgb = (getComputedStyle(document.body).color.match(/[\d.]+/g) || []).map(Number);
+        if (rgb.length < 3) return;
+        document.documentElement.setAttribute('data-theme', (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255 > 0.5 ? 'dark' : 'light');
+      }
+      // Drawn at the card's real pixel width, so the text stays 11 px on any card.
+      function chartWidth() {
+        var hw = document.getElementById('hw'), cs = getComputedStyle(hw);
+        return Math.max(240, Math.floor(hw.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)));
+      }
+
       // A bar per day, coloured by its day type: the last six days as measured (light and marked
       // "at least" where part of the day is unknown), today as the use Autopilot expects
-      // (outlined), and a dashed line at a typical day of each type.
+      // (outlined), and a dashed line at a typical day of each type in the type's own colour.
       function weekChart(data) {
-        var W = 360, H = 132, L = 30, R = 330, T = 14, B = 110, n = data.bars.length, step = (R - L) / n, bw = Math.min(28, step * 0.62);
-        var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, class: 'hw-chart', role: 'img'});
+        var W = chartWidth(), L = 34, R = W - 40, T = 20, PH = Math.max(90, Math.min(130, Math.round(W * 0.3))), B = T + PH, H = B + 24;
+        var n = data.bars.length, step = (R - L) / n, bw = Math.min(36, step * 0.62);
+        var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'hw-chart', role: 'img'});
         var values = nums(data.bars.map(function (b) { return b.litres; })).concat(nums([data.typical.working, data.typical.free]));
         var max = Math.max(100, Math.ceil(Math.max.apply(null, values.concat([0])) * 1.1 / 100) * 100);
-        var y = function (v) { return B - (B - T) * v / max; };
+        var y = function (v) { return B - PH * v / max; };
         [0, max / 2, max].forEach(function (v) {
-          svg.appendChild(svgEl('line', {x1: L, x2: R, y1: y(v), y2: y(v), stroke: 'currentColor', 'stroke-opacity': 0.08}));
-          svg.appendChild(svgEl('text', {x: L - 4, y: y(v) + 3, 'text-anchor': 'end'}, String(Math.round(v))));
+          svg.appendChild(svgEl('line', {x1: L, x2: R, y1: y(v), y2: y(v), stroke: 'currentColor', 'stroke-opacity': 0.1}));
+          svg.appendChild(svgEl('text', {x: L - 5, y: y(v) + 4, 'text-anchor': 'end'}, String(Math.round(v))));
         });
         data.bars.forEach(function (b, k) {
           var cx = L + (k + 0.5) * step, color = KIND[b.kind] || KIND.working;
@@ -56,21 +90,25 @@
             var top = y(b.litres);
             svg.appendChild(svgEl('rect', b.today
               ? {x: cx - bw / 2 + 0.6, y: top + 0.6, width: bw - 1.2, height: Math.max(0, B - top - 0.6), rx: 2, fill: color, 'fill-opacity': 0.2,
-                stroke: color, 'stroke-width': 1.2, 'stroke-dasharray': '3 2'}
-              : {x: cx - bw / 2, y: top, width: bw, height: B - top, rx: 2, fill: color, 'fill-opacity': b.atLeast ? 0.4 : 0.85}));
-            svg.appendChild(svgEl('text', {x: cx, y: top - 3, 'text-anchor': 'middle'}, (b.atLeast ? '≥' : '') + b.litres));
-          } else {
-            svg.appendChild(svgEl('text', {x: cx, y: B - 3, 'text-anchor': 'middle'}, '–'));
+                stroke: color, 'stroke-width': 1.4, 'stroke-dasharray': '3 2'}
+              : {x: cx - bw / 2, y: top, width: bw, height: B - top, rx: 2, fill: color, 'fill-opacity': b.atLeast ? 0.45 : 0.9}));
           }
-          var label = svgEl('text', {x: cx, y: H - 6, 'text-anchor': 'middle'}, b.label);
-          if (b.today) label.setAttribute('font-weight', '700');
-          svg.appendChild(label);
         });
+        // Typical days go on top of the bars, and the numbers go on top of the lines with a halo.
         ['working', 'free'].forEach(function (kind) {
           var v = data.typical[kind];
           if (typeof v !== 'number') return;
-          svg.appendChild(svgEl('line', {x1: L, x2: R, y1: y(v), y2: y(v), stroke: KIND[kind], 'stroke-width': 1.2, 'stroke-dasharray': '4 3'}));
-          var t = svgEl('text', {x: R + 4, y: y(v) + 3}, String(v)); t.setAttribute('fill', KIND[kind]); svg.appendChild(t);
+          svg.appendChild(svgEl('line', {x1: L, x2: R, y1: y(v), y2: y(v), stroke: KIND[kind], 'stroke-width': 1.4, 'stroke-dasharray': '4 3'}));
+          var t = svgEl('text', {x: R + 5, y: y(v) + 4, class: 'halo'}, String(v)); t.style.fill = KIND[kind]; svg.appendChild(t);
+        });
+        data.bars.forEach(function (b, k) {
+          var cx = L + (k + 0.5) * step;
+          if (typeof b.litres === 'number')
+            svg.appendChild(svgEl('text', {x: cx, y: y(b.litres) - 4, 'text-anchor': 'middle', class: 'halo'}, (b.atLeast ? '≥' : '') + b.litres));
+          else svg.appendChild(svgEl('text', {x: cx, y: B - 4, 'text-anchor': 'middle'}, '–'));
+          var label = svgEl('text', {x: cx, y: H - 6, 'text-anchor': 'middle'}, b.label);
+          if (b.today) label.setAttribute('font-weight', '700');
+          svg.appendChild(label);
         });
         return svg;
       }
@@ -79,29 +117,39 @@
         var box = el('div', 'hw-legend');
         items.forEach(function (i) {
           if (!i.text) return;
-          var item = el('span'), key = el('span', 'hw-key' + (i.line ? ' line' : ''));
-          key.style.cssText = i.style;
-          item.appendChild(key); item.appendChild(document.createTextNode(i.text)); box.appendChild(item);
+          var item = el('span');
+          (i.keys || [i]).forEach(function (k) {
+            var key = el('span', 'hw-key' + (k.line ? ' line' : ''));
+            key.style.cssText = k.style; item.appendChild(key);
+          });
+          item.appendChild(document.createTextNode(i.text)); box.appendChild(item);
         });
         return box;
       }
 
+      var last = null;
       function render(data) {
+        applyTheme();
         var root = document.getElementById('hw');
-        root.replaceChildren(el('div', 'hw-title homey-text-small', data.title));
+        root.replaceChildren();
+        if (data.title) root.appendChild(el('div', 'hw-title homey-text-small', data.title));
         if (data.empty) { root.appendChild(el('p', 'hw-empty', data.empty)); return; }
         if (data.status) root.appendChild(el('p', 'hw-status', data.status));
         if (data.reason) root.appendChild(el('p', 'hw-reason homey-text-small', data.reason));
         var l = data.legend;
         root.appendChild(el('div', 'hw-sub', l.title));
         root.appendChild(weekChart(data));
+        // The typical key shows one dash in each day type's colour that has a typical day.
+        var dashes = ['working', 'free'].filter(function (k) { return typeof data.typical[k] === 'number'; }).map(function (k) {
+          return {line: true, style: 'background: repeating-linear-gradient(90deg, ' + KIND[k] + ' 0 4px, transparent 4px 7px);'};
+        });
         root.appendChild(legend([
           {text: l.working, style: 'background: var(--hw-working);'},
           {text: l.free, style: 'background: var(--hw-free);'},
           {text: l.away, style: 'background: var(--hw-away);'},
           {text: l.today, style: 'border: 1px dashed currentColor;'},
-          {text: l.typical, line: true, style: 'background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px);'},
-          {text: l.at_least, style: 'background: currentColor; opacity: 0.25;'},
+          {text: l.typical, keys: dashes},
+          {text: l.at_least, style: 'background: currentColor; opacity: 0.3;'},
         ]));
       }
 
@@ -109,17 +157,28 @@
         var settings = Homey.getSettings() || {};
         var device = settings.device && settings.device.id;
         function fit() { if (Homey.setHeight) Homey.setHeight(document.getElementById('hw').scrollHeight + 16); }
+        document.getElementById('hw').appendChild(el('p', 'hw-empty', words().loading));
         function load() {
           return Homey.api('GET', '/' + (device ? '?device=' + encodeURIComponent(device) : ''), {})
-            .then(render)
+            .then(function (data) { last = data; render(data); })
             .catch(function (err) {
-              document.getElementById('hw').replaceChildren(el('p', 'hw-empty', (err && err.message) || String(err)));
+              if (typeof console !== 'undefined') console.error(err);
+              if (last) return; // keep the last good picture until the app answers again
+              // The app answers its own problems with a translated line, so a rejection is the network.
+              var text = words().error;
+              document.getElementById('hw').replaceChildren(el('p', 'hw-empty', text));
             })
             .then(fit);
         }
         load().finally(function () { Homey.ready(); });
         // The days change slowly: every 5 minutes is plenty.
         setInterval(load, 300000);
+        // The card changes width: draw the chart again at the new width.
+        var timer = null;
+        window.addEventListener('resize', function () {
+          clearTimeout(timer);
+          timer = setTimeout(function () { if (last) { render(last); fit(); } }, 150);
+        });
       }
     </script>
   </body>

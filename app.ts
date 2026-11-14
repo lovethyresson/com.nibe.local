@@ -49,12 +49,19 @@ class NibeApp extends Homey.App {
       .filter((d) => !query || d.name.toLowerCase().includes(query.toLowerCase())));
   }
 
-  /** For widgets/autopilot/api.js. Throws in the owner's language when the device is gone. */
+  /** For widgets/autopilot/api.js. A problem comes back as a line in the owner's language, never as
+   *  an error, so the widget only ever sees a failure when it cannot reach the app at all. */
   autopilotWidget(id: unknown) {
+    const line = (key: string) => ({kind: 'none', title: '', chips: [], slots: [], ticks: [], legend: {}, empty: this.homey.__(key)});
     const devices = this.autopilotDevices();
     const device = devices.find((d) => String(d.getData().id) === String(id)) ?? (id ? undefined : devices[0]);
-    if (!device) throw new Error(this.homey.__('autopilot.widget.not_function'));
-    return device.autopilotWidget();
+    if (!device) return line('autopilot.widget.not_function');
+    try {
+      return device.autopilotWidget();
+    } catch (error) {
+      this.error('Autopilot widget:', error);
+      return line('autopilot.widget.error');
+    }
   }
 
   /** The Hot water use widget (widgets/hotwater_use): its picker offers the Hot water devices. */
@@ -66,12 +73,18 @@ class NibeApp extends Homey.App {
       .filter((d) => !query || d.name.toLowerCase().includes(query.toLowerCase())));
   }
 
-  /** For widgets/hotwater_use/api.js. Throws in the owner's language when the device is gone. */
+  /** For widgets/hotwater_use/api.js. Answers a problem with a line, like the Autopilot widget. */
   hotwaterUseWidget(id: unknown) {
+    const line = (key: string) => ({title: '', empty: this.homey.__(key)});
     const devices = this.autopilotDevices().filter((d) => d.role === 'hotwater');
     const device = devices.find((d) => String(d.getData().id) === String(id)) ?? (id ? undefined : devices[0]);
-    if (!device) throw new Error(this.homey.__('autopilot.hotwater_use.pick'));
-    return device.hotwaterUseWidget();
+    if (!device) return line('autopilot.hotwater_use.pick');
+    try {
+      return device.hotwaterUseWidget();
+    } catch (error) {
+      this.error('Hot water use widget:', error);
+      return line('autopilot.widget.error');
+    }
   }
 
 }

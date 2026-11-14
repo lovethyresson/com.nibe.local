@@ -349,27 +349,43 @@
         "off": "Av"
       },
       "hotwater": {
-        "next": "Nästa laddning __time__, cirka __m__ min",
-        "none": "Ingen laddning planerad de kommande 24 timmarna",
+        "next": "Nästa laddning __when__, cirka __duration__",
+        "none": "Ingen laddning behövs de kommande 24 timmarna",
         "litres": "__l__ L 40-gradigt vatten nu",
         "share": "__share__ % från solen",
         "solar_off": "Sol av",
         "solar_paused": "Solplan pausad",
-        "solar_total": "__share__ % av den planerade laddningen går på solöverskott."
+        "solar_total": "__share__ % av den planerade laddningen går på solöverskott.",
+        "tomorrow": "i morgon __time__",
+        "no_prices": "Väntar på elpriser",
+        "band": "__from__ till __to__"
       },
       "indoor": "Inomhus",
       "expected": "Förväntat",
       "offset": "Uteförskjutning (BT1)",
       "comfort": "Termostat",
       "axis_indoor": "Inomhus °C",
-      "axis_offset": "Förskjutning °C",
-      "learning": "Lär sig ditt hus · dag __day__ av __of__. Förväntad inomhustemperatur visas när den har lärt sig.",
+      "axis_offset": "Förskjutning °C (BT1)",
+      "learning": "Den förväntade inomhustemperaturen visas när Autopilot har lärt sig ditt hus.",
       "surplus": "Solöverskott",
-      "charge_grid": "Laddning från nätet",
-      "charge_solar": "Laddning från solen",
-      "axis_price": "Pris /kWh",
+      "charge_grid": "Nätladdning",
+      "charge_solar": "Solladdning",
+      "axis_price": "Pris per kWh",
       "axis_surplus": "Överskott kW",
-      "experimental": "Experimentell"
+      "experimental": "Experimentell",
+      "tomorrow": "I morgon",
+      "today": "I dag",
+      "learning_day": "Dag __day__ av __of__",
+      "paused": {
+        "no_outdoor": "Autopilot har ingen utetemperatur. Välj en givare i Smart läge eller använd prognosen.",
+        "spa_on": "Smart price adaption är på för uppvärmning. Stäng av den så att Autopilot kan jobba.",
+        "room_control": "Rumsgivarstyrning är på i din värmepump. Stäng av den så att Autopilot kan jobba.",
+        "immersion_only": "Din värmepump går bara på elpatron. Autopilot väntar.",
+        "feed_failed": "Din värmepump tog inte emot utetemperaturen (BT1). Kontrollera meny 7.5.9.2.",
+        "cooling": "Din värmepump kyler. Autopilot väntar."
+      },
+      "shift_hint": "Under 0 tror din värmepump att det är kallare och värmer mer. Över 0 drar den ner.",
+      "error": "Det gick inte att läsa in Autopilot. Försöker igen om en minut."
     },
     "hotwater_status": {
       "learning": "Lär sig er varmvattenanvändning",
@@ -389,12 +405,13 @@
       "working": "Arbetsdag",
       "free": "Ledig dag",
       "away": "Borta",
-      "today": "I dag, förväntat",
-      "typical": "Typiskt",
+      "today": "I dag (förväntat)",
+      "typical": "Typisk dag",
       "at_least": "Minst (tanken var nästan tom)",
       "learning": "Lär sig din varmvattenanvändning",
       "off": "Autopilot för varmvatten är av. Slå på den i Reparera → Smart läge.",
-      "pick": "Välj en varmvattenenhet."
+      "pick": "Välj en varmvattenenhet.",
+      "away_keeps": "Autopilot håller bara din miniminivå varm."
     }
   }
 }

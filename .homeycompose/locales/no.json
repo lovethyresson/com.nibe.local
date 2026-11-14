@@ -349,27 +349,43 @@
         "off": "Av"
       },
       "hotwater": {
-        "next": "Neste lading __time__, omtrent __m__ min",
-        "none": "Ingen lading planlagt de neste 24 timene",
+        "next": "Neste lading __when__, omtrent __duration__",
+        "none": "Ingen lading trengs de neste 24 timene",
         "litres": "__l__ L 40-graders vann nå",
         "share": "__share__ % fra sol",
         "solar_off": "Sol av",
         "solar_paused": "Solplan pauset",
-        "solar_total": "__share__ % av den planlagte ladingen går på soloverskudd."
+        "solar_total": "__share__ % av den planlagte ladingen går på soloverskudd.",
+        "tomorrow": "i morgen __time__",
+        "no_prices": "Venter på strømpriser",
+        "band": "__from__ til __to__"
       },
       "indoor": "Inne",
       "expected": "Forventet",
       "offset": "Uteforskyvning (BT1)",
       "comfort": "Termostat",
       "axis_indoor": "Inne °C",
-      "axis_offset": "Forskyvning °C",
-      "learning": "Lærer huset ditt · dag __day__ av __of__. Forventet innetemperatur vises når den har lært.",
+      "axis_offset": "Forskyvning °C (BT1)",
+      "learning": "Den forventede innetemperaturen vises når Autopilot har lært huset ditt.",
       "surplus": "Soloverskudd",
-      "charge_grid": "Lading fra nettet",
-      "charge_solar": "Lading fra sol",
-      "axis_price": "Pris /kWh",
+      "charge_grid": "Nettlading",
+      "charge_solar": "Sollading",
+      "axis_price": "Pris per kWh",
       "axis_surplus": "Overskudd kW",
-      "experimental": "Eksperimentell"
+      "experimental": "Eksperimentell",
+      "tomorrow": "I morgen",
+      "today": "I dag",
+      "learning_day": "Dag __day__ av __of__",
+      "paused": {
+        "no_outdoor": "Autopilot har ingen utetemperatur. Velg en føler i Smartmodus, eller bruk værmeldingen.",
+        "spa_on": "Smart price adaption er på for oppvarming. Slå den av, så Autopilot kan jobbe.",
+        "room_control": "Romføler-styring er på i varmepumpen din. Slå den av, så Autopilot kan jobbe.",
+        "immersion_only": "Varmepumpen din går bare på elkolbe. Autopilot venter.",
+        "feed_failed": "Varmepumpen din tok ikke imot utetemperaturen (BT1). Sjekk meny 7.5.9.2.",
+        "cooling": "Varmepumpen din kjøler. Autopilot venter."
+      },
+      "shift_hint": "Under 0 tror varmepumpen din at det er kaldere, og varmer mer. Over 0 skrur den ned.",
+      "error": "Kunne ikke laste Autopilot. Prøver igjen om et minutt."
     },
     "hotwater_status": {
       "learning": "Lærer varmtvannsbruken deres",
@@ -389,12 +405,13 @@
       "working": "Arbeidsdag",
       "free": "Fridag",
       "away": "Borte",
-      "today": "I dag, forventet",
-      "typical": "Typisk",
+      "today": "I dag (forventet)",
+      "typical": "Typisk dag",
       "at_least": "Minst (tanken var nesten tom)",
       "learning": "Lærer varmtvannsbruken din",
       "off": "Autopilot for varmtvann er av. Slå den på i Reparer → Smartmodus.",
-      "pick": "Velg en varmtvannsenhet."
+      "pick": "Velg en varmtvannsenhet.",
+      "away_keeps": "Autopilot holder bare minimumet ditt varmt."
     }
   }
 }

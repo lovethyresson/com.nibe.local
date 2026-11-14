@@ -22,6 +22,23 @@ export interface WidgetSlot {
     charge?: number;
 }
 
+/** A chart axis: round gridlines from `lo` to `hi`, and how many decimals their labels need. */
+export interface Axis {
+    lo: number;
+    hi: number;
+    ticks: number[];
+    decimals: number;
+}
+
+/** A planned hot water charge as a labelled band under the chart: slots `from` up to `to`, the
+ *  share of it the solar surplus covers (0–1), and its text, such as "22:00 to 00:10". */
+export interface ChargeBand {
+    from: number;
+    to: number;
+    solar: number;
+    label: string;
+}
+
 export interface WidgetData {
     kind: 'heating' | 'hotwater' | 'none';
     title: string;
@@ -29,6 +46,16 @@ export interface WidgetData {
     reason?: string;
     test?: boolean;
     chips: string[];
+    /** The "Experimental" mark: shown last, quietly. */
+    badge?: string;
+    /** Round gridlines for the left and right axes. */
+    scale?: {left?: Axis; right?: Axis};
+    /** Planned charges (hot water). */
+    bands?: ChargeBand[];
+    /** Where the next local day starts, and its word ("Today", "Tomorrow"). */
+    dayBreak?: {at: number; label: string};
+    /** One line under the chart on how to read it. */
+    hint?: string;
     slots: WidgetSlot[];
     /** Index of the first slot that is a plan rather than a measurement (heating). */
     now?: number;
@@ -71,4 +98,78 @@ export function heatingSlots(past: {indoor?: number; offset?: number}[], state: 
     // Comfort range Off, or no plan yet while feeding: the offset ahead is 0 as long as it feeds.
     if (state?.neutral) next.forEach((s) => { s.offset = 0; });
     return [...back, ...next];
+}
+
+const NICE_STEPS = [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100, 250, 500, 1000];
+const trim = (v: number) => Math.round(v * 1e6) / 1e6 + 0;
+
+/** Round gridlines for a value range: a step from `steps` that keeps at most `maxIntervals`
+ *  intervals, the range widened to whole steps, `include` always inside it, and at least
+ *  `minSpan` tall. A middle tick is never rounded away from its gridline. */
+export function niceAxis(min: number, max: number, options: {include?: number[]; minSpan?: number; maxIntervals?: number;
+    steps?: number[]} = {}): Axis {
+    const {include = [], minSpan = 0, maxIntervals = 4, steps = NICE_STEPS} = options;
+    let lo = Math.min(min, ...include), hi = Math.max(max, ...include);
+    if (hi - lo < minSpan) {
+        if (hi > 0) hi = Math.max(hi, lo + minSpan);
+        else if (lo < 0) lo = Math.min(lo, hi - minSpan);
+        else { lo = -minSpan; hi = minSpan; }
+    }
+    const eps = 1e-9;
+    const step = steps.find((s) => Math.ceil(hi / s - eps) - Math.floor(lo / s + eps) <= maxIntervals) ?? steps[steps.length - 1];
+    lo = trim(Math.floor(lo / step + eps) * step);
+    hi = trim(Math.ceil(hi / step - eps) * step);
+    const ticks: number[] = [];
+    for (let v = lo; v <= hi + eps; v += step) ticks.push(trim(v));
+    const decimals = Math.min(2, Math.max(0, ...ticks.map((v) => (String(v).split('.')[1] ?? '').length)));
+    return {lo, hi, ticks, decimals};
+}
+
+/** "2 h 10 min", "45 min" or "3 h", from the owner's duration strings. */
+export function formatDuration(minutes: number, say: (key: 'duration' | 'duration_min' | 'duration_h', tokens: Record<string, number>) => string): string {
+    const m = Math.round(minutes);
+    if (m < 60) return say('duration_min', {m});
+    return m % 60 ? say('duration', {h: Math.floor(m / 60), m: m % 60}) : say('duration_h', {h: m / 60});
+}
+
+/** The first slot, after the first, that starts a new local day: the chart's midnight. */
+export function dayBreakSlot(start: number, slots: number, dayOf: (ms: number) => string, slotMs = 15 * 60_000): number | undefined {
+    for (let k = 1; k < slots; k++)
+        if (dayOf(start + k * slotMs) !== dayOf(start + (k - 1) * slotMs)) return k;
+    return undefined;
+}
+
+/** Runs of consecutive planned-charge slots, each labelled from its first slot's start to its last
+ *  slot's end. `from` is the chart's first slot start (ms). */
+export function chargeBands(slots: WidgetSlot[], from: number, clock: (ms: number) => string,
+    label: (start: string, end: string) => string, slotMs = 15 * 60_000): ChargeBand[] {
+    const bands: ChargeBand[] = [];
+    let open: {from: number; solar: number[]} | undefined;
+    const close = (to: number) => {
+        if (!open) return;
+        const share = open.solar.reduce((a, b) => a + b, 0) / open.solar.length;
+        bands.push({from: open.from, to, solar: Math.round(share * 100) / 100,
+            label: label(clock(from + open.from * slotMs), clock(from + to * slotMs))});
+        open = undefined;
+    };
+    slots.forEach((s, k) => {
+        if (typeof s.charge === 'number') { open ??= {from: k, solar: []}; open.solar.push(s.charge); } else close(k);
+    });
+    close(slots.length);
+    return bands;
+}
+
+/** A reason without the word the status already says: "Holding. Nothing to gain" under
+ *  "Holding" becomes "Nothing to gain". Leads are removed with their ". ", ": " or " · ". */
+export function stripLead(text: string, leads: string[]): string {
+    let out = text;
+    for (let again = true; again;) {
+        again = false;
+        for (const lead of leads) {
+            if (!lead) continue;
+            const re = new RegExp(`^${lead.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*[.:·]\\s*`, 'i');
+            if (re.test(out)) { out = out.replace(re, ''); again = true; }
+        }
+    }
+    return out ? out[0].toUpperCase() + out.slice(1) : out;
 }

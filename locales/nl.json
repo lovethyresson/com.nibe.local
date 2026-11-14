@@ -602,27 +602,43 @@
         "off": "Uit"
       },
       "hotwater": {
-        "next": "Volgende opwarming __time__, ongeveer __m__ min",
-        "none": "Geen opwarming gepland in de komende 24 uur",
+        "next": "Volgende opwarming __when__, ongeveer __duration__",
+        "none": "Geen opwarming nodig in de komende 24 uur",
         "litres": "Nu __l__ L water van 40 °C",
         "share": "__share__ % van zon",
         "solar_off": "Zon uit",
         "solar_paused": "Zonneplan gepauzeerd",
-        "solar_total": "__share__ % van het geplande opwarmen draait op zonne-overschot."
+        "solar_total": "__share__ % van het geplande opwarmen draait op zonne-overschot.",
+        "tomorrow": "morgen __time__",
+        "no_prices": "Wacht op stroomprijzen",
+        "band": "__from__ tot __to__"
       },
       "indoor": "Binnen",
       "expected": "Verwacht",
       "offset": "Buitenverschuiving (BT1)",
       "comfort": "Thermostaat",
       "axis_indoor": "Binnen °C",
-      "axis_offset": "Verschuiving °C",
-      "learning": "Leert jouw huis kennen · dag __day__ van __of__. De verwachte binnentemperatuur verschijnt zodra het geleerd is.",
+      "axis_offset": "Verschuiving °C (BT1)",
+      "learning": "De verwachte binnentemperatuur verschijnt zodra Autopilot je huis kent.",
       "surplus": "Zonne-overschot",
-      "charge_grid": "Opwarmen van het net",
-      "charge_solar": "Opwarmen op zon",
-      "axis_price": "Prijs /kWh",
+      "charge_grid": "Netopwarming",
+      "charge_solar": "Zonopwarming",
+      "axis_price": "Prijs per kWh",
       "axis_surplus": "Overschot kW",
-      "experimental": "Experimenteel"
+      "experimental": "Experimenteel",
+      "tomorrow": "Morgen",
+      "today": "Vandaag",
+      "learning_day": "Dag __day__ van __of__",
+      "paused": {
+        "no_outdoor": "Autopilot heeft geen buitentemperatuur. Kies een sensor in Slimme modus of gebruik de weersverwachting.",
+        "spa_on": "Smart price adaption staat aan voor verwarming. Zet het uit, dan kan Autopilot aan de slag.",
+        "room_control": "Ruimtevoelerregeling staat aan in je warmtepomp. Zet het uit, dan kan Autopilot aan de slag.",
+        "immersion_only": "Je warmtepomp draait alleen op het element. Autopilot wacht.",
+        "feed_failed": "Je warmtepomp nam de buitentemperatuur (BT1) niet over. Controleer menu 7.5.9.2.",
+        "cooling": "Je warmtepomp koelt. Autopilot wacht."
+      },
+      "shift_hint": "Onder 0 denkt je warmtepomp dat het kouder is en verwarmt hij meer. Boven 0 gaat hij terug.",
+      "error": "Kon Autopilot niet laden. Over een minuut probeer ik het opnieuw."
     },
     "hotwater_status": {
       "learning": "Leert je warmwatergebruik kennen",
@@ -642,12 +658,13 @@
       "working": "Werkdag",
       "free": "Vrije dag",
       "away": "Afwezig",
-      "today": "Vandaag, verwacht",
-      "typical": "Gebruikelijk",
+      "today": "Vandaag (verwacht)",
+      "typical": "Gebruikelijke dag",
       "at_least": "Minstens (de boiler was bijna leeg)",
       "learning": "Leert je warmwatergebruik",
       "off": "Autopilot voor warm water staat uit. Zet hem aan via Repareren → Slimme modus.",
-      "pick": "Kies een warmwaterapparaat."
+      "pick": "Kies een warmwaterapparaat.",
+      "away_keeps": "Autopilot houdt alleen je minimum warm."
     }
   }
 }

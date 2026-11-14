@@ -11,7 +11,7 @@ import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, StopReason, VERIFY_GA
 import {AUTOPILOT_FUNCTIONS, SMART_MODE_STORE, SmartFunction, SmartMode, autopilotRuns, shownSmartMode, smartMode, smartModeWrites, spaOn} from './autopilot/smart-mode';
 import {HeatingStatus, heatingStatus} from './autopilot/heating-status';
 import {forecastCorrection} from './autopilot/outdoor';
-import {AHEAD_SLOTS, BACK_SLOTS, HOTWATER_SLOTS, WidgetData, heatingSlots, ticks} from './autopilot/widget';
+import {AHEAD_SLOTS, BACK_SLOTS, HOTWATER_SLOTS, WidgetData, chargeBands, dayBreakSlot, formatDuration, heatingSlots, niceAxis, stripLead, ticks} from './autopilot/widget';
 import {HotwaterUseData, hotwaterWeek} from './autopilot/hotwater-use';
 import {SLOT_MS, slotOf} from './autopilot/prices';
 import {Edge, FORECAST_SLOTS, BlockedBy, HeatingDay, analyticsSmartMode, heatingBlock, reserveBucket} from './autopilot/analytics';
@@ -51,6 +51,8 @@ const HOUSEHOLD_STORE = 'autopilotHotwaterHousehold';
  *  setting shown, and mirrored, on every device of the pump. */
 const RESERVE_STORE = 'autopilotReserve';
 const DEFAULT_RESERVE_LITRES = 40;
+/** Pauses the Autopilot widget has an "what to do" line for (autopilot.widget.paused.*). */
+const WIDGET_PAUSES = ['no_outdoor', 'spa_on', 'room_control', 'immersion_only', 'feed_failed', 'cooling'];
 const MAX_RESERVE_LITRES = 500;
 
 // How long the indoor feed may keep failing before the user is told (10 missed 30 s updates).
@@ -1818,13 +1820,16 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const title = this.getName();
         const slot = slotOf(Date.now());
         const slotStart = (k: number) => k * 15 * 60_000;
+        const local = localClock(this.homey.clock.getTimezone());
+        const dayOf = (ms: number) => local(ms).date;
         const mode = this.role === 'heating' || this.role === 'hotwater' ? this.smartMode() : 'off';
         const base = {title, chips: [] as string[], slots: [], ticks: [], legend: {}};
         if (!autopilotRuns(mode)) return {...base, kind: 'none', empty: t(this.role === 'heating' || this.role === 'hotwater' ? 'off' : 'not_function')};
-        const chips = [t('experimental'), ...(mode === 'test' ? [t('test')] : [])];
+        const chips = [...(mode === 'test' ? [t('test')] : [])];
+        const badge = t('experimental');
         if (this.role === 'hotwater') {
             const o = this.hotwaterAutopilot?.outlook(slot, HOTWATER_SLOTS);
-            if (!o) return {...base, kind: 'hotwater', chips, empty: t('starting')};
+            if (!o) return {...base, kind: 'hotwater', chips, badge, empty: t('starting')};
             const reason = o.next ? this.homey.__(`autopilot.hotwater_charge.reason.${o.next.reason}`) : undefined;
             const solar = o.slots.some((s) => s.surplus !== undefined);
             const share = o.next ? Math.round(o.next.solar * 100) : 0;
@@ -1832,11 +1837,25 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const fromSolar = charges.length ? charges.reduce((a, s) => a + s.charge!, 0) / charges.length : 0;
             if (!this.solarAllowed()) chips.push(t('hotwater.solar_off'));
             else if (this.solarSurplus().forecastPaused) chips.push(t('hotwater.solar_paused'));
-            return {...base, kind: 'hotwater', chips, test: mode === 'test', slots: o.slots,
-                ticks: ticks(slotStart(slot), HOTWATER_SLOTS, this.clock),
-                status: o.next ? t('hotwater.next', {time: this.clock(o.next.at), m: o.next.minutes}) : t('hotwater.none'),
-                reason: [reason, share > 0 ? t('hotwater.share', {share}) : undefined,
-                    o.litres === undefined ? undefined : t('hotwater.litres', {l: Math.round(o.litres)})].filter(Boolean).join(' · '),
+            const litres = o.litres === undefined ? undefined : t('hotwater.litres', {l: Math.round(o.litres)});
+            // No prices: say so, and draw nothing. The chart would be an empty frame.
+            if (!o.slots.some((s) => s.price !== undefined))
+                return {...base, kind: 'hotwater', chips, badge, test: mode === 'test', status: t('hotwater.no_prices'), reason: litres};
+            const start = slotStart(slot);
+            const when = o.next ? (dayOf(o.next.at) === dayOf(Date.now()) ? this.clock(o.next.at)
+                : t('hotwater.tomorrow', {time: this.clock(o.next.at)})) : '';
+            const duration = o.next ? formatDuration(o.next.minutes, (key, tokens) => this.homey.__(`autopilot.hotwater_charge.${key}`, tokens)) : '';
+            const prices = o.slots.flatMap((s) => (s.price === undefined ? [] : [s.price]));
+            const surplus = o.slots.flatMap((s) => (s.surplus === undefined ? [] : [s.surplus]));
+            const day = dayBreakSlot(start, HOTWATER_SLOTS, dayOf);
+            return {...base, kind: 'hotwater', chips, badge, test: mode === 'test', slots: o.slots,
+                ticks: ticks(start, HOTWATER_SLOTS, this.clock),
+                scale: {left: niceAxis(0, Math.max(0, ...prices), {steps: [0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100]}),
+                    right: solar ? niceAxis(0, Math.max(0, ...surplus), {minSpan: 1, steps: [0.5, 1, 2, 5, 10]}) : undefined},
+                bands: chargeBands(o.slots, start, this.clock, (from, to) => t('hotwater.band', {from, to})),
+                dayBreak: day === undefined ? undefined : {at: day, label: t('tomorrow')},
+                status: o.next ? t('hotwater.next', {when, duration}) : t('hotwater.none'),
+                reason: [reason, share > 0 ? t('hotwater.share', {share}) : undefined, litres].filter(Boolean).join(' · '),
                 legend: {price: t('price'), surplus: solar ? t('surplus') : '', grid: t('charge_grid'), solar: solar ? t('charge_solar') : ''},
                 axes: {left: t('axis_price'), right: solar ? t('axis_surplus') : ''},
                 footnote: charges.length && solar ? t('hotwater.solar_total', {share: Math.round(fromSolar * 100)}) : undefined};
@@ -1850,18 +1869,35 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const thermostat = Number(this.getCapabilityValue('target_temperature'));
         const indoorNow = this.getCapabilityValue('measure_temperature') ?? NaN;
         const summary = this.autopilot?.houseSummary();
+        const slots = heatingSlots(past, this.heatingFeed?.state, slot);
+        const statusName = status ? this.homey.__(`autopilot.heating.status_name.${status}`) : undefined;
+        const testLead = this.homey.__('autopilot.heating.status.test', {text: '§'}).split('§')[0].replace(/[\s.:·]+$/, '');
+        const stopped = this.heatingFeed?.state?.stopped;
+        // The reason, without the words the status or the Simulation chip already say. A pause says what to do.
+        const stored = (this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) as string | null) ?? undefined;
+        const reason = status === 'learning' && summary && !summary.ready
+            ? t('learning_day', {day: Math.min(summary.days, summary.needed), of: summary.needed})
+            : status === 'paused' && stopped && WIDGET_PAUSES.includes(stopped) ? t(`paused.${stopped}`)
+                : stored === undefined ? undefined : stripLead(stored, [testLead, statusName ?? '']);
+        const indoors = [...slots.flatMap((s) => (s.indoor === undefined ? [] : [s.indoor])), ...(Number.isFinite(thermostat) ? [thermostat] : [])];
+        const shifts = slots.flatMap((s) => (s.offset === undefined ? [] : [s.offset]));
+        const day = dayBreakSlot(slotStart(from), BACK_SLOTS + AHEAD_SLOTS, dayOf);
         return {
-            ...base, kind: 'heating', chips, test: mode === 'test',
-            slots: heatingSlots(past, this.heatingFeed?.state, slot), now: BACK_SLOTS,
+            ...base, kind: 'heating', chips, badge, test: mode === 'test',
+            slots, now: BACK_SLOTS,
             ticks: ticks(slotStart(from), BACK_SLOTS + AHEAD_SLOTS, this.clock),
-            status: status ? this.homey.__(`autopilot.heating.status_name.${status}`) : undefined,
-            reason: (this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) as string | null) ?? undefined,
+            scale: {left: indoors.length ? niceAxis(Math.min(...indoors) - 0.3, Math.max(...indoors) + 0.3, {minSpan: 2, steps: [0.5, 1, 2, 5]})
+                    : niceAxis(19, 23, {steps: [0.5, 1, 2]}),
+                right: niceAxis(Math.min(0, ...shifts), Math.max(0, ...shifts), {include: [0], minSpan: 0.5, steps: [0.25, 0.5, 1, 2, 5]})},
+            dayBreak: day === undefined ? undefined : {at: day, label: t(day < BACK_SLOTS ? 'today' : 'tomorrow')},
+            hint: shifts.some((v) => v !== 0) ? t('shift_hint') : undefined,
+            status: statusName,
+            reason,
             legend: {indoor: t('indoor'), planned: t('expected'), offset: t('offset'), comfort: t('comfort')},
             axes: {left: t('axis_indoor'), right: t('axis_offset')},
             comfort: Number.isFinite(thermostat) ? thermostat : undefined,
             indoorNow: Number.isFinite(indoorNow) ? Math.round(indoorNow * 10) / 10 : undefined,
-            footnote: !summary || summary.ready ? undefined
-                : t('learning', {day: Math.min(summary.days, summary.needed), of: summary.needed}),
+            footnote: !summary || summary.ready ? undefined : t('learning'),
         };
     }
 
@@ -1878,12 +1914,15 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (!usage) return {title, empty: t('learning')};
         const format = new Intl.DateTimeFormat(this.homey.i18n.getLanguage(), {weekday: 'short', timeZone: 'UTC'});
         const week = hotwaterWeek(usage, (date) => format.format(new Date(`${date}T12:00:00Z`)));
+        // No full day yet: one line, not a week of dashes.
+        if (!week.bars.some((bar) => !bar.today && bar.litres !== undefined)) return {title, empty: t('learning')};
         const has = (kind: string) => week.bars.some((bar) => bar.kind === kind);
         const today = week.bars[week.bars.length - 1];
         const typical = today.kind === 'away' ? undefined : week.typical[today.kind];
         return {title, ...week,
             status: today.litres === undefined ? undefined : t(today.kind === 'away' ? 'expected_away' : 'expected', {l: today.litres}),
-            reason: [t(today.kind), typical === undefined ? undefined : t('typical_of', {l: typical})].filter(Boolean).join(' · '),
+            reason: today.kind === 'away' ? t('away_keeps')
+                : [t(today.kind), typical === undefined ? undefined : t('typical_of', {l: typical})].filter(Boolean).join(' · '),
             legend: {title: t('title'), working: has('working') ? t('working') : '', free: has('free') ? t('free') : '',
                 away: has('away') ? t('away') : '', today: t('today'), typical: t('typical'),
                 at_least: week.bars.some((b) => b.atLeast) ? t('at_least') : ''}};

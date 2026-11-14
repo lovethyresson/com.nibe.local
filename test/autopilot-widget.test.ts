@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {heatingSlots, ticks} from '../lib/autopilot/widget';
+import {chargeBands, dayBreakSlot, formatDuration, heatingSlots, niceAxis, stripLead, ticks} from '../lib/autopilot/widget';
 import {dayKind, hotwaterWeek} from '../lib/autopilot/hotwater-use';
 import {KWH_PER_LITRE, learn, localClock, TankPoint} from '../lib/autopilot/hotwater-learner';
 
@@ -85,4 +85,65 @@ test('a day the tank ran low is drawn as at least, and left out of a typical day
     assert.equal(tue.atLeast, true);
     assert.equal(week.bars.find((b) => b.label === '2026-11-09')!.atLeast, undefined);
     assert.equal(week.typical.working, 300);
+});
+
+test('axes use round gridlines, and a tick is never rounded away from its line', () => {
+    assert.deepEqual(niceAxis(0, 1.35), {lo: 0, hi: 1.5, ticks: [0, 0.5, 1, 1.5], decimals: 1});
+    assert.deepEqual(niceAxis(0, 0.5).ticks, [0, 0.25, 0.5], 'a quarter shows as 0.25, not 0.3');
+    assert.equal(niceAxis(0, 0.5).decimals, 2);
+    assert.deepEqual(niceAxis(0, 2.8).ticks, [0, 1, 2, 3], 'a dear price keeps to four intervals');
+    const indoor = niceAxis(20.4 - 0.3, 22 + 0.3, {minSpan: 2, steps: [0.5, 1, 2, 5]});
+    assert.deepEqual(indoor.ticks, [20, 21, 22, 23], 'indoor labels are whole degrees, not 21.3');
+    assert.ok(indoor.ticks.every((v) => v >= indoor.lo && v <= indoor.hi));
+});
+
+test('the shift axis always holds 0 and is at least half a degree tall', () => {
+    const calm = niceAxis(0, 0, {include: [0], minSpan: 0.5, steps: [0.25, 0.5, 1, 2, 5]});
+    assert.ok(calm.hi - calm.lo >= 0.5 && calm.ticks.includes(0));
+    const dip = niceAxis(-1.5, 0, {include: [0], minSpan: 0.5, steps: [0.25, 0.5, 1, 2, 5]});
+    assert.deepEqual([dip.lo, dip.hi], [-1.5, 0], 'half-degree steps, and 0 is a real zero');
+    assert.ok(dip.ticks.includes(0));
+});
+
+test('durations are hours and minutes, as in the timeline', () => {
+    const say = (key: string, tokens: Record<string, number>) => `${key}:${Object.values(tokens).join(',')}`;
+    assert.equal(formatDuration(45, say), 'duration_min:45');
+    assert.equal(formatDuration(130, say), 'duration:2,10');
+    assert.equal(formatDuration(180, say), 'duration_h:3');
+    assert.equal(formatDuration(59.6, say), 'duration_h:1', 'rounded first');
+});
+
+test('the chart finds midnight, in the owner\'s time zone', () => {
+    const hour = 3_600_000;
+    const start = Date.parse('2026-11-14T16:00:00Z');
+    const dayOf = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+    assert.equal(dayBreakSlot(start, 96, dayOf), 32, '16:00 to 00:00 is eight hours, 32 slots');
+    assert.equal(dayBreakSlot(start, 20, dayOf), undefined, 'no midnight in the window');
+    const plus1 = (ms: number) => dayOf(ms + hour);
+    assert.equal(dayBreakSlot(start, 96, plus1), 28, 'a zone an hour ahead reaches midnight an hour sooner');
+});
+
+test('a planned charge is one labelled band, with the share the sun covers', () => {
+    const hour = 3_600_000;
+    const from = Date.parse('2026-11-14T20:00:00Z');
+    const clock = (ms: number) => new Date(ms).toISOString().slice(11, 16);
+    const slots = Array.from({length: 24}, (_, k) => (k >= 8 && k < 17 ? {charge: k < 12 ? 1 : 0} : {}));
+    const bands = chargeBands(slots, from, clock, (a, b) => `${a} to ${b}`);
+    assert.equal(bands.length, 1);
+    assert.deepEqual([bands[0].from, bands[0].to], [8, 17]);
+    assert.equal(bands[0].label, '22:00 to 00:15', 'start of the first slot to the end of the last');
+    assert.equal(bands[0].solar, 0.44, 'four of nine slots on the surplus');
+    const two = chargeBands([{charge: 0}, {}, {charge: 0}], from, clock, (a, b) => `${a}-${b}`);
+    assert.equal(two.length, 2);
+    assert.equal(hour, 3_600_000);
+});
+
+test('a reason loses the word the status already says', () => {
+    assert.equal(stripLead('Holding. Nothing to gain from shifting now', ['Holding']), 'Nothing to gain from shifting now');
+    assert.equal(stripLead('Holding · easing off at 19:00', ['Holding']), 'Easing off at 19:00');
+    assert.equal(stripLead('Simulation: Holding. Prices are too even to shift', ['Simulation', 'Holding']), 'Prices are too even to shift');
+    assert.equal(stripLead('Until 19:00. Prices peak 17–19', ['Easing off']), 'Until 19:00. Prices peak 17–19', 'nothing to strip');
+    assert.equal(stripLead('Holding.', ['Holding']), '', 'only the lead: nothing left');
+    assert.equal(stripLead('Håller. Inget att vinna', ['Håller']), 'Inget att vinna');
+    assert.equal(stripLead('Anything', ['a(b']), 'Anything', 'a lead with regex characters is safe');
 });
