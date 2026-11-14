@@ -277,9 +277,11 @@ at 195).
 **Built (slice 4).** Surplus is measured at the grid meter, so a home battery and the house's own
 use come first and the tank only gets what would have been sold:
 
-- **Live:** Homey Energy's live report, once a minute. Surplus is the grid export, but never more
-  than the generators produce, so a battery selling at night is not taken for sun. The mean of
-  the last 10 minutes (8 readings at least) is the expected surplus for the next half hour.
+- **Live:** Homey Energy's live report, once a minute. Surplus is the grid export and nothing
+  else; what the inverter makes is not looked at (maintainer, 2026-11-14: a battery, the house or
+  a car can take all of it, and then there is no surplus, as on 14 Nov with 3.4 kW of sun all going
+  into the battery). The mean of the last 10 minutes (8 readings at least) is the expected surplus
+  for the next half hour.
 - **Planned:** every 3 h, the grid meter's hourly export over the last 14 days (Insights) is
   fitted by least squares against Open-Meteo's sun on the ground for the same hours
   (`shortwave_radiation`, `past_days=14`). Only hours with at least 50 W/m² count, and at least
@@ -288,7 +290,8 @@ use come first and the tank only gets what would have been sold:
 - **Which meter:** of the devices that declare themselves cumulative with an export meter, the
   one whose power is nearest the live report's grid figure. A P1 dongle and a battery's own grid
   sensor can both measure the same connection, and adding them would count each kWh twice.
-  Without a generator device there is no surplus at all.
+  Without a grid meter there is no surplus at all; a home without panels learns no fit (export
+  does not follow the sun) and only ever sees a live export of 0.
 - **Price:** an exported kWh is priced at the slot's spot price, what selling it would earn, near
   enough.
 - **On the maintainer's Homey, 9 Nov:** 79 sunny hours in two weeks, a = 3.7 kW per 1000 W/m²,

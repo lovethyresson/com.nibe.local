@@ -5,7 +5,7 @@
  *  Design: docs/autopilot-plan.md §1 of the solar plan (2026-11-12), §19.3. */
 import {withApi} from '../indoor-sensors';
 import {SLOT_MS} from './prices';
-import {LIVE_WINDOW, SurplusFit, fitSurplus, gridMeter, hasGenerator, hourlyExport, hourlyGhi, irradianceUrl, liveSurplusKw,
+import {LIVE_WINDOW, SurplusFit, fitSurplus, gridMeter, hourlyExport, hourlyGhi, irradianceUrl, liveSurplusKw,
     liveSurplusW, surplusForecast} from './hotwater-surplus';
 import {getJson, LOCATION_SETTING} from './collector';
 import {weatherLocation} from './weather';
@@ -81,7 +81,7 @@ export class SolarSurplus {
         if (SolarSurplus.instance === this) SolarSurplus.instance = undefined;
     }
 
-    /** Whether the home has a generator and a grid meter: without them there is never surplus. */
+    /** Whether the home has a grid meter: without one there is never surplus. */
     get available(): boolean { return this.ready; }
 
     /** Expected export per slot from `slot`, kW: live for the next half hour, the forecast after. */
@@ -113,13 +113,12 @@ export class SolarSurplus {
         this.timers.push(this.homey.setTimeout(run, firstMs));
     }
 
-    /** What surplus needs from the home (a generator and a grid meter Homey Energy counts), the
+    /** What surplus needs from the home (a grid meter Homey Energy counts), the
      *  fit of export against the sun over the last two weeks, and the sun ahead. */
     private async learn(): Promise<number> {
         const found = await withApi(this.homey, async (api) => {
             const [devices, report] = await Promise.all([api.devices.getDevices({$cache: false, $timeout: 10_000}),
                 api.energy.getLiveReport({})]);
-            if (!hasGenerator(devices)) return 'no generator' as const;
             const meter = gridMeter(devices, report);
             if (!meter) return 'no grid meter' as const;
             const uri = `homey:device:${meter.id}`;
@@ -145,7 +144,7 @@ export class SolarSurplus {
         return LEARN_EVERY_MS;
     }
 
-    /** One live reading a minute while the home has a generator. */
+    /** One live reading a minute while the home has a grid meter. */
     private async sample(): Promise<number> {
         if (!this.ready) {
             this.live = [];

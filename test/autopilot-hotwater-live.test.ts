@@ -5,7 +5,7 @@ import {HotwaterModel, localClock} from '../lib/autopilot/hotwater-learner';
 import {dailyPlan, hotwaterShadowStep} from '../lib/autopilot/hotwater-shadow';
 import {slotOf} from '../lib/autopilot/prices';
 import {
-    LIVE_MIN_READINGS, MIN_SUNNY_HOURS, SUNNY_GHI, fitSurplus, gridMeter, hasGenerator, hourlyExport, hourlyGhi,
+    LIVE_MIN_READINGS, MIN_SUNNY_HOURS, SUNNY_GHI, fitSurplus, gridMeter, hourlyExport, hourlyGhi,
     liveSurplusKw, liveSurplusW, surplusForecast,
 } from '../lib/autopilot/hotwater-surplus';
 import {BELOW_TARGET_K, DEMAND_LARGE, DEMAND_SMART, MAX_STARTS_PER_DAY, MAX_STOP_WRITES_PER_DAY, countFor, leverDecision} from '../lib/autopilot/hotwater-lever';
@@ -55,8 +55,8 @@ test('the fit recovers export against sun, and refuses without enough sunny hour
 
 test('live surplus is the export the sun made: a battery selling or no grid meter is none', () => {
     assert.strictEqual(liveSurplusW({totalCumulative: {W: -2500}, totalGenerated: {W: 4000}}), 2500);
-    assert.strictEqual(liveSurplusW({totalCumulative: {W: -2500}, totalGenerated: {W: 0}}), 0, 'a battery exporting at night');
-    assert.strictEqual(liveSurplusW({totalCumulative: {W: -2500}, totalGenerated: {W: -1500}}), 1500, 'either sign of generation');
+    assert.strictEqual(liveSurplusW({totalCumulative: {W: -2500}, totalGenerated: {W: 0}}), 2500, 'export is export, whatever the inverter says');
+    assert.strictEqual(liveSurplusW({totalCumulative: {W: 6260}, totalGenerated: {W: 3423}}), 0, 'the sun all going into a battery is no surplus');
     assert.strictEqual(liveSurplusW({totalCumulative: {W: 800}, totalGenerated: {W: 3000}}), 0, 'importing');
     assert.strictEqual(liveSurplusW({totalGenerated: {W: 3000}}), undefined);
     const now = T0 + HOUR;
@@ -73,8 +73,6 @@ test('the grid meter is the one Homey Energy counts; a home without a generator 
         panels: {energyObj: {generator: true, W: 0}},
     };
     assert.deepStrictEqual(gridMeter(devices, {totalCumulative: {W: -327}}), {id: 'dongle', exported: 'meter_power.exported'});
-    assert.ok(hasGenerator(devices));
-    assert.ok(!hasGenerator({dongle: devices.dongle}));
     assert.strictEqual(gridMeter({battery: devices.battery}, {}), undefined);
 });
 

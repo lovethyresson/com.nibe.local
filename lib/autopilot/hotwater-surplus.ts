@@ -101,14 +101,13 @@ export function surplusForecast(fit: SurplusFit | undefined, ghi: Map<number, nu
     });
 }
 
-/** What is exported now that the sun made, W, from Homey Energy's live report: the grid meter's
- *  export, but never more than the generators produce, so a battery selling at night is not
- *  taken for sun. Undefined without a grid meter (no `totalCumulative`). */
+/** What is exported now, W, from Homey Energy's live report: the grid meter's export and nothing
+ *  else. What an inverter makes says nothing about what is left: a battery, the house or a car can
+ *  take all of it (maintainer, 2026-11-14). Undefined without a grid meter (no `totalCumulative`). */
 export function liveSurplusW(report: any): number | undefined {
     const grid = report?.totalCumulative?.W;
     if (typeof grid !== 'number' || !Number.isFinite(grid)) return undefined;
-    const generated = Math.abs(Number(report?.totalGenerated?.W) || 0);
-    return Math.min(Math.max(0, -grid), generated);
+    return Math.max(0, -grid);
 }
 
 /** The mean of the last `LIVE_WINDOW` minutes' readings, kW, or undefined while too few arrived. */
@@ -136,7 +135,4 @@ export function gridMeter(devices: Record<string, any>, report: any): {id: strin
     return best && {id: best.id, exported: best.exported};
 }
 
-/** Whether the home has a generator (solar) device at all: without one, export is a battery's. */
-export function hasGenerator(devices: Record<string, any>): boolean {
-    return Object.values(devices ?? {}).some((d) => (d?.energyObj ?? d?.energy)?.generator === true);
-}
+
