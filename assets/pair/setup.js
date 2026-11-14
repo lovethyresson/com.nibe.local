@@ -34,6 +34,10 @@ function NibeSetup(options) {
         if (cls) node.className = cls;
         return node;
     }
+    /** A text action ("Change", "How do they differ?"): not one of Homey's full-size buttons. */
+    function smallAction(text, fn) {
+        var b = el('button', text, 'setup-small-action hy-nostyle'); b.type = 'button'; b.onclick = fn; return b;
+    }
     function button(text, fn, primary) {
         var b = el('button', text, primary ? 'homey-button-primary-full' : 'homey-button-secondary');
         b.type = 'button'; b.onclick = fn; return b;
@@ -189,10 +193,10 @@ function NibeSetup(options) {
                 chip.classList.add('setup-chip'); picked.appendChild(chip);
             });
             if (selected.length) {
-                var showSelected = button(onlySelected ? t('all_matches') : t('selected_only'), function () {
+                var showSelected = smallAction(onlySelected ? t('all_matches') : t('selected_only'), function () {
                     onlySelected = !onlySelected; page = 0; draw();
                 });
-                showSelected.classList.add('setup-small-action'); picked.appendChild(showSelected);
+                picked.appendChild(showSelected);
             }
             if (!browsing) { results.appendChild(button(t('show_all'), function () { showAll = true; draw(); })); return; }
             var query = normalized(search.value.trim());
@@ -231,8 +235,8 @@ function NibeSetup(options) {
             }
         }
         search.oninput = function () { page = 0; draw(); }; room.onchange = type.onchange = function () { page = 0; draw(); };
-        var refresh = button(t('refresh'), function () { busy(refresh, load); });
-        refresh.classList.add('setup-small-action'); shell.appendChild(refresh);
+        var refresh = smallAction(t('refresh'), function () { busy(refresh, load); });
+        shell.appendChild(refresh);
         async function load() {
             inventory = await emit('get_indoor_sensors');
             fill(room, t('all_rooms'), Array.from(new Set(inventory.map(function (s) { return s.room; }))));
@@ -350,7 +354,7 @@ function NibeSetup(options) {
         pumpStep();
     }
     /** The indoor feed still has to be started: Homey sensors chosen and reviewed now. */
-    function indoorPending() { return useHomey && validated; }
+    function indoorPending() { return useHomey && validated && !(flowing() && apMode()); }
     async function steer() {
         useAp('heating');
         clear(t('heating'), a('steer_intro'));
@@ -362,7 +366,7 @@ function NibeSetup(options) {
         var st = ap.status;
         if (!ap.picked) { ap.choice = st.mode; ap.sim = undefined; }
         shell.appendChild(smartPicker(st));
-        var how = button(a('compare_link'), compare); how.classList.add('setup-small-action'); shell.appendChild(how);
+        var how = smallAction(a('compare_link'), compare); shell.appendChild(how);
         if (st.spaOn) shell.appendChild(el('p', a('spa_note'), 'register-desc'));
         // Autopilot steers through BT1 with room-sensor control off, so its path never asks for
         // the pump's own room control (the temperature source below sets that up for SPA and Off).
@@ -370,6 +374,9 @@ function NibeSetup(options) {
     }
     /** Autopilot: which indoor temperature it holds at the thermostat. Read only either way. */
     function apIndoor() {
+        // Homey sensors sent as BT50 today: Autopilot keeps the same sensors, only read.
+        if (active && !apIndoor.seen) { readHomey = true; validated = true; selected = (config && config.sensors || []).slice(); }
+        apIndoor.seen = true;
         clear(t('heating'), a('indoor_intro'));
         view.querySelector('.pair-hero-title').textContent = a('indoor_title');
         view.querySelector('.pair-hero-title').hidden = false;
@@ -391,13 +398,16 @@ function NibeSetup(options) {
         var h = document.createElement('input'); h.type = 'radio'; h.name = 'ap-indoor'; h.checked = readHomey;
         h.onchange = function () { choose(true); };
         var text = el('span', undefined, 'setup-source-copy');
-        text.append(el('span', t('homey'), 'setup-source-title'), el('span', a('indoor_homey_desc'), 'setup-source-description'));
-        label.append(h, text); homeyCard.appendChild(label); shell.appendChild(homeyCard);
-        shell.appendChild(el('p', a('indoor_note'), 'register-desc'));
+        var picked = readHomey && validated && selected.length;
+        text.append(el('span', t('homey'), 'setup-source-title'),
+            el('span', picked ? a('indoor_homey', {n: selected.length}) + ' · ' + a('indoor_homey_read') : a('indoor_homey_desc'), 'setup-source-description'));
+        label.append(h, text); homeyCard.appendChild(label);
+        if (readHomey) homeyCard.appendChild(smallAction(picked ? a('change_sensors') : t('choose_sensors'), picker));
+        shell.appendChild(homeyCard);
+        // Sent as BT50 today: with Autopilot the same sensors are only read, nothing to do on the pump.
+        shell.appendChild(el('p', active ? a('indoor_bt50_note') : a('indoor_note'), 'register-desc'));
         shell.appendChild(button(t('next'), function () {
-            // The BT50 feed has to stop before Autopilot: the pump must not regulate on indoor.
-            if (active) { handover(apIndoor); return; }
-            if (readHomey) picker(); else afterApIndoor();
+            if (readHomey && !picked) picker(); else afterApIndoor();
         }, true));
         back(steer);
     }
@@ -522,7 +532,7 @@ function NibeSetup(options) {
             var outdoorText = st.outdoorSensor ? (st.outdoorName || a('sensor')) + (st.outdoor !== null ? ' · ' + st.outdoor + ' °C' : ' · ' + a('no_reading'))
                 : a('outdoor_forecast');
             uses.appendChild(checkRow(st.outdoorSensor && st.outdoor !== null ? true : null, a('outdoor'), outdoorText,
-                button(a('choose_outdoor'), function () { outdoorPicker(pumpStep); })));
+                smallAction(a('choose_outdoor'), function () { outdoorPicker(pumpStep); })));
             uses.appendChild(checkRow(st.prices ? true : null, a('prices'), a(st.prices ? 'prices_dynamic' : 'prices_fixed')));
             var usesGroup = el('section', undefined, 'setup-task-group');
             usesGroup.append(el('h3', a('autopilot_uses')), uses); shell.appendChild(usesGroup);
@@ -539,8 +549,8 @@ function NibeSetup(options) {
             var results = [];
             // Autopilot's indoor temperature: Homey sensors read only, or the pump's own sensor.
             if (runs && options.mode === 'repair') {
-                if (readHomey) await emit('read_indoor', {sensors: selected.slice()});
-                else if (config && config.state === 'read') { await emit('stop_reading_indoor'); config = null; }
+                if (readHomey) { await emit('read_indoor', {sensors: selected.slice()}); active = false; config = {sensors: selected.slice(), state: 'read'}; }
+                else if (config && (config.state === 'read' || config.state === 'active')) { await emit('stop_reading_indoor'); config = null; active = false; }
             }
             if (indoorPending()) {
                 var indoor = await emit('activate_indoor', draft());
@@ -587,13 +597,13 @@ function NibeSetup(options) {
         }
         var list = el('ul', undefined, 'setup-checklist');
         function row(title, value, go) {
-            list.appendChild(checkRow(true, title, value, button(a('change'), go)));
+            list.appendChild(checkRow(true, title, value, smallAction(a('change'), go)));
         }
         if (heating.zones) row(a('row_zone'), zoneLabel() || '—', zones);
         var runsNow = st.mode === 'autopilot' || st.mode === 'test';
         row(a('row_smart'), runsNow ? a('choose_on') + ' · ' + a(st.mode === 'test' ? 'mode_simulated' : 'mode_live')
             : a(st.mode === 'spa' ? 'choose_spa' : 'choose_off'), steer);
-        if (runsNow) row(a('row_indoor'), readHomey ? a('indoor_homey', {n: selected.length}) : a('indoor_pump'), apIndoor);
+        if (runsNow) row(a('row_indoor'), readHomey || active ? a('indoor_homey', {n: selected.length}) : a('indoor_pump'), apIndoor);
         else row(a('row_indoor'), useHomey ? a('indoor_homey', {n: selected.length}) : a('indoor_pump'), temperature);
         if (st.mode === 'autopilot' || st.mode === 'test')
             row(a('row_outdoor'), st.outdoorSensor ? (st.outdoorName || a('sensor')) : a('outdoor_forecast'),
@@ -638,7 +648,7 @@ function NibeSetup(options) {
         var seg = el('div', undefined, 'setup-segment-wrap'); seg.hidden = current !== 'autopilot' || soon;
         var pills = el('div', undefined, 'setup-segment');
         [['autopilot', 'mode_live'], ['test', 'mode_simulated']].forEach(function (m) {
-            var pill = el('button', a(m[1]), 'setup-segment-option' + (ap.choice === m[0] ? ' is-on' : ''));
+            var pill = el('button', a(m[1]), 'setup-segment-option hy-nostyle' + (ap.choice === m[0] ? ' is-on' : ''));
             pill.type = 'button'; pill.dataset.mode = m[0];
             pill.onclick = function (e) {
                 e.preventDefault(); ap.sim = m[0] === 'test'; ap.choice = m[0]; ap.picked = true;
@@ -878,7 +888,7 @@ function NibeSetup(options) {
         var outdoorText = st.outdoorSensor ? (st.outdoorName || a('sensor')) + (st.outdoor !== null ? ' · ' + st.outdoor + ' °C' : ' · ' + a('no_reading'))
             : a('outdoor_forecast');
         list.appendChild(checkRow(st.outdoorSensor && st.outdoor !== null ? true : null, a('outdoor'), outdoorText,
-            button(a('choose_outdoor'), function () { outdoorPicker(checklist); })));
+            smallAction(a('choose_outdoor'), function () { outdoorPicker(checklist); })));
         list.appendChild(checkRow(st.prices ? true : null, a('prices'), a(st.prices ? 'prices_dynamic' : 'prices_fixed')));
         var roomOk = st.roomControl === null ? null : st.roomControl === 0;
         list.appendChild(checkRow(roomOk, a('room_control'), a(roomOk === false ? 'room_control_on' : roomOk ? 'room_control_off' : 'room_control_unknown')));
@@ -1002,7 +1012,7 @@ function NibeSetup(options) {
     function hub() {
         clear(t('title'), t('intro'));
         sections.forEach(function (section) {
-            var menu = button('', function () { open(section); }); menu.className = 'setup-menu';
+            var menu = button('', function () { open(section); }); menu.className = 'setup-menu hy-nostyle';
             var text = el('span'); text.append(el('strong', section.title), el('small', section.description));
             // Each function's own Smart mode: never whichever was opened last.
             var mine = aps[fnOf(section)];

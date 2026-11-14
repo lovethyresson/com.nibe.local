@@ -96,7 +96,7 @@
       "intro": "Ställ in funktionerna du har valt.",
       "heating": "Värmeinställningar",
       "hotwater": "Varmvatteninställningar",
-      "heating_intro": "Välj temperaturen som styr din uppvärmning.",
+      "heating_intro": "Smart läge, inomhustemperatur och termostatzon.",
       "back": "Tillbaka",
       "next": "Fortsätt",
       "review": "Granska inställningar",
@@ -335,7 +335,10 @@
         "indoor_homey_desc": "En sensor, eller medelvärdet av flera rum. Läses bara, skickas aldrig till din värmepump.",
         "indoor_note": "Autopilot styr din värmepump via utetemperaturen (BT1), så rumsgivarstyrningen i din värmepump är avstängd.",
         "indoor_read_hint": "Autopilot läser dem varje minut. Inget skickas till din värmepump.",
-        "indoor_source_prompt": "Flera givare kan rapportera detta. Välj den som Autopilot läser:"
+        "indoor_source_prompt": "Flera givare kan rapportera detta. Välj den som Autopilot läser:",
+        "change_sensors": "Byt sensorer",
+        "indoor_homey_read": "läses bara",
+        "indoor_bt50_note": "Dina Homey-sensorer skickas till din värmepump som BT50 nu. Med Autopilot läses de bara, och rumsgivarstyrningen är avstängd. Inget att ändra i din värmepump."
       },
       "gets_added": "Det här läggs till",
       "gets_added_intro": "De här enheterna läggs till, inställda så här:",

@@ -246,24 +246,42 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         return this.homeyIndoor && Date.now() - this.homeyIndoor.at < 10 * 60_000 ? this.homeyIndoor.value : undefined;
     }
 
-    /** Read the chosen Homey sensors for Autopilot, never feeding them to the pump. Refused while
-     *  the BT50 feed runs: that hands back first (deactivateIndoor), as the pump must stop using it. */
+    /** Read the chosen Homey sensors for Autopilot, never feeding them to the pump. A running BT50
+     *  feed simply stops: Autopilot needs room-sensor control off, so the pump does not regulate on
+     *  BT50, and a BT50 nobody feeds goes unavailable after ~5 min while the pump carries on
+     *  (docs/autopilot-plan.md, 2026-10-28). Nothing to do on the pump. */
     async readIndoorForAutopilot(raw: any) {
         if (this.role !== 'heating') throw new Error('Only Heating reads the indoor temperature.');
-        if (this.getStoreValue('indoorSensors')?.state === 'active')
-            throw new Error('Your Homey sensors are still sent to your heat pump. Hand them back first.');
         const config = readOnlyIndoorConfig(raw);
         const value = averageSensors(config, await this.readIndoorSensors(config));
+        await this.stopFeedingBt50();
         await this.setStoreValue('indoorSensors', config);
         this.scheduleIndoorRead();
         return {value};
     }
 
-    /** Back to the pump's own sensor for Autopilot's indoor temperature. */
+    /** Autopilot reads the pump's own sensor: stop reading Homey sensors, or sending them as BT50. */
     async stopReadingIndoor() {
-        if (!this.indoorReadOnly()) return;
+        const state = this.getStoreValue('indoorSensors')?.state;
+        if (state !== 'read' && state !== 'active') return;
+        await this.stopFeedingBt50();
         await this.unsetStoreValue('indoorSensors');
         this.scheduleIndoorRead();
+    }
+
+    /** Stop sending Homey sensors as BT50, for Autopilot only (room-sensor control is off): the
+     *  device reads its indoor temperature from the pump's own sensor again. */
+    private async stopFeedingBt50() {
+        if (this.getStoreValue('indoorSensors')?.state !== 'active') return;
+        if (this.indoorWork) await this.indoorWork.catch(() => undefined);
+        if (this.indoorTimer) clearTimeout(this.indoorTimer);
+        this.indoorTimer = null;
+        if (NibePumpDevice.indoorOwners.get(this.host()) === this) NibePumpDevice.indoorOwners.delete(this.host());
+        const selection = this.getSelection();
+        if (selection) await this.applySelection({...selection, addresses: {...selection.addresses,
+            measure_temperature: this.getStoreValue('indoorNativeAddress') ?? 116}});
+        this.indoorStatus = {state: 'idle'};
+        this.log('Indoor: stopped sending Homey sensors as BT50; Autopilot reads them instead.');
     }
 
     private scheduleIndoor() {

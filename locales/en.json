@@ -96,7 +96,7 @@
       "intro": "Set up the functions you selected.",
       "heating": "Heating setup",
       "hotwater": "Hot water setup",
-      "heating_intro": "Choose the temperature that guides your heating.",
+      "heating_intro": "Smart mode, indoor temperature and thermostat zone.",
       "back": "Back",
       "next": "Continue",
       "review": "Review setup",
@@ -335,7 +335,10 @@
         "indoor_homey_desc": "One sensor, or the average of several rooms. Only read, never sent to your heat pump.",
         "indoor_note": "Autopilot steers your heat pump through the outdoor temperature (BT1), so room-sensor control on your heat pump stays off.",
         "indoor_read_hint": "Autopilot reads these every minute. Nothing is sent to your heat pump.",
-        "indoor_source_prompt": "More than one sensor can report this. Pick the one Autopilot reads:"
+        "indoor_source_prompt": "More than one sensor can report this. Pick the one Autopilot reads:",
+        "change_sensors": "Change sensors",
+        "indoor_homey_read": "only read",
+        "indoor_bt50_note": "Your Homey sensors are sent to your heat pump as BT50 now. With Autopilot they are only read, and room-sensor control stays off. Nothing to change on your heat pump."
       },
       "gets_added": "What gets added",
       "gets_added_intro": "Adding these devices, set up like this:",

@@ -325,3 +325,25 @@ test('several grid meters: the owner picks the one for the whole home', async ()
     assert.equal(JSON.stringify(f.emitted.find((e) => e.name === 'solar_save')?.data), JSON.stringify({live: false, forecast: false, meter: 'b'}), 'saved switches are kept');
     f.dom.window.close();
 });
+
+test('Autopilot with Homey sensors sent as BT50: the same sensors, only read, and no BT50 steps', async () => {
+    const s = english.pair.setup;
+    const f = fixture('repair', 'heating', 0, undefined, {
+        context: {smart: true, indoorSensors: {sensors: [{deviceId: 'sensor1', capabilityId: 'measure_temperature'}], state: 'active'}},
+        results: {smart_status: {role: 'heating', mode: 'test', spa: true, spaOn: false, autopilot: true, verified: false, roomControl: 0,
+            indoor: 21.3, prices: true, status: null, outdoorSensor: null, outdoorName: null}, read_indoor: {value: 21}}});
+    f.click('Continue'); f.menu('Heating setup'); await tick();
+    const change = [...f.win.document.querySelectorAll('button')].filter((b: any) => b.textContent === s.smart.change);
+    change[0].click(); await tick();
+    f.click('Continue'); await tick();
+    const text = f.win.document.body.textContent;
+    assert.ok(text.includes(s.smart.indoor_bt50_note), 'says the sensors are only read from now on');
+    assert.ok(!text.includes(s.return_nibe), 'no "Return to your NIBE sensor" page');
+    f.click('Continue'); await tick();
+    const pump = f.win.document.body.textContent;
+    assert.ok(!pump.includes(s.enable_title) && !pump.includes(s.control_title), 'no BT50 steps on the Autopilot path');
+    f.click(s.save_section); await tick(); await tick();
+    assert.equal(f.emitted.find((e) => e.name === 'read_indoor')?.data?.sensors?.[0]?.deviceId, 'sensor1');
+    assert.equal(f.emitted.some((e) => e.name === 'activate_indoor'), false);
+    f.dom.window.close();
+});

@@ -96,7 +96,7 @@
       "intro": "Richten Sie die ausgewählten Funktionen ein.",
       "heating": "Heizung einrichten",
       "hotwater": "Warmwasser einrichten",
-      "heating_intro": "Wählen Sie die Temperatur für Ihre Heizungsregelung.",
+      "heating_intro": "Smart-Modus, Innentemperatur und Thermostatzone.",
       "back": "Zurück",
       "next": "Weiter",
       "review": "Einrichtung prüfen",
@@ -335,7 +335,10 @@
         "indoor_homey_desc": "Ein Sensor oder der Durchschnitt mehrerer Räume. Wird nur gelesen, nie an Ihre Wärmepumpe gesendet.",
         "indoor_note": "Autopilot steuert Ihre Wärmepumpe über die Außentemperatur (BT1), daher bleibt die Raumfühlerregelung Ihrer Wärmepumpe aus.",
         "indoor_read_hint": "Autopilot liest sie jede Minute. An Ihre Wärmepumpe wird nichts gesendet.",
-        "indoor_source_prompt": "Mehrere Fühler können dies melden. Wählen Sie den, den Autopilot liest:"
+        "indoor_source_prompt": "Mehrere Fühler können dies melden. Wählen Sie den, den Autopilot liest:",
+        "change_sensors": "Sensoren ändern",
+        "indoor_homey_read": "nur gelesen",
+        "indoor_bt50_note": "Ihre Homey-Sensoren werden jetzt als BT50 an Ihre Wärmepumpe gesendet. Mit Autopilot werden sie nur gelesen, und die Raumfühlerregelung bleibt aus. An Ihrer Wärmepumpe ist nichts zu ändern."
       },
       "gets_added": "Das wird hinzugefügt",
       "gets_added_intro": "Diese Geräte werden hinzugefügt, so eingerichtet:",

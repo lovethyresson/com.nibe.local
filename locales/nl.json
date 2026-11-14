@@ -96,7 +96,7 @@
       "intro": "Stel de gekozen functies in.",
       "heating": "Verwarming instellen",
       "hotwater": "Warm water instellen",
-      "heating_intro": "Kies de temperatuur die je verwarming stuurt.",
+      "heating_intro": "Slimme modus, binnentemperatuur en thermostaatzone.",
       "back": "Terug",
       "next": "Verder",
       "review": "Instellingen controleren",
@@ -335,7 +335,10 @@
         "indoor_homey_desc": "Eén sensor, of het gemiddelde van meerdere kamers. Alleen gelezen, nooit naar je warmtepomp gestuurd.",
         "indoor_note": "Autopilot stuurt je warmtepomp via de buitentemperatuur (BT1), dus de ruimtevoelerregeling in je warmtepomp blijft uit.",
         "indoor_read_hint": "Autopilot leest ze elke minuut. Er wordt niets naar je warmtepomp gestuurd.",
-        "indoor_source_prompt": "Meerdere sensoren kunnen dit melden. Kies degene die Autopilot leest:"
+        "indoor_source_prompt": "Meerdere sensoren kunnen dit melden. Kies degene die Autopilot leest:",
+        "change_sensors": "Sensoren wijzigen",
+        "indoor_homey_read": "alleen gelezen",
+        "indoor_bt50_note": "Je Homey-sensoren worden nu als BT50 naar je warmtepomp gestuurd. Met Autopilot worden ze alleen gelezen en blijft de ruimtevoelerregeling uit. Niets te wijzigen aan je warmtepomp."
       },
       "gets_added": "Dit wordt toegevoegd",
       "gets_added_intro": "Deze apparaten worden toegevoegd, zo ingesteld:",
