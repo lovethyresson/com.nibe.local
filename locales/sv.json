@@ -354,7 +354,9 @@
         "you_on": "Du slog på dessa",
         "you_off": "Du stängde av dessa",
         "none": "Inget ändras på dina enheter."
-      }
+      },
+      "pool": "Poolinställningar",
+      "cooling": "Kylinställningar"
     },
     "gateway": {
       "title": "Gatewayanslutning",

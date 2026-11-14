@@ -354,7 +354,9 @@
         "you_on": "Von Ihnen eingeschaltet",
         "you_off": "Von Ihnen ausgeschaltet",
         "none": "An Ihren Geräten ändert sich nichts."
-      }
+      },
+      "pool": "Pool einrichten",
+      "cooling": "Kühlung einrichten"
     },
     "gateway": {
       "title": "Gateway-Verbindung",

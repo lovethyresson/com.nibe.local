@@ -354,7 +354,9 @@
         "you_on": "Du slo på disse",
         "you_off": "Du slo av disse",
         "none": "Ingenting endres på enhetene dine."
-      }
+      },
+      "pool": "Bassengoppsett",
+      "cooling": "Kjøleoppsett"
     },
     "gateway": {
       "title": "Gatewaytilkobling",

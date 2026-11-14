@@ -354,7 +354,9 @@
         "you_on": "You switched these on",
         "you_off": "You switched these off",
         "none": "Nothing changes on your devices."
-      }
+      },
+      "pool": "Pool setup",
+      "cooling": "Cooling setup"
     },
     "gateway": {
       "title": "Gateway connection",

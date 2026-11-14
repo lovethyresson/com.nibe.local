@@ -354,7 +354,9 @@
         "you_on": "Du tændte for disse",
         "you_off": "Du slukkede for disse",
         "none": "Intet ændres på dine enheder."
-      }
+      },
+      "pool": "Poolopsætning",
+      "cooling": "Køleopsætning"
     },
     "gateway": {
       "title": "Gatewayforbindelse",

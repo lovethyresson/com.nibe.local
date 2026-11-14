@@ -354,7 +354,9 @@
         "you_on": "Jij hebt deze aangezet",
         "you_off": "Jij hebt deze uitgezet",
         "none": "Er verandert niets aan je apparaten."
-      }
+      },
+      "pool": "Zwembad instellen",
+      "cooling": "Koeling instellen"
     },
     "gateway": {
       "title": "Gatewayverbinding",

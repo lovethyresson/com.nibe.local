@@ -180,7 +180,7 @@ function render() {
         if (candidate.role === 'hotwater' && candidate.smart) {
             if (setupSections[index]) setupSections[index][0].smart = 'hotwater';
             else setupSections[index] = [{id: index + '-smart', role: 'smart', fn: 'hotwater',
-                title: Homey.__('pair.setup.smart.title'), description: Homey.__('pair.setup.smart.section_hotwater')}];
+                title: Homey.__('pair.setup.hotwater'), description: Homey.__('pair.setup.smart.section_hotwater')}];
         }
         if (candidate.role === 'heating' && candidate.indoorSupported !== false) {
             var sources = document.createElement('div');

@@ -651,6 +651,11 @@ function NibeSetup(options) {
         card.querySelector('.setup-source-copy').appendChild(seg);
         return box;
     }
+    /** Smart mode is a step of its function's setup, so its pages carry that setup's name. */
+    function setupTitle() {
+        var fn = ap.role || options.role;
+        return t({heating: 'heating', hotwater: 'hotwater', pool: 'pool', cooling: 'cooling'}[fn] || 'title');
+    }
     function apMode() { return ap.choice === 'autopilot' || ap.choice === 'test'; }
     function a(key, tokens) {
         var text = Homey.__('pair.setup.smart.' + key);
@@ -691,7 +696,7 @@ function NibeSetup(options) {
         row.appendChild(copy); return row;
     }
     async function smart() {
-        clear(a('title'), a('intro'));
+        clear(setupTitle(), a('intro'));
         var loading = el('p', t('checking')); shell.appendChild(loading); back(hub);
         try { ap.status = await smartStatus(); } catch (err) { loading.remove(); fail(err); return; }
         loading.remove();
@@ -724,7 +729,7 @@ function NibeSetup(options) {
      *  the household answers it starts from. */
     function hotwaterStep() {
         var st = ap.status;
-        clear(a('title'), a('hw_intro'));
+        clear(setupTitle(), a('hw_intro'));
         // Autopilot plans in litres, so it needs the tank. The setup's own tank picker is moved in
         // here when none is chosen yet: in this setup if it has one, else on the device.
         var tank = sections.filter(function (s) { return s.role === 'hotwater' && s.content; })[0];
@@ -812,7 +817,7 @@ function NibeSetup(options) {
      *  around the sun ahead. The answer is the home's, read by every function; hot water asks it
      *  because surplus pays most there. `finish` saves the rest. */
     function solarStep(finish) {
-        clear(a('title'), a('solar_intro'));
+        clear(setupTitle(), a('solar_intro'));
         var loading = el('p', a('solar_scanning')); shell.appendChild(loading);
         back(hotwaterStep);
         emit('solar_scan').then(function (scan) { loading.remove(); drawSolar(scan, finish); })
@@ -866,7 +871,7 @@ function NibeSetup(options) {
     }
     function checklist() {
         var st = ap.status;
-        clear(a('title'), a('checklist_intro'));
+        clear(setupTitle(), a('checklist_intro'));
         var list = el('ul', undefined, 'setup-checklist');
         var indoorOk = st.indoor !== null;
         list.appendChild(checkRow(indoorOk, a('indoor'), indoorOk ? st.indoor + ' °C' : a('indoor_missing')));
@@ -887,7 +892,7 @@ function NibeSetup(options) {
         shell.appendChild(next); back(smart);
     }
     function verifyStep() {
-        clear(a('title'), a('verify_intro'));
+        clear(setupTitle(), a('verify_intro'));
         var group = el('section', undefined, 'setup-task-group');
         group.appendChild(el('h3', t('on_pump')));
         var steps = el('ol', undefined, 'setup-pump-steps');
@@ -902,7 +907,7 @@ function NibeSetup(options) {
         shell.appendChild(label);
         var verify = button(t('verify'), function () { busy(verify, async function () {
             var result = await emit('activate_autopilot');
-            clear(a('title'), '');
+            clear(setupTitle(), '');
             var success = el('section', undefined, 'setup-success'); success.setAttribute('role', 'status');
             var check = el('div', '✓', 'setup-success-check'); check.setAttribute('aria-hidden', 'true');
             success.append(check, el('h2', a('success_title')), el('p', a('success_description')));
@@ -915,7 +920,7 @@ function NibeSetup(options) {
         shell.appendChild(verify); back(checklist);
     }
     function done(message, detail) {
-        clear(a('title'), '');
+        clear(setupTitle(), '');
         var success = el('section', undefined, 'setup-success'); success.setAttribute('role', 'status');
         var check = el('div', '✓', 'setup-success-check'); check.setAttribute('aria-hidden', 'true');
         success.append(check, el('h2', message));
@@ -931,7 +936,7 @@ function NibeSetup(options) {
         return b;
     }
     function outdoorPicker(then) {
-        clear(a('title'), a('outdoor_intro'));
+        clear(setupTitle(), a('outdoor_intro'));
         var current = ap.status && ap.status.outdoorSensor;
         var choice = current ? current.deviceId + ':' + current.capabilityId : 'forecast';
         var search = document.createElement('input'); search.type = 'search'; search.placeholder = t('search');
