@@ -220,7 +220,6 @@
         "verify_intro": "Autopilot checks that your heat pump takes its outdoor temperature.",
         "verify_confirm": "Both are on",
         "success_title": "Autopilot is on",
-        "success_received": "taken by your heat pump",
         "return_reminder": "On your heat pump, turn off external BT1 in menu 7.5.9.2.",
         "outdoor_intro": "Pick a sensor in the shade, or use the forecast.",
         "use_forecast": "Use the weather forecast",
@@ -231,7 +230,7 @@
         "room_control_optional": "Optional. On lets your heat pump correct by room temperature. Turn it off before choosing Autopilot.",
         "autopilot_uses": "What Autopilot uses",
         "pump_confirm": "These are set on your heat pump",
-        "saved_setup": "Heating Setup saved",
+        "saved_setup": "Heating setup saved",
         "summary_intro": "Your heating setup.",
         "change": "Change",
         "row_zone": "Thermostat zone",
@@ -338,7 +337,9 @@
         "indoor_source_prompt": "More than one sensor can report this. Pick the one Autopilot reads:",
         "change_sensors": "Change sensors",
         "indoor_homey_read": "only read",
-        "indoor_bt50_note": "Your Homey sensors are sent to your heat pump as BT50 now. With Autopilot they are only read, and room-sensor control stays off. Nothing to change on your heat pump."
+        "indoor_bt50_note": "Your Homey sensors are sent to your heat pump as BT50 now. With Autopilot they are only read, and room-sensor control stays off. Nothing to change on your heat pump.",
+        "success_indoor": "indoors now · Autopilot steers it to __target__ °C",
+        "success_indoor_now": "indoors now"
       },
       "gets_added": "What gets added",
       "gets_added_intro": "Adding these devices, set up like this:",

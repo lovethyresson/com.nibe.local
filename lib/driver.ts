@@ -1368,8 +1368,10 @@ export abstract class NibePumpDriver extends Driver {
         const room = await withPump(this.profile, host, this.pairingTransport(transport),
             (pump) => readRoomControl(pump, this.profile)).catch(() => undefined);
         const indoor = detection?.samples['measure_temperature']?.value;
+        const target = detection?.samples['target_temperature']?.value;
         const prices = await withApi(this.homey, async (api) => await api.energy.getElectricityPriceType() === 'dynamic').catch(() => false);
         return {...base, verified: false, roomControl: room ?? null, indoor: typeof indoor === 'number' ? indoor : null,
+            target: typeof target === 'number' ? target : null,
             prices, status: null, ...await this.outdoorFacts()};
     }
 

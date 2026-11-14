@@ -1926,6 +1926,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             verified: this.getStoreValue('autopilotHeatingVerified') === true,
             roomControl: await this.readRoomControl() ?? null,
             indoor: Number.isFinite(indoor) ? indoor : null,
+            target: Number.isFinite(Number(this.getCapabilityValue('target_temperature'))) ? Number(this.getCapabilityValue('target_temperature')) : null,
             outdoor: this.autopilot?.outdoorNow().sensor ?? null,
             prices: this.autopilot?.hasPrices() ?? false,
             status: this.hasCapability(AUTOPILOT_REASON_CAPABILITY) ? this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) : null,

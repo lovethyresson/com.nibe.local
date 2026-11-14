@@ -558,14 +558,15 @@ function NibeSetup(options) {
                 results.push([indoor.measured + ' °C', t('success_received')]);
             }
             if (verifyBt1) {
-                var fed = await emit('activate_autopilot');
+                await emit('activate_autopilot');
                 // Pairing: verified on the pump now, saved on the new Heating device when it is added.
                 if (options.mode === 'pair') { ap.saved = ap.saved || {}; ap.saved.mode = 'autopilot'; ap.saved.verified = true; }
-                results.push([fed.fed + ' °C', a('success_received')]);
             } else if (ap.choice !== st.mode) {
                 await emit('smart_choose', {value: ap.choice});
             }
             ap.status = await smartStatus().catch(function () { return ap.status; });
+            // Autopilot on: what matters to the owner is the house, and where it is going.
+            if (verifyBt1 && indoorReading(ap.status)) results.push(indoorReading(ap.status));
             ap.picked = false;
             finished(results, live && ap.choice !== 'autopilot');
         }); }, true);
@@ -665,6 +666,11 @@ function NibeSetup(options) {
     function setupTitle() {
         var fn = ap.role || options.role;
         return t({heating: 'heating', hotwater: 'hotwater', pool: 'pool', cooling: 'cooling'}[fn] || 'title');
+    }
+    /** The indoor temperature now and the thermostat Autopilot steers it to, for the success screen. */
+    function indoorReading(st) {
+        if (!st || typeof st.indoor !== 'number') return null;
+        return [st.indoor + ' °C', typeof st.target === 'number' ? a('success_indoor', {target: st.target}) : a('success_indoor_now')];
     }
     function apMode() { return ap.choice === 'autopilot' || ap.choice === 'test'; }
     function a(key, tokens) {
@@ -916,14 +922,18 @@ function NibeSetup(options) {
         var label = el('label', undefined, 'setup-option'); label.append(confirm, el('span', a('verify_confirm')));
         shell.appendChild(label);
         var verify = button(t('verify'), function () { busy(verify, async function () {
-            var result = await emit('activate_autopilot');
+            await emit('activate_autopilot');
+            ap.status = await smartStatus().catch(function () { return ap.status; });
+            var now = indoorReading(ap.status);
             clear(setupTitle(), '');
             var success = el('section', undefined, 'setup-success'); success.setAttribute('role', 'status');
             var check = el('div', '✓', 'setup-success-check'); check.setAttribute('aria-hidden', 'true');
             success.append(check, el('h2', a('success_title')), el('p', a('success_description')));
-            var reading = el('div', undefined, 'setup-success-reading');
-            reading.append(el('strong', result.fed + ' °C'), el('span', a('success_received')));
-            success.appendChild(reading); shell.appendChild(success);
+            if (now) {
+                var reading = el('div', undefined, 'setup-success-reading');
+                reading.append(el('strong', now[0]), el('span', now[1])); success.appendChild(reading);
+            }
+            shell.appendChild(success);
             shell.appendChild(toHub());
         }); }, true);
         verify.disabled = true; confirm.onchange = function () { verify.disabled = !confirm.checked; };

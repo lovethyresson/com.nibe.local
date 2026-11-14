@@ -220,7 +220,6 @@
         "verify_intro": "Autopilot controleert of je warmtepomp zijn buitentemperatuur overneemt.",
         "verify_confirm": "Beide staan aan",
         "success_title": "Autopilot staat aan",
-        "success_received": "overgenomen door je warmtepomp",
         "return_reminder": "Zet op je warmtepomp externe BT1 uit in menu 7.5.9.2.",
         "outdoor_intro": "Kies een sensor in de schaduw, of gebruik de verwachting.",
         "use_forecast": "Weersverwachting gebruiken",
@@ -338,7 +337,9 @@
         "indoor_source_prompt": "Meerdere sensoren kunnen dit melden. Kies degene die Autopilot leest:",
         "change_sensors": "Sensoren wijzigen",
         "indoor_homey_read": "alleen gelezen",
-        "indoor_bt50_note": "Je Homey-sensoren worden nu als BT50 naar je warmtepomp gestuurd. Met Autopilot worden ze alleen gelezen en blijft de ruimtevoelerregeling uit. Niets te wijzigen aan je warmtepomp."
+        "indoor_bt50_note": "Je Homey-sensoren worden nu als BT50 naar je warmtepomp gestuurd. Met Autopilot worden ze alleen gelezen en blijft de ruimtevoelerregeling uit. Niets te wijzigen aan je warmtepomp.",
+        "success_indoor": "binnen nu · Autopilot stuurt naar __target__ °C",
+        "success_indoor_now": "binnen nu"
       },
       "gets_added": "Dit wordt toegevoegd",
       "gets_added_intro": "Deze apparaten worden toegevoegd, zo ingesteld:",

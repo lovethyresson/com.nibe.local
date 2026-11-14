@@ -220,7 +220,6 @@
         "verify_intro": "Autopilot prüft, dass Ihre Wärmepumpe ihre Außentemperatur übernimmt.",
         "verify_confirm": "Beides ist an",
         "success_title": "Autopilot ist an",
-        "success_received": "von Ihrer Wärmepumpe übernommen",
         "return_reminder": "Schalten Sie an Ihrer Wärmepumpe externes BT1 in Menü 7.5.9.2 aus.",
         "outdoor_intro": "Einen Sensor im Schatten wählen oder die Vorhersage nutzen.",
         "use_forecast": "Wettervorhersage nutzen",
@@ -338,7 +337,9 @@
         "indoor_source_prompt": "Mehrere Fühler können dies melden. Wählen Sie den, den Autopilot liest:",
         "change_sensors": "Sensoren ändern",
         "indoor_homey_read": "nur gelesen",
-        "indoor_bt50_note": "Ihre Homey-Sensoren werden jetzt als BT50 an Ihre Wärmepumpe gesendet. Mit Autopilot werden sie nur gelesen, und die Raumfühlerregelung bleibt aus. An Ihrer Wärmepumpe ist nichts zu ändern."
+        "indoor_bt50_note": "Ihre Homey-Sensoren werden jetzt als BT50 an Ihre Wärmepumpe gesendet. Mit Autopilot werden sie nur gelesen, und die Raumfühlerregelung bleibt aus. An Ihrer Wärmepumpe ist nichts zu ändern.",
+        "success_indoor": "drinnen jetzt · Autopilot steuert auf __target__ °C",
+        "success_indoor_now": "drinnen jetzt"
       },
       "gets_added": "Das wird hinzugefügt",
       "gets_added_intro": "Diese Geräte werden hinzugefügt, so eingerichtet:",

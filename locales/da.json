@@ -220,7 +220,6 @@
         "verify_intro": "Autopilot tjekker, at din varmepumpe modtager dens udetemperatur.",
         "verify_confirm": "Begge er til",
         "success_title": "Autopilot er til",
-        "success_received": "modtaget af din varmepumpe",
         "return_reminder": "Slå ekstern BT1 fra i menu 7.5.9.2 på din varmepumpe.",
         "outdoor_intro": "Vælg en sensor i skyggen, eller brug udsigten.",
         "use_forecast": "Brug vejrudsigten",
@@ -338,7 +337,9 @@
         "indoor_source_prompt": "Flere følere kan rapportere dette. Vælg den, Autopilot læser:",
         "change_sensors": "Skift sensorer",
         "indoor_homey_read": "læses kun",
-        "indoor_bt50_note": "Dine Homey-sensorer sendes til din varmepumpe som BT50 nu. Med Autopilot læses de kun, og rumføler-styringen forbliver slukket. Intet at ændre på din varmepumpe."
+        "indoor_bt50_note": "Dine Homey-sensorer sendes til din varmepumpe som BT50 nu. Med Autopilot læses de kun, og rumføler-styringen forbliver slukket. Intet at ændre på din varmepumpe.",
+        "success_indoor": "indenfor nu · Autopilot styrer mod __target__ °C",
+        "success_indoor_now": "indenfor nu"
       },
       "gets_added": "Dette tilføjes",
       "gets_added_intro": "Disse enheder tilføjes, sat op sådan:",
