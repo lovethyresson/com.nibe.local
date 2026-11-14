@@ -320,7 +320,7 @@
         "not_heating": "Autopilot uppvärmning ställs in på enheten Uppvärmning.",
         "room_control": "Stäng av rumsgivarstyrning i din värmepump först.",
         "no_outdoor": "Ingen utetemperatur än: välj en givare eller ange din plats för väderprognosen.",
-        "not_followed": "Din värmepump tog inte emot utetemperaturen. Kontrollera att meny 7.5.9.2 tillåter extern BT1."
+        "not_followed": "Din värmepump tog inte emot utetemperaturen. Kontrollera att meny 7.5.9.2 tillåter extern BT1 och att Modbus (meny 7.5.9) tillåter skrivning."
       },
       "not_on": "Autopilot uppvärmning är inte på.",
       "no_thermostat": "Uppvärmning har ingen termostat att ställa in."

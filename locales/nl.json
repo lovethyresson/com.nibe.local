@@ -213,8 +213,6 @@
         "room_control_unknown": "Kon niet worden gelezen. Laat hem uit.",
         "bt1": "Laat Autopilot de buitentemperatuur sturen (BT1)",
         "bt1_detail": "Op je warmtepomp, menu 7.5.9.2. Zet externe BT1 aan.",
-        "modbus": "Laat Homey instellingen wijzigen (Modbus)",
-        "modbus_detail": "Op je warmtepomp, menu 7.5.9. Zet Modbus aan.",
         "start_test": "Simulatie starten",
         "saved_test": "Simulatie gestart",
         "verify_intro": "Autopilot controleert of je warmtepomp zijn buitentemperatuur overneemt.",
@@ -603,7 +601,7 @@
         "not_heating": "Autopilot verwarming stel je in op het apparaat Verwarming.",
         "room_control": "Zet eerst de ruimtevoelerregeling in je warmtepomp uit.",
         "no_outdoor": "Nog geen buitentemperatuur: kies een sensor of stel je locatie in voor de weersverwachting.",
-        "not_followed": "Je warmtepomp nam de buitentemperatuur niet over. Controleer of menu 7.5.9.2 een externe BT1 toestaat."
+        "not_followed": "Je warmtepomp nam de buitentemperatuur niet over. Controleer of menu 7.5.9.2 een externe BT1 toestaat en of Modbus (menu 7.5.9) schrijven toestaat."
       },
       "not_on": "Autopilot verwarming staat niet aan.",
       "no_thermostat": "Het verwarmingsapparaat heeft geen thermostaat om in te stellen."

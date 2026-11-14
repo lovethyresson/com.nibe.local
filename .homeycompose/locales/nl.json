@@ -320,7 +320,7 @@
         "not_heating": "Autopilot verwarming stel je in op het apparaat Verwarming.",
         "room_control": "Zet eerst de ruimtevoelerregeling in je warmtepomp uit.",
         "no_outdoor": "Nog geen buitentemperatuur: kies een sensor of stel je locatie in voor de weersverwachting.",
-        "not_followed": "Je warmtepomp nam de buitentemperatuur niet over. Controleer of menu 7.5.9.2 een externe BT1 toestaat."
+        "not_followed": "Je warmtepomp nam de buitentemperatuur niet over. Controleer of menu 7.5.9.2 een externe BT1 toestaat en of Modbus (menu 7.5.9) schrijven toestaat."
       },
       "not_on": "Autopilot verwarming staat niet aan.",
       "no_thermostat": "Het verwarmingsapparaat heeft geen thermostaat om in te stellen."

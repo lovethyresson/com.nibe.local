@@ -320,7 +320,7 @@
         "not_heating": "Autopilot oppvarming settes opp på enheten Oppvarming.",
         "room_control": "Slå av romføler-styring i varmepumpen din først.",
         "no_outdoor": "Ingen utetemperatur ennå: velg en sensor eller angi plasseringen for værvarselet.",
-        "not_followed": "Varmepumpen din tok ikke imot utetemperaturen. Sjekk at meny 7.5.9.2 tillater ekstern BT1."
+        "not_followed": "Varmepumpen din tok ikke imot utetemperaturen. Sjekk at meny 7.5.9.2 tillater ekstern BT1 og at Modbus (meny 7.5.9) tillater skriving."
       },
       "not_on": "Autopilot oppvarming er ikke på.",
       "no_thermostat": "Oppvarming har ingen termostat å stille inn."

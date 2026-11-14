@@ -320,7 +320,7 @@
         "not_heating": "Autopilot heating is set up on the Heating device.",
         "room_control": "Turn off room-sensor control in your heat pump first.",
         "no_outdoor": "No outdoor temperature yet: choose a sensor or set your location for the weather forecast.",
-        "not_followed": "Your heat pump didn't accept the outdoor temperature. Check that menu 7.5.9.2 allows an external BT1."
+        "not_followed": "Your heat pump didn't accept the outdoor temperature. Check that menu 7.5.9.2 allows an external BT1 and that Modbus (menu 7.5.9) allows writes."
       },
       "not_on": "Autopilot heating is not on.",
       "no_thermostat": "The Heating device has no thermostat to set."

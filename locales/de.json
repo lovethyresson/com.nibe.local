@@ -213,8 +213,6 @@
         "room_control_unknown": "Nicht lesbar. Ausgeschaltet lassen.",
         "bt1": "Autopilot die Außentemperatur senden lassen (BT1)",
         "bt1_detail": "An Ihrer Wärmepumpe, Menü 7.5.9.2. Schalten Sie externes BT1 ein.",
-        "modbus": "Homey Einstellungen ändern lassen (Modbus)",
-        "modbus_detail": "An Ihrer Wärmepumpe, Menü 7.5.9. Schalten Sie Modbus ein.",
         "start_test": "Simulation starten",
         "saved_test": "Simulation gestartet",
         "verify_intro": "Autopilot prüft, dass Ihre Wärmepumpe ihre Außentemperatur übernimmt.",
@@ -603,7 +601,7 @@
         "not_heating": "Autopilot Heizung wird am Gerät Heizung eingerichtet.",
         "room_control": "Zuerst die Raumfühlerregelung in Ihrer Wärmepumpe ausschalten.",
         "no_outdoor": "Noch keine Außentemperatur: Sensor wählen oder Standort für die Wettervorhersage festlegen.",
-        "not_followed": "Ihre Wärmepumpe hat die Außentemperatur nicht übernommen. Prüfen, ob Menü 7.5.9.2 einen externen BT1 erlaubt."
+        "not_followed": "Ihre Wärmepumpe hat die Außentemperatur nicht übernommen. Prüfen Sie, ob Menü 7.5.9.2 einen externen BT1 erlaubt und Modbus (Menü 7.5.9) Schreibzugriffe erlaubt."
       },
       "not_on": "Autopilot Heizung ist nicht an.",
       "no_thermostat": "Das Heizungsgerät hat kein Thermostat zum Einstellen."

@@ -213,8 +213,6 @@
         "room_control_unknown": "Kunne ikke læses. Lad den være fra.",
         "bt1": "Lad Autopilot sende udetemperaturen (BT1)",
         "bt1_detail": "På din varmepumpe, menu 7.5.9.2. Slå ekstern BT1 til.",
-        "modbus": "Lad Homey ændre indstillinger (Modbus)",
-        "modbus_detail": "På din varmepumpe, menu 7.5.9. Slå Modbus til.",
         "start_test": "Start simulering",
         "saved_test": "Simulering startet",
         "verify_intro": "Autopilot tjekker, at din varmepumpe modtager dens udetemperatur.",
@@ -603,7 +601,7 @@
         "not_heating": "Autopilot opvarmning sættes op på enheden Opvarmning.",
         "room_control": "Slå rumføler-styring fra i din varmepumpe først.",
         "no_outdoor": "Ingen udetemperatur endnu: vælg en sensor eller angiv din placering til vejrudsigten.",
-        "not_followed": "Din varmepumpe modtog ikke udetemperaturen. Tjek at menu 7.5.9.2 tillader ekstern BT1."
+        "not_followed": "Din varmepumpe tog ikke imod udetemperaturen. Tjek at menu 7.5.9.2 tillader ekstern BT1, og at Modbus (menu 7.5.9) tillader skrivning."
       },
       "not_on": "Autopilot opvarmning er ikke slået til.",
       "no_thermostat": "Opvarmning har ingen termostat at indstille."

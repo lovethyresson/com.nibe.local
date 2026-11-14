@@ -523,7 +523,6 @@ function NibeSetup(options) {
         else onPump.appendChild(checkRow(null, a('room_control'), a('room_control_optional')));
         if (ap.choice === 'autopilot') {
             onPump.appendChild(checkRow(live ? true : null, a('bt1'), a('bt1_detail')));
-            onPump.appendChild(checkRow(live ? true : null, a('modbus'), a('modbus_detail')));
         }
         var group = el('section', undefined, 'setup-task-group');
         group.append(el('h3', t('on_pump')), onPump); shell.appendChild(group);
@@ -912,7 +911,8 @@ function NibeSetup(options) {
         var group = el('section', undefined, 'setup-task-group');
         group.appendChild(el('h3', t('on_pump')));
         var steps = el('ol', undefined, 'setup-pump-steps');
-        [['bt1', 'bt1_detail'], ['modbus', 'modbus_detail']].forEach(function (k) {
+        // Modbus is on already (the app is connected); whether it allows writes, Verify proves.
+        [['bt1', 'bt1_detail']].forEach(function (k) {
             var step = el('li'); var copy = el('div'); copy.append(el('strong', a(k[0])), el('p', a(k[1])));
             step.appendChild(copy); steps.appendChild(step);
         });
