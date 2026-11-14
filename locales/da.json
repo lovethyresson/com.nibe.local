@@ -617,7 +617,6 @@
       "indoor": "Inde",
       "expected": "Forventet",
       "offset": "Udeforskydning (BT1)",
-      "comfort": "Termostat",
       "axis_indoor": "Inde °C",
       "axis_offset": "Forskydning °C (BT1)",
       "learning": "Den forventede indetemperatur vises, når Autopilot har lært dit hus.",
@@ -639,8 +638,7 @@
         "cooling": "Din varmepumpe køler. Autopilot venter."
       },
       "shift_hint": "Under 0 tror din varmepumpe, at det er koldere, og varmer mere. Over 0 skruer den ned.",
-      "error": "Kunne ikke indlæse Autopilot. Prøver igen om et minut.",
-      "comfort_now": "Termostat __c__ °C"
+      "error": "Kunne ikke indlæse Autopilot. Prøver igen om et minut."
     },
     "hotwater_status": {
       "learning": "Lærer jeres forbrug af varmt vand",

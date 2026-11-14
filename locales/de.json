@@ -617,7 +617,6 @@
       "indoor": "Innen",
       "expected": "Erwartet",
       "offset": "Außenverschiebung (BT1)",
-      "comfort": "Thermostat",
       "axis_indoor": "Innen °C",
       "axis_offset": "Verschiebung °C (BT1)",
       "learning": "Die erwartete Innentemperatur erscheint, sobald Autopilot Ihr Haus kennt.",
@@ -639,8 +638,7 @@
         "cooling": "Ihre Wärmepumpe kühlt. Autopilot wartet."
       },
       "shift_hint": "Unter 0 hält Ihre Wärmepumpe es für kälter und heizt mehr. Über 0 nimmt sie sich zurück.",
-      "error": "Autopilot konnte nicht geladen werden. Neuer Versuch in einer Minute.",
-      "comfort_now": "Thermostat __c__ °C"
+      "error": "Autopilot konnte nicht geladen werden. Neuer Versuch in einer Minute."
     },
     "hotwater_status": {
       "learning": "Lernt Ihren Warmwasserverbrauch",

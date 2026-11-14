@@ -364,7 +364,6 @@
       "indoor": "Indoor",
       "expected": "Expected",
       "offset": "Outdoor shift (BT1)",
-      "comfort": "Thermostat",
       "axis_indoor": "Indoor °C",
       "axis_offset": "Shift °C (BT1)",
       "learning": "The expected indoor line shows once Autopilot has learned your house.",
@@ -386,8 +385,7 @@
         "cooling": "Your heat pump is cooling. Autopilot waits."
       },
       "shift_hint": "Below 0, your heat pump thinks it's colder and heats more. Above 0, it eases off.",
-      "error": "Couldn't load Autopilot. Trying again in a minute.",
-      "comfort_now": "Thermostat __c__ °C"
+      "error": "Couldn't load Autopilot. Trying again in a minute."
     },
     "hotwater_status": {
       "learning": "Learning your hot water use",

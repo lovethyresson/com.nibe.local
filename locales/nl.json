@@ -617,7 +617,6 @@
       "indoor": "Binnen",
       "expected": "Verwacht",
       "offset": "Buitenverschuiving (BT1)",
-      "comfort": "Thermostaat",
       "axis_indoor": "Binnen °C",
       "axis_offset": "Verschuiving °C (BT1)",
       "learning": "De verwachte binnentemperatuur verschijnt zodra Autopilot je huis kent.",
@@ -639,8 +638,7 @@
         "cooling": "Je warmtepomp koelt. Autopilot wacht."
       },
       "shift_hint": "Onder 0 denkt je warmtepomp dat het kouder is en verwarmt hij meer. Boven 0 gaat hij terug.",
-      "error": "Kon Autopilot niet laden. Over een minuut probeer ik het opnieuw.",
-      "comfort_now": "Thermostaat __c__ °C"
+      "error": "Kon Autopilot niet laden. Over een minuut probeer ik het opnieuw."
     },
     "hotwater_status": {
       "learning": "Leert je warmwatergebruik kennen",

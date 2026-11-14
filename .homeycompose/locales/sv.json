@@ -364,7 +364,6 @@
       "indoor": "Inomhus",
       "expected": "Förväntat",
       "offset": "Uteförskjutning (BT1)",
-      "comfort": "Termostat",
       "axis_indoor": "Inomhus °C",
       "axis_offset": "Förskjutning °C (BT1)",
       "learning": "Den förväntade inomhustemperaturen visas när Autopilot har lärt sig ditt hus.",
@@ -386,8 +385,7 @@
         "cooling": "Din värmepump kyler. Autopilot väntar."
       },
       "shift_hint": "Under 0 tror din värmepump att det är kallare och värmer mer. Över 0 drar den ner.",
-      "error": "Det gick inte att läsa in Autopilot. Försöker igen om en minut.",
-      "comfort_now": "Termostat __c__ °C"
+      "error": "Det gick inte att läsa in Autopilot. Försöker igen om en minut."
     },
     "hotwater_status": {
       "learning": "Lär sig er varmvattenanvändning",

@@ -1868,7 +1868,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.autopilotAway()) chips.push(t('away', {c: this.getCapabilityValue(AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY) ?? AWAY_DEFAULT_C}));
         const from = slot - BACK_SLOTS;
         const past = this.autopilot?.recent(from, BACK_SLOTS) ?? [];
-        const thermostat = Number(this.getCapabilityValue('target_temperature'));
         const indoorNow = this.getCapabilityValue('measure_temperature') ?? NaN;
         const summary = this.autopilot?.houseSummary();
         const slots = heatingSlots(past, this.heatingFeed?.state, slot);
@@ -1881,7 +1880,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             ? t('learning_day', {day: Math.min(summary.days, summary.needed), of: summary.needed})
             : status === 'paused' && stopped && WIDGET_PAUSES.includes(stopped) ? t(`paused.${stopped}`)
                 : stored === undefined ? undefined : stripLead(stored, [testLead, statusName ?? '']);
-        const indoors = [...slots.flatMap((s) => (s.indoor === undefined ? [] : [s.indoor])), ...(Number.isFinite(thermostat) ? [thermostat] : [])];
+        const indoors = [...slots.flatMap((s) => (s.indoor === undefined ? [] : [s.indoor]))];
         const shifts = slots.flatMap((s) => (s.offset === undefined ? [] : [s.offset]));
         const day = dayBreakSlot(slotStart(from), BACK_SLOTS + AHEAD_SLOTS, dayOf);
         return {
@@ -1896,10 +1895,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             status: statusName,
             reason,
             bars: shiftBars(slots),
-            legend: {indoor: t('indoor'), planned: t('expected'), offset: t('offset'),
-                comfort: Number.isFinite(thermostat) ? t('comfort_now', {c: thermostat.toFixed(1)}) : t('comfort')},
+            legend: {indoor: t('indoor'), planned: t('expected'), offset: t('offset')},
             axes: {left: t('axis_indoor'), right: t('axis_offset')},
-            comfort: Number.isFinite(thermostat) ? thermostat : undefined,
             indoorNow: Number.isFinite(indoorNow) ? Math.round(indoorNow * 10) / 10 : undefined,
             footnote: !summary || summary.ready ? undefined : t('learning'),
         };

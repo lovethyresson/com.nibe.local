@@ -74,8 +74,6 @@ export interface WidgetData {
     legend: Record<string, string>;
     /** Axis titles, left and right (heating). */
     axes?: {left: string; right: string};
-    /** The comfort temperature, drawn as a reference line on the indoor axis. */
-    comfort?: number;
     /** Indoor temperature now, °C (heating), shown beside the status. */
     indoorNow?: number;
     footnote?: string;
