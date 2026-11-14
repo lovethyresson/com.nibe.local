@@ -465,3 +465,16 @@ charged) by combining the grid meter, the battery and the inverter. The maintain
 and we cannot know all users have their other devices connected." **Rule:** an Autopilot input rests
 on the one device every affected owner has (here the grid meter). Name an edge case it misses as a
 known limit in the docs; don't patch it with devices only some homes have.
+
+## 2026-11-14 — A doc's "it fails safe" is not a test of this change
+- Stopped the BT50 feed under Autopilot on the strength of a note that the pump "carries on" when
+  BT50 stops (2026-10-28). With external BT50 still enabled (menu 7.5.9.2) the S1155 raised alarm
+  153 within minutes. **Rule:** before a change stops writing something the pump expects, check
+  what the pump does when it stops, on this pump and in this configuration, or keep writing it.
+
+## 2026-11-14 — Render setup views against Homey's real stylesheet, not a stand-in
+- Renders with my own approximation of Homey's CSS looked fine; on the phone the switches had a
+  checkmark drawn in and buttons were grey and oversized. Homey's homey.css masks every checkbox
+  without `hy-nostyle` and styles every plain button. **Rule:** render pair/repair views with the
+  Homey's own `/css/homey.css` + `homey.drivers.css` (fetched from the Homey, scratchpad
+  `homeycss/`), opt our own controls out with `hy-nostyle`, and still ask for a phone check.
