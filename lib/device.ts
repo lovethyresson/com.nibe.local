@@ -224,6 +224,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 const config = this.getStoreValue('indoorSensors') as IndoorConfig;
                 const value = averageSensors(config, await this.readIndoorSensors(config));
                 this.homeyIndoor = {value, at: Date.now()};
+                // External BT50 still enabled on the pump (menu 7.5.9.2): keep sending it, or the pump
+                // raises a BT50 sensor fault (alarm 153, seen 2026-11-14). With room-sensor control
+                // off the pump only shows it; it does not regulate on it.
+                if (await this.indoorRaw(5986) === 1) {
+                    const bt50 = this.profile.registerByName['external_temperature.h5987_bt50'];
+                    if (bt50 && this.connection) await this.connection.writeRegisterValue(bt50, encodeRegisterValue(bt50, value));
+                }
                 if (this.hasCapability('measure_temperature') && this.getCapabilityValue('measure_temperature') !== value)
                     await this.setCapabilityValue('measure_temperature', value);
                 if (this.indoorFailingSince !== null) await this.unsetWarning().catch(this.error);
@@ -246,16 +253,16 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         return this.homeyIndoor && Date.now() - this.homeyIndoor.at < 10 * 60_000 ? this.homeyIndoor.value : undefined;
     }
 
-    /** Read the chosen Homey sensors for Autopilot, never feeding them to the pump. A running BT50
-     *  feed simply stops: Autopilot needs room-sensor control off, so the pump does not regulate on
-     *  BT50, and a BT50 nobody feeds goes unavailable after ~5 min while the pump carries on
-     *  (docs/autopilot-plan.md, 2026-10-28). Nothing to do on the pump. */
+    /** Read the chosen Homey sensors for Autopilot. While the pump still has external BT50 enabled
+     *  the read loop keeps sending their average as BT50, or the pump raises a BT50 sensor fault
+     *  (alarm 153, 2026-11-14); with room-sensor control off it only shows it. */
     async readIndoorForAutopilot(raw: any) {
         if (this.role !== 'heating') throw new Error('Only Heating reads the indoor temperature.');
         const config = readOnlyIndoorConfig(raw);
         const value = averageSensors(config, await this.readIndoorSensors(config));
         await this.stopFeedingBt50();
         await this.setStoreValue('indoorSensors', config);
+        // The read loop keeps BT50 fed while the pump has external BT50 enabled (scheduleIndoorRead).
         this.scheduleIndoorRead();
         return {value};
     }
