@@ -101,13 +101,19 @@ export function surplusForecast(fit: SurplusFit | undefined, ghi: Map<number, nu
     });
 }
 
-/** What is exported now, W, from Homey Energy's live report: the grid meter's export and nothing
- *  else. What an inverter makes says nothing about what is left: a battery, the house or a car can
- *  take all of it (maintainer, 2026-11-14). Undefined without a grid meter (no `totalCumulative`). */
+/** The sun's surplus now, W, from one Homey Energy live report: what the grid meter exports, less
+ *  what home batteries discharge, and never more than the inverters make. Export alone misleads
+ *  both ways: sun a battery or the house takes is not surplus (14 Nov: 3.4 kW of sun, all into the
+ *  battery), and a battery selling, or covering the charge we just started while it holds a grid
+ *  target, shows as export that is not the sun's (14 Nov 10:14: 1.3 kW exported, 1.0 kW of it the
+ *  battery's). Undefined without a grid meter (no `totalCumulative`). */
 export function liveSurplusW(report: any): number | undefined {
     const grid = report?.totalCumulative?.W;
     if (typeof grid !== 'number' || !Number.isFinite(grid)) return undefined;
-    return Math.max(0, -grid);
+    const discharging = (report?.items ?? []).filter((i: any) => i?.isHomeBattery)
+        .reduce((sum: number, i: any) => sum + Math.max(0, -(Number(i?.values?.W) || 0)), 0);
+    const generated = Math.abs(Number(report?.totalGenerated?.W) || 0);
+    return Math.min(generated, Math.max(0, -grid - discharging));
 }
 
 /** The mean of the last `LIVE_WINDOW` minutes' readings, kW, or undefined while too few arrived. */

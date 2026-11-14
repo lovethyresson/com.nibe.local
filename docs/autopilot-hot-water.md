@@ -277,11 +277,14 @@ at 195).
 **Built (slice 4).** Surplus is measured at the grid meter, so a home battery and the house's own
 use come first and the tank only gets what would have been sold:
 
-- **Live:** Homey Energy's live report, once a minute. Surplus is the grid export and nothing
-  else; what the inverter makes is not looked at (maintainer, 2026-11-14: a battery, the house or
-  a car can take all of it, and then there is no surplus, as on 14 Nov with 3.4 kW of sun all going
-  into the battery). The mean of the last 10 minutes (8 readings at least) is the expected surplus
-  for the next half hour.
+- **Live:** Homey Energy's live report, once a minute: surplus = grid export − home batteries'
+  discharge, never more than the inverters make. All three come from that one report. Export
+  first, because sun a battery or the house takes is not surplus (14 Nov: 3.4 kW of sun, all into
+  the battery). Less the discharge, because a battery steered by someone else may sell, or hold a
+  grid target by covering the charge we just started, and both show as export (14 Nov 10:14:
+  1.3 kW exported, 1.0 kW of it the battery's). The inverter cap catches a battery that reports no
+  power. The mean of the last 10 minutes (8 readings at least) is the expected surplus for the
+  next half hour.
 - **Planned:** every 3 h, the grid meter's hourly export over the last 14 days (Insights) is
   fitted by least squares against Open-Meteo's sun on the ground for the same hours
   (`shortwave_radiation`, `past_days=14`). Only hours with at least 50 W/m² count, and at least
