@@ -125,6 +125,15 @@ test('a charge that has to reach into dearer hours is not called cheap', () => {
     assert.ok(c.price > 1.9 * 1.02, `bought at ${c.price}`);
 });
 
+test('each slot\'s draws follow its own day type when the input gives one (the calendar\'s weekend)', () => {
+    const plain = step();
+    const byDay = step({dayTypeOf: (ms) => ms < T0 + 6 * 3_600_000 ? 'working' : 'away'});
+    assert.ok(!('skip' in plain) && !('skip' in byDay));
+    const coast = (o: any) => o.entry.coast as number[];
+    assert.deepStrictEqual(coast(byDay).slice(0, 5), coast(plain).slice(0, 5), 'the same day until 06:00');
+    assert.ok(coast(byDay)[7] > coast(plain)[7], 'no draws once the next day type has none');
+});
+
 test('the morning plan names a safety-net charge, a running one and a quiet day', () => {
     assert.strictEqual(dailyOf({now: {litres: 20, top: 40}}).charges[0].reason, 'reserve');
     // 2026-11-14 16:00: under the safety net with a hot top (no rescue), an evening's use ahead

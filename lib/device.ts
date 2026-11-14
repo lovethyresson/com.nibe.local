@@ -4,8 +4,8 @@ import {Controls, AutopilotCollector} from './autopilot/collector';
 import {newHistoryFileName} from './autopilot/store-file';
 import {ChargeEvent, HotwaterAutopilot, HotwaterMode, ownDeviceId} from './autopilot/hotwater-shadow';
 import {FlowConflict, moreHotwaterFlows} from './autopilot/hotwater-flows';
-import {STARTER_DAYS, readHousehold} from './autopilot/hotwater-learner';
-import {DAY_TYPE_SETTING, DEFAULT_DAY_TYPE, DayTypeState, readDayType} from './autopilot/day-type';
+import {STARTER_DAYS, localClock, readHousehold} from './autopilot/hotwater-learner';
+import {DAY_TYPE_SETTING, DEFAULT_DAY_TYPE, DayTypeState, dayTypeAt, readDayType, typeSet} from './autopilot/day-type';
 import {Sample} from './autopilot/history';
 import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits, sunTrust, surplusPrices, withHotwater} from './autopilot/live';
 import {AUTOPILOT_FUNCTIONS, SMART_MODE_STORE, SmartFunction, SmartMode, autopilotRuns, shownSmartMode, smartMode, smartModeWrites, spaOn} from './autopilot/smart-mode';
@@ -1173,16 +1173,30 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         return 'off';
     }
 
-    /** The household's day type on Main while Autopilot hot water runs. There is always one: when
-     *  none was ever set, Main stores the default (working), with no change logged, so every past
-     *  day is a working day too. */
+    /** What the hot water setup step says about the day type: today's, by name, and whether it
+     *  was set (by the owner or a Flow) or is the calendar's. */
+    private dayTypeToday(): {name: string; set: boolean} {
+        const state = readDayType(this.homey.settings.get(DAY_TYPE_SETTING));
+        const type = dayTypeAt(state, Date.now(), localClock(this.homey.clock.getTimezone()));
+        return {name: this.homey.__(`autopilot.hotwater_use.${type}`), set: typeSet(state)};
+    }
+
+    private dayTypeTimer?: any;
+    /** The household's day type on Main while Autopilot hot water runs: the one set, or where none
+     *  is, the calendar's (weekends free), so it is checked again at each hour's turn. The setting
+     *  always exists: when none was ever set, Main stores a placeholder with no change logged. */
     async showDayType() {
         if (!readDayType(this.homey.settings.get(DAY_TYPE_SETTING)))
             this.homey.settings.set(DAY_TYPE_SETTING, {type: DEFAULT_DAY_TYPE, log: []} satisfies DayTypeState);
+        if (this.dayTypeTimer) this.homey.clearTimeout(this.dayTypeTimer);
+        this.dayTypeTimer = undefined;
         if (!this.hasCapability(DAY_TYPE_CAPABILITY)) return;
-        const type = readDayType(this.homey.settings.get(DAY_TYPE_SETTING))!.type;
+        const now = Date.now();
+        const type = dayTypeAt(readDayType(this.homey.settings.get(DAY_TYPE_SETTING)), now,
+            localClock(this.homey.clock.getTimezone()));
         if (this.getCapabilityValue(DAY_TYPE_CAPABILITY) !== type)
             await this.setCapabilityValue(DAY_TYPE_CAPABILITY, type).catch(this.error);
+        this.dayTypeTimer = this.homey.setTimeout(() => this.showDayType().catch(this.error), 3_600_000 - now % 3_600_000 + 5_000);
     }
 
     /** Applies the pump's Smart modes to this device: its capabilities follow them, the Hot water
@@ -1725,6 +1739,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const [flows, historyDays] = await Promise.all([this.hotwaterFlowConflicts(), this.hotwaterHistoryDays()]);
             return {...base, tank: this.tankConfig().litres !== null, flows: flows ?? null, historyDays: historyDays ?? null,
                 starterDays: STARTER_DAYS, household: readHousehold(this.getStoreValue(HOUSEHOLD_STORE)) ?? null,
+                dayType: this.dayTypeToday(),
                 reserve: this.reserveLitres()};
         }
         if (this.role !== 'heating') return {...base, tank: undefined};
@@ -2577,6 +2592,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.autopilot = null;
         this.hotwaterAutopilot?.stop();
         this.hotwaterAutopilot = null;
+        if (this.dayTypeTimer) this.homey.clearTimeout(this.dayTypeTimer);
         this.surplusService?.release(this);
         this.surplusService = undefined;
         await this.stopIndoor();

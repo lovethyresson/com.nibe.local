@@ -161,10 +161,17 @@ S1155.
   is this "away", not a second switch. A Flow card sets it ("Set day type to …"), so a
   calendar, a Homey variable or a presence Flow can drive it; the owner can also set it on the
   device. It holds until changed. Each slot is learned under the type set at the time, and the
-  planner assumes the current type until it changes. No weekly pattern, holiday calendar or
-  guessing in the app. There is always a day type (maintainer, 2026-11-13): Main stores working
-  when none was ever set, and a day from before the first change counts as working
-  (`DEFAULT_DAY_TYPE`, `dayTypeAt()`). An owner who never changes it gets one profile, working.
+  planner assumes the current type until it changes. There is always a day type (maintainer,
+  2026-11-13). **Where none was set, the calendar decides (2026-11-14):** Saturday and Sunday
+  are free, other days working (`calendarDayType()`); that covers every day before the first
+  change, every day of a home that never sets one, and the days after Away ends in such a home
+  (an `auto` log entry hands back to the calendar instead of logging working). The planner takes
+  each slot's own type, so a Friday plan sees Saturday's profile. Main's picker shows the type in
+  force and is checked each hour. The hot water setup step says today's type and where it comes
+  from. Measured on the maintainer's tank over 31 days: weekends 25.9 kWh of hot water heat a
+  day against 12.7 on weekdays, and a weekend's heat goes in 06–12 (48 %), almost none 18–24
+  (4 %; weekdays 23 %). Before, every unset day was working, so a Saturday was planned with
+  weekday evening showers. Public holidays are not in the calendar yet (they differ by country).
 - **Away:** while the type is away, no draws are planned for and the tank coasts to the reserve.
 - **Away is a trip, not a kind of day** (maintainer, 2026-11-13). The heating Away switch, its Flow
   card and the day type "away" are one state (`setAway()` in `lib/autopilot/day-type.ts`). A

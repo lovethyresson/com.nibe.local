@@ -212,6 +212,34 @@ test('the day type keeps its history, and every past moment has the type in forc
     assert.strictEqual(readDayType(null), undefined);
 });
 
+test('where no day type was set, the calendar decides: weekends free; Away hands back to it', async () => {
+    const {setAway, calendarDayType} = await import('../lib/autopilot/day-type');
+    const {localClock} = await import('../lib/autopilot/hotwater-learner');
+    const clock = localClock('Europe/Stockholm');
+    const at = (iso: string) => Date.parse(iso);
+    const fri = at('2026-11-13T22:30:00Z'), sat = at('2026-11-13T23:30:00Z'), mon = at('2026-11-16T08:00:00Z');
+    assert.strictEqual(calendarDayType(clock, fri), 'working', 'Friday 23:30 local');
+    assert.strictEqual(calendarDayType(clock, sat), 'free', 'Saturday 00:30 local, still Friday in UTC');
+    assert.strictEqual(dayTypeAt(undefined, sat, clock), 'free');
+    assert.strictEqual(dayTypeAt({type: 'working', log: []}, sat, clock), 'free', 'the stored placeholder is not a choice');
+    assert.strictEqual(dayTypeAt(undefined, sat), 'working', 'without a clock: the default');
+    // A Flow that starts setting the type on a Tuesday: the weekend before is the calendar's.
+    const tue = at('2026-11-10T11:00:00Z');
+    let state = recordDayType({type: 'working', log: []}, 'working', tue);
+    assert.strictEqual(state.log.length, 1, 'setting working under the calendar is a choice, logged');
+    assert.strictEqual(dayTypeAt(state, at('2026-11-08T10:00:00Z'), clock), 'free', 'the Sunday before');
+    assert.strictEqual(dayTypeAt(state, sat, clock), 'working', 'after a choice, it holds until changed');
+    // Away in a home under the calendar goes back to the calendar, not to working.
+    let calendar = setAway({type: 'working', log: []}, true, fri)!;
+    assert.strictEqual(calendar.base, undefined);
+    calendar = setAway(calendar, false, sat)!;
+    assert.strictEqual(dayTypeAt(calendar, sat + 1, clock), 'free');
+    assert.strictEqual(dayTypeAt(calendar, mon, clock), 'working');
+    assert.strictEqual(dayTypeAt(calendar, fri + 1, clock), 'away');
+    assert.deepStrictEqual(readDayType(calendar)?.log.at(-1), {at: sat, type: 'working', auto: true});
+    assert.strictEqual(recordDayType(calendar, 'working', mon).log.length, 3, 'working chosen after Away is a choice');
+});
+
 test('the day type is on Main only, and only while Autopilot hot water is on', () => {
     for (const role of allRoles)
         assert.strictEqual(possibleExtraCapabilities(sProfile, role).includes(DAY_TYPE_CAPABILITY), role === 'main', role);
@@ -240,7 +268,7 @@ test('Away is a trip: a nightly working/free Flow does not end it, and Away off 
     assert.strictEqual(dayTypeAt(state, 4000), 'working');
     assert.strictEqual(setAway(state, false, 5000), state, 'off when not away changes nothing');
     assert.strictEqual(recordDayType(setAway(state, true, 6000)!, 'free', 7000).type, 'free', 'the Main picker, without keepAway, ends Away');
-    assert.strictEqual(setAway(setAway(undefined, true, 1)!, false, 2)!.type, 'working', 'no type before Away: back to working');
+    assert.strictEqual(setAway(setAway(undefined, true, 1)!, false, 2)!.type, 'working', 'no type before Away: a placeholder');
     assert.deepStrictEqual(readDayType({type: 'away', log: [], base: 'free'})?.base, 'free');
     assert.strictEqual(readDayType({type: 'away', log: [], base: 'away'})?.base, undefined);
 });

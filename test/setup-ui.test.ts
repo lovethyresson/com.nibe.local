@@ -235,6 +235,16 @@ test('Autopilot hot water setup lists the Flows that switch More hot water, and 
     assert.equal(f.emitted.find((e) => e.name === 'smart_choose')?.data?.value, 'test');
     f.dom.window.close();
 });
+test('the hot water step says today\'s day type: the calendar\'s, or one set and held', async () => {
+    const s = english.pair.setup.smart;
+    let f = await hotwaterSmart({flows: [], historyDays: 60, dayType: {name: 'Day off', set: false}});
+    assert.ok(f.win.document.body.textContent.includes(s.hw_daytype_calendar.replace('__type__', 'Day off')));
+    f.dom.window.close();
+    f = await hotwaterSmart({flows: [], historyDays: 60, dayType: {name: 'Working day', set: true}});
+    assert.ok(f.win.document.body.textContent.includes(s.hw_daytype_set.replace('__type__', 'Working day')));
+    f.dom.window.close();
+});
+
 test('the hot water step sets how much to always keep; an unchanged choice is not saved again', async () => {
     const s = english.pair.setup.smart;
     let f = await hotwaterSmart({flows: [], historyDays: 60, reserve: 35});

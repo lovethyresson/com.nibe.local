@@ -630,6 +630,9 @@ function NibeSetup(options) {
             st.flows.forEach(function (f) { names.appendChild(el('li', f.name)); });
             list.appendChild(checkRow(null, a('hw_flows'), a('hw_flows_found'), names));
         }
+        // The day type picks the day's profile: weekends are days off unless the owner or a Flow says otherwise.
+        if (st.dayType) list.appendChild(checkRow(null, a('hw_daytype'),
+            a(st.dayType.set ? 'hw_daytype_set' : 'hw_daytype_calendar', {type: st.dayType.name})));
         shell.appendChild(list);
         var saved = st.household;
         var ask = !!saved || st.historyDays === null || st.historyDays < st.starterDays;

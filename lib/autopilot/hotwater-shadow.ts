@@ -12,7 +12,7 @@ import {DayDraw, DayProfile, DayType, HotwaterModel, Household, KWH_PER_LITRE, L
 import {TankCapabilities, fetchTankInsights, pointsFromInsights} from './hotwater-insights';
 import {DEFAULT_RESERVE_LITRES, Plan, SLOT_H, TankSpec, drawsFor, plan, reserveKwh} from './hotwater-planner';
 import {appendLine, deleteHistory, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
-import {DEFAULT_DAY_TYPE, DayTypeState, dayTypeAt} from './day-type';
+import {DayTypeState, dayTypeAt} from './day-type';
 import {PumpFacts, countFor, leverDecision} from './hotwater-lever';
 
 const HOUR = 3_600_000;
@@ -58,6 +58,9 @@ export interface ShadowStepInput {
     tank: TankSpec;
     clock: LocalClock;
     dayType?: DayType;
+    /** The day type of each slot ahead, when it differs from `dayType` by day (the calendar's
+     *  weekend); without it every slot is `dayType`. */
+    dayTypeOf?: (ms: number) => DayType;
     reserveLitres?: number;
 }
 
@@ -98,7 +101,8 @@ function planFrom(input: ShadowStepInput): Planned | {skip: string} {
     for (let k = slot; input.prices.has(k); k++) slots.push(k);
     if (slots.length < MIN_HORIZON) return {skip: 'no prices'};
     const profile = profileFor(model, input.dayType);
-    const draws = drawsFor(slots.map(() => profile), slots.map((k) => input.clock(k * SLOT_MS).hour));
+    const draws = drawsFor(slots.map((k) => input.dayTypeOf ? profileFor(model, input.dayTypeOf(k * SLOT_MS)) : profile),
+        slots.map((k) => input.clock(k * SLOT_MS).hour));
     const charging = (now.powerW ?? 0) > 0;
     const p = plan({
         slots: slots.map((k, j) => {
@@ -648,7 +652,7 @@ export class HotwaterAutopilot {
      *  type, and the heat Autopilot expects drawn today (kWh). Undefined until it has learned. */
     usage(): {recent: DayDraw[]; today: string; dayType?: DayType; expected?: number} | undefined {
         if (!this.model?.recent) return undefined;
-        const dayType = dayTypeAt(this.hooks.dayType(), Date.now());
+        const dayType = dayTypeAt(this.hooks.dayType(), Date.now(), this.clock());
         const expected = profileFor(this.model, dayType)?.daily;
         return {recent: this.model.recent, today: this.clock()(Date.now()).date, dayType,
             expected: Number.isFinite(expected) ? expected : undefined};
@@ -713,10 +717,11 @@ export class HotwaterAutopilot {
             this.log(`Autopilot hot water: ${points.length} readings in Insights, too few to learn from yet.`);
             return;
         }
-        // Each reading is learned under the day type in force when it was taken; before the
-        // owner first set one, the default (working).
+        // Each reading is learned under the day type in force when it was taken; where none was
+        // set, the calendar's.
         const dayTypes = this.hooks.dayType();
-        for (const point of points) point.dayType = dayTypeAt(dayTypes, point.t);
+        const clock = this.clock();
+        for (const point of points) point.dayType = dayTypeAt(dayTypes, point.t, clock);
         const model = learn(points, this.clock(), started, undefined, this.hooks.household());
         this.model = model;
         const c = model.charge, any = model.profiles.any;
@@ -777,8 +782,10 @@ export class HotwaterAutopilot {
 
     private input(at: number, now: TankNow, tank: TankSpec): ShadowStepInput {
         const slot = slotOf(at);
-        return {slot, prices: this.prices, surplus: this.surplus(slot), model: this.model, now, tank, clock: this.clock(),
-            dayType: this.hooks.dayType()?.type ?? DEFAULT_DAY_TYPE, reserveLitres: this.hooks.reserveLitres()};
+        const clock = this.clock(), dayTypes = this.hooks.dayType();
+        return {slot, prices: this.prices, surplus: this.surplus(slot), model: this.model, now, tank, clock,
+            dayType: dayTypeAt(dayTypes, at, clock), dayTypeOf: (ms) => dayTypeAt(dayTypes, ms, clock),
+            reserveLitres: this.hooks.reserveLitres()};
     }
 
     private step() {
