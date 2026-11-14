@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {SurplusBudget, effectivePrice} from '../lib/autopilot/solar-surplus';
+import {SolarSurplus, SurplusBudget, effectivePrice} from '../lib/autopilot/solar-surplus';
 
 const forecast = new Map([[10, 3], [11, 2], [12, 0.5]]);
 
@@ -21,4 +21,19 @@ test('effective price: the surplus covers its share at the export price, the res
     assert.deepEqual(effectivePrice(2, 0.5, 5, 2), {price: 0.5, share: 1});
     assert.deepEqual(effectivePrice(2, 0.5, undefined, 2), {price: 2, share: 0});
     assert.deepEqual(effectivePrice(2, 0.5, 3, 0), {price: 2, share: 0}, 'no draw, nothing to cover');
+});
+
+test('live export counts only with sun forecast and a learned fit: a battery selling is not surplus', () => {
+    const service: any = new (SolarSurplus as any)({}, () => {});
+    const now = Date.now();
+    const hour = Math.floor(now / 3_600_000) * 3_600_000;
+    const slot = Math.floor(now / (15 * 60_000));
+    service.ready = true;
+    service.ghi = new Map([[hour, 400], [hour + 3_600_000, 400]]);
+    service.live = Array.from({length: 10}, (_, k) => ({at: now - k * 60_000, w: 2000}));
+    assert.equal(service.forecast(slot).get(slot), 0, 'no fit yet: export may be a battery');
+    service.fit = {a: 0.004, b: 0, hours: 40};
+    assert.equal(service.forecast(slot).get(slot), 2, 'fit and sun: the export is surplus');
+    service.ghi = new Map([[hour, 0], [hour + 3_600_000, 0]]);
+    assert.equal(service.forecast(slot).get(slot), 0, 'no sun: a battery selling');
 });

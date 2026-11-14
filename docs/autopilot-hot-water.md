@@ -282,7 +282,9 @@ use come first and the tank only gets what would have been sold:
   a car can take all of it, and then there is no surplus, as on 14 Nov with 3.4 kW of sun all going
   into the battery). The grid meter is the one device every owner with surplus has, so nothing
   else is read. Live export counts only in an hour the forecast has sun (≥ 50 W/m², the weather
-  already fetched for the plan): at night it is a battery selling. Known limit: by day, a battery
+  already fetched for the plan): at night it is a battery selling. It also counts only once the
+  planned fit below exists: export that follows the sun over 14 days is the proof this home has
+  panels, so a home with only a battery never sees surplus. Known limit: by day, a battery
   that sells, or covers our charge to hold its own grid target, still shows as export and is taken
   for surplus (14 Nov 10:14: 1.3 kW exported, 1.0 kW of it the battery's). The mean of the last 10 minutes (8 readings at least) is the expected surplus
   for the next half hour.
@@ -295,7 +297,7 @@ use come first and the tank only gets what would have been sold:
   one whose power is nearest the live report's grid figure. A P1 dongle and a battery's own grid
   sensor can both measure the same connection, and adding them would count each kWh twice.
   Without a grid meter there is no surplus at all; a home without panels learns no fit (export
-  does not follow the sun) and only ever sees a live export of 0.
+  does not follow the sun), so it never sees surplus, live or planned.
 - **Price:** an exported kWh is priced at the slot's spot price, what selling it would earn, near
   enough.
 - **On the maintainer's Homey, 9 Nov:** 79 sunny hours in two weeks, a = 3.7 kW per 1000 W/m²,

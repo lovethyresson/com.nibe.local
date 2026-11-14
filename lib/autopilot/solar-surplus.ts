@@ -87,8 +87,10 @@ export class SolarSurplus {
     /** Expected export per slot from `slot`, kW: live for the next half hour, the forecast after. */
     forecast(slot: number): Map<number, number> | undefined {
         if (!this.ready) return undefined;
-        // Live export counts only while the forecast has sun: at night it is a battery selling.
-        const live = sunNow(this.ghi, Date.now()) ? liveSurplusKw(this.live, Date.now()) : 0;
+        // Live export counts only while the forecast has sun (at night it is a battery selling) and
+        // once 14 days of export against sun have been learned: the fit is the proof this home
+        // has panels that export. Before that a battery selling by day would read as surplus.
+        const live = this.fit && sunNow(this.ghi, Date.now()) ? liveSurplusKw(this.live, Date.now()) : 0;
         const ahead = Array.from({length: AHEAD_SLOTS}, (_, j) => slot + j);
         const forecast = surplusForecast(this.fit, this.ghi, ahead.map((k) => k * SLOT_MS));
         return new Map(ahead.map((k, j) => [k, j < LIVE_SLOTS && live !== undefined ? live : forecast[j]]));
@@ -139,7 +141,7 @@ export class SolarSurplus {
         this.ghi = hourlyGhi(await getJson(irradianceUrl(found.location.latitude, found.location.longitude)));
         this.fit = fitSurplus(this.ghi, hourlyExport(found.log));
         const state = this.fit ? `${this.fit.hours} sunny hours: ${Math.round(this.fit.a * 1000 * 100) / 100} kW `
-            + `per 1000 W/m², ${Math.round(this.fit.b * 100) / 100} kW` : 'too few sunny hours to plan with; the live export still counts';
+            + `per 1000 W/m², ${Math.round(this.fit.b * 100) / 100} kW` : 'too few sunny hours yet; no surplus until there are';
         if (state !== this.state) this.log(`Solar surplus from ${state}.`);
         this.state = state;
         return LEARN_EVERY_MS;
