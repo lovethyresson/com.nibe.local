@@ -305,6 +305,10 @@
         "hw_free_daytime": "Overdag",
         "hw_free_evening": "'s Avonds",
         "household_invalid": "Kies hoeveel mensen er wonen en een douchetijd.",
+        "hw_reserve": "Altijd minstens houden",
+        "hw_reserve_off": "Uit",
+        "hw_reserve_hint": "Liters water van 40 °C waar Autopilot nooit onder plant. Uit laat het aan uw apparaat over.",
+        "hw_reserve_invalid": "Kies hoeveel warm water er altijd moet zijn.",
         "solar_intro": "Autopilot kan verwarmen met uw eigen zonnestroom.",
         "solar_scanning": "Zoeken naar energiemeters in uw huis…",
         "solar_meter": "Elektriciteitsmeter",
@@ -362,15 +366,13 @@
   "Immersion heater only": "Alleen elektrisch element",
   "hotwater": {
     "tank_unmeasured": "Nog niet bepaald",
-    "tank_setup": "Kies je boiler bij Herstellen",
     "tank_calibrating": "Kalibreren…",
     "cal_setup": "Geen boiler gekozen",
     "cal_waiting": "Tot nu toe vastgelegde laadcycli: __CYCLES__. Er zijn er twee nodig die de boiler verschillend opwarmen.",
     "cal_done": "Gemeten uit __CYCLES__ laadbeurten",
     "cal_cold": "Gemeten inkomend koud water: __C__ °C.",
     "cal_assumed": "Kalibreren…",
-    "inlet_measured": "gemeten",
-    "inlet_assumed": "aangenomen"
+    "inlet_measured": "gemeten"
   },
   "Transfer": "Overdracht",
   "-10": "-10",

@@ -361,7 +361,13 @@ The design as first written:
 - **Hot water device:** "Autopilot now": the next planned charge, its target and why ("Next
   charge 13:15 to 52 °C · Cheapest hours"), what is heating the tank now, or what it waits for
   (learning, prices). Prefixed "Test run:" in a test run. The Smart mode is the on/off.
-- **Settings:** "Always keep at least … L of hot water" (default 40, off = 0). Solar is two home-wide switches in setup, live and forecast (§4.4).
+- **Settings (moved 2026-11-14):** none in the device settings. Repair → Smart mode, hot water
+  step: "Always keep at least" (Off / 20 / 40 / 60 L, default 40; stored on the Hot water device,
+  `autopilotReserve`, carried over from the old setting that was shown and mirrored on every
+  device of the pump). Solar is two home-wide switches in the next step (§4.4). The tank is picked
+  in Repair's Hot water section; the incoming water it learns is a capability on the Hot water
+  device, "Incoming water" (`measure_temperature.hotwater_inlet`, blank until learned), no longer
+  a read-only setting.
 - **Morning plan** (timeline, 07:00, six languages): what goes into the day's plan and what
   comes out of it. The inputs are the day type, the expected use in litres (the learned mean,
   and the 80th percentile as "a heavy day"), the tank now and the safety net. The output is

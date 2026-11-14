@@ -111,6 +111,10 @@ behaviour are not verified; do not assume stopping a Flow restores the physical 
 Open **Hot Water → Repair → Hot Water Setup**. The existing tank catalogue, automatic estimate,
 custom capacity and no-estimate choices remain available. **Save changes** saves directly.
 
+The incoming cold water temperature is now **Incoming water** on the Hot water device, and
+Autopilot's **Always keep at least** is in **Hot Water → Repair → Smart mode**, next to the other
+Autopilot hot water choices. Your earlier value carries over.
+
 ## Numbers that don't match myUplink or the pump
 
 ### Should the app agree with my pump's own display?

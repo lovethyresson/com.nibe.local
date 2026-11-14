@@ -85,6 +85,7 @@
     "onoff.h195_enable_hotwater",
     "measure_temperature.i9_hot_water",
     "measure_volume_NIBE.hotwater_estimate",
+    "measure_temperature.hotwater_inlet",
     "measure_temperature.i8_warmwater_top",
     "hotwater_demand_NIBE.h56_hotwater_demand_mode",
     "boolean_NIBE.h697_more_hotwater",
@@ -1422,44 +1423,6 @@
     {
       "type": "group",
       "label": {
-        "en": "Autopilot hot water",
-        "sv": "Autopilot varmvatten",
-        "de": "Autopilot Warmwasser",
-        "nl": "Autopilot warm water",
-        "no": "Autopilot varmtvann",
-        "da": "Autopilot varmt vand"
-      },
-      "children": [
-        {
-          "id": "autopilotReserve",
-          "type": "number",
-          "value": 40,
-          "min": 0,
-          "max": 500,
-          "step": 10,
-          "units": "L",
-          "label": {
-            "en": "Always keep at least",
-            "sv": "Behåll alltid minst",
-            "de": "Immer mindestens behalten",
-            "nl": "Altijd minstens houden",
-            "no": "Behold alltid minst",
-            "da": "Behold altid mindst"
-          },
-          "hint": {
-            "en": "Litres of 40 °C water. 0 leaves it to your device.",
-            "sv": "Liter 40-gradigt vatten. 0 överlåter det åt din enhet.",
-            "de": "Liter Wasser mit 40 °C. 0 überlässt es Ihrem Gerät.",
-            "nl": "Liter water van 40 °C. 0 laat het aan uw apparaat over.",
-            "no": "Liter vann på 40 °C. 0 overlater det til enheten din.",
-            "da": "Liter vand på 40 °C. 0 overlader det til din enhed."
-          }
-        }
-      ]
-    },
-    {
-      "type": "group",
-      "label": {
         "en": "Connection",
         "sv": "Anslutning",
         "de": "Verbindung",
@@ -1514,61 +1477,6 @@
             "da": "Opdateres automatisk ud fra effektmålingerne. Redigér kun for at korrigere måleren."
           },
           "value": 0
-        }
-      ]
-    },
-    {
-      "type": "group",
-      "label": {
-        "en": "Hot water",
-        "sv": "Varmvatten",
-        "de": "Warmwasser",
-        "nl": "Warm tapwater",
-        "no": "Varmtvann",
-        "da": "Varmt vand"
-      },
-      "children": [
-        {
-          "id": "hotwater_tank",
-          "type": "label",
-          "label": {
-            "en": "Tank size",
-            "sv": "Beredarens volym",
-            "de": "Speichergröße",
-            "nl": "Boilerinhoud",
-            "no": "Berederens volum",
-            "da": "Beholderens volumen"
-          },
-          "hint": {
-            "en": "The size of your hot water tank. Run repair to change it.",
-            "sv": "Volymen på din varmvattenberedare. Kör Reparera för att ändra.",
-            "de": "Die Größe Ihres Warmwasserspeichers. Zum Ändern „Reparieren“ ausführen.",
-            "nl": "De inhoud van je warmtapwaterboiler. Voer Herstellen uit om te wijzigen.",
-            "no": "Volumet på varmtvannsberederen din. Kjør Reparer for å endre.",
-            "da": "Volumen på din varmtvandsbeholder. Kør Reparer for at ændre."
-          },
-          "value": "—"
-        },
-        {
-          "id": "hotwater_inlet",
-          "type": "label",
-          "label": {
-            "en": "Incoming water",
-            "sv": "Inkommande vatten",
-            "de": "Zulaufwasser",
-            "nl": "Inkomend water",
-            "no": "Inngående vann",
-            "da": "Indgående vand"
-          },
-          "value": "—",
-          "hint": {
-            "en": "The measured temperature of the incoming cold water. Used to calculate Hot water available.",
-            "sv": "Uppmätt temperatur på det inkommande kallvattnet. Används för att beräkna Tillgängligt varmvatten.",
-            "de": "Die gemessene Temperatur des einströmenden Kaltwassers. Dient zur Berechnung von „Verfügbares Warmwasser“.",
-            "nl": "De gemeten temperatuur van het inkomende koude water. Wordt gebruikt om Beschikbaar warmtapwater te berekenen.",
-            "no": "Målt temperatur på det inngående kaldtvannet. Brukes til å beregne Tilgjengelig varmtvann.",
-            "da": "Den målte temperatur på det indgående kolde vand. Bruges til at beregne Tilgængeligt varmt vand."
-          }
         }
       ]
     },

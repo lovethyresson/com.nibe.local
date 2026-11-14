@@ -114,10 +114,6 @@
   "Auto": "Auto",
   "Manual": "Manuellt",
   "Immersion heater only": "Endast elpatron",
-  "hotwater": {
-    "tank_setup": "Välj din beredare under Reparera",
-    "inlet_assumed": "antaget"
-  },
   "Transfer": "Överföring",
   "0": "0",
   "1": "1",

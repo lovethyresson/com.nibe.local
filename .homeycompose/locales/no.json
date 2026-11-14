@@ -114,10 +114,6 @@
   "Auto": "Auto",
   "Manual": "Manuelt",
   "Immersion heater only": "Kun elkolbe",
-  "hotwater": {
-    "tank_setup": "Velg berederen din under Reparer",
-    "inlet_assumed": "antatt"
-  },
   "Transfer": "Overføring",
   "0": "0",
   "1": "1",

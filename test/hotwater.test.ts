@@ -8,7 +8,7 @@ import {
 } from '../lib/hotwater';
 import {sProfile} from '../drivers/nibe_s/profile';
 import {
-    HOTWATER_VOLUME_CAPABILITY, allRoles, extraCapabilities, extraCapabilityOptions,
+    HOTWATER_INLET_CAPABILITY, HOTWATER_VOLUME_CAPABILITY, allRoles, extraCapabilities, extraCapabilityOptions,
     possibleExtraCapabilities
 } from '../lib/roles';
 
@@ -242,6 +242,18 @@ test('the capability requires a chosen tank', () => {
 test('the superset still lists it, so its options are always prepared', () => {
     assert.ok(possibleExtraCapabilities(sProfile, 'hotwater').includes(HOTWATER_VOLUME_CAPABILITY));
     assert.ok(extraCapabilityOptions('hotwater', HOTWATER_VOLUME_CAPABILITY)?.title);
+});
+
+test('incoming water rides with the estimate: same opt-in, its own title, its own switch', () => {
+    const picked = {groups: {}, overrides: {}, hotwater: PICKED};
+    const caps = extraCapabilities(sProfile, 'hotwater', picked);
+    assert.ok(caps.indexOf(HOTWATER_INLET_CAPABILITY) === caps.indexOf(HOTWATER_VOLUME_CAPABILITY) + 1);
+    assert.equal(extraCapabilities(sProfile, 'hotwater', {groups: {}, overrides: {}}).includes(HOTWATER_INLET_CAPABILITY), false);
+    assert.equal(extraCapabilities(sProfile, 'hotwater', {...picked, overrides: {[HOTWATER_INLET_CAPABILITY]: false}})
+        .includes(HOTWATER_INLET_CAPABILITY), false);
+    assert.equal(extraCapabilityOptions('hotwater', HOTWATER_INLET_CAPABILITY)?.title?.en, 'Incoming water');
+    for (const role of allRoles)
+        assert.equal(possibleExtraCapabilities(sProfile, role).includes(HOTWATER_INLET_CAPABILITY), role === 'hotwater');
 });
 
 test('the litres estimate lands on the hot water device and nowhere else', () => {

@@ -188,6 +188,11 @@ and believing it would overstate the hot water available by a third. Above the c
 declines and falls back to NIBE's own 10 °C, which is the safer answer. A unit test pins both the
 direction and the clamp so the reasoning cannot quietly revert.
 
+Shown as the capability **Incoming water** (`measure_temperature.hotwater_inlet`) on the Hot water
+device since 2026-11-14, next to Hot water available and under the same opt-in (a chosen tank) and
+switch (the hotwater group). Blank until learned; the estimate uses 10 °C meanwhile. It was a
+read-only device setting, shown on every device of the pump and blank on all but one.
+
 `Selection.hotwater.inletC` survives as an override that nothing writes any more, honoured if
 present so a device configured by the old picker keeps its answer. `cleanTankChoice()` must leave it
 **absent** rather than defaulting it — a stored default is indistinguishable from an explicit answer

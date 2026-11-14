@@ -305,6 +305,10 @@
         "hw_free_daytime": "I løbet af dagen",
         "hw_free_evening": "Om aftenen",
         "household_invalid": "Vælg, hvor mange der bor der, og et badetidspunkt.",
+        "hw_reserve": "Behold altid mindst",
+        "hw_reserve_off": "Fra",
+        "hw_reserve_hint": "Liter 40-graders vand, som Autopilot aldrig planlægger under. Fra overlader det til din enhed.",
+        "hw_reserve_invalid": "Vælg, hvor meget varmt vand der altid skal være.",
         "solar_intro": "Autopilot kan varme med din egen solstrøm.",
         "solar_scanning": "Leder efter energimålere i dit hjem…",
         "solar_meter": "Elmåler",
@@ -362,15 +366,13 @@
   "Immersion heater only": "Kun eltilskud",
   "hotwater": {
     "tank_unmeasured": "Ikke målt endnu",
-    "tank_setup": "Vælg din beholder under Reparer",
     "tank_calibrating": "Kalibrerer…",
     "cal_setup": "Ingen beholder valgt",
     "cal_waiting": "Registrerede opladninger indtil nu: __CYCLES__. Der skal bruges to, der opvarmer beholderen forskelligt.",
     "cal_done": "Målt ud fra __CYCLES__ opladninger",
     "cal_cold": "Målt indgående koldt vand: __C__ °C.",
     "cal_assumed": "Kalibrerer…",
-    "inlet_measured": "målt",
-    "inlet_assumed": "antaget"
+    "inlet_measured": "målt"
   },
   "Transfer": "Overførsel",
   "-10": "-10",

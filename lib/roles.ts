@@ -141,6 +141,13 @@ export const SOLAR_METER_CAPABILITY = "meter_power.solar";
 // "extra". Unlike them it rides the `hotwater` group rather than `energy`, because that is the
 // group its two source sensors live in. See lib/hotwater.ts for what the number means.
 export const HOTWATER_VOLUME_CAPABILITY = "measure_volume_NIBE.hotwater_estimate";
+// The incoming cold water, °C: the lowest the tank's bottom sensor reached over the last weeks
+// (lib/hotwater.ts learnedInletC), one of the estimate's inputs. A reading, so a capability rather
+// than a read-only setting (maintainer, 2026-11-14); blank until learned. A sub-id, so Homey never
+// takes it for the zone temperature.
+export const HOTWATER_INLET_CAPABILITY = "measure_temperature.hotwater_inlet";
+// The tank's derived capabilities, in tile order: they ride the same opt-in and group.
+export const HOTWATER_TANK_CAPABILITIES = [HOTWATER_VOLUME_CAPABILITY, HOTWATER_INLET_CAPABILITY];
 
 // Alarm state on the main device. `alarm_text_NIBE` is the profile's alarm *register* itself
 // (the raw code, rendered as text by lib/alarms.ts), so it comes from the register table.
@@ -258,7 +265,8 @@ export function extraCapabilitySupport(
         [ACTIVE_POWER_CAPABILITY]: powerOk,
         [TOTAL_COP_CAPABILITY]: totalsOk,
         [FUNCTION_COP_CAPABILITY]: powerOk && !!produced && read(produced),
-        [HOTWATER_VOLUME_CAPABILITY]: tankOk
+        [HOTWATER_VOLUME_CAPABILITY]: tankOk,
+        [HOTWATER_INLET_CAPABILITY]: tankOk
     };
     // A mirror is exactly as supported as the register behind it — offering a thermostat dial
     // for a pool the pump never reported would be a control over nothing.
@@ -310,8 +318,7 @@ function buildExtraCapabilities(
     const tankConfigured = superset
         || (!!selection?.hotwater && typeof selection.hotwater.litres === 'number');
     const tankCaps = role === "hotwater" && profile.hotwaterTank && tankConfigured
-        && hotwaterEnabled(HOTWATER_VOLUME_CAPABILITY)
-        ? [HOTWATER_VOLUME_CAPABILITY]
+        ? HOTWATER_TANK_CAPABILITIES.filter(hotwaterEnabled)
         : [];
     // Mirrors ride the selection of the register they copy, not their own: they are the same
     // value, so a user who switched the source off must not still get a dial for it.
@@ -554,6 +561,10 @@ export function extraCapabilityOptions(role: Role, name: string, profile?: Model
         return {title: {en: "Hot water available", sv: "Tillgängligt varmvatten",
                         de: "Verfügbares Warmwasser", nl: "Beschikbaar warmtapwater",
                         no: "Tilgjengelig varmtvann", da: "Tilgængeligt varmt vand"},
+                decimals: 1};
+    if (name === HOTWATER_INLET_CAPABILITY)
+        return {title: {en: "Incoming water", sv: "Inkommande vatten", de: "Zulaufwasser",
+                        nl: "Inkomend water", no: "Innkommende vann", da: "Indgående vand"},
                 decimals: 1};
     return undefined;
 }

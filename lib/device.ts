@@ -26,7 +26,7 @@ import {
     ACTIVE_POWER_CAPABILITY, ALARM_ACTIVE_CAPABILITY, ALARM_TEXT_CAPABILITY, AUTOPILOT_AWAY_CAPABILITY,
     AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY, AUTOPILOT_FED_CAPABILITY, AUTOPILOT_RANGE_CAPABILITY,
     AUTOPILOT_REASON_CAPABILITY, AUTOPILOT_SHIFT_CAPABILITY, AUTOPILOT_STATUS_CAPABILITY,
-    DAY_TYPE_CAPABILITY, FUNCTION_COP_CAPABILITY, HOTWATER_VOLUME_CAPABILITY, METER_CAPABILITY,
+    DAY_TYPE_CAPABILITY, FUNCTION_COP_CAPABILITY, HOTWATER_INLET_CAPABILITY, HOTWATER_VOLUME_CAPABILITY, METER_CAPABILITY,
     PUMP_ACTIVE_CAPABILITY, Role, SOLAR_METER_CAPABILITY, TOTAL_COP_CAPABILITY,
     capabilitySyncPlan, extraCapabilities, extraCapabilityOptions, functionRoles, mirrorOptions,
     mirrorsForRole, registersForRole, roleClass, roleOf, roleRegisters, deviceClass, roomThermostatActive,
@@ -45,6 +45,12 @@ import {ConnectionProblem, PumpConnection, PumpSubscriber, POLL_SECONDS_DEFAULT,
 const AWAY_DEFAULT_C = 17;
 /** Device store key (Hot water): setup's household answers, Autopilot hot water's starting profile. */
 const HOUSEHOLD_STORE = 'autopilotHotwaterHousehold';
+/** Hot water device store: "Always keep at least", litres of 40 °C water; 0 leaves it to the pump.
+ *  Set in Repair → Smart mode next to the other hot water choices (2026-11-14); it was a device
+ *  setting shown, and mirrored, on every device of the pump. */
+const RESERVE_STORE = 'autopilotReserve';
+const DEFAULT_RESERVE_LITRES = 40;
+const MAX_RESERVE_LITRES = 500;
 
 // How long the indoor feed may keep failing before the user is told (10 missed 30 s updates).
 const INDOOR_ALERT_AFTER_MS = 5 * 60 * 1000;
@@ -791,26 +797,15 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.publishTankState();
     }
 
-    // Two read-only rows: the tank the owner told us, and the inlet we worked out. Both are inputs
-    // to the litres figure, so a figure that looks wrong has no invisible terms behind it.
+    // The inlet we worked out, as a capability: an input to the litres figure, so a figure that
+    // looks wrong has no invisible terms behind it. Blank until learned; the litres use
+    // DEFAULT_INLET_C meanwhile. The tank size is shown and changed in Repair.
     private publishTankState() {
-        const {litres} = this.tankConfig();
-        const tank = litres === null
-            ? this.homey.__('hotwater.tank_setup')
-            : `${Math.round(litres)} L`;
+        if (!this.hasCapability(HOTWATER_INLET_CAPABILITY))
+            return;
         const learned = this.learnedInlet();
-        const inlet = learned === null
-            ? `${DEFAULT_INLET_C} °C (${this.homey.__('hotwater.inlet_assumed')})`
-            : `${learned} °C`;
-        for (const device of this.driver.getDevices() as any[]) {
-            if (device.getSettings?.().address !== this.host())
-                continue;
-            const current = device.getSettings();
-            // Guarded: setSettings writes to flash, and this is reached whenever a day rolls.
-            if (current.hotwater_tank === tank && current.hotwater_inlet === inlet)
-                continue;
-            device.setSettings({hotwater_tank: tank, hotwater_inlet: inlet}).catch(this.error);
-        }
+        if (this.getCapabilityValue(HOTWATER_INLET_CAPABILITY) !== learned)
+            this.setCapabilityValue(HOTWATER_INLET_CAPABILITY, learned).catch(this.error);
     }
 
     private updateHotwaterVolume() {
@@ -969,9 +964,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.hasCapability(METER_CAPABILITY))
             await this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
         // A repair can change the tank, and everything downstream of it is now stale: the litres
-        // and the settings labels. Without this the capability appeared and published correctly
-        // while the settings still read "Pick your tank in Repair" — exactly the sort of
-        // contradiction that makes an app look broken.
+        // and the inlet, which a newly added capability shows only once it is written.
         if (this.role === 'hotwater' && this.profile.hotwaterTank) {
             this.publishTankState();
             this.updateHotwaterVolume();
@@ -995,6 +988,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         await this.migrateRenamedRegisters();
         await this.migrateMovedGroups().catch(this.error);
         this.migrateSolarSetting();
+        await this.migrateReserve();
         this.debug(`Device init: role ${this.role}, host ${this.host()}, groups [${this.enabledGroupsSummary()}]`);
 
         const wantedClass = deviceClass(this.profile, this.role, this.getSelection());
@@ -1253,6 +1247,32 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     /** Setup's answers for a home with a short history: stored, and learned from at once. */
+    /** "Always keep at least", litres: the stored choice, else the old setting, else 40. */
+    private reserveLitres(): number {
+        for (const raw of [this.getStoreValue(RESERVE_STORE), this.getSettings().autopilotReserve]) {
+            const v = Number(raw);
+            if (raw !== null && raw !== undefined && Number.isFinite(v) && v >= 0 && v <= MAX_RESERVE_LITRES) return v;
+        }
+        return DEFAULT_RESERVE_LITRES;
+    }
+
+    async setReserve(raw: any) {
+        const litres = Number(raw);
+        if (!Number.isInteger(litres) || litres < 0 || litres > MAX_RESERVE_LITRES)
+            throw new Error(this.homey.__('pair.setup.smart.hw_reserve_invalid'));
+        if (litres === this.getStoreValue(RESERVE_STORE)) return;
+        await this.setStoreValue(RESERVE_STORE, litres);
+        this.log(`Autopilot hot water: always keep at least ${litres} L`);
+    }
+
+    /** One-off: the old setting's value becomes the stored choice, so the move loses nothing. */
+    private async migrateReserve() {
+        if (this.role !== 'hotwater' || this.getStoreValue(RESERVE_STORE) != null) return;
+        const v = Number(this.getSettings().autopilotReserve);
+        if (Number.isFinite(v) && v >= 0 && v <= MAX_RESERVE_LITRES)
+            await this.setStoreValue(RESERVE_STORE, Math.round(v)).catch(this.error);
+    }
+
     async setHousehold(raw: any) {
         const household = raw == null ? undefined : readHousehold(raw);
         if (raw != null && !household) throw new Error(this.homey.__('pair.setup.smart.household_invalid'));
@@ -1308,10 +1328,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             };
         }, (...args) => this.log(...args), {
             mode: live,
-            reserveLitres: () => {
-                const v = Number(this.getSettings().autopilotReserve);
-                return Number.isFinite(v) && v >= 0 ? v : 40;
-            },
+            reserveLitres: () => this.reserveLitres(),
             solar: () => this.solarAllowed(),
             surplus: (slot) => this.solarSurplus().forUser('hotwater', slot),
             reserveSurplus: (kw) => this.solarSurplus().budget.reserve('hotwater', kw),
@@ -1710,7 +1727,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.role === 'hotwater') {
             const [flows, historyDays] = await Promise.all([this.hotwaterFlowConflicts(), this.hotwaterHistoryDays()]);
             return {...base, tank: this.tankConfig().litres !== null, flows: flows ?? null, historyDays: historyDays ?? null,
-                starterDays: STARTER_DAYS, household: readHousehold(this.getStoreValue(HOUSEHOLD_STORE)) ?? null};
+                starterDays: STARTER_DAYS, household: readHousehold(this.getStoreValue(HOUSEHOLD_STORE)) ?? null,
+                reserve: this.reserveLitres()};
         }
         if (this.role !== 'heating') return {...base, tank: undefined};
         const indoor = Number(this.getCapabilityValue('measure_temperature'));
@@ -2450,9 +2468,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     async onSettings({oldSettings, newSettings, changedKeys}: {
         oldSettings: {[key: string]: any}, newSettings: {[key: string]: any}, changedKeys: string[]
     }) {
-        // Autopilot hot water's settings are pump-wide: every device of the pump shows the same.
-        for (const key of ['autopilotReserve'].filter((k) => changedKeys.includes(k)))
-            await this.syncToSiblings(key, newSettings[key]);
         if (changedKeys.includes('cumulativeEnergy')) {
             this.cumulativeEnergy = newSettings.cumulativeEnergy || 0;
             // The user just set the durable copy by hand; don't let the next poll's debounce

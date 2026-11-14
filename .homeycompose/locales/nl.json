@@ -114,10 +114,6 @@
   "Auto": "Auto",
   "Manual": "Handmatig",
   "Immersion heater only": "Alleen elektrisch element",
-  "hotwater": {
-    "tank_setup": "Kies je boiler bij Herstellen",
-    "inlet_assumed": "aangenomen"
-  },
   "Transfer": "Overdracht",
   "0": "0",
   "1": "1",

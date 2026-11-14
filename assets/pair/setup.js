@@ -657,8 +657,22 @@ function NibeSetup(options) {
             }), answers.freeDay, function (v) { answers.freeDay = v; }));
             shell.appendChild(group);
         }
+        // The safety net: Autopilot never plans the tank below it. A value from the old setting
+        // that is not one of the choices is kept as one.
+        var reserve = typeof st.reserve === 'number' ? st.reserve : 40, keptReserve = reserve;
+        var levels = [0, 20, 40, 60];
+        if (levels.indexOf(reserve) < 0) levels.push(reserve);
+        levels.sort(function (x, y) { return x - y; });
+        var safety = el('section', undefined, 'setup-task-group');
+        safety.appendChild(el('h3', a('hw_reserve')));
+        var pick = document.createElement('select'); pick.setAttribute('aria-label', a('hw_reserve'));
+        levels.forEach(function (l) { pick.add(new Option(l ? l + ' L' : a('hw_reserve_off'), String(l))); });
+        pick.value = String(reserve); pick.onchange = function () { reserve = Number(pick.value); };
+        safety.append(pick, el('p', a('hw_reserve_hint'), 'register-desc'));
+        shell.appendChild(safety);
         shell.appendChild(button(t('next'), function () {
             solarStep(async function () {
+                if (reserve !== keptReserve) await emit('hotwater_reserve', {litres: reserve});
                 if (ask) await emit('hotwater_household', answers);
                 if (ap.choice !== st.mode) await emit('smart_choose', {value: ap.choice});
                 done(ap.choice === 'test' ? a('saved_test') : a('saved'));

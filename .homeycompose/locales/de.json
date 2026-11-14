@@ -114,10 +114,6 @@
   "Auto": "Auto",
   "Manual": "Manuell",
   "Immersion heater only": "Nur Heizstab",
-  "hotwater": {
-    "tank_setup": "Speicher unter „Reparieren“ auswählen",
-    "inlet_assumed": "angenommen"
-  },
   "Transfer": "Übertragung",
   "0": "0",
   "1": "1",

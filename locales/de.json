@@ -305,6 +305,10 @@
         "hw_free_daytime": "Tagsüber",
         "hw_free_evening": "Abends",
         "household_invalid": "Wählen Sie, wie viele Personen dort wohnen, und eine Duschzeit.",
+        "hw_reserve": "Immer mindestens behalten",
+        "hw_reserve_off": "Aus",
+        "hw_reserve_hint": "Liter 40 °C warmes Wasser, unter die Autopilot nie plant. Aus überlässt es Ihrem Gerät.",
+        "hw_reserve_invalid": "Wählen Sie, wie viel Warmwasser immer bleiben soll.",
         "solar_intro": "Autopilot kann mit Ihrem eigenen Solarstrom heizen.",
         "solar_scanning": "Suche nach Energiezählern in Ihrem Zuhause…",
         "solar_meter": "Stromzähler",
@@ -362,15 +366,13 @@
   "Immersion heater only": "Nur Heizstab",
   "hotwater": {
     "tank_unmeasured": "Noch nicht ermittelt",
-    "tank_setup": "Speicher unter „Reparieren“ auswählen",
     "tank_calibrating": "Kalibrierung läuft…",
     "cal_setup": "Kein Speicher gewählt",
     "cal_waiting": "Bisher erfasste Ladevorgänge: __CYCLES__. Zwei, die den Speicher unterschiedlich erwärmen, sind nötig.",
     "cal_done": "Gemessen aus __CYCLES__ Ladevorgängen",
     "cal_cold": "Gemessener Kaltwasserzulauf: __C__ °C.",
     "cal_assumed": "Kalibrierung läuft…",
-    "inlet_measured": "gemessen",
-    "inlet_assumed": "angenommen"
+    "inlet_measured": "gemessen"
   },
   "Transfer": "Übertragung",
   "-10": "-10",

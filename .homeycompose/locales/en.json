@@ -114,10 +114,6 @@
   "Auto": "Auto",
   "Manual": "Manual",
   "Immersion heater only": "Immersion heater only",
-  "hotwater": {
-    "tank_setup": "Pick your tank in Repair",
-    "inlet_assumed": "assumed"
-  },
   "Transfer": "Transfer",
   "0": "0",
   "1": "1",

@@ -114,10 +114,6 @@
   "Auto": "Auto",
   "Manual": "Manuelt",
   "Immersion heater only": "Kun eltilskud",
-  "hotwater": {
-    "tank_setup": "Vælg din beholder under Reparer",
-    "inlet_assumed": "antaget"
-  },
   "Transfer": "Overførsel",
   "0": "0",
   "1": "1",

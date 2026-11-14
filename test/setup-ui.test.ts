@@ -211,7 +211,7 @@ const NO_SOLAR = {meters: [], meter: null, solar: [], followsSun: false, peakKw:
 async function hotwaterSmart(status: any, scan: any = NO_SOLAR) {
     const f = fixture('repair', 'hotwater', 0, undefined, {context: {smart: true},
         results: {smart_status: {role: 'hotwater', mode: 'off', spa: true, spaOn: false, autopilot: true, tank: true,
-            starterDays: 14, household: null, ...status}, hotwater_household: true, smart_choose: true,
+            starterDays: 14, household: null, reserve: 40, ...status}, hotwater_household: true, hotwater_reserve: true, smart_choose: true,
             solar_scan: scan, solar_save: true}});
     f.click('Continue'); f.menu('Smart mode'); await tick();
     const test = f.win.document.querySelector('input[name="smart-choice"][value="test"]');
@@ -235,6 +235,25 @@ test('Autopilot hot water setup lists the Flows that switch More hot water, and 
     assert.equal(f.emitted.find((e) => e.name === 'smart_choose')?.data?.value, 'test');
     f.dom.window.close();
 });
+test('the hot water step sets how much to always keep; an unchanged choice is not saved again', async () => {
+    const s = english.pair.setup.smart;
+    let f = await hotwaterSmart({flows: [], historyDays: 60, reserve: 35});
+    const pick = f.win.document.querySelector('select[aria-label="' + s.hw_reserve + '"]');
+    assert.deepEqual([...pick.options].map((o: any) => o.textContent), [s.hw_reserve_off, '20 L', '35 L', '40 L', '60 L'],
+        'an old value that is not a choice is kept as one');
+    assert.equal(pick.value, '35');
+    pick.value = '60'; pick.dispatchEvent(new f.win.Event('change'));
+    f.click('Continue'); await tick(); await tick();
+    f.click(s.start_test); await tick(); await tick();
+    assert.equal(JSON.stringify(f.emitted.find((e) => e.name === 'hotwater_reserve')?.data), JSON.stringify({litres: 60}));
+    f.dom.window.close();
+    f = await hotwaterSmart({flows: [], historyDays: 60});
+    f.click('Continue'); await tick(); await tick();
+    f.click(s.start_test); await tick(); await tick();
+    assert.equal(f.emitted.some((e) => e.name === 'hotwater_reserve'), false);
+    f.dom.window.close();
+});
+
 test('a home with enough history is not asked about its household, and no Flows is said plainly', async () => {
     const f = await hotwaterSmart({flows: [], historyDays: 60});
     const text = f.win.document.body.textContent;

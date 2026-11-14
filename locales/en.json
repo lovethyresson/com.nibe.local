@@ -305,6 +305,10 @@
         "hw_free_daytime": "During the day",
         "hw_free_evening": "In the evening",
         "household_invalid": "Choose how many people live there and a shower time.",
+        "hw_reserve": "Always keep at least",
+        "hw_reserve_off": "Off",
+        "hw_reserve_hint": "Litres of 40 °C water Autopilot never plans below. Off leaves it to your device.",
+        "hw_reserve_invalid": "Pick how much hot water to always keep.",
         "solar_intro": "Autopilot can heat with your own solar power.",
         "solar_scanning": "Looking for energy meters in your home…",
         "solar_meter": "Electricity meter",
@@ -362,15 +366,13 @@
   "Immersion heater only": "Immersion heater only",
   "hotwater": {
     "tank_unmeasured": "Not measured yet",
-    "tank_setup": "Pick your tank in Repair",
     "tank_calibrating": "Calibrating…",
     "cal_setup": "No tank chosen",
     "cal_waiting": "Charge cycles recorded so far: __CYCLES__. Two that heat the tank differently are needed before a size can be worked out.",
     "cal_done": "Measured from __CYCLES__ charges",
     "cal_cold": "Cold water in, measured: __C__ °C.",
     "cal_assumed": "Calibrating…",
-    "inlet_measured": "measured",
-    "inlet_assumed": "assumed"
+    "inlet_measured": "measured"
   },
   "Transfer": "Transfer",
   "-10": "-10",

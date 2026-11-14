@@ -10,7 +10,7 @@ import {
 } from './registers';
 import {
     ACTIVE_POWER_CAPABILITY, ENERGY_CAPABILITIES, FUNCTION_COP_CAPABILITY,
-    HOTWATER_VOLUME_CAPABILITY, METER_CAPABILITY, possibleExtraCapabilities,
+    HOTWATER_TANK_CAPABILITIES, HOTWATER_VOLUME_CAPABILITY, METER_CAPABILITY, possibleExtraCapabilities,
     Role, TOTAL_COP_CAPABILITY, allRoles, energyTitle, extraCapabilities, extraCapabilityOptions,
     extraCapabilitySupport, functionRoles, powerTitle, registersForRole, roleClass, roleGroups, deviceClass, roomThermostatActive,
     roleNames, roleOf, roleRegisters
@@ -615,15 +615,18 @@ export abstract class NibePumpDriver extends Driver {
             // like any other capability. Without a checkbox the override cleanSelection preserves
             // could never be set in the first place.
             if (id === 'hotwater' && role === 'hotwater' && this.profile.hotwaterTank)
-                entries.push({
-                    name: HOTWATER_VOLUME_CAPABILITY,
-                    title: this.extraDisplayTitle(role, HOTWATER_VOLUME_CAPABILITY, lang),
-                    adjustable: false,
-                    optIn: false,
-                    description: lang === 'sv'
-                        ? 'Liter 40-gradigt varmvatten kvar. Kräver vald beredare nedan.'
-                        : 'Litres of 40 °C water left. Needs the tank you pick below.'
-                });
+                for (const name of HOTWATER_TANK_CAPABILITIES)
+                    entries.push({
+                        name,
+                        title: this.extraDisplayTitle(role, name, lang),
+                        adjustable: false,
+                        optIn: false,
+                        description: name === HOTWATER_VOLUME_CAPABILITY
+                            ? (lang === 'sv' ? 'Liter 40-gradigt varmvatten kvar. Kräver vald beredare nedan.'
+                                : 'Litres of 40 °C water left. Needs the tank you pick below.')
+                            : (lang === 'sv' ? 'Kallvattnet som kommer in, inlärt från beredarens nedre givare.'
+                                : 'The cold water coming in, learned from the tank\'s lower sensor.')
+                    });
             return entries;
         };
         return ids.map((id) => ({
@@ -782,7 +785,8 @@ export abstract class NibePumpDriver extends Driver {
             keep(name, "energy");
         // The litres estimate rides the hotwater group, not energy — its sensors are hotwater
         // registers.
-        keep(HOTWATER_VOLUME_CAPABILITY, "hotwater");
+        for (const name of HOTWATER_TANK_CAPABILITIES)
+            keep(name, "hotwater");
         const resolved: Record<string, number> = {...addresses};
         for (const register of this.profile.registers) {
             if (!register.sources?.length)
@@ -997,12 +1001,13 @@ export abstract class NibePumpDriver extends Driver {
             // which works but leaves it stranded at the end of the tile). Appended for the same
             // reason energyGroupEntries exists for the COP sensors.
             if (id === 'hotwater' && role === 'hotwater' && this.profile.hotwaterTank)
-                caps.push({
-                    name: HOTWATER_VOLUME_CAPABILITY,
-                    title: this.extraDisplayTitle(role, HOTWATER_VOLUME_CAPABILITY, lang),
-                    detected: extraCapabilitySupport(
-                        this.profile, role, (name) => samples[name])[HOTWATER_VOLUME_CAPABILITY]
-                });
+                for (const cap of HOTWATER_TANK_CAPABILITIES)
+                    caps.push({
+                        name: cap,
+                        title: this.extraDisplayTitle(role, cap, lang),
+                        detected: extraCapabilitySupport(
+                            this.profile, role, (name) => samples[name])[cap]
+                    });
             return caps;
         };
         return (roleGroups[role] as GroupId[])
@@ -1225,6 +1230,7 @@ export abstract class NibePumpDriver extends Driver {
         });
         if (device.role === 'hotwater')
             session.setHandler('hotwater_household', async (data: any) => { await device.setHousehold(data ?? null); return true; });
+            session.setHandler('hotwater_reserve', async (data: any) => { await device.setReserve(data?.litres); return true; });
         // Solar is the home's, not the device's: asked in hot water's setup, read by every function.
         session.setHandler('solar_scan', async () => scanSolar(this.homey));
         session.setHandler('solar_save', async (data: any) => {
