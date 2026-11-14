@@ -458,3 +458,10 @@ and the curve follows fed BT1 through a ~49 min filter, not 37 (`docs/autopilot-
 
 **Rule:** before explaining live pump behaviour, check the register against `lib/autopilot/` and
 `docs/autopilot-plan.md` findings; a raw register's CSV meaning is not what it means on this pump.
+
+## Build on what every owner has (2026-11-14)
+I answered a solar-surplus edge case (a partner-steered battery discharging while hot water
+charged) by combining the grid meter, the battery and the inverter. The maintainer: "three devices,
+and we cannot know all users have their other devices connected." **Rule:** an Autopilot input rests
+on the one device every affected owner has (here the grid meter). Name an edge case it misses as a
+known limit in the docs; don't patch it with devices only some homes have.
