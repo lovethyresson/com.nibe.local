@@ -289,7 +289,10 @@
         "choose_off_desc_pool": "Der Pool folgt den eigenen Einstellungen Ihrer Wärmepumpe.",
         "choose_off_desc_cooling": "Die Kühlung folgt den eigenen Einstellungen Ihrer Wärmepumpe.",
         "experimental": "Experimentell",
-        "hw_intro": "Zwei Dinge, bevor Autopilot das Warmwasser übernimmt.",
+        "hw_intro": "Ein paar Dinge, bevor Autopilot das Warmwasser übernimmt.",
+        "hw_tank": "Zuerst Ihr Speicher",
+        "hw_tank_intro": "Autopilot plant in Litern und braucht deshalb die Größe Ihres Speichers. Einmal auswählen genügt.",
+        "hw_tank_missing": "Wählen Sie Ihren Speicher, um fortzufahren.",
         "hw_flows": "Flows, die Mehr Warmwasser einschalten",
         "hw_flows_none": "Keine. Nur Autopilot startet Ladungen.",
         "hw_flows_found": "Sie starten Ladungen, die Autopilot nicht geplant hat. Schalten Sie sie aus oder behalten Sie sie für Benachrichtigungen.",
@@ -328,7 +331,16 @@
         "solar_need_meter": "Heizen mit Solarstrom braucht einen Stromzähler, der die Einspeisung misst, etwa einen P1-Leser. Fügen Sie ihn in Homey Energie hinzu und kommen Sie dann hierher zurück.",
         "hw_reserve_20": "20 L, kurz abspülen oder der Abwasch",
         "hw_reserve_40": "40 L, eine kurze Dusche",
-        "hw_reserve_60": "60 L, eine längere Dusche"
+        "hw_reserve_60": "60 L, eine längere Dusche",
+        "mode_live": "Live",
+        "mode_simulated": "Simuliert",
+        "mode_note": "Live steuert Ihre Wärmepumpe. Simuliert plant alles und zeigt, was es tun würde, während Ihre Wärmepumpe bleibt, wie sie ist.",
+        "indoor_title": "Innentemperatur für Autopilot",
+        "indoor_intro": "Autopilot hält sie auf dem Wert Ihres Thermostats.",
+        "indoor_homey_desc": "Ein Sensor oder der Durchschnitt mehrerer Räume. Wird nur gelesen, nie an Ihre Wärmepumpe gesendet.",
+        "indoor_note": "Autopilot steuert Ihre Wärmepumpe über die Außentemperatur (BT1), daher bleibt die Raumfühlerregelung Ihrer Wärmepumpe aus.",
+        "indoor_read_hint": "Autopilot liest sie jede Minute. An Ihre Wärmepumpe wird nichts gesendet.",
+        "indoor_source_prompt": "Mehrere Fühler können dies melden. Wählen Sie den, den Autopilot liest:"
       }
     },
     "gateway": {
@@ -585,7 +597,8 @@
         "heating": "Smart price adaption wurde für die Heizung eingeschaltet, daher hat Autopilot Heizung gestoppt.",
         "hotwater": "Smart price adaption wurde für Warmwasser eingeschaltet, daher hat Autopilot Warmwasser gestoppt."
       },
-      "soon": "Autopilot dafür kommt bald."
+      "soon": "Autopilot dafür kommt bald.",
+      "paired_failed": "Der Smart-Modus aus der Einrichtung konnte nicht übernommen werden: __reason__ Schließen Sie ihn unter Reparieren ab."
     },
     "widget": {
       "price": "Preis",

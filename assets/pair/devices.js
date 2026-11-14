@@ -172,9 +172,15 @@ function render() {
         }
 
         if (candidate.tanks) {
-            setupSections[index] = {id: String(index), role: candidate.role,
+            setupSections[index] = [{id: String(index), role: candidate.role,
                 title: Homey.__('pair.setup.hotwater'), description: candidate.description,
-                content: tankBlock(candidate.tanks, null, 'pair' + index)};
+                content: tankBlock(candidate.tanks, null, 'pair' + index)}];
+        }
+        // Hot water's Smart mode follows its tank in Hot water setup; without a tank it stands alone.
+        if (candidate.role === 'hotwater' && candidate.smart) {
+            if (setupSections[index]) setupSections[index][0].smart = 'hotwater';
+            else setupSections[index] = [{id: index + '-smart', role: 'smart', fn: 'hotwater',
+                title: Homey.__('pair.setup.smart.title'), description: Homey.__('pair.setup.smart.section_hotwater')}];
         }
         if (candidate.role === 'heating' && candidate.indoorSupported !== false) {
             var sources = document.createElement('div');
@@ -184,8 +190,8 @@ function render() {
             // whose zone 1 merely displays, a silent default is exactly the wrong thermostat.
             var zones = nibeZoneCards((candidate.choices || {}).target_temperature,
                 {name: 'source:' + index + ':target_temperature', device: index});
-            setupSections[index] = {id: String(index), role: candidate.role,
-                title: Homey.__('pair.setup.heating'), description: candidate.description, sources: sources, zones: zones};
+            setupSections[index] = [{id: String(index), role: candidate.role,
+                title: Homey.__('pair.setup.heating'), description: candidate.description, sources: sources, zones: zones}];
         }
 
         if (groups.length) {
@@ -262,6 +268,11 @@ function buildDevice(candidate, index) {
     }
     if (candidate.role === 'heating' && setup.indoorConfig())
         device.store.indoorSensors = setup.indoorConfig();
+    // Smart mode chosen in pairing: the device applies it once it runs (device.ts applyPairedSmartMode).
+    var chosen = setup.choices()[candidate.role];
+    if (chosen && chosen.mode) device.store.pairedSmartMode = {mode: chosen.mode, verified: !!chosen.verified};
+    if (chosen && chosen.household) device.store.autopilotHotwaterHousehold = chosen.household;
+    if (chosen && typeof chosen.reserve === 'number') device.store.autopilotReserve = chosen.reserve;
     return device;
 }
 
@@ -289,10 +300,13 @@ async function commitDevices() {
     } finally { Homey.hideLoadingOverlay(); }
 }
 
-setup = new NibeSetup({mode: 'pair', consent: document.getElementById('consent-row'),
+// `smart` is set once the candidates are known: Heating setup includes Smart mode only where this
+// pump's heating has one.
+var setupOptions = {mode: 'pair', smart: false, consent: document.getElementById('consent-row'),
     summary: function () { return candidates.filter(function (c, i) {
         return document.querySelector('input[data-index="' + i + '"]').checked;
-    }).map(function (c) { return c.name; }); }, commit: commitDevices});
+    }).map(function (c) { return c.name; }); }, commit: commitDevices};
+setup = new NibeSetup(setupOptions);
 document.getElementById('add').onclick = function (e) {
     e.preventDefault();
     var entries = [];
@@ -300,7 +314,7 @@ document.getElementById('add').onclick = function (e) {
     document.querySelectorAll('input[data-index]').forEach(function (box) {
         if (!box.checked) return;
         count++;
-        if (setupSections[box.dataset.index]) entries.push(setupSections[box.dataset.index]);
+        if (setupSections[box.dataset.index]) entries.push.apply(entries, setupSections[box.dataset.index]);
     });
     if (!count) { Homey.alert(Homey.__('pair.devices.select_one'), 'error'); return; }
     setup.start(entries);
@@ -319,5 +333,6 @@ Homey.emit('get_pairing_devices', {}, function (err, result) {
         return;
     }
     candidates = result || [];
+    setupOptions.smart = candidates.some(function (c) { return c.role === 'heating' && c.smart; });
     render();
 });

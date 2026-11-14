@@ -289,7 +289,10 @@
         "choose_off_desc_pool": "Poolen följer din värmepumps egna inställningar.",
         "choose_off_desc_cooling": "Kylan följer din värmepumps egna inställningar.",
         "experimental": "Experimentell",
-        "hw_intro": "Två saker innan Autopilot tar över varmvattnet.",
+        "hw_intro": "Några saker innan Autopilot tar över varmvattnet.",
+        "hw_tank": "Först, din beredare",
+        "hw_tank_intro": "Autopilot planerar i liter, så den behöver veta hur stor din beredare är. Välj den en gång.",
+        "hw_tank_missing": "Välj din beredare för att fortsätta.",
         "hw_flows": "Flöden som slår på Mer varmvatten",
         "hw_flows_none": "Inga. Bara Autopilot startar laddningar.",
         "hw_flows_found": "De startar laddningar som Autopilot inte har planerat. Stäng av dem, eller behåll dem för notiser.",
@@ -328,7 +331,16 @@
         "solar_need_meter": "Solvärme kräver en elmätare som mäter det du säljer, som en P1-läsare. Lägg till den i Homey Energi och kom sedan tillbaka hit.",
         "hw_reserve_20": "20 L, en snabb sköljning eller disken",
         "hw_reserve_40": "40 L, en snabb dusch",
-        "hw_reserve_60": "60 L, en längre dusch"
+        "hw_reserve_60": "60 L, en längre dusch",
+        "mode_live": "Live",
+        "mode_simulated": "Simulerad",
+        "mode_note": "Live styr din värmepump. Simulerad planerar allt och visar vad den skulle göra, medan din värmepump förblir som den är.",
+        "indoor_title": "Inomhustemperatur för Autopilot",
+        "indoor_intro": "Autopilot håller den vid termostatens inställning.",
+        "indoor_homey_desc": "En sensor, eller medelvärdet av flera rum. Läses bara, skickas aldrig till din värmepump.",
+        "indoor_note": "Autopilot styr din värmepump via utetemperaturen (BT1), så rumsgivarstyrningen i din värmepump är avstängd.",
+        "indoor_read_hint": "Autopilot läser dem varje minut. Inget skickas till din värmepump.",
+        "indoor_source_prompt": "Flera givare kan rapportera detta. Välj den som Autopilot läser:"
       }
     },
     "gateway": {
@@ -585,7 +597,8 @@
         "heating": "Smart price adaption slogs på för uppvärmning, så Autopilot uppvärmning stoppade.",
         "hotwater": "Smart price adaption slogs på för varmvatten, så Autopilot varmvatten stoppade."
       },
-      "soon": "Autopilot för detta kommer snart."
+      "soon": "Autopilot för detta kommer snart.",
+      "paired_failed": "Smart läge från installationen kunde inte tillämpas: __reason__ Slutför det under Reparera."
     },
     "widget": {
       "price": "Pris",

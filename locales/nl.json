@@ -289,7 +289,10 @@
         "choose_off_desc_pool": "Het zwembad volgt de eigen instellingen van je warmtepomp.",
         "choose_off_desc_cooling": "De koeling volgt de eigen instellingen van je warmtepomp.",
         "experimental": "Experimenteel",
-        "hw_intro": "Twee dingen voordat Autopilot het warm water overneemt.",
+        "hw_intro": "Een paar dingen voordat Autopilot het warme water overneemt.",
+        "hw_tank": "Eerst je boiler",
+        "hw_tank_intro": "Autopilot plant in liters, dus hij moet weten hoe groot je boiler is. Kies hem één keer.",
+        "hw_tank_missing": "Kies je boiler om verder te gaan.",
         "hw_flows": "Flows die Meer warm water inschakelen",
         "hw_flows_none": "Geen. Alleen Autopilot start opwarmingen.",
         "hw_flows_found": "Die starten opwarmingen die Autopilot niet heeft gepland. Zet ze uit, of houd ze voor meldingen.",
@@ -328,7 +331,16 @@
         "solar_need_meter": "Verwarmen met zonnestroom vraagt een elektriciteitsmeter die meet wat je teruglevert, zoals een P1-lezer. Voeg die toe aan Homey Energie en kom dan hier terug.",
         "hw_reserve_20": "20 L, even afspoelen of de afwas",
         "hw_reserve_40": "40 L, één snelle douche",
-        "hw_reserve_60": "60 L, een langere douche"
+        "hw_reserve_60": "60 L, een langere douche",
+        "mode_live": "Live",
+        "mode_simulated": "Gesimuleerd",
+        "mode_note": "Live stuurt je warmtepomp aan. Gesimuleerd plant alles en laat zien wat hij zou doen, terwijl je warmtepomp blijft zoals hij is.",
+        "indoor_title": "Binnentemperatuur voor Autopilot",
+        "indoor_intro": "Autopilot houdt die op de stand van je thermostaat.",
+        "indoor_homey_desc": "Eén sensor, of het gemiddelde van meerdere kamers. Alleen gelezen, nooit naar je warmtepomp gestuurd.",
+        "indoor_note": "Autopilot stuurt je warmtepomp via de buitentemperatuur (BT1), dus de ruimtevoelerregeling in je warmtepomp blijft uit.",
+        "indoor_read_hint": "Autopilot leest ze elke minuut. Er wordt niets naar je warmtepomp gestuurd.",
+        "indoor_source_prompt": "Meerdere sensoren kunnen dit melden. Kies degene die Autopilot leest:"
       }
     },
     "gateway": {
@@ -585,7 +597,8 @@
         "heating": "Smart price adaption is aangezet voor verwarming, dus Autopilot verwarming is gestopt.",
         "hotwater": "Smart price adaption is aangezet voor warm water, dus Autopilot warm water is gestopt."
       },
-      "soon": "Autopilot hiervoor komt binnenkort."
+      "soon": "Autopilot hiervoor komt binnenkort.",
+      "paired_failed": "Slimme modus uit de installatie kon niet worden toegepast: __reason__ Rond het af via Repareren."
     },
     "widget": {
       "price": "Prijs",

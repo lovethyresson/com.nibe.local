@@ -289,7 +289,10 @@
         "choose_off_desc_pool": "Bassenget følger varmepumpens egne innstillinger.",
         "choose_off_desc_cooling": "Kjølingen følger varmepumpens egne innstillinger.",
         "experimental": "Eksperimentell",
-        "hw_intro": "To ting før Autopilot tar over varmtvannet.",
+        "hw_intro": "Et par ting før Autopilot tar over varmtvannet.",
+        "hw_tank": "Først, berederen din",
+        "hw_tank_intro": "Autopilot planlegger i liter, så den må vite hvor stor berederen din er. Velg den én gang.",
+        "hw_tank_missing": "Velg berederen din for å fortsette.",
         "hw_flows": "Flyter som slår på Mer varmtvann",
         "hw_flows_none": "Ingen. Bare Autopilot starter oppvarming.",
         "hw_flows_found": "De starter oppvarming Autopilot ikke har planlagt. Slå dem av, eller behold dem for varsler.",
@@ -328,7 +331,16 @@
         "solar_need_meter": "Solvarme krever en strømmåler som måler det du selger, som en P1-leser. Legg den til i Homey Energi, og kom så tilbake hit.",
         "hw_reserve_20": "20 L, en rask skylling eller oppvasken",
         "hw_reserve_40": "40 L, én rask dusj",
-        "hw_reserve_60": "60 L, en lengre dusj"
+        "hw_reserve_60": "60 L, en lengre dusj",
+        "mode_live": "Live",
+        "mode_simulated": "Simulert",
+        "mode_note": "Live styrer varmepumpen din. Simulert planlegger alt og viser hva den ville gjort, mens varmepumpen din forblir som den er.",
+        "indoor_title": "Innetemperatur for Autopilot",
+        "indoor_intro": "Autopilot holder den på termostatens innstilling.",
+        "indoor_homey_desc": "Én sensor, eller snittet av flere rom. Leses bare, sendes aldri til varmepumpen din.",
+        "indoor_note": "Autopilot styrer varmepumpen din via utetemperaturen (BT1), så romføler-styringen i varmepumpen forblir av.",
+        "indoor_read_hint": "Autopilot leser dem hvert minutt. Ingenting sendes til varmepumpen din.",
+        "indoor_source_prompt": "Flere følere kan rapportere dette. Velg den Autopilot leser:"
       }
     },
     "gateway": {
@@ -585,7 +597,8 @@
         "heating": "Smart price adaption ble slått på for oppvarming, så Autopilot oppvarming stoppet.",
         "hotwater": "Smart price adaption ble slått på for varmtvann, så Autopilot varmtvann stoppet."
       },
-      "soon": "Autopilot for dette kommer snart."
+      "soon": "Autopilot for dette kommer snart.",
+      "paired_failed": "Smartmodus fra oppsettet kunne ikke tas i bruk: __reason__ Fullfør det under Reparer."
     },
     "widget": {
       "price": "Pris",

@@ -333,7 +333,8 @@
         "heating": "Smart price adaption wurde für die Heizung eingeschaltet, daher hat Autopilot Heizung gestoppt.",
         "hotwater": "Smart price adaption wurde für Warmwasser eingeschaltet, daher hat Autopilot Warmwasser gestoppt."
       },
-      "soon": "Autopilot dafür kommt bald."
+      "soon": "Autopilot dafür kommt bald.",
+      "paired_failed": "Der Smart-Modus aus der Einrichtung konnte nicht übernommen werden: __reason__ Schließen Sie ihn unter Reparieren ab."
     },
     "widget": {
       "price": "Preis",

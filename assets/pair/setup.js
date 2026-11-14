@@ -18,12 +18,15 @@ function NibeSetup(options) {
     var sections = [];
     var ready = {};
     var config = options.indoorSensors || null;
-    var useHomey = !!config;
+    var useHomey = !!config && config.state !== 'read';
+    // Homey sensors only read, for Autopilot (indoor state `read`): never sent to the pump.
+    var readHomey = !!config && config.state === 'read';
     var selected = (config && config.sensors || []).slice();
     var inventory = [];
     var validated = false;
     var heating;
     var active = config && config.state === 'active';
+    if (readHomey) validated = true;
     var error;
     function el(tag, text, cls) {
         var node = document.createElement(tag);
@@ -56,7 +59,15 @@ function NibeSetup(options) {
         error = el('p', '', 'setup-error'); error.setAttribute('role', 'alert'); shell.appendChild(error);
     }
     function fail(err) { error.textContent = err && err.message || String(err); }
+    var LOCAL = {smart_choose: true, hotwater_household: true, hotwater_reserve: true};
     function emit(event, data) {
+        if (options.mode === 'pair' && LOCAL[event]) {
+            var saved = ap.saved = ap.saved || {};
+            if (event === 'smart_choose') saved.mode = data.value;
+            else if (event === 'hotwater_household') saved.household = data;
+            else saved.reserve = data.litres;
+            return Promise.resolve(true);
+        }
         return new Promise(function (resolve, reject) {
             var slow = event === 'activate_indoor' || event === 'activate_autopilot' || event === 'solar_scan';
             var timeout = setTimeout(function () { reject(new Error(t('request_timeout'))); }, slow ? 45000 : 20000);
@@ -80,11 +91,16 @@ function NibeSetup(options) {
     function draft() { return {sensors: selected.slice(), state: 'pending'}; }
     function key(s) { return s.deviceId + ':' + s.capabilityId; }
     function nativeMode() {
-        if (active) { handover(); return; }
+        if (active) { handover(temperature); return; }
         useHomey = false; validated = false; temperature();
+    }
+    function sourcePrompt(text) {
+        var prompt = heating.sources.querySelector('.register-sources > .register-desc');
+        if (prompt && heating.sources.querySelector('input[data-source]')) prompt.textContent = text;
     }
     function temperature() {
         clear(t('heating'), t('source_intro'));
+        if (heating.sources) sourcePrompt(Homey.__('pair.sources.prompt'));
         view.querySelector('.pair-hero-title').textContent = t('source_title');
         view.querySelector('.pair-hero-title').hidden = false;
         view.querySelector('.pair-hero').classList.add('setup-source-hero');
@@ -119,7 +135,7 @@ function NibeSetup(options) {
         var next = button(useHomey ? t('choose_sensors') : flowing() ? t('next') : t('save_section'), function () {
             if (useHomey) picker(); else afterIndoor();
         }, true);
-        shell.appendChild(next); back(heating.zones ? zones : hub);
+        shell.appendChild(next); back(flowing() ? steer : heating.zones ? zones : hub);
     }
     // Which zone the thermostat sets: its own step, before the temperature source, and only on a
     // pump with two or more zones. Continue stays disabled until a zone is picked.
@@ -129,7 +145,7 @@ function NibeSetup(options) {
         view.querySelector('.pair-hero-title').hidden = false;
         view.querySelector('.pair-hero').classList.add('setup-source-hero');
         shell.appendChild(heating.zones);
-        var next = button(t('next'), temperature, true);
+        var next = button(t('next'), function () { if (flowing()) steer(); else temperature(); }, true);
         var update = function () { next.disabled = !heating.zones.querySelector('input:checked'); };
         heating.zones.onchange = update; update();
         shell.appendChild(next); back(hub);
@@ -154,7 +170,7 @@ function NibeSetup(options) {
             config = result.config; validated = true; reviewSensors(result.value);
         }); }, true);
         shell.append(search, filters, picked, next, results);
-        back(temperature);
+        back(apMode() && flowing() ? apIndoor : temperature);
         function normalized(text) { return String(text).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
         function fill(select, title, values) {
             select.replaceChildren(new Option(title, ''));
@@ -245,7 +261,10 @@ function NibeSetup(options) {
             el('strong', value + ' °C'));
         if (selected.length > 1) summary.appendChild(el('p', t('review_intro')));
         shell.appendChild(summary);
-        if (options.mode === 'pair') {
+        if (apMode() && flowing()) {
+            shell.appendChild(el('p', a('indoor_read_hint')));
+            shell.appendChild(button(t('next'), afterApIndoor, true));
+        } else if (options.mode === 'pair') {
             shell.appendChild(el('p', t('pending_hint')));
             shell.appendChild(button(t('save_section'), function () { ready[heating.id] = true; hub(); }, true));
         } else if (flowing()) shell.appendChild(button(t('next'), afterIndoor, true));
@@ -302,7 +321,7 @@ function NibeSetup(options) {
         verify.disabled = true; confirm.onchange = function () { verify.disabled = !confirm.checked; };
         shell.appendChild(verify); back(picker);
     }
-    function handover() {
+    function handover(then) {
         clear(t('heating'), t('return_nibe'));
         shell.appendChild(el('p', t('handover_hint')));
         var confirmed = document.createElement('input'); confirmed.type = 'checkbox';
@@ -317,44 +336,76 @@ function NibeSetup(options) {
                 previous.value = String(options.indoorNativeAddress || 116); heating.sources.appendChild(previous);
             }
             heating.sources.querySelectorAll('input[data-source]').forEach(function (r) { r.checked = r === previous; });
-            temperature();
+            (typeof then === 'function' ? then : temperature)();
         }); }, true);
         stop.disabled = true; confirmed.onchange = function () { stop.disabled = !confirmed.checked; };
-        shell.appendChild(stop); back(temperature);
+        shell.appendChild(stop); back(typeof then === 'function' ? then : temperature);
     }
     // ---- Heating Setup as one flow (Repair on Heating, where Smart mode is available): zone →
     // indoor temperature → who steers (Smart mode) → one pump checklist for that combination →
     // Verify. Later visits open on a summary with a Change link per step.
-    function flowing() { return options.mode === 'repair' && !!options.smart; }
+    function flowing() { return !!options.smart; }
     function afterIndoor() {
         if (!flowing()) { ready[heating.id] = true; hub(); return; }
-        steer();
+        pumpStep();
     }
     /** The indoor feed still has to be started: Homey sensors chosen and reviewed now. */
     function indoorPending() { return useHomey && validated; }
     async function steer() {
+        useAp('heating');
         clear(t('heating'), a('steer_intro'));
         view.querySelector('.pair-hero-title').textContent = a('steer_title');
         var loading = el('p', t('checking')); shell.appendChild(loading);
-        back(useHomey ? picker : temperature);
-        try { ap.status = await emit('smart_status'); } catch (err) { loading.remove(); fail(err); return; }
+        back(heating.zones ? zones : hub);
+        try { ap.status = await smartStatus(); } catch (err) { loading.remove(); fail(err); return; }
         loading.remove();
         var st = ap.status;
-        if (!ap.picked) ap.choice = st.mode;
-        var choices = [
-            {id: 'autopilot', title: a('choose_on'), description: a('choose_on_desc_heating'), badge: a('experimental')},
-            {id: 'test', title: a('choose_test'), description: a('choose_test_desc')},
-        ];
-        if (st.spa) choices.push({id: 'spa', title: a('choose_spa'), description: a('choose_spa_desc')});
-        choices.push({id: 'off', title: a('choose_off'), description: a('choose_off_desc_heating')});
-        shell.appendChild(radios('smart-choice', choices, ap.choice, function (v) { ap.choice = v; ap.picked = true; }));
+        if (!ap.picked) { ap.choice = st.mode; ap.sim = undefined; }
+        shell.appendChild(smartPicker(st));
         var how = button(a('compare_link'), compare); how.classList.add('setup-small-action'); shell.appendChild(how);
         if (st.spaOn) shell.appendChild(el('p', a('spa_note'), 'register-desc'));
+        // Autopilot steers through BT1 with room-sensor control off, so its path never asks for
+        // the pump's own room control (the temperature source below sets that up for SPA and Off).
+        shell.appendChild(button(t('next'), function () { if (apMode()) apIndoor(); else temperature(); }, true));
+    }
+    /** Autopilot: which indoor temperature it holds at the thermostat. Read only either way. */
+    function apIndoor() {
+        clear(t('heating'), a('indoor_intro'));
+        view.querySelector('.pair-hero-title').textContent = a('indoor_title');
+        view.querySelector('.pair-hero-title').hidden = false;
+        view.querySelector('.pair-hero').classList.add('setup-source-hero');
+        var choose = function (homey) { readHomey = homey; apIndoor(); };
+        var nativeCard = el('div', undefined, 'setup-source-card' + (!readHomey ? ' is-selected' : ''));
+        var native = el('label', undefined, 'setup-source-label');
+        var n = document.createElement('input'); n.type = 'radio'; n.name = 'ap-indoor'; n.checked = !readHomey;
+        n.onchange = function () { choose(false); };
+        native.append(n, el('span', t('nibe'), 'setup-source-title'));
+        nativeCard.appendChild(native);
+        heating.sources.hidden = readHomey;
+        heating.sources.classList.add('setup-native-detail');
+        sourcePrompt(a('indoor_source_prompt'));
+        nativeCard.appendChild(heating.sources);
+        shell.appendChild(nativeCard);
+        var homeyCard = el('div', undefined, 'setup-source-card' + (readHomey ? ' is-selected' : ''));
+        var label = el('label', undefined, 'setup-source-label');
+        var h = document.createElement('input'); h.type = 'radio'; h.name = 'ap-indoor'; h.checked = readHomey;
+        h.onchange = function () { choose(true); };
+        var text = el('span', undefined, 'setup-source-copy');
+        text.append(el('span', t('homey'), 'setup-source-title'), el('span', a('indoor_homey_desc'), 'setup-source-description'));
+        label.append(h, text); homeyCard.appendChild(label); shell.appendChild(homeyCard);
+        shell.appendChild(el('p', a('indoor_note'), 'register-desc'));
         shell.appendChild(button(t('next'), function () {
-            // Coming to Autopilot from a mode where it did not run: say what to expect, once.
-            var starting = (ap.choice === 'autopilot' || ap.choice === 'test') && st.mode !== 'autopilot' && st.mode !== 'test';
-            if (starting) expect(); else pumpStep();
+            // The BT50 feed has to stop before Autopilot: the pump must not regulate on indoor.
+            if (active) { handover(apIndoor); return; }
+            if (readHomey) picker(); else afterApIndoor();
         }, true));
+        back(steer);
+    }
+    function afterApIndoor() {
+        var st = ap.status || {};
+        // Coming to Autopilot from a mode where it did not run: say what to expect, once.
+        var starting = st.mode !== 'autopilot' && st.mode !== 'test';
+        if (starting) expect(); else pumpStep();
     }
     // Small stroke icons for the explainers, drawn in currentColor.
     var ICONS = {
@@ -440,7 +491,7 @@ function NibeSetup(options) {
         });
         shell.appendChild(tiles);
         shell.appendChild(button(t('next'), pumpStep, true));
-        back(steer);
+        back(apIndoor);
     }
     /** What the pump needs for this combination of indoor source and Smart mode, in one list. */
     function pumpStep() {
@@ -486,6 +537,11 @@ function NibeSetup(options) {
         }
         var go = button(needsPump ? t('verify') : t('save_section'), function () { busy(go, async function () {
             var results = [];
+            // Autopilot's indoor temperature: Homey sensors read only, or the pump's own sensor.
+            if (runs && options.mode === 'repair') {
+                if (readHomey) await emit('read_indoor', {sensors: selected.slice()});
+                else if (config && config.state === 'read') { await emit('stop_reading_indoor'); config = null; }
+            }
             if (indoorPending()) {
                 var indoor = await emit('activate_indoor', draft());
                 active = true; config.state = 'active'; validated = false;
@@ -493,17 +549,19 @@ function NibeSetup(options) {
             }
             if (verifyBt1) {
                 var fed = await emit('activate_autopilot');
+                // Pairing: verified on the pump now, saved on the new Heating device when it is added.
+                if (options.mode === 'pair') { ap.saved = ap.saved || {}; ap.saved.mode = 'autopilot'; ap.saved.verified = true; }
                 results.push([fed.fed + ' °C', a('success_received')]);
             } else if (ap.choice !== st.mode) {
                 await emit('smart_choose', {value: ap.choice});
             }
-            ap.status = await emit('smart_status').catch(function () { return ap.status; });
+            ap.status = await smartStatus().catch(function () { return ap.status; });
             ap.picked = false;
             finished(results, live && ap.choice !== 'autopilot');
         }); }, true);
         if (confirm) { go.disabled = true; confirm.onchange = function () { go.disabled = !confirm.checked; }; }
         if (runs && roomOk === false) go.disabled = true;
-        shell.appendChild(go); back(steer);
+        shell.appendChild(go); back(runs ? apIndoor : temperature);
     }
     function finished(results, leftAutopilot) {
         clear(t('heating'), '');
@@ -532,8 +590,11 @@ function NibeSetup(options) {
             list.appendChild(checkRow(true, title, value, button(a('change'), go)));
         }
         if (heating.zones) row(a('row_zone'), zoneLabel() || '—', zones);
-        row(a('row_indoor'), useHomey ? a('indoor_homey', {n: selected.length}) : a('indoor_pump'), temperature);
-        row(a('row_smart'), a({autopilot: 'choose_on', test: 'choose_test', spa: 'choose_spa'}[st.mode] || 'choose_off'), steer);
+        var runsNow = st.mode === 'autopilot' || st.mode === 'test';
+        row(a('row_smart'), runsNow ? a('choose_on') + ' · ' + a(st.mode === 'test' ? 'mode_simulated' : 'mode_live')
+            : a(st.mode === 'spa' ? 'choose_spa' : 'choose_off'), steer);
+        if (runsNow) row(a('row_indoor'), readHomey ? a('indoor_homey', {n: selected.length}) : a('indoor_pump'), apIndoor);
+        else row(a('row_indoor'), useHomey ? a('indoor_homey', {n: selected.length}) : a('indoor_pump'), temperature);
         if (st.mode === 'autopilot' || st.mode === 'test')
             row(a('row_outdoor'), st.outdoorSensor ? (st.outdoorName || a('sensor')) : a('outdoor_forecast'),
                 function () { outdoorPicker(summary); });
@@ -543,7 +604,54 @@ function NibeSetup(options) {
     }
     // ---- Smart mode (Repair only, Heating and Hot water): choose, then for Autopilot heating the
     // checklist and Verify. Comfort range and Away are capabilities on the device, not steps here.
+    // One Smart mode state per function: pairing sets up heating and hot water in one session.
+    var aps = {};
     var ap = {status: null, choice: 'off'};
+    function useAp(role) {
+        ap = aps[role] = aps[role] || {status: null, choice: 'off', role: role};
+        return ap;
+    }
+    async function smartStatus() {
+        var st = await emit('smart_status', {role: ap.role});
+        if (options.mode === 'pair' && ap.saved) {
+            st = Object.assign({}, st);
+            if (ap.saved.mode) st.mode = ap.saved.mode;
+            if (ap.saved.verified) st.verified = true;
+            if (ap.saved.household) st.household = ap.saved.household;
+            if (typeof ap.saved.reserve === 'number') st.reserve = ap.saved.reserve;
+        }
+        return st;
+    }
+    /** Autopilot as one choice, Live or Simulated inside it; then SPA and Off. */
+    function smartPicker(st) {
+        var soon = st.autopilot === false;
+        if (ap.sim === undefined) ap.sim = ap.choice === 'test';
+        var current = ap.choice === 'test' ? 'autopilot' : ap.choice;
+        var choices = [{id: 'autopilot', title: a('choose_on'), description: a('choose_on_desc_' + st.role),
+            badge: soon ? a('soon') : a('experimental'), disabled: soon}];
+        if (st.spa) choices.push({id: 'spa', title: a('choose_spa'), description: a('choose_spa_desc')});
+        choices.push({id: 'off', title: a('choose_off'), description: a('choose_off_desc_' + st.role)});
+        var box = radios('smart-choice', choices, current, function (v) {
+            ap.choice = v === 'autopilot' ? (ap.sim ? 'test' : 'autopilot') : v; ap.picked = true; seg.hidden = v !== 'autopilot';
+            pills.querySelectorAll('button').forEach(function (b) { b.classList.toggle('is-on', b.dataset.mode === ap.choice); });
+        });
+        var seg = el('div', undefined, 'setup-segment-wrap'); seg.hidden = current !== 'autopilot' || soon;
+        var pills = el('div', undefined, 'setup-segment');
+        [['autopilot', 'mode_live'], ['test', 'mode_simulated']].forEach(function (m) {
+            var pill = el('button', a(m[1]), 'setup-segment-option' + (ap.choice === m[0] ? ' is-on' : ''));
+            pill.type = 'button'; pill.dataset.mode = m[0];
+            pill.onclick = function (e) {
+                e.preventDefault(); ap.sim = m[0] === 'test'; ap.choice = m[0]; ap.picked = true;
+                pills.querySelectorAll('button').forEach(function (b) { b.classList.toggle('is-on', b === pill); });
+            };
+            pills.appendChild(pill);
+        });
+        seg.append(pills, el('p', a('mode_note'), 'setup-segment-note'));
+        var card = box.querySelector('input[value="autopilot"]').closest('.setup-choice');
+        card.querySelector('.setup-source-copy').appendChild(seg);
+        return box;
+    }
+    function apMode() { return ap.choice === 'autopilot' || ap.choice === 'test'; }
     function a(key, tokens) {
         var text = Homey.__('pair.setup.smart.' + key);
         Object.keys(tokens || {}).forEach(function (k) { text = text.split('__' + k + '__').join(tokens[k]); });
@@ -584,27 +692,20 @@ function NibeSetup(options) {
     async function smart() {
         clear(a('title'), a('intro'));
         var loading = el('p', t('checking')); shell.appendChild(loading); back(hub);
-        try { ap.status = await emit('smart_status'); } catch (err) { loading.remove(); fail(err); return; }
+        try { ap.status = await smartStatus(); } catch (err) { loading.remove(); fail(err); return; }
         loading.remove();
         var st = ap.status;
         var heating = st.role === 'heating';
         var live = heating && st.mode === 'autopilot' && st.verified;
-        ap.choice = st.mode;
+        if (!ap.picked) { ap.choice = st.mode; ap.sim = undefined; }
         if (live) {
             var box = el('section', undefined, 'setup-temperature-summary');
             box.append(el('h3', a('is_on')), el('p', st.status || ''));
             shell.appendChild(box);
             shell.appendChild(button(a('change_outdoor'), function () { outdoorPicker(smart); }));
         }
-        // Pool and cooling: Autopilot is coming; shown, not selectable, and no test run.
-        var soon = st.autopilot === false;
-        var choices = soon
-            ? [{id: 'autopilot', title: a('choose_on'), description: a('choose_on_desc_' + st.role), disabled: true, badge: a('soon')}]
-            : [{id: 'autopilot', title: a('choose_on'), description: a('choose_on_desc_' + st.role), badge: a('experimental')},
-               {id: 'test', title: a('choose_test'), description: a('choose_test_desc')}];
-        if (st.spa) choices.push({id: 'spa', title: a('choose_spa'), description: a('choose_spa_desc')});
-        choices.push({id: 'off', title: a('choose_off'), description: a('choose_off_desc_' + st.role)});
-        shell.appendChild(radios('smart-choice', choices, ap.choice, function (v) { ap.choice = v; }));
+        // Pool and cooling: Autopilot is coming; shown, not selectable (smartPicker).
+        shell.appendChild(smartPicker(st));
         if (heating && st.spaOn) shell.appendChild(el('p', a('spa_note'), 'register-desc'));
         var next = button(t('next'), function () {
             if (st.role === 'hotwater' && (ap.choice === 'autopilot' || ap.choice === 'test')) { hotwaterStep(); return; }
@@ -612,6 +713,7 @@ function NibeSetup(options) {
             if (heating && (ap.choice === 'autopilot' || ap.choice === 'test')) { checklist(); return; }
             busy(next, async function () {
                 await emit('smart_choose', {value: ap.choice});
+                ap.picked = false;
                 done(ap.choice === 'test' ? a('saved_test') : a('saved'), live ? a('return_reminder') : '');
             });
         }, true);
@@ -622,6 +724,17 @@ function NibeSetup(options) {
     function hotwaterStep() {
         var st = ap.status;
         clear(a('title'), a('hw_intro'));
+        // Autopilot plans in litres, so it needs the tank. The setup's own tank picker is moved in
+        // here when none is chosen yet: in this setup if it has one, else on the device.
+        var tank = sections.filter(function (s) { return s.role === 'hotwater' && s.content; })[0];
+        var tankSelect = tank && tank.content.querySelector('select');
+        var tankNeeded = tankSelect ? tankSelect.value === 'none' : !st.tank;
+        if (tankNeeded) {
+            var tankGroup = el('section', undefined, 'setup-task-group');
+            tankGroup.append(el('h3', a('hw_tank')), el('p', a('hw_tank_intro'), 'register-desc'));
+            if (tank) tankGroup.appendChild(tank.content);
+            shell.appendChild(tankGroup);
+        }
         var list = el('ul', undefined, 'setup-checklist');
         if (st.flows === null) list.appendChild(checkRow(null, a('hw_flows'), a('hw_flows_unknown')));
         else if (!st.flows.length) list.appendChild(checkRow(true, a('hw_flows'), a('hw_flows_none')));
@@ -677,6 +790,14 @@ function NibeSetup(options) {
         safety.append(pick, el('p', a('hw_reserve_hint'), 'register-desc'));
         shell.appendChild(safety);
         shell.appendChild(button(t('next'), function () {
+            if (tankNeeded) {
+                var invalid = tank && tank.content.querySelector('input:invalid');
+                if (!tankSelect || tankSelect.value === 'none' || invalid) {
+                    if (invalid) invalid.reportValidity(); else fail(new Error(a('hw_tank_missing')));
+                    return;
+                }
+                ready[tank.id] = true;
+            }
             solarStep(async function () {
                 if (reserve !== keptReserve) await emit('hotwater_reserve', {litres: reserve});
                 if (ask) await emit('hotwater_household', answers);
@@ -804,7 +925,7 @@ function NibeSetup(options) {
     /** Back to the hub with the Smart mode badge brought up to date. */
     function toHub() {
         var b = button(t('next'), function () { busy(b, async function () {
-            ap.status = await emit('smart_status').catch(function () { return ap.status; }); hub();
+            ap.status = await smartStatus().catch(function () { return ap.status; }); hub();
         }); }, true);
         return b;
     }
@@ -818,7 +939,7 @@ function NibeSetup(options) {
         var save = button(t('save_section'), function () { busy(save, async function () {
             var ref = choice === 'forecast' ? null : list.find(function (s) { return key(s) === choice; });
             await emit('set_outdoor_sensor', ref ? {deviceId: ref.deviceId, capabilityId: ref.capabilityId} : null);
-            ap.status = await emit('smart_status'); then();
+            ap.status = await smartStatus(); then();
         }); }, true);
         shell.append(search, results, save); back(then);
         var list = [];
@@ -846,26 +967,40 @@ function NibeSetup(options) {
         draw();
     }
     function open(section) {
-        if (section.role === 'smart') { smart(); return; }
+        if (section.role === 'smart') { useAp(section.fn || options.role); smart(); return; }
         if (section.role === 'heating') {
             heating = section;
-            if (flowing() && (active || (ap.status && ap.status.mode !== 'off'))) { summary(); return; }
-            if (heating.zones) zones(); else temperature(); return;
+            useAp('heating');
+            // Later visits open on the summary: in Repair once something is set, in pairing once done.
+            var set = options.mode === 'repair' ? active || readHomey || (ap.status && ap.status.mode !== 'off') : ready[section.id];
+            if (flowing() && set) { summary(); return; }
+            if (heating.zones) zones(); else if (flowing()) steer(); else temperature(); return;
         }
         clear(section.title, section.description);
         shell.appendChild(section.content);
-        shell.appendChild(button(t('save_section'), function () {
-            if (!section.content.querySelector('input:invalid')) { ready[section.id] = true; hub(); }
-            else section.content.querySelector('input:invalid').reportValidity();
+        // Hot water: the tank, then its Smart mode, as Heating setup does.
+        shell.appendChild(button(section.smart ? t('next') : t('save_section'), function () {
+            var invalid = section.content.querySelector('input:invalid');
+            if (invalid) { invalid.reportValidity(); return; }
+            ready[section.id] = true;
+            if (section.smart) { useAp(section.smart); smart(); } else hub();
         }, true)); back(hub);
+    }
+    /** The function whose Smart mode a section sets up, if any: heating's is part of Heating setup,
+     *  hot water's follows its tank (`smart` on the section) or is a section of its own. */
+    function fnOf(section) {
+        if (section.role === 'smart') return section.fn || options.role;
+        if (section.role === 'heating' && flowing()) return 'heating';
+        return section.smart || null;
     }
     function hub() {
         clear(t('title'), t('intro'));
         sections.forEach(function (section) {
             var menu = button('', function () { open(section); }); menu.className = 'setup-menu';
             var text = el('span'); text.append(el('strong', section.title), el('small', section.description));
-            var badge = section.role === 'smart' || (section.role === 'heating' && flowing()) ? (ap.status ? apBadge(ap.status) : '')
-                : ready[section.id] ? t('ready') : t('needs_setup');
+            // Each function's own Smart mode: never whichever was opened last.
+            var mine = aps[fnOf(section)];
+            var badge = !ready[section.id] ? t('needs_setup') : mine && mine.status ? apBadge(mine.status) : t('ready');
             menu.append(text, el('span', badge + ' ›')); shell.appendChild(menu);
         });
         var next = button(t(options.mode === 'repair' ? 'save_changes' : 'review'), function () {
@@ -896,13 +1031,29 @@ function NibeSetup(options) {
         sections = entries;
         // Smart mode acts on its own (each choice saves); it never holds up Save changes.
         sections.forEach(function (s) { if (s.role === 'smart') ready[s.id] = true; });
-        if (options.smart) sections.forEach(function (s) { if (s.role === 'heating') ready[s.id] = true; });
+        // Repair: Heating is already set up. Pairing: it is done when the owner has been through it.
+        if (options.smart && options.mode === 'repair') sections.forEach(function (s) { if (s.role === 'heating') ready[s.id] = true; });
         if (options.smart || sections.some(function (s) { return s.role === 'smart'; }))
-            emit('smart_status').then(function (st) { ap.status = st; if (shell.querySelector('.setup-menu')) hub(); }).catch(function () {});
+            sections.forEach(function (s) {
+                var fn = fnOf(s);
+                if (!fn) return;
+                var mine = useAp(fn);
+                smartStatus().then(function (st) { mine.status = st; mine.choice = st.mode; if (shell.querySelector('.setup-menu')) hub(); }).catch(function () {});
+            });
         sections.forEach(function (s) { if (s.sources) parking.appendChild(s.sources); if (s.zones) parking.appendChild(s.zones); if (s.content) parking.appendChild(s.content); });
         hub();
     };
-    api.indoorConfig = function () { return useHomey && validated ? draft() : null; };
+    api.indoorConfig = function () {
+        if (aps.heating && (aps.heating.choice === 'autopilot' || aps.heating.choice === 'test') && flowing())
+            return readHomey && validated ? {sensors: selected.slice(), state: 'read'} : null;
+        return useHomey && validated ? draft() : null;
+    };
+    /** Pairing: each function's Smart mode and the answers that go with it, for the new devices. */
+    api.choices = function () {
+        var out = {};
+        Object.keys(aps).forEach(function (fn) { if (aps[fn].saved) out[fn] = aps[fn].saved; });
+        return out;
+    };
 }
 
 // Zone cards for the thermostat target, or null when there is nothing to ask: one zone (or none)

@@ -873,3 +873,12 @@ body {
    whole tappable card or row, so it takes the page's own text. */
 #nibe-pair-setup form label, #nibe-repair-setup form label { text-transform: none; letter-spacing: normal; color: inherit; }
 #nibe-pair-setup form label.setup-choice, #nibe-repair-setup form label.setup-choice { font-size: 1em; line-height: 1.4; font-weight: 400; }
+
+/* Autopilot's Live / Simulated switch, inside its Smart mode card. */
+.setup-segment-wrap { margin-top: .85em; }
+.setup-segment { display: flex; padding: 3px; border-radius: 10px; background: rgba(128, 128, 128, .16); }
+.setup-shell button.setup-segment-option { flex: 1; width: auto; min-height: 36px; margin: 0; padding: .45em .6em; border: 0;
+    border-radius: 8px; background: transparent; color: inherit; font: inherit; font-size: .92em; font-weight: 500; }
+.setup-shell button.setup-segment-option.is-on { background: #fff; color: #1d1d1f; font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, .15); }
+@media (prefers-color-scheme: dark) { .setup-shell button.setup-segment-option.is-on { background: rgba(255, 255, 255, .22); color: inherit; } }
+.setup-segment-note { margin: .55em 0 0; font-size: .85em; line-height: 1.4; opacity: .72; }

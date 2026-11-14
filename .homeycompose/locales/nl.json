@@ -333,7 +333,8 @@
         "heating": "Smart price adaption is aangezet voor verwarming, dus Autopilot verwarming is gestopt.",
         "hotwater": "Smart price adaption is aangezet voor warm water, dus Autopilot warm water is gestopt."
       },
-      "soon": "Autopilot hiervoor komt binnenkort."
+      "soon": "Autopilot hiervoor komt binnenkort.",
+      "paired_failed": "Slimme modus uit de installatie kon niet worden toegepast: __reason__ Rond het af via Repareren."
     },
     "widget": {
       "price": "Prijs",

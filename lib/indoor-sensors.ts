@@ -2,7 +2,9 @@
 export interface SensorRef { deviceId: string; capabilityId: string }
 export interface IndoorConfig {
     sensors: SensorRef[];
-    state: 'pending' | 'active';
+    /** `active`: fed to the pump as BT50, which then regulates on it. `read`: only read, for
+     *  Autopilot, which steers through BT1 and needs the pump's room-sensor control off. */
+    state: 'pending' | 'active' | 'read';
 }
 export interface SensorReading extends SensorRef {
     name: string; room: string; zoneId: string; type: string; app: string;
@@ -23,6 +25,11 @@ export function cleanIndoorConfig(raw: any): IndoorConfig {
     }
     // Only a device-owned activation can promote a pending selection to active.
     return {sensors, state: 'pending'};
+}
+
+/** A selection only read, never written to the pump: nothing to activate, so it is final. */
+export function readOnlyIndoorConfig(raw: any): IndoorConfig {
+    return {...cleanIndoorConfig(raw), state: 'read'};
 }
 export function averageSensors(config: IndoorConfig, readings: SensorReading[]): number {
     const values = config.sensors.map(ref => {

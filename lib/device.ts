@@ -1,5 +1,5 @@
 import {CaptureSummary, logCaptureSummary} from './diagnostic-capture';
-import {IndoorConfig, averageSensors, cleanIndoorConfig, selectedReadings, withApi} from './indoor-sensors';
+import {IndoorConfig, averageSensors, cleanIndoorConfig, readOnlyIndoorConfig, selectedReadings, withApi} from './indoor-sensors';
 import {Controls, AutopilotCollector} from './autopilot/collector';
 import {newHistoryFileName} from './autopilot/store-file';
 import {ChargeEvent, HotwaterAutopilot, HotwaterMode, ownDeviceId} from './autopilot/hotwater-shadow';
@@ -32,7 +32,7 @@ import {
     PUMP_ACTIVE_CAPABILITY, Role, SOLAR_METER_CAPABILITY, TOTAL_COP_CAPABILITY,
     capabilitySyncPlan, extraCapabilities, extraCapabilityOptions, functionRoles, mirrorOptions,
     mirrorsForRole, registersForRole, roleClass, roleOf, roleRegisters, deviceClass, roomThermostatActive,
-    GroupMove, adoptMovedGroup, movedGroups
+    GroupMove, adoptMovedGroup, movedGroups, withAutopilotInputs
 } from './roles';
 import {ALARM_SOURCE_URL, alarmAdvice, alarmDescription} from './alarms';
 import {
@@ -53,6 +53,8 @@ const HOUSEHOLD_STORE = 'autopilotHotwaterHousehold';
  *  Set in Repair → Smart mode next to the other hot water choices (2026-11-14); it was a device
  *  setting shown, and mirrored, on every device of the pump. */
 const RESERVE_STORE = 'autopilotReserve';
+/** Smart mode chosen in pairing, applied once when the device first runs (applyPairedSmartMode). */
+const PAIRED_SMART_STORE = 'pairedSmartMode';
 const DEFAULT_RESERVE_LITRES = 40;
 /** Pauses the Autopilot widget has an "what to do" line for (autopilot.widget.paused.*). */
 const WIDGET_PAUSES = ['no_outdoor', 'spa_on', 'room_control', 'immersion_only', 'feed_failed', 'cooling'];
@@ -102,6 +104,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private indoorStatus: any = {state: 'idle'};
     private indoorFailingSince: number | null = null;
     private indoorAlerted = false;
+    /** Homey sensors read for Autopilot (indoor state `read`): their average and when it was taken. */
+    private homeyIndoor?: {value: number; at: number};
+    private indoorReadTimer: ReturnType<typeof setTimeout> | null = null;
 
     async indoorSetupStatus() {
         const config = this.getStoreValue('indoorSensors') as IndoorConfig | undefined;
@@ -203,6 +208,64 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         try { return await job; } finally { this.indoorWork = null; }
     }
 
+    private indoorReadOnly(): boolean {
+        return this.role === 'heating' && this.getStoreValue('indoorSensors')?.state === 'read';
+    }
+
+    /** Autopilot's indoor temperature from Homey sensors, read every minute and never written to
+     *  the pump. Shown as the device's indoor temperature, so what Autopilot acts on is visible. */
+    private scheduleIndoorRead(delay = 0) {
+        if (this.indoorReadTimer) clearTimeout(this.indoorReadTimer);
+        this.indoorReadTimer = null;
+        if (this.indoorStopped || !this.indoorReadOnly()) { this.homeyIndoor = undefined; return; }
+        this.indoorReadTimer = setTimeout(async () => {
+            this.indoorReadTimer = null;
+            try {
+                const config = this.getStoreValue('indoorSensors') as IndoorConfig;
+                const value = averageSensors(config, await this.readIndoorSensors(config));
+                this.homeyIndoor = {value, at: Date.now()};
+                if (this.hasCapability('measure_temperature') && this.getCapabilityValue('measure_temperature') !== value)
+                    await this.setCapabilityValue('measure_temperature', value);
+                if (this.indoorFailingSince !== null) await this.unsetWarning().catch(this.error);
+                this.indoorFailingSince = null;
+            } catch (error: any) {
+                if (this.indoorFailingSince === null) {
+                    this.indoorFailingSince = Date.now();
+                    this.log('Reading the Homey indoor sensors failed, retrying:', error.message);
+                } else if (Date.now() - this.indoorFailingSince >= INDOOR_ALERT_AFTER_MS) {
+                    await this.setWarning(error.message).catch(this.error);
+                }
+            } finally {
+                this.scheduleIndoorRead(60_000);
+            }
+        }, delay);
+    }
+
+    /** The Homey sensors' average while fresh (10 min), for Autopilot's history. */
+    private homeyIndoorNow(): number | undefined {
+        return this.homeyIndoor && Date.now() - this.homeyIndoor.at < 10 * 60_000 ? this.homeyIndoor.value : undefined;
+    }
+
+    /** Read the chosen Homey sensors for Autopilot, never feeding them to the pump. Refused while
+     *  the BT50 feed runs: that hands back first (deactivateIndoor), as the pump must stop using it. */
+    async readIndoorForAutopilot(raw: any) {
+        if (this.role !== 'heating') throw new Error('Only Heating reads the indoor temperature.');
+        if (this.getStoreValue('indoorSensors')?.state === 'active')
+            throw new Error('Your Homey sensors are still sent to your heat pump. Hand them back first.');
+        const config = readOnlyIndoorConfig(raw);
+        const value = averageSensors(config, await this.readIndoorSensors(config));
+        await this.setStoreValue('indoorSensors', config);
+        this.scheduleIndoorRead();
+        return {value};
+    }
+
+    /** Back to the pump's own sensor for Autopilot's indoor temperature. */
+    async stopReadingIndoor() {
+        if (!this.indoorReadOnly()) return;
+        await this.unsetStoreValue('indoorSensors');
+        this.scheduleIndoorRead();
+    }
+
     private scheduleIndoor() {
         if (this.indoorTimer) clearTimeout(this.indoorTimer);
         if (this.indoorStopped || this.getStoreValue('indoorSensors')?.state !== 'active') return;
@@ -233,6 +296,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.indoorStopped = true;
         if (this.indoorTimer) clearTimeout(this.indoorTimer);
         this.indoorTimer = null;
+        if (this.indoorReadTimer) clearTimeout(this.indoorReadTimer);
+        this.indoorReadTimer = null;
         await this.indoorWork?.catch(() => {});
         if (this.role === 'heating' && NibePumpDevice.indoorOwners.get(this.host()) === this) NibePumpDevice.indoorOwners.delete(this.host());
     }
@@ -638,6 +703,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     async setValue(register: Register, value: any) {
+        // Homey sensors read for Autopilot are this device's indoor temperature: the pump's own
+        // sensor does not overwrite what Autopilot acts on.
+        if (register.name === 'measure_temperature' && this.indoorReadOnly()) return;
         await this.publishMirrors(register, value);
         const spa = this.profile.spaSwitches;
         if (spa && Object.values(spa).includes(register.name)) {
@@ -1148,11 +1216,38 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 } else NibePumpDevice.indoorOwners.set(this.host(), this);
             }
             this.scheduleIndoor();
+            this.scheduleIndoorRead();
             await this.startAutopilotHistory().catch(this.error);
             if (this.getStoreValue('indoorSensors')?.state === 'pending')
                 await this.setWarning('Finish your Homey sensor setup in Heating → Repair.');
         }
         if (this.role === 'hotwater') await this.syncHotwaterAutopilot().catch(this.error);
+        if (this.getStoreValue(PAIRED_SMART_STORE)) this.homey.setTimeout(() => this.applyPairedSmartMode().catch(this.error), 15_000);
+    }
+
+    /** Pairing chose this function's Smart mode before the device existed: apply it once, through
+     *  the same writes Repair makes, now the device has its connection. Autopilot heating was
+     *  verified on the pump in pairing (pairing-pump.ts), so it is stored as verified. A failure
+     *  is said on the device, never dropped: the owner can finish it in Repair. */
+    private async applyPairedSmartMode() {
+        const paired = this.getStoreValue(PAIRED_SMART_STORE) as {mode?: string; verified?: boolean} | null;
+        if (!paired?.mode) return;
+        await this.unsetStoreValue(PAIRED_SMART_STORE);
+        const mode = smartMode(paired.mode);
+        try {
+            if (this.role === 'heating' && mode === 'autopilot') {
+                if (!paired.verified) throw new Error(this.homey.__('autopilot.smart.verify_first'));
+                await this.setStoreValue('autopilotHeatingVerified', true);
+                await this.writeSmartMode('autopilot');
+                await this.storeSmartMode('autopilot');
+            } else {
+                await this.chooseSmartMode(mode);
+            }
+            this.log(`Smart mode from pairing applied: ${this.role} = ${mode}`);
+        } catch (error: any) {
+            this.error('Smart mode from pairing could not be applied:', error?.message ?? error);
+            await this.setWarning(this.homey.__('autopilot.smart.paired_failed', {reason: error?.message ?? String(error)})).catch(this.error);
+        }
     }
 
     /** This function's Smart mode, stored on its own device (Heating or Hot water). */
@@ -1416,7 +1511,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     wantedRegisters(): Register[] {
-        const selected = registersForRole(this.profile, this.role, this.getSelection());
+        const selected = registersForRole(this.profile, this.role, withAutopilotInputs(this.profile, this.role, this.getSelection(), this.capabilitySmartMode()));
         if (this.role !== 'heating') return selected;
         const names = Object.values(this.profile.roomThermostat ?? {});
         const autopilot = this.profile.autopilotHistory;
@@ -2013,6 +2108,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const value = (name: string) => this.autopilotValue(readNames, name);
         const sample: Sample = {};
         for (const [field, name] of Object.entries(autopilot.numeric)) sample[field as keyof typeof autopilot.numeric] = value(name!);
+        // Homey sensors read for Autopilot are its indoor temperature; stale, there is none.
+        if (this.indoorReadOnly()) sample.ti = this.homeyIndoorNow();
         const priority = value(autopilot.priority.register);
         if (priority !== undefined) sample.dhw = priority === autopilot.priority.hotwater;
         const immersion = value(autopilot.immersion);

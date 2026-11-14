@@ -333,7 +333,8 @@
         "heating": "Smart price adaption blev slået til for opvarmning, så Autopilot opvarmning stoppede.",
         "hotwater": "Smart price adaption blev slået til for varmt vand, så Autopilot varmt vand stoppede."
       },
-      "soon": "Autopilot til dette kommer snart."
+      "soon": "Autopilot til dette kommer snart.",
+      "paired_failed": "Smart tilstand fra opsætningen kunne ikke anvendes: __reason__ Gør det færdigt under Reparer."
     },
     "widget": {
       "price": "Pris",

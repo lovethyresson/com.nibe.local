@@ -416,8 +416,9 @@ export function capabilitySyncPlan(
     profile: ModelProfile, role: Role, selection: Selection | null | undefined, current: string[], smart: SmartMode = 'off'
 ): {registers: Register[]; extras: string[]; wanted: string[]; toAdd: string[]; toRemove: string[]} {
     const hidden = new Set(hiddenBySmartMode(profile, role, smart));
-    const registers = registersForRole(profile, role, selection).filter((r) => !hidden.has(r.name));
-    const extras = extraCapabilities(profile, role, selection, smart);
+    const effective = withAutopilotInputs(profile, role, selection, smart);
+    const registers = registersForRole(profile, role, effective).filter((r) => !hidden.has(r.name));
+    const extras = extraCapabilities(profile, role, effective, smart);
     const wanted = [...registers.map((r) => r.name), ...extras];
     const wantedSet = new Set(wanted);
     const has = new Set(current);
@@ -426,6 +427,36 @@ export function capabilitySyncPlan(
         toAdd: wanted.filter((name) => !has.has(name)),
         toRemove: current.filter((name) => !wantedSet.has(name)),
     };
+}
+
+/** What a running Autopilot acts on, kept on its device whatever the feature selection says, so
+ *  the owner can always see it (and its Insights): hot water's tank and settings; heating's
+ *  readings and settings on the Heating device. Readings it takes from Main (compressor speed,
+ *  brine, total power) stay Main's own choice. Pure. */
+export function autopilotInputs(profile: ModelProfile, role: Role, smart: SmartMode): string[] {
+    if (!autopilotRuns(smart)) return [];
+    const hot = profile.autopilotHotwater;
+    if (role === 'hotwater' && hot)
+        return [...new Set([...Object.values(hot.tank), hot.power, hot.more, hot.demandMode, ...Object.values(hot.stops), hot.largeStop])];
+    const heat = profile.autopilotHistory;
+    if (role !== 'heating' || !heat) return [];
+    const groups = new Set<string>(roleGroups.heating);
+    return [...new Set([...Object.values(heat.numeric), ...Object.values(heat.controls ?? {})] as string[])].filter((name) => {
+        const r = profile.registerByName[name];
+        return r && !r.internal && groups.has(r.group) && (!r.role || r.role === 'heating');
+    });
+}
+
+/** The selection as a running Autopilot sees it: its inputs switched on whatever the owner ticked.
+ *  The stored selection is left alone, so turning Autopilot off brings back the owner's choice, and
+ *  the order of setup does not matter (features first, Autopilot later). Pure. */
+export function withAutopilotInputs(profile: ModelProfile, role: Role, selection: Selection | null | undefined,
+    smart: SmartMode): Selection | null | undefined {
+    const inputs = autopilotInputs(profile, role, smart);
+    if (!selection || !inputs.length) return selection;
+    const overrides = {...selection.overrides};
+    for (const name of inputs) overrides[profile.pickerPrimary[name] ?? name] = true;
+    return {...selection, overrides};
 }
 
 /** A function's SPA controls while Autopilot runs it: one control per function, so the SPA tiles

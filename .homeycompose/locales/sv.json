@@ -333,7 +333,8 @@
         "heating": "Smart price adaption slogs på för uppvärmning, så Autopilot uppvärmning stoppade.",
         "hotwater": "Smart price adaption slogs på för varmvatten, så Autopilot varmvatten stoppade."
       },
-      "soon": "Autopilot för detta kommer snart."
+      "soon": "Autopilot för detta kommer snart.",
+      "paired_failed": "Smart läge från installationen kunde inte tillämpas: __reason__ Slutför det under Reparera."
     },
     "widget": {
       "price": "Pris",

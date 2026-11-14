@@ -289,7 +289,10 @@
         "choose_off_desc_pool": "Poolen følger din varmepumpes egne indstillinger.",
         "choose_off_desc_cooling": "Kølingen følger din varmepumpes egne indstillinger.",
         "experimental": "Eksperimentel",
-        "hw_intro": "To ting, før Autopilot overtager det varme vand.",
+        "hw_intro": "Et par ting, før Autopilot overtager det varme vand.",
+        "hw_tank": "Først din beholder",
+        "hw_tank_intro": "Autopilot planlægger i liter, så den skal kende størrelsen på din beholder. Vælg den én gang.",
+        "hw_tank_missing": "Vælg din beholder for at fortsætte.",
         "hw_flows": "Flows, der slår Mere varmt vand til",
         "hw_flows_none": "Ingen. Kun Autopilot starter opvarmninger.",
         "hw_flows_found": "De starter opvarmninger, som Autopilot ikke har planlagt. Slå dem fra, eller behold dem til notifikationer.",
@@ -328,7 +331,16 @@
         "solar_need_meter": "Solvarme kræver en elmåler, der måler det, du sælger, som en P1-læser. Tilføj den i Homey Energi, og kom så tilbage hertil.",
         "hw_reserve_20": "20 L, en hurtig skylning eller opvasken",
         "hw_reserve_40": "40 L, et hurtigt bad",
-        "hw_reserve_60": "60 L, et længere bad"
+        "hw_reserve_60": "60 L, et længere bad",
+        "mode_live": "Live",
+        "mode_simulated": "Simuleret",
+        "mode_note": "Live styrer din varmepumpe. Simuleret planlægger alt og viser, hvad den ville gøre, mens din varmepumpe forbliver, som den er.",
+        "indoor_title": "Indetemperatur til Autopilot",
+        "indoor_intro": "Autopilot holder den på termostatens indstilling.",
+        "indoor_homey_desc": "Én sensor eller gennemsnittet af flere rum. Læses kun, sendes aldrig til din varmepumpe.",
+        "indoor_note": "Autopilot styrer din varmepumpe via udetemperaturen (BT1), så rumføler-styringen i din varmepumpe forbliver slukket.",
+        "indoor_read_hint": "Autopilot læser dem hvert minut. Intet sendes til din varmepumpe.",
+        "indoor_source_prompt": "Flere følere kan rapportere dette. Vælg den, Autopilot læser:"
       }
     },
     "gateway": {
@@ -585,7 +597,8 @@
         "heating": "Smart price adaption blev slået til for opvarmning, så Autopilot opvarmning stoppede.",
         "hotwater": "Smart price adaption blev slået til for varmt vand, så Autopilot varmt vand stoppede."
       },
-      "soon": "Autopilot til dette kommer snart."
+      "soon": "Autopilot til dette kommer snart.",
+      "paired_failed": "Smart tilstand fra opsætningen kunne ikke anvendes: __reason__ Gør det færdigt under Reparer."
     },
     "widget": {
       "price": "Pris",

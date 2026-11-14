@@ -11,7 +11,7 @@ import {
 } from '../lib/autopilot/hotwater-surplus';
 import {BELOW_TARGET_K, DEMAND_LARGE, DEMAND_SMART, MAX_STARTS_PER_DAY, MAX_STOP_WRITES_PER_DAY, countFor, leverDecision} from '../lib/autopilot/hotwater-lever';
 import {dayTypeAt, readDayType, recordDayType} from '../lib/autopilot/day-type';
-import {DAY_TYPE_CAPABILITY, allRoles, capabilitySyncPlan, extraCapabilities, extraCapabilityOptions, possibleExtraCapabilities} from '../lib/roles';
+import {DAY_TYPE_CAPABILITY, allRoles, autopilotInputs, capabilitySyncPlan, extraCapabilities, extraCapabilityOptions, possibleExtraCapabilities} from '../lib/roles';
 import {sProfile} from '../drivers/nibe_s/profile';
 
 const HOUR = 3_600_000;
@@ -279,4 +279,26 @@ test('live export is the sun\'s only while the forecast has sun', () => {
     assert.ok(sunNow(ghi, hour + 20 * 60_000));
     assert.ok(!sunNow(ghi, hour + 70 * 60_000), 'night: a battery selling');
     assert.ok(!sunNow(ghi, hour + 3 * 3_600_000), 'no forecast for the hour');
+});
+
+test('a running Autopilot keeps what it reads, whatever was ticked, and gives the owner\'s choice back when off', () => {
+    const inputs = autopilotInputs(sProfile, 'hotwater', 'autopilot');
+    const spec = sProfile.autopilotHotwater!;
+    for (const name of [spec.tank.top, spec.tank.produced, spec.tank.used, spec.tank.litres]) assert.ok(inputs.includes(name), name);
+    // The owner switched the whole hot water group and the energy pair off, but chose a tank.
+    const selection = {groups: {hotwater: false, energy: false}, overrides: {}, hotwater: {tankId: 'custom', litres: 180}} as any;
+    const on = capabilitySyncPlan(sProfile, 'hotwater', selection, [], 'autopilot').wanted;
+    for (const name of [spec.tank.top, spec.tank.produced, spec.tank.used, spec.tank.litres, spec.power])
+        assert.ok(on.includes(name), `${name} kept while Autopilot runs`);
+    const test = capabilitySyncPlan(sProfile, 'hotwater', selection, [], 'test').wanted;
+    assert.ok(test.includes(spec.tank.top), 'Simulation reads the same');
+    const off = capabilitySyncPlan(sProfile, 'hotwater', selection, on, 'off');
+    assert.ok(!off.wanted.includes(spec.tank.top) && off.toRemove.includes(spec.tank.top), 'off: the owner\'s choice is back');
+    assert.deepStrictEqual(selection.overrides, {}, 'the stored selection is untouched');
+    // Heating keeps what it acts on that lives on the Heating device; Main's readings stay Main's.
+    const heat = autopilotInputs(sProfile, 'heating', 'autopilot');
+    for (const name of ['measure_degree_minutes_NIBE.h11_degree_minutes', 'measure_temperature.i5_heating_supply', 'target_temperature'])
+        assert.ok(heat.includes(name), name);
+    assert.ok(!heat.includes('measure_frequency.i1046_compressor'), 'compressor speed is on Main');
+    assert.deepStrictEqual(autopilotInputs(sProfile, 'hotwater', 'spa'), []);
 });

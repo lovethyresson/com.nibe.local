@@ -213,9 +213,11 @@ async function hotwaterSmart(status: any, scan: any = NO_SOLAR) {
         results: {smart_status: {role: 'hotwater', mode: 'off', spa: true, spaOn: false, autopilot: true, tank: true,
             starterDays: 14, household: null, reserve: 40, ...status}, hotwater_household: true, hotwater_reserve: true, smart_choose: true,
             solar_scan: scan, solar_save: true}});
-    f.click('Continue'); f.menu('Smart mode'); await tick();
-    const test = f.win.document.querySelector('input[name="smart-choice"][value="test"]');
-    test.checked = true; test.dispatchEvent(new f.win.Event('change'));
+    // Hot water setup: the tank, then its Smart mode; Autopilot, Simulated.
+    f.click('Continue'); f.menu('Hot water setup'); f.click('Continue'); await tick();
+    const autopilot = f.win.document.querySelector('input[name="smart-choice"][value="autopilot"]');
+    autopilot.checked = true; autopilot.dispatchEvent(new f.win.Event('change'));
+    f.click(english.pair.setup.smart.mode_simulated);
     f.click('Continue'); await tick();
     return f;
 }

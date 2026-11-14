@@ -289,7 +289,10 @@
         "choose_off_desc_pool": "The pool follows your heat pump's own settings.",
         "choose_off_desc_cooling": "Cooling follows your heat pump's own settings.",
         "experimental": "Experimental",
-        "hw_intro": "Two things before Autopilot takes over hot water.",
+        "hw_intro": "A few things before Autopilot takes over hot water.",
+        "hw_tank": "First, your tank",
+        "hw_tank_intro": "Autopilot plans in litres, so it needs your tank's size. Pick it once.",
+        "hw_tank_missing": "Pick your tank to continue.",
         "hw_flows": "Flows that turn on More hot water",
         "hw_flows_none": "None. Only Autopilot will start charges.",
         "hw_flows_found": "They'll start charges Autopilot didn't plan. Turn them off, or keep them for notifications.",
@@ -328,7 +331,16 @@
         "solar_need_meter": "Solar heating needs an electricity meter that measures what you sell, like a P1 reader. Add it to Homey Energy, then come back here.",
         "hw_reserve_20": "20 L, a rinse or the dishes",
         "hw_reserve_40": "40 L, one quick shower",
-        "hw_reserve_60": "60 L, a longer shower"
+        "hw_reserve_60": "60 L, a longer shower",
+        "mode_live": "Live",
+        "mode_simulated": "Simulated",
+        "mode_note": "Live steers your heat pump. Simulated plans everything and shows what it would do, while your heat pump stays as it is.",
+        "indoor_title": "Indoor temperature for Autopilot",
+        "indoor_intro": "Autopilot keeps it at your thermostat's setting.",
+        "indoor_homey_desc": "One sensor, or the average of several rooms. Only read, never sent to your heat pump.",
+        "indoor_note": "Autopilot steers your heat pump through the outdoor temperature (BT1), so room-sensor control on your heat pump stays off.",
+        "indoor_read_hint": "Autopilot reads these every minute. Nothing is sent to your heat pump.",
+        "indoor_source_prompt": "More than one sensor can report this. Pick the one Autopilot reads:"
       }
     },
     "gateway": {
@@ -585,7 +597,8 @@
         "heating": "Smart price adaption was turned on for heating, so Autopilot heating stopped.",
         "hotwater": "Smart price adaption was turned on for hot water, so Autopilot hot water stopped."
       },
-      "soon": "Autopilot for this is coming soon."
+      "soon": "Autopilot for this is coming soon.",
+      "paired_failed": "Smart mode from setup couldn't be applied: __reason__ Finish it in Repair."
     },
     "widget": {
       "price": "Price",
