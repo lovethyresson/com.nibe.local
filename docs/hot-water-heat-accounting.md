@@ -155,6 +155,44 @@ is what it must learn.
 **Pass test for changing the planner:** steps 1–3 explain the gap in finding 1, and step 5 gives
 electricity per kWh of tank heat for each band, repeatable within ±20 % across two charges.
 
+## Measured 2026-11-14: the 10:00 charge, 30 s log
+
+One charge, 10:00 → 12:02 local (2.0 h), no immersion heater, no draw during it (the morning
+shower was at 09:13, before it). Tank 178 L, BT7 45.8 → 55.9 °C, BT6 19.6 → 55.4 °C.
+
+| | kWh |
+|---|---|
+| 1575 (hot water heat counter) | 13.9 |
+| Electricity (compressor, measured) | 4.9 |
+| Heat the tank gained (its two sensors, 178 L) | 4.75 |
+
+Per 5 K band of BT6 (the tank's lower sensor):
+
+| BT6 band °C | Minutes | El kWh | Tank heat kWh | Tank heat per kWh el | 1575 per kWh el |
+|---|---|---|---|---|---|
+| 20–35 | 11 | 0.56 | 1.61 | 2.9 | 2.9 |
+| 35–45 | 15 | 0.68 | 1.05 | 1.5 | 2.8 |
+| 45–50 | 34 | 1.30 | 0.98 | 0.75 | 2.85 |
+| 50–55+ | 63 | 2.54 | 1.11 | 0.44 | 2.6 |
+
+- **H1 alone is ruled out.** With a cold tank, the tank's gain matches what 1575 counts (about 3 kWh of
+  heat per kWh of electricity). With a hot tank, the tank keeps 0.44 kWh per kWh of electricity
+  while the compressor runs at 35 Hz. No running compressor has a COP under 1. So that heat is
+  produced, and it goes somewhere other than the tank. 1575 is roughly right about what the
+  compressor makes. It is wrong about where the heat goes.
+- **H2 leads.** The house got no heating for 2 h (priority hot water throughout), yet indoor held
+  at 20.9–21.1 °C and ended 0.1 K up. On 13 Nov a charge gave a 0.2–0.3 K dip. BT2 and BT3 follow
+  the condenser to 57 °C during the charge, so they cannot tell the two circuits apart. **The
+  confounder is sun:** a clear late-autumn morning, BT1 2 °C. A night charge with the same log
+  settles it: indoor flat or rising with no sun means H2.
+- **The learner already has the right numbers.** 1.1 kWh an hour into the tank in the 50–55 band
+  against the learned 1.1 to 1.9 kWh/h at 10 to 10.5 kWh stored. The planner built on 14 Nov
+  needs no change from this charge.
+- **What it means for cost:** the last 5 K of a charge buys a kWh of tank heat for about 2.3 kWh of
+  electricity, more than an immersion heater. A top-up of an already warm tank is the dearest
+  hot water this pump makes. If H2 holds, that heat is not lost (the house gets it), but the
+  heating plan does not count it yet.
+
 ## What is safe now, whatever the checks find
 
 - Cap the charge target at the learned compressor ceiling (about 58 °C here), never the 60 °C default.
