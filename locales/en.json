@@ -314,11 +314,10 @@
         "solar_panels_none": "None found in Homey",
         "solar_evidence": "In recent weeks you sent up to __kw__ kW to the grid on sunny hours.",
         "solar_evidence_plain": "Your meter sends power to the grid on sunny hours.",
-        "solar_use": "Heat with your own solar power?",
-        "solar_have": "Do you have solar panels?",
-        "solar_yes": "Yes",
-        "solar_no": "No",
-        "solar_how": "Hot water is heated with it when that pays. Sometimes it pays more to sell the power and heat in a cheaper hour.",
+        "solar_live": "Charge when you're selling solar",
+        "solar_live_hint": "Hot water charges while your home exports power.",
+        "solar_forecast": "Plan around tomorrow's sun",
+        "solar_forecast_hint": "Can skip a night charge when sun is forecast. Leave off if a battery or car charger uses your solar first.",
         "solar_no_meter_found": "Found your solar panels, but no electricity meter that measures what you sell, like a P1 reader. Add it to Homey Energy, then come back here.",
         "solar_need_meter": "Solar heating needs an electricity meter that measures what you sell, like a P1 reader. Add it to Homey Energy, then come back here."
       }
@@ -601,6 +600,7 @@
         "litres": "__l__ L of 40 °C water now",
         "share": "__share__ % from solar",
         "solar_off": "Solar off",
+        "solar_paused": "Solar plan paused",
         "solar_total": "__share__ % of the planned charging runs on solar surplus."
       },
       "indoor": "Indoor",

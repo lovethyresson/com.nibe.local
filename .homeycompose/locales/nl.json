@@ -358,6 +358,7 @@
         "litres": "Nu __l__ L water van 40 °C",
         "share": "__share__ % van zon",
         "solar_off": "Zon uit",
+        "solar_paused": "Zonneplan gepauzeerd",
         "solar_total": "__share__ % van het geplande opwarmen draait op zonne-overschot."
       },
       "indoor": "Binnen",

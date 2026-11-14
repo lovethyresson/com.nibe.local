@@ -358,6 +358,7 @@
         "litres": "__l__ L 40-graders vand nu",
         "share": "__share__ % fra sol",
         "solar_off": "Sol fra",
+        "solar_paused": "Solplan sat på pause",
         "solar_total": "__share__ % af den planlagte opvarmning kører på soloverskud."
       },
       "indoor": "Inde",

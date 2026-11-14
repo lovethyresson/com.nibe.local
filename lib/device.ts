@@ -14,7 +14,7 @@ import {forecastCorrection} from './autopilot/outdoor';
 import {AHEAD_SLOTS, BACK_SLOTS, HOTWATER_SLOTS, WidgetData, heatingSlots, ticks} from './autopilot/widget';
 import {HotwaterUseData, hotwaterWeek} from './autopilot/hotwater-use';
 import {slotOf} from './autopilot/prices';
-import {SOLAR_SETTING, SolarSurplus, readSolarAnswer} from './autopilot/solar-surplus';
+import {SOLAR_SETTING, SolarSurplus, readSolarAnswer, solarOn} from './autopilot/solar-surplus';
 import {Device} from 'homey';
 import net from 'net';
 import {analyticsConsent, setAnalyticsConsent, track} from './analytics';
@@ -1345,6 +1345,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     this.setCapabilityValue(AUTOPILOT_REASON_CAPABILITY, text).catch(this.error);
             },
         });
+        // A charge's own draw is what the meter would otherwise export: added back to the live reading.
+        this.solarSurplus().draw(this, () => number(spec.power));
         this.log(`Autopilot hot water started (${live() === 'live' ? 'live' : 'test run'}).`);
         await this.hotwaterAutopilot.start();
     }
@@ -1555,13 +1557,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
      *  start after the update carries into the answer when it was off. */
     private solarAllowed(): boolean {
         const answer = readSolarAnswer(this.homey.settings.get(SOLAR_SETTING));
-        return answer ? answer.panels : this.getSettings().autopilotSolar !== false;
+        return answer ? solarOn(answer) : this.getSettings().autopilotSolar !== false;
     }
 
     /** One-off: an owner who had turned the old "Use solar surplus" setting off has answered no. */
     private migrateSolarSetting() {
         if (this.getSettings().autopilotSolar === false && !readSolarAnswer(this.homey.settings.get(SOLAR_SETTING)))
-            this.homey.settings.set(SOLAR_SETTING, {panels: false});
+            this.homey.settings.set(SOLAR_SETTING, {live: false, forecast: false});
     }
 
     /** This device and its siblings: every device of the pump. */
@@ -1752,6 +1754,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const charges = o.slots.filter((s) => s.charge !== undefined);
             const fromSolar = charges.length ? charges.reduce((a, s) => a + s.charge!, 0) / charges.length : 0;
             if (!this.solarAllowed()) chips.push(t('hotwater.solar_off'));
+            else if (this.solarSurplus().forecastPaused) chips.push(t('hotwater.solar_paused'));
             return {...base, kind: 'hotwater', chips, test: mode === 'test', slots: o.slots,
                 ticks: ticks(slotStart(slot), HOTWATER_SLOTS, this.clock),
                 status: o.next ? t('hotwater.next', {time: this.clock(o.next.at), m: o.next.minutes}) : t('hotwater.none'),

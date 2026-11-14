@@ -314,11 +314,10 @@
         "solar_panels_none": "Keine in Homey gefunden",
         "solar_evidence": "In den letzten Wochen haben Sie in sonnigen Stunden bis zu __kw__ kW ins Netz eingespeist.",
         "solar_evidence_plain": "Ihr Zähler speist in sonnigen Stunden Strom ins Netz ein.",
-        "solar_use": "Mit eigenem Solarstrom heizen?",
-        "solar_have": "Haben Sie Solarmodule?",
-        "solar_yes": "Ja",
-        "solar_no": "Nein",
-        "solar_how": "Warmwasser wird damit bereitet, wenn es sich lohnt. Manchmal lohnt es sich mehr, den Strom zu verkaufen und in einer günstigeren Stunde zu heizen.",
+        "solar_live": "Laden, wenn Sie Solarstrom einspeisen",
+        "solar_live_hint": "Warmwasser lädt, während Ihr Zuhause Strom einspeist.",
+        "solar_forecast": "Mit der Sonne von morgen planen",
+        "solar_forecast_hint": "Kann eine Nachtladung auslassen, wenn Sonne vorhergesagt ist. Aus lassen, wenn ein Hausspeicher oder eine Wallbox Ihren Solarstrom zuerst nutzt.",
         "solar_no_meter_found": "Ihre Solarmodule wurden gefunden, aber kein Stromzähler, der die Einspeisung misst, etwa ein P1-Leser. Fügen Sie ihn in Homey Energie hinzu und kommen Sie dann hierher zurück.",
         "solar_need_meter": "Heizen mit Solarstrom braucht einen Stromzähler, der die Einspeisung misst, etwa einen P1-Leser. Fügen Sie ihn in Homey Energie hinzu und kommen Sie dann hierher zurück."
       }
@@ -601,6 +600,7 @@
         "litres": "Jetzt __l__ L Wasser mit 40 °C",
         "share": "__share__ % aus Solar",
         "solar_off": "Solar aus",
+        "solar_paused": "Solarplan pausiert",
         "solar_total": "__share__ % der geplanten Ladung laufen mit Solarüberschuss."
       },
       "indoor": "Innen",

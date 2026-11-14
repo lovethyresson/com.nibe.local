@@ -1228,8 +1228,9 @@ export abstract class NibePumpDriver extends Driver {
         // Solar is the home's, not the device's: asked in hot water's setup, read by every function.
         session.setHandler('solar_scan', async () => scanSolar(this.homey));
         session.setHandler('solar_save', async (data: any) => {
-            if (typeof data?.panels !== 'boolean') throw new Error('panels must be yes or no');
-            this.homey.settings.set(SOLAR_SETTING, {panels: data.panels, ...(typeof data.meter === 'string' ? {meter: data.meter} : {})});
+            if (typeof data?.live !== 'boolean' || typeof data?.forecast !== 'boolean') throw new Error('live and forecast must be on or off');
+            this.homey.settings.set(SOLAR_SETTING, {live: data.live, forecast: data.forecast,
+                ...(typeof data.meter === 'string' ? {meter: data.meter} : {})});
             SolarSurplus.refresh();
             return true;
         });

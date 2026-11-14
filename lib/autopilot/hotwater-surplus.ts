@@ -160,13 +160,16 @@ export function surplusForecast(fit: SurplusFit | undefined, ghi: Map<number, nu
     });
 }
 
-/** What is exported now, W, from Homey Energy's live report: the grid meter's export and nothing
- *  else. What an inverter makes says nothing about what is left: a battery, the house or a car can
- *  take all of it (maintainer, 2026-11-14). Undefined without a grid meter (no `totalCumulative`). */
-export function liveSurplusW(report: any): number | undefined {
+/** What would be exported now without `ownW`, W, from Homey Energy's live report: the grid
+ *  meter's export and nothing else. What an inverter makes says nothing about what is left: a
+ *  battery, the house or a car can take all of it (maintainer, 2026-11-14). `ownW` is what a
+ *  charge running on the surplus draws; the meter sees it as use, so it is added back, never more
+ *  than it draws: with the house importing 3 kW and a charge drawing 2, nothing is left.
+ *  Undefined without a grid meter (no `totalCumulative`). */
+export function liveSurplusW(report: any, ownW = 0): number | undefined {
     const grid = report?.totalCumulative?.W;
     if (typeof grid !== 'number' || !Number.isFinite(grid)) return undefined;
-    return Math.max(0, -grid);
+    return Math.max(0, Math.max(0, ownW) - grid);
 }
 
 /** The mean of the last `LIVE_WINDOW` minutes' readings, kW, or undefined while too few arrived. */

@@ -666,8 +666,9 @@ function NibeSetup(options) {
         }, true));
         back(smart);
     }
-    /** Solar: what a scan of the home found, then one question. The answer is the home's, read by
-     *  every function; hot water asks it because surplus pays most there. `finish` saves the rest. */
+    /** Solar: what a scan of the home found, then two switches: charge on live export, and plan
+     *  around the sun ahead. The answer is the home's, read by every function; hot water asks it
+     *  because surplus pays most there. `finish` saves the rest. */
     function solarStep(finish) {
         clear(a('title'), a('solar_intro'));
         var loading = el('p', a('solar_scanning')); shell.appendChild(loading);
@@ -692,24 +693,34 @@ function NibeSetup(options) {
             : checkRow(null, a('solar_panels'), a('solar_panels_none')));
         shell.appendChild(list);
         if (scan.followsSun) shell.appendChild(el('p', scan.peakKw ? a('solar_evidence', {kw: scan.peakKw}) : a('solar_evidence_plain'), 'register-desc'));
-        var found = scan.solar.length > 0 || scan.followsSun;
-        var answer = scan.panels !== null ? scan.panels : found;
-        var group = el('section', undefined, 'setup-task-group');
-        group.appendChild(el('h3', a(found && hasMeter ? 'solar_use' : 'solar_have')));
-        var hint = el('p', '', 'register-desc');
-        var update = function () {
-            hint.textContent = !answer ? '' : !hasMeter ? a(scan.solar.length ? 'solar_no_meter_found' : 'solar_need_meter') : a('solar_how');
-            hint.hidden = !hint.textContent;
-        };
-        group.appendChild(radios('solar-answer', [{id: 'yes', title: a('solar_yes')}, {id: 'no', title: a('solar_no')}],
-            answer ? 'yes' : 'no', function (v) { answer = v === 'yes'; update(); }));
-        group.appendChild(hint); update();
-        shell.appendChild(group);
+        // Without a meter there is no export to read: say what is missing and save nothing.
+        if (!hasMeter) {
+            shell.appendChild(el('p', a(scan.solar.length ? 'solar_no_meter_found' : 'solar_need_meter'), 'register-desc'));
+            var on = button(ap.choice === 'test' ? a('start_test') : t('save_section'), function () { busy(on, finish); }, true);
+            shell.appendChild(on);
+            return;
+        }
+        var live = scan.live !== null ? scan.live : true;
+        var forecast = scan.forecast !== null ? scan.forecast : false;
+        var box = el('div', undefined, 'setup-choices');
+        box.append(toggle('solar-live', a('solar_live'), a('solar_live_hint'), live, function (v) { live = v; }),
+            toggle('solar-forecast', a('solar_forecast'), a('solar_forecast_hint'), forecast, function (v) { forecast = v; }));
+        shell.appendChild(box);
         var go = button(ap.choice === 'test' ? a('start_test') : t('save_section'), function () { busy(go, async function () {
-            await emit('solar_save', hasMeter && meter ? {panels: answer, meter: meter} : {panels: answer});
+            await emit('solar_save', meter ? {live: live, forecast: forecast, meter: meter} : {live: live, forecast: forecast});
             await finish();
         }); }, true);
         shell.appendChild(go);
+    }
+    /** A switch as a card, like `radios`' cards: title, one line under it. */
+    function toggle(name, title, description, checked, onchange) {
+        var card = el('label', undefined, 'setup-source-card setup-choice' + (checked ? ' is-selected' : ''));
+        var input = document.createElement('input'); input.type = 'checkbox'; input.name = name; input.checked = checked;
+        input.onchange = function () { card.classList.toggle('is-selected', input.checked); onchange(input.checked); };
+        var copy = el('span', undefined, 'setup-source-copy');
+        copy.append(el('span', title, 'setup-source-title'), el('span', description, 'setup-source-description'));
+        card.append(input, copy);
+        return card;
     }
     function checklist() {
         var st = ap.status;

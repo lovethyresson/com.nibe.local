@@ -287,7 +287,16 @@ use come first and the tank only gets what would have been sold:
   the planned fit exists, which stands in as the proof. Known limit: by day, a battery
   that sells, or covers our charge to hold its own grid target, still shows as export and is taken
   for surplus (14 Nov 10:14: 1.3 kW exported, 1.0 kW of it the battery's). The mean of the last 10 minutes (8 readings at least) is the expected surplus
-  for the next half hour.
+  for the next half hour. Hot water's own draw is added back to each reading (surplus =
+  max(0, own draw − grid W)), or a charge started on surplus would read as having used it up; it
+  never adds more than the charge draws, so a house importing more than that sees none.
+  **Live only (2026-11-14):** unless the owner turned the forecast on, nothing past the live
+  reading is planned. The reading is held for up to 2 h while the forecast sun keeps up, scaled
+  down where it has less sun than now and never up (`heldLive`), so a charge started on it is
+  priced on it. The plan stays a price plan and solar can only replace a grid charge: the
+  maintainer, 2026-11-14, "the only thing we can rely on is real-time availability", since a
+  battery or a car charger takes the sun first and neither is known ahead. No start/stop gap was
+  needed: a charge, once started, runs to its stop on the pump, so a dip in export cannot stop it.
 - **Planned:** every 3 h, the grid meter's export history (Insights: hourly for 14 days, 6-hourly
   back to about three months) is fitted by weighted least squares against Open-Meteo's sun on the
   ground for the same hours (`shortwave_radiation`, `past_days=92`). An hourly bucket counts when
@@ -301,11 +310,18 @@ use come first and the tank only gets what would have been sold:
 - **Setup (2026-11-14):** after the hot water questions, a Solar step scans the home: grid meters
   (as below) and devices Homey Energy counts as generators, each with its live power, plus the fit
   from the meter's history ("In recent weeks you sent up to 2.4 kW to the grid on sunny hours").
-  Then one question: "Heat with your own solar power?" when panels or sun-following export were
-  found, "Do you have solar panels?" otherwise. Without a grid meter it says what to add. The
-  answer is home-wide (app setting `autopilotSolar`, with the meter chosen when there are several)
-  and replaces the old per-pump "Use solar surplus" setting; an owner who had turned that off is
-  carried over as a no. The generators are only shown, never read for surplus.
+  Then two switches: "Charge when you're selling solar" (live, on by default) and "Plan around
+  tomorrow's sun" (the forecast, off by default; its hint says to leave it off with a battery or
+  car charger). Without a grid meter it says what to add, shows no switches and saves nothing.
+  The answer is home-wide (app setting `autopilotSolar` = `{live, forecast, meter?}`, the meter
+  chosen when there are several) and replaces the old per-pump "Use solar surplus" setting; an
+  owner who had turned that off is carried over as both off, and the earlier yes/no answer
+  (`{panels}`) reads as live = panels with the forecast off. The generators are only shown, never
+  read for surplus.
+- **Forecast check:** with the forecast on, each relearn (3 h) compares the last 7 days' sunny
+  hours: export the fit expected against what the meter recorded. Under half arrived → the
+  forecast pauses, live keeps counting, and the widget shows "Solar plan paused"
+  (`forecastHeld`; nothing to judge under 2 kWh expected). It resumes by itself when a week holds.
 - **Which meter:** the one the owner picked in setup; otherwise, of the devices that declare
   themselves cumulative with an export meter, the one whose power is nearest the live report's
   grid figure. A P1 dongle and a battery's own grid
@@ -326,8 +342,7 @@ use come first and the tank only gets what would have been sold:
   three-month fit by 0.43, and predicting no export at all by 0.12. The battery now takes nearly
   all the sun, so export has stopped following it, and every fit overpredicts 6–7×. Neither a
   shorter half-life (3–30 days) nor scaling the forecast by the last 3 or 7 days' realised share
-  fixed it. Open: planned surplus in a home whose battery soaks up the sun. Live surplus is
-  unaffected; it is what the meter exports now.
+  fixed it. Resolved by making the forecast opt-in and self-checking (above): live is the default.
 
 The design as first written:
 
@@ -346,7 +361,7 @@ The design as first written:
 - **Hot water device:** "Autopilot now": the next planned charge, its target and why ("Next
   charge 13:15 to 52 °C · Cheapest hours"), what is heating the tank now, or what it waits for
   (learning, prices). Prefixed "Test run:" in a test run. The Smart mode is the on/off.
-- **Settings:** "Always keep at least … L of hot water" (default 40, off = 0), solar surplus (on/off).
+- **Settings:** "Always keep at least … L of hot water" (default 40, off = 0). Solar is two home-wide switches in setup, live and forecast (§4.4).
 - **Morning plan** (timeline, 07:00, six languages): what goes into the day's plan and what
   comes out of it. The inputs are the day type, the expected use in litres (the learned mean,
   and the 80th percentile as "a heavy day"), the tank now and the safety net. The output is
@@ -444,7 +459,7 @@ Asked of the owner:
 |---|---|---|
 | Setup | tank size (the existing tank picker) | litres and stored heat |
 | Setup, only with < 14 days of history | people in the household; usual morning shower time on working days; evening or daytime use on free days | starting profile: about 2.5 kWh heat (70 L of 40 °C water) per person a day, free days 1.5×, peaks at the given times |
-| Setup | always keep at least (default 40 L, off possible), use solar surplus | the safety net |
+| Setup | always keep at least (default 40 L, off possible), solar: live and forecast switches | the safety net |
 | Whenever it changes | day type working / free / away: Flow action card, or the picker on the main device | which profile applies; heating's away |
 
 ### 4.7 Guards

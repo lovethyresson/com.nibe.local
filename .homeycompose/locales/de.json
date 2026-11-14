@@ -358,6 +358,7 @@
         "litres": "Jetzt __l__ L Wasser mit 40 °C",
         "share": "__share__ % aus Solar",
         "solar_off": "Solar aus",
+        "solar_paused": "Solarplan pausiert",
         "solar_total": "__share__ % der geplanten Ladung laufen mit Solarüberschuss."
       },
       "indoor": "Innen",

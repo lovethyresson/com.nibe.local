@@ -314,11 +314,10 @@
         "solar_panels_none": "Inga hittade i Homey",
         "solar_evidence": "De senaste veckorna sålde du upp till __kw__ kW till elnätet under soliga timmar.",
         "solar_evidence_plain": "Din mätare säljer el till nätet under soliga timmar.",
-        "solar_use": "Värma med din egen solel?",
-        "solar_have": "Har du solpaneler?",
-        "solar_yes": "Ja",
-        "solar_no": "Nej",
-        "solar_how": "Varmvattnet värms med den när det lönar sig. Ibland lönar det sig mer att sälja elen och värma en billigare timme.",
+        "solar_live": "Ladda när du säljer solel",
+        "solar_live_hint": "Varmvattnet laddas medan ditt hem säljer el.",
+        "solar_forecast": "Planera efter morgondagens sol",
+        "solar_forecast_hint": "Kan hoppa över en nattladdning när sol är utlovad. Lämna av om ett batteri eller en elbilsladdare tar din solel först.",
         "solar_no_meter_found": "Vi hittade dina solpaneler, men ingen elmätare som mäter det du säljer, som en P1-läsare. Lägg till den i Homey Energi och kom sedan tillbaka hit.",
         "solar_need_meter": "Solvärme kräver en elmätare som mäter det du säljer, som en P1-läsare. Lägg till den i Homey Energi och kom sedan tillbaka hit."
       }
@@ -601,6 +600,7 @@
         "litres": "__l__ L 40-gradigt vatten nu",
         "share": "__share__ % från solen",
         "solar_off": "Sol av",
+        "solar_paused": "Solplan pausad",
         "solar_total": "__share__ % av den planerade laddningen går på solöverskott."
       },
       "indoor": "Inomhus",

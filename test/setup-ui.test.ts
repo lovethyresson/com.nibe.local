@@ -207,7 +207,7 @@ test('Repair preselects the stored zone and saves a new pick; a single zone skip
 });
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
-const NO_SOLAR = {meters: [], meter: null, solar: [], followsSun: false, peakKw: null, panels: null};
+const NO_SOLAR = {meters: [], meter: null, solar: [], followsSun: false, peakKw: null, live: null, forecast: null};
 async function hotwaterSmart(status: any, scan: any = NO_SOLAR) {
     const f = fixture('repair', 'hotwater', 0, undefined, {context: {smart: true},
         results: {smart_status: {role: 'hotwater', mode: 'off', spa: true, spaOn: false, autopilot: true, tank: true,
@@ -247,44 +247,47 @@ test('a home with enough history is not asked about its household, and no Flows 
     f.dom.window.close();
 });
 
-test('the Solar step shows the meter and panels it found and asks to heat with them, on by default', async () => {
+test('the Solar step shows what it found, live charging on and the forecast off by default', async () => {
     const f = await hotwaterSmart({flows: [], historyDays: 60}, {meters: [{id: 'p1', name: 'P1 Meter', w: -1200}], meter: 'p1',
-        solar: [{id: 'se', name: 'SolarEdge', w: 3400}], followsSun: true, peakKw: 2.4, panels: null});
+        solar: [{id: 'se', name: 'SolarEdge', w: 3400}], followsSun: true, peakKw: 2.4, live: null, forecast: null});
     f.click('Continue'); await tick(); await tick();
     const text = f.win.document.body.textContent;
     const s = english.pair.setup.smart;
     assert.ok(text.includes('P1 Meter · 1.2 kW') && text.includes('SolarEdge · 3.4 kW'), text);
     assert.ok(text.includes(s.solar_evidence.replace('__kw__', '2.4')));
-    assert.ok(text.includes(s.solar_use) && text.includes(s.solar_how));
+    assert.ok(text.includes(s.solar_live) && text.includes(s.solar_forecast_hint));
+    const box = (name: string) => f.win.document.querySelector(`input[name="${name}"]`);
+    assert.equal(box('solar-live').checked, true);
+    assert.equal(box('solar-forecast').checked, false);
+    box('solar-forecast').checked = true; box('solar-forecast').dispatchEvent(new f.win.Event('change'));
     f.click(s.start_test); await tick(); await tick();
-    assert.equal(JSON.stringify(f.emitted.find((e) => e.name === 'solar_save')?.data), JSON.stringify({panels: true, meter: 'p1'}));
+    assert.equal(JSON.stringify(f.emitted.find((e) => e.name === 'solar_save')?.data),
+        JSON.stringify({live: true, forecast: true, meter: 'p1'}));
     f.dom.window.close();
 });
 
-test('with nothing found the Solar step asks, and a yes without a meter says what to add', async () => {
+test('with no meter the Solar step says what to add, offers no switches and saves nothing', async () => {
     const f = await hotwaterSmart({flows: [], historyDays: 60});
     f.click('Continue'); await tick(); await tick();
     const s = english.pair.setup.smart;
-    let text = f.win.document.body.textContent;
-    assert.ok(text.includes(s.solar_have) && text.includes(s.solar_meter_none) && !text.includes(s.solar_need_meter));
-    const yes = f.win.document.querySelector('input[name="solar-answer"][value="yes"]');
-    yes.checked = true; yes.dispatchEvent(new f.win.Event('change'));
-    text = f.win.document.body.textContent;
-    assert.ok(text.includes(s.solar_need_meter));
+    const text = f.win.document.body.textContent;
+    assert.ok(text.includes(s.solar_meter_none) && text.includes(s.solar_need_meter));
+    assert.equal(f.win.document.querySelector('input[name="solar-live"]'), null);
     f.click(s.start_test); await tick(); await tick();
-    assert.equal(JSON.stringify(f.emitted.find((e) => e.name === 'solar_save')?.data), JSON.stringify({panels: true}));
+    assert.equal(f.emitted.some((e) => e.name === 'solar_save'), false);
+    assert.equal(f.emitted.find((e) => e.name === 'smart_choose')?.data?.value, 'test');
     f.dom.window.close();
 });
 
 test('several grid meters: the owner picks the one for the whole home', async () => {
     const f = await hotwaterSmart({flows: [], historyDays: 60}, {meters: [{id: 'a', name: 'Grid Sensor', w: 5869}, {id: 'b', name: 'Home', w: 5883}],
-        meter: 'a', solar: [], followsSun: false, peakKw: null, panels: false});
+        meter: 'a', solar: [], followsSun: false, peakKw: null, live: false, forecast: false});
     f.click('Continue'); await tick(); await tick();
     const s = english.pair.setup.smart;
     const pick = f.win.document.querySelector('select[aria-label="' + s.solar_meter + '"]');
     assert.ok(pick && f.win.document.body.textContent.includes(s.solar_meter_pick));
     pick.value = 'b'; pick.dispatchEvent(new f.win.Event('change'));
     f.click(s.start_test); await tick(); await tick();
-    assert.equal(JSON.stringify(f.emitted.find((e) => e.name === 'solar_save')?.data), JSON.stringify({panels: false, meter: 'b'}), 'a saved no is kept');
+    assert.equal(JSON.stringify(f.emitted.find((e) => e.name === 'solar_save')?.data), JSON.stringify({live: false, forecast: false, meter: 'b'}), 'saved switches are kept');
     f.dom.window.close();
 });

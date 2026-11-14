@@ -314,11 +314,10 @@
         "solar_panels_none": "Geen gevonden in Homey",
         "solar_evidence": "De afgelopen weken leverde u tot __kw__ kW terug aan het net op zonnige uren.",
         "solar_evidence_plain": "Uw meter levert stroom terug aan het net op zonnige uren.",
-        "solar_use": "Verwarmen met uw eigen zonnestroom?",
-        "solar_have": "Heeft u zonnepanelen?",
-        "solar_yes": "Ja",
-        "solar_no": "Nee",
-        "solar_how": "Warm water wordt ermee verwarmd als dat loont. Soms levert terugleveren meer op en wordt in een goedkoper uur verwarmd.",
+        "solar_live": "Laden als u zonnestroom teruglevert",
+        "solar_live_hint": "Warm water laadt terwijl uw huis stroom teruglevert.",
+        "solar_forecast": "Plannen op de zon van morgen",
+        "solar_forecast_hint": "Kan een nachtlading overslaan als er zon voorspeld is. Laat uit als een thuisbatterij of laadpaal uw zonnestroom eerst gebruikt.",
         "solar_no_meter_found": "Uw zonnepanelen zijn gevonden, maar geen elektriciteitsmeter die meet wat u teruglevert, zoals een P1-lezer. Voeg die toe aan Homey Energie en kom dan hier terug.",
         "solar_need_meter": "Verwarmen met zonnestroom vraagt een elektriciteitsmeter die meet wat u teruglevert, zoals een P1-lezer. Voeg die toe aan Homey Energie en kom dan hier terug."
       }
@@ -601,6 +600,7 @@
         "litres": "Nu __l__ L water van 40 °C",
         "share": "__share__ % van zon",
         "solar_off": "Zon uit",
+        "solar_paused": "Zonneplan gepauzeerd",
         "solar_total": "__share__ % van het geplande opwarmen draait op zonne-overschot."
       },
       "indoor": "Binnen",

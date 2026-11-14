@@ -314,11 +314,10 @@
         "solar_panels_none": "Ingen fundet i Homey",
         "solar_evidence": "De seneste uger sendte du op til __kw__ kW ud på nettet i solrige timer.",
         "solar_evidence_plain": "Din måler sender strøm ud på nettet i solrige timer.",
-        "solar_use": "Varme med din egen solstrøm?",
-        "solar_have": "Har du solceller?",
-        "solar_yes": "Ja",
-        "solar_no": "Nej",
-        "solar_how": "Varmtvandet varmes med den, når det betaler sig. Nogle gange betaler det sig mere at sælge strømmen og varme i en billigere time.",
+        "solar_live": "Oplad når du sælger solstrøm",
+        "solar_live_hint": "Varmtvandet oplades, mens dit hjem sælger strøm.",
+        "solar_forecast": "Planlæg efter morgendagens sol",
+        "solar_forecast_hint": "Kan springe en natopladning over, når der er meldt sol. Lad den være slået fra, hvis et batteri eller en elbillader bruger din solstrøm først.",
         "solar_no_meter_found": "Vi fandt dine solceller, men ingen elmåler, der måler det, du sælger, som en P1-læser. Tilføj den i Homey Energi, og kom så tilbage hertil.",
         "solar_need_meter": "Solvarme kræver en elmåler, der måler det, du sælger, som en P1-læser. Tilføj den i Homey Energi, og kom så tilbage hertil."
       }
@@ -601,6 +600,7 @@
         "litres": "__l__ L 40-graders vand nu",
         "share": "__share__ % fra sol",
         "solar_off": "Sol fra",
+        "solar_paused": "Solplan sat på pause",
         "solar_total": "__share__ % af den planlagte opvarmning kører på soloverskud."
       },
       "indoor": "Inde",
