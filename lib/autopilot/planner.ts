@@ -38,6 +38,9 @@ export interface ForecastSlot {
     /** What an exported kWh earns (spot), where known: the price of electricity the solar surplus
      *  covers (live.ts `surplusPrices`). */
     spot?: number;
+    /** The compressor is planned on hot water: the house gets no heat from the pump this slot,
+     *  whatever is fed (hot water always goes first). */
+    busy?: boolean;
 }
 
 export interface PlanState {
@@ -64,6 +67,10 @@ export interface PumpCurve {
     /** The learned heat curve and kW of heat per K of supply; together they replace `lever`. */
     supply?: SupplyCurve;
     heatPerSupplyK?: number;
+    /** Shift-only: the curve is taken to hold comfort at no bias, and a bias moves heat along the
+     *  learned curve's real shape (steeper or flat where it is) rather than its local slope. No
+     *  comfort bias (trim.ts). Live heating plans this way (live.ts). */
+    shiftOnly?: boolean;
 }
 
 /** Heat this slot, kWh, between off and the pump's design output.
@@ -77,7 +84,7 @@ export interface PumpCurve {
 export function pumpHeat(house: HouseParams, comfort: number, te: number, curve: number, pump: PumpCurve = {}, ti?: number): number {
     const max = house.heatLoss * (comfort - DESIGN_OUTDOOR);
     let P: number;
-    if (pump.supply && pump.heatPerSupplyK !== undefined && ti !== undefined) {
+    if (pump.supply && pump.heatPerSupplyK !== undefined && ti !== undefined && !pump.shiftOnly) {
         P = pump.heatPerSupplyK * (supplyAt(pump.supply, curve) - ti);
     } else {
         const moved = pump.supply && pump.heatPerSupplyK !== undefined
@@ -92,9 +99,22 @@ export function simulate(house: HouseParams, comfort: number, state: PlanState, 
                          biases: number[], pump: PumpCurve = {}): Simulation {
     let {ti, tm, curve} = state;
     const out: Simulation = {ti: [], tm: [], heat: [], cost: 0, curveEnd: curve};
+    // Heat the pump owes after hot water had the compressor: its degree minutes keep counting while
+    // it charges the tank, and it catches up afterwards, as fast as it can.
+    let owed = 0;
+    const max = house.heatLoss * (comfort - DESIGN_OUTDOOR) * SLOT_H;
     forecast.forEach((slot, k) => {
         curve = curveInput(curve, slot.te - biases[k], SLOT_H, CURVE_TAU_H);
-        const heat = pumpHeat(house, comfort, slot.te, curve, pump, ti);
+        const wanted = pumpHeat(house, comfort, slot.te, curve, pump, ti);
+        let heat = wanted;
+        if (slot.busy) {
+            owed += wanted;
+            heat = 0;
+        } else if (owed > 0) {
+            const back = Math.min(owed, Math.max(0, max - wanted));
+            heat += back;
+            owed -= back;
+        }
         [ti, tm] = stepHouse(house, ti, tm, {te: slot.te, q: heat, sun: slot.sun, sunE: slot.sunE, sunW: slot.sunW});
         out.ti.push(ti);
         out.tm.push(tm);

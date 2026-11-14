@@ -156,3 +156,25 @@ test('drawsFor gives each slot a quarter of its hour, and nothing on an away day
     const p = noisyDay(), planned = plannedHours(p);
     assert.deepStrictEqual(drawsFor([p, p, undefined], [7, 19, 7]), [planned[7] * SLOT_H, planned[19] * SLOT_H, 0]);
 });
+
+test('a charge is planned at the tank\'s own rate, so it runs as long as a real one and a warm top-up is slow', () => {
+    // The S1155 learned 2026-11-14: the tank gains 6.5 kWh/h half empty, under 2 near full, at 2.3 kW.
+    const tankRate = {heatPerHour: 6.1, perKwh: -1.4, atStored: 7, producedPerHour: 6.5, kw: 2.3, cop: 2, copPerK: 0, atTop: 50, samples: 20};
+    // Cheap for 4 h, then dear, with the morning's showers after: charge now, and fill it.
+    const morning = day((h) => (h < 4 ? 1 : 4), (h) => (h >= 6 && h < 10 ? 2 : 0)).slice(0, 48);
+    const run = (over: Partial<PlanInput>) => plan(input(morning, {charge: tankRate, reserve: 0, minC: 45, maxC: 58, ...over}));
+    // From cold (a top under 40 °C reads 0) to the top: the counter's 6 kWh/h says 1.6 h, the
+    // tank's own rate about 1.75 h; real charges from cold took 1.4–2.2 h.
+    const cold = run({stored: 0, minChargeKwh: 0});
+    const first = cold.charges[0];
+    assert.ok(first, 'a charge');
+    const hours = (first.end - first.start) * SLOT_H;
+    assert.ok(hours >= 1.5 && hours <= 2.5, `cold to ${first.targetC} °C in ${hours} h`);
+    // Electricity is what the compressor draws while it runs: 2.3 kW for the run.
+    near(first.electricity, 2.3 * hours, 0.6, 'electricity');
+    // A top-up from 50 °C to the top costs more per kWh stored than the cold charge (about 40 % here).
+    const warm = run({stored: heatAt(tank, 50), minChargeKwh: 0}).charges[0];
+    assert.ok(warm, 'a top-up');
+    assert.ok(warm.electricity / warm.heat > 1.25 * first.electricity / first.heat, 'a warm top-up is dearer per kWh');
+    assert.ok(cold.charges.every((c) => c.targetC <= 58), 'never past the ceiling');
+});

@@ -1057,6 +1057,23 @@ Rules:
   immersion hour at COP 1 erases the coast it followed. Shadow (§7.5) checks this per house.
 - **Bias beyond ±15 K** is new ground: M0 measured gain at ±5 K only. The actuator clamps to the
   fed-value limits (§4.1) regardless, and shadow confirms the gain holds that far before M3.
+- **The coast goes as deep as the owner's curve needs (live, 2026-11-14).** The profile's coast
+  limit (live.ts `PROFILE_LIMITS`: 10 / 15 / 20 K) is a floor, not a ceiling: `liveLimits`
+  deepens it to where the learned curve's supply falls to the indoor temperature, which is where
+  the pump delivers nothing, and only as far as the curve has been learned. On the S1155 (curve 5,
+  offset +6) that is a fed 29 °C, the value at which an 80 °C feed stopped the compressor on
+  2026-11-13, so from 2 °C outside a 27 K coast. No owner has to change their curve. The plan models
+  the shift along the learned curve (`livePump`, `shiftOnly`), not the lever's straight line, which
+  underestimates a deep coast where the curve steepens (0.4 K per K at 0 °C, 0.8–1 K per K at
+  16–28 °C). The indoor tolerance still bounds every plan. Replay of 7–13 Nov (actual weather and
+  prices, the planner's own cost): Comfortable within 1 %, Save some 3–31 % cheaper than before,
+  Save the most 8–47 %, part of it a cooler house inside that profile's range.
+- **Hot water has the compressor first (live, 2026-11-14).** Heating's plan reads the slots the hot
+  water plan charges in (`withHotwater`, `ForecastSlot.busy`): the house gets no heat from the pump
+  then, and the heat it missed is paid back right after, as the pump's degree minutes do
+  (planner.ts `simulate`). Without the payback the model took a charge's missed heat as lost and
+  pre-heated for it. With it, the replayed week's plans stay within a few percent of the plans
+  without charges, and the modelled dip during a charge (0.2–0.5 K) matches the measured 0.2–0.3 K.
 - Picking Custom starts the sliders at the preset that was selected; moving any slider shows
   Custom. Moving them back to a preset's values shows that preset again.
 - **Expectations, said once in the FAQ, not in the UI:** most of a "saving" in any product is a

@@ -22,9 +22,9 @@ import {curveInputFor} from './curve';
 export const COMFORT_BIAS_RANGE = [-25, 30] as const;
 
 /** Bias that holds `comfort` at `te`, K (pre-heat positive). 0 without a learned curve and
- *  emission, where the planner still assumes the curve holds comfort by itself. */
+ *  emission, or planning shift-only, where the planner assumes the curve holds comfort by itself. */
 export function comfortBias(house: HouseParams, pump: PumpCurve | undefined, comfort: number, te: number): number {
-    if (!pump?.supply || !(pump.heatPerSupplyK! > 0) || !Number.isFinite(te)) return 0;
+    if (!pump?.supply || pump.shiftOnly || !(pump.heatPerSupplyK! > 0) || !Number.isFinite(te)) return 0;
     const needed = Math.max(0, house.heatLoss * (comfort - te) - house.gains);
     const x = curveInputFor(pump.supply, comfort + needed / pump.heatPerSupplyK!);
     if (x === undefined) return 0;

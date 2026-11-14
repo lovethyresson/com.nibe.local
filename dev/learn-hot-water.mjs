@@ -8,7 +8,7 @@
 import {execFileSync} from 'child_process';
 import {mkdirSync, writeFileSync} from 'fs';
 import {join} from 'path';
-import {learn, localClock, KWH_PER_LITRE} from '../lib/autopilot/hotwater-learner.ts';
+import {chargeRate, learn, localClock, KWH_PER_LITRE} from '../lib/autopilot/hotwater-learner.ts';
 import {pointsFromInsights, RESOLUTIONS} from '../lib/autopilot/hotwater-insights.ts';
 
 const argv = process.argv.slice(2);
@@ -44,8 +44,9 @@ const r = (v, d = 1) => Number.isFinite(v) ? v.toFixed(d) : '–';
 console.log(`${points.length} readings, ${model.days} full days, away: ${model.away.join(', ') || 'none'}`);
 console.log(`standing loss: ${r(model.loss.base, 3)} + ${r(model.loss.perKwh, 4)}/kWh stored kWh/h (${model.loss.samples} quiet hours);`
     + ` full tank (${r(290 * KWH_PER_LITRE)} kWh): ${r(model.loss.base + model.loss.perKwh * 290 * KWH_PER_LITRE, 3)} kWh/h`);
-if (model.charge) console.log(`charge: ${r(model.charge.heatPerHour, 2)} kWh heat/h, COP ${r(model.charge.cop, 2)}`
-    + ` at top ${r(model.charge.atTop)} °C, ${r(model.charge.copPerK, 3)}/K (${model.charge.samples} intervals)`);
+if (model.charge) console.log(`charge: tank gains ${[1, 3, 5, 7, 9, 10].map((k) => `${r(chargeRate(model.charge, k), 1)}@${k}`).join(' ')}`
+    + ` kWh/h (at kWh stored), ${r(model.charge.kw, 2)} kW, tank COP ${r(model.charge.cop, 2)};`
+    + ` heat counter ${r(model.charge.producedPerHour, 2)} kWh/h (${model.charge.samples} hours)`);
 for (const [type, p] of Object.entries(model.profiles)) {
     console.log(`${type}: ${r(p.days)} weighted days, ${r(p.daily)} kWh/day (p80 ${r(p.dailyP80)})`);
     console.log('  hour ' + p.hours.map((_, h) => String(h).padStart(4)).join(''));

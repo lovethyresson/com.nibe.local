@@ -38,8 +38,9 @@ export interface Interval {
     produced: number;
     /** kWh electricity, NaN when the counter is missing. */
     used: number;
-    /** Stored heat at the start, kWh. */
+    /** Stored heat at the start and the end, kWh (NaN when the top was under 40 °C). */
     stored: number;
+    storedEnd: number;
     top?: number;
     dayType?: DayType;
 }
@@ -54,9 +55,20 @@ export interface StandingLoss {
 }
 
 export interface ChargeModel {
-    /** kWh heat per full hour of charging. */
+    /** kWh of heat the tank gains per full hour of charging, at `atStored` (with `perKwh`), else
+     *  overall. Measured in the tank (the litres estimate), never from the pump's heat counter. */
     heatPerHour: number;
-    /** Heat over electricity, over all charges. */
+    /** How the tank's gain changes per kWh already stored (≤ 0): a fuller tank takes heat slower,
+     *  so a top-up of a warm tank takes far longer than a charge from cold. */
+    perKwh?: number;
+    atStored?: number;
+    /** The pump's heat counter (1575) per full hour of charging. It runs at about this rate
+     *  whenever the compressor makes hot water, whatever reaches the tank, so it measures how long
+     *  a charge ran, not what it stored (docs/hot-water-heat-accounting.md). */
+    producedPerHour?: number;
+    /** kW of electricity while charging. */
+    kw?: number;
+    /** Heat the tank gained over electricity, over all charges. */
     cop: number;
     /** COP change per K of tank top, when the charges spread enough to tell; else 0. */
     copPerK: number;
@@ -143,8 +155,18 @@ export function lossAt(loss: StandingLoss, storedKwh: number): number {
     return Math.max(0, loss.base + loss.perKwh * (Number.isFinite(storedKwh) ? storedKwh : 0));
 }
 
-/** Consecutive readings → intervals. Readings must be in time order. */
-export function intervals(points: TankPoint[], loss: StandingLoss = DEFAULT_LOSS): Interval[] {
+/** Heat a charge put into the tank over an interval: how long it ran, from the heat counter, times
+ *  the tank's own rate. Without a tank-measured model, the heat counter itself. */
+export function tankHeatIn(produced: number, hours: number, storedMid: number, charge?: ChargeModel): number {
+    if (!charge?.producedPerHour || !(produced > 0)) return produced;
+    const running = Math.min(hours, produced / charge.producedPerHour);
+    return running * chargeRate(charge, storedMid);
+}
+
+/** Consecutive readings → intervals. Readings must be in time order. With a charge model, the
+ *  heat a charge put in is the tank's (`tankHeatIn`), so heat the counter books but the tank
+ *  never got is not taken for water drawn. */
+export function intervals(points: TankPoint[], loss: StandingLoss = DEFAULT_LOSS, charge?: ChargeModel): Interval[] {
     const out: Interval[] = [];
     for (let k = 1; k < points.length; k++) {
         const a = points[k - 1], b = points[k];
@@ -156,8 +178,8 @@ export function intervals(points: TankPoint[], loss: StandingLoss = DEFAULT_LOSS
         const used = usedStep >= 0 && usedStep <= MAX_KWH_PER_HOUR * hours ? usedStep : NaN;
         const s0 = stored(a), s1 = stored(b);
         const draw = Number.isFinite(s0) && Number.isFinite(s1)
-            ? Math.max(0, s0 - s1 + produced - lossAt(loss, (s0 + s1) / 2) * hours) : NaN;
-        out.push({start: a.t, hours, draw, produced, used, stored: s0,
+            ? Math.max(0, s0 - s1 + tankHeatIn(produced, hours, (s0 + s1) / 2, charge) - lossAt(loss, (s0 + s1) / 2) * hours) : NaN;
+        out.push({start: a.t, hours, draw, produced, used, stored: s0, storedEnd: s1,
             top: finite(a.top) ? a.top : undefined, dayType: a.dayType});
     }
     return out;
@@ -202,32 +224,77 @@ export function learnLoss(points: TankPoint[], clock: LocalClock): StandingLoss 
     return {base: Math.max(0, rate), perKwh: 0, samples: quiet.length};
 }
 
-/** Charge rate from hours spent charging the whole hour, COP from every charging interval. */
+/** The slowest a tank is taken to gain while charging, kWh/h: keeps a nearly full tank's rate from
+ *  reaching zero, which no plan could then reason about. */
+export const MIN_TANK_RATE = 0.3;
+
+/** kWh/h the tank gains while charging with `storedKwh` in it. */
+export function chargeRate(charge: ChargeModel, storedKwh: number): number {
+    if (!charge.perKwh || charge.atStored === undefined || !Number.isFinite(storedKwh)) return charge.heatPerHour;
+    const rate = charge.heatPerHour + charge.perKwh * (storedKwh - charge.atStored);
+    // Never more than the compressor's output: the counter's rate is the most it can be.
+    return Math.max(MIN_TANK_RATE, Math.min(charge.producedPerHour ?? Infinity, rate));
+}
+
+/** kWh/h under the fitted line past which an hour of charging counts as a draw, not the tank. */
+const DRAW_RESIDUAL = 1;
+
+/** Tank gain against heat stored: a falling line where the fills spread enough to tell, else one
+ *  rate for every fill. */
+function fitRate(gains: {x: number; y: number}[]) {
+    const mx = gains.reduce((s, g) => s + g.x, 0) / gains.length, my = gains.reduce((s, g) => s + g.y, 0) / gains.length;
+    const sxx = gains.reduce((s, g) => s + (g.x - mx) ** 2, 0);
+    const spread = quantile(gains.map((g) => g.x), 0.9) - quantile(gains.map((g) => g.x), 0.1);
+    // Only a falling rate is physical.
+    const perKwh = gains.length >= 6 && spread >= 2 && sxx > 0
+        ? Math.min(0, gains.reduce((s, g) => s + (g.x - mx) * (g.y - my), 0) / sxx) : 0;
+    const heatPerHour = perKwh ? my : quantile(gains.map((g) => g.y), 0.5);
+    return {heatPerHour, perKwh, atStored: mx, at: (x: number) => heatPerHour + perKwh * (x - mx)};
+}
+
+/** What a charge delivers, learned from whole hours of charging: how long it ran from the heat
+ *  counter, what the tank gained from the litres estimate (as a line in the heat already stored),
+ *  and the electricity it took. Hours with a draw large enough to empty the tank faster than it
+ *  filled are left out of the rate. */
 export function learnCharge(spans: Interval[]): ChargeModel | undefined {
     const charging = spans.filter((i) => i.produced > 0.5 * i.hours);
     if (charging.length < 3) return undefined;
     const hourly = charging.filter((i) => i.hours <= 1.01).map((i) => i.produced / i.hours);
-    const peak = quantile(hourly, 0.9);
-    const full = hourly.filter((r) => r >= 0.7 * peak);
-    const withEl = charging.filter((i) => Number.isFinite(i.used) && i.used > 0);
-    const heat = withEl.reduce((s, i) => s + i.produced, 0), el = withEl.reduce((s, i) => s + i.used, 0);
-    if (!(el > 0)) return undefined;
-    const cop = heat / el;
-    const tops = withEl.filter((i) => finite(i.top));
+    // Hours inside a charge, with charging on both sides, ran throughout; the hour a charge
+    // started or stopped in reads slow. Without longer charges, the fastest hours stand in.
+    const isCharging = (i?: Interval) => i !== undefined && i.produced > 0.5 * i.hours;
+    const inside = spans.filter((i, k) => i.hours <= 1.01 && isCharging(i)
+        && isCharging(spans[k - 1]) && spans[k - 1].start + spans[k - 1].hours * HOUR === i.start
+        && isCharging(spans[k + 1]) && i.start + i.hours * HOUR === spans[k + 1].start).map((i) => i.produced / i.hours);
+    const producedPerHour = inside.length >= 3 ? quantile(inside, 0.5)
+        : hourly.length ? quantile(hourly, 0.9) : quantile(charging.map((i) => i.produced / i.hours), 0.9);
+    const full = charging.filter((i) => i.hours <= 1.01 && i.produced / i.hours >= 0.8 * producedPerHour);
+    const withEl = full.filter((i) => Number.isFinite(i.used) && i.used > 0);
+    const runHours = withEl.reduce((s, i) => s + Math.min(i.hours, i.produced / producedPerHour), 0);
+    if (!(runHours > 0)) return undefined;
+    const kw = withEl.reduce((s, i) => s + i.used, 0) / runHours;
+    // Tank gain per running hour, against the heat stored mid-hour.
+    // Per hour the charge actually ran, so a charge that ends mid-hour at its stop still counts.
+    const ran = charging.filter((i) => i.hours <= 1.01 && i.produced / i.hours >= 0.5 * producedPerHour);
+    const gains = ran.filter((i) => Number.isFinite(i.stored) && Number.isFinite(i.storedEnd) && i.storedEnd >= i.stored)
+        .map((i) => ({x: (i.stored + i.storedEnd) / 2, y: (i.storedEnd - i.stored) / Math.min(i.hours, i.produced / producedPerHour)}));
+    if (gains.length < 3) return undefined;
+    const tops = full.filter((i) => finite(i.top));
     const atTop = tops.length ? tops.reduce((s, i) => s + i.top!, 0) / tops.length : NaN;
-    let copPerK = 0;
-    if (tops.length >= 6 && quantile(tops.map((i) => i.top!), 0.9) - quantile(tops.map((i) => i.top!), 0.1) >= 5) {
-        // Least squares of each interval's COP on its tank top, weighted by its heat.
-        const w = tops.map((i) => i.produced), x = tops.map((i) => i.top!), y = tops.map((i) => i.produced / i.used);
-        const sw = w.reduce((s, v) => s + v, 0);
-        const mx = x.reduce((s, v, k) => s + v * w[k], 0) / sw, my = y.reduce((s, v, k) => s + v * w[k], 0) / sw;
-        const sxx = x.reduce((s, v, k) => s + w[k] * (v - mx) ** 2, 0);
-        const sxy = x.reduce((s, v, k) => s + w[k] * (v - mx) * (y[k] - my), 0);
-        // Only a falling COP is physical; a rising one is noise from mixed charge lengths.
-        if (sxx > 0) copPerK = Math.min(0, sxy / sxx);
+    // A draw during the hour only ever lowers its gain, so hours well under the upper part of the
+    // cloud are draws, not the tank: fit, drop them, fit again. Measured from the upper quartile
+    // of the residuals, since a line through many draw hours sits too low to show them.
+    let kept = gains, line = fitRate(kept);
+    for (let round = 0; round < 4; round++) {
+        const top = quantile(kept.map((g) => g.y - line.at(g.x)), 0.75);
+        const next = kept.filter((g) => g.y - line.at(g.x) >= top - DRAW_RESIDUAL);
+        if (next.length === kept.length || next.length < 3) break;
+        kept = next;
+        line = fitRate(kept);
     }
-    return {heatPerHour: full.length ? quantile(full, 0.5) : quantile(charging.map((i) => i.produced / i.hours), 0.5),
-        cop, copPerK, atTop, samples: charging.length};
+    const tank = kept.reduce((s, g) => s + g.y, 0) / kept.length;
+    return {heatPerHour: line.heatPerHour, perKwh: line.perKwh, atStored: line.atStored, producedPerHour, kw,
+        cop: Math.max(0.5, tank / kw), copPerK: 0, atTop, samples: kept.length};
 }
 
 /** COP of a charge whose tank top ends near `top`. */
@@ -364,7 +431,9 @@ export function starterProfiles(h: Household): {any: DayProfile; working: DayPro
 export function learn(points: TankPoint[], clock: LocalClock, now: number, halfLifeDays = HALF_LIFE_DAYS,
                       household?: Household): HotwaterModel {
     const loss = learnLoss(points, clock);
-    const spans = intervals(points, loss);
+    // Charges first: what they put into the tank is what tells a draw from a charge's lost heat.
+    const charge = learnCharge(intervals(points, loss));
+    const spans = intervals(points, loss, charge);
     // A day the tank ran low for a while (top under 40 °C: the draw is not knowable) is not a
     // full day: it is left out of learning, and shown as "at least" in the week chart.
     const every = days(spans, clock);
@@ -389,7 +458,7 @@ export function learn(points: TankPoint[], clock: LocalClock, now: number, halfL
         draw: Math.round(d.draw * 100) / 100, ...(d.dayType ? {dayType: d.dayType} : {}),
         ...(away.includes(d) ? {away: true} : {}),
         ...(d.hoursCovered < FULL_DAY_HOURS ? {partial: Math.round(d.hoursCovered * 10) / 10} : {})}));
-    return {loss, charge: learnCharge(spans), profiles, away: away.map((d) => d.date), days: all.length, recent};
+    return {loss, charge, profiles, away: away.map((d) => d.date), days: all.length, recent};
 }
 
 /** The profile to plan a day with: its type's, else the pooled one. */

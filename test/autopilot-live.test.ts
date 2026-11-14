@@ -2,8 +2,10 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {
     FeedHooks, HeatingFeed, LIVE_LIMITS, LiveEntry, LiveMode, PROFILE_LIMITS, PumpFacts, ShiftInput, StopReason, cycleBias,
-    indoorMean, liveMode, planLive, profileLimits, stopReason, surplusPrices, SURPLUS_SHIFT_K,
+    indoorMean, liveMode, planLive, profileLimits, stopReason, surplusPrices, SURPLUS_SHIFT_K, curveCoastDepth, liveLimits, livePump, withHotwater,
 } from '../lib/autopilot/live';
+import {SupplyCurve} from '../lib/autopilot/curve';
+import {pumpHeat, simulate} from '../lib/autopilot/planner';
 import {newForecastBias} from '../lib/autopilot/outdoor';
 import {ForecastSlot, steadyState} from '../lib/autopilot/planner';
 import {SLOT_MS} from '../lib/autopilot/prices';
@@ -296,4 +298,54 @@ test('live plans count forecast sun only at the trust given, 0 until the sun ter
         'with sun expected it eases off at least as much around it');
     assert.deepEqual(without.biases, planLive({...sunny, forecast: sunny.forecast.map((s) => ({...s, sun: 0}))}, PROFILE_LIMITS.save_some).biases,
         'trust 0 is the same as no sun at all');
+});
+
+// The S1155's learned curve at curve 5, offset +6 (2026-11-14), 2 K knots: supply reaches indoor
+// near a fed 29 °C and the 20 °C floor near 36 °C.
+
+test('the coast goes as deep as the owner\'s curve needs to stop heating, as far as the curve is learned', () => {
+    const fine: SupplyCurve = {knots: Array.from({length: 29}, (_, i) => -8 + 2 * i), points: 859,
+        supply: [44.1, 43.3, 42.6, 41.8, 41, 40.2, 39.3, 38.4, 37.5, 36.6, 35.6, 34.6, 33.4, 31.9, 30.2, 28.3, 26.3, 24.4,
+            22.9, 21.8, 21, 20.4, 20.1, 19.8, 19.7, 19.7, 19.7, 19.7, 19.7]};
+    const withCurve = input({forecast: forecast().map((s) => ({...s, te: 2})), mean: 22, supply: fine, heatPerSupplyK: 0.255});
+    // Supply = indoor (22) at a fed ~29 °C; from 2 °C outside that is a 26–27 K coast.
+    const depth = curveCoastDepth(withCurve)!;
+    assert.ok(depth >= 25 && depth <= 28, String(depth));
+    assert.equal(liveLimits(PROFILE_LIMITS.comfortable, withCurve).maxCoastBias, depth);
+    // Never shallower than the profile's own, and nothing changes without a learned curve.
+    assert.equal(liveLimits(PROFILE_LIMITS.save_most, {...withCurve, forecast: forecast().map((s) => ({...s, te: 20}))}).maxCoastBias, 20);
+    assert.equal(liveLimits(PROFILE_LIMITS.comfortable, input()), PROFILE_LIMITS.comfortable);
+    // Learned only to 10 °C: the depth stops there, never on a guessed shape.
+    const short: SupplyCurve = {knots: fine.knots.slice(0, 10), supply: fine.supply.slice(0, 10), points: 200};
+    assert.equal(curveCoastDepth({...withCurve, supply: short}), 8);
+});
+
+test('live plans along the learned curve when it exists, and the curve still holds comfort at no bias', () => {
+    const fine: SupplyCurve = {knots: Array.from({length: 29}, (_, i) => -8 + 2 * i), points: 859,
+        supply: [44.1, 43.3, 42.6, 41.8, 41, 40.2, 39.3, 38.4, 37.5, 36.6, 35.6, 34.6, 33.4, 31.9, 30.2, 28.3, 26.3, 24.4,
+            22.9, 21.8, 21, 20.4, 20.1, 19.8, 19.7, 19.7, 19.7, 19.7, 19.7]};
+    const pump = livePump(input({supply: fine, heatPerSupplyK: 0.255}));
+    assert.equal(pump.shiftOnly, true);
+    assert.deepEqual(livePump(input()), {lever: 0.5 * house.heatLoss});
+    // No bias: what holds comfort, whatever indoor is now.
+    const hold = pumpHeat(house, 21.5, 3, 3, pump, 20);
+    assert.ok(Math.abs(hold - pumpHeat(house, 21.5, 3, 3, {}, undefined)) < 1e-9);
+    // A coast to where the curve's supply reaches indoor cuts more than the lever's straight line says.
+    const deep = pumpHeat(house, 21.5, 3, 28, pump, 21.5);
+    const lever = pumpHeat(house, 21.5, 3, 28, {lever: 0.104}, undefined);
+    assert.ok(deep < lever, `${deep} < ${lever}`);
+});
+
+test('while hot water has the compressor the house gets nothing, and the pump catches up after', () => {
+    const fc = forecast().map((s, k) => ({...s, price: 1, busy: k >= 8 && k < 16}));
+    const free = simulate(house, 21.5, {ti: start.ti, tm: start.tm, curve: 3, bias: 0}, forecast().map((s) => ({...s, price: 1})),
+        new Array(96).fill(0));
+    const run = simulate(house, 21.5, {ti: start.ti, tm: start.tm, curve: 3, bias: 0}, fc, new Array(96).fill(0));
+    for (let k = 8; k < 16; k++) assert.equal(run.heat[k], 0, `no heat in slot ${k}`);
+    assert.ok(run.ti[15] < free.ti[15] - 0.05, 'the house cools during the charge');
+    // Degree minutes: the heat missed is delivered afterwards, so the day's heat is the same.
+    const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+    assert.ok(Math.abs(sum(run.heat) - sum(free.heat)) < 0.05 * sum(free.heat), `${sum(run.heat)} vs ${sum(free.heat)}`);
+    assert.ok(run.heat[16] > free.heat[16], 'it catches up straight after');
+    assert.deepEqual(withHotwater(forecast().slice(0, 2), [false, true]).map((s) => !!s.busy), [false, true]);
 });

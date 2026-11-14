@@ -124,6 +124,34 @@ Open: H1 (an estimate) against H2 (heat leaving to the heating side). The 30 s l
 20:02 on 13 Nov decides it on the next charge (Autopilot plans 09:00 on 14 Nov): watch BT2 against
 BT12, the heating return BT3 and indoor while the charge runs.
 
+## Changed 2026-11-14: learn from the tank, time with the counter
+
+Built without waiting for H1 against H2, because it is right under both: whether 1575 overstates
+or its extra heat goes to the house, the hot water planner fills the tank, so the tank's own gain
+is what it must learn.
+
+- **1575 times a charge, the tank says what it stored.** 1575 runs at about 6.5 kWh an hour
+  (hourly Insights) whenever the compressor makes hot water, so `produced ÷ that rate` is how long
+  it ran. The tank's gain per running hour is learned from the litres estimate as a falling line
+  in heat stored, leaving out hours where a draw pulled it under the rest
+  (`hotwater-learner.ts` `learnCharge`, `chargeRate`). 60 days on the S1155: 6.5 kWh/h up to
+  half full, 6.1 at 7 kWh, 3.3 at 9, 1.9 at 10; 2.3 kW while charging; tank COP about 2.
+- **Draws during a charge** use that tank heat instead of 1575 (`tankHeatIn`). Draws booked in
+  charging hours fell from 123 to 81 kWh over the record. The 12 and 13 Nov night charges, 0 to
+  1 L on the water meter, now book 0 to 0.3 kWh an hour against 0.6 to 1.5 before. What is left is
+  mostly hourly Insights buckets smearing the end of a charge. The learned day fell from 13.3 to
+  10.2 kWh (p80 20.6 → 15.2); on 7 and 8 Nov that puts hot water at 34 to 37 % of all water used,
+  a plausible share.
+- **The planner charges at that rate** and pays the compressor's electricity for the time it
+  runs. From cold to 58 °C it now plans about 1.75 h; real charges from cold took 1.4 to 2.2 h, the
+  old model 0.8 h. A top-up from 50 °C costs about 40 % more per kWh stored than a charge from cold.
+- **The target is capped at 58 °C** (`MAX_C`), under where the compressor gives up here.
+- **The back-test now grades against the tank** (`dev/evaluate-hot-water.mjs`), not against the
+  planner's own 1575 model, and reports hours per charge. 1–9 Nov (6 full days with prices): the
+  planner's charges average 1.6 h against the real 1.7 h, and it costs 11 % less than what was
+  paid. It still lets the tank go below the reserve in 18 slots, which the old model did too (17);
+  that is the next thing to look at.
+
 **Pass test for changing the planner:** steps 1–3 explain the gap in finding 1, and step 5 gives
 electricity per kWh of tank heat for each band, repeatable within ±20 % across two charges.
 

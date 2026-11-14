@@ -7,7 +7,7 @@ import {FlowConflict, moreHotwaterFlows} from './autopilot/hotwater-flows';
 import {STARTER_DAYS, readHousehold} from './autopilot/hotwater-learner';
 import {DAY_TYPE_SETTING, DEFAULT_DAY_TYPE, DayTypeState, readDayType} from './autopilot/day-type';
 import {Sample} from './autopilot/history';
-import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits, sunTrust, surplusPrices} from './autopilot/live';
+import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits, sunTrust, surplusPrices, withHotwater} from './autopilot/live';
 import {AUTOPILOT_FUNCTIONS, SMART_MODE_STORE, SmartFunction, SmartMode, autopilotRuns, shownSmartMode, smartMode, smartModeWrites, spaOn} from './autopilot/smart-mode';
 import {HeatingStatus, heatingStatus} from './autopilot/heating-status';
 import {forecastCorrection} from './autopilot/outdoor';
@@ -1260,6 +1260,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.hotwaterAutopilot?.relearn();
     }
 
+    /** The slots hot water's plan has the compressor, from `from`; undefined while it is off. */
+    hotwaterChargeSlots(from: number, n: number): boolean[] | undefined {
+        return this.hotwaterAutopilot?.chargeSlots(from, n);
+    }
+
     /** For the Flow condition. False while Autopilot hot water is off. */
     hotwaterChargePlannedWithin(hours: number): boolean {
         return this.hotwaterAutopilot?.chargePlannedWithin(hours) ?? false;
@@ -1404,9 +1409,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             sunTrust: () => this.autopilot?.sunReady()
                 ? sunTrust(this.autopilotAway() ? 'save_most' : this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY)) : 0,
             plan: (slot) => {
-                const input = this.autopilot?.liveInputs(slot);
+                const planned = this.autopilot?.liveInputs(slot);
+                if (!planned) return planned;
+                // Hot water goes first: while it has the compressor, the house gets nothing from it.
+                const busy = this.pumpDevices().find((d) => d.role === 'hotwater')?.hotwaterChargeSlots(slot, planned.forecast.length);
+                const input = {...planned, forecast: withHotwater(planned.forecast, busy)};
                 // Solar surplus left for heating after hot water took its share makes those slots cheap.
-                if (!input || this.getSettings().autopilotSolar === false) return input;
+                if (this.getSettings().autopilotSolar === false) return input;
                 return {...input, forecast: surplusPrices(input.forecast, slot, this.solarSurplus().forUser('heating', slot), input.lever)};
             },
             pump: () => this.heatingPumpFacts(),

@@ -12,7 +12,8 @@
 import {ActuatorOutput, PumpThresholds, fedValue} from './actuator';
 import {HouseParams} from './model';
 import {ForecastBias, OutdoorReading, realOutdoor} from './outdoor';
-import {COP, ForecastSlot, Plan, planShift} from './planner';
+import {COP, ForecastSlot, Plan, PumpCurve, planShift} from './planner';
+import {SupplyCurve, curveInputFor} from './curve';
 import {effectivePrice} from './solar-surplus';
 import {Limits, PresetId} from './presets';
 import {slotOf} from './prices';
@@ -73,6 +74,10 @@ export interface ShiftInput {
     forecast: ForecastSlot[];
     /** The previous plan from this slot on: the warm start. */
     previous?: number[];
+    /** The learned heat curve and kW of heat per K of supply (house.ts `pumpFromHistory`): with
+     *  both, a shift moves heat along the curve's real shape, not the lever's straight line. */
+    supply?: SupplyCurve;
+    heatPerSupplyK?: number;
 }
 
 /** How far live plans trust forecast sun, per profile, once the sun term has earned it (house.ts
@@ -82,13 +87,45 @@ export function sunTrust(profile: unknown): number {
     return SUN_TRUST[profile as PresetId] ?? SUN_TRUST[DEFAULT_PROFILE];
 }
 
+/** How the plan models the pump: along the learned curve once it and the emission exist, else
+ *  the lever's straight line. */
+export function livePump(input: ShiftInput): PumpCurve {
+    return input.supply && input.heatPerSupplyK! > 0
+        ? {supply: input.supply, heatPerSupplyK: input.heatPerSupplyK, shiftOnly: true} : {lever: input.lever};
+}
+
+/** The deepest coast that still does something, K: where the learned curve's supply falls to the
+ *  indoor temperature, the pump delivers nothing, so easing off further gains nothing. It comes
+ *  from the owner's own curve, so no curve has to change (S1155, curve 5 offset +6: a fed 29 °C,
+ *  where an 80 °C feed stopped the compressor on 2026-11-13). Only as far as the curve has been
+ *  learned: past its last knot the shape is a guess, and a guessed shape mispredicts the cooling. */
+export function curveCoastDepth(input: ShiftInput): number | undefined {
+    if (!input.supply || !(input.heatPerSupplyK! > 0) || !input.forecast.length) return undefined;
+    const stop = curveInputFor(input.supply, input.mean);
+    if (stop === undefined) return undefined;
+    const reach = Math.min(stop, input.supply.knots[input.supply.knots.length - 1]);
+    return Math.floor(reach - input.forecast[0].te);
+}
+
+/** The profile's limits with the coast deepened to what the curve needs, never made shallower:
+ *  the profile's indoor tolerance, which the planner holds, is the owner's promise, not the shift. */
+export function liveLimits(limits: Limits, input: ShiftInput): Limits {
+    const depth = curveCoastDepth(input);
+    return depth !== undefined && depth > limits.maxCoastBias ? {...limits, maxCoastBias: depth} : limits;
+}
+
 /** The shift-only plan: the curve holds the house (no comfort bias). Forecast sun counts at
  *  `trust`, 0 until the sun term has proven itself on sunny days. */
 export function planLive(input: ShiftInput, limits: Limits = LIVE_LIMITS, trust = 0): Plan {
     const forecast = input.forecast.map((s) => ({te: s.te, sun: s.sun * trust, sunE: (s.sunE ?? 0) * trust,
-        sunW: (s.sunW ?? 0) * trust, price: s.price}));
+        sunW: (s.sunW ?? 0) * trust, price: s.price, busy: s.busy}));
     return planShift(input.house, input.mean, {ti: input.ti, tm: input.tm, curve: input.curve, bias: input.bias},
-        forecast, limits, {lever: input.lever}, input.previous);
+        forecast, limits, livePump(input), input.previous);
+}
+
+/** The forecast with the slots hot water has the compressor marked busy. */
+export function withHotwater(forecast: ForecastSlot[], busy: boolean[] | undefined): ForecastSlot[] {
+    return busy?.some(Boolean) ? forecast.map((s, k) => (busy[k] ? {...s, busy: true} : s)) : forecast;
 }
 
 /** The extra heat a pre-heat on surplus is sized for, K of shift: the electricity it takes is what
@@ -398,8 +435,8 @@ export class HeatingFeed {
     /** Plan the slot; returns why it must wait instead, if it must. */
     private async replan(slot: number): Promise<StopReason | undefined> {
         this.facts = await this.hooks.pump();
-        this.limits = this.hooks.limits();
         const input = this.hooks.plan(slot);
+        this.limits = input ? liveLimits(this.hooks.limits(), input) : this.hooks.limits();
         const wait = stopReason(this.facts, input !== undefined);
         if (wait) return wait;
         this.slotBias = this.bias;

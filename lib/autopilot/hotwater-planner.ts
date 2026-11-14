@@ -14,7 +14,7 @@
  *  forecast error into many short charges at peak prices. Only the next
  *  action is ever taken; the plan is redone every slot. */
 
-import {ChargeModel, DayProfile, KWH_PER_LITRE, StandingLoss, copAt, lossAt} from './hotwater-learner';
+import {ChargeModel, DayProfile, KWH_PER_LITRE, StandingLoss, chargeRate, copAt, lossAt} from './hotwater-learner';
 
 export const SLOT_H = 0.25;
 /** kWh of resolution in stored heat. */
@@ -159,7 +159,15 @@ export function plan(input: PlanInput): Plan {
     const n = slots.length;
     const top = heatAt(tank, input.maxC);
     const levels = Math.max(2, Math.round(top / STEP_KWH) + 1);
-    const heatPerSlot = charge.heatPerHour * SLOT_H;
+    /** Heat a slot of charging adds from `kwh` stored, and the electricity it takes: at the tank's
+     *  own rate, which falls as it fills, so a plan runs as long as a real charge does. */
+    const step = (kwh: number, cap: number) => {
+        const full = chargeRate(charge, kwh) * SLOT_H;
+        const q = Math.max(0, Math.min(full, cap - kwh));
+        const el = charge.kw !== undefined ? charge.kw * SLOT_H * (full > 0 ? q / full : 0)
+            : q / copAt(charge, tempOf(tank, kwh + q));
+        return {q, el};
+    };
     const minRunHeat = heatAt(tank, input.minC);
 
     const floor = reserve;
@@ -179,7 +187,7 @@ export function plan(input: PlanInput): Plan {
         const x = Math.max(0, Math.min(levels - 1, kwh / STEP_KWH)), lo = Math.floor(x), hi = Math.min(levels - 1, lo + 1);
         return v[c * levels + lo] + (v[c * levels + hi] - v[c * levels + lo]) * (x - lo);
     };
-    const kw = charge.heatPerHour / Math.max(1, charge.cop);
+    const kw = charge.kw ?? charge.heatPerHour / Math.max(1, charge.cop);
     /** Heat a draw takes below the floor (all of an unmet draw when the floor is 0). Standing
      *  loss is left out: a tank resting at the floor is not worth a charge at any price to
      *  replace a few hundredths of a kWh, and the rescue handles one that is really under it. */
@@ -192,9 +200,8 @@ export function plan(input: PlanInput): Plan {
         const idle = below(kwh, slot.draw) * SHORTFALL_KR_PER_KWH + value(v, 0, idleAfter);
         let heat = INF, q = 0, el = 0;
         if ((c === 1 || !slot.reserved) && kwh < cap - 1e-9) {
-            q = Math.min(heatPerSlot, cap - kwh);
+            ({q, el} = step(kwh, cap));
             const after = Math.max(0, kwh + q - slot.draw - lost);
-            el = q / copAt(charge, tempOf(tank, kwh + q));
             heat = el * effective(slot, kw).price + (c === 0 ? START_KR : 0)
                 + below(kwh + q, slot.draw) * SHORTFALL_KR_PER_KWH + value(v, 1, after);
         }

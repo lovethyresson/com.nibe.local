@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert';
 import {
-    DEFAULT_LOSS, KWH_PER_LITRE, TankPoint, copAt, readHousehold, starterProfiles, intervals, learn, learnCharge, learnLoss, localClock, lossAt, profileFor,
+    DEFAULT_LOSS, KWH_PER_LITRE, TankPoint, chargeRate, readHousehold, starterProfiles, intervals, learn, learnCharge, learnLoss, localClock, lossAt, profileFor,
 } from '../lib/autopilot/hotwater-learner';
 import {fetchTankInsights, pointsFromInsights, RESOLUTIONS} from '../lib/autopilot/hotwater-insights';
 
@@ -12,7 +12,8 @@ const HOUR = 3_600_000;
 const clock = localClock('UTC');
 const T0 = Date.UTC(2026, 9, 5); // a Monday, 00:00 UTC
 
-/** A simulated tank, hourly: draws by hour, a charge whenever stored heat falls under 3 kWh, a
+/** A simulated tank, hourly: draws by hour, a charge whenever stored heat falls under 3 kWh and a
+ *  night charge from 02:00 under 7 kWh (as Autopilot plans them, with no water running), a
  *  standing loss of `base + perKwh × stored`, and COP falling 0.02 per K of tank top. */
 function simulate(days: number, draw: (day: number, hour: number) => number,
                   opts: {base?: number; perKwh?: number; dayType?: (day: number) => TankPoint['dayType']} = {}) {
@@ -23,7 +24,7 @@ function simulate(days: number, draw: (day: number, hour: number) => number,
         const day = Math.floor(h / 24), hour = h % 24;
         const top = 40 + 2 * s;
         points.push({t: T0 + h * HOUR, litres: s / KWH_PER_LITRE, produced, used, top, dayType: opts.dayType?.(day)});
-        if (s < 3) charging = true;
+        if (s < 1.5 || (hour === 2 && s < 9)) charging = true;
         const q = charging ? Math.min(5.5, 10.5 - s) : 0;
         if (charging && s + q >= 10) charging = false;
         const cop = 3.4 - 0.02 * (top - 40);
@@ -67,14 +68,37 @@ test('standing loss is recovered from quiet nights, including how it grows with 
     assert.deepStrictEqual(learnLoss(points.slice(0, 3), clock), DEFAULT_LOSS, 'too little: the default');
 });
 
-test('a charge model: heat per full hour, COP, and COP falling with tank temperature', () => {
-    const points = simulate(28, (day, hour) => workingDay(hour) + freeDay(hour) * 0.3);
+test('a charge model: the tank\'s own gain per hour of charging, and the electricity it takes', () => {
+    // Night charges with nothing drawn show the rate; charges during draws only ever look slower.
+    const points = simulate(28, (day, hour) => workingDay(hour));
     const charge = learnCharge(intervals(points))!;
-    near(charge.heatPerHour, 5.5, 0.01, 'heat per hour');
+    near(chargeRate(charge, 5), 5.5, 0.3, 'tank gain per hour');
+    near(charge.producedPerHour!, 5.5, 0.01, 'heat counter per hour');
     assert.ok(charge.cop > 2.5 && charge.cop < 3.4, `COP ${charge.cop}`);
-    assert.ok(charge.copPerK < 0, 'COP falls as the tank gets hotter');
-    assert.ok(copAt(charge, 60) < copAt(charge, 45));
     assert.strictEqual(learnCharge([]), undefined);
+});
+
+test('the heat counter times how long a charge ran; the tank says what it stored, and the rest is no draw', () => {
+    // The counter books 6 kWh an hour whatever the tank takes; the tank gains 6 kWh/h half empty and
+    // under 2 near full. No water runs during the charges, so no draw may be booked.
+    const points: TankPoint[] = [];
+    let s = 2, produced = 0, used = 0;
+    for (let h = 0; h < 24 * 14; h++) {
+        const hour = h % 24, charging = hour >= 2 && hour < 6;
+        points.push({t: T0 + h * HOUR, litres: s / KWH_PER_LITRE, produced, used, top: 40 + 2 * s});
+        if (charging) { s = Math.min(10.5, s + Math.max(0.5, 6 - 0.6 * Math.max(0, s - 4))); produced += 6; used += 2; }
+        if (hour === 19) s = Math.max(0.5, s - 6);
+        s = Math.max(0.2, s - 0.05);
+    }
+    const charge = learnCharge(intervals(points))!;
+    assert.ok(chargeRate(charge, 9) < chargeRate(charge, 3) - 1, `slower when fuller: ${chargeRate(charge, 3)} → ${chargeRate(charge, 9)}`);
+    near(charge.kw!, 2, 0.01, 'electricity while charging');
+    const night = intervals(points, DEFAULT_LOSS, charge).filter((i) => clock(i.start).hour >= 2 && clock(i.start).hour < 6);
+    const booked = night.filter((i) => Number.isFinite(i.draw)).reduce((sum, i) => sum + i.draw, 0);
+    assert.ok(booked < 0.1 * night.length, `night charges book ${booked} kWh drawn`);
+    const old = intervals(points).filter((i) => clock(i.start).hour >= 2 && clock(i.start).hour < 6 && Number.isFinite(i.draw))
+        .reduce((sum, i) => sum + i.draw, 0);
+    assert.ok(old > 5 * Math.max(booked, 1), `the counter alone books ${old} kWh`);
 });
 
 test('working and free days learn their own shapes; the pooled profile covers unset days', () => {

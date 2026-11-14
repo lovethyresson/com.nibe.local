@@ -8,7 +8,7 @@
  *  price fetch moves to the home service and the tank fields to the per-pump history. */
 import {withApi} from '../indoor-sensors';
 import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, normalisePrices, slotOf} from './prices';
-import {DayDraw, DayProfile, DayType, HotwaterModel, Household, KWH_PER_LITRE, LocalClock, learn, localClock, lossAt, profileFor} from './hotwater-learner';
+import {DayDraw, DayProfile, DayType, HotwaterModel, Household, KWH_PER_LITRE, LocalClock, chargeRate, learn, localClock, lossAt, profileFor} from './hotwater-learner';
 import {TankCapabilities, fetchTankInsights, pointsFromInsights} from './hotwater-insights';
 import {DEFAULT_RESERVE_LITRES, Plan, SLOT_H, TankSpec, drawsFor, plan, reserveKwh} from './hotwater-planner';
 import {appendLine, deleteHistory, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
@@ -16,11 +16,12 @@ import {DEFAULT_DAY_TYPE, DayTypeState, dayTypeAt} from './day-type';
 import {PumpFacts, countFor, leverDecision} from './hotwater-lever';
 
 const HOUR = 3_600_000;
-/** Lowest and highest target the shadow plans with (doc §4.2). The ceiling will come from the
- *  register range and the learned compressor ceiling; until then the highest a compressor reaches
- *  without the immersion on most S-series pumps. */
+/** Lowest and highest target the shadow plans with (doc §4.2). The highest is under where the
+ *  compressor gives up: on the S1155 it stops near 58 °C (alarm 216 or 382) and the immersion
+ *  heater finishes the rest at a third of the COP (docs/hot-water-heat-accounting.md). Below that
+ *  the learned rate (hotwater-learner.ts `chargeRate`) already makes the last degrees slow and dear. */
 export const MIN_C = 45;
-export const MAX_C = 60;
+export const MAX_C = 58;
 /** A plan needs at least two hours of known prices. */
 export const MIN_HORIZON = 8;
 /** Local hour the morning plan is sent. */
@@ -654,6 +655,14 @@ export class HotwaterAutopilot {
         return this.model?.days;
     }
 
+    /** For each of `n` slots from `from`, whether the plan in force has a charge running then: the
+     *  compressor is on hot water, so heating's plan expects no heat from it (live.ts). */
+    chargeSlots(from: number, n: number): boolean[] {
+        const charges = this.morningPlan?.charges ?? [];
+        return Array.from({length: n}, (_, k) => charges.some((c) => (from + k) * SLOT_MS < c.at + c.minutes * 60_000
+            && (from + k + 1) * SLOT_MS > c.at));
+    }
+
     chargePlannedWithin(hours: number): boolean {
         const last = this.last;
         if (!last || last.slot < slotOf(Date.now()) - 1) return false;
@@ -711,7 +720,8 @@ export class HotwaterAutopilot {
         this.log(`Autopilot hot water: learned from ${points.length} readings over ${model.days} days: `
             + `${any ? `${round(any.daily, 1)} kWh heat a day (p80 ${round(any.dailyP80, 1)})` : 'no day profile'}, `
             + `${typed ? `own profiles for ${typed} days, ` : ''}`
-            + `${c ? `COP ${round(c.cop)} at ${round(c.atTop, 0)} °C, ${round(c.heatPerHour, 1)} kWh/h` : 'no charge model'}, `
+            + `${c ? `tank COP ${round(c.cop)}, ${round(chargeRate(c, 2), 1)} kWh/h near empty to ${round(chargeRate(c, 9), 1)} near full, `
+                + `${round(c.kw ?? NaN, 1)} kW` : 'no charge model'}, `
             + `loss ${round(model.loss.base, 3)} + ${round(model.loss.perKwh, 3)}/kWh an hour (${Date.now() - started} ms).`);
         await saveJson(modelFileName(this.fileName), {at: new Date(started).toISOString(), model});
     }

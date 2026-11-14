@@ -15,7 +15,7 @@ import {readFileSync, readdirSync} from 'fs';
 import {join} from 'path';
 import {intervals, learn, localClock, profileFor} from '../lib/autopilot/hotwater-learner.ts';
 import {pointsFromInsights, RESOLUTIONS} from '../lib/autopilot/hotwater-insights.ts';
-import {copAt} from '../lib/autopilot/hotwater-learner.ts';
+import {chargeRate, copAt} from '../lib/autopilot/hotwater-learner.ts';
 import {SLOT_H, drawsFor, heatAt, plan, reserveKwh, tempOf} from '../lib/autopilot/hotwater-planner.ts';
 
 const argv = process.argv.slice(2);
@@ -25,7 +25,7 @@ const tz = flag('tz', 'Europe/Stockholm');
 const clock = localClock(tz);
 const formula = new Function('x', `return ${flag('formula', '(x+0.609)*1.25')};`);
 const reserve = reserveKwh(Number(flag('reserve', 40)));
-const minC = Number(flag('min', 45)), maxC = Number(flag('max', 60));
+const minC = Number(flag('min', 45)), maxC = Number(flag('max', 58));
 const SLOT = 15 * 60_000, HOUR = 3_600_000;
 const slotOf = (ms) => Math.floor(ms / SLOT);
 
@@ -49,8 +49,12 @@ for (const file of readdirSync(flag('prices')).filter((f) => f.endsWith('.json')
 }
 
 // The truth: hourly draws from the whole record, the tank and pump from the whole record's model.
+// A charge fills the tank at the rate the tank itself showed (hotwater-learner.ts `chargeRate`), not
+// at the pump's heat counter, which counts heat the tank never gets
+// (docs/hot-water-heat-accounting.md); otherwise the back-test only checks the planner against its
+// own assumption.
 const truthModel = learn(points, clock, points[points.length - 1].t);
-const hourly = intervals(points.filter((p, k, a) => k > 0 && p.t - a[k - 1].t <= HOUR * 1.01 || (a[k + 1] && a[k + 1].t - p.t <= HOUR * 1.01)), truthModel.loss)
+const hourly = intervals(points.filter((p, k, a) => k > 0 && p.t - a[k - 1].t <= HOUR * 1.01 || (a[k + 1] && a[k + 1].t - p.t <= HOUR * 1.01)), truthModel.loss, truthModel.charge)
     .filter((i) => i.hours <= 1.01 && Number.isFinite(i.draw));
 const drawBySlot = new Map();
 for (const i of hourly) for (let q = 0; q < 4; q++) drawBySlot.set(slotOf(i.start) + q, i.draw / 4);
@@ -65,7 +69,7 @@ const startStored = (() => { const p = points.find((x) => x.t >= days[0] * SLOT 
 /** One simulated pump: `decide(slot, stored)` returns a target °C to start a charge (or
  *  {target, slots} for a boost that also expires), or undefined. */
 function simulate(decide) {
-    let stored = startStored, target, until, cost = 0, el = 0, charges = 0, below = 0, targets = 0;
+    let stored = startStored, target, until, cost = 0, el = 0, charges = 0, below = 0, targets = 0, runSlots = 0;
     for (const day of days) for (let s = day; s < day + 96; s++) {
         if (target === undefined) {
             const d = decide(s, stored);
@@ -75,16 +79,18 @@ function simulate(decide) {
             }
         }
         if (target !== undefined) {
-            const q = Math.min(charge.heatPerHour * SLOT_H, heatAt(tank, target) - stored);
-            const e = q / copAt(charge, tempOf(tank, stored + q));
-            stored += q; el += e; cost += e * price.get(s);
+            const full = chargeRate(charge, stored) * SLOT_H;
+            const q = Math.min(full, heatAt(tank, target) - stored);
+            const e = charge.kw !== undefined ? charge.kw * SLOT_H * q / full : q / copAt(charge, tempOf(tank, stored + q));
+            stored += q; el += e; cost += e * price.get(s); runSlots++;
             if (stored >= heatAt(tank, target) - 1e-6 || s + 1 >= until) target = undefined;
         }
         stored = Math.max(0, stored - drawBySlot.get(s) - (loss.base + loss.perKwh * stored) * SLOT_H);
         if (stored < reserve) below++;
     }
     const n = days.length;
-    return {krDay: cost / n, elDay: el / n, chargesDay: charges / n, meanTarget: charges ? targets / charges : NaN, below};
+    return {krDay: cost / n, elDay: el / n, chargesDay: charges / n, meanTarget: charges ? targets / charges : NaN, below,
+        runH: charges ? runSlots * SLOT_H / charges : NaN};
 }
 
 // Model relearned each midnight from readings before it.
@@ -150,8 +156,20 @@ const flow = (s, stored) => {
     return undefined;
 };
 
+// Real charges in the record: runs of hours the heat counter moved at charging pace.
+const realRuns = [];
+{
+    let run = 0;
+    const hours = intervals(points).filter((i) => i.hours <= 1.01);
+    for (const i of hours) {
+        const ran = Math.min(1, i.produced / (truthModel.charge?.producedPerHour ?? 6));
+        if (ran > 0.1) run += ran; else if (run) { realRuns.push(run); run = 0; }
+    }
+}
+const realRunH = realRuns.filter((h) => h >= 0.5);
 const rows = [
-    ['Owner\'s setup, as it ran', {krDay: actualCost / days.length, elDay: actualEl / days.length}],
+    ['Owner\'s setup, as it ran', {krDay: actualCost / days.length, elDay: actualEl / days.length,
+        runH: realRunH.reduce((a, b) => a + b, 0) / realRunH.length}],
     ['Owner\'s Flow, simulated', simulate(flow)],
     ['Pump alone (start 42 °C, stop 50 °C)', simulate((s, stored) => tempOf(tank, stored) < 42 ? 50 : undefined)],
     ['Planner, learned profile', simulate(planner(false))],
@@ -160,9 +178,9 @@ const rows = [
 const r = (v, d = 2) => Number.isFinite(v) ? v.toFixed(d) : '–';
 console.log(`${days.length} days, ${clock(days[0] * SLOT).date} to ${clock((days[days.length - 1] + 95) * SLOT).date};`
     + ` reserve ${r(reserve, 1)} kWh; day types: ${has('weekends-free') ? 'weekends free' : 'none'}`);
-console.log('strategy'.padEnd(40) + 'kr/day  kr/month  kWh el/day  charges/day  mean target  slots below reserve');
+console.log('strategy'.padEnd(40) + 'kr/day  kr/month  kWh el/day  charges/day  mean target  slots below reserve  h/charge');
 const base = rows[0][1].krDay;
 for (const [name, x] of rows)
     console.log(name.padEnd(40) + r(x.krDay).padStart(6) + r(x.krDay * 30, 0).padStart(10) + r(x.elDay).padStart(12)
         + r(x.chargesDay, 1).padStart(13) + (Number.isFinite(x.meanTarget) ? r(x.meanTarget, 0) + ' °C' : '–').padStart(13)
-        + String(x.below ?? '–').padStart(21) + `   ${r((x.krDay / base - 1) * 100, 0)} %`);
+        + String(x.below ?? '–').padStart(21) + r(x.runH, 1).padStart(10) + `   ${r((x.krDay / base - 1) * 100, 0)} %`);

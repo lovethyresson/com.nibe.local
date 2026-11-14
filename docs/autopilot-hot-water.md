@@ -149,8 +149,12 @@ S1155.
   has picked a tank size, otherwise from BT6/BT7 and a tank size learned from full charges.
 - **Draw per 15 min:** the tank balance in §2.2. Standing loss is learned from draw-free nights
   (stored heat falling slowly with no charge running), as a function of tank temperature.
-- **Charge model:** heat per hour and COP against the tank temperature, from the hot water
-  produced and consumed meters during charges. This prices charging a fuller or emptier tank.
+- **Charge model (revised 2026-11-14):** what the tank itself gains per hour of charging, as a
+  falling line in the heat already stored, plus the compressor's electricity while it runs. The
+  heat counter (1575) only times the charge: it books about 6 kWh an hour whatever the tank takes,
+  so from 1575 a charge looked twice as fast as it is and its unstored heat was booked as water
+  drawn (`docs/hot-water-heat-accounting.md`). On the S1155: 6.5 kWh/h up to half full, 3.3 at
+  9 kWh stored, 1.9 near full; 2.3 kW; tank COP about 2.
 - **Day type comes from the owner, through a Flow or by hand.** The **main device** (it serves every
   function, as ventilation does since 1.4.7) gets one picker, *Day type*: working, free or away.
   It is household state, so heating Autopilot reads the same value: its away mode (plan §19.2)
