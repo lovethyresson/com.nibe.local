@@ -64,7 +64,9 @@ Away temperature, so the house cools to that. A small steady offset is corrected
 few days. With Comfort range Off it neither shifts nor steers.
 
 Room-sensor control on the heat pump must stay off, because Autopilot does that job itself. Your
-Homey sensors are then only read, never sent to the heat pump as BT50: in **Heating → Repair →
+Homey sensors are what Autopilot regulates on; they are still sent as BT50 while the heat pump has
+an external BT50 enabled (menu 7.5.9.2), or it raises a BT50 sensor fault (alarm 153), but with
+room-sensor control off it only shows them: in **Heating → Repair →
 Heating setup**, Autopilot asks which indoor temperature to hold (the heat pump's own sensor, or
 Homey sensors) right after Smart mode.
 
