@@ -1015,13 +1015,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             this.copUsed = this.cumulativeEnergy;
             await this.loadCopAccumulator();
         }
-        // Restore the measured tank. The cycles themselves are persisted, so a restart costs the
-        // estimate nothing — unlike the COP numerator, which deliberately cannot carry across one.
-        // The distinction is that a cycle is a completed, self-contained measurement, whereas the
-        // COP accumulator is an open integral against a counter that keeps running while the app
-        // is down.
-        if (this.role === 'hotwater' && this.profile.hotwaterTank)
-            this.publishTankState();
         // Re-render the alarm line from the stored log. It is otherwise written only when a NEW
         // alarm arrives, so a device that has been quiet for weeks keeps whatever format it was
         // last written in — and a change to renderAlarmLine would never reach it.
@@ -1042,6 +1035,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             // waiting on an answer, so unlike applySelection() this does not escalate them.
             await this.syncCapabilities();
             this.capabilitiesSynced = true;
+            // The learned inlet, once the capability exists: on the first start after an update
+            // that adds it, it does only now.
+            if (this.role === 'hotwater' && this.profile.hotwaterTank)
+                this.publishTankState();
             this.debug(`Device capabilities synced:${this.getCapabilities().length} — `
                 + this.getCapabilities().join(', '));
 
