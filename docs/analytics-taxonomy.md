@@ -65,6 +65,13 @@ driver hosts both the grid sensor and solar sensors paired before solar got its 
 | `Lost Connection` | both | `cause`; `dead_polls`⁴ (nibe); `role` (homevolt)⁷ |
 | `Restored Connection` | homevolt | `role`⁷ |
 | `Raised Alarm` | both | `code` (nibe); `role`, `op_state` (homevolt)⁵ |
+| `Changed Smart Mode` | nibe | `role`, `smart_mode`, `from_smart_mode` |
+| `Changed Autopilot Setting` | nibe | `role`, `setting`; `setting_value`⁸ |
+| `Changed Day Type` | nibe | `day_type`, `source` |
+| `Started Hot Water Charge` | nibe | `started_by`, `simulation`; `charge_reason`⁹ |
+| `Blocked Autopilot` | nibe | `role`, `blocked_by`, `simulation` |
+| `Changed Autopilot State` | nibe | `role`, `state`, `simulation` |
+| `Scored Autopilot Day` | nibe | `role`, `simulation`; hot water: `use_vs_expected`, `fell_below_net`, `ran_cold`, `charges_autopilot`, `charges_device`, `price_vs_day_mean`, `solar_share`; heating: `indoor_off_target`, `hours_outside_range`, `forecast_error`¹⁰ |
 
 ¹ `result` is present only on success. When the listener throws, `ok: false` and no `result` — nothing
 was evaluated. Intentional in both apps.
@@ -78,6 +85,15 @@ homevolt any of the three roles can report an unrecognised operating state.
 homevolt each device polls and tracks its own reachability, so the failure *has* a role. In nibe the
 event comes from `PumpConnection`, which is shared per host and is not a Homey device at all — there
 is no role at that layer to report, and inventing one would be a lie.
+⁸ Absent for `setting: 'away_temperature'`, a setpoint: only the change is sent.
+⁹ Only with `started_by: 'autopilot'`.
+¹⁰ Once a day per function, and only for a day watched at least 20 h. A property that cannot be
+worked out that day is absent, not zero.
+
+**Autopilot events are edge-triggered** (rule 4): a setting only when its value changed, a block
+once per reason, a state once per change. In-memory edges mean an app restart re-tells the current
+state once. `Scored Autopilot Day` is the one daily event: ratios against the home's own
+expectation, never an amount or a time (rule 5).
 
 **Not instrumented, deliberately:** Flow *trigger* run listeners. Homey calls them once per
 subscribed Flow, so wrapping them counts subscriptions rather than fires. Homevolt's one trigger
@@ -114,6 +130,21 @@ so it has no listener at all.
 | `op_state` | **string** | firmware operating state the app does not recognise | homevolt |
 | `view` | string | which of the app's own web views | nibe |
 | `button` | string | which button | nibe |
+| `smart_mode`, `from_smart_mode` | string | `off`, `spa`, `simulation`, `autopilot` — the internal `test` is sent as `simulation` | nibe |
+| `simulation` | boolean | Autopilot ran as a simulation: it planned and reported but wrote nothing | nibe |
+| `setting` | string | `reserve`, `solar_live`, `solar_forecast`, `comfort_range`, `away_temperature`, `household`, `outdoor_sensor` | nibe |
+| `setting_value` | string | `reserve`: `off`, `20`, `40`, `60`, `other`; `comfort_range`: `off`, `comfortable`, `save_some`, `save_most`; the rest: `on`, `off` | nibe |
+| `day_type` | string | `working`, `free`, `away` — the type in force after the change | nibe |
+| `source` | string | `flow`, `device`, `away` — what changed the day type | nibe |
+| `started_by` | string | `autopilot`, `device` | nibe |
+| `charge_reason` | string | `cheap`, `before_use`, `reserve`, `surplus` | nibe |
+| `blocked_by` | string | `spa_on`, `hot_water_off`, `smart_control`, `daily_limit`, `no_prices`, `room_control`, `immersion_only`, `cooling`, `no_outdoor`, `feed_failed` | nibe |
+| `state` | string | `learning`, `holding`, `preheating`, `easing_off`, `paused`, `off` — Autopilot heating's status | nibe |
+| `use_vs_expected`, `price_vs_day_mean` | string | `<0.5`, `0.5-0.8`, `0.8-1.25`, `1.25-2`, `>2` | nibe |
+| `indoor_off_target`, `forecast_error` | string | `<0.3`, `0.3-0.7`, `0.7-1.5`, `>1.5` (K, mean absolute) | nibe |
+| `solar_share` | string | `0`, `<50%`, `>=50%` | nibe |
+| `fell_below_net`, `ran_cold` | boolean | tank under the safety net / top under 40 °C that day | nibe |
+| `charges_autopilot`, `charges_device`, `hours_outside_range` | number | small daily counts | nibe |
 
 `code` and `op_state` are separate names on purpose: one is a number, one a free-form string, and one
 property cannot usefully be both.
@@ -124,7 +155,8 @@ denominator so it matches the value actually sent; tightening it would change a 
 
 **Removed:** `prompt_version` (an Amplitude setup-wizard marker, no product meaning) and `reason` on
 `Lost Connection` (raw `Error.message` — unbounded, and near-constant in practice since the fetch
-helper returns `null` and loses the underlying cause before the event is built).
+helper returns `null` and loses the underlying cause before the event is built). **`reason` stays
+retired**: its free-text values are still in Amplitude, so a charge's reason is `charge_reason`.
 
 ## User properties
 
@@ -150,6 +182,10 @@ once collapse into one call.
 | `rated_capacity_kwh` | number | summed pack capacity | homevolt |
 | `rated_power_w` | number | summed inverter rated power | homevolt |
 | `control_mode` | string | `homey`, `partner` | homevolt |
+| `smart_mode_heating`, `smart_mode_hotwater` | string | same values as `smart_mode` | nibe |
+| `autopilot_reserve` | string | same values as `setting_value` for `reserve` | nibe |
+| `solar_live`, `solar_forecast` | boolean | the home's two solar switches | nibe |
+| `day_type_source` | string | `calendar`, `set` | nibe |
 
 `timezone` is the country signal; `language` is locale and must not be read as location. Model and
 firmware codes are sent **raw**, never mapped to marketing names — the mapping varies by firmware and

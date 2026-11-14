@@ -7,13 +7,14 @@ import {FlowConflict, moreHotwaterFlows} from './autopilot/hotwater-flows';
 import {STARTER_DAYS, localClock, readHousehold} from './autopilot/hotwater-learner';
 import {DAY_TYPE_SETTING, DEFAULT_DAY_TYPE, DayTypeState, dayTypeAt, readDayType, typeSet} from './autopilot/day-type';
 import {Sample} from './autopilot/history';
-import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits, sunTrust, surplusPrices, withHotwater} from './autopilot/live';
+import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, StopReason, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits, sunTrust, surplusPrices, withHotwater} from './autopilot/live';
 import {AUTOPILOT_FUNCTIONS, SMART_MODE_STORE, SmartFunction, SmartMode, autopilotRuns, shownSmartMode, smartMode, smartModeWrites, spaOn} from './autopilot/smart-mode';
 import {HeatingStatus, heatingStatus} from './autopilot/heating-status';
 import {forecastCorrection} from './autopilot/outdoor';
 import {AHEAD_SLOTS, BACK_SLOTS, HOTWATER_SLOTS, WidgetData, heatingSlots, ticks} from './autopilot/widget';
 import {HotwaterUseData, hotwaterWeek} from './autopilot/hotwater-use';
-import {slotOf} from './autopilot/prices';
+import {SLOT_MS, slotOf} from './autopilot/prices';
+import {Edge, FORECAST_SLOTS, BlockedBy, HeatingDay, analyticsSmartMode, heatingBlock, reserveBucket} from './autopilot/analytics';
 import {SOLAR_SETTING, SolarSurplus, readSolarAnswer, solarOn} from './autopilot/solar-surplus';
 import {Device} from 'homey';
 import net from 'net';
@@ -77,6 +78,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     // The heating Smart mode as a feed mode, as last applied (syncHeatingFeed).
     private heatingMode: LiveMode = 'off';
     private heatingStatusShown?: HeatingStatus;
+    /** Analytics, edge-triggered: the heating status and block last reported, and heating's day. */
+    private heatingStateTold = new Edge<HeatingStatus>();
+    private heatingBlockTold = new Edge<BlockedBy | undefined>();
+    private heatingDay = new HeatingDay();
     // Hosts whose SPA switches Smart mode is writing right now, so its own writes are not taken
     // for the pump (or the owner) turning SPA on.
     private static smartWriting = new Set<string>();
@@ -1102,11 +1107,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             if (this.role === 'heating' && this.profile.autopilotFeed) {
                 this.registerCapabilityListener(AUTOPILOT_RANGE_CAPABILITY, async (value) => {
                     this.log(`Comfort range set to ${value}`);
+                    this.trackSetting('comfort_range', String(value), this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY));
                     this.heatingFeed?.replanSoon();
                 });
                 this.registerCapabilityListener(AUTOPILOT_AWAY_CAPABILITY, async (value) => this.setAutopilotAway(value === true));
                 this.registerCapabilityListener(AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY, async (value) => {
                     this.log(`Away temperature set to ${value}`);
+                    // A temperature is a setpoint: only that it changed is told, never to what.
+                    if (value !== this.getCapabilityValue(AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY)) this.trackSetting('away_temperature');
                     if (this.autopilotAway()) await this.setThermostat(Number(value));
                 });
                 await this.initAutopilotControls();
@@ -1259,7 +1267,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     /** Setup's answers for a home with a short history: stored, and learned from at once. */
     /** "Always keep at least", litres: the stored choice, else the old setting, else 40. */
-    private reserveLitres(): number {
+    reserveLitres(): number {
         for (const raw of [this.getStoreValue(RESERVE_STORE), this.getSettings().autopilotReserve]) {
             const v = Number(raw);
             if (raw !== null && raw !== undefined && Number.isFinite(v) && v >= 0 && v <= MAX_RESERVE_LITRES) return v;
@@ -1274,6 +1282,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (litres === this.getStoreValue(RESERVE_STORE)) return;
         await this.setStoreValue(RESERVE_STORE, litres);
         this.log(`Autopilot hot water: always keep at least ${litres} L`);
+        this.trackSetting('reserve', reserveBucket(litres));
+        (this.driver as any).syncInstallProfile?.();
     }
 
     /** One-off: the old setting's value becomes the stored choice, so the move loses nothing. */
@@ -1287,6 +1297,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     async setHousehold(raw: any) {
         const household = raw == null ? undefined : readHousehold(raw);
         if (raw != null && !household) throw new Error(this.homey.__('pair.setup.smart.household_invalid'));
+        // Only whether the household was answered or cleared: the answers are the home's.
+        if (!!household !== !!readHousehold(this.getStoreValue(HOUSEHOLD_STORE))) this.trackSetting('household', household ? 'on' : 'off');
         await this.setStoreValue(HOUSEHOLD_STORE, household ?? null);
         this.log(`Autopilot hot water household: ${household ? JSON.stringify(household) : 'cleared'}`);
         this.hotwaterAutopilot?.relearn();
@@ -1368,6 +1380,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 (text ? this.setWarning(text) : this.unsetWarning()).catch(this.error);
             },
             household: () => readHousehold(this.getStoreValue(HOUSEHOLD_STORE)),
+            track: (event, properties) => track(event, properties),
             status: (text) => {
                 if (this.hasCapability(AUTOPILOT_REASON_CAPABILITY) && this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) !== text)
                     this.setCapabilityValue(AUTOPILOT_REASON_CAPABILITY, text).catch(this.error);
@@ -1442,6 +1455,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             plan: (slot) => {
                 const planned = this.autopilot?.liveInputs(slot);
                 if (!planned) return planned;
+                this.scoreHeatingSlot(slot, planned.ti);
                 // Hot water goes first: while it has the compressor, the house gets nothing from it.
                 const busy = this.pumpDevices().find((d) => d.role === 'hotwater')?.hotwaterChargeSlots(slot, planned.forecast.length);
                 const input = {...planned, forecast: withHotwater(planned.forecast, busy)};
@@ -1562,6 +1576,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         await set(AUTOPILOT_FED_CAPABILITY, feeding ? Math.round(state.fed! * 10) / 10 : null);
         // What BT1 is fed minus the real outdoor temperature: below 0, the pump sees it colder and heats more.
         await set(AUTOPILOT_SHIFT_CAPABILITY, feeding ? Math.round(-state.bias * 10) / 10 + 0 : 0);
+        this.trackHeating(status, state.stopped);
+        const predicted = state.indoor?.[FORECAST_SLOTS - 1];
+        if (state.slot !== undefined && predicted !== undefined) this.heatingDay.predict(state.slot, predicted);
         const before = this.heatingStatusShown;
         this.heatingStatusShown = status;
         if (before === undefined || before === status) return;
@@ -1572,6 +1589,31 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 : before === 'learning' && status !== 'off' ? 'timeline.learned' : undefined;
         if (line) this.homey.notifications.createNotification({excerpt: this.homey.__(`autopilot.heating.${line}`, {reason})})
             .catch(this.error);
+    }
+
+    /** Analytics: heating's status and what blocks it, each once per change. */
+    private trackHeating(status: HeatingStatus, stopped: StopReason | undefined) {
+        const simulation = this.heatingMode === 'test';
+        if (this.heatingStateTold.changed(status)) track('Changed Autopilot State', {role: 'heating', state: status, simulation});
+        const block = heatingBlock(stopped);
+        if (this.heatingBlockTold.changed(block) && block) track('Blocked Autopilot', {role: 'heating', blocked_by: block, simulation});
+    }
+
+    /** Analytics: one slot of heating's day against comfort; the day before is sent when a new
+     *  one starts. The range is the one the plan works inside. */
+    private scoreHeatingSlot(slot: number, ti: number) {
+        const limits = profileLimits(this.autopilotAway() ? 'save_most' : this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY));
+        const score = this.heatingDay.observe({slot, date: localClock(this.homey.clock.getTimezone())(slot * SLOT_MS).date, ti,
+            comfort: Number(this.getCapabilityValue('target_temperature')), lower: limits.lower, upper: limits.upper,
+            simulation: this.heatingMode === 'test'});
+        if (score) track('Scored Autopilot Day', score);
+    }
+
+    /** Analytics: an Autopilot setting changed, with a bounded value (never a reading or a setpoint).
+     *  With `from`, nothing is told when the value did not change. */
+    trackSetting(setting: string, value?: string, from?: unknown) {
+        if (value !== undefined && from !== undefined && String(from) === value) return;
+        track('Changed Autopilot Setting', {role: this.role, setting, ...value === undefined ? {} : {setting_value: value}});
     }
 
     private surplusService?: SolarSurplus;
@@ -1603,9 +1645,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     /** Store this function's Smart mode and apply it on every device of the pump: Main's day type
      *  follows hot water's. */
     private async storeSmartMode(mode: SmartMode) {
-        if (this.smartMode() !== mode) {
+        const from = this.smartMode();
+        if (from !== mode) {
             await this.setStoreValue(SMART_MODE_STORE, mode);
             this.log(`Smart mode: ${this.role} = ${mode}`);
+            track('Changed Smart Mode', {role: this.role, smart_mode: analyticsSmartMode(mode), from_smart_mode: analyticsSmartMode(from)});
+            (this.driver as any).syncInstallProfile?.();
         }
         // Leaving Autopilot while Away: the thermostat goes back before its controls do. The home
         // stays away: hot water keeps following it.
@@ -1757,7 +1802,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     async setAutopilotProfile(profile: string) {
         if (!this.hasCapability(AUTOPILOT_RANGE_CAPABILITY)) throw new Error(this.homey.__('autopilot.heating.not_on'));
+        const from = this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY);
         await this.setCapabilityValue(AUTOPILOT_RANGE_CAPABILITY, profile);
+        this.trackSetting('comfort_range', String(profile), from);
         this.log(`Comfort range set to ${profile}.`);
         this.heatingFeed?.replanSoon();
     }

@@ -27,8 +27,10 @@ So the questions the telemetry exists to answer are narrow and specific:
 2. **Which of the six function devices do people actually create?** (`roles`)
 3. **Which feature groups within each function?** (`features_<role>`)
 4. **Where does setup fail on hardware the maintainer cannot test?** (`Completed Detection`, `Clicked Button`)
+5. **Does Autopilot work in homes the maintainer cannot test?** How owners set it up, how often it
+   acts or is blocked, and how well its plan matched the day (see [Autopilot](#autopilot) below).
 
-Everything else in the event list earns its place by serving one of those four. This is not engagement
+Everything else in the event list earns its place by serving one of those five. This is not engagement
 analytics, and it should not grow into it.
 
 ## Consent — the part that matters
@@ -259,6 +261,76 @@ would collide with a real and different measurement (a pass that *completed* and
 the two paths in a chart by whether `registers_responded` is set. The error message is never sent — it is
 unbounded free text.
 
+## Autopilot
+
+Autopilot is the app's own planner for heating and hot water, and the part of the app that most
+needs evidence from homes other than the maintainer's: one house and one tank cannot say whether a
+plan holds in a bigger house, a smaller tank or a family of six. Seven events, all edge-triggered:
+none fires on the 30 s feed cycle or the 15-min slot timer unless something changed.
+
+`simulation` (boolean) is on every event an Autopilot run causes: the Smart mode internally called
+`test` is "Simulation" to the owner, and analytics uses that word everywhere — `smart_mode: 'simulation'`
+— never `test` or `test_run`. A simulation plans and reports but writes nothing, so its events are
+what Autopilot *would* have done.
+
+| Event | Fires when | Properties | Call site |
+| --- | --- | --- | --- |
+| `Changed Smart Mode` | A function's stored Smart mode changes: Repair, Verify, or SPA switched on at the pump taking over | `role`, `smart_mode`, `from_smart_mode` | [`lib/device.ts`](../lib/device.ts) `storeSmartMode()` |
+| `Changed Autopilot Setting` | An Autopilot setting changes value | `role`, `setting`; `setting_value`¹ | `setReserve()`, `setHousehold()`, the Comfort range and Away temperature listeners and `setAutopilotProfile()` in [`lib/device.ts`](../lib/device.ts); `solar_save` and `set_outdoor_sensor` in [`lib/driver.ts`](../lib/driver.ts) |
+| `Changed Day Type` | A day-type change is logged — not a nightly Flow setting what is already set | `day_type`, `source` | [`lib/driver.ts`](../lib/driver.ts) `storeDayType()` |
+| `Started Hot Water Charge` | A charge starts: one Autopilot started (in a simulation, would have), or one your device started itself | `started_by`, `simulation`; `charge_reason`² | [`lib/autopilot/hotwater-shadow.ts`](../lib/autopilot/hotwater-shadow.ts) `chargeStarted()` |
+| `Blocked Autopilot` | Something outside Autopilot stops it acting, once per reason | `role`, `blocked_by`, `simulation` | hot water: `startCharge()` (the lever) and `step()` (no prices) in `hotwater-shadow.ts`; heating: `trackHeating()` in [`lib/device.ts`](../lib/device.ts) |
+| `Changed Autopilot State` | Heating's status changes | `role`, `state`, `simulation` | [`lib/device.ts`](../lib/device.ts) `trackHeating()`, from `showHeatingStatus()` |
+| `Scored Autopilot Day` | Once a day per function: see below | see below | hot water: `scoreDay()` with the morning message; heating: `scoreHeatingSlot()` when a new local day starts |
+
+¹ `setting` → `setting_value`: `reserve` → `off`/`20`/`40`/`60`/`other`; `solar_live`, `solar_forecast`,
+`household` (answered or cleared), `outdoor_sensor` (a sensor chosen or cleared) → `on`/`off`;
+`comfort_range` → the profile id (`off`, `comfortable`, `save_some`, `save_most`). `away_temperature`
+carries **no** `setting_value`: it is a setpoint, so only the fact that it changed is sent. The
+household's answers and which sensor was picked are never sent.
+² `charge_reason` (`cheap`, `before_use`, `reserve`, `surplus`) only with `started_by: 'autopilot'`. A
+charge your device started has no Autopilot reason to give. Not `reason`: that name was removed from
+`Lost Connection`, where it carried raw error text, and the old values are still in Amplitude.
+
+`blocked_by` covers hot water's lever (`hot_water_off`, `spa_on`, `smart_control`, `daily_limit`),
+a plan with no prices (`no_prices`), and heating's waits (`spa_on`, `room_control`, `immersion_only`,
+`cooling`, `no_outdoor`, `feed_failed`). Heating's `no_model` is learning, which is a `state`, and
+`mode_off` is the owner's choice, so neither is a block. A skip that is not a block (the tank already
+hot enough) leaves the last block standing; a successful start clears it, so the next block is told again.
+
+**Edges and restarts.** Each edge is kept in memory, so an app restart tells the current heating
+`state` (and a standing block) once more. That is one event per restart, and it is a true statement
+of the state at that moment.
+
+### The daily summary — a new kind of data
+
+`Scored Autopilot Day` is the first event that describes what *happened in the home* rather than
+what someone did in the app, so it is worth being plain about it. Once a day per function, it sends
+how the day went **as ratios against the home's own expectation**: never litres, °C, kWh, prices or
+times, and nothing from which a timeline of the day could be rebuilt. "Used 1.25–2× what Autopilot
+expected" says Autopilot's profile was off; it does not say how much hot water anyone used or when.
+A day is scored only when at least 20 hours of it were watched, so a restart or a first start
+reports nothing rather than part of a day.
+
+| Function | Property | Values | Meaning |
+| --- | --- | --- | --- |
+| hot water | `use_vs_expected` | `<0.5`, `0.5-0.8`, `0.8-1.25`, `1.25-2`, `>2` | Yesterday's learned draw over what its day type's profile expected |
+| hot water | `fell_below_net` | boolean | The tank went under "Always keep at least" |
+| hot water | `ran_cold` | boolean | The tank top went under 40 °C |
+| hot water | `charges_autopilot`, `charges_device` | count | Charges started by Autopilot / by your device since the last morning message |
+| hot water | `price_vs_day_mean` | ratio buckets as above | Mean price at the charges over the window's mean price |
+| hot water | `solar_share` | `0`, `<50%`, `>=50%` | Share of the charges that ran on solar surplus |
+| heating | `indoor_off_target` | `<0.3`, `0.3-0.7`, `0.7-1.5`, `>1.5` | Mean absolute indoor − comfort, K, over the day's slots |
+| heating | `hours_outside_range` | count | Hours indoor was outside the Comfort range |
+| heating | `forecast_error` | same buckets | Mean absolute miss of the plan's 6 h indoor prediction |
+| both | `role`, `simulation` | | |
+
+Hot water's day runs from one morning message to the next (that is when it summarises yesterday)
+and its tank low points are kept with the plan, so they survive a restart. Heating's day is the
+local calendar day, kept in memory, and is scored only from slots the plan ran in — Comfort range
+Off and no house model yet score nothing. A property that cannot be worked out (no learned day,
+no prices, no predictions yet) is left out rather than sent as zero.
+
 ## User properties
 
 The install as a *shape*, not a stream. Sent with `Identify` from
@@ -280,6 +352,10 @@ produce one identify rather than six.
 | `timezone` | `"Europe/Stockholm"` | The country signal |
 | `language` | `"sv"` | Which of the six shipped languages are actually used |
 | `units` | `"metric"` | Whether an imperial user would ever hit unit bugs |
+| `smart_mode_heating`, `smart_mode_hotwater` | `"autopilot"` | Each function's Smart mode, same values as `smart_mode`. Only where the install has that device |
+| `autopilot_reserve` | `"40"` | Hot water's "Always keep at least", bucketed as `setting_value` |
+| `solar_live`, `solar_forecast` | `true` | The home's two solar switches, once answered in setup |
+| `day_type_source` | `"calendar"` | `set` when the owner or a Flow set a day type, `calendar` when weekends decide |
 
 **`roles` is the same vocabulary as the per-event `role`, at install scope.** `role` says which part of
 the installation an event happened on; `roles` says which parts the install *has*, and `role_count` is
@@ -308,7 +384,8 @@ These are user properties rather than event properties on purpose. The questions
 *"of the S1255 installs, how many run cooling?"* — and that is a segmentation, not an event count. As
 event properties they would only describe whichever event happened to carry them.
 
-Re-sent whenever the shape may have changed: a device added or deleted, a Repair applied, or
+Re-sent whenever the shape may have changed: a device added or deleted, a Repair applied, a
+Smart mode, safety net, solar switch or day type changed, or
 `updatePumpInfo()` finally getting an answer from the pump (which is when the model code first becomes
 known — at `onInit` there is no model yet).
 

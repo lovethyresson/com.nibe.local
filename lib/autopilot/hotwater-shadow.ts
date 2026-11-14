@@ -14,6 +14,7 @@ import {DEFAULT_RESERVE_LITRES, Plan, SLOT_H, TankSpec, drawsFor, plan, reserveK
 import {appendLine, deleteHistory, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
 import {DayTypeState, dayTypeAt} from './day-type';
 import {PumpFacts, countFor, leverDecision} from './hotwater-lever';
+import {BlockedBy, Edge, TankDay, hotwaterDayScore, leverBlock, tankDayUpdate} from './analytics';
 
 const HOUR = 3_600_000;
 /** Lowest and highest target the shadow plans with (doc §4.2). The highest is under where the
@@ -517,6 +518,8 @@ export interface HotwaterHooks {
     status(text: string): void;
     /** What setup asked a home with a short history, the learner's prior; undefined if not asked. */
     household(): Household | undefined;
+    /** An analytics event (lib/analytics.ts `track`): a no-op without the owner's consent. */
+    track(event: string, properties: Record<string, string | number | boolean>): void;
 }
 
 /** Device store keys: the charge Autopilot started last, and the day's writes. Both are written
@@ -533,6 +536,8 @@ export interface SavedPlan {
     dailySent?: string;
     plan?: DailyPlan;
     events: ChargeEvent[];
+    /** The tank since that morning, for the day's score (analytics.ts). */
+    day?: TankDay;
 }
 
 /** The saved plan to resume from, or nothing when it is too old to be the plan in force: a plan
@@ -540,7 +545,8 @@ export interface SavedPlan {
 export function resumePlan(saved: SavedPlan | undefined, now: number): SavedPlan | undefined {
     if (!saved || !Array.isArray(saved.events)) return undefined;
     const fresh = saved.plan && saved.plan.until > now ? saved.plan : undefined;
-    return {dailySent: saved.dailySent, plan: fresh, events: saved.events.filter((e) => now - e.at < 2 * DAY_MS)};
+    const day = Number.isFinite(saved.day?.from) && saved.day!.from <= now ? {day: saved.day} : {};
+    return {dailySent: saved.dailySent, plan: fresh, events: saved.events.filter((e) => now - e.at < 2 * DAY_MS), ...day};
 }
 /** The surplus model is relearned this often; the forecast comes with it. */
 const SURPLUS_EVERY_MS = 3 * HOUR;
@@ -577,6 +583,12 @@ export class HotwaterAutopilot {
     private starting = false;
     /** The last real charge start, Autopilot's or the pump's: why the tank is heating now. */
     private lastStart?: ChargeEvent;
+    /** The tank since the last morning message, for the day's score. */
+    private day?: TankDay;
+    /** What last blocked a planned start, and whether a plan could not be made for want of
+     *  prices: each told to analytics once per change, not every slot. */
+    private leverBlocked = new Edge<BlockedBy | undefined>();
+    private pricesBlocked = new Edge<boolean>();
 
     /** `dataId` is the device's pairing id (`getData().id`): the SDK does not expose the Homey
      *  device id that Insights are keyed by, so it is looked up through the Homey API. */
@@ -599,6 +611,7 @@ export class HotwaterAutopilot {
             this.morningPlan = saved.plan;
             this.events = saved.events;
             this.lastStart = [...saved.events].reverse().find((e) => !e.shadow);
+            this.day = saved.day;
             if (saved.plan) this.reserveFor(saved.plan);
         }
         this.loop(() => this.fetchPrices(), 5_000);
@@ -794,11 +807,16 @@ export class HotwaterAutopilot {
         if (!tank) return this.skip('no tank size');
         const at = slotOf(Date.now()) * SLOT_MS;
         const input = this.input(at, now, tank);
+        this.watchDay(input);
         this.morning(input);
         this.adoptPlan(input);
         this.watchStarts(input, at).catch((error) => this.log('Autopilot hot water: start failed:', error?.message ?? error));
         const out = hotwaterShadowStep(input);
         this.showStatus(input, out);
+        // No prices blocks the plan until a plan is made again; other skips change nothing.
+        const noPrices = 'skip' in out && out.skip === 'no prices';
+        if ((noPrices || !('skip' in out)) && this.pricesBlocked.changed(noPrices) && noPrices)
+            this.hooks.track('Blocked Autopilot', {role: 'hotwater', blocked_by: 'no_prices', simulation: this.shadow});
         if ('skip' in out) return this.skip(out.skip);
         this.last = out.entry;
         appendLine(shadowLogName(this.fileName), out.entry)
@@ -842,9 +860,14 @@ export class HotwaterAutopilot {
         if ('skip' in d) {
             if (this.leverSkip !== d.skip) this.log(`Autopilot hot water: planned charge not started (${d.skip}).`);
             this.leverSkip = d.skip;
+            // A skip that is not a block (the tank hot enough) leaves the last block standing.
+            const block = leverBlock(d.skip);
+            if (block && this.leverBlocked.changed(block))
+                this.hooks.track('Blocked Autopilot', {role: 'hotwater', blocked_by: block, simulation: false});
             return;
         }
         this.leverSkip = undefined;
+        this.leverBlocked.changed(undefined);
         await this.hooks.store.set(CHARGE_KEY, {at: e.at, targetC: d.targetC, minutes: e.minutes ?? 0});
         await this.hooks.store.set(WRITES_KEY, {...count, starts: count.starts + 1, stops: count.stops + (d.writeStop ? 1 : 0)});
         try {
@@ -885,7 +908,7 @@ export class HotwaterAutopilot {
 
     /** The plan in force and the recap so far, kept across a restart. */
     private savePlan() {
-        const saved: SavedPlan = {dailySent: this.dailySent, plan: this.morningPlan, events: this.events};
+        const saved: SavedPlan = {dailySent: this.dailySent, plan: this.morningPlan, events: this.events, day: this.day};
         this.hooks.store.set(PLAN_KEY, saved).catch((error) => this.log('Autopilot hot water: plan not saved:', error?.message ?? error));
     }
 
@@ -897,6 +920,8 @@ export class HotwaterAutopilot {
         const text = chargeText(e, t, this.time, this.currency);
         this.log(`Autopilot hot water charge (${e.by}${e.shadow ? ', test run' : ''}): ${text.reason}. ${text.detailedReason} ${JSON.stringify(e)}`);
         if (!e.shadow) this.hooks.charged(e, text);
+        this.hooks.track('Started Hot Water Charge', {started_by: e.by === 'pump' ? 'device' : 'autopilot',
+            ...e.reason !== 'pump' && e.reason !== 'running' ? {charge_reason: e.reason} : {}, simulation: this.shadow});
         // The timeline hears only what the morning plan did not say: a safety-net start, a moved
         // or unplanned one. Charges as planned, and the pump's own, are for Flows and the recap.
         if (e.by !== 'autopilot' || (e.reason !== 'reserve' && e.plan === 'as_planned')) return;
@@ -964,6 +989,7 @@ export class HotwaterAutopilot {
         const d = dailyPlan(input);
         if ('skip' in d) return this.log(`Autopilot hot water: no morning plan (${d.skip}).`);
         this.dailySent = date;
+        this.scoreDay(input);
         const recap = recapLines(this.events, (key, tokens) => this.homey.__(`autopilot.hotwater_charge.${key}`, tokens),
             this.time, this.shadow, (ms) => input.clock(ms).date, date);
         this.events = [];
@@ -975,6 +1001,32 @@ export class HotwaterAutopilot {
         this.log(`Autopilot hot water morning plan: ${JSON.stringify(d)}`);
         this.homey.notifications.createNotification({excerpt: text})
             .catch((error: any) => this.log('Autopilot hot water: timeline failed:', error?.message ?? error));
+    }
+
+    /** The tank's lowest volume and top since the morning, saved only when they change. */
+    private watchDay(input: ShadowStepInput) {
+        const now = input.slot * SLOT_MS;
+        const before = this.day ??= {from: now};
+        this.day = tankDayUpdate(before, input.now, input.reserveLitres ?? DEFAULT_RESERVE_LITRES);
+        if (this.day !== before) this.savePlan();
+    }
+
+    /** The day since the last morning message, scored against the home's own expectation: once,
+     *  with the morning message, then a new day starts. Never litres, °C, prices or times. */
+    private scoreDay(input: ShadowStepInput) {
+        const now = input.slot * SLOT_MS;
+        const day = this.day ?? {from: now};
+        this.day = {from: now};
+        const yesterday = input.clock(now - DAY_MS).date;
+        const drawn = this.model?.recent?.find((d) => d.date === yesterday && !d.away && !d.partial);
+        const expected = drawn && this.model ? profileFor(this.model, drawn.dayType ?? dayTypeAt(this.hooks.dayType(), now - DAY_MS, input.clock))
+            ?.daily : undefined;
+        const window = [...this.prices].filter(([slot]) => slot * SLOT_MS >= day.from && slot * SLOT_MS < now).map(([, p]) => p.price);
+        const charges = this.events.filter((e) => e.at >= day.from)
+            .map((e) => ({by: e.by, surplusShare: e.surplusShare, price: e.price ?? this.prices.get(slotOf(e.at))?.price}));
+        const score = hotwaterDayScore({day, now, charges, drawKwh: drawn?.draw, expectedKwh: expected,
+            dayMeanPrice: window.length ? window.reduce((a, b) => a + b, 0) / window.length : undefined, simulation: this.shadow});
+        if (score) this.hooks.track('Scored Autopilot Day', score);
     }
 
     private skip(why: string) {

@@ -157,6 +157,17 @@ export interface InstallProfile {
     // Enabled feature groups per role — the "which features within a function" question.
     // e.g. {main: ['diagnostics', 'ventilation'], heating: ['heating', 'energy'], hotwater: ['hotwater']}
     featuresByFunction: Record<string, string[]>;
+    // How Autopilot is set up, each only where the install has it. Bounded values only: Smart
+    // modes as `off`/`spa`/`simulation`/`autopilot`, the safety net as a bucket, solar as two
+    // switches, and whether the day type is set (by the owner or a Flow) or the calendar's.
+    autopilot?: {
+        smartModeHeating?: string;
+        smartModeHotwater?: string;
+        reserve?: string;
+        solarLive?: boolean;
+        solarForecast?: boolean;
+        dayTypeSource?: 'calendar' | 'set';
+    };
 
     // The hub this is all running on. Same principle as pumpModelCode: send what the SDK reports,
     // not a marketing name derived from it. `platform` + `platformVersion` together identify the
@@ -208,7 +219,13 @@ export function reportInstallProfile(profile: InstallProfile): void {
                 homey_platform_version: snapshot.homeyPlatformVersion,
                 timezone: snapshot.timezone,
                 language: snapshot.language,
-                units: snapshot.units
+                units: snapshot.units,
+                smart_mode_heating: snapshot.autopilot?.smartModeHeating,
+                smart_mode_hotwater: snapshot.autopilot?.smartModeHotwater,
+                autopilot_reserve: snapshot.autopilot?.reserve,
+                solar_live: snapshot.autopilot?.solarLive,
+                solar_forecast: snapshot.autopilot?.solarForecast,
+                day_type_source: snapshot.autopilot?.dayTypeSource
             }))
                 if (value !== undefined)
                     identity.set(key, value);

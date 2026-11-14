@@ -1576,12 +1576,12 @@
             "da": "Del anonyme brugsdata"
           },
           "hint": {
-            "en": "Off by default. Sends your device's model, which devices you paired, which Flow cards ran, and alarm codes. Never readings, IP, serial or names.",
-            "sv": "Av som standard. Skickar din enhets modell, vilka enheter du parkopplat, vilka flödeskort som körts och larmkoder. Aldrig mätvärden, IP, serienummer eller namn.",
-            "de": "Standardmäßig aus. Sendet das Modell Ihres Geräts, gekoppelte Geräte, ausgeführte Flow-Karten und Alarmcodes. Nie Messwerte, IP, Seriennummer oder Namen.",
-            "nl": "Standaard uit. Verzendt het model van uw apparaat, gekoppelde apparaten, uitgevoerde Flow-kaarten en alarmcodes. Nooit metingen, IP, serienummer of namen.",
-            "no": "Av som standard. Sender enhetens modell, parede enheter, kjørte flytkort og alarmkoder. Aldri målinger, IP, serienummer eller navn.",
-            "da": "Fra som standard. Sender din enheds model, parrede enheder, kørte Flow-kort og alarmkoder. Aldrig målinger, IP, serienummer eller navne."
+            "en": "Off by default. Sends your device's model, which devices you paired, which Flow cards ran, alarm codes, and how Autopilot is set up and how each day went. Never readings, IP, serial or names.",
+            "sv": "Av som standard. Skickar din enhets modell, vilka enheter du parkopplat, vilka flödeskort som körts, larmkoder samt hur Autopilot är inställd och hur varje dag gick. Aldrig mätvärden, IP, serienummer eller namn.",
+            "de": "Standardmäßig aus. Sendet das Modell Ihres Geräts, gekoppelte Geräte, ausgeführte Flow-Karten, Alarmcodes sowie die Einstellungen von Autopilot und wie jeder Tag lief. Nie Messwerte, IP, Seriennummer oder Namen.",
+            "nl": "Standaard uit. Verzendt het model van uw apparaat, gekoppelde apparaten, uitgevoerde Flow-kaarten, alarmcodes en hoe Autopilot is ingesteld en hoe elke dag ging. Nooit metingen, IP, serienummer of namen.",
+            "no": "Av som standard. Sender enhetens modell, parede enheter, kjørte flytkort, alarmkoder og hvordan Autopilot er satt opp og hvordan hver dag gikk. Aldri målinger, IP, serienummer eller navn.",
+            "da": "Fra som standard. Sender din enheds model, parrede enheder, kørte Flow-kort, alarmkoder og hvordan Autopilot er sat op, og hvordan hver dag gik. Aldrig målinger, IP, serienummer eller navne."
           },
           "value": false
         }

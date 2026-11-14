@@ -1,6 +1,6 @@
 import {averageSensors, cleanIndoorConfig, indoorInventory} from './indoor-sensors';
 import {OUTDOOR_SENSOR_SETTING} from './autopilot/collector';
-import {SOLAR_SETTING, SolarSurplus, scanSolar} from './autopilot/solar-surplus';
+import {SOLAR_SETTING, SolarSurplus, readSolarAnswer, scanSolar} from './autopilot/solar-surplus';
 import {Driver, FlowCard} from 'homey';
 import PairSession from "homey/lib/PairSession";
 import net from "net";
@@ -16,7 +16,9 @@ import {
     roleNames, roleOf, roleRegisters
 } from './roles';
 import type {ModelProfile} from './profile';
-import {DAY_TYPE_SETTING, DayTypeState, isDayType, readDayType, recordDayType, setAway} from './autopilot/day-type';
+import {DAY_TYPE_SETTING, DayTypeState, dayTypeAt, isDayType, readDayType, recordDayType, setAway, typeSet} from './autopilot/day-type';
+import {DayTypeSource, analyticsSmartMode, reserveBucket} from './autopilot/analytics';
+import {localClock} from './autopilot/hotwater-learner';
 import {
     AllOnesResponseError, DetectionResult, PROBE_PASSES, Recommendations, RegisterSample, SourceChoices,
     probeHost
@@ -216,7 +218,24 @@ export abstract class NibePumpDriver extends Driver {
             // is a no-op in practice and an honest shape regardless.
             roles: [...new Set(devices.map((device) => roleOf(device.getData())))].sort(),
             featuresByFunction,
+            autopilot: this.autopilotFacts(devices),
             ...this.hostFacts()
+        };
+    }
+
+    /** How Autopilot is set up: each function's Smart mode, the hot water safety net, solar and
+     *  where the day type comes from. Only what this install has; never a reading. */
+    private autopilotFacts(devices: any[]): InstallProfile['autopilot'] {
+        const of = (role: string) => devices.find((d) => roleOf(d.getData()) === role);
+        const heating = of('heating'), hotwater = of('hotwater');
+        const solar = readSolarAnswer(this.homey.settings.get(SOLAR_SETTING));
+        return {
+            ...heating?.smartMode ? {smartModeHeating: analyticsSmartMode(heating.smartMode())} : {},
+            ...hotwater?.smartMode ? {smartModeHotwater: analyticsSmartMode(hotwater.smartMode())} : {},
+            ...hotwater?.reserveLitres && this.profile.autopilotHotwater ? {reserve: reserveBucket(hotwater.reserveLitres())} : {},
+            ...solar ? {solarLive: solar.live, solarForecast: solar.forecast} : {},
+            ...this.profile.autopilotHotwater && hotwater
+                ? {dayTypeSource: typeSet(this.dayTypeState()) ? 'set' as const : 'calendar' as const} : {},
         };
     }
 
@@ -519,7 +538,7 @@ export abstract class NibePumpDriver extends Driver {
             this.homey.flow.getConditionCard(this.flowId("hotwater_charge_planned"))
                 .registerRunListener(async (args: any) => args.device.hotwaterChargePlannedWithin(Number(args.hours)));
             this.homey.flow.getActionCard(this.flowId("set_day_type"))
-                .registerRunListener(async (args: any) => this.setDayType(args.type, true));
+                .registerRunListener(async (args: any) => this.setDayType(args.type, true, 'flow'));
         }
 
         // Autopilot heating (lib/autopilot/live.ts): the status trigger is fired by the device.
@@ -537,14 +556,14 @@ export abstract class NibePumpDriver extends Driver {
      *  shown on every Main device that carries it. Throws on a value that is not a day type, so a
      *  Flow says what went wrong. A Flow card sets it with `keepAway`: a nightly working/free Flow
      *  must not end a trip (see day-type.ts). */
-    async setDayType(type: unknown, keepAway = false) {
+    async setDayType(type: unknown, keepAway = false, source: DayTypeSource = 'device') {
         if (!isDayType(type)) throw new Error(`Unknown day type: ${String(type)}`);
-        await this.storeDayType(recordDayType(this.dayTypeState(), type, Date.now(), keepAway));
+        await this.storeDayType(recordDayType(this.dayTypeState(), type, Date.now(), keepAway), source);
     }
 
     /** The home's one Away: the day type, and every Autopilot heating device's thermostat. */
     async setAway(on: boolean) {
-        await this.storeDayType(setAway(this.dayTypeState(), on, Date.now()));
+        await this.storeDayType(setAway(this.dayTypeState(), on, Date.now()), 'away');
     }
 
     private dayTypeState() {
@@ -553,8 +572,17 @@ export abstract class NibePumpDriver extends Driver {
 
     /** Store the state and bring every device in line with it: Main shows the day type, Autopilot
      *  heating follows Away. Every device is tried; the first failure is thrown afterwards. */
-    private async storeDayType(state: DayTypeState | undefined) {
+    private async storeDayType(state: DayTypeState | undefined, source: DayTypeSource) {
+        const before = this.dayTypeState();
         if (state) this.homey.settings.set(DAY_TYPE_SETTING, state);
+        // Told when a change was logged (the day type in force, or the calendar handing over),
+        // not when a nightly Flow sets what is already set.
+        const last = (s?: DayTypeState) => s?.log[s.log.length - 1];
+        if (state && last(state) && last(state)!.at !== last(before)?.at) {
+            const now = Date.now();
+            track('Changed Day Type', {day_type: dayTypeAt(state, now, localClock(this.homey.clock.getTimezone())), source});
+            this.syncInstallProfile();
+        }
         const away = state?.type === 'away';
         let failure: unknown;
         for (const driver of this.homey.drivers.getDrivers ? Object.values(this.homey.drivers.getDrivers()) as any[] : [this])
@@ -1235,17 +1263,26 @@ export abstract class NibePumpDriver extends Driver {
         session.setHandler('solar_scan', async () => scanSolar(this.homey));
         session.setHandler('solar_save', async (data: any) => {
             if (typeof data?.live !== 'boolean' || typeof data?.forecast !== 'boolean') throw new Error('live and forecast must be on or off');
+            const before = readSolarAnswer(this.homey.settings.get(SOLAR_SETTING));
             this.homey.settings.set(SOLAR_SETTING, {live: data.live, forecast: data.forecast,
                 ...(typeof data.meter === 'string' ? {meter: data.meter} : {})});
+            for (const [setting, on] of [['solar_live', data.live], ['solar_forecast', data.forecast]] as const)
+                if (before?.[setting === 'solar_live' ? 'live' : 'forecast'] !== on)
+                    track('Changed Autopilot Setting', {role: device.role, setting, setting_value: on ? 'on' : 'off'});
+            this.syncInstallProfile();
             SolarSurplus.refresh();
             return true;
         });
         if (device.role !== 'heating') return;
         session.setHandler('get_outdoor_sensors', async () => indoorInventory(this.homey));
         session.setHandler('set_outdoor_sensor', async (ref: any) => {
-            if (ref && typeof ref.deviceId === 'string' && typeof ref.capabilityId === 'string')
-                this.homey.settings.set(OUTDOOR_SENSOR_SETTING, {deviceId: ref.deviceId, capabilityId: ref.capabilityId});
+            const had = this.homey.settings.get(OUTDOOR_SENSOR_SETTING);
+            const chosen = !!ref && typeof ref.deviceId === 'string' && typeof ref.capabilityId === 'string';
+            if (chosen) this.homey.settings.set(OUTDOOR_SENSOR_SETTING, {deviceId: ref.deviceId, capabilityId: ref.capabilityId});
             else this.homey.settings.unset(OUTDOOR_SENSOR_SETTING);
+            // Which sensor is the home's; only whether one is used is told.
+            if (chosen ? had?.deviceId !== ref.deviceId || had?.capabilityId !== ref.capabilityId : !!had)
+                device.trackSetting('outdoor_sensor', chosen ? 'on' : 'off');
             return true;
         });
         session.setHandler('activate_autopilot', async () => device.activateAutopilotHeating());
