@@ -473,6 +473,20 @@
       "share_middle": "__kwh__ Mitte",
       "share_expensive": "__kwh__ teuer"
     },
-    "away_until_token": "Abwesend bis"
+    "away_until_token": "Abwesend bis",
+    "tank": {
+      "pick": "Wählen Sie ein Warmwasser-Gerät.",
+      "now": "__l__ L im Speicher",
+      "used": "__used__ L von etwa __expected__ L verbraucht",
+      "next": "nächste Ladung __time__",
+      "next_tomorrow": "nächste Ladung morgen __time__",
+      "charging": "lädt jetzt",
+      "panel_tank": "Im Speicher",
+      "panel_used": "Heute verbraucht",
+      "usual": "üblich __l__ L",
+      "reserve": "Immer vorrätig",
+      "done": "Geladen",
+      "planned": "Geplante Ladung"
+    }
   }
 }

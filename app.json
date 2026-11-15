@@ -8237,6 +8237,39 @@
       },
       "id": "autopilot"
     },
+    "hotwater_tank": {
+      "name": {
+        "en": "Hot water tank",
+        "sv": "Varmvattentank",
+        "de": "Warmwasserspeicher",
+        "nl": "Warmwaterboiler",
+        "no": "Varmtvannstank",
+        "da": "Varmtvandsbeholder"
+      },
+      "height": 360,
+      "transparent": false,
+      "settings": [
+        {
+          "id": "device",
+          "type": "autocomplete",
+          "title": {
+            "en": "Device",
+            "sv": "Enhet",
+            "de": "Gerät",
+            "nl": "Apparaat",
+            "no": "Enhet",
+            "da": "Enhed"
+          }
+        }
+      ],
+      "api": {
+        "getData": {
+          "method": "GET",
+          "path": "/"
+        }
+      },
+      "id": "hotwater_tank"
+    },
     "hotwater_use": {
       "name": {
         "en": "Hot water use",

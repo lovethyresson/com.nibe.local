@@ -758,6 +758,20 @@
       "share_middle": "__kwh__ midten",
       "share_expensive": "__kwh__ dyrt"
     },
-    "away_until_token": "Fraværende til"
+    "away_until_token": "Fraværende til",
+    "tank": {
+      "pick": "Vælg en varmtvandsenhed.",
+      "now": "__l__ L i beholderen",
+      "used": "__used__ L brugt af omkring __expected__ L",
+      "next": "næste opvarmning __time__",
+      "next_tomorrow": "næste opvarmning i morgen __time__",
+      "charging": "opvarmer nu",
+      "panel_tank": "I beholderen",
+      "panel_used": "Brugt i dag",
+      "usual": "normalt __l__ L",
+      "reserve": "Altid tilbage",
+      "done": "Opvarmet",
+      "planned": "Planlagt opvarmning"
+    }
   }
 }

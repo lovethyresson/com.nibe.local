@@ -758,6 +758,20 @@
       "share_middle": "__kwh__ midten",
       "share_expensive": "__kwh__ dyrt"
     },
-    "away_until_token": "Borte til"
+    "away_until_token": "Borte til",
+    "tank": {
+      "pick": "Velg en varmtvannsenhet.",
+      "now": "__l__ L i tanken",
+      "used": "__used__ L brukt av omtrent __expected__ L",
+      "next": "neste lading __time__",
+      "next_tomorrow": "neste lading i morgen __time__",
+      "charging": "lader nå",
+      "panel_tank": "I tanken",
+      "panel_used": "Brukt i dag",
+      "usual": "vanlig __l__ L",
+      "reserve": "Alltid igjen",
+      "done": "Ladet",
+      "planned": "Planlagt lading"
+    }
   }
 }

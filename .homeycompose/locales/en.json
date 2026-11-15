@@ -473,6 +473,20 @@
       "share_middle": "__kwh__ middle",
       "share_expensive": "__kwh__ expensive"
     },
-    "away_until_token": "Away until"
+    "away_until_token": "Away until",
+    "tank": {
+      "pick": "Pick a Hot water device.",
+      "now": "__l__ L in the tank",
+      "used": "__used__ L used of about __expected__ L",
+      "next": "next charge __time__",
+      "next_tomorrow": "next charge tomorrow __time__",
+      "charging": "charging now",
+      "panel_tank": "In the tank",
+      "panel_used": "Used today",
+      "usual": "usual __l__ L",
+      "reserve": "Always kept",
+      "done": "Charged",
+      "planned": "Planned charge"
+    }
   }
 }

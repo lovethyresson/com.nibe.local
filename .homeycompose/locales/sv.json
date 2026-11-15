@@ -473,6 +473,20 @@
       "share_middle": "__kwh__ mitten",
       "share_expensive": "__kwh__ dyrt"
     },
-    "away_until_token": "Borta till"
+    "away_until_token": "Borta till",
+    "tank": {
+      "pick": "Välj en varmvattenenhet.",
+      "now": "__l__ L i tanken",
+      "used": "__used__ L använt av cirka __expected__ L",
+      "next": "nästa laddning __time__",
+      "next_tomorrow": "nästa laddning i morgon __time__",
+      "charging": "laddar nu",
+      "panel_tank": "I tanken",
+      "panel_used": "Använt i dag",
+      "usual": "vanligt __l__ L",
+      "reserve": "Alltid kvar",
+      "done": "Laddat",
+      "planned": "Planerad laddning"
+    }
   }
 }

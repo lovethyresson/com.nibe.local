@@ -473,6 +473,20 @@
       "share_middle": "__kwh__ midden",
       "share_expensive": "__kwh__ duur"
     },
-    "away_until_token": "Afwezig tot"
+    "away_until_token": "Afwezig tot",
+    "tank": {
+      "pick": "Kies een warmwaterapparaat.",
+      "now": "__l__ L in de boiler",
+      "used": "__used__ L gebruikt van ongeveer __expected__ L",
+      "next": "volgende opwarming __time__",
+      "next_tomorrow": "volgende opwarming morgen __time__",
+      "charging": "nu aan het opwarmen",
+      "panel_tank": "In de boiler",
+      "panel_used": "Vandaag gebruikt",
+      "usual": "meestal __l__ L",
+      "reserve": "Altijd over",
+      "done": "Opgewarmd",
+      "planned": "Geplande opwarming"
+    }
   }
 }
