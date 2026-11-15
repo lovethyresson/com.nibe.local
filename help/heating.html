@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Heating · Nibe Live</title>
+<title>The Heating device · Nibe Live</title>
 <meta name="description" content="What the Heating device shows and sets, and how your own Homey temperature sensors can guide your heating.">
 <link rel="stylesheet" href="assets/site.css">
 <style>
@@ -18,10 +18,10 @@
 <header class="hero center">
   <div class="wrap">
     <p class="eyebrow display reveal">Heating</p>
-    <h1 class="display reveal">Warm rooms. Your rules.</h1>
-    <p class="lead reveal">The Heating device is a thermostat in Homey, with your heat pump's heating settings right behind it. <b>And it can listen to the sensors you already have.</b></p>
+    <h1 class="display reveal">The Heating device</h1>
+    <p class="lead reveal">The Heating device is a thermostat in Homey, with your heat pump's heating settings right behind it. <b>It can also use the temperature sensors you already have in Homey.</b></p>
     <div class="chart reveal">
-      <svg class="daychart" viewBox="0 0 1000 380" role="img" aria-label="The heat curve: the colder it is outside, the warmer the water sent to your radiators or floor. Heat curve displacement moves the whole curve up or down.">
+      <svg class="daychart" viewBox="0 0 1000 380" role="img" aria-label="The heat curve: the colder it is outdoors, the warmer the water sent to your radiators or floor. Heat curve offset moves the whole curve up or down.">
 <defs><linearGradient id="pfade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9f0a" stop-opacity=".32"/><stop offset="1" stop-color="#ff9f0a" stop-opacity="0"/></linearGradient></defs>
 <path class="parea" d="M132.0,274.5 C162.7,268.6 193.3,262.9 224.0,256.8 C254.7,250.7 285.3,244.4 316.0,237.9 C346.7,231.5 377.3,224.8 408.0,217.9 C438.7,211.1 469.3,204.0 500.0,196.8 C530.7,189.5 561.3,182.1 592.0,174.4 C622.7,166.8 653.3,159.0 684.0,150.9 C714.7,142.9 745.3,134.7 776.0,126.3 C806.7,117.9 837.3,109.3 868.0,100.5 C898.7,91.7 929.3,82.5 960.0,73.5 L960.0,320 L132.0,320 Z"/>
 <line class="net" x1="132" x2="132" y1="40" y2="320"/>
@@ -30,41 +30,41 @@
 <text class="lab strong" x="40" y="44">Warmer water</text>
 <text class="lab" x="40" y="66">to your radiators</text>
 <text class="lab muted" x="150" y="306">Heating stops above this</text>
-<text class="lab strong" x="640" y="96" text-anchor="end">Displacement up</text>
+<text class="lab strong" x="640" y="96" text-anchor="end">Offset up</text>
 <text class="lab" x="640" y="118" text-anchor="end">the whole curve moves</text>
 <text class="lab" x="760" y="186">Your heat curve</text>
 <g class="ticks"><text x="40" y="372" text-anchor="middle">20°</text><text x="224" y="372" text-anchor="middle">10°</text><text x="408" y="372" text-anchor="middle">0°</text><text x="592" y="372" text-anchor="middle">−10°</text><text x="776" y="372" text-anchor="middle">−20°</text><text x="960" y="372" text-anchor="middle">−30°</text></g>
 </svg>
-      <p class="phone-note">The colder it gets outside, the warmer the water your heat pump sends round the house. Heat curve displacement moves the whole curve up or down. Above the cut-off, heating stops.</p>
-      <div class="legend"><span><i style="background:var(--warm)"></i>Heat curve, by outdoor temperature</span><span><i style="background:var(--warm);opacity:.5"></i>Moved up with displacement</span></div>
+      <p class="phone-note">The colder it gets outdoors, the warmer the water your heat pump sends round the house. Heat curve offset moves the whole curve up or down. Above the cut-off, heating stops.</p>
+      <div class="legend"><span><i style="background:var(--warm)"></i>Heat curve, by outdoor temperature</span><span><i style="background:var(--warm);opacity:.5"></i>Moved up with the offset</span></div>
     </div>
   </div>
 </header>
 
 <section class="center">
   <div class="wrap">
-    <h2 class="display reveal">A real thermostat.</h2>
+    <h2 class="display reveal">The thermostat</h2>
     <p class="lead reveal">Heating shows up in Homey's Climate view, with the room temperature and the target on one tile.</p>
     <div class="how">
-      <div class="reveal"><div class="n">01</div><h3>See it.</h3><p>Indoor and outdoor temperature, the water going out to your radiators or floor and coming back, and what your heat pump is aiming for.</p></div>
-      <div class="reveal"><div class="n">02</div><h3>Shape it.</h3><p><b>Heat curve</b> and <b>Heat curve displacement</b>, plus the lowest and highest water temperature your heat pump may send.</p></div>
-      <div class="reveal"><div class="n">03</div><h3>Switch it.</h3><p>The on/off is <b>Allow heating</b> on your heat pump. Off means no heating, until you switch it back on.</p></div>
+      <div class="reveal"><div class="n">01</div><h3>Readings</h3><p>Indoor and outdoor temperature, the water going out to your radiators or floor and coming back, and what your heat pump is aiming for.</p></div>
+      <div class="reveal"><div class="n">02</div><h3>Heat curve</h3><p><b>Heat curve</b> and <b>Heat curve offset</b>, plus the lowest and highest water temperature your heat pump may send.</p></div>
+      <div class="reveal"><div class="n">03</div><h3>On and off</h3><p>The on/off is <b>Allow heating</b> on your heat pump. Off means no heating, until you switch it back on.</p></div>
     </div>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <h2 class="display center reveal">Summer, sorted.</h2>
-    <p class="lead center reveal">Two settings decide when your heat pump bothers to heat at all.</p>
+    <h2 class="display center reveal">Heating in summer</h2>
+    <p class="lead center reveal">Two settings decide when your heat pump heats.</p>
     <div class="bento">
       <div class="tile s4 reveal">
-        <h3>Only heat below.</h3>
-        <p>Above this outdoor temperature, your heat pump stops heating. <b>Only use immersion heater below</b> does the same for the electric heater, so it stays out of mild days.</p>
+        <h3>Only heat below</h3>
+        <p>Above this outdoor temperature, your heat pump stops heating. <b>Only use immersion heater below</b> does the same for the immersion heater, so it stays out of mild days.</p>
       </div>
       <div class="tile s2 dark reveal">
-        <h3>Measured over time.</h3>
-        <p>Both go by your heat pump's average outdoor temperature, not this minute's. So a warm afternoon doesn't switch heating off on its own.</p>
+        <h3>Average outdoor temperature</h3>
+        <p>Both go by your heat pump's average outdoor temperature, so a warm afternoon doesn't switch heating off on its own.</p>
       </div>
     </div>
   </div>
@@ -72,33 +72,33 @@
 
 <section class="center">
   <div class="wrap">
-    <h2 class="display reveal">Let your rooms guide it.</h2>
+    <h2 class="display reveal">Using your own room sensors</h2>
     <p class="lead reveal">Already have temperature sensors in Homey? Your heat pump can use them instead of its own. <b>Pick one room, or average several.</b></p>
     <div class="crumbs reveal"><span>Heating</span><i>›</i><span>Repair</span><i>›</i><span>Heating setup</span></div>
     <div class="steps">
-      <div class="tile reveal"><div class="k">In Homey</div><h3>Pick your sensors.</h3><p>Choose <b>Use your own Homey temperature sensors</b>. Search by name, room or device type. Pick one, or several: each counts equally.</p></div>
-      <div class="tile reveal"><div class="k">On your heat pump</div><h3>Let it listen.</h3><p>Setup lists the menus: turn on the external room sensor (setup calls it BT50) in 7.5.9.2, give it your heating zone in 1.3.3 / 1.3.4, and let it control the heating.</p></div>
-      <div class="tile reveal"><div class="k">In Homey</div><h3>Verify settings.</h3><p>Homey starts sending the temperature and checks that your heat pump got it. Then <b>Save changes</b>. It keeps going after you close Repair.</p></div>
+      <div class="tile reveal"><div class="k">In Homey</div><h3>Pick your sensors</h3><p>Choose <b>Use your own Homey temperature sensors</b>. Search by name, room or device type. Pick one or several. Each counts equally.</p></div>
+      <div class="tile reveal"><div class="k">On your heat pump</div><h3>Turn on the external sensor</h3><p>Setup lists the menus. Turn on the external room sensor (BT50) in menu 7.5.9.2, give it your heating zone in menu 1.3.3 / 1.3.4, and let it control the heating.</p></div>
+      <div class="tile reveal"><div class="k">In Homey</div><h3>Verify settings</h3><p>Homey starts sending the temperature and checks that your heat pump got it. Then <b>Save changes</b>. Sending continues after you close Repair.</p></div>
     </div>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <h2 class="display center reveal">Your heat pump, still in charge.</h2>
+    <h2 class="display center reveal">How your heat pump uses the sensors</h2>
     <div class="bento">
       <div class="tile s3 reveal">
-        <h3>Same thermostat. Same settings.</h3>
+        <h3>Your thermostat and settings</h3>
         <p>Your sensors only tell your heat pump how warm it is. It still decides how to heat, with your target temperature and your Smart price adaption settings.</p>
       </div>
       <div class="tile s3 dark reveal">
-        <h3>Every 30 seconds.</h3>
+        <h3>Sent every 30 seconds</h3>
         <p>The temperature is sent again even when it hasn't changed, so your heat pump never works from an old reading.</p>
         <div class="big">30 s</div>
       </div>
       <div class="tile s6 reveal">
-        <h3>Two zones? You choose.</h3>
-        <p>If your heat pump has more than one zone, Heating setup first asks <b>Which zone should the thermostat set?</b> Pick the zone whose room sensor controls the heating. You'll find that in menu 1.3.3. With Nibe's wireless room sensors, each one is listed with its current reading, so you can tell them apart and show the one you want on the thermostat.</p>
+        <h3>More than one zone</h3>
+        <p>If your heat pump has more than one zone, Heating setup first asks <b>Which zone should the thermostat set?</b> Pick the zone whose room sensor controls the heating. You'll find that in menu 1.3.3. With NIBE's wireless room sensors, each one is listed with its current reading, so you can tell them apart and show the one you want on the thermostat.</p>
       </div>
     </div>
   </div>
@@ -106,28 +106,28 @@
 
 <section class="center">
   <div class="wrap">
-    <h2 class="display reveal">Outdoor temperature, from a Flow.</h2>
-    <p class="lead reveal"><b>Set outdoor temperature (BT1)</b> hands your heat pump an outdoor temperature from Homey, in place of its own outdoor sensor. It's for people who want to experiment.</p>
-    <div class="status reveal">Set outdoor temperature (BT1): 4.5 °C</div>
+    <h2 class="display reveal">Outdoor temperature from a Flow</h2>
+    <p class="lead reveal"><b>Set outdoor temperature BT1 to …</b> sends your heat pump an outdoor temperature from Homey, in place of its own outdoor sensor. It's for people who want to experiment.</p>
+    <div class="status reveal">Set outdoor temperature BT1 to 4.5 °C</div>
     <div class="steps">
-      <div class="tile reveal"><div class="k">First</div><h3>Allow it.</h3><p>Turn on <b>Outdoor temperature (BT1)</b> in menu 7.5.9.2 on your heat pump. Modbus alone isn't enough.</p></div>
-      <div class="tile reveal"><div class="k">Then</div><h3>Keep it coming.</h3><p>The card sends one reading. Your Flow has to send fresh ones regularly, even when the value hasn't changed.</p></div>
-      <div class="tile reveal"><div class="k">And check</div><h3>Look at the display.</h3><p>A Flow that succeeds means your heat pump accepted the value, not that heating uses it. Check its outdoor reading follows.</p></div>
+      <div class="tile reveal"><div class="k">First</div><h3>Turn on external BT1</h3><p>Turn on <b>Outdoor temperature (BT1)</b> in menu 7.5.9.2 on your heat pump. Modbus alone isn't enough.</p></div>
+      <div class="tile reveal"><div class="k">Then</div><h3>Send it regularly</h3><p>The card sends one reading per run. Your Flow has to repeat it every few minutes, even when the value hasn't changed.</p></div>
+      <div class="tile reveal"><div class="k">And check</div><h3>Check the display</h3><p>A Flow that succeeds only means your heat pump accepted the value. Check that its outdoor reading follows.</p></div>
     </div>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <h2 class="display center reveal">Good to know.</h2>
+    <h2 class="display center reveal">Good to know</h2>
     <div class="faq reveal">
-      <details><summary>It's warmer outside than Only heat below, but it's still heating.</summary><p>The cut-off goes by the average outdoor temperature. It can be 17 °C right now while the average is still under your limit. In Manual mode, the cut-off doesn't apply.</p></details>
-      <details><summary>What if a sensor stops reporting?</summary><p>Every sensor you picked needs a valid reading between 5 and 40 °C. If one drops out, Homey stops sending and keeps retrying, and after 5 minutes you get a warning on the Heating device and in your timeline. It never quietly leaves a room out of the average. If it stays down, your heat pump can raise an alarm.</p></details>
+      <details><summary>The outdoor temperature is above Only heat below, but it's still heating.</summary><p>The cut-off goes by the average outdoor temperature. It can be 17 °C right now while the average is still under your limit. In Manual mode, the cut-off doesn't apply.</p></details>
+      <details><summary>What if a sensor stops reporting?</summary><p>Every sensor you picked needs a valid reading between 5 and 40 °C. If one drops out, Homey stops sending and keeps retrying, and after 5 minutes you get a warning on the Heating device and in your timeline. Homey never drops a room from the average without telling you. If it stays down, your heat pump can raise an alarm.</p></details>
       <details><summary>Can I set up sensors while pairing?</summary><p>You can pick them, and they're saved. Sending starts once you've opened Heating, then Repair, and pressed <b>Verify settings</b>.</p></details>
       <details><summary>How do I go back to my heat pump's own sensor?</summary><p>On your heat pump, make your original sensor control the zone again and turn off the external room sensor. Then choose <b>Use your heat pump’s own temperature sensor</b> in Heating setup. Homey checks before it stops sending.</p></details>
       <details><summary>Will it work on my heat pump?</summary><p>It needs a heat pump and software that support an external room sensor. It has been confirmed on an S1155. Menus can be named or numbered differently on other models.</p></details>
-      <details><summary>I use Autopilot. Are my sensors sent to my heat pump?</summary><p>Only if your heat pump has an external room sensor (BT50) turned on, so it reports no sensor fault. Room-sensor control stays off, so your heat pump only shows the temperature. Autopilot keeps it at your thermostat.</p></details>
-      <details><summary>Heating setup asks about Smart mode.</summary><p>That's who moves heating to cheaper hours: Autopilot, Smart price adaption or Off. It comes first, because Autopilot asks for the indoor temperature its own way, and never uses the external room sensor. See <a href="autopilot-heating.html">Autopilot for heating</a>.</p></details>
+      <details><summary>I use Autopilot. Are my sensors sent to my heat pump?</summary><p>Only if your heat pump has an external room sensor (BT50) turned on. The room temperature is then sent as BT50 to prevent sensor alarms. Room-sensor control must be off, so your heat pump only shows the temperature, and Autopilot keeps it at your thermostat.</p></details>
+      <details><summary>Heating setup asks about Smart mode.</summary><p>Smart mode decides who moves heating to cheaper hours: Autopilot, Smart price adaption or Off. It comes first, because Autopilot asks for the indoor temperature its own way, and never uses the external room sensor. See <a href="autopilot-heating.html">Autopilot for heating</a>.</p></details>
     </div>
   </div>
 </section>
@@ -137,7 +137,7 @@
 <a class="r" href="hot-water.html"><small>Next</small><b>Hot water</b></a>
 </div></div></section>
 
-<footer><div class="wrap">Nibe Live is a Homey app for Nibe heat pumps. Questions? Ask in the <a href="https://community.homey.app/t/app-pro-nibe-live-local-nibe-control-split-into-the-devices-you-actually-automate/157330">community thread</a>.</div></footer>
+<footer><div class="wrap">Nibe Live is a Homey app for NIBE heat pumps. Questions? Ask in the <a href="https://community.homey.app/t/app-pro-nibe-live-local-nibe-control-split-into-the-devices-you-actually-automate/157330">community thread</a>.</div></footer>
 
 <script src="assets/site.js" defer></script>
 </body>
