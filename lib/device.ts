@@ -2020,8 +2020,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 scale: {left: niceAxis(0, Math.max(0, ...prices), {steps: [0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100]}),
                     right: solar ? niceAxis(0, Math.max(1, ...surplus), {steps: [0.5, 1, 2, 5, 10]}) : undefined},
                 bands,
-                status: o.next ? t('hotwater.next', {when}) : t('hotwater.none'),
-                reason: o.next ? [t('hotwater.about', {duration}), reason].join(' · ') : litres,
+                // A charge that has started is running (the outlook only keeps one that has while the
+                // tank charges): say so and when it ends, not "next" with its start.
+                status: !o.next ? t('hotwater.none') : o.next.at <= Date.now() ? t('hotwater.charging_now')
+                    : t('hotwater.next', {when}),
+                reason: !o.next ? litres : o.next.at <= Date.now()
+                    ? [t('hotwater.until', {time: this.clock(o.next.at + o.next.minutes * 60_000)}), reason].join(' · ')
+                    : [t('hotwater.about', {duration}), reason].join(' · '),
                 detail: o.next ? [share > 0 ? t('hotwater.share', {share}) : undefined, litres].filter(Boolean).join(' · ') || undefined : undefined,
                 legend: {price: t('price'), surplus: solar ? t('surplus') : '', grid: t('charge_grid'), solar: solar ? t('charge_solar') : ''},
                 axes: {left: t('axis_price'), right: solar ? t('axis_surplus') : ''},

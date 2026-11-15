@@ -368,7 +368,9 @@
         "no_prices": "Wacht op stroomprijzen",
         "band": "__from__ tot __to__",
         "about": "Ongeveer __duration__",
-        "no_prices_hint": "Controleer of Homey Energie dynamische stroomprijzen gebruikt."
+        "no_prices_hint": "Controleer of Homey Energie dynamische stroomprijzen gebruikt.",
+        "charging_now": "Nu aan het opwarmen",
+        "until": "Tot __time__"
       },
       "indoor": "Binnen",
       "expected": "Verwacht",

@@ -650,7 +650,9 @@
         "no_prices": "Venter på elpriser",
         "band": "__from__ til __to__",
         "about": "Cirka __duration__",
-        "no_prices_hint": "Tjek, at Homey Energi bruger dynamiske elpriser."
+        "no_prices_hint": "Tjek, at Homey Energi bruger dynamiske elpriser.",
+        "charging_now": "Opvarmer nu",
+        "until": "Til __time__"
       },
       "indoor": "Inde",
       "expected": "Forventet",

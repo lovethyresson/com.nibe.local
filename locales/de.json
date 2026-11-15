@@ -650,7 +650,9 @@
         "no_prices": "Wartet auf Strompreise",
         "band": "__from__ bis __to__",
         "about": "Etwa __duration__",
-        "no_prices_hint": "Prüfen Sie, ob Homey Energie dynamische Strompreise nutzt."
+        "no_prices_hint": "Prüfen Sie, ob Homey Energie dynamische Strompreise nutzt.",
+        "charging_now": "Lädt jetzt",
+        "until": "Bis __time__"
       },
       "indoor": "Innen",
       "expected": "Erwartet",

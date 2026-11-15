@@ -650,7 +650,9 @@
         "no_prices": "Waiting for electricity prices",
         "band": "__from__ to __to__",
         "about": "About __duration__",
-        "no_prices_hint": "Check that Homey Energy uses dynamic electricity prices."
+        "no_prices_hint": "Check that Homey Energy uses dynamic electricity prices.",
+        "charging_now": "Charging now",
+        "until": "Until __time__"
       },
       "indoor": "Indoor",
       "expected": "Expected",

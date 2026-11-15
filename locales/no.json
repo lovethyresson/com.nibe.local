@@ -650,7 +650,9 @@
         "no_prices": "Venter på strømpriser",
         "band": "__from__ til __to__",
         "about": "Omtrent __duration__",
-        "no_prices_hint": "Sjekk at Homey Energi bruker dynamiske strømpriser."
+        "no_prices_hint": "Sjekk at Homey Energi bruker dynamiske strømpriser.",
+        "charging_now": "Lader nå",
+        "until": "Til __time__"
       },
       "indoor": "Inne",
       "expected": "Forventet",

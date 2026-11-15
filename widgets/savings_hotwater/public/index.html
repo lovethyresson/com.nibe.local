@@ -279,7 +279,9 @@
             });
         }
         load().finally(function () { Homey.ready(); });
-        // A day is written once an hour at most: a quarter-hour refresh is plenty.
+        // A day is written once an hour at most: a quarter-hour refresh is plenty. While the card is
+        // starting, or answered with a line, it asks again every 30 s until it has its picture.
+        setInterval(function () { if (!last || last.loading || last.empty) load(); }, 30000);
         setInterval(load, 15 * 60000);
         var timer = null;
         window.addEventListener('resize', function () {

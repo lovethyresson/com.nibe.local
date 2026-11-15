@@ -368,7 +368,9 @@
         "no_prices": "Väntar på elpriser",
         "band": "__from__ till __to__",
         "about": "Cirka __duration__",
-        "no_prices_hint": "Kontrollera att Homey Energi använder dynamiska elpriser."
+        "no_prices_hint": "Kontrollera att Homey Energi använder dynamiska elpriser.",
+        "charging_now": "Laddar nu",
+        "until": "Till __time__"
       },
       "indoor": "Inomhus",
       "expected": "Förväntat",
