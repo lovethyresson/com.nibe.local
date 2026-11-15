@@ -18,6 +18,6 @@
   // Explicit, because `allowJs` without it swept in dev/*.mjs and assets/pair/*.js — neither of
   // which ships in the app bundle (see .homeyignore) and neither of which is written to be
   // type-checked.
-  "include": ["app.ts", "lib/**/*.ts", "drivers/**/*.ts"],
+  "include": ["app.ts", "api.ts", "lib/**/*.ts", "drivers/**/*.ts"],
   "exclude": ["test", ".homeybuild", "node_modules"]
 }

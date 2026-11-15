@@ -58,5 +58,11 @@
         "name": "Henrik Aldermo"
       }
     ]
+  },
+  "api": {
+    "getWidgetData": {
+      "method": "GET",
+      "path": "/widget/:id"
+    }
   }
 }
