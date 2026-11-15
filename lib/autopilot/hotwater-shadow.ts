@@ -11,7 +11,7 @@ import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, normalisePri
 import {DayDraw, DayProfile, DayType, HotwaterModel, Household, KWH_PER_LITRE, LocalClock, chargeRate, learn, localClock, lossAt, profileFor} from './hotwater-learner';
 import {TankCapabilities, fetchTankInsights, pointsFromInsights} from './hotwater-insights';
 import {DEFAULT_RESERVE_LITRES, MIN_CHARGE_KWH, Plan, SLOT_H, TankSpec, drawsFor, heatAt, plan, reserveKwh} from './hotwater-planner';
-import {appendLine, deleteHistory, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
+import {appendLine, deleteHistory, loadJson, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
 import {DayTypeState, dayTypeAt} from './day-type';
 import {PumpFacts, countFor, leverDecision} from './hotwater-lever';
 import {BlockedBy, Edge, TankDay, hotwaterDayScore, leverBlock, tankDayUpdate} from './analytics';
@@ -37,6 +37,10 @@ export const COAST_HOURS = 12;
 const KEEP = 28 * 96;
 /** The model is relearned this often from Insights. */
 const LEARN_EVERY_MS = 6 * HOUR;
+/** A learn that found too few readings tries again after this. */
+const LEARN_RETRY_MS = 15 * 60_000;
+/** A saved model resumed at start must be this fresh: the relearn replaces it within minutes. */
+const MODEL_KEEP_MS = 2 * 24 * HOUR;
 
 /** The tank as the device reads it now. Any field can be missing (a capability not selected). */
 export interface TankNow {
@@ -679,7 +683,16 @@ export class HotwaterAutopilot {
         this.ceilingObs = mergeObservations(this.hooks.store.get(CEILING_KEY), [], Date.now());
         this.logCeiling();
         this.loop(() => this.fetchPrices(), 5_000);
-        this.loop(async () => { await this.learn(); return LEARN_EVERY_MS; }, 60_000);
+        // The last model learned, so a restart plans at once; the relearn runs in the background.
+        loadJson<{at?: string; model?: HotwaterModel}>(modelFileName(this.fileName)).then((saved) => {
+            const age = Date.now() - Date.parse(saved?.at ?? '');
+            if (!this.model && saved?.model && age >= 0 && age < MODEL_KEEP_MS) {
+                this.model = saved.model;
+                this.log(`Autopilot hot water: resumed the model learned ${Math.round(age / 60_000)} min ago.`);
+            }
+        }).catch((error) => this.log('Autopilot hot water: saved model not read:', error?.message ?? error));
+        // A learn that found too little (Insights refusing requests, say) tries again soon.
+        this.loop(async () => (await this.learn() ? LEARN_EVERY_MS : LEARN_RETRY_MS), 60_000);
         this.loop(async () => { this.report(); return HOUR; }, 10 * 60_000);
         this.scheduleStep();
     }
@@ -829,7 +842,8 @@ export class HotwaterAutopilot {
         return this.hooks.mode() !== 'live';
     }
 
-    private async learn() {
+    /** True when a model was learned. */
+    private async learn(): Promise<boolean> {
         const started = Date.now();
         const logs = await withApi(this.homey, async (api) => {
             this.deviceId ??= ownDeviceId(await api.devices.getDevices({$cache: false, $timeout: 10_000}),
@@ -841,7 +855,7 @@ export class HotwaterAutopilot {
         const points = pointsFromInsights(logs);
         if (points.length < 48) {
             this.log(`Autopilot hot water: ${points.length} readings in Insights, too few to learn from yet.`);
-            return;
+            return false;
         }
         // Each reading is learned under the day type in force when it was taken; where none was
         // set, the calendar's.
@@ -861,6 +875,7 @@ export class HotwaterAutopilot {
                 + `${round(c.kw ?? NaN, 1)} kW` : 'no charge model'}, `
             + `loss ${round(model.loss.base, 3)} + ${round(model.loss.perKwh, 3)}/kWh an hour (${Date.now() - started} ms).`);
         await saveJson(modelFileName(this.fileName), {at: new Date(started).toISOString(), model});
+        return true;
     }
 
     /** Today's and tomorrow's prices, as the heating collector fetches them (it will be one fetch
