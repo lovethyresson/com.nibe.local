@@ -828,17 +828,17 @@ export abstract class NibePumpDriver extends Driver {
             const isMain = role === 'main';
             const descriptions: Record<string, RegisterInfo> = {
                 [METER_CAPABILITY]: isMain ? {
-                    en: "Electricity used while the pump is idle, since the device was added",
+                    en: "Electricity your heat pump used while idle, since this device was added",
                     sv: "El som används när pumpen går på tomgång, sedan enheten lades till"
                 } : {
                     en: "Electricity this function has used since the device was added (Homey Energy tab)",
                     sv: "El denna funktion använt sedan enheten lades till (Homeys energiflik)"
                 },
                 [ACTIVE_POWER_CAPABILITY]: isMain ? {
-                    en: "Power the pump is drawing right now while idle",
+                    en: "Power your heat pump draws right now while idle",
                     sv: "Effekt pumpen drar just nu på tomgång"
                 } : {
-                    en: "Power the pump is drawing right now, when this function is the active one",
+                    en: "Power your heat pump draws right now while running this function",
                     sv: "Effekt pumpen drar just nu, när denna funktion är den aktiva"
                 }
             };
@@ -1597,7 +1597,7 @@ export abstract class NibePumpDriver extends Driver {
                 session.emit('detection_progress', {pass, passes}).catch(() => {});
             const live = existingConnection(ipAddress!);
             if (live && !live.matchesProfile(this.profile))
-                throw new Error('This address is already paired with a different pump driver. Remove that device before changing series.');
+                throw new Error('This address is already paired with another heat pump model. Remove those devices first.');
             const viaLive = !!(live && live.isConnected());
             this.log(`onPair detection: starting for ${ipAddress} via `
                 + `${viaLive ? 'existing live connection' : 'new probe socket'} `

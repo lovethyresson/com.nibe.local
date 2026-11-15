@@ -153,7 +153,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         config = cleanIndoorConfig(config);
         const value = averageSensors(config, await this.readIndoorSensors(config));
         const register = this.profile.registerByName['external_temperature.h5987_bt50'];
-        if (!register || !this.connection || this.indoorStopped) throw new Error('Heating feed is unavailable.');
+        if (!register || !this.connection || this.indoorStopped) throw new Error('Can\'t send the indoor temperature right now.');
         await this.connection.writeRegisterValue(register, encodeRegisterValue(register, value));
         let measured: number | null = null;
         for (let attempt = 0; attempt < 16; attempt++) {
@@ -162,9 +162,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             if (measured === Math.round(value * 10)) break;
         }
         if (measured !== Math.round(value * 10))
-            throw new Error(`BT50 confirmation is still pending. Sent ${value.toFixed(1)} °C; `
-                + (measured === null ? 'no BT50 reading was returned.' : `the pump reports ${(measured / 10).toFixed(1)} °C.`)
-                + ' The saved feed will retry in the background.');
+            throw new Error(`Your heat pump hasn't confirmed BT50 yet. Sent ${value.toFixed(1)} °C. `
+                + (measured === null ? 'No BT50 reading came back.' : `Your heat pump reports ${(measured / 10).toFixed(1)} °C.`)
+                + ' Homey keeps trying in the background.');
         const selection = this.getSelection() ?? {groups: {}, overrides: {}};
         if (selection.addresses?.measure_temperature !== 26 || selection.overrides.measure_temperature !== true)
             await this.applySelection({...selection, addresses: {...selection.addresses, measure_temperature: 26},
@@ -177,20 +177,20 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     // Persist before the first write. Closing Repair cannot cancel an established feed.
     // Replacements are validated while the previous configuration remains the durable fallback.
     async activateIndoor(raw: any) {
-        if (this.role !== 'heating') throw new Error('Only Heating can supply BT50.');
-        if (this.indoorWork) throw new Error('A temperature update is in progress. Please try again.');
+        if (this.role !== 'heating') throw new Error('Only the Heating device can send BT50.');
+        if (this.indoorWork) throw new Error('A temperature update is running. Try again in a moment.');
         const owner = NibePumpDevice.indoorOwners.get(this.host());
-        if (owner && owner !== this) throw new Error('Another Heating device already supplies this pump.');
+        if (owner && owner !== this) throw new Error('Another Heating device already sends temperatures to this heat pump.');
         NibePumpDevice.indoorOwners.set(this.host(), this);
         const job = (async () => {
             const duplicate = (this.driver.getDevices() as any[]).some(d => d !== this
                 && d.getSettings().address === this.host()
                 && d.getStoreValue('indoorSensors')?.state === 'active');
-            if (duplicate) throw new Error('Another Heating device already supplies this pump.');
+            if (duplicate) throw new Error('Another Heating device already sends temperatures to this heat pump.');
             const config = cleanIndoorConfig(raw);
             averageSensors(config, await this.readIndoorSensors(config));
             if (await this.indoorRaw(5986) !== 1)
-                throw new Error('Enable external BT50 on the heat pump before verifying.');
+                throw new Error('Turn on external BT50 on your heat pump first.');
             const previous = this.getStoreValue('indoorSensors') as IndoorConfig | undefined;
             config.state = 'active';
             if (previous?.state !== 'active') {
@@ -213,10 +213,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     async deactivateIndoor() {
-        if (this.indoorWork) throw new Error('A temperature update is in progress. Please try again.');
+        if (this.indoorWork) throw new Error('A temperature update is running. Try again in a moment.');
         const job = (async () => {
             if (await this.indoorRaw(5986) !== 0)
-                throw new Error('First select your NIBE sensor for the zone and disable external BT50 on the heat pump.');
+                throw new Error('Choose your NIBE sensor for the zone and turn off external BT50 on your heat pump first.');
             const selection = this.getSelection();
             if (selection) await this.applySelection({...selection, addresses: {...selection.addresses,
                 measure_temperature: this.getStoreValue('indoorNativeAddress') ?? 116}});
@@ -280,7 +280,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
      *  the read loop keeps sending their average as BT50, or the pump raises a BT50 sensor fault
      *  (alarm 153, 2026-11-14); with room-sensor control off it only shows it. */
     async readIndoorForAutopilot(raw: any) {
-        if (this.role !== 'heating') throw new Error('Only Heating reads the indoor temperature.');
+        if (this.role !== 'heating') throw new Error('Only the Heating device reads the indoor temperature.');
         const config = readOnlyIndoorConfig(raw);
         const value = averageSensors(config, await this.readIndoorSensors(config));
         await this.stopFeedingBt50();
@@ -334,7 +334,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     this.indoorAlerted = true;
                     await this.setWarning(error.message).catch(this.error);
                     await this.homey.notifications.createNotification({
-                        excerpt: 'Nibe Live: indoor temperature feed needs attention. Open Heating → Repair. ' + error.message
+                        excerpt: 'Nibe Live can\'t send the indoor temperature. Open Heating → Repair. ' + error.message
                     }).catch(this.error);
                 }).finally(() => { this.indoorWork = null; this.scheduleIndoor(); });
         }, 30000);
@@ -515,24 +515,24 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     // detection and move a relocated register, and reading the selection at write time picks
     // that up without a restart.
     async writeRegister(register: Register, value: any): Promise<void> {
-        if (this.profile.readOnly) throw new Error("This driver is currently read-only.");
+        if (this.profile.readOnly) throw new Error("Settings on this heat pump model are read-only in Nibe Live.");
         if (register.name === 'external_temperature.h5987_bt50' && this.getStoreValue('indoorSensors')?.state === 'active')
-            throw new Error('BT50 is managed by the automatic indoor sensor feed.');
+            throw new Error('BT50 is set automatically from your Homey sensors.');
         if (register.name === this.profile.autopilotFeed?.bt1 && this.heatingFeed?.running)
             throw new Error('BT1 is managed by Autopilot heating.');
         if (register.role && register.role !== this.role)
-            throw new Error('This action is not available for this device');
+            throw new Error('This action isn\'t available on this device');
         if (!this.connection)
-            throw new Error('Not connected to the heat pump');
+            throw new Error('Not connected to your heat pump');
         if (register.noAction && !register.writeOnly)
-            throw new Error('This register is read-only');
+            throw new Error('This setting is read-only');
         const room = this.profile.roomThermostat;
         if (room && (register.name === room.target || (register.name === room.enabled && value === true))) {
             const sensor = await this.readRegister(this.profile.registerByName[room.sensor]);
             if (typeof sensor !== 'number' || sensor < 5 || sensor > 40)
-                throw new Error('A working indoor sensor is required for room temperature control.');
+                throw new Error('Room temperature control requires a working indoor sensor.');
             if (register.name === room.target && await this.readRegister(this.profile.registerByName[room.enabled]) !== true)
-                throw new Error('Room regulation is disabled. Adjust the heating curve instead.');
+                throw new Error('Room-sensor control is off. Adjust the heat curve instead.');
         }
         const requirement = this.profile.writeRequirements?.[register.name];
         if (requirement && !requirement.values.includes(Number(await this.readRegister(this.profile.registerByName[requirement.register]))))
@@ -562,14 +562,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                         await new Promise((resolve) => setTimeout(resolve, this.profile.writeReadbackIntervalMs ?? 100));
                 }
                 if (!confirmed)
-                    throw new Error('The pump did not confirm the requested value');
+                    throw new Error('Your heat pump did not confirm the new value');
                 this.recentWrites.set(register.name, {value: canonical, at: Date.now()});
                 await this.setValue(register, canonical);
                 await this.applyClearOnDisable(register, canonical);
             }
         } catch (error: any) {
             // Surface a clear, user-facing message instead of failing silently.
-            throw new Error(`Could not set "${this.registerTitle(register)}": ${error?.message ?? error}`);
+            throw new Error(`Couldn't set "${this.registerTitle(register)}": ${error?.message ?? error}`);
         }
     }
 
@@ -1096,9 +1096,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             this.updateHotwaterVolume();
         }
         if (failed.length)
-            throw new Error(`${failed.length} capability/capabilities could not be applied: `
-                + `${failed.join(', ')}. The selection was saved — try Repair again, and if it `
-                + 'keeps failing please report it with the app logs.');
+            throw new Error(`Some readings couldn't be added: ${failed.join(', ')}. Your choice is saved. `
+                + 'Run Repair again, and report it with the app logs if it keeps happening.');
     }
 
     async probeForDetection(onProgress: (pass: number, passes: number) => void, signal?: AbortSignal) {
@@ -1263,7 +1262,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 const owner = NibePumpDevice.indoorOwners.get(this.host());
                 if (owner && owner !== this) {
                     this.indoorStopped = true;
-                    await this.setWarning('Another Heating device already supplies this pump.');
+                    await this.setWarning('Another Heating device already sends temperatures to this heat pump.');
                 } else NibePumpDevice.indoorOwners.set(this.host(), this);
             }
             this.scheduleIndoor();
@@ -1729,7 +1728,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     /** Write BT1 (5217) directly: the feed and Verify own it; Flows are locked out (writeRegister). */
     private async writeBt1(celsius: number) {
         const spec = this.profile.autopilotFeed!;
-        if (!this.connection) throw new Error('Not connected to the heat pump');
+        if (!this.connection) throw new Error('Not connected to your heat pump');
         await this.connection.writeRegisterValue(this.register(spec.bt1), encodeRegisterValue(this.register(spec.bt1), celsius));
     }
 
@@ -1991,7 +1990,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     async activateAutopilotHeating(): Promise<{fed: number}> {
         const t = (key: string) => this.homey.__(`autopilot.heating.verify.${key}`);
         if (this.role !== 'heating' || !this.profile.autopilotFeed || !this.autopilot) throw new Error(t('not_heating'));
-        if (!this.connection) throw new Error('Not connected to the heat pump');
+        if (!this.connection) throw new Error('Not connected to your heat pump');
         if ((await this.readRoomControl() ?? 0) !== 0) throw new Error(t('room_control'));
         const o = this.autopilot.outdoorNow();
         const real = o.sensor ?? (o.forecast === undefined ? undefined : o.forecast + forecastCorrection(o.bias, o.localHour));
@@ -3213,7 +3212,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 (device === this || device.getSettings?.().address === from)
                 && device.getStoreValue?.('indoorSensors')?.state === 'active');
             if (feeding)
-                throw new Error('Return to your NIBE sensor in Repair before changing the pump address.');
+                throw new Error('Return to your NIBE sensor in Repair before changing your heat pump\'s address.');
             // An address and port edited in one save: siblings take the port first, or they
             // would reconnect at the new address with the old one.
             for (const key of ['port', 'unitId', 'addressMode'])

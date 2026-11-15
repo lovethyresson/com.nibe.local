@@ -1048,12 +1048,12 @@ test('a Modbus write failure explains itself instead of saying "see response bod
         ({message: 'A Modbus Exception Occurred - See Response Body', response: {body: {code}}});
     assert.match(describeModbusError(exception(3)).summary, /Illegal data value/);
     assert.equal(describeModbusError(exception(3)).code, 3);
-    assert.match(describeModbusError(exception(2)).summary, /no such register/);
+    assert.match(describeModbusError(exception(2)).summary, /doesn.t have this setting/);
     assert.match(describeModbusError(exception(6)).summary, /busy/);
     // An unknown code must still name the number rather than falling back to the useless message.
     assert.match(describeModbusError(exception(99)).summary, /99/);
     // Non-exception failures keep their own meaning.
-    assert.match(describeModbusError({err: 'Timeout'}).summary, /did not answer in time/);
+    assert.match(describeModbusError({err: 'Timeout'}).summary, /didn't respond in time/);
     assert.equal(describeModbusError({message: 'socket closed'}).summary, 'socket closed');
 
     // The raw error is dumped verbatim alongside, so nothing is lost — including shapes that

@@ -150,7 +150,7 @@ test('started today: the share of today\'s use in the cheapest hours, against th
     assert.equal(d.split![1].perDay, '4.5 kWh so far');
     // No reading yet today: a line until there is.
     const none = savingsData('Heating', before, translator('en'), ctx({firstLiveDate: '2026-11-19'}));
-    assert.equal(none.reason, 'Savings show after its first full day.');
+    assert.equal(none.reason, "Savings appear after Autopilot's first full day.");
 });
 
 test('today so far ranks the hours with a reading against today\'s whole price list', () => {

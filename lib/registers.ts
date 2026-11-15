@@ -211,7 +211,7 @@ export function enumRawValue(register: Register, value: unknown): number {
     const entries = Object.entries(register.enum ?? {});
     const match = entries.find(([raw, label]) => String(value) === raw || value === label);
     if (!match)
-        throw new Error(`Invalid option "${value}" for ${register.name}. Re-pick the Flow option.`);
+        throw new Error(`Invalid option "${value}" for ${register.name}. Choose it again in the Flow.`);
     return Number(match[0]);
 }
 
@@ -252,7 +252,7 @@ export function encodeRegisterValue(register: Register, value: unknown): number 
     }
     const width = register.size === 32 ? 32 : 16;
     if (!Number.isSafeInteger(numeric) || numeric < -(2 ** (width - 1)) || numeric >= 2 ** width)
-        throw new Error('Value cannot be represented by this register');
+        throw new Error('This value isn\'t supported for this setting');
     return numeric < 0 ? numeric + 2 ** width : numeric;
 }
 

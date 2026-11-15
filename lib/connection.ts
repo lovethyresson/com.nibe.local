@@ -131,12 +131,12 @@ export interface PumpSubscriber {
 // failed request says nothing at all about why it failed. Worded for reads and writes alike:
 // Nibe answers 1 for a register this pump doesn't have, on either.
 const MODBUS_EXCEPTIONS: Record<number, string> = {
-    1: 'Illegal function — this pump doesn\'t have this register, or a pump setting has switched it off',
-    2: 'Illegal data address — no such register on this model',
-    3: 'Illegal data value — the value is outside the range the pump accepts',
-    4: 'Server device failure — the pump hit an error carrying out the request',
-    5: 'Acknowledge — accepted but still processing',
-    6: 'Server device busy — the pump is busy; retry later',
+    1: 'Illegal function. Your heat pump doesn\'t have this setting or reading, or another setting has turned it off',
+    2: 'Illegal data address. This model doesn\'t have this setting or reading',
+    3: 'Illegal data value. Your heat pump doesn\'t accept this value',
+    4: 'Server device failure. Your heat pump hit an error carrying out the request',
+    5: 'Acknowledge. Accepted but still processing',
+    6: 'Server device busy. Your heat pump is busy. Try again later',
     8: 'Memory parity error',
     10: 'Gateway path unavailable',
     11: 'Gateway target device failed to respond'
@@ -181,7 +181,7 @@ export function describeModbusError(reason: any): {summary: string; code?: numbe
                 : 'response details not supplied by Modbus library')};
     }
     if (reason?.err === 'Timeout' || /timeout/i.test(reason?.message ?? ''))
-        return {summary: 'the pump did not answer in time'};
+        return {summary: 'your heat pump didn\'t respond in time'};
     return {summary: reason?.message ?? String(reason)};
 }
 
@@ -261,7 +261,7 @@ export class PumpConnection {
 
     private withWireAccess<T>(fn: () => Promise<T>, lane: WireLane = 'read'): Promise<T> {
         if (!this.connected || this.destroyed)
-            return Promise.reject(new Error('Not connected to the heat pump'));
+            return Promise.reject(new Error('Not connected to your heat pump'));
         const generation = this.generation;
         return new Promise<T>((resolve, reject) => {
             (lane === 'write' ? this.wireHigh : this.wireLow)
@@ -418,7 +418,7 @@ export class PumpConnection {
             connections.set(host, connection);
         }
         if (connection.profile !== profile)
-            throw new Error('This address is already paired with a different pump driver. Remove that device before changing series.');
+            throw new Error('This address is already paired with another heat pump model. Remove those devices first.');
         return connection;
     }
 
@@ -977,8 +977,8 @@ export class PumpConnection {
     // read-only register — this code previously sent [low, high] and the register was written off
     // as unwritable on that evidence. Do not "correct" the order to match the read path.
     async writeRegisterValue(register: Register, raw: number): Promise<void> {
-        if (this.profile.readOnly) throw new Error("This driver is currently read-only.");
-        if (register.noAction && !register.writeOnly) throw new Error('This register is read-only');
+        if (this.profile.readOnly) throw new Error("Settings on this heat pump model are read-only in Nibe Live.");
+        if (register.noAction && !register.writeOnly) throw new Error('This setting is read-only');
         const address = register.address;
         if (register.size !== 32) {
             if (this.profile.singleWordWriteFunction === 16)
@@ -998,7 +998,7 @@ export class PumpConnection {
     // triggered it. `address` is the register's logical address; the model offset is applied
     // here at the wire boundary.
     async writeSingleRegister(address: number, raw: number): Promise<void> {
-        if (this.profile.readOnly) throw new Error("This driver is currently read-only.");
+        if (this.profile.readOnly) throw new Error("Settings on this heat pump model are read-only in Nibe Live.");
         const pdu = address - (this.transport.addressBase ?? this.profile.addressBase ?? 0);
         try {
             await this.withWireAccess(() => this.client.writeSingleRegister(pdu, raw), 'write');
@@ -1017,7 +1017,7 @@ export class PumpConnection {
     // The two-word form, for 32-bit registers. Same error handling as the single-word write:
     // throws with a readable summary rather than swallowing.
     async writeMultipleRegisters(address: number, values: number[]): Promise<void> {
-        if (this.profile.readOnly) throw new Error("This driver is currently read-only.");
+        if (this.profile.readOnly) throw new Error("Settings on this heat pump model are read-only in Nibe Live.");
         const pdu = address - (this.transport.addressBase ?? this.profile.addressBase ?? 0);
         try {
             await this.withWireAccess(() => this.client.writeMultipleRegisters(pdu, values), 'write');
@@ -1577,7 +1577,7 @@ export class PumpConnection {
     async probe(onProgress: (pass: number, passes: number) => void,
                 signal?: AbortSignal): Promise<DetectionResult> {
         if (!this.connected)
-            throw new Error('Not connected to the heat pump');
+            throw new Error('Not connected to your heat pump');
         // Detection is where the pump is asked what it has again, so forget what it said before:
         // a register that answers now (a firmware update, a feature switched on) is read again.
         if (this.knownAbsent.size) {

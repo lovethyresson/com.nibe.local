@@ -168,7 +168,7 @@ test('external temperature commands validate, use heating only, and do not read 
     for (const value of [-50.1, 60.1])
         await assert.rejects(d.writeRegister(outdoor, value));
     d.role = 'hotwater';
-    await assert.rejects(d.writeRegister(outdoor, 10), /not available/);
+    await assert.rejects(d.writeRegister(outdoor, 10), /isn.t available/);
     assert.equal(writes.length, 2);
     d.role = 'heating';
     d.connection.writeRegisterValue = async () => { throw new Error('Modbus rejected'); };
@@ -243,7 +243,7 @@ test('F controls reject inactive room control and wrong operating mode before wr
     const values = new Map<string, any>([['measure_temperature', 21],
         ['boolean_NIBE.h47394_room_control', false], ['operating_mode_NIBE.h47137_mode', '0']]);
     d.readRegister = async (r: Register) => values.get(r.name);
-    await assert.rejects(d.writeRegister(fProfile.registerByName[fProfile.roomThermostat!.target], 22), /disabled/);
+    await assert.rejects(d.writeRegister(fProfile.registerByName[fProfile.roomThermostat!.target], 22), /Room-sensor control is off/);
     await assert.rejects(d.writeRegister(fProfile.registerByName['boolean_NIBE.h47371_allow_heating'], false), /Auto/);
     values.delete('measure_temperature');
     await assert.rejects(d.writeRegister(fProfile.registerByName[fProfile.roomThermostat!.enabled], true), /indoor sensor/);
@@ -464,7 +464,7 @@ test('BT50 activation uses effective input readback and preserves the native sou
     assert.equal(status.measured, 22);
     assert.equal(store.get('selection').addresses.measure_temperature, 26);
     assert.equal(store.get('indoorNativeAddress'), 111);
-    await assert.rejects(d.deactivateIndoor(), /disable external/);
+    await assert.rejects(d.deactivateIndoor(), /turn off external/);
     assert.equal(store.get('indoorSensors').state, 'active');
     d.indoorRaw = async () => 0;
     await d.deactivateIndoor();
@@ -477,7 +477,7 @@ test('simultaneous Heating devices cannot both activate the same pump', async (t
     t.after(async () => { await first.d.stopIndoor(); await second.d.stopIndoor(); });
     first.d.sendIndoor = async () => ({measured: 22});
     const starting = first.d.activateIndoor(first.config);
-    await assert.rejects(second.d.activateIndoor(second.config), /already supplies/);
+    await assert.rejects(second.d.activateIndoor(second.config), /already sends temperatures/);
     await starting;
 });
 

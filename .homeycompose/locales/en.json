@@ -14,14 +14,14 @@
       "intro": "Connecting to your heat pump and watching which values change. This takes about half a minute.",
       "status": "Checking your heat pump",
       "failed": "Can't read from your heat pump",
-      "no_data": "Something answers at this address, but it returns no NIBE data. Check the IP is your heat pump's own and that Modbus TCP is on (menu 7.5.9).",
-      "retry": "Retry",
+      "no_data": "No NIBE data at this address. Check the IP address and that Modbus TCP is on (menu 7.5.9).",
+      "retry": "Try again",
       "skip": "Skip detection"
     },
     "features": {
       "title": "Select features",
-      "intro": "Choose what to show. We've ticked what your heat pump reported.",
-      "insights_note": "Disabling a feature removes its capabilities, including their Insights history."
+      "intro": "Choose what to show. Ticked items have data from your heat pump.",
+      "insights_note": "Turning off a feature also deletes its Insights history."
     },
     "evidence": {
       "moving": "values changing",
@@ -34,57 +34,57 @@
       "insight": "Insight only"
     },
     "sources": {
-      "prompt": "More than one sensor can report this. Pick the one that should regulate:",
+      "prompt": "More than one sensor can report this. Choose the one to use:",
       "using": "Using:"
     },
     "devices": {
       "title": "Add devices",
-      "intro": "Your heat pump does several jobs. Each gets its own device in Homey. We ticked the ones with live data.",
+      "intro": "Each function of your heat pump gets its own device in Homey. Ticked devices have live data.",
       "add": "Add selected devices",
       "detected": "Data detected",
       "notdetected": "No data",
       "select_one": "Select at least one device to add.",
       "main_desc": "Overview: outdoor temperature, operating priority and mode, plus diagnostics and statistics",
       "analytics": "Share anonymous usage data",
-      "analytics_desc": "Helps the app author see which models and features are actually used, and where setup fails. No personal data, no readings from your home, no network details. You can change this later under app settings."
+      "analytics_desc": "Helps the developer see which models and features are used and where setup fails. No personal data, readings or network details are sent. You can change this later in the app settings."
     },
     "discover": {
       "title": "Find your heat pump",
-      "searching": "Searching your network for Nibe heat pumps…",
-      "confirm": "Found your heat pump — tap to confirm",
+      "searching": "Searching your network for NIBE heat pumps…",
+      "confirm": "Heat pump found. Tap to confirm.",
       "found": "Select your heat pump",
-      "none_found": "No heat pump found automatically. Check that Modbus TCP is enabled on your heat pump (menu 7.5.9) or enter its IP address below.",
+      "none_found": "No heat pump found. Check that Modbus TCP is on (menu 7.5.9), or enter the IP address below.",
       "manual": "Enter the IP address manually",
       "refresh": "Search again",
-      "pump": "Nibe heat pump",
+      "pump": "NIBE heat pump",
       "outdoor": "Outdoor temperature"
     },
     "tank": {
       "title": "Hot water tank",
-      "hint": "Needed for the hot water estimate. Pick your tank's series, like VPB. The lining doesn't matter.",
+      "hint": "Required for the hot water estimate. Choose your tank's series, such as VPB. The lining doesn't matter.",
       "auto": "Don't estimate hot water",
       "custom": "Other tank…",
       "litres": "Tank volume"
     },
     "gateway": {
       "title": "Gateway connection",
-      "type": "Register addressing",
+      "type": "Address format",
       "port": "TCP port",
       "unit": "Modbus ID",
-      "hint": "Pick how your gateway numbers NIBE register 40025. Not sure? Ask whoever set it up.",
+      "hint": "Choose how your gateway numbers NIBE Modbus address 40025. Not sure? Ask whoever set it up.",
       "invalid": "Choose a gateway, a port from 1–65535 and a Modbus ID from 1–247.",
-      "detect_intro": "Checking the values your heat pump reports. Depending on the gateway, this can take several minutes."
+      "detect_intro": "Checking the values your heat pump reports. This may take a few minutes, depending on the gateway."
     },
     "firmware": {
       "title": "Update your heat pump first",
-      "intro": "Many features need recent software on your heat pump. Older versions miss readings the app relies on and can even report wrong energy figures.",
+      "intro": "Many features require recent software on your heat pump. Older versions lack some readings and can report wrong energy figures.",
       "online_title": "Over the internet with myUplink",
-      "online_body": "When an update is waiting, approve it in the myUplink app — or on your heat pump's display: swipe to the product overview and tap Update.",
+      "online_body": "When an update is available, approve it in the myUplink app or on your heat pump's display. Swipe to the product overview and tap Update.",
       "usb_title": "With a USB stick",
       "usb_body": "Download the latest software from myuplink.com and put it on a USB stick. Insert it in the port above the display and open menu 8.1.",
       "f_title": "Via myUplink or a USB stick",
-      "f_body": "The steps differ between models — your heat pump's manual shows how.",
-      "note": "Takes a few minutes. Your settings are kept.",
+      "f_body": "The steps differ between models. See your heat pump's manual.",
+      "note": "This takes a few minutes. Your settings are kept.",
       "continue": "Continue"
     }
   },
@@ -101,7 +101,7 @@
     "diagnostics": "Refrigerant diagnostics",
     "statistics": "Runtime statistics",
     "energy": "Energy",
-    "solar": "Solar / PV"
+    "solar": "Solar"
   },
   "Normal": "Normal",
   "Blocking": "Blocking",
@@ -152,11 +152,11 @@
   "connection": {
     "connecting": "Connecting to your heat pump…",
     "unreachable": "Can't reach your heat pump at __host__. Check that it's on the network and that its IP address hasn't changed.",
-    "refused": "Your heat pump at __host__ refused the connection. Check that Modbus TCP is enabled on it.",
-    "silent": "Your heat pump at __host__ stopped answering. Reconnecting…",
-    "no_data": "Something at __host__ answers, but returns no NIBE data. Check the IP is your heat pump's own and that Modbus TCP is on (menu 7.5.9).",
+    "refused": "Your heat pump at __host__ refused the connection. Check that Modbus TCP is on (menu 7.5.9).",
+    "silent": "Your heat pump at __host__ stopped responding. Reconnecting…",
+    "no_data": "No NIBE data at __host__. Check the IP address and that Modbus TCP is on (menu 7.5.9).",
     "searching": "Can't reach your heat pump at __host__. Searching the network for it…",
-    "moved": "Nibe Live: your heat pump moved from __from__ to __to__. Its Homey devices have been updated.",
+    "moved": "Nibe Live: your heat pump's IP address changed from __from__ to __to__. Its devices have been updated.",
     "address_in_use": "Another paired heat pump already uses __host__."
   },
   "autopilot": {
@@ -171,7 +171,7 @@
       "away": "Away. Only the safety net is kept warm.",
       "tank": "The tank has __litres__ L now. Autopilot keeps at least __reserve__ L.",
       "tank_no_reserve": "The tank has __litres__ L now. No safety net is set.",
-      "none": "No charge needed. The tank covers the day.",
+      "none": "No charge needed today.",
       "charge": "Charge __time__ to __target__ °C · __reason__",
       "reason": {
         "cheap": "Cheapest hours",
@@ -183,7 +183,7 @@
         "loss": "Less heat lost in the tank"
       },
       "cost": "Expected cost __cost__. Tomorrow's prices aren't in yet.",
-      "shadow": "Simulation: your heat pump stays as it is.",
+      "shadow": "Simulated. No changes made to your heat pump.",
       "tomorrow": "tomorrow at __time__",
       "cost_tomorrow": "Expected cost __cost__.",
       "today": "at __time__",
@@ -202,23 +202,23 @@
         "pump": "Started by your heat pump"
       },
       "detail": {
-        "price": "To __target__ °C in about __duration__, at __price__/kWh. The day averages __mean__.",
+        "price": "To __target__ °C in about __duration__, at __price__/kWh. Today's average: __mean__.",
         "surplus": "To __target__ °C, about __duration__, __share__ % from solar surplus.",
         "reserve": "The tank is down to __litres__ L, below your __reserve__ L safety net. Heating to __target__ °C, about __duration__.",
-        "pump": "Your heat pump started it at __top__ °C on its own start temperature and runs to __stop__ °C.",
+        "pump": "Started by your heat pump at __top__ °C. Runs to __stop__ °C.",
         "pump_more": "More hot water is on, so your heat pump runs to __stop__ °C.",
         "immersion": "The immersion heater took over at __at__ °C. Autopilot now charges to at most __cap__ °C."
       },
       "plan": {
         "as_planned": "As planned.",
-        "moved": "Changed: the plan had it at __time__.",
-        "unplanned": "Not in the plan.",
-        "as_planned_pump": "The plan had a charge then too."
+        "moved": "Moved from __time__.",
+        "unplanned": "Not planned.",
+        "as_planned_pump": "A charge was planned then too."
       },
       "duration": "__h__ h __m__ min",
       "duration_min": "__m__ min",
       "title": "Heating the tank · __reason__",
-      "title_would": "Simulation: would start a charge · __reason__",
+      "title_would": "Simulated: would start a charge · __reason__",
       "recap": {
         "item": "__time__ to __target__ °C: __reason__.",
         "would": "__time__ would have charged to __target__ °C: __reason__.",
@@ -241,23 +241,23 @@
     },
     "hotwater_update": {
       "title": {
-        "new_prices": "New prices are in. Hot water plan updated.",
-        "revised": "Prices changed. Hot water plan updated."
+        "new_prices": "Hot water plan updated with new prices.",
+        "revised": "Hot water plan updated after a price change."
       },
-      "added": "Added: __time__, to __target__ °C at __price__/kWh (__reason__).",
-      "added_new_hours": "Added: __time__, to __target__ °C at __price__/kWh (__reason__), in hours that now have prices.",
-      "moved": "Moved from __was__ to __time__: to __target__ °C at __price__/kWh instead of __wasPrice__.",
-      "dropped": "The __time__ charge is gone. __why__",
-      "resized": "Changed: __time__ now to __target__ °C instead of __was__ °C. __why__",
+      "added": "New charge __time__: __target__ °C at __price__/kWh (__reason__).",
+      "added_new_hours": "New charge __time__: __target__ °C at __price__/kWh (__reason__), in newly priced hours.",
+      "moved": "Charge moved from __was__ to __time__: __target__ °C at __price__/kWh instead of __wasPrice__.",
+      "dropped": "Charge cancelled for __time__. __why__",
+      "resized": "Charge changed for __time__: __target__ °C instead of __was__ °C. __why__",
       "why": {
         "takes_over": "The charge __time__ takes over the rest, at __price__/kWh.",
-        "covered": "The tank covers the day without it.",
-        "store_more": "The hours ahead cost more, so it stores more now.",
-        "needs_less": "It needs less now."
+        "covered": "Not needed.",
+        "store_more": "Later hours cost more.",
+        "needs_less": "Less hot water needed."
       },
       "cost": "Expected cost __cost__. Tomorrow's prices aren't in yet.",
       "cost_tomorrow": "Expected cost __cost__.",
-      "shadow": "Simulation: your heat pump stays as it is.",
+      "shadow": "Simulated. No changes made to your heat pump.",
       "reason": {
         "cheap": "Cheapest hours",
         "before_use": "In time for use",
@@ -268,11 +268,11 @@
         "running": "Already charging",
         "pump": "Started by your heat pump"
       },
-      "moved_repriced": "Moved from __was__ to __time__: the __was__ hours now cost __wasNow__/kWh instead of __wasPrice__, so it charges to __target__ °C at __price__/kWh."
+      "moved_repriced": "Charge moved from __was__ to __time__: __was__ now costs __wasNow__/kWh instead of __wasPrice__. Charging to __target__ °C at __price__/kWh."
     },
     "hotwater_setting": {
-      "no_device": "Autopilot hot water needs the Hot water device. Add it first.",
-      "no_tank": "Pick your tank size first: Hot water device → Repair."
+      "no_device": "Autopilot for hot water requires the Hot water device. Add it first.",
+      "no_tank": "Choose your tank size first in Hot water → Repair."
     },
     "heating": {
       "warning": {
@@ -286,7 +286,7 @@
         "cooling": "Autopilot heating paused: your heat pump is cooling."
       },
       "status": {
-        "test": "Simulation: __text__",
+        "test": "Simulated: __text__",
         "learning": "Learning your house · day __day__ of __of__",
         "learning_short": "Learning your house",
         "waiting": "Starting: waiting for the forecast",
@@ -294,12 +294,12 @@
         "easing_off": "Until __until__",
         "preheating": "Until __until__",
         "before": "before __why__",
-        "holding": "Holding. Nothing to gain from shifting now",
+        "holding": "Holding. No changes planned",
         "holding_even": "Holding. Prices are too even to shift",
         "next_easing_off": "Holding · easing off at __at__",
         "next_preheating": "Holding · pre-heating at __at__",
         "paused": {
-          "no_outdoor": "Paused: outdoor temperature stopped reporting",
+          "no_outdoor": "Paused: no outdoor temperature",
           "spa_on": "Paused: Smart price adaption is on for heating",
           "room_control": "Paused: room-sensor control is on in your heat pump",
           "immersion_only": "Paused: your heat pump runs on the immersion heater only",
@@ -308,7 +308,7 @@
           "no_model": "Learning your house",
           "cooling": "Paused: your heat pump is cooling"
         },
-        "range_off": "Comfort range is Off: your heat pump sees the real outdoor temperature",
+        "range_off": "Comfort range is Off. Your heat pump uses the measured outdoor temperature",
         "sun": "sun expected __from__–__to__",
         "back": "you're back at __at__"
       },
@@ -328,10 +328,10 @@
       "verify": {
         "not_heating": "Autopilot heating is set up on the Heating device.",
         "room_control": "Turn off room-sensor control in your heat pump first.",
-        "no_outdoor": "No outdoor temperature yet: choose a sensor or set your location for the weather forecast.",
+        "no_outdoor": "No outdoor temperature yet. Choose a sensor or set your location for the weather forecast.",
         "not_followed": "Your heat pump didn't accept the outdoor temperature. Check that menu 7.5.9.2 allows an external BT1 and that Modbus (menu 7.5.9) allows writes."
       },
-      "not_on": "Autopilot heating is not on.",
+      "not_on": "Autopilot heating is off.",
       "no_thermostat": "The Heating device has no thermostat to set.",
       "away_time_past": "That time has already passed.",
       "away_time_invalid": "Choose a date and a time for Away to end."
@@ -339,19 +339,19 @@
     "smart": {
       "no_spa": "Your heat pump has no Smart price adaption.",
       "no_heating": "Add the Heating device first.",
-      "verify_first": "Turn Autopilot on in Heating → Repair → Smart mode: it checks your heat pump takes the outdoor temperature first.",
+      "verify_first": "Turn on Autopilot in Heating → Repair → Smart mode first. This checks that your heat pump accepts the outdoor temperature.",
       "spa_took_over": {
         "heating": "Smart price adaption was turned on for heating, so Autopilot heating stopped.",
         "hotwater": "Smart price adaption was turned on for hot water, so Autopilot hot water stopped."
       },
       "soon": "Autopilot for this is coming soon.",
-      "paired_failed": "Smart mode from setup couldn't be applied: __reason__ Finish it in Repair."
+      "paired_failed": "Couldn't apply Smart mode from setup. Finish it in Repair. __reason__"
     },
     "widget": {
       "price": "Price",
       "off": "Autopilot is off. Turn it on in Repair → Smart mode.",
       "not_function": "Pick a Heating or Hot water device.",
-      "test": "Simulation",
+      "test": "Simulated",
       "away": "Away · __c__ °C",
       "range": {
         "comfortable": "Comfort ±0.5 °C",
@@ -380,10 +380,10 @@
       },
       "indoor": "Indoor",
       "expected": "Expected",
-      "aiming": "Aiming for __c__ °C",
+      "aiming": "Target __c__ °C",
       "offset": "Outdoor shift (BT1)",
       "axis_indoor": "Indoor °C",
-      "axis_offset": "Shift °C (BT1)",
+      "axis_offset": "Outdoor shift °C",
       "learning": "The expected indoor line shows once Autopilot has learned your house.",
       "surplus": "Solar surplus",
       "charge_grid": "Grid charge",
@@ -394,17 +394,17 @@
       "learning_day": "Day __day__ of __of__",
       "paused": {
         "no_outdoor": "Autopilot has no outdoor temperature. Pick a sensor in Smart mode, or use the forecast.",
-        "spa_on": "Smart price adaption is on for heating. Turn it off so Autopilot can work.",
-        "room_control": "Room control is on in your heat pump. Turn it off so Autopilot can work.",
-        "immersion_only": "Your heat pump is running on the immersion heater only. Autopilot waits.",
+        "spa_on": "Smart price adaption is on for heating. Turn it off to enable Autopilot.",
+        "room_control": "Room-sensor control is on in your heat pump. Turn it off to enable Autopilot.",
+        "immersion_only": "Your heat pump is running on the immersion heater only. Autopilot is paused.",
         "feed_failed": "Your heat pump didn't take the outdoor temperature (BT1). Check menu 7.5.9.2.",
-        "cooling": "Your heat pump is cooling. Autopilot waits."
+        "cooling": "Your heat pump is cooling. Autopilot is paused."
       },
       "error": "Couldn't load Autopilot. Trying again in a minute.",
       "starting_title": "Starting",
-      "starting_heating": "Reading the forecast and prices. Takes about a minute.",
-      "starting_hotwater": "Reading prices and the tank. Takes about a minute.",
-      "starting_app": "Reading your heat pump. Takes about a minute.",
+      "starting_heating": "Loading the forecast and prices. This takes about a minute.",
+      "starting_hotwater": "Loading prices and the tank level. This takes about a minute.",
+      "starting_app": "Loading data from your heat pump. This takes about a minute.",
       "away_until": "Away until __until__ · __c__ °C",
       "charge_done": "Charged"
     },
@@ -416,7 +416,7 @@
       "starting": "Starting a charge to __target__ °C · __reason__",
       "next": "Next charge __time__ to __target__ °C · __reason__",
       "none": "No charge needed until __until__",
-      "test": "Simulation: __text__"
+      "test": "Simulated: __text__"
     },
     "hotwater_use": {
       "title": "Hot water each day (L at 40 °C)",
@@ -442,9 +442,9 @@
     },
     "savings": {
       "pick": "Pick a Heating or Hot water device in the widget's settings.",
-      "empty": "Shows from tomorrow. Needs dynamic electricity prices in Homey Energy.",
+      "empty": "Available from tomorrow. Requires dynamic electricity prices in Homey Energy.",
       "status_started": "Autopilot is running",
-      "first_day": "Savings show after its first full day.",
+      "first_day": "Savings appear after Autopilot's first full day.",
       "cheap": "Cheapest hours",
       "middle": "Middle",
       "dear": "Most expensive hours",
@@ -455,7 +455,7 @@
       "status_heating": "Heating savings",
       "status_hotwater": "Hot water savings",
       "shower": "Per shower (__litres__ L)",
-      "loading": "Reading the last two weeks from Insights. Takes a few minutes.",
+      "loading": "Loading the last two weeks from Insights. This may take a few minutes.",
       "pick_heating": "Pick a Heating device in the widget's settings.",
       "pick_hotwater": "Pick a Hot water device in the widget's settings.",
       "status_start": "Your starting point",
@@ -490,7 +490,7 @@
       "planned": "Planned charge"
     },
     "energy": {
-      "pick": "Pick your heat pump's main device.",
+      "pick": "Pick your heat pump's Main device.",
       "used": "used today",
       "cost": "cost today",
       "cheap": "in cheap hours",
@@ -498,9 +498,9 @@
       "hotwater": "Hot water",
       "price": "Price",
       "price_axis": "Price per kWh",
-      "no_prices": "Needs dynamic electricity prices in Homey Energy.",
+      "no_prices": "Requires dynamic electricity prices in Homey Energy.",
       "no_functions": "This heat pump has no Heating or Hot water device."
     },
-    "custom_warning": "For advanced users only. These settings apply to the Heating device, and only while its comfort range is Custom. Autopilot was tuned on Comfort, Save and Save most; other combinations are untested, and Autopilot may heat more, save less, or let the house get colder than you expect."
+    "custom_warning": "For advanced users only. These settings apply to the Heating device while its comfort range is Custom. Autopilot is tuned for Comfort, Save and Save more. Other combinations are untested and may heat more, save less or let the house get colder than you expect."
   }
 }

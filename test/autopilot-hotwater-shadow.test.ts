@@ -112,7 +112,7 @@ test('the morning plan says what goes in (use, tank, safety net, prices) and wha
     assert.match(text, new RegExp(`^Hot water, a working day\\nCharge at ${hhmm(c.at)} to ${c.targetC} °C · Cheapest hours\\n`), 'the decision first');
     assert.match(text, new RegExp(`about ${d.useLitres} L today, up to ${d.useLitresP80} L`));
     assert.match(text, /has 120 L now\. Autopilot keeps at least 40 L/);
-    assert.match(text, /Tomorrow's prices aren't in yet\.\nSimulation: your heat pump stays as it is\.$/);
+    assert.match(text, /Tomorrow's prices aren't in yet\.\nSimulated\. No changes made to your heat pump\.$/);
     assert.doesNotMatch(text, /__\w+__/, 'every token filled');
 });
 
@@ -188,7 +188,7 @@ test('a charge message has a short reason and a detailed one with the numbers', 
     assert.strictEqual(e.plan, 'as_planned');
     const {reason, detailedReason} = chargeText(e, translator('en', 'hotwater_charge'), hhmm, 'kr');
     assert.match(reason, /^(Cheapest hours|In time for use)$/);
-    assert.match(detailedReason, new RegExp(`^To ${e.targetC} °C in about \\d+ (h|min)( \\d+ min)?, at \\d\\.\\d\\d kr/kWh\\. The day averages \\d\\.\\d\\d kr\\. As planned\\.$`));
+    assert.match(detailedReason, new RegExp(`^To ${e.targetC} °C in about \\d+ (h|min)( \\d+ min)?, at \\d\\.\\d\\d kr/kWh\\. Today's average: \\d\\.\\d\\d kr\\. As planned\\.$`));
 });
 
 test('a safety-net start says why, and nothing is reported while the planner waits', () => {
@@ -211,21 +211,21 @@ test('a start is as planned within 45 min, moved within 6 h, else unplanned', ()
     assert.deepStrictEqual(againstPlan(planned), {});
     const text = chargeText({...charge({now: {litres: 20, top: 40}}), plan: 'moved', plannedAt: planned},
         translator('en', 'hotwater_charge'), hhmm, 'kr').detailedReason;
-    assert.match(text, new RegExp(`Changed: the plan had it at ${hhmm(planned)}\\.$`));
+    assert.match(text, new RegExp(`Moved from ${hhmm(planned)}\\.$`));
 });
 
 test('the pump\'s own charge is reported as the pump\'s, with the stop it runs to', () => {
     const t = translator('en', 'hotwater_charge');
     const own = pumpCharge(T0, {litres: 50, top: 41, stopC: 48, largeStopC: 58}, 40);
     assert.strictEqual(own.targetC, 48);
-    assert.match(chargeText(own, t, hhmm, 'kr').detailedReason, /started it at 41 °C on its own start temperature and runs to 48 °C/);
+    assert.match(chargeText(own, t, hhmm, 'kr').detailedReason, /Started by your heat pump at 41 °C\. Runs to 48 °C/);
     const boost = pumpCharge(T0, {litres: 50, top: 41, more: true, stopC: 48, largeStopC: 58}, 40);
     assert.strictEqual(boost.targetC, 58);
     assert.match(chargeText(boost, t, hhmm, 'kr').detailedReason, /More hot water is on, so your heat pump runs to 58 °C/);
     assert.match(chargeLine(boost, t, hhmm, 'kr', true), /^Heating the tank · Started by your heat pump\n/);
-    assert.match(chargeLine(charge({now: {litres: 20, top: 40}}), t, hhmm, 'kr', true), /^Simulation: would start a charge · Safety net\n/);
+    assert.match(chargeLine(charge({now: {litres: 20, top: 40}}), t, hhmm, 'kr', true), /^Simulated: would start a charge · Safety net\n/);
     const atPlan = {...own, plan: 'as_planned' as const};
-    assert.match(chargeText(atPlan, t, hhmm, 'kr').detailedReason, /The plan had a charge then too\.$/);
+    assert.match(chargeText(atPlan, t, hhmm, 'kr').detailedReason, /A charge was planned then too\.$/);
     assert.match(chargeText({...charge({now: {litres: 20, top: 40}}), minutes: 60}, t, hhmm, 'kr').detailedReason, /about 1 h\./);
 });
 
@@ -296,21 +296,21 @@ test('the update explains each change by the prices, and stays quiet about new h
     const before = planOf([fact(14, 53, 2.21)], 24);
     const after = planOf([fact(14, 45, 2.21), fact(27.75, 60, 1.62)], 48);
     const text = planUpdateText(before, after, T0 + 13.5 * HOUR, t, whenOf, 'kr', true)!;
-    assert.strictEqual(text, ['New prices are in. Hot water plan updated.',
-        'Changed: 14:00 now to 45 °C instead of 53 °C. The charge tomorrow at 03:45 takes over the rest, at 1.62 kr/kWh.',
-        'Added: tomorrow 03:45, to 60 °C at 1.62 kr/kWh (Cheapest hours), in hours that now have prices.',
+    assert.strictEqual(text, ['Hot water plan updated with new prices.',
+        'Charge changed for 14:00: 45 °C instead of 53 °C. The charge tomorrow at 03:45 takes over the rest, at 1.62 kr/kWh.',
+        'New charge tomorrow 03:45: 60 °C at 1.62 kr/kWh (Cheapest hours), in newly priced hours.',
         'Expected cost 7.66 kr.',
-        'Simulation: your heat pump stays as it is.'].join('\n'));
+        'Simulated. No changes made to your heat pump.'].join('\n'));
     // Only a charge in the newly priced hours: the next morning and the charge message tell it.
     assert.strictEqual(planUpdateText(before, planOf([fact(14, 53, 2.21), fact(27.75, 60, 1.62)], 48),
         T0 + 13.5 * HOUR, t, whenOf, 'kr', true), undefined);
     // Revised prices: the move says what the old hours cost now.
     const moved = planUpdateText(planOf([fact(14, 53, 2.21)], 24), planOf([fact(16, 52, 2.66)], 24),
         T0 + 13.5 * HOUR, t, whenOf, 'kr', false, () => 3.9)!;
-    assert.match(moved, /^Prices changed\. Hot water plan updated\.\nMoved from 14:00 to 16:00: the 14:00 hours now cost 3\.90 kr\/kWh instead of 2\.21 kr, so it charges to 52 °C at 2\.66 kr\/kWh\./);
+    assert.match(moved, /^Hot water plan updated after a price change\.\nCharge moved from 14:00 to 16:00: 14:00 now costs 3\.90 kr\/kWh instead of 2\.21 kr\. Charging to 52 °C at 2\.66 kr\/kWh\./);
     // Dropped with nothing taking over: the tank covers it.
     assert.match(planUpdateText(planOf([fact(20, 50, 3.4)], 24), planOf([], 24), T0 + 13.5 * HOUR, t, whenOf, 'kr', false)!,
-        /The 20:00 charge is gone\. The tank covers the day without it\./);
+        /Charge cancelled for 20:00\. Not needed\./);
 });
 
 test('plan updates read in all six languages, with every token filled', () => {
