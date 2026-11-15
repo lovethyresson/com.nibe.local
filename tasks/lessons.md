@@ -502,3 +502,11 @@ Y" lines. The maintainer: "avoid the claude native tone of voice". **Rule:** bef
 owner text, doc or report, check it against the AI-voice table in `docs/voice.md`. That covers slogan
 headings, number hooks, reassurance closers, the app talking about itself, hype words and contrast
 pairs. Agent-proposed copy gets the same check, since subagents write in that voice by default.
+
+## 2026-11-15: a new format for a length problem
+
+The maintainer said the in-app text was "a bit wordy at times". I answered with a new format (Glanceable), and it was rejected. Rule: when the complaint is length, cut the long lines and keep the current voice. Offer a new format only when asked for one.
+
+## 2026-11-15: invented phrasing
+
+I kept "Turn it off so Autopilot can work" as the warm version. The maintainer: the normal way is "Turn it off to enable Autopilot", and they wanted the pattern learned, not the line fixed. The pattern: my warm and crisp attempts both invented their own phrasing ("carries on as usual", "the day averages", "so no sensor alarm"). Rule: write each line the way mainstream software says the same thing ("to enable", "Requires", "Loading", "This may take a few minutes", "Preview without making changes"), and when corrected on one line, re-check every line for the same habit.
