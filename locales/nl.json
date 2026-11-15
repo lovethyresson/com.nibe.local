@@ -487,7 +487,8 @@
         "surplus": "Tot __target__ °C, ongeveer __duration__, __share__ % uit zonne-overschot.",
         "reserve": "De boiler heeft nog maar __litres__ L, onder je veiligheidsmarge van __reserve__ L. Opwarmen tot __target__ °C, ongeveer __duration__.",
         "pump": "Je warmtepomp startte op eigen starttemperatuur bij __top__ °C en warmt op tot __stop__ °C.",
-        "pump_more": "Meer warm water staat aan, dus je warmtepomp warmt op tot __stop__ °C."
+        "pump_more": "Meer warm water staat aan, dus je warmtepomp warmt op tot __stop__ °C.",
+        "immersion": "Het elektrisch element nam het over bij __at__ °C. Autopilot warmt nu op tot hooguit __cap__ °C."
       },
       "plan": {
         "as_planned": "Zoals gepland.",
@@ -508,7 +509,8 @@
         "as_planned_pump": "Toen ook gepland.",
         "yesterday": "Gisteren:",
         "on": "__date__:",
-        "last_night": "Vannacht:"
+        "last_night": "Vannacht:",
+        "immersion": "Elektrisch element vanaf __at__ °C."
       },
       "duration_h": "__h__ u",
       "write_failed": "Autopilot kon geen opwarming starten. Je warmtepomp meldde: __error__",

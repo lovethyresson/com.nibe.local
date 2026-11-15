@@ -1550,6 +1550,17 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         await this.hotwaterAutopilot.start();
     }
 
+    /** This poll for the hot water compressor ceiling: is a charge running, is the immersion heater
+     *  on, and the charge sensor (BT6, else the top). */
+    private pollHotwaterCeiling(readNames: Set<string>) {
+        const spec = this.profile.autopilotHotwater;
+        if (!this.hotwaterAutopilot || !spec) return;
+        const power = this.hasCapability(spec.power) ? Number(this.getCapabilityValue(spec.power)) : NaN;
+        const immersion = this.autopilotValue(readNames, spec.immersion);
+        this.hotwaterAutopilot.poll({at: Date.now(), charging: Number.isFinite(power) ? power > 0 : undefined,
+            immersion: immersion === undefined ? undefined : immersion !== 0, c: this.tankLowerC ?? this.tankTopC ?? undefined});
+    }
+
     // ---- PumpSubscriber ----
 
     pollSeconds(): number {
@@ -1570,6 +1581,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     wantedRegisters(): Register[] {
         const selected = registersForRole(this.profile, this.role, withAutopilotInputs(this.profile, this.role, this.getSelection(), this.capabilitySmartMode()));
+        // Hot water Autopilot follows the immersion heater (1029, Main's) for the compressor ceiling.
+        const immersion = this.profile.autopilotHotwater?.immersion;
+        if (this.role === 'hotwater' && immersion && this.autopilotMode() !== 'off' && this.profile.registerByName[immersion]
+            && !selected.some((r) => r.name === immersion))
+            return [...selected, this.profile.registerByName[immersion]];
         if (this.role !== 'heating') return selected;
         const names = Object.values(this.profile.roomThermostat ?? {});
         const autopilot = this.profile.autopilotHistory;
@@ -2808,6 +2824,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             if (!readNames.has(tank.topRegister)) this.tankTopC = null;
             if (!readNames.has(tank.lowerRegister)) this.tankLowerC = null;
             this.updateHotwaterVolume();
+            this.pollHotwaterCeiling(readNames);
         }
         const produced = this.profile.role.producedRegisterForRole[this.role];
         if (produced && !readNames.has(produced)) this.lastProducedSeen = null;

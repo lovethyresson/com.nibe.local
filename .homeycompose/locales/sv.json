@@ -206,7 +206,8 @@
         "surplus": "Till __target__ °C, cirka __duration__, __share__ % från solöverskott.",
         "reserve": "Tanken har bara __litres__ L, under din säkerhetsnivå på __reserve__ L. Värmer till __target__ °C, cirka __duration__.",
         "pump": "Din värmepump startade den vid __top__ °C på sin egen starttemperatur och laddar till __stop__ °C.",
-        "pump_more": "Mer varmvatten är på, så din värmepump laddar till __stop__ °C."
+        "pump_more": "Mer varmvatten är på, så din värmepump laddar till __stop__ °C.",
+        "immersion": "Elpatronen tog över vid __at__ °C. Autopilot laddar nu till högst __cap__ °C."
       },
       "plan": {
         "as_planned": "Som planerat.",
@@ -227,7 +228,8 @@
         "as_planned_pump": "Planerad då också.",
         "yesterday": "I går:",
         "on": "__date__:",
-        "last_night": "I natt:"
+        "last_night": "I natt:",
+        "immersion": "Elpatron från __at__ °C."
       },
       "duration_h": "__h__ tim",
       "write_failed": "Autopilot kunde inte starta en laddning. Din värmepump svarade: __error__",

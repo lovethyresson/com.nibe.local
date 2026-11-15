@@ -1673,7 +1673,9 @@ four plus the Setup hub.
 - [ ] **M2** two weeks of shadow on ≥ 3 houses (radiator, slab, air-source)
 - [ ] **M3** Verify/handover, live feed, capabilities, settings, Flow cards, write locks, reconciliation, savings, analytics
 - [ ] **M3** release (test → live)
-- [ ] **M4** hot-water probes and timing; DM-aware add-heat planning
+- [ ] **M4** hot-water probes and timing; DM-aware add-heat planning. Hot water's add-heat guard built
+  2026-11-15 (learned compressor ceiling, target under it, [autopilot-hot-water.md](autopilot-hot-water.md) §4.8);
+  the DM rule of §12 is heating's and still open
 - [ ] **M5** COP, DP optimiser, air-source, PV; ship gate vs M3
 
 ## 19. Roadmap decisions (maintainer, 2026-11-02)

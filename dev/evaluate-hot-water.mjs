@@ -25,7 +25,7 @@ const tz = flag('tz', 'Europe/Stockholm');
 const clock = localClock(tz);
 const formula = new Function('x', `return ${flag('formula', '(x+0.609)*1.25')};`);
 const reserve = reserveKwh(Number(flag('reserve', 40)));
-const minC = Number(flag('min', 45)), maxC = Number(flag('max', 58));
+const minC = Number(flag('min', 45)), maxC = Number(flag('max', 57));
 const SLOT = 15 * 60_000, HOUR = 3_600_000;
 const slotOf = (ms) => Math.floor(ms / SLOT);
 

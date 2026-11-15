@@ -437,7 +437,7 @@ export function autopilotInputs(profile: ModelProfile, role: Role, smart: SmartM
     if (!autopilotRuns(smart)) return [];
     const hot = profile.autopilotHotwater;
     if (role === 'hotwater' && hot)
-        return [...new Set([...Object.values(hot.tank), hot.power, hot.more, hot.demandMode, ...Object.values(hot.stops), hot.largeStop])];
+        return [...new Set([...Object.values(hot.tank).filter((n): n is string => !!n), hot.power, hot.more, hot.demandMode, ...Object.values(hot.stops), hot.largeStop])];
     const heat = profile.autopilotHistory;
     if (role !== 'heating' || !heat) return [];
     const groups = new Set<string>(roleGroups.heating);

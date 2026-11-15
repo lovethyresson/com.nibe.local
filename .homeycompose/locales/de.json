@@ -206,7 +206,8 @@
         "surplus": "Auf __target__ °C, etwa __duration__, __share__ % aus Solarüberschuss.",
         "reserve": "Der Speicher hat nur noch __litres__ L, unter Ihrer Sicherheitsreserve von __reserve__ L. Heizt auf __target__ °C, etwa __duration__.",
         "pump": "Ihre Wärmepumpe startete bei __top__ °C nach ihrer eigenen Starttemperatur und lädt auf __stop__ °C.",
-        "pump_more": "Mehr Warmwasser ist an, daher lädt Ihre Wärmepumpe auf __stop__ °C."
+        "pump_more": "Mehr Warmwasser ist an, daher lädt Ihre Wärmepumpe auf __stop__ °C.",
+        "immersion": "Der Heizstab hat bei __at__ °C übernommen. Autopilot lädt jetzt auf höchstens __cap__ °C."
       },
       "plan": {
         "as_planned": "Wie geplant.",
@@ -227,7 +228,8 @@
         "as_planned_pump": "Dann auch geplant.",
         "yesterday": "Gestern:",
         "on": "__date__:",
-        "last_night": "Letzte Nacht:"
+        "last_night": "Letzte Nacht:",
+        "immersion": "Heizstab ab __at__ °C."
       },
       "duration_h": "__h__ Std.",
       "write_failed": "Autopilot konnte keine Ladung starten. Ihre Wärmepumpe meldete: __error__",

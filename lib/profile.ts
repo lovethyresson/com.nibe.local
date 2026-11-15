@@ -213,7 +213,7 @@ export interface ModelProfile {
     // Hot water Autopilot (lib/autopilot/hotwater-shadow.ts): the Hot water device's capabilities
     // for the tank's state, and the stop temperature of each demand mode (56).
     autopilotHotwater?: {
-        tank: {litres: string; produced: string; used: string; top: string};
+        tank: {litres: string; produced: string; used: string; top: string; aux?: string; charge?: string};
         power: string;
         more: string;
         demandMode: string;
@@ -223,6 +223,9 @@ export interface ModelProfile {
          *  means it is active): Autopilot never fights either. */
         allowed: string;
         spa: string[];
+        /** The immersion heater runs (1029), polled for the compressor ceiling; not a capability
+         *  of the Hot water device (it serves heating too, so it lives on Main). */
+        immersion?: string;
     };
     writeRequirements?: Record<string, {register: string; values: number[]; message: LocalizedText}>;
     indoorSensorFeed?: boolean;
