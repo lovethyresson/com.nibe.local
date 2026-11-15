@@ -599,12 +599,13 @@ function NibeSetup(options) {
         var inputs = {};
         Object.keys(spec).forEach(function (id) {
             var f = spec[id];
-            var row = el('label', undefined, 'setup-range-field');
+            // A block, not a <label>: Homey's sheet sets labels small and bold. The input is named by aria-label.
+            var row = el('div', undefined, 'setup-range-field');
             var head = el('span', undefined, 'setup-range-field-head');
             head.appendChild(el('span', a(id + '_label'), 'setup-range-field-label'));
             var input = document.createElement('input');
             input.type = 'number'; input.min = f.min; input.max = f.max; input.step = f.step; input.inputMode = 'decimal';
-            input.value = values[id]; input.className = 'setup-range-input';
+            input.value = values[id]; input.className = 'setup-range-input'; input.setAttribute('aria-label', a(id + '_label'));
             var box = el('span', undefined, 'setup-range-input-box');
             box.appendChild(input);
             // Always there, so the inputs line up whether a value has a unit or not.
@@ -690,7 +691,8 @@ function NibeSetup(options) {
             use.textContent = a('range_use', {name: rangeName(id)});
         }
         ALL_RANGES.forEach(function (id) {
-            var pill = el('button', rangeName(id), 'setup-segment-option hy-nostyle');
+            // "Custom (advanced)" breaks before its parenthesis, never inside a word.
+            var pill = el('button', rangeName(id).replace(' (', '\n('), 'setup-segment-option hy-nostyle');
             pill.type = 'button'; pill.dataset.range = id;
             pill.onclick = function (e) { e.preventDefault(); show(id); };
             pills.appendChild(pill);
