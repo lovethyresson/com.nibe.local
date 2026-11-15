@@ -128,6 +128,16 @@ export function coastLitres(storedKwh: number, draws: number[], loss: HotwaterMo
     return out;
 }
 
+/** The charge to show as next: the one running now while the tank charges, else the first that
+ *  has not started (a slot's grace, so one starting this slot still counts). Pure. */
+export function nextCharge<C extends {at: number; minutes: number}>(charges: C[], now: number, charging: boolean): C | undefined {
+    if (charging) {
+        const running = charges.find((c) => c.at <= now && now < c.at + c.minutes * 60_000);
+        if (running) return running;
+    }
+    return charges.find((c) => c.at > now - SLOT_MS);
+}
+
 /** One slot's plan. Pure. */
 export function hotwaterShadowStep(input: ShadowStepInput): ShadowStep {
     const out = planFrom(input);
@@ -663,7 +673,9 @@ export class HotwaterAutopilot {
             && (slot + 1) * SLOT_MS > c.at);
         const surplus = this.surplus(from);
         const now = Date.now();
-        const next = charges.find((c) => c.at + c.minutes * 60_000 > now);
+        // A planned charge whose start has passed is the next one only while the tank is charging.
+        // One that did not start (a safety-net charge filled the tank first) is behind us.
+        const next = nextCharge(charges, now, this.last?.charging === true);
         return {
             slots: Array.from({length: n}, (_, k) => {
                 const c = covering(from + k);

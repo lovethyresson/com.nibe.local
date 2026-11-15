@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import {HotwaterModel, KWH_PER_LITRE, localClock} from '../lib/autopilot/hotwater-learner';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {COAST_HOURS, DAILY_HOUR, trackedReason, DailyPlan, MIN_HORIZON, ShadowEntry, coastLitres, againstPlan, planChanges, planUpdateText, autopilotCharge, chargeLine, chargeText, dailyPlan, dailyPlanText, hotwaterShadowStep, hotwaterStatusText, ownDeviceId, resumePlan, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
+import {COAST_HOURS, DAILY_HOUR, nextCharge, trackedReason, DailyPlan, MIN_HORIZON, ShadowEntry, coastLitres, againstPlan, planChanges, planUpdateText, autopilotCharge, chargeLine, chargeText, dailyPlan, dailyPlanText, hotwaterShadowStep, hotwaterStatusText, ownDeviceId, resumePlan, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
 import {SLOT_MS, slotOf} from '../lib/autopilot/prices';
 
 const clock = localClock('UTC');
@@ -429,4 +429,15 @@ test('a charge that waits past cheaper hours it had room for says the heat would
     const c = dailyOf({model: leaky, prices: flat, now: {litres: 60, top: 46}}).charges[0];
     assert.ok(new Date(c.at).getUTCHours() >= 6, `charge at ${hhmm(c.at)}, after the cheap night`);
     assert.strictEqual(c.reason, 'loss');
+});
+
+test('the widget\'s next charge skips a planned one that never started, and keeps one that is running', () => {
+    const at = (h: number, m = 0) => Date.UTC(2026, 10, 15, h, m);
+    const charges = [{at: at(10, 45), minutes: 75}, {at: at(22), minutes: 60}];
+    // 11:05, the 10:45 charge did not start (a safety-net charge filled the tank at 10:10).
+    assert.strictEqual(nextCharge(charges, at(11, 5), false)?.at, at(22));
+    // 11:05 and the tank is charging: the 10:45 charge is running.
+    assert.strictEqual(nextCharge(charges, at(11, 5), true)?.at, at(10, 45));
+    // 10:50, inside its first slot: still the next one.
+    assert.strictEqual(nextCharge(charges, at(10, 50), false)?.at, at(10, 45));
 });

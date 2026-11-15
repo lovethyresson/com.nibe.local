@@ -183,7 +183,7 @@
       // Hot water: a column a day, each charge a dot at its place in that day's prices: the cheapest
       // third at the top, the most expensive at the bottom.
       function charges(c) {
-        var W = chartWidth(), L = 70, R = W, T = 2, PH = 108, B = T + PH, H = B + 18;
+        var W = chartWidth(), L = 70, R = W, T = 2, PH = 108 + EXTRA, B = T + PH, H = B + 18;
         var n = c.days.length, step = (R - L) / Math.max(n, 7);
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'sv-chart', role: 'img'});
         var y = function (r) { return T + 8 + (PH - 16) * r; };
@@ -229,6 +229,18 @@
         return box;
       }
 
+      // Every Nibe Live card grows to one height for its width, so cards side by side on a dashboard
+      // line up. The chart takes the extra room; a card with more to say grows past it.
+      var EXTRA = 0;
+      function cardTarget() { return Math.max(340, Math.min(560, Math.round(150 + chartWidth() * 0.78))); }
+      function renderFitted(data) {
+        EXTRA = 0;
+        render(data);
+        if (data.empty) return;
+        var gap = cardTarget() - document.getElementById('sv').scrollHeight;
+        if (gap > 4) { EXTRA = gap; render(data); }
+      }
+
       var last = null;
       function render(data) {
         applyTheme();
@@ -268,7 +280,12 @@
           root.appendChild(el('div', 'sv-sub', data.charges.title));
           root.appendChild(charges(data.charges));
         }
-        if (data.footnote) root.appendChild(el('p', 'sv-foot', data.footnote));
+        if (data.footnote) {
+          var foot = el('p', 'sv-foot', data.footnote);
+          // No chart to take the extra room: the footnote sits at the card's foot instead.
+          if (EXTRA && !data.charges) foot.style.marginTop = (10 + EXTRA) + 'px';
+          root.appendChild(foot);
+        }
       }
       function fit(Homey) {
         if (Homey && Homey.setHeight) Homey.setHeight(Math.ceil(document.getElementById('sv').scrollHeight) + 16);
@@ -278,7 +295,7 @@
         var settings = Homey.getSettings() || {};
         var device = settings.device && settings.device.id;
         document.getElementById('sv').appendChild(el('p', 'sv-empty', words().loading));
-        function show(data) { last = data; render(data); fit(Homey); }
+        function show(data) { last = data; renderFitted(data); fit(Homey); }
         function load() {
           return Homey.api('GET', '/' + (device ? '?device=' + encodeURIComponent(device) : ''), {})
             .then(show)
@@ -295,7 +312,7 @@
         var timer = null;
         window.addEventListener('resize', function () {
           clearTimeout(timer);
-          timer = setTimeout(function () { if (last) { render(last); fit(Homey); } }, 150);
+          timer = setTimeout(function () { if (last) { renderFitted(last); fit(Homey); } }, 150);
         });
       }
     </script>

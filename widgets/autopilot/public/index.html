@@ -186,7 +186,7 @@
       // Heating: indoor °C on the left axis (measured solid, expected dashed), the
       // BT1 shift on the right axis as one solid bar an hour from 0, and a line at now.
       function heatingChart(data) {
-        var W = chartWidth(), L = 34, R = W - 40, PH = Math.max(110, Math.min(170, Math.round(W * 0.36))), B = TOP + PH, H = B + 24;
+        var W = chartWidth(), L = 34, R = W - 40, PH = Math.max(110, Math.min(170, Math.round(W * 0.36))) + EXTRA, B = TOP + PH, H = B + 24;
         var n = data.slots.length, step = (R - L) / n;
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'ap-chart', role: 'img'});
         var left = data.scale.left, right = data.scale.right;
@@ -236,7 +236,7 @@
       // as a light warm area (right axis, kW), and each planned charge as a real band on the time axis
       // from its start to its end, split inside into the solar part (solid warm) and the grid part (blue).
       function hotwaterChart(data) {
-        var W = chartWidth(), L = 34, R = W - (data.scale.right ? 34 : 6), PH = Math.max(100, Math.min(150, Math.round(W * 0.33))), B = TOP + PH;
+        var W = chartWidth(), L = 34, R = W - (data.scale.right ? 34 : 6), PH = Math.max(100, Math.min(150, Math.round(W * 0.33))) + EXTRA, B = TOP + PH;
         var bands = data.bands || [], tickY = bands.length ? B + 56 : B + 18, H = tickY + 6;
         var n = data.slots.length, step = (R - L) / n;
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'ap-chart', role: 'img'});
@@ -301,6 +301,18 @@
         return box;
       }
 
+      // Every Nibe Live card grows to one height for its width, so cards side by side on a dashboard
+      // line up. The chart takes the extra room; a card with more to say grows past it.
+      var EXTRA = 0;
+      function cardTarget() { return Math.max(340, Math.min(560, Math.round(150 + chartWidth() * 0.78))); }
+      function renderFitted(data) {
+        EXTRA = 0;
+        render(data);
+        if (data.empty) return;
+        var gap = cardTarget() - document.getElementById('ap').scrollHeight;
+        if (gap > 4) { EXTRA = gap; render(data); }
+      }
+
       var last = null;
       function fit(Homey) {
         if (Homey && Homey.setHeight) Homey.setHeight(Math.ceil(document.getElementById('ap').scrollHeight) + 16);
@@ -341,7 +353,7 @@
             {text: data.legend.offset, style: 'background: var(--ap-offset);'},
           ]));
         } else if (data.kind === 'hotwater' && data.loading) {
-          root.appendChild(placeholder(Math.max(100, Math.min(150, Math.round(chartWidth() * 0.33))) + 50));
+          root.appendChild(placeholder(Math.max(100, Math.min(150, Math.round(chartWidth() * 0.33))) + 50 + EXTRA));
         } else if (data.kind === 'hotwater' && data.slots.length) {
           root.appendChild(hotwaterChart(data));
           root.appendChild(legend([
@@ -357,7 +369,7 @@
         var settings = Homey.getSettings() || {};
         var device = settings.device && settings.device.id;
         document.getElementById('ap').appendChild(el('p', 'ap-empty', words().loading));
-        function show(data) { last = data; render(data); fit(Homey); }
+        function show(data) { last = data; renderFitted(data); fit(Homey); }
         function load() {
           return Homey.api('GET', '/' + (device ? '?device=' + encodeURIComponent(device) : ''), {})
             .then(show)
@@ -376,7 +388,7 @@
         var timer = null;
         window.addEventListener('resize', function () {
           clearTimeout(timer);
-          timer = setTimeout(function () { if (last) { render(last); fit(Homey); } }, 150);
+          timer = setTimeout(function () { if (last) { renderFitted(last); fit(Homey); } }, 150);
         });
       }
     </script>
