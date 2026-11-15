@@ -489,3 +489,7 @@ end is searched from the slice start (`s.index(marker, a)`).
 
 ## 2026-11-15: plan log and logger times are UTC
 - The shadow log's `at` and the scratch logger's `t` are UTC ISO strings. Convert to Europe/Stockholm before quoting any time to the user. I told the user a 09:45 charge "slid" when the plan they had seen said 10:45 all morning: every time was an hour off.
+
+## 2026-11-15: a setting the user asks for can still break a running test
+- I switched heating to "Save more" on request at 19:07, though I had said that morning that the switch changes the live test (the stop criteria and the trim are built for Comfort ±0.5). The user: "Don't switch to most savings if it ruins a test."
+- Before any change during a hardware test, even one the user asks for, say in one line what it does to the test and wait for the go-ahead.

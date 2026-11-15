@@ -50,6 +50,40 @@ export function profileLimits(profile: unknown): Limits {
     return PROFILE_LIMITS[profile as PresetId] ?? PROFILE_LIMITS[DEFAULT_PROFILE];
 }
 
+/** The Custom range: the owner sets the live limits themselves, in device settings under
+ *  "Autopilot custom range (advanced)". Each setting, its range, and the limit it sets. Values
+ *  outside the range are clamped; a missing one is Comfort's. Unproven combinations: the planner
+ *  was tuned on the three ranges only. */
+export const CUSTOM_SETTINGS = {
+    custom_coldest: {limit: 'lower', min: 0, max: 6},
+    custom_warmest: {limit: 'upper', min: 0, max: 6},
+    /** The expensive hour must cost at least this many times the cheap one: 1 + margin. */
+    custom_price_ratio: {limit: 'margin', min: 1, max: 3},
+    custom_coast_hours: {limit: 'maxCoastH', min: 0, max: 24},
+    custom_preheat_shift: {limit: 'maxBias', min: 0, max: 20},
+    custom_coast_shift: {limit: 'maxCoastBias', min: 0, max: 20},
+    custom_comfort_weight: {limit: 'comfortWeight', min: 0.5, max: 3},
+    custom_preheat_lead: {limit: 'preheatLeadTau', min: 0, max: 1},
+} as const;
+export type CustomSettingId = keyof typeof CUSTOM_SETTINGS;
+
+/** The limits the Custom range plans with, from the device's settings. Pure. */
+export function customLimits(settings: Partial<Record<CustomSettingId, unknown>>): Limits {
+    const out: Limits = {...PROFILE_LIMITS.comfortable};
+    for (const [id, spec] of Object.entries(CUSTOM_SETTINGS) as [CustomSettingId, typeof CUSTOM_SETTINGS[CustomSettingId]][]) {
+        const raw = Number(settings[id]);
+        if (!Number.isFinite(raw)) continue;
+        const v = Math.min(spec.max, Math.max(spec.min, raw));
+        (out as any)[spec.limit] = spec.limit === 'margin' ? v - 1 : v;
+    }
+    return out;
+}
+
+/** The limits for a range id, or the Custom range's from `settings`. Pure. */
+export function rangeLimits(range: unknown, settings: Partial<Record<CustomSettingId, unknown>>): Limits {
+    return range === 'custom' ? customLimits(settings) : profileLimits(range);
+}
+
 export const FEED_EVERY_MS = 30_000;
 /** Input 1 must show the fed value within this many reads, this far apart (dev/probe-bt1.mjs). */
 export const VERIFY_TRIES = 4;

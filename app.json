@@ -8198,6 +8198,250 @@
               "value": false
             }
           ]
+        },
+        {
+          "type": "group",
+          "label": {
+            "en": "Autopilot custom range (advanced)",
+            "sv": "Autopilot anpassat spann (avancerat)",
+            "de": "Autopilot benutzerdefinierter Bereich (erweitert)",
+            "nl": "Autopilot aangepast bereik (geavanceerd)",
+            "no": "Autopilot egendefinert område (avansert)",
+            "da": "Autopilot tilpasset interval (avanceret)"
+          },
+          "children": [
+            {
+              "id": "custom_warning",
+              "type": "label",
+              "label": {
+                "en": "Read first",
+                "sv": "Läs först",
+                "de": "Zuerst lesen",
+                "nl": "Eerst lezen",
+                "no": "Les først",
+                "da": "Læs først"
+              },
+              "value": "For advanced users only. These settings apply to the Heating device, and only while its comfort range is Custom. Autopilot was tuned on Comfort, Save and Save most; other combinations are untested, and Autopilot may heat more, save less, or let the house get colder than you expect.",
+              "hint": {
+                "en": "For advanced users only. These settings apply to the Heating device, and only while its comfort range is Custom. Autopilot was tuned on Comfort, Save and Save most; other combinations are untested, and Autopilot may heat more, save less, or let the house get colder than you expect.",
+                "sv": "Endast för avancerade användare. Inställningarna gäller enheten Uppvärmning, och bara när dess komfortspann är Anpassat. Autopilot är inställd för Komfort, Spara och Spara mest; andra kombinationer är oprövade, och Autopilot kan värma mer, spara mindre eller låta huset bli kallare än du räknar med.",
+                "de": "Nur für fortgeschrittene Benutzer. Diese Einstellungen gelten für das Gerät Heizung und nur, solange dessen Komfortbereich Benutzerdefiniert ist. Autopilot wurde für Komfort, Sparen und Am meisten sparen abgestimmt; andere Kombinationen sind ungetestet, und Autopilot kann mehr heizen, weniger sparen oder das Haus kälter werden lassen, als Sie erwarten.",
+                "nl": "Alleen voor gevorderde gebruikers. Deze instellingen gelden voor het apparaat Verwarming, en alleen als het comfortbereik op Aangepast staat. Autopilot is afgestemd op Comfort, Besparen en Meest besparen; andere combinaties zijn niet getest, en Autopilot kan meer verwarmen, minder besparen of het huis kouder laten worden dan je verwacht.",
+                "no": "Bare for avanserte brukere. Innstillingene gjelder enheten Oppvarming, og bare når komfortområdet er Egendefinert. Autopilot er justert for Komfort, Spar og Spar mest; andre kombinasjoner er ikke testet, og Autopilot kan varme mer, spare mindre eller la huset bli kaldere enn du regner med.",
+                "da": "Kun for avancerede brugere. Indstillingerne gælder enheden Opvarmning, og kun når dens komfortinterval er Tilpasset. Autopilot er indstillet til Komfort, Spar og Spar mest; andre kombinationer er ikke testet, og Autopilot kan varme mere, spare mindre eller lade huset blive koldere, end du regner med."
+              }
+            },
+            {
+              "id": "custom_coldest",
+              "type": "number",
+              "label": {
+                "en": "Coolest below your temperature",
+                "sv": "Svalast under din temperatur",
+                "de": "Kühlste unter Ihrer Temperatur",
+                "nl": "Koelst onder je temperatuur",
+                "no": "Kjøligst under din temperatur",
+                "da": "Køligst under din temperatur"
+              },
+              "value": 0.5,
+              "min": 0,
+              "max": 6,
+              "step": 0.5,
+              "hint": {
+                "en": "How far the house may cool below its indoor temperature while Autopilot eases off. Comfort 0.5, Save 3, Save most 6.",
+                "sv": "Hur långt huset får svalna under inomhustemperaturen när Autopilot drar ner. Komfort 0,5, Spara 3, Spara mest 6.",
+                "de": "Wie weit das Haus unter die Innentemperatur abkühlen darf, während Autopilot zurückfährt. Komfort 0,5, Sparen 3, Am meisten sparen 6.",
+                "nl": "Hoeveel het huis onder de binnentemperatuur mag afkoelen terwijl Autopilot terugschakelt. Comfort 0,5, Besparen 3, Meest besparen 6.",
+                "no": "Hvor langt huset kan kjøles under innetemperaturen mens Autopilot trapper ned. Komfort 0,5, Spar 3, Spar mest 6.",
+                "da": "Hvor meget huset må køle ned under indetemperaturen, mens Autopilot skruer ned. Komfort 0,5, Spar 3, Spar mest 6."
+              },
+              "units": {
+                "en": "°C"
+              }
+            },
+            {
+              "id": "custom_warmest",
+              "type": "number",
+              "label": {
+                "en": "Warmest above your temperature",
+                "sv": "Varmast över din temperatur",
+                "de": "Wärmste über Ihrer Temperatur",
+                "nl": "Warmst boven je temperatuur",
+                "no": "Varmest over din temperatur",
+                "da": "Varmest over din temperatur"
+              },
+              "value": 0.5,
+              "min": 0,
+              "max": 6,
+              "step": 0.5,
+              "hint": {
+                "en": "How far a pre-heat may take the house above its indoor temperature. Comfort 0.5, Save 3, Save most 6.",
+                "sv": "Hur långt en förvärmning får ta huset över inomhustemperaturen. Komfort 0,5, Spara 3, Spara mest 6.",
+                "de": "Wie weit ein Vorheizen das Haus über die Innentemperatur bringen darf. Komfort 0,5, Sparen 3, Am meisten sparen 6.",
+                "nl": "Hoeveel voorverwarmen het huis boven de binnentemperatuur mag brengen. Comfort 0,5, Besparen 3, Meest besparen 6.",
+                "no": "Hvor langt en forvarming kan ta huset over innetemperaturen. Komfort 0,5, Spar 3, Spar mest 6.",
+                "da": "Hvor meget en forvarmning må tage huset over indetemperaturen. Komfort 0,5, Spar 3, Spar mest 6."
+              },
+              "units": {
+                "en": "°C"
+              }
+            },
+            {
+              "id": "custom_price_ratio",
+              "type": "number",
+              "label": {
+                "en": "Price difference needed",
+                "sv": "Prisskillnad som krävs",
+                "de": "Nötiger Preisunterschied",
+                "nl": "Benodigd prijsverschil",
+                "no": "Prisforskjell som kreves",
+                "da": "Nødvendig prisforskel"
+              },
+              "value": 1.2,
+              "min": 1,
+              "max": 3,
+              "step": 0.05,
+              "hint": {
+                "en": "Heat is moved between two hours only when the expensive one costs at least this many times the cheap one. Lower moves heat more often. Comfort 1.2, Save 1.1, Save most 1.0.",
+                "sv": "Värme flyttas mellan två timmar bara när den dyra kostar minst så här många gånger den billiga. Lägre flyttar oftare. Komfort 1,2, Spara 1,1, Spara mest 1,0.",
+                "de": "Wärme wird nur zwischen zwei Stunden verschoben, wenn die teure mindestens so viel Mal die günstige kostet. Niedriger verschiebt öfter. Komfort 1,2, Sparen 1,1, Am meisten sparen 1,0.",
+                "nl": "Warmte wordt alleen tussen twee uren verschoven als het dure uur minstens zoveel keer het goedkope kost. Lager verschuift vaker. Comfort 1,2, Besparen 1,1, Meest besparen 1,0.",
+                "no": "Varme flyttes mellom to timer bare når den dyre koster minst så mange ganger den billige. Lavere flytter oftere. Komfort 1,2, Spar 1,1, Spar mest 1,0.",
+                "da": "Varme flyttes kun mellem to timer, når den dyre koster mindst så mange gange den billige. Lavere flytter oftere. Komfort 1,2, Spar 1,1, Spar mest 1,0."
+              },
+              "units": {
+                "en": "×"
+              }
+            },
+            {
+              "id": "custom_coast_hours",
+              "type": "number",
+              "label": {
+                "en": "Longest ease-off",
+                "sv": "Längsta neddragning",
+                "de": "Längstes Zurückfahren",
+                "nl": "Langste terugschakeling",
+                "no": "Lengste nedtrapping",
+                "da": "Længste nedskruning"
+              },
+              "value": 6,
+              "min": 0,
+              "max": 24,
+              "step": 1,
+              "hint": {
+                "en": "How long the house may run on stored heat before it is bought back. Comfort 6, Save 12, Save most 24.",
+                "sv": "Hur länge huset får gå på lagrad värme innan den köps tillbaka. Komfort 6, Spara 12, Spara mest 24.",
+                "de": "Wie lange das Haus von gespeicherter Wärme leben darf, bevor sie zurückgekauft wird. Komfort 6, Sparen 12, Am meisten sparen 24.",
+                "nl": "Hoe lang het huis op opgeslagen warmte mag draaien voordat die wordt teruggekocht. Comfort 6, Besparen 12, Meest besparen 24.",
+                "no": "Hvor lenge huset kan gå på lagret varme før den kjøpes tilbake. Komfort 6, Spar 12, Spar mest 24.",
+                "da": "Hvor længe huset må køre på lagret varme, før den købes tilbage. Komfort 6, Spar 12, Spar mest 24."
+              },
+              "units": {
+                "en": "h"
+              }
+            },
+            {
+              "id": "custom_preheat_shift",
+              "type": "number",
+              "label": {
+                "en": "Largest pre-heat shift",
+                "sv": "Största förvärmningsförskjutning",
+                "de": "Größte Vorheiz-Verschiebung",
+                "nl": "Grootste voorverwarmverschuiving",
+                "no": "Største forvarmingsforskyvning",
+                "da": "Største forvarmningsforskydning"
+              },
+              "value": 10,
+              "min": 0,
+              "max": 20,
+              "step": 1,
+              "hint": {
+                "en": "How far below the real outdoor temperature Autopilot may feed BT1 to heat harder. Comfort 10, Save 15, Save most 20.",
+                "sv": "Hur långt under den verkliga utetemperaturen Autopilot får mata BT1 för att värma mer. Komfort 10, Spara 15, Spara mest 20.",
+                "de": "Wie weit unter der echten Außentemperatur Autopilot BT1 speisen darf, um stärker zu heizen. Komfort 10, Sparen 15, Am meisten sparen 20.",
+                "nl": "Hoeveel onder de echte buitentemperatuur Autopilot BT1 mag voeden om harder te verwarmen. Comfort 10, Besparen 15, Meest besparen 20.",
+                "no": "Hvor langt under den virkelige utetemperaturen Autopilot kan mate BT1 for å varme mer. Komfort 10, Spar 15, Spar mest 20.",
+                "da": "Hvor langt under den reelle udetemperatur Autopilot må fodre BT1 for at varme mere. Komfort 10, Spar 15, Spar mest 20."
+              },
+              "units": {
+                "en": "K"
+              }
+            },
+            {
+              "id": "custom_coast_shift",
+              "type": "number",
+              "label": {
+                "en": "Largest ease-off shift",
+                "sv": "Största neddragningsförskjutning",
+                "de": "Größte Zurückfahr-Verschiebung",
+                "nl": "Grootste terugschakelverschuiving",
+                "no": "Største nedtrappingsforskyvning",
+                "da": "Største nedskruningsforskydning"
+              },
+              "value": 10,
+              "min": 0,
+              "max": 20,
+              "step": 1,
+              "hint": {
+                "en": "How far above the real outdoor temperature Autopilot may feed BT1 to heat less. Comfort 10, Save 15, Save most 20.",
+                "sv": "Hur långt över den verkliga utetemperaturen Autopilot får mata BT1 för att värma mindre. Komfort 10, Spara 15, Spara mest 20.",
+                "de": "Wie weit über der echten Außentemperatur Autopilot BT1 speisen darf, um weniger zu heizen. Komfort 10, Sparen 15, Am meisten sparen 20.",
+                "nl": "Hoeveel boven de echte buitentemperatuur Autopilot BT1 mag voeden om minder te verwarmen. Comfort 10, Besparen 15, Meest besparen 20.",
+                "no": "Hvor langt over den virkelige utetemperaturen Autopilot kan mate BT1 for å varme mindre. Komfort 10, Spar 15, Spar mest 20.",
+                "da": "Hvor langt over den reelle udetemperatur Autopilot må fodre BT1 for at varme mindre. Komfort 10, Spar 15, Spar mest 20."
+              },
+              "units": {
+                "en": "K"
+              }
+            },
+            {
+              "id": "custom_comfort_weight",
+              "type": "number",
+              "label": {
+                "en": "Comfort weight",
+                "sv": "Komfortvikt",
+                "de": "Komfortgewicht",
+                "nl": "Comfortgewicht",
+                "no": "Komfortvekt",
+                "da": "Komfortvægt"
+              },
+              "value": 1.4,
+              "min": 0.5,
+              "max": 3,
+              "step": 0.1,
+              "hint": {
+                "en": "What a degree away from your temperature costs against the money a shift saves. Higher keeps the house closer to your temperature. Comfort 1.4, Save 1.2, Save most 1.0.",
+                "sv": "Vad en grad från din temperatur kostar mot pengarna en förskjutning sparar. Högre håller huset närmare din temperatur. Komfort 1,4, Spara 1,2, Spara mest 1,0.",
+                "de": "Was ein Grad Abweichung von Ihrer Temperatur gegenüber dem gesparten Geld kostet. Höher hält das Haus näher an Ihrer Temperatur. Komfort 1,4, Sparen 1,2, Am meisten sparen 1,0.",
+                "nl": "Wat een graad van je temperatuur af kost tegenover het geld dat een verschuiving bespaart. Hoger houdt het huis dichter bij je temperatuur. Comfort 1,4, Besparen 1,2, Meest besparen 1,0.",
+                "no": "Hva en grad fra temperaturen din koster mot pengene en forskyvning sparer. Høyere holder huset nærmere temperaturen din. Komfort 1,4, Spar 1,2, Spar mest 1,0.",
+                "da": "Hvad en grad fra din temperatur koster mod de penge, en forskydning sparer. Højere holder huset tættere på din temperatur. Komfort 1,4, Spar 1,2, Spar mest 1,0."
+              }
+            },
+            {
+              "id": "custom_preheat_lead",
+              "type": "number",
+              "label": {
+                "en": "How early a pre-heat may start",
+                "sv": "Hur tidigt förvärmning får börja",
+                "de": "Wie früh das Vorheizen beginnen darf",
+                "nl": "Hoe vroeg voorverwarmen mag beginnen",
+                "no": "Hvor tidlig forvarming kan starte",
+                "da": "Hvor tidligt forvarmning må starte"
+              },
+              "value": 0.3,
+              "min": 0,
+              "max": 1,
+              "step": 0.05,
+              "hint": {
+                "en": "As a share of how slowly your house warms and cools (its time constant). 1 lets a pre-heat start a full time constant before a price peak. Comfort, Save and Save most all use 0.3.",
+                "sv": "Som andel av hur långsamt ditt hus värms och svalnar (dess tidskonstant). 1 låter förvärmningen börja en hel tidskonstant före en pristopp. Komfort, Spara och Spara mest använder alla 0,3.",
+                "de": "Als Anteil daran, wie langsam Ihr Haus warm und kalt wird (seine Zeitkonstante). 1 lässt das Vorheizen eine ganze Zeitkonstante vor einer Preisspitze beginnen. Komfort, Sparen und Am meisten sparen nutzen alle 0,3.",
+                "nl": "Als deel van hoe langzaam je huis opwarmt en afkoelt (de tijdconstante). Met 1 begint voorverwarmen een hele tijdconstante voor een prijspiek. Comfort, Besparen en Meest besparen gebruiken alle 0,3.",
+                "no": "Som andel av hvor sakte huset ditt varmes og kjøles (tidskonstanten). 1 lar forvarmingen starte en hel tidskonstant før en pristopp. Komfort, Spar og Spar mest bruker alle 0,3.",
+                "da": "Som andel af, hvor langsomt dit hus varmes og køles (dets tidskonstant). 1 lader forvarmningen starte en hel tidskonstant før en pristop. Komfort, Spar og Spar mest bruger alle 0,3."
+              }
+            }
+          ]
         }
       ],
       "id": "nibe_s"
@@ -8481,6 +8725,17 @@
             "nl": "Meer besparen (±6 °C)",
             "no": "Spar mer (±6 °C)",
             "da": "Spar mere (±6 °C)"
+          }
+        },
+        {
+          "id": "custom",
+          "title": {
+            "en": "Custom (advanced)",
+            "sv": "Anpassat (avancerat)",
+            "de": "Benutzerdefiniert (erweitert)",
+            "nl": "Aangepast (geavanceerd)",
+            "no": "Egendefinert (avansert)",
+            "da": "Tilpasset (avanceret)"
           }
         }
       ],

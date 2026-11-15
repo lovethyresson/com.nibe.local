@@ -639,7 +639,8 @@
         "comfortable": "Komfort ±0,5 °C",
         "save_some": "Sparen ±3 °C",
         "save_most": "Mehr sparen ±6 °C",
-        "off": "Aus"
+        "off": "Aus",
+        "custom": "Benutzerdefinierter Bereich"
       },
       "hotwater": {
         "next": "Nächste Ladung __when__",
@@ -784,6 +785,7 @@
       "price_axis": "Preis pro kWh",
       "no_prices": "Benötigt dynamische Strompreise in Homey Energie.",
       "no_functions": "Diese Wärmepumpe hat kein Heizungs- oder Warmwasser-Gerät."
-    }
+    },
+    "custom_warning": "Nur für fortgeschrittene Benutzer. Diese Einstellungen gelten für das Gerät Heizung und nur, solange dessen Komfortbereich Benutzerdefiniert ist. Autopilot wurde für Komfort, Sparen und Am meisten sparen abgestimmt; andere Kombinationen sind ungetestet, und Autopilot kann mehr heizen, weniger sparen oder das Haus kälter werden lassen, als Sie erwarten."
   }
 }

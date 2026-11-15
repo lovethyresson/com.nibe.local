@@ -133,7 +133,7 @@ so it has no listener at all.
 | `smart_mode`, `from_smart_mode` | string | `off`, `spa`, `simulation`, `autopilot` — the internal `test` is sent as `simulation` | nibe |
 | `simulation` | boolean | Autopilot ran as a simulation: it planned and reported but wrote nothing | nibe |
 | `setting` | string | `reserve`, `solar_live`, `solar_forecast`, `comfort_range`, `away_temperature`, `household`, `outdoor_sensor` | nibe |
-| `setting_value` | string | `reserve`: `off`, `20`, `40`, `60`, `other`; `comfort_range`: `off`, `comfortable`, `save_some`, `save_most`; the rest: `on`, `off` | nibe |
+| `setting_value` | string | `reserve`: `off`, `20`, `40`, `60`, `other`; `comfort_range`: `off`, `comfortable`, `save_some`, `save_most`, `custom`; the rest: `on`, `off` | nibe |
 | `day_type` | string | `working`, `free`, `away` — the type in force after the change | nibe |
 | `source` | string | `flow`, `device`, `away` — what changed the day type | nibe |
 | `started_by` | string | `autopilot`, `device` | nibe |

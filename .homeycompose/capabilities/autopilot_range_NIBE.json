@@ -52,6 +52,17 @@
         "no": "Spar mer (±6 °C)",
         "da": "Spar mere (±6 °C)"
       }
+    },
+    {
+      "id": "custom",
+      "title": {
+        "en": "Custom (advanced)",
+        "sv": "Anpassat (avancerat)",
+        "de": "Benutzerdefiniert (erweitert)",
+        "nl": "Aangepast (geavanceerd)",
+        "no": "Egendefinert (avansert)",
+        "da": "Tilpasset (avanceret)"
+      }
     }
   ],
   "getable": true,

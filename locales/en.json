@@ -639,7 +639,8 @@
         "comfortable": "Comfort ±0.5 °C",
         "save_some": "Save ±3 °C",
         "save_most": "Save more ±6 °C",
-        "off": "Off"
+        "off": "Off",
+        "custom": "Custom range"
       },
       "hotwater": {
         "next": "Next charge __when__",
@@ -784,6 +785,7 @@
       "price_axis": "Price per kWh",
       "no_prices": "Needs dynamic electricity prices in Homey Energy.",
       "no_functions": "This heat pump has no Heating or Hot water device."
-    }
+    },
+    "custom_warning": "For advanced users only. These settings apply to the Heating device, and only while its comfort range is Custom. Autopilot was tuned on Comfort, Save and Save most; other combinations are untested, and Autopilot may heat more, save less, or let the house get colder than you expect."
   }
 }

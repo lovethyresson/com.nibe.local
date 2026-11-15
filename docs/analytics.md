@@ -285,7 +285,7 @@ what Autopilot *would* have done.
 
 ¹ `setting` → `setting_value`: `reserve` → `off`/`20`/`40`/`60`/`other`; `solar_live`, `solar_forecast`,
 `household` (answered or cleared), `outdoor_sensor` (a sensor chosen or cleared), `away` (the home's Away, `role: 'main'`) → `on`/`off`;
-`comfort_range` → the profile id (`off`, `comfortable`, `save_some`, `save_most`). `away_temperature`
+`comfort_range` → the profile id (`off`, `comfortable`, `save_some`, `save_most`, `custom`). The Custom range's own settings are not sent. `away_temperature`
 carries **no** `setting_value`: it is a setpoint, so only the fact that it changed is sent. The
 household's answers and which sensor was picked are never sent.
 ² `charge_reason` (`cheap`, `before_use`, `reserve`, `surplus`) only with `started_by: 'autopilot'`. A

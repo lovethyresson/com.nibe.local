@@ -357,7 +357,8 @@
         "comfortable": "Comfort ±0,5 °C",
         "save_some": "Besparen ±3 °C",
         "save_most": "Meer besparen ±6 °C",
-        "off": "Uit"
+        "off": "Uit",
+        "custom": "Aangepast bereik"
       },
       "hotwater": {
         "next": "Volgende opwarming __when__",
@@ -499,6 +500,7 @@
       "price_axis": "Prijs per kWh",
       "no_prices": "Hiervoor zijn dynamische stroomprijzen in Homey Energie nodig.",
       "no_functions": "Deze warmtepomp heeft geen apparaat voor verwarming of warm water."
-    }
+    },
+    "custom_warning": "Alleen voor gevorderde gebruikers. Deze instellingen gelden voor het apparaat Verwarming, en alleen als het comfortbereik op Aangepast staat. Autopilot is afgestemd op Comfort, Besparen en Meest besparen; andere combinaties zijn niet getest, en Autopilot kan meer verwarmen, minder besparen of het huis kouder laten worden dan je verwacht."
   }
 }

@@ -357,7 +357,8 @@
         "comfortable": "Komfort ±0,5 °C",
         "save_some": "Spar ±3 °C",
         "save_most": "Spar mere ±6 °C",
-        "off": "Fra"
+        "off": "Fra",
+        "custom": "Tilpasset interval"
       },
       "hotwater": {
         "next": "Næste opvarmning __when__",
@@ -499,6 +500,7 @@
       "price_axis": "Pris pr. kWh",
       "no_prices": "Kræver dynamiske elpriser i Homey Energi.",
       "no_functions": "Varmepumpen har ingen enhed til opvarmning eller varmt vand."
-    }
+    },
+    "custom_warning": "Kun for avancerede brugere. Indstillingerne gælder enheden Opvarmning, og kun når dens komfortinterval er Tilpasset. Autopilot er indstillet til Komfort, Spar og Spar mest; andre kombinationer er ikke testet, og Autopilot kan varme mere, spare mindre eller lade huset blive koldere, end du regner med."
   }
 }
