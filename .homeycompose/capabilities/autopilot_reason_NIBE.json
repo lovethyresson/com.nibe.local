@@ -1,12 +1,12 @@
 {
   "type": "string",
   "title": {
-    "en": "Autopilot now",
-    "sv": "Autopilot nu",
-    "de": "Autopilot jetzt",
-    "nl": "Autopilot nu",
-    "no": "Autopilot nå",
-    "da": "Autopilot nu"
+    "en": "Autopilot",
+    "sv": "Autopilot",
+    "de": "Autopilot",
+    "nl": "Autopilot",
+    "no": "Autopilot",
+    "da": "Autopilot"
   },
   "uiComponent": "sensor",
   "getable": true,
@@ -20,5 +20,5 @@
     "da": ""
   },
   "insights": false,
-  "icon": "/assets/images/select.svg"
+  "icon": "/assets/images/time.svg"
 }

@@ -78,7 +78,7 @@
   ],
   "getable": true,
   "setable": false,
-  "uiComponent": "sensor",
+  "uiComponent": null,
   "insights": true,
   "icon": "/assets/images/time.svg"
 }

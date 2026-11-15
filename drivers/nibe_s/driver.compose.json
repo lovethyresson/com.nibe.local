@@ -133,6 +133,7 @@
     "autopilot_range_NIBE",
     "boolean_NIBE.away",
     "target_temperature.autopilot_away",
+    "measure_temperature.autopilot_outdoor",
     "measure_temperature.autopilot_fed",
     "autopilot_shift_NIBE"
   ],

@@ -6709,6 +6709,7 @@
         "autopilot_range_NIBE",
         "boolean_NIBE.away",
         "target_temperature.autopilot_away",
+        "measure_temperature.autopilot_outdoor",
         "measure_temperature.autopilot_fed",
         "autopilot_shift_NIBE"
       ],
@@ -8531,12 +8532,12 @@
     "autopilot_reason_NIBE": {
       "type": "string",
       "title": {
-        "en": "Autopilot now",
-        "sv": "Autopilot nu",
-        "de": "Autopilot jetzt",
-        "nl": "Autopilot nu",
-        "no": "Autopilot nå",
-        "da": "Autopilot nu"
+        "en": "Autopilot",
+        "sv": "Autopilot",
+        "de": "Autopilot",
+        "nl": "Autopilot",
+        "no": "Autopilot",
+        "da": "Autopilot"
       },
       "uiComponent": "sensor",
       "getable": true,
@@ -8550,7 +8551,7 @@
         "da": ""
       },
       "insights": false,
-      "icon": "/assets/images/select.svg"
+      "icon": "/assets/images/time.svg"
     },
     "autopilot_shift_NIBE": {
       "type": "number",
@@ -8658,7 +8659,7 @@
       ],
       "getable": true,
       "setable": false,
-      "uiComponent": "sensor",
+      "uiComponent": null,
       "insights": true,
       "icon": "/assets/images/time.svg"
     },

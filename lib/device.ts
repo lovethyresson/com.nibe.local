@@ -32,7 +32,7 @@ import {
 } from './registers';
 import {
     ACTIVE_POWER_CAPABILITY, ALARM_ACTIVE_CAPABILITY, ALARM_TEXT_CAPABILITY, AWAY_CAPABILITY,
-    AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY, AUTOPILOT_FED_CAPABILITY, AUTOPILOT_RANGE_CAPABILITY,
+    AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY, AUTOPILOT_FED_CAPABILITY, AUTOPILOT_OUTDOOR_CAPABILITY, AUTOPILOT_RANGE_CAPABILITY,
     AUTOPILOT_REASON_CAPABILITY, AUTOPILOT_SHIFT_CAPABILITY, AUTOPILOT_STATUS_CAPABILITY,
     DAY_TYPE_CAPABILITY, FUNCTION_COP_CAPABILITY, HOTWATER_INLET_CAPABILITY, HOTWATER_VOLUME_CAPABILITY, METER_CAPABILITY,
     PUMP_ACTIVE_CAPABILITY, Role, SOLAR_METER_CAPABILITY, TOTAL_COP_CAPABILITY,
@@ -1820,11 +1820,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             if (this.hasCapability(name) && this.getCapabilityValue(name) !== value) await this.setCapabilityValue(name, value);
         };
         await set(AUTOPILOT_STATUS_CAPABILITY, status);
-        await set(AUTOPILOT_REASON_CAPABILITY, reason);
+        // The one Autopilot tile: the status has no tile of its own, so a reason-less status (Off) shows its name.
+        await set(AUTOPILOT_REASON_CAPABILITY, reason || this.homey.__(`autopilot.heating.status_name.${status}`));
         const feeding = !state.stopped && state.fed !== undefined;
         await set(AUTOPILOT_FED_CAPABILITY, feeding ? Math.round(state.fed! * 10) / 10 : null);
         // What BT1 is fed minus the real outdoor temperature: below 0, the pump sees it colder and heats more.
         await set(AUTOPILOT_SHIFT_CAPABILITY, feeding ? Math.round(-state.bias * 10) / 10 + 0 : 0);
+        // The real outdoor temperature; the last one stays while there is none (a restart, a pause).
+        if (state.real !== undefined && Number.isFinite(state.real)) await set(AUTOPILOT_OUTDOOR_CAPABILITY, Math.round(state.real * 10) / 10);
         this.trackHeating(status, state.stopped);
         const predicted = state.indoor?.[FORECAST_SLOTS - 1];
         if (state.slot !== undefined && predicted !== undefined) this.heatingDay.predict(state.slot, predicted);
@@ -2182,7 +2185,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const reason = status === 'learning' && summary && !summary.ready
             ? learningText(summary, t, 'learning')
             : status === 'paused' && stopped && WIDGET_PAUSES.includes(stopped) ? t(`paused.${stopped}`)
-                : stored === undefined ? undefined : stripLead(stored, [testLead, statusName ?? '']);
+                : stored === undefined || stored === statusName ? undefined : stripLead(stored, [testLead, statusName ?? '']);
         const aim = aimingFor(slots, now, this.heatingFeed?.state?.setpoint);
         // Started, house learned, no plan yet: the forecast and prices are being read.
         const waiting = stopped === 'no_model' && !!summary?.ready;

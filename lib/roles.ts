@@ -181,10 +181,13 @@ export const AUTOPILOT_RANGE_CAPABILITY = "autopilot_range_NIBE";
 export const AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY = "target_temperature.autopilot_away";
 export const AUTOPILOT_FED_CAPABILITY = "measure_temperature.autopilot_fed";
 export const AUTOPILOT_SHIFT_CAPABILITY = "autopilot_shift_NIBE";
+/** The real outdoor temperature Autopilot plans with: while it feeds BT1, the pump's own outdoor
+ *  reading shows the value fed, so this is the only tile with the weather outside. */
+export const AUTOPILOT_OUTDOOR_CAPABILITY = "measure_temperature.autopilot_outdoor";
 // The comfort range is not among them: it is set in Heating setup and kept in the device's store
 // (device.ts heatingRange). Its capability type stays declared until no device carries it.
 export const AUTOPILOT_HEATING_CAPABILITIES = [AUTOPILOT_STATUS_CAPABILITY, AUTOPILOT_REASON_CAPABILITY,
-    AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY,
+    AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY, AUTOPILOT_OUTDOOR_CAPABILITY,
     AUTOPILOT_SHIFT_CAPABILITY, AUTOPILOT_FED_CAPABILITY];
 
 // Autopilot hot water on the Hot water device, only while its Smart mode is Autopilot or a test
@@ -605,11 +608,18 @@ export function extraCapabilityOptions(role: Role, name: string, profile?: Model
     if (name === AUTOPILOT_FED_CAPABILITY)
         return {title: {en: "Outdoor temperature sent (BT1)", sv: "Utetemperatur som skickas (BT1)", de: "Gesendete Außentemperatur (BT1)",
                         nl: "Verzonden buitentemperatuur (BT1)", no: "Utetemperatur som sendes (BT1)", da: "Sendt udetemperatur (BT1)"},
+                // No tile: while Autopilot feeds, "Outdoor temperature (BT1)" shows the same value. Kept
+                // for its Insights log, which the savings card reads to find the hours that ran live.
+                decimals: 1, uiComponent: null};
+    if (name === AUTOPILOT_OUTDOOR_CAPABILITY)
+        return {title: {en: "Real outdoor temperature", sv: "Verklig utetemperatur", de: "Tatsächliche Außentemperatur",
+                        nl: "Werkelijke buitentemperatuur", no: "Faktisk utetemperatur", da: "Faktisk udetemperatur"},
                 decimals: 1};
     if (name === AUTOPILOT_SHIFT_CAPABILITY)
         return {title: {en: "Outdoor shift (BT1)", sv: "Förskjutning av utetemperatur (BT1)", de: "Verschiebung der Außentemperatur (BT1)",
                         nl: "Verschuiving buitentemperatuur (BT1)", no: "Forskyvning av utetemperatur (BT1)", da: "Forskydning af udetemperatur (BT1)"},
-                decimals: 1};
+                // No tile: the real and the sent temperature say it. Kept in Insights.
+                decimals: 1, uiComponent: null};
     if (name === DAY_TYPE_CAPABILITY)
         return {title: {en: "Day type", sv: "Dagtyp", de: "Tagestyp", nl: "Dagtype", no: "Dagtype", da: "Dagtype"}};
     if (name === HOTWATER_VOLUME_CAPABILITY)

@@ -160,6 +160,9 @@ test('charges already done are bands too; a running charge is one band, its done
 test('a reason loses the word the status already says', () => {
     assert.equal(stripLead('Holding. No changes planned', ['Holding']), 'No changes planned');
     assert.equal(stripLead('Holding · easing off at 19:00', ['Holding']), 'Easing off at 19:00');
+    assert.equal(stripLead('Easing off until 18:00: prices peak', ['Easing off']), 'Until 18:00: prices peak',
+        'the tile says the status as the reason\'s first words; the widget shows it once');
+    assert.equal(stripLead('Offline', ['Off']), 'Offline', 'a lead is a whole word');
     assert.equal(stripLead('Simulated: Holding. Prices are too even to shift', ['Simulated', 'Holding']), 'Prices are too even to shift');
     assert.equal(stripLead('Until 19:00. Prices peak 17–19', ['Easing off']), 'Until 19:00. Prices peak 17–19', 'nothing to strip');
     assert.equal(stripLead('Holding.', ['Holding']), '', 'only the lead: nothing left');

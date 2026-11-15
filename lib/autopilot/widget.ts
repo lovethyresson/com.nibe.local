@@ -214,7 +214,8 @@ export function stripLead(text: string, leads: string[]): string {
         again = false;
         for (const lead of leads) {
             if (!lead) continue;
-            const re = new RegExp(`^${lead.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*[.:·]\\s*`, 'i');
+            // A lead ends at a separator, or at a space when the text runs on ("Easing off until 18:00").
+            const re = new RegExp(`^${lead.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:\\s*[.:·]\\s*|\\s+)`, 'i');
             if (re.test(out)) { out = out.replace(re, ''); again = true; }
         }
     }
