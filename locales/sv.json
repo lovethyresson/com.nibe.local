@@ -713,8 +713,7 @@
       "starting_hotwater": "Läser in elpriserna och tankens nivå. Det här tar ungefär en minut.",
       "starting_app": "Läser in data från din värmepump. Det här tar ungefär en minut.",
       "away_until": "Borta till __until__ · __c__ °C",
-      "charge_done": "Laddat",
-      "in_range": "Inom ±__band__ °C __h__ av __n__ h i dag"
+      "charge_done": "Laddat"
     },
     "hotwater_status": {
       "learning": "Lär sig din varmvattenanvändning",

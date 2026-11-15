@@ -406,8 +406,7 @@
       "starting_hotwater": "Loading prices and the tank level. This takes about a minute.",
       "starting_app": "Loading data from your heat pump. This takes about a minute.",
       "away_until": "Away until __until__ · __c__ °C",
-      "charge_done": "Charged",
-      "in_range": "Within ±__band__ °C for __h__ of __n__ h today"
+      "charge_done": "Charged"
     },
     "hotwater_status": {
       "learning": "Learning your hot water use",

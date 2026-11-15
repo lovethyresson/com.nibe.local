@@ -49,6 +49,8 @@ export interface ShiftBar {
 
 export interface WidgetData {
     kind: 'heating' | 'hotwater' | 'none';
+    /** Heating only, not drawn: the 14-day log of time in range, for review through the debug route. */
+    comfortDays?: import('./comfort-days').ComfortDay[];
     title: string;
     status?: string;
     reason?: string;

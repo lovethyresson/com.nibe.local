@@ -713,8 +713,7 @@
       "starting_hotwater": "De prijzen en de stand van de boiler worden geladen. Dit duurt ongeveer een minuut.",
       "starting_app": "Gegevens van je warmtepomp worden geladen. Dit duurt ongeveer een minuut.",
       "away_until": "Afwezig tot __until__ · __c__ °C",
-      "charge_done": "Opgewarmd",
-      "in_range": "Vandaag __h__ van __n__ u binnen ±__band__ °C"
+      "charge_done": "Opgewarmd"
     },
     "hotwater_status": {
       "learning": "Leert je warmwatergebruik kennen",

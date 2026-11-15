@@ -18,7 +18,7 @@ import {readTrim} from './autopilot/setpoint';
 import {WidgetData, aimingFor, chargeBands, symmetricAxis, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks, todaySlots} from './autopilot/widget';
 import {HotwaterUseData, TodayRow, hotwaterWeek, useRuns} from './autopilot/hotwater-use';
 import {TankWidgetData, tankChart} from './autopilot/hotwater-tank';
-import {ComfortDay, ComfortSlot, addComfortSlot, comfortSummary, readComfortDays} from './autopilot/comfort-days';
+import {ComfortDay, ComfortSlot, addComfortSlot, readComfortDays} from './autopilot/comfort-days';
 import {ENERGY_ROLES, EnergyWidgetData, energyChart} from './autopilot/energy';
 import {SLOT_MS, localDate, normalisePrices, slotOf} from './autopilot/prices';
 import {Edge, FORECAST_SLOTS, BlockedBy, HeatingDay, analyticsSmartMode, heatingBlock, reserveBucket} from './autopilot/analytics';
@@ -1868,17 +1868,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     // ---- Heating's comfort promise, day by day (comfort-days.ts) ----
-    /** Today's time in range for the heating widget, and the log for the debug route. */
-    private comfortToday(t: (key: string, tokens?: Record<string, string | number>) => string): {detail?: string; comfortDays?: ComfortDay[]} {
-        const days = this.comfortLog();
-        const today = days[days.length - 1];
-        if (!today || today.date !== localClock(this.homey.clock.getTimezone())(Date.now()).date || today.slots < 4) return {comfortDays: days};
-        const sum = comfortSummary(today);
-        const band = today.lower === today.upper ? String(today.lower) : `${today.lower}/${today.upper}`;
-        const language = this.homey.i18n.getLanguage();
-        const num = (v: number) => new Intl.NumberFormat(language, {maximumFractionDigits: 1}).format(v);
-        return {detail: t('in_range', {band: band.replace('.', language === 'en' ? '.' : ','), h: num(sum.inRange), n: num(sum.hours)}), comfortDays: days};
-    }
     private comfortDays?: ComfortDay[];
     private comfortSlot?: number;
     /** The last 14 days of time in range, loaded from the store on first use. */
@@ -2211,7 +2200,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             indoorNow: Number.isFinite(indoorNow) ? Math.round(indoorNow * 10) / 10 : undefined,
             aim: aim === undefined ? undefined : t('aiming', {c: aim.toFixed(1)}),
             footnote: !summary || summary.ready ? undefined : t('learning'),
-            ...this.comfortToday(t),
+            // Not drawn: the log is for reviewing the comfort promise through the debug route.
+            comfortDays: this.comfortLog(),
         };
     }
 

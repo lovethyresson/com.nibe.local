@@ -406,8 +406,7 @@
       "starting_hotwater": "Strompreise und Speicherstand werden geladen. Dies dauert etwa eine Minute.",
       "starting_app": "Daten Ihrer Wärmepumpe werden geladen. Dies dauert etwa eine Minute.",
       "away_until": "Abwesend bis __until__ · __c__ °C",
-      "charge_done": "Geladen",
-      "in_range": "Heute __h__ von __n__ h innerhalb von ±__band__ °C"
+      "charge_done": "Geladen"
     },
     "hotwater_status": {
       "learning": "Lernt Ihren Brauchwasserverbrauch",

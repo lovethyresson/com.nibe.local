@@ -713,8 +713,7 @@
       "starting_hotwater": "Laster inn strømpriser og nivået i berederen. Dette tar omtrent ett minutt.",
       "starting_app": "Laster inn data fra varmepumpen din. Dette tar omtrent ett minutt.",
       "away_until": "Bortreist til __until__ · __c__ °C",
-      "charge_done": "Ladet",
-      "in_range": "Innenfor ±__band__ °C __h__ av __n__ t i dag"
+      "charge_done": "Ladet"
     },
     "hotwater_status": {
       "learning": "Lærer varmtvannsbruken din",

@@ -406,8 +406,7 @@
       "starting_hotwater": "Indlæser elpriserne og niveauet i beholderen. Det tager cirka et minut.",
       "starting_app": "Indlæser data fra din varmepumpe. Det tager cirka et minut.",
       "away_until": "Bortrejst indtil __until__ · __c__ °C",
-      "charge_done": "Opvarmet",
-      "in_range": "Inden for ±__band__ °C __h__ af __n__ t i dag"
+      "charge_done": "Opvarmet"
     },
     "hotwater_status": {
       "learning": "Lærer dit forbrug af varmt vand",
