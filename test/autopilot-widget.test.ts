@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {aimingFor, chargeBands, symmetricAxis, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks, todaySlots} from '../lib/autopilot/widget';
-import {dayKind, hotwaterWeek} from '../lib/autopilot/hotwater-use';
+import {dayKind, hotwaterWeek, useRuns} from '../lib/autopilot/hotwater-use';
 import {KWH_PER_LITRE, learn, localClock, TankPoint} from '../lib/autopilot/hotwater-learner';
 
 test('the heating chart is the recorded past, then the plan read from now; offset is fed minus real', () => {
@@ -196,4 +196,11 @@ test('the shift axis is symmetric, so 0 sits in the middle', () => {
         assert.ok(a.hi >= Math.max(...shifts.map(Math.abs)));
     }
     assert.deepEqual(symmetricAxis([-10, -2]).ticks, [-10, -5, 0, 5, 10]);
+});
+
+test('the day\'s use is told as runs of hours: a shower over the hour is one line, a trickle is none', () => {
+    const u = undefined;
+    // 2026-11-15: 46 L at 09, 126 at 10, 20 at 11, a trickle, 25 L at 14.
+    assert.deepStrictEqual(useRuns([2, 2, u, 2, 2, 2, 2, 2, 6, 46, 126, 20, 0, 0, 25, 4, 12, 5]),
+        [{hour: 9, litres: 190}, {hour: 14, litres: 25}]);
 });

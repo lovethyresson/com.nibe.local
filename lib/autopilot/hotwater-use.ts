@@ -27,7 +27,35 @@ export interface HotwaterUseData {
     /** A typical day of each type over the last four weeks, litres. */
     typical?: {working?: number; free?: number};
     legend?: Record<string, string>;
+    /** Today in a few lines: the use, the charges, the tank now and the next charge. */
+    today?: {title: string; rows: TodayRow[]};
     empty?: string;
+}
+
+/** One line of the day: when, what, and how much. `kind` picks the dot. */
+export interface TodayRow {
+    time: string;
+    kind: 'use' | 'charge' | 'now' | 'next';
+    text: string;
+    value?: string;
+}
+
+/** Use below this in an hour is a tap left open or a reading's noise, litres. */
+const QUIET_LITRES = 10;
+/** A run of hours that used less than this in all is not worth a line, litres. */
+const USE_ROW_LITRES = 20;
+
+/** The day's use as runs of hours, each with its first hour and its litres: an hour of use
+ *  joins the one before it, so a shower that crosses the hour is one line. Pure. */
+export function useRuns(drawn: (number | undefined)[]): {hour: number; litres: number}[] {
+    const out: {hour: number; litres: number}[] = [];
+    let open: {hour: number; litres: number} | undefined;
+    drawn.forEach((v, hour) => {
+        if (v === undefined || v < QUIET_LITRES) { open = undefined; return; }
+        if (open) open.litres += v;
+        else out.push(open = {hour, litres: v});
+    });
+    return out.filter((r) => r.litres >= USE_ROW_LITRES).map((r) => ({hour: r.hour, litres: Math.round(r.litres / 5) * 5}));
 }
 
 /** Days the week chart shows: today and the six before it. */

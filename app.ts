@@ -68,10 +68,9 @@ class NibeApp extends Homey.App {
     }
   }
 
-  /** The Hot water use and Hot water tank widgets (widgets/hotwater_use, hotwater_tank): their
-   *  pickers offer the Hot water devices. */
+  /** The Hot water use widget (widgets/hotwater_use): its picker offers the Hot water devices. */
   private registerHotwaterUseWidget() {
-    for (const id of ['hotwater_use', 'hotwater_tank']) {
+    for (const id of ['hotwater_use']) {
       const widget = (this.homey as any).dashboards?.getWidget?.(id);
       widget?.registerSettingAutocompleteListener('device', async (query: string) => this.autopilotDevices()
         .filter((d) => d.role === 'hotwater')
@@ -121,20 +120,6 @@ class NibeApp extends Homey.App {
       return device.hotwaterUseWidget();
     } catch (error) {
       this.error('Hot water use widget:', error);
-      return line('autopilot.widget.error');
-    }
-  }
-
-  /** For widgets/hotwater_tank/api.js. Answers a problem with a line, like the others. */
-  hotwaterTankWidget(id: unknown) {
-    const line = (key: string) => ({title: '', empty: this.homey.__(key)});
-    const devices = this.autopilotDevices().filter((d) => d.role === 'hotwater');
-    const device = devices.find((d) => String(d.getData().id) === String(id)) ?? (id ? undefined : devices[0]);
-    if (!device) return line('autopilot.tank.pick');
-    try {
-      return device.hotwaterTankWidget();
-    } catch (error) {
-      this.error('Hot water tank widget:', error);
       return line('autopilot.widget.error');
     }
   }

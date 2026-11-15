@@ -707,14 +707,19 @@
       "working": "Arbejdsdag",
       "free": "Fridag",
       "away": "Væk",
-      "today": "I dag (forventet)",
       "typical": "Typisk dag",
-      "at_least": "Mindst (tanken var næsten tom)",
       "learning": "Lærer dit varmtvandsforbrug",
       "off": "Autopilot for varmt vand er slået fra. Slå den til under Reparer → Smart tilstand.",
       "pick": "Vælg en varmtvandsenhed.",
       "away_keeps": "Autopilot holder kun dit minimum varmt.",
-      "away_until": "Til __until__"
+      "away_until": "Til __until__",
+      "today_title": "I dag",
+      "row_used": "Varmt vand brugt",
+      "row_charged": "Opvarmet til __end__",
+      "row_charging": "Opvarmer til omkring __end__",
+      "row_tank": "I beholderen nu",
+      "row_next": "Næste opvarmning",
+      "row_next_tomorrow": "Næste opvarmning, i morgen"
     },
     "savings": {
       "pick": "Vælg en enhed for Opvarmning eller Varmt vand i widgettens indstillinger.",
@@ -753,19 +758,6 @@
       "share_middle": "__kwh__ midten",
       "share_expensive": "__kwh__ dyrt"
     },
-    "away_until_token": "Fraværende til",
-    "tank": {
-      "pick": "Vælg en varmtvandsenhed.",
-      "now": "__l__ L varmt vand nu",
-      "used": "__used__ L brugt i dag, omkring __expected__ L forventet",
-      "axis": "L ved 40 °C",
-      "read": "Beholder",
-      "plan": "Plan",
-      "reserve": "Altid tilbage",
-      "drawn": "Brugt",
-      "forecast": "Forventet",
-      "done": "Opvarmet",
-      "charge": "Opvarmning"
-    }
+    "away_until_token": "Fraværende til"
   }
 }

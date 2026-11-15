@@ -425,14 +425,19 @@
       "working": "Arbeitstag",
       "free": "Freier Tag",
       "away": "Abwesend",
-      "today": "Heute (erwartet)",
       "typical": "Üblicher Tag",
-      "at_least": "Mindestens (der Speicher war fast leer)",
       "learning": "Lernt Ihren Warmwasserverbrauch",
       "off": "Autopilot für Warmwasser ist aus. Schalten Sie ihn unter Reparieren → Smart-Modus ein.",
       "pick": "Wählen Sie ein Warmwasser-Gerät.",
       "away_keeps": "Autopilot hält nur Ihr Minimum warm.",
-      "away_until": "Bis __until__"
+      "away_until": "Bis __until__",
+      "today_title": "Heute",
+      "row_used": "Warmwasser verbraucht",
+      "row_charged": "Geladen bis __end__",
+      "row_charging": "Lädt bis etwa __end__",
+      "row_tank": "Jetzt im Speicher",
+      "row_next": "Nächste Ladung",
+      "row_next_tomorrow": "Nächste Ladung, morgen"
     },
     "savings": {
       "pick": "Wählen Sie in den Widget-Einstellungen ein Gerät für Heizung oder Warmwasser.",
@@ -468,19 +473,6 @@
       "share_middle": "__kwh__ Mitte",
       "share_expensive": "__kwh__ teuer"
     },
-    "away_until_token": "Abwesend bis",
-    "tank": {
-      "pick": "Wählen Sie ein Warmwasser-Gerät.",
-      "now": "__l__ L Warmwasser jetzt",
-      "used": "__used__ L heute verbraucht, etwa __expected__ L erwartet",
-      "axis": "L bei 40 °C",
-      "read": "Speicher",
-      "plan": "Plan",
-      "reserve": "Immer vorrätig",
-      "drawn": "Verbraucht",
-      "forecast": "Erwartet",
-      "done": "Geladen",
-      "charge": "Ladung"
-    }
+    "away_until_token": "Abwesend bis"
   }
 }

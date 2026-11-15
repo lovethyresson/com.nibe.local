@@ -707,14 +707,19 @@
       "working": "Working day",
       "free": "Day off",
       "away": "Away",
-      "today": "Today (expected)",
       "typical": "Typical day",
-      "at_least": "At least (the tank ran low)",
       "learning": "Learning your hot water use",
       "off": "Autopilot hot water is off. Turn it on in Repair → Smart mode.",
       "pick": "Pick a Hot water device.",
       "away_keeps": "Autopilot only keeps your minimum warm.",
-      "away_until": "Until __until__"
+      "away_until": "Until __until__",
+      "today_title": "Today",
+      "row_used": "Hot water used",
+      "row_charged": "Charged until __end__",
+      "row_charging": "Charging until about __end__",
+      "row_tank": "In the tank now",
+      "row_next": "Next charge",
+      "row_next_tomorrow": "Next charge, tomorrow"
     },
     "savings": {
       "pick": "Pick a Heating or Hot water device in the widget's settings.",
@@ -753,19 +758,6 @@
       "share_middle": "__kwh__ middle",
       "share_expensive": "__kwh__ expensive"
     },
-    "away_until_token": "Away until",
-    "tank": {
-      "pick": "Pick a Hot water device.",
-      "now": "__l__ L hot water now",
-      "used": "__used__ L used today, about __expected__ L expected",
-      "axis": "L at 40 °C",
-      "read": "Tank",
-      "plan": "Plan",
-      "reserve": "Always kept",
-      "drawn": "Used",
-      "forecast": "Expected",
-      "done": "Charged",
-      "charge": "Charge"
-    }
+    "away_until_token": "Away until"
   }
 }

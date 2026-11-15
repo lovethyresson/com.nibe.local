@@ -13,11 +13,18 @@
       .hw-key { display: inline-block; width: 12px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; box-sizing: border-box; }
       .hw-key.line { height: 3px; vertical-align: 3px; margin-right: 2px; }
       .hw-empty { opacity: 0.8; margin: 12px 0; }
+      .hw-today { margin-top: 14px; }
+      .hw-row { display: grid; grid-template-columns: 3.4em 10px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid rgba(127, 127, 127, 0.18); }
+      .hw-sub + .hw-row { border-top: 0; margin-top: 2px; }
+      .hw-time, .hw-value { font-variant-numeric: tabular-nums; opacity: 0.7; font-size: 0.9em; white-space: nowrap; }
+      .hw-what { min-width: 0; overflow-wrap: anywhere; }
+      .hw-row.next .hw-what { opacity: 0.75; }
+      .hw-dot { width: 10px; height: 10px; border-radius: 50%; box-sizing: border-box; }
       /* Light values meet 4.4:1 on white; away is a solid grey that holds 3:1 on both cards. */
-      :root { --hw-working: #3d6fd8; --hw-free: #0f8374; --hw-away: #8e8e93; --hw-on: #ffffff; }
-      :root[data-theme="dark"] { --hw-working: #5b8def; --hw-free: #2bb3a3; --hw-away: #77777d; --hw-on: #101012; }
+      :root { --hw-working: #3d6fd8; --hw-free: #0f8374; --hw-away: #8e8e93; --hw-on: #ffffff; --hw-use: #7652d6; --hw-charge: #2d6bd6; }
+      :root[data-theme="dark"] { --hw-working: #5b8def; --hw-free: #2bb3a3; --hw-away: #77777d; --hw-on: #101012; --hw-use: #a48cff; --hw-charge: #4da3ff; }
       @media (prefers-color-scheme: dark) {
-        :root:not([data-theme="light"]) { --hw-working: #5b8def; --hw-free: #2bb3a3; --hw-away: #77777d; --hw-on: #101012; }
+        :root:not([data-theme="light"]) { --hw-working: #5b8def; --hw-free: #2bb3a3; --hw-away: #77777d; --hw-on: #101012; --hw-use: #a48cff; --hw-charge: #4da3ff; }
       }
     </style>
   </head>
@@ -72,24 +79,19 @@
       // "at least" where part of the day is unknown), today as the use Autopilot expects
       // (outlined), and a dashed line at a typical day of each type in the type's own colour.
       function weekChart(data) {
-        var W = chartWidth(), L = 34, R = W - 40, T = 20, PH = Math.max(90, Math.min(130, Math.round(W * 0.3))), B = T + PH, H = B + 24;
+        var W = chartWidth(), L = 4, R = W - 40, T = 20, PH = Math.max(90, Math.min(130, Math.round(W * 0.3))), B = T + PH, H = B + 24;
         var n = data.bars.length, step = (R - L) / n, bw = Math.min(36, step * 0.62);
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'hw-chart', role: 'img'});
         var values = nums(data.bars.map(function (b) { return b.litres; })).concat(nums([data.typical.working, data.typical.free]));
         var max = Math.max(100, Math.ceil(Math.max.apply(null, values.concat([0])) * 1.1 / 100) * 100);
         var y = function (v) { return B - PH * v / max; };
-        [0, max / 2, max].forEach(function (v) {
-          svg.appendChild(svgEl('line', {x1: L, x2: R, y1: y(v), y2: y(v), stroke: 'currentColor', 'stroke-opacity': 0.1}));
-          svg.appendChild(svgEl('text', {x: L - 5, y: y(v) + 4, 'text-anchor': 'end'}, String(Math.round(v))));
-        });
+        svg.appendChild(svgEl('line', {x1: L, x2: R, y1: B, y2: B, stroke: 'currentColor', 'stroke-opacity': 0.15}));
         data.bars.forEach(function (b, k) {
           var cx = L + (k + 0.5) * step, color = KIND[b.kind] || KIND.working;
           if (typeof b.litres === 'number') {
             var top = y(b.litres);
-            svg.appendChild(svgEl('rect', b.today
-              ? {x: cx - bw / 2 + 0.6, y: top + 0.6, width: bw - 1.2, height: Math.max(0, B - top - 0.6), rx: 2, fill: color, 'fill-opacity': 0.2,
-                stroke: color, 'stroke-width': 1.4, 'stroke-dasharray': '3 2'}
-              : {x: cx - bw / 2, y: top, width: bw, height: B - top, rx: 2, fill: color, 'fill-opacity': b.atLeast ? 0.45 : 0.9}));
+            // Today is still to come: a lighter bar of its day's colour.
+            svg.appendChild(svgEl('rect', {x: cx - bw / 2, y: top, width: bw, height: B - top, rx: 3, fill: color, 'fill-opacity': b.today ? 0.35 : 0.9}));
           }
         });
         // Typical days go on top of the bars; their numbers sit to the right of the chart.
@@ -99,24 +101,20 @@
           svg.appendChild(svgEl('line', {x1: L, x2: R, y1: y(v), y2: y(v), stroke: KIND[kind], 'stroke-width': 1.4, 'stroke-dasharray': '4 3'}));
           var t = svgEl('text', {x: R + 5, y: y(v) + 4}, String(v)); t.style.fill = KIND[kind]; svg.appendChild(t);
         });
-        // Each number goes where nothing crosses it: above its bar, or inside the bar's top when a
-        // dashed line runs there. A number never sits on a line.
+        // Only today carries a number: the bars' heights tell the rest. It sits above its bar, or
+        // just under the top when a typical line runs there.
         var lines = ['working', 'free'].filter(function (kind) { return typeof data.typical[kind] === 'number'; }).map(function (kind) { return y(data.typical[kind]); });
         var clear = function (base) { return lines.every(function (ly) { return ly < base - 13 || ly > base + 4; }); };
         data.bars.forEach(function (b, k) {
           var cx = L + (k + 0.5) * step;
-          if (typeof b.litres === 'number') {
-            var top = y(b.litres), above = top - 5, inside = top + 15, solid = !b.today && !b.atLeast;
-            var text = (b.atLeast ? '≥' : '') + b.litres;
-            if (clear(above)) svg.appendChild(svgEl('text', {x: cx, y: above, 'text-anchor': 'middle'}, text));
-            else if (B - top >= 22 && clear(inside)) {
-              var inner = svgEl('text', {x: cx, y: inside, 'text-anchor': 'middle'}, text);
-              if (solid) { inner.style.fill = 'var(--hw-on)'; inner.style.opacity = 1; inner.setAttribute('font-weight', '600'); }
-              svg.appendChild(inner);
-            } else svg.appendChild(svgEl('text', {x: cx, y: Math.min(above, ...lines.filter(function (ly) { return ly < above; }).map(function (ly) { return ly - 6; })), 'text-anchor': 'middle'}, text));
-          } else svg.appendChild(svgEl('text', {x: cx, y: B - 4, 'text-anchor': 'middle'}, '–'));
+          if (b.today && typeof b.litres === 'number') {
+            var top = y(b.litres), above = top - 5;
+            var num = svgEl('text', {x: cx, y: clear(above) ? above : top + 15, 'text-anchor': 'middle', 'font-weight': '600'}, String(b.litres));
+            num.style.opacity = 1;
+            svg.appendChild(num);
+          }
           var label = svgEl('text', {x: cx, y: H - 6, 'text-anchor': 'middle'}, b.label);
-          if (b.today) label.setAttribute('font-weight', '700');
+          if (b.today) { label.setAttribute('font-weight', '700'); label.style.opacity = 1; }
           svg.appendChild(label);
         });
         return svg;
@@ -132,6 +130,26 @@
             key.style.cssText = k.style; item.appendChild(key);
           });
           item.appendChild(document.createTextNode(i.text)); box.appendChild(item);
+        });
+        return box;
+      }
+
+      // Today as a short list: when, a dot for what, the line, and how much.
+      var DOT = {use: 'var(--hw-use)', charge: 'var(--hw-charge)', now: 'currentColor', next: 'transparent'};
+      function today(t) {
+        var box = el('div', 'hw-today');
+        box.appendChild(el('div', 'hw-sub', t.title));
+        t.rows.forEach(function (r) {
+          var row = el('div', 'hw-row' + (r.kind === 'next' ? ' next' : ''));
+          row.appendChild(el('span', 'hw-time', r.time));
+          var dot = el('span', 'hw-dot');
+          dot.style.background = DOT[r.kind];
+          if (r.kind === 'now') dot.style.opacity = 0.55;
+          if (r.kind === 'next') dot.style.border = '1.5px solid var(--hw-charge)';
+          row.appendChild(dot);
+          row.appendChild(el('span', 'hw-what', r.text));
+          if (r.value) row.appendChild(el('span', 'hw-value', r.value));
+          box.appendChild(row);
         });
         return box;
       }
@@ -156,10 +174,9 @@
           {text: l.working, style: 'background: var(--hw-working);'},
           {text: l.free, style: 'background: var(--hw-free);'},
           {text: l.away, style: 'background: var(--hw-away);'},
-          {text: l.today, style: 'border: 1px dashed currentColor;'},
           {text: l.typical, keys: dashes},
-          {text: l.at_least, style: 'background: currentColor; opacity: 0.3;'},
         ]));
+        if (data.today) root.appendChild(today(data.today));
       }
 
       function onHomeyReady(Homey) {
@@ -180,8 +197,8 @@
             .then(fit);
         }
         load().finally(function () { Homey.ready(); });
-        // The days change slowly: every 5 minutes is plenty.
-        setInterval(load, 300000);
+        // Today's list moves with each charge and shower: every 2 minutes.
+        setInterval(load, 120000);
         // The card changes width: draw the chart again at the new width.
         var timer = null;
         window.addEventListener('resize', function () {

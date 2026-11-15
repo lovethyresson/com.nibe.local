@@ -16,8 +16,7 @@ import {AWAY_UNTIL_SETTING, awayUntilLabel, readAwayUntil} from './autopilot/awa
 import {forecastCorrection} from './autopilot/outdoor';
 import {readTrim} from './autopilot/setpoint';
 import {WidgetData, aimingFor, chargeBands, symmetricAxis, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks, todaySlots} from './autopilot/widget';
-import {HotwaterUseData, hotwaterWeek} from './autopilot/hotwater-use';
-import {TankWidgetData, tankChart} from './autopilot/hotwater-tank';
+import {HotwaterUseData, TodayRow, hotwaterWeek, useRuns} from './autopilot/hotwater-use';
 import {SLOT_MS, localDate, normalisePrices, slotOf} from './autopilot/prices';
 import {Edge, FORECAST_SLOTS, BlockedBy, HeatingDay, analyticsSmartMode, heatingBlock, reserveBucket} from './autopilot/analytics';
 import {SOLAR_SETTING, SolarSurplus, readSolarAnswer, solarOn} from './autopilot/solar-surplus';
@@ -2169,39 +2168,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         };
     }
 
-    // ---- The Hot water tank widget (widgets/hotwater_tank) ----
-
-    /** What the Hot water tank widget draws: today's tank, read and planned, the use per hour
-     *  against the forecast, and the charges. Every string translated here. */
-    hotwaterTankWidget(): TankWidgetData {
-        const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.tank.${key}`, tokens);
-        const title = this.getName();
-        if (this.role !== 'hotwater') return {title, empty: t('pick')};
-        const mode = this.smartMode();
-        if (!autopilotRuns(mode)) return {title, empty: this.homey.__('autopilot.hotwater_use.off')};
-        const local = localClock(this.homey.clock.getTimezone());
-        const slot = slotOf(Date.now());
-        const day = todaySlots(slot, (ms) => local(ms).date);
-        const now = slot - day.from;
-        const view = this.hotwaterAutopilot?.tank(day.from, day.n);
-        const badge = this.homey.__('autopilot.widget.experimental');
-        if (!view) return {title, badge, test: mode === 'test', loading: true, status: this.homey.__('autopilot.widget.starting_title'),
-            reason: this.homey.__('autopilot.widget.starting_hotwater')};
-        const chart = tankChart(view, now);
-        const start = day.from * 15 * 60_000;
-        const bands = chargeBands(view.slots, start, this.clock, (from, to) => this.homey.__('autopilot.widget.hotwater.band', {from, to}));
-        const reserve = this.reserveLitres();
-        const litres = view.litres === undefined ? undefined : Math.round(view.litres);
-        return {title, badge, test: mode === 'test', ...chart, now, bands, reserve: reserve > 0 ? reserve : undefined,
-            ticks: ticks(start, day.n, this.clock),
-            status: litres === undefined ? undefined : t('now', {l: litres}),
-            reason: t('used', {used: chart.used, expected: chart.expected}),
-            legend: {read: t('read'), plan: t('plan'), reserve: reserve > 0 ? t('reserve') : '', drawn: t('drawn'),
-                forecast: t('forecast'), done: bands.some((b) => b.doneTo !== undefined) ? t('done') : '',
-                charge: bands.some((b) => b.doneTo === undefined || b.doneTo < b.to) ? t('charge') : ''},
-            axis: t('axis')};
-    }
-
     // ---- The Hot water use widget (widgets/hotwater_use) ----
 
     /** What the Hot water use widget draws: the use Autopilot expects today, against the last six
@@ -2226,8 +2192,40 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 .filter(Boolean).join(' · ')
                 : [t(today.kind), typical === undefined ? undefined : t('typical_of', {l: typical})].filter(Boolean).join(' · '),
             legend: {title: t('title'), working: has('working') ? t('working') : '', free: has('free') ? t('free') : '',
-                away: has('away') ? t('away') : '', today: t('today'), typical: t('typical'),
-                at_least: week.bars.some((b) => b.atLeast) ? t('at_least') : ''}};
+                away: has('away') ? t('away') : '', typical: t('typical')},
+            today: this.hotwaterToday(t)};
+    }
+
+    /** Today's lines for the Hot water use widget: the use in runs of hours, the charges done or
+     *  running, the tank now and the next charge. Undefined until the plan has what it needs. */
+    private hotwaterToday(t: (key: string, tokens?: Record<string, string | number>) => string): HotwaterUseData['today'] {
+        const local = localClock(this.homey.clock.getTimezone());
+        const slot = slotOf(Date.now());
+        const day = todaySlots(slot, (ms) => local(ms).date);
+        const view = this.hotwaterAutopilot?.tank(day.from, day.n);
+        if (!view) return undefined;
+        const SLOT = 15 * 60_000, start = day.from * SLOT, now = slot - day.from;
+        const at = (k: number) => this.clock(start + k * SLOT);
+        const duration = (slots: number) => formatDuration(slots * 15, (key, tokens) => this.homey.__(`autopilot.hotwater_charge.${key}`, tokens));
+        const rows: {order: number; row: TodayRow}[] = [];
+        for (const r of useRuns(view.drawn))
+            rows.push({order: r.hour * 4, row: {time: at(r.hour * 4), kind: 'use', text: t('row_used'), value: `${r.litres} L`}});
+        for (const b of chargeBands(view.slots, start, this.clock, () => '')) {
+            if (b.doneTo === undefined) continue;
+            const running = b.doneTo < b.to || b.to > now;
+            rows.push({order: b.from, row: {time: at(b.from), kind: 'charge',
+                text: running ? t('row_charging', {end: at(b.to)}) : t('row_charged', {end: at(b.doneTo)}),
+                value: duration((running ? b.to : b.doneTo) - b.from)}});
+        }
+        rows.sort((x, y) => x.order - y.order);
+        const out = rows.map((r) => r.row);
+        if (view.litres !== undefined) out.push({time: at(now), kind: 'now', text: t('row_tank'), value: `${Math.round(view.litres)} L`});
+        if (view.next && !view.next.running) {
+            const tomorrow = local(view.next.at).date !== local(Date.now()).date;
+            out.push({time: this.clock(view.next.at), kind: 'next', text: t(tomorrow ? 'row_next_tomorrow' : 'row_next'),
+                value: this.homey.__(`autopilot.hotwater_charge.reason.${view.next.reason}`)});
+        }
+        return out.length ? {title: t('today_title'), rows: out} : undefined;
     }
 
     // ---- The Autopilot savings widget (widgets/savings) ----

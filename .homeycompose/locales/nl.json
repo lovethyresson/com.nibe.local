@@ -425,14 +425,19 @@
       "working": "Werkdag",
       "free": "Vrije dag",
       "away": "Afwezig",
-      "today": "Vandaag (verwacht)",
       "typical": "Gebruikelijke dag",
-      "at_least": "Minstens (de boiler was bijna leeg)",
       "learning": "Leert je warmwatergebruik",
       "off": "Autopilot voor warm water staat uit. Zet hem aan via Repareren → Slimme modus.",
       "pick": "Kies een warmwaterapparaat.",
       "away_keeps": "Autopilot houdt alleen je minimum warm.",
-      "away_until": "Tot __until__"
+      "away_until": "Tot __until__",
+      "today_title": "Vandaag",
+      "row_used": "Warm water gebruikt",
+      "row_charged": "Opgewarmd tot __end__",
+      "row_charging": "Opwarmen tot ongeveer __end__",
+      "row_tank": "Nu in de boiler",
+      "row_next": "Volgende opwarming",
+      "row_next_tomorrow": "Volgende opwarming, morgen"
     },
     "savings": {
       "pick": "Kies een apparaat voor Verwarming of Warm water in de instellingen van de widget.",
@@ -468,19 +473,6 @@
       "share_middle": "__kwh__ midden",
       "share_expensive": "__kwh__ duur"
     },
-    "away_until_token": "Afwezig tot",
-    "tank": {
-      "pick": "Kies een warmwaterapparaat.",
-      "now": "__l__ L warm water nu",
-      "used": "__used__ L gebruikt vandaag, ongeveer __expected__ L verwacht",
-      "axis": "L bij 40 °C",
-      "read": "Boiler",
-      "plan": "Plan",
-      "reserve": "Altijd over",
-      "drawn": "Gebruikt",
-      "forecast": "Verwacht",
-      "done": "Opgewarmd",
-      "charge": "Opwarmen"
-    }
+    "away_until_token": "Afwezig tot"
   }
 }

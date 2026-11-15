@@ -10,7 +10,7 @@ import {withApi} from '../indoor-sensors';
 import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, normalisePrices, slotOf} from './prices';
 import {DayDraw, DayProfile, DayType, HotwaterModel, Household, KWH_PER_LITRE, LocalClock, TankPoint, chargeRate, intervals, learn, localClock, lossAt, profileFor} from './hotwater-learner';
 import {TankCapabilities, fetchTankInsights, pointsFromInsights} from './hotwater-insights';
-import {DEFAULT_RESERVE_LITRES, MIN_CHARGE_KWH, Plan, SLOT_H, TankSpec, drawsFor, heatAt, plan, plannedHours, reserveKwh} from './hotwater-planner';
+import {DEFAULT_RESERVE_LITRES, MIN_CHARGE_KWH, Plan, SLOT_H, TankSpec, drawsFor, heatAt, plan, reserveKwh} from './hotwater-planner';
 import {appendLine, deleteHistory, loadJson, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
 import {DayTypeState, dayTypeAt} from './day-type';
 import {PumpFacts, countFor, leverDecision} from './hotwater-lever';
@@ -101,7 +101,7 @@ export interface ShadowEntry {
 
 /** A slot's plan: the log line, the first charge after any running one, with its reason, and
  *  the end of the known prices (ms). */
-export type ShadowStep = {entry: ShadowEntry; next?: ChargeFacts; until: number; stored: number[]} | {skip: string};
+export type ShadowStep = {entry: ShadowEntry; next?: ChargeFacts; until: number} | {skip: string};
 
 const round = (v: number, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
 
@@ -216,7 +216,7 @@ export function hotwaterShadowStep(input: ShadowStepInput): ShadowStep {
     const first = p.charges.find((c) => !(charging && c.start === 0));
     const iso = (k: number) => new Date(slots[k] * SLOT_MS).toISOString();
     const next = chargesOf(input, out, Infinity).charges.find((c) => c.reason !== 'running');
-    return {next, until: (slots[slots.length - 1] + 1) * SLOT_MS, stored: p.stored, entry: {
+    return {next, until: (slots[slots.length - 1] + 1) * SLOT_MS, entry: {
         slot, at: iso(0), litres: round(now.litres!, 1), top: now.top, charging, horizon: slots.length,
         action: charging ? 'running' : p.rescue ? 'rescue' : p.startNow ? 'start' : 'wait',
         next: first && {at: iso(first.start), targetC: first.targetC, heat: round(first.heat), cost: round(first.cost)},
@@ -687,13 +687,9 @@ const BLOCKED: Partial<Record<string, string>> = {'hot water off': 'hot_water_of
 /** The plan widget's view of the day (`HotwaterAutopilot.outlook`). */
 export type HotwaterOutlook = NonNullable<ReturnType<HotwaterAutopilot['outlook']>>;
 
-/** The tank widget's view: the outlook, plus litres per slot (read behind now, planned from the
- *  plan step) and litres of 40 °C water drawn and forecast per hour. */
+/** The Hot water use widget's day: the outlook, plus the litres of 40 °C water drawn per hour. */
 export interface TankView extends HotwaterOutlook {
-    read: (number | undefined)[];
-    plan: (number | undefined)[];
     drawn: (number | undefined)[];
-    forecast: number[];
 }
 
 /** Runs hot water Autopilot for one Hot water device, as a test run or live. */
@@ -713,10 +709,8 @@ export class HotwaterAutopilot {
     private ran = new Set<number>();
     private ranBefore = new Set<number>();
     /** The tank over the last day and a half, a reading a slot: Insights' until the live readings
-     *  begin, then one per plan step. What the tank widget draws behind now. */
+     *  begin, then one per plan step. What the Hot water use widget reads today's use from. */
     private history: TankPoint[] = [];
-    /** The plan in force: stored heat, kWh, at the start of each slot from `from`. */
-    private planned?: {from: number; stored: number[]};
     private deviceId?: string;
     private currency = '';
     /** Local date of the last morning plan sent, and the plan in force: the morning's, or the
@@ -831,33 +825,11 @@ export class HotwaterAutopilot {
         };
     }
 
-    /** What the tank widget draws for the slots [from, from + n): the litres read behind now and
-     *  planned from now, the use per hour read and forecast, and the charges (`outlook`). */
+    /** The day's story for the slots [from, from + n): the charges (`outlook`), the tank now, and
+     *  the litres of 40 °C water drawn in each hour. */
     tank(from: number, n: number): TankView | undefined {
         const model = this.model, o = this.outlook(from, n);
         if (!model || !o) return undefined;
-        const clock = this.clock(), dayTypes = this.hooks.dayType();
-        const read: (number | undefined)[] = new Array(n).fill(undefined);
-        for (const p of this.history) {
-            const k = Math.floor(p.t / SLOT_MS) - from;
-            if (k >= 0 && k < n && typeof p.litres === 'number' && p.litres > 0) read[k] = round(p.litres, 0);
-        }
-        // Right after a start the first plan step is up to a slot away: plan now, reading only.
-        const {now: reading, tank} = this.read();
-        const slotNow = slotOf(Date.now());
-        let planned = this.planned && this.planned.from >= slotNow - 1 ? this.planned : undefined;
-        if (!planned && tank) {
-            const out = planFrom(this.input(slotNow * SLOT_MS, reading, tank));
-            if (!('skip' in out)) planned = {from: slotNow, stored: out.plan.stored};
-        }
-        // The tank now, so the read line reaches now and meets the plan there.
-        const k0 = slotNow - from;
-        if (k0 >= 0 && k0 < n && read[k0] === undefined && Number.isFinite(reading.litres) && reading.litres! > 0) read[k0] = round(reading.litres!, 0);
-        const plan: (number | undefined)[] = new Array(n).fill(undefined);
-        if (planned) planned.stored.forEach((kwh, j) => {
-            const k = planned!.from + j - from;
-            if (k >= 0 && k < n) plan[k] = round(kwh / KWH_PER_LITRE, 0);
-        });
         const hours = Math.ceil(n / 4);
         const drawn: (number | undefined)[] = new Array(hours).fill(undefined);
         // Each step's draw goes to the hour that holds its middle: Insights keeps today hourly, from
@@ -866,12 +838,7 @@ export class HotwaterAutopilot {
             const k = Math.floor((Math.floor((i.start + i.hours * HOUR / 2) / SLOT_MS) - from) / 4);
             if (k >= 0 && k < hours && i.hours <= 1.01 && Number.isFinite(i.draw)) drawn[k] = (drawn[k] ?? 0) + i.draw / KWH_PER_LITRE;
         }
-        const forecast = Array.from({length: hours}, (_, k) => {
-            const ms = (from + 4 * k) * SLOT_MS;
-            const p = profileFor(model, dayTypeAt(dayTypes, ms, clock));
-            return p ? round(plannedHours(p)[clock(ms).hour] / KWH_PER_LITRE, 0) : 0;
-        });
-        return {...o, litres: o.litres ?? reading.litres, read, plan, drawn: drawn.map((v) => v === undefined ? undefined : round(v, 0)), forecast};
+        return {...o, litres: o.litres ?? this.read().now.litres, drawn: drawn.map((v) => v === undefined ? undefined : round(v, 0))};
     }
 
     /** The compressor ceiling and the highest target under it, from what the pump did recently. */
@@ -1100,7 +1067,6 @@ export class HotwaterAutopilot {
             this.hooks.track('Blocked Autopilot', {role: 'hotwater', blocked_by: 'no_prices', simulation: this.shadow});
         if ('skip' in out) return this.skip(out.skip);
         this.last = out.entry;
-        this.planned = {from: out.entry.slot, stored: out.stored};
         if (Number.isFinite(now.litres)) this.history = mergeHistory([], [...this.history,
             {t: at, litres: now.litres, produced: now.produced ?? null, top: now.top ?? null}], Date.now() - HISTORY_MS);
         appendLine(shadowLogName(this.fileName), out.entry)

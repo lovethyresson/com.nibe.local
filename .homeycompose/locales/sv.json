@@ -425,14 +425,19 @@
       "working": "Arbetsdag",
       "free": "Ledig dag",
       "away": "Borta",
-      "today": "I dag (förväntat)",
       "typical": "Typisk dag",
-      "at_least": "Minst (tanken var nästan tom)",
       "learning": "Lär sig din varmvattenanvändning",
       "off": "Autopilot för varmvatten är av. Slå på den i Reparera → Smart läge.",
       "pick": "Välj en varmvattenenhet.",
       "away_keeps": "Autopilot håller bara din miniminivå varm.",
-      "away_until": "Till __until__"
+      "away_until": "Till __until__",
+      "today_title": "I dag",
+      "row_used": "Varmvatten använt",
+      "row_charged": "Laddade till __end__",
+      "row_charging": "Laddar till cirka __end__",
+      "row_tank": "I tanken nu",
+      "row_next": "Nästa laddning",
+      "row_next_tomorrow": "Nästa laddning, i morgon"
     },
     "savings": {
       "pick": "Välj en enhet för Uppvärmning eller Varmvatten i widgetens inställningar.",
@@ -468,19 +473,6 @@
       "share_middle": "__kwh__ mitten",
       "share_expensive": "__kwh__ dyrt"
     },
-    "away_until_token": "Borta till",
-    "tank": {
-      "pick": "Välj en varmvattenenhet.",
-      "now": "__l__ L varmvatten nu",
-      "used": "__used__ L använt i dag, cirka __expected__ L väntat",
-      "axis": "L vid 40 °C",
-      "read": "Tank",
-      "plan": "Plan",
-      "reserve": "Alltid kvar",
-      "drawn": "Använt",
-      "forecast": "Väntat",
-      "done": "Laddat",
-      "charge": "Laddning"
-    }
+    "away_until_token": "Borta till"
   }
 }
