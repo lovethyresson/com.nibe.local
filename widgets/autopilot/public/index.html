@@ -4,9 +4,11 @@
       .ap { padding: var(--homey-su-2, 8px) var(--homey-su-3, 12px); }
       .ap-title { opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .ap-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
-      .ap-chip { font-size: 0.8em; padding: 2px 8px; border-radius: 999px; background: rgba(127, 127, 127, 0.15); }
+      .ap-chip { font-size: 0.8em; white-space: nowrap; padding: 2px 8px; border-radius: 999px; background: rgba(127, 127, 127, 0.15); }
       .ap-chip.quiet { background: transparent; border: 1px solid rgba(127, 127, 127, 0.4); opacity: 0.75; }
-      .ap-status { text-wrap: balance; margin: 12px 0 0; font-size: 1.35em; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; }
+      .ap-status { text-wrap: balance; margin: 4px 0 0; font-size: 1.35em; font-weight: 600; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+      .ap-status-name { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+      .ap-status-name .ap-chips { margin: 0; font-size: 0.74em; font-weight: 400; }
       .ap-now { color: var(--ap-indoor); font-variant-numeric: tabular-nums; white-space: nowrap; }
       .ap-reason { margin: 4px 0 0; opacity: 0.85; font-variant-numeric: proportional-nums; }
       .ap-now-box { display: flex; flex-direction: column; align-items: flex-end; }
@@ -326,16 +328,20 @@
         var root = document.getElementById('ap');
         root.replaceChildren();
         // The card's own title names it; the device name and an Experimental tag are not repeated.
+        // The range and mode pills sit under the status, beside the temperature now.
         var chips = (data.chips || []).slice();
+        var row = null;
         if (!data.empty && chips.length) {
-          var row = el('div', 'ap-chips');
+          row = el('div', 'ap-chips');
           chips.forEach(function (c) { row.appendChild(el('span', 'ap-chip', c)); });
-          root.appendChild(row);
         }
         if (data.empty) { root.appendChild(el('p', 'ap-empty', data.empty)); return; }
+        if (!data.status && row) root.appendChild(row);
         if (data.status) {
-          var status = el('p', 'ap-status');
-          var name = el('span', '', data.status);
+          var status = el('div', 'ap-status');
+          var name = el('div', 'ap-status-name');
+          name.appendChild(el('span', '', data.status));
+          if (row) name.appendChild(row);
           status.appendChild(name);
           if (typeof data.indoorNow === 'number') {
             var now = el('span', 'ap-now-box');

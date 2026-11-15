@@ -189,7 +189,7 @@
           big.appendChild(el('span', 'sv-share-n homey-text-small', c.note || ''));
           box.appendChild(big);
         }
-        var W = chartWidth(), BH = 12, R = 10, SW = 4, y0 = 0, ty = BH + 16, ry = ty + 22, H = ry + R * 2 + 22;
+        var W = chartWidth(), BH = 30, R = 10, SW = 4, y0 = 0, ty = BH + 16, ry = ty + 22, H = ry + R * 2 + 22;
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'sv-chart', role: 'img'});
         var total = c.tiers[0] + c.tiers[1] + c.tiers[2], x = 0;
         var defs = svgEl('defs', {}), clip = svgEl('clipPath', {id: 'sv-share-clip'});
