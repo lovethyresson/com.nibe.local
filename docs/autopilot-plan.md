@@ -1607,6 +1607,31 @@ phase A (offline) can run alongside M2.
 - **PV:** moved to M4 (§19.3). The optimiser keeps the same rule: a slot with forecast surplus is
   priced at the export value.
 - **Fallback:** if the solve throws or takes longer than 5 s, use the M3 plan.
+- **Built 2026-11-15 (`lib/autopilot/optimiser.ts`), shadow only.**
+  - State: `ti` 30 points over the band ±0.5 K, `tm` 40 points over doing nothing's mass ±(band
+    + 1 K), and the shift level in force, one of 7 from the deepest coast to the largest pre-heat
+    (0 among them). The level is state so the ramp term and the curve's 49 min lag can be priced;
+    the lag is taken as the previous level blended with the new one (26 % per slot). Each slot
+    holds the level or steps one level, so the DP's feed can jump ~5 K a slot where the actuator
+    ramps 2 K: fine for a logged comparison, not for feeding.
+  - Cost per slot: price × electricity at the learned COP once trusted (stage 1, above); the
+    planner's owed heat per degree-hour below the setpoint, so both chase the same objective;
+    20 × mean price per K² outside the band (w_low, w_high); 0.002 × mean price per level changed
+    (w_ramp). Terminal: stored heat short of comfort, bought back like owed heat.
+  - The house step is the model's exact one, precomputed as a linear map (`houseStepper`). 96
+    slots × 8,400 states × 3 moves ≈ 2.4 M transitions in ~70 ms on a Mac; one time step per
+    `setImmediate`. The plan found is re-simulated through the planner's exact model and scored
+    with its `fairCost`; a plan that doesn't beat doing nothing there is doing nothing (the grid
+    found a few K of "saving" at a flat price the exact model didn't confirm).
+  - **Shadow log:** each slot, beside the shadow's default preset (Save some), from that preset's
+    own state and warm start: `dp: {preset, bias, shift, ahead, cost, planner, baseline, ms,
+    fallback?}`, where `cost` and `planner` are the predicted horizon costs at equal comfort.
+    The hourly log line adds the DP's bias and both costs. Nothing is fed from it.
+  - **Simulated (`test/autopilot-optimiser.test.ts`, a 3× evening peak, 2 °C):** it does nothing
+    at a flat price, coasts through the peak like the planner, and predicts 1–3 % of the horizon's
+    cost below the planner on every preset and both houses (radiator Save some 28.82 against
+    29.16, doing nothing 31.20). Whether that holds on real days is what the shadow log is for;
+    the ship gate above is unchanged.
 - **Ship gate:** beats M3's counterfactual on at least 3 test houses over 4 weeks.
   - Radiator houses gain least here, so the slab tester is essential.
 
@@ -1709,7 +1734,8 @@ four plus the Setup hub.
 - [ ] **M4** hot-water probes and timing; DM-aware add-heat planning
 - [ ] **M5** COP, DP optimiser, air-source, PV; ship gate vs M3
       (COP model learned and pricing the planner's heat once trusted, offline 2026-11-15; air-source
-      learns against outdoor, no defrost penalty yet)
+      learns against outdoor, no defrost penalty yet; DP optimiser built and logging beside Save some
+      in shadow 2026-11-15, never fed; ship gate not started)
 
 ## 19. Roadmap decisions (maintainer, 2026-11-02)
 
