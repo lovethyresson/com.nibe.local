@@ -927,3 +927,32 @@ body {
 .setup-shell button.setup-menu small { font-size: .88em; }
 /* A confirm checkbox keeps a gap before its text. */
 .setup-shell .setup-option > input[type=checkbox] { margin: 0 .6em 0 0; vertical-align: -4px; }
+
+/* Comfort range step: tabs, an example day per range, its facts and what to expect. */
+.setup-range-tabs { margin: .9em 0 .4em; }
+.setup-range { display: flex; flex-direction: column; gap: .6em; margin-bottom: 1em; }
+.setup-range-caption { margin: .4em 0 0; font-size: .82em; opacity: .7; }
+.setup-range-chart { display: block; width: 100%; height: auto; overflow: visible; }
+.setup-range-chart text { font-size: 10.5px; fill: currentColor; opacity: .65; }
+.setup-range-band { fill: rgba(45, 107, 214, .12); }
+.setup-range-target { stroke: currentColor; stroke-opacity: .25; stroke-dasharray: 3 3; }
+.setup-range-price { fill: none; stroke: currentColor; stroke-opacity: .45; stroke-width: 1.5; }
+.setup-range-price-area { fill: currentColor; fill-opacity: .07; }
+.setup-range-indoor { fill: none; stroke: #c4580d; stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+.setup-range-legend { display: flex; flex-wrap: wrap; gap: .25em .9em; font-size: .78em; opacity: .8; }
+.setup-range-key { display: inline-block; width: 12px; height: 3px; border-radius: 2px; margin-right: 5px; vertical-align: 3px; }
+.setup-range-key-indoor { background: #c4580d; }
+.setup-range-key-band { height: 9px; vertical-align: -1px; background: rgba(45, 107, 214, .2); }
+.setup-range-key-price { background: currentColor; opacity: .45; }
+.setup-range-facts { list-style: none; margin: .2em 0 0; padding: 0; }
+.setup-range-facts li { display: flex; flex-direction: column; gap: .1em; padding: .55em 0; border-top: 1px solid rgba(128, 128, 128, .2); }
+.setup-range-facts li:first-child { border-top: 0; }
+.setup-range-facts li span { font-size: .85em; opacity: .72; line-height: 1.35; }
+.setup-range-facts b { font-size: 1.05em; font-variant-numeric: tabular-nums; }
+.setup-range-feel strong { display: block; font-size: .82em; opacity: .7; margin-bottom: .15em; }
+.setup-range-feel p { margin: 0; line-height: 1.45; }
+@media (prefers-color-scheme: dark) {
+  .setup-range-indoor { stroke: #e8833a; }
+  .setup-range-key-indoor { background: #e8833a; }
+  .setup-range-band { fill: rgba(77, 163, 255, .16); }
+}

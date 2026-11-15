@@ -8,7 +8,7 @@ import {FlowConflict, moreHotwaterFlows} from './autopilot/hotwater-flows';
 import {KWH_PER_LITRE, STARTER_DAYS, localClock, readHousehold} from './autopilot/hotwater-learner';
 import {DAY_TYPE_SETTING, DEFAULT_DAY_TYPE, DayTypeState, awayOn, dayTypeAt, homeDayTypeAt, readDayType, typeSet} from './autopilot/day-type';
 import {Sample} from './autopilot/history';
-import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, StopReason, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits, rangeLimits, CUSTOM_SETTINGS, sunTrust, surplusPrices, withHotwater} from './autopilot/live';
+import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, StopReason, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits, rangeLimits, rangeFacts, CUSTOM_SETTINGS, sunTrust, surplusPrices, withHotwater} from './autopilot/live';
 import {AUTOPILOT_FUNCTIONS, SMART_MODE_STORE, SmartFunction, SmartMode, autopilotRuns, shownSmartMode, smartMode, smartModeWrites, spaOn} from './autopilot/smart-mode';
 import {HeatingStatus, heatingStatus} from './autopilot/heating-status';
 import {PeriodWatch, pricePeriods, startedTrigger} from './autopilot/heating-flows';
@@ -1285,7 +1285,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
      *  verified on the pump in pairing (pairing-pump.ts), so it is stored as verified. A failure
      *  is said on the device, never dropped: the owner can finish it in Repair. */
     private async applyPairedSmartMode() {
-        const paired = this.getStoreValue(PAIRED_SMART_STORE) as {mode?: string; verified?: boolean} | null;
+        const paired = this.getStoreValue(PAIRED_SMART_STORE) as {mode?: string; verified?: boolean; range?: string} | null;
         if (!paired?.mode) return;
         await this.unsetStoreValue(PAIRED_SMART_STORE);
         const mode = smartMode(paired.mode);
@@ -1299,6 +1299,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 await this.chooseSmartMode(mode);
             }
             this.log(`Smart mode from pairing applied: ${this.role} = ${mode}`);
+            // The comfort range chosen in setup, once Autopilot's controls are on the device.
+            if (this.role === 'heating' && paired.range && (mode === 'autopilot' || mode === 'test')) {
+                if (!this.hasCapability(AUTOPILOT_RANGE_CAPABILITY)) await this.syncCapabilities();
+                await this.setAutopilotProfile(paired.range);
+            }
         } catch (error: any) {
             this.error('Smart mode from pairing could not be applied:', error?.message ?? error);
             await this.setWarning(this.homey.__('autopilot.smart.paired_failed', {reason: error?.message ?? String(error)})).catch(this.error);
@@ -2047,6 +2052,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             outdoor: this.autopilot?.outdoorNow().sensor ?? null,
             prices: this.autopilot?.hasPrices() ?? false,
             status: this.hasCapability(AUTOPILOT_REASON_CAPABILITY) ? this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) : null,
+            range: this.hasCapability(AUTOPILOT_RANGE_CAPABILITY) ? this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY) : null,
+            ranges: rangeFacts(),
         };
     }
 

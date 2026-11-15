@@ -1,4 +1,5 @@
 import {averageSensors, cleanIndoorConfig, indoorInventory, withApi} from './indoor-sensors';
+import {RANGE_IDS, rangeFacts} from './autopilot/live';
 import {OUTDOOR_SENSOR_SETTING} from './autopilot/collector';
 import {SOLAR_SETTING, SolarSurplus, readSolarAnswer, scanSolar} from './autopilot/solar-surplus';
 import {Driver, FlowCard} from 'homey';
@@ -1367,6 +1368,13 @@ export abstract class NibePumpDriver extends Driver {
         }
         this.registerHomeSetupHandlers(session, device.role === 'heating');
         if (device.role === 'heating') session.setHandler('activate_autopilot', async () => device.activateAutopilotHeating());
+        // The comfort range from setup's range step (Repair): one of the explained ranges.
+        if (device.role === 'heating') session.setHandler('heating_range', async (data: any) => {
+            const value = String(data?.value);
+            if (!(RANGE_IDS as readonly string[]).includes(value)) throw new Error(`Unknown comfort range ${value}`);
+            await device.setAutopilotProfile(value);
+            return true;
+        });
     }
 
     /** Setup that is the home's, not a device's, so Repair and pairing share it: solar (asked in
@@ -1474,7 +1482,7 @@ export abstract class NibePumpDriver extends Driver {
         const prices = await withApi(this.homey, async (api) => await api.energy.getElectricityPriceType() === 'dynamic').catch(() => false);
         return {...base, verified: false, roomControl: room ?? null, indoor: typeof indoor === 'number' ? indoor : null,
             target: typeof target === 'number' ? target : null,
-            prices, status: null, ...await this.outdoorFacts()};
+            prices, status: null, range: null, ranges: rangeFacts(), ...await this.outdoorFacts()};
     }
 
     private registerIndoorHandlers(session: PairSession, device?: any) {

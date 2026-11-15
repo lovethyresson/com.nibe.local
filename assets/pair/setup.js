@@ -63,12 +63,13 @@ function NibeSetup(options) {
         error = el('p', '', 'setup-error'); error.setAttribute('role', 'alert'); shell.appendChild(error);
     }
     function fail(err) { error.textContent = err && err.message || String(err); }
-    var LOCAL = {smart_choose: true, hotwater_household: true, hotwater_reserve: true};
+    var LOCAL = {smart_choose: true, hotwater_household: true, hotwater_reserve: true, heating_range: true};
     function emit(event, data) {
         if (options.mode === 'pair' && LOCAL[event]) {
             var saved = ap.saved = ap.saved || {};
             if (event === 'smart_choose') saved.mode = data.value;
             else if (event === 'hotwater_household') saved.household = data;
+            else if (event === 'heating_range') saved.range = data.value;
             else saved.reserve = data.litres;
             return Promise.resolve(true);
         }
@@ -500,8 +501,125 @@ function NibeSetup(options) {
             tiles.appendChild(tile);
         });
         shell.appendChild(tiles);
-        shell.appendChild(button(t('next'), pumpStep, true));
+        shell.appendChild(button(t('next'), function () { rangeStep(pumpStep, expect); }, true));
         back(apIndoor);
+    }
+    // ---- Comfort range: one explained choice per range, with an example day. The numbers come
+    // from the live planner's limits (smart_status `ranges`), so the text says what it will do.
+    var RANGE_IDS = ['comfortable', 'save_some', 'save_most'];
+    /** An example day for a range: price (a cheap night, an expensive evening) and indoor moving
+     *  within the range, pre-heating in cheap hours and cooling in expensive ones. Illustrative,
+     *  and labelled so. */
+    var EXAMPLE_PRICE = [1.0, 0.95, 0.92, 0.9, 0.92, 1.0, 1.3, 1.7, 1.8, 1.5, 1.4, 1.35, 1.4, 1.6, 1.9, 2.2, 2.5, 2.7, 2.6, 2.3, 2.0, 1.8, 1.6, 1.3];
+    var EXAMPLE_MOVE = {
+        comfortable: [0, 0.1, 0.24, 0.4, 0.56, 0.7, 0.8, 0.76, 0.66, 0.6, 0.56, 0.54, 0.6, 0.66, 0.64, 0.44, 0.2, 0, -0.16, -0.24, -0.2, -0.1, 0, 0],
+        save_some: [0, 0.13, 0.3, 0.47, 0.6, 0.7, 0.73, 0.63, 0.5, 0.4, 0.37, 0.4, 0.47, 0.53, 0.43, 0.2, -0.1, -0.37, -0.53, -0.6, -0.53, -0.37, -0.17, -0.03],
+        save_most: [0, 0.13, 0.3, 0.47, 0.6, 0.7, 0.75, 0.67, 0.53, 0.43, 0.4, 0.43, 0.5, 0.53, 0.4, 0.13, -0.2, -0.47, -0.63, -0.7, -0.63, -0.47, -0.23, -0.07],
+    };
+    var SVG = 'http://www.w3.org/2000/svg';
+    function svgEl(tag, attrs, text) {
+        var n = document.createElementNS(SVG, tag);
+        Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+        if (text !== undefined) n.textContent = text;
+        return n;
+    }
+    /** A smooth path through points: monotone cubic, so it never overshoots a value it passes. */
+    function smooth(pts) {
+        var n = pts.length, d = 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1);
+        if (n < 2) return d;
+        var dx = [], m = [], t = [], i;
+        for (i = 0; i < n - 1; i++) { dx[i] = pts[i + 1][0] - pts[i][0]; m[i] = (pts[i + 1][1] - pts[i][1]) / dx[i]; }
+        t[0] = m[0]; t[n - 1] = m[n - 2];
+        for (i = 1; i < n - 1; i++) t[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+        for (i = 0; i < n - 1; i++) {
+            if (m[i] === 0) { t[i] = 0; t[i + 1] = 0; continue; }
+            var p = t[i] / m[i], q = t[i + 1] / m[i], h = p * p + q * q;
+            if (h > 9) { var k = 3 / Math.sqrt(h); t[i] = k * p * m[i]; t[i + 1] = k * q * m[i]; }
+        }
+        for (i = 0; i < n - 1; i++)
+            d += 'C' + (pts[i][0] + dx[i] / 3).toFixed(1) + ' ' + (pts[i][1] + t[i] * dx[i] / 3).toFixed(1) + ' '
+                + (pts[i + 1][0] - dx[i] / 3).toFixed(1) + ' ' + (pts[i + 1][1] - t[i + 1] * dx[i] / 3).toFixed(1) + ' '
+                + pts[i + 1][0].toFixed(1) + ' ' + pts[i + 1][1].toFixed(1);
+        return d;
+    }
+    function rangeChart(id, band) {
+        // Indoor on top, the price in its own low lane under it, so the two lines never cross.
+        var W = 340, L = 6, R = W - 36, T = 8, B = 118, mid = (T + B) / 2, PT = B + 12, PB = PT + 26, H = PB + 18;
+        var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, 'class': 'setup-range-chart', role: 'img', 'aria-label': a('range_example')});
+        var x = function (h) { return L + (R - L) * h / 23; };
+        // Indoor on a scale that fits the widest range, so the ranges compare at a glance.
+        var yt = function (dt) { return mid - dt * (B - T) / 2 / 6.5; };
+        var yp = function (p) { return PB - (PB - PT) * (p - 0.8) / 2; };
+        svg.appendChild(svgEl('rect', {x: L, y: yt(band), width: R - L, height: yt(-band) - yt(band), rx: 4, 'class': 'setup-range-band'}));
+        svg.appendChild(svgEl('line', {x1: L, x2: R, y1: mid, y2: mid, 'class': 'setup-range-target'}));
+        // The band's edges, labelled at the right; a narrow band gets one ± label, as its two
+        // would overlap.
+        var num = String(band).replace('.', a('decimal'));
+        if (yt(-band) - yt(band) < 26) svg.appendChild(svgEl('text', {x: R + 6, y: mid + 4}, '±' + num));
+        else {
+            svg.appendChild(svgEl('text', {x: R + 6, y: yt(band) + 4}, '+' + num));
+            svg.appendChild(svgEl('text', {x: R + 6, y: yt(-band) + 4}, '−' + num));
+        }
+        var price = smooth(EXAMPLE_PRICE.map(function (p, h) { return [x(h), yp(p)]; }));
+        svg.appendChild(svgEl('path', {d: price + 'L' + x(23).toFixed(1) + ' ' + PB + 'L' + x(0).toFixed(1) + ' ' + PB + 'Z', 'class': 'setup-range-price-area'}));
+        svg.appendChild(svgEl('path', {d: price, 'class': 'setup-range-price'}));
+        svg.appendChild(svgEl('text', {x: R + 6, y: PT + 12}, a('range_key_price')));
+        svg.appendChild(svgEl('path', {d: smooth(EXAMPLE_MOVE[id].map(function (v, h) { return [x(h), yt(v * band)]; })), 'class': 'setup-range-indoor'}));
+        [0, 6, 12, 18].forEach(function (h) { svg.appendChild(svgEl('text', {x: x(h), y: H - 4, 'text-anchor': 'middle'}, (h < 10 ? '0' : '') + h + ':00')); });
+        return svg;
+    }
+    function rangeName(id) { return a('range_' + id); }
+    /** Choose the comfort range: explained, then saved (Repair) or kept for the new device (pairing). */
+    function rangeStep(next, from) {
+        var st = ap.status || {};
+        var facts = st.ranges || {};
+        var current = ap.range || (RANGE_IDS.indexOf(st.range) >= 0 ? st.range : 'comfortable');
+        clear(setupTitle(), a('range_intro'));
+        view.querySelector('.pair-hero-title').textContent = a('range_title');
+        var pills = el('div', undefined, 'setup-segment setup-range-tabs');
+        var panel = el('div', undefined, 'setup-range');
+        var use = button('', function () {}, true);
+        function show(id) {
+            current = id;
+            pills.querySelectorAll('button').forEach(function (b) { b.classList.toggle('is-on', b.dataset.range === id); });
+            var f = facts[id] || {};
+            panel.replaceChildren();
+            panel.appendChild(el('p', a('range_example'), 'setup-range-caption'));
+            panel.appendChild(rangeChart(id, f.band || 0.5));
+            var legend = el('div', undefined, 'setup-range-legend');
+            [['setup-range-key-indoor', 'range_key_indoor'], ['setup-range-key-band', 'range_key_band']].forEach(function (k) {
+                var item = el('span'); item.append(el('span', undefined, 'setup-range-key ' + k[0]), document.createTextNode(a(k[1]))); legend.appendChild(item);
+            });
+            panel.appendChild(legend);
+            var list = el('ul', undefined, 'setup-range-facts');
+            var num = function (v) { return String(v).replace('.', a('decimal')); };
+            [[a('range_fact_band'), '±' + num(f.band) + ' °C'],
+             [a('range_fact_cools'), f.weight > 1 ? a('range_fact_cools_value', {x: num(f.weight)}) : a('range_fact_cools_any')],
+             [a('range_fact_coast'), a('range_fact_coast_value', {h: f.coast})]].forEach(function (r) {
+                var li = el('li'); li.append(el('span', r[0]), el('b', r[1])); list.appendChild(li);
+            });
+            panel.appendChild(list);
+            var feel = el('div', undefined, 'setup-range-feel');
+            feel.append(el('strong', a('range_feel_title')), el('p', a('range_feel_' + id)));
+            panel.appendChild(feel);
+            use.textContent = a('range_use', {name: rangeName(id)});
+        }
+        RANGE_IDS.forEach(function (id) {
+            var pill = el('button', rangeName(id), 'setup-segment-option hy-nostyle');
+            pill.type = 'button'; pill.dataset.range = id;
+            pill.onclick = function (e) { e.preventDefault(); show(id); };
+            pills.appendChild(pill);
+        });
+        use.onclick = function (e) {
+            e.preventDefault();
+            emit('heating_range', {value: current}).then(function () { ap.range = current; next(); }).catch(fail);
+        };
+        shell.append(pills, panel);
+        if (st.range === 'custom') shell.appendChild(el('p', a('range_custom_now'), 'register-desc'));
+        shell.appendChild(use);
+        shell.appendChild(el('p', a('range_custom'), 'register-desc'));
+        show(current);
+        back(from);
     }
     /** What the pump needs for this combination of indoor source and Smart mode, in one list. */
     function pumpStep() {
@@ -603,6 +721,11 @@ function NibeSetup(options) {
         var runsNow = st.mode === 'autopilot' || st.mode === 'test';
         row(a('row_smart'), runsNow ? a('choose_on') + ' · ' + a(st.mode === 'test' ? 'mode_simulated' : 'mode_live')
             : a(st.mode === 'spa' ? 'choose_spa' : 'choose_off'), steer);
+        if (runsNow) {
+            var range = ap.range || st.range;
+            row(a('row_range'), RANGE_IDS.indexOf(range) >= 0 ? rangeName(range) : range === 'custom' ? a('range_custom_name') : '—',
+                function () { rangeStep(function () { st.range = ap.range; summary(); }, summary); });
+        }
         if (runsNow) row(a('row_indoor'), readHomey || active ? a('indoor_homey', {n: selected.length}) : a('indoor_pump'), apIndoor);
         else row(a('row_indoor'), useHomey ? a('indoor_homey', {n: selected.length}) : a('indoor_pump'), temperature);
         if (st.mode === 'autopilot' || st.mode === 'test')

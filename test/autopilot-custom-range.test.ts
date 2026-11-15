@@ -31,3 +31,14 @@ test('rangeLimits: the three ranges as before, custom from settings', () => {
     assert.deepStrictEqual(rangeLimits('save_some', {custom_coldest: 5}), PROFILE_LIMITS.save_some);
     assert.strictEqual(rangeLimits('custom', {custom_coldest: 2}).lower, 2);
 });
+
+test('setup explains each range with the live limits themselves', async () => {
+    const {RANGE_IDS, rangeFacts} = await import('../lib/autopilot/live');
+    const facts = rangeFacts();
+    assert.deepStrictEqual(Object.keys(facts), [...RANGE_IDS]);
+    for (const id of RANGE_IDS) {
+        assert.strictEqual(facts[id].band, PROFILE_LIMITS[id].lower);
+        assert.strictEqual(facts[id].weight, PROFILE_LIMITS[id].comfortWeight);
+        assert.strictEqual(facts[id].coast, PROFILE_LIMITS[id].maxCoastH);
+    }
+});

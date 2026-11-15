@@ -50,6 +50,16 @@ export function profileLimits(profile: unknown): Limits {
     return PROFILE_LIMITS[profile as PresetId] ?? PROFILE_LIMITS[DEFAULT_PROFILE];
 }
 
+/** The ranges setup explains, in order. */
+export const RANGE_IDS = ['comfortable', 'save_some', 'save_most'] as const;
+/** What setup's range step says of each range, from the live limits themselves: how far indoor
+ *  may move (°C), the comfort weight (the house cools only when a peak costs more than this many
+ *  times the coming hours' average, the price of buying the heat back), and the longest ease-off (h). */
+export function rangeFacts(): Record<typeof RANGE_IDS[number], {band: number; weight: number; coast: number}> {
+    const of = (id: PresetId) => ({band: PROFILE_LIMITS[id].lower, weight: PROFILE_LIMITS[id].comfortWeight, coast: PROFILE_LIMITS[id].maxCoastH});
+    return {comfortable: of('comfortable'), save_some: of('save_some'), save_most: of('save_most')};
+}
+
 /** The Custom range: the owner sets the live limits themselves, in device settings under
  *  "Autopilot custom range (advanced)". Each setting, its range, and the limit it sets. Values
  *  outside the range are clamped; a missing one is Comfort's. Unproven combinations: the planner
