@@ -158,26 +158,31 @@ export const ALARM_ACTIVE_CAPABILITY = "alarm_generic";
 export const ALARM_TEXT_CAPABILITY = "alarm_text_NIBE";
 export const ALARM_CAPABILITIES = [ALARM_ACTIVE_CAPABILITY];
 
-// The household's day type (working / free / away) on the main device: household state, so it
+// The household's day type (working / day off) on the main device: household state, so it
 // sits on the device that serves every function. Only while Autopilot hot water is on or test
 // running on the pump (`autopilot` below): it is a control over nothing otherwise, and appearing
 // unasked on every Main after an update would look broken. The value lives in an app setting
 // (lib/autopilot/day-type.ts), not on the device.
 export const DAY_TYPE_CAPABILITY = "day_type_NIBE";
 
+// The home's Away on the main device, beside the day type: one switch for every function, shown
+// while Autopilot runs for hot water or heating (`away` below). Its end time, when it has one,
+// is in the widgets and a Flow token, never in this title: a picker or tile has no room for it.
+export const AWAY_CAPABILITY = "boolean_NIBE.away";
+
 // Autopilot heating on the Heating device, only while its Smart mode is Autopilot or a test run
 // (`smart` below): what it is doing and why, how far it shifts the outdoor temperature the pump
-// sees (and the value fed), the owner's comfort range, and Away. Comfort itself is the thermostat.
+// sees (and the value fed), the owner's comfort range, and the Away temperature (Away itself is
+// Main's). Comfort itself is the thermostat.
 // Insights titles are snapshotted on first add, so these names and titles are final.
 export const AUTOPILOT_STATUS_CAPABILITY = "autopilot_status_NIBE";
 export const AUTOPILOT_REASON_CAPABILITY = "autopilot_reason_NIBE";
 export const AUTOPILOT_RANGE_CAPABILITY = "autopilot_range_NIBE";
-export const AUTOPILOT_AWAY_CAPABILITY = "boolean_NIBE.autopilot_away";
 export const AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY = "target_temperature.autopilot_away";
 export const AUTOPILOT_FED_CAPABILITY = "measure_temperature.autopilot_fed";
 export const AUTOPILOT_SHIFT_CAPABILITY = "autopilot_shift_NIBE";
 export const AUTOPILOT_HEATING_CAPABILITIES = [AUTOPILOT_STATUS_CAPABILITY, AUTOPILOT_REASON_CAPABILITY,
-    AUTOPILOT_RANGE_CAPABILITY, AUTOPILOT_AWAY_CAPABILITY, AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY,
+    AUTOPILOT_RANGE_CAPABILITY, AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY,
     AUTOPILOT_SHIFT_CAPABILITY, AUTOPILOT_FED_CAPABILITY];
 
 // Autopilot hot water on the Hot water device, only while its Smart mode is Autopilot or a test
@@ -280,17 +285,19 @@ export function extraCapabilitySupport(
 // detection found unsupported — where missing an entry causes a real bug rather than a hidden
 // feature (an option-less capability makes getCapabilityOptions() throw "Invalid Capability").
 export function possibleExtraCapabilities(profile: ModelProfile, role: Role): string[] {
-    return buildExtraCapabilities(profile, role, null, true, true);
+    return buildExtraCapabilities(profile, role, null, true, true, true);
 }
 
 /** `smart` is the Smart mode that decides this role's Autopilot capabilities: its own for a
- *  function, hot water's for Main (the day type). */
-export function extraCapabilities(profile: ModelProfile, role: Role, selection?: Selection | null, smart: SmartMode = 'off'): string[] {
-    return buildExtraCapabilities(profile, role, selection ?? null, false, autopilotRuns(smart));
+ *  function, hot water's for Main (the day type). `away`: whether Main carries Away, which any
+ *  running Autopilot needs; by default whether `smart` runs. */
+export function extraCapabilities(profile: ModelProfile, role: Role, selection?: Selection | null, smart: SmartMode = 'off',
+    away = autopilotRuns(smart)): string[] {
+    return buildExtraCapabilities(profile, role, selection ?? null, false, autopilotRuns(smart), away);
 }
 
 function buildExtraCapabilities(
-    profile: ModelProfile, role: Role, selection: Selection | null, superset: boolean, autopilot: boolean
+    profile: ModelProfile, role: Role, selection: Selection | null, superset: boolean, autopilot: boolean, away: boolean
 ): string[] {
     // The energy-group extras all follow the same rule: an explicit per-capability override
     // wins, then the group toggle, then "on". A missing selection means everything is enabled
@@ -364,6 +371,8 @@ function buildExtraCapabilities(
             caps.push(TOTAL_COP_CAPABILITY);
         if (profile.autopilotHotwater && autopilot)
             caps.push(DAY_TYPE_CAPABILITY);
+        if ((profile.autopilotHotwater || profile.autopilotFeed) && away)
+            caps.push(AWAY_CAPABILITY);
         return [...caps, ...mirrored];
     }
     // Function roles: the tile on/off is a real register (the "Allow X" enable capability), so
@@ -413,12 +422,13 @@ export function roleOf(data: any): Role {
 // anything the device carries that is no longer wanted goes, including capabilities whose
 // register no longer exists anywhere.
 export function capabilitySyncPlan(
-    profile: ModelProfile, role: Role, selection: Selection | null | undefined, current: string[], smart: SmartMode = 'off'
+    profile: ModelProfile, role: Role, selection: Selection | null | undefined, current: string[], smart: SmartMode = 'off',
+    away = autopilotRuns(smart)
 ): {registers: Register[]; extras: string[]; wanted: string[]; toAdd: string[]; toRemove: string[]} {
     const hidden = new Set(hiddenBySmartMode(profile, role, smart));
     const effective = withAutopilotInputs(profile, role, selection, smart);
     const registers = registersForRole(profile, role, effective).filter((r) => !hidden.has(r.name));
-    const extras = extraCapabilities(profile, role, effective, smart);
+    const extras = extraCapabilities(profile, role, effective, smart, away);
     const wanted = [...registers.map((r) => r.name), ...extras];
     const wantedSet = new Set(wanted);
     const has = new Set(current);
@@ -450,7 +460,7 @@ export function autopilotInputs(profile: ModelProfile, role: Role, smart: SmartM
 /** Why a capability comes or goes, for setup's What changes: Autopilot's own, what it acts on,
  *  what it takes over from SPA, the tank's, or the owner's own choice. Pure. */
 export function changeReason(profile: ModelProfile, role: Role, name: string, added: boolean, smart: SmartMode): string {
-    const own = [...AUTOPILOT_HEATING_CAPABILITIES, ...AUTOPILOT_HOTWATER_CAPABILITIES, DAY_TYPE_CAPABILITY];
+    const own = [...AUTOPILOT_HEATING_CAPABILITIES, ...AUTOPILOT_HOTWATER_CAPABILITIES, DAY_TYPE_CAPABILITY, AWAY_CAPABILITY];
     if (own.includes(name)) return added ? 'autopilot' : 'autopilot_off';
     if (HOTWATER_TANK_CAPABILITIES.includes(name)) return 'tank';
     if (hiddenBySmartMode(profile, role, 'autopilot').includes(name)) return added ? 'spa_back' : 'autopilot_handles';
@@ -582,7 +592,7 @@ export function extraCapabilityOptions(role: Role, name: string, profile?: Model
     if (name === AUTOPILOT_RANGE_CAPABILITY)
         return {title: {en: "Comfort range", sv: "Komfortspann", de: "Komfortbereich", nl: "Comfortbereik",
                         no: "Komfortområde", da: "Komfortinterval"}};
-    if (name === AUTOPILOT_AWAY_CAPABILITY)
+    if (name === AWAY_CAPABILITY)
         return {title: {en: "Away", sv: "Borta", de: "Abwesend", nl: "Afwezig", no: "Borte", da: "Fraværende"}};
     if (name === AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY)
         return {title: {en: "Away temperature", sv: "Bortatemperatur", de: "Abwesenheitstemperatur", nl: "Afwezigheidstemperatuur",

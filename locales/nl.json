@@ -189,7 +189,7 @@
         "choose_off_desc_heating": "De verwarming volgt alleen de stooklijn.",
         "choose_off_desc_hotwater": "Warm water volgt de eigen instellingen van je warmtepomp.",
         "saved": "Slimme modus opgeslagen",
-        "success_description": "Comfortbereik, Afwezig en status staan op het verwarmingsapparaat. De thermostaat bepaalt de comforttemperatuur.",
+        "success_description": "Comfortbereik en status staan op het verwarmingsapparaat, Afwezig op Main. De thermostaat bepaalt de comforttemperatuur.",
         "badge_spa": "Smart price adaption",
         "badge_off": "Uit",
         "choose_on": "Autopilot",
@@ -685,7 +685,8 @@
       "starting_title": "Opstarten",
       "starting_heating": "De voorspelling en stroomprijzen worden gelezen. Duurt ongeveer een minuut.",
       "starting_hotwater": "De stroomprijzen en de boiler worden gelezen. Duurt ongeveer een minuut.",
-      "starting_app": "Je warmtepomp wordt uitgelezen. Duurt ongeveer een minuut."
+      "starting_app": "Je warmtepomp wordt uitgelezen. Duurt ongeveer een minuut.",
+      "away_until": "Afwezig tot __until__ · __c__ °C"
     },
     "hotwater_status": {
       "learning": "Leert je warmwatergebruik kennen",
@@ -711,7 +712,8 @@
       "learning": "Leert je warmwatergebruik",
       "off": "Autopilot voor warm water staat uit. Zet hem aan via Repareren → Slimme modus.",
       "pick": "Kies een warmwaterapparaat.",
-      "away_keeps": "Autopilot houdt alleen je minimum warm."
+      "away_keeps": "Autopilot houdt alleen je minimum warm.",
+      "away_until": "Tot __until__"
     },
     "savings": {
       "pick": "Kies een apparaat voor Verwarming of Warm water in de instellingen van de widget.",
@@ -739,12 +741,13 @@
       "row_before_days": "Vóór Autopilot · __days__ dagen",
       "row_so_far_days": "Tot nu toe · __days__ dagen",
       "row_with_days": "Met Autopilot · __days__ dagen",
-      "charges_title": "Opwarmbeurten deze week",
+      "charges_title": "Afgelopen 7 dagen",
       "band_cheap": "Goedkoop",
       "band_middle": "Midden",
       "band_dear": "Duur",
       "stat_week": "Laatste 7 dagen",
       "stat_year": "Dit jaar"
-    }
+    },
+    "away_until_token": "Afwezig tot"
   }
 }

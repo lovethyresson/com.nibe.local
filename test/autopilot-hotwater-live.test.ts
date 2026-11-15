@@ -10,8 +10,8 @@ import {
     liveSurplusKw, liveSurplusW, sunNow, surplusForecast,
 } from '../lib/autopilot/hotwater-surplus';
 import {BELOW_TARGET_K, DEMAND_LARGE, DEMAND_SMART, MAX_STARTS_PER_DAY, MAX_STOP_WRITES_PER_DAY, countFor, leverDecision} from '../lib/autopilot/hotwater-lever';
-import {dayTypeAt, readDayType, recordDayType} from '../lib/autopilot/day-type';
-import {DAY_TYPE_CAPABILITY, allRoles, autopilotInputs, capabilitySyncPlan, changeReason, extraCapabilities, extraCapabilityOptions, possibleExtraCapabilities} from '../lib/roles';
+import {dayTypeAt, readDayType, recordDayType, typeSet} from '../lib/autopilot/day-type';
+import {AWAY_CAPABILITY, DAY_TYPE_CAPABILITY, allRoles, autopilotInputs, capabilitySyncPlan, changeReason, extraCapabilities, extraCapabilityOptions, possibleExtraCapabilities} from '../lib/roles';
 import {sProfile} from '../drivers/nibe_s/profile';
 
 const HOUR = 3_600_000;
@@ -200,20 +200,20 @@ test('the day type keeps its history, and every past moment has the type in forc
     let state = recordDayType(undefined, 'working', 1000);
     state = recordDayType(state, 'working', 2000);
     assert.strictEqual(state.log.length, 1, 'the same type again changes nothing');
-    state = recordDayType(state, 'away', 5000);
-    assert.strictEqual(state.type, 'away');
+    state = recordDayType(state, 'free', 5000);
+    assert.strictEqual(state.type, 'free');
     assert.strictEqual(dayTypeAt(state, 500), 'working', 'before the first was set: there is always a day type');
     assert.strictEqual(dayTypeAt(undefined, 500), 'working', 'never set: working');
     assert.strictEqual(dayTypeAt(state, 4999), 'working');
-    assert.strictEqual(dayTypeAt(state, 5000), 'away');
-    assert.deepStrictEqual(readDayType({type: 'free', log: [{at: 1, type: 'free'}, {at: 'x', type: 'free'}, {at: 2, type: 'holiday'}]}),
-        {type: 'free', log: [{at: 1, type: 'free'}]});
-    assert.strictEqual(readDayType({type: 'holiday', log: []}), undefined);
+    assert.strictEqual(dayTypeAt(state, 5000), 'free');
+    assert.deepStrictEqual(readDayType({type: 'free', log: [{at: 1, type: 'free'}, {at: 'x', type: 'free'}, {at: 2, type: 'away'}]}),
+        {type: 'free', log: [{at: 1, type: 'free'}]}, 'away is not a day type');
+    assert.strictEqual(readDayType({type: 'away', log: []}), undefined);
     assert.strictEqual(readDayType(null), undefined);
 });
 
-test('where no day type was set, the calendar decides: weekends free; Away hands back to it', async () => {
-    const {setAway, calendarDayType} = await import('../lib/autopilot/day-type');
+test('where no day type was set, the calendar decides: weekends free, and Away leaves it so', async () => {
+    const {recordAway, calendarDayType} = await import('../lib/autopilot/day-type');
     const {localClock} = await import('../lib/autopilot/hotwater-learner');
     const clock = localClock('Europe/Stockholm');
     const at = (iso: string) => Date.parse(iso);
@@ -225,52 +225,56 @@ test('where no day type was set, the calendar decides: weekends free; Away hands
     assert.strictEqual(dayTypeAt(undefined, sat), 'working', 'without a clock: the default');
     // A Flow that starts setting the type on a Tuesday: the weekend before is the calendar's.
     const tue = at('2026-11-10T11:00:00Z');
-    let state = recordDayType({type: 'working', log: []}, 'working', tue);
+    const state = recordDayType({type: 'working', log: []}, 'working', tue);
     assert.strictEqual(state.log.length, 1, 'setting working under the calendar is a choice, logged');
     assert.strictEqual(dayTypeAt(state, at('2026-11-08T10:00:00Z'), clock), 'free', 'the Sunday before');
     assert.strictEqual(dayTypeAt(state, sat, clock), 'working', 'after a choice, it holds until changed');
-    // Away in a home under the calendar goes back to the calendar, not to working.
-    let calendar = setAway({type: 'working', log: []}, true, fri)!;
-    assert.strictEqual(calendar.base, undefined);
-    calendar = setAway(calendar, false, sat)!;
+    // Away under the calendar: the calendar still decides before and after it.
+    let calendar = recordAway({type: 'working', log: []}, true, fri);
+    calendar = recordAway(calendar, false, sat);
+    assert.strictEqual(dayTypeAt(calendar, fri - 1, clock), 'working');
+    assert.strictEqual(dayTypeAt(calendar, fri + 1, clock), 'away');
     assert.strictEqual(dayTypeAt(calendar, sat + 1, clock), 'free');
     assert.strictEqual(dayTypeAt(calendar, mon, clock), 'working');
-    assert.strictEqual(dayTypeAt(calendar, fri + 1, clock), 'away');
-    assert.deepStrictEqual(readDayType(calendar)?.log.at(-1), {at: sat, type: 'working', auto: true});
-    assert.strictEqual(recordDayType(calendar, 'working', mon).log.length, 3, 'working chosen after Away is a choice');
+    assert.ok(!typeSet(calendar), 'Away sets no day type');
 });
 
-test('the day type is on Main only, and only while Autopilot hot water is on', () => {
-    for (const role of allRoles)
+test('the day type and Away are on Main only, the day type with Autopilot hot water, Away with either', () => {
+    for (const role of allRoles) {
         assert.strictEqual(possibleExtraCapabilities(sProfile, role).includes(DAY_TYPE_CAPABILITY), role === 'main', role);
+        assert.strictEqual(possibleExtraCapabilities(sProfile, role).includes(AWAY_CAPABILITY), role === 'main', role);
+    }
     assert.ok(!extraCapabilities(sProfile, 'main', null).includes(DAY_TYPE_CAPABILITY));
     assert.ok(extraCapabilities(sProfile, 'main', null, 'autopilot').includes(DAY_TYPE_CAPABILITY));
+    assert.ok(extraCapabilities(sProfile, 'main', null, 'autopilot').includes(AWAY_CAPABILITY));
+    const heatingOnly = extraCapabilities(sProfile, 'main', null, 'off', true);
+    assert.ok(heatingOnly.includes(AWAY_CAPABILITY) && !heatingOnly.includes(DAY_TYPE_CAPABILITY), 'heating alone: Away, no day type');
     assert.ok(!extraCapabilities(sProfile, 'hotwater', null, 'autopilot').includes(DAY_TYPE_CAPABILITY));
+    assert.ok(!extraCapabilities(sProfile, 'heating', null, 'autopilot').includes(AWAY_CAPABILITY), 'Away is not on Heating');
     assert.ok(extraCapabilityOptions('main', DAY_TYPE_CAPABILITY)?.title?.en);
-    const off = capabilitySyncPlan(sProfile, 'main', null, [DAY_TYPE_CAPABILITY], 'off');
-    assert.ok(off.toRemove.includes(DAY_TYPE_CAPABILITY), 'turning Autopilot off takes it away again');
+    assert.strictEqual(extraCapabilityOptions('main', AWAY_CAPABILITY)?.title?.en, 'Away', 'a short title: it has to fit a tile');
+    const off = capabilitySyncPlan(sProfile, 'main', null, [DAY_TYPE_CAPABILITY, AWAY_CAPABILITY], 'off');
+    assert.ok(off.toRemove.includes(DAY_TYPE_CAPABILITY) && off.toRemove.includes(AWAY_CAPABILITY), 'turning Autopilot off takes them away again');
     assert.ok(sProfile.compose.capabilities.includes(DAY_TYPE_CAPABILITY), 'in the compose superset');
+    assert.ok(sProfile.compose.capabilities.includes(AWAY_CAPABILITY), 'in the compose superset');
 });
 
-test('Away is a trip: a nightly working/free Flow does not end it, and Away off goes back to the latest of them', async () => {
-    const {setAway} = await import('../lib/autopilot/day-type');
+test('Away is a trip beside the day type: a nightly working/free Flow does not end it, and Away leaves the day type as set', async () => {
+    const {recordAway, awayOn} = await import('../lib/autopilot/day-type');
     let state = recordDayType(undefined, 'free', 1000);
-    state = setAway(state, true, 2000)!;
-    assert.strictEqual(state.type, 'away');
-    assert.strictEqual(state.base, 'free');
-    state = recordDayType(state, 'working', 3000, true);
-    assert.strictEqual(state.type, 'away', 'the nightly card keeps Away');
-    assert.strictEqual(state.base, 'working');
-    assert.strictEqual(dayTypeAt(state, 3500), 'away', 'not logged: the learner still files the day as away');
-    state = setAway(state, false, 4000)!;
-    assert.strictEqual(state.type, 'working');
-    assert.strictEqual(state.base, undefined);
-    assert.strictEqual(dayTypeAt(state, 4000), 'working');
-    assert.strictEqual(setAway(state, false, 5000), state, 'off when not away changes nothing');
-    assert.strictEqual(recordDayType(setAway(state, true, 6000)!, 'free', 7000).type, 'free', 'the Main picker, without keepAway, ends Away');
-    assert.strictEqual(setAway(setAway(undefined, true, 1)!, false, 2)!.type, 'working', 'no type before Away: a placeholder');
-    assert.deepStrictEqual(readDayType({type: 'away', log: [], base: 'free'})?.base, 'free');
-    assert.strictEqual(readDayType({type: 'away', log: [], base: 'away'})?.base, undefined);
+    state = recordAway(state, true, 2000);
+    assert.ok(awayOn(state));
+    assert.strictEqual(state.type, 'free', 'the day type is kept');
+    state = recordDayType(state, 'working', 3000);
+    assert.ok(awayOn(state), 'the nightly card keeps Away');
+    assert.strictEqual(dayTypeAt(state, 3500), 'away', 'the learner files the day as away');
+    state = recordAway(state, false, 4000);
+    assert.ok(!awayOn(state));
+    assert.strictEqual(dayTypeAt(state, 4000), 'working', 'back to the type set while away');
+    assert.strictEqual(dayTypeAt(state, 2500), 'away', 'the trip stays in the history');
+    assert.strictEqual(recordAway(state, false, 5000), state, 'off when not away changes nothing');
+    assert.ok(awayOn(recordAway(undefined, true, 1)), 'Away with nothing stored');
+    assert.deepStrictEqual(readDayType({type: 'free', log: [], away: [{at: 1, on: true}, {at: 2, on: 'x'}]})?.away, [{at: 1, on: true}]);
 });
 
 test('live export is the sun\'s only while the forecast has sun', () => {

@@ -3333,12 +3333,12 @@
         "da": "Indstil dagtype til [[type]]"
       },
       "hint": {
-        "en": "Which kind of day Autopilot plans for. Away is for a holiday of a week or more.",
-        "sv": "Vilken sorts dag Autopilot planerar för. Bortrest är för en semester på en vecka eller mer.",
-        "de": "Für welche Art von Tag Autopilot plant. Abwesend ist für einen Urlaub von einer Woche oder länger.",
-        "nl": "Voor welk soort dag Autopilot plant. Afwezig is voor een vakantie van een week of langer.",
-        "no": "Hvilken type dag Autopilot planlegger for. Bortreist er for en ferie på en uke eller mer.",
-        "da": "Hvilken slags dag Autopilot planlægger for. Bortrejst er til en ferie på en uge eller mere."
+        "en": "Which kind of day Autopilot plans for.",
+        "sv": "Vilken sorts dag Autopilot planerar för.",
+        "de": "Für welche Art von Tag Autopilot plant.",
+        "nl": "Voor welk soort dag Autopilot plant.",
+        "no": "Hvilken type dag Autopilot planlegger for.",
+        "da": "Hvilken slags dag Autopilot planlægger for."
       },
       "$filter": "capabilities=day_type_NIBE",
       "args": [
@@ -3367,21 +3367,68 @@
                 "no": "Fridag",
                 "da": "Fridag"
               }
-            },
-            {
-              "id": "away",
-              "label": {
-                "en": "Away",
-                "sv": "Bortrest",
-                "de": "Abwesend",
-                "nl": "Afwezig",
-                "no": "Bortreist",
-                "da": "Bortrejst"
-              }
             }
           ]
         }
       ]
+    },
+    {
+      "id": "set_away_until",
+      "title": {
+        "en": "Turn Away on until …",
+        "sv": "Slå på Borta till …",
+        "de": "Abwesend einschalten bis …",
+        "nl": "Afwezig aanzetten tot …",
+        "no": "Slå på Borte til …",
+        "da": "Slå Fraværende til indtil …"
+      },
+      "titleFormatted": {
+        "en": "Turn Away on until [[date]] at [[time]]",
+        "sv": "Slå på Borta till [[date]] kl. [[time]]",
+        "de": "Abwesend einschalten bis [[date]] um [[time]]",
+        "nl": "Afwezig aanzetten tot [[date]] om [[time]]",
+        "no": "Slå på Borte til [[date]] kl. [[time]]",
+        "da": "Slå Fraværende til indtil [[date]] kl. [[time]]"
+      },
+      "hint": {
+        "en": "For a holiday of a week or more. Hot water keeps only its minimum warm, the house is warm again when you're back, and Away ends by itself.",
+        "sv": "För en semester på en vecka eller mer. Varmvattnet håller bara sitt minimum varmt, huset är varmt igen när du kommer hem, och Borta slutar av sig självt.",
+        "de": "Für einen Urlaub von einer Woche oder länger. Das Warmwasser hält nur sein Minimum warm, das Haus ist wieder warm, wenn Sie zurück sind, und Abwesend endet von selbst.",
+        "nl": "Voor een vakantie van een week of langer. Warm water houdt alleen het minimum warm, het huis is weer warm als je thuiskomt, en Afwezig stopt vanzelf.",
+        "no": "For en ferie på en uke eller mer. Varmtvannet holder bare minimum varmt, huset er varmt igjen når du kommer hjem, og Borte slutter av seg selv.",
+        "da": "Til en ferie på en uge eller mere. Varmtvandet holder kun minimum varmt, huset er varmt igen, når du kommer hjem, og Fraværende slutter af sig selv."
+      },
+      "$filter": "capabilities=boolean_NIBE.away",
+      "args": [
+        {
+          "type": "date",
+          "name": "date"
+        },
+        {
+          "type": "time",
+          "name": "time"
+        }
+      ]
+    },
+    {
+      "id": "back_home",
+      "title": {
+        "en": "Back home",
+        "sv": "Hemma igen",
+        "de": "Wieder zu Hause",
+        "nl": "Weer thuis",
+        "no": "Hjemme igjen",
+        "da": "Hjemme igen"
+      },
+      "hint": {
+        "en": "Turns Away off. The thermostat goes back to your temperature.",
+        "sv": "Stänger av Borta. Termostaten går tillbaka till din temperatur.",
+        "de": "Schaltet Abwesend aus. Der Thermostat kehrt zu Ihrer Temperatur zurück.",
+        "nl": "Zet Afwezig uit. De thermostaat gaat terug naar jouw temperatuur.",
+        "no": "Slår av Borte. Termostaten går tilbake til din temperatur.",
+        "da": "Slår Fraværende fra. Termostaten går tilbage til din temperatur."
+      },
+      "$filter": "capabilities=boolean_NIBE.away"
     },
     {
       "id": "autopilot_heating_set_profile",
@@ -3462,102 +3509,6 @@
         "no": "Komfort, Spar eller Spar mer.",
         "da": "Komfort, Spar eller Spar mere."
       }
-    },
-    {
-      "id": "autopilot_heating_away",
-      "title": {
-        "en": "Set Autopilot heating Away",
-        "sv": "Ställ in Borta för Autopilot uppvärmning",
-        "de": "Abwesend für Autopilot Heizung einstellen",
-        "nl": "Afwezig van Autopilot verwarming instellen",
-        "no": "Still inn Borte for Autopilot oppvarming",
-        "da": "Indstil Fraværende for Autopilot opvarmning"
-      },
-      "titleFormatted": {
-        "en": "Turn Autopilot heating Away [[away]]",
-        "sv": "Slå [[away]] Borta för Autopilot uppvärmning",
-        "de": "Abwesend für Autopilot Heizung [[away]]",
-        "nl": "Afwezig van Autopilot verwarming [[away]]",
-        "no": "Slå [[away]] Borte for Autopilot oppvarming",
-        "da": "Slå Fraværende for Autopilot opvarmning [[away]]"
-      },
-      "hint": {
-        "en": "For a holiday of a week or more. The thermostat goes to the Away temperature and hot water keeps only its safety net. Off puts both back.",
-        "sv": "För en semester på en vecka eller mer. Termostaten går till bortatemperaturen och varmvattnet håller bara sin säkerhetsmarginal. Av återställer båda.",
-        "de": "Für einen Urlaub von einer Woche oder länger. Das Thermostat geht auf die Abwesenheitstemperatur, und Warmwasser hält nur seine Reserve. Aus stellt beides zurück.",
-        "nl": "Voor een vakantie van een week of langer. De thermostaat gaat naar de afwezigheidstemperatuur en warm water houdt alleen de reserve warm. Uit zet beide terug.",
-        "no": "For en ferie på en uke eller mer. Termostaten går til bortetemperaturen, og varmtvannet holder bare sikkerhetsmarginen. Av setter begge tilbake.",
-        "da": "Til en ferie på en uge eller mere. Termostaten går til fraværstemperaturen, og varmt vand holder kun sin sikkerhedsmargin. Fra sætter begge tilbage."
-      },
-      "$filter": "capabilities=autopilot_status_NIBE",
-      "args": [
-        {
-          "type": "dropdown",
-          "name": "away",
-          "values": [
-            {
-              "id": "on",
-              "label": {
-                "en": "on",
-                "sv": "på",
-                "de": "an",
-                "nl": "aan",
-                "no": "på",
-                "da": "til"
-              }
-            },
-            {
-              "id": "off",
-              "label": {
-                "en": "off",
-                "sv": "av",
-                "de": "aus",
-                "nl": "uit",
-                "no": "av",
-                "da": "fra"
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "autopilot_heating_away_until",
-      "title": {
-        "en": "Set Autopilot heating Away until …",
-        "sv": "Ställ in Borta för Autopilot uppvärmning till …",
-        "nl": "Afwezig van Autopilot verwarming instellen tot …",
-        "de": "Abwesend für Autopilot Heizung bis … einstellen",
-        "no": "Still inn Borte for Autopilot oppvarming til …",
-        "da": "Indstil Fraværende for Autopilot opvarmning til …"
-      },
-      "titleFormatted": {
-        "en": "Turn Autopilot heating Away on until [[date]] at [[time]]",
-        "sv": "Slå på Borta för Autopilot uppvärmning till [[date]] kl. [[time]]",
-        "nl": "Afwezig van Autopilot verwarming aan tot [[date]] om [[time]]",
-        "de": "Abwesend für Autopilot Heizung an bis [[date]] um [[time]]",
-        "no": "Slå på Borte for Autopilot oppvarming til [[date]] kl. [[time]]",
-        "da": "Slå Fraværende for Autopilot opvarmning til, indtil [[date]] kl. [[time]]"
-      },
-      "hint": {
-        "en": "For a holiday of a week or more. The house is warm again when you're back, heated in the cheapest hours it can, and Away ends by itself. Turning Away off ends it early.",
-        "sv": "För en semester på en vecka eller mer. Huset är varmt igen när du kommer hem, uppvärmt under de billigaste timmar som går, och Borta slutar av sig självt. Stäng av Borta för att avsluta tidigare.",
-        "nl": "Voor een vakantie van een week of langer. Het huis is weer warm als je thuiskomt, opgewarmd in de goedkoopste uren die kunnen, en Afwezig stopt vanzelf. Zet Afwezig uit om eerder te stoppen.",
-        "de": "Für einen Urlaub von einer Woche oder länger. Das Haus ist wieder warm, wenn Sie zurück sind, in den günstigsten möglichen Stunden aufgeheizt, und Abwesend endet von selbst. Abwesend aus beendet es früher.",
-        "no": "For en ferie på en uke eller mer. Huset er varmt igjen når du kommer hjem, varmet opp i de billigste timene det går, og Borte slutter av seg selv. Slå av Borte for å avslutte tidligere.",
-        "da": "Til en ferie på en uge eller mere. Huset er varmt igen, når du kommer hjem, opvarmet i de billigste timer, det kan, og Fraværende slutter af sig selv. Slå Fraværende fra for at afslutte tidligere."
-      },
-      "$filter": "capabilities=autopilot_status_NIBE",
-      "args": [
-        {
-          "type": "date",
-          "name": "date"
-        },
-        {
-          "type": "time",
-          "name": "time"
-        }
-      ]
     }
   ],
   "conditions": [

@@ -627,6 +627,9 @@ export class HotwaterAutopilot {
     private lines = 0;
     private skipped = new Map<string, number>();
     private last?: ShadowEntry;
+    /** Whether the tank is charging, from the latest poll. The plan step's own reading is up to a
+     *  slot old: a charge started just after it would read as not started. */
+    private chargingNow?: boolean;
     private deviceId?: string;
     private currency = '';
     /** Local date of the last morning plan sent, and the plan in force: the morning's, or the
@@ -722,7 +725,7 @@ export class HotwaterAutopilot {
         const now = Date.now();
         // A planned charge whose start has passed is the next one only while the tank is charging.
         // One that did not start (a safety-net charge filled the tank first) is behind us.
-        const next = nextCharge(charges, now, this.last?.charging === true);
+        const next = nextCharge(charges, now, (this.chargingNow ?? this.last?.charging) === true);
         return {
             slots: Array.from({length: n}, (_, k) => {
                 const c = covering(from + k);
@@ -746,6 +749,7 @@ export class HotwaterAutopilot {
      *  the ceiling. */
     poll(r: PollReading) {
         if (this.stopped) return;
+        if (r.charging !== undefined) this.chargingNow = r.charging;
         const {watch, observation} = watchCharge(this.watch, r);
         this.watch = watch;
         if (!observation) return;

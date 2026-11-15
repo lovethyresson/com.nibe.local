@@ -60,6 +60,12 @@
       }
     ]
   },
+  "api": {
+    "getWidgetData": {
+      "method": "GET",
+      "path": "/widget/:id"
+    }
+  },
   "flow": {
     "triggers": [
       {
@@ -453,12 +459,12 @@
           "da": "Der opstod en alarm"
         },
         "hint": {
-          "en": "Fires when the heat pump reports a new alarm. Use the alarm description token to see what happened.",
-          "sv": "Utlöses när värmepumpen rapporterar ett nytt larm. Använd larmbeskrivningen som tagg för att se vad som hänt.",
-          "de": "Wird ausgelöst, wenn die Wärmepumpe einen neuen Alarm meldet. Über das Tag mit der Alarmbeschreibung sehen Sie, was passiert ist.",
-          "nl": "Wordt geactiveerd wanneer de warmtepomp een nieuw alarm meldt. Gebruik de tag met de alarmomschrijving om te zien wat er is gebeurd.",
-          "no": "Utløses når varmepumpen rapporterer en ny alarm. Bruk taggen med alarmbeskrivelsen for å se hva som skjedde.",
-          "da": "Udløses når varmepumpen rapporterer en ny alarm. Brug tagget med alarmbeskrivelsen for at se, hvad der skete."
+          "en": "Fires when your heat pump reports a new alarm. Use the alarm description token to see what happened.",
+          "sv": "Utlöses när din värmepump rapporterar ett nytt larm. Använd larmbeskrivningen som tagg för att se vad som hänt.",
+          "de": "Wird ausgelöst, wenn Ihre Wärmepumpe einen neuen Alarm meldet. Über das Tag mit der Alarmbeschreibung sehen Sie, was passiert ist.",
+          "nl": "Wordt geactiveerd wanneer je warmtepomp een nieuw alarm meldt. Gebruik de tag met de alarmomschrijving om te zien wat er is gebeurd.",
+          "no": "Utløses når varmepumpen din rapporterer en ny alarm. Bruk taggen med alarmbeskrivelsen for å se hva som skjedde.",
+          "da": "Udløses når din varmepumpe rapporterer en ny alarm. Brug tagget med alarmbeskrivelsen for at se, hvad der skete."
         },
         "tokens": [
           {
@@ -521,12 +527,12 @@
           "da": "Driftsprioriteringen ændrede sig"
         },
         "hint": {
-          "en": "Fires when the heat pump switches what it is producing (hot water, heating, pool, cooling, off). The reason token explains why in plain language — which threshold the pump actually reached, with the numbers behind it.",
-          "sv": "Utlöses när värmepumpen byter vad den producerar (varmvatten, värme, pool, kyla, av). Orsakstaggen förklarar varför på vanlig svenska — vilken gräns pumpen faktiskt nådde, med siffrorna bakom.",
-          "de": "Wird ausgelöst, wenn die Wärmepumpe wechselt, was sie erzeugt (Warmwasser, Heizung, Pool, Kühlung, aus). Das Tag „Grund\" erklärt in verständlicher Sprache, warum.",
-          "nl": "Wordt geactiveerd wanneer de warmtepomp wisselt wat hij produceert (warm water, verwarming, zwembad, koeling, uit). De tag met de reden legt in gewone taal uit waarom.",
-          "no": "Utløses når varmepumpen bytter hva den produserer (varmtvann, varme, basseng, kjøling, av). Årsakstaggen forklarer på vanlig språk hvorfor.",
-          "da": "Udløses når varmepumpen skifter, hvad den producerer (varmt vand, varme, pool, køling, fra). Tagget med årsagen forklarer i almindeligt sprog hvorfor."
+          "en": "Fires when your heat pump switches between hot water, heating, pool, cooling and off. The reason token says why.",
+          "sv": "Utlöses när din värmepump växlar mellan varmvatten, värme, pool, kyla och av. Orsakstaggen säger varför.",
+          "de": "Wird ausgelöst, wenn Ihre Wärmepumpe zwischen Warmwasser, Heizung, Pool, Kühlung und Aus wechselt. Das Tag „Grund“ sagt, warum.",
+          "nl": "Gaat af wanneer je warmtepomp wisselt tussen warm water, verwarming, zwembad, koeling en uit. De tag met de reden zegt waarom.",
+          "no": "Utløses når varmepumpen din bytter mellom varmtvann, varme, basseng, kjøling og av. Årsakstaggen sier hvorfor.",
+          "da": "Udløses når din varmepumpe skifter mellem varmt vand, varme, pool, køling og fra. Tagget med årsagen siger hvorfor."
         },
         "tokens": [
           {
@@ -834,12 +840,12 @@
           "da": "Varmeforskydningen ændret"
         },
         "hint": {
-          "en": "Fires when the heat curve displacement changes, whether set on the pump, in myUplink or from Homey.",
-          "sv": "Utlöses när värmeförskjutningen ändras, oavsett om den ställs in på pumpen, i myUplink eller från Homey.",
-          "de": "Wird ausgelöst, wenn sich die Parallelverschiebung ändert, ob an der Pumpe, in myUplink oder über Homey eingestellt.",
-          "nl": "Wordt geactiveerd wanneer de verschuiving van de stooklijn verandert, of die nu op de pomp, in myUplink of via Homey is ingesteld.",
-          "no": "Utløses når varmeforskyvningen endres, enten den stilles inn på pumpen, i myUplink eller fra Homey.",
-          "da": "Udløses, når varmeforskydningen ændres, uanset om den indstilles på pumpen, i myUplink eller fra Homey."
+          "en": "Fires when the heat curve displacement changes, whether set on your heat pump, in myUplink or from Homey.",
+          "sv": "Utlöses när värmeförskjutningen ändras, oavsett om den ställs in på din värmepump, i myUplink eller från Homey.",
+          "de": "Wird ausgelöst, wenn sich die Parallelverschiebung ändert, ob an Ihrer Wärmepumpe, in myUplink oder über Homey eingestellt.",
+          "nl": "Wordt geactiveerd wanneer de verschuiving van de stooklijn verandert, of die nu op je warmtepomp, in myUplink of via Homey is ingesteld.",
+          "no": "Utløses når varmeforskyvningen endres, enten den stilles inn på varmepumpen din, i myUplink eller fra Homey.",
+          "da": "Udløses, når varmeforskydningen ændres, uanset om den indstilles på din varmepumpe, i myUplink eller fra Homey."
         },
         "tokens": [
           {
@@ -1028,6 +1034,433 @@
               "da": "Tilgængeligt varmt vand"
             },
             "example": 95
+          }
+        ]
+      },
+      {
+        "id": "hotwater_charge_started",
+        "title": {
+          "en": "A hot water charge started",
+          "sv": "En varmvattenladdning startade",
+          "de": "Eine Warmwasserladung hat begonnen",
+          "nl": "Warm water opwarmen is gestart",
+          "no": "En varmtvannsoppvarming startet",
+          "da": "En opvarmning af varmt vand startede"
+        },
+        "hint": {
+          "en": "Fires when a charge starts, whether Autopilot or your heat pump started it. Works with Autopilot on, or in Simulation.",
+          "sv": "Utlöses när en laddning startar, oavsett om Autopilot eller din värmepump startade den. Fungerar med Autopilot på eller i Simulering.",
+          "de": "Wird ausgelöst, wenn eine Ladung beginnt, egal ob Autopilot oder Ihre Wärmepumpe sie gestartet hat. Funktioniert mit Autopilot an oder in der Simulation.",
+          "nl": "Gaat af wanneer het opwarmen begint, of Autopilot of je warmtepomp het nu startte. Werkt met Autopilot aan of in Simulatie.",
+          "no": "Utløses når en oppvarming starter, enten Autopilot eller varmepumpen din startet den. Virker med Autopilot på eller i Simulering.",
+          "da": "Udløses når en opvarmning starter, uanset om Autopilot eller din varmepumpe startede den. Virker med Autopilot tændt eller i Simulering."
+        },
+        "tokens": [
+          {
+            "type": "string",
+            "name": "reason",
+            "title": {
+              "en": "Reason",
+              "sv": "Anledning",
+              "de": "Grund",
+              "nl": "Reden",
+              "no": "Årsak",
+              "da": "Årsag"
+            },
+            "example": {
+              "en": "Cheapest hours",
+              "sv": "Billigaste timmarna",
+              "de": "Günstigste Stunden",
+              "nl": "Goedkoopste uren",
+              "no": "Billigste timer",
+              "da": "Billigste timer"
+            }
+          },
+          {
+            "type": "string",
+            "name": "detailed_reason",
+            "title": {
+              "en": "Detailed reason",
+              "sv": "Utförlig anledning",
+              "de": "Ausführlicher Grund",
+              "nl": "Uitgebreide reden",
+              "no": "Utfyllende årsak",
+              "da": "Uddybende årsag"
+            },
+            "example": {
+              "en": "To 55 °C, 1 h 30 min, at 0.84 SEK/kWh.",
+              "sv": "Till 55 °C, 1 h 30 min, för 0,84 SEK/kWh.",
+              "de": "Auf 55 °C, 1 h 30 min, zu 0,84 €/kWh.",
+              "nl": "Tot 55 °C, 1 u 30 min, voor 0,84 €/kWh.",
+              "no": "Til 55 °C, 1 t 30 min, til 0,84 NOK/kWh.",
+              "da": "Til 55 °C, 1 t 30 min, til 0,84 DKK/kWh."
+            }
+          },
+          {
+            "type": "boolean",
+            "name": "autopilot",
+            "title": {
+              "en": "Started by Autopilot",
+              "sv": "Startad av Autopilot",
+              "de": "Von Autopilot gestartet",
+              "nl": "Gestart door Autopilot",
+              "no": "Startet av Autopilot",
+              "da": "Startet af Autopilot"
+            },
+            "example": true
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_volume_NIBE.hotwater_estimate"
+          }
+        ]
+      },
+      {
+        "id": "autopilot_heating_status_changed",
+        "title": {
+          "en": "Autopilot heating changed",
+          "sv": "Autopilot uppvärmning ändrades",
+          "de": "Autopilot Heizung hat gewechselt",
+          "nl": "Autopilot verwarming veranderde",
+          "no": "Autopilot oppvarming endret seg",
+          "da": "Autopilot opvarmning ændrede sig"
+        },
+        "hint": {
+          "en": "For example from holding to easing off before expensive hours.",
+          "sv": "Till exempel från håller till drar ner inför dyra timmar.",
+          "de": "Zum Beispiel von Halten zu Drosseln vor teuren Stunden.",
+          "nl": "Bijvoorbeeld van vasthouden naar afbouwen voor dure uren.",
+          "no": "For eksempel fra holder til trapper ned før dyre timer.",
+          "da": "For eksempel fra holder til skruer ned før dyre timer."
+        },
+        "tokens": [
+          {
+            "type": "string",
+            "name": "status",
+            "title": {
+              "en": "Status",
+              "sv": "Status",
+              "de": "Status",
+              "nl": "Status",
+              "no": "Status",
+              "da": "Status"
+            },
+            "example": {
+              "en": "Easing off",
+              "sv": "Drar ner",
+              "de": "Drosselt",
+              "nl": "Bouwt af",
+              "no": "Trapper ned",
+              "da": "Skruer ned"
+            }
+          },
+          {
+            "type": "string",
+            "name": "reason",
+            "title": {
+              "en": "Reason",
+              "sv": "Anledning",
+              "de": "Grund",
+              "nl": "Reden",
+              "no": "Årsak",
+              "da": "Årsag"
+            },
+            "example": {
+              "en": "Easing off until 19:00: prices peak 17:00–19:00",
+              "sv": "Drar ner till 19:00: priserna toppar 17:00–19:00",
+              "de": "Drosselt bis 19:00: Preisspitze 17:00–19:00",
+              "nl": "Bouwt af tot 19:00: prijzen pieken 17:00–19:00",
+              "no": "Trapper ned til 19:00: prisene topper 17:00–19:00",
+              "da": "Skruer ned til 19:00: priserne topper 17:00–19:00"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=autopilot_status_NIBE"
+          }
+        ]
+      },
+      {
+        "id": "autopilot_heating_preheating_started",
+        "title": {
+          "en": "Autopilot heating started pre-heating",
+          "sv": "Autopilot uppvärmning började förvärma",
+          "nl": "Autopilot verwarming begon voor te verwarmen",
+          "de": "Autopilot Heizung hat mit dem Vorheizen begonnen",
+          "no": "Autopilot oppvarming begynte å forvarme",
+          "da": "Autopilot opvarmning begyndte at forvarme"
+        },
+        "hint": {
+          "en": "Fires when the house gets extra heat ahead of expensive hours or your return. Works with Autopilot heating on, or in Simulation.",
+          "sv": "Utlöses när huset får extra värme inför dyra timmar eller din hemkomst. Fungerar med Autopilot uppvärmning på eller i Simulering.",
+          "nl": "Gaat af wanneer het huis extra warmte krijgt voor dure uren of je thuiskomst. Werkt met Autopilot verwarming aan of in Simulatie.",
+          "de": "Wird ausgelöst, wenn das Haus vor teuren Stunden oder Ihrer Rückkehr zusätzlich Wärme bekommt. Funktioniert mit Autopilot Heizung an oder in der Simulation.",
+          "no": "Utløses når huset får ekstra varme før dyre timer eller hjemkomsten din. Virker med Autopilot oppvarming på eller i Simulering.",
+          "da": "Udløses når huset får ekstra varme før dyre timer eller din hjemkomst. Virker med Autopilot opvarmning tændt eller i Simulering."
+        },
+        "tokens": [
+          {
+            "type": "string",
+            "name": "reason",
+            "title": {
+              "en": "Reason",
+              "sv": "Anledning",
+              "nl": "Reden",
+              "de": "Grund",
+              "no": "Årsak",
+              "da": "Årsag"
+            },
+            "example": {
+              "en": "Until 16:00, before prices peak 17:00–19:00",
+              "sv": "Till 16:00, innan priserna toppar 17:00–19:00",
+              "nl": "Tot 16:00, voordat prijzen pieken 17:00–19:00",
+              "de": "Bis 16:00, vor der Preisspitze 17:00–19:00",
+              "no": "Til 16:00, før prisene topper 17:00–19:00",
+              "da": "Til 16:00, før priserne topper 17:00–19:00"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=autopilot_status_NIBE"
+          }
+        ]
+      },
+      {
+        "id": "autopilot_heating_easing_off_started",
+        "title": {
+          "en": "Autopilot heating started easing off",
+          "sv": "Autopilot uppvärmning började dra ner",
+          "nl": "Autopilot verwarming begon af te bouwen",
+          "de": "Autopilot Heizung hat mit dem Drosseln begonnen",
+          "no": "Autopilot oppvarming begynte å trappe ned",
+          "da": "Autopilot opvarmning begyndte at skrue ned"
+        },
+        "hint": {
+          "en": "Fires when the house gets less heat through expensive hours or forecast sun. Works with Autopilot heating on, or in Simulation.",
+          "sv": "Utlöses när huset får mindre värme under dyra timmar eller väntad sol. Fungerar med Autopilot uppvärmning på eller i Simulering.",
+          "nl": "Gaat af wanneer het huis minder warmte krijgt tijdens dure uren of verwachte zon. Werkt met Autopilot verwarming aan of in Simulatie.",
+          "de": "Wird ausgelöst, wenn das Haus in teuren Stunden oder bei erwarteter Sonne weniger Wärme bekommt. Funktioniert mit Autopilot Heizung an oder in der Simulation.",
+          "no": "Utløses når huset får mindre varme gjennom dyre timer eller ventet sol. Virker med Autopilot oppvarming på eller i Simulering.",
+          "da": "Udløses når huset får mindre varme i dyre timer eller ved ventet sol. Virker med Autopilot opvarmning tændt eller i Simulering."
+        },
+        "tokens": [
+          {
+            "type": "string",
+            "name": "reason",
+            "title": {
+              "en": "Reason",
+              "sv": "Anledning",
+              "nl": "Reden",
+              "de": "Grund",
+              "no": "Årsak",
+              "da": "Årsag"
+            },
+            "example": {
+              "en": "Until 19:00: prices peak 17:00–19:00",
+              "sv": "Till 19:00: priserna toppar 17:00–19:00",
+              "nl": "Tot 19:00: prijzen pieken 17:00–19:00",
+              "de": "Bis 19:00: Preisspitze 17:00–19:00",
+              "no": "Til 19:00: prisene topper 17:00–19:00",
+              "da": "Til 19:00: priserne topper 17:00–19:00"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=autopilot_status_NIBE"
+          }
+        ]
+      },
+      {
+        "id": "autopilot_heating_expensive_soon",
+        "title": {
+          "en": "An expensive period starts in …",
+          "sv": "En dyr period börjar om …",
+          "nl": "Een dure periode begint over …",
+          "de": "Eine teure Phase beginnt in …",
+          "no": "En dyr periode starter om …",
+          "da": "En dyr periode starter om …"
+        },
+        "titleFormatted": {
+          "en": "An expensive period starts in [[minutes]] minutes",
+          "sv": "En dyr period börjar om [[minutes]] minuter",
+          "nl": "Een dure periode begint over [[minutes]] minuten",
+          "de": "Eine teure Phase beginnt in [[minutes]] Minuten",
+          "no": "En dyr periode starter om [[minutes]] minutter",
+          "da": "En dyr periode starter om [[minutes]] minutter"
+        },
+        "hint": {
+          "en": "The same expensive hours the Heating status names. Good for moving the dishwasher, sauna or car charging. Works with Autopilot heating on, or in Simulation.",
+          "sv": "Samma dyra timmar som Uppvärmningens status visar. Bra för att flytta diskmaskinen, bastun eller billaddningen. Fungerar med Autopilot uppvärmning på eller i Simulering.",
+          "nl": "Dezelfde dure uren die de status van Verwarming noemt. Handig om de vaatwasser, sauna of het laden van de auto te verschuiven. Werkt met Autopilot verwarming aan of in Simulatie.",
+          "de": "Dieselben teuren Stunden, die der Status der Heizung nennt. Praktisch, um Geschirrspüler, Sauna oder das Laden des Autos zu verschieben. Funktioniert mit Autopilot Heizung an oder in der Simulation.",
+          "no": "De samme dyre timene som statusen for Oppvarming viser. Fint for å flytte oppvaskmaskinen, badstuen eller billadingen. Virker med Autopilot oppvarming på eller i Simulering.",
+          "da": "De samme dyre timer, som Opvarmnings status viser. Godt til at flytte opvaskemaskinen, saunaen eller opladningen af bilen. Virker med Autopilot opvarmning tændt eller i Simulering."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=autopilot_status_NIBE"
+          },
+          {
+            "type": "number",
+            "name": "minutes",
+            "min": 5,
+            "max": 720,
+            "step": 5,
+            "placeholder": {
+              "en": "Minutes",
+              "sv": "Minuter",
+              "nl": "Minuten",
+              "de": "Minuten",
+              "no": "Minutter",
+              "da": "Minutter"
+            }
+          }
+        ],
+        "tokens": [
+          {
+            "type": "string",
+            "name": "start",
+            "title": {
+              "en": "Starts",
+              "sv": "Börjar",
+              "nl": "Begint",
+              "de": "Beginnt",
+              "no": "Starter",
+              "da": "Starter"
+            },
+            "example": {
+              "en": "17:00",
+              "sv": "17:00",
+              "nl": "17:00",
+              "de": "17:00",
+              "no": "17:00",
+              "da": "17:00"
+            }
+          },
+          {
+            "type": "string",
+            "name": "end",
+            "title": {
+              "en": "Ends",
+              "sv": "Slutar",
+              "nl": "Eindigt",
+              "de": "Endet",
+              "no": "Slutter",
+              "da": "Slutter"
+            },
+            "example": {
+              "en": "19:00",
+              "sv": "19:00",
+              "nl": "19:00",
+              "de": "19:00",
+              "no": "19:00",
+              "da": "19:00"
+            }
+          }
+        ]
+      },
+      {
+        "id": "autopilot_heating_cheap_soon",
+        "title": {
+          "en": "A cheap period starts in …",
+          "sv": "En billig period börjar om …",
+          "nl": "Een goedkope periode begint over …",
+          "de": "Eine günstige Phase beginnt in …",
+          "no": "En billig periode starter om …",
+          "da": "En billig periode starter om …"
+        },
+        "titleFormatted": {
+          "en": "A cheap period starts in [[minutes]] minutes",
+          "sv": "En billig period börjar om [[minutes]] minuter",
+          "nl": "Een goedkope periode begint over [[minutes]] minuten",
+          "de": "Eine günstige Phase beginnt in [[minutes]] Minuten",
+          "no": "En billig periode starter om [[minutes]] minutter",
+          "da": "En billig periode starter om [[minutes]] minutter"
+        },
+        "hint": {
+          "en": "The cheapest hours in the plan, found the same way as the expensive ones. Good for starting the dishwasher, sauna or car charging. Works with Autopilot heating on, or in Simulation.",
+          "sv": "De billigaste timmarna i planen, hittade på samma sätt som de dyra. Bra för att starta diskmaskinen, bastun eller billaddningen. Fungerar med Autopilot uppvärmning på eller i Simulering.",
+          "nl": "De goedkoopste uren in het plan, op dezelfde manier gevonden als de dure. Handig om de vaatwasser, sauna of het laden van de auto te starten. Werkt met Autopilot verwarming aan of in Simulatie.",
+          "de": "Die günstigsten Stunden im Plan, genauso ermittelt wie die teuren. Praktisch, um Geschirrspüler, Sauna oder das Laden des Autos zu starten. Funktioniert mit Autopilot Heizung an oder in der Simulation.",
+          "no": "De billigste timene i planen, funnet på samme måte som de dyre. Fint for å starte oppvaskmaskinen, badstuen eller billadingen. Virker med Autopilot oppvarming på eller i Simulering.",
+          "da": "De billigste timer i planen, fundet på samme måde som de dyre. Godt til at starte opvaskemaskinen, saunaen eller opladningen af bilen. Virker med Autopilot opvarmning tændt eller i Simulering."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=autopilot_status_NIBE"
+          },
+          {
+            "type": "number",
+            "name": "minutes",
+            "min": 5,
+            "max": 720,
+            "step": 5,
+            "placeholder": {
+              "en": "Minutes",
+              "sv": "Minuter",
+              "nl": "Minuten",
+              "de": "Minuten",
+              "no": "Minutter",
+              "da": "Minutter"
+            }
+          }
+        ],
+        "tokens": [
+          {
+            "type": "string",
+            "name": "start",
+            "title": {
+              "en": "Starts",
+              "sv": "Börjar",
+              "nl": "Begint",
+              "de": "Beginnt",
+              "no": "Starter",
+              "da": "Starter"
+            },
+            "example": {
+              "en": "17:00",
+              "sv": "17:00",
+              "nl": "17:00",
+              "de": "17:00",
+              "no": "17:00",
+              "da": "17:00"
+            }
+          },
+          {
+            "type": "string",
+            "name": "end",
+            "title": {
+              "en": "Ends",
+              "sv": "Slutar",
+              "nl": "Eindigt",
+              "de": "Endet",
+              "no": "Slutter",
+              "da": "Slutter"
+            },
+            "example": {
+              "en": "19:00",
+              "sv": "19:00",
+              "nl": "19:00",
+              "de": "19:00",
+              "no": "19:00",
+              "da": "19:00"
+            }
           }
         ]
       }
@@ -1641,12 +2074,12 @@
           "da": "Driftsprioritering er [[mode]]"
         },
         "hint": {
-          "en": "What the pump is producing right now (heating, hot water, pool…).",
-          "sv": "Vad pumpen producerar just nu (värme, varmvatten, pool…).",
-          "de": "Was die Wärmepumpe gerade erzeugt (Heizung, Brauchwasser, Pool …).",
-          "nl": "Wat de warmtepomp op dit moment produceert (verwarming, warmtapwater, zwembad…).",
-          "no": "Hva varmepumpen produserer akkurat nå (varme, varmtvann, basseng …).",
-          "da": "Hvad varmepumpen producerer lige nu (varme, varmtvand, pool …)."
+          "en": "What your heat pump is producing right now (heating, hot water, pool…).",
+          "sv": "Vad din värmepump producerar just nu (värme, varmvatten, pool…).",
+          "de": "Was Ihre Wärmepumpe gerade erzeugt (Heizung, Brauchwasser, Pool …).",
+          "nl": "Wat je warmtepomp op dit moment produceert (verwarming, warmtapwater, zwembad…).",
+          "no": "Hva varmepumpen din produserer akkurat nå (varme, varmtvann, basseng …).",
+          "da": "Hvad din varmepumpe producerer lige nu (varme, varmtvand, pool …)."
         },
         "args": [
           {
@@ -1760,6 +2193,142 @@
               "no": "Liter",
               "da": "Liter"
             }
+          }
+        ]
+      },
+      {
+        "id": "hotwater_charge_planned",
+        "title": {
+          "en": "A hot water charge is planned",
+          "sv": "En varmvattenladdning är planerad",
+          "de": "Eine Warmwasserladung ist geplant",
+          "nl": "Warm water opwarmen is gepland",
+          "no": "En varmtvannsoppvarming er planlagt",
+          "da": "En opvarmning af varmt vand er planlagt"
+        },
+        "titleFormatted": {
+          "en": "A hot water charge !{{is|is not}} planned within [[hours]] h",
+          "sv": "En varmvattenladdning !{{är|är inte}} planerad inom [[hours]] h",
+          "de": "Eine Warmwasserladung !{{ist|ist nicht}} innerhalb von [[hours]] h geplant",
+          "nl": "Warm water opwarmen !{{is|is niet}} gepland binnen [[hours]] u",
+          "no": "En varmtvannsoppvarming !{{er|er ikke}} planlagt innen [[hours]] t",
+          "da": "En opvarmning af varmt vand !{{er|er ikke}} planlagt inden for [[hours]] t"
+        },
+        "hint": {
+          "en": "A running charge counts. False while Autopilot hot water is off.",
+          "sv": "En pågående laddning räknas. Falskt när Autopilot varmvatten är av.",
+          "de": "Eine laufende Ladung zählt. Falsch, solange Autopilot Warmwasser aus ist.",
+          "nl": "Een lopende opwarming telt mee. Onwaar zolang Autopilot warm water uit staat.",
+          "no": "En pågående oppvarming teller. Usant når Autopilot varmtvann er av.",
+          "da": "En igangværende opvarmning tæller. Falsk når Autopilot varmt vand er slukket."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=measure_volume_NIBE.hotwater_estimate"
+          },
+          {
+            "type": "number",
+            "name": "hours",
+            "min": 1,
+            "max": 48,
+            "step": 1,
+            "placeholder": {
+              "en": "Hours",
+              "sv": "Timmar",
+              "de": "Stunden",
+              "nl": "Uren",
+              "no": "Timer",
+              "da": "Timer"
+            }
+          }
+        ]
+      },
+      {
+        "id": "autopilot_heating_status_is",
+        "title": {
+          "en": "Autopilot heating is …",
+          "sv": "Autopilot uppvärmning …",
+          "de": "Autopilot Heizung …",
+          "nl": "Autopilot verwarming …",
+          "no": "Autopilot oppvarming …",
+          "da": "Autopilot opvarmning …"
+        },
+        "titleFormatted": {
+          "en": "Autopilot heating !{{is|is not}} [[status]]",
+          "sv": "Autopilot uppvärmning !{{är|är inte}} [[status]]",
+          "de": "Autopilot Heizung !{{ist|ist nicht}} [[status]]",
+          "nl": "Autopilot verwarming !{{is|is niet}} [[status]]",
+          "no": "Autopilot oppvarming !{{er|er ikke}} [[status]]",
+          "da": "Autopilot opvarmning !{{er|er ikke}} [[status]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=autopilot_status_NIBE"
+          },
+          {
+            "type": "dropdown",
+            "name": "status",
+            "values": [
+              {
+                "id": "learning",
+                "label": {
+                  "en": "Learning",
+                  "sv": "Lär sig",
+                  "de": "Lernt",
+                  "nl": "Leert",
+                  "no": "Lærer",
+                  "da": "Lærer"
+                }
+              },
+              {
+                "id": "holding",
+                "label": {
+                  "en": "Holding",
+                  "sv": "Håller",
+                  "de": "Hält",
+                  "nl": "Houdt vast",
+                  "no": "Holder",
+                  "da": "Holder"
+                }
+              },
+              {
+                "id": "preheating",
+                "label": {
+                  "en": "Pre-heating",
+                  "sv": "Förvärmer",
+                  "de": "Heizt vor",
+                  "nl": "Verwarmt voor",
+                  "no": "Forvarmer",
+                  "da": "Forvarmer"
+                }
+              },
+              {
+                "id": "easing_off",
+                "label": {
+                  "en": "Easing off",
+                  "sv": "Drar ner",
+                  "de": "Drosselt",
+                  "nl": "Bouwt af",
+                  "no": "Trapper ned",
+                  "da": "Skruer ned"
+                }
+              },
+              {
+                "id": "paused",
+                "label": {
+                  "en": "Paused",
+                  "sv": "Pausad",
+                  "de": "Pausiert",
+                  "nl": "Gepauzeerd",
+                  "no": "Satt på pause",
+                  "da": "På pause"
+                }
+              }
+            ]
           }
         ]
       }
@@ -2127,12 +2696,12 @@
           "da": "Indstil min. fremløbstemperatur til [[value]]"
         },
         "hint": {
-          "en": "Lowest supply temperature the pump may produce (climate system 1). Accepts 5 to 80 °C.",
-          "sv": "Lägsta framledningstemperatur pumpen får producera (klimatsystem 1). Tillåter 5 till 80 °C.",
-          "de": "Niedrigste Vorlauftemperatur, die die Wärmepumpe erzeugen darf (Klimatisierungssystem 1). Bereich: 5 bis 80 °C.",
-          "nl": "Laagste aanvoertemperatuur die de warmtepomp mag produceren (klimaatsysteem 1). Bereik: 5 tot 80 °C.",
-          "no": "Laveste turledningstemperatur varmepumpen kan produsere (klimasystem 1). Område: 5 til 80 °C.",
-          "da": "Laveste fremløbstemperatur, varmepumpen må producere (klimasystem 1). Område: 5 til 80 °C."
+          "en": "Lowest supply temperature your heat pump may produce (climate system 1). Accepts 5 to 80 °C.",
+          "sv": "Lägsta framledningstemperatur din värmepump får producera (klimatsystem 1). Tillåter 5 till 80 °C.",
+          "de": "Niedrigste Vorlauftemperatur, die Ihre Wärmepumpe erzeugen darf (Klimatisierungssystem 1). Bereich: 5 bis 80 °C.",
+          "nl": "Laagste aanvoertemperatuur die je warmtepomp mag produceren (klimaatsysteem 1). Bereik: 5 tot 80 °C.",
+          "no": "Laveste turledningstemperatur varmepumpen din kan produsere (klimasystem 1). Område: 5 til 80 °C.",
+          "da": "Laveste fremløbstemperatur, din varmepumpe må producere (klimasystem 1). Område: 5 til 80 °C."
         },
         "args": [
           {
@@ -2173,12 +2742,12 @@
           "da": "Indstil maks. fremløbstemperatur til [[value]]"
         },
         "hint": {
-          "en": "Highest supply temperature the pump may produce (climate system 1). Accepts 5 to 80 °C.",
-          "sv": "Högsta framledningstemperatur pumpen får producera (klimatsystem 1). Tillåter 5 till 80 °C.",
-          "de": "Höchste Vorlauftemperatur, die die Wärmepumpe erzeugen darf (Klimatisierungssystem 1). Bereich: 5 bis 80 °C.",
-          "nl": "Hoogste aanvoertemperatuur die de warmtepomp mag produceren (klimaatsysteem 1). Bereik: 5 tot 80 °C.",
-          "no": "Høyeste turledningstemperatur varmepumpen kan produsere (klimasystem 1). Område: 5 til 80 °C.",
-          "da": "Højeste fremløbstemperatur, varmepumpen må producere (klimasystem 1). Område: 5 til 80 °C."
+          "en": "Highest supply temperature your heat pump may produce (climate system 1). Accepts 5 to 80 °C.",
+          "sv": "Högsta framledningstemperatur din värmepump får producera (klimatsystem 1). Tillåter 5 till 80 °C.",
+          "de": "Höchste Vorlauftemperatur, die Ihre Wärmepumpe erzeugen darf (Klimatisierungssystem 1). Bereich: 5 bis 80 °C.",
+          "nl": "Hoogste aanvoertemperatuur die je warmtepomp mag produceren (klimaatsysteem 1). Bereik: 5 tot 80 °C.",
+          "no": "Høyeste turledningstemperatur varmepumpen din kan produsere (klimasystem 1). Område: 5 til 80 °C.",
+          "da": "Højeste fremløbstemperatur, din varmepumpe må producere (klimasystem 1). Område: 5 til 80 °C."
         },
         "args": [
           {
@@ -2357,12 +2926,12 @@
           "da": "Indstil periodetid varme til [[value]]"
         },
         "hint": {
-          "en": "How long the pump makes heating before switching demand. Accepts 0 to 180 minutes.",
-          "sv": "Hur länge pumpen gör värme innan den byter behov. Tillåter 0 till 180 minuter.",
-          "de": "Wie lange die Wärmepumpe heizt, bevor sie den Bedarf wechselt. Bereich: 0 bis 180 Minuten.",
-          "nl": "Hoe lang de warmtepomp verwarmt voordat de vraag wisselt. Bereik: 0 tot 180 minuten.",
-          "no": "Hvor lenge varmepumpen lager varme før den bytter behov. Område: 0 til 180 minutter.",
-          "da": "Hvor længe varmepumpen laver varme, før den skifter behov. Område: 0 til 180 minutter."
+          "en": "How long your heat pump makes heating before switching demand. Accepts 0 to 180 minutes.",
+          "sv": "Hur länge din värmepump gör värme innan den byter behov. Tillåter 0 till 180 minuter.",
+          "de": "Wie lange Ihre Wärmepumpe heizt, bevor sie den Bedarf wechselt. Bereich: 0 bis 180 Minuten.",
+          "nl": "Hoe lang je warmtepomp verwarmt voordat de vraag wisselt. Bereik: 0 tot 180 minuten.",
+          "no": "Hvor lenge varmepumpen din lager varme før den bytter behov. Område: 0 til 180 minutter.",
+          "da": "Hvor længe din varmepumpe laver varme, før den skifter behov. Område: 0 til 180 minutter."
         },
         "args": [
           {
@@ -2863,12 +3432,12 @@
           "da": "Indstil periodetid pool til [[value]]"
         },
         "hint": {
-          "en": "How long the pump heats the pool before switching demand. Accepts 0 to 180 minutes.",
-          "sv": "Hur länge pumpen värmer poolen innan den byter behov. Tillåter 0 till 180 minuter.",
-          "de": "Wie lange die Wärmepumpe den Pool beheizt, bevor sie den Bedarf wechselt. Bereich: 0 bis 180 Minuten.",
-          "nl": "Hoe lang de warmtepomp het zwembad verwarmt voordat de vraag wisselt. Bereik: 0 tot 180 minuten.",
-          "no": "Hvor lenge varmepumpen varmer bassenget før den bytter behov. Område: 0 til 180 minutter.",
-          "da": "Hvor længe varmepumpen opvarmer poolen, før den skifter behov. Område: 0 til 180 minutter."
+          "en": "How long your heat pump heats the pool before switching demand. Accepts 0 to 180 minutes.",
+          "sv": "Hur länge din värmepump värmer poolen innan den byter behov. Tillåter 0 till 180 minuter.",
+          "de": "Wie lange Ihre Wärmepumpe den Pool beheizt, bevor sie den Bedarf wechselt. Bereich: 0 bis 180 Minuten.",
+          "nl": "Hoe lang je warmtepomp het zwembad verwarmt voordat de vraag wisselt. Bereik: 0 tot 180 minuten.",
+          "no": "Hvor lenge varmepumpen din varmer bassenget før den bytter behov. Område: 0 til 180 minutter.",
+          "da": "Hvor længe din varmepumpe opvarmer poolen, før den skifter behov. Område: 0 til 180 minutter."
         },
         "args": [
           {
@@ -3039,12 +3608,12 @@
           "da": "Nulstil alarmen"
         },
         "hint": {
-          "en": "Acknowledge and reset an active alarm on the pump.",
-          "sv": "Kvittera och återställ ett aktivt larm på pumpen.",
-          "de": "Einen aktiven Alarm der Wärmepumpe quittieren und zurücksetzen.",
-          "nl": "Een actief alarm van de warmtepomp bevestigen en resetten.",
-          "no": "Kvitter og tilbakestill en aktiv alarm på varmepumpen.",
-          "da": "Kvittér og nulstil en aktiv alarm på varmepumpen."
+          "en": "Acknowledge and reset an active alarm on your heat pump.",
+          "sv": "Kvittera och återställ ett aktivt larm på din värmepump.",
+          "de": "Einen aktiven Alarm Ihrer Wärmepumpe quittieren und zurücksetzen.",
+          "nl": "Een actief alarm van je warmtepomp bevestigen en resetten.",
+          "no": "Kvitter og tilbakestill en aktiv alarm på varmepumpen din.",
+          "da": "Kvittér og nulstil en aktiv alarm på din varmepumpe."
         },
         "args": [
           {
@@ -3119,12 +3688,12 @@
           "da": "Indstil prispåvirkning på varmen til [[mode]]"
         },
         "hint": {
-          "en": "How strongly Smart Price Adaption may move the indoor temperature. 1 is barely, 10 is as much as the pump allows.",
-          "sv": "Hur mycket smart prisanpassning får flytta inomhustemperaturen. 1 är knappt alls, 10 är så mycket värmepumpen tillåter.",
-          "de": "Wie stark Smart Price Adaption die Innentemperatur verschieben darf. 1 ist kaum, 10 so viel wie die Wärmepumpe zulässt.",
-          "nl": "Hoe sterk Smart Price Adaption de binnentemperatuur mag verschuiven. 1 is nauwelijks, 10 is zoveel als de warmtepomp toestaat.",
-          "no": "Hvor mye smart pristilpasning får flytte innetemperaturen. 1 er så vidt, 10 er så mye varmepumpen tillater.",
-          "da": "Hvor meget smart pristilpasning må flytte indetemperaturen. 1 er næsten ikke, 10 er så meget varmepumpen tillader."
+          "en": "How strongly Smart price adaption may move the indoor temperature. 1 is barely, 10 is as much as your heat pump allows.",
+          "sv": "Hur mycket smart prisanpassning får flytta inomhustemperaturen. 1 är knappt alls, 10 är så mycket din värmepump tillåter.",
+          "de": "Wie stark Smart Price Adaption die Innentemperatur verschieben darf. 1 ist kaum, 10 so viel wie Ihre Wärmepumpe zulässt.",
+          "nl": "Hoe sterk Smart Price Adaption de binnentemperatuur mag verschuiven. 1 is nauwelijks, 10 is zoveel als je warmtepomp toestaat.",
+          "no": "Hvor mye smart pristilpasning får flytte innetemperaturen. 1 er så vidt, 10 er så mye varmepumpen din tillater.",
+          "da": "Hvor meget smart pristilpasning må flytte indetemperaturen. 1 er næsten ikke, 10 er så meget din varmepumpe tillader."
         },
         "args": [
           {
@@ -3165,7 +3734,7 @@
           "da": "Indstil prispåvirkning på varmt vand til [[mode]]"
         },
         "hint": {
-          "en": "How strongly Smart Price Adaption may shift hot water charging towards cheaper hours. Runs 1 to 4, not 1 to 10 like heating.",
+          "en": "How strongly Smart price adaption may shift hot water charging towards cheaper hours. Runs 1 to 4, not 1 to 10 like heating.",
           "sv": "Hur mycket smart prisanpassning får flytta varmvattenladdningen mot billigare timmar. Går 1 till 4, inte 1 till 10 som värmen.",
           "de": "Wie stark Smart Price Adaption die Warmwasserbereitung in günstigere Stunden verschieben darf. Reicht von 1 bis 4, nicht 1 bis 10 wie beim Heizen.",
           "nl": "Hoe sterk Smart Price Adaption het opwarmen van warm water naar goedkopere uren mag verschuiven. Loopt van 1 tot 4, niet 1 tot 10 zoals verwarming.",
@@ -3211,7 +3780,7 @@
           "da": "Indstil prispåvirkning på poolvarmen til [[mode]]"
         },
         "hint": {
-          "en": "How strongly Smart Price Adaption may shift pool heating towards cheaper hours. 0 leaves pool heating alone entirely.",
+          "en": "How strongly Smart price adaption may shift pool heating towards cheaper hours. 0 leaves pool heating alone entirely.",
           "sv": "Hur mycket smart prisanpassning får flytta poolvärmen mot billigare timmar. 0 lämnar poolvärmen helt ifred.",
           "de": "Wie stark Smart Price Adaption die Poolheizung in günstigere Stunden verschieben darf. 0 lässt die Poolheizung völlig unberührt.",
           "nl": "Hoe sterk Smart Price Adaption de zwembadverwarming naar goedkopere uren mag verschuiven. 0 laat de zwembadverwarming volledig met rust.",
@@ -3257,7 +3826,7 @@
           "da": "Indstil prispåvirkning på kølingen til [[mode]]"
         },
         "hint": {
-          "en": "How strongly Smart Price Adaption may shift cooling towards cheaper hours. 0 leaves cooling alone entirely.",
+          "en": "How strongly Smart price adaption may shift cooling towards cheaper hours. 0 leaves cooling alone entirely.",
           "sv": "Hur mycket smart prisanpassning får flytta kylan mot billigare timmar. 0 lämnar kylan helt ifred.",
           "de": "Wie stark Smart Price Adaption die Kühlung in günstigere Stunden verschieben darf. 0 lässt die Kühlung völlig unberührt.",
           "nl": "Hoe sterk Smart Price Adaption de koeling naar goedkopere uren mag verschuiven. 0 laat de koeling volledig met rust.",
@@ -4091,7 +4660,7 @@
       {
         "id": "boolean_NIBE.h843_spa_activated.onoff",
         "title": {
-          "en": "Smart Price Adaption",
+          "en": "Smart price adaption",
           "sv": "Smart prisanpassning",
           "de": "Smart Price Adaption",
           "nl": "Smart Price Adaption",
@@ -4099,7 +4668,7 @@
           "da": "Smart pristilpasning"
         },
         "titleFormatted": {
-          "en": "Smart Price Adaption – [[state]]",
+          "en": "Smart price adaption – [[state]]",
           "sv": "Smart prisanpassning – [[state]]",
           "de": "Smart Price Adaption – [[state]]",
           "nl": "Smart Price Adaption – [[state]]",
@@ -4107,12 +4676,12 @@
           "da": "Smart pristilpasning – [[state]]"
         },
         "hint": {
-          "en": "Shift the pump's consumption towards cheaper hours.",
-          "sv": "Flytta pumpens förbrukning mot billigare timmar.",
-          "de": "Verlagert den Verbrauch der Pumpe in günstigere Stunden.",
-          "nl": "Verschuif het verbruik van de pomp naar goedkopere uren.",
-          "no": "Flytt pumpens forbruk mot billigere timer.",
-          "da": "Flyt pumpens forbrug mod billigere timer."
+          "en": "Shift your heat pump's consumption towards cheaper hours.",
+          "sv": "Flytta din värmepumps förbrukning mot billigare timmar.",
+          "de": "Verlagert den Verbrauch Ihrer Wärmepumpe in günstigere Stunden.",
+          "nl": "Verschuif het verbruik van je warmtepomp naar goedkopere uren.",
+          "no": "Flytt varmepumpens forbruk mot billigere timer.",
+          "da": "Flyt din varmepumpes forbrug mod billigere timer."
         },
         "args": [
           {
@@ -4161,7 +4730,7 @@
       {
         "id": "boolean_NIBE.h844_spa_heating_activated.onoff",
         "title": {
-          "en": "Smart Price Adaption",
+          "en": "Smart price adaption",
           "sv": "Smart prisanpassning",
           "de": "Smart Price Adaption",
           "nl": "Smart Price Adaption",
@@ -4169,7 +4738,7 @@
           "da": "Smart pristilpasning"
         },
         "titleFormatted": {
-          "en": "Smart Price Adaption – [[state]]",
+          "en": "Smart price adaption – [[state]]",
           "sv": "Smart prisanpassning – [[state]]",
           "de": "Smart Price Adaption – [[state]]",
           "nl": "Smart Price Adaption – [[state]]",
@@ -4177,7 +4746,7 @@
           "da": "Smart pristilpasning – [[state]]"
         },
         "hint": {
-          "en": "Let Smart Price Adaption act on heating.",
+          "en": "Let Smart price adaption act on heating.",
           "sv": "Låt smart prisanpassning påverka värmen.",
           "de": "Smart Price Adaption auf die Heizung wirken lassen.",
           "nl": "Laat Smart Price Adaption de verwarming beïnvloeden.",
@@ -4231,7 +4800,7 @@
       {
         "id": "boolean_NIBE.h846_spa_hotwater_activated.onoff",
         "title": {
-          "en": "Smart Price Adaption",
+          "en": "Smart price adaption",
           "sv": "Smart prisanpassning",
           "de": "Smart Price Adaption",
           "nl": "Smart Price Adaption",
@@ -4239,7 +4808,7 @@
           "da": "Smart pristilpasning"
         },
         "titleFormatted": {
-          "en": "Smart Price Adaption – [[state]]",
+          "en": "Smart price adaption – [[state]]",
           "sv": "Smart prisanpassning – [[state]]",
           "de": "Smart Price Adaption – [[state]]",
           "nl": "Smart Price Adaption – [[state]]",
@@ -4247,7 +4816,7 @@
           "da": "Smart pristilpasning – [[state]]"
         },
         "hint": {
-          "en": "Let Smart Price Adaption act on hot water.",
+          "en": "Let Smart price adaption act on hot water.",
           "sv": "Låt smart prisanpassning påverka varmvattnet.",
           "de": "Smart Price Adaption auf das Warmwasser wirken lassen.",
           "nl": "Laat Smart Price Adaption het warm water beïnvloeden.",
@@ -4301,7 +4870,7 @@
       {
         "id": "boolean_NIBE.h849_spa_cooling_activated.onoff",
         "title": {
-          "en": "Smart Price Adaption",
+          "en": "Smart price adaption",
           "sv": "Smart prisanpassning",
           "de": "Smart Price Adaption",
           "nl": "Smart Price Adaption",
@@ -4309,7 +4878,7 @@
           "da": "Smart pristilpasning"
         },
         "titleFormatted": {
-          "en": "Smart Price Adaption – [[state]]",
+          "en": "Smart price adaption – [[state]]",
           "sv": "Smart prisanpassning – [[state]]",
           "de": "Smart Price Adaption – [[state]]",
           "nl": "Smart Price Adaption – [[state]]",
@@ -4317,7 +4886,7 @@
           "da": "Smart pristilpasning – [[state]]"
         },
         "hint": {
-          "en": "Let Smart Price Adaption act on cooling.",
+          "en": "Let Smart price adaption act on cooling.",
           "sv": "Låt smart prisanpassning påverka kylan.",
           "de": "Smart Price Adaption auf die Kühlung wirken lassen.",
           "nl": "Laat Smart Price Adaption de koeling beïnvloeden.",
@@ -4387,12 +4956,12 @@
           "da": "SG Ready – [[state]]"
         },
         "hint": {
-          "en": "On: Homey sets the SG Ready mode. Off: the pump's own SG Ready inputs decide.",
-          "sv": "På: Homey styr SG Ready-läget. Av: pumpens egna SG Ready-ingångar styr.",
-          "de": "Ein: Homey setzt den SG-Ready-Modus. Aus: die eigenen SG-Ready-Eingänge der Pumpe entscheiden.",
-          "nl": "Aan: Homey stelt de SG Ready-modus in. Uit: de eigen SG Ready-ingangen van de pomp beslissen.",
-          "no": "På: Homey styrer SG Ready-modus. Av: pumpens egne SG Ready-innganger bestemmer.",
-          "da": "Til: Homey styrer SG Ready-tilstanden. Fra: pumpens egne SG Ready-indgange bestemmer."
+          "en": "On: Homey sets the SG Ready mode. Off: your heat pump's own SG Ready inputs decide.",
+          "sv": "På: Homey styr SG Ready-läget. Av: din värmepumps egna SG Ready-ingångar styr.",
+          "de": "Ein: Homey setzt den SG-Ready-Modus. Aus: die eigenen SG-Ready-Eingänge Ihrer Wärmepumpe entscheiden.",
+          "nl": "Aan: Homey stelt de SG Ready-modus in. Uit: de eigen SG Ready-ingangen van je warmtepomp beslissen.",
+          "no": "På: Homey styrer SG Ready-modus. Av: varmepumpens egne SG Ready-innganger bestemmer.",
+          "da": "Til: Homey styrer SG Ready-tilstanden. Fra: din varmepumpes egne SG Ready-indgange bestemmer."
         },
         "args": [
           {
@@ -4457,12 +5026,12 @@
           "da": "Indstil SG Ready-tilstand [[mode]]"
         },
         "hint": {
-          "en": "Needs SG Ready set up on the pump and switched on.",
-          "sv": "Kräver att SG Ready är konfigurerat i pumpen och påslaget.",
-          "de": "Erfordert, dass SG Ready an der Pumpe eingerichtet und eingeschaltet ist.",
-          "nl": "Vereist dat SG Ready op de pomp is ingesteld en aan staat.",
-          "no": "Krever at SG Ready er satt opp på pumpen og slått på.",
-          "da": "Kræver at SG Ready er sat op på pumpen og slået til."
+          "en": "Needs SG Ready set up on your heat pump and switched on.",
+          "sv": "Kräver att SG Ready är konfigurerat i din värmepump och påslaget.",
+          "de": "Erfordert, dass SG Ready an Ihrer Wärmepumpe eingerichtet und eingeschaltet ist.",
+          "nl": "Vereist dat SG Ready op je warmtepomp is ingesteld en aan staat.",
+          "no": "Krever at SG Ready er satt opp på varmepumpen din og slått på.",
+          "da": "Kræver at SG Ready er sat op på din varmepumpe og slået til."
         },
         "args": [
           {
@@ -4659,12 +5228,12 @@
           "da": "Indstil udetemperatur (BT1): [[value]] °C"
         },
         "hint": {
-          "en": "Enable external BT1 in pump menu 7.5.9.2. Sends one reading; your Flow must supply fresh readings regularly. Success means the write was accepted, not that heating uses it.",
-          "sv": "Aktivera extern BT1 i pumpens meny 7.5.9.2. Skickar ett värde; ditt Flow måste regelbundet skicka aktuella värden. Lyckat betyder att skrivningen accepterats, inte att värmen använder värdet.",
-          "de": "Externen BT1 im Pumpenmenü 7.5.9.2 aktivieren. Sendet einen Messwert; der Flow muss regelmäßig aktuelle Werte liefern. Erfolg bestätigt die Übertragung, nicht die Nutzung zur Heizungsregelung.",
-          "nl": "Activeer externe BT1 in pompmenu 7.5.9.2. Verzendt één meting; de Flow moet regelmatig actuele waarden leveren. Succes bevestigt ontvangst, niet gebruik voor verwarming.",
-          "no": "Aktiver ekstern BT1 i pumpemeny 7.5.9.2. Sender én måling; Flow må sende ferske verdier regelmessig. Suksess bekrefter mottak, ikke bruk til oppvarming.",
-          "da": "Aktivér ekstern BT1 i pumpemenu 7.5.9.2. Sender én måling; Flow skal sende aktuelle værdier regelmæssigt. Succes bekræfter modtagelse, ikke brug til opvarmning."
+          "en": "Enable external BT1 in menu 7.5.9.2 on your heat pump. Sends one reading; your Flow must supply fresh readings regularly. Success means the write was accepted, not that heating uses it.",
+          "sv": "Aktivera extern BT1 i meny 7.5.9.2 i din värmepump. Skickar ett värde; ditt Flow måste regelbundet skicka aktuella värden. Lyckat betyder att skrivningen accepterats, inte att värmen använder värdet.",
+          "de": "Externen BT1 in Menü 7.5.9.2 Ihrer Wärmepumpe aktivieren. Sendet einen Messwert; der Flow muss regelmäßig aktuelle Werte liefern. Erfolg bestätigt die Übertragung, nicht die Nutzung zur Heizungsregelung.",
+          "nl": "Activeer externe BT1 in menu 7.5.9.2 van je warmtepomp. Verzendt één meting; de Flow moet regelmatig actuele waarden leveren. Succes bevestigt ontvangst, niet gebruik voor verwarming.",
+          "no": "Aktiver ekstern BT1 i meny 7.5.9.2 på varmepumpen din. Sender én måling; Flow må sende ferske verdier regelmessig. Suksess bekrefter mottak, ikke bruk til oppvarming.",
+          "da": "Aktivér ekstern BT1 i menu 7.5.9.2 på din varmepumpe. Sender én måling; Flow skal sende aktuelle værdier regelmæssigt. Succes bekræfter modtagelse, ikke brug til opvarmning."
         },
         "args": [
           {
@@ -4688,6 +5257,220 @@
             "step": 0.1
           }
         ]
+      },
+      {
+        "id": "set_day_type",
+        "title": {
+          "en": "Set day type",
+          "sv": "Ställ in dagtyp",
+          "de": "Tagestyp einstellen",
+          "nl": "Dagtype instellen",
+          "no": "Still inn dagtype",
+          "da": "Indstil dagtype"
+        },
+        "titleFormatted": {
+          "en": "Set day type to [[type]]",
+          "sv": "Ställ in dagtyp till [[type]]",
+          "de": "Tagestyp auf [[type]] setzen",
+          "nl": "Dagtype instellen op [[type]]",
+          "no": "Still inn dagtype til [[type]]",
+          "da": "Indstil dagtype til [[type]]"
+        },
+        "hint": {
+          "en": "Which kind of day Autopilot plans for.",
+          "sv": "Vilken sorts dag Autopilot planerar för.",
+          "de": "Für welche Art von Tag Autopilot plant.",
+          "nl": "Voor welk soort dag Autopilot plant.",
+          "no": "Hvilken type dag Autopilot planlegger for.",
+          "da": "Hvilken slags dag Autopilot planlægger for."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=day_type_NIBE"
+          },
+          {
+            "type": "dropdown",
+            "name": "type",
+            "values": [
+              {
+                "id": "working",
+                "label": {
+                  "en": "Working day",
+                  "sv": "Arbetsdag",
+                  "de": "Arbeitstag",
+                  "nl": "Werkdag",
+                  "no": "Arbeidsdag",
+                  "da": "Arbejdsdag"
+                }
+              },
+              {
+                "id": "free",
+                "label": {
+                  "en": "Day off",
+                  "sv": "Ledig dag",
+                  "de": "Freier Tag",
+                  "nl": "Vrije dag",
+                  "no": "Fridag",
+                  "da": "Fridag"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "set_away_until",
+        "title": {
+          "en": "Turn Away on until …",
+          "sv": "Slå på Borta till …",
+          "de": "Abwesend einschalten bis …",
+          "nl": "Afwezig aanzetten tot …",
+          "no": "Slå på Borte til …",
+          "da": "Slå Fraværende til indtil …"
+        },
+        "titleFormatted": {
+          "en": "Turn Away on until [[date]] at [[time]]",
+          "sv": "Slå på Borta till [[date]] kl. [[time]]",
+          "de": "Abwesend einschalten bis [[date]] um [[time]]",
+          "nl": "Afwezig aanzetten tot [[date]] om [[time]]",
+          "no": "Slå på Borte til [[date]] kl. [[time]]",
+          "da": "Slå Fraværende til indtil [[date]] kl. [[time]]"
+        },
+        "hint": {
+          "en": "For a holiday of a week or more. Hot water keeps only its minimum warm, the house is warm again when you're back, and Away ends by itself.",
+          "sv": "För en semester på en vecka eller mer. Varmvattnet håller bara sitt minimum varmt, huset är varmt igen när du kommer hem, och Borta slutar av sig självt.",
+          "de": "Für einen Urlaub von einer Woche oder länger. Das Warmwasser hält nur sein Minimum warm, das Haus ist wieder warm, wenn Sie zurück sind, und Abwesend endet von selbst.",
+          "nl": "Voor een vakantie van een week of langer. Warm water houdt alleen het minimum warm, het huis is weer warm als je thuiskomt, en Afwezig stopt vanzelf.",
+          "no": "For en ferie på en uke eller mer. Varmtvannet holder bare minimum varmt, huset er varmt igjen når du kommer hjem, og Borte slutter av seg selv.",
+          "da": "Til en ferie på en uge eller mere. Varmtvandet holder kun minimum varmt, huset er varmt igen, når du kommer hjem, og Fraværende slutter af sig selv."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=boolean_NIBE.away"
+          },
+          {
+            "type": "date",
+            "name": "date"
+          },
+          {
+            "type": "time",
+            "name": "time"
+          }
+        ]
+      },
+      {
+        "id": "back_home",
+        "title": {
+          "en": "Back home",
+          "sv": "Hemma igen",
+          "de": "Wieder zu Hause",
+          "nl": "Weer thuis",
+          "no": "Hjemme igjen",
+          "da": "Hjemme igen"
+        },
+        "hint": {
+          "en": "Turns Away off. The thermostat goes back to your temperature.",
+          "sv": "Stänger av Borta. Termostaten går tillbaka till din temperatur.",
+          "de": "Schaltet Abwesend aus. Der Thermostat kehrt zu Ihrer Temperatur zurück.",
+          "nl": "Zet Afwezig uit. De thermostaat gaat terug naar jouw temperatuur.",
+          "no": "Slår av Borte. Termostaten går tilbake til din temperatur.",
+          "da": "Slår Fraværende fra. Termostaten går tilbage til din temperatur."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=boolean_NIBE.away"
+          }
+        ]
+      },
+      {
+        "id": "autopilot_heating_set_profile",
+        "title": {
+          "en": "Set Autopilot heating comfort range",
+          "sv": "Ställ in komfortspann för Autopilot uppvärmning",
+          "de": "Komfortbereich für Autopilot Heizung einstellen",
+          "nl": "Comfortbereik van Autopilot verwarming instellen",
+          "no": "Still inn komfortområde for Autopilot oppvarming",
+          "da": "Indstil komfortinterval for Autopilot opvarmning"
+        },
+        "titleFormatted": {
+          "en": "Set Autopilot heating comfort range to [[profile]]",
+          "sv": "Ställ in komfortspann för Autopilot uppvärmning till [[profile]]",
+          "de": "Komfortbereich für Autopilot Heizung auf [[profile]] setzen",
+          "nl": "Comfortbereik van Autopilot verwarming instellen op [[profile]]",
+          "no": "Still inn komfortområde for Autopilot oppvarming til [[profile]]",
+          "da": "Indstil komfortinterval for Autopilot opvarmning til [[profile]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nibe_s&capabilities=autopilot_status_NIBE"
+          },
+          {
+            "type": "dropdown",
+            "name": "profile",
+            "values": [
+              {
+                "id": "off",
+                "label": {
+                  "en": "Off (no shift)",
+                  "sv": "Av (ingen förskjutning)",
+                  "de": "Aus (keine Verschiebung)",
+                  "nl": "Uit (geen verschuiving)",
+                  "no": "Av (ingen forskyvning)",
+                  "da": "Fra (ingen forskydning)"
+                }
+              },
+              {
+                "id": "comfortable",
+                "label": {
+                  "en": "Comfort (±0.5 °C)",
+                  "sv": "Komfort (±0,5 °C)",
+                  "de": "Komfort (±0,5 °C)",
+                  "nl": "Comfort (±0,5 °C)",
+                  "no": "Komfort (±0,5 °C)",
+                  "da": "Komfort (±0,5 °C)"
+                }
+              },
+              {
+                "id": "save_some",
+                "label": {
+                  "en": "Save (±3 °C)",
+                  "sv": "Spara (±3 °C)",
+                  "de": "Sparen (±3 °C)",
+                  "nl": "Besparen (±3 °C)",
+                  "no": "Spar (±3 °C)",
+                  "da": "Spar (±3 °C)"
+                }
+              },
+              {
+                "id": "save_most",
+                "label": {
+                  "en": "I'd rather freeze (±6 °C)",
+                  "sv": "Hellre frysa (±6 °C)",
+                  "de": "Lieber frieren (±6 °C)",
+                  "nl": "Liever kou lijden (±6 °C)",
+                  "no": "Heller fryse (±6 °C)",
+                  "da": "Hellere fryse (±6 °C)"
+                }
+              }
+            ]
+          }
+        ],
+        "hint": {
+          "en": "Comfort, Save or Save more.",
+          "sv": "Komfort, Spara eller Spara mer.",
+          "de": "Komfort, Sparen oder Mehr sparen.",
+          "nl": "Comfort, Besparen of Meer besparen.",
+          "no": "Komfort, Spar eller Spar mer.",
+          "da": "Komfort, Spar eller Spar mere."
+        }
       }
     ]
   },
@@ -4835,7 +5618,7 @@
                 "en": "Choose how NIBE register 40025 is addressed on your connection. Confirm with a working Modbus query. The same convention applies to all reads and writes.",
                 "sv": "Välj hur NIBE-register 40025 adresseras via din anslutning. Kontrollera med en fungerande Modbus-fråga. Samma adressering används för alla läsningar och skrivningar.",
                 "de": "Wählen Sie, wie NIBE-Register 40025 über Ihre Verbindung adressiert wird. Prüfen Sie dies mit einer funktionierenden Modbus-Abfrage. Die Einstellung gilt für alle Lese- und Schreibzugriffe.",
-                "nl": "Kies hoe NIBE-register 40025 via uw verbinding wordt geadresseerd. Controleer dit met een werkende Modbus-query. De instelling geldt voor alle lees- en schrijfopdrachten.",
+                "nl": "Kies hoe NIBE-register 40025 via je verbinding wordt geadresseerd. Controleer dit met een werkende Modbus-query. De instelling geldt voor alle lees- en schrijfopdrachten.",
                 "no": "Velg hvordan NIBE-register 40025 adresseres via tilkoblingen. Bekreft med en fungerende Modbus-spørring. Samme adressering brukes for all lesing og skriving.",
                 "da": "Vælg, hvordan NIBE-register 40025 adresseres via forbindelsen. Bekræft med en fungerende Modbus-forespørgsel. Samme adressering bruges til al læsning og skrivning."
               }
@@ -5854,6 +6637,7 @@
         "onoff.h195_enable_hotwater",
         "measure_temperature.i9_hot_water",
         "measure_volume_NIBE.hotwater_estimate",
+        "measure_temperature.hotwater_inlet",
         "measure_temperature.i8_warmwater_top",
         "hotwater_demand_NIBE.h56_hotwater_demand_mode",
         "boolean_NIBE.h697_more_hotwater",
@@ -5894,7 +6678,15 @@
         "measure_hour_NIBE.i279_compressor_usage_cooling",
         "meter_kwh_NIBE.i1579_cooling_produced",
         "meter_power.solar",
-        "measure_power.i2176_solar_current"
+        "measure_power.i2176_solar_current",
+        "day_type_NIBE",
+        "autopilot_status_NIBE",
+        "autopilot_reason_NIBE",
+        "autopilot_range_NIBE",
+        "boolean_NIBE.away",
+        "target_temperature.autopilot_away",
+        "measure_temperature.autopilot_fed",
+        "autopilot_shift_NIBE"
       ],
       "capabilitiesOptions": {
         "meter_power.total": {
@@ -6969,7 +7761,7 @@
         "boolean_NIBE.h843_spa_activated": {
           "insights": true,
           "title": {
-            "en": "Smart Price Adaption",
+            "en": "Smart price adaption",
             "sv": "Smart prisanpassning",
             "de": "Smart Price Adaption",
             "nl": "Smart Price Adaption",
@@ -6980,7 +7772,7 @@
         "boolean_NIBE.h844_spa_heating_activated": {
           "insights": true,
           "title": {
-            "en": "Smart Price Adaption",
+            "en": "Smart price adaption",
             "sv": "Smart prisanpassning",
             "de": "Smart Price Adaption",
             "nl": "Smart Price Adaption",
@@ -6991,7 +7783,7 @@
         "boolean_NIBE.h846_spa_hotwater_activated": {
           "insights": true,
           "title": {
-            "en": "Smart Price Adaption",
+            "en": "Smart price adaption",
             "sv": "Smart prisanpassning",
             "de": "Smart Price Adaption",
             "nl": "Smart Price Adaption",
@@ -7032,7 +7824,7 @@
         "boolean_NIBE.h849_spa_cooling_activated": {
           "insights": true,
           "title": {
-            "en": "Smart Price Adaption",
+            "en": "Smart price adaption",
             "sv": "Smart prisanpassning",
             "de": "Smart Price Adaption",
             "nl": "Smart Price Adaption",
@@ -7243,117 +8035,6 @@
         {
           "type": "group",
           "label": {
-            "en": "Hot water",
-            "sv": "Varmvatten",
-            "de": "Warmwasser",
-            "nl": "Warm tapwater",
-            "no": "Varmtvann",
-            "da": "Varmt vand"
-          },
-          "children": [
-            {
-              "id": "hotwater_tank",
-              "type": "label",
-              "label": {
-                "en": "Tank size",
-                "sv": "Beredarens volym",
-                "de": "Speichergröße",
-                "nl": "Boilerinhoud",
-                "no": "Berederens volum",
-                "da": "Beholderens volumen"
-              },
-              "hint": {
-                "en": "The size of your hot water tank. Run repair to change it.",
-                "sv": "Volymen på din varmvattenberedare. Kör Reparera för att ändra.",
-                "de": "Die Größe Ihres Warmwasserspeichers. Zum Ändern „Reparieren“ ausführen.",
-                "nl": "De inhoud van je warmtapwaterboiler. Voer Herstellen uit om te wijzigen.",
-                "no": "Volumet på varmtvannsberederen din. Kjør Reparer for å endre.",
-                "da": "Volumen på din varmtvandsbeholder. Kør Reparer for at ændre."
-              },
-              "value": "—"
-            },
-            {
-              "id": "hotwater_inlet",
-              "type": "label",
-              "label": {
-                "en": "Incoming water",
-                "sv": "Inkommande vatten",
-                "de": "Zulaufwasser",
-                "nl": "Inkomend water",
-                "no": "Inngående vann",
-                "da": "Indgående vand"
-              },
-              "value": "—",
-              "hint": {
-                "en": "The measured temperature of the incoming cold water. Used to calculate Hot water available.",
-                "sv": "Uppmätt temperatur på det inkommande kallvattnet. Används för att beräkna Tillgängligt varmvatten.",
-                "de": "Die gemessene Temperatur des einströmenden Kaltwassers. Dient zur Berechnung von „Verfügbares Warmwasser“.",
-                "nl": "De gemeten temperatuur van het inkomende koude water. Wordt gebruikt om Beschikbaar warmtapwater te berekenen.",
-                "no": "Målt temperatur på det inngående kaldtvannet. Brukes til å beregne Tilgjengelig varmtvann.",
-                "da": "Den målte temperatur på det indgående kolde vand. Bruges til at beregne Tilgængeligt varmt vand."
-              }
-            }
-          ]
-        },
-        {
-          "type": "group",
-          "label": {
-            "en": "Advanced",
-            "sv": "Avancerat",
-            "de": "Erweitert",
-            "nl": "Geavanceerd",
-            "no": "Avansert",
-            "da": "Avanceret"
-          },
-          "children": [
-            {
-              "id": "pollInterval",
-              "type": "number",
-              "label": {
-                "en": "Poll interval (seconds)",
-                "sv": "Avläsningsintervall (sekunder)",
-                "de": "Abfrageintervall (Sekunden)",
-                "nl": "Uitleesinterval (seconden)",
-                "no": "Avlesningsintervall (sekunder)",
-                "da": "Aflæsningsinterval (sekunder)"
-              },
-              "hint": {
-                "en": "How often the heat pump is read. Set this on the Nibe Main device; the other devices follow it. Lower is more responsive but puts more load on the pump; above roughly a minute the per-function energy split gets less accurate.",
-                "sv": "Hur ofta värmepumpen läses av. Ställ in detta på enheten Nibe Main; övriga enheter följer den. Lägre värde ger snabbare uppdatering men belastar värmepumpen mer; över ungefär en minut blir energifördelningen per funktion mindre exakt.",
-                "de": "Wie oft die Wärmepumpe abgefragt wird. Stellen Sie dies am Gerät Nibe Main ein; die übrigen Geräte übernehmen den Wert. Ein kleinerer Wert reagiert schneller, belastet die Wärmepumpe aber stärker; oberhalb von etwa einer Minute wird die Energieaufteilung pro Funktion ungenauer.",
-                "nl": "Hoe vaak de warmtepomp wordt uitgelezen. Stel dit in op het apparaat Nibe Main; de overige apparaten volgen die waarde. Lager reageert sneller maar belast de warmtepomp meer; boven ongeveer een minuut wordt de energieverdeling per functie minder nauwkeurig.",
-                "no": "Hvor ofte varmepumpen leses av. Angi dette på enheten Nibe Main; de øvrige enhetene følger den. Lavere gir raskere oppdatering, men belaster varmepumpen mer; over omtrent ett minutt blir energifordelingen per funksjon mindre nøyaktig.",
-                "da": "Hvor ofte varmepumpen aflæses. Indstil dette på enheden Nibe Main; de øvrige enheder følger den. Lavere giver hurtigere opdatering, men belaster varmepumpen mere; over cirka et minut bliver energifordelingen pr. funktion mindre nøjagtig."
-              },
-              "value": 10,
-              "min": 5,
-              "max": 60,
-              "units": {
-                "en": "s"
-              }
-            },
-            {
-              "id": "debugLogging",
-              "type": "checkbox",
-              "label": {
-                "en": "Debug logging",
-                "sv": "Felsökningsloggning",
-                "de": "Debug-Protokollierung",
-                "nl": "Debug-logboek",
-                "no": "Feilsøkingslogg",
-                "da": "Fejlsøgningslog"
-              },
-              "hint": {
-                "en": "Log polling, connection and energy-allocation detail. Normally the app only logs pairing, Flow actions and manual changes. Turn this on when troubleshooting or before sending logs for support.",
-                "sv": "Logga avläsning, anslutning och energifördelning i detalj. Normalt loggas bara parkoppling, flödeskort och manuella ändringar. Slå på vid felsökning eller innan du skickar loggar för support."
-              },
-              "value": false
-            }
-          ]
-        },
-        {
-          "type": "group",
-          "label": {
             "en": "Heat pump",
             "sv": "Värmepump",
             "de": "Wärmepumpe",
@@ -7379,12 +8060,12 @@
               "id": "heatpump_type",
               "type": "label",
               "label": {
-                "en": "Heat pump type code",
-                "sv": "Värmepumpstypkod",
-                "de": "Wärmepumpen-Typcode",
-                "nl": "Warmtepomp-typecode",
-                "no": "Varmepumpe-typekode",
-                "da": "Varmepumpe-typekode"
+                "en": "Model code",
+                "sv": "Modellkod",
+                "de": "Modellcode",
+                "nl": "Modelcode",
+                "no": "Modellkode",
+                "da": "Modelkode"
               },
               "value": ""
             }
@@ -7413,12 +8094,12 @@
                 "da": "Seneste alarm"
               },
               "hint": {
-                "en": "The most recent alarm reported by the heat pump. For the full history — with NIBE's cause and suggested action for each alarm — open this app's own settings: Homey app → More → Apps → Nibe Live → Configure.",
-                "sv": "Det senaste larmet som värmepumpen rapporterat. För hela historiken — med NIBE:s orsak och åtgärd för varje larm — öppna appens egna inställningar: Homey-appen → Mer → Appar → Nibe Live → Konfigurera.",
-                "de": "Der jüngste von der Wärmepumpe gemeldete Alarm. Die vollständige Historie — mit NIBEs Ursache und empfohlener Maßnahme je Alarm — finden Sie in den Einstellungen dieser App: Homey-App → Mehr → Apps → Nibe Live → Konfigurieren.",
-                "nl": "Het meest recente alarm van de warmtepomp. De volledige historie — met NIBE's oorzaak en aanbevolen actie per alarm — vind je in de instellingen van deze app: Homey-app → Meer → Apps → Nibe Live → Configureren.",
-                "no": "Den nyeste alarmen varmepumpen har rapportert. Hele historikken — med NIBEs årsak og tiltak for hver alarm — finner du i appens egne innstillinger: Homey-appen → Mer → Apper → Nibe Live → Konfigurer.",
-                "da": "Den seneste alarm som varmepumpen har rapporteret. Hele historikken — med NIBEs årsag og anbefalede handling for hver alarm — finder du i appens egne indstillinger: Homey-appen → Mere → Apps → Nibe Live → Konfigurer."
+                "en": "The latest alarm from your heat pump. The full history is in the app's settings.",
+                "sv": "Det senaste larmet från din värmepump. Hela historiken finns i appens inställningar.",
+                "de": "Der letzte Alarm Ihrer Wärmepumpe. Die ganze Historie finden Sie in den Einstellungen der App.",
+                "nl": "Het laatste alarm van je warmtepomp. De volledige historie staat in de instellingen van de app.",
+                "no": "Den siste alarmen fra varmepumpen din. Hele historikken finner du i appens innstillinger.",
+                "da": "Den seneste alarm fra din varmepumpe. Hele historikken finder du i appens indstillinger."
               },
               "value": ""
             }
@@ -7447,12 +8128,72 @@
                 "da": "Del anonyme brugsdata"
               },
               "hint": {
-                "en": "Off by default. Sends pump model, which devices you paired, which Flow cards ran, and alarm codes. Never readings, IP, serial or names.",
-                "sv": "Av som standard. Skickar värmepumpsmodell, vilka enheter du parkopplat, vilka flödeskort som körts och larmkoder. Aldrig mätvärden, IP, serienummer eller namn.",
-                "de": "Standardmäßig aus. Sendet Wärmepumpenmodell, gekoppelte Geräte, ausgeführte Flow-Karten und Alarmcodes. Nie Messwerte, IP, Seriennummer oder Namen.",
-                "nl": "Standaard uit. Verzendt warmtepompmodel, gekoppelde apparaten, uitgevoerde Flow-kaarten en alarmcodes. Nooit metingen, IP, serienummer of namen.",
-                "no": "Av som standard. Sender varmepumpemodell, parede enheter, kjørte flytkort og alarmkoder. Aldri målinger, IP, serienummer eller navn.",
-                "da": "Fra som standard. Sender varmepumpemodel, parrede enheder, kørte Flow-kort og alarmkoder. Aldrig målinger, IP, serienummer eller navne."
+                "en": "Off by default. Sends your heat pump's model, which devices you paired, which Flow cards ran, alarm codes, and how Autopilot is set up and how each day went. Never readings, IP, serial or names.",
+                "sv": "Av som standard. Skickar din värmepumps modell, vilka enheter du parkopplat, vilka flödeskort som körts, larmkoder samt hur Autopilot är inställd och hur varje dag gick. Aldrig mätvärden, IP, serienummer eller namn.",
+                "de": "Standardmäßig aus. Sendet das Modell Ihrer Wärmepumpe, gekoppelte Geräte, ausgeführte Flow-Karten, Alarmcodes sowie die Einstellungen von Autopilot und wie jeder Tag lief. Nie Messwerte, IP, Seriennummer oder Namen.",
+                "nl": "Standaard uit. Verzendt het model van je warmtepomp, gekoppelde apparaten, uitgevoerde Flow-kaarten, alarmcodes en hoe Autopilot is ingesteld en hoe elke dag ging. Nooit metingen, IP, serienummer of namen.",
+                "no": "Av som standard. Sender varmepumpens modell, parede enheter, kjørte flytkort, alarmkoder og hvordan Autopilot er satt opp og hvordan hver dag gikk. Aldri målinger, IP, serienummer eller navn.",
+                "da": "Fra som standard. Sender din varmepumpes model, parrede enheder, kørte Flow-kort, alarmkoder og hvordan Autopilot er sat op, og hvordan hver dag gik. Aldrig målinger, IP, serienummer eller navne."
+              },
+              "value": false
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "label": {
+            "en": "Advanced",
+            "sv": "Avancerat",
+            "de": "Erweitert",
+            "nl": "Geavanceerd",
+            "no": "Avansert",
+            "da": "Avanceret"
+          },
+          "children": [
+            {
+              "id": "pollInterval",
+              "type": "number",
+              "label": {
+                "en": "Poll interval (seconds)",
+                "sv": "Avläsningsintervall (sekunder)",
+                "de": "Abfrageintervall (Sekunden)",
+                "nl": "Uitleesinterval (seconden)",
+                "no": "Avlesningsintervall (sekunder)",
+                "da": "Aflæsningsinterval (sekunder)"
+              },
+              "hint": {
+                "en": "How often Homey reads your heat pump. Set it on Nibe Main. Shorter is quicker but busier.",
+                "sv": "Hur ofta Homey läser av din värmepump. Ställ in det på Nibe Main. Kortare är snabbare men mer belastande.",
+                "de": "Wie oft Homey Ihre Wärmepumpe abfragt. Stellen Sie es an Nibe Main ein. Kürzer ist schneller, aber belastender.",
+                "nl": "Hoe vaak Homey je warmtepomp uitleest. Stel het in op Nibe Main. Korter is sneller, maar drukker.",
+                "no": "Hvor ofte Homey leser av varmepumpen din. Still det inn på Nibe Main. Kortere er raskere, men mer belastende.",
+                "da": "Hvor ofte Homey aflæser din varmepumpe. Indstil det på Nibe Main. Kortere er hurtigere, men mere belastende."
+              },
+              "value": 10,
+              "min": 5,
+              "max": 60,
+              "units": {
+                "en": "s"
+              }
+            },
+            {
+              "id": "debugLogging",
+              "type": "checkbox",
+              "label": {
+                "en": "Debug logging",
+                "sv": "Felsökningsloggning",
+                "de": "Debug-Protokollierung",
+                "nl": "Debug-logboek",
+                "no": "Feilsøkingslogg",
+                "da": "Fejlsøgningslog"
+              },
+              "hint": {
+                "en": "Turn this on before you send logs for support.",
+                "sv": "Slå på det här innan du skickar loggar till support.",
+                "de": "Schalten Sie das ein, bevor Sie Protokolle an den Support senden.",
+                "nl": "Zet dit aan voordat je logs naar support stuurt.",
+                "no": "Slå på dette før du sender logger til support.",
+                "da": "Slå dette til, før du sender logs til support."
               },
               "value": false
             }
@@ -7462,6 +8203,140 @@
       "id": "nibe_s"
     }
   ],
+  "widgets": {
+    "autopilot": {
+      "name": {
+        "en": "Autopilot",
+        "sv": "Autopilot",
+        "de": "Autopilot",
+        "nl": "Autopilot",
+        "no": "Autopilot",
+        "da": "Autopilot"
+      },
+      "height": 420,
+      "transparent": false,
+      "settings": [
+        {
+          "id": "device",
+          "type": "autocomplete",
+          "title": {
+            "en": "Device",
+            "sv": "Enhet",
+            "de": "Gerät",
+            "nl": "Apparaat",
+            "no": "Enhet",
+            "da": "Enhed"
+          }
+        }
+      ],
+      "api": {
+        "getData": {
+          "method": "GET",
+          "path": "/"
+        }
+      },
+      "id": "autopilot"
+    },
+    "hotwater_use": {
+      "name": {
+        "en": "Hot water use",
+        "sv": "Varmvattenanvändning",
+        "de": "Warmwasserverbrauch",
+        "nl": "Warmwatergebruik",
+        "no": "Varmtvannsbruk",
+        "da": "Varmtvandsforbrug"
+      },
+      "height": 300,
+      "transparent": false,
+      "settings": [
+        {
+          "id": "device",
+          "type": "autocomplete",
+          "title": {
+            "en": "Device",
+            "sv": "Enhet",
+            "de": "Gerät",
+            "nl": "Apparaat",
+            "no": "Enhet",
+            "da": "Enhed"
+          }
+        }
+      ],
+      "api": {
+        "getData": {
+          "method": "GET",
+          "path": "/"
+        }
+      },
+      "id": "hotwater_use"
+    },
+    "savings": {
+      "name": {
+        "en": "Heating savings",
+        "sv": "Besparing uppvärmning",
+        "de": "Ersparnis Heizung",
+        "nl": "Besparing verwarming",
+        "no": "Besparelse oppvarming",
+        "da": "Besparelse opvarmning"
+      },
+      "height": 360,
+      "transparent": false,
+      "settings": [
+        {
+          "id": "device",
+          "type": "autocomplete",
+          "title": {
+            "en": "Device",
+            "sv": "Enhet",
+            "de": "Gerät",
+            "nl": "Apparaat",
+            "no": "Enhet",
+            "da": "Enhed"
+          }
+        }
+      ],
+      "api": {
+        "getData": {
+          "method": "GET",
+          "path": "/"
+        }
+      },
+      "id": "savings"
+    },
+    "savings_hotwater": {
+      "name": {
+        "en": "Hot water savings",
+        "sv": "Besparing varmvatten",
+        "de": "Ersparnis Warmwasser",
+        "nl": "Besparing warm water",
+        "no": "Besparelse varmtvann",
+        "da": "Besparelse varmt vand"
+      },
+      "height": 440,
+      "transparent": false,
+      "settings": [
+        {
+          "id": "device",
+          "type": "autocomplete",
+          "title": {
+            "en": "Device",
+            "sv": "Enhet",
+            "de": "Gerät",
+            "nl": "Apparaat",
+            "no": "Enhet",
+            "da": "Enhed"
+          }
+        }
+      ],
+      "api": {
+        "getData": {
+          "method": "GET",
+          "path": "/"
+        }
+      },
+      "id": "savings_hotwater"
+    }
+  },
   "capabilities": {
     "alarm_text_NIBE": {
       "type": "string",
@@ -7486,6 +8361,202 @@
       },
       "insights": false,
       "icon": "/assets/images/select.svg"
+    },
+    "autopilot_range_NIBE": {
+      "title": {
+        "en": "Comfort range",
+        "sv": "Komfortspann",
+        "de": "Komfortbereich",
+        "nl": "Comfortbereik",
+        "no": "Komfortområde",
+        "da": "Komfortinterval"
+      },
+      "type": "enum",
+      "values": [
+        {
+          "id": "off",
+          "title": {
+            "en": "Off (no shift)",
+            "sv": "Av (ingen förskjutning)",
+            "de": "Aus (keine Verschiebung)",
+            "nl": "Uit (geen verschuiving)",
+            "no": "Av (ingen forskyvning)",
+            "da": "Fra (ingen forskydning)"
+          }
+        },
+        {
+          "id": "comfortable",
+          "title": {
+            "en": "Comfort (±0.5 °C)",
+            "sv": "Komfort (±0,5 °C)",
+            "de": "Komfort (±0,5 °C)",
+            "nl": "Comfort (±0,5 °C)",
+            "no": "Komfort (±0,5 °C)",
+            "da": "Komfort (±0,5 °C)"
+          }
+        },
+        {
+          "id": "save_some",
+          "title": {
+            "en": "Save (±3 °C)",
+            "sv": "Spara (±3 °C)",
+            "de": "Sparen (±3 °C)",
+            "nl": "Besparen (±3 °C)",
+            "no": "Spar (±3 °C)",
+            "da": "Spar (±3 °C)"
+          }
+        },
+        {
+          "id": "save_most",
+          "title": {
+            "en": "Save more (±6 °C)",
+            "sv": "Spara mer (±6 °C)",
+            "de": "Mehr sparen (±6 °C)",
+            "nl": "Meer besparen (±6 °C)",
+            "no": "Spar mer (±6 °C)",
+            "da": "Spar mere (±6 °C)"
+          }
+        }
+      ],
+      "getable": true,
+      "setable": true,
+      "uiComponent": "picker",
+      "insights": true,
+      "icon": "/assets/images/select.svg"
+    },
+    "autopilot_reason_NIBE": {
+      "type": "string",
+      "title": {
+        "en": "Autopilot now",
+        "sv": "Autopilot nu",
+        "de": "Autopilot jetzt",
+        "nl": "Autopilot nu",
+        "no": "Autopilot nå",
+        "da": "Autopilot nu"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "units": {
+        "en": "",
+        "sv": "",
+        "de": "",
+        "nl": "",
+        "no": "",
+        "da": ""
+      },
+      "insights": false,
+      "icon": "/assets/images/select.svg"
+    },
+    "autopilot_shift_NIBE": {
+      "type": "number",
+      "title": {
+        "en": "Outdoor temperature shift",
+        "sv": "Förskjutning av utetemperatur",
+        "de": "Verschiebung der Außentemperatur",
+        "nl": "Verschuiving buitentemperatuur",
+        "no": "Forskyvning av utetemperatur",
+        "da": "Forskydning af udetemperatur"
+      },
+      "uiComponent": "sensor",
+      "chartType": "stepLine",
+      "getable": true,
+      "setable": false,
+      "units": {
+        "en": "°C",
+        "sv": "°C",
+        "de": "°C",
+        "nl": "°C",
+        "no": "°C",
+        "da": "°C"
+      },
+      "decimals": 1,
+      "insights": true,
+      "icon": "/assets/images/time.svg"
+    },
+    "autopilot_status_NIBE": {
+      "title": {
+        "en": "Autopilot",
+        "sv": "Autopilot",
+        "de": "Autopilot",
+        "nl": "Autopilot",
+        "no": "Autopilot",
+        "da": "Autopilot"
+      },
+      "type": "enum",
+      "values": [
+        {
+          "id": "learning",
+          "title": {
+            "en": "Learning",
+            "sv": "Lär sig",
+            "de": "Lernt",
+            "nl": "Leert",
+            "no": "Lærer",
+            "da": "Lærer"
+          }
+        },
+        {
+          "id": "holding",
+          "title": {
+            "en": "Holding",
+            "sv": "Håller",
+            "de": "Hält",
+            "nl": "Houdt vast",
+            "no": "Holder",
+            "da": "Holder"
+          }
+        },
+        {
+          "id": "preheating",
+          "title": {
+            "en": "Pre-heating",
+            "sv": "Förvärmer",
+            "de": "Heizt vor",
+            "nl": "Verwarmt voor",
+            "no": "Forvarmer",
+            "da": "Forvarmer"
+          }
+        },
+        {
+          "id": "easing_off",
+          "title": {
+            "en": "Easing off",
+            "sv": "Drar ner",
+            "de": "Drosselt",
+            "nl": "Bouwt af",
+            "no": "Trapper ned",
+            "da": "Skruer ned"
+          }
+        },
+        {
+          "id": "paused",
+          "title": {
+            "en": "Paused",
+            "sv": "Pausad",
+            "de": "Pausiert",
+            "nl": "Gepauzeerd",
+            "no": "Satt på pause",
+            "da": "På pause"
+          }
+        },
+        {
+          "id": "off",
+          "title": {
+            "en": "Off",
+            "sv": "Av",
+            "de": "Aus",
+            "nl": "Uit",
+            "no": "Av",
+            "da": "Fra"
+          }
+        }
+      ],
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "insights": true,
+      "icon": "/assets/images/time.svg"
     },
     "boolean_NIBE": {
       "type": "boolean",
@@ -7943,6 +9014,45 @@
       "setable": true,
       "uiComponent": "picker",
       "icon": "/assets/images/select.svg"
+    },
+    "day_type_NIBE": {
+      "title": {
+        "en": "Day type",
+        "sv": "Dagtyp",
+        "de": "Tagestyp",
+        "nl": "Dagtype",
+        "no": "Dagtype",
+        "da": "Dagtype"
+      },
+      "type": "enum",
+      "values": [
+        {
+          "id": "working",
+          "title": {
+            "en": "Working day",
+            "sv": "Arbetsdag",
+            "de": "Arbeitstag",
+            "nl": "Werkdag",
+            "no": "Arbeidsdag",
+            "da": "Arbejdsdag"
+          }
+        },
+        {
+          "id": "free",
+          "title": {
+            "en": "Day off",
+            "sv": "Ledig dag",
+            "de": "Freier Tag",
+            "nl": "Vrije dag",
+            "no": "Fridag",
+            "da": "Fridag"
+          }
+        }
+      ],
+      "getable": true,
+      "setable": true,
+      "uiComponent": "picker",
+      "icon": "/assets/images/time.svg"
     },
     "f_hotwater_boost": {
       "type": "enum",

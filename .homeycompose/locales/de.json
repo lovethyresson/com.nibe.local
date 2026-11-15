@@ -403,7 +403,8 @@
       "starting_title": "Startet",
       "starting_heating": "Prognose und Strompreise werden gelesen. Dauert etwa eine Minute.",
       "starting_hotwater": "Strompreise und Speicher werden gelesen. Dauert etwa eine Minute.",
-      "starting_app": "Ihre Wärmepumpe wird gelesen. Dauert etwa eine Minute."
+      "starting_app": "Ihre Wärmepumpe wird gelesen. Dauert etwa eine Minute.",
+      "away_until": "Abwesend bis __until__ · __c__ °C"
     },
     "hotwater_status": {
       "learning": "Lernt Ihren Warmwasserverbrauch",
@@ -429,7 +430,8 @@
       "learning": "Lernt Ihren Warmwasserverbrauch",
       "off": "Autopilot für Warmwasser ist aus. Schalten Sie ihn unter Reparieren → Smart-Modus ein.",
       "pick": "Wählen Sie ein Warmwasser-Gerät.",
-      "away_keeps": "Autopilot hält nur Ihr Minimum warm."
+      "away_keeps": "Autopilot hält nur Ihr Minimum warm.",
+      "away_until": "Bis __until__"
     },
     "savings": {
       "pick": "Wählen Sie in den Widget-Einstellungen ein Gerät für Heizung oder Warmwasser.",
@@ -457,12 +459,13 @@
       "row_before_days": "Vor Autopilot · __days__ Tage",
       "row_so_far_days": "Bisher · __days__ Tage",
       "row_with_days": "Mit Autopilot · __days__ Tage",
-      "charges_title": "Ladungen diese Woche",
+      "charges_title": "Letzte 7 Tage",
       "band_cheap": "Günstig",
       "band_middle": "Mitte",
       "band_dear": "Teuer",
       "stat_week": "Letzte 7 Tage",
       "stat_year": "Dieses Jahr"
-    }
+    },
+    "away_until_token": "Abwesend bis"
   }
 }

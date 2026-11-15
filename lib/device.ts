@@ -6,13 +6,13 @@ import {Baseline, LEDGER_DAYS, moneyText, partialDay, ModeMark, SavingsData, Sav
 import {ChargeEvent, HotwaterAutopilot, HotwaterMode, ownDeviceId} from './autopilot/hotwater-shadow';
 import {FlowConflict, moreHotwaterFlows} from './autopilot/hotwater-flows';
 import {KWH_PER_LITRE, STARTER_DAYS, localClock, readHousehold} from './autopilot/hotwater-learner';
-import {DAY_TYPE_SETTING, DEFAULT_DAY_TYPE, DayTypeState, dayTypeAt, readDayType, typeSet} from './autopilot/day-type';
+import {DAY_TYPE_SETTING, DEFAULT_DAY_TYPE, DayTypeState, awayOn, dayTypeAt, homeDayTypeAt, readDayType, typeSet} from './autopilot/day-type';
 import {Sample} from './autopilot/history';
 import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, StopReason, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits, sunTrust, surplusPrices, withHotwater} from './autopilot/live';
 import {AUTOPILOT_FUNCTIONS, SMART_MODE_STORE, SmartFunction, SmartMode, autopilotRuns, shownSmartMode, smartMode, smartModeWrites, spaOn} from './autopilot/smart-mode';
 import {HeatingStatus, heatingStatus} from './autopilot/heating-status';
 import {PeriodWatch, pricePeriods, startedTrigger} from './autopilot/heating-flows';
-import {AWAY_UNTIL_SETTING, localDateTime, readAwayUntil} from './autopilot/away';
+import {AWAY_UNTIL_SETTING, awayUntilLabel, readAwayUntil} from './autopilot/away';
 import {forecastCorrection} from './autopilot/outdoor';
 import {readTrim} from './autopilot/setpoint';
 import {WidgetData, aimingFor, chargeBands, symmetricAxis, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks, todaySlots} from './autopilot/widget';
@@ -28,7 +28,7 @@ import {
     resolvedAddress, signedValue, withResolvedAddresses
 } from './registers';
 import {
-    ACTIVE_POWER_CAPABILITY, ALARM_ACTIVE_CAPABILITY, ALARM_TEXT_CAPABILITY, AUTOPILOT_AWAY_CAPABILITY,
+    ACTIVE_POWER_CAPABILITY, ALARM_ACTIVE_CAPABILITY, ALARM_TEXT_CAPABILITY, AWAY_CAPABILITY,
     AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY, AUTOPILOT_FED_CAPABILITY, AUTOPILOT_RANGE_CAPABILITY,
     AUTOPILOT_REASON_CAPABILITY, AUTOPILOT_SHIFT_CAPABILITY, AUTOPILOT_STATUS_CAPABILITY,
     DAY_TYPE_CAPABILITY, FUNCTION_COP_CAPABILITY, HOTWATER_INLET_CAPABILITY, HOTWATER_VOLUME_CAPABILITY, METER_CAPABILITY,
@@ -1031,7 +1031,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private async syncCapabilities(): Promise<string[]> {
         const selection = this.getSelection();
         const {registers: roleRegs, extras, toRemove} =
-            capabilitySyncPlan(this.profile, this.role, selection, this.getCapabilities(), this.capabilitySmartMode());
+            capabilitySyncPlan(this.profile, this.role, selection, this.getCapabilities(), this.capabilitySmartMode(), this.carriesAway());
         const failed: string[] = [];
         const note = (name: string, what: string) => (error: any) => {
             this.error(`Failed to ${what} capability ${name}:`, error);
@@ -1215,11 +1215,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             // The day type is household state in an app setting; the capability only shows and
             // sets it. Registered whether or not the device carries it yet, like the registers
             // above, so turning Autopilot on later needs no restart.
-            if (this.role === 'main' && this.profile.autopilotHotwater) {
+            if (this.role === 'main' && (this.profile.autopilotHotwater || this.profile.autopilotFeed)) {
                 this.registerCapabilityListener(DAY_TYPE_CAPABILITY, async (value) => {
                     this.log(`Day type set to ${value}`);
                     await (this.driver as any).setDayType(value);
                 });
+                this.registerCapabilityListener(AWAY_CAPABILITY, async (value) => (this.driver as any).setAway(value === true));
                 await this.showDayType();
             }
             // Autopilot heating's own controls: registered whether or not the device carries them.
@@ -1229,7 +1230,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     this.trackSetting('comfort_range', String(value), this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY));
                     this.heatingFeed?.replanSoon();
                 });
-                this.registerCapabilityListener(AUTOPILOT_AWAY_CAPABILITY, async (value) => this.setAutopilotAway(value === true));
                 this.registerCapabilityListener(AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY, async (value) => {
                     this.log(`Away temperature set to ${value}`);
                     // A temperature is a setpoint: only that it changed is told, never to what.
@@ -1339,6 +1339,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         return 'off';
     }
 
+    /** Whether this device carries the home's Away: Main, while Autopilot runs for hot water or heating. */
+    private carriesAway(): boolean {
+        return this.role === 'main' && (autopilotRuns(this.smartModeOf('hotwater')) || autopilotRuns(this.smartModeOf('heating')));
+    }
+
     /** What the hot water setup step says about the day type: today's, by name, and whether it
      *  was set (by the owner or a Flow) or is the calendar's. */
     private dayTypeToday(): {name: string; set: boolean} {
@@ -1356,12 +1361,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             this.homey.settings.set(DAY_TYPE_SETTING, {type: DEFAULT_DAY_TYPE, log: []} satisfies DayTypeState);
         if (this.dayTypeTimer) this.homey.clearTimeout(this.dayTypeTimer);
         this.dayTypeTimer = undefined;
-        if (!this.hasCapability(DAY_TYPE_CAPABILITY)) return;
+        if (!this.hasCapability(DAY_TYPE_CAPABILITY) && !this.hasCapability(AWAY_CAPABILITY)) return;
         const now = Date.now();
-        const type = dayTypeAt(readDayType(this.homey.settings.get(DAY_TYPE_SETTING)), now,
-            localClock(this.homey.clock.getTimezone()));
+        const state = readDayType(this.homey.settings.get(DAY_TYPE_SETTING));
+        const type = homeDayTypeAt(state, now, localClock(this.homey.clock.getTimezone()));
         if (this.getCapabilityValue(DAY_TYPE_CAPABILITY) !== type)
             await this.setCapabilityValue(DAY_TYPE_CAPABILITY, type).catch(this.error);
+        if (this.hasCapability(AWAY_CAPABILITY) && this.getCapabilityValue(AWAY_CAPABILITY) !== awayOn(state))
+            await this.setCapabilityValue(AWAY_CAPABILITY, awayOn(state)).catch(this.error);
         this.dayTypeTimer = this.homey.setTimeout(() => this.showDayType().catch(this.error), 3_600_000 - now % 3_600_000 + 5_000);
     }
 
@@ -1370,13 +1377,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     async applyAutopilot() {
         if ((this.role === 'main' || this.role === 'heating' || this.role === 'hotwater') && this.capabilitiesSynced) {
             const {toAdd, toRemove} = capabilitySyncPlan(this.profile, this.role, this.getSelection(), this.getCapabilities(),
-                this.capabilitySmartMode());
+                this.capabilitySmartMode(), this.carriesAway());
             if (toAdd.length || toRemove.length) await this.syncCapabilities();
             if (this.role === 'main') await this.showDayType();
             if (this.role === 'heating') {
                 await this.initAutopilotControls();
                 // Autopilot heating turned on while the home is away goes away with it.
-                await this.applyAway(readDayType(this.homey.settings.get(DAY_TYPE_SETTING))?.type === 'away').catch(this.error);
+                await this.applyAway(awayOn(readDayType(this.homey.settings.get(DAY_TYPE_SETTING)))).catch(this.error);
             }
         }
         if (this.role === 'hotwater') await this.syncHotwaterAutopilot();
@@ -1777,6 +1784,15 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         return `${day} ${this.clock(ms)}`;
     }
 
+    /** When Away ends, for the widgets (`awayUntilLabel`). Undefined while the home is not away
+     *  or Away has no end time. */
+    awayUntilText(): string | undefined {
+        if (!awayOn(readDayType(this.homey.settings.get(DAY_TYPE_SETTING)))) return undefined;
+        const until = readAwayUntil(this.homey.settings.get(AWAY_UNTIL_SETTING));
+        return until === undefined ? undefined
+            : awayUntilLabel(until, Date.now(), this.homey.clock.getTimezone(), this.homey.i18n?.getLanguage?.() ?? 'en');
+    }
+
     /** For the Flow condition: what Autopilot heating is doing now. */
     heatingStatusNow(): HeatingStatus {
         return (this.getCapabilityValue(AUTOPILOT_STATUS_CAPABILITY) as HeatingStatus | null) ?? 'off';
@@ -2107,7 +2123,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const status = this.getCapabilityValue(AUTOPILOT_STATUS_CAPABILITY) as HeatingStatus | null;
         const range = String(this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY) ?? DEFAULT_PROFILE);
         chips.push(t(`range.${range}`));
-        if (this.autopilotAway()) chips.push(t('away', {c: this.getCapabilityValue(AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY) ?? AWAY_DEFAULT_C}));
+        if (this.autopilotAway()) {
+            const c = this.getCapabilityValue(AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY) ?? AWAY_DEFAULT_C;
+            const until = this.awayUntilText();
+            chips.push(until ? t('away_until', {c, until}) : t('away', {c}));
+        }
         const from = day.from;
         const past = this.autopilot?.recent(from, now) ?? [];
         const indoorNow = this.getCapabilityValue('measure_temperature') ?? NaN;
@@ -2167,7 +2187,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const typical = today.kind === 'away' ? undefined : week.typical[today.kind];
         return {title, ...week,
             status: today.litres === undefined ? undefined : t(today.kind === 'away' ? 'expected_away' : 'expected', {l: today.litres}),
-            reason: today.kind === 'away' ? t('away_keeps')
+            reason: today.kind === 'away' ? [this.awayUntilText() ? t('away_until', {until: this.awayUntilText()!}) : undefined, t('away_keeps')]
+                .filter(Boolean).join(' · ')
                 : [t(today.kind), typical === undefined ? undefined : t('typical_of', {l: typical})].filter(Boolean).join(' · '),
             legend: {title: t('title'), working: has('working') ? t('working') : '', free: has('free') ? t('free') : '',
                 away: has('away') ? t('away') : '', today: t('today'), typical: t('typical'),
@@ -2357,8 +2378,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     // ---- Away: the thermostat goes to the Away temperature and comes back ----
 
+    /** Whether this Heating device is away: it runs Autopilot heating and the home is away. */
     private autopilotAway(): boolean {
-        return this.hasCapability(AUTOPILOT_AWAY_CAPABILITY) && this.getCapabilityValue(AUTOPILOT_AWAY_CAPABILITY) === true;
+        return this.hasCapability(AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY) && awayOn(readDayType(this.homey.settings.get(DAY_TYPE_SETTING)));
     }
 
     /** Set the thermostat as the owner would: through its own listener, which writes the pump. */
@@ -2368,28 +2390,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         await this.setCapabilityValue('target_temperature', celsius);
     }
 
-    /** Away, from the switch or the Flow card: the home's one Away, so hot water and every
-     *  Autopilot heating device follow (lib/autopilot/day-type.ts). */
-    async setAutopilotAway(on: boolean) {
-        if (!this.hasCapability(AUTOPILOT_AWAY_CAPABILITY)) throw new Error(this.homey.__('autopilot.heating.not_on'));
-        await (this.driver as any).setAway(on);
-    }
-
-    /** Away until a date and time, from the Flow card: Away ends by itself then, and the house is
-     *  warm again by that time. Throws on a time that doesn't parse or has passed. */
-    async setAutopilotAwayUntil(date: unknown, time: unknown) {
-        if (!this.hasCapability(AUTOPILOT_AWAY_CAPABILITY)) throw new Error(this.homey.__('autopilot.heating.not_on'));
-        const until = localDateTime(date, time, this.homey.clock.getTimezone());
-        if (until === undefined) throw new Error(this.homey.__('autopilot.heating.away_time_invalid'));
-        await (this.driver as any).setAway(true, until);
-    }
-
-    /** Follow the home's Away. On: the thermostat's temperature is kept and the thermostat set to
-     *  the Away temperature, and Autopilot may use the widest range. Off: the thermostat goes back.
-     *  Nothing on a device not running Autopilot heating. */
+    /** Follow the home's Away (driver `setAway`). On: the thermostat's temperature is kept and the
+     *  thermostat set to the Away temperature, and Autopilot may use the widest range. Off: the
+     *  thermostat goes back. Nothing on a device not running Autopilot heating. The kept
+     *  temperature marks Away as applied, so a repeat changes nothing. */
     async applyAway(on: boolean) {
-        if (!this.hasCapability(AUTOPILOT_AWAY_CAPABILITY)) return;
-        if (on === this.autopilotAway() && (on ? this.getStoreValue('autopilotHome') != null : true)) return;
+        if (!this.hasCapability(AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY)) return;
+        const applied = this.getStoreValue('autopilotHome') != null;
+        if (on === applied) return;
         if (on) {
             const home = Number(this.getCapabilityValue('target_temperature'));
             if (!Number.isFinite(home)) throw new Error(this.homey.__('autopilot.heating.no_thermostat'));
@@ -2403,7 +2411,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             await this.unsetStoreValue('autopilotHome');
             this.log(`Away off: thermostat back to ${home} °C.`);
         }
-        await this.setCapabilityValue(AUTOPILOT_AWAY_CAPABILITY, on);
     }
 
     /** Defaults for Autopilot's own controls when they first appear. */
@@ -2413,7 +2420,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 await this.setCapabilityValue(name, value).catch(this.error);
         };
         await init(AUTOPILOT_RANGE_CAPABILITY, DEFAULT_PROFILE);
-        await init(AUTOPILOT_AWAY_CAPABILITY, false);
         await init(AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY, AWAY_DEFAULT_C);
     }
 

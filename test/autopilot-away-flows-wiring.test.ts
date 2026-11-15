@@ -27,7 +27,8 @@ function rig() {
             registerArgumentAutocompleteListener() { return this; }, async trigger(dev: any, tokens: any, state: any) { this.fired.push({tokens, state}); }});
         return cards.get(id);
     };
-    const flow = {getActionCard: card, getConditionCard: card, getDeviceTriggerCard: card, getTriggerCard: card};
+    const flow = {getActionCard: card, getConditionCard: card, getDeviceTriggerCard: card, getTriggerCard: card,
+        createToken: async (_id: string, o: any) => ({value: o.value, async setValue(v: string) { this.value = v; }})};
     const devices: any[] = [];
     const driver = new DriverClass();
     const homey: any = {__: (k: string) => k, settings: s, flow, clock: {getTimezone: () => 'Europe/Stockholm'},
@@ -40,6 +41,8 @@ function rig() {
     return {driver, homey, s, card, devices};
 }
 
+const awayNow = (s: any) => s.m.get('autopilotDayType')?.away?.at(-1)?.on === true;
+
 test('driver: Away until stores, refuses the past, clears on off and on a plain on, ends by itself', async () => {
     const {driver, s, devices} = rig();
     const seen: any[] = [];
@@ -49,30 +52,56 @@ test('driver: Away until stores, refuses the past, clears on off and on a plain 
     const until = Date.now() + 3_600_000;
     await driver.setAway(true, until);
     assert.equal(s.m.get('autopilotAwayUntil'), until);
-    assert.equal(s.m.get('autopilotDayType').type, 'away');
+    assert.ok(awayNow(s));
     assert.deepEqual(seen.slice(-2), [['away', true], ['replan']]);
     await driver.setAway(true);
     assert.equal(s.m.get('autopilotAwayUntil'), undefined, 'Away on without a time holds until turned off');
     await driver.setAway(true, until);
     await driver.setAway(false);
     assert.equal(s.m.get('autopilotAwayUntil'), undefined);
-    assert.notEqual(s.m.get('autopilotDayType').type, 'away');
+    assert.ok(!awayNow(s));
     // Ends by itself
     await driver.setAway(true, Date.now() + 50);
     await new Promise((r) => setTimeout(r, 80));
     (driver as any).endAwayIfDue();
     await new Promise((r) => setTimeout(r, 20));
-    assert.notEqual(s.m.get('autopilotDayType').type, 'away', 'ended');
+    assert.ok(!awayNow(s), 'ended');
     assert.equal(s.m.get('autopilotAwayUntil'), undefined);
-    // Day type set to working from the Main device (not keepAway) ends Away and its time
-    await driver.setAway(true, Date.now() + 3_600_000);
-    await driver.setDayType('working');
-    assert.equal(s.m.get('autopilotAwayUntil'), undefined);
-    // A nightly Flow (keepAway) keeps both
+    // A day type set while away, from Main or a nightly Flow, keeps the trip and its end
     await driver.setAway(true, until);
-    await driver.setDayType('free', true, 'flow');
-    assert.equal(s.m.get('autopilotDayType').type, 'away');
-    assert.equal(s.m.get('autopilotAwayUntil'), until, 'a nightly Flow keeps the trip and its end');
+    await driver.setDayType('free', 'flow');
+    await driver.setDayType('working');
+    assert.ok(awayNow(s));
+    assert.equal(s.m.get('autopilotDayType').type, 'working');
+    assert.equal(s.m.get('autopilotAwayUntil'), until, 'the day type keeps the trip and its end');
+    await assert.rejects(driver.setDayType('away'), /Unknown day type/, 'away is not a day type');
+});
+
+test('driver: the Away cards parse in Homey\'s zone, refuse nonsense, and Back home ends Away', async () => {
+    const r = rig();
+    r.driver.registerFlows();
+    const calls: any[] = [];
+    r.driver.setAway = async (on: boolean, until?: number) => { calls.push([on, until]); };
+    await r.card('set_away_until').run({date: '24-12-2026', time: '18:30'});
+    assert.deepEqual(calls, [[true, Date.UTC(2026, 11, 24, 17, 30)]]);
+    await assert.rejects(r.card('set_away_until').run({date: '2026-12-24', time: '18:30'}), /away_time_invalid/);
+    await r.card('back_home').run({});
+    assert.deepEqual(calls.at(-1), [false, undefined]);
+});
+
+test('driver: the Away until token holds the end time while away, empty otherwise', async () => {
+    const r = rig();
+    r.homey.i18n = {getLanguage: () => 'en'};
+    const token = await r.homey.flow.createToken('away_until', {value: ''});
+    (r.driver as any).awayUntilToken = token;
+    assert.equal(token.value, '', 'home');
+    const until = Date.now() + 2 * 3_600_000;
+    await r.driver.setAway(true, until);
+    assert.match(token.value, /^(\w+ )?\d\d:\d\d$/, 'a time, with a weekday when not today');
+    await r.driver.setAway(true);
+    assert.equal(token.value, '', 'away with no end');
+    await r.driver.setAway(false);
+    assert.equal(token.value, '');
 });
 
 test('driver: period card run listener uses the Flow\'s minutes', async () => {
@@ -81,7 +110,6 @@ test('driver: period card run listener uses the Flow\'s minutes', async () => {
     const run = card('autopilot_heating_expensive_soon').run;
     assert.ok(run, 'registered');
     assert.ok(card('autopilot_heating_cheap_soon').run);
-    assert.ok(card('autopilot_heating_away_until').run);
     const state = {kind: 'expensive', start: 100 * 60_000, end: 200 * 60_000, anchor: 100 * 60_000, from: 69 * 60_000, now: 70 * 60_000};
     assert.equal(await run({minutes: 30}, state), true);
     assert.equal(await run({minutes: '30'}, state), true, 'a number arg as a string still works');
@@ -90,7 +118,8 @@ test('driver: period card run listener uses the Flow\'s minutes', async () => {
 
 function heatingDevice(r: ReturnType<typeof rig>) {
     const d = new DeviceClass();
-    const caps = new Map<string, any>([['target_temperature', 21.5], ['boolean_NIBE.autopilot_away', true], ['autopilot_status_NIBE', 'holding']]);
+    const caps = new Map<string, any>([['target_temperature', 21.5], ['target_temperature.autopilot_away', 16], ['autopilot_status_NIBE', 'holding']]);
+    r.s.m.set('autopilotDayType', {type: 'working', log: [], away: [{at: 1, on: true}]});
     const store = new Map<string, any>([['autopilotHome', 21.5]]);
     Object.assign(d, {setStoreValue: async (n: string, v: any) => { store.set(n, v); }, unsetStoreValue: async (n: string) => { store.delete(n); }});
     Object.assign(d, {profile: sProfile, role: 'heating', homey: r.homey, driver: r.driver,
@@ -99,16 +128,6 @@ function heatingDevice(r: ReturnType<typeof rig>) {
         getStoreValue: (n: string) => store.get(n), log: () => {}, error: (e: any) => { throw e; }});
     return {d, caps, store};
 }
-
-test('device: Away until parses in Homey\'s zone and refuses nonsense', async () => {
-    const r = rig();
-    const {d} = heatingDevice(r);
-    const calls: any[] = [];
-    r.driver.setAway = async (on: boolean, until?: number) => { calls.push([on, until]); };
-    await d.setAutopilotAwayUntil('24-12-2026', '18:30');
-    assert.deepEqual(calls, [[true, Date.UTC(2026, 11, 24, 17, 30)]]);
-    await assert.rejects(d.setAutopilotAwayUntil('2026-12-24', '18:30'), /away_time_invalid/);
-});
 
 test('device: awayReturn only while away, with the stored home temperature', () => {
     const r = rig();
@@ -119,7 +138,7 @@ test('device: awayReturn only while away, with the stored home temperature', () 
     assert.equal(hooks.awayReturn(), undefined, 'no end time');
     r.s.m.set('autopilotAwayUntil', 1_900_000_000_000);
     assert.deepEqual(hooks.awayReturn(), {at: 1_900_000_000_000, setpoint: 21.5});
-    caps.set('boolean_NIBE.autopilot_away', false);
+    r.s.m.set('autopilotDayType', {type: 'working', log: [], away: [{at: 1, on: true}, {at: 2, on: false}]});
     assert.equal(hooks.awayReturn(), undefined, 'not away');
     assert.equal(typeof hooks.tick, 'function');
     hooks.saveWarming(1_900_000_000_000);

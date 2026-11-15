@@ -17,9 +17,9 @@ import {
     AUTOPILOT_HOTWATER_CAPABILITIES, DAY_TYPE_CAPABILITY, changeReason
 } from './roles';
 import type {ModelProfile} from './profile';
-import {DAY_TYPE_SETTING, DayTypeState, dayTypeAt, isDayType, readDayType, recordDayType, setAway, typeSet} from './autopilot/day-type';
+import {DAY_TYPE_SETTING, DayTypeState, awayOn, dayTypeAt, isDayType, readDayType, recordAway, recordDayType, typeSet} from './autopilot/day-type';
 import {DayTypeSource, analyticsSmartMode, reserveBucket} from './autopilot/analytics';
-import {AWAY_UNTIL_SETTING, awayEnded, readAwayUntil} from './autopilot/away';
+import {AWAY_UNTIL_SETTING, awayEnded, awayUntilLabel, localDateTime, readAwayUntil} from './autopilot/away';
 import {PeriodTrigger, periodDue} from './autopilot/heating-flows';
 import {STARTER_DAYS, localClock} from './autopilot/hotwater-learner';
 import {VerifyError, readRoomControl, undoOnPump, verifyOnPump, withPump} from './pairing-pump';
@@ -64,7 +64,13 @@ export abstract class NibePumpDriver extends Driver {
         this.registerFlows();
         // Away with an end time ends by itself (autopilot/away.ts): checked each minute, the first
         // time once the devices are up, so a trip that ended while Homey was off ends at the start.
-        if (this.profile.autopilotFeed) this.homey.setInterval(() => this.endAwayIfDue(), 60_000);
+        if (this.profile.autopilotHotwater || this.profile.autopilotFeed) {
+            this.homey.setInterval(() => this.endAwayIfDue(), 60_000);
+            this.homey.flow.createToken('away_until',
+                {type: 'string', title: this.homey.__('autopilot.away_until_token'), value: this.awayUntilText()})
+                .then((token: any) => { this.awayUntilToken = token; },
+                    (error: unknown) => this.error('Creating the Away token failed:', error));
+        }
         // The consent checkbox now lives in device settings, but it can still be answered from the
         // pairing view — including while pairing a second pump, long after these devices existed.
         // Without this their checkboxes would sit stale until the next restart, and a consent
@@ -546,7 +552,19 @@ export abstract class NibePumpDriver extends Driver {
             this.homey.flow.getConditionCard(this.flowId("hotwater_charge_planned"))
                 .registerRunListener(async (args: any) => args.device.hotwaterChargePlannedWithin(Number(args.hours)));
             this.homey.flow.getActionCard(this.flowId("set_day_type"))
-                .registerRunListener(async (args: any) => this.setDayType(args.type, true, 'flow'));
+                .registerRunListener(async (args: any) => this.setDayType(args.type, 'flow'));
+        }
+
+        // The home's Away (Main), for hot water and heating alike. Its end time is a token (onInit).
+        if (this.profile.autopilotHotwater || this.profile.autopilotFeed) {
+            this.homey.flow.getActionCard(this.flowId("set_away_until"))
+                .registerRunListener(async (args: any) => {
+                    const until = localDateTime(args.date, args.time, this.homey.clock.getTimezone());
+                    if (until === undefined) throw new Error(this.homey.__('autopilot.heating.away_time_invalid'));
+                    await this.setAway(true, until, 'flow');
+                });
+            this.homey.flow.getActionCard(this.flowId("back_home"))
+                .registerRunListener(async () => this.setAway(false, undefined, 'flow'));
         }
 
         // Autopilot heating (lib/autopilot/live.ts): the status trigger is fired by the device.
@@ -555,10 +573,6 @@ export abstract class NibePumpDriver extends Driver {
                 .registerRunListener(async (args: any) => args.device.heatingStatusNow() === args.status);
             this.homey.flow.getActionCard(this.flowId("autopilot_heating_set_profile"))
                 .registerRunListener(async (args: any) => args.device.setAutopilotProfile(args.profile));
-            this.homey.flow.getActionCard(this.flowId("autopilot_heating_away"))
-                .registerRunListener(async (args: any) => args.device.setAutopilotAway(args.away === 'on'));
-            this.homey.flow.getActionCard(this.flowId("autopilot_heating_away_until"))
-                .registerRunListener(async (args: any) => args.device.setAutopilotAwayUntil(args.date, args.time));
             // Fired by the device each feed cycle with the window it covers; each Flow's lead decides.
             for (const id of ["autopilot_heating_expensive_soon", "autopilot_heating_cheap_soon"])
                 this.homey.flow.getDeviceTriggerCard(this.flowId(id))
@@ -568,22 +582,34 @@ export abstract class NibePumpDriver extends Driver {
 
     /** The household's day type, set from the Main device or a Flow: one app setting for the home,
      *  shown on every Main device that carries it. Throws on a value that is not a day type, so a
-     *  Flow says what went wrong. A Flow card sets it with `keepAway`: a nightly working/free Flow
-     *  must not end a trip (see day-type.ts). */
-    async setDayType(type: unknown, keepAway = false, source: DayTypeSource = 'device') {
+     *  Flow says what went wrong. Away is left as it is (see day-type.ts). */
+    async setDayType(type: unknown, source: DayTypeSource = 'device') {
         if (!isDayType(type)) throw new Error(`Unknown day type: ${String(type)}`);
-        await this.storeDayType(recordDayType(this.dayTypeState(), type, Date.now(), keepAway), source);
+        await this.storeDayType(recordDayType(this.dayTypeState(), type, Date.now()), source);
     }
 
-    /** The home's one Away: the day type, and every Autopilot heating device's thermostat. With
-     *  `until`, Away ends by itself then, and heating is warm again by that time; without it, Away
-     *  holds until turned off. Throws on an end time that has passed. */
-    async setAway(on: boolean, until?: number) {
+    /** The home's one Away, from the Main device's switch or a Flow: hot water keeps only its
+     *  safety net and every Autopilot heating device's thermostat goes to its Away temperature.
+     *  With `until`, Away ends by itself then, and heating is warm again by that time; without
+     *  it, Away holds until turned off. Throws on an end time that has passed. */
+    async setAway(on: boolean, until?: number, source: 'device' | 'flow' | 'end' = 'device') {
         if (on) this.awayEndPending = false;
         if (on && until !== undefined && !(until > Date.now())) throw new Error(this.homey.__('autopilot.heating.away_time_past'));
+        const before = awayOn(this.dayTypeState());
         if (on && until !== undefined) this.homey.settings.set(AWAY_UNTIL_SETTING, until);
         else this.homey.settings.unset(AWAY_UNTIL_SETTING);
-        await this.storeDayType(setAway(this.dayTypeState(), on, Date.now()), 'away');
+        if (before !== on) track('Changed Autopilot Setting', {role: 'main', setting: 'away', setting_value: on ? 'on' : 'off'});
+        this.log(`Away ${on ? 'on' : 'off'} (${source}${until !== undefined ? `, until ${new Date(until).toISOString()}` : ''}).`);
+        await this.storeDayType(recordAway(this.dayTypeState(), on, Date.now()));
+    }
+
+    /** The "Away until" Flow token: when Away ends, empty while home or with no end time. */
+    private awayUntilToken?: any;
+
+    private awayUntilText(): string {
+        const until = awayOn(this.dayTypeState()) ? readAwayUntil(this.homey.settings.get(AWAY_UNTIL_SETTING)) : undefined;
+        return until === undefined ? ''
+            : awayUntilLabel(until, Date.now(), this.homey.clock.getTimezone(), this.homey.i18n?.getLanguage?.() ?? 'en');
     }
 
     /** Ending Away by itself failed on some device (the thermostat write): retried each minute. */
@@ -593,8 +619,11 @@ export abstract class NibePumpDriver extends Driver {
      *  that failed to follow (pump offline) is retried each minute until it does, since the end
      *  time and the day type are already gone and nothing else would put the thermostat back. */
     private endAwayIfDue() {
+        // "Thu 18:00" becomes "18:00" on the day: the token follows the clock.
+        const text = this.awayUntilText();
+        if (this.awayUntilToken && this.awayUntilToken.value !== text) this.awayUntilToken.setValue(text).catch(this.error);
         if (this.awayEndPending) {
-            this.setAway(false).then(() => {
+            this.setAway(false, undefined, 'end').then(() => {
                 this.awayEndPending = false;
                 this.log('Away ended on every device.');
             }, (error: unknown) => this.error('Ending Away failed again, retrying:', error));
@@ -602,12 +631,12 @@ export abstract class NibePumpDriver extends Driver {
         }
         const until = readAwayUntil(this.homey.settings.get(AWAY_UNTIL_SETTING));
         if (!awayEnded(until, Date.now())) return;
-        if (this.dayTypeState()?.type !== 'away') {
+        if (!awayOn(this.dayTypeState())) {
             this.homey.settings.unset(AWAY_UNTIL_SETTING);
             return;
         }
         this.log(`Away ends by itself (until ${new Date(until!).toISOString()}).`);
-        this.setAway(false).catch((error: unknown) => {
+        this.setAway(false, undefined, 'end').catch((error: unknown) => {
             this.awayEndPending = true;
             this.error('Ending Away failed, retrying each minute:', error);
         });
@@ -618,21 +647,22 @@ export abstract class NibePumpDriver extends Driver {
     }
 
     /** Store the state and bring every device in line with it: Main shows the day type, Autopilot
-     *  heating follows Away. Every device is tried; the first failure is thrown afterwards. */
-    private async storeDayType(state: DayTypeState | undefined, source: DayTypeSource) {
+     *  and Away, Autopilot heating follows Away. Every device is tried; the first failure is thrown afterwards. */
+    private async storeDayType(state: DayTypeState | undefined, source?: DayTypeSource) {
         const before = this.dayTypeState();
         if (state) this.homey.settings.set(DAY_TYPE_SETTING, state);
         // Told when a change was logged (the day type in force, or the calendar handing over),
         // not when a nightly Flow sets what is already set.
         const last = (s?: DayTypeState) => s?.log[s.log.length - 1];
-        if (state && last(state) && last(state)!.at !== last(before)?.at) {
+        if (source && state && last(state) && last(state)!.at !== last(before)?.at) {
             const now = Date.now();
             track('Changed Day Type', {day_type: dayTypeAt(state, now, localClock(this.homey.clock.getTimezone())), source});
             this.syncInstallProfile();
         }
-        const away = state?.type === 'away';
+        const away = awayOn(state);
         // Away ended some other way (the Main device's day type): its end time goes with it.
         if (!away) this.homey.settings.unset(AWAY_UNTIL_SETTING);
+        await this.awayUntilToken?.setValue(this.awayUntilText()).catch(this.error);
         let failure: unknown;
         for (const driver of this.homey.drivers.getDrivers ? Object.values(this.homey.drivers.getDrivers()) as any[] : [this])
             for (const d of driver.getDevices() as any[]) {

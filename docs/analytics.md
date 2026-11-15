@@ -276,7 +276,7 @@ what Autopilot *would* have done.
 | Event | Fires when | Properties | Call site |
 | --- | --- | --- | --- |
 | `Changed Smart Mode` | A function's stored Smart mode changes: Repair, Verify, or SPA switched on at the pump taking over | `role`, `smart_mode`, `from_smart_mode` | [`lib/device.ts`](../lib/device.ts) `storeSmartMode()` |
-| `Changed Autopilot Setting` | An Autopilot setting changes value | `role`, `setting`; `setting_value`¹ | `setReserve()`, `setHousehold()`, the Comfort range and Away temperature listeners and `setAutopilotProfile()` in [`lib/device.ts`](../lib/device.ts); `solar_save` and `set_outdoor_sensor` in [`lib/driver.ts`](../lib/driver.ts) |
+| `Changed Autopilot Setting` | An Autopilot setting changes value | `role`, `setting`; `setting_value`¹ | `setReserve()`, `setHousehold()`, the Comfort range and Away temperature listeners and `setAutopilotProfile()` in [`lib/device.ts`](../lib/device.ts); `solar_save`, `set_outdoor_sensor` and `setAway()` in [`lib/driver.ts`](../lib/driver.ts) |
 | `Changed Day Type` | A day-type change is logged — not a nightly Flow setting what is already set | `day_type`, `source` | [`lib/driver.ts`](../lib/driver.ts) `storeDayType()` |
 | `Started Hot Water Charge` | A charge starts: one Autopilot started (in a simulation, would have), or one your device started itself | `started_by`, `simulation`; `charge_reason`² | [`lib/autopilot/hotwater-shadow.ts`](../lib/autopilot/hotwater-shadow.ts) `chargeStarted()` |
 | `Blocked Autopilot` | Something outside Autopilot stops it acting, once per reason | `role`, `blocked_by`, `simulation` | hot water: `startCharge()` (the lever) and `step()` (no prices) in `hotwater-shadow.ts`; heating: `trackHeating()` in [`lib/device.ts`](../lib/device.ts) |
@@ -284,7 +284,7 @@ what Autopilot *would* have done.
 | `Scored Autopilot Day` | Once a day per function: see below | see below | hot water: `scoreDay()` with the morning message; heating: `scoreHeatingSlot()` when a new local day starts |
 
 ¹ `setting` → `setting_value`: `reserve` → `off`/`20`/`40`/`60`/`other`; `solar_live`, `solar_forecast`,
-`household` (answered or cleared), `outdoor_sensor` (a sensor chosen or cleared) → `on`/`off`;
+`household` (answered or cleared), `outdoor_sensor` (a sensor chosen or cleared), `away` (the home's Away, `role: 'main'`) → `on`/`off`;
 `comfort_range` → the profile id (`off`, `comfortable`, `save_some`, `save_most`). `away_temperature`
 carries **no** `setting_value`: it is a setpoint, so only the fact that it changed is sent. The
 household's answers and which sensor was picked are never sent.

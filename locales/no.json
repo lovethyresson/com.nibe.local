@@ -189,7 +189,7 @@
         "choose_off_desc_heating": "Varmen følger bare kurven.",
         "choose_off_desc_hotwater": "Varmtvannet følger varmepumpens egne innstillinger.",
         "saved": "Smartmodus lagret",
-        "success_description": "Komfortområde, Borte og status ligger på Oppvarming. Termostaten bestemmer komforttemperaturen.",
+        "success_description": "Komfortområde og status ligger på Oppvarming, Borte på Main. Termostaten bestemmer komforttemperaturen.",
         "badge_spa": "Smart price adaption",
         "badge_off": "Av",
         "choose_on": "Autopilot",
@@ -685,7 +685,8 @@
       "starting_title": "Starter",
       "starting_heating": "Leser prognosen og strømprisene. Tar omtrent ett minutt.",
       "starting_hotwater": "Leser strømprisene og tanken. Tar omtrent ett minutt.",
-      "starting_app": "Leser varmepumpen din. Tar omtrent ett minutt."
+      "starting_app": "Leser varmepumpen din. Tar omtrent ett minutt.",
+      "away_until": "Borte til __until__ · __c__ °C"
     },
     "hotwater_status": {
       "learning": "Lærer varmtvannsbruken deres",
@@ -711,7 +712,8 @@
       "learning": "Lærer varmtvannsbruken din",
       "off": "Autopilot for varmtvann er av. Slå den på i Reparer → Smartmodus.",
       "pick": "Velg en varmtvannsenhet.",
-      "away_keeps": "Autopilot holder bare minimumet ditt varmt."
+      "away_keeps": "Autopilot holder bare minimumet ditt varmt.",
+      "away_until": "Til __until__"
     },
     "savings": {
       "pick": "Velg en enhet for Oppvarming eller Varmtvann i widgetens innstillinger.",
@@ -739,12 +741,13 @@
       "row_before_days": "Før Autopilot · __days__ dager",
       "row_so_far_days": "Så langt · __days__ dager",
       "row_with_days": "Med Autopilot · __days__ dager",
-      "charges_title": "Ladinger denne uken",
+      "charges_title": "Siste 7 dager",
       "band_cheap": "Billig",
       "band_middle": "Midten",
       "band_dear": "Dyrt",
       "stat_week": "Siste 7 dager",
       "stat_year": "I år"
-    }
+    },
+    "away_until_token": "Borte til"
   }
 }

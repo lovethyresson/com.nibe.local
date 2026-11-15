@@ -403,7 +403,8 @@
       "starting_title": "Starting",
       "starting_heating": "Reading the forecast and prices. Takes about a minute.",
       "starting_hotwater": "Reading prices and the tank. Takes about a minute.",
-      "starting_app": "Reading your heat pump. Takes about a minute."
+      "starting_app": "Reading your heat pump. Takes about a minute.",
+      "away_until": "Away until __until__ · __c__ °C"
     },
     "hotwater_status": {
       "learning": "Learning your hot water use",
@@ -429,7 +430,8 @@
       "learning": "Learning your hot water use",
       "off": "Autopilot hot water is off. Turn it on in Repair → Smart mode.",
       "pick": "Pick a Hot water device.",
-      "away_keeps": "Autopilot only keeps your minimum warm."
+      "away_keeps": "Autopilot only keeps your minimum warm.",
+      "away_until": "Until __until__"
     },
     "savings": {
       "pick": "Pick a Heating or Hot water device in the widget's settings.",
@@ -457,12 +459,13 @@
       "row_before_days": "Before Autopilot · __days__ days",
       "row_so_far_days": "So far · __days__ days",
       "row_with_days": "With Autopilot · __days__ days",
-      "charges_title": "Charges this week",
+      "charges_title": "Last 7 days",
       "band_cheap": "Cheap",
       "band_middle": "Middle",
       "band_dear": "Expensive",
       "stat_week": "Last 7 days",
       "stat_year": "This year"
-    }
+    },
+    "away_until_token": "Away until"
   }
 }

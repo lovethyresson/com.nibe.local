@@ -207,4 +207,4 @@ export class HeatingDay {
 }
 
 /** `Changed Day Type`'s source. */
-export type DayTypeSource = 'flow' | 'device' | 'away';
+export type DayTypeSource = 'flow' | 'device';

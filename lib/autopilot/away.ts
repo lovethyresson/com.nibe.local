@@ -16,6 +16,18 @@ export function awayEnded(until: number | undefined, now: number): boolean {
     return until !== undefined && now >= until;
 }
 
+/** When Away ends, as the owner reads it: the time today, "Thu 18:00" within the week,
+ *  "22 Nov 18:00" beyond it. 24-hour time; weekday and month in the owner's language. */
+export function awayUntilLabel(until: number, now: number, timeZone: string, language = 'en'): string {
+    const time = new Date(until).toLocaleTimeString('sv-SE', {timeZone, hour: '2-digit', minute: '2-digit'});
+    const date = (t: number) => new Date(t).toLocaleDateString('en-CA', {timeZone});
+    if (date(until) === date(now)) return time;
+    const day = until - now < 6 * 86_400_000
+        ? new Date(until).toLocaleDateString(language, {timeZone, weekday: 'short'})
+        : new Date(until).toLocaleDateString(language, {timeZone, day: 'numeric', month: 'short'});
+    return `${day} ${time}`;
+}
+
 /** A Flow card's date (`dd-mm-yyyy`) and time (`HH:mm`), read in the home's time zone, as ms.
  *  Undefined when either does not parse. */
 export function localDateTime(date: unknown, time: unknown, timeZone: string): number | undefined {

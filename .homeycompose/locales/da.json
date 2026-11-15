@@ -403,7 +403,8 @@
       "starting_title": "Starter",
       "starting_heating": "Læser prognosen og elpriserne. Tager omkring et minut.",
       "starting_hotwater": "Læser elpriserne og tanken. Tager omkring et minut.",
-      "starting_app": "Læser din varmepumpe. Tager omkring et minut."
+      "starting_app": "Læser din varmepumpe. Tager omkring et minut.",
+      "away_until": "Fraværende til __until__ · __c__ °C"
     },
     "hotwater_status": {
       "learning": "Lærer jeres forbrug af varmt vand",
@@ -429,7 +430,8 @@
       "learning": "Lærer dit varmtvandsforbrug",
       "off": "Autopilot for varmt vand er slået fra. Slå den til under Reparer → Smart tilstand.",
       "pick": "Vælg en varmtvandsenhed.",
-      "away_keeps": "Autopilot holder kun dit minimum varmt."
+      "away_keeps": "Autopilot holder kun dit minimum varmt.",
+      "away_until": "Til __until__"
     },
     "savings": {
       "pick": "Vælg en enhed for Opvarmning eller Varmt vand i widgettens indstillinger.",
@@ -457,12 +459,13 @@
       "row_before_days": "Før Autopilot · __days__ dage",
       "row_so_far_days": "Indtil nu · __days__ dage",
       "row_with_days": "Med Autopilot · __days__ dage",
-      "charges_title": "Opvarmninger i denne uge",
+      "charges_title": "Seneste 7 dage",
       "band_cheap": "Billig",
       "band_middle": "Midten",
       "band_dear": "Dyrt",
       "stat_week": "Seneste 7 dage",
       "stat_year": "I år"
-    }
+    },
+    "away_until_token": "Fraværende til"
   }
 }

@@ -189,7 +189,7 @@
         "choose_off_desc_heating": "Värmen följer bara kurvan.",
         "choose_off_desc_hotwater": "Varmvattnet följer din värmepumps egna inställningar.",
         "saved": "Smart läge sparat",
-        "success_description": "Komfortspann, Borta och status finns på Uppvärmning. Termostaten anger komforttemperaturen.",
+        "success_description": "Komfortspann och status finns på Uppvärmning, Borta på Main. Termostaten anger komforttemperaturen.",
         "badge_spa": "Smart price adaption",
         "badge_off": "Av",
         "choose_on": "Autopilot",
@@ -685,7 +685,8 @@
       "starting_title": "Startar",
       "starting_heating": "Läser prognosen och elpriserna. Tar ungefär en minut.",
       "starting_hotwater": "Läser elpriserna och tanken. Tar ungefär en minut.",
-      "starting_app": "Läser av din värmepump. Tar ungefär en minut."
+      "starting_app": "Läser av din värmepump. Tar ungefär en minut.",
+      "away_until": "Borta till __until__ · __c__ °C"
     },
     "hotwater_status": {
       "learning": "Lär sig er varmvattenanvändning",
@@ -711,7 +712,8 @@
       "learning": "Lär sig din varmvattenanvändning",
       "off": "Autopilot för varmvatten är av. Slå på den i Reparera → Smart läge.",
       "pick": "Välj en varmvattenenhet.",
-      "away_keeps": "Autopilot håller bara din miniminivå varm."
+      "away_keeps": "Autopilot håller bara din miniminivå varm.",
+      "away_until": "Till __until__"
     },
     "savings": {
       "pick": "Välj en enhet för Uppvärmning eller Varmvatten i widgetens inställningar.",
@@ -739,12 +741,13 @@
       "row_before_days": "Före Autopilot · __days__ dagar",
       "row_so_far_days": "Hittills · __days__ dagar",
       "row_with_days": "Med Autopilot · __days__ dagar",
-      "charges_title": "Laddningar i veckan",
+      "charges_title": "Senaste 7 dagarna",
       "band_cheap": "Billigt",
       "band_middle": "Mitten",
       "band_dear": "Dyrt",
       "stat_week": "Senaste 7 dagarna",
       "stat_year": "I år"
-    }
+    },
+    "away_until_token": "Borta till"
   }
 }

@@ -968,27 +968,22 @@ test('the pump stays the truth: SPA turned on elsewhere flips Autopilot to SPA, 
 test('Away moves the thermostat and back; leaving Autopilot while Away puts it back first', async () => {
     const p = smartPump();
     const h = p.heating;
-    const caps = new Map<string, any>([['target_temperature', 21.5], ['boolean_NIBE.autopilot_away', false],
-        ['target_temperature.autopilot_away', 16]]);
+    const caps = new Map<string, any>([['target_temperature', 21.5], ['target_temperature.autopilot_away', 16]]);
     h.hasCapability = (n: string) => caps.has(n);
     h.getCapabilityValue = (n: string) => caps.get(n);
     h.setCapabilityValue = async (n: string, v: any) => { caps.set(n, v); };
     const thermostat: number[] = [];
     h.triggerCapabilityListener = async (n: string, v: number) => { assert.equal(n, 'target_temperature'); thermostat.push(v); };
-    // The home's Away lives in the driver (day type); every heating device follows it.
-    const homeAway: boolean[] = [];
-    h.driver = {...h.driver, setAway: async (on: boolean) => { homeAway.push(on); await h.applyAway(on); }};
-    await h.setAutopilotAway(true);
+    // The home's Away lives in the driver (Main's switch); every heating device follows it.
+    await h.applyAway(true);
     assert.deepEqual(thermostat, [16]);
     assert.equal(p.store.get('autopilotHome'), 21.5);
-    await h.setAutopilotAway(true);
+    await h.applyAway(true);
     assert.deepEqual(thermostat, [16], 'Away twice changes nothing');
     p.store.set('smartMode', 'autopilot');
     await h.chooseSmartMode('off');
     assert.deepEqual(thermostat, [16, 21.5], 'the home temperature is back before Autopilot\'s controls go');
     assert.equal(p.store.get('autopilotHome'), undefined);
-    assert.equal(caps.get('boolean_NIBE.autopilot_away'), false);
-    assert.deepEqual(homeAway, [true, true], 'leaving Autopilot keeps the home away: hot water still follows it');
 });
 
 test('pool and cooling offer SPA and Off; Autopilot is not selectable yet', async () => {
