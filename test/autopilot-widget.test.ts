@@ -200,7 +200,8 @@ test('the shift axis is symmetric, so 0 sits in the middle', () => {
 
 test('the day\'s use is told as runs of hours: a shower over the hour is one line, a trickle is none', () => {
     const u = undefined;
-    // 2026-11-15: 46 L at 09, 126 at 10, 20 at 11, a trickle, 25 L at 14.
-    assert.deepStrictEqual(useRuns([2, 2, u, 2, 2, 2, 2, 2, 6, 46, 126, 20, 0, 0, 25, 4, 12, 5]),
-        [{hour: 9, litres: 190}, {hour: 14, litres: 25}]);
+    // 2026-11-15: 46 L at 09 and 126 at 10 (one shower), then 20–30 L an hour of noise while the
+    // tank charged, and 60 L at 16.
+    assert.deepStrictEqual(useRuns([2, 2, u, 2, 2, 2, 2, 2, 6, 46, 126, 20, 25, 28, 25, 4, 60, 5]),
+        [{hour: 9, litres: 170}, {hour: 16, litres: 60}]);
 });

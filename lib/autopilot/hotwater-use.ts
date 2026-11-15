@@ -42,10 +42,12 @@ export interface TodayRow {
     value?: string;
 }
 
-/** Use below this in an hour is a tap left open or a reading's noise, litres. */
-const QUIET_LITRES = 10;
+/** An hour that used less than this is no line of its own and joins no other, litres: what the
+ *  tank reads while it charges is noise of 10–60 L an hour, and at 10 L it joined the 10:00
+ *  shower and the afternoon into one 390 L line (2026-11-15). */
+const QUIET_LITRES = 30;
 /** A run of hours that used less than this in all is not worth a line, litres. */
-const USE_ROW_LITRES = 20;
+const USE_ROW_LITRES = 30;
 
 /** The day's use as runs of hours, each with its first hour and its litres: an hour of use
  *  joins the one before it, so a shower that crosses the hour is one line. Pure. */
