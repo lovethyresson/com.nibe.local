@@ -1608,30 +1608,62 @@ phase A (offline) can run alongside M2.
   priced at the export value.
 - **Fallback:** if the solve throws or takes longer than 5 s, use the M3 plan.
 - **Built 2026-11-15 (`lib/autopilot/optimiser.ts`), shadow only.**
-  - State: `ti` 30 points over the band ±0.5 K, `tm` 40 points over doing nothing's mass ±(band
-    + 1 K), and the shift level in force, one of 7 from the deepest coast to the largest pre-heat
-    (0 among them). The level is state so the ramp term and the curve's 49 min lag can be priced;
-    the lag is taken as the previous level blended with the new one (26 % per slot). Each slot
-    holds the level or steps one level, so the DP's feed can jump ~5 K a slot where the actuator
-    ramps 2 K: fine for a logged comparison, not for feeding.
-  - Cost per slot: price × electricity at the learned COP once trusted (stage 1, above); the
-    planner's owed heat per degree-hour below the setpoint, so both chase the same objective;
-    20 × mean price per K² outside the band (w_low, w_high); 0.002 × mean price per level changed
-    (w_ramp). Terminal: stored heat short of comfort, bought back like owed heat.
-  - The house step is the model's exact one, precomputed as a linear map (`houseStepper`). 96
-    slots × 8,400 states × 3 moves ≈ 2.4 M transitions in ~70 ms on a Mac; one time step per
-    `setImmediate`. The plan found is re-simulated through the planner's exact model and scored
-    with its `fairCost`; a plan that doesn't beat doing nothing there is doing nothing (the grid
-    found a few K of "saving" at a flat price the exact model didn't confirm).
+  - State: `ti` 40 points over the band ±0.5 K, `tm` 40 points over doing nothing's mass ±(band
+    + 1 K), and what the curve sees beyond the real outdoor temperature, `d` (12 points), stepped
+    by the curve's own filter, `d' = (1 − α)(d + Δte) + α·bias`, which is the planner's `simulate`
+    exactly. Feeds are 7 levels from the deepest coast to the largest pre-heat (0 among them).
+  - **One decision an hour**, each simulated slot by slot. At one decision a slot (§13's first
+    sketch) a slot's feed moves indoor ~0.02 K, an order of magnitude under the grid's spacing,
+    and the interpolation's error chose the plan: on a real day its plan cost more than the greedy
+    planner's on the DP's own objective. Hourly, it beats the planner on every plan it makes.
+  - Cost per slot: price × electricity at the learned COP once trusted (above); the planner's
+    owed heat per degree-hour below the setpoint, so both chase the same objective; 20 × mean
+    price per K² outside the band (w_low, w_high); 0.002 × mean price per K the feed differs from
+    what the curve sees (w_ramp). Terminal: stored heat short of comfort, bought back like owed heat.
+  - **The actuator's ramp** (2 K a slot) is not in the state: the values assume a level is reached
+    at once. The forward pass knows the bias in force and ramps each candidate from it, so the
+    plan is one the actuator can send. That recovered a quarter of what ignoring the ramp cost
+    (below); the rest needs the bias in force as a fourth dimension, not built.
+  - About 100 ms for 96 slots on a Mac (24 decisions × 19,200 states × 7 feeds, inner loop
+    inlined); one decision per `setImmediate`. The plan is re-simulated through the planner's
+    exact model and scored with its `fairCost`; a plan that doesn't beat doing nothing there is
+    doing nothing.
   - **Shadow log:** each slot, beside the shadow's default preset (Save some), from that preset's
     own state and warm start: `dp: {preset, bias, shift, ahead, cost, planner, baseline, ms,
     fallback?}`, where `cost` and `planner` are the predicted horizon costs at equal comfort.
     The hourly log line adds the DP's bias and both costs. Nothing is fed from it.
-  - **Simulated (`test/autopilot-optimiser.test.ts`, a 3× evening peak, 2 °C):** it does nothing
-    at a flat price, coasts through the peak like the planner, and predicts 1–3 % of the horizon's
-    cost below the planner on every preset and both houses (radiator Save some 28.82 against
-    29.16, doing nothing 31.20). Whether that holds on real days is what the shadow log is for;
-    the ship gate above is unchanged.
+- **Measured offline (2026-11-15, `dev/evaluate-cop.mjs`).** 45 real SE3 days (2026-10-01…11-14,
+  public spot prices, which match Homey's to 0.1 %, all-in `(spot + 0.609) × 1.25`), Open-Meteo's
+  weather for central Stockholm, and the same days on a −5 °C day shape. The live build
+  (shift-only, live profiles, the S1155's learned curve), closed loop, hourly replanning, on a
+  simulated pump whose COP is η 0.5 × Carnot from 1 °C brine at the supply it really runs. Saving
+  at equal comfort against doing nothing on that pump, totalled over all days:
+
+  | | old view (pump at COP 3) | planner, COP 3 | planner, learned COP | DP |
+  |---|---|---|---|---|
+  | real weather, mean of 3 houses × 3 profiles | 4.38 % | 2.44 % | 2.51 % | 2.53 % |
+  | −5 °C day shape | 4.45 % | 2.66 % | 2.79 % | 1.96 % |
+  | air source (η 0.4), real weather | 4.38 % | 2.02 % | 1.78 % | – |
+
+  - **A pump whose COP falls with supply takes ~40 % off every saving measured so far.** The
+    yardstick of §7.3 priced the pump at a constant COP, so pre-heating looked free. That is the
+    big finding, and it holds for every house and profile.
+  - **Pricing heat at the learned COP wins back almost nothing**: +0.07 and +0.13 points on the
+    means, up to +0.65 on Save more in a radiator or west-facing house, but −0.1 to −0.5 on the
+    slab, and −0.24 on air source (−1.9 on the slab at Save more). It is the right price; the
+    greedy search gains little from it. An η 20 % off changes no plan at all (only the COP's
+    shape steers a plan, not its level).
+  - **The DP** beats the planner at Comfort in every house and weather (+0.5 to +1.6 points), and
+    on the slab at every profile in real weather. It loses at Save some and Save more elsewhere
+    (−0.9 to −1.3 points in real weather, −1.0 to −1.9 in the cold, slab included). The loss is
+    the ramp, which bites hardest where the profiles allow the widest swings: with the actuator's
+    ramp lifted for every arm (`--no-ramp`, radiator, Save some, 10 days) it led the planner by
+    0.05 points, 0.25 at comfort. Not yet worth feeding.
+  - **Side finding, not from this work:** planned on a house 30 % off (heat loss ×1.3, mass ×0.7),
+    the slab *loses* 6–8 % at Comfort and Save some in the live build, with either COP. October's
+    "model error barely matters" (§7.3) was measured on the presets and full model, and does not
+    carry over to shift-only live on a slab. Worth its own look before live ships to slab houses.
+  - The ship gate below is unchanged.
 - **Ship gate:** beats M3's counterfactual on at least 3 test houses over 4 weeks.
   - Radiator houses gain least here, so the slab tester is essential.
 
@@ -1735,7 +1767,9 @@ four plus the Setup hub.
 - [ ] **M5** COP, DP optimiser, air-source, PV; ship gate vs M3
       (COP model learned and pricing the planner's heat once trusted, offline 2026-11-15; air-source
       learns against outdoor, no defrost penalty yet; DP optimiser built and logging beside Save some
-      in shadow 2026-11-15, never fed; ship gate not started)
+      in shadow 2026-11-15, never fed; offline bench `dev/evaluate-cop.mjs`: the learned COP gains
+      ~0.1 point, the DP wins at Comfort and loses at the wider profiles until the ramp is in its
+      state; ship gate not started)
 
 ## 19. Roadmap decisions (maintainer, 2026-11-02)
 

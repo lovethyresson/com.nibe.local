@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {BUDGET_MS, DP_PRESET, houseStepper, optimise, shadowOptimise, shiftLevels} from '../lib/autopilot/optimiser';
+import {BUDGET_MS, DP_PRESET, STEP_SLOTS, houseStepper, optimise, shadowOptimise, shiftLevels} from '../lib/autopilot/optimiser';
 import {ForecastSlot, planShift, steadyState} from '../lib/autopilot/planner';
 import {stepHouse} from '../lib/autopilot/model';
 import {PRESETS, limitsFor} from '../lib/autopilot/presets';
@@ -87,7 +87,8 @@ test('it yields between time steps, so the app stays responsive', async () => {
     const r = await optimise({house: SLAB_HOUSE, comfort: 21, state: steadyState(SLAB_HOUSE, 21, 2), forecast: peaked,
         limits: limitsFor(PRESETS.save_some)}, {defer: () => { yields++; return new Promise((resolve) => setImmediate(resolve)); }});
     assert.equal(r.fallback, undefined);
-    assert.equal(yields, peaked.length);
+    // Once per decision: an hour of slots.
+    assert.equal(yields, Math.ceil(peaked.length / STEP_SLOTS));
     assert.ok(r.ms < BUDGET_MS);
 });
 

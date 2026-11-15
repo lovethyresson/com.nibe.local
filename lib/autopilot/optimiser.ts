@@ -28,13 +28,17 @@ import {
     ForecastSlot, Plan, PlanState, PumpCurve, Simulation, buyBackCop, comfortReference, fairCost, marginals, planShift,
     pumpHeat, simulate, slotCop,
 } from './planner';
-import {CURVE_TAU_H} from './actuator';
+import {CURVE_TAU_H, RAMP_K_PER_SLOT} from './actuator';
 import {comfortBias} from './trim';
 
 const SLOT_H = 0.25;
-export const TI_POINTS = 30;
+export const TI_POINTS = 40;
 export const TM_POINTS = 40;
+/** Slots per decision: an hour. */
+export const STEP_SLOTS = 4;
 export const LEVELS = 7;
+/** Points over what the curve sees, beyond the real outdoor temperature. */
+export const D_POINTS = 12;
 export const BUDGET_MS = 5000;
 /** Share of a new feed the curve has taken in after one slot (§4.5). */
 const CURVE_ALPHA = 1 - Math.exp(-SLOT_H / CURVE_TAU_H);
@@ -60,6 +64,8 @@ export interface OptimiserOptions {
     now?: () => number;
     /** Yields between time steps; `setImmediate` in the app. */
     defer?: () => Promise<void>;
+    /** Shift levels each side of 0 (bench experiments); 3 by default. */
+    perSide?: number;
 }
 
 export interface OptimiserResult {
@@ -84,6 +90,19 @@ const defaultDefer = () => new Promise<void>((resolve) => setImmediate(resolve))
  *  on the parameters, so a step is two 2×2 products (model.ts `stepHouse`, without its per-call
  *  expm). */
 export function houseStepper(p: HouseParams): (ti: number, tm: number, te: number, q: number, sun: number) => [number, number] {
+    const {inputs, step} = houseLinear(p);
+    return (ti, tm, te, q, sun) => {
+        const [b1, b2] = inputs(te, q, sun);
+        return step(ti, tm, b1, b2);
+    };
+}
+
+/** The step split in two: the slot's inputs as `b`, then the linear map, so a solve can work out
+ *  `b` once for every air and mass point that shares it. */
+export function houseLinear(p: HouseParams): {inputs: (te: number, q: number, sun: number) => [number, number];
+    step: (ti: number, tm: number, b1: number, b2: number) => [number, number];
+    /** [e11, e12, e21, e22, g11, g12, g21, g22]: next = E·[ti, tm] + G·b. */
+    coefficients: number[]} {
     const a11 = -(1 / p.rim + p.heatLoss) / p.ci, a12 = 1 / (p.rim * p.ci);
     const a21 = 1 / (p.rim * p.cm), a22 = -1 / (p.rim * p.cm);
     const s = (a11 + a22) / 2;
@@ -98,19 +117,20 @@ export function houseStepper(p: HouseParams): (ti: number, tm: number, te: numbe
     const m11 = e11 - 1, m12 = e12, m21 = e21, m22 = e22 - 1;
     const g11 = (a22 * m11 - a12 * m21) / det, g12 = (a22 * m12 - a12 * m22) / det;
     const g21 = (-a21 * m11 + a11 * m21) / det, g22 = (-a21 * m12 + a11 * m22) / det;
-    return (ti, tm, te, q, sun) => {
-        const P = q / SLOT_H;
-        const b1 = (p.heatLoss * te + (1 - p.f) * P + sun + p.gains) / p.ci;
-        const b2 = p.f * P / p.cm;
-        return [e11 * ti + e12 * tm + g11 * b1 + g12 * b2, e21 * ti + e22 * tm + g21 * b1 + g22 * b2];
+    return {
+        inputs: (te, q, sun) => {
+            const P = q / SLOT_H;
+            return [(p.heatLoss * te + (1 - p.f) * P + sun + p.gains) / p.ci, p.f * P / p.cm];
+        },
+        step: (ti, tm, b1, b2) => [e11 * ti + e12 * tm + g11 * b1 + g12 * b2, e21 * ti + e22 * tm + g21 * b1 + g22 * b2],
+        coefficients: [e11, e12, e21, e22, g11, g12, g21, g22],
     };
 }
 
 /** The shift levels: the deepest coast to the largest pre-heat, 0 among them. */
-export function shiftLevels(limits: Limits): number[] {
-    const down = limits.maxCoastBias;
-    const up = limits.maxBias;
-    return [-down, -2 * down / 3, -down / 3, 0, up / 3, 2 * up / 3, up];
+export function shiftLevels(limits: Limits, perSide = (LEVELS - 1) / 2): number[] {
+    const side = (max: number) => Array.from({length: perSide}, (_, i) => max * (i + 1) / perSide);
+    return [...side(limits.maxCoastBias).reverse().map((v) => -v), 0, ...side(limits.maxBias)];
 }
 
 const grid = (lo: number, hi: number, n: number) => Array.from({length: n}, (_, i) => lo + (hi - lo) * i / (n - 1));
@@ -129,7 +149,7 @@ export async function optimise(input: OptimiserInput, options: OptimiserOptions 
         fallback: why, ...(error ? {error} : {}),
     });
     try {
-        const solved = await solve(input, pump, planner, {now, started, budget, defer});
+        const solved = await solve(input, pump, planner, {now, started, budget, defer, perSide: options.perSide});
         return solved ?? fallback('timeout');
     } catch (error) {
         return fallback('error', (error as Error)?.message ?? String(error));
@@ -137,11 +157,11 @@ export async function optimise(input: OptimiserInput, options: OptimiserOptions 
 }
 
 async function solve(input: OptimiserInput, pump: PumpCurve, planner: Plan,
-                     clock: {now: () => number; started: number; budget: number; defer: () => Promise<void>}): Promise<OptimiserResult | undefined> {
+                     clock: {now: () => number; started: number; budget: number; defer: () => Promise<void>; perSide?: number}): Promise<OptimiserResult | undefined> {
     const {house, comfort, state, forecast, limits} = input;
     const n = forecast.length;
-    const levels = limits.maxBias === 0 && limits.maxCoastBias === 0 ? [0] : shiftLevels(limits);
-    const L = levels.length;
+    const levels = limits.maxBias === 0 && limits.maxCoastBias === 0 ? [0] : shiftLevels(limits, clock.perSide);
+    const A = levels.length;
     const held = forecast.map((s) => comfortBias(house, pump, comfort, s.te));
     const baseline = planner.baseline;
     const prices = forecast.map((s) => s.price);
@@ -158,81 +178,171 @@ async function solve(input: OptimiserInput, pump: PumpCurve, planner: Plan,
     const tmLo = Math.min(...baseline.tm, state.tm) - limits.lower - 1;
     const tmHi = Math.max(...baseline.tm, state.tm) + limits.upper + 1;
     const tmGrid = grid(tmLo, tmHi, TM_POINTS);
+    // What the curve sees, as the real outdoor temperature minus its view: d' = (1 − α)(d + Δte) + α·bias,
+    // exactly the curve's filter (actuator.ts `curveInput`) the planner's `simulate` runs. Before
+    // the first slot it is te₀ − the curve's view now.
+    const d0 = forecast[0].te - state.curve;
+    const biasLo = Math.min(...held) - limits.maxCoastBias;
+    const biasHi = Math.max(...held) + limits.maxBias;
+    const dGrid = grid(Math.min(biasLo, d0) - 1, Math.max(biasHi, d0) + 1, D_POINTS);
     const tiStep = tiGrid[1] - tiGrid[0];
     const tmStep = tmGrid[1] - tmGrid[0];
-    const states = TI_POINTS * TM_POINTS * L;
-    const at = (i: number, j: number, l: number) => (l * TM_POINTS + j) * TI_POINTS + i;
-    const step = houseStepper(house);
-    const startLevel = nearest(levels, state.bias - held[0]);
+    const dStep = dGrid[1] - dGrid[0];
+    const plane = TI_POINTS * TM_POINTS;
+    const states = plane * D_POINTS;
+    const at = (i: number, j: number, c: number) => c * plane + j * TI_POINTS + i;
+    const linear = houseLinear(house);
+    // Heat follows indoor only when the pump is modelled on it (planner.ts `pumpHeat`); otherwise a
+    // slot's heat, electricity and house inputs are shared by every air and mass point.
+    const byIndoor = !!(pump.supply && pump.heatPerSupplyK !== undefined && !pump.shiftOnly);
+    const dTe = forecast.map((s, k) => (k === 0 ? 0 : s.te - forecast[k - 1].te));
 
-    /** Value at a continuous (ti, tm), bilinear within level `l`, clamped to the grid. */
-    const value = (V: Float64Array, ti: number, tm: number, l: number) => {
+    /** Value at a continuous (ti, tm, d), trilinear, clamped to the grid. */
+    const value = (V: Float32Array, ti: number, tm: number, d: number) => {
         const x = Math.min(TI_POINTS - 1.000001, Math.max(0, (ti - tiGrid[0]) / tiStep));
         const y = Math.min(TM_POINTS - 1.000001, Math.max(0, (tm - tmGrid[0]) / tmStep));
-        const i = Math.floor(x), j = Math.floor(y);
-        const u = x - i, v = y - j;
-        const base = at(i, j, l);
-        return (1 - u) * (1 - v) * V[base] + u * (1 - v) * V[base + 1]
-            + (1 - u) * v * V[base + TI_POINTS] + u * v * V[base + TI_POINTS + 1];
+        const z = Math.min(D_POINTS - 1.000001, Math.max(0, (d - dGrid[0]) / dStep));
+        const i = Math.floor(x), j = Math.floor(y), c = Math.floor(z);
+        const u = x - i, v = y - j, w = z - c;
+        const b0 = at(i, j, c), b1 = b0 + plane;
+        const layer = (b: number) => (1 - u) * (1 - v) * V[b] + u * (1 - v) * V[b + 1]
+            + (1 - u) * v * V[b + TI_POINTS] + u * v * V[b + TI_POINTS + 1];
+        return (1 - w) * layer(b0) + w * layer(b1);
     };
 
-    /** One slot of the DP's model: heat, its electricity and the next air and mass. */
-    const transition = (k: number, ti: number, tm: number, from: number, to: number) => {
+    /** One slot of the DP's model: the feed's effect on what the curve sees, heat, electricity and
+     *  the next air and mass. Heat depends on air only when the pump is modelled on it, so the rest
+     *  is shared across the air and mass grid. */
+    const pumpStep = (k: number, d: number, a: number, fed?: number) => {
         const slot = forecast[k];
-        const shift = levels[from] + CURVE_ALPHA * (levels[to] - levels[from]);
-        const curve = slot.te - held[k] - shift;
+        const bias = fed ?? held[k] + levels[a];
+        const d2 = (1 - CURVE_ALPHA) * (d + dTe[k]) + CURVE_ALPHA * bias;
+        const curve = slot.te - d2;
+        return {d: d2, curve, ramp: wRamp * Math.abs(bias - d)};
+    };
+    /** The slot's electricity cost and house inputs for a feed the curve sees as `curve`. */
+    const slotInputs = (k: number, curve: number, ti: number) => {
+        const slot = forecast[k];
         const heat = slot.busy ? 0 : pumpHeat(house, comfort, slot.te, curve, pump, ti);
         const electricity = heat / slotCop(pump, curve, slot.te).cop;
         const sun = solarGain(house, {te: slot.te, q: heat, sun: slot.sun, sunE: slot.sunE, sunW: slot.sunW});
-        const [ti2, tm2] = step(ti, tm, slot.te, heat, sun);
+        const [b1, b2] = linear.inputs(slot.te, heat, sun);
+        return {paid: slot.price * electricity, b1, b2};
+    };
+    const houseStep = (k: number, ti: number, tm: number, u: {paid: number; b1: number; b2: number}) => {
+        const [ti2, tm2] = linear.step(ti, tm, u.b1, u.b2);
         const below = Math.max(0, lo[k] - ti2), above = Math.max(0, ti2 - hi[k]);
-        const cost = slot.price * electricity
+        const cost = u.paid
             + owedRate * house.heatLoss * SLOT_H * Math.max(0, comfort - ti2)
-            + wBand * (below * below + above * above)
-            + wRamp * Math.abs(levels[to] - levels[from]);
+            + wBand * (below * below + above * above);
         return {cost, ti: ti2, tm: tm2};
     };
 
+    // Decisions every STEP_SLOTS slots, each simulated slot by slot. At one decision a slot, a
+    // slot's feed moves indoor ~0.02 K, an order of magnitude under the grid's spacing, and the
+    // interpolation's own error decided the plan: on a real day its plan cost more than the greedy
+    // planner's on the DP's own objective. An hour's move is large enough for the grid to see.
+    const decisions = Math.ceil(n / STEP_SLOTS);
+    /** A decision's slots from what the curve sees `d`, feeding level `a`: each slot's paid
+     *  electricity and house inputs, the ramp cost, and what the curve sees after. */
+    const pumpRun = (t: number, d: number, a: number, ti?: number, from?: number) => {
+        const slots: {k: number; paid: number; b1: number; b2: number; bias: number}[] = [];
+        let ramp = 0;
+        let bias = from;
+        for (let k = t * STEP_SLOTS; k < Math.min(n, (t + 1) * STEP_SLOTS); k++) {
+            // With the bias in force known (the forward pass), the feed ramps toward the level as
+            // the actuator will send it (actuator.ts `fedValue`, RAMP_K_PER_SLOT).
+            if (bias !== undefined) {
+                const want = held[k] + levels[a];
+                bias = Math.max(bias - RAMP_K_PER_SLOT, Math.min(bias + RAMP_K_PER_SLOT, want));
+            }
+            const p = pumpStep(k, d, a, bias);
+            ramp += p.ramp;
+            d = p.d;
+            slots.push({k, ...slotInputs(k, p.curve, ti ?? NaN), bias: bias ?? held[k] + levels[a]});
+        }
+        return {slots, ramp, d};
+    };
+
     // Terminal: stored heat short of comfort's steady state, bought back like owed heat.
-    let V = new Float64Array(states);
-    for (let l = 0; l < L; l++) for (let j = 0; j < TM_POINTS; j++) for (let i = 0; i < TI_POINTS; i++) {
+    const values: Float32Array[] = new Array(decisions + 1);
+    values[decisions] = new Float32Array(states);
+    for (let c = 0; c < D_POINTS; c++) for (let j = 0; j < TM_POINTS; j++) for (let i = 0; i < TI_POINTS; i++) {
         const short = house.ci * (reference.ti[n - 1] - tiGrid[i]) + house.cm * (reference.tm[n - 1] - tmGrid[j]);
-        V[at(i, j, l)] = owedRate * Math.max(0, short);
+        values[decisions][at(i, j, c)] = owedRate * Math.max(0, short);
     }
-    const policy = new Int8Array(n * states);
-    for (let k = n - 1; k >= 0; k--) {
-        const next = V;
-        V = new Float64Array(states);
-        for (let l = 0; l < L; l++) {
-            for (let j = 0; j < TM_POINTS; j++) for (let i = 0; i < TI_POINTS; i++) {
-                let best = Infinity;
-                let choice = l;
-                for (let to = Math.max(0, l - 1); to <= Math.min(L - 1, l + 1); to++) {
-                    const t = transition(k, tiGrid[i], tmGrid[j], l, to);
-                    const total = t.cost + value(next, t.ti, t.tm, to);
-                    if (total < best) { best = total; choice = to; }
+    const [e11, e12, e21, e22, g11, g12, g21, g22] = linear.coefficients;
+    const owedPerK = owedRate * house.heatLoss * SLOT_H;
+    for (let t = decisions - 1; t >= 0; t--) {
+        const next = values[t + 1];
+        const V = new Float32Array(states).fill(Infinity);
+        for (let c = 0; c < D_POINTS; c++) {
+            for (let a = 0; a < A; a++) {
+                const shared = byIndoor ? undefined : pumpRun(t, dGrid[c], a);
+                const end = shared ?? pumpRun(t, dGrid[c], a, comfort);
+                // What the curve sees after the decision is the same for every air and mass point.
+                const z = Math.min(D_POINTS - 1.000001, Math.max(0, (end.d - dGrid[0]) / dStep));
+                const cz = Math.floor(z), w = z - cz;
+                const l0 = cz * plane, l1 = l0 + plane;
+                for (let j = 0; j < TM_POINTS; j++) {
+                    for (let i = 0; i < TI_POINTS; i++) {
+                        let ti = tiGrid[i], tm = tmGrid[j];
+                        const run = shared ?? pumpRun(t, dGrid[c], a, ti);
+                        let total = run.ramp;
+                        for (const u of run.slots) {
+                            const ti2 = e11 * ti + e12 * tm + g11 * u.b1 + g12 * u.b2;
+                            tm = e21 * ti + e22 * tm + g21 * u.b1 + g22 * u.b2;
+                            ti = ti2;
+                            const below = ti < lo[u.k] ? lo[u.k] - ti : 0, above = ti > hi[u.k] ? ti - hi[u.k] : 0;
+                            total += u.paid + wBand * (below * below + above * above) + (ti < comfort ? owedPerK * (comfort - ti) : 0);
+                        }
+                        let x = (ti - tiGrid[0]) / tiStep, y = (tm - tmGrid[0]) / tmStep;
+                        x = x < 0 ? 0 : x > TI_POINTS - 1.000001 ? TI_POINTS - 1.000001 : x;
+                        y = y < 0 ? 0 : y > TM_POINTS - 1.000001 ? TM_POINTS - 1.000001 : y;
+                        const xi = x | 0, yj = y | 0, fx = x - xi, fy = y - yj;
+                        const o = yj * TI_POINTS + xi;
+                        const q00 = (1 - fx) * (1 - fy), q10 = fx * (1 - fy), q01 = (1 - fx) * fy, q11 = fx * fy;
+                        const v0 = q00 * next[l0 + o] + q10 * next[l0 + o + 1] + q01 * next[l0 + o + TI_POINTS] + q11 * next[l0 + o + TI_POINTS + 1];
+                        const v1 = q00 * next[l1 + o] + q10 * next[l1 + o + 1] + q01 * next[l1 + o + TI_POINTS] + q11 * next[l1 + o + TI_POINTS + 1];
+                        total += (1 - w) * v0 + w * v1;
+                        const s = c * plane + j * TI_POINTS + i;
+                        if (total < V[s]) V[s] = total;
+                    }
                 }
-                V[at(i, j, l)] = best;
-                policy[k * states + at(i, j, l)] = choice;
             }
         }
+        values[t] = V;
         if (clock.now() - clock.started > clock.budget) return undefined;
         await clock.defer();
         if (clock.now() - clock.started > clock.budget) return undefined;
     }
 
-    // Forward: follow the policy from where the house is, at the nearest grid point.
-    const shift: number[] = [];
-    let ti = state.ti, tm = state.tm, l = startLevel;
-    for (let k = 0; k < n; k++) {
-        const i = Math.min(TI_POINTS - 1, Math.max(0, Math.round((ti - tiGrid[0]) / tiStep)));
-        const j = Math.min(TM_POINTS - 1, Math.max(0, Math.round((tm - tmGrid[0]) / tmStep)));
-        const to = policy[k * states + at(i, j, l)];
-        const t = transition(k, ti, tm, l, to);
-        ti = t.ti; tm = t.tm; l = to;
-        shift.push(levels[to]);
+    // Forward from where the house, the curve and the feed really are, choosing each decision
+    // against the stored values (one decision of lookahead), so the plan is not tied to the grid's
+    // points. Each candidate is ramped from the bias in force, as the actuator will send it: the
+    // values above assume a level is reached at once, and a plan fed through the 2 K a slot ramp
+    // without this lost 1.4 points against the greedy planner on real days (dev/evaluate-cop.mjs).
+    const biases: number[] = [];
+    let ti = state.ti, tm = state.tm, d = d0, fed = state.bias;
+    for (let t = 0; t < decisions; t++) {
+        let best = Infinity;
+        let pick: {d: number; ti: number; tm: number; fed: number[]} | undefined;
+        for (let a = 0; a < A; a++) {
+            const run = pumpRun(t, d, a, ti, fed);
+            let x = ti, y = tm, total = run.ramp;
+            for (const u of run.slots) {
+                const t2 = houseStep(u.k, x, y, u);
+                total += t2.cost;
+                x = t2.ti; y = t2.tm;
+            }
+            total += value(values[t + 1], x, y, run.d);
+            if (total < best) { best = total; pick = {d: run.d, ti: x, tm: y, fed: run.slots.map((u) => u.bias)}; }
+        }
+        biases.push(...pick!.fed);
+        ({d, ti, tm} = pick!);
+        fed = pick!.fed[pick!.fed.length - 1];
     }
-    const biases = shift.map((s, k) => s + held[k]);
+    const shift = biases.map((b, k) => b - held[k]);
     const plan = simulate(house, comfort, state, forecast, biases, pump);
     const fair = fairCost(house, plan, reference, meanPrice, limits.comfortWeight, cop);
     const done = {plannerFairCost: planner.fairCost, baselineFairCost: planner.baselineFairCost, planner, ms: clock.now() - clock.started};
