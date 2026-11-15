@@ -7,6 +7,10 @@ finding comes with a proposed text. The short version of the rules is in [voice.
 English comes first. The translations were reviewed as well, but those findings are set aside in the
 appendix until the English is right.
 
+A second review of the app text ran at the same time ("Review app UI and tone against help style").
+It is folded in here. Its rules for in-app text are now in `voice.md` under "App text", and its 133
+rewrites are either under R11 or merged into an earlier row. Each string has one proposal.
+
 ## Scope
 
 `.homeycompose/locales/en.json`, `locales/en.json`, `.homeycompose/capabilities/*.json`,
@@ -30,14 +34,15 @@ Findings are grouped by rule, then by file. One row can cover several strings th
 | R8 | One term for each concept |
 | R9 | Text that explains what the screen or a visual should show |
 | R10 | The AI voice: slogan headings, number hooks, reassurance, the app talking about itself |
+| R11 | App UI line style: one line, state · fact, no repeats, buttons as verbs (from the merged review) |
 
 ## Summary
 
-There are 293 English findings.
+There are 395 English findings.
 
-| R0 | R1 | R2 | R3 | R4 | R6 | R7 | R8 | R9 | R10 | Total |
-|---|---|---|---|---|---|---|---|---|---|---|
-| 27 | 95 | 3 | 16 | 9 | 7 | 4 | 37 | 16 | 79 | 293 |
+| R0 | R1 | R2 | R3 | R4 | R6 | R7 | R8 | R9 | R10 | R11 | Total |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 27 | 95 | 3 | 16 | 9 | 7 | 4 | 37 | 16 | 79 | 102 | 395 |
 
 Most of the problems are on the help pages and in the FAQ. The settings and Flow cards are mostly
 fine. The word rules are mostly followed. "Dear" no longer appears in owner text, and only three
@@ -46,8 +51,8 @@ cases of "pricier" or "pricey" are left.
 The biggest problem is the voice of the help pages. Almost every heading is a two-part slogan, such as
 "Warm rooms. Your rules.", "Summer, sorted." or "Every kWh. In its place.", and the paragraphs
 underneath use the same habits. `CLAUDE.md` asks for this headline style, so the first review pass
-didn't flag it. R10 lists every heading with a plain replacement. Each help page needs a full
-rewrite.
+didn't flag it. R10 lists every heading with a plain replacement. The help pages need a full rewrite
+page by page, not a few edited lines.
 
 ## Ten most important findings
 
@@ -81,11 +86,35 @@ rewrite.
 
 ## Decisions for the maintainer
 
-1. Help page headings: replace the slogan style with a heading that names the topic, and change the
-   `CLAUDE.md` rule to match. R10 assumes yes.
-2. Heat curve: "offset" or "displacement". Displacement is used 11 times and offset 4 times. The
-   register info already says offset, so the proposal is offset.
-3. Outdoor or outside temperature: 59 times against 2. The proposal is outdoor.
+Each decision has a recommendation. The fixes start once these are answered.
+
+1. Replace the slogan headings on the help pages with headings that name the topic, and change the
+   `CLAUDE.md` headline rule to match. Recommended: yes.
+2. Rewrite each help page in full instead of patching lines. Recommended: yes.
+3. Adopt the App UI rules in `voice.md`: labels without a full stop, status lines as "state · fact",
+   buttons as verbs, Flow titles without parentheses. Recommended: yes.
+4. Heat curve "offset" or "displacement". Recommended: offset.
+5. "Outdoor" or "outside" temperature. Recommended: outdoor.
+6. Call heating the tank a "charge" everywhere, and keep "boost" only for More hot water.
+   Recommended: yes.
+7. Keep "Always enough for a shower" as the setting name and say "safety net" everywhere else.
+   Recommended: yes.
+8. Rename the generic Flow card picker from "Register" to "Setting", with "Reading" for sensors.
+   Recommended: yes.
+9. Rename "Poll interval" to "Update interval" or "Read every". Recommended: Update interval.
+10. Move the hardcoded English errors in `lib/` to locale keys during the English pass, so the
+    translations can follow. Recommended: yes.
+11. Remove "Hot water has its own separate switch" from the "Allow immersion heater" hint until it
+    is tested on a pump. Recommended: yes.
+
+For the translation pass, later:
+
+12. Smart price adaption and Smart control. Translate them or keep the English names? Recommended:
+    use whatever the heat pump's display shows in each language. That needs one look at a Swedish,
+    Dutch and German display.
+13. Tank, Away and the word for heating the tank in sv, no and da. Recommended: the words listed in
+    the appendix (tank, bereder, beholder; Bortrest, Bortreist, Bortrejst; heating words rather than
+    battery words).
 
 # Findings
 
@@ -108,7 +137,7 @@ rewrite.
 
 | Where | Current | Proposed | Why |
 |---|---|---|---|
-| .homeycompose/locales/en.json → autopilot.hotwater_charge.detail.pump (en) | Your heat pump started it at __top__ °C on its own start temperature and runs to __stop__ °C. | Your heat pump started it on its own at __top__ °C and heats to __stop__ °C. | "on its own start temperature" is broken grammar. |
+| .homeycompose/locales/en.json → autopilot.hotwater_charge.detail.pump (en) | Your heat pump started it at __top__ °C on its own start temperature and runs to __stop__ °C. | Started by your heat pump at __top__ °C · runs to __stop__ °C | "on its own start temperature" is broken grammar. (Merged: app-copy wording.) |
 | .homeycompose/locales/en.json → autopilot.smart.paired_failed (en) | Smart mode from setup couldn't be applied: __reason__ Finish it in Repair. | Couldn't apply Smart mode from setup. Finish it in Repair. __reason__ | Reasons like pair.not_connected have no full stop, so sentences run together. |
 
 ### docs/FAQ.md
@@ -159,10 +188,10 @@ rewrite.
 
 | Where | Current | Proposed | Why |
 |---|---|---|---|
-| locales/en.json → pair.setup.smart.ctl_away_sub (en) | A lower temperature while you're out | A lower temperature while you're on holiday | Away is for a week+ holiday, never for going out. |
+| locales/en.json → pair.setup.smart.ctl_away_sub (en) | A lower temperature while you're out | A lower temperature for a holiday | Away is for a week+ holiday, never for going out. (Merged: app-copy wording.) |
 | locales/en.json → pair.setup.smart.solar_evidence (en) | …to the grid on sunny hours. | …to the grid in sunny hours. | Wrong preposition. |
 | locales/en.json → pair.setup.smart.solar_evidence_plain (en) | Your meter sends power to the grid on sunny hours. | Your meter sends power to the grid in sunny hours. | Wrong preposition. |
-| locales/en.json → pair.setup.active_note (en) | …use Heating Setup to return to your NIBE sensor first. | …use Heating setup to return to your NIBE sensor first. | On-screen name is "Heating setup", sentence case. |
+| locales/en.json → pair.setup.active_note (en) | …use Heating Setup to return to your NIBE sensor first. | Updates keep running. To stop them, return to your NIBE sensor in Heating setup. | On-screen name is "Heating setup", sentence case. (Merged: app-copy wording.) |
 
 ## R1. Plain voice
 
@@ -195,19 +224,19 @@ rewrite.
 
 | Where | Current | Proposed | Why |
 |---|---|---|---|
-| .homeycompose/locales/en.json → pair.features.insights_note (en) | Disabling a feature removes its capabilities, including their Insights history. | Turning a feature off removes its readings and their Insights history. | "capabilities" is a developer word. |
-| .homeycompose/locales/en.json → pair.discover.confirm (en) | Found your heat pump — tap to confirm | Found your heat pump. Tap to confirm. | Em dash aside. |
-| .homeycompose/locales/en.json → pair.firmware.online_body (en) | …in the myUplink app — or on your heat pump's display: swipe to… | Approve it in the myUplink app, or on your heat pump's display. Swipe to the product overview and tap Update. | Em dash and colon delivery. |
-| .homeycompose/locales/en.json → pair.firmware.f_body (en) | The steps differ between models — your heat pump's manual shows how. | The steps differ between models. Your heat pump's manual shows how. | Em dash aside. |
-| .homeycompose/locales/en.json → autopilot.hotwater_charge.plan.moved (en) | Changed: the plan had it at __time__. | Moved. The plan had it at __time__. | Colon delivery; recap already says "Moved." |
-| .homeycompose/locales/en.json → autopilot.heating.warning.no_outdoor (en) | Autopilot heating paused: no outdoor temperature. | Autopilot heating is paused. It has no outdoor temperature. | Banned "paused: …" colon pattern. |
-| .homeycompose/locales/en.json → autopilot.heating.warning.spa_on (en) | Autopilot heating paused: Smart price adaption is on for heating. | Autopilot heating is paused. Smart price adaption is on for heating. | Colon delivery. |
-| .homeycompose/locales/en.json → autopilot.heating.warning.room_control (en) | Autopilot heating paused: room-sensor control is on in your heat pump. | Autopilot heating is paused. Room-sensor control is on in your heat pump. | Colon delivery. |
-| .homeycompose/locales/en.json → autopilot.heating.warning.immersion_only (en) | Autopilot heating paused: your heat pump runs on the immersion heater only. | Autopilot heating is paused. Your heat pump runs on the immersion heater only. | Colon delivery. |
-| .homeycompose/locales/en.json → autopilot.heating.warning.cooling (en) | Autopilot heating paused: your heat pump is cooling. | Autopilot heating is paused. Your heat pump is cooling. | Colon delivery. |
+| .homeycompose/locales/en.json → pair.features.insights_note (en) | Disabling a feature removes its capabilities, including their Insights history. | Turning a feature off deletes its Insights history | "capabilities" is a developer word. (Merged: app-copy wording.) |
+| .homeycompose/locales/en.json → pair.discover.confirm (en) | Found your heat pump — tap to confirm | Heat pump found · tap to confirm | Em dash aside. (Merged: app-copy wording.) |
+| .homeycompose/locales/en.json → pair.firmware.online_body (en) | …in the myUplink app — or on your heat pump's display: swipe to… | Approve it in the myUplink app, or on your heat pump: product overview → Update. | Em dash and colon delivery. (Merged: app-copy wording.) |
+| .homeycompose/locales/en.json → pair.firmware.f_body (en) | The steps differ between models — your heat pump's manual shows how. | Your heat pump's manual shows the steps. | Em dash aside. (Merged: app-copy wording.) |
+| .homeycompose/locales/en.json → autopilot.hotwater_charge.plan.moved (en) | Changed: the plan had it at __time__. | Moved from __time__ | Colon delivery; recap already says "Moved." (Merged: app-copy wording.) |
+| .homeycompose/locales/en.json → autopilot.heating.warning.no_outdoor (en) | Autopilot heating paused: no outdoor temperature. | Autopilot heating paused · no outdoor temperature | Banned "paused: …" colon pattern. (Merged: app-copy wording.) |
+| .homeycompose/locales/en.json → autopilot.heating.warning.spa_on (en) | Autopilot heating paused: Smart price adaption is on for heating. | Autopilot heating paused · Smart price adaption is on | Colon delivery. (Merged: app-copy wording.) |
+| .homeycompose/locales/en.json → autopilot.heating.warning.room_control (en) | Autopilot heating paused: room-sensor control is on in your heat pump. | Autopilot heating paused · room-sensor control is on | Colon delivery. (Merged: app-copy wording.) |
+| .homeycompose/locales/en.json → autopilot.heating.warning.immersion_only (en) | Autopilot heating paused: your heat pump runs on the immersion heater only. | Autopilot heating paused · immersion heater only | Colon delivery. (Merged: app-copy wording.) |
+| .homeycompose/locales/en.json → autopilot.heating.warning.cooling (en) | Autopilot heating paused: your heat pump is cooling. | Autopilot heating paused · cooling | Colon delivery. (Merged: app-copy wording.) |
 | .homeycompose/locales/en.json → autopilot.heating.status.paused.{no_outdoor,spa_on,room_control,immersion_only,cooling} (en) | Paused: outdoor temperature stopped reporting (and 4 more) | Paused · no outdoor temperature (same `·` form for the rest) | Colon delivery; other status lines use `·`. |
 | .homeycompose/locales/en.json → autopilot.heating.status.waiting (en) | Starting: waiting for the forecast | Starting · waiting for the forecast | Colon delivery; matches "Holding · …". |
-| .homeycompose/locales/en.json → autopilot.heating.status.range_off (en) | Comfort range is Off: your heat pump sees the real outdoor temperature | Comfort range is Off. Your heat pump uses the measured outdoor temperature. | Colon delivery. |
+| .homeycompose/locales/en.json → autopilot.heating.status.range_off (en) | Comfort range is Off: your heat pump sees the real outdoor temperature | Comfort range Off · no shift | Colon delivery. (Merged: app-copy wording.) |
 | .homeycompose/locales/en.json → autopilot.heating.verify.no_outdoor (en) | No outdoor temperature yet: choose a sensor or set your location… | No outdoor temperature yet. Choose a sensor, or set your location for the weather forecast. | Colon delivery. |
 | .homeycompose/locales/en.json → autopilot.smart.verify_first (en) | Turn Autopilot on in Heating → Repair → Smart mode: it checks your heat pump takes the outdoor temperature first. | Turn Autopilot on in Heating → Repair → Smart mode. It first checks that your heat pump takes the outdoor temperature. | Colon delivery; "first" is misplaced. |
 
@@ -251,7 +280,7 @@ rewrite.
 | drivers/nibe_s/driver.flow.compose.json:1247 (h61 hint) and registers.ts:657 | …needs the immersion heater — a compressor alone tops out in the high 50s… | Stop temperature for the periodic anti-legionella charge. It usually needs the immersion heater. Accepts 55 to 70 °C. | Em dash aside; the compressor reasoning belongs in help. |
 | drivers/nibe_s/driver.flow.compose.json:1373 (h94 hint) and registers.ts:660 | …heats the pool before switching demand. | How long your heat pump heats the pool before it moves on to heating or hot water. | "Switching demand" is jargon. |
 | drivers/nibe_s/driver.flow.compose.json:1646 | …towards cheaper hours. Runs 1 to 4, not 1 to 10 like heating. | How strongly Smart price adaption may move hot water to cheaper hours. Accepts 1 to 4. | "X, not Y" contrast pair. |
-| drivers/nibe_s/driver.flow.compose.json:3033 (external BT1 hint) | Enable external BT1 in menu 7.5.9.2 on your heat pump. Sends one reading; your Flow must supply fresh readings regularly. Success means the write was accepted, not that heating uses it. | On your heat pump, menu 7.5.9.2. Turn on external BT1. Then run this card regularly with a fresh reading. | Semicolon, "not that" contrast, "write"; CLAUDE.md wording for BT1. |
+| drivers/nibe_s/driver.flow.compose.json:3033 (external BT1 hint) | Enable external BT1 in menu 7.5.9.2 on your heat pump. Sends one reading; your Flow must supply fresh readings regularly. Success means the write was accepted, not that heating uses it. | Needs external BT1 on, menu 7.5.9.2. Sends one reading, so run it regularly. | Semicolon, "not that" contrast, "write"; CLAUDE.md wording for BT1. (Merged: app-copy wording.) |
 | drivers/nibe_s/driver.flow.compose.json:3785 (hotwater_volume_below hint) | Needs a tank picked in Repair; false without one. | Needs a tank, set in Hot water setup. False without one. | Semicolon; screen is called Hot water setup. |
 
 ### drivers/nibe_s/registers.ts
@@ -379,13 +408,13 @@ rewrite.
 | Where | Current | Proposed | Why |
 |---|---|---|---|
 | locales/en.json → pair.setup.handover_hint (en) | …The current feed continues until you verify here. | …Homey keeps sending temperatures until you verify here. | "feed" is a developer word. |
-| locales/en.json → pair.setup.no_nibe_sources (en) | No live NIBE source choices were detected. The current/default source will be kept. | No other NIBE sensors found. The current one stays in use. | Jargon and a slash. |
-| locales/en.json → pair.setup.thermostat_zone_intro (en) | Choose the zone that controls the heating: on your heat pump, that zone's room sensor is set to control (menu 1.3.3). | Choose the zone that controls the heating. Its room sensor is set to control on your heat pump (menu 1.3.3). | Colon delivery. |
+| locales/en.json → pair.setup.no_nibe_sources (en) | No live NIBE source choices were detected. The current/default source will be kept. | No other NIBE sensors found · keeping the current one | Jargon and a slash. (Merged: app-copy wording.) |
+| locales/en.json → pair.setup.thermostat_zone_intro (en) | Choose the zone that controls the heating: on your heat pump, that zone's room sensor is set to control (menu 1.3.3). | Pick the zone whose room sensor controls heating (menu 1.3.3). | Colon delivery. (Merged: app-copy wording.) |
 | locales/en.json → pair.setup.request_timeout (en) | Homey did not respond. Please try again. | Homey didn't respond. Try again. | No "please". |
-| locales/en.json → pair.setup.success_title (en) | You're all set! | Setup is done. | No exclamation marks. |
-| locales/en.json → pair.setup.smart.prices_fixed (en) | Fixed price: nothing to shift. Set dynamic prices in Homey Energy. | Autopilot needs hourly prices. Set them up in Homey Energy. | Colon punchline. |
+| locales/en.json → pair.setup.success_title (en) | You're all set! | All set | No exclamation marks. (Merged: app-copy wording.) |
+| locales/en.json → pair.setup.smart.prices_fixed (en) | Fixed price: nothing to shift. Set dynamic prices in Homey Energy. | Autopilot needs hourly prices. Set them up in Homey Energy. | Colon punchline. (Merged: kept this one.) |
 | locales/en.json → pair.setup.smart.cmp_note (en) | Smart price adaption is NIBE's own: it runs in your heat pump… | Smart price adaption is NIBE's own. It runs in your heat pump and gets prices through myUplink. | Colon delivery. |
-| locales/en.json → pair.setup.smart.indoor_homey_desc (en) | …Autopilot regulates on them, your heat pump doesn't. | One sensor, or the average of several rooms. Autopilot steers the heating by them. | Contrast pair. |
+| locales/en.json → pair.setup.smart.indoor_homey_desc (en) | …Autopilot regulates on them, your heat pump doesn't. | One sensor or an average of rooms | Contrast pair. (Merged: app-copy wording.) |
 
 ## R2. Expensive, never dear
 
@@ -401,7 +430,7 @@ rewrite.
 
 | Where | Current | Proposed | Why |
 |---|---|---|---|
-| locales/en.json → pair.setup.smart.hw_reserve_hint (en) | A bigger cushion means the odd charge at a pricier hour. | With more water kept warm, some charges happen in more expensive hours. | "pricier" is a "pricey" variant. |
+| locales/en.json → pair.setup.smart.hw_reserve_hint (en) | A bigger cushion means the odd charge at a pricier hour. | The tank never drops below this. More means some charges in more expensive hours. | "pricier" is a "pricey" variant. (Merged: app-copy length, this wording.) |
 
 ## R3. Your heat pump
 
@@ -464,8 +493,8 @@ rewrite.
 
 | Where | Current | Proposed | Why |
 |---|---|---|---|
-| .homeycompose/locales/en.json → autopilot.hotwater_daily.shadow, autopilot.hotwater_update.shadow (en) | Simulation: your heat pump stays as it is. | Simulated. Your heat pump stays as it is. | Mode is "Simulated"; colon delivery. |
-| .homeycompose/locales/en.json → autopilot.hotwater_charge.title_would (en) | Simulation: would start a charge · __reason__ | Would start a charge · __reason__ · Simulated | Old mode name; decision first. |
+| .homeycompose/locales/en.json → autopilot.hotwater_daily.shadow, autopilot.hotwater_update.shadow (en) | Simulation: your heat pump stays as it is. | Simulated · nothing sent to your heat pump | Mode is "Simulated"; colon delivery. (Merged: app-copy wording.) |
+| .homeycompose/locales/en.json → autopilot.hotwater_charge.title_would (en) | Simulation: would start a charge · __reason__ | Simulated charge · __reason__ | Old mode name; decision first. (Merged: app-copy wording.) |
 | .homeycompose/locales/en.json → autopilot.heating.status.test, autopilot.hotwater_status.test (en) | Simulation: __text__ | Simulated · __text__ | Old mode name. |
 | .homeycompose/locales/en.json → autopilot.widget.test (en) | Simulation | Simulated | Old mode name on the widget badge. |
 
@@ -487,7 +516,7 @@ rewrite.
 |---|---|---|---|
 | locales/en.json → pair.setup.smart.start_test (en) | Start simulation | Start Autopilot · Simulated | Old mode name. |
 | locales/en.json → pair.setup.smart.saved_test (en) | Simulation started | Autopilot · Simulated is on | Old mode name. |
-| locales/en.json → pair.setup.changes.autopilot_simulated (en) | Autopilot, simulated: it plans and shows, your heat pump stays as it is | Autopilot · Simulated. It plans and shows, and your heat pump stays as it is. | Smart mode spells it "Autopilot · Simulated"; colon. |
+| locales/en.json → pair.setup.changes.autopilot_simulated (en) | Autopilot, simulated: it plans and shows, your heat pump stays as it is | Autopilot · Simulated | Smart mode spells it "Autopilot · Simulated"; colon. (Merged: app-copy wording.) |
 
 ## R6. Length
 
@@ -511,13 +540,13 @@ rewrite.
 
 | Where | Current | Proposed | Why |
 |---|---|---|---|
-| drivers/nibe_s/driver.compose.json:1579 (analyticsConsent hint) | Off by default. Sends your heat pump's model, which devices you paired, which Flow cards ran, alarm codes, and how Autopilot is set up and how each day went. Never readings, IP, serial or names. | Sends your heat pump model, paired devices, Flow cards used, alarm codes and how Autopilot runs. Never readings, IP, serial or names. | Three sentences and a long list for a hint; the toggle shows it's off. |
+| drivers/nibe_s/driver.compose.json:1579 (analyticsConsent hint) | Off by default. Sends your heat pump's model, which devices you paired, which Flow cards ran, alarm codes, and how Autopilot is set up and how each day went. Never readings, IP, serial or names. | Sends model, paired devices, Flow cards used, alarm codes and Autopilot setup. Never readings, IP, serial or names. | Three sentences and a long list for a hint; the toggle shows it's off. (Merged: app-copy wording.) |
 
 ### locales/en.json
 
 | Where | Current | Proposed | Why |
 |---|---|---|---|
-| locales/en.json → pair.setup.pending_hint (en) | Add your devices first, then open Heating → Repair to finish the setup. Leave your current NIBE sensor in control until then. No temperatures are sent during pairing. | Add your devices first, then finish this in Heating → Repair. Keep your current NIBE sensor in control until then. | Hint is three sentences. |
+| locales/en.json → pair.setup.pending_hint (en) | Add your devices first, then open Heating → Repair to finish the setup. Leave your current NIBE sensor in control until then. No temperatures are sent during pairing. | Add the devices, then finish in Heating → Repair. Nothing is sent until then. | Hint is three sentences. (Merged: app-copy wording.) |
 
 ## R7. Native language and heat-pump terms
 
@@ -597,7 +626,7 @@ rewrite.
 | drivers/nibe_s/driver.flow.compose.json:410 and registers.ts:526 vs registers.ts:26 and flow:1562, 3491 | Fires when the operating mode changes: auto, manual or additional heat only. | Fires when the operating mode changes between Auto, Manual and Immersion heater only. | The mode's own label is "Immersion heater only"; also drops colon. |
 | drivers/nibe_s/driver.flow.compose.json:502 | Needs a tank picked in Repair. | Needs a tank, set in Hot water setup. | Name the actual screen, as the help page does. |
 | drivers/nibe_s/driver.flow.compose.json:1940, 1982, 2148 and registers.ts:568, 587, 589 | periodic hot water boost (6×) | periodic hot water charge | "Boost" also means More hot water; flow:1247 already says "charge". |
-| drivers/nibe_s/driver.flow.compose.json:3025 | Set outdoor temperature (BT1): [[value]] °C | Set outdoor temperature (BT1) to [[value]] °C | Every other set card uses "to [[value]]"; no colon. |
+| drivers/nibe_s/driver.flow.compose.json:3025 | Set outdoor temperature (BT1): [[value]] °C | Set outdoor temperature BT1 to [[value]] °C | Every other set card uses "to [[value]]"; no colon. (Merged: app-copy wording.) |
 | drivers/nibe_s/driver.flow.compose.json:3094 | Working day | Workday | Help page and Autopilot copy say "Workday". |
 | drivers/nibe_s/driver.flow.compose.json:3441 | [[register]] is !{{enabled\|disabled}} | [[register]] is !{{on\|off}} | Card title says "is on". |
 
@@ -663,7 +692,7 @@ rewrite.
 
 | Where | Current | Proposed | Why |
 |---|---|---|---|
-| .homeycompose/locales/en.json → autopilot.hotwater_charge.write_failed (en) | Autopilot couldn't start a charge. Your heat pump said: __error__ | Map the error to a plain cause, e.g. "Your heat pump didn't accept the new temperature." | __error__ is `Could not set "…": Modbus exception 3: …`. |
+| .homeycompose/locales/en.json → autopilot.hotwater_charge.write_failed (en) | Autopilot couldn't start a charge. Your heat pump said: __error__ | Couldn't start a charge. Your heat pump said “__error__”. Later, map the error codes to plain causes. | __error__ is `Could not set "…": Modbus exception 3: …`. (Merged: app-copy wording.) |
 
 ### drivers/nibe_s/registers.ts
 
@@ -723,7 +752,7 @@ rewrite.
 
 | Where | Current | Proposed | Why |
 |---|---|---|---|
-| locales/en.json → pair.setup.smart.indoor_bt50_note (en) | Your Homey sensors keep going to your heat pump as BT50, so it reports no sensor fault. With room-sensor control off, it only shows them. Autopilot does the regulating. | Show a status row "BT50 · sent to your heat pump · display only" | Three sentences explain a mechanism a row can show. |
+| locales/en.json → pair.setup.smart.indoor_bt50_note (en) | Your Homey sensors keep going to your heat pump as BT50, so it reports no sensor fault. With room-sensor control off, it only shows them. Autopilot does the regulating. | Text: "Your sensors still go to BT50, so there’s no sensor alarm. Your heat pump only shows them." Better: a status row "BT50 · sent to your heat pump · display only" | Three sentences explain a mechanism a row can show. (Merged: app-copy wording.) |
 
 ## R10. The AI voice
 
@@ -827,6 +856,147 @@ help page needs a full plain rewrite. Examples:
 | help/autopilot-hot-water.html:48 | Your heat pump does the heating, same as always. | Your heat pump does the heating. | Reassurance |
 | help/autopilot-hot-water.html:76 | A bigger cushion means the odd charge at a pricier hour. | With more water kept warm, some charges happen in more expensive hours. | "the odd", "pricier" |
 | .homeycompose/locales/en.json:295 → autopilot heating status `holding` | Holding. Nothing to gain from shifting now | Holding. No change planned | Says what happens. `holding_even` already covers flat prices. |
+
+## R11. App UI line style
+
+These rows come from a second copy review that ran at the same time ("Review app UI and tone
+against help style"). It was folded into this document on 2026-11-15. Its rules are in
+[voice.md](voice.md) under "App text". Where both reviews proposed text for the same string, the
+row sits under the earlier rule and its Why column says which wording was kept. Key prefixes
+`autopilot.` and `pair.setup.` are dropped here. Most keys are in `.homeycompose/locales/en.json`,
+and the pairing keys are in `locales/en.json`.
+
+### Status lines
+
+| Where | Current | Proposed | Why |
+|---|---|---|---|
+| en.json → heating.status.holding | Holding. Nothing to gain from shifting now | Holding · no change planned | "Nothing to gain" is a verdict. This says what happens. |
+| en.json → heating.status.holding_even | Holding. Prices are too even to shift | Holding · prices too even | Shorter. One line. |
+| en.json → heating.status.paused.spa_on | Paused: Smart price adaption is on for heating | Paused · Smart price adaption is on | Shorter. One line. |
+| en.json → heating.status.paused.room_control | Paused: room-sensor control is on in your heat pump | Paused · room-sensor control is on | Shorter. One line. |
+| en.json → heating.status.paused.immersion_only | Paused: your heat pump runs on the immersion heater only | Paused · immersion heater only | Shorter. One line. |
+| en.json → heating.status.paused.feed_failed | Stopped. Your heat pump didn't accept the outdoor temperature (BT1) | Stopped · BT1 not accepted | The widget line under it names menu 7.5.9.2 |
+| en.json → heating.status.paused.cooling | Paused: your heat pump is cooling | Paused · cooling | Shorter. One line. |
+| en.json → hotwater_status.charging | Heating the tank | Charging | Glossary |
+| en.json → hotwater_status.charging_reason | Heating the tank · __reason__ | Charging · __reason__ | Shorter. One line. |
+| en.json → heating.warning.no_model | Autopilot heating is still learning your house. | Autopilot heating is learning your house | Shorter. One line. |
+
+### Widgets
+
+| Where | Current | Proposed | Why |
+|---|---|---|---|
+| en.json → widget.paused.no_outdoor | Autopilot has no outdoor temperature. Pick a sensor in Smart mode, or use the forecast. | No outdoor temperature. Pick a sensor or the forecast in Smart mode. | Shorter. One line. |
+| en.json → widget.paused.spa_on | Smart price adaption is on for heating. Turn it off so Autopilot can work. | Smart price adaption is on for heating. Turn it off on your heat pump. | Shorter. One line. |
+| en.json → widget.paused.room_control | Room control is on in your heat pump. Turn it off so Autopilot can work. | Room-sensor control is on. Turn it off on your heat pump. | Glossary |
+| en.json → widget.paused.immersion_only | Your heat pump is running on the immersion heater only. Autopilot waits. | Immersion heater only. Autopilot waits. | Shorter. One line. |
+| en.json → widget.paused.feed_failed | Your heat pump didn't take the outdoor temperature (BT1). Check menu 7.5.9.2. | BT1 wasn't accepted. Check menu 7.5.9.2. | Shorter. One line. |
+| en.json → widget.paused.cooling | Your heat pump is cooling. Autopilot waits. | Cooling. Autopilot waits. | Shorter. One line. |
+| en.json → widget.learning | The expected indoor line shows once Autopilot has learned your house. | Expected line shows after learning | Shorter. One line. |
+| en.json → widget.hotwater.litres | __l__ L of 40 °C water now | __l__ L at 40 °C now | Shorter. One line. |
+| en.json → widget.hotwater.solar_total | __share__ % of the planned charging runs on solar surplus. | __share__ % of planned charging from solar | Shorter. One line. |
+| en.json → widget.hotwater.solar_none | No planned charging runs on solar surplus. | No solar in the plan | Shorter. One line. |
+| en.json → widget.hotwater.solar_live | If more surplus turns up, Autopilot can still charge on it. | Extra surplus still gets used | Shorter. One line. |
+| en.json → widget.hotwater.no_prices_hint | Check that Homey Energy uses dynamic electricity prices. | Needs dynamic prices in Homey Energy | Shorter. One line. |
+| en.json → widget.starting_heating | Reading the forecast and prices. Takes about a minute. | Reading forecast and prices · about a minute | Shorter. One line. |
+| en.json → widget.starting_hotwater | Reading prices and the tank. Takes about a minute. | Reading prices and the tank · about a minute | Shorter. One line. |
+| en.json → widget.starting_app | Reading your heat pump. Takes about a minute. | Reading your heat pump · about a minute | Shorter. One line. |
+| en.json → hotwater_use.away_keeps | Autopilot only keeps your minimum warm. | Safety net only | Glossary |
+| en.json → hotwater_use.at_least | At least (the tank ran low) | At least · tank ran low | Shorter. One line. |
+| en.json → savings.empty | Shows from tomorrow. Needs dynamic electricity prices in Homey Energy. | Shows from tomorrow · needs dynamic prices in Homey Energy | Shorter. One line. |
+| en.json → savings.loading | Reading the last two weeks from Insights. Takes a few minutes. | Reading two weeks of Insights · a few minutes | Shorter. One line. |
+
+### Timeline and hot water plan
+
+| Where | Current | Proposed | Why |
+|---|---|---|---|
+| en.json → hotwater_daily.use | You'll use about __litres__ L today, up to __p80__ L on a busy day. | About __litres__ L today, up to __p80__ L if busy | Shorter. One line. |
+| en.json → hotwater_daily.away | Away. Only the safety net is kept warm. | Away · safety net only | Shorter. One line. |
+| en.json → hotwater_daily.tank | The tank has __litres__ L now. Autopilot keeps at least __reserve__ L. | Tank __litres__ L now · never below __reserve__ L | Shorter. One line. |
+| en.json → hotwater_daily.tank_no_reserve | The tank has __litres__ L now. No safety net is set. | Tank __litres__ L now · no safety net | Shorter. One line. |
+| en.json → hotwater_daily.none | No charge needed. The tank covers the day. | No charge needed today | Shorter. One line. |
+| en.json → hotwater_daily.cost | Expected cost __cost__. Tomorrow's prices aren't in yet. | Expected cost __cost__ · tomorrow's prices not in yet | Shorter. One line. |
+| en.json → hotwater_charge.title | Heating the tank · __reason__ | Charging · __reason__ | Shorter. One line. |
+| en.json → hotwater_charge.detail.price | To __target__ °C in about __duration__, at __price__/kWh. The day averages __mean__. | To __target__ °C · about __duration__ · __price__/kWh, day average __mean__ | Shorter. One line. |
+| en.json → hotwater_charge.detail.surplus | To __target__ °C, about __duration__, __share__ % from solar surplus. | To __target__ °C · about __duration__ · __share__ % solar | Shorter. One line. |
+| en.json → hotwater_charge.detail.reserve | The tank is down to __litres__ L, below your __reserve__ L safety net. Heating to __target__ °C, about __duration__. | Tank at __litres__ L, under the __reserve__ L safety net · to __target__ °C, about __duration__ | Shorter. One line. |
+| en.json → hotwater_charge.blocked.hot_water_off | Autopilot is waiting. Hot water is turned off on your heat pump. | Waiting · hot water is off on your heat pump | Shorter. One line. |
+| en.json → hotwater_charge.blocked.spa | Autopilot is waiting. Turn off Smart price adaption for hot water on your heat pump. | Waiting · turn off Smart price adaption for hot water | Shorter. One line. |
+| en.json → hotwater_charge.blocked.smart_control | Autopilot is waiting. Your heat pump's hot water demand is on Smart control. Set it to Small, Medium or Large. | Waiting · set hot water demand to Small, Medium or Large | Shorter. One line. |
+| en.json → hotwater_update.title.new_prices | New prices are in. Hot water plan updated. | Hot water plan updated · new prices | Shorter. One line. |
+| en.json → hotwater_update.title.revised | Prices changed. Hot water plan updated. | Hot water plan updated · prices changed | Shorter. One line. |
+| en.json → hotwater_update.added | Added: __time__, to __target__ °C at __price__/kWh (__reason__). | Added __time__ · to __target__ °C at __price__/kWh · __reason__ | Shorter. One line. |
+| en.json → hotwater_update.moved | Moved from __was__ to __time__: to __target__ °C at __price__/kWh instead of __wasPrice__. | Moved __was__ → __time__ · __price__/kWh instead of __wasPrice__ | Shorter. One line. |
+| en.json → hotwater_update.moved_repriced | Moved from __was__ to __time__: the __was__ hours now cost __wasNow__/kWh instead of __wasPrice__, so it charges to __target__ °C at __price__/kWh. | Moved __was__ → __time__ · __was__ now costs __wasNow__/kWh, was __wasPrice__ | Shorter. One line. |
+| en.json → hotwater_update.dropped | The __time__ charge is gone. __why__ | Dropped __time__ · __why__ | With the four why lines below, lower case |
+| en.json → hotwater_update.why.takes_over | The charge __time__ takes over the rest, at __price__/kWh. | the __time__ charge covers it at __price__/kWh | Shorter. One line. |
+| en.json → hotwater_update.why.covered | The tank covers the day without it. | the tank covers the day | Shorter. One line. |
+| en.json → hotwater_update.why.store_more | The hours ahead cost more, so it stores more now. | storing more now, later hours cost more | Shorter. One line. |
+| en.json → hotwater_update.why.needs_less | It needs less now. | less needed | Shorter. One line. |
+| en.json → heating.timeline.resumed | Autopilot heating is running again. | Autopilot heating resumed | Shorter. One line. |
+| en.json → heating.timeline.learned | Autopilot heating has learned your house and now moves heat away from expensive hours. | Autopilot heating has learned your house · now moving heat away from expensive hours | Shorter. One line. |
+| en.json → smart.spa_took_over.heating | Smart price adaption was turned on for heating, so Autopilot heating stopped. | Autopilot heating stopped · Smart price adaption was turned on | Same for hot water |
+| en.json → connection.moved | Nibe Live: your heat pump moved from __from__ to __to__. Its Homey devices have been updated. | Your heat pump moved to __to__ (was __from__) · devices updated | Homey already shows the app’s icon and name |
+
+### Pairing and setup
+
+| Where | Current | Proposed | Why |
+|---|---|---|---|
+| en.json → pair.detect.intro | Connecting to your heat pump and watching which values change. This takes about half a minute. | Watching which values change · about 30 seconds | Shorter. One line. |
+| en.json → pair.detect.no_data | Something answers at this address, but it returns no NIBE data. Check the IP is your heat pump's own and that Modbus TCP is on (menu 7.5.9). | No NIBE data at this address. Check the IP and that Modbus TCP is on (menu 7.5.9). | Same for connection.no_data |
+| en.json → pair.features.intro | Choose what to show. We've ticked what your heat pump reported. | Ticked items have data from your heat pump | No “we” |
+| en.json → pair.discover.none_found | No heat pump found automatically. Check that Modbus TCP is enabled on your heat pump (menu 7.5.9) or enter its IP address below. | No heat pump found. Turn on Modbus TCP (menu 7.5.9) or enter the IP address. | Shorter. One line. |
+| en.json → pair.devices.intro | Your heat pump does several jobs. Each gets its own device in Homey. We ticked the ones with live data. | One device per job. Ticked ones have live data. | No “we” |
+| en.json → pair.devices.main_desc | Overview: outdoor temperature, operating priority and mode, plus diagnostics and statistics | Outdoor temperature, priority, mode and diagnostics | Shorter. One line. |
+| en.json → pair.tank.hint | Needed for the hot water estimate. Pick your tank's series, like VPB. The lining doesn't matter. | Pick the series, like VPB. The lining doesn't matter. | Shorter. One line. |
+| en.json → pair.setup.thermostat_zone_review | Heating: the thermostat sets __zone__ | Thermostat sets __zone__ | Shorter. One line. |
+| en.json → pair.setup.analytics_benefit | Nibe Live is built by one developer with one heat pump. Sharing how the app works with yours helps uncover compatibility issues, improve setup and focus development on the features you use. | Built by one developer with one heat pump. Yours shows what works on other models. | Shorter. One line. |
+| en.json → pair.setup.analytics_details | Includes your heat pump model, app features used and technical events such as setup failures and connection problems. Temperature readings, device names and Flow names are never included. | Model, features used, setup and connection errors. Never readings or names. | Shorter. One line. |
+| en.json → pair.setup.source_intro | Choose which sensor supplies the indoor temperature used to control your heating. | The indoor temperature that controls your heating | Shorter. One line. |
+| en.json → pair.setup.feed_short | Verification starts regular temperature updates, which continue after you close Repair. | Verifying starts the updates. They keep running after you close Repair. | Shorter. One line. |
+| en.json → pair.setup.feed_recovery | If Homey or a sensor stops reporting, BT50 can raise an alarm. Switch back to your NIBE sensor and turn off external BT50 on your heat pump. | If readings stop, BT50 may alarm. Switch back to your NIBE sensor and turn off external BT50. | Shorter. One line. |
+| en.json → pair.setup.success_description | Your heat pump is now receiving temperatures from your Homey sensors. | Your heat pump gets temperatures from Homey | Shorter. One line. |
+| en.json → pair.setup.success_many | sensors working together | sensors averaged | Shorter. One line. |
+| en.json → smart.intro | Pick one. Only one planner can run at a time. | Only one can run at a time | Same for steer_intro |
+| en.json → smart.choose_on_desc_heating | Learns your house, then heats a little more before expensive hours and a little less during them. | Heats a little more before expensive hours and less during them | Shorter. One line. |
+| en.json → smart.choose_spa_desc | NIBE's own. It runs in your heat pump and gets prices through myUplink. | NIBE's own, with prices from myUplink | Shorter. One line. |
+| en.json → smart.choose_off_desc_heating | Heating follows the curve only. | Follows the heat curve | Shorter. One line. |
+| en.json → smart.success_description | Comfort range, Away and status are on the Heating device. The thermostat sets the comfort temperature. | Comfort range, Away and status are on the Heating device | Shorter. One line. |
+| en.json → smart.room_control_on | This is on in your heat pump. Turn it off, or it will undo what Autopilot does. | On. Turn it off on your heat pump. | Shorter. One line. |
+| en.json → smart.room_control_unknown | Couldn't be read. Keep it off. | Unknown · keep it off | Shorter. One line. |
+| en.json → smart.room_control_optional | Optional. On lets your heat pump correct by room temperature. Turn it off before choosing Autopilot. | Optional. Off for Autopilot. | Shorter. One line. |
+| en.json → smart.verify_intro | Autopilot checks that your heat pump takes its outdoor temperature. | Checks that your heat pump takes the outdoor temperature | Shorter. One line. |
+| en.json → smart.verify_confirm | Both are on | Check my heat pump | Button: a verb |
+| en.json → smart.pump_confirm | These are set on your heat pump | Done on my heat pump | Button |
+| en.json → smart.indoor_note | Autopilot steers your heat pump through the outdoor temperature (BT1), so room-sensor control on your heat pump stays off. | Autopilot steers through the outdoor temperature (BT1), so room-sensor control stays off. | Shorter. One line. |
+| en.json → smart.hw_tank_intro | Autopilot plans in litres, so it needs your tank's size. Pick it once. | Autopilot plans in litres. Pick your tank once. | Shorter. One line. |
+| en.json → smart.hw_flows_found | They'll start charges Autopilot didn't plan. Turn them off, or keep them for notifications. | These start charges Autopilot didn't plan. Turn them off. | Shorter. One line. |
+| en.json → smart.hw_household_intro | Autopilot is still learning (__days__ days so far). Tell it a bit about your home so it can start well. | Still learning · __days__ days so far. A few answers help it start well. | Shorter. One line. |
+| en.json → smart.hw_daytype_calendar | Today: __type__. Saturday and Sunday are days off. Holiday or working from home? Change it on the Main device, or let a Flow follow your calendar. | Today is a __type__. Weekends are days off. Change it on the Main device or with a Flow. | Shorter. One line. |
+| en.json → smart.solar_forecast_hint | Skips a night charge when sun is forecast, and pauses itself if the forecast keeps missing. Leave it off if a battery or car charger uses your solar first. | Skips a night charge when sun is forecast. Leave it off if a battery or car takes your solar first. | Shorter. One line. |
+| en.json → smart.solar_no_meter_found | Found your solar panels, but no electricity meter that measures what you sell, like a P1 reader. Add it to Homey Energy, then come back here. | No meter that measures export, like a P1 reader. Add one to Homey Energy. | Shorter. One line. |
+| en.json → smart.mode_note | Live steers your heat pump. Simulated plans everything and shows what it would do, while your heat pump stays as it is. | Live steers your heat pump. Simulated only shows the plan. | Shorter. One line. |
+| en.json → pair.tank.inlet_hint | 10 °C is the usual figure; a little lower in winter, higher in summer. | Usually 10 °C | Semicolon |
+
+### Device settings
+
+| Where | Current | Proposed | Why |
+|---|---|---|---|
+| settings.pollInterval hint | How often Homey reads your heat pump. Set it on Nibe Main. Shorter is quicker but busier. | Set on the Main device. Shorter is quicker but busier. | Shorter. One line. |
+| settings.alarm_log hint | The latest alarm from your heat pump. The full history is in the app's settings. | Full history in the app settings | Shorter. One line. |
+| capability h202_use_room_sensor | Room sensor regulation active | Room-sensor control | Glossary |
+
+### Flow cards
+
+| Where | Current | Proposed | Why |
+|---|---|---|---|
+| Set the hot water start temperature (Small) | Set the hot water start temperature (Small) to [[value]] | Set the Small hot water start temperature to [[value]] | Same for the other six Small/Medium/Large/Periodic cards |
+| … (Medium) hint | Tank temperature where hot water charging starts. Accepts 5 to 60 °C. | Start temperature for Medium demand. Accepts 5 to 60 °C. | Match Small and Large |
+| … (Periodic) hint | Stop temperature for the periodic anti-legionella charge. Reaching it usually needs the immersion heater — a compressor alone tops out in the high 50s. Accepts 55 to 70 °C. | Stop temperature for the periodic charge. Usually needs the immersion heater. Accepts 55 to 70 °C. | Em dash |
+| Set operating mode | Set operating mode [[mode]] | Set operating mode to [[mode]] | “to” on every Set card: heat curve, displacement, demand, interval, length, SG Ready |
+| Allow heating hint | Allow heating operation | (no hint) | Repeats the title. Same for Allow cooling, Pool heating, Fan mode, Periodic hot water |
+| Register turned on / off | [[register]] turned on | [[setting]] turned on | “Register” is a developer word. Also “A register is on (advanced)” |
+| Value comparison | Value of [[register]] is [[comparison]] [[value]] | [[reading]] is [[comparison]] [[value]] | Shorter. One line. |
+| Triggers, hint opening | Fires when your heat pump reports a new alarm. … | When your heat pump reports a new alarm. … | Homey’s own examples open trigger hints with “When” |
 
 
 # Appendix: translations (parked)
