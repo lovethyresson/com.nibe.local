@@ -145,6 +145,18 @@ test('a planned charge is one labelled band, with the share the sun covers', () 
     assert.equal(hour, 3_600_000);
 });
 
+test('charges already done are bands too; a running charge is one band, its done part first', () => {
+    const from = Date.parse('2026-11-15T00:00:00Z');
+    const clock = (ms: number) => new Date(ms).toISOString().slice(11, 16);
+    const ran = {ran: true as const};
+    const slots = [{}, ran, ran, {}, ran, ran, {charge: 0}, {charge: 0.5}, {}, ran, {charge: 0}];
+    const bands = chargeBands(slots, from, clock, (a, b) => `${a}-${b}`);
+    assert.deepEqual(bands.map((b) => [b.from, b.to, b.doneTo]), [[1, 3, 3], [4, 8, 6], [9, 11, 10]]);
+    assert.equal(bands[1].label, '01:00-02:00', 'one label from the start of what ran to the end of the plan');
+    assert.equal(bands[1].solar, 0.25, 'the solar share is the planned part\'s');
+    assert.equal(chargeBands([{charge: 0}, ran], from, clock, (a, b) => a + b).length, 2, 'done after planned is another charge');
+});
+
 test('a reason loses the word the status already says', () => {
     assert.equal(stripLead('Holding. Nothing to gain from shifting now', ['Holding']), 'Nothing to gain from shifting now');
     assert.equal(stripLead('Holding · easing off at 19:00', ['Holding']), 'Easing off at 19:00');

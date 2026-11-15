@@ -686,7 +686,8 @@
       "starting_heating": "Læser prognosen og elpriserne. Tager omkring et minut.",
       "starting_hotwater": "Læser elpriserne og tanken. Tager omkring et minut.",
       "starting_app": "Læser din varmepumpe. Tager omkring et minut.",
-      "away_until": "Fraværende til __until__ · __c__ °C"
+      "away_until": "Fraværende til __until__ · __c__ °C",
+      "charge_done": "Opvarmet"
     },
     "hotwater_status": {
       "learning": "Lærer jeres forbrug af varmt vand",

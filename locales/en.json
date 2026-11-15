@@ -686,7 +686,8 @@
       "starting_heating": "Reading the forecast and prices. Takes about a minute.",
       "starting_hotwater": "Reading prices and the tank. Takes about a minute.",
       "starting_app": "Reading your heat pump. Takes about a minute.",
-      "away_until": "Away until __until__ · __c__ °C"
+      "away_until": "Away until __until__ · __c__ °C",
+      "charge_done": "Charged"
     },
     "hotwater_status": {
       "learning": "Learning your hot water use",

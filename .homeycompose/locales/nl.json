@@ -404,7 +404,8 @@
       "starting_heating": "De voorspelling en stroomprijzen worden gelezen. Duurt ongeveer een minuut.",
       "starting_hotwater": "De stroomprijzen en de boiler worden gelezen. Duurt ongeveer een minuut.",
       "starting_app": "Je warmtepomp wordt uitgelezen. Duurt ongeveer een minuut.",
-      "away_until": "Afwezig tot __until__ · __c__ °C"
+      "away_until": "Afwezig tot __until__ · __c__ °C",
+      "charge_done": "Opgewarmd"
     },
     "hotwater_status": {
       "learning": "Leert je warmwatergebruik kennen",

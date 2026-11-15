@@ -686,7 +686,8 @@
       "starting_heating": "Prognose und Strompreise werden gelesen. Dauert etwa eine Minute.",
       "starting_hotwater": "Strompreise und Speicher werden gelesen. Dauert etwa eine Minute.",
       "starting_app": "Ihre Wärmepumpe wird gelesen. Dauert etwa eine Minute.",
-      "away_until": "Abwesend bis __until__ · __c__ °C"
+      "away_until": "Abwesend bis __until__ · __c__ °C",
+      "charge_done": "Geladen"
     },
     "hotwater_status": {
       "learning": "Lernt Ihren Warmwasserverbrauch",

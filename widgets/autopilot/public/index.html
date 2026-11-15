@@ -40,11 +40,11 @@
 
       /* Light values meet 3:1 or better on white; dark values are the brighter originals. The theme is
          read from the text colour Homey gives the page (see applyTheme), with the media query as the start. */
-      :root { --ghost-accent: #2d6bd6; --ap-indoor: #c4580d; --ap-offset: #2d6bd6; --ap-solar: #d46a00; --ap-surplus: rgba(212, 106, 0, 0.18); --ap-grid: #2d6bd6;
+      :root { --ghost-accent: #2d6bd6; --ap-indoor: #c4580d; --ap-offset: #2d6bd6; --ap-solar: #d46a00; --ap-surplus: rgba(212, 106, 0, 0.18); --ap-grid: #2d6bd6; --ap-done: rgba(45, 107, 214, 0.35);
         --ap-price-line: rgba(127, 127, 127, 0.9); --ap-price-top: rgba(127, 127, 127, 0.3); }
-      :root[data-theme="dark"] { --ap-indoor: #e8833a; --ap-offset: #4da3ff; --ap-solar: #ff9f0a; --ap-surplus: rgba(255, 159, 10, 0.22); --ap-grid: #4da3ff; }
+      :root[data-theme="dark"] { --ap-indoor: #e8833a; --ap-offset: #4da3ff; --ap-solar: #ff9f0a; --ap-surplus: rgba(255, 159, 10, 0.22); --ap-grid: #4da3ff; --ap-done: rgba(77, 163, 255, 0.35); }
       @media (prefers-color-scheme: dark) {
-        :root:not([data-theme="light"]) { --ap-indoor: #e8833a; --ap-offset: #4da3ff; --ap-solar: #ff9f0a; --ap-surplus: rgba(255, 159, 10, 0.22); --ap-grid: #4da3ff; }
+        :root:not([data-theme="light"]) { --ap-indoor: #e8833a; --ap-offset: #4da3ff; --ap-solar: #ff9f0a; --ap-surplus: rgba(255, 159, 10, 0.22); --ap-grid: #4da3ff; --ap-done: rgba(77, 163, 255, 0.35); }
       }
     </style>
   </head>
@@ -274,11 +274,14 @@
         // Charge bands: a rounded band from start to end, 14 px tall, with its time range under it.
         var edge = L - 100;
         bands.forEach(function (b) {
-          var bx = x(b.from), bw = Math.max(x(b.to) - bx, 6), by = B + 10, bh = 14, sw = bw * b.solar, id = 'apclip' + (++clips);
+          var bx = x(b.from), bw = Math.max(x(b.to) - bx, 6), by = B + 10, bh = 14, id = 'apclip' + (++clips);
+          // The part already done, muted; the planned rest, with its solar share first.
+          var dx = typeof b.doneTo === 'number' ? Math.min(bx + bw, x(b.doneTo)) : bx, sw = (bx + bw - dx) * b.solar;
           svg.appendChild(svgEl('defs', {})).innerHTML = '<clipPath id="' + id + '"><rect x="' + bx + '" y="' + by + '" width="' + bw + '" height="' + bh + '" rx="5"/></clipPath>';
           var g = svgEl('g', {'clip-path': 'url(#' + id + ')'});
-          g.appendChild(svgEl('rect', {x: bx, y: by, width: bw, height: bh, fill: 'var(--ap-grid)'}));
-          if (sw > 0) g.appendChild(svgEl('rect', {x: bx, y: by, width: sw, height: bh, fill: 'var(--ap-solar)'}));
+          if (dx > bx) g.appendChild(svgEl('rect', {x: bx, y: by, width: dx - bx, height: bh, fill: 'var(--ap-done)'}));
+          if (bx + bw > dx) g.appendChild(svgEl('rect', {x: dx, y: by, width: bx + bw - dx, height: bh, fill: 'var(--ap-grid)'}));
+          if (sw > 0) g.appendChild(svgEl('rect', {x: dx, y: by, width: sw, height: bh, fill: 'var(--ap-solar)'}));
           svg.appendChild(g);
           var half = b.label.length * 3.1, cx = Math.min(R - half, Math.max(L + half, bx + bw / 2));
           if (cx - half < edge + 8) return;
@@ -359,7 +362,8 @@
           root.appendChild(legend([
             {text: data.legend.price, style: 'border-top: 2px solid var(--ap-price-line); background: linear-gradient(to bottom, var(--ap-price-top), transparent);'},
             {text: data.legend.surplus, style: 'background: var(--ap-surplus);'},
-            {text: data.legend.solar, style: 'background: var(--ap-solar);'}, {text: data.legend.grid, style: 'background: var(--ap-grid);'}]));
+            {text: data.legend.solar, style: 'background: var(--ap-solar);'}, {text: data.legend.grid, style: 'background: var(--ap-grid);'},
+            {text: data.legend.done, style: 'background: var(--ap-done);'}]));
         }
         if (data.hint) root.appendChild(el('p', 'ap-foot', data.hint));
         if (data.footnote) root.appendChild(el('p', 'ap-foot', data.footnote));

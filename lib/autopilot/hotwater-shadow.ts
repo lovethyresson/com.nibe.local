@@ -600,6 +600,8 @@ export interface SavedPlan {
     events: ChargeEvent[];
     /** The tank since that morning, for the day's score (analytics.ts). */
     day?: TankDay;
+    /** The slots (start ms / SLOT_MS) the tank was seen charging, for the charges already done. */
+    ran?: number[];
 }
 
 /** The saved plan to resume from, or nothing when it is too old to be the plan in force: a plan
@@ -608,7 +610,9 @@ export function resumePlan(saved: SavedPlan | undefined, now: number): SavedPlan
     if (!saved || !Array.isArray(saved.events)) return undefined;
     const fresh = saved.plan && saved.plan.until > now ? saved.plan : undefined;
     const day = Number.isFinite(saved.day?.from) && saved.day!.from <= now ? {day: saved.day} : {};
-    return {dailySent: saved.dailySent, plan: fresh, events: saved.events.filter((e) => now - e.at < 2 * DAY_MS), ...day};
+    const ran = Array.isArray(saved.ran) ? saved.ran.filter((slot) => Number.isFinite(slot) && now - slot * SLOT_MS < 2 * DAY_MS) : [];
+    return {dailySent: saved.dailySent, plan: fresh, events: saved.events.filter((e) => now - e.at < 2 * DAY_MS), ...day,
+        ...ran.length ? {ran} : {}};
 }
 /** The surplus model is relearned this often; the forecast comes with it. */
 const SURPLUS_EVERY_MS = 3 * HOUR;
@@ -630,6 +634,8 @@ export class HotwaterAutopilot {
     /** Whether the tank is charging, from the latest poll. The plan step's own reading is up to a
      *  slot old: a charge started just after it would read as not started. */
     private chargingNow?: boolean;
+    /** The slots the tank was seen charging (SavedPlan.ran). */
+    private ran = new Set<number>();
     private deviceId?: string;
     private currency = '';
     /** Local date of the last morning plan sent, and the plan in force: the morning's, or the
@@ -681,6 +687,7 @@ export class HotwaterAutopilot {
             this.events = saved.events;
             this.lastStart = [...saved.events].reverse().find((e) => !e.shadow);
             this.day = saved.day;
+            this.ran = new Set(saved.ran ?? []);
             if (saved.plan) this.reserveFor(saved.plan);
         }
         this.ceilingObs = mergeObservations(this.hooks.store.get(CEILING_KEY), [], Date.now());
@@ -716,7 +723,7 @@ export class HotwaterAutopilot {
     /** What the Autopilot widget shows for `n` slots from `from`: the price, the expected solar
      *  surplus (kW, only with solar on), and the plan's charges with the share each takes from the
      *  surplus; the tank now and the next charge. Reads only. */
-    outlook(from: number, n: number): {slots: {price?: number; surplus?: number; charge?: number}[]; litres?: number;
+    outlook(from: number, n: number): {slots: {price?: number; surplus?: number; charge?: number; ran?: true}[]; litres?: number;
         next?: {at: number; minutes: number; reason: ChargeReason; solar: number}} {
         const charges = this.morningPlan?.charges ?? [];
         const covering = (slot: number) => charges.find((c) => slot * SLOT_MS < c.at + c.minutes * 60_000
@@ -726,12 +733,15 @@ export class HotwaterAutopilot {
         // A planned charge whose start has passed is the next one only while the tank is charging.
         // One that did not start (a safety-net charge filled the tank first) is behind us.
         const next = nextCharge(charges, now, (this.chargingNow ?? this.last?.charging) === true);
+        const nowSlot = Math.floor(now / SLOT_MS);
         return {
+            // Behind now, the charges that ran; from now on, the plan.
             slots: Array.from({length: n}, (_, k) => {
-                const c = covering(from + k);
-                const kw = surplus?.get(from + k);
-                return {price: this.prices.get(from + k)?.price, surplus: kw === undefined ? undefined : Math.max(0, round(kw, 2)),
-                    charge: c ? c.surplusShare : undefined};
+                const slot = from + k;
+                const c = slot >= nowSlot ? covering(slot) : undefined;
+                const kw = surplus?.get(slot);
+                return {price: this.prices.get(slot)?.price, surplus: kw === undefined ? undefined : Math.max(0, round(kw, 2)),
+                    charge: c ? c.surplusShare : undefined, ...this.ran.has(slot) && slot <= nowSlot ? {ran: true as const} : {}};
             }),
             litres: this.last?.litres,
             next: next && {at: next.at, minutes: next.minutes, reason: next.reason, solar: next.surplusShare},
@@ -750,6 +760,11 @@ export class HotwaterAutopilot {
     poll(r: PollReading) {
         if (this.stopped) return;
         if (r.charging !== undefined) this.chargingNow = r.charging;
+        // Kept once per slot, so a restart still shows the charges done today.
+        if (r.charging && !this.ran.has(Math.floor(r.at / SLOT_MS))) {
+            this.ran.add(Math.floor(r.at / SLOT_MS));
+            this.savePlan();
+        }
         const {watch, observation} = watchCharge(this.watch, r);
         this.watch = watch;
         if (!observation) return;
@@ -1042,7 +1057,9 @@ export class HotwaterAutopilot {
 
     /** The plan in force and the recap so far, kept across a restart. */
     private savePlan() {
-        const saved: SavedPlan = {dailySent: this.dailySent, plan: this.morningPlan, events: this.events, day: this.day};
+        const ran = [...this.ran].filter((slot) => Date.now() - slot * SLOT_MS < 2 * DAY_MS);
+        const saved: SavedPlan = {dailySent: this.dailySent, plan: this.morningPlan, events: this.events, day: this.day,
+            ...ran.length ? {ran} : {}};
         this.hooks.store.set(PLAN_KEY, saved).catch((error) => this.log('Autopilot hot water: plan not saved:', error?.message ?? error));
     }
 

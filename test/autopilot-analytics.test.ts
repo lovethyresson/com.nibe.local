@@ -106,6 +106,9 @@ test('the saved plan keeps the tank day across a restart', () => {
     const resumed = resumePlan({events: [], day: {from: 1000, minLitres: 80}}, 2000);
     assert.deepStrictEqual(resumed?.day, {from: 1000, minLitres: 80});
     assert.strictEqual(resumePlan({events: [], day: {from: 3000}}, 2000)?.day, undefined);
+    const now = Date.parse('2026-11-15T12:00:00Z'), slot = (ms: number) => Math.floor(ms / 900_000);
+    assert.deepStrictEqual(resumePlan({events: [], ran: [slot(now - 3_600_000), slot(now - 3 * 86_400_000)]}, now)?.ran,
+        [slot(now - 3_600_000)], 'the charges done are kept two days');
 });
 
 /** Feed heating's day `n` slots of `ti` on `date` from `slot0`. */

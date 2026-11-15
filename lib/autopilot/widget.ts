@@ -17,6 +17,8 @@ export interface WidgetSlot {
     price?: number;
     surplus?: number;
     charge?: number;
+    /** Hot water: the tank was charging in this slot (one already behind now). */
+    ran?: true;
 }
 
 /** A chart axis: round gridlines from `lo` to `hi`, and how many decimals their labels need. */
@@ -34,6 +36,8 @@ export interface ChargeBand {
     to: number;
     solar: number;
     label: string;
+    /** Slots `from` up to this one already ran: drawn muted. Missing when none did. */
+    doneTo?: number;
 }
 
 /** An hour of the outdoor shift as one bar: slots `at` up to `to`, the shift (K) averaged over them. */
@@ -172,21 +176,29 @@ export function formatDuration(minutes: number, say: (key: 'duration' | 'duratio
     return m % 60 ? say('duration', {h: Math.floor(m / 60), m: m % 60}) : say('duration_h', {h: m / 60});
 }
 
-/** Runs of consecutive planned-charge slots, each labelled from its first slot's start to its last
- *  slot's end. `from` is the chart's first slot start (ms). */
+/** Runs of consecutive charge slots, done or planned, each labelled from its first slot's start
+ *  to its last slot's end. A charge running now is one band: its done part, then its planned
+ *  rest. `from` is the chart's first slot start (ms). */
 export function chargeBands(slots: WidgetSlot[], from: number, clock: (ms: number) => string,
     label: (start: string, end: string) => string, slotMs = 15 * 60_000): ChargeBand[] {
     const bands: ChargeBand[] = [];
-    let open: {from: number; solar: number[]} | undefined;
+    let open: {from: number; solar: number[]; doneTo?: number} | undefined;
     const close = (to: number) => {
         if (!open) return;
-        const share = open.solar.reduce((a, b) => a + b, 0) / open.solar.length;
+        const share = open.solar.length ? open.solar.reduce((a, b) => a + b, 0) / open.solar.length : 0;
         bands.push({from: open.from, to, solar: Math.round(share * 100) / 100,
-            label: label(clock(from + open.from * slotMs), clock(from + to * slotMs))});
+            label: label(clock(from + open.from * slotMs), clock(from + to * slotMs)),
+            ...open.doneTo !== undefined ? {doneTo: open.doneTo} : {}});
         open = undefined;
     };
     slots.forEach((s, k) => {
-        if (typeof s.charge === 'number') { open ??= {from: k, solar: []}; open.solar.push(s.charge); } else close(k);
+        const planned = typeof s.charge === 'number';
+        if (!planned && !s.ran) return close(k);
+        // Done after planned would be a new charge: a band of its own.
+        if (s.ran && !planned && open && open.doneTo !== k) close(k);
+        open ??= {from: k, solar: []};
+        if (s.ran && !planned) open.doneTo = k + 1;
+        else open.solar.push(s.charge ?? 0);
     });
     close(slots.length);
     return bands;

@@ -2113,7 +2113,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     ? [t('hotwater.until', {time: this.clock(o.next.at + o.next.minutes * 60_000)}), reason].join(' · ')
                     : [t('hotwater.about', {duration}), reason].join(' · '),
                 detail: o.next ? [share > 0 ? t('hotwater.share', {share}) : undefined, litres].filter(Boolean).join(' · ') || undefined : undefined,
-                legend: {price: t('price'), surplus: solar ? t('surplus') : '', grid: t('charge_grid'), solar: solar ? t('charge_solar') : ''},
+                legend: {price: t('price'), surplus: solar ? t('surplus') : '', grid: t('charge_grid'), solar: solar ? t('charge_solar') : '',
+                    done: bands.some((b) => b.doneTo !== undefined) ? t('charge_done') : ''},
                 axes: {left: t('axis_price'), right: solar ? t('axis_surplus') : ''},
                 // The plan counts the surplus it expects; a live surplus the forecast missed still starts or
                 // tops up a charge (solar-surplus.ts: the live reading replaces the forecast for the next slots), so the owner is told it is not a cap.
