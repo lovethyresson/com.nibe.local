@@ -588,7 +588,8 @@
         "range_off": "Komfortspann är Av: din värmepump ser den verkliga utetemperaturen",
         "sun": "sol väntas __from__–__to__",
         "waiting": "Startar: väntar på prognosen",
-        "before": "innan __why__"
+        "before": "innan __why__",
+        "back": "du kommer hem kl. __at__"
       },
       "status_name": {
         "learning": "Lär sig",
@@ -610,7 +611,9 @@
         "not_followed": "Din värmepump tog inte emot utetemperaturen. Kontrollera att meny 7.5.9.2 tillåter extern BT1 och att Modbus (meny 7.5.9) tillåter skrivning."
       },
       "not_on": "Autopilot uppvärmning är inte på.",
-      "no_thermostat": "Uppvärmning har ingen termostat att ställa in."
+      "no_thermostat": "Uppvärmning har ingen termostat att ställa in.",
+      "away_time_past": "Den tiden har redan passerat.",
+      "away_time_invalid": "Välj ett datum och en tid då Borta ska sluta."
     },
     "smart": {
       "no_spa": "Din värmepump har ingen Smart price adaption.",

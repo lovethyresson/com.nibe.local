@@ -588,7 +588,8 @@
         "range_off": "Comfort range is Off: your heat pump sees the real outdoor temperature",
         "sun": "sun expected __from__–__to__",
         "waiting": "Starting: waiting for the forecast",
-        "before": "before __why__"
+        "before": "before __why__",
+        "back": "you're back at __at__"
       },
       "status_name": {
         "learning": "Learning",
@@ -610,7 +611,9 @@
         "not_followed": "Your heat pump didn't accept the outdoor temperature. Check that menu 7.5.9.2 allows an external BT1 and that Modbus (menu 7.5.9) allows writes."
       },
       "not_on": "Autopilot heating is not on.",
-      "no_thermostat": "The Heating device has no thermostat to set."
+      "no_thermostat": "The Heating device has no thermostat to set.",
+      "away_time_past": "That time has already passed.",
+      "away_time_invalid": "Choose a date and a time for Away to end."
     },
     "smart": {
       "no_spa": "Your heat pump has no Smart price adaption.",

@@ -95,17 +95,39 @@ export function pumpHeat(house: HouseParams, comfort: number, te: number, curve:
     return Math.min(max, Math.max(0, P)) * SLOT_H;
 }
 
-export function simulate(house: HouseParams, comfort: number, state: PlanState, forecast: ForecastSlot[],
+/** A setpoint per slot, and where it becomes a promise: Away ending at a time the owner gave
+ *  (live.ts `setpointPath`). The plan should arrive at the setpoint there, not weigh it against
+ *  the price: the profile's own weight (1.0 at Save more, which Away plans with) never pays for a
+ *  warm-up whose heat partly leaks away before the return, and degree-hours alone barely see
+ *  "0.4 K short for an hour". So at `firmFrom` each kelvin short costs the whole house's heat
+ *  capacity, and heat owed from then on, `FIRM_WEIGHT` times what cures it. Among the ways to
+ *  arrive, the cheapest still wins. */
+export interface SetpointPath {
+    setpoints: number[];
+    firmFrom?: number;
+}
+/** The setpoint per slot: one number for the whole horizon, or a path. A path shorter than the
+ *  horizon holds its last value. */
+export type Comfort = number | number[] | SetpointPath;
+export const FIRM_WEIGHT = 10;
+export function comfortAt(comfort: Comfort, k: number): number {
+    if (typeof comfort === 'number') return comfort;
+    const path = Array.isArray(comfort) ? comfort : comfort.setpoints;
+    return path[Math.min(k, path.length - 1)];
+}
+
+export function simulate(house: HouseParams, comfort: Comfort, state: PlanState, forecast: ForecastSlot[],
                          biases: number[], pump: PumpCurve = {}): Simulation {
     let {ti, tm, curve} = state;
     const out: Simulation = {ti: [], tm: [], heat: [], cost: 0, curveEnd: curve};
     // Heat the pump owes after hot water had the compressor: its degree minutes keep counting while
     // it charges the tank, and it catches up afterwards, as fast as it can.
     let owed = 0;
-    const max = house.heatLoss * (comfort - DESIGN_OUTDOOR) * SLOT_H;
     forecast.forEach((slot, k) => {
+        const c = comfortAt(comfort, k);
+        const max = house.heatLoss * (c - DESIGN_OUTDOOR) * SLOT_H;
         curve = curveInput(curve, slot.te - biases[k], SLOT_H, CURVE_TAU_H);
-        const wanted = pumpHeat(house, comfort, slot.te, curve, pump, ti);
+        const wanted = pumpHeat(house, c, slot.te, curve, pump, ti);
         let heat = wanted;
         if (slot.busy) {
             owed += wanted;
@@ -158,9 +180,10 @@ export interface Plan {
  *  current state ratcheted, each replan's bar rising with the last pre-heat. */
 export type Reference = Pick<Simulation, 'ti' | 'tm'>;
 
-export function comfortReference(house: HouseParams, comfort: number, forecast: ForecastSlot[]): Reference {
-    const end = steadyState(house, comfort, forecast[forecast.length - 1].te);
-    return {ti: forecast.map(() => comfort), tm: forecast.map(() => end.tm)};
+export function comfortReference(house: HouseParams, comfort: Comfort, forecast: ForecastSlot[]): Reference {
+    const n = forecast.length;
+    const end = steadyState(house, comfortAt(comfort, n - 1), forecast[n - 1].te);
+    return {ti: forecast.map((_, k) => comfortAt(comfort, k)), tm: forecast.map(() => end.tm)};
 }
 
 /** Electricity bought, plus the warmth a plan leaves owing, bought back at the horizon's mean
@@ -168,8 +191,14 @@ export function comfortReference(house: HouseParams, comfort: number, forecast: 
  *  end. Running the house colder therefore saves nothing here; only buying the same comfort at
  *  cheaper hours does. A weight above 1 values comfort above its price, which is what makes a
  *  pre-heat ahead of a cold front worth buying. */
-export function fairCost(house: HouseParams, sim: Simulation, reference: Reference, meanPrice: number, weight = 1): number {
-    return sim.cost + weight * owedHeat(house, sim, reference) / COP * meanPrice;
+export function fairCost(house: HouseParams, sim: Simulation, reference: Reference, meanPrice: number,
+                         weight: number | number[] = 1, firm?: number): number {
+    return sim.cost + owedHeat(house, sim, reference, weight, firm) / COP * meanPrice;
+}
+
+/** kWh charged per kelvin the air is short of the setpoint at a promised slot (`SetpointPath`). */
+export function firmPenalty(house: HouseParams): number {
+    return FIRM_WEIGHT * (house.ci + house.cm);
 }
 
 /** kWh of heat a plan leaves owing: each degree-hour colder than the reference (H·Δt), plus
@@ -178,10 +207,13 @@ export function fairCost(house: HouseParams, sim: Simulation, reference: Referen
  *  deficits (equal *average* comfort) made the closed-loop planner hold 24.5 °C all morning to
  *  pay for a cool evening, and crediting surplus outright made heat at any cheaper-than-mean hour
  *  look like a saving. */
-export function owedHeat(house: HouseParams, sim: Reference, reference: Reference): number {
+export function owedHeat(house: HouseParams, sim: Reference, reference: Reference, weight: number | number[] = 1,
+                         firm?: number): number {
     const n = sim.ti.length;
-    let owed = Math.max(0, house.ci * (reference.ti[n - 1] - sim.ti[n - 1]) + house.cm * (reference.tm[n - 1] - sim.tm[n - 1]));
-    for (let k = 0; k < n; k++) owed += house.heatLoss * SLOT_H * Math.max(0, reference.ti[k] - sim.ti[k]);
+    const w = (k: number) => (typeof weight === 'number' ? weight : weight[k]);
+    let owed = w(n - 1) * Math.max(0, house.ci * (reference.ti[n - 1] - sim.ti[n - 1]) + house.cm * (reference.tm[n - 1] - sim.tm[n - 1]));
+    for (let k = 0; k < n; k++) owed += w(k) * house.heatLoss * SLOT_H * Math.max(0, reference.ti[k] - sim.ti[k]);
+    if (firm !== undefined && firm < n) owed += firmPenalty(house) * Math.max(0, reference.ti[firm] - sim.ti[firm]);
     return owed;
 }
 
@@ -195,21 +227,33 @@ export function owedHeat(house: HouseParams, sim: Reference, reference: Referenc
  *
  *  A spread below the margin doesn't stop the search, it only stops price shifting: each move
  *  must still beat half the margin on the heat it moves, which a pure arbitrage on a thin spread
- *  can't, while easing off ahead of sun saves outright and passes. */
-export function planShift(house: HouseParams, comfort: number, state: PlanState, forecast: ForecastSlot[],
+ *  can't, while easing off ahead of sun saves outright and passes.
+ *
+ *  `comfort` may be a path: a setpoint that steps up (Away ending) is owed from the slot it
+ *  steps, so the search warms the house ahead of it on the cheapest hours that still carry the
+ *  heat there. The band's ceiling before the step is the setpoint still to come, or that
+ *  pre-heat would be outside it. */
+export function planShift(house: HouseParams, comfort: Comfort, state: PlanState, forecast: ForecastSlot[],
                           limits: Limits, pump: PumpCurve = {}, previous?: number[], maxMoves = 2000): Plan {
     const n = forecast.length;
     const zero = new Array(n).fill(0);
+    const c = forecast.map((_, k) => comfortAt(comfort, k));
+    // The highest setpoint from each slot on: what the house may be warmed towards there.
+    const ahead = [...c];
+    for (let k = n - 2; k >= 0; k--) ahead[k] = Math.max(c[k], ahead[k + 1]);
     // "Doing nothing" is holding comfort: the comfort bias every slot. The search works on the
     // shift on top of it, which is what the profile's limits, ramp and coast cap govern.
-    const held = forecast.map((s) => comfortBias(house, pump, comfort, s.te));
+    const held = forecast.map((s, k) => comfortBias(house, pump, c[k], s.te));
     const total = (shift: number[]) => shift.map((b, k) => b + held[k]);
-    const baseline = simulate(house, comfort, state, forecast, held, pump);
+    const baseline = simulate(house, c, state, forecast, held, pump);
     const prices = forecast.map((s) => s.price);
     const meanPrice = mean(prices);
-    const reference = comfortReference(house, comfort, forecast);
-    const weight = limits.comfortWeight;
-    const baselineFair = fairCost(house, baseline, reference, meanPrice, weight);
+    const reference = comfortReference(house, c, forecast);
+    // Heat owed is worth the profile's weight, and the firm weight from a promised return on.
+    const firmFrom = typeof comfort === 'object' && !Array.isArray(comfort) ? comfort.firmFrom ?? n : n;
+    const firm = firmFrom < n ? firmFrom : undefined;
+    const weight = forecast.map((_, k) => (k >= firmFrom ? Math.max(FIRM_WEIGHT, limits.comfortWeight) : limits.comfortWeight));
+    const baselineFair = fairCost(house, baseline, reference, meanPrice, weight, firm);
     const lo = Math.min(...prices);
     const hi = Math.max(...prices);
     const thin = !(hi > lo * (1 + limits.margin)) || hi <= 0;
@@ -221,8 +265,8 @@ export function planShift(house: HouseParams, comfort: number, state: PlanState,
     const unit = [1, ...new Array(n - 1).fill(0)];
     const flat = forecast.map((f) => ({...f, te: forecast[0].te}));
     const flatHeld = new Array(n).fill(held[0]);
-    const r0 = simulate(house, comfort, state, flat, flatHeld, pump);
-    const r1 = simulate(house, comfort, state, flat, unit.map((u) => u + held[0]), pump);
+    const r0 = simulate(house, c[0], state, flat, flatHeld, pump);
+    const r1 = simulate(house, c[0], state, flat, unit.map((u) => u + held[0]), pump);
     const rti = r1.ti.map((v, m) => v - r0.ti[m]);
     const rtm = r1.tm.map((v, m) => v - r0.tm[m]);
     const rq = r1.heat.map((v, m) => v - r0.heat[m]);
@@ -234,12 +278,12 @@ export function planShift(house: HouseParams, comfort: number, state: PlanState,
         for (let k = j; k < n; k++) g += prices[k] / COP * rq[k - j];
         return g;
     });
-    const owedValue = weight * meanPrice / COP;
+    const owedValue = meanPrice / COP;
     // A move must win at least half the margin on the heat it moves, so a thin spread isn't chased.
     const threshold = (Number.isFinite(limits.margin) ? limits.margin : 1) / 2 * meanPrice / COP * moved;
 
-    const floor = baseline.ti.map((t) => Math.min(t, comfort - limits.lower));
-    const ceiling = baseline.ti.map((t) => Math.max(t, comfort + limits.upper));
+    const floor = baseline.ti.map((t, k) => Math.min(t, c[k] - limits.lower));
+    const ceiling = baseline.ti.map((t, k) => Math.max(t, ahead[k] + limits.upper));
     const maxCoast = Math.round(limits.maxCoastH / SLOT_H);
     // Start where the pump is: the previous plan, shifted by the slots since, else a ramp from the
     // bias in force back to zero. Starting from zero everywhere looks free but isn't: the ramp
@@ -256,12 +300,16 @@ export function planShift(house: HouseParams, comfort: number, state: PlanState,
     });
     const endShort = (dti: number, dtm: number) =>
         Math.max(0, house.ci * (reference.ti[n - 1] - ti[n - 1] - dti) + house.cm * (reference.tm[n - 1] - tm[n - 1] - dtm));
-    /** Change in heat owed if the bias at j moves by `step`. */
+    /** Change in weighted heat owed if the bias at j moves by `step`. */
     const owedChange = (j: number, step: number) => {
-        let d = endShort(step * rti[n - 1 - j], step * rtm[n - 1 - j]) - endShort(0, 0);
+        let d = weight[n - 1] * (endShort(step * rti[n - 1 - j], step * rtm[n - 1 - j]) - endShort(0, 0));
         for (let k = j; k < n; k++) {
             const gap = reference.ti[k] - ti[k];
-            d += house.heatLoss * SLOT_H * (Math.max(0, gap - step * rti[k - j]) - Math.max(0, gap));
+            d += weight[k] * house.heatLoss * SLOT_H * (Math.max(0, gap - step * rti[k - j]) - Math.max(0, gap));
+        }
+        if (firm !== undefined && firm >= j) {
+            const gap = reference.ti[firm] - ti[firm];
+            d += firmPenalty(house) * (Math.max(0, gap - step * rti[firm - j]) - Math.max(0, gap));
         }
         return d;
     };
@@ -273,8 +321,8 @@ export function planShift(house: HouseParams, comfort: number, state: PlanState,
         if (j + 1 < n && Math.abs(biases[j + 1] - value) > RAMP_K_PER_SLOT + 1e-9) return false;
         // The coast cap limits living on stored heat, so only slots below comfort count: easing
         // off while sun holds the house above it draws on nothing.
-        if (value < 0 && ti[j] < comfort) {
-            const drawing = (k: number) => biases[k] < 0 && ti[k] < comfort;
+        if (value < 0 && ti[j] < c[j]) {
+            const drawing = (k: number) => biases[k] < 0 && ti[k] < c[k];
             let run = 1;
             for (let k = j - 1; k >= 0 && drawing(k); k--) run++;
             for (let k = j + 1; k < n && drawing(k); k++) run++;
@@ -311,10 +359,10 @@ export function planShift(house: HouseParams, comfort: number, state: PlanState,
     if (biases.every((b) => b === 0)) return nothing('no_gain');
     // From a warm start the search can end still holding a bias; an unchanged start is still a plan.
 
-    const plan = simulate(house, comfort, state, forecast, total(biases), pump);
+    const plan = simulate(house, c, state, forecast, total(biases), pump);
     // Clamps (pump at zero or flat out) break the linear picture; keep the band regardless.
     if (plan.ti.some((t, k) => t < floor[k] - 0.1 || t > ceiling[k] + 0.1)) return nothing('no_gain');
-    const fair = fairCost(house, plan, reference, meanPrice, weight);
+    const fair = fairCost(house, plan, reference, meanPrice, weight, firm);
     if (fair >= baselineFair) return nothing('no_gain');
     return {biases: total(biases), comfort: held, shift: biases, plan, baseline, fairCost: fair, baselineFairCost: baselineFair};
 }

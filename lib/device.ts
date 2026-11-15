@@ -11,6 +11,8 @@ import {Sample} from './autopilot/history';
 import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, StopReason, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits, sunTrust, surplusPrices, withHotwater} from './autopilot/live';
 import {AUTOPILOT_FUNCTIONS, SMART_MODE_STORE, SmartFunction, SmartMode, autopilotRuns, shownSmartMode, smartMode, smartModeWrites, spaOn} from './autopilot/smart-mode';
 import {HeatingStatus, heatingStatus} from './autopilot/heating-status';
+import {PeriodWatch, pricePeriods, startedTrigger} from './autopilot/heating-flows';
+import {AWAY_UNTIL_SETTING, localDateTime, readAwayUntil} from './autopilot/away';
 import {forecastCorrection} from './autopilot/outdoor';
 import {readTrim} from './autopilot/setpoint';
 import {WidgetData, aimingFor, chargeBands, symmetricAxis, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks, todaySlots} from './autopilot/widget';
@@ -46,6 +48,8 @@ import {ConnectionProblem, PumpConnection, PumpSubscriber, POLL_SECONDS_DEFAULT,
 
 /** The setpoint trim's integral (autopilot/setpoint.ts), kept across restarts. */
 const TRIM_STORE = 'autopilotTrim';
+// The Away return whose warm-up has started (live.ts `warmingFor`).
+const WARMING_STORE = 'autopilotWarmingFor';
 // The Away temperature until the owner sets one.
 const AWAY_DEFAULT_C = 17;
 /** Device store key (Hot water): setup's household answers, Autopilot hot water's starting profile. */
@@ -97,6 +101,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     // Hot water Autopilot in shadow, on Hot water, while the app setting below is on. Reads only.
     private hotwaterAutopilot: HotwaterAutopilot | null = null;
     private heatingFeed: HeatingFeed | null = null;
+    /** The expensive and cheap periods' Flow triggers (heating-flows.ts), checked each minute. */
+    private periodWatch = new PeriodWatch();
     // The heating Smart mode as a feed mode, as last applied (syncHeatingFeed).
     private heatingMode: LiveMode = 'off';
     private heatingStatusShown?: HeatingStatus;
@@ -1620,6 +1626,18 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 const v = Number(this.getCapabilityValue('target_temperature'));
                 return this.hasCapability('target_temperature') && Number.isFinite(v) ? v : undefined;
             },
+            // Away with an end time: back to the thermostat's own temperature then (autopilot/away.ts).
+            awayReturn: () => {
+                const at = this.autopilotAway() ? readAwayUntil(this.homey.settings.get(AWAY_UNTIL_SETTING)) : undefined;
+                const home = Number(this.getStoreValue('autopilotHome'));
+                return at !== undefined && Number.isFinite(home) ? {at, setpoint: home} : undefined;
+            },
+            // The warm-up for a return holds across a restart (live.ts `warmingFor`).
+            loadWarming: () => {
+                const v = Number(this.getStoreValue(WARMING_STORE));
+                return Number.isFinite(v) && v > 0 ? v : undefined;
+            },
+            saveWarming: (at) => { (at === undefined ? this.unsetStoreValue(WARMING_STORE) : this.setStoreValue(WARMING_STORE, at)).catch(this.error); },
             loadTrim: () => readTrim(this.getStoreValue(TRIM_STORE)),
             saveTrim: (state) => { this.setStoreValue(TRIM_STORE, state).catch(this.error); },
             pump: () => this.heatingPumpFacts(),
@@ -1631,6 +1649,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             warn: (reason) => (reason && !(reason === 'no_model' && this.autopilot?.houseSummary()) ? this.setWarning(this.homey.__(`autopilot.heating.warning.${reason}`))
                 : this.unsetWarning()).catch(this.error),
             changed: () => { this.showHeatingStatus().catch(this.error); },
+            tick: () => this.checkPricePeriods(),
             log: (...args) => this.log(...args),
             record: (entry) => collector.recordLive(entry),
             setTimeout: (fn, ms) => this.homey.setTimeout(fn, ms),
@@ -1708,8 +1727,39 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.heatingFeed = null;
     }
 
+    /** Plan heating again now: Away's end time changed (driver `setAway`). */
+    replanHeating() {
+        this.heatingFeed?.replanSoon();
+    }
+
+    /** The "expensive / cheap period starts in …" triggers: the periods the Heating status names,
+     *  from the plan in force, each fired once per Flow at its lead (heating-flows.ts). After each
+     *  30 s feed cycle, so only while Autopilot heating plans, live or Simulated. */
+    private checkPricePeriods() {
+        const state = this.heatingFeed?.state;
+        if (!state || state.mode === 'off' || state.stopped || state.slot === undefined || !state.forecast?.length) {
+            this.periodWatch.pause();
+            return;
+        }
+        const now = Date.now();
+        const periods = pricePeriods(state.forecast.map((f) => f.price), state.slot, now);
+        for (const trigger of this.periodWatch.check(periods, now)) {
+            this.homey.flow.getDeviceTriggerCard((this.profile.flowPrefix ?? '') + `autopilot_heating_${trigger.kind}_soon`)
+                .trigger(this, {start: this.clock(trigger.start), end: this.clock(trigger.end)}, trigger).catch(this.error);
+        }
+    }
+
     private clock = (ms: number) => new Date(ms).toLocaleTimeString('sv-SE',
         {timeZone: this.homey.clock.getTimezone(), hour: '2-digit', minute: '2-digit'});
+
+    /** A time, with the weekday in the owner's language when it is not today: "Thu 18:00". */
+    private clockOn(ms: number): string {
+        const timeZone = this.homey.clock.getTimezone();
+        const date = (t: number) => new Date(t).toLocaleDateString('en-CA', {timeZone});
+        if (date(ms) === date(Date.now())) return this.clock(ms);
+        const day = new Date(ms).toLocaleDateString(this.homey.i18n?.getLanguage?.() ?? 'en', {timeZone, weekday: 'short'});
+        return `${day} ${this.clock(ms)}`;
+    }
 
     /** For the Flow condition: what Autopilot heating is doing now. */
     heatingStatusNow(): HeatingStatus {
@@ -1725,7 +1775,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.heating.status.${key}`, tokens);
         const state = feed.state;
         const {status, reason} = heatingStatus(state, Date.now(), t, this.clock,
-            house ? {days: house.days, needed: house.needed, hasModel: true} : undefined);
+            house ? {days: house.days, needed: house.needed, hasModel: true} : undefined, (ms) => this.clockOn(ms));
         const set = async (name: string, value: any) => {
             if (this.hasCapability(name) && this.getCapabilityValue(name) !== value) await this.setCapabilityValue(name, value);
         };
@@ -1743,6 +1793,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (before === undefined || before === status) return;
         this.homey.flow.getDeviceTriggerCard((this.profile.flowPrefix ?? '') + 'autopilot_heating_status_changed')
             .trigger(this, {status: this.homey.__(`autopilot.heating.status_name.${status}`), reason}).catch(this.error);
+        const started = startedTrigger(before, status);
+        if (started) this.homey.flow.getDeviceTriggerCard((this.profile.flowPrefix ?? '') + `autopilot_heating_${started}_started`)
+            .trigger(this, {reason}).catch(this.error);
         const line = status === 'paused' ? 'timeline.paused'
             : before === 'paused' && status !== 'off' ? 'timeline.resumed'
                 : before === 'learning' && status !== 'off' ? 'timeline.learned' : undefined;
@@ -2304,6 +2357,15 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     async setAutopilotAway(on: boolean) {
         if (!this.hasCapability(AUTOPILOT_AWAY_CAPABILITY)) throw new Error(this.homey.__('autopilot.heating.not_on'));
         await (this.driver as any).setAway(on);
+    }
+
+    /** Away until a date and time, from the Flow card: Away ends by itself then, and the house is
+     *  warm again by that time. Throws on a time that doesn't parse or has passed. */
+    async setAutopilotAwayUntil(date: unknown, time: unknown) {
+        if (!this.hasCapability(AUTOPILOT_AWAY_CAPABILITY)) throw new Error(this.homey.__('autopilot.heating.not_on'));
+        const until = localDateTime(date, time, this.homey.clock.getTimezone());
+        if (until === undefined) throw new Error(this.homey.__('autopilot.heating.away_time_invalid'));
+        await (this.driver as any).setAway(true, until);
     }
 
     /** Follow the home's Away. On: the thermostat's temperature is kept and the thermostat set to

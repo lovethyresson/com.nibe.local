@@ -588,7 +588,8 @@
         "range_off": "Komfortområde er Av: varmepumpen din ser den virkelige utetemperaturen",
         "sun": "sol ventet __from__–__to__",
         "waiting": "Starter: venter på prognosen",
-        "before": "før __why__"
+        "before": "før __why__",
+        "back": "du kommer hjem kl. __at__"
       },
       "status_name": {
         "learning": "Lærer",
@@ -610,7 +611,9 @@
         "not_followed": "Varmepumpen din tok ikke imot utetemperaturen. Sjekk at meny 7.5.9.2 tillater ekstern BT1 og at Modbus (meny 7.5.9) tillater skriving."
       },
       "not_on": "Autopilot oppvarming er ikke på.",
-      "no_thermostat": "Oppvarming har ingen termostat å stille inn."
+      "no_thermostat": "Oppvarming har ingen termostat å stille inn.",
+      "away_time_past": "Det tidspunktet har allerede passert.",
+      "away_time_invalid": "Velg en dato og et klokkeslett da Borte skal slutte."
     },
     "smart": {
       "no_spa": "Varmepumpen din har ingen Smart price adaption.",

@@ -939,7 +939,8 @@ Runs every 15 min and on new prices or weather. Horizon: 24–36 h of slots.
        aimed at the 24 h mean. It steered, but the planner's band and Expected curve ignored the
        setpoint, so the owner saw the house expected to stay where it was while it was being
        warmed (maintainer, 2026-11-14).
-     - **Away is just another setpoint**, with the widest range.
+     - **Away is just another setpoint**, with the widest range. With an end time it is a setpoint
+       *path*: the Away temperature, then the home's from the slot that ends at the return (§19.2).
    - **The wired BT1 trails the real outdoor temperature** (S1155: the sensor through a ~5.5 h
      lag, +2.3 K). Shadow's doing nothing feeds that; the fed flag compares input 1 with it.
 2. **Price shift** (dynamic contract and model ready):
@@ -1405,11 +1406,11 @@ Add each card to the generic allowlist in `test/unit.test.ts:219`.
 | Autopilot paused | trigger | `reason` |
 | Autopilot is pre-heating / coasting / paused | condition | – |
 | Profile is … | condition | dropdown |
-| Set away until … / Back home | action | date and time; ends away mode early (§19.2) |
+| Set away until … / Back home | action | **built 2026-11-15** as `autopilot_heating_away_until` (date, time); Back home is the existing `autopilot_heating_away` off (§19.2) |
 | Away mode is on | condition | – |
-| Expensive period starts in … | trigger | minutes ahead; tokens `starts`, `ends`, `price` (§19.1) |
-| Cheap period starts in … | trigger | as above |
-| Pre-heating / coasting started | trigger | `reason`, `until`, `bias` |
+| Expensive period starts in … | trigger | **built 2026-11-15** `autopilot_heating_expensive_soon`: 5–720 min ahead; tokens `start`, `end` (§19.1) |
+| Cheap period starts in … | trigger | **built** `autopilot_heating_cheap_soon`, as above |
+| Pre-heating / easing off started | trigger | **built** `autopilot_heating_preheating_started`, `autopilot_heating_easing_off_started`: token `reason` |
 
 Also widen `LocalizedText` from `{en, sv}` to six languages (`lib/profile.ts:100`), so that
 `reason.ts` and the controller's reasons reach every owner in their language.
@@ -1694,6 +1695,27 @@ The competitors are black boxes. Owners switch off what they don't understand.
 - **Flow cards that expose the plan** (§10.3): an expensive or cheap period starting in N
   minutes, and pre-heating or coasting started. Owners can then move the dishwasher, sauna or EV
   around the heat pump without us modelling those devices.
+  - **Built 2026-11-15** (`lib/autopilot/heating-flows.ts`, wired in `device.ts`
+    `checkPricePeriods` and `showHeatingStatus`). Heating device only, while Autopilot heating
+    plans (live or Simulation).
+  - **The periods are the status's.** Expensive is `pricePeak` over the plan's forecast from now,
+    exactly what the Heating status calls "prices peak"; cheap is its mirror (`priceTrough`, within
+    10 % of the spread from the bottom). One of each per horizon, so a card and the status never
+    disagree.
+  - **Once per period, per Flow.** The device checks after each 30 s feed cycle and fires the card with the
+    window since the last check; a Flow fires when `start − minutes` falls in it (`periodDue`). A
+    period stays the same one while it overlaps or touches the one seen before (edges move a slot
+    as prices arrive; a one-slot spike that moves a slot only touches its old self), and every
+    Flow's moment counts from the start it had when first seen, so a later edge never fires it
+    twice. A period that appears inside a Flow's lead (tomorrow's prices) fires it late, once. The
+    first check after a restart, or after the plan stopped (Autopilot off, paused), only learns
+    what is there. The lead starts at 5 minutes: at 0 the period has begun.
+  - **One expensive and one cheap period per horizon,** the most extreme runs, as the status names
+    them. Once tomorrow's prices land and tomorrow's peak is higher, tonight's peak no longer fires.
+    Open for the maintainer: a daily peak would serve the dishwasher use better, but the status
+    would then have to name it too, or the two disagree.
+  - **Pre-heating / easing off started** fire on entering that status from any other, next to the
+    existing "Autopilot heating changed"; the existing status condition covers "is pre-heating".
 
 ### 19.2 Away mode (M3)
 
@@ -1704,6 +1726,41 @@ Our own, rather than the pump's holiday setting, so the planner knows when the o
   planner coasts through expensive hours within it.
 - **Return:** the model's hours-per-degree says when to start warming, so the house is at
   comfort at the end time, on cheap hours where it can.
+- **Built 2026-11-15** (`lib/autopilot/away.ts`, `live.ts` `planComfort`, `planner.ts`
+  `SetpointPath`):
+  - **Set:** the Flow card "Set Autopilot heating Away until …" (date, time, read in Homey's time
+    zone). The end time is its own app setting (`autopilotAwayUntil`), beside the day type, so hot
+    water's state is untouched. The driver checks each minute and ends Away at that time, as the
+    off card does; turning Away off, or the Main device's day type leaving away, clears it. A
+    time already past is refused with an error.
+  - **The plan's setpoint steps** from the Away temperature to the stored home one at the first
+    slot that ends at the return (`setpointPath`). The band's ceiling before the step is the
+    setpoint still to come, or the pre-heat would sit outside it.
+  - **Arriving is a promise, not a trade.** Away plans with Save more (weight 1.0), and at that
+    weight, or even at 10× on degree-hours, the planner arrived 0.4 K short: an hour a little cold
+    costs few degree-hours, and early heat leaks away. So at the return each kelvin short costs
+    the house's whole heat capacity times `FIRM_WEIGHT` (10), and heat owed from then on 10× too.
+    Among the ways to arrive, the cheapest still wins.
+  - **The horizon is too short for a slab.** At Save more's 20 K and lever 0.5·H, warming 17 →
+    21 °C at 2 °C outdoor is estimated (margin included) at ~32 h for the radiator sim house
+    (C 9.5 kWh/K) and ~87 h for the slab (C 15 kWh/K), longer than the 24–36 h plan. `warmUpSlots` simulates the warm-up flat out (ramped as the
+    feed ramps, +15 %) from the house's state; once the return is that close, the step is placed
+    at the horizon's last slot until the real one comes into view.
+  - **The warm-up latches** for that return (`warmingFor`, kept in the device store across a
+    restart). Without it the lead shrank as the house warmed, the step left the horizon, Save more
+    coasted, and the house arrived short.
+  - **Ending by itself is retried.** If a device fails to follow (the thermostat write, pump
+    offline), the driver tries again each minute until it does: the end time and day type are
+    already gone by then, and nothing else would put the thermostat back.
+  - **Status:** while it pre-heats for the return the reason says so ("Until 16:00, before you're
+    back at 18:00", with the weekday when the return is not today) instead of naming a price peak.
+  - **Tested closed loop** on the radiator and slab sim houses (`test/autopilot-away-flows.test.ts`):
+    with four days' notice both are within 0.2 K of the setpoint at the return, neither more than
+    1 K over, no warm-up long before the lead.
+  - **Unverified on hardware.** The model's "no shift" holds whatever setpoint the plan aims at;
+    on the pump it holds the level the trim learned at home, which Away does not unlearn (it is
+    outside the trim's 1 K window). So the real house likely warms faster than planned, and the
+    estimate is conservative. Hot water before the return is not part of this (M4).
 - **Hot water** (M4): no boosts while away, and refilled before return.
 
 ### 19.3 Solar surplus (M4)
