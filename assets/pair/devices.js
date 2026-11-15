@@ -83,7 +83,7 @@ function renderSources(deviceIndex, candidate, capName, parent) {
         option.appendChild(radio);
         var text = ' ' + nibeSourceLabel(source);
         if (source.value !== undefined && source.value !== null)
-            text += ' — ' + source.value + ' °C';
+            text += ' · ' + source.value + ' °C';
         option.appendChild(document.createTextNode(text));
         box.appendChild(option);
     });

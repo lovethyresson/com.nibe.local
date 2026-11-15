@@ -154,7 +154,7 @@ test('pump instructions are grouped and successful verification celebrates confi
     groups[1].querySelector('input').click(); f.click('Verify settings');
     await new Promise(resolve => setImmediate(resolve));
     const success = f.win.document.querySelector('.setup-success');
-    assert.ok(success); assert.match(success.textContent, /You’re all set!/);
+    assert.ok(success); assert.match(success.textContent, /You’re all set/);
     assert.match(success.textContent, /21 °C/); assert.match(success.textContent, /1 sensor connected/);
     f.click('Continue'); assert.ok(f.win.document.querySelector('.setup-menu'));
     f.dom.window.close();
@@ -181,7 +181,7 @@ test('pairing asks for the thermostat zone as its own step, with nothing presele
     click('Back');
     assert.equal(doc.querySelector('input[data-source="target_temperature"]:checked').value, '2507', 'Back keeps the pick');
     click('Continue'); click('Save setup'); menu('Hot water setup'); click('Save setup'); click('Review setup');
-    assert.match(doc.querySelector('.setup-shell').textContent, /the thermostat sets Zone 2/);
+    assert.match(doc.querySelector('.setup-shell').textContent, /The Heating thermostat sets Zone 2/);
     click('Add selected devices'); await new Promise(resolve => setImmediate(resolve));
     assert.equal(f.created[0].store.selection.addresses.target_temperature, 2507);
     f.dom.window.close();
