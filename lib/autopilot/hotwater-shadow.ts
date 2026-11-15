@@ -11,6 +11,7 @@ import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, normalisePri
 import {DayDraw, DayProfile, DayType, HotwaterModel, Household, KWH_PER_LITRE, LocalClock, chargeRate, learn, localClock, lossAt, profileFor} from './hotwater-learner';
 import {TankCapabilities, fetchTankInsights, pointsFromInsights} from './hotwater-insights';
 import {DEFAULT_RESERVE_LITRES, MIN_CHARGE_KWH, Plan, SLOT_H, TankSpec, drawsFor, heatAt, plan, reserveKwh} from './hotwater-planner';
+import {preheatAdders} from './orchestrator';
 import {appendLine, deleteHistory, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
 import {DayTypeState, dayTypeAt} from './day-type';
 import {PumpFacts, countFor, leverDecision} from './hotwater-lever';
@@ -63,6 +64,9 @@ export interface ShadowStepInput {
      *  weekend); without it every slot is `dayType`. */
     dayTypeOf?: (ms: number) => DayType;
     reserveLitres?: number;
+    /** The slots heating pre-heats in (orchestrator.ts `PumpRound.preheat`): a charge goes
+     *  there only when it must. */
+    preheat?: Set<number>;
 }
 
 export interface ShadowEntry {
@@ -87,7 +91,7 @@ export interface ShadowEntry {
 
 /** A slot's plan: the log line, the first charge after any running one, with its reason, and
  *  the end of the known prices (ms). */
-export type ShadowStep = {entry: ShadowEntry; next?: ChargeFacts; until: number} | {skip: string};
+export type ShadowStep = {entry: ShadowEntry; next?: ChargeFacts; until: number; charges: ChargeFacts[]} | {skip: string};
 
 const round = (v: number, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
 
@@ -105,10 +109,12 @@ function planFrom(input: ShadowStepInput): Planned | {skip: string} {
     const draws = drawsFor(slots.map((k) => input.dayTypeOf ? profileFor(model, input.dayTypeOf(k * SLOT_MS)) : profile),
         slots.map((k) => input.clock(k * SLOT_MS).hour));
     const charging = (now.powerW ?? 0) > 0;
+    const adders = preheatAdders(slots, slots.map((k) => input.prices.get(k)!.price), input.preheat);
     const p = plan({
         slots: slots.map((k, j) => {
             const price = input.prices.get(k)!;
-            return {price: price.price, draw: draws[j], surplusKw: input.surplus?.get(k), exportPrice: price.spot ?? 0};
+            return {price: price.price, draw: draws[j], surplusKw: input.surplus?.get(k), exportPrice: price.spot ?? 0,
+                adder: adders[j] || undefined};
         }),
         stored: now.litres! * KWH_PER_LITRE, charging, runningTargetC: now.more ? now.largeStopC : now.stopC,
         topC: now.top, tank: input.tank, charge: model.charge, loss: model.loss,
@@ -146,8 +152,9 @@ export function hotwaterShadowStep(input: ShadowStepInput): ShadowStep {
     const {slot, now} = input;
     const first = p.charges.find((c) => !(charging && c.start === 0));
     const iso = (k: number) => new Date(slots[k] * SLOT_MS).toISOString();
-    const next = chargesOf(input, out, Infinity).charges.find((c) => c.reason !== 'running');
-    return {next, until: (slots[slots.length - 1] + 1) * SLOT_MS, entry: {
+    const charges = chargesOf(input, out, Infinity).charges;
+    const next = charges.find((c) => c.reason !== 'running');
+    return {next, charges, until: (slots[slots.length - 1] + 1) * SLOT_MS, entry: {
         slot, at: iso(0), litres: round(now.litres!, 1), top: now.top, charging, horizon: slots.length,
         action: charging ? 'running' : p.rescue ? 'rescue' : p.startNow ? 'start' : 'wait',
         next: first && {at: iso(first.start), targetC: first.targetC, heat: round(first.heat), cost: round(first.cost)},
@@ -546,6 +553,10 @@ export interface HotwaterHooks {
     warn(text: string | undefined): void;
     /** The device's "Autopilot now" line: the next planned charge and why, or what it waits for. */
     status(text: string): void;
+    /** The plan round (orchestrator.ts): the slots from `slot` heating pre-heats in, and this
+     *  slot's planned charges, published after each replan. */
+    preheat?(slot: number): Set<number> | undefined;
+    planned?(charges: ChargeFacts[]): void;
     /** What setup asked a home with a short history, the learner's prior; undefined if not asked. */
     household(): Household | undefined;
     /** An analytics event (lib/analytics.ts `track`): a no-op without the owner's consent. */
@@ -830,7 +841,7 @@ export class HotwaterAutopilot {
         const clock = this.clock(), dayTypes = this.hooks.dayType();
         return {slot, prices: this.prices, surplus: this.surplus(slot), model: this.model, now, tank, clock,
             dayType: dayTypeAt(dayTypes, at, clock), dayTypeOf: (ms) => dayTypeAt(dayTypes, ms, clock),
-            reserveLitres: this.hooks.reserveLitres()};
+            reserveLitres: this.hooks.reserveLitres(), preheat: this.hooks.preheat?.(slot)};
     }
 
     private step() {
@@ -850,6 +861,7 @@ export class HotwaterAutopilot {
         if ((noPrices || !('skip' in out)) && this.pricesBlocked.changed(noPrices) && noPrices)
             this.hooks.track('Blocked Autopilot', {role: 'hotwater', blocked_by: 'no_prices', simulation: this.shadow});
         if ('skip' in out) return this.skip(out.skip);
+        this.hooks.planned?.(out.charges);
         this.last = out.entry;
         appendLine(shadowLogName(this.fileName), out.entry)
             .then(async () => {

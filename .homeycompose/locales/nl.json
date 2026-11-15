@@ -457,6 +457,23 @@
       "band_cheap": "Goedkoop",
       "band_middle": "Midden",
       "band_dear": "Duur"
+    },
+    "orchestrator": {
+      "first": {
+        "hotwater": "Warm water __time__",
+        "hotwater_now": "Warm water nu",
+        "preheat": "Verwarming warmt voor __span__",
+        "ease": "Verwarming bouwt af __span__"
+      },
+      "then": {
+        "hotwater": "daarna warm water __time__",
+        "hotwater_now": "daarna warm water nu",
+        "preheat": "daarna warmt de verwarming voor __span__",
+        "ease": "daarna bouwt de verwarming af __span__"
+      },
+      "none": "Niets gepland",
+      "failed": "Warm water en verwarming plannen nu los van elkaar",
+      "test": "Simulatie: __text__"
     }
   }
 }

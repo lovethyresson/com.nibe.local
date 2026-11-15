@@ -42,8 +42,12 @@ export interface PlanSlot {
     exportPrice?: number;
     /** Draw planned for this slot, kWh heat. */
     draw: number;
-    /** The orchestrator's reserved slots: no charge may start here (autopilot-plan.md §2.1). */
+    /** The orchestrator's reserved slots: no charge may start here (autopilot-plan.md §2.1).
+     *  The safety net's charge starts anyway. */
     reserved?: boolean;
+    /** The orchestrator's price on top of each kWh charged in this slot (orchestrator.ts
+     *  `preheatAdders`): it moves the plan, never the costs it reports. */
+    adder?: number;
 }
 
 export interface PlanInput {
@@ -199,10 +203,10 @@ export function plan(input: PlanInput): Plan {
         const idleAfter = Math.max(0, kwh - slot.draw - lost);
         const idle = below(kwh, slot.draw) * SHORTFALL_KR_PER_KWH + value(v, 0, idleAfter);
         let heat = INF, q = 0, el = 0;
-        if ((c === 1 || !slot.reserved) && kwh < cap - 1e-9) {
+        if ((c === 1 || !slot.reserved || (k === 0 && rescue)) && kwh < cap - 1e-9) {
             ({q, el} = step(kwh, cap));
             const after = Math.max(0, kwh + q - slot.draw - lost);
-            heat = el * effective(slot, kw).price + (c === 0 ? START_KR : 0)
+            heat = el * (effective(slot, kw).price + (slot.adder ?? 0)) + (c === 0 ? START_KR : 0)
                 + below(kwh + q, slot.draw) * SHORTFALL_KR_PER_KWH + value(v, 1, after);
         }
         // A running charge stops only at its target, which is at least the lowest allowed one.

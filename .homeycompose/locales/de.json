@@ -457,6 +457,23 @@
       "band_cheap": "Günstig",
       "band_middle": "Mitte",
       "band_dear": "Teuer"
+    },
+    "orchestrator": {
+      "first": {
+        "hotwater": "Warmwasser __time__",
+        "hotwater_now": "Warmwasser jetzt",
+        "preheat": "Heizung heizt vor __span__",
+        "ease": "Heizung drosselt __span__"
+      },
+      "then": {
+        "hotwater": "danach Warmwasser __time__",
+        "hotwater_now": "danach Warmwasser jetzt",
+        "preheat": "danach heizt die Heizung vor __span__",
+        "ease": "danach drosselt die Heizung __span__"
+      },
+      "none": "Nichts geplant",
+      "failed": "Warmwasser und Heizung planen gerade getrennt",
+      "test": "Simulation: __text__"
     }
   }
 }

@@ -457,6 +457,23 @@
       "band_cheap": "Billig",
       "band_middle": "Midten",
       "band_dear": "Dyrt"
+    },
+    "orchestrator": {
+      "first": {
+        "hotwater": "Varmtvann __time__",
+        "hotwater_now": "Varmtvann nå",
+        "preheat": "Oppvarmingen forvarmer __span__",
+        "ease": "Oppvarmingen trapper ned __span__"
+      },
+      "then": {
+        "hotwater": "så varmtvann __time__",
+        "hotwater_now": "så varmtvann nå",
+        "preheat": "så forvarmer oppvarmingen __span__",
+        "ease": "så trapper oppvarmingen ned __span__"
+      },
+      "none": "Ingenting planlagt",
+      "failed": "Varmtvann og oppvarming planlegger hver for seg nå",
+      "test": "Simulering: __text__"
     }
   }
 }

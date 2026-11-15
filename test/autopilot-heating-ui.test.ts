@@ -4,7 +4,7 @@ import {heatingStatus, pricePeak} from '../lib/autopilot/heating-status';
 import {FeedSnapshot} from '../lib/autopilot/live';
 import {POOL_INFLUENCE_DEFAULT, shownSmartMode, smartMode, smartModeWrites, spaOn} from '../lib/autopilot/smart-mode';
 import {SLOT_MS} from '../lib/autopilot/prices';
-import {AUTOPILOT_HEATING_CAPABILITIES, AUTOPILOT_HOTWATER_CAPABILITIES, capabilitySyncPlan, extraCapabilities, hiddenBySmartMode, possibleExtraCapabilities} from '../lib/roles';
+import {AUTOPILOT_HEATING_CAPABILITIES, AUTOPILOT_HOTWATER_CAPABILITIES, AUTOPILOT_REASON_CAPABILITY, capabilitySyncPlan, extraCapabilities, hiddenBySmartMode, possibleExtraCapabilities} from '../lib/roles';
 import {sProfile} from '../drivers/nibe_s/profile';
 
 // Keys and tokens echoed back, so a test reads which text was chosen and with what.
@@ -100,8 +100,11 @@ test('the Hot water device carries the "Autopilot now" line only while its Smart
         assert.ok(AUTOPILOT_HOTWATER_CAPABILITIES.every((c) => !extraCapabilities(sProfile, 'hotwater', null, mode).includes(c)), mode);
     for (const mode of ['test', 'autopilot'] as const)
         assert.ok(AUTOPILOT_HOTWATER_CAPABILITIES.every((c) => extraCapabilities(sProfile, 'hotwater', null, mode).includes(c)), mode);
-    for (const role of ['main', 'pool', 'cooling', 'solar'] as const)
+    for (const role of ['pool', 'cooling', 'solar'] as const)
         assert.ok(AUTOPILOT_HOTWATER_CAPABILITIES.every((c) => !extraCapabilities(sProfile, role, null, 'autopilot').includes(c)), role);
+    // Main carries the same line for the plan round (orchestrator.ts), with the day type.
+    assert.ok(extraCapabilities(sProfile, 'main', null, 'autopilot').includes(AUTOPILOT_REASON_CAPABILITY), 'main');
+    assert.ok(!extraCapabilities(sProfile, 'main', null, 'off').includes(AUTOPILOT_REASON_CAPABILITY), 'main off');
 });
 
 test('the Heating device carries the Autopilot capabilities only while Smart mode runs Autopilot', () => {

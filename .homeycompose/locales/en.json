@@ -457,6 +457,23 @@
       "band_cheap": "Cheap",
       "band_middle": "Middle",
       "band_dear": "Expensive"
+    },
+    "orchestrator": {
+      "first": {
+        "hotwater": "Hot water __time__",
+        "hotwater_now": "Hot water now",
+        "preheat": "Heating pre-heats __span__",
+        "ease": "Heating eases off __span__"
+      },
+      "then": {
+        "hotwater": "then hot water __time__",
+        "hotwater_now": "then hot water now",
+        "preheat": "then heating pre-heats __span__",
+        "ease": "then heating eases off __span__"
+      },
+      "none": "Nothing planned",
+      "failed": "Hot water and heating plan apart for now",
+      "test": "Simulation: __text__"
     }
   }
 }

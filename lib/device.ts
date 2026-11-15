@@ -18,6 +18,7 @@ import {HotwaterUseData, hotwaterWeek} from './autopilot/hotwater-use';
 import {SLOT_MS, localDate, normalisePrices, slotOf} from './autopilot/prices';
 import {Edge, FORECAST_SLOTS, BlockedBy, HeatingDay, analyticsSmartMode, heatingBlock, reserveBucket} from './autopilot/analytics';
 import {SOLAR_SETTING, SolarSurplus, readSolarAnswer, solarOn} from './autopilot/solar-surplus';
+import {PumpRound, mainStatusText, spanText} from './autopilot/orchestrator';
 import {Device} from 'homey';
 import net from 'net';
 import {analyticsConsent, setAnalyticsConsent, track} from './analytics';
@@ -1357,6 +1358,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.getCapabilityValue(DAY_TYPE_CAPABILITY) !== type)
             await this.setCapabilityValue(DAY_TYPE_CAPABILITY, type).catch(this.error);
         this.dayTypeTimer = this.homey.setTimeout(() => this.showDayType().catch(this.error), 3_600_000 - now % 3_600_000 + 5_000);
+        this.showRoundStatus();
     }
 
     /** Applies the pump's Smart modes to this device: its capabilities follow them, the Hot water
@@ -1473,6 +1475,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             this.hotwaterAutopilot?.stop();
             if (this.hotwaterAutopilot) this.log('Autopilot hot water stopped.');
             this.hotwaterAutopilot = null;
+            this.round().setHotwater(undefined);
             await this.unsetWarning().catch(this.error);
             return;
         }
@@ -1537,6 +1540,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 if (this.hasCapability(AUTOPILOT_REASON_CAPABILITY) && this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) !== text)
                     this.setCapabilityValue(AUTOPILOT_REASON_CAPABILITY, text).catch(this.error);
             },
+            preheat: (slot) => this.round().preheat(slot),
+            planned: (charges) => this.round().setHotwater(charges, live() !== 'live'),
         });
         // A charge's own draw is what the meter would otherwise export: added back to the live reading.
         this.solarSurplus().draw(this, () => number(spec.power));
@@ -1608,8 +1613,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 const planned = this.autopilot?.liveInputs(slot);
                 if (!planned) return planned;
                 this.scoreHeatingSlot(slot, planned.ti);
-                // Hot water goes first: while it has the compressor, the house gets nothing from it.
-                const busy = this.pumpDevices().find((d) => d.role === 'hotwater')?.hotwaterChargeSlots(slot, planned.forecast.length);
+                // Hot water goes first (the plan round, orchestrator.ts): while it has the compressor,
+                // the house gets nothing from it.
+                const busy = this.round().deliveryFree(slot, planned.forecast.length);
                 const input = {...planned, forecast: withHotwater(planned.forecast, busy)};
                 // Solar surplus left for heating after hot water took its share makes those slots cheap.
                 if (!this.solarAllowed()) return input;
@@ -1630,7 +1636,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             // Waiting on the forecast with a model in hand is not a problem to warn about.
             warn: (reason) => (reason && !(reason === 'no_model' && this.autopilot?.houseSummary()) ? this.setWarning(this.homey.__(`autopilot.heating.warning.${reason}`))
                 : this.unsetWarning()).catch(this.error),
-            changed: () => { this.showHeatingStatus().catch(this.error); },
+            changed: () => {
+                const state = this.heatingFeed?.state;
+                this.round().setHeating(state?.slot !== undefined && state.biases ? {slot: state.slot, biases: state.biases} : undefined,
+                    this.heatingMode === 'test');
+                this.showHeatingStatus().catch(this.error);
+            },
             log: (...args) => this.log(...args),
             record: (entry) => collector.recordLive(entry),
             setTimeout: (fn, ms) => this.homey.setTimeout(fn, ms),
@@ -1638,7 +1649,43 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             sleep: (ms) => new Promise((resolve) => this.homey.setTimeout(resolve, ms)),
             now: () => Date.now(),
         });
+        // Hot water's charges moved: replan around them within the slot (§2.1's order).
+        this.roundOff?.();
+        this.roundOff = this.round().onCharges(() => this.heatingFeed?.replanSoon());
         this.syncHeatingFeed();
+    }
+
+    /** This pump's plan round (orchestrator.ts). */
+    private round(): PumpRound {
+        return PumpRound.for(this.host());
+    }
+
+    private roundOff?: () => void;
+    private roundHost?: string;
+
+    /** Main's "Autopilot now" line: what the pump does next across hot water and heating. It
+     *  follows the round of the pump's current address. */
+    private showRoundStatus() {
+        if (this.role !== 'main') return;
+        if (this.roundHost !== this.host()) {
+            this.roundOff?.();
+            this.roundHost = this.host();
+            this.roundOff = this.round().onChange(() => this.showRoundStatus());
+        }
+        if (!this.hasCapability(AUTOPILOT_REASON_CAPABILITY)) return;
+        const status = this.round().status(Date.now());
+        if (!status) return;
+        const clock = localClock(this.homey.clock.getTimezone());
+        const today = clock(Date.now()).date;
+        const when = (ms: number) => clock(ms).date === today ? this.clock(ms)
+            : this.homey.__('autopilot.hotwater_daily.tomorrow_bare', {time: this.clock(ms)});
+        const text = mainStatusText(status, (key, tokens) => this.homey.__(`autopilot.orchestrator.${key}`, tokens), when,
+            (from, to) => {
+                const span = spanText(from, to, this.clock);
+                return clock(from).date === today ? span : this.homey.__('autopilot.hotwater_daily.tomorrow_bare', {time: span});
+            });
+        if (this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) !== text)
+            this.setCapabilityValue(AUTOPILOT_REASON_CAPABILITY, text).catch(this.error);
     }
 
     private register(name: string): Register {
@@ -1706,6 +1753,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private async stopHeatingFeed() {
         await this.heatingFeed?.stop('mode_off').catch(this.error);
         this.heatingFeed = null;
+        this.roundOff?.();
+        this.roundOff = undefined;
+        if (this.role === 'heating') this.round().setHeating(undefined);
     }
 
     private clock = (ms: number) => new Date(ms).toLocaleTimeString('sv-SE',
@@ -3036,7 +3086,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         await this.autopilot?.stop(this.connection?.currentPollSeconds() ?? 10).catch(this.error);
         this.autopilot = null;
         this.hotwaterAutopilot?.stop();
+        if (this.hotwaterAutopilot) this.round().setHotwater(undefined);
         this.hotwaterAutopilot = null;
+        this.roundOff?.();
         if (this.dayTypeTimer) this.homey.clearTimeout(this.dayTypeTimer);
         this.savingsStopped = true;
         if (this.savingsTimer) this.homey.clearTimeout(this.savingsTimer);
@@ -3062,7 +3114,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         await this.autopilot?.remove().catch(this.error);
         this.autopilot = null;
         await this.hotwaterAutopilot?.remove().catch(this.error);
+        if (this.hotwaterAutopilot) this.round().setHotwater(undefined);
         this.hotwaterAutopilot = null;
+        this.roundOff?.();
         this.homey.settings.unset(`autopilotHotwaterFile.${this.getData().id}`);
         this.homey.settings.unset(`autopilotHistoryFile.${this.getData().id}`);
         this.log('Nibe device has been deleted');
