@@ -71,7 +71,14 @@ export interface PlanInput {
     maxC: number;
     /** Smallest charge worth starting; MIN_CHARGE_KWH by default. */
     minChargeKwh?: number;
+    /** The last plan had a charge starting in this slot. If this plan still charges within
+     *  `DUE_SLOTS`, it starts now: a replan that keeps pushing a due charge back, because the
+     *  draws it waits for are late, ends up charging after them (2026-11-15). */
+    due?: boolean;
 }
+
+/** How far a due charge may have moved and still start on time. */
+export const DUE_SLOTS = 4;
 
 export interface PlannedCharge {
     /** Slot index into `slots`. */
@@ -132,15 +139,23 @@ export function plannedHours(p: DayProfile, blend = DRAW_QUANTILE_BLEND): number
     return mean.map((v, h) => v * meanScale + blend * excess[h] * excessScale);
 }
 
-/** The draw to plan for over a horizon: each slot takes a quarter of its local hour's planned draw. */
-export function drawsFor(profiles: (DayProfile | undefined)[], hours: number[], blend = DRAW_QUANTILE_BLEND): number[] {
+/** The draw to plan for over a horizon. With `quarters` (each slot's quarter of its local hour,
+ *  0–3) the hour's whole draw lands in its first slot: a shower takes 100 L in ten minutes, and a
+ *  plan that spreads it over the hour lets the tank run down to the last litre just before it
+ *  (2026-11-15: the 10:45 charge was still ahead when 170 L went at 10:00). A horizon that starts
+ *  mid-hour keeps the part of that hour still to come. Without `quarters`, a quarter per slot. */
+export function drawsFor(profiles: (DayProfile | undefined)[], hours: number[], blend = DRAW_QUANTILE_BLEND,
+    quarters?: number[]): number[] {
     const planned = new Map<DayProfile, number[]>();
     return hours.map((h, k) => {
         const p = profiles[k];
         if (!p) return 0;
         let byHour = planned.get(p);
         if (!byHour) planned.set(p, byHour = plannedHours(p, blend));
-        return byHour[h] * SLOT_H;
+        if (!quarters) return byHour[h] * SLOT_H;
+        const q = Math.max(0, Math.min(3, quarters[k] ?? 0));
+        if (k === 0) return byHour[h] * (4 - q) * SLOT_H;
+        return q === 0 ? byHour[h] : 0;
     });
 }
 
@@ -267,8 +282,9 @@ export function plan(input: PlanInput): Plan {
     // A top-up smaller than this waits for the next round, which plans a proper charge: replanning
     // every slot otherwise turns forecast error into many short, mostly expensive, charges.
     const first = charges[0];
-    const startNow = !input.charging && first?.start === 0
-        && (first.heat >= (input.minChargeKwh ?? MIN_CHARGE_KWH) || rescue);
+    const startNow = !input.charging && first !== undefined
+        && (first.start === 0 || (input.due === true && first.start <= DUE_SLOTS))
+        && (first.heat >= (input.minChargeKwh ?? MIN_CHARGE_KWH) || (rescue && first.start === 0));
     return {charges, stored, cost, shortfall, startNow, rescue};
 }
 

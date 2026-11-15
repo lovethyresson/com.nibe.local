@@ -135,9 +135,9 @@ test('a day type with little history leans on the pooled profile', () => {
 test('the local clock follows the time zone across the autumn change', () => {
     const stockholm = localClock('Europe/Stockholm');
     // 25 Oct 2026: clocks go back at 03:00 CEST = 01:00 UTC.
-    assert.deepStrictEqual(stockholm(Date.UTC(2026, 9, 24, 23, 30)), {date: '2026-10-25', hour: 1});
-    assert.deepStrictEqual(stockholm(Date.UTC(2026, 9, 25, 1, 30)), {date: '2026-10-25', hour: 2});
-    assert.deepStrictEqual(stockholm(Date.UTC(2026, 9, 25, 22, 30)), {date: '2026-10-25', hour: 23});
+    assert.deepStrictEqual(stockholm(Date.UTC(2026, 9, 24, 23, 30)), {date: '2026-10-25', hour: 1, minute: 30});
+    assert.deepStrictEqual(stockholm(Date.UTC(2026, 9, 25, 1, 30)), {date: '2026-10-25', hour: 2, minute: 30});
+    assert.deepStrictEqual(stockholm(Date.UTC(2026, 9, 25, 22, 30)), {date: '2026-10-25', hour: 23, minute: 30});
 });
 
 test('lossAt never goes negative', () => {

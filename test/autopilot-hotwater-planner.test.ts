@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert';
-import {DEFAULT_RESERVE_LITRES, PlanInput, PlanSlot, SLOT_H, drawsFor, heatAt, plan, plannedHours, reserveKwh, tempOf} from '../lib/autopilot/hotwater-planner';
+import {DEFAULT_RESERVE_LITRES, DUE_SLOTS, PlanInput, PlanSlot, SLOT_H, drawsFor, heatAt, plan, plannedHours, reserveKwh, tempOf} from '../lib/autopilot/hotwater-planner';
 import {DayProfile} from '../lib/autopilot/hotwater-learner';
 
 const near = (actual: number, expected: number, tolerance: number, what: string) =>
@@ -155,6 +155,30 @@ test('without day totals the hours are planned as they are', () => {
 test('drawsFor gives each slot a quarter of its hour, and nothing on an away day', () => {
     const p = noisyDay(), planned = plannedHours(p);
     assert.deepStrictEqual(drawsFor([p, p, undefined], [7, 19, 7]), [planned[7] * SLOT_H, planned[19] * SLOT_H, 0]);
+});
+
+test('with quarters, an hour\'s draw lands in its first slot; a mid-hour start keeps what is left', () => {
+    const p = noisyDay(), planned = plannedHours(p);
+    assert.deepStrictEqual(drawsFor([p, p, p, p, p], [7, 7, 7, 8, 8], undefined, [2, 3, 0, 0, 1]),
+        [planned[7] * 2 * SLOT_H, 0, planned[7], planned[8], 0]);
+    const spread = drawsFor(Array(8).fill(p), [7, 7, 7, 7, 8, 8, 8, 8]);
+    const front = drawsFor(Array(8).fill(p), [7, 7, 7, 7, 8, 8, 8, 8], undefined, [0, 1, 2, 3, 0, 1, 2, 3]);
+    near(front.reduce((a, b) => a + b, 0), spread.reduce((a, b) => a + b, 0), 1e-9, 'same total');
+});
+
+test('a due charge starts now instead of sliding behind late draws', () => {
+    // Flat prices, a big draw expected in an hour: the plan wants to charge just before it.
+    const slots = day(() => 2, (h) => h === 1 ? 8 : 0).slice(0, 32);
+    const low = {stored: reserveKwh(80), reserve: reserveKwh(40), maxC: 60};
+    const later = plan(input(slots, low));
+    const first = later.charges[0];
+    assert.ok(first && first.start > 0 && first.start <= DUE_SLOTS, `planned at slot ${first?.start}`);
+    assert.strictEqual(later.startNow, false, 'not yet due: wait');
+    assert.strictEqual(plan(input(slots, {...low, due: true})).startNow, true, 'due: start now');
+    const far = day(() => 2, (h) => h === 4 ? 8 : 0).slice(0, 32);
+    const p = plan(input(far, {...low, due: true}));
+    assert.ok(p.charges[0].start > DUE_SLOTS, 'the need moved hours away');
+    assert.strictEqual(p.startNow, false, 'a charge the plan no longer wants soon is not forced');
 });
 
 test('a charge is planned at the tank\'s own rate, so it runs as long as a real one and a warm top-up is slow', () => {

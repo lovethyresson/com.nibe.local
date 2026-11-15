@@ -8,7 +8,7 @@
  *  price fetch moves to the home service and the tank fields to the per-pump history. */
 import {withApi} from '../indoor-sensors';
 import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, normalisePrices, slotOf} from './prices';
-import {DayDraw, DayProfile, DayType, HotwaterModel, Household, KWH_PER_LITRE, LocalClock, chargeRate, learn, localClock, lossAt, profileFor} from './hotwater-learner';
+import {DayDraw, DayProfile, DayType, HotwaterModel, Household, KWH_PER_LITRE, LocalClock, TankPoint, chargeRate, learn, localClock, lossAt, profileFor} from './hotwater-learner';
 import {TankCapabilities, fetchTankInsights, pointsFromInsights} from './hotwater-insights';
 import {DEFAULT_RESERVE_LITRES, MIN_CHARGE_KWH, Plan, SLOT_H, TankSpec, drawsFor, heatAt, plan, reserveKwh} from './hotwater-planner';
 import {appendLine, deleteHistory, loadJson, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
@@ -73,6 +73,8 @@ export interface ShadowStepInput {
     reserveLitres?: number;
     /** The highest target, °C: under the learned ceiling (hotwater-ceiling.ts). MAX_C without one. */
     maxC?: number;
+    /** Start of the charge the last slot's plan had next (ms): due once this slot reaches it. */
+    dueAt?: number;
 }
 
 export interface ShadowEntry {
@@ -112,8 +114,9 @@ function planFrom(input: ShadowStepInput): Planned | {skip: string} {
     for (let k = slot; input.prices.has(k); k++) slots.push(k);
     if (slots.length < MIN_HORIZON) return {skip: 'no prices'};
     const profile = profileFor(model, input.dayType);
+    const times = slots.map((k) => input.clock(k * SLOT_MS));
     const draws = drawsFor(slots.map((k) => input.dayTypeOf ? profileFor(model, input.dayTypeOf(k * SLOT_MS)) : profile),
-        slots.map((k) => input.clock(k * SLOT_MS).hour));
+        times.map((c) => c.hour), undefined, times.map((c) => Math.floor((c.minute ?? 0) / 15)));
     const charging = (now.powerW ?? 0) > 0;
     const p = plan({
         slots: slots.map((k, j) => {
@@ -123,6 +126,7 @@ function planFrom(input: ShadowStepInput): Planned | {skip: string} {
         stored: now.litres! * KWH_PER_LITRE, charging, runningTargetC: now.more ? now.largeStopC : now.stopC,
         topC: now.top, tank: input.tank, charge: model.charge, loss: model.loss,
         reserve: reserveKwh(input.reserveLitres ?? DEFAULT_RESERVE_LITRES), minC: MIN_C, maxC: input.maxC ?? MAX_C,
+        due: input.dueAt !== undefined && input.dueAt <= slot * SLOT_MS,
     });
     return {slots, plan: p, charging, profile, draws};
 }
@@ -136,6 +140,25 @@ export function coastLitres(storedKwh: number, draws: number[], loss: HotwaterMo
         if (k % 4 === 3) out.push(round(kwh / KWH_PER_LITRE, 0));
     }
     return out;
+}
+
+/** Heat produced faster than this, kWh/h, between two readings is a charge running. */
+const CHARGING_KWH_PER_HOUR = 1;
+
+/** The slots the tank was charging in since `since`, from the hot water heat counter: what the
+ *  plan shows as done before the live record began (a restart, a fresh install). Readings more
+ *  than an hour apart say too little to place a charge, so they are left out. Pure. */
+export function chargedSlots(points: TankPoint[], since: number): number[] {
+    const out = new Set<number>();
+    for (let k = 1; k < points.length; k++) {
+        const a = points[k - 1], b = points[k];
+        const hours = (b.t - a.t) / 3_600_000;
+        if (b.t <= since || !(hours > 0 && hours <= 1.01)) continue;
+        if (typeof a.produced !== 'number' || typeof b.produced !== 'number') continue;
+        if ((b.produced - a.produced) / hours < CHARGING_KWH_PER_HOUR) continue;
+        for (let slot = Math.ceil(Math.max(a.t, since) / SLOT_MS); slot * SLOT_MS < b.t; slot++) out.add(slot);
+    }
+    return [...out].sort((x, y) => x - y);
 }
 
 /** The charge to show as next: the one running now while the tank charges, else the first that
@@ -227,7 +250,9 @@ function chargesOf(input: ShadowStepInput, out: Planned, before: number): {charg
         return take.reduce((x, y) => x + y, 0) / take.length;
     };
     // "Cheap" when the run bought about as well as any run of its length could have, between the
-    // previous charge and the next one (or the end of the known prices); a run that had to reach
+    // previous charge and the end of the next one (or of the known prices): hours the next charge
+    // buys in were there to buy, so a run at a peak just before a use is never "cheap" because
+    // the cheap hours after it belong to another charge (2026-11-15, with draws at the hour's start); a run that had to reach
     // into dearer hours to be ready for the use that follows says so instead. Up to 2026-11-14 the
     // window ended at the run's own end, so a charge starting now was always "cheap": one started
     // at the day's 16:00 peak read "Cheapest hours". A charge starting now with the tank under the
@@ -252,7 +277,7 @@ function chargesOf(input: ShadowStepInput, out: Planned, before: number): {charg
         const from = i ? all[i - 1].end : 0;
         const reason: ChargeReason = charging && c.start === 0 ? 'running'
             : i === 0 && c.start === 0 && (p.rescue || under) ? 'reserve' : c.surplusShare >= 0.5 ? 'surplus'
-            : price <= 1.02 * best(from, i + 1 < all.length ? all[i + 1].start : slots.length, c.end - c.start) + 1e-9
+            : price <= 1.02 * best(from, i + 1 < all.length ? all[i + 1].end : slots.length, c.end - c.start) + 1e-9
                 ? 'cheap' : dearer(c, from);
         return {at: slots[c.start] * SLOT_MS, targetC: c.targetC, minutes: (c.end - c.start) * SLOT_MS / 60_000,
             price: round(price), surplusShare: round(c.surplusShare), cost: round(c.cost), reason};
@@ -886,6 +911,7 @@ export class HotwaterAutopilot {
         for (const point of points) point.dayType = dayTypeAt(dayTypes, point.t, clock);
         const model = learn(points, this.clock(), started, undefined, this.hooks.household());
         this.model = model;
+        for (const slot of chargedSlots(points, started - 2 * DAY_MS)) this.ran.add(slot);
         this.ceilingObs = mergeObservations(this.ceilingObs, [], started, ceilingFromHistory(points));
         this.saveCeiling();
         const c = model.charge, any = model.profiles.any;
@@ -950,7 +976,8 @@ export class HotwaterAutopilot {
         const clock = this.clock(), dayTypes = this.hooks.dayType();
         return {slot, prices: this.prices, surplus: this.surplus(slot), model: this.model, now, tank, clock,
             dayType: dayTypeAt(dayTypes, at, clock), dayTypeOf: (ms) => dayTypeAt(dayTypes, ms, clock),
-            reserveLitres: this.hooks.reserveLitres(), maxC: this.ceiling().maxC};
+            reserveLitres: this.hooks.reserveLitres(), maxC: this.ceiling().maxC,
+            dueAt: this.last?.next && this.last.slot === slot - 1 ? Date.parse(this.last.next.at) : undefined};
     }
 
     private step() {

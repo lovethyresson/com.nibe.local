@@ -117,7 +117,8 @@ function planner(foresight) {
         const model = modelFor(s);
         const draws = foresight
             ? ks.map((k) => drawBySlot.get(k) ?? 0)
-            : drawsFor(ks.map((k) => profileFor(model, dayType(k * SLOT))), ks.map((k) => clock(k * SLOT).hour));
+            : drawsFor(ks.map((k) => profileFor(model, dayType(k * SLOT))), ks.map((k) => clock(k * SLOT).hour),
+                undefined, ks.map((k) => Math.floor((clock(k * SLOT).minute ?? 0) / 15)));
         const slots = ks.map((k, j) => ({price: price.get(k), draw: draws[j]}));
         const p = plan({slots, stored, charging: false, tank, charge: model.charge ?? charge, loss: model.loss, reserve, minC, maxC});
         return p.startNow ? p.charges[0].targetC : undefined;

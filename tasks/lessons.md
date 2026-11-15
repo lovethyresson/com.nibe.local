@@ -486,3 +486,6 @@ marker occurred twice, so the slice came out empty, and `replace('', new)` inser
 every character of `lib/device.ts`. Typecheck caught it and `git checkout` restored the file.
 **Rule:** every scripted edit asserts `old and s.count(old) == 1` before replacing, and a slice
 end is searched from the slice start (`s.index(marker, a)`).
+
+## 2026-11-15: plan log and logger times are UTC
+- The shadow log's `at` and the scratch logger's `t` are UTC ISO strings. Convert to Europe/Stockholm before quoting any time to the user. I told the user a 09:45 charge "slid" when the plan they had seen said 10:45 all morning: every time was an hour off.

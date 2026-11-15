@@ -126,15 +126,15 @@ const FULL_DAY_HOURS = 22;
  *  each have a few days behind them. */
 export const RECENT_DAYS = 28;
 
-/** Local date and hour of an instant. */
-export type LocalClock = (ms: number) => {date: string; hour: number};
+/** Local date, hour and minute of an instant. */
+export type LocalClock = (ms: number) => {date: string; hour: number; minute?: number};
 
 export function localClock(timeZone: string): LocalClock {
     const format = new Intl.DateTimeFormat('en-CA', {timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', hourCycle: 'h23'});
+        hour: '2-digit', minute: '2-digit', hourCycle: 'h23'});
     return (ms) => {
         const parts = Object.fromEntries(format.formatToParts(new Date(ms)).map((p) => [p.type, p.value]));
-        return {date: `${parts.year}-${parts.month}-${parts.day}`, hour: Number(parts.hour) % 24};
+        return {date: `${parts.year}-${parts.month}-${parts.day}`, hour: Number(parts.hour) % 24, minute: Number(parts.minute)};
     };
 }
 

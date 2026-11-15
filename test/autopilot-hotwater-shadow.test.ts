@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import {HotwaterModel, KWH_PER_LITRE, localClock} from '../lib/autopilot/hotwater-learner';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {COAST_HOURS, DAILY_HOUR, nextCharge, trackedReason, DailyPlan, MIN_HORIZON, ShadowEntry, coastLitres, againstPlan, planChanges, planUpdateText, autopilotCharge, chargeLine, chargeText, dailyPlan, dailyPlanText, hotwaterShadowStep, hotwaterStatusText, ownDeviceId, resumePlan, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
+import {COAST_HOURS, DAILY_HOUR, chargedSlots, nextCharge, trackedReason, DailyPlan, MIN_HORIZON, ShadowEntry, coastLitres, againstPlan, planChanges, planUpdateText, autopilotCharge, chargeLine, chargeText, dailyPlan, dailyPlanText, hotwaterShadowStep, hotwaterStatusText, ownDeviceId, resumePlan, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
 import {SLOT_MS, slotOf} from '../lib/autopilot/prices';
 
 const clock = localClock('UTC');
@@ -443,4 +443,15 @@ test('the widget\'s next charge skips a planned one that never started, and keep
     // 10:35, charging, and a plan made mid-charge starts at 10:45: that charge is the one running.
     const running = nextCharge(charges, at(10, 35), true)!;
     assert.ok(running.at === at(10, 45) && running.at > at(10, 35), 'the status says charging now, not next at 10:45');
+});
+
+test('chargedSlots reads the charges from the heat counter, after `since`, at 15-min spacing only', () => {
+    const t0 = Date.UTC(2026, 10, 15, 9, 0);
+    const q = 15 * 60_000;
+    // Quiet, then 1.5 kWh a quarter from 09:15 to 10:00, then quiet; one 6 h gap at the end.
+    const produced = [0, 0, 1.5, 3, 4.5, 4.5];
+    const points = produced.map((p, k) => ({t: t0 + k * q, produced: p}));
+    points.push({t: t0 + 11 * 3_600_000, produced: 20});
+    assert.deepStrictEqual(chargedSlots(points, 0), [1, 2, 3].map((k) => slotOf(t0) + k));
+    assert.deepStrictEqual(chargedSlots(points, t0 + 2 * q), [slotOf(t0) + 2, slotOf(t0) + 3]);
 });
