@@ -931,7 +931,7 @@ body {
 /* Comfort range step: tabs, an example day per range, its facts and what to expect. */
 .setup-range-tabs { margin: .9em 0 .4em; }
 /* Four ranges in one row: a long name wraps inside its segment instead of squeezing the others. */
-.setup-shell .setup-range-tabs button.setup-segment-option { min-height: 44px; padding: .4em .35em; line-height: 1.2; white-space: normal; overflow-wrap: anywhere; hyphens: auto; }
+.setup-shell .setup-range-tabs button.setup-segment-option { min-height: 44px; padding: .4em .35em; line-height: 1.2; white-space: normal; overflow-wrap: normal; word-break: normal; hyphens: manual; }
 .setup-range { display: flex; flex-direction: column; gap: .6em; margin-bottom: 1em; }
 .setup-range-caption { margin: .4em 0 0; font-size: .82em; opacity: .7; }
 .setup-range-chart { display: block; width: 100%; height: auto; overflow: visible; }
@@ -967,6 +967,8 @@ body {
 .setup-range-custom { display: flex; flex-direction: column; gap: .2em; }
 .setup-range-warning { margin: 0 0 .5em; padding: .75em .85em; border-radius: 10px; background: rgba(196, 88, 13, .1); line-height: 1.45; font-size: .95em; }
 .setup-range-field { display: flex; flex-direction: column; gap: .35em; padding: .8em 0; border-top: 1px solid rgba(128, 128, 128, .2); }
+/* Each field is a <label>, which Homey's sheet sets small and bold: take the sheet's body size back. */
+#nibe-pair-setup label.setup-range-field, #nibe-repair-setup label.setup-range-field { font-size: inherit; font-weight: 400; line-height: 1.4; }
 .setup-range-field:first-of-type { border-top: 0; }
 .setup-range-field-head { display: flex; align-items: center; justify-content: space-between; gap: .8em; }
 .setup-range-field-label { font-size: 1.02em; font-weight: 600; min-width: 0; line-height: 1.3; }
