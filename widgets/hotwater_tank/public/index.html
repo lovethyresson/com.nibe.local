@@ -152,26 +152,30 @@
         var c = data.chart, W = chartWidth(), L = 6, R = W - 6, n = data.slots, step = (R - L) / n;
         var x = function (k) { return L + k * step; };
         var PH = Math.max(80, Math.min(120, Math.round(W * 0.27))) + Math.round(EXTRA * 0.6), UH = Math.max(56, Math.min(84, Math.round(W * 0.19))) + Math.round(EXTRA * 0.4);
-        var T1 = 16, B1 = T1 + PH, T2 = B1 + 30, B2 = T2 + UH, BY = B2 + 14, tickY = BY + 28, H = tickY + 6;
+        // A planned charge is labelled under its band, so the hours go below that label.
+        var labelled = (data.bands || []).some(function (b) { return !(typeof b.doneTo === 'number' && b.doneTo >= b.to); });
+        var T1 = 16, B1 = T1 + PH, T2 = B1 + 30, B2 = T2 + UH, BY = B2 + 14, tickY = BY + (labelled ? 42 : 28), H = tickY + 6;
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'tk-chart', role: 'img'});
         var y1 = function (v) { return B1 - PH * v / c.tankAxis.max; }, y2 = function (v) { return B2 - UH * v / c.useAxis.max; };
-        function panel(title, top, bottom, axis, y) {
+        // A panel's gridlines; `labelled` puts each value just under its line on the left (not the
+        // top one, which sits by the title). The use panel's lines carry their own values instead.
+        function panel(title, top, bottom, axis, y, labelled) {
           svg.appendChild(svgEl('text', {x: L, y: top - 6, class: 'axis-title'}, title));
           axis.gridlines.forEach(function (v) {
             if (v === 0) return;
             svg.appendChild(svgEl('line', {x1: L, x2: R, y1: y(v), y2: y(v), stroke: 'currentColor', 'stroke-opacity': 0.08}));
-            svg.appendChild(svgEl('text', {x: R, y: y(v) - 3, 'text-anchor': 'end', class: 'grid'}, v + ' L'));
+            if (labelled && v < axis.max) svg.appendChild(svgEl('text', {x: L + 2, y: y(v) + 11, class: 'grid'}, v + ' L'));
           });
           svg.appendChild(svgEl('line', {x1: L, x2: R, y1: bottom, y2: bottom, stroke: 'currentColor', 'stroke-opacity': 0.15}));
           // Midnight: where today ends and tomorrow's hours begin.
           var mid = data.ticks[4];
           if (mid) svg.appendChild(svgEl('line', {x1: x(mid.at), x2: x(mid.at), y1: top, y2: bottom, stroke: 'currentColor', 'stroke-opacity': 0.12}));
         }
-        panel(data.labels.tank, T1, B1, c.tankAxis, y1);
-        panel(data.labels.used, T2, B2, c.useAxis, y2);
+        panel(data.labels.tank, T1, B1, c.tankAxis, y1, true);
+        panel(data.labels.used, T2, B2, c.useAxis, y2, false);
         if (typeof data.reserve === 'number') {
           svg.appendChild(svgEl('line', {x1: L, x2: R, y1: y1(data.reserve), y2: y1(data.reserve), stroke: 'currentColor', 'stroke-opacity': 0.4, 'stroke-dasharray': '2 3'}));
-          svg.appendChild(svgEl('text', {x: L + 2, y: y1(data.reserve) - 4, class: 'grid'}, data.labels.reserve));
+          svg.appendChild(svgEl('text', {x: R, y: y1(data.reserve) + 11, 'text-anchor': 'end', class: 'grid'}, data.labels.reserve));
         }
         // Tank: the read line with a soft fill under it, the plan dashed.
         runs(c.read.map(function (v) { return {v: v}; }), function (s) { return s.v; }).forEach(function (r) {

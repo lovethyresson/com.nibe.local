@@ -2181,8 +2181,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const siblings = (this.driver.getDevices() as any[]).filter((d) => String(d.getData().id).split('#')[0] === host);
         const byRole = new Map(siblings.map((d) => [d.role, d]));
         if (!ENERGY_ROLES.some((role) => byRole.has(role))) return {title, empty: t('no_functions')};
-        const reads = ENERGY_ROLES.map((role) => [role, byRole.get(role)?.energyToday?.()] as const);
+        const reads = ENERGY_ROLES.filter((role) => byRole.has(role)).map((role) => [role, byRole.get(role).energyToday?.()] as const);
         const known = reads.filter(([, r]) => r);
+        // A function not read yet (they read minutes apart after a start) would look like one that
+        // used nothing: wait for every function this pump has, for the start-up minutes at least.
+        if (known.length < reads.length && process.uptime() < 15 * 60) return {title, badge: this.homey.__('autopilot.widget.experimental'), loading: true};
         const badge = this.homey.__('autopilot.widget.experimental');
         // The meters are read a few minutes after a start, then hourly. Past that, nothing read means
         // no dynamic prices in Homey Energy (the read stops there).
