@@ -1,0 +1,32 @@
+{
+  "name": {
+    "en": "Autopilot savings",
+    "sv": "Autopilot-besparing",
+    "de": "Autopilot-Ersparnis",
+    "nl": "Autopilot-besparing",
+    "no": "Autopilot-besparelse",
+    "da": "Autopilot-besparelse"
+  },
+  "height": 360,
+  "transparent": false,
+  "settings": [
+    {
+      "id": "device",
+      "type": "autocomplete",
+      "title": {
+        "en": "Device",
+        "sv": "Enhet",
+        "de": "Gerät",
+        "nl": "Apparaat",
+        "no": "Enhet",
+        "da": "Enhed"
+      }
+    }
+  ],
+  "api": {
+    "getData": {
+      "method": "GET",
+      "path": "/"
+    }
+  }
+}

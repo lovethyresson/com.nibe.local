@@ -131,6 +131,13 @@ export function aimingFor(slots: WidgetSlot[], now: number, setpoint?: number): 
     return setpoint;
 }
 
+/** The shift axis: as far below 0 as above, so 0 sits in the middle and a bar reads as heating
+ *  more or easing off at a glance. Pure. */
+export function symmetricAxis(values: number[]): Axis {
+    const m = Math.max(0.25, ...values.map((v) => Math.abs(v)).filter(Number.isFinite));
+    return niceAxis(-m, m, {include: [0], steps: [0.25, 0.5, 1, 2, 5, 10]});
+}
+
 const NICE_STEPS = [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100, 250, 500, 1000];
 const trim = (v: number) => Math.round(v * 1e6) / 1e6 + 0;
 

@@ -419,6 +419,23 @@
       "off": "Autopilot for varmtvann er av. Slå den på i Reparer → Smartmodus.",
       "pick": "Velg en varmtvannsenhet.",
       "away_keeps": "Autopilot holder bare minimumet ditt varmt."
+    },
+    "savings": {
+      "pick": "Velg en enhet for Oppvarming eller Varmtvann i widgetens innstillinger.",
+      "empty": "Vises fra i morgen. Krever dynamiske strømpriser i Homey Energi.",
+      "status_autopilot": "Pris per kWh",
+      "status_before": "Før Autopilot",
+      "paid": "Betalt __paid__ per kWh, snitt __mean__",
+      "days": "__days__ dager",
+      "days_one": "1 dag",
+      "dear_both": "Dyreste timer: __a__ % av forbruket med Autopilot, __b__ % uten",
+      "dear_one": "Dyreste timer: __a__ % av forbruket",
+      "axis": "kWh per døgn",
+      "cheap": "Billigste timer",
+      "middle": "Midten",
+      "dear": "Dyreste timer",
+      "autopilot_day": "Autopilot på",
+      "footnote": "Hver dags timer, delt i tre etter pris."
     }
   }
 }

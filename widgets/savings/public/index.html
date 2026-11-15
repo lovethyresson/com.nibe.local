@@ -1,0 +1,203 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <style>
+      /* The same card as the Autopilot widget (widgets/autopilot): title, a quiet chip, the status
+         with its one number in colour on the right, a reason, a muted detail, then the chart. */
+      .sv { padding: var(--homey-su-2, 8px) var(--homey-su-3, 12px); }
+      .sv-title { opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .sv-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
+      .sv-chip { font-size: 0.8em; padding: 2px 8px; border-radius: 999px; background: transparent; border: 1px solid rgba(127, 127, 127, 0.4); opacity: 0.75; }
+      .sv-status { text-wrap: balance; margin: 12px 0 0; font-size: 1.35em; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; }
+      .sv-value { font-variant-numeric: tabular-nums; white-space: nowrap; }
+      .sv-value.good { color: var(--sv-cheap); }
+      .sv-value.bad { color: var(--sv-dear); }
+      .sv-value.neutral { opacity: 0.75; }
+      .sv-reason { margin: 4px 0 0; opacity: 0.85; font-variant-numeric: proportional-nums; }
+      .sv-detail { margin: 2px 0 0; opacity: 0.65; font-variant-numeric: proportional-nums; }
+      .sv-chart { display: block; margin-top: 14px; overflow: visible; }
+      .sv-chart text { font-size: 11px; fill: currentColor; opacity: 0.75; }
+      .sv-chart text.axis-title { font-size: 10.5px; opacity: 0.6; }
+      .sv-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.8em; opacity: 0.9; margin-top: 10px; }
+      .sv-key { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; box-sizing: border-box; }
+      .sv-foot { margin: 8px 0 0; font-size: 0.8em; opacity: 0.75; }
+      .sv-empty { opacity: 0.8; margin: 12px 0; }
+      /* Cheap and dear meet 3:1 or better on their card; the middle third is a quiet grey on purpose.
+         The theme is read from the text colour Homey gives the page (applyTheme), the media query first. */
+      :root { --sv-cheap: #0f8374; --sv-middle: rgba(127, 127, 127, 0.4); --sv-dear: #c4580d; --sv-autopilot: rgba(45, 107, 214, 0.1); --sv-card: #ffffff; }
+      :root[data-theme="dark"] { --sv-cheap: #2bb3a3; --sv-dear: #e8833a; --sv-autopilot: rgba(77, 163, 255, 0.16); --sv-card: #1c1c1e; }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) { --sv-cheap: #2bb3a3; --sv-dear: #e8833a; --sv-autopilot: rgba(77, 163, 255, 0.16); --sv-card: #1c1c1e; }
+      }
+    </style>
+  </head>
+
+  <body class="homey-widget">
+    <div class="sv" id="sv"></div>
+
+    <script type="text/javascript">
+      var NS = 'http://www.w3.org/2000/svg';
+      var TIER = ['var(--sv-cheap)', 'var(--sv-middle)', 'var(--sv-dear)'];
+      // Used only when the app cannot be reached at all, so it cannot send a translated line.
+      var FALLBACK = {
+        en: {loading: 'Loading…', error: 'Couldn’t load this widget. Trying again in a minute.'},
+        sv: {loading: 'Laddar…', error: 'Det gick inte att läsa in widgeten. Försöker igen om en minut.'},
+        nl: {loading: 'Laden…', error: 'Kon de widget niet laden. Over een minuut probeer ik het opnieuw.'},
+        de: {loading: 'Lädt…', error: 'Das Widget konnte nicht geladen werden. Neuer Versuch in einer Minute.'},
+        no: {loading: 'Laster…', error: 'Kunne ikke laste widgeten. Prøver igjen om et minutt.'},
+        da: {loading: 'Indlæser…', error: 'Kunne ikke indlæse widgetten. Prøver igen om et minut.'}
+      };
+      function words() {
+        var lang = String((navigator.language || 'en')).slice(0, 2).toLowerCase();
+        if (lang === 'nb' || lang === 'nn') lang = 'no';
+        return FALLBACK[lang] || FALLBACK.en;
+      }
+      function el(tag, cls, text) {
+        var n = document.createElement(tag);
+        if (cls) n.className = cls;
+        if (text !== undefined) n.textContent = text;
+        return n;
+      }
+      function svgEl(tag, attrs, text) {
+        var n = document.createElementNS(NS, tag);
+        Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+        if (text !== undefined) n.textContent = text;
+        return n;
+      }
+      // Light or dark, from the text colour Homey gives the page: light text means a dark card.
+      function applyTheme() {
+        var rgb = (getComputedStyle(document.body).color.match(/[\d.]+/g) || []).map(Number);
+        if (rgb.length < 3) return;
+        document.documentElement.setAttribute('data-theme', (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255 > 0.5 ? 'dark' : 'light');
+      }
+      // Drawn at the card's real pixel width, so the text stays 11 px on any card.
+      function chartWidth() {
+        var sv = document.getElementById('sv'), cs = getComputedStyle(sv);
+        return Math.max(240, Math.floor(sv.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)));
+      }
+      // Round gridlines: 0, half and the top, the top the first round value above the tallest bar.
+      function niceTop(v) {
+        var tops = [1, 2, 4, 6, 10, 20, 30, 40, 60, 80, 100, 150, 200, 300, 400, 600, 800, 1000];
+        for (var i = 0; i < tops.length; i++) if (v * 1.08 <= tops[i]) return tops[i];
+        return Math.ceil(v * 1.08 / 500) * 500;
+      }
+      // A rectangle with only its top corners rounded: the top of a stacked bar.
+      function topRounded(x, y, w, h, r) {
+        r = Math.min(r, w / 2, h);
+        return 'M' + x + ' ' + (y + h) + 'V' + (y + r) + 'Q' + x + ' ' + y + ' ' + (x + r) + ' ' + y
+          + 'H' + (x + w - r) + 'Q' + (x + w) + ' ' + y + ' ' + (x + w) + ' ' + (y + r) + 'V' + (y + h) + 'Z';
+      }
+
+      // A bar per day: kWh in the day's cheapest third of hours at the bottom, the dearest on top,
+      // split by a hairline of the card's colour. A day Autopilot ran is a soft column behind its bar.
+      var TOP = 22;
+      function chart(data) {
+        var W = chartWidth(), L = 30, R = W, PH = Math.max(100, Math.min(150, Math.round(W * 0.34))), B = TOP + PH, H = B + 20;
+        var n = data.bars.length, step = (R - L) / Math.max(n, 7), bw = Math.min(20, step * 0.6);
+        var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'sv-chart', role: 'img'});
+        if (data.axis) svg.appendChild(svgEl('text', {x: 0, y: 11, class: 'axis-title'}, data.axis));
+        var top = niceTop(Math.max.apply(null, data.bars.map(function (b) { return b.tiers[0] + b.tiers[1] + b.tiers[2]; }).concat([0.25])));
+        var y = function (v) { return B - PH * v / top; };
+        // Days Autopilot ran, as one band per run of days, behind the bars and their day numbers.
+        var from = -1;
+        data.bars.concat([{}]).forEach(function (b, k) {
+          if (b.autopilot && from < 0) from = k;
+          if (!b.autopilot && from >= 0) {
+            svg.appendChild(svgEl('rect', {x: L + from * step + 1, y: TOP - 4, width: (k - from) * step - 2, height: PH + 4 + 18, rx: 6, fill: 'var(--sv-autopilot)'}));
+            from = -1;
+          }
+        });
+        [0, top / 2, top].forEach(function (v) {
+          svg.appendChild(svgEl('line', {x1: L, x2: R, y1: y(v), y2: y(v), stroke: 'currentColor', 'stroke-opacity': v ? 0.1 : 0.2}));
+          svg.appendChild(svgEl('text', {x: L - 6, y: y(v) + 4, 'text-anchor': 'end'}, String(Math.round(v * 10) / 10)));
+        });
+        // Day numbers never touch: one in two, or one in three, when the card is narrow.
+        var every = step >= 18 ? 1 : step >= 10 ? 2 : 3;
+        data.bars.forEach(function (b, k) {
+          var cx = L + (k + 0.5) * step, base = 0, segs = [];
+          b.tiers.forEach(function (v, i) { if (v > 0) segs.push({i: i, v: v}); });
+          segs.forEach(function (s, j) {
+            var y0 = y(base), y1 = y(base + s.v), last = j === segs.length - 1;
+            // A hairline between segments, so stacked thirds read as parts of one bar.
+            var gap = j ? 1 : 0, h = Math.max(0.8, y0 - y1 - gap);
+            svg.appendChild(last
+              ? svgEl('path', {d: topRounded(cx - bw / 2, y1, bw, h, 3), fill: TIER[s.i]})
+              : svgEl('rect', {x: cx - bw / 2, y: y1, width: bw, height: h, fill: TIER[s.i]}));
+            base += s.v;
+          });
+          if ((n - 1 - k) % every === 0) svg.appendChild(svgEl('text', {x: cx, y: H - 4, 'text-anchor': 'middle'}, b.label));
+        });
+        return svg;
+      }
+
+      function legend(l, anyAutopilot) {
+        var box = el('div', 'sv-legend');
+        [{text: l.cheap, style: 'background: var(--sv-cheap);'}, {text: l.middle, style: 'background: var(--sv-middle);'},
+          {text: l.dear, style: 'background: var(--sv-dear);'},
+          anyAutopilot ? {text: l.autopilot, style: 'background: var(--sv-autopilot); border: 1px solid rgba(127, 127, 127, 0.25);'} : null]
+          .forEach(function (i) {
+            if (!i || !i.text) return;
+            var item = el('span'), key = el('span', 'sv-key');
+            key.style.cssText = i.style;
+            item.appendChild(key); item.appendChild(document.createTextNode(i.text)); box.appendChild(item);
+          });
+        return box;
+      }
+
+      var last = null;
+      function render(data) {
+        applyTheme();
+        var root = document.getElementById('sv');
+        root.replaceChildren();
+        if (data.title) root.appendChild(el('div', 'sv-title homey-text-small', data.title));
+        if (data.empty) { root.appendChild(el('p', 'sv-empty', data.empty)); return; }
+        if (data.badge) {
+          var chips = el('div', 'sv-chips');
+          chips.appendChild(el('span', 'sv-chip', data.badge));
+          root.appendChild(chips);
+        }
+        if (data.status) {
+          var status = el('p', 'sv-status');
+          status.appendChild(el('span', '', data.status));
+          if (data.value) status.appendChild(el('span', 'sv-value ' + (data.tone || ''), data.value));
+          root.appendChild(status);
+        }
+        if (data.reason) root.appendChild(el('p', 'sv-reason homey-text-small', data.reason));
+        if (data.detail) root.appendChild(el('p', 'sv-detail homey-text-small', data.detail));
+        if (data.bars && data.bars.length) {
+          root.appendChild(chart(data));
+          root.appendChild(legend(data.legend || {}, data.bars.some(function (b) { return b.autopilot; })));
+        }
+        if (data.footnote) root.appendChild(el('p', 'sv-foot', data.footnote));
+      }
+      function fit(Homey) {
+        if (Homey && Homey.setHeight) Homey.setHeight(Math.ceil(document.getElementById('sv').scrollHeight) + 16);
+      }
+
+      function onHomeyReady(Homey) {
+        var settings = Homey.getSettings() || {};
+        var device = settings.device && settings.device.id;
+        document.getElementById('sv').appendChild(el('p', 'sv-empty', words().loading));
+        function show(data) { last = data; render(data); fit(Homey); }
+        function load() {
+          return Homey.api('GET', '/' + (device ? '?device=' + encodeURIComponent(device) : ''), {})
+            .then(show)
+            .catch(function (err) {
+              if (typeof console !== 'undefined') console.error(err);
+              if (last) return; // keep the last good picture until the app answers again
+              document.getElementById('sv').replaceChildren(el('p', 'sv-empty', words().error));
+              fit(Homey);
+            });
+        }
+        load().finally(function () { Homey.ready(); });
+        // A day is written once an hour at most: a quarter-hour refresh is plenty.
+        setInterval(load, 15 * 60000);
+        var timer = null;
+        window.addEventListener('resize', function () {
+          clearTimeout(timer);
+          timer = setTimeout(function () { if (last) { render(last); fit(Homey); } }, 150);
+        });
+      }
+    </script>
+  </body>
+</html>

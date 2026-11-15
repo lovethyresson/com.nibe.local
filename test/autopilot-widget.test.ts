@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {aimingFor, chargeBands, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks, todaySlots} from '../lib/autopilot/widget';
+import {aimingFor, chargeBands, symmetricAxis, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks, todaySlots} from '../lib/autopilot/widget';
 import {dayKind, hotwaterWeek} from '../lib/autopilot/hotwater-use';
 import {KWH_PER_LITRE, learn, localClock, TankPoint} from '../lib/autopilot/hotwater-learner';
 
@@ -174,4 +174,14 @@ test('the widget aims for where the pre-heat ends, and for the thermostat while 
     assert.equal(aimingFor([...past, {indoor: 22.4, offset: 0.1}], 2, 22.5), 22.5, 'holding: the thermostat');
     assert.equal(aimingFor([...past, {offset: -10}], 2, 22.5), 22.5, 'no expected line yet: the thermostat');
     assert.equal(aimingFor([], 0, undefined), undefined);
+});
+
+test('the shift axis is symmetric, so 0 sits in the middle', () => {
+    for (const shifts of [[-10, 0, -2], [0, 3], [0], [-0.1]]) {
+        const a = symmetricAxis(shifts);
+        assert.equal(a.lo, -a.hi, `${shifts}: ${a.lo}..${a.hi}`);
+        assert.ok(a.ticks.includes(0));
+        assert.ok(a.hi >= Math.max(...shifts.map(Math.abs)));
+    }
+    assert.deepEqual(symmetricAxis([-10, -2]).ticks, [-10, -5, 0, 5, 10]);
 });

@@ -419,6 +419,23 @@
       "off": "Autopilot voor warm water staat uit. Zet hem aan via Repareren → Slimme modus.",
       "pick": "Kies een warmwaterapparaat.",
       "away_keeps": "Autopilot houdt alleen je minimum warm."
+    },
+    "savings": {
+      "pick": "Kies een apparaat voor Verwarming of Warm water in de instellingen van de widget.",
+      "empty": "Zichtbaar vanaf morgen. Vereist dynamische stroomprijzen in Homey Energie.",
+      "status_autopilot": "Prijs per kWh",
+      "status_before": "Vóór Autopilot",
+      "paid": "Betaald __paid__ per kWh, gemiddeld __mean__",
+      "days": "__days__ dagen",
+      "days_one": "1 dag",
+      "dear_both": "Duurste uren: __a__ % van het verbruik met Autopilot, __b__ % zonder",
+      "dear_one": "Duurste uren: __a__ % van het verbruik",
+      "axis": "kWh per dag",
+      "cheap": "Goedkoopste uren",
+      "middle": "Midden",
+      "dear": "Duurste uren",
+      "autopilot_day": "Autopilot aan",
+      "footnote": "De uren van elke dag, in drieën verdeeld op prijs."
     }
   }
 }

@@ -531,7 +531,7 @@
       "why": {
         "takes_over": "The charge __time__ takes over the rest, at __price__/kWh.",
         "covered": "The tank covers the day without it.",
-        "store_more": "The hours ahead are dearer, so it stores more now.",
+        "store_more": "The hours ahead cost more, so it stores more now.",
         "needs_less": "It needs less now."
       },
       "cost": "Expected cost __cost__. Tomorrow's prices aren't in yet.",
@@ -701,6 +701,23 @@
       "off": "Autopilot hot water is off. Turn it on in Repair → Smart mode.",
       "pick": "Pick a Hot water device.",
       "away_keeps": "Autopilot only keeps your minimum warm."
+    },
+    "savings": {
+      "pick": "Pick a Heating or Hot water device in the widget's settings.",
+      "empty": "Shows from tomorrow. Needs dynamic electricity prices in Homey Energy.",
+      "status_autopilot": "Price per kWh",
+      "status_before": "Before Autopilot",
+      "paid": "Paid __paid__ per kWh, average __mean__",
+      "days": "__days__ days",
+      "days_one": "1 day",
+      "dear_both": "Most expensive hours: __a__ % with Autopilot, __b__ % without",
+      "dear_one": "Most expensive hours: __a__ % of use",
+      "axis": "kWh per day",
+      "cheap": "Cheapest hours",
+      "middle": "Middle",
+      "dear": "Most expensive hours",
+      "autopilot_day": "Autopilot on",
+      "footnote": "Each day's hours, split in three by price."
     }
   }
 }

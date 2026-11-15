@@ -2,6 +2,7 @@ import {CaptureSummary, logCaptureSummary} from './diagnostic-capture';
 import {IndoorConfig, averageSensors, cleanIndoorConfig, readOnlyIndoorConfig, selectedReadings, withApi} from './indoor-sensors';
 import {Controls, AutopilotCollector} from './autopilot/collector';
 import {newHistoryFileName} from './autopilot/store-file';
+import {LEDGER_DAYS, ModeMark, SavingsData, SavingsDay, dayHours, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay} from './autopilot/savings';
 import {ChargeEvent, HotwaterAutopilot, HotwaterMode, ownDeviceId} from './autopilot/hotwater-shadow';
 import {FlowConflict, moreHotwaterFlows} from './autopilot/hotwater-flows';
 import {STARTER_DAYS, localClock, readHousehold} from './autopilot/hotwater-learner';
@@ -12,9 +13,9 @@ import {AUTOPILOT_FUNCTIONS, SMART_MODE_STORE, SmartFunction, SmartMode, autopil
 import {HeatingStatus, heatingStatus} from './autopilot/heating-status';
 import {forecastCorrection} from './autopilot/outdoor';
 import {readTrim} from './autopilot/setpoint';
-import {WidgetData, aimingFor, chargeBands, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks, todaySlots} from './autopilot/widget';
+import {WidgetData, aimingFor, chargeBands, symmetricAxis, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks, todaySlots} from './autopilot/widget';
 import {HotwaterUseData, hotwaterWeek} from './autopilot/hotwater-use';
-import {SLOT_MS, slotOf} from './autopilot/prices';
+import {SLOT_MS, localDate, normalisePrices, slotOf} from './autopilot/prices';
 import {Edge, FORECAST_SLOTS, BlockedBy, HeatingDay, analyticsSmartMode, heatingBlock, reserveBucket} from './autopilot/analytics';
 import {SOLAR_SETTING, SolarSurplus, readSolarAnswer, solarOn} from './autopilot/solar-surplus';
 import {Device} from 'homey';
@@ -55,6 +56,13 @@ const HOUSEHOLD_STORE = 'autopilotHotwaterHousehold';
 const RESERVE_STORE = 'autopilotReserve';
 /** Smart mode chosen in pairing, applied once when the device first runs (applyPairedSmartMode). */
 const PAIRED_SMART_STORE = 'pairedSmartMode';
+/** The savings widget's complete days, its currency, and the Smart mode changes it sorts days by. */
+const SAVINGS_STORE = 'autopilotSavingsDays';
+const SAVINGS_CURRENCY_STORE = 'autopilotSavingsCurrency';
+const MODE_MARKS_STORE = 'autopilotModeMarks';
+/** Days back the ledger is filled from: what Insights keeps hourly. */
+const SAVINGS_BACK_DAYS = 13;
+const HOUR_MS = 3_600_000;
 const DEFAULT_RESERVE_LITRES = 40;
 /** Pauses the Autopilot widget has an "what to do" line for (autopilot.widget.paused.*). */
 const WIDGET_PAUSES = ['no_outdoor', 'spa_on', 'room_control', 'immersion_only', 'feed_failed', 'cooling'];
@@ -1247,6 +1255,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 await this.setWarning('Finish your Homey sensor setup in Heating → Repair.');
         }
         if (this.role === 'hotwater') await this.syncHotwaterAutopilot().catch(this.error);
+        if (this.role === 'heating' || this.role === 'hotwater') {
+            if (!Array.isArray(this.getStoreValue(MODE_MARKS_STORE))) await this.markMode(this.smartMode()).catch(this.error);
+            // Heating and Hot water read Insights a few minutes apart, so their requests don't meet.
+            this.scheduleSavings(this.role === 'heating' ? 90_000 : 6 * 60_000);
+        }
         if (this.getStoreValue(PAIRED_SMART_STORE)) this.homey.setTimeout(() => this.applyPairedSmartMode().catch(this.error), 15_000);
     }
 
@@ -1788,6 +1801,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (from !== mode) {
             await this.setStoreValue(SMART_MODE_STORE, mode);
             this.log(`Smart mode: ${this.role} = ${mode}`);
+            await this.markMode(mode);
             track('Changed Smart Mode', {role: this.role, smart_mode: analyticsSmartMode(mode), from_smart_mode: analyticsSmartMode(from)});
             (this.driver as any).syncInstallProfile?.();
         }
@@ -2031,7 +2045,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             ticks: ticks(slotStart(from), day.n, this.clock),
             scale: {left: indoors.length ? niceAxis(Math.min(...indoors) - 0.3, Math.max(...indoors) + 0.3, {minSpan: 2, steps: [0.5, 1, 2, 5]})
                     : niceAxis(19, 23, {steps: [0.5, 1, 2]}),
-                right: niceAxis(Math.min(0, ...shifts), Math.max(0, ...shifts), {include: [0], minSpan: 0.5, steps: [0.25, 0.5, 1, 2, 5]})},
+                // The shift axis is symmetric, so 0 sits mid-height: bars read as above or below it.
+                right: symmetricAxis(shifts)},
             status: statusName,
             reason,
             bars: shiftBars(slots),
@@ -2068,6 +2083,121 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             legend: {title: t('title'), working: has('working') ? t('working') : '', free: has('free') ? t('free') : '',
                 away: has('away') ? t('away') : '', today: t('today'), typical: t('typical'),
                 at_least: week.bars.some((b) => b.atLeast) ? t('at_least') : ''}};
+    }
+
+    // ---- The Autopilot savings widget (widgets/savings) ----
+
+    private savingsTimer?: NodeJS.Timeout;
+    private savingsStopped = false;
+    /** Dates a refresh could not complete (a gap in the meter, no prices), and when. They are tried
+     *  again once a day, so a day that never completes costs no hourly Homey API calls. */
+    private savingsTried = new Map<string, number>();
+
+    /** Keep the Smart mode changes the savings widget sorts days by: Autopilot live or not. */
+    private async markMode(mode: SmartMode) {
+        const marks: ModeMark[] = Array.isArray(this.getStoreValue(MODE_MARKS_STORE)) ? this.getStoreValue(MODE_MARKS_STORE) : [];
+        const live = mode === 'autopilot';
+        if (marks.length && marks[marks.length - 1].live === live) return;
+        const keepFrom = Date.now() - (LEDGER_DAYS + 2) * 86_400_000;
+        // The last mark before the kept window still says what the window's first hours were.
+        const older = marks.filter((m) => m.at < keepFrom).slice(-1);
+        await this.setStoreValue(MODE_MARKS_STORE, [...older, ...marks.filter((m) => m.at >= keepFrom), {at: Date.now(), live}]);
+    }
+
+    private scheduleSavings(ms: number) {
+        if (this.savingsTimer) this.homey.clearTimeout(this.savingsTimer);
+        if (this.savingsStopped) return;
+        this.savingsTimer = this.homey.setTimeout(() => {
+            this.refreshSavings()
+                .catch((error) => { this.log('Savings widget: refresh failed:', error?.message ?? error); return HOUR_MS; })
+                .then((next) => this.scheduleSavings(next));
+        }, ms);
+    }
+
+    /** Add the complete days the ledger lacks, from Insights' hourly meter (14 days back) and the
+     *  day's prices. A day once written is final, so a refresh only reads what is new. Returns when
+     *  to look again: an hour, or six when this Homey has no dynamic prices or the device is not found. */
+    private async refreshSavings(): Promise<number> {
+        const timeZone = this.homey.clock.getTimezone();
+        const now = Date.now();
+        const today = localDate(now, timeZone);
+        for (const [date, at] of this.savingsTried) if (now - at > SAVINGS_BACK_DAYS * 86_400_000) this.savingsTried.delete(date);
+        const stored: SavingsDay[] = Array.isArray(this.getStoreValue(SAVINGS_STORE)) ? this.getStoreValue(SAVINGS_STORE) : [];
+        const have = new Set(stored.map((d) => d.date));
+        const wanted = Array.from({length: SAVINGS_BACK_DAYS}, (_, k) => localDate(now, timeZone, -(k + 1)))
+            .filter((date) => !have.has(date) && date < today && now - (this.savingsTried.get(date) ?? 0) > 86_400_000);
+        if (!wanted.length) return HOUR_MS;
+        const appId = this.homey.manifest?.id ?? 'com.nibe.local';
+        const marks: ModeMark[] = Array.isArray(this.getStoreValue(MODE_MARKS_STORE)) ? this.getStoreValue(MODE_MARKS_STORE) : [];
+        const result = await withApi(this.homey, async (api) => {
+            if (await api.energy.getElectricityPriceType() !== 'dynamic') return undefined;
+            const id = ownDeviceId(await api.devices.getDevices({$timeout: 10_000}), appId, String(this.getData().id));
+            if (!id) return undefined;
+            const uri = `homey:device:${id}`;
+            // Homey refuses Insights and Energy requests that come back to back.
+            const pause = () => new Promise((resolve) => this.homey.setTimeout(resolve, 5_000));
+            /** A log's hourly points; undefined when it could not be read. */
+            const log = async (cap: string) => {
+                const entries = await api.insights.getLogEntries({uri, id: `${uri}:${cap}`, resolution: 'last14Days', $timeout: 20_000})
+                    .catch(() => undefined);
+                await pause();
+                return entries ? (entries.values ?? []) as {t: string; v: number | null}[] : undefined;
+            };
+            const meter = await log('meter_power.total');
+            if (!meter) return [];
+            const use = hourlyUse(meter);
+            // Heating: an hour ran live when the pump showed the BT1 Autopilot fed. That catches a
+            // halt or pause the Smart mode alone does not, and dates the hours before the marks.
+            // Either log unread: nothing is known from them.
+            let fedLive: Map<number, boolean> | undefined;
+            if (this.role === 'heating') {
+                const fedLog = await log('measure_temperature.autopilot_fed');
+                const shown = fedLog && await log('measure_temperature.i1_outside');
+                if (fedLog && shown) {
+                    const fed = new Map(fedLog.filter((p) => typeof p.v === 'number').map((p) => [Date.parse(p.t), p.v as number]));
+                    fedLive = new Map(shown.filter((p) => typeof p.v === 'number').map((p) => {
+                        const f = fed.get(Date.parse(p.t));
+                        return [Date.parse(p.t), f !== undefined && Math.abs(f - (p.v as number)) <= 0.2];
+                    }));
+                }
+            }
+            const liveHour = (at: number) => {
+                const mark = liveAt(marks, at), fed = fedLive?.get(at);
+                return mark === undefined ? fed : mark && fed !== false;
+            };
+            const costs = await api.energy.getDynamicElectricityPriceUserCosts().catch(() => undefined);
+            if (!this.getStoreValue(SAVINGS_CURRENCY_STORE)) {
+                const currency = await api.energy.getCurrency().catch(() => undefined);
+                if (typeof currency === 'string') await this.setStoreValue(SAVINGS_CURRENCY_STORE, currency);
+            }
+            const days: SavingsDay[] = [];
+            for (const date of wanted) {
+                const response = await api.energy.fetchDynamicElectricityPrices({date}).catch(() => undefined);
+                await pause();
+                const hours = dayHours(date, (ms) => localDate(ms, timeZone));
+                const day = response && savingsDay(date, hours, use, hourlyPrices(normalisePrices(response, costs?.mathExpression).slots, SLOT_MS),
+                    liveShare(hours, liveHour));
+                if (day) days.push(day);
+                else this.savingsTried.set(date, now);
+            }
+            return days;
+        });
+        if (!result) return 6 * HOUR_MS;
+        if (result.length && !this.savingsStopped) await this.setStoreValue(SAVINGS_STORE, mergeDays(stored, result));
+        return HOUR_MS;
+    }
+
+    /** What the Autopilot savings widget draws. Every string translated here. */
+    savingsWidget(): SavingsData {
+        const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.savings.${key}`, tokens);
+        const title = this.getName();
+        if (this.role !== 'heating' && this.role !== 'hotwater') return {title, empty: t('pick')};
+        const days: SavingsDay[] = Array.isArray(this.getStoreValue(SAVINGS_STORE)) ? this.getStoreValue(SAVINGS_STORE) : [];
+        const currency = String(this.getStoreValue(SAVINGS_CURRENCY_STORE) ?? '');
+        const format = new Intl.DateTimeFormat(this.homey.i18n.getLanguage(), {day: 'numeric', timeZone: 'UTC'});
+        return savingsData(title, days, t, (date) => format.format(new Date(`${date}T12:00:00Z`)),
+            (v) => `${new Intl.NumberFormat(this.homey.i18n.getLanguage(), {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(v)} ${currency}`.trim(),
+            this.homey.__('autopilot.widget.experimental'));
     }
 
     // ---- Away: the thermostat goes to the Away temperature and comes back ----
@@ -2823,6 +2953,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.hotwaterAutopilot?.stop();
         this.hotwaterAutopilot = null;
         if (this.dayTypeTimer) this.homey.clearTimeout(this.dayTypeTimer);
+        this.savingsStopped = true;
+        if (this.savingsTimer) this.homey.clearTimeout(this.savingsTimer);
         this.surplusService?.release(this);
         this.surplusService = undefined;
         await this.stopIndoor();

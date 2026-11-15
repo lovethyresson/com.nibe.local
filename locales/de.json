@@ -701,6 +701,23 @@
       "off": "Autopilot für Warmwasser ist aus. Schalten Sie ihn unter Reparieren → Smart-Modus ein.",
       "pick": "Wählen Sie ein Warmwasser-Gerät.",
       "away_keeps": "Autopilot hält nur Ihr Minimum warm."
+    },
+    "savings": {
+      "pick": "Wählen Sie in den Widget-Einstellungen ein Gerät für Heizung oder Warmwasser.",
+      "empty": "Ab morgen sichtbar. Benötigt dynamische Strompreise in Homey Energie.",
+      "status_autopilot": "Preis pro kWh",
+      "status_before": "Vor Autopilot",
+      "paid": "Bezahlt __paid__ pro kWh, Durchschnitt __mean__",
+      "days": "__days__ Tage",
+      "days_one": "1 Tag",
+      "dear_both": "Teuerste Stunden: __a__ % des Verbrauchs mit Autopilot, __b__ % ohne",
+      "dear_one": "Teuerste Stunden: __a__ % des Verbrauchs",
+      "axis": "kWh pro Tag",
+      "cheap": "Günstigste Stunden",
+      "middle": "Mitte",
+      "dear": "Teuerste Stunden",
+      "autopilot_day": "Autopilot an",
+      "footnote": "Die Stunden jedes Tages, nach Preis gedrittelt."
     }
   }
 }

@@ -29,6 +29,7 @@ class NibeApp extends Homey.App {
 
     this.registerAutopilotWidget();
     this.registerHotwaterUseWidget();
+    this.registerSavingsWidget();
 
     this.log('Nibe Live app has been initialized');
   }
@@ -71,6 +72,28 @@ class NibeApp extends Homey.App {
       .filter((d) => d.role === 'hotwater')
       .map((d) => ({id: String(d.getData().id), name: d.getName()}))
       .filter((d) => !query || d.name.toLowerCase().includes(query.toLowerCase())));
+  }
+
+  /** The Autopilot savings widget (widgets/savings): its picker offers the Heating and Hot water devices. */
+  private registerSavingsWidget() {
+    const widget = (this.homey as any).dashboards?.getWidget?.('savings');
+    widget?.registerSettingAutocompleteListener('device', async (query: string) => this.autopilotDevices()
+      .map((d) => ({id: String(d.getData().id), name: d.getName()}))
+      .filter((d) => !query || d.name.toLowerCase().includes(query.toLowerCase())));
+  }
+
+  /** For widgets/savings/api.js. Answers a problem with a line, like the Autopilot widget. */
+  savingsWidget(id: unknown) {
+    const line = (key: string) => ({title: '', empty: this.homey.__(key)});
+    const devices = this.autopilotDevices();
+    const device = devices.find((d) => String(d.getData().id) === String(id)) ?? (id ? undefined : devices[0]);
+    if (!device) return line('autopilot.savings.pick');
+    try {
+      return device.savingsWidget();
+    } catch (error) {
+      this.error('Savings widget:', error);
+      return line('autopilot.widget.error');
+    }
   }
 
   /** For widgets/hotwater_use/api.js. Answers a problem with a line, like the Autopilot widget. */
