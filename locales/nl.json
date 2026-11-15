@@ -645,6 +645,7 @@
         "solar_off": "Zon uit",
         "solar_paused": "Zonneplan gepauzeerd",
         "solar_total": "__share__ % van het geplande opwarmen draait op zonne-overschot.",
+        "solar_none": "Het geplande opwarmen draait niet op zonne-overschot.",
         "solar_live": "Komt er meer overschot, dan kan Autopilot er alsnog mee laden.",
         "tomorrow": "morgen __time__",
         "no_prices": "Wacht op stroomprijzen",

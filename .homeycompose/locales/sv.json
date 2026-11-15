@@ -363,6 +363,7 @@
         "solar_off": "Sol av",
         "solar_paused": "Solplan pausad",
         "solar_total": "__share__ % av den planerade laddningen går på solöverskott.",
+        "solar_none": "Ingen planerad laddning går på solöverskott.",
         "solar_live": "Dyker det upp mer överskott kan Autopilot ändå ladda med det.",
         "tomorrow": "i morgon __time__",
         "no_prices": "Väntar på elpriser",

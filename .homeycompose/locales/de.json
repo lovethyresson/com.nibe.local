@@ -363,6 +363,7 @@
         "solar_off": "Solar aus",
         "solar_paused": "Solarplan pausiert",
         "solar_total": "__share__ % der geplanten Ladung laufen mit Solarüberschuss.",
+        "solar_none": "Keine geplante Ladung läuft mit Solarüberschuss.",
         "solar_live": "Kommt mehr Überschuss, kann Autopilot trotzdem damit laden.",
         "tomorrow": "morgen __time__",
         "no_prices": "Wartet auf Strompreise",

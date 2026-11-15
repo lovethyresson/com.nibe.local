@@ -2001,7 +2001,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 axes: {left: t('axis_price'), right: solar ? t('axis_surplus') : ''},
                 // The plan counts the surplus it expects; a live surplus the forecast missed still starts or
                 // tops up a charge (solar-surplus.ts: the live reading replaces the forecast for the next slots), so the owner is told it is not a cap.
-                footnote: solar && this.solarAllowed() ? [bands.length > 1 ? t('hotwater.solar_total', {share: Math.round(fromSolar * 100)}) : '',
+                footnote: solar && this.solarAllowed() ? [bands.length > 1 ? Math.round(fromSolar * 100) > 0 ? t('hotwater.solar_total', {share: Math.round(fromSolar * 100)}) : t('hotwater.solar_none') : '',
                     t('hotwater.solar_live')].filter(Boolean).join(' ') : undefined};
         }
         const status = this.getCapabilityValue(AUTOPILOT_STATUS_CAPABILITY) as HeatingStatus | null;

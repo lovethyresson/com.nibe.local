@@ -363,6 +363,7 @@
         "solar_off": "Sol fra",
         "solar_paused": "Solplan sat på pause",
         "solar_total": "__share__ % af den planlagte opvarmning kører på soloverskud.",
+        "solar_none": "Ingen planlagt opvarmning kører på soloverskud.",
         "solar_live": "Kommer der mere overskud, kan Autopilot stadig lade med det.",
         "tomorrow": "i morgen __time__",
         "no_prices": "Venter på elpriser",

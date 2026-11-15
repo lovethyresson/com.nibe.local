@@ -363,6 +363,7 @@
         "solar_off": "Sol av",
         "solar_paused": "Solplan pauset",
         "solar_total": "__share__ % av den planlagte ladingen går på soloverskudd.",
+        "solar_none": "Ingen planlagt lading går på soloverskudd.",
         "solar_live": "Dukker det opp mer overskudd, kan Autopilot likevel lade med det.",
         "tomorrow": "i morgen __time__",
         "no_prices": "Venter på strømpriser",
