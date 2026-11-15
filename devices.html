@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Devices · Nibe Live</title>
+<title>One heat pump, several devices · Nibe Live</title>
 <meta name="description" content="Why one heat pump becomes up to six Homey devices, what each one is for, and how to change them later.">
 <link rel="stylesheet" href="assets/site.css">
 </head>
@@ -13,7 +13,7 @@
 <header class="hero center">
   <div class="wrap">
     <p class="eyebrow display reveal">Devices</p>
-    <h1 class="display reveal">One heat pump. Several devices.</h1>
+    <h1 class="display reveal">One heat pump, several devices</h1>
     <p class="lead reveal">Your heat pump does several jobs, and you rarely want to handle them together. So each job gets its own device in Homey, <b>with its own controls and its own energy meter.</b></p>
     <div class="crumbs reveal"><span>Main</span><span>Heating</span><span>Hot water</span><span>Pool</span><span>Cooling</span><span>Solar</span></div>
   </div>
@@ -21,39 +21,39 @@
 
 <section>
   <div class="wrap">
-    <h2 class="display center reveal">A tile for every job.</h2>
-    <p class="lead center reveal">Add the ones your heat pump actually does. Pairing ticks those it found data for.</p>
+    <h2 class="display center reveal">The devices</h2>
+    <p class="lead center reveal">Add the ones for the jobs your heat pump does. Pairing ticks those it found data for.</p>
 
     <div class="bento">
       <div class="tile s4 dark reveal">
-        <h3>Main.</h3>
-        <p>The heat pump itself. What it's doing right now, the operating mode, alarms in plain words instead of codes, fans and ventilation if you have them, and runtime stats. It also holds the master switch for Smart price adaption and the Total COP.</p>
+        <h3>Main</h3>
+        <p>Your heat pump as a whole. What it's doing right now, the operating mode, alarms in plain words, fans and ventilation if you have them, and runtime stats. It also holds the master switch for Smart price adaption and the Total COP.</p>
       </div>
       <div class="tile s2 reveal">
-        <h3>Up to six.</h3>
-        <p>From one heat pump. Main is always on, since your heat pump has no off switch for the whole unit.</p>
+        <h3>Up to six devices</h3>
+        <p>From one heat pump. Main is always on, since your heat pump has no off switch for the whole heat pump.</p>
         <div class="big">6</div>
       </div>
 
       <div class="tile s3 reveal">
-        <h3>Heating.</h3>
+        <h3>Heating</h3>
         <p>A thermostat in Homey's Climate view: room temperature and target on one tile. The heat curve, supply temperatures and when heating stops for the summer live here too. <a href="heating.html">More on Heating</a>.</p>
       </div>
       <div class="tile s3 reveal">
-        <h3>Hot water.</h3>
+        <h3>Hot water</h3>
         <p>How much hot water you want, the temperatures behind it, <b>More hot water</b> for a one-off boost, and how many litres are left in the tank. <a href="hot-water.html">More on Hot water</a>.</p>
       </div>
 
       <div class="tile s2 reveal">
-        <h3>Pool.</h3>
+        <h3>Pool</h3>
         <p>A thermostat for your pool water, if you have the POOL 40 accessory.</p>
       </div>
       <div class="tile s2 reveal">
-        <h3>Cooling.</h3>
+        <h3>Cooling</h3>
         <p>Whether cooling is allowed, and the outdoor temperature that starts it.</p>
       </div>
       <div class="tile s2 reveal">
-        <h3>Solar.</h3>
+        <h3>Solar</h3>
         <p>With the EME 20 accessory, what your panels make shows up in Homey Energy as production.</p>
       </div>
     </div>
@@ -62,34 +62,34 @@
 
 <section class="center">
   <div class="wrap">
-    <h2 class="display reveal">Each one counts for itself.</h2>
-    <p class="lead reveal">Heating, Hot water, Pool and Cooling each carry the same three numbers, so you can finally see what your hot water costs.</p>
+    <h2 class="display reveal">Energy per device</h2>
+    <p class="lead reveal">Heating, Hot water, Pool and Cooling each carry the same three numbers, so you can see what your hot water costs.</p>
     <div class="how">
-      <div class="reveal"><div class="n">01</div><h3>Energy used.</h3><p>The electricity that job used, worked out from what your heat pump was doing at the time. Time spent idle goes to Main.</p></div>
-      <div class="reveal"><div class="n">02</div><h3>Energy delivered.</h3><p>The heat that came out, read straight from your heat pump's own counters.</p></div>
-      <div class="reveal"><div class="n">03</div><h3>COP.</h3><p>Heat out for each unit of electricity in, over the last 30 days. Higher is better.</p></div>
+      <div class="reveal"><div class="n">01</div><h3>Energy used</h3><p>The electricity that job used, worked out from what your heat pump was doing at the time. Time spent idle goes to Main.</p></div>
+      <div class="reveal"><div class="n">02</div><h3>Energy delivered</h3><p>The heat that came out, read straight from your heat pump's own counters.</p></div>
+      <div class="reveal"><div class="n">03</div><h3>COP</h3><p>Heat out for each unit of electricity in, over the last 30 days. Higher is better.</p></div>
     </div>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <h2 class="display center reveal">Automate one job. Leave the rest.</h2>
+    <h2 class="display center reveal">Automating one job</h2>
     <p class="lead center reveal">Use Hot water in a Flow without touching heating. Each device only offers its own cards, so the list stays short.</p>
     <div class="bento">
       <div class="tile s3 dark reveal">
-        <h3>Running low.</h3>
+        <h3>Hot water running low</h3>
         <p>Get a message before the last shower turns cold.</p>
         <div class="flow"><span style="white-space:normal">Hot water available dropped below 40 L</span><i>›</i><span class="end">Notify me</span></div>
       </div>
       <div class="tile s3 dark reveal">
-        <h3>Away for the week.</h3>
-        <p>Switch the Hot water device off and your heat pump stops heating water. Heating carries on as usual.</p>
+        <h3>Hot water off while you're away</h3>
+        <p>Switch the Hot water device off and your heat pump stops heating water. Heating keeps running.</p>
         <div class="flow"><span>Leaving home</span><i>›</i><span class="end">Turn off Hot water</span></div>
       </div>
       <div class="tile s6 reveal">
-        <h3>On means on.</h3>
-        <p>The on/off on Heating, Hot water, Pool and Cooling is a real control. Turning the Heating device off turns heating off on your heat pump, and back on again when you switch it on. Flows can do the same.</p>
+        <h3>The on/off switch</h3>
+        <p>The on/off on Heating, Hot water, Pool and Cooling controls your heat pump. Turning the Heating device off turns heating off on your heat pump, and back on again when you switch it on. Flows can do the same.</p>
       </div>
     </div>
   </div>
@@ -97,12 +97,12 @@
 
 <section class="center">
   <div class="wrap">
-    <h2 class="display reveal">Change your mind anytime.</h2>
-    <p class="lead reveal">Nothing is fixed after pairing.</p>
+    <h2 class="display reveal">Changing devices later</h2>
+    <p class="lead reveal">You can add, change or remove devices after pairing.</p>
     <div class="steps">
-      <div class="tile reveal"><div class="k">Add a device</div><h3>Pair again.</h3><p>Add a device in Homey and pick the same heat pump. Pairing only offers the devices you haven't added yet.</p></div>
-      <div class="tile reveal"><div class="k">Change a device</div><h3>Use Repair.</h3><p>Open the device and choose Repair. It checks your heat pump again, then lets you turn features on or off. <b>What changes</b> shows the result before you save.</p></div>
-      <div class="tile reveal"><div class="k">Remove a device</div><h3>Delete it.</h3><p>Like any Homey device. Its energy then counts on Main, so the total still adds up.</p></div>
+      <div class="tile reveal"><div class="k">Add a device</div><h3>Pair again</h3><p>Add a device in Homey and pick the same heat pump. Pairing only offers the devices you haven't added yet.</p></div>
+      <div class="tile reveal"><div class="k">Change a device</div><h3>Use Repair</h3><p>Open the device and choose Repair. It checks your heat pump again, then lets you turn features on or off. <b>What changes</b> shows the result before you save.</p></div>
+      <div class="tile reveal"><div class="k">Remove a device</div><h3>Delete it</h3><p>Like any Homey device. Its energy then counts on Main, so the total still adds up.</p></div>
     </div>
     <div class="crumbs reveal"><span>Hot water</span><i>›</i><span>Repair</span><i>›</i><span>Select features</span></div>
   </div>
@@ -110,10 +110,10 @@
 
 <section>
   <div class="wrap">
-    <h2 class="display center reveal">Good to know.</h2>
+    <h2 class="display center reveal">Good to know</h2>
     <div class="faq reveal">
-      <details><summary>Do I need all of them?</summary><p>No. Add the ones you'll use. But add every job you want metered: skip Hot water, and the energy your heat pump spends on hot water shows up on Main instead.</p></details>
-      <details><summary>Why does Main show so little energy?</summary><p>Main carries what's left over: standby, plus any job you haven't added a device for. Your heat pump's real total is all your Nibe devices added together, which is what Homey Energy shows.</p></details>
+      <details><summary>Do I need all of them?</summary><p>No. Add the ones you'll use. But add every job you want metered. If you skip Hot water, the energy your heat pump spends on hot water shows up on Main instead.</p></details>
+      <details><summary>Why does Main show so little energy?</summary><p>Main carries what's left over: standby, plus any job you haven't added a device for. Your heat pump's total is all your Nibe devices added together, which is what Homey Energy shows.</p></details>
       <details><summary>Where are the fan and ventilation settings?</summary><p>On Main. Ventilation serves heating and hot water alike, so it sits with the other whole-heat-pump settings.</p></details>
       <details><summary>My Hot water device has no on/off.</summary><p>Some models don't offer that switch to apps, including the S2125, S320, S325, S330, S332 and S735. Everything else on the device still works.</p></details>
       <details><summary>What happens to history when I turn a feature off?</summary><p>Turning a feature off in Repair removes its readings from the device, and their Insights history goes with them.</p></details>
@@ -127,7 +127,7 @@
 <a class="r" href="heating.html"><small>Next</small><b>Heating</b></a>
 </div></div></section>
 
-<footer><div class="wrap">Nibe Live is a Homey app for Nibe heat pumps. Questions? Ask in the <a href="https://community.homey.app/t/app-pro-nibe-live-local-nibe-control-split-into-the-devices-you-actually-automate/157330">community thread</a>.</div></footer>
+<footer><div class="wrap">Nibe Live is a Homey app for NIBE heat pumps. Questions? Ask in the <a href="https://community.homey.app/t/app-pro-nibe-live-local-nibe-control-split-into-the-devices-you-actually-automate/157330">community thread</a>.</div></footer>
 
 <script src="assets/site.js" defer></script>
 </body>

@@ -28,35 +28,35 @@
 <header class="hero center">
   <div class="wrap">
     <p class="eyebrow display reveal">Flows</p>
-    <h1 class="display reveal">Your home. Your rules.</h1>
-    <p class="lead reveal">Every Nibe Live device brings its own Flow cards, so your heat pump can react to the rest of your home. <b>And the rest of your home can react to it.</b></p>
+    <h1 class="display reveal">Flows</h1>
+    <p class="lead reveal">Every Nibe Live device brings its own Flow cards, so your heat pump can react to the rest of your home. <b>The rest of your home can react to it too.</b></p>
   </div>
 </header>
 
 <section>
   <div class="wrap">
-    <h2 class="display center reveal">Cards that say what they do.</h2>
-    <p class="lead center reveal">No long lists to scroll through. Each card is named after the setting it changes, on the device it belongs to.</p>
+    <h2 class="display center reveal">Flow cards</h2>
+    <p class="lead center reveal">Each card is named after the setting it changes, on the device it belongs to.</p>
 
     <div class="bento">
       <div class="tile s4 reveal">
-        <h3>One card per setting.</h3>
+        <h3>One card per setting</h3>
         <p>Change a setting, or check one, in plain words. You'll find them on the Heating, Hot water and Main devices, wherever the setting lives.</p>
-        <div class="chips"><span>More hot water</span><span>Set heat curve displacement</span><span>Set the hot water stop temperature (Medium)</span><span>Set operating mode</span><span>Allow immersion heater</span><span>An alarm occurred</span><span>Reset the alarm</span></div>
+        <div class="chips"><span>More hot water</span><span>Set heat curve offset</span><span>Set the hot water stop temperature for Medium demand</span><span>Set operating mode</span><span>Allow immersion heater</span><span>An alarm occurred</span><span>Reset the alarm</span></div>
       </div>
       <div class="tile s2 dark reveal">
-        <h3>Old Flows keep running.</h3>
+        <h3>Cards from earlier versions</h3>
         <p>Cards from earlier versions that picked a setting from a long list still work in your existing Flows. They're only hidden when you build new ones.</p>
       </div>
 
       <div class="tile s3 dark reveal">
-        <h3>Autopilot, in your Flows.</h3>
+        <h3>Autopilot cards</h3>
         <p>Know when Autopilot acts, check what it plans, and change how it behaves.</p>
         <div class="flow"><span>A hot water charge started</span><span>A hot water charge is planned within … h</span><span>Autopilot heating changed</span><span>Autopilot heating is …</span><span>Set Autopilot heating comfort range</span></div>
       </div>
       <div class="tile s3 reveal">
-        <h3>Tell it about your day.</h3>
-        <p>Autopilot plans hot water differently for workdays and days off. Away is for when you're gone a week or more, and covers the whole home.</p>
+        <h3>Day type and Away</h3>
+        <p>Autopilot plans hot water differently for working days and days off. Away is for when you're gone a week or more, and covers the whole home.</p>
         <div class="chips"><span>Set day type</span><span>Set Autopilot heating Away</span><span>Hot water available dropped below … L</span></div>
       </div>
     </div>
@@ -65,13 +65,13 @@
 
 <section>
   <div class="wrap">
-    <h2 class="display center reveal">Three to start with.</h2>
+    <h2 class="display center reveal">Example Flows</h2>
     <p class="lead center reveal">Build them in the Homey app under Flows. The Nibe Live cards are on the device named under each one.</p>
 
     <div class="bento">
       <div class="tile s3 reveal">
-        <h3>Day type from your calendar.</h3>
-        <p>Holidays and days working from home, without touching anything.</p>
+        <h3>Day type from your calendar</h3>
+        <p>Days off and days working from home, set by your calendar.</p>
         <div class="fl">
           <div class="row"><span class="k when">WHEN</span><div class="card">The time is 00:05<small>Date &amp; time</small></div></div>
           <div class="row"><span class="k and">AND</span><div class="card">Today has an event called Day off<small>Your calendar app · wording varies</small></div></div>
@@ -81,7 +81,7 @@
       </div>
 
       <div class="tile s3 reveal">
-        <h3>Away for the holidays.</h3>
+        <h3>Away while on holiday</h3>
         <p>Off for a week or more? Let your calendar turn Away on when the trip starts, and off again the day before you're back, so the house is warm when you walk in.</p>
         <div class="fl">
           <div class="row"><span class="k when">WHEN</span><div class="card">An event called Holiday starts<small>Your calendar app · wording varies</small></div></div>
@@ -93,8 +93,8 @@
       </div>
 
       <div class="tile s6 reveal">
-        <h3>A heads-up when the tank heats.</h3>
-        <p>Whether Autopilot started it or your heat pump did, you'll know why. The card hands you the reason to use in the message.</p>
+        <h3>A notification when a charge starts</h3>
+        <p>The card gives you the reason to use in the message, whether Autopilot or your heat pump started the charge.</p>
         <div class="fl" style="max-width:560px">
           <div class="row"><span class="k when">WHEN</span><div class="card">A hot water charge started<small>Nibe Hot water</small></div></div>
           <div class="row"><span class="k then">THEN</span><div class="card">Send a push notification: Hot water <span class="tok">Reason</span>. <span class="tok">Detailed reason</span><small>Mobile</small></div></div>
@@ -107,7 +107,7 @@
 
 <section class="center">
   <div class="wrap">
-    <h2 class="display reveal">Plan around it.</h2>
+    <h2 class="display reveal">Planning around Autopilot</h2>
     <p class="lead reveal">The conditions work the other way, too. Ask Autopilot before you do something that uses a lot of power.</p>
     <div class="reasons">
       <div class="pill reveal" style="--c:var(--water)"><b>A hot water charge is planned within … h</b><p>Hold off the dishwasher if the tank's about to heat. A charge that's already running counts.</p></div>
@@ -119,12 +119,12 @@
 
 <section>
   <div class="wrap">
-    <h2 class="display center reveal">Good to know.</h2>
+    <h2 class="display center reveal">Good to know</h2>
     <div class="faq reveal">
       <details><summary>Why does the calendar Flow set a type every night?</summary><p>A day type you set holds until something changes it. Setting it every night, both ways, keeps it in step with your calendar. Where nothing was ever set, Saturday and Sunday count as days off on their own.</p></details>
       <details><summary>Will the nightly Flow end Away?</summary><p>No. While you're away, Set day type only remembers which day to go back to. Away ends when you turn it off.</p></details>
       <details><summary>I don't see the Autopilot cards.</summary><p>The Autopilot heating cards appear on the Heating device once Autopilot runs heating, Live or Simulated. Set day type is on Main once Autopilot runs hot water. The hot water cards are on Hot water, and need a tank picked in Hot water setup.</p></details>
-      <details><summary>Does A hot water charge started fire for charges Autopilot didn't plan?</summary><p>Yes. It fires for every charge, and tells you whether Autopilot started it.</p></details>
+      <details><summary>Does A hot water charge started trigger for charges Autopilot didn't plan?</summary><p>Yes. It triggers for every charge, and tells you whether Autopilot started it.</p></details>
       <details><summary>A Flow turns on More hot water on a schedule.</summary><p>With Autopilot on for hot water, that starts charges it didn't plan. Setup lists any Flows like that, so you can turn them off or keep them for notifications.</p></details>
     </div>
   </div>
@@ -135,7 +135,7 @@
 <a class="r" href="troubleshooting.html"><small>Next</small><b>Questions</b></a>
 </div></div></section>
 
-<footer><div class="wrap">Nibe Live is a Homey app for Nibe heat pumps. Questions? Ask in the <a href="https://community.homey.app/t/app-pro-nibe-live-local-nibe-control-split-into-the-devices-you-actually-automate/157330">community thread</a>.</div></footer>
+<footer><div class="wrap">Nibe Live is a Homey app for NIBE heat pumps. Questions? Ask in the <a href="https://community.homey.app/t/app-pro-nibe-live-local-nibe-control-split-into-the-devices-you-actually-automate/157330">community thread</a>.</div></footer>
 
 <script src="assets/site.js" defer></script>
 </body>

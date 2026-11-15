@@ -21,20 +21,20 @@
 <header class="hero center">
   <div class="wrap">
     <p class="eyebrow display reveal">Energy</p>
-    <h1 class="display reveal">Every kWh. In its place.</h1>
-    <p class="lead reveal">Heating, Hot water, Pool and Cooling each get their own meter in Homey's Energy tab. <b>So you can finally see what your hot water costs.</b></p>
+    <h1 class="display reveal">Energy and COP</h1>
+    <p class="lead reveal">Heating, Hot water, Pool and Cooling each get their own meter in Homey's Energy tab. <b>This shows what your hot water costs.</b></p>
   </div>
 </header>
 
 <section>
   <div class="wrap">
-    <h2 class="display center reveal">One meter. Shared out.</h2>
-    <p class="lead center reveal">Your heat pump has one electricity meter, not four. But it always says what it's busy with.</p>
+    <h2 class="display center reveal">How energy is shared out</h2>
+    <p class="lead center reveal">Your heat pump has one electricity meter, and it also reports what it's working on.</p>
 
     <div class="bento">
       <div class="tile s6 reveal">
-        <h3>Whatever's running gets the bill.</h3>
-        <p>Every few seconds, Nibe Live reads how much power your heat pump is drawing and what it's working on, and books that energy to the matching device as <b>Energy used</b>. Standby goes to the Main device as <b>Idle energy</b>. Since each moment goes to exactly one device, they always add up to your heat pump's real total.</p>
+        <h3>Energy goes to the job that's running</h3>
+        <p>Every few seconds, Nibe Live reads how much power your heat pump is drawing and what it's working on, and books that energy to the matching device as <b>Energy used</b>. Standby goes to the Main device as <b>Idle energy</b>. Since each moment goes to exactly one device, they always add up to your heat pump's total.</p>
         <div class="split" role="img" aria-label="An example day: most electricity on heating, a smaller share on hot water, a sliver of idle energy on Main.">
           <span style="flex:62;background:var(--warm)"></span><span style="flex:31;background:var(--water)"></span><span style="flex:7;background:var(--sub)"></span>
         </div>
@@ -42,12 +42,12 @@
       </div>
 
       <div class="tile s3 reveal">
-        <h3>Add every job you have.</h3>
-        <p>If you didn't add a Hot water device, say, the energy spent on hot water lands on Main instead. Nothing goes missing. It's counted on Main instead of on its own.</p>
+        <h3>Jobs without a device</h3>
+        <p>If you didn't add a Hot water device, say, the energy spent on hot water is counted on Main.</p>
       </div>
       <div class="tile s3 dark reveal">
-        <h3>Heat out, measured.</h3>
-        <p><b>Energy delivered</b> is the heat each job produced. Your heat pump counts that itself, per job, so it's read straight off and not estimated.</p>
+        <h3>Energy delivered</h3>
+        <p><b>Energy delivered</b> is the heat each job produced. Your heat pump counts that itself, per job, so Nibe Live reads it directly.</p>
       </div>
     </div>
   </div>
@@ -55,27 +55,27 @@
 
 <section>
   <div class="wrap">
-    <h2 class="display center reveal">COP, in plain words.</h2>
+    <h2 class="display center reveal">What COP means</h2>
     <p class="lead center reveal">kWh of heat per kWh of electricity. The higher, the less your heat costs.</p>
 
     <div class="bento">
       <div class="tile s2 dark reveal">
-        <h3>A COP of 3.</h3>
+        <h3>A COP of 3</h3>
         <p>Three kWh of heat for every kWh you pay for.</p>
         <div class="big">3×</div>
       </div>
       <div class="tile s4 reveal">
-        <h3>The last 30 days.</h3>
-        <p>Every COP is worked out over a rolling 30-day window. A lifetime average stops moving. Thirty days follows the seasons, so you can see what a cold snap or a settings change actually did.</p>
+        <h3>The last 30 days</h3>
+        <p>Every COP is worked out over a rolling 30-day window. A lifetime average stops moving. Thirty days follows the seasons, so you can see what a cold snap or a settings change did.</p>
         <div class="duo">
-          <div><div class="k">On Heating, Hot water, Pool, Cooling</div><p><b>Heating COP (30-day)</b> and friends. How efficient each job is.</p></div>
+          <div><div class="k">On Heating, Hot water, Pool, Cooling</div><p><b>Heating COP (30-day)</b> and the matching COP on each device. How efficient each job is.</p></div>
           <div><div class="k">On Main</div><p><b>Total COP (30-day)</b>. Your whole heat pump.</p></div>
         </div>
       </div>
 
       <div class="tile s6 reveal">
-        <h3>Trust Total COP most.</h3>
-        <p>Both halves of Total COP come straight from your heat pump's own counters. A job's COP divides measured heat by electricity Nibe Live shared out, so it carries that small estimate with it. Close, but Total COP is the one to quote.</p>
+        <h3>Total COP is the most accurate</h3>
+        <p>Both halves of Total COP come straight from your heat pump's own counters. A job's COP divides measured heat by electricity Nibe Live shared out, so it carries that small estimate with it. The two are close, but Total COP is the one to quote.</p>
       </div>
     </div>
   </div>
@@ -83,26 +83,26 @@
 
 <section class="center">
   <div class="wrap">
-    <h2 class="display reveal">Close to myUplink. Not identical.</h2>
+    <h2 class="display reveal">Compared with myUplink</h2>
     <p class="lead reveal">Temperatures and settings match exactly. Energy is counted a little differently, on purpose.</p>
     <div class="reasons">
-      <div class="pill reveal" style="--c:var(--water)"><b>Counts from day one</b><p>Totals start when you added the device, not when your heat pump was installed. Compare a day or a week, not the totals.</p></div>
+      <div class="pill reveal" style="--c:var(--water)"><b>Counts from day one</b><p>Totals start from the day you added the device. Compare a day or a week.</p></div>
       <div class="pill reveal" style="--c:var(--green)"><b>Within about 1 %</b><p>Per-job electricity, checked against your heat pump's own hourly figures on measured hot water runs.</p></div>
-      <div class="pill reveal" style="--c:var(--warm)"><b>Live, not hourly</b><p>Your heat pump only shares its per-job split an hour late. Nibe Live counts as it happens, so prices land in the right hour.</p></div>
-      <div class="pill reveal" style="--c:var(--red)"><b>Gaps stay gaps</b><p>If Homey restarts or loses contact, the electricity used meanwhile isn't counted.</p></div>
+      <div class="pill reveal" style="--c:var(--warm)"><b>Counted live</b><p>Your heat pump only shares its per-job split an hour late. Nibe Live counts as it happens, so prices land in the right hour.</p></div>
+      <div class="pill reveal" style="--c:var(--red)"><b>Gaps aren't filled</b><p>If Homey restarts or loses contact, the electricity used meanwhile isn't counted.</p></div>
     </div>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <h2 class="display center reveal">Good to know.</h2>
+    <h2 class="display center reveal">Good to know</h2>
     <div class="faq reveal">
-      <details><summary>Why does Main show so little?</summary><p>Main isn't the whole heat pump. It carries standby, plus any job you haven't added a device for. The whole heat pump is all your Nibe devices together, which is what Homey's Energy tab adds up.</p></details>
-      <details><summary>Why is my COP blank?</summary><p>It needs a little history first, so it's blank for a while after you add a device. It also waits until a meaningful amount of electricity has been used, so a job that never runs, like a pool you don't have, stays blank rather than showing nonsense.</p></details>
-      <details><summary>No COP on Pool or Cooling?</summary><p>Some models don't share the heat delivered for those jobs. Without it there's no COP, but the energy used still works.</p></details>
+      <details><summary>Why does Main show so little?</summary><p>Main only carries standby, plus any job you haven't added a device for. The whole heat pump is all your Nibe devices together, which is what Homey's Energy tab adds up.</p></details>
+      <details><summary>Why is my COP blank?</summary><p>It needs a little history first, so it's blank for a while after you add a device. It also waits until a meaningful amount of electricity has been used, so a job that never runs, like a pool you don't have, stays blank.</p></details>
+      <details><summary>No COP on Pool or Cooling?</summary><p>Some models don't share the heat delivered for those jobs. Without it there's no COP. Energy used still works.</p></details>
       <details><summary>I compared for ten minutes and it's way off.</summary><p>Compare over a day. Your heat pump's own counters move in small steps and settle about an hour behind, so a short comparison can look badly wrong when both are fine.</p></details>
-      <details><summary>The power right now differs from myUplink.</summary><p>Both are probably right. Nibe Live reads your heat pump directly, while myUplink goes through Nibe's cloud and can lag by minutes.</p></details>
+      <details><summary>The power right now differs from myUplink.</summary><p>Both are probably right. Nibe Live reads your heat pump directly, while myUplink goes through NIBE's cloud and can lag by minutes.</p></details>
       <details><summary>My hot water COP looks far too high.</summary><p>Update your heat pump's software. Older versions have been seen counting several times too much heat delivered. After updating, run Repair on each device. Since COP covers 30 days, old readings take a month to roll out.</p></details>
     </div>
   </div>
@@ -113,7 +113,7 @@
 <a class="r" href="smart-mode.html"><small>Next</small><b>Autopilot</b></a>
 </div></div></section>
 
-<footer><div class="wrap">Nibe Live is a Homey app for Nibe heat pumps. Questions? Ask in the <a href="https://community.homey.app/t/app-pro-nibe-live-local-nibe-control-split-into-the-devices-you-actually-automate/157330">community thread</a>.</div></footer>
+<footer><div class="wrap">Nibe Live is a Homey app for NIBE heat pumps. Questions? Ask in the <a href="https://community.homey.app/t/app-pro-nibe-live-local-nibe-control-split-into-the-devices-you-actually-automate/157330">community thread</a>.</div></footer>
 
 <script src="assets/site.js" defer></script>
 </body>

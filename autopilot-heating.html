@@ -13,8 +13,8 @@
 <header class="hero center">
   <div class="wrap">
     <p class="eyebrow display reveal">Autopilot</p>
-    <h1 class="display reveal">Warm home. Smarter hours.</h1>
-    <p class="lead reveal">Autopilot looks at prices and the weather, then heats a bit more before expensive hours and a bit less during them. <b>Always within the comfort range you pick.</b></p>
+    <h1 class="display reveal">Autopilot for heating</h1>
+    <p class="lead reveal">Autopilot looks at prices and the weather, then heats a bit more before expensive hours and a bit less during them. <b>It stays within the comfort range you pick.</b></p>
     <div class="chart reveal">
       <svg class="daychart" viewBox="0 0 1000 380" role="img" aria-label="Through a day: indoor temperature rises a little before each price peak and dips a little during it, always staying inside the comfort range around your thermostat.">
 <defs><linearGradient id="pfade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9f0a" stop-opacity=".32"/><stop offset="1" stop-color="#ff9f0a" stop-opacity="0"/></linearGradient></defs>
@@ -39,34 +39,34 @@
 
 <section class="center">
   <div class="wrap">
-    <h2 class="display reveal">Your house is a battery.</h2>
-    <p class="lead reveal">Walls, floors and furniture hold heat for hours. Autopilot learns how long yours does, and uses it.</p>
+    <h2 class="display reveal">How Autopilot shifts heat</h2>
+    <p class="lead reveal">Walls, floors and furniture hold heat for hours. Autopilot learns how long your house holds it, and uses that.</p>
     <div class="how">
-      <div class="reveal"><div class="n">01</div><h3>It looks ahead.</h3><p>Today's and tomorrow's prices from Homey Energy, and the weather forecast for your home.</p></div>
-      <div class="reveal"><div class="n">02</div><h3>It stores a little warmth.</h3><p>Before prices climb, your home gets slightly warmer than usual. Never past your comfort range.</p></div>
-      <div class="reveal"><div class="n">03</div><h3>It coasts through the peak.</h3><p>While power is expensive, your heat pump does less, and the house gives back what it stored.</p></div>
+      <div class="reveal"><div class="n">01</div><h3>Prices and weather</h3><p>Today's and tomorrow's prices from Homey Energy, and the weather forecast for your home.</p></div>
+      <div class="reveal"><div class="n">02</div><h3>Before prices rise</h3><p>Your home gets slightly warmer than usual, within your comfort range.</p></div>
+      <div class="reveal"><div class="n">03</div><h3>During the most expensive hours</h3><p>While power is expensive, your heat pump does less, and the house gives back the heat it stored.</p></div>
     </div>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <h2 class="display center reveal">It speaks your heat pump's language.</h2>
-    <p class="lead center reveal">No new controls inside your heat pump. Autopilot changes one thing it already listens to.</p>
+    <h2 class="display center reveal">How Autopilot controls your heat pump</h2>
+    <p class="lead center reveal">Autopilot changes the outdoor temperature (BT1) your heat pump uses.</p>
 
     <div class="bento">
       <div class="tile s4 reveal">
-        <h3>A nudge on the thermometer.</h3>
-        <p>Your heat pump decides how hard to heat from the outdoor temperature it sees. Autopilot sends it a slightly different one: a touch colder before a price peak, so it heats more, and a touch milder during it, so it heats less. Your heat pump does the rest, same as always.</p>
-        <div class="flow" style="margin-top:26px"><span style="background:var(--page)">Real outdoor</span><i>›</i><span style="background:var(--page)">Autopilot's nudge</span><i>›</i><span class="end">What your heat pump sees</span></div>
+        <h3>The outdoor temperature (BT1)</h3>
+        <p>Your heat pump decides how hard to heat from the outdoor temperature it sees. Before a price peak, Autopilot sends it a slightly lower temperature, so it heats more. During the peak it sends a slightly higher one, so it heats less. Everything else runs on your heat pump's own settings.</p>
+        <div class="flow" style="margin-top:26px"><span style="background:var(--page)">Measured outdoor</span><i>›</i><span style="background:var(--page)">Outdoor shift</span><i>›</i><span class="end">What your heat pump sees</span></div>
       </div>
       <div class="tile s2 dark reveal">
-        <h3>That's why setup asks.</h3>
-        <p>To take the outdoor temperature from Autopilot, your heat pump has to allow an external outdoor sensor. Setup shows you where, and checks it worked.</p>
+        <h3>External outdoor sensor</h3>
+        <p>To take the outdoor temperature from Autopilot, your heat pump has to allow an external outdoor sensor. Setup shows you where, and checks that it works.</p>
       </div>
 
       <div class="tile s6 reveal">
-        <h3>How far it may go.</h3>
+        <h3>Comfort range</h3>
         <p>Your thermostat still sets the temperature you want, and Autopilot keeps the house there. The comfort range says how far indoors may drift from it. A wider range leaves more room to move heat out of expensive hours.</p>
         <div class="tanks">
           <div class="tk"><div class="glass"><b style="height:0"></b></div><div class="v">Off</div><div class="w">No shift</div></div>
@@ -77,13 +77,13 @@
       </div>
 
       <div class="tile s3 dark reveal">
-        <h3>Away, for the holidays.</h3>
-        <p>For a week or more away, not a day at work. Turn on Away and the thermostat drops to your Away temperature, and Autopilot lets the house cool to it. Turn it off and it goes back to where it was. If Autopilot runs your hot water too, the tank keeps only its safety net while you're gone.</p>
+        <h3>Away</h3>
+        <p>Away is for a holiday of a week or more. Turn on Away and the thermostat drops to your Away temperature, and Autopilot lets the house cool to it. Turn it off and it goes back to where it was. If Autopilot runs your hot water too, the tank keeps only its safety net while you're gone.</p>
         <div class="big">17 °C</div>
         <p>The Away temperature to start with. Change it on the Heating device.</p>
       </div>
       <div class="tile s3 reveal">
-        <h3>It needs to feel the room.</h3>
+        <h3>What Autopilot needs</h3>
         <p>Autopilot keeps the indoor temperature at your thermostat, so it needs one. Your heat pump's own sensor works, or your Homey sensors. You pick in Heating setup, right after Smart mode.</p>
         <div class="toggles">
           <div class="tg"><span class="sw on"></span><div><b>Indoor temperature</b><p>Your Homey sensors, or your heat pump's own.</p></div></div>
@@ -97,40 +97,40 @@
 
 <section class="center">
   <div class="wrap">
-    <h2 class="display reveal">Always says what it's doing.</h2>
+    <h2 class="display reveal">What Autopilot is doing</h2>
     <p class="lead reveal">Your Heating device shows Autopilot's state, and a line called <b>Autopilot now</b> with the reason.</p>
     <div class="status reveal">Easing off · Until 19:00: <em>prices peak 17:00–19:00</em></div>
     <div class="reasons">
-      <div class="pill reveal" style="--c:var(--sub)"><b>Learning</b><p>Getting to know your house. At least five days, and nothing changes yet.</p></div>
-      <div class="pill reveal" style="--c:var(--water)"><b>Holding</b><p>Nothing to gain right now, or prices are too even to bother.</p></div>
+      <div class="pill reveal" style="--c:var(--sub)"><b>Learning</b><p>Getting to know your house. This takes at least five days, with no changes yet.</p></div>
+      <div class="pill reveal" style="--c:var(--water)"><b>Holding</b><p>No change planned right now, for example when prices are too even to shift heat.</p></div>
       <div class="pill reveal" style="--c:var(--warm)"><b>Pre-heating</b><p>Storing a little warmth before expensive hours.</p></div>
       <div class="pill reveal" style="--c:var(--green)"><b>Easing off</b><p>Heating less while power is expensive.</p></div>
-      <div class="pill reveal" style="--c:var(--red)"><b>Paused</b><p>Something it needs is missing, like the outdoor temperature. The line says what.</p></div>
+      <div class="pill reveal" style="--c:var(--red)"><b>Paused</b><p>Something Autopilot needs is missing, like the outdoor temperature. Autopilot now shows what.</p></div>
     </div>
   </div>
 </section>
 
 <section class="center">
   <div class="wrap">
-    <h2 class="display reveal">Watch first. Then hand over.</h2>
-    <p class="lead reveal">Pick Autopilot, then <b>Simulated</b>. Autopilot learns, plans and fills in Autopilot now as if it were running, without touching your heat pump. When the plans look right to you, switch to <b>Live</b>.</p>
+    <h2 class="display reveal">Trying Autopilot first</h2>
+    <p class="lead reveal">Pick Autopilot, then <b>Simulated</b>. Autopilot learns, plans and fills in Autopilot now without making changes to your heat pump. When the plans look right to you, switch to <b>Live</b>.</p>
     <div class="crumbs reveal"><span>Heating</span><i>›</i><span>Repair</span><i>›</i><span>Heating setup</span></div>
     <div class="steps">
-      <div class="tile reveal"><div class="k">Before you start</div><h3>Room-sensor control off.</h3><p>Otherwise your heat pump corrects by room temperature and undoes what Autopilot does. Autopilot holds the room temperature itself. Setup checks it.</p></div>
-      <div class="tile reveal"><div class="k">Before you start</div><h3>External outdoor sensor allowed.</h3><p>On your heat pump's display. Setup shows the menu and waits until it works.</p></div>
-      <div class="tile reveal"><div class="k">Before you start</div><h3>One planner.</h3><p>Autopilot turns off Smart price adaption for heating when it takes over.</p></div>
+      <div class="tile reveal"><div class="k">Before you start</div><h3>Room-sensor control off</h3><p>Otherwise your heat pump corrects by room temperature and undoes what Autopilot does. Autopilot holds the room temperature itself. Setup checks it.</p></div>
+      <div class="tile reveal"><div class="k">Before you start</div><h3>External outdoor sensor on</h3><p>On your heat pump's display. Setup shows the menu and waits until it works.</p></div>
+      <div class="tile reveal"><div class="k">Before you start</div><h3>One planner</h3><p>Autopilot turns off Smart price adaption for heating when it takes over.</p></div>
     </div>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <h2 class="display center reveal">Good to know.</h2>
+    <h2 class="display center reveal">Good to know</h2>
     <div class="faq reveal">
       <details><summary>How long until it does something?</summary><p>It learns your house for at least five days first, and changes nothing meanwhile. Your Homey timeline tells you when it's done and starts moving heat away from expensive hours.</p></details>
-      <details><summary>Does it keep my thermostat temperature?</summary><p>Yes. Autopilot steers the house to your thermostat and moves heat around it within your comfort range. Change the thermostat and it follows. A small, steady offset it corrects slowly, over a few days.</p></details>
+      <details><summary>Does it keep my thermostat temperature?</summary><p>Yes. Autopilot steers the house to your thermostat and moves heat around it within your comfort range. Change the thermostat and it follows. It corrects a small, steady offset slowly, over a few days.</p></details>
       <details><summary>Will my house get cold?</summary><p>It stays within the comfort range you picked. On Comfort, that's half a degree either side of your thermostat.</p></details>
-      <details><summary>Can I pause it for a while?</summary><p>Set Comfort range to Off. Your heat pump then sees the real outdoor temperature, and Autopilot neither shifts heat nor steers to your thermostat, until you pick a range again.</p></details>
+      <details><summary>Can I pause it for a while?</summary><p>Set Comfort range to Off. Your heat pump then sees the measured outdoor temperature, and Autopilot neither shifts heat nor steers to your thermostat, until you pick a range again.</p></details>
       <details><summary>What does it do while my heat pump is cooling?</summary><p>It pauses, and Autopilot now says so. It picks up again when heating does.</p></details>
       <details><summary>How do I hand heating back to my heat pump?</summary><p>Set Smart mode to Off in Heating setup, under Repair on the Heating device. Then turn off the external outdoor sensor on your heat pump, in menu 7.5.9.2. Setup reminds you.</p></details>
       <details><summary>Can I set it up while pairing?</summary><p>Yes. Heating setup asks for Smart mode first, then the indoor temperature, the checks on your heat pump and Verify. Later, it's all under Repair on the Heating device.</p></details>
@@ -144,7 +144,7 @@
 <a class="r" href="autopilot-hot-water.html"><small>Next</small><b>Autopilot for hot water</b></a>
 </div></div></section>
 
-<footer><div class="wrap">Nibe Live is a Homey app for Nibe heat pumps. Questions? Ask in the <a href="https://community.homey.app/t/app-pro-nibe-live-local-nibe-control-split-into-the-devices-you-actually-automate/157330">community thread</a>.</div></footer>
+<footer><div class="wrap">Nibe Live is a Homey app for NIBE heat pumps. Questions? Ask in the <a href="https://community.homey.app/t/app-pro-nibe-live-local-nibe-control-split-into-the-devices-you-actually-automate/157330">community thread</a>.</div></footer>
 
 <script src="assets/site.js" defer></script>
 </body>
