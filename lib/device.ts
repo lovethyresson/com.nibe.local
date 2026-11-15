@@ -2137,7 +2137,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             else if (this.solarSurplus().forecastPaused) chips.push(t('hotwater.solar_paused'));
             const litres = o.litres === undefined ? undefined : t('hotwater.litres', {l: Math.round(o.litres)});
             // The tank now, as the figure beside the status (heating shows indoor there).
-            const tank = o.litres === undefined ? {} : {nowValue: `${Math.round(o.litres)} L`, nowNote: t('hotwater.litres_note')};
+            // Until the first plan after a start, the device's own reading of the tank.
+            const read = this.hasCapability(HOTWATER_VOLUME_CAPABILITY) ? this.getCapabilityValue(HOTWATER_VOLUME_CAPABILITY) : null;
+            const tankLitres = o.litres ?? (typeof read === 'number' ? read : undefined);
+            const tank = tankLitres === undefined ? {} : {nowValue: `${Math.round(tankLitres)} L`, nowNote: t('hotwater.litres_note')};
             // No prices: while starting, the prices are on their way. Later they are missing: say where to look.
             if (!o.slots.some((s) => s.price !== undefined))
                 return process.uptime() < STARTING_SECONDS ? {...starting, detail: litres}
