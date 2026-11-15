@@ -8,7 +8,7 @@ import {FlowConflict, moreHotwaterFlows} from './autopilot/hotwater-flows';
 import {KWH_PER_LITRE, STARTER_DAYS, localClock, readHousehold} from './autopilot/hotwater-learner';
 import {DAY_TYPE_SETTING, DEFAULT_DAY_TYPE, DayTypeState, awayOn, dayTypeAt, homeDayTypeAt, readDayType, typeSet} from './autopilot/day-type';
 import {Sample} from './autopilot/history';
-import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, StopReason, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits, rangeLimits, rangeFacts, CUSTOM_SETTINGS, sunTrust, surplusPrices, withHotwater} from './autopilot/live';
+import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, StopReason, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits, rangeLimits, rangeFacts, CUSTOM_SETTINGS, customValues, sunTrust, surplusPrices, withHotwater} from './autopilot/live';
 import {AUTOPILOT_FUNCTIONS, SMART_MODE_STORE, SmartFunction, SmartMode, autopilotRuns, shownSmartMode, smartMode, smartModeWrites, spaOn} from './autopilot/smart-mode';
 import {HeatingStatus, heatingStatus} from './autopilot/heating-status';
 import {PeriodWatch, pricePeriods, startedTrigger} from './autopilot/heating-flows';
@@ -63,6 +63,8 @@ const HOUSEHOLD_STORE = 'autopilotHotwaterHousehold';
 const RESERVE_STORE = 'autopilotReserve';
 /** Smart mode chosen in pairing, applied once when the device first runs (applyPairedSmartMode). */
 const PAIRED_SMART_STORE = 'pairedSmartMode';
+/** The Custom comfort range's values, set in Heating setup (live.ts CUSTOM_SETTINGS). */
+const CUSTOM_RANGE_STORE = 'autopilotCustomRange';
 /** Heating's time in range, day by day (comfort-days.ts). */
 const COMFORT_DAYS_STORE = 'autopilotComfortDays';
 /** The savings widget's complete days, its currency, and the Smart mode changes it sorts days by. */
@@ -1118,9 +1120,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.migrateSolarSetting();
         await this.migrateReserve();
         this.debug(`Device init: role ${this.role}, host ${this.host()}, groups [${this.enabledGroupsSummary()}]`);
-        // The Custom range's warning is a label setting: one text, written in the owner's language.
-        const warning = this.homey.__('autopilot.custom_warning');
-        if (this.getSettings().custom_warning !== warning) await this.setSettings({custom_warning: warning}).catch(this.error);
 
         const wantedClass = deviceClass(this.profile, this.role, this.getSelection());
         if (this.getClass() !== wantedClass) {
@@ -1288,7 +1287,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
      *  verified on the pump in pairing (pairing-pump.ts), so it is stored as verified. A failure
      *  is said on the device, never dropped: the owner can finish it in Repair. */
     private async applyPairedSmartMode() {
-        const paired = this.getStoreValue(PAIRED_SMART_STORE) as {mode?: string; verified?: boolean; range?: string} | null;
+        const paired = this.getStoreValue(PAIRED_SMART_STORE) as {mode?: string; verified?: boolean; range?: string; custom?: unknown} | null;
         if (!paired?.mode) return;
         await this.unsetStoreValue(PAIRED_SMART_STORE);
         const mode = smartMode(paired.mode);
@@ -1305,7 +1304,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             // The comfort range chosen in setup, once Autopilot's controls are on the device.
             if (this.role === 'heating' && paired.range && (mode === 'autopilot' || mode === 'test')) {
                 if (!this.hasCapability(AUTOPILOT_RANGE_CAPABILITY)) await this.syncCapabilities();
-                await this.setAutopilotProfile(paired.range);
+                if (paired.range === 'custom') await this.setCustomRange(paired.custom);
+                else await this.setAutopilotProfile(paired.range);
             }
         } catch (error: any) {
             this.error('Smart mode from pairing could not be applied:', error?.message ?? error);
@@ -2078,7 +2078,16 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             status: this.hasCapability(AUTOPILOT_REASON_CAPABILITY) ? this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) : null,
             range: this.hasCapability(AUTOPILOT_RANGE_CAPABILITY) ? this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY) : null,
             ranges: rangeFacts(),
+            custom: {spec: CUSTOM_SETTINGS, values: customValues(this.getStoreValue(CUSTOM_RANGE_STORE))},
         };
+    }
+
+    /** The Custom range from setup: its values kept on the device (clamped), then the range. */
+    async setCustomRange(values: unknown) {
+        const stored = customValues(values && typeof values === 'object' ? values as any : {});
+        await this.setStoreValue(CUSTOM_RANGE_STORE, stored);
+        this.log(`Custom range values set: ${JSON.stringify(stored)}`);
+        await this.setAutopilotProfile('custom');
     }
 
     async setAutopilotProfile(profile: string) {
@@ -3175,19 +3184,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
      *  or the Custom range's own settings. */
     private heatingLimits() {
         if (this.autopilotAway()) return profileLimits('save_most');
-        return rangeLimits(this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY), this.getSettings());
+        return rangeLimits(this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY), this.getStoreValue(CUSTOM_RANGE_STORE) ?? {});
     }
 
     async onSettings({oldSettings, newSettings, changedKeys}: {
         oldSettings: {[key: string]: any}, newSettings: {[key: string]: any}, changedKeys: string[]
     }) {
-        // The Custom range's settings: a change replans at once, on the Heating device and only
-        // while Custom is the range (settings are read fresh by heatingLimits() at each plan).
-        if (changedKeys.some((k) => k in CUSTOM_SETTINGS) && this.role === 'heating'
-            && this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY) === 'custom') {
-            this.log(`Custom range settings changed: ${changedKeys.filter((k) => k in CUSTOM_SETTINGS).join(', ')}`);
-            this.homey.setTimeout(() => this.heatingFeed?.replanSoon(), 1000);
-        }
         if (changedKeys.includes('cumulativeEnergy')) {
             this.cumulativeEnergy = newSettings.cumulativeEnergy || 0;
             // The user just set the durable copy by hand; don't let the next poll's debounce

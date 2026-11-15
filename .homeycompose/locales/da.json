@@ -501,7 +501,6 @@
       "price_axis": "Pris pr. kWh",
       "no_prices": "Kræver dynamiske elpriser i Homey Energy.",
       "no_functions": "Varmepumpen har ingen enhed til opvarmning eller varmt vand."
-    },
-    "custom_warning": "Kun for avancerede brugere. Indstillingerne gælder enheden Opvarmning, når dens komfortinterval er Tilpasset. Autopilot er indstillet til de tre almindelige intervaller. Andre kombinationer er ikke testet og kan varme mere, spare mindre eller lade huset blive koldere, end du regner med."
+    }
   }
 }

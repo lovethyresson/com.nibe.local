@@ -271,7 +271,7 @@ function buildDevice(candidate, index) {
     // Smart mode chosen in pairing: the device applies it once it runs (device.ts applyPairedSmartMode).
     var chosen = setup.choices()[candidate.role];
     if (chosen && chosen.mode) device.store.pairedSmartMode = {mode: chosen.mode, verified: !!chosen.verified,
-        range: chosen.range || undefined};
+        range: chosen.range || undefined, custom: chosen.custom || undefined};
     if (chosen && chosen.household) device.store.autopilotHotwaterHousehold = chosen.household;
     if (chosen && typeof chosen.reserve === 'number') device.store.autopilotReserve = chosen.reserve;
     return device;

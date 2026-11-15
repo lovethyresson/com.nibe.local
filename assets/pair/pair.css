@@ -961,3 +961,15 @@ body {
   .setup-range-details { animation: setup-range-in .3s ease both; }
 }
 @keyframes setup-range-in { from { opacity: .35; } to { opacity: 1; } }
+/* Custom range: a warning, then one row per value with its unit and what it does. */
+.setup-range-custom { display: flex; flex-direction: column; gap: .2em; }
+.setup-range-warning { margin: 0 0 .5em; padding: .7em .8em; border-radius: 10px; background: rgba(196, 88, 13, .1); line-height: 1.4; font-size: .9em; }
+.setup-range-field { display: flex; flex-direction: column; gap: .25em; padding: .6em 0; border-top: 1px solid rgba(128, 128, 128, .2); }
+.setup-range-field:first-of-type { border-top: 0; }
+.setup-range-field-head { display: flex; align-items: center; justify-content: space-between; gap: .8em; }
+.setup-range-field-label { font-weight: 600; min-width: 0; }
+.setup-range-field-hint { font-size: .82em; opacity: .72; line-height: 1.35; }
+.setup-range-input-box { display: inline-flex; align-items: center; gap: .3em; flex: none; }
+.setup-shell input.setup-range-input { width: 4.6em; padding: .35em .5em; border: 1px solid rgba(128, 128, 128, .35); border-radius: 8px; background: transparent; color: inherit; font: inherit; text-align: right; font-variant-numeric: tabular-nums; }
+.setup-range-unit { opacity: .7; font-size: .9em; min-width: 1.2em; }
+@media (prefers-color-scheme: dark) { .setup-range-warning { background: rgba(232, 131, 58, .14); } }

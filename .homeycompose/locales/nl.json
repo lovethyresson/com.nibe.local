@@ -501,7 +501,6 @@
       "price_axis": "Prijs per kWh",
       "no_prices": "Vereist dynamische stroomprijzen in Homey Energy.",
       "no_functions": "Deze warmtepomp heeft geen apparaat Verwarming of Warm water."
-    },
-    "custom_warning": "Alleen voor gevorderde gebruikers. Deze instellingen gelden voor het apparaat Verwarming als het comfortbereik op Aangepast staat. Autopilot is afgestemd op de drie standaardbereiken. Andere combinaties zijn niet getest en kunnen meer verwarmen, minder besparen of het huis kouder laten worden dan je verwacht."
+    }
   }
 }

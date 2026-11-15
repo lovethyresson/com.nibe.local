@@ -69,7 +69,7 @@ function NibeSetup(options) {
             var saved = ap.saved = ap.saved || {};
             if (event === 'smart_choose') saved.mode = data.value;
             else if (event === 'hotwater_household') saved.household = data;
-            else if (event === 'heating_range') saved.range = data.value;
+            else if (event === 'heating_range') { saved.range = data.value; if (data.custom) saved.custom = data.custom; }
             else saved.reserve = data.litres;
             return Promise.resolve(true);
         }
@@ -587,61 +587,103 @@ function NibeSetup(options) {
         }
         return {svg: svg, show: show};
     }
-    function rangeName(id) { return a('range_' + id); }
+    function rangeName(id) { return id === 'custom' ? a('range_custom_name') : a('range_' + id); }
     /** Choose the comfort range: explained, then saved (Repair) or kept for the new device (pairing). */
+    /** Every comfort range the Heating device offers, in the picker's order. */
+    var ALL_RANGES = ['off', 'comfortable', 'save_some', 'save_most', 'custom'];
+    /** Custom's eight values, edited here: each with its label, hint, unit, range and step. */
+    function customForm(spec, values) {
+        var form = el('div', undefined, 'setup-range-custom');
+        form.appendChild(el('p', a('custom_warning'), 'setup-range-warning'));
+        var inputs = {};
+        Object.keys(spec).forEach(function (id) {
+            var f = spec[id];
+            var row = el('label', undefined, 'setup-range-field');
+            var head = el('span', undefined, 'setup-range-field-head');
+            head.appendChild(el('span', a(id + '_label'), 'setup-range-field-label'));
+            var input = document.createElement('input');
+            input.type = 'number'; input.min = f.min; input.max = f.max; input.step = f.step; input.inputMode = 'decimal';
+            input.value = values[id]; input.className = 'setup-range-input';
+            var box = el('span', undefined, 'setup-range-input-box');
+            box.appendChild(input);
+            if (f.unit) box.appendChild(el('span', f.unit, 'setup-range-unit'));
+            head.appendChild(box);
+            row.append(head, el('span', a(id + '_hint'), 'setup-range-field-hint'));
+            form.appendChild(row);
+            inputs[id] = input;
+        });
+        return {node: form, values: function () {
+            var out = {};
+            Object.keys(inputs).forEach(function (id) {
+                var v = Number(String(inputs[id].value).replace(',', '.'));
+                if (Number.isFinite(v)) out[id] = Math.min(spec[id].max, Math.max(spec[id].min, v));
+            });
+            return out;
+        }};
+    }
+    /** Choose the comfort range: every range as a card; the chosen one explained under the list
+     *  (an example day and the planner's numbers, or for Custom its values to set). Saved (Repair)
+     *  or kept for the new device (pairing). */
     function rangeStep(next, from) {
         var st = ap.status || {};
         var facts = st.ranges || {};
-        var current = ap.range || (RANGE_IDS.indexOf(st.range) >= 0 ? st.range : 'comfortable');
+        var custom = st.custom || {spec: {}, values: {}};
+        var current = ap.range || (ALL_RANGES.indexOf(st.range) >= 0 ? st.range : 'comfortable');
         clear(setupTitle(), a('range_intro'));
         view.querySelector('.pair-hero-title').textContent = a('range_title');
-        var pills = el('div', undefined, 'setup-segment setup-range-tabs');
         var panel = el('div', undefined, 'setup-range');
         var use = button('', function () {}, true);
-        // The chart and its legend stay; the facts and what to expect change with the range.
+        // The chart is made once, so it can move between the standard ranges.
         var chart = rangeChart();
         var legend = el('div', undefined, 'setup-range-legend');
         [['setup-range-key-indoor', 'range_key_indoor'], ['setup-range-key-band', 'range_key_band']].forEach(function (k) {
             var item = el('span'); item.append(el('span', undefined, 'setup-range-key ' + k[0]), document.createTextNode(a(k[1]))); legend.appendChild(item);
         });
+        var caption = el('p', a('range_example'), 'setup-range-caption');
         var details = el('div', undefined, 'setup-range-details');
-        panel.append(el('p', a('range_example'), 'setup-range-caption'), chart.svg, legend, details);
+        panel.append(caption, chart.svg, legend, details);
+        var form = null;
+        var num = function (v) { return String(v).replace('.', a('decimal')); };
         function show(id) {
             current = id;
-            pills.querySelectorAll('button').forEach(function (b) { b.classList.toggle('is-on', b.dataset.range === id); });
-            var f = facts[id] || {};
-            chart.show(id, f.band || 0.5);
+            var standard = RANGE_IDS.indexOf(id) >= 0;
+            caption.hidden = !standard; chart.svg.style.display = standard ? '' : 'none'; legend.hidden = !standard;
             // A fresh block each time, so its fade-in runs on every switch.
             var fresh = el('div', undefined, 'setup-range-details');
             panel.replaceChild(fresh, details);
             details = fresh;
-            var list = el('ul', undefined, 'setup-range-facts');
-            var num = function (v) { return String(v).replace('.', a('decimal')); };
-            [[a('range_fact_band'), '±' + num(f.band) + ' °C'],
-             [a('range_fact_cools'), f.weight > 1 ? a('range_fact_cools_value', {x: num(f.weight)}) : a('range_fact_cools_any')],
-             [a('range_fact_coast'), a('range_fact_coast_value', {h: f.coast})]].forEach(function (r) {
-                var li = el('li'); li.append(el('span', r[0]), el('b', r[1])); list.appendChild(li);
-            });
-            details.appendChild(list);
-            var feel = el('div', undefined, 'setup-range-feel');
-            feel.append(el('strong', a('range_feel_title')), el('p', a('range_feel_' + id)));
-            details.appendChild(feel);
+            form = null;
+            if (standard) {
+                var f = facts[id] || {};
+                chart.show(id, f.band || 0.5);
+                var list = el('ul', undefined, 'setup-range-facts');
+                [[a('range_fact_band'), '±' + num(f.band) + ' °C'],
+                 [a('range_fact_cools'), f.weight > 1 ? a('range_fact_cools_value', {x: num(f.weight)}) : a('range_fact_cools_any')],
+                 [a('range_fact_coast'), a('range_fact_coast_value', {h: f.coast})]].forEach(function (r) {
+                    var li = el('li'); li.append(el('span', r[0]), el('b', r[1])); list.appendChild(li);
+                });
+                details.appendChild(list);
+            }
+            if (id === 'custom') {
+                form = customForm(custom.spec, custom.values);
+                details.appendChild(form.node);
+            } else {
+                var feel = el('div', undefined, 'setup-range-feel');
+                feel.append(el('strong', a('range_feel_title')), el('p', a('range_feel_' + id)));
+                details.appendChild(feel);
+            }
             use.textContent = a('range_use', {name: rangeName(id)});
         }
-        RANGE_IDS.forEach(function (id) {
-            var pill = el('button', rangeName(id), 'setup-segment-option hy-nostyle');
-            pill.type = 'button'; pill.dataset.range = id;
-            pill.onclick = function (e) { e.preventDefault(); show(id); };
-            pills.appendChild(pill);
-        });
+        var cards = radios('comfort-range', ALL_RANGES.map(function (id) {
+            return {id: id, title: rangeName(id), description: a('range_desc_' + id)};
+        }), current, show);
         use.onclick = function (e) {
             e.preventDefault();
-            emit('heating_range', {value: current}).then(function () { ap.range = current; next(); }).catch(fail);
+            var data = {value: current};
+            if (current === 'custom' && form) data.custom = form.values();
+            emit('heating_range', data).then(function () { ap.range = current; next(); }).catch(fail);
         };
-        shell.append(pills, panel);
-        // Notes go above the button: the button is pinned to the bottom of the sheet.
-        if (st.range === 'custom') shell.appendChild(el('p', a('range_custom_now'), 'register-desc'));
-        shell.appendChild(el('p', a('range_custom'), 'register-desc'));
+        shell.append(cards, panel);
         shell.appendChild(use);
         show(current);
         back(from);
@@ -748,7 +790,7 @@ function NibeSetup(options) {
             : a(st.mode === 'spa' ? 'choose_spa' : 'choose_off'), steer);
         if (runsNow) {
             var range = ap.range || st.range;
-            row(a('row_range'), RANGE_IDS.indexOf(range) >= 0 ? rangeName(range) : range === 'custom' ? a('range_custom_name') : '—',
+            row(a('row_range'), ALL_RANGES.indexOf(range) >= 0 ? rangeName(range) : '—',
                 function () { rangeStep(function () { st.range = ap.range; summary(); }, summary); });
         }
         if (runsNow) row(a('row_indoor'), readHomey || active ? a('indoor_homey', {n: selected.length}) : a('indoor_pump'), apIndoor);

@@ -60,21 +60,33 @@ export function rangeFacts(): Record<typeof RANGE_IDS[number], {band: number; we
     return {comfortable: of('comfortable'), save_some: of('save_some'), save_most: of('save_most')};
 }
 
-/** The Custom range: the owner sets the live limits themselves, in device settings under
- *  "Autopilot custom range (advanced)". Each setting, its range, and the limit it sets. Values
- *  outside the range are clamped; a missing one is Comfort's. Unproven combinations: the planner
- *  was tuned on the three ranges only. */
+/** The Custom range: the owner sets the live limits themselves, in Heating setup's Comfort range
+ *  step (Repair), kept on the Heating device. Each value, its range and step, its unit, and the
+ *  limit it sets. Values outside the range are clamped; a missing one is Comfort's. Unproven
+ *  combinations: the planner was tuned on the three ranges only. */
 export const CUSTOM_SETTINGS = {
-    custom_coldest: {limit: 'lower', min: 0, max: 6},
-    custom_warmest: {limit: 'upper', min: 0, max: 6},
+    custom_coldest: {limit: 'lower', min: 0, max: 6, step: 0.5, unit: '°C'},
+    custom_warmest: {limit: 'upper', min: 0, max: 6, step: 0.5, unit: '°C'},
     /** The expensive hour must cost at least this many times the cheap one: 1 + margin. */
-    custom_price_ratio: {limit: 'margin', min: 1, max: 3},
-    custom_coast_hours: {limit: 'maxCoastH', min: 0, max: 24},
-    custom_preheat_shift: {limit: 'maxBias', min: 0, max: 20},
-    custom_coast_shift: {limit: 'maxCoastBias', min: 0, max: 20},
-    custom_comfort_weight: {limit: 'comfortWeight', min: 0.5, max: 3},
-    custom_preheat_lead: {limit: 'preheatLeadTau', min: 0, max: 1},
+    custom_price_ratio: {limit: 'margin', min: 1, max: 3, step: 0.05, unit: '×'},
+    custom_coast_hours: {limit: 'maxCoastH', min: 0, max: 24, step: 1, unit: 'h'},
+    custom_preheat_shift: {limit: 'maxBias', min: 0, max: 20, step: 1, unit: 'K'},
+    custom_coast_shift: {limit: 'maxCoastBias', min: 0, max: 20, step: 1, unit: 'K'},
+    custom_comfort_weight: {limit: 'comfortWeight', min: 0.5, max: 3, step: 0.1, unit: ''},
+    custom_preheat_lead: {limit: 'preheatLeadTau', min: 0, max: 1, step: 0.05, unit: ''},
 } as const;
+
+/** The Custom values as setup shows and edits them: the stored ones, clamped, with Comfort's
+ *  for any not set. Pure. */
+export function customValues(stored: Partial<Record<CustomSettingId, unknown>> | null | undefined): Record<CustomSettingId, number> {
+    const limits = customLimits(stored ?? {});
+    const out = {} as Record<CustomSettingId, number>;
+    for (const [id, spec] of Object.entries(CUSTOM_SETTINGS) as [CustomSettingId, typeof CUSTOM_SETTINGS[CustomSettingId]][]) {
+        const v = (limits as any)[spec.limit] as number;
+        out[id] = Math.round((spec.limit === 'margin' ? 1 + v : v) * 100) / 100;
+    }
+    return out;
+}
 export type CustomSettingId = keyof typeof CUSTOM_SETTINGS;
 
 /** The limits the Custom range plans with, from the device's settings. Pure. */
