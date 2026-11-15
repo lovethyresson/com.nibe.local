@@ -956,3 +956,8 @@ body {
   .setup-range-key-indoor { background: #e8833a; }
   .setup-range-band { fill: rgba(77, 163, 255, .16); }
 }
+.setup-range-details { display: flex; flex-direction: column; gap: .6em; }
+@media (prefers-reduced-motion: no-preference) {
+  .setup-range-details { animation: setup-range-in .3s ease both; }
+}
+@keyframes setup-range-in { from { opacity: .35; } to { opacity: 1; } }

@@ -542,27 +542,50 @@ function NibeSetup(options) {
                 + pts[i + 1][0].toFixed(1) + ' ' + pts[i + 1][1].toFixed(1);
         return d;
     }
-    function rangeChart(id, band) {
+    /** The example-day chart, made once per step: `show` moves it to another range. The indoor
+     *  curve morphs from the shape it shows to the new one (about half a second, eased); with
+     *  reduced motion it switches at once. Each range is on its own scale, so the band fills the
+     *  chart and the ± labels give its size. */
+    function rangeChart() {
         // Indoor on top, the price in its own low lane under it, so the two lines never cross.
         var W = 340, L = 6, R = W - 36, T = 8, B = 96, mid = (T + B) / 2, PT = B + 14, PB = PT + 24, H = PB + 18;
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, 'class': 'setup-range-chart', role: 'img', 'aria-label': a('range_example')});
         var x = function (h) { return L + (R - L) * h / 23; };
-        // Indoor on the range's own scale, so each tab fills the chart; the ± label gives its size.
-        var yt = function (dt) { return mid - dt * (B - T) / 2 / (band * 1.25); };
+        var yt = function (share) { return mid - share * (B - T) / 2 / 1.25; };
         var yp = function (p) { return PB - (PB - PT) * (p - 0.8) / 2; };
-        svg.appendChild(svgEl('rect', {x: L, y: yt(band), width: R - L, height: yt(-band) - yt(band), rx: 4, 'class': 'setup-range-band'}));
+        svg.appendChild(svgEl('rect', {x: L, y: yt(1), width: R - L, height: yt(-1) - yt(1), rx: 4, 'class': 'setup-range-band'}));
         svg.appendChild(svgEl('line', {x1: L, x2: R, y1: mid, y2: mid, 'class': 'setup-range-target'}));
-        // The band's edges, labelled at the right.
-        var num = String(band).replace('.', a('decimal'));
-        svg.appendChild(svgEl('text', {x: R + 6, y: yt(band) + 4}, '+' + num));
-        svg.appendChild(svgEl('text', {x: R + 6, y: yt(-band) + 4}, '−' + num));
+        var top = svg.appendChild(svgEl('text', {x: R + 6, y: yt(1) + 4, 'class': 'setup-range-edge'}, ''));
+        var bottom = svg.appendChild(svgEl('text', {x: R + 6, y: yt(-1) + 4, 'class': 'setup-range-edge'}, ''));
         var price = smooth(EXAMPLE_PRICE.map(function (p, h) { return [x(h), yp(p)]; }));
         svg.appendChild(svgEl('path', {d: price + 'L' + x(23).toFixed(1) + ' ' + PB + 'L' + x(0).toFixed(1) + ' ' + PB + 'Z', 'class': 'setup-range-price-area'}));
         svg.appendChild(svgEl('path', {d: price, 'class': 'setup-range-price'}));
         svg.appendChild(svgEl('text', {x: R + 6, y: PT + 12}, a('range_key_price')));
-        svg.appendChild(svgEl('path', {d: smooth(EXAMPLE_MOVE[id].map(function (v, h) { return [x(h), yt(v * band)]; })), 'class': 'setup-range-indoor'}));
+        var indoor = svg.appendChild(svgEl('path', {d: '', 'class': 'setup-range-indoor'}));
         [0, 6, 12, 18].forEach(function (h) { svg.appendChild(svgEl('text', {x: x(h), y: H - 4, 'text-anchor': 'middle'}, (h < 10 ? '0' : '') + h + ':00')); });
-        return svg;
+        var drawn = null, frame = 0;
+        function draw(values) {
+            drawn = values;
+            indoor.setAttribute('d', smooth(values.map(function (v, h) { return [x(h), yt(v)]; })));
+        }
+        var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        function show(id, band) {
+            var num = String(band).replace('.', a('decimal'));
+            top.textContent = '+' + num; bottom.textContent = '−' + num;
+            var to = EXAMPLE_MOVE[id];
+            if (frame) cancelAnimationFrame(frame);
+            if (!drawn || still) { draw(to); return; }
+            var from = drawn.slice(), start = null, MS = 480;
+            var ease = function (t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
+            function step(now) {
+                if (start === null) start = now;
+                var t = Math.min(1, (now - start) / MS), e = ease(t);
+                draw(from.map(function (v, k) { return v + (to[k] - v) * e; }));
+                frame = t < 1 ? requestAnimationFrame(step) : 0;
+            }
+            frame = requestAnimationFrame(step);
+        }
+        return {svg: svg, show: show};
     }
     function rangeName(id) { return a('range_' + id); }
     /** Choose the comfort range: explained, then saved (Repair) or kept for the new device (pairing). */
@@ -575,18 +598,23 @@ function NibeSetup(options) {
         var pills = el('div', undefined, 'setup-segment setup-range-tabs');
         var panel = el('div', undefined, 'setup-range');
         var use = button('', function () {}, true);
+        // The chart and its legend stay; the facts and what to expect change with the range.
+        var chart = rangeChart();
+        var legend = el('div', undefined, 'setup-range-legend');
+        [['setup-range-key-indoor', 'range_key_indoor'], ['setup-range-key-band', 'range_key_band']].forEach(function (k) {
+            var item = el('span'); item.append(el('span', undefined, 'setup-range-key ' + k[0]), document.createTextNode(a(k[1]))); legend.appendChild(item);
+        });
+        var details = el('div', undefined, 'setup-range-details');
+        panel.append(el('p', a('range_example'), 'setup-range-caption'), chart.svg, legend, details);
         function show(id) {
             current = id;
             pills.querySelectorAll('button').forEach(function (b) { b.classList.toggle('is-on', b.dataset.range === id); });
             var f = facts[id] || {};
-            panel.replaceChildren();
-            panel.appendChild(el('p', a('range_example'), 'setup-range-caption'));
-            panel.appendChild(rangeChart(id, f.band || 0.5));
-            var legend = el('div', undefined, 'setup-range-legend');
-            [['setup-range-key-indoor', 'range_key_indoor'], ['setup-range-key-band', 'range_key_band']].forEach(function (k) {
-                var item = el('span'); item.append(el('span', undefined, 'setup-range-key ' + k[0]), document.createTextNode(a(k[1]))); legend.appendChild(item);
-            });
-            panel.appendChild(legend);
+            chart.show(id, f.band || 0.5);
+            // A fresh block each time, so its fade-in runs on every switch.
+            var fresh = el('div', undefined, 'setup-range-details');
+            panel.replaceChild(fresh, details);
+            details = fresh;
             var list = el('ul', undefined, 'setup-range-facts');
             var num = function (v) { return String(v).replace('.', a('decimal')); };
             [[a('range_fact_band'), '±' + num(f.band) + ' °C'],
@@ -594,10 +622,10 @@ function NibeSetup(options) {
              [a('range_fact_coast'), a('range_fact_coast_value', {h: f.coast})]].forEach(function (r) {
                 var li = el('li'); li.append(el('span', r[0]), el('b', r[1])); list.appendChild(li);
             });
-            panel.appendChild(list);
+            details.appendChild(list);
             var feel = el('div', undefined, 'setup-range-feel');
             feel.append(el('strong', a('range_feel_title')), el('p', a('range_feel_' + id)));
-            panel.appendChild(feel);
+            details.appendChild(feel);
             use.textContent = a('range_use', {name: rangeName(id)});
         }
         RANGE_IDS.forEach(function (id) {
