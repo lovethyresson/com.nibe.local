@@ -459,7 +459,9 @@
         "surplus": "__share__ % från solel",
         "reserve": "Säkerhetsnivå",
         "running": "Laddar redan",
-        "before_use": "I tid till förbrukningen"
+        "before_use": "I tid till förbrukningen",
+        "room": "Tanken full till dess",
+        "loss": "Mindre värmeförlust i tanken"
       },
       "cost": "Förväntad kostnad __cost__. Morgondagens priser har inte kommit än.",
       "shadow": "Simulering: din värmepump förblir som den är.",
@@ -473,6 +475,8 @@
       "reason": {
         "cheap": "Billigaste timmarna",
         "before_use": "I tid för förbrukningen",
+        "room": "Tanken full till dess",
+        "loss": "Mindre värmeförlust i tanken",
         "surplus": "Solöverskott",
         "reserve": "Säkerhetsnivå",
         "running": "Laddar redan",
@@ -536,6 +540,8 @@
       "reason": {
         "cheap": "Billigaste timmarna",
         "before_use": "I tid för förbrukningen",
+        "room": "Tanken full till dess",
+        "loss": "Mindre värmeförlust i tanken",
         "surplus": "Solöverskott",
         "reserve": "Säkerhetsnivå",
         "running": "Laddar redan",
@@ -639,6 +645,7 @@
         "solar_off": "Sol av",
         "solar_paused": "Solplan pausad",
         "solar_total": "__share__ % av den planerade laddningen går på solöverskott.",
+        "solar_live": "Dyker det upp mer överskott kan Autopilot ändå ladda med det.",
         "tomorrow": "i morgon __time__",
         "no_prices": "Väntar på elpriser",
         "band": "__from__ till __to__",
@@ -646,6 +653,7 @@
       },
       "indoor": "Inomhus",
       "expected": "Förväntat",
+      "aiming": "Siktar på __c__ °C",
       "offset": "Uteförskjutning (BT1)",
       "axis_indoor": "Inomhus °C",
       "axis_offset": "Förskjutning °C (BT1)",
@@ -665,7 +673,6 @@
         "feed_failed": "Din värmepump tog inte emot utetemperaturen (BT1). Kontrollera meny 7.5.9.2.",
         "cooling": "Din värmepump kyler. Autopilot väntar."
       },
-      "shift_hint": "Under 0 tror din värmepump att det är kallare och värmer mer. Över 0 drar den ner.",
       "error": "Det gick inte att läsa in Autopilot. Försöker igen om en minut."
     },
     "hotwater_status": {

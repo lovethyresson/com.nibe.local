@@ -414,8 +414,15 @@ The design as first written:
   revised slot. With the collector split the fetch moves to the home service, and this
   becomes the hot water side of its "prices changed" event; heating needs the same event.
 - **Charge message** (when a charge starts): a short `reason` from the same vocabulary as the
-  morning plan (Cheapest hours, In time for use, Solar surplus, Safety net, Started by the
-  pump), and a `detailedReason` with the numbers. Those numbers are the target, the run
+  morning plan (Cheapest hours, In time for use, Tank full until then, Less heat lost in the
+  tank, Solar surplus, Safety net, Started by the pump), and a `detailedReason` with the
+  numbers. A charge that is not the cheapest of its window says why it is not earlier
+  (`chargesOf`, since 2026-11-15): no hour before its start is cheaper, so it reaches into
+  dearer hours for a use ("In time for use"); cheaper hours before it found the tank too full
+  for a 4 kWh charge under 58 °C ("Tank full until then"); or the tank had room then and the
+  plan judged the heat would stand too long ("Less heat lost in the tank"). Before, the last
+  two read "In time for use", which on 2026-11-15 explained a 10:45 charge after a cheap
+  night when the tank was simply still full from the evening before. Those numbers are the target, the run
   length, the price against the day's mean, the tank and the safety net for a rescue, and the
   stop for a pump charge. It ends with how the charge compares with the morning plan:
   - "As planned": a charge in the plan in force within 45 min.

@@ -459,7 +459,9 @@
         "surplus": "__share__ % uit zonnestroom",
         "reserve": "Veiligheidsmarge",
         "running": "Warmt al op",
-        "before_use": "Op tijd voor gebruik"
+        "before_use": "Op tijd voor gebruik",
+        "room": "Boiler vol tot dan",
+        "loss": "Minder warmteverlies in de boiler"
       },
       "cost": "Verwachte kosten __cost__. De prijzen van morgen zijn er nog niet.",
       "shadow": "Simulatie: je warmtepomp blijft zoals hij is.",
@@ -473,6 +475,8 @@
       "reason": {
         "cheap": "Goedkoopste uren",
         "before_use": "Op tijd voor gebruik",
+        "room": "Boiler vol tot dan",
+        "loss": "Minder warmteverlies in de boiler",
         "surplus": "Zonne-overschot",
         "reserve": "Veiligheidsmarge",
         "running": "Warmt al op",
@@ -536,6 +540,8 @@
       "reason": {
         "cheap": "Goedkoopste uren",
         "before_use": "Op tijd voor gebruik",
+        "room": "Boiler vol tot dan",
+        "loss": "Minder warmteverlies in de boiler",
         "surplus": "Zonne-overschot",
         "reserve": "Veiligheidsmarge",
         "running": "Warmt al op",
@@ -639,6 +645,7 @@
         "solar_off": "Zon uit",
         "solar_paused": "Zonneplan gepauzeerd",
         "solar_total": "__share__ % van het geplande opwarmen draait op zonne-overschot.",
+        "solar_live": "Komt er meer overschot, dan kan Autopilot er alsnog mee laden.",
         "tomorrow": "morgen __time__",
         "no_prices": "Wacht op stroomprijzen",
         "band": "__from__ tot __to__",
@@ -646,6 +653,7 @@
       },
       "indoor": "Binnen",
       "expected": "Verwacht",
+      "aiming": "Mikt op __c__ °C",
       "offset": "Buitenverschuiving (BT1)",
       "axis_indoor": "Binnen °C",
       "axis_offset": "Verschuiving °C (BT1)",
@@ -665,7 +673,6 @@
         "feed_failed": "Je warmtepomp nam de buitentemperatuur (BT1) niet over. Controleer menu 7.5.9.2.",
         "cooling": "Je warmtepomp koelt. Autopilot wacht."
       },
-      "shift_hint": "Onder 0 denkt je warmtepomp dat het kouder is en verwarmt hij meer. Boven 0 gaat hij terug.",
       "error": "Kon Autopilot niet laden. Over een minuut probeer ik het opnieuw."
     },
     "hotwater_status": {

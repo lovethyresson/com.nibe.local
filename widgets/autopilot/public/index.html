@@ -8,7 +8,9 @@
       .ap-chip.quiet { background: transparent; border: 1px solid rgba(127, 127, 127, 0.4); opacity: 0.75; }
       .ap-status { text-wrap: balance; margin: 12px 0 0; font-size: 1.35em; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; }
       .ap-now { color: var(--ap-indoor); font-variant-numeric: tabular-nums; white-space: nowrap; }
-      .ap-reason { margin: 4px 0 0; opacity: 0.85; }
+      .ap-reason { margin: 4px 0 0; opacity: 0.85; font-variant-numeric: proportional-nums; }
+      .ap-now-box { display: flex; flex-direction: column; align-items: flex-end; }
+      .ap-aim { font-weight: 400; opacity: 0.85; white-space: nowrap; }
       .ap-detail { margin-top: 2px; opacity: 0.65; }
       .ap-chart { display: block; margin-top: 14px; overflow: visible; }
       .ap-chart text { font-size: 11px; fill: currentColor; opacity: 0.75; }
@@ -265,7 +267,12 @@
         if (data.status) {
           var status = el('p', 'ap-status');
           status.appendChild(el('span', '', data.status));
-          if (typeof data.indoorNow === 'number') status.appendChild(el('span', 'ap-now', data.indoorNow.toFixed(1) + ' °C'));
+          if (typeof data.indoorNow === 'number') {
+            var now = el('span', 'ap-now-box');
+            now.appendChild(el('span', 'ap-now', data.indoorNow.toFixed(1) + ' °C'));
+            if (data.aim) now.appendChild(el('span', 'ap-aim homey-text-small', data.aim));
+            status.appendChild(now);
+          }
           root.appendChild(status);
         }
         if (data.reason) root.appendChild(el('p', 'ap-reason homey-text-small', data.reason));

@@ -3,6 +3,7 @@
  *  measured behind "now", the plan's expectation after it. Pure; the device gathers the inputs and
  *  the widget only draws. Strings arrive translated, so the widget needs no locales. */
 import {FeedSnapshot} from './live';
+import {SHIFT_K} from './heating-status';
 
 export type Translate = (key: string, tokens?: Record<string, string | number>) => string;
 
@@ -57,6 +58,8 @@ export interface WidgetData {
     bands?: ChargeBand[];
     /** One line under the chart on how to read it. */
     hint?: string;
+    /** Heating: the indoor temperature it steers for now, worded, shown under `indoorNow`. */
+    aim?: string;
     /** Heating: the shift as hourly bars. */
     bars?: ShiftBar[];
     /** A second, quieter line under the reason. */
@@ -111,6 +114,21 @@ export function heatingSlots(past: {indoor?: number; offset?: number}[], state: 
     // Comfort range Off, or no plan yet while feeding: the offset ahead is 0 as long as it feeds.
     if (state?.neutral) next.forEach((s) => { s.offset = 0; });
     return [...back, ...next];
+}
+
+/** The indoor temperature Autopilot heating steers for now, °C. In a pre-heat or an ease-off: the
+ *  expected indoor where that run of the plan ends, the level it is heating up to or letting the
+ *  house fall to. Otherwise the thermostat it holds. `now` is the first planned slot. Pure. */
+export function aimingFor(slots: WidgetSlot[], now: number, setpoint?: number): number | undefined {
+    const sign = (s?: WidgetSlot) => s?.offset === undefined || Math.abs(s.offset) < SHIFT_K ? 0 : Math.sign(s.offset);
+    const run = sign(slots[now]);
+    if (run !== 0) {
+        let k = now;
+        while (k + 1 < slots.length && sign(slots[k + 1]) === run) k++;
+        const end = slots[k]?.indoor;
+        if (end !== undefined) return end;
+    }
+    return setpoint;
 }
 
 const NICE_STEPS = [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100, 250, 500, 1000];

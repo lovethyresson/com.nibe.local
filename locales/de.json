@@ -459,7 +459,9 @@
         "surplus": "__share__ % aus Solarstrom",
         "reserve": "Sicherheitsreserve",
         "running": "Lädt bereits",
-        "before_use": "Rechtzeitig vor dem Verbrauch"
+        "before_use": "Rechtzeitig vor dem Verbrauch",
+        "room": "Speicher bis dahin voll",
+        "loss": "Weniger Wärmeverlust im Speicher"
       },
       "cost": "Erwartete Kosten __cost__. Die Preise für morgen sind noch nicht da.",
       "shadow": "Simulation: Ihre Wärmepumpe bleibt, wie sie ist.",
@@ -473,6 +475,8 @@
       "reason": {
         "cheap": "Günstigste Stunden",
         "before_use": "Rechtzeitig für den Verbrauch",
+        "room": "Speicher bis dahin voll",
+        "loss": "Weniger Wärmeverlust im Speicher",
         "surplus": "Solarüberschuss",
         "reserve": "Sicherheitsreserve",
         "running": "Lädt bereits",
@@ -536,6 +540,8 @@
       "reason": {
         "cheap": "Günstigste Stunden",
         "before_use": "Rechtzeitig für den Verbrauch",
+        "room": "Speicher bis dahin voll",
+        "loss": "Weniger Wärmeverlust im Speicher",
         "surplus": "Solarüberschuss",
         "reserve": "Sicherheitsreserve",
         "running": "Lädt bereits",
@@ -639,6 +645,7 @@
         "solar_off": "Solar aus",
         "solar_paused": "Solarplan pausiert",
         "solar_total": "__share__ % der geplanten Ladung laufen mit Solarüberschuss.",
+        "solar_live": "Kommt mehr Überschuss, kann Autopilot trotzdem damit laden.",
         "tomorrow": "morgen __time__",
         "no_prices": "Wartet auf Strompreise",
         "band": "__from__ bis __to__",
@@ -646,6 +653,7 @@
       },
       "indoor": "Innen",
       "expected": "Erwartet",
+      "aiming": "Ziel: __c__ °C",
       "offset": "Außenverschiebung (BT1)",
       "axis_indoor": "Innen °C",
       "axis_offset": "Verschiebung °C (BT1)",
@@ -665,7 +673,6 @@
         "feed_failed": "Ihre Wärmepumpe hat die Außentemperatur (BT1) nicht übernommen. Prüfen Sie Menü 7.5.9.2.",
         "cooling": "Ihre Wärmepumpe kühlt. Autopilot wartet."
       },
-      "shift_hint": "Unter 0 hält Ihre Wärmepumpe es für kälter und heizt mehr. Über 0 nimmt sie sich zurück.",
       "error": "Autopilot konnte nicht geladen werden. Neuer Versuch in einer Minute."
     },
     "hotwater_status": {

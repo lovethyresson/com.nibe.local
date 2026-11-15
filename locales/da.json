@@ -459,7 +459,9 @@
         "surplus": "__share__ % fra solstrøm",
         "reserve": "Sikkerhedsniveau",
         "running": "Opvarmer allerede",
-        "before_use": "I tide til forbruget"
+        "before_use": "I tide til forbruget",
+        "room": "Tanken fuld indtil da",
+        "loss": "Mindre varmetab i tanken"
       },
       "cost": "Forventet pris __cost__. Morgendagens priser er ikke kommet endnu.",
       "shadow": "Simulering: din varmepumpe forbliver, som den er.",
@@ -473,6 +475,8 @@
       "reason": {
         "cheap": "Billigste timer",
         "before_use": "I tide til forbruget",
+        "room": "Tanken fuld indtil da",
+        "loss": "Mindre varmetab i tanken",
         "surplus": "Solcelleoverskud",
         "reserve": "Sikkerhedsniveau",
         "running": "Opvarmer allerede",
@@ -536,6 +540,8 @@
       "reason": {
         "cheap": "Billigste timer",
         "before_use": "I tide til forbruget",
+        "room": "Tanken fuld indtil da",
+        "loss": "Mindre varmetab i tanken",
         "surplus": "Solcelleoverskud",
         "reserve": "Sikkerhedsniveau",
         "running": "Opvarmer allerede",
@@ -639,6 +645,7 @@
         "solar_off": "Sol fra",
         "solar_paused": "Solplan sat på pause",
         "solar_total": "__share__ % af den planlagte opvarmning kører på soloverskud.",
+        "solar_live": "Kommer der mere overskud, kan Autopilot stadig lade med det.",
         "tomorrow": "i morgen __time__",
         "no_prices": "Venter på elpriser",
         "band": "__from__ til __to__",
@@ -646,6 +653,7 @@
       },
       "indoor": "Inde",
       "expected": "Forventet",
+      "aiming": "Sigter mod __c__ °C",
       "offset": "Udeforskydning (BT1)",
       "axis_indoor": "Inde °C",
       "axis_offset": "Forskydning °C (BT1)",
@@ -665,7 +673,6 @@
         "feed_failed": "Din varmepumpe modtog ikke udetemperaturen (BT1). Tjek menu 7.5.9.2.",
         "cooling": "Din varmepumpe køler. Autopilot venter."
       },
-      "shift_hint": "Under 0 tror din varmepumpe, at det er koldere, og varmer mere. Over 0 skruer den ned.",
       "error": "Kunne ikke indlæse Autopilot. Prøver igen om et minut."
     },
     "hotwater_status": {

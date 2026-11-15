@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {chargeBands, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks, todaySlots} from '../lib/autopilot/widget';
+import {aimingFor, chargeBands, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks, todaySlots} from '../lib/autopilot/widget';
 import {dayKind, hotwaterWeek} from '../lib/autopilot/hotwater-use';
 import {KWH_PER_LITRE, learn, localClock, TankPoint} from '../lib/autopilot/hotwater-learner';
 
@@ -164,4 +164,14 @@ test('the shift is one bar an hour: the mean of its slots, none for a calm hour'
     ], 'a calm hour, an hour with no value and an hour that averages 0 have no bar');
     assert.deepEqual(shiftBars([{offset: 1}, {offset: 1}], 4), [{at: 0, to: 2, value: 1}], 'a short last hour is a short bar');
     assert.deepEqual(shiftBars([]), []);
+});
+
+test('the widget aims for where the pre-heat ends, and for the thermostat while holding', () => {
+    const past = [{indoor: 21.3, offset: -10}, {indoor: 22.4, offset: -10}];
+    const plan = [{indoor: 22.4, offset: -10}, {indoor: 22.5, offset: -10}, {indoor: 22.6, offset: -10}, {indoor: 22.6, offset: 8}];
+    assert.equal(aimingFor([...past, ...plan], 2, 22.5), 22.6, 'the expected indoor at the end of the pre-heat');
+    assert.equal(aimingFor([...past, ...plan], 5, 22.5), 22.6, 'an ease-off is a run of its own');
+    assert.equal(aimingFor([...past, {indoor: 22.4, offset: 0.1}], 2, 22.5), 22.5, 'holding: the thermostat');
+    assert.equal(aimingFor([...past, {offset: -10}], 2, 22.5), 22.5, 'no expected line yet: the thermostat');
+    assert.equal(aimingFor([], 0, undefined), undefined);
 });

@@ -289,7 +289,9 @@ what Autopilot *would* have done.
 carries **no** `setting_value`: it is a setpoint, so only the fact that it changed is sent. The
 household's answers and which sensor was picked are never sent.
 ² `charge_reason` (`cheap`, `before_use`, `reserve`, `surplus`) only with `started_by: 'autopilot'`. A
-charge your device started has no Autopilot reason to give. Not `reason`: that name was removed from
+charge your device started has no Autopilot reason to give. The owner-facing reasons `room` (tank too full
+for the cheaper hours before) and `loss` (heat would have waited too long) are sent as `before_use`:
+both mean the charge is not the cheapest of its window, and the shared taxonomy keeps four values. Not `reason`: that name was removed from
 `Lost Connection`, where it carried raw error text, and the old values are still in Amplitude.
 
 `blocked_by` covers hot water's lever (`hot_water_off`, `spa_on`, `smart_control`, `daily_limit`),

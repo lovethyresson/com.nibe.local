@@ -12,7 +12,7 @@ import {AUTOPILOT_FUNCTIONS, SMART_MODE_STORE, SmartFunction, SmartMode, autopil
 import {HeatingStatus, heatingStatus} from './autopilot/heating-status';
 import {forecastCorrection} from './autopilot/outdoor';
 import {readTrim} from './autopilot/setpoint';
-import {WidgetData, chargeBands, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks, todaySlots} from './autopilot/widget';
+import {WidgetData, aimingFor, chargeBands, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks, todaySlots} from './autopilot/widget';
 import {HotwaterUseData, hotwaterWeek} from './autopilot/hotwater-use';
 import {SLOT_MS, slotOf} from './autopilot/prices';
 import {Edge, FORECAST_SLOTS, BlockedBy, HeatingDay, analyticsSmartMode, heatingBlock, reserveBucket} from './autopilot/analytics';
@@ -1999,7 +1999,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 detail: o.next ? [share > 0 ? t('hotwater.share', {share}) : undefined, litres].filter(Boolean).join(' · ') || undefined : undefined,
                 legend: {price: t('price'), surplus: solar ? t('surplus') : '', grid: t('charge_grid'), solar: solar ? t('charge_solar') : ''},
                 axes: {left: t('axis_price'), right: solar ? t('axis_surplus') : ''},
-                footnote: bands.length > 1 && solar ? t('hotwater.solar_total', {share: Math.round(fromSolar * 100)}) : undefined};
+                // The plan counts the surplus it expects; a live surplus the forecast missed still starts or
+                // tops up a charge (solar-surplus.ts: the live reading replaces the forecast for the next slots), so the owner is told it is not a cap.
+                footnote: solar && this.solarAllowed() ? [bands.length > 1 ? t('hotwater.solar_total', {share: Math.round(fromSolar * 100)}) : '',
+                    t('hotwater.solar_live')].filter(Boolean).join(' ') : undefined};
         }
         const status = this.getCapabilityValue(AUTOPILOT_STATUS_CAPABILITY) as HeatingStatus | null;
         const range = String(this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY) ?? DEFAULT_PROFILE);
@@ -2019,6 +2022,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             ? t('learning_day', {day: Math.min(summary.days, summary.needed), of: summary.needed})
             : status === 'paused' && stopped && WIDGET_PAUSES.includes(stopped) ? t(`paused.${stopped}`)
                 : stored === undefined ? undefined : stripLead(stored, [testLead, statusName ?? '']);
+        const aim = aimingFor(slots, now, this.heatingFeed?.state?.setpoint);
         const indoors = [...slots.flatMap((s) => (s.indoor === undefined ? [] : [s.indoor]))];
         const shifts = slots.flatMap((s) => (s.offset === undefined ? [] : [s.offset]));
         return {
@@ -2028,13 +2032,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             scale: {left: indoors.length ? niceAxis(Math.min(...indoors) - 0.3, Math.max(...indoors) + 0.3, {minSpan: 2, steps: [0.5, 1, 2, 5]})
                     : niceAxis(19, 23, {steps: [0.5, 1, 2]}),
                 right: niceAxis(Math.min(0, ...shifts), Math.max(0, ...shifts), {include: [0], minSpan: 0.5, steps: [0.25, 0.5, 1, 2, 5]})},
-            hint: shifts.some((v) => v !== 0) ? t('shift_hint') : undefined,
             status: statusName,
             reason,
             bars: shiftBars(slots),
             legend: {indoor: t('indoor'), planned: t('expected'), offset: t('offset')},
             axes: {left: t('axis_indoor'), right: t('axis_offset')},
             indoorNow: Number.isFinite(indoorNow) ? Math.round(indoorNow * 10) / 10 : undefined,
+            aim: aim === undefined ? undefined : t('aiming', {c: aim.toFixed(1)}),
             footnote: !summary || summary.ready ? undefined : t('learning'),
         };
     }

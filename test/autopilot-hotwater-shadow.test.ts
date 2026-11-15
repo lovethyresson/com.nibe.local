@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import {HotwaterModel, KWH_PER_LITRE, localClock} from '../lib/autopilot/hotwater-learner';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {COAST_HOURS, DAILY_HOUR, DailyPlan, MIN_HORIZON, ShadowEntry, coastLitres, againstPlan, planChanges, planUpdateText, autopilotCharge, chargeLine, chargeText, dailyPlan, dailyPlanText, hotwaterShadowStep, hotwaterStatusText, ownDeviceId, resumePlan, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
+import {COAST_HOURS, DAILY_HOUR, trackedReason, DailyPlan, MIN_HORIZON, ShadowEntry, coastLitres, againstPlan, planChanges, planUpdateText, autopilotCharge, chargeLine, chargeText, dailyPlan, dailyPlanText, hotwaterShadowStep, hotwaterStatusText, ownDeviceId, resumePlan, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
 import {SLOT_MS, slotOf} from '../lib/autopilot/prices';
 
 const clock = localClock('UTC');
@@ -395,4 +395,38 @@ test('a restart resumes the plan in force and the recap, and remembers the morni
     // A charge older than two days is no longer recap.
     assert.deepStrictEqual(resumePlan(saved, e.at + 3 * 86_400_000)?.events, []);
     assert.strictEqual(resumePlan(undefined, T0), undefined);
+});
+
+/** 2026-11-15: a free day after an evening charge. The tank is near its 58 °C ceiling all night,
+ *  so the cheap night has no room for the day's charge, which waits for the morning's use. */
+const freeHours = Array.from({length: 24}, (_, h) => h >= 8 && h <= 10 ? 1.5 : h >= 17 && h <= 21 ? 1.5 : 0);
+const freeModel: HotwaterModel = {...model, profiles: {any: {days: 30, hours: freeHours, p80: freeHours.map((v) => v * 1.3), daily: 12, dailyP80: 15}}};
+const sunday = new Map(Array.from({length: 96}, (_, k) => {
+    const h = Math.floor(k / 4);
+    return [S0 + k, {price: h < 7 ? 1.0 : h < 9 ? 1.7 : h < 13 ? 1.3 : 2.2}];
+}));
+
+test('a charge after cheaper hours the tank had no room for says so, not "in time for use"', () => {
+    const c = dailyOf({model: freeModel, prices: sunday, now: {litres: 222, top: 52}}).charges[0];
+    assert.ok(new Date(c.at).getUTCHours() >= 9, `charge at ${hhmm(c.at)}, after the full night`);
+    assert.strictEqual(c.reason, 'room');
+    for (const lang of LANGS) assert.notStrictEqual(translator(lang)(`reason.${c.reason}`), '');
+});
+
+test('room and loss are tracked as before_use, the taxonomy\'s value', () => {
+    assert.strictEqual(trackedReason('room'), 'before_use');
+    assert.strictEqual(trackedReason('loss'), 'before_use');
+    assert.strictEqual(trackedReason('cheap'), 'cheap');
+});
+
+test('a charge that waits past cheaper hours it had room for says the heat would have waited', () => {
+    // Use only in the evening, a leaky tank and a midday price barely over the night's: heat made
+    // at night would stand all day, so the plan waits although the tank had room.
+    const evening = Array.from({length: 24}, (_, h) => h >= 18 && h <= 20 ? 2 : 0);
+    const leaky: HotwaterModel = {...model, loss: {base: 0.05, perKwh: 0.08, samples: 50},
+        profiles: {any: {days: 30, hours: evening, p80: evening, daily: 6, dailyP80: 6}}};
+    const flat = new Map(Array.from({length: 96}, (_, k) => [S0 + k, {price: Math.floor(k / 4) < 6 ? 1.0 : Math.floor(k / 4) < 16 ? 1.1 : 3}]));
+    const c = dailyOf({model: leaky, prices: flat, now: {litres: 60, top: 46}}).charges[0];
+    assert.ok(new Date(c.at).getUTCHours() >= 6, `charge at ${hhmm(c.at)}, after the cheap night`);
+    assert.strictEqual(c.reason, 'loss');
 });

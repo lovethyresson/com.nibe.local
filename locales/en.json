@@ -459,7 +459,9 @@
         "surplus": "__share__ % from solar",
         "reserve": "Safety net",
         "running": "Already charging",
-        "before_use": "In time for use"
+        "before_use": "In time for use",
+        "room": "Tank full until then",
+        "loss": "Less heat lost in the tank"
       },
       "cost": "Expected cost __cost__. Tomorrow's prices aren't in yet.",
       "shadow": "Simulation: your heat pump stays as it is.",
@@ -473,6 +475,8 @@
       "reason": {
         "cheap": "Cheapest hours",
         "before_use": "In time for use",
+        "room": "Tank full until then",
+        "loss": "Less heat lost in the tank",
         "surplus": "Solar surplus",
         "reserve": "Safety net",
         "running": "Already charging",
@@ -536,6 +540,8 @@
       "reason": {
         "cheap": "Cheapest hours",
         "before_use": "In time for use",
+        "room": "Tank full until then",
+        "loss": "Less heat lost in the tank",
         "surplus": "Solar surplus",
         "reserve": "Safety net",
         "running": "Already charging",
@@ -639,6 +645,7 @@
         "solar_off": "Solar off",
         "solar_paused": "Solar plan paused",
         "solar_total": "__share__ % of the planned charging runs on solar surplus.",
+        "solar_live": "If more surplus turns up, Autopilot can still charge on it.",
         "tomorrow": "tomorrow __time__",
         "no_prices": "Waiting for electricity prices",
         "band": "__from__ to __to__",
@@ -646,6 +653,7 @@
       },
       "indoor": "Indoor",
       "expected": "Expected",
+      "aiming": "Aiming for __c__ °C",
       "offset": "Outdoor shift (BT1)",
       "axis_indoor": "Indoor °C",
       "axis_offset": "Shift °C (BT1)",
@@ -665,7 +673,6 @@
         "feed_failed": "Your heat pump didn't take the outdoor temperature (BT1). Check menu 7.5.9.2.",
         "cooling": "Your heat pump is cooling. Autopilot waits."
       },
-      "shift_hint": "Below 0, your heat pump thinks it's colder and heats more. Above 0, it eases off.",
       "error": "Couldn't load Autopilot. Trying again in a minute."
     },
     "hotwater_status": {

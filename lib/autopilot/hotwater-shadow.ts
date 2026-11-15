@@ -10,7 +10,7 @@ import {withApi} from '../indoor-sensors';
 import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, normalisePrices, slotOf} from './prices';
 import {DayDraw, DayProfile, DayType, HotwaterModel, Household, KWH_PER_LITRE, LocalClock, chargeRate, learn, localClock, lossAt, profileFor} from './hotwater-learner';
 import {TankCapabilities, fetchTankInsights, pointsFromInsights} from './hotwater-insights';
-import {DEFAULT_RESERVE_LITRES, Plan, SLOT_H, TankSpec, drawsFor, plan, reserveKwh} from './hotwater-planner';
+import {DEFAULT_RESERVE_LITRES, MIN_CHARGE_KWH, Plan, SLOT_H, TankSpec, drawsFor, heatAt, plan, reserveKwh} from './hotwater-planner';
 import {appendLine, deleteHistory, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
 import {DayTypeState, dayTypeAt} from './day-type';
 import {PumpFacts, countFor, leverDecision} from './hotwater-lever';
@@ -169,8 +169,14 @@ export function hotwaterStatusText(s: HotwaterStatus, t: Translate, when: (ms: n
 
 /** Why a charge is where it is. One vocabulary for the morning plan, the charge message and the
  *  morning recap, so a charge reads alike in all three. `pump`: the pump started it itself
- *  (its start temperature, or More hot water). */
-export type ChargeReason = 'running' | 'reserve' | 'surplus' | 'cheap' | 'before_use' | 'pump';
+ *  (its start temperature, or More hot water). A charge that is not the cheapest it could be says
+ *  why it is not earlier: `before_use` (no cheaper hours before it; it is ready for a use), `room`
+ *  (cheaper hours before it, but the tank had no room for it then), `loss` (room then, but the
+ *  heat would have waited too long). */
+export type ChargeReason = 'running' | 'reserve' | 'surplus' | 'cheap' | 'before_use' | 'room' | 'loss' | 'pump';
+/** The analytics value: `room` and `loss` are kinds of `before_use` (not the cheapest of their
+ *  window), so `charge_reason` keeps the cross-app taxonomy's four values. */
+export const trackedReason = (r: ChargeReason) => r === 'room' || r === 'loss' ? 'before_use' : r;
 
 /** One planned charge, with the facts its wording needs. */
 export interface ChargeFacts {
@@ -206,14 +212,27 @@ function chargesOf(input: ShadowStepInput, out: Planned, before: number): {charg
     // at the day's 16:00 peak read "Cheapest hours". A charge starting now with the tank under the
     // safety net is the safety net's, rescue or not (a hot top only spares it the rescue).
     const under = (input.now.litres ?? Infinity) < (input.reserveLitres ?? DEFAULT_RESERVE_LITRES);
+    const full = heatAt(input.tank, MAX_C);
+    /** Why a run that is not the cheapest of its window is where it is. Its start as cheap as any
+     *  hour before it: it starts in time and reaches into dearer hours to be ready for a use
+     *  ('before_use'). Cheaper hours before its start with the tank too full then for the
+     *  smallest charge worth starting (under 58 °C): 'room'. Room then: the plan judged heat made
+     *  then and kept until used to cost more than the price saved ('loss'). */
+    const dearer = (c: Plan['charges'][number], from: number): ChargeReason => {
+        const earlier: number[] = [];
+        for (let k = from; k < c.start; k++) if (buy(k) * 1.02 < buy(c.start)) earlier.push(k);
+        if (earlier.length === 0) return 'before_use';
+        return earlier.every((k) => full - p.stored[k] < MIN_CHARGE_KWH) ? 'room' : 'loss';
+    };
     const charges = p.charges.filter((c) => slots[c.start] * SLOT_MS < before).map((c, i, all) => {
         let sum = 0;
         for (let k = c.start; k < c.end; k++) sum += buy(Math.min(k, slots.length - 1));
         const price = sum / Math.max(1, c.end - c.start);
+        const from = i ? all[i - 1].end : 0;
         const reason: ChargeReason = charging && c.start === 0 ? 'running'
             : i === 0 && c.start === 0 && (p.rescue || under) ? 'reserve' : c.surplusShare >= 0.5 ? 'surplus'
-            : price <= 1.02 * best(i ? all[i - 1].end : 0, i + 1 < all.length ? all[i + 1].start : slots.length, c.end - c.start) + 1e-9
-                ? 'cheap' : 'before_use';
+            : price <= 1.02 * best(from, i + 1 < all.length ? all[i + 1].start : slots.length, c.end - c.start) + 1e-9
+                ? 'cheap' : dearer(c, from);
         return {at: slots[c.start] * SLOT_MS, targetC: c.targetC, minutes: (c.end - c.start) * SLOT_MS / 60_000,
             price: round(price), surplusShare: round(c.surplusShare), cost: round(c.cost), reason};
     });
@@ -922,7 +941,7 @@ export class HotwaterAutopilot {
         this.log(`Autopilot hot water charge (${e.by}${e.shadow ? ', test run' : ''}): ${text.reason}. ${text.detailedReason} ${JSON.stringify(e)}`);
         if (!e.shadow) this.hooks.charged(e, text);
         this.hooks.track('Started Hot Water Charge', {started_by: e.by === 'pump' ? 'device' : 'autopilot',
-            ...e.reason !== 'pump' && e.reason !== 'running' ? {charge_reason: e.reason} : {}, simulation: this.shadow});
+            ...e.reason !== 'pump' && e.reason !== 'running' ? {charge_reason: trackedReason(e.reason)} : {}, simulation: this.shadow});
         // The timeline hears only what the morning plan did not say: a safety-net start, a moved
         // or unplanned one. Charges as planned, and the pump's own, are for Flows and the recap.
         if (e.by !== 'autopilot' || (e.reason !== 'reserve' && e.plan === 'as_planned')) return;
