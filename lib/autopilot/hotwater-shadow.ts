@@ -142,7 +142,8 @@ export function coastLitres(storedKwh: number, draws: number[], loss: HotwaterMo
  *  has not started (a slot's grace, so one starting this slot still counts). Pure. */
 export function nextCharge<C extends {at: number; minutes: number}>(charges: C[], now: number, charging: boolean): C | undefined {
     if (charging) {
-        const running = charges.find((c) => c.at <= now && now < c.at + c.minutes * 60_000);
+        // A plan made mid-charge starts at the next slot: the tank charging now is that charge.
+        const running = charges.find((c) => c.at <= now + SLOT_MS && now < c.at + c.minutes * 60_000);
         if (running) return running;
     }
     return charges.find((c) => c.at > now - SLOT_MS);
@@ -724,7 +725,7 @@ export class HotwaterAutopilot {
      *  surplus (kW, only with solar on), and the plan's charges with the share each takes from the
      *  surplus; the tank now and the next charge. Reads only. */
     outlook(from: number, n: number): {slots: {price?: number; surplus?: number; charge?: number; ran?: true}[]; litres?: number;
-        next?: {at: number; minutes: number; reason: ChargeReason; solar: number}} {
+        next?: {at: number; minutes: number; reason: ChargeReason; solar: number; running: boolean}} {
         const charges = this.morningPlan?.charges ?? [];
         const covering = (slot: number) => charges.find((c) => slot * SLOT_MS < c.at + c.minutes * 60_000
             && (slot + 1) * SLOT_MS > c.at);
@@ -732,7 +733,8 @@ export class HotwaterAutopilot {
         const now = Date.now();
         // A planned charge whose start has passed is the next one only while the tank is charging.
         // One that did not start (a safety-net charge filled the tank first) is behind us.
-        const next = nextCharge(charges, now, (this.chargingNow ?? this.last?.charging) === true);
+        const charging = (this.chargingNow ?? this.last?.charging) === true;
+        const next = nextCharge(charges, now, charging);
         const nowSlot = Math.floor(now / SLOT_MS);
         return {
             // Behind now, the charges that ran; from now on, the plan.
@@ -744,7 +746,8 @@ export class HotwaterAutopilot {
                     charge: c ? c.surplusShare : undefined, ...this.ran.has(slot) && slot <= nowSlot ? {ran: true as const} : {}};
             }),
             litres: this.last?.litres,
-            next: next && {at: next.at, minutes: next.minutes, reason: next.reason, solar: next.surplusShare},
+            next: next && {at: next.at, minutes: next.minutes, reason: next.reason, solar: next.surplusShare,
+                running: next.at <= now || (charging && next.at <= now + SLOT_MS)},
         };
     }
 

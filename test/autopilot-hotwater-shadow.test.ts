@@ -440,4 +440,7 @@ test('the widget\'s next charge skips a planned one that never started, and keep
     assert.strictEqual(nextCharge(charges, at(11, 5), true)?.at, at(10, 45));
     // 10:50, inside its first slot: still the next one.
     assert.strictEqual(nextCharge(charges, at(10, 50), false)?.at, at(10, 45));
+    // 10:35, charging, and a plan made mid-charge starts at 10:45: that charge is the one running.
+    const running = nextCharge(charges, at(10, 35), true)!;
+    assert.ok(running.at === at(10, 45) && running.at > at(10, 35), 'the status says charging now, not next at 10:45');
 });

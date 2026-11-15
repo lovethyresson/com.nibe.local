@@ -2107,9 +2107,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 bands,
                 // A charge that has started is running (the outlook only keeps one that has while the
                 // tank charges): say so and when it ends, not "next" with its start.
-                status: !o.next ? t('hotwater.none') : o.next.at <= Date.now() ? t('hotwater.charging_now')
+                status: !o.next ? t('hotwater.none') : o.next.running ? t('hotwater.charging_now')
                     : t('hotwater.next', {when}),
-                reason: !o.next ? litres : o.next.at <= Date.now()
+                reason: !o.next ? litres : o.next.running
                     ? [t('hotwater.until', {time: this.clock(o.next.at + o.next.minutes * 60_000)}), reason].join(' · ')
                     : [t('hotwater.about', {duration}), reason].join(' · '),
                 detail: o.next ? [share > 0 ? t('hotwater.share', {share}) : undefined, litres].filter(Boolean).join(' · ') || undefined : undefined,
