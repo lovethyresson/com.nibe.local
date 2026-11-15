@@ -340,9 +340,9 @@
         "success_indoor_now": "indoors now",
         "range_title": "Comfort range",
         "range_intro": "How far the indoor temperature may move while Autopilot heats more in cheap hours and less in expensive ones. You can change this later on the Heating device.",
-        "range_comfortable": "Comfort",
-        "range_save_some": "Save",
-        "range_save_most": "Save more",
+        "range_comfortable": "Prioritize comfort",
+        "range_save_some": "Balanced",
+        "range_save_most": "Prioritize savings",
         "range_custom_name": "Custom (advanced)",
         "range_example": "Example day: cheap night, expensive evening",
         "range_key_indoor": "Indoor",
@@ -661,9 +661,9 @@
       "charge": "Charge",
       "away": "Away · __c__ °C",
       "range": {
-        "comfortable": "Comfort ±0.5 °C",
-        "save_some": "Save ±3 °C",
-        "save_most": "Save more ±6 °C",
+        "comfortable": "Prioritize comfort ±0.5 °C",
+        "save_some": "Balanced ±3 °C",
+        "save_most": "Prioritize savings ±6 °C",
         "off": "Off",
         "custom": "Custom range"
       },
@@ -713,7 +713,8 @@
       "starting_hotwater": "Loading prices and the tank level. This takes about a minute.",
       "starting_app": "Loading data from your heat pump. This takes about a minute.",
       "away_until": "Away until __until__ · __c__ °C",
-      "charge_done": "Charged"
+      "charge_done": "Charged",
+      "in_range": "Within ±__band__ °C for __h__ of __n__ h today"
     },
     "hotwater_status": {
       "learning": "Learning your hot water use",
@@ -811,6 +812,6 @@
       "no_prices": "Requires dynamic electricity prices in Homey Energy.",
       "no_functions": "This heat pump has no Heating or Hot water device."
     },
-    "custom_warning": "For advanced users only. These settings apply to the Heating device while its comfort range is Custom. Autopilot is tuned for Comfort, Save and Save more. Other combinations are untested and may heat more, save less or let the house get colder than you expect."
+    "custom_warning": "For advanced users only. These settings apply to the Heating device while its comfort range is Custom. Autopilot is tuned for the three standard ranges. Other combinations are untested and may heat more, save less or let the house get colder than you expect."
   }
 }

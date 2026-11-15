@@ -354,9 +354,9 @@
       "test": "Simuleret",
       "away": "Bortrejst · __c__ °C",
       "range": {
-        "comfortable": "Komfort ±0,5 °C",
-        "save_some": "Spar ±3 °C",
-        "save_most": "Spar mere ±6 °C",
+        "comfortable": "Prioritér komfort ±0,5 °C",
+        "save_some": "Balanceret ±3 °C",
+        "save_most": "Prioritér besparelse ±6 °C",
         "off": "Fra",
         "custom": "Tilpasset interval"
       },
@@ -406,7 +406,8 @@
       "starting_hotwater": "Indlæser elpriserne og niveauet i beholderen. Det tager cirka et minut.",
       "starting_app": "Indlæser data fra din varmepumpe. Det tager cirka et minut.",
       "away_until": "Bortrejst indtil __until__ · __c__ °C",
-      "charge_done": "Opvarmet"
+      "charge_done": "Opvarmet",
+      "in_range": "Inden for ±__band__ °C __h__ af __n__ t i dag"
     },
     "hotwater_status": {
       "learning": "Lærer dit forbrug af varmt vand",
@@ -501,6 +502,6 @@
       "no_prices": "Kræver dynamiske elpriser i Homey Energy.",
       "no_functions": "Varmepumpen har ingen enhed til opvarmning eller varmt vand."
     },
-    "custom_warning": "Kun for avancerede brugere. Indstillingerne gælder enheden Opvarmning, når dens komfortinterval er Tilpasset. Autopilot er indstillet til Komfort, Spar og Spar mere. Andre kombinationer er ikke testet og kan varme mere, spare mindre eller lade huset blive koldere, end du regner med."
+    "custom_warning": "Kun for avancerede brugere. Indstillingerne gælder enheden Opvarmning, når dens komfortinterval er Tilpasset. Autopilot er indstillet til de tre almindelige intervaller. Andre kombinationer er ikke testet og kan varme mere, spare mindre eller lade huset blive koldere, end du regner med."
   }
 }

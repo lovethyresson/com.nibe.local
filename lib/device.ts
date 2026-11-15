@@ -18,6 +18,7 @@ import {readTrim} from './autopilot/setpoint';
 import {WidgetData, aimingFor, chargeBands, symmetricAxis, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks, todaySlots} from './autopilot/widget';
 import {HotwaterUseData, TodayRow, hotwaterWeek, useRuns} from './autopilot/hotwater-use';
 import {TankWidgetData, tankChart} from './autopilot/hotwater-tank';
+import {ComfortDay, ComfortSlot, addComfortSlot, comfortSummary, readComfortDays} from './autopilot/comfort-days';
 import {ENERGY_ROLES, EnergyWidgetData, energyChart} from './autopilot/energy';
 import {SLOT_MS, localDate, normalisePrices, slotOf} from './autopilot/prices';
 import {Edge, FORECAST_SLOTS, BlockedBy, HeatingDay, analyticsSmartMode, heatingBlock, reserveBucket} from './autopilot/analytics';
@@ -62,6 +63,8 @@ const HOUSEHOLD_STORE = 'autopilotHotwaterHousehold';
 const RESERVE_STORE = 'autopilotReserve';
 /** Smart mode chosen in pairing, applied once when the device first runs (applyPairedSmartMode). */
 const PAIRED_SMART_STORE = 'pairedSmartMode';
+/** Heating's time in range, day by day (comfort-days.ts). */
+const COMFORT_DAYS_STORE = 'autopilotComfortDays';
 /** The savings widget's complete days, its currency, and the Smart mode changes it sorts days by. */
 const SAVINGS_STORE = 'autopilotSavingsDays';
 const SAVINGS_CURRENCY_STORE = 'autopilotSavingsCurrency';
@@ -1645,7 +1648,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             plan: (slot) => {
                 const planned = this.autopilot?.liveInputs(slot);
                 if (!planned) return planned;
-                this.scoreHeatingSlot(slot, planned.ti);
+                this.scoreHeatingSlot(slot, planned.ti, planned.forecast[0]?.te, planned.forecast[0]?.sun);
                 // Hot water goes first: while it has the compressor, the house gets nothing from it.
                 const busy = this.pumpDevices().find((d) => d.role === 'hotwater')?.hotwaterChargeSlots(slot, planned.forecast.length);
                 const input = {...planned, forecast: withHotwater(planned.forecast, busy)};
@@ -1854,12 +1857,44 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     /** Analytics: one slot of heating's day against comfort; the day before is sent when a new
      *  one starts. The range is the one the plan works inside. */
-    private scoreHeatingSlot(slot: number, ti: number) {
+    private scoreHeatingSlot(slot: number, ti: number, te?: number, sun?: number) {
         const limits = this.heatingLimits();
-        const score = this.heatingDay.observe({slot, date: localClock(this.homey.clock.getTimezone())(slot * SLOT_MS).date, ti,
-            comfort: Number(this.getCapabilityValue('target_temperature')), lower: limits.lower, upper: limits.upper,
+        const date = localClock(this.homey.clock.getTimezone())(slot * SLOT_MS).date;
+        const comfort = Number(this.getCapabilityValue('target_temperature'));
+        const score = this.heatingDay.observe({slot, date, ti, comfort, lower: limits.lower, upper: limits.upper,
             simulation: this.heatingMode === 'test'});
         if (score) track('Scored Autopilot Day', score);
+        this.recordComfortSlot(slot, {date, ti, comfort, lower: limits.lower, upper: limits.upper, te, sun});
+    }
+
+    // ---- Heating's comfort promise, day by day (comfort-days.ts) ----
+    /** Today's time in range for the heating widget, and the log for the debug route. */
+    private comfortToday(t: (key: string, tokens?: Record<string, string | number>) => string): {detail?: string; comfortDays?: ComfortDay[]} {
+        const days = this.comfortLog();
+        const today = days[days.length - 1];
+        if (!today || today.date !== localClock(this.homey.clock.getTimezone())(Date.now()).date || today.slots < 4) return {comfortDays: days};
+        const sum = comfortSummary(today);
+        const band = today.lower === today.upper ? String(today.lower) : `${today.lower}/${today.upper}`;
+        const language = this.homey.i18n.getLanguage();
+        const num = (v: number) => new Intl.NumberFormat(language, {maximumFractionDigits: 1}).format(v);
+        return {detail: t('in_range', {band: band.replace('.', language === 'en' ? '.' : ','), h: num(sum.inRange), n: num(sum.hours)}), comfortDays: days};
+    }
+    private comfortDays?: ComfortDay[];
+    private comfortSlot?: number;
+    /** The last 14 days of time in range, loaded from the store on first use. */
+    comfortLog(): ComfortDay[] {
+        return this.comfortDays ??= readComfortDays(this.getStoreValue(COMFORT_DAYS_STORE));
+    }
+    /** One plan step's indoor against the range; saved hourly and when the day turns. Not while
+     *  the range is Off: there is no promise to keep then. */
+    private recordComfortSlot(slot: number, s: ComfortSlot) {
+        if (this.comfortSlot === slot || this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY) === 'off') return;
+        this.comfortSlot = slot;
+        const before = this.comfortLog();
+        const after = addComfortSlot(before, s);
+        this.comfortDays = after;
+        const newDay = after[after.length - 1]?.date !== before[before.length - 1]?.date;
+        if (newDay || slot % 4 === 0) this.setStoreValue(COMFORT_DAYS_STORE, after).catch(this.error);
     }
 
     /** Analytics: an Autopilot setting changed, with a bounded value (never a reading or a setpoint).
@@ -2176,6 +2211,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             indoorNow: Number.isFinite(indoorNow) ? Math.round(indoorNow * 10) / 10 : undefined,
             aim: aim === undefined ? undefined : t('aiming', {c: aim.toFixed(1)}),
             footnote: !summary || summary.ready ? undefined : t('learning'),
+            ...this.comfortToday(t),
         };
     }
 

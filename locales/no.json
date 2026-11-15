@@ -340,9 +340,9 @@
         "success_indoor_now": "inne nå",
         "range_title": "Komfortområde",
         "range_intro": "Hvor mye innetemperaturen kan endre seg mens Autopilot varmer mer i billige timer og mindre i dyre. Du kan endre dette senere på enheten Oppvarming.",
-        "range_comfortable": "Komfort",
-        "range_save_some": "Spar",
-        "range_save_most": "Spar mer",
+        "range_comfortable": "Prioriter komfort",
+        "range_save_some": "Balansert",
+        "range_save_most": "Prioriter sparing",
         "range_custom_name": "Egendefinert (avansert)",
         "range_example": "Eksempeldag: billig natt, dyr kveld",
         "range_key_indoor": "Inne",
@@ -661,9 +661,9 @@
       "charge": "Lading",
       "away": "Bortreist · __c__ °C",
       "range": {
-        "comfortable": "Komfort ±0,5 °C",
-        "save_some": "Spar ±3 °C",
-        "save_most": "Spar mer ±6 °C",
+        "comfortable": "Prioriter komfort ±0,5 °C",
+        "save_some": "Balansert ±3 °C",
+        "save_most": "Prioriter sparing ±6 °C",
         "off": "Av",
         "custom": "Egendefinert område"
       },
@@ -713,7 +713,8 @@
       "starting_hotwater": "Laster inn strømpriser og nivået i berederen. Dette tar omtrent ett minutt.",
       "starting_app": "Laster inn data fra varmepumpen din. Dette tar omtrent ett minutt.",
       "away_until": "Bortreist til __until__ · __c__ °C",
-      "charge_done": "Ladet"
+      "charge_done": "Ladet",
+      "in_range": "Innenfor ±__band__ °C __h__ av __n__ t i dag"
     },
     "hotwater_status": {
       "learning": "Lærer varmtvannsbruken din",
@@ -811,6 +812,6 @@
       "no_prices": "Krever dynamiske strømpriser i Homey Energy.",
       "no_functions": "Varmepumpen har ingen enhet for oppvarming eller varmtvann."
     },
-    "custom_warning": "Bare for avanserte brukere. Innstillingene gjelder enheten Oppvarming når komfortområdet er Egendefinert. Autopilot er justert for Komfort, Spar og Spar mer. Andre kombinasjoner er ikke testet og kan varme mer, spare mindre eller la huset bli kaldere enn du regner med."
+    "custom_warning": "Bare for avanserte brukere. Innstillingene gjelder enheten Oppvarming når komfortområdet er Egendefinert. Autopilot er justert for de tre vanlige områdene. Andre kombinasjoner er ikke testet og kan varme mer, spare mindre eller la huset bli kaldere enn du regner med."
   }
 }

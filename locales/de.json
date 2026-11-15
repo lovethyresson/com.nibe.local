@@ -340,9 +340,9 @@
         "success_indoor_now": "drinnen jetzt",
         "range_title": "Komfortbereich",
         "range_intro": "Wie weit sich die Innentemperatur ändern darf, während Autopilot in günstigen Stunden mehr und in teuren weniger heizt. Sie können das später am Gerät Heizung ändern.",
-        "range_comfortable": "Komfort",
-        "range_save_some": "Sparen",
-        "range_save_most": "Mehr sparen",
+        "range_comfortable": "Komfort priorisieren",
+        "range_save_some": "Ausgewogen",
+        "range_save_most": "Sparen priorisieren",
         "range_custom_name": "Benutzerdefiniert (erweitert)",
         "range_example": "Beispieltag: günstige Nacht, teurer Abend",
         "range_key_indoor": "Innen",
@@ -661,9 +661,9 @@
       "charge": "Ladung",
       "away": "Abwesend · __c__ °C",
       "range": {
-        "comfortable": "Komfort ±0,5 °C",
-        "save_some": "Sparen ±3 °C",
-        "save_most": "Mehr sparen ±6 °C",
+        "comfortable": "Komfort priorisieren ±0,5 °C",
+        "save_some": "Ausgewogen ±3 °C",
+        "save_most": "Sparen priorisieren ±6 °C",
         "off": "Aus",
         "custom": "Benutzerdefinierter Bereich"
       },
@@ -713,7 +713,8 @@
       "starting_hotwater": "Strompreise und Speicherstand werden geladen. Dies dauert etwa eine Minute.",
       "starting_app": "Daten Ihrer Wärmepumpe werden geladen. Dies dauert etwa eine Minute.",
       "away_until": "Abwesend bis __until__ · __c__ °C",
-      "charge_done": "Geladen"
+      "charge_done": "Geladen",
+      "in_range": "Heute __h__ von __n__ h innerhalb von ±__band__ °C"
     },
     "hotwater_status": {
       "learning": "Lernt Ihren Brauchwasserverbrauch",
@@ -811,6 +812,6 @@
       "no_prices": "Erfordert dynamische Strompreise in Homey Energie.",
       "no_functions": "Diese Wärmepumpe hat kein Heizungs- oder Brauchwasser-Gerät."
     },
-    "custom_warning": "Nur für fortgeschrittene Benutzer. Diese Einstellungen gelten für das Gerät Heizung, solange dessen Komfortbereich Benutzerdefiniert ist. Autopilot ist auf Komfort, Sparen und Mehr sparen abgestimmt. Andere Kombinationen sind ungetestet und können mehr heizen, weniger sparen oder das Haus kälter werden lassen, als Sie erwarten."
+    "custom_warning": "Nur für fortgeschrittene Benutzer. Diese Einstellungen gelten für das Gerät Heizung, solange dessen Komfortbereich Benutzerdefiniert ist. Autopilot ist auf die drei Standardbereiche abgestimmt. Andere Kombinationen sind ungetestet und können mehr heizen, weniger sparen oder das Haus kälter werden lassen, als Sie erwarten."
   }
 }

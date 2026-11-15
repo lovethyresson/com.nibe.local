@@ -23,34 +23,34 @@
     {
       "id": "comfortable",
       "title": {
-        "en": "Comfort (±0.5 °C)",
-        "sv": "Komfort (±0,5 °C)",
-        "de": "Komfort (±0,5 °C)",
-        "nl": "Comfort (±0,5 °C)",
-        "no": "Komfort (±0,5 °C)",
-        "da": "Komfort (±0,5 °C)"
+        "en": "Prioritize comfort (±0.5 °C)",
+        "sv": "Prioritera komfort (±0,5 °C)",
+        "de": "Komfort priorisieren (±0,5 °C)",
+        "nl": "Comfort voorop (±0,5 °C)",
+        "no": "Prioriter komfort (±0,5 °C)",
+        "da": "Prioritér komfort (±0,5 °C)"
       }
     },
     {
       "id": "save_some",
       "title": {
-        "en": "Save (±3 °C)",
-        "sv": "Spara (±3 °C)",
-        "de": "Sparen (±3 °C)",
-        "nl": "Besparen (±3 °C)",
-        "no": "Spar (±3 °C)",
-        "da": "Spar (±3 °C)"
+        "en": "Balanced (±3 °C)",
+        "sv": "Balanserat (±3 °C)",
+        "de": "Ausgewogen (±3 °C)",
+        "nl": "Gebalanceerd (±3 °C)",
+        "no": "Balansert (±3 °C)",
+        "da": "Balanceret (±3 °C)"
       }
     },
     {
       "id": "save_most",
       "title": {
-        "en": "Save more (±6 °C)",
-        "sv": "Spara mer (±6 °C)",
-        "de": "Mehr sparen (±6 °C)",
-        "nl": "Meer besparen (±6 °C)",
-        "no": "Spar mer (±6 °C)",
-        "da": "Spar mere (±6 °C)"
+        "en": "Prioritize savings (±6 °C)",
+        "sv": "Prioritera besparing (±6 °C)",
+        "de": "Sparen priorisieren (±6 °C)",
+        "nl": "Besparen voorop (±6 °C)",
+        "no": "Prioriter sparing (±6 °C)",
+        "da": "Prioritér besparelse (±6 °C)"
       }
     },
     {

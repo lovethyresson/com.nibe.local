@@ -340,9 +340,9 @@
         "success_indoor_now": "binnen nu",
         "range_title": "Comfortbereik",
         "range_intro": "Hoeveel de binnentemperatuur mag veranderen terwijl Autopilot in goedkope uren meer verwarmt en in dure minder. Je kunt dit later aanpassen op het apparaat Verwarming.",
-        "range_comfortable": "Comfort",
-        "range_save_some": "Besparen",
-        "range_save_most": "Meer besparen",
+        "range_comfortable": "Comfort voorop",
+        "range_save_some": "Gebalanceerd",
+        "range_save_most": "Besparen voorop",
         "range_custom_name": "Aangepast (geavanceerd)",
         "range_example": "Voorbeelddag: goedkope nacht, dure avond",
         "range_key_indoor": "Binnen",
@@ -661,9 +661,9 @@
       "charge": "Opwarmen",
       "away": "Afwezig · __c__ °C",
       "range": {
-        "comfortable": "Comfort ±0,5 °C",
-        "save_some": "Besparen ±3 °C",
-        "save_most": "Meer besparen ±6 °C",
+        "comfortable": "Comfort voorop ±0,5 °C",
+        "save_some": "Gebalanceerd ±3 °C",
+        "save_most": "Besparen voorop ±6 °C",
         "off": "Uit",
         "custom": "Aangepast bereik"
       },
@@ -713,7 +713,8 @@
       "starting_hotwater": "De prijzen en de stand van de boiler worden geladen. Dit duurt ongeveer een minuut.",
       "starting_app": "Gegevens van je warmtepomp worden geladen. Dit duurt ongeveer een minuut.",
       "away_until": "Afwezig tot __until__ · __c__ °C",
-      "charge_done": "Opgewarmd"
+      "charge_done": "Opgewarmd",
+      "in_range": "Vandaag __h__ van __n__ u binnen ±__band__ °C"
     },
     "hotwater_status": {
       "learning": "Leert je warmwatergebruik kennen",
@@ -811,6 +812,6 @@
       "no_prices": "Vereist dynamische stroomprijzen in Homey Energy.",
       "no_functions": "Deze warmtepomp heeft geen apparaat Verwarming of Warm water."
     },
-    "custom_warning": "Alleen voor gevorderde gebruikers. Deze instellingen gelden voor het apparaat Verwarming als het comfortbereik op Aangepast staat. Autopilot is afgestemd op Comfort, Besparen en Meer besparen. Andere combinaties zijn niet getest en kunnen meer verwarmen, minder besparen of het huis kouder laten worden dan je verwacht."
+    "custom_warning": "Alleen voor gevorderde gebruikers. Deze instellingen gelden voor het apparaat Verwarming als het comfortbereik op Aangepast staat. Autopilot is afgestemd op de drie standaardbereiken. Andere combinaties zijn niet getest en kunnen meer verwarmen, minder besparen of het huis kouder laten worden dan je verwacht."
   }
 }
