@@ -222,7 +222,6 @@ test('hot water: what a shower cost before and with Autopilot, and how many char
     assert.equal(d.shower!.before!.value, '6.40 kr', 'the same water at the old pattern: 16 kr');
     assert.equal(d.shower!.now!.note, '\u221225 %');
     assert.equal(d.detail, '3 of 4 charges in the cheapest hours this week');
-    assert.equal(d.charges!.days.length, 3, 'only days with charge data: the days before carry none');
 });
 test('hot water names the total and the month, and the tiles are per shower', () => {
     const b = baselineOf(before, '2026-11-14')!;

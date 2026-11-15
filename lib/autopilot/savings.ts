@@ -226,12 +226,6 @@ export interface SplitRow {
     perDay: string;
 }
 
-/** Hot water: one day of charges, each at its place in the day's prices (0 cheapest, 1 most expensive). */
-export interface ChargeDay {
-    label: string;
-    ranks: number[];
-}
-
 export interface SavingsData {
     title: string;
     /** The "Experimental" mark, shown quietly like the Autopilot widget's. */
@@ -249,8 +243,6 @@ export interface SavingsData {
     valueNote?: string;
     /** Hot water: what one shower cost, before and with Autopilot. */
     shower?: {title: string; before?: {label: string; value: string}; now?: {label: string; value: string; note?: string}};
-    /** Hot water: the last week's charges on their day's prices. */
-    charges?: {title: string; days: ChargeDay[]; bands: [string, string, string]};
     legend?: Record<string, string>;
     footnote?: string;
     empty?: string;
@@ -309,9 +301,7 @@ export function savingsData(title: string, stored: SavingsDay[], t: Translate, c
             perDay: onlyToday ? t('kwh_so_far', {kwh: (ap.kwh).toFixed(1)}) : perDay(ap.kwh / ap.days)});
         if (rows.length) pictures.split = rows;
     } else {
-        const week = days.slice(-CHARGE_DAYS).filter((d) => d.charges);
-        if (week.length) pictures.charges = {title: t('charges_title'), days: week.map((d) => ({label: c.label(d.date), ranks: d.charges!})),
-            bands: [t('band_cheap'), t('band_middle'), t('band_dear')]};
+        // The week's charges are one line (chargeLine), so the card stays to the headline and the shower.
         // A shower with Autopilot, and the same water at the baseline's pattern, at today's prices.
         const whole = counted.filter((d) => d !== c.sofar);
         const shower = (list: SavingsDay[], extra: (d: SavingsDay) => number) => {
