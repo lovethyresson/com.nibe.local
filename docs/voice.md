@@ -5,6 +5,10 @@ pairing and Repair, timeline messages, widgets, help pages, the FAQ and the stor
 rules are in `CLAUDE.md` under "Owner-facing writing". The November 2026 audit against them is in
 [tone-review-2026-11.md](tone-review-2026-11.md).
 
+# Part 1. Voice
+
+Part 1 applies to everything an owner reads. Part 2 adds the format for text inside the app.
+
 ## Write like a person explaining it
 
 Imagine telling a neighbour how the thing works. Use normal sentences with a subject and a verb. Say
@@ -41,38 +45,6 @@ with full stops". That rule produced the headings in the table above, so it shou
 Keep sensor codes and menu numbers next to the plain words: "the outdoor temperature (BT1)", "On your
 heat pump, menu 7.5.9.2." Owners and installers look for them on the display.
 
-## App text
-
-People glance at the app and read the help pages. Text on a tile, a widget, the timeline or a Flow card
-gets one look, so keep it to the one line a person reads. The help pages, the FAQ and the changelog use
-full sentences.
-
-1. **Labels end without a full stop.** That covers titles, buttons, status lines, legend items and list
-   rows. Hints, empty states and timeline bodies are sentences and do end with one.
-2. **A status line gives the state first, then one fact, joined by " · ".** "Paused · no outdoor
-   temperature", "Charge 22:00 to 56 °C · Cheapest hours". The dot replaces a colon or a second
-   sentence.
-3. **Don't repeat what the screen already shows.** On the Heating device, a line doesn't start with
-   "Autopilot heating". Write "Cooling. Autopilot waits." Use "Your heat pump" when it is the one
-   acting.
-4. **A hint is one sentence, two at most**, and about 90 characters in English so the German still fits
-   on a phone. The first sentence says what the setting does. Reasons and edge cases go on the help page.
-5. **A button says what happens when you press it**, like "Check my heat pump".
-6. **An error says what's wrong, then how to fix it.** Give the fix as an instruction with the place to
-   do it: "No NIBE data at this address. Check the IP and that Modbus TCP is on (menu 7.5.9)."
-7. **Put the number where the eye lands first.** "Tank 120 L now · never below 40 L".
-8. **Use one name per thing.** See the words table below.
-9. **Flow cards follow Homey's guidelines.** Card titles have no parentheses or colons, and "to" goes
-   before every value: "Set outdoor temperature BT1 to [[value]] °C". Leave out a hint that only
-   repeats the title. A trigger hint starts with "When".
-10. **Check the length before adding a line.** If a hint has to explain a concept before the owner can
-    use the screen, change the screen instead. Show the state or draw it, and put the explanation on
-    the help page.
-
-Timeline messages lead with the decision, then the reason, then the numbers. A changelog entry is a few
-sentences about what changed for the owner and anything they need to do. The details go in
-`docs/releases.md`.
-
 ## Words
 
 | Concept | Use | Don't use |
@@ -107,6 +79,40 @@ Quote names exactly as the screen shows them, in sentence case: "Heating setup",
 
 English comes first. The translations follow once the English is settled. The translation findings are
 parked in the appendix of the review.
+
+# Part 2. App UI format
+
+People glance at the app and read the help pages. Text on a tile, a widget, the timeline or a Flow card
+gets one look, so keep it to the one line a person reads. The help pages, the FAQ and the changelog use
+full sentences.
+
+These rules apply on top of Part 1 to text inside the app. The maintainer approved them on 2026-11-15.
+
+1. **Labels end without a full stop.** That covers titles, buttons, status lines, legend items and list
+   rows. Hints, empty states and timeline bodies are sentences and do end with one.
+2. **A status line gives the state first, then one fact, joined by " · ".** "Paused · no outdoor
+   temperature", "Charge 22:00 to 56 °C · Cheapest hours". The dot replaces a colon or a second
+   sentence.
+3. **A hint is one sentence, two at most**, and about 90 characters in English so the German still fits
+   on a phone. The first sentence says what the setting does. Reasons and edge cases go on the help page.
+4. **A button says what happens when you press it**, like "Check my heat pump".
+5. **An error says what's wrong, then how to fix it.** Give the fix as an instruction with the place to
+   do it: "No NIBE data at this address. Check the IP and that Modbus TCP is on (menu 7.5.9)."
+6. **Put the number where the eye lands first.** "Tank 120 L now · never below 40 L".
+7. **Flow cards follow Homey's guidelines.** Card titles have no parentheses or colons, and "to" goes
+   before every value: "Set outdoor temperature BT1 to [[value]] °C". Leave out a hint that only
+   repeats the title. A trigger hint starts with "When".
+8. **Check the length before adding a line.** If a hint has to explain a concept before the owner can
+   use the screen, change the screen instead. Show the state or draw it, and put the explanation on
+   the help page.
+9. **Hints and sentences keep a subject and a verb.** Status lines use the "state · fact" form from rule
+   2. Anywhere else, "Expected line shows after learning" or "Optional. Off for Autopilot." reads as
+   shorthand. Write "The expected line shows once Autopilot has
+   learned your house."
+
+Timeline messages lead with the decision, then the reason, then the numbers. A changelog entry is a few
+sentences about what changed for the owner and anything they need to do. The details go in
+`docs/releases.md`.
 
 ## Before it ships
 
