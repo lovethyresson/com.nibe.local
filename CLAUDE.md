@@ -100,6 +100,9 @@ Flow cards, timeline messages, status lines, widgets) and the store changelog. T
   turn off…"). No em dashes as asides, no semicolons in UI text, no exclamation marks.
 - No "simply", "just", "seamless", "please". No marketing claims or savings figures that aren't
   measured.
+- **Say it the way other software says it**: "Turn it off to enable Autopilot", "Requires…",
+  "Loading…", "This may take a few minutes", "Triggers when…". Never a homemade phrasing such as "so
+  Autopilot can work" (maintainer, 2026-11-15). Examples in `docs/voice.md`.
 - Plain words. No "register", "allocator", "bias", "degree minutes", "fed". Developer words stay in
   code and `docs/`.
 - **Keep the link to the real heat pump.** Sensor codes and menu numbers stay next to the plain
@@ -131,9 +134,10 @@ Flow cards, timeline messages, status lines, widgets) and the store changelog. T
   why, then the numbers.
 
 **Help page design** (`help/assets/site.css`, shared by every page)
-- Apple feature-page style: a centred hero with an eyebrow and a short two-part headline with full
-  stops ("Hot water. When it's cheap."), one idea per section, generous whitespace, a bento grid of
-  tiles with a big number or a visual, light and dark tiles alternating.
+- Apple feature-page style: a centred hero with an eyebrow and a headline that names the topic ("Autopilot
+  for hot water", "Heating in summer"), one idea per section, generous whitespace, a bento grid of
+  tiles with a big number or a visual, light and dark tiles alternating. No two-part slogan headlines
+  ("Hot water. When it's cheap.", "Summer, sorted."): the maintainer dropped them on 2026-11-15.
 - Visuals over prose: inline SVG charts with smooth monotone curves (never step lines), CSS visuals
   like the tank glasses, `crumbs` for menu paths, pills for reasons. Labels never sit on a curve.
 - Only the CSS variables, so light and dark both work; text meets WCAG AA contrast. Must fit a

@@ -18,6 +18,26 @@ what it does for them first, then how. Contractions are fine.
 
 Write the fact and stop. Don't set it up for effect, sum it up, or reassure afterwards.
 
+## Say it the way other software says it
+
+For every line, ask how iOS, Google or Homey itself would phrase the same thing, and use that. People
+skim stock phrasing without stopping. Homemade phrasing, even friendly or clever phrasing, makes them
+stop and parse. The maintainer chose this over a warmer and a terser rewrite (2026-11-15).
+
+| Homemade | Stock |
+|---|---|
+| Turn it off so Autopilot can work | Turn it off to enable Autopilot |
+| Reading the forecast. Takes about a minute. | Loading the forecast. This takes about a minute. |
+| Simulated plans everything and shows what it would do, while your heat pump stays as it is | Simulated previews the plan without making changes |
+| …so room-sensor control stays off | Requires room-sensor control to be off |
+| …so it reports no sensor fault | …to prevent sensor alarms |
+| The 14:00 charge is gone | 14:00 charge cancelled |
+| Fires when… | Triggers when… |
+| The day averages 1.62 kr | Today's average: 1.62 kr |
+
+Keep today's sentences where they already read this way. The goal is fewer, more familiar words, not a
+new format.
+
 ## Avoid the AI voice
 
 Most of the copy in this app was drafted with an AI model, and the model's habits show. The maintainer
@@ -86,13 +106,13 @@ People glance at the app and read the help pages. Text on a tile, a widget, the 
 gets one look, so keep it to the one line a person reads. The help pages, the FAQ and the changelog use
 full sentences.
 
-These rules apply on top of Part 1 to text inside the app. The maintainer approved them on 2026-11-15.
+These rules apply on top of Part 1 to text inside the app. The maintainer approved them on 2026-11-15, and
+rejected a terser "state · fact" format for every line the same day.
 
-1. **Labels end without a full stop.** That covers titles, buttons, status lines, legend items and list
-   rows. Hints, empty states and timeline bodies are sentences and do end with one.
-2. **A status line gives the state first, then one fact, joined by " · ".** "Paused · no outdoor
-   temperature", "Charge 22:00 to 56 °C · Cheapest hours". The dot replaces a colon or a second
-   sentence.
+1. **Labels end without a full stop.** That covers titles, buttons, legend items and list rows.
+   Hints, status messages, empty states and timeline bodies are sentences and end with one.
+2. **A short status can carry its reason after " · "**, as the app already does: "Next charge 22:00 to
+   56 °C · Cheapest hours". Don't force other lines into that shape.
 3. **A hint is one sentence, two at most**, and about 90 characters in English so the German still fits
    on a phone. The first sentence says what the setting does. Reasons and edge cases go on the help page.
 4. **A button says what happens when you press it**, like "Check my heat pump".
@@ -101,14 +121,13 @@ These rules apply on top of Part 1 to text inside the app. The maintainer approv
 6. **Put the number where the eye lands first.** "Tank 120 L now · never below 40 L".
 7. **Flow cards follow Homey's guidelines.** Card titles have no parentheses or colons, and "to" goes
    before every value: "Set outdoor temperature BT1 to [[value]] °C". Leave out a hint that only
-   repeats the title. A trigger hint starts with "When".
+   repeats the title. A trigger hint starts with "Triggers when".
 8. **Check the length before adding a line.** If a hint has to explain a concept before the owner can
    use the screen, change the screen instead. Show the state or draw it, and put the explanation on
    the help page.
-9. **Hints and sentences keep a subject and a verb.** Status lines use the "state · fact" form from rule
-   2. Anywhere else, "Expected line shows after learning" or "Optional. Off for Autopilot." reads as
-   shorthand. Write "The expected line shows once Autopilot has
-   learned your house."
+9. **Hints and sentences keep a subject and a verb.** "Expected line shows after learning" or
+   "Optional. Off for Autopilot." reads as shorthand. Write "The expected line shows once Autopilot
+   has learned your house."
 
 Timeline messages lead with the decision, then the reason, then the numbers. A changelog entry is a few
 sentences about what changed for the owner and anything they need to do. The details go in
