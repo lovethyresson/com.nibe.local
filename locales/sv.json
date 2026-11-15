@@ -746,7 +746,10 @@
       "band_middle": "Mitten",
       "band_dear": "Dyrt",
       "stat_week": "Senaste 7 dagarna",
-      "stat_year": "I år"
+      "stat_year": "I år",
+      "share_note": "av värmen under de billigaste timmarna",
+      "share_cheap": "__kwh__ kWh billigt",
+      "share_rest": "__middle__ mitten · __expensive__ dyrt"
     },
     "away_until_token": "Borta till"
   }

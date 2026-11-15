@@ -460,11 +460,11 @@
       "row_so_far_days": "Indtil nu · __days__ dage",
       "row_with_days": "Med Autopilot · __days__ dage",
       "charges_title": "Seneste 7 dage",
-      "band_cheap": "Billig",
-      "band_middle": "Midten",
-      "band_dear": "Dyrt",
       "stat_week": "Seneste 7 dage",
-      "stat_year": "I år"
+      "stat_year": "I år",
+      "share_note": "af varmen i de billigste timer",
+      "share_cheap": "__kwh__ kWh billig",
+      "share_rest": "__middle__ midten · __expensive__ dyrt"
     },
     "away_until_token": "Fraværende til"
   }

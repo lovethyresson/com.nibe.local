@@ -746,7 +746,10 @@
       "band_middle": "Middle",
       "band_dear": "Expensive",
       "stat_week": "Last 7 days",
-      "stat_year": "This year"
+      "stat_year": "This year",
+      "share_note": "of the heat in the cheapest hours",
+      "share_cheap": "__kwh__ kWh cheap",
+      "share_rest": "__middle__ middle · __expensive__ expensive"
     },
     "away_until_token": "Away until"
   }

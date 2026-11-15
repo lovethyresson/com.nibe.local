@@ -460,11 +460,11 @@
       "row_so_far_days": "Bisher · __days__ Tage",
       "row_with_days": "Mit Autopilot · __days__ Tage",
       "charges_title": "Letzte 7 Tage",
-      "band_cheap": "Günstig",
-      "band_middle": "Mitte",
-      "band_dear": "Teuer",
       "stat_week": "Letzte 7 Tage",
-      "stat_year": "Dieses Jahr"
+      "stat_year": "Dieses Jahr",
+      "share_note": "der Wärme in den günstigsten Stunden",
+      "share_cheap": "__kwh__ kWh günstig",
+      "share_rest": "__middle__ Mitte · __expensive__ teuer"
     },
     "away_until_token": "Abwesend bis"
   }

@@ -27,6 +27,9 @@
       .sv-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.78em; opacity: 0.7; margin-top: 12px; }
       .sv-key { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
       .sv-sub { margin: 16px 0 0; font-size: 0.8em; font-weight: 600; opacity: 0.6; }
+      .sv-share { display: flex; align-items: baseline; gap: 8px; margin: 4px 0 0; }
+      .sv-share-v { font-size: 1.6em; font-weight: 700; letter-spacing: -0.01em; color: var(--sv-cheap); font-variant-numeric: tabular-nums; }
+      .sv-share-n { opacity: 0.6; }
       .sv-empty { opacity: 0.8; margin: 12px 0; }
       /* Starting: the plan being drawn. A soft curve draws itself, charge pills light up in turn and
          bars grow in, then it starts over. Everything rests, fully drawn, when motion is reduced. */
@@ -48,10 +51,10 @@
 
       /* Cheap and dear meet 3:1 or better on their card; the middle third is a quiet grey on purpose.
          The theme is read from the text colour Homey gives the page (applyTheme), the media query first. */
-      :root { --ghost-accent: #2d6bd6; --sv-cheap: #0f8374; --sv-middle: rgba(127, 127, 127, 0.4); --sv-dear: #c4580d; --sv-mid-dot: #8e8e93; --sv-ring: rgba(255, 255, 255, 0.9); }
-      :root[data-theme="dark"] { --sv-cheap: #2bb3a3; --sv-dear: #e8833a; --sv-ring: rgba(0, 0, 0, 0.5); }
+      :root { --ghost-accent: #2d6bd6; --sv-cheap: #0f8374; --sv-middle: rgba(127, 127, 127, 0.4); --sv-dear: #c4580d; }
+      :root[data-theme="dark"] { --sv-cheap: #2bb3a3; --sv-dear: #e8833a; }
       @media (prefers-color-scheme: dark) {
-        :root:not([data-theme="light"]) { --sv-cheap: #2bb3a3; --sv-dear: #e8833a; --sv-ring: rgba(0, 0, 0, 0.5); }
+        :root:not([data-theme="light"]) { --sv-cheap: #2bb3a3; --sv-dear: #e8833a; }
       }
     </style>
   </head>
@@ -176,33 +179,54 @@
         return svg;
       }
 
-      // Hot water: a column a day, each charge a dot at its place in that day's prices: the cheapest
-      // hours on the top lane, the most expensive on the bottom. Hairlines between the lanes.
-      function charges(c) {
-        var W = chartWidth(), L = 66, R = W, T = 2, LANE = 22, PH = LANE * 3, B = T + PH, H = B + 18;
-        var n = c.days.length, step = (R - L) / Math.max(n, 7);
+      // Hot water: the last seven days' heat as one bar split by price third, then a ring a day
+      // filled to that day's share in the cheapest third. An empty ring: no record, or no heat.
+      function share(c) {
+        var box = el('div');
+        if (c.value) {
+          var big = el('div', 'sv-share');
+          big.appendChild(el('span', 'sv-share-v', c.value));
+          big.appendChild(el('span', 'sv-share-n homey-text-small', c.note || ''));
+          box.appendChild(big);
+        }
+        var W = chartWidth(), BH = 12, R = 10, SW = 4, y0 = 0, ty = BH + 16, ry = ty + 22, H = ry + R * 2 + 22;
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'sv-chart', role: 'img'});
-        var y = function (r) { return T + LANE / 2 + (PH - LANE) * r; };
-        c.bands.forEach(function (name, i) {
-          var y0 = T + LANE * i;
-          if (i) svg.appendChild(svgEl('line', {x1: L, x2: R, y1: y0, y2: y0, stroke: 'currentColor', 'stroke-opacity': 0.1}));
-          var t = svgEl('text', {x: L - 10, y: y0 + LANE / 2 + 4, 'text-anchor': 'end'}, name);
-          t.style.fill = TIER[i === 1 ? 1 : i]; if (i === 1) t.style.fill = 'currentColor';
-          svg.appendChild(t);
+        var total = c.tiers[0] + c.tiers[1] + c.tiers[2], x = 0;
+        var defs = svgEl('defs', {}), clip = svgEl('clipPath', {id: 'sv-share-clip'});
+        clip.appendChild(svgEl('rect', {x: 0, y: y0, width: W, height: BH, rx: BH / 2}));
+        defs.appendChild(clip); svg.appendChild(defs);
+        var bar = svgEl('g', {'clip-path': 'url(#sv-share-clip)'});
+        c.tiers.forEach(function (kwh, i) {
+          var w = total > 0 ? W * kwh / total : 0;
+          if (w <= 0) return;
+          var gap = x > 0 ? 2 : 0;
+          bar.appendChild(svgEl('rect', {x: x + gap, y: y0, width: Math.max(0.5, w - gap), height: BH, fill: TIER[i]}));
+          x += w;
         });
+        svg.appendChild(bar);
+        var left = svgEl('text', {x: 0, y: ty}, c.cheap);
+        left.style.fill = 'var(--sv-cheap)'; left.style.opacity = 1;
+        svg.appendChild(left);
+        svg.appendChild(svgEl('text', {x: W, y: ty, 'text-anchor': 'end'}, c.rest));
+        var step = W / c.days.length, cy = ry + R;
         c.days.forEach(function (d, k) {
-          var cx = L + (k + 0.5) * step;
-          d.ranks.forEach(function (r, j) {
-            var off = d.ranks.length > 1 ? (j - (d.ranks.length - 1) / 2) * 9 : 0;
-            svg.appendChild(svgEl('circle', {cx: cx + off, cy: y(r), r: 5, fill: r < 1 / 3 ? 'var(--sv-cheap)' : r < 2 / 3 ? 'var(--sv-mid-dot)' : 'var(--sv-dear)',
-              stroke: 'var(--sv-ring)', 'stroke-width': 2}));
-          });
+          var cx = step * (k + 0.5);
+          svg.appendChild(svgEl('circle', {cx: cx, cy: cy, r: R, fill: 'none', stroke: 'currentColor', 'stroke-opacity': d.share === undefined ? 0.08 : 0.15, 'stroke-width': SW}));
+          if (d.share !== undefined && d.share > 0) {
+            if (d.share >= 0.999) svg.appendChild(svgEl('circle', {cx: cx, cy: cy, r: R, fill: 'none', stroke: 'var(--sv-cheap)', 'stroke-width': SW}));
+            else {
+              var a = d.share * 2 * Math.PI, x2 = cx + R * Math.sin(a), y2 = cy - R * Math.cos(a);
+              svg.appendChild(svgEl('path', {d: 'M' + cx + ' ' + (cy - R) + ' A' + R + ' ' + R + ' 0 ' + (a > Math.PI ? 1 : 0) + ' 1 ' + x2 + ' ' + y2,
+                fill: 'none', stroke: 'var(--sv-cheap)', 'stroke-width': SW, 'stroke-linecap': 'round'}));
+            }
+          }
           var label = svgEl('text', {x: cx, y: H - 3, 'text-anchor': 'middle'}, d.label);
-          if (d.known === false) label.style.opacity = 0.3;
+          if (d.share === undefined) label.style.opacity = 0.3;
           if (k === c.days.length - 1) label.setAttribute('font-weight', '700');
           svg.appendChild(label);
         });
-        return svg;
+        box.appendChild(svg);
+        return box;
       }
 
       function legend(l) {
@@ -250,9 +274,9 @@
           if (data.shower.now) items.push({label: data.shower.now.label, value: data.shower.now.value, sub: data.shower.now.note, good: !!data.shower.before});
           var row = stats(items); row.style.marginTop = '4px'; root.appendChild(row);
         }
-        if (data.charges) {
-          root.appendChild(el('div', 'sv-sub', data.charges.title));
-          root.appendChild(charges(data.charges));
+        if (data.share) {
+          root.appendChild(el('div', 'sv-sub', data.share.title));
+          root.appendChild(share(data.share));
         }
       }
       function stats(items) {

@@ -746,7 +746,10 @@
       "band_middle": "Mitte",
       "band_dear": "Teuer",
       "stat_week": "Letzte 7 Tage",
-      "stat_year": "Dieses Jahr"
+      "stat_year": "Dieses Jahr",
+      "share_note": "der Wärme in den günstigsten Stunden",
+      "share_cheap": "__kwh__ kWh günstig",
+      "share_rest": "__middle__ Mitte · __expensive__ teuer"
     },
     "away_until_token": "Abwesend bis"
   }

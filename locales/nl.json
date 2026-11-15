@@ -746,7 +746,10 @@
       "band_middle": "Midden",
       "band_dear": "Duur",
       "stat_week": "Laatste 7 dagen",
-      "stat_year": "Dit jaar"
+      "stat_year": "Dit jaar",
+      "share_note": "van de warmte in de goedkoopste uren",
+      "share_cheap": "__kwh__ kWh goedkoop",
+      "share_rest": "__middle__ midden · __expensive__ duur"
     },
     "away_until_token": "Afwezig tot"
   }

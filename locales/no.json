@@ -746,7 +746,10 @@
       "band_middle": "Midten",
       "band_dear": "Dyrt",
       "stat_week": "Siste 7 dager",
-      "stat_year": "I år"
+      "stat_year": "I år",
+      "share_note": "av varmen i de billigste timene",
+      "share_cheap": "__kwh__ kWh billig",
+      "share_rest": "__middle__ midten · __expensive__ dyrt"
     },
     "away_until_token": "Borte til"
   }

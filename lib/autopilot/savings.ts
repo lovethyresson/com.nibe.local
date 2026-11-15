@@ -226,12 +226,25 @@ export interface SplitRow {
     perDay: string;
 }
 
-/** Hot water: one day of charges, each at its place in the day's prices (0 cheapest, 1 most expensive). */
-export interface ChargeDay {
+/** Hot water: one day of the last seven, and the share of its heat in its cheapest third of
+ *  hours. No share: no record, or no heat that day; drawn as an empty ring. */
+export interface ShareDay {
     label: string;
-    ranks: number[];
-    /** False for a day with no record yet: drawn faint. */
-    known?: boolean;
+    share?: number;
+}
+
+/** Hot water: where the last seven days' heat went, by price third. */
+export interface SharePicture {
+    title: string;
+    /** The cheap share, "80 %"; left out while the headline already is today's share. */
+    value?: string;
+    note?: string;
+    /** kWh in the cheapest, middle and most expensive third. */
+    tiers: [number, number, number];
+    /** "9.6 kWh cheap" and "1.6 middle · 0.8 expensive", under the bar. */
+    cheap: string;
+    rest: string;
+    days: ShareDay[];
 }
 
 export interface SavingsData {
@@ -252,7 +265,7 @@ export interface SavingsData {
     /** Under `value`, quieter: the month the figure is for. */
     valueNote?: string;
     /** Hot water: the week's charges, each a dot at its place in its day's prices. */
-    charges?: {title: string; days: ChargeDay[]; bands: [string, string, string]};
+    share?: SharePicture;
     /** Hot water: what one shower cost, before and with Autopilot. */
     shower?: {title: string; before?: {label: string; value: string}; now?: {label: string; value: string; note?: string}};
     legend?: Record<string, string>;
@@ -265,6 +278,8 @@ export interface SavingsData {
 /** Days the comparison and the charge chart look back over. */
 export const RECENT_DAYS = 14;
 export const CHARGE_DAYS = 7;
+/** Less heat than this in a day or a week says nothing about when it was used. */
+const MIN_KWH = 0.05;
 /** Litres of 40 °C water in one shower: a long one, so the figure is not a rounding error. */
 export const SHOWER_LITRES = 80;
 
@@ -318,10 +333,22 @@ export function savingsData(title: string, stored: SavingsDay[], t: Translate, c
     } else {
         // Always the last seven days ending today, so the week fills up instead of starting squeezed.
         const byDate = new Map(days.map((d) => [d.date, d]));
-        const week = Array.from({length: CHARGE_DAYS}, (_, k) => shiftDate(c.today, k - CHARGE_DAYS + 1))
-            .map((date) => ({label: c.label(date), ranks: byDate.get(date)?.charges ?? [], known: !!byDate.get(date)?.charges}));
-        if (week.some((d) => d.known)) pictures.charges = {title: t('charges_title'), days: week,
-            bands: [t('band_cheap'), t('band_middle'), t('band_dear')]};
+        const dates = Array.from({length: CHARGE_DAYS}, (_, k) => shiftDate(c.today, k - CHARGE_DAYS + 1));
+        const sum = (d?: SavingsDay) => (d ? d.tiers[0] + d.tiers[1] + d.tiers[2] : 0);
+        const tiers = dates.reduce<[number, number, number]>((a, date) => {
+            const d = byDate.get(date);
+            return d ? [a[0] + d.tiers[0], a[1] + d.tiers[1], a[2] + d.tiers[2]] : a;
+        }, [0, 0, 0]);
+        const total = tiers[0] + tiers[1] + tiers[2];
+        if (total >= MIN_KWH) pictures.share = {title: t('charges_title'),
+            ...onlyToday ? {} : {value: `${pct(tiers[0] / total)} %`, note: t('share_note')},
+            tiers: [round(tiers[0]), round(tiers[1]), round(tiers[2])],
+            cheap: t('share_cheap', {kwh: tiers[0].toFixed(1)}),
+            rest: t('share_rest', {middle: tiers[1].toFixed(1), expensive: tiers[2].toFixed(1)}),
+            days: dates.map((date) => {
+                const d = byDate.get(date);
+                return {label: c.label(date), ...sum(d) >= MIN_KWH ? {share: round(d!.tiers[0] / sum(d))} : {}};
+            })};
         const whole = counted.filter((d) => d !== c.sofar);
         const shower = (list: SavingsDay[], extra: (d: SavingsDay) => number) => {
             const known = list.filter((d) => (d.litres ?? 0) > 0);

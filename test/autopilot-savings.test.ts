@@ -204,7 +204,7 @@ test('hot water: charges are runs of charging hours, placed at their hours\' pri
     assert.ok(d.charges![1] > 2 / 3, `the 17:00 charge in the most expensive third, at ${d.charges![1]}`);
 });
 
-test('hot water: what a shower cost before and with Autopilot, and how many charges hit cheap hours', () => {
+test('hot water: what a shower cost before and with Autopilot, and how much of the week\'s heat went in cheap hours', () => {
     const b = baselineOf(before, '2026-11-14')!;
     const withWater = after.map((d, i) => ({...d, litres: 200, charges: i === 0 ? [0.1, 0.9] : [0.05]}));
     const d = savingsData('Hot water', [...before, ...withWater], translator('en'),
@@ -214,8 +214,14 @@ test('hot water: what a shower cost before and with Autopilot, and how many char
     assert.equal(d.shower!.now!.value, '4.80 kr', '12 kr for 200 L: 4.80 kr per 80 L');
     assert.equal(d.shower!.before!.value, '6.40 kr', 'the same water at the old pattern: 16 kr');
     assert.equal(d.shower!.now!.note, '\u221225 %');
-    assert.equal(d.charges!.days.length, 7, 'always the last seven days, ending today');
-    assert.equal(d.charges!.days.filter((x) => x.known).length, 3, 'the days before Autopilot carry no charges');
+    const share = d.share!;
+    assert.equal(share.days.length, 7, 'always the last seven days, ending today');
+    const recent = [...before, ...withWater].filter((x) => x.date >= '2026-11-14' && x.date <= '2026-11-20');
+    const sum = recent.reduce((a, x) => [a[0] + x.tiers[0], a[1] + x.tiers[1], a[2] + x.tiers[2]], [0, 0, 0]);
+    assert.equal(share.value, `${Math.round(sum[0] / (sum[0] + sum[1] + sum[2]) * 100)} %`, 'the week\'s heat in the cheapest third');
+    assert.match(share.cheap, /^\d+\.\d kWh cheap$/);
+    assert.match(share.rest, /^\d+\.\d middle · \d+\.\d expensive$/);
+    assert.ok(share.days.every((x) => x.share === undefined || (x.share >= 0 && x.share <= 1)));
     assert.equal(d.detail, undefined);
 });
 test('hot water names the total and the month, and the tiles are per shower', () => {
