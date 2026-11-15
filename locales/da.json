@@ -734,7 +734,9 @@
       "status_heating": "Besparelse opvarmning",
       "status_hotwater": "Besparelse varmt vand",
       "shower": "Pr. brusebad (__litres__ L)",
-      "loading": "Læser de seneste to uger fra Indsigt. Tager et par minutter."
+      "loading": "Læser de seneste to uger fra Indsigt. Tager et par minutter.",
+      "pick_heating": "Vælg en enhed for Opvarmning i widgettens indstillinger.",
+      "pick_hotwater": "Vælg en enhed for Varmt vand i widgettens indstillinger."
     }
   }
 }

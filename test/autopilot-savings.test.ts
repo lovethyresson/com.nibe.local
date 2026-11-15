@@ -222,3 +222,8 @@ test('money is written with the currency after the number when it is letters, sy
     assert.equal(moneyText(2.79, 2, 'de', 'EUR').replace(/\s/g, ' '), '2,79 €', 'Intl keeps its own non-breaking space');
     assert.equal(moneyText(17, 0, 'en', ''), '17');
 });
+
+test('the Hot water savings widget draws with the same page as Heating savings, byte for byte', () => {
+    const page = (id: string) => readFileSync(join(__dirname, '..', 'widgets', id, 'public', 'index.html'), 'utf8');
+    assert.equal(page('savings_hotwater'), page('savings'), 'edit widgets/savings/public/index.html and copy it over');
+});

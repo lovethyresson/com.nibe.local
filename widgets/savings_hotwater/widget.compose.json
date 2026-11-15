@@ -1,0 +1,32 @@
+{
+  "name": {
+    "en": "Hot water savings",
+    "sv": "Besparing varmvatten",
+    "de": "Ersparnis Warmwasser",
+    "nl": "Besparing warm water",
+    "no": "Besparelse varmtvann",
+    "da": "Besparelse varmt vand"
+  },
+  "height": 440,
+  "transparent": false,
+  "settings": [
+    {
+      "id": "device",
+      "type": "autocomplete",
+      "title": {
+        "en": "Device",
+        "sv": "Enhet",
+        "de": "Gerät",
+        "nl": "Apparaat",
+        "no": "Enhet",
+        "da": "Enhed"
+      }
+    }
+  ],
+  "api": {
+    "getData": {
+      "method": "GET",
+      "path": "/"
+    }
+  }
+}

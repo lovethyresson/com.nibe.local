@@ -1,11 +1,11 @@
 {
   "name": {
-    "en": "Autopilot savings",
-    "sv": "Autopilot-besparing",
-    "de": "Autopilot-Ersparnis",
-    "nl": "Autopilot-besparing",
-    "no": "Autopilot-besparelse",
-    "da": "Autopilot-besparelse"
+    "en": "Heating savings",
+    "sv": "Besparing uppvärmning",
+    "de": "Ersparnis Heizung",
+    "nl": "Besparing verwarming",
+    "no": "Besparelse oppvarming",
+    "da": "Besparelse opvarmning"
   },
   "height": 360,
   "transparent": false,

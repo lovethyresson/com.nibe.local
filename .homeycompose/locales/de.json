@@ -452,7 +452,9 @@
       "status_heating": "Ersparnis Heizung",
       "status_hotwater": "Ersparnis Warmwasser",
       "shower": "Pro Dusche (__litres__ L)",
-      "loading": "Die letzten zwei Wochen werden aus Insights gelesen. Dauert einige Minuten."
+      "loading": "Die letzten zwei Wochen werden aus Insights gelesen. Dauert einige Minuten.",
+      "pick_heating": "Wählen Sie in den Widget-Einstellungen ein Gerät für Heizung.",
+      "pick_hotwater": "Wählen Sie in den Widget-Einstellungen ein Gerät für Warmwasser."
     }
   }
 }

@@ -1507,7 +1507,9 @@ never swallow them.
   against those too, or say plainly that the figure is against the pump without SPA.
 - **Widget:** this month's saving with its band, and comfort held, once the 14-day rule passes.
   A candidate for the widgets milestone (§19.5), not part of M3.
-- **Built first instead (2026-11-15): the measured view, `widgets/savings`, `lib/autopilot/savings.ts`.**
+- **Built first instead (2026-11-15): the measured view, `lib/autopilot/savings.ts`, as two widgets:**
+  Heating savings (`widgets/savings`, the id kept from when one widget did both) and Hot water
+  savings (`widgets/savings_hotwater`, the same page copied byte for byte; a test keeps them equal).
   The maintainer's test of "does it work" is kWh leaving the expensive hours, so the first widget
   needs no model. Per complete day it keeps the function's kWh in the cheapest, middle and most
   expensive third of that day's hours, and its cost. Sources: Insights' hourly `meter_power.total`

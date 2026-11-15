@@ -452,7 +452,9 @@
       "status_heating": "Besparing verwarming",
       "status_hotwater": "Besparing warm water",
       "shower": "Per douche (__litres__ L)",
-      "loading": "De afgelopen twee weken worden uit Inzichten gelezen. Duurt een paar minuten."
+      "loading": "De afgelopen twee weken worden uit Inzichten gelezen. Duurt een paar minuten.",
+      "pick_heating": "Kies een apparaat voor Verwarming in de instellingen van de widget.",
+      "pick_hotwater": "Kies een apparaat voor Warm water in de instellingen van de widget."
     }
   }
 }

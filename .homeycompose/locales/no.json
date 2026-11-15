@@ -452,7 +452,9 @@
       "status_heating": "Besparelse oppvarming",
       "status_hotwater": "Besparelse varmtvann",
       "shower": "Per dusj (__litres__ L)",
-      "loading": "Leser de siste to ukene fra Innsikt. Tar noen minutter."
+      "loading": "Leser de siste to ukene fra Innsikt. Tar noen minutter.",
+      "pick_heating": "Velg en enhet for Oppvarming i widgetens innstillinger.",
+      "pick_hotwater": "Velg en enhet for Varmtvann i widgetens innstillinger."
     }
   }
 }

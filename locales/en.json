@@ -734,7 +734,9 @@
       "status_heating": "Heating savings",
       "status_hotwater": "Hot water savings",
       "shower": "Per shower (__litres__ L)",
-      "loading": "Reading the last two weeks from Insights. Takes a few minutes."
+      "loading": "Reading the last two weeks from Insights. Takes a few minutes.",
+      "pick_heating": "Pick a Heating device in the widget's settings.",
+      "pick_hotwater": "Pick a Hot water device in the widget's settings."
     }
   }
 }
