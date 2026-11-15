@@ -14,14 +14,18 @@
  *    kW per K of supply it changes there, which follows the curve's slope where the feed lands
  *    (0.44 to 0.77 K per K on the S1155, §3.3); without one by `lever` kW per K of bias. A curve
  *    tuned to the house would make `lever = H`; on the S1155 it measured ~0.45·H.
- *  - Electricity = heat / COP with a constant COP. The COP model is M5. */
+ *  - Electricity = heat / COP. With a trusted COP model (cop.ts) and the learned curve, each slot's
+ *    heat is priced at the COP of the supply its bias gives, so a pre-heat pays for the warmer
+ *    supply it needs; without them, at the constant `COP`. */
 import {HouseParams, stepHouse} from './model';
 import {Limits} from './presets';
 import {CURVE_TAU_H, RAMP_K_PER_SLOT, curveInput} from './actuator';
 import {SupplyCurve, supplyAt} from './curve';
 import {comfortBias} from './trim';
+import {COP_FALLBACK, CopModel, copAt} from './cop';
 
-export const COP = 3;
+/** The COP heat is priced at without a trusted model. */
+export const COP = COP_FALLBACK;
 /** The pump's heat ceiling as the outdoor temperature its curve is designed for. */
 export const DESIGN_OUTDOOR = -20;
 const SLOT_H = 0.25;
@@ -57,6 +61,9 @@ export interface Simulation {
     tm: number[];
     /** Heat delivered per slot, kWh. */
     heat: number[];
+    /** The COP each slot's heat was priced at, and the supply it ran at (NaN without a curve). */
+    cop: number[];
+    supply: number[];
     cost: number;
     curveEnd: number;
 }
@@ -71,6 +78,32 @@ export interface PumpCurve {
      *  learned curve's real shape (steeper or flat where it is) rather than its local slope. No
      *  comfort bias (trim.ts). Live heating plans this way (live.ts). */
     shiftOnly?: boolean;
+    /** The learned COP (cop.ts); used only when trusted and with the learned curve, which gives
+     *  the supply a slot runs at. */
+    cop?: CopModel;
+}
+
+/** Whether heat is priced by the learned COP rather than the constant. */
+export function pricesByCop(pump: PumpCurve): boolean {
+    return pump.cop?.trusted === true && pump.supply !== undefined;
+}
+
+/** The COP and supply of a slot whose curve sees `curve`. */
+export function slotCop(pump: PumpCurve, curve: number, te: number): {cop: number; supply: number} {
+    if (!pricesByCop(pump)) return {cop: COP, supply: pump.supply ? supplyAt(pump.supply, curve) : NaN};
+    const supply = supplyAt(pump.supply!, curve);
+    return {cop: copAt(pump.cop!, supply, te), supply};
+}
+
+/** kWh of electricity per extra kWh of heat in a slot that delivers `heat` kWh at `cop` and
+ *  `supply`. More heat needs a warmer supply, which lowers the COP of all of the slot's heat, not
+ *  only the extra: that is the price of a pre-heat the constant COP hid. At least 1/COP. */
+export function marginalElectricity(pump: PumpCurve, heat: number, cop: number, supply: number, te: number): number {
+    if (!pricesByCop(pump) || !(pump.heatPerSupplyK! > 0) || !Number.isFinite(supply)) return 1 / cop;
+    const dCop = copAt(pump.cop!, supply + 0.5, te) - copAt(pump.cop!, supply - 0.5, te);
+    // K of supply per extra kWh in the slot.
+    const supplyPerKwh = 1 / (pump.heatPerSupplyK! * SLOT_H);
+    return Math.max(1 / cop, 1 / cop - heat / cop ** 2 * dCop * supplyPerKwh);
 }
 
 /** Heat this slot, kWh, between off and the pump's design output.
@@ -98,7 +131,7 @@ export function pumpHeat(house: HouseParams, comfort: number, te: number, curve:
 export function simulate(house: HouseParams, comfort: number, state: PlanState, forecast: ForecastSlot[],
                          biases: number[], pump: PumpCurve = {}): Simulation {
     let {ti, tm, curve} = state;
-    const out: Simulation = {ti: [], tm: [], heat: [], cost: 0, curveEnd: curve};
+    const out: Simulation = {ti: [], tm: [], heat: [], cop: [], supply: [], cost: 0, curveEnd: curve};
     // Heat the pump owes after hot water had the compressor: its degree minutes keep counting while
     // it charges the tank, and it catches up afterwards, as fast as it can.
     let owed = 0;
@@ -119,7 +152,10 @@ export function simulate(house: HouseParams, comfort: number, state: PlanState, 
         out.ti.push(ti);
         out.tm.push(tm);
         out.heat.push(heat);
-        out.cost += heat / COP * slot.price;
+        const priced = slotCop(pump, curve, slot.te);
+        out.cop.push(priced.cop);
+        out.supply.push(priced.supply);
+        out.cost += heat / priced.cop * slot.price;
     });
     out.curveEnd = curve;
     return out;
@@ -168,8 +204,24 @@ export function comfortReference(house: HouseParams, comfort: number, forecast: 
  *  end. Running the house colder therefore saves nothing here; only buying the same comfort at
  *  cheaper hours does. A weight above 1 values comfort above its price, which is what makes a
  *  pre-heat ahead of a cold front worth buying. */
-export function fairCost(house: HouseParams, sim: Simulation, reference: Reference, meanPrice: number, weight = 1): number {
-    return sim.cost + weight * owedHeat(house, sim, reference) / COP * meanPrice;
+export function fairCost(house: HouseParams, sim: Simulation, reference: Reference, meanPrice: number, weight = 1,
+                         cop = COP): number {
+    return sim.cost + weight * owedHeat(house, sim, reference) / cop * meanPrice;
+}
+
+/** Electricity per extra kWh of heat in each slot of a simulation (`marginalElectricity`). */
+export function marginals(pump: PumpCurve, sim: Simulation, forecast: ForecastSlot[]): number[] {
+    return sim.heat.map((q, k) => marginalElectricity(pump, q, sim.cop[k], sim.supply[k], forecast[k].te));
+}
+
+/** The COP owed heat is bought back at: the heat-weighted mean of the marginal rates, so heat
+ *  saved and heat owed are valued alike. At the average COP instead, every coast looked like a
+ *  saving at a flat price, since the heat it saves costs the marginal rate. The constant `COP`
+ *  without a trusted model. */
+export function buyBackCop(sim: Simulation, marginal: number[]): number {
+    const heat = sim.heat.reduce((a, b) => a + b, 0);
+    const electricity = sim.heat.reduce((a, q, k) => a + q * marginal[k], 0);
+    return heat > 0 && electricity > 0 ? heat / electricity : COP;
 }
 
 /** kWh of heat a plan leaves owing: each degree-hour colder than the reference (H·Δt), plus
@@ -209,7 +261,12 @@ export function planShift(house: HouseParams, comfort: number, state: PlanState,
     const meanPrice = mean(prices);
     const reference = comfortReference(house, comfort, forecast);
     const weight = limits.comfortWeight;
-    const baselineFair = fairCost(house, baseline, reference, meanPrice, weight);
+    // Electricity per extra kWh of heat in each slot, at doing nothing's supply: with a learned COP
+    // a warmer supply costs more than its own heat (`marginalElectricity`). Owed heat is bought
+    // back at the same rate, so plan and baseline are scored alike.
+    const marginal = marginals(pump, baseline, forecast);
+    const cop = buyBackCop(baseline, marginal);
+    const baselineFair = fairCost(house, baseline, reference, meanPrice, weight, cop);
     const lo = Math.min(...prices);
     const hi = Math.max(...prices);
     const thin = !(hi > lo * (1 + limits.margin)) || hi <= 0;
@@ -231,12 +288,39 @@ export function planShift(house: HouseParams, comfort: number, state: PlanState,
     // at the end). The objective is cost + mean price × max(0, owed) (`fairCost`).
     const costGrad = prices.map((_, j) => {
         let g = 0;
-        for (let k = j; k < n; k++) g += prices[k] / COP * rq[k - j];
+        for (let k = j; k < n; k++) g += prices[k] * marginal[k] * rq[k - j];
         return g;
     });
-    const owedValue = weight * meanPrice / COP;
+    // With a learned COP a slot's electricity is convex in its heat: each K of supply a pre-heat
+    // adds lowers the COP of all of the slot's heat. A fixed rate per slot misses that (with flat
+    // weather every slot's rate is the same and the penalty cancels), so each move is priced by
+    // the exact change at the heat the plan has reached so far. Supply moves with heat along the
+    // emission (`heatPerSupplyK`); without a trusted COP the fixed gradient is exact.
+    const convex = pricesByCop(pump) && pump.heatPerSupplyK! > 0;
+    const heatNow = [...baseline.heat];
+    const electricityAt = (k: number, heat: number) => {
+        const q = Math.max(0, heat);
+        if (q === 0) return 0;
+        const supply = baseline.supply[k] + (q - baseline.heat[k]) / (pump.heatPerSupplyK! * SLOT_H);
+        return q / copAt(pump.cop!, supply, forecast[k].te);
+    };
+    // A bias moves heat for a few hours (the curve's lag, then the house's pull on emission):
+    // past that the response is noise, and pricing it would only cost time.
+    const peak = Math.max(...rq.map(Math.abs));
+    let reach = n;
+    while (reach > 1 && Math.abs(rq[reach - 1]) < 1e-3 * peak) reach--;
+    const electricityChange = (j: number, step: number) => {
+        if (!convex) return step * costGrad[j];
+        let d = 0;
+        for (let k = j; k < Math.min(n, j + reach); k++) {
+            if (rq[k - j] === 0) continue;
+            d += prices[k] * (electricityAt(k, heatNow[k] + step * rq[k - j]) - electricityAt(k, heatNow[k]));
+        }
+        return d;
+    };
+    const owedValue = weight * meanPrice / cop;
     // A move must win at least half the margin on the heat it moves, so a thin spread isn't chased.
-    const threshold = (Number.isFinite(limits.margin) ? limits.margin : 1) / 2 * meanPrice / COP * moved;
+    const threshold = (Number.isFinite(limits.margin) ? limits.margin : 1) / 2 * meanPrice / cop * moved;
 
     const floor = baseline.ti.map((t) => Math.min(t, comfort - limits.lower));
     const ceiling = baseline.ti.map((t) => Math.max(t, comfort + limits.upper));
@@ -294,7 +378,7 @@ export function planShift(house: HouseParams, comfort: number, state: PlanState,
         let best: {j: number; step: number; gain: number} | undefined;
         for (let j = 0; j < n; j++) {
             for (const step of [-STEP_K, STEP_K]) {
-                const electricity = step * costGrad[j];
+                const electricity = electricityChange(j, step);
                 // Cheap bound first: owing can only add cost when warming (step > 0) is free of it.
                 if (-electricity <= threshold && step < 0) continue;
                 const gain = -(electricity + owedValue * owedChange(j, step));
@@ -305,6 +389,7 @@ export function planShift(house: HouseParams, comfort: number, state: PlanState,
         }
         if (!best) break;
         biases[best.j] += best.step;
+        for (let k = best.j; k < n; k++) heatNow[k] += best.step * rq[k - best.j];
         for (let k = best.j; k < n; k++) { ti[k] += best.step * rti[k - best.j]; tm[k] += best.step * rtm[k - best.j]; }
     }
 
@@ -314,7 +399,7 @@ export function planShift(house: HouseParams, comfort: number, state: PlanState,
     const plan = simulate(house, comfort, state, forecast, total(biases), pump);
     // Clamps (pump at zero or flat out) break the linear picture; keep the band regardless.
     if (plan.ti.some((t, k) => t < floor[k] - 0.1 || t > ceiling[k] + 0.1)) return nothing('no_gain');
-    const fair = fairCost(house, plan, reference, meanPrice, weight);
+    const fair = fairCost(house, plan, reference, meanPrice, weight, cop);
     if (fair >= baselineFair) return nothing('no_gain');
     return {biases: total(biases), comfort: held, shift: biases, plan, baseline, fairCost: fair, baselineFairCost: baselineFair};
 }

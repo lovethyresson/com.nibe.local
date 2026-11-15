@@ -12,6 +12,7 @@ import {
 } from './model';
 import {PumpCurve, estimateLever} from './planner';
 import {DEFAULT_GAIN, SupplyCurve, curvePoints, fitSupplyCurve, gainBetween} from './curve';
+import {CopModel, copFromHistory} from './cop';
 
 const DAY_SLOTS = 96;
 /** A day counts toward readiness when this many of its slots taught the model something. */
@@ -38,6 +39,8 @@ export interface HouseFit {
     lever?: number;
     /** The learned heat curve (curve.ts), once it has the points. */
     curve?: SupplyCurve;
+    /** The learned COP (cop.ts), trusted or not; the planner uses it only once trusted. */
+    cop?: CopModel;
     /** What the planner moves heat with (planner.ts `PumpCurve`). */
     pump?: PumpCurve;
     /** Sunny 6 h windows of the last 7 days, predicted with and without the sun term. */
@@ -100,7 +103,7 @@ export function validDays(slots: ModelSlot[]): number {
 }
 
 export function fitHouse(slots: ModelSlot[], answers: HouseAnswers, lever?: number,
-                         curve?: {supply?: SupplyCurve; heatPerSupplyK?: number}): HouseFit {
+                         curve?: {supply?: SupplyCurve; heatPerSupplyK?: number; cop?: CopModel}): HouseFit {
     // Stage 2 starts after up to 3 days of stage 1, but never waits for more data than exists.
     const warmupSlots = Math.max(1, Math.min(3 * DAY_SLOTS, slots.length));
     const fit = fitSeries(slots, answers.system, answers.era, {warmupSlots});
@@ -122,20 +125,22 @@ export function fitHouse(slots: ModelSlot[], answers: HouseAnswers, lever?: numb
         sun,
         lever,
         curve: curve?.supply,
+        cop: curve?.cop,
         pump: curve?.supply && curve.heatPerSupplyK !== undefined
-            ? {supply: curve.supply, heatPerSupplyK: curve.heatPerSupplyK} : lever !== undefined ? {lever} : undefined,
+            ? {supply: curve.supply, heatPerSupplyK: curve.heatPerSupplyK, ...(curve.cop?.trusted ? {cop: curve.cop} : {})}
+            : lever !== undefined ? {lever} : undefined,
         state: fit.params && last ? {slot: last[0], ti: last[1][0], tm: last[1][1]} : undefined,
     };
 }
 
 /** The heat curve and how much heat a K of supply moves, from one history, plus the lever for
  *  the log: that heat times the curve's slope 5 K either side of the last outdoor temperature. */
-export function pumpFromHistory(history: History): {supply?: SupplyCurve; heatPerSupplyK?: number; lever?: number} {
+export function pumpFromHistory(history: History): {supply?: SupplyCurve; heatPerSupplyK?: number; lever?: number; cop?: CopModel} {
     const heatPerSupplyK = estimateLever(heatingHours(history), 1);
     const supply = fitSupplyCurve(curvePoints(history));
     const te = [...history.range()].reverse().map((s) => history.get(s)!.te).find(Number.isFinite);
     const gain = supply && te !== undefined ? (gainBetween(supply, te - 5, te) + gainBetween(supply, te, te + 5)) / 2 : DEFAULT_GAIN;
-    return {supply, heatPerSupplyK, lever: heatPerSupplyK === undefined ? undefined : heatPerSupplyK * gain};
+    return {supply, heatPerSupplyK, lever: heatPerSupplyK === undefined ? undefined : heatPerSupplyK * gain, cop: copFromHistory(history)};
 }
 
 /** The whole hourly job: model slots, fit, heat curve and lever from one history. */

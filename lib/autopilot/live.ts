@@ -15,6 +15,7 @@ import {ActuatorOutput, PumpThresholds, fedValue} from './actuator';
 import {HouseParams} from './model';
 import {ForecastBias, OutdoorReading, realOutdoor} from './outdoor';
 import {COP, ForecastSlot, Plan, PumpCurve, planShift} from './planner';
+import {CopModel} from './cop';
 import {SupplyCurve, curveInputFor} from './curve';
 import {effectivePrice} from './solar-surplus';
 import {Limits, PresetId} from './presets';
@@ -81,6 +82,8 @@ export interface ShiftInput {
      *  both, a shift moves heat along the curve's real shape, not the lever's straight line. */
     supply?: SupplyCurve;
     heatPerSupplyK?: number;
+    /** The learned COP once trusted (cop.ts): heat priced at the supply each slot runs at. */
+    cop?: CopModel;
 }
 
 /** How far live plans trust forecast sun, per profile, once the sun term has earned it (house.ts
@@ -94,7 +97,8 @@ export function sunTrust(profile: unknown): number {
  *  the lever's straight line. */
 export function livePump(input: ShiftInput): PumpCurve {
     return input.supply && input.heatPerSupplyK! > 0
-        ? {supply: input.supply, heatPerSupplyK: input.heatPerSupplyK, shiftOnly: true} : {lever: input.lever};
+        ? {supply: input.supply, heatPerSupplyK: input.heatPerSupplyK, shiftOnly: true, ...(input.cop ? {cop: input.cop} : {})}
+        : {lever: input.lever};
 }
 
 /** The deepest coast that still does something, K: where the learned curve's supply falls to the

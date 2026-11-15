@@ -254,7 +254,7 @@ export class AutopilotCollector {
         const forecast = shadowForecast(slot, fresh, this.prices, (s) => forecastCorrection(this.forecastBias, this.localHour(s)));
         if (forecast.length < 8) return undefined;
         return {house: fit.params, lever: fit.lever!, ti: last.ti, tm: fit.state.tm, mean, curve, bias: 0, forecast,
-            supply: fit.pump?.supply, heatPerSupplyK: fit.pump?.heatPerSupplyK};
+            supply: fit.pump?.supply, heatPerSupplyK: fit.pump?.heatPerSupplyK, cop: fit.pump?.cop};
     }
 
     /** The real outdoor temperature's sources for now: the sensor's latest reading (≤ 2 min old,

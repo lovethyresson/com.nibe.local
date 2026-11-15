@@ -244,6 +244,7 @@ export const sProfile = makeProfile({
             pw: "measure_watt_NIBE.i2166_energy_usage",
             qmeter: "meter_kwh_NIBE.i1577_heating_produced",
             emeter: "meter_kwh_NIBE.i3823_total_consumption",
+            pmeter: "meter_kwh_NIBE.i3821_total_production",
             hcurve: "curve_mode_NIBE.h26_heat_curve",
             hoffset: "curve_displacement_NIBE.h30_heat_curve_displacement",
             supmin: "target_temperature.h34_min_supply",
@@ -251,7 +252,7 @@ export const sProfile = makeProfile({
             tset: "target_temperature",
             roomctl: "boolean_NIBE.h202_use_room_sensor",
         },
-        priority: {register: "measure_priority_NIBE.i1028_priority_value", hotwater: 20, cooling: 60},
+        priority: {register: "measure_priority_NIBE.i1028_priority_value", hotwater: 20, cooling: 60, heating: 30},
         immersion: "status_NIBE.i1029_additive_heat_active",
         controls: {
             comfort: "target_temperature",

@@ -709,6 +709,8 @@ needs, whatever the owner selected. This is the precedent at `lib/device.ts:1024
 | `pel` | allocator deltas (`onEnergy` sum across roles) | kWh |
 | `qheat` | Δ 1577, step-smoothed by Hz | kWh |
 | `dhw`, `aux` | fraction of polls with priority = hot water, 1029 on | 0..1 |
+| `heat` | fraction of polls with priority = heating (1028 = 30), for the COP (§13) | 0..1 |
+| `emeter`, `pmeter` | 3823 used and 3821 produced, cumulative kWh, for the COP (§13) | last |
 | `dm` | 11 | mean |
 | `price` | all-in slot price | value |
 | `gti_s`, `gti_x`, `wind`, `rh`, `ghi` | weather, interpolated | value |
@@ -1570,6 +1572,38 @@ phase A (offline) can run alongside M2.
   `+ terminal value of stored heat`.
 - **COP:** Carnot fraction with η learned online; brine or outdoor as the source; a defrost penalty
   binned by `(te, rh)` for air-source.
+  - **Built 2026-11-15 (`lib/autopilot/cop.ts`), offline.** `COP = η · (tsup + 5 + 273) / (tsup −
+    tsource + 10)`: the Carnot COP with 5 K of approach at the condenser and the evaporator, which
+    keeps η near constant across lifts. The source is the brine in (10) when the history reads it,
+    else the real outdoor temperature. The defrost penalty is not built; until it is, defrost lands
+    in η.
+  - **Learned from the counters.** Windows of heating-only slots (≥ 95 % of polls on priority
+    heating, the immersion heater off, not partial), each running between two steps of 3823
+    (it steps 0.3–2.5 kWh), cut at ~6 h and kept with ≥ 2 kWh used. η = Σ produced / Σ(Carnot ×
+    used), produced from 3821 (or 1577 where 3821 is missing; over heating-only slots they count
+    the same). The history gained `heat` and `pmeter` for it; slots from before them count by
+    `dhw` < 0.05 with the compressor running. Refitted hourly with the house model; the 28-day
+    history is its forgetting.
+  - **Trusted** like the house model's readiness (§6.4): ≥ 12 windows on ≥ 3 days, their η within
+    15 % (energy-weighted RMS), and the last three days' own η within 15 % of each other.
+    Ground source also needs a brine reading to plan with (the last day's heating mean, held over
+    the horizon). Until trusted the planner prices heat at the constant COP 3, unchanged.
+  - **In the planner (`planner.ts`).** Each slot's heat is priced at the COP of the supply its
+    curve view gives (the learned curve, §4.5): a pre-heat buys its heat at a warmer supply. A
+    slot's electricity is convex in its heat, so the greedy search prices each move by the exact
+    change at the heat the plan has reached, supply moving with heat along `heatPerSupplyK`; with
+    flat weather a fixed rate per slot would be the same everywhere and the penalty would cancel.
+    Owed heat is bought back at the heat-weighted marginal rate, not the average COP: at the
+    average, every coast looked like a saving at a flat price.
+  - **Effect on simulated houses** (`test/autopilot-cop.test.ts`, η 0.5, brine 0 °C, the S1155's
+    curve, Save some, 6 h at 1.45× the rest): the pre-heat fell from 51 to 22 K·slots on the
+    radiator house and from 74 to 26 on the slab, and the coast with it. At 4× both still shift.
+    Where a constant COP coasted deep (Save the most), the COP spreads the shift into a smaller
+    coast and some pre-heat, which convexity favours. ~2× the planner's time (100 ms for 96 slots
+    on a Mac).
+  - **Unverified on hardware:** η and its spread on a real pump (the S1155's 3823 steps are
+    uneven enough that the 15 % spread gate may need widening), and whether 3821 counts only the
+    compressor.
 - **PV:** moved to M4 (§19.3). The optimiser keeps the same rule: a slot with forecast surplus is
   priced at the export value.
 - **Fallback:** if the solve throws or takes longer than 5 s, use the M3 plan.
@@ -1674,6 +1708,8 @@ four plus the Setup hub.
 - [ ] **M3** release (test → live)
 - [ ] **M4** hot-water probes and timing; DM-aware add-heat planning
 - [ ] **M5** COP, DP optimiser, air-source, PV; ship gate vs M3
+      (COP model learned and pricing the planner's heat once trusted, offline 2026-11-15; air-source
+      learns against outdoor, no defrost penalty yet)
 
 ## 19. Roadmap decisions (maintainer, 2026-11-02)
 

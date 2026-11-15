@@ -195,8 +195,8 @@ export interface ModelProfile {
     // field, plus the priority value that means hot water and the immersion-heater flag.
     autopilotHistory?: {
         numeric: Partial<Record<'ti' | 'te' | 'tsup' | 'tret' | 'tcalc' | 'tbrine' | 'hz' | 'dm' | 'pw'
-            | 'qmeter' | 'emeter' | 'hcurve' | 'hoffset' | 'supmin' | 'supmax' | 'tset' | 'roomctl', string>>;
-        priority: {register: string; hotwater: number; cooling?: number};
+            | 'qmeter' | 'emeter' | 'pmeter' | 'hcurve' | 'hoffset' | 'supmin' | 'supmax' | 'tset' | 'roomctl', string>>;
+        priority: {register: string; hotwater: number; cooling?: number; heating?: number};
         immersion: string;
         // The settings the controller plans with (collector.ts `Controls`): indoor setpoint,
         // operating mode, and the Auto-mode thresholds the actuator keeps clear of.

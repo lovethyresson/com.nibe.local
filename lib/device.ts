@@ -2364,6 +2364,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.indoorReadOnly()) sample.ti = this.homeyIndoorNow();
         const priority = value(autopilot.priority.register);
         if (priority !== undefined) sample.dhw = priority === autopilot.priority.hotwater;
+        if (priority !== undefined && autopilot.priority.heating !== undefined) sample.heat = priority === autopilot.priority.heating;
         const immersion = value(autopilot.immersion);
         if (immersion !== undefined) sample.aux = immersion !== 0;
         return sample;
