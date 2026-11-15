@@ -26,10 +26,10 @@
     <div class="bento">
       <div class="tile s3 reveal">
         <h3>Off</h3>
-        <p>Nothing is moved to cheaper hours. Heating follows your heat curve, and hot water follows your heat pump's own settings.</p>
+        <p>Nothing is moved to cheaper hours. Heating follows your heating curve, and hot water follows your heat pump's own settings.</p>
       </div>
       <div class="tile s3 reveal">
-        <h3>Smart price adaption</h3>
+        <h3>Smart Price Adaption</h3>
         <p>NIBE's own price feature, running inside your heat pump. It gets prices through myUplink and works even with Homey switched off. You set how strongly the price may push each job around.</p>
         <div class="tanks">
           <div class="tk"><div class="glass"><b style="height:100%"></b></div><div class="v">1–10</div><div class="w">Heating</div></div>
@@ -59,7 +59,7 @@
     <p class="lead reveal">Each choice has different strengths. It depends on what you want.</p>
     <div class="how">
       <div class="reveal"><div class="n">Autopilot</div><h3>Learns your home</h3><p>Uses the weather forecast and your full electricity price, which includes more than the spot price. Can heat hot water with your own solar power. Needs Homey running, and a few days to learn first.</p></div>
-      <div class="reveal"><div class="n">Smart price adaption</div><h3>Works from day one</h3><p>Runs in your heat pump, so it keeps going with Homey off. Covers heating, hot water, pool and cooling. Plans on the spot price only.</p></div>
+      <div class="reveal"><div class="n">Smart Price Adaption</div><h3>Works from day one</h3><p>Runs in your heat pump, so it keeps going with Homey off. Covers heating, hot water, pool and cooling. Plans on the spot price only.</p></div>
       <div class="reveal"><div class="n">Off</div><h3>Ignores prices</h3><p>Your heat pump heats when it needs to, whatever the price.</p></div>
     </div>
   </div>
@@ -70,10 +70,10 @@
     <h2 class="display reveal">What Autopilot covers</h2>
     <p class="lead reveal">Autopilot covers the two functions that use the most power. Pool and cooling are next.</p>
     <div class="reasons">
-      <div class="pill reveal" style="--c:var(--green)"><b>Heating</b><p>Autopilot (Live or Simulated), Smart price adaption or Off. <a href="autopilot-heating.html">How it works</a></p></div>
-      <div class="pill reveal" style="--c:var(--green)"><b>Hot water</b><p>Autopilot (Live or Simulated), Smart price adaption or Off. <a href="autopilot-hot-water.html">How it works</a></p></div>
-      <div class="pill reveal" style="--c:var(--sub)"><b>Pool</b><p>Smart price adaption or Off. Autopilot is marked Soon.</p></div>
-      <div class="pill reveal" style="--c:var(--sub)"><b>Cooling</b><p>Smart price adaption or Off. Autopilot is marked Soon.</p></div>
+      <div class="pill reveal" style="--c:var(--green)"><b>Heating</b><p>Autopilot (Live or Simulated), Smart Price Adaption or Off. <a href="autopilot-heating.html">How it works</a></p></div>
+      <div class="pill reveal" style="--c:var(--green)"><b>Hot water</b><p>Autopilot (Live or Simulated), Smart Price Adaption or Off. <a href="autopilot-hot-water.html">How it works</a></p></div>
+      <div class="pill reveal" style="--c:var(--sub)"><b>Pool</b><p>Smart Price Adaption or Off. Autopilot is marked Soon.</p></div>
+      <div class="pill reveal" style="--c:var(--sub)"><b>Cooling</b><p>Smart Price Adaption or Off. Autopilot is marked Soon.</p></div>
     </div>
   </div>
 </section>
@@ -84,7 +84,7 @@
     <p class="lead reveal">Pairing asks in Heating setup and Hot water setup. To change it later, open that device, then Repair. Smart mode is in the same setup.</p>
     <div class="crumbs reveal"><span>Heating</span><i>›</i><span>Repair</span><i>›</i><span>Heating setup</span></div>
     <div class="steps">
-      <div class="tile reveal"><div class="k">Step 1</div><h3>Pick a mode</h3><p>For Autopilot, pick Live or Simulated. Smart price adaption only shows up if your heat pump has it.</p></div>
+      <div class="tile reveal"><div class="k">Step 1</div><h3>Pick a mode</h3><p>For Autopilot, pick Live or Simulated. Smart Price Adaption only shows up if your heat pump has it.</p></div>
       <div class="tile reveal"><div class="k">Step 2</div><h3>Follow the checks</h3><p>For Autopilot, setup lists what it needs and what to set on your heat pump.</p></div>
       <div class="tile reveal"><div class="k">Step 3</div><h3>See what changes</h3><p>Setup ends on <b>What gets added</b>, or <b>What changes</b> in Repair. It lists every reading and setting that's added or removed, and why.</p></div>
     </div>
@@ -95,12 +95,12 @@
   <div class="wrap">
     <h2 class="display center reveal">Good to know</h2>
     <div class="faq reveal">
-      <details><summary>Can I run Smart price adaption and Autopilot together?</summary><p>Not for the same function. Two planners would fight over one compressor. When you pick Autopilot for heating, it turns off Smart price adaption for heating.</p></details>
-      <details><summary>What if someone turns Smart price adaption back on?</summary><p>Your heat pump's setting takes priority. If it's switched on from the display or myUplink, Autopilot steps aside for that function and your Homey timeline tells you once.</p></details>
+      <details><summary>Can I run Smart Price Adaption and Autopilot together?</summary><p>Not for the same function. Two planners would fight over one compressor. When you pick Autopilot for heating, it turns off Smart Price Adaption for heating.</p></details>
+      <details><summary>What if someone turns Smart Price Adaption back on?</summary><p>Your heat pump's setting takes priority. If it's switched on from the display or myUplink, Autopilot steps aside for that function and your Homey Timeline tells you once.</p></details>
       <details><summary>Does Simulated change anything?</summary><p>No. Simulated previews the plan without making changes to your heat pump.</p></details>
       <details><summary>Why does Autopilot say Experimental?</summary><p>Autopilot is new. The badge shows wherever you choose Autopilot or see what it's doing.</p></details>
-      <details><summary>I don't see Smart price adaption.</summary><p>Not every heat pump has it. When yours doesn't, the choice isn't offered.</p></details>
-      <details><summary>Can heating and hot water use different choices?</summary><p>Yes. Each function has its own Smart mode. Autopilot for hot water and Smart price adaption for heating is a good combination.</p></details>
+      <details><summary>I don't see Smart Price Adaption.</summary><p>Not every heat pump has it. When yours doesn't, the choice isn't offered.</p></details>
+      <details><summary>Can heating and hot water use different choices?</summary><p>Yes. Each function has its own Smart mode. Autopilot for hot water and Smart Price Adaption for heating is a good combination.</p></details>
     </div>
   </div>
 </section>
