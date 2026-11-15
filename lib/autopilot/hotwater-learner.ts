@@ -167,9 +167,13 @@ export function tankHeatIn(produced: number, hours: number, storedMid: number, c
     return running * chargeRate(charge, storedMid);
 }
 
+/** The tank's modelled rate, as a share of the counter's, at or above which a charge's heat in
+ *  is trusted for working out a draw (`intervals`). */
+const TRUSTED_RATE = 0.8;
+
 /** Consecutive readings → intervals. Readings must be in time order. With a charge model, the
  *  heat a charge put in is the tank's (`tankHeatIn`), so heat the counter books but the tank
- *  never got is not taken for water drawn. */
+ *  never got is not taken for water drawn; an interval spent mostly charging near full counts only a fall. */
 export function intervals(points: TankPoint[], loss: StandingLoss = DEFAULT_LOSS, charge?: ChargeModel): Interval[] {
     const out: Interval[] = [];
     for (let k = 1; k < points.length; k++) {
@@ -181,8 +185,17 @@ export function intervals(points: TankPoint[], loss: StandingLoss = DEFAULT_LOSS
         const usedStep = finite(a.used) && finite(b.used) ? b.used - a.used : NaN;
         const used = usedStep >= 0 && usedStep <= MAX_KWH_PER_HOUR * hours ? usedStep : NaN;
         const s0 = stored(a), s1 = stored(b);
+        // An interval the tank spent mostly charging while nearly full shows a draw only as a fall:
+        // there the tank takes a small, fast-falling fraction of what the counter books, and no rate
+        // line follows it closely enough (2026-11-15: 3.4 kWh/h modelled where the tank took 0.7,
+        // 40–75 L an hour of phantom draws). Below that, where the tank takes about all the counter
+        // books, the heat in is trusted, so a shower during a charge from a low tank still counts.
+        const full = charge?.producedPerHour;
+        const charging = full !== undefined && produced >= 0.5 * full * hours
+            && chargeRate(charge!, (s0 + s1) / 2) < TRUSTED_RATE * full;
+        const heatIn = charging ? 0 : tankHeatIn(produced, hours, (s0 + s1) / 2, charge);
         const draw = Number.isFinite(s0) && Number.isFinite(s1)
-            ? Math.max(0, s0 - s1 + tankHeatIn(produced, hours, (s0 + s1) / 2, charge) - lossAt(loss, (s0 + s1) / 2) * hours) : NaN;
+            ? Math.max(0, s0 - s1 + heatIn - (charging ? 0 : lossAt(loss, (s0 + s1) / 2) * hours)) : NaN;
         out.push({start: a.t, hours, draw, produced, used, stored: s0, storedEnd: s1,
             top: finite(a.top) ? a.top : undefined, dayType: a.dayType});
     }
