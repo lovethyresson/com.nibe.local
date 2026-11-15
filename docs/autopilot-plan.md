@@ -725,11 +725,53 @@ needs, whatever the owner selected. This is the precedent at `lib/device.ts:1024
   - Written via temp file + rename. Flushed hourly and in `onUninit`.
   - A version byte at the start; an unknown version means discard and relearn.
   - Only the small `autopilotModel` state (~2 KB) goes in the store, written once a day.
-- **Insights backfill:** on first enable, up to 14 days at 1 h resolution from the app's own logs,
-  via `api.insights.getLogEntries({id:'homey:device:<id>:<cap>', resolution:'last14Days'})`
-  **[live]**.
-  - Throttled to 1 call per 20 s: "Too many requests" after 2 rapid calls **[live]**.
-  - A missing log is skipped silently.
+- **Insights backfill** (`heating-insights.ts`, built 2026-11-15, not yet run on a Homey): once
+  per Heating device, the history before its first polled slot is filled from the app's own
+  Insights, so an owner who had the app before turning Autopilot on gets a model on day one.
+  - **What is read.** Every `autopilotHistory.numeric` capability (indoor, input 1, supply,
+    return, 1017, brine, Hz, degree minutes, 2166, the 1577 and 3823 counters, curve, offset,
+    min/max supply, setpoint, room-sensor control), plus the owner's outdoor sensor when one is
+    picked. The Heating device first; a sibling device of the same pump only for a capability
+    named after its register (`meter_kwh_NIBE.i1577_…`), since a plain `measure_temperature` on
+    Hot water is the tank. Priority and the immersion heater are enum and status capabilities
+    without a numeric log, so `dhw` and `aux` stay missing (the gate treats missing as no hot
+    water; 1577 counts heating only, so the heat itself is right).
+  - **Resolutions.** `last24Hours` (5-minute buckets) and `last14Days` (hourly), finest first per
+    slot. `last7Days` is hourly too and adds nothing. Coarser ones are not read: a 6-hour mean
+    says nothing about how fast the house moves, and two weeks of slots the filter can't correct
+    on would only widen its parameter uncertainty while it predicts through them.
+  - **Resampling.** A bucket mean stands for its middle. A slot mean is the 5-minute buckets inside
+    it (measured), else the line between the two hourly middles around the slot's middle, never
+    across a missing hour. A counter is read the same way at the slot's end; a setting is held
+    from the bucket in force, never interpolated.
+  - **Flags.** Every slot gets `FLAG.backfill` and `coverage` NaN. A slot with any mean or counter
+    from buckets longer than a slot also gets `FLAG.hourly`: the EKF weighs its indoor reading
+    with 4× the measurement variance (`INTERPOLATED_VARIANCE`, so an hour's four slots carry what
+    the one mean does), and the 6 h accuracy and sun scores skip any window holding one.
+  - **Outdoor.** The collector's own order: the owner's sensor with the same `tesrc` code the
+    collector records for it, else input 1 as wired, else the corrected forecast. Input 1 is taken
+    as unfed: these slots predate the collector, so the app never fed BT1 in them. A sensor's
+    backfilled run joins its polled run with no source change (`currentSourceStart`); a wired run
+    followed by a sensor is seen as the change it is.
+  - **Weather.** Open-Meteo's `past_days` (same URL, ≤ 31 days) fills sun on each wall, wind,
+    humidity and cloud, so backfilled days don't read as overcast. Prices are not backfilled.
+  - **Never overwrites.** Only slots before the first stored one (or the open slot), and only as
+    far back as the ring holds behind the newest slot. The window is read again at insert time,
+    since polling goes on while Insights is read. Saved, then refitted at once.
+  - **Once, off init.** Starts 3 min after the collector, needs the device's Homey id
+    (`ownDeviceId`), retries every 10 min up to 6 times while it has none or nothing answered,
+    and then waits for the next start. Device store `autopilotBackfill` = `{at, slots}` once it
+    ran. A history already reaching back past the 14 hourly days (the maintainer's, from
+    2026-10-30) gets nothing and is unchanged.
+  - **Readiness.** Backfilled days count toward the 5 valid days like polled ones when they have
+    48 usable slots. Accuracy is scored on polled slots only (8 windows need ~13 h), and stability
+    needs three daily fits, so a backfilled owner is ready after three days at the earliest.
+  - **Rate limit.** One request every 2 s, and a "Too many requests" refusal retried once after
+    20 s; a missing log is skipped. The plan once measured a refusal after 2 rapid calls
+    **[live]**; hot water's reader then ran 12 at 1.5 s apart. About 36 requests, so ~1.5 min.
+  - Measured on a simulated radiator house (`test/autopilot-heating-insights.test.ts`): 13 days
+    hourly plus a day at 5 minutes fitted heat loss 0.180 kW/K against a true 0.18, 6 h error
+    0.03 K over the 18 windows the measured day allows.
 
 ### 5.5 Delivered heat
 
@@ -1660,7 +1702,8 @@ four plus the Setup hub.
 - [ ] Prerequisites: six-language `LocalizedText`; translate the BT50 feed warnings
 - [ ] **M1** `mode.ts` + capability filter + pump-wide sync + pair/repair "Price control" section
 - [ ] **M1** `prices.ts`, `weather.ts`, `outdoor.ts`, `history.ts` + `/userdata` persistence + Insights backfill
-      (all but the backfill done; collecting on the maintainer's Homey since 2026-10-30)
+      (collecting on the maintainer's Homey since 2026-10-30; backfill built and tested offline
+      2026-11-15, `heating-insights.ts`, not yet run on a Homey with a fresh history)
 - [ ] **M1** `model.ts` + `insights.ts` + labels; release to test (`model.ts` done offline, not yet
       run online)
 - [ ] **M2** `presets.ts`, `planner.ts` v1, `actuator.ts`, `controller.ts` in shadow; twin integration test
