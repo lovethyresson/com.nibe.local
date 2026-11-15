@@ -241,9 +241,10 @@ export interface SharePicture {
     note?: string;
     /** kWh in the cheapest, middle and most expensive third. */
     tiers: [number, number, number];
-    /** "9.6 kWh cheap" and "1.6 middle · 0.8 expensive", under the bar. */
+    /** "9.6 kWh cheap", "1.6 middle" and "0.8 expensive", each under its part of the bar. */
     cheap: string;
-    rest: string;
+    middle: string;
+    expensive: string;
     days: ShareDay[];
 }
 
@@ -344,7 +345,8 @@ export function savingsData(title: string, stored: SavingsDay[], t: Translate, c
             ...onlyToday ? {} : {value: `${pct(tiers[0] / total)} %`, note: t('share_note')},
             tiers: [round(tiers[0]), round(tiers[1]), round(tiers[2])],
             cheap: t('share_cheap', {kwh: tiers[0].toFixed(1)}),
-            rest: t('share_rest', {middle: tiers[1].toFixed(1), expensive: tiers[2].toFixed(1)}),
+            middle: t('share_middle', {kwh: tiers[1].toFixed(1)}),
+            expensive: t('share_expensive', {kwh: tiers[2].toFixed(1)}),
             days: dates.map((date) => {
                 const d = byDate.get(date);
                 return {label: c.label(date), ...sum(d) >= MIN_KWH ? {share: round(d!.tiers[0] / sum(d))} : {}};

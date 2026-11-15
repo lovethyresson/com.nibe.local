@@ -750,8 +750,24 @@
       "stat_year": "Dit jaar",
       "share_note": "van de warmte in de goedkoopste uren",
       "share_cheap": "__kwh__ kWh goedkoop",
-      "share_rest": "__middle__ midden · __expensive__ duur"
+      "share_middle": "__kwh__ midden",
+      "share_expensive": "__kwh__ duur"
     },
-    "away_until_token": "Afwezig tot"
+    "away_until_token": "Afwezig tot",
+    "tank": {
+      "pick": "Kies een warmwaterapparaat.",
+      "now": "__l__ L warm water nu",
+      "used": "__used__ L gebruikt vandaag, ongeveer __expected__ L verwacht",
+      "axis": "L bij 40 °C",
+      "read": "Boiler",
+      "plan": "Plan",
+      "reserve": "Altijd over",
+      "drawn": "Gebruikt",
+      "forecast": "Verwacht",
+      "done": "Opgewarmd",
+      "charge": "Opwarmen",
+      "cheap": "Goedkoop",
+      "expensive": "Duur"
+    }
   }
 }

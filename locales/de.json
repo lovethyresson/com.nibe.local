@@ -750,8 +750,24 @@
       "stat_year": "Dieses Jahr",
       "share_note": "der Wärme in den günstigsten Stunden",
       "share_cheap": "__kwh__ kWh günstig",
-      "share_rest": "__middle__ Mitte · __expensive__ teuer"
+      "share_middle": "__kwh__ Mitte",
+      "share_expensive": "__kwh__ teuer"
     },
-    "away_until_token": "Abwesend bis"
+    "away_until_token": "Abwesend bis",
+    "tank": {
+      "pick": "Wählen Sie ein Warmwasser-Gerät.",
+      "now": "__l__ L Warmwasser jetzt",
+      "used": "__used__ L heute verbraucht, etwa __expected__ L erwartet",
+      "axis": "L bei 40 °C",
+      "read": "Speicher",
+      "plan": "Plan",
+      "reserve": "Immer vorrätig",
+      "drawn": "Verbraucht",
+      "forecast": "Erwartet",
+      "done": "Geladen",
+      "charge": "Ladung",
+      "cheap": "Günstig",
+      "expensive": "Teuer"
+    }
   }
 }

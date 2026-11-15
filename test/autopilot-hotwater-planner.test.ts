@@ -202,3 +202,15 @@ test('a charge is planned at the tank\'s own rate, so it runs as long as a real 
     assert.ok(warm.electricity / warm.heat > 1.25 * first.electricity / first.heat, 'a warm top-up is dearer per kWh');
     assert.ok(cold.charges.every((c) => c.targetC <= 58), 'never past the ceiling');
 });
+
+test('a planned charge ends when it fills the tank: no holding it full for hours to skip a start', () => {
+    // Cheap evening, dear night and morning, showers at 07 and 08: one charge fills the tank and
+    // stops; the morning gets its own charge if it needs one, never one run from 21 to the morning.
+    const slots = day((h) => (h >= 18 && h < 22 ? 1 : 3), (h) => (h === 7 || h === 8 ? 3 : 0));
+    const p = plan(input(slots, {stored: reserveKwh(60), maxC: 58}));
+    const top = heatAt(tank, 58);
+    for (const c of p.charges) {
+        for (let k = c.start + 1; k < c.end; k++)
+            assert.ok(p.stored[k] < top - 0.1 + 1e-9, `charge ${c.start}–${c.end} still running at slot ${k} with the tank full`);
+    }
+});

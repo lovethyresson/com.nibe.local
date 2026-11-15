@@ -220,7 +220,8 @@ test('hot water: what a shower cost before and with Autopilot, and how much of t
     const sum = recent.reduce((a, x) => [a[0] + x.tiers[0], a[1] + x.tiers[1], a[2] + x.tiers[2]], [0, 0, 0]);
     assert.equal(share.value, `${Math.round(sum[0] / (sum[0] + sum[1] + sum[2]) * 100)} %`, 'the week\'s heat in the cheapest third');
     assert.match(share.cheap, /^\d+\.\d kWh cheap$/);
-    assert.match(share.rest, /^\d+\.\d middle · \d+\.\d expensive$/);
+    assert.match(share.middle, /^\d+\.\d middle$/);
+    assert.match(share.expensive, /^\d+\.\d expensive$/);
     assert.ok(share.days.every((x) => x.share === undefined || (x.share >= 0 && x.share <= 1)));
     assert.equal(d.detail, undefined);
 });

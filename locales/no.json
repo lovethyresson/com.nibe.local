@@ -750,8 +750,24 @@
       "stat_year": "I år",
       "share_note": "av varmen i de billigste timene",
       "share_cheap": "__kwh__ kWh billig",
-      "share_rest": "__middle__ midten · __expensive__ dyrt"
+      "share_middle": "__kwh__ midten",
+      "share_expensive": "__kwh__ dyrt"
     },
-    "away_until_token": "Borte til"
+    "away_until_token": "Borte til",
+    "tank": {
+      "pick": "Velg en varmtvannsenhet.",
+      "now": "__l__ L varmtvann nå",
+      "used": "__used__ L brukt i dag, omtrent __expected__ L ventet",
+      "axis": "L ved 40 °C",
+      "read": "Tank",
+      "plan": "Plan",
+      "reserve": "Alltid igjen",
+      "drawn": "Brukt",
+      "forecast": "Ventet",
+      "done": "Varmet",
+      "charge": "Oppvarming",
+      "cheap": "Billig",
+      "expensive": "Dyrt"
+    }
   }
 }

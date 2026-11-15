@@ -17,6 +17,7 @@ import {forecastCorrection} from './autopilot/outdoor';
 import {readTrim} from './autopilot/setpoint';
 import {WidgetData, aimingFor, chargeBands, symmetricAxis, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks, todaySlots} from './autopilot/widget';
 import {HotwaterUseData, hotwaterWeek} from './autopilot/hotwater-use';
+import {TankWidgetData, tankChart} from './autopilot/hotwater-tank';
 import {SLOT_MS, localDate, normalisePrices, slotOf} from './autopilot/prices';
 import {Edge, FORECAST_SLOTS, BlockedBy, HeatingDay, analyticsSmartMode, heatingBlock, reserveBucket} from './autopilot/analytics';
 import {SOLAR_SETTING, SolarSurplus, readSolarAnswer, solarOn} from './autopilot/solar-surplus';
@@ -1511,7 +1512,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             return {
                 now: {litres: number(spec.tank.litres), top: number(spec.tank.top), powerW: number(spec.power),
                     more: this.hasCapability(spec.more) ? this.getCapabilityValue(spec.more) === true : undefined,
-                    stopC: mode === undefined ? undefined : number(spec.stops[mode]), largeStopC: number(spec.largeStop)},
+                    stopC: mode === undefined ? undefined : number(spec.stops[mode]), largeStopC: number(spec.largeStop), produced: number(spec.tank.produced)},
                 tank: litres === null ? undefined : {litres, inletC},
             };
         }, (...args) => this.log(...args), {
@@ -2166,6 +2167,40 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             aim: aim === undefined ? undefined : t('aiming', {c: aim.toFixed(1)}),
             footnote: !summary || summary.ready ? undefined : t('learning'),
         };
+    }
+
+    // ---- The Hot water tank widget (widgets/hotwater_tank) ----
+
+    /** What the Hot water tank widget draws: today's tank, read and planned, the use per hour
+     *  against the forecast, and the charges. Every string translated here. */
+    hotwaterTankWidget(): TankWidgetData {
+        const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.tank.${key}`, tokens);
+        const title = this.getName();
+        if (this.role !== 'hotwater') return {title, empty: t('pick')};
+        const mode = this.smartMode();
+        if (!autopilotRuns(mode)) return {title, empty: this.homey.__('autopilot.hotwater_use.off')};
+        const local = localClock(this.homey.clock.getTimezone());
+        const slot = slotOf(Date.now());
+        const day = todaySlots(slot, (ms) => local(ms).date);
+        const now = slot - day.from;
+        const view = this.hotwaterAutopilot?.tank(day.from, day.n);
+        const badge = this.homey.__('autopilot.widget.experimental');
+        if (!view) return {title, badge, test: mode === 'test', loading: true, status: this.homey.__('autopilot.widget.starting_title'),
+            reason: this.homey.__('autopilot.widget.starting_hotwater')};
+        const chart = tankChart(view, now);
+        const start = day.from * 15 * 60_000;
+        const bands = chargeBands(view.slots, start, this.clock, (from, to) => this.homey.__('autopilot.widget.hotwater.band', {from, to}));
+        const reserve = this.reserveLitres();
+        const litres = view.litres === undefined ? undefined : Math.round(view.litres);
+        return {title, badge, test: mode === 'test', ...chart, now, bands, reserve: reserve > 0 ? reserve : undefined,
+            ticks: ticks(start, day.n, this.clock),
+            status: litres === undefined ? undefined : t('now', {l: litres}),
+            reason: t('used', {used: chart.used, expected: chart.expected}),
+            legend: {read: t('read'), plan: t('plan'), reserve: reserve > 0 ? t('reserve') : '', drawn: t('drawn'),
+                forecast: t('forecast'), done: bands.some((b) => b.doneTo !== undefined) ? t('done') : '',
+                charge: bands.some((b) => b.doneTo === undefined || b.doneTo < b.to) ? t('charge') : '',
+                cheap: t('cheap'), expensive: t('expensive')},
+            axis: t('axis')};
     }
 
     // ---- The Hot water use widget (widgets/hotwater_use) ----

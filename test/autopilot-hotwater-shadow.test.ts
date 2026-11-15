@@ -22,7 +22,7 @@ const model: HotwaterModel = {
 /** 24 h of prices from S0: cheap at night, dear in the evening. */
 const prices = new Map(Array.from({length: 96}, (_, k) => {
     const h = Math.floor(k / 4);
-    return [S0 + k, {price: h < 6 ? 1.9 : h >= 16 && h < 21 ? 3.3 : 2.7}];
+    return [S0 + k, {price: h < 6 ? 1.2 : h >= 16 && h < 21 ? 3.3 : 2.7}];
 }));
 const step = (over: Partial<Parameters<typeof hotwaterShadowStep>[0]> = {}) =>
     hotwaterShadowStep({slot: S0, prices, model, tank, clock, now: {litres: 120, top: 50}, ...over});
@@ -117,11 +117,13 @@ test('the morning plan says what goes in (use, tank, safety net, prices) and wha
 });
 
 test('a charge that has to reach into dearer hours is not called cheap', () => {
-    // The heavier day does not fit a 60 °C tank, so its one charge runs across the 06:00 shower
-    // into the 2.70 hours: timed for the use, not the cheapest it could have bought.
-    const c = dailyOf().charges[0];
+    // Cheap only 07:00–09:00, after the 06:00 shower, with a tank near the floor: the charge for
+    // the shower is bought at 2.70 before it. Timed for the use, not cheap.
+    const late = new Map(Array.from({length: 96}, (_, k) => [S0 + k, {price: k >= 28 && k < 36 ? 1.2 : 2.7}]));
+    const c = dailyOf({prices: late, now: {litres: 45, top: 47}}).charges[0];
+    assert.ok(new Date(c.at).getUTCHours() < 6, 'before the shower');
     assert.strictEqual(c.reason, 'before_use');
-    assert.ok(c.price > 1.9 * 1.02, `bought at ${c.price}`);
+    assert.ok(c.price > 1.2 * 1.02, `bought at ${c.price}`);
 });
 
 test('each slot\'s draws follow its own day type when the input gives one (the calendar\'s weekend)', () => {
@@ -445,13 +447,24 @@ test('the widget\'s next charge skips a planned one that never started, and keep
     assert.ok(running.at === at(10, 45) && running.at > at(10, 35), 'the status says charging now, not next at 10:45');
 });
 
-test('chargedSlots reads the charges from the heat counter, after `since`, at 15-min spacing only', () => {
+test('chargedSlots reads the charges from the heat counter, after `since`', () => {
     const t0 = Date.UTC(2026, 10, 15, 9, 0);
     const q = 15 * 60_000;
-    // Quiet, then 1.5 kWh a quarter from 09:15 to 10:00, then quiet; one 6 h gap at the end.
-    const produced = [0, 0, 1.5, 3, 4.5, 4.5];
-    const points = produced.map((p, k) => ({t: t0 + k * q, produced: p}));
-    points.push({t: t0 + 11 * 3_600_000, produced: 20});
-    assert.deepStrictEqual(chargedSlots(points, 0), [1, 2, 3].map((k) => slotOf(t0) + k));
-    assert.deepStrictEqual(chargedSlots(points, t0 + 2 * q), [slotOf(t0) + 2, slotOf(t0) + 3]);
+    // Quarter-hour readings: 1.5 kWh a quarter (6 kWh/h, the tank's rate) from 09:15 to 10:00.
+    const quarters = [0, 0, 1.5, 3, 4.5, 4.5].map((p, k) => ({t: t0 + k * q, produced: p}));
+    assert.deepStrictEqual(chargedSlots(quarters, 0, 6), [1, 2, 3].map((k) => slotOf(t0) + k));
+    assert.deepStrictEqual(chargedSlots(quarters, t0 + 2 * q, 6), [slotOf(t0) + 2, slotOf(t0) + 3]);
+});
+
+test('chargedSlots places a part hour against the full hour beside it (Insights keeps today hourly)', () => {
+    // 2026-11-15, hourly buckets: a charge 10:15–12:15 at 6 kWh/h, then quiet. 09:30–10:30 holds a
+    // quarter of an hour of it, 10:30–11:30 all of it, 11:30–12:30 three quarters.
+    const h = 3_600_000, t = (hh: number, mm: number) => Date.UTC(2026, 10, 15, hh, mm);
+    const produced = [0, 1.5, 7.5, 12, 12];
+    const points = produced.map((p, k) => ({t: t(9, 30) + k * h, produced: p}));
+    const got = chargedSlots(points, 0, 6);
+    assert.deepStrictEqual([got[0], got[got.length - 1] + 1].map((slot) => new Date(slot * SLOT_MS).toISOString().slice(11, 16)),
+        ['10:15', '12:15']);
+    assert.strictEqual(got.length, 8, 'continuous');
+    assert.deepStrictEqual(chargedSlots([{t: t(9, 0), produced: 0}, {t: t(15, 0), produced: 20}], 0, 6), [], 'six hours apart: too vague');
 });

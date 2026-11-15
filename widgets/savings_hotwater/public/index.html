@@ -204,10 +204,22 @@
           x += w;
         });
         svg.appendChild(bar);
-        var left = svgEl('text', {x: 0, y: ty}, c.cheap);
-        left.style.fill = 'var(--sv-cheap)'; left.style.opacity = 1;
-        svg.appendChild(left);
-        svg.appendChild(svgEl('text', {x: W, y: ty, 'text-anchor': 'end'}, c.rest));
+        // One label under each part of the bar: cheap from the left edge, expensive to the right
+        // edge, middle centred under its own part, nudged to stay clear of the other two. With no
+        // room between them it joins the expensive label.
+        var CHAR = 6.2, wide = function (s) { return s.length * CHAR; };
+        var label = function (text, x, anchor, colour) {
+          var n = svgEl('text', {x: x, y: ty, 'text-anchor': anchor}, text);
+          if (colour) { n.style.fill = colour; n.style.opacity = 1; }
+          svg.appendChild(n);
+        };
+        label(c.cheap, 0, 'start', 'var(--sv-cheap)');
+        var midW = wide(c.middle), lo = wide(c.cheap) + 12, hi = W - wide(c.expensive) - 12;
+        if (c.tiers[1] > 0 && hi - lo >= midW) {
+          var centre = total > 0 ? W * (c.tiers[0] + c.tiers[1] / 2) / total : W / 2;
+          label(c.middle, Math.min(hi - midW / 2, Math.max(lo + midW / 2, centre)), 'middle');
+          label(c.expensive, W, 'end', 'var(--sv-dear)');
+        } else label((c.tiers[1] > 0 ? c.middle + ' · ' : '') + c.expensive, W, 'end');
         var step = W / c.days.length, cy = ry + R;
         c.days.forEach(function (d, k) {
           var cx = step * (k + 0.5);

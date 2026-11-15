@@ -465,8 +465,24 @@
       "stat_year": "This year",
       "share_note": "of the heat in the cheapest hours",
       "share_cheap": "__kwh__ kWh cheap",
-      "share_rest": "__middle__ middle · __expensive__ expensive"
+      "share_middle": "__kwh__ middle",
+      "share_expensive": "__kwh__ expensive"
     },
-    "away_until_token": "Away until"
+    "away_until_token": "Away until",
+    "tank": {
+      "pick": "Pick a Hot water device.",
+      "now": "__l__ L hot water now",
+      "used": "__used__ L used today, about __expected__ L expected",
+      "axis": "L at 40 °C",
+      "read": "Tank",
+      "plan": "Plan",
+      "reserve": "Always kept",
+      "drawn": "Used",
+      "forecast": "Expected",
+      "done": "Charged",
+      "charge": "Charge",
+      "cheap": "Cheap",
+      "expensive": "Expensive"
+    }
   }
 }

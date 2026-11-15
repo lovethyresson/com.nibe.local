@@ -217,8 +217,12 @@ export function plan(input: PlanInput): Plan {
         if ((c === 1 || !slot.reserved) && kwh < cap - 1e-9) {
             ({q, el} = step(kwh, cap));
             const after = Math.max(0, kwh + q - slot.draw - lost);
+            // A charge that reaches the top has reached its stop: the pump ends it there. Without
+            // this a plan could hold a full tank "charging" for hours, topping up its standing
+            // loss for öre, to skip the price of a new start (2026-11-15: a 17 h 45 min charge).
+            const ends = kwh + q >= cap - STEP_KWH;
             heat = el * effective(slot, kw).price + (c === 0 ? START_KR : 0)
-                + below(kwh + q, slot.draw) * SHORTFALL_KR_PER_KWH + value(v, 1, after);
+                + below(kwh + q, slot.draw) * SHORTFALL_KR_PER_KWH + value(v, ends ? 0 : 1, after);
         }
         // A running charge stops only at its target, which is at least the lowest allowed one.
         const mayStop = c === 0 || kwh >= minRunHeat - 1e-9 || heat === INF;
@@ -264,7 +268,7 @@ export function plan(input: PlanInput): Plan {
             c = 1;
             // The pump ends a running charge at its stop; it does not hold the tank there, topping
             // up each draw. Anything after that is a new charge, priced and started as one.
-            if (runningTop !== undefined && kwh >= runningTop - STEP_KWH) {
+            if (kwh >= (runningTop ?? top) - STEP_KWH) {
                 c = 0;
                 open = undefined;
                 runningTop = undefined;
