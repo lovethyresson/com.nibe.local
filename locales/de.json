@@ -708,14 +708,12 @@
     "savings": {
       "pick": "Wählen Sie in den Widget-Einstellungen ein Gerät für Heizung oder Warmwasser.",
       "empty": "Ab morgen sichtbar. Benötigt dynamische Strompreise in Homey Energie.",
-      "status_before": "Vor Autopilot",
       "status_started": "Autopilot läuft",
       "first_day": "Die Ersparnis erscheint nach dem ersten vollen Tag.",
       "periods": "Letzte 7 Tage __week__ · dieses Jahr __year__",
       "paid": "Bezahlt __paid__ pro kWh, Durchschnitt __mean__",
       "days": "__days__ Tage",
       "days_one": "1 Tag",
-      "dear_one": "Teuerste Stunden: __a__ % des Verbrauchs",
       "cheap": "Günstigste Stunden",
       "middle": "Mitte",
       "dear": "Teuerste Stunden",
@@ -736,7 +734,16 @@
       "shower": "Pro Dusche (__litres__ L)",
       "loading": "Die letzten zwei Wochen werden aus Insights gelesen. Dauert einige Minuten.",
       "pick_heating": "Wählen Sie in den Widget-Einstellungen ein Gerät für Heizung.",
-      "pick_hotwater": "Wählen Sie in den Widget-Einstellungen ein Gerät für Warmwasser."
+      "pick_hotwater": "Wählen Sie in den Widget-Einstellungen ein Gerät für Warmwasser.",
+      "status_start": "Ihr Ausgangspunkt",
+      "in_expensive": "in den teuersten Stunden",
+      "start_reason": "Autopilot verlagert den Verbrauch aus den teuersten Stunden.",
+      "row_today": "Heute bisher",
+      "kwh_so_far": "__kwh__ kWh bisher",
+      "dear_now": "Teuerste Stunden: jetzt __a__ %, vor Autopilot __b__ %",
+      "in_cheapest_today": "in den günstigsten Stunden heute",
+      "cheap_before": "Vor Autopilot: __b__ %. Der Betrag wird gezählt, wenn der Tag vorbei ist.",
+      "kronor_tonight": "Der Betrag wird gezählt, wenn der Tag vorbei ist."
     }
   }
 }

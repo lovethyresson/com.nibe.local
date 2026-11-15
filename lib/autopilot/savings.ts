@@ -86,6 +86,32 @@ export function savingsDay(date: string, hours: number[], use: Map<number, numbe
     return day;
 }
 
+/** Today so far: the hours that have a reading, each placed in its third by today's whole price
+ *  list, and the average over those hours only, so a morning of cheap hours is not compared with
+ *  an evening it has not had. Undefined before the first reading or without today's prices. */
+export function partialDay(date: string, hours: number[], use: Map<number, number>, prices: Map<number, number>,
+    live?: number, withCharges = false): SavingsDay | undefined {
+    const priced = hours.filter((at) => prices.has(at));
+    if (priced.length < hours.length) return undefined;
+    const sofar = priced.filter((at) => use.has(at));
+    if (!sofar.length) return undefined;
+    const ranked = [...priced].sort((a, b) => prices.get(a)! - prices.get(b)! || a - b);
+    const tiers: [number, number, number] = [0, 0, 0];
+    let cost = 0;
+    ranked.forEach((at, i) => {
+        const kwh = use.get(at) ?? 0;
+        tiers[Math.min(2, Math.floor(i * 3 / ranked.length))] += kwh;
+        cost += kwh * prices.get(at)!;
+    });
+    const mean = sofar.reduce((s, at) => s + prices.get(at)!, 0) / sofar.length;
+    const day: SavingsDay = {date, tiers: tiers.map(round) as [number, number, number], cost: round(cost), mean: round(mean), live};
+    if (withCharges) {
+        const rank = new Map(ranked.map((at, i) => [at, ranked.length > 1 ? i / (ranked.length - 1) : 0]));
+        day.charges = chargeRanks(sofar, use, rank);
+    }
+    return day;
+}
+
 /** kWh in an hour from which the tank counts as being charged: a compressor charge draws 1–2 kW,
  *  a tank standing still next to nothing. */
 export const CHARGE_KWH = 0.4;
@@ -243,6 +269,8 @@ export interface SavingsContext {
     role: 'heating' | 'hotwater';
     /** Local date Autopilot first ran live; undefined while it never has. */
     firstLiveDate?: string;
+    /** Today so far, counted with the complete days when Autopilot ran it. */
+    sofar?: SavingsDay;
     /** The frozen baseline, once found. */
     baseline?: Baseline;
     /** Today, local date. */
@@ -259,7 +287,8 @@ export interface SavingsContext {
 }
 
 /** The widget's text and pictures. */
-export function savingsData(title: string, days: SavingsDay[], t: Translate, c: SavingsContext): SavingsData {
+export function savingsData(title: string, stored: SavingsDay[], t: Translate, c: SavingsContext): SavingsData {
+    const days = c.sofar ? [...stored.filter((d) => d.date !== c.sofar!.date), c.sofar] : stored;
     const recent = days.slice(-RECENT_DAYS);
     if (!recent.length) return {title, empty: t('empty')};
     const pct = (v: number) => Math.round(v * 100);
@@ -267,31 +296,34 @@ export function savingsData(title: string, days: SavingsDay[], t: Translate, c: 
     const legend = {cheap: t('cheap'), middle: t('middle'), dear: t('dear')};
     const base: Baseline = c.baseline ?? {days: 0, ratio: 1};
     const counted = c.firstLiveDate ? savingDays(recent, c.firstLiveDate) : [];
+    const onlyToday = counted.length === 1 && counted[0] === c.sofar;
     const ap = totals(counted);
-    const before = c.firstLiveDate ? undefined : totals(recent);
+    const before = c.firstLiveDate ? undefined : totals(stored.slice(-RECENT_DAYS));
     const pictures: Partial<SavingsData> = {legend};
 
     if (c.role === 'heating') {
         const rows: SplitRow[] = [];
-        if (before) rows.push({label: t('row_so_far'), shares: before.shares, perDay: perDay(before.kwh / before.days)});
         if (!before && base.shares) rows.push({label: t('row_before'), shares: base.shares, perDay: perDay(base.kwhPerDay ?? 0)});
-        if (ap) rows.push({label: t('row_with'), shares: ap.shares, perDay: perDay(ap.kwh / ap.days)});
+        if (before) rows.push({label: t('row_so_far'), shares: before.shares, perDay: perDay(before.kwh / before.days)});
+        if (ap) rows.push({label: onlyToday ? t('row_today') : t('row_with'), shares: ap.shares,
+            perDay: onlyToday ? t('kwh_so_far', {kwh: (ap.kwh).toFixed(1)}) : perDay(ap.kwh / ap.days)});
         if (rows.length) pictures.split = rows;
     } else {
         const week = days.slice(-CHARGE_DAYS).filter((d) => d.charges);
         if (week.length) pictures.charges = {title: t('charges_title'), days: week.map((d) => ({label: c.label(d.date), ranks: d.charges!})),
             bands: [t('band_cheap'), t('band_middle'), t('band_dear')]};
         // A shower with Autopilot, and the same water at the baseline's pattern, at today's prices.
+        const whole = counted.filter((d) => d !== c.sofar);
         const shower = (list: SavingsDay[], extra: (d: SavingsDay) => number) => {
             const known = list.filter((d) => (d.litres ?? 0) > 0);
             const litres = known.reduce((s, d) => s + d.litres!, 0);
             return litres > 0 ? known.reduce((s, d) => s + d.cost + extra(d), 0) / litres * SHOWER_LITRES : undefined;
         };
-        const now = shower(counted.length ? counted : recent, () => 0);
-        const was = counted.length && base.days ? shower(counted, (d) => daySaving(d, base)) : undefined;
+        const now = shower(whole.length ? whole : stored.slice(-RECENT_DAYS), () => 0);
+        const was = whole.length && base.days ? shower(whole, (d) => daySaving(d, base)) : undefined;
         if (now !== undefined) pictures.shower = {title: t('shower', {litres: SHOWER_LITRES}),
             before: was === undefined ? undefined : {label: t('row_before'), value: c.price(was)},
-            now: {label: counted.length ? t('row_with') : t('row_so_far'), value: c.price(now),
+            now: {label: whole.length ? t('row_with') : t('row_so_far'), value: c.price(now),
                 note: was === undefined ? undefined : signed(Math.round((now / was - 1) * 100)) + ' %'}};
     }
 
@@ -299,18 +331,32 @@ export function savingsData(title: string, days: SavingsDay[], t: Translate, c: 
         const ranks = days.slice(-CHARGE_DAYS).flatMap((d) => d.charges ?? []);
         return c.role === 'hotwater' && ranks.length ? t('charges_cheap', {n: ranks.filter((r) => r < 1 / 3).length, of: ranks.length}) : undefined;
     };
-    // Before Autopilot: the figures it will be measured against.
+    // Before Autopilot: the starting point, as the share of use Autopilot will move.
     if (!c.firstLiveDate) {
-        const off = before ? pct(before.paid / before.mean - 1) : 0;
-        return {title, badge: c.badge, ...pictures, status: t('status_before'), tone: 'neutral',
-            value: before ? signed(off) + ' %' : undefined,
-            reason: before ? [t('paid', {paid: c.price(before.paid), mean: c.price(before.mean)}), before.days === 1 ? t('days_one') : t('days', {days: before.days})].join(' · ') : undefined,
-            detail: chargeLine() ?? (before ? t('dear_one', {a: pct(before.dearShare)}) : undefined),
+        return {title, badge: c.badge, ...pictures, status: t('status_start'), tone: 'neutral',
+            value: before ? `${pct(before.dearShare)} %` : undefined,
+            valueNote: before ? t('in_expensive') : undefined,
+            reason: t('start_reason'),
+            detail: chargeLine() ?? (before ? [t('paid', {paid: c.price(before.paid), mean: c.price(before.mean)}),
+                before.days === 1 ? t('days_one') : t('days', {days: before.days})].join(' · ') : undefined),
             footnote: t('footnote_before')};
+    }
+    // Only today so far: kronor come out once the expensive hours have passed with less use, so a
+    // morning reads about zero however well the day goes. The share in the cheapest hours does not.
+    if (onlyToday && ap) {
+        const cheap = pct(ap.shares[0]);
+        return {title, badge: c.badge, ...pictures, status: t(`status_${c.role}`),
+            value: `${cheap} %`, valueNote: t('in_cheapest_today'),
+            tone: base.shares && ap.shares[0] < base.shares[0] ? 'neutral' : 'good',
+            reason: base.shares ? t('cheap_before', {b: pct(base.shares[0])}) : t('kronor_tonight'),
+            detail: chargeLine(),
+            footnote: base.days ? t('footnote_baseline', {days: base.days}) : t('footnote_flat')};
     }
     const sums = periodSavings(days, c.firstLiveDate, base, c.today);
     const footnote = base.days ? t('footnote_baseline', {days: base.days}) : t('footnote_flat');
-    if (!sums.days) return {title, badge: c.badge, ...pictures, status: t('status_started'), reason: t('first_day'), detail: chargeLine(), footnote};
+    if (!sums.days) return {title, badge: c.badge, ...pictures, status: t(`status_${c.role}`), reason: t('first_day'), detail: chargeLine(), footnote};
+    const shift = ap && base.dearShare !== undefined && c.role === 'heating'
+        ? t('dear_now', {a: pct(ap.dearShare), b: pct(base.dearShare)}) : undefined;
     return {
         title, badge: c.badge, ...pictures,
         status: t(`status_${c.role}`),
@@ -318,7 +364,7 @@ export function savingsData(title: string, days: SavingsDay[], t: Translate, c: 
         valueNote: c.month(c.today),
         tone: sums.month >= 0 ? 'good' : 'bad',
         reason: t('periods', {week: c.money(sums.week), year: c.money(sums.year)}),
-        detail: chargeLine(),
+        detail: chargeLine() ?? shift,
         footnote,
     };
 }

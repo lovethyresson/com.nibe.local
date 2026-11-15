@@ -708,14 +708,12 @@
     "savings": {
       "pick": "Vælg en enhed for Opvarmning eller Varmt vand i widgettens indstillinger.",
       "empty": "Vises fra i morgen. Kræver dynamiske elpriser i Homey Energi.",
-      "status_before": "Før Autopilot",
       "status_started": "Autopilot kører",
       "first_day": "Besparelsen vises efter første hele døgn.",
       "periods": "Seneste 7 dage __week__ · i år __year__",
       "paid": "Betalt __paid__ pr. kWh, gennemsnit __mean__",
       "days": "__days__ dage",
       "days_one": "1 dag",
-      "dear_one": "Dyreste timer: __a__ % af forbruget",
       "cheap": "Billigste timer",
       "middle": "Midten",
       "dear": "Dyreste timer",
@@ -736,7 +734,16 @@
       "shower": "Pr. brusebad (__litres__ L)",
       "loading": "Læser de seneste to uger fra Indsigt. Tager et par minutter.",
       "pick_heating": "Vælg en enhed for Opvarmning i widgettens indstillinger.",
-      "pick_hotwater": "Vælg en enhed for Varmt vand i widgettens indstillinger."
+      "pick_hotwater": "Vælg en enhed for Varmt vand i widgettens indstillinger.",
+      "status_start": "Dit udgangspunkt",
+      "in_expensive": "i de dyreste timer",
+      "start_reason": "Autopilot flytter forbruget væk fra de dyreste timer.",
+      "row_today": "I dag indtil nu",
+      "kwh_so_far": "__kwh__ kWh indtil nu",
+      "dear_now": "Dyreste timer: __a__ % nu, __b__ % før Autopilot",
+      "in_cheapest_today": "i dagens billigste timer",
+      "cheap_before": "Før Autopilot: __b__ %. Kronerne tælles, når døgnet er omme.",
+      "kronor_tonight": "Kronerne tælles, når døgnet er omme."
     }
   }
 }

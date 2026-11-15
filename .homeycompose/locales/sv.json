@@ -426,14 +426,12 @@
     "savings": {
       "pick": "Välj en enhet för Uppvärmning eller Varmvatten i widgetens inställningar.",
       "empty": "Visas från i morgon. Kräver dynamiska elpriser i Homey Energi.",
-      "status_before": "Före Autopilot",
       "status_started": "Autopilot är igång",
       "first_day": "Besparingen visas efter första hela dygnet.",
       "periods": "Senaste 7 dagarna __week__ · i år __year__",
       "paid": "Betalt __paid__ per kWh, snitt __mean__",
       "days": "__days__ dagar",
       "days_one": "1 dag",
-      "dear_one": "Dyraste timmarna: __a__ % av förbrukningen",
       "cheap": "Billigaste timmarna",
       "middle": "Mitten",
       "dear": "Dyraste timmarna",
@@ -454,7 +452,16 @@
       "shower": "Per dusch (__litres__ L)",
       "loading": "Läser de senaste två veckorna från Insikter. Tar några minuter.",
       "pick_heating": "Välj en enhet för Uppvärmning i widgetens inställningar.",
-      "pick_hotwater": "Välj en enhet för Varmvatten i widgetens inställningar."
+      "pick_hotwater": "Välj en enhet för Varmvatten i widgetens inställningar.",
+      "status_start": "Din utgångspunkt",
+      "in_expensive": "under de dyraste timmarna",
+      "start_reason": "Autopilot flyttar förbrukningen bort från de dyraste timmarna.",
+      "row_today": "Hittills i dag",
+      "kwh_so_far": "__kwh__ kWh hittills",
+      "dear_now": "Dyraste timmarna: __a__ % nu, __b__ % före Autopilot",
+      "in_cheapest_today": "under dagens billigaste timmar",
+      "cheap_before": "Före Autopilot: __b__ %. Kronorna räknas när dygnet är slut.",
+      "kronor_tonight": "Kronorna räknas när dygnet är slut."
     }
   }
 }

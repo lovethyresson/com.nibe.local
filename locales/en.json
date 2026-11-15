@@ -708,14 +708,12 @@
     "savings": {
       "pick": "Pick a Heating or Hot water device in the widget's settings.",
       "empty": "Shows from tomorrow. Needs dynamic electricity prices in Homey Energy.",
-      "status_before": "Before Autopilot",
       "status_started": "Autopilot is running",
       "first_day": "Savings show after its first full day.",
       "periods": "Last 7 days __week__ · this year __year__",
       "paid": "Paid __paid__ per kWh, average __mean__",
       "days": "__days__ days",
       "days_one": "1 day",
-      "dear_one": "Most expensive hours: __a__ % of use",
       "cheap": "Cheapest hours",
       "middle": "Middle",
       "dear": "Most expensive hours",
@@ -736,7 +734,16 @@
       "shower": "Per shower (__litres__ L)",
       "loading": "Reading the last two weeks from Insights. Takes a few minutes.",
       "pick_heating": "Pick a Heating device in the widget's settings.",
-      "pick_hotwater": "Pick a Hot water device in the widget's settings."
+      "pick_hotwater": "Pick a Hot water device in the widget's settings.",
+      "status_start": "Your starting point",
+      "in_expensive": "in the most expensive hours",
+      "start_reason": "Autopilot moves use out of the most expensive hours.",
+      "row_today": "Today so far",
+      "kwh_so_far": "__kwh__ kWh so far",
+      "dear_now": "Most expensive hours: __a__ % now, __b__ % before Autopilot",
+      "in_cheapest_today": "in the cheapest hours today",
+      "cheap_before": "Before Autopilot: __b__ %. Kronor are counted when the day is done.",
+      "kronor_tonight": "Kronor are counted when the day is done."
     }
   }
 }

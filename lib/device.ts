@@ -2,7 +2,7 @@ import {CaptureSummary, logCaptureSummary} from './diagnostic-capture';
 import {IndoorConfig, averageSensors, cleanIndoorConfig, readOnlyIndoorConfig, selectedReadings, withApi} from './indoor-sensors';
 import {Controls, AutopilotCollector} from './autopilot/collector';
 import {newHistoryFileName} from './autopilot/store-file';
-import {Baseline, LEDGER_DAYS, moneyText, ModeMark, SavingsData, SavingsDay, baselineOf, dayHours, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay} from './autopilot/savings';
+import {Baseline, LEDGER_DAYS, moneyText, partialDay, ModeMark, SavingsData, SavingsDay, baselineOf, dayHours, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay} from './autopilot/savings';
 import {ChargeEvent, HotwaterAutopilot, HotwaterMode, ownDeviceId} from './autopilot/hotwater-shadow';
 import {FlowConflict, moreHotwaterFlows} from './autopilot/hotwater-flows';
 import {KWH_PER_LITRE, STARTER_DAYS, localClock, readHousehold} from './autopilot/hotwater-learner';
@@ -63,6 +63,8 @@ const MODE_MARKS_STORE = 'autopilotModeMarks';
 /** When Autopilot first ran live on this device (ms), and the baseline frozen from the days before. */
 const FIRST_LIVE_STORE = 'autopilotFirstLive';
 const BASELINE_STORE = 'autopilotSavingsBaseline';
+/** Today so far, recounted every hour. */
+const SAVINGS_TODAY_STORE = 'autopilotSavingsToday';
 /** Days back the ledger is filled from: what Insights keeps hourly. */
 const SAVINGS_BACK_DAYS = 13;
 /** Seconds after the app starts during which missing prices or plans are still on their way. */
@@ -2104,6 +2106,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private savingsStopped = false;
     /** A refresh has finished since the app started, whether or not it found days. */
     private savingsReadOnce = false;
+    /** Today's hourly prices, fetched once a day for the hourly count of today so far. */
+    private savingsTodayPrices?: {date: string; prices: Map<number, number>};
     /** Dates a refresh could not complete (a gap in the meter, no prices), and when. They are tried
      *  again once a day, so a day that never completes costs no hourly Homey API calls. */
     private savingsTried = new Map<string, number>();
@@ -2146,12 +2150,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const have = new Set(stored.map((d) => d.date));
         const wanted = Array.from({length: SAVINGS_BACK_DAYS}, (_, k) => localDate(now, timeZone, -(k + 1)))
             .filter((date) => !have.has(date) && date < today && now - (this.savingsTried.get(date) ?? 0) > 86_400_000);
-        if (!wanted.length) {
-            const ledger = this.withLitres(stored);
-            if (ledger !== stored) await this.setStoreValue(SAVINGS_STORE, ledger);
-            await this.freezeBaseline(ledger);
-            return HOUR_MS;
-        }
+        // Every refresh reads the meter, even with no past day missing: today so far is counted
+        // hourly, and a device that ran Autopilot before this was recorded dates its first live hour.
         const appId = this.homey.manifest?.id ?? 'com.nibe.local';
         const marks: ModeMark[] = Array.isArray(this.getStoreValue(MODE_MARKS_STORE)) ? this.getStoreValue(MODE_MARKS_STORE) : [];
         const result = await withApi(this.homey, async (api) => {
@@ -2197,6 +2197,17 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             if (!this.getStoreValue(SAVINGS_CURRENCY_STORE)) {
                 const currency = await api.energy.getCurrency().catch(() => undefined);
                 if (typeof currency === 'string') await this.setStoreValue(SAVINGS_CURRENCY_STORE, currency);
+            }
+            // Today so far: the hours that have a reading, ranked against today's whole price list.
+            const todayPrices = this.savingsTodayPrices?.date === today ? this.savingsTodayPrices.prices
+                : await api.energy.fetchDynamicElectricityPrices({date: today}).then((r: any) => hourlyPrices(normalisePrices(r, costs?.mathExpression).slots, SLOT_MS))
+                    .catch(() => undefined);
+            if (todayPrices?.size) {
+                this.savingsTodayPrices = {date: today, prices: todayPrices};
+                const hours = dayHours(today, (ms) => localDate(ms, timeZone));
+                const sofar = hours.filter((at) => use.has(at));
+                const day = partialDay(today, hours, use, todayPrices, liveShare(sofar, liveHour), this.role === 'hotwater');
+                if (!this.savingsStopped) await this.setStoreValue(SAVINGS_TODAY_STORE, day ?? null);
             }
             const days: SavingsDay[] = [];
             for (const date of wanted) {
@@ -2254,8 +2265,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const baseline = this.getStoreValue(BASELINE_STORE) as Baseline | null;
         const dayLabel = new Intl.DateTimeFormat(language, {weekday: 'short', timeZone: 'UTC'});
         const monthName = new Intl.DateTimeFormat(language, {month: 'long', timeZone: 'UTC'});
+        const sofar = this.getStoreValue(SAVINGS_TODAY_STORE) as SavingsDay | null;
         return savingsData(title, days, t, {
             role: this.role,
+            sofar: sofar?.date === localDate(Date.now(), timeZone) ? sofar : undefined,
             firstLiveDate: typeof firstLive === 'number' ? localDate(firstLive, timeZone) : undefined,
             baseline: baseline ?? undefined,
             today: localDate(Date.now(), timeZone),

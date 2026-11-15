@@ -426,14 +426,12 @@
     "savings": {
       "pick": "Kies een apparaat voor Verwarming of Warm water in de instellingen van de widget.",
       "empty": "Zichtbaar vanaf morgen. Vereist dynamische stroomprijzen in Homey Energie.",
-      "status_before": "Vóór Autopilot",
       "status_started": "Autopilot draait",
       "first_day": "De besparing verschijnt na de eerste hele dag.",
       "periods": "Laatste 7 dagen __week__ · dit jaar __year__",
       "paid": "Betaald __paid__ per kWh, gemiddeld __mean__",
       "days": "__days__ dagen",
       "days_one": "1 dag",
-      "dear_one": "Duurste uren: __a__ % van het verbruik",
       "cheap": "Goedkoopste uren",
       "middle": "Midden",
       "dear": "Duurste uren",
@@ -454,7 +452,16 @@
       "shower": "Per douche (__litres__ L)",
       "loading": "De afgelopen twee weken worden uit Inzichten gelezen. Duurt een paar minuten.",
       "pick_heating": "Kies een apparaat voor Verwarming in de instellingen van de widget.",
-      "pick_hotwater": "Kies een apparaat voor Warm water in de instellingen van de widget."
+      "pick_hotwater": "Kies een apparaat voor Warm water in de instellingen van de widget.",
+      "status_start": "Je startpunt",
+      "in_expensive": "in de duurste uren",
+      "start_reason": "Autopilot verschuift het verbruik weg uit de duurste uren.",
+      "row_today": "Vandaag tot nu toe",
+      "kwh_so_far": "__kwh__ kWh tot nu toe",
+      "dear_now": "Duurste uren: __a__ % nu, __b__ % vóór Autopilot",
+      "in_cheapest_today": "in de goedkoopste uren vandaag",
+      "cheap_before": "Vóór Autopilot: __b__ %. Het bedrag wordt geteld als de dag voorbij is.",
+      "kronor_tonight": "Het bedrag wordt geteld als de dag voorbij is."
     }
   }
 }
