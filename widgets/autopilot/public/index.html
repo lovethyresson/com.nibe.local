@@ -27,19 +27,16 @@
       .ghost-fill { fill: currentColor; fill-opacity: 0.05; }
       .ghost-pill { fill: var(--ghost-accent, currentColor); fill-opacity: 0.55; }
       .ghost-bar { fill: currentColor; fill-opacity: 0.1; }
-      .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--ghost-accent, currentColor); opacity: 0.6; margin-right: 8px; vertical-align: 3px; }
       @media (prefers-reduced-motion: no-preference) {
         .ghost-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: ghost-draw 4.2s cubic-bezier(.45, 0, .25, 1) infinite; }
         .ghost-fill { animation: ghost-fade 4.2s ease-in-out infinite; }
         .ghost-pill, .ghost-bar { transform-box: fill-box; transform-origin: left center; animation: ghost-grow 4.2s cubic-bezier(.3, 0, .2, 1) infinite both; }
         .ghost-bar.up { transform-origin: center bottom; animation-name: ghost-rise; }
-        .pulse { animation: pulse 1.6s ease-in-out infinite; }
       }
       @keyframes ghost-draw { 0% { stroke-dashoffset: 1; opacity: 0; } 8% { opacity: 1; } 55% { stroke-dashoffset: 0; } 85% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
       @keyframes ghost-fade { 0%, 20% { opacity: 0; } 60%, 85% { opacity: 1; } 100% { opacity: 0; } }
       @keyframes ghost-grow { 0%, 45% { transform: scaleX(0); opacity: 0; } 60%, 85% { transform: scaleX(1); opacity: 1; } 100% { opacity: 0; } }
       @keyframes ghost-rise { 0%, 35% { transform: scaleY(0); opacity: 0; } 55%, 85% { transform: scaleY(1); opacity: 1; } 100% { opacity: 0; } }
-      @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.85; } }
 
       /* Light values meet 3:1 or better on white; dark values are the brighter originals. The theme is
          read from the text colour Homey gives the page (see applyTheme), with the media query as the start. */
@@ -325,7 +322,6 @@
         if (data.status) {
           var status = el('p', 'ap-status');
           var name = el('span', '', data.status);
-          if (data.loading) name.insertBefore(el('span', 'pulse'), name.firstChild);
           status.appendChild(name);
           if (typeof data.indoorNow === 'number') {
             var now = el('span', 'ap-now-box');
