@@ -493,3 +493,12 @@ end is searched from the slice start (`s.index(marker, a)`).
 ## 2026-11-15: a setting the user asks for can still break a running test
 - I switched heating to "Save more" on request at 19:07, though I had said that morning that the switch changes the live test (the stop criteria and the trim are built for Comfort ±0.5). The user: "Don't switch to most savings if it ruins a test."
 - Before any change during a hardware test, even one the user asks for, say in one line what it does to the test and wait for the go-ahead.
+
+## 2026-11-15: the review itself was written in the voice it was reviewing
+
+The tone review followed `CLAUDE.md`, which asks for "a short two-part headline with full stops", so
+it missed the slogan headings on every help page. Its own summary also used bold lead-ins and "X, not
+Y" lines. The maintainer: "avoid the claude native tone of voice". **Rule:** before handing in any
+owner text, doc or report, check it against the AI-voice table in `docs/voice.md`. That covers slogan
+headings, number hooks, reassurance closers, the app talking about itself, hype words and contrast
+pairs. Agent-proposed copy gets the same check, since subagents write in that voice by default.
