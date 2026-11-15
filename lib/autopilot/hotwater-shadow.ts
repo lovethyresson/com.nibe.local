@@ -842,9 +842,20 @@ export class HotwaterAutopilot {
             const k = Math.floor(p.t / SLOT_MS) - from;
             if (k >= 0 && k < n && typeof p.litres === 'number' && p.litres > 0) read[k] = round(p.litres, 0);
         }
+        // Right after a start the first plan step is up to a slot away: plan now, reading only.
+        const {now: reading, tank} = this.read();
+        const slotNow = slotOf(Date.now());
+        let planned = this.planned && this.planned.from >= slotNow - 1 ? this.planned : undefined;
+        if (!planned && tank) {
+            const out = planFrom(this.input(slotNow * SLOT_MS, reading, tank));
+            if (!('skip' in out)) planned = {from: slotNow, stored: out.plan.stored};
+        }
+        // The tank now, so the read line reaches now and meets the plan there.
+        const k0 = slotNow - from;
+        if (k0 >= 0 && k0 < n && read[k0] === undefined && Number.isFinite(reading.litres) && reading.litres! > 0) read[k0] = round(reading.litres!, 0);
         const plan: (number | undefined)[] = new Array(n).fill(undefined);
-        if (this.planned) this.planned.stored.forEach((kwh, j) => {
-            const k = this.planned!.from + j - from;
+        if (planned) planned.stored.forEach((kwh, j) => {
+            const k = planned!.from + j - from;
             if (k >= 0 && k < n) plan[k] = round(kwh / KWH_PER_LITRE, 0);
         });
         const hours = Math.ceil(n / 4);
@@ -860,7 +871,7 @@ export class HotwaterAutopilot {
             const p = profileFor(model, dayTypeAt(dayTypes, ms, clock));
             return p ? round(plannedHours(p)[clock(ms).hour] / KWH_PER_LITRE, 0) : 0;
         });
-        return {...o, read, plan, drawn: drawn.map((v) => v === undefined ? undefined : round(v, 0)), forecast};
+        return {...o, litres: o.litres ?? reading.litres, read, plan, drawn: drawn.map((v) => v === undefined ? undefined : round(v, 0)), forecast};
     }
 
     /** The compressor ceiling and the highest target under it, from what the pump did recently. */

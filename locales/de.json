@@ -765,9 +765,7 @@
       "drawn": "Verbraucht",
       "forecast": "Erwartet",
       "done": "Geladen",
-      "charge": "Ladung",
-      "cheap": "Günstig",
-      "expensive": "Teuer"
+      "charge": "Ladung"
     }
   }
 }

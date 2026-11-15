@@ -2198,8 +2198,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             reason: t('used', {used: chart.used, expected: chart.expected}),
             legend: {read: t('read'), plan: t('plan'), reserve: reserve > 0 ? t('reserve') : '', drawn: t('drawn'),
                 forecast: t('forecast'), done: bands.some((b) => b.doneTo !== undefined) ? t('done') : '',
-                charge: bands.some((b) => b.doneTo === undefined || b.doneTo < b.to) ? t('charge') : '',
-                cheap: t('cheap'), expensive: t('expensive')},
+                charge: bands.some((b) => b.doneTo === undefined || b.doneTo < b.to) ? t('charge') : ''},
             axis: t('axis')};
     }
 

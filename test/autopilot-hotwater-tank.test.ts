@@ -27,9 +27,8 @@ test('use per hour: drawn only up to now\'s hour, the forecast for every hour; t
     assert.strictEqual(c.expected, 60);
 });
 
-test('prices fall into thirds; a slot with no price has no tier; the axis covers the tank', () => {
+test('the axis covers the tank', () => {
     const c = tankChart(view(), 2);
-    assert.deepStrictEqual(c.slots.map((s) => s.tier), [0, 0, 0, 1, 1, 2, 2, undefined]);
     assert.ok(c.max >= 230 && c.gridlines[0] === 0 && c.gridlines[c.gridlines.length - 1] === c.max);
 });
 

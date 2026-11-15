@@ -765,9 +765,7 @@
       "drawn": "Brugt",
       "forecast": "Forventet",
       "done": "Opvarmet",
-      "charge": "Opvarmning",
-      "cheap": "Billigt",
-      "expensive": "Dyrt"
+      "charge": "Opvarmning"
     }
   }
 }

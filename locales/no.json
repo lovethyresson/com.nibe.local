@@ -765,9 +765,7 @@
       "drawn": "Brukt",
       "forecast": "Ventet",
       "done": "Varmet",
-      "charge": "Oppvarming",
-      "cheap": "Billig",
-      "expensive": "Dyrt"
+      "charge": "Oppvarming"
     }
   }
 }

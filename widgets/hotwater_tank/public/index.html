@@ -23,12 +23,11 @@
       }
       @keyframes ghost-draw { 0% { stroke-dashoffset: 1; opacity: 0; } 8% { opacity: 1; } 55% { stroke-dashoffset: 0; } 85% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
       @keyframes ghost-rise { 0%, 35% { transform: scaleY(0); opacity: 0; } 55%, 85% { transform: scaleY(1); opacity: 1; } 100% { opacity: 0; } }
-      /* The tank and its charges in blue (the plan widget's charge colour), use in violet, and the
-         price strip in the savings widget's cheap and expensive colours. */
-      :root { --tk-tank: #2d6bd6; --tk-done: rgba(45, 107, 214, 0.35); --tk-use: #7652d6; --tk-cheap: #0f8374; --tk-dear: #c4580d; --tk-middle: rgba(127, 127, 127, 0.35); }
-      :root[data-theme="dark"] { --tk-tank: #4da3ff; --tk-done: rgba(77, 163, 255, 0.35); --tk-use: #a48cff; --tk-cheap: #2bb3a3; --tk-dear: #e8833a; }
+      /* The tank and its charges in blue (the plan widget's charge colour), use in violet. */
+      :root { --tk-tank: #2d6bd6; --tk-done: rgba(45, 107, 214, 0.35); --tk-use: #7652d6; }
+      :root[data-theme="dark"] { --tk-tank: #4da3ff; --tk-done: rgba(77, 163, 255, 0.35); --tk-use: #a48cff; }
       @media (prefers-color-scheme: dark) {
-        :root:not([data-theme="light"]) { --tk-tank: #4da3ff; --tk-done: rgba(77, 163, 255, 0.35); --tk-use: #a48cff; --tk-cheap: #2bb3a3; --tk-dear: #e8833a; }
+        :root:not([data-theme="light"]) { --tk-tank: #4da3ff; --tk-done: rgba(77, 163, 255, 0.35); --tk-use: #a48cff; }
       }
     </style>
   </head>
@@ -124,7 +123,6 @@
         });
       }
 
-      var TIER = ['var(--tk-cheap)', 'var(--tk-middle)', 'var(--tk-dear)'];
 
       // Starting: a tank line draws itself and use bars rise, so the card keeps its size.
       function placeholder(height) {
@@ -144,12 +142,12 @@
 
       // The tank in litres of 40 °C water (read solid, planned dashed) over a dashed floor at what is
       // always kept; the charges as bands under it; the use per hour (drawn filled, expected
-      // outlined) below that; a thin price strip; the hours.
+      // outlined) below that; the hours.
       var clips = 0;
       function tankChart(data) {
         var W = chartWidth(), L = 34, R = W - 6, PH = Math.max(100, Math.min(150, Math.round(W * 0.33))) + EXTRA, B = TOP + PH;
         var bands = data.bands || [], bandY = B + 8, useTop = bandY + (bands.length ? 34 : 6), UH = 40, useB = useTop + UH;
-        var stripY = useB + 4, tickY = stripY + 20, H = tickY + 6;
+        var tickY = useB + 16, H = tickY + 6;
         var n = data.slots.length, step = (R - L) / n;
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'tk-chart', role: 'img'});
         var y = function (v) { return B - PH * v / data.max; };
@@ -203,11 +201,6 @@
             var dh = Math.max(UH * h.drawn / top, 1.5);
             svg.appendChild(svgEl('rect', {x: bx, y: useB - dh, width: bw, height: dh, rx: 2, fill: 'var(--tk-use)'}));
           }
-        });
-        // Price: today's slots in thirds.
-        data.slots.forEach(function (s, k) {
-          if (typeof s.tier !== 'number') return;
-          svg.appendChild(svgEl('rect', {x: x(k), y: stripY, width: step + 0.3, height: 4, fill: TIER[s.tier]}));
         });
         hours(svg, data.ticks.map(function (t) { return {x: x(t.at), label: t.label}; }), tickY);
         return svg;
@@ -266,9 +259,7 @@
           {text: lg.done, style: 'background: var(--tk-done);'},
           {text: lg.charge, style: 'background: var(--tk-tank);'},
           {text: lg.drawn, style: 'background: var(--tk-use);'},
-          {text: lg.forecast, style: 'border: 1px solid var(--tk-use);'},
-          {text: lg.cheap, style: 'background: var(--tk-cheap); height: 4px; vertical-align: 2px;'},
-          {text: lg.expensive, style: 'background: var(--tk-dear); height: 4px; vertical-align: 2px;'}]));
+          {text: lg.forecast, style: 'border: 1px solid var(--tk-use);'}]));
       }
 
       function onHomeyReady(Homey) {

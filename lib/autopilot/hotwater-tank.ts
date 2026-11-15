@@ -12,8 +12,6 @@ export interface TankSlot {
     charge?: number;
     /** The tank charged in this slot. */
     ran?: true;
-    /** Today's price in thirds: 0 cheapest, 2 most expensive. Missing without a price. */
-    tier?: 0 | 1 | 2;
 }
 
 export interface TankHour {
@@ -33,13 +31,6 @@ export interface TankChart {
     used: number;
     expected: number;
 }
-
-const tierOf = (prices: (number | undefined)[]) => {
-    const ranked = prices.map((p, k) => [p, k] as const).filter(([p]) => p !== undefined).sort((a, b) => a[0]! - b[0]!);
-    const tiers: (0 | 1 | 2 | undefined)[] = new Array(prices.length).fill(undefined);
-    ranked.forEach(([, k], i) => { tiers[k] = Math.min(2, Math.floor(i * 3 / ranked.length)) as 0 | 1 | 2; });
-    return tiers;
-};
 
 /** Readings this many slots apart or closer are joined; a longer gap stays a gap. */
 const JOIN_SLOTS = 6;
@@ -61,13 +52,11 @@ export function joinReadings(read: (number | undefined)[]): (number | undefined)
 /** The chart for a day of slots, `now` the index of the slot now. */
 export function tankChart(view: TankView, now: number): TankChart {
     const read = joinReadings(view.read);
-    const tiers = tierOf(view.slots.map((s) => s.price));
     const slots = view.slots.map((s, k): TankSlot => ({
         ...k <= now && read[k] !== undefined ? {read: read[k]} : {},
         ...k >= now && view.plan[k] !== undefined ? {plan: view.plan[k]} : {},
         ...s.charge !== undefined ? {charge: s.charge} : {},
         ...s.ran ? {ran: true as const} : {},
-        ...tiers[k] !== undefined ? {tier: tiers[k]} : {},
     }));
     // The plan starts at the slot it was made in; until the next step that can be a slot behind.
     // Draw it from now with the reading now, so the two lines meet.

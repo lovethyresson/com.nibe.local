@@ -480,9 +480,7 @@
       "drawn": "Used",
       "forecast": "Expected",
       "done": "Charged",
-      "charge": "Charge",
-      "cheap": "Cheap",
-      "expensive": "Expensive"
+      "charge": "Charge"
     }
   }
 }
