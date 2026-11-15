@@ -1,7 +1,7 @@
 {
   "type": "string",
   "title": {
-    "en": "Measure enum",
+    "en": "Status",
     "de": "Modus",
     "nl": "Stand",
     "no": "Modus",

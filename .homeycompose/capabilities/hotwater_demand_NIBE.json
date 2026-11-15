@@ -1,6 +1,6 @@
 {
   "title": {
-    "en": "Hotwater demand set",
+    "en": "Hot water demand",
     "sv": "Ställ in varmvattenbehov",
     "de": "Brauchwasserbedarf einstellen",
     "nl": "Warmtapwaterbehoefte instellen",
@@ -12,7 +12,7 @@
     {
       "id": "0",
       "title": {
-        "en": "0 = Small",
+        "en": "Small",
         "sv": "0 = Litet",
         "de": "0 = Klein",
         "nl": "0 = Klein",
@@ -23,7 +23,7 @@
     {
       "id": "1",
       "title": {
-        "en": "1 = Medium",
+        "en": "Medium",
         "sv": "1 = Medel",
         "de": "1 = Mittel",
         "nl": "1 = Gemiddeld",
@@ -34,7 +34,7 @@
     {
       "id": "2",
       "title": {
-        "en": "2 = Large",
+        "en": "Large",
         "sv": "2 = Stort",
         "de": "2 = Groß",
         "nl": "2 = Groot",
@@ -45,7 +45,7 @@
     {
       "id": "4",
       "title": {
-        "en": "4 = Smart control",
+        "en": "Smart control",
         "sv": "4 = Smart kontrol",
         "de": "4 = Smart Control",
         "nl": "4 = Smart control",

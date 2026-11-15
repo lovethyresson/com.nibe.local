@@ -1,7 +1,7 @@
 {
   "type": "number",
   "title": {
-    "en": "Measure Hour",
+    "en": "Runtime",
     "de": "Stunden",
     "nl": "Uren",
     "no": "Timer",

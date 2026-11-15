@@ -124,10 +124,10 @@ export const registers: Register[] = [
     // temperature at that slot, so a pump without wireless sensors never gets eight empty rows.
     ...wirelessSlots.map((address, i): Register => ({address, name: `measure_temperature.i${address}_wireless_${i + 1}`,
      direction: Dir.In, group: "heating", scale: 10, optIn: true, plausible: {min: 5, max: 40},
-     info: {en: "The temperature at one wireless room sensor. NIBE's slot order follows neither the zones nor menu 5.4, so match it by its reading", sv: "Temperaturen vid en trådlös rumsgivare. NIBE:s ordning följer varken zonerna eller meny 5.4, så känn igen den på värdet"}})),
+     info: {en: "The temperature at one wireless room sensor. The slot order doesn't follow the zones or menu 5.4, so identify it by its reading", sv: "Temperaturen vid en trådlös rumsgivare. NIBE:s ordning följer varken zonerna eller meny 5.4, så känn igen den på värdet"}})),
     // Rad 2 Framledning
     {address: 1017, name: "measure_temperature.i1017_calculated_supply", direction: Dir.In, group: "heating", scale:  10, // Beräknad framledning klimatsystem 1
-     info: {en: "Supply temperature the pump is aiming for (climate system 1)", sv: "Framledningstemperatur pumpen siktar på (klimatsystem 1)"}},
+     info: {en: "Supply temperature your heat pump is aiming for (climate system 1)", sv: "Framledningstemperatur pumpen siktar på (klimatsystem 1)"}},
     {address:    5, name: "measure_temperature.i5_heating_supply",  direction: Dir.In,  group: "heating",     scale:  10, // Framledning (BT2) klimatsystem 1
      info: {en: "Actual heating supply line temperature (BT2)", sv: "Verklig framledningstemperatur (BT2)"}},
     // Rad 3
@@ -146,12 +146,12 @@ export const registers: Register[] = [
      info: {en: "Brine pump speed (GP2)", sv: "Köldbärarpumpens hastighet (GP2)"}},
     // Rad 5
     {address:   10, name: "measure_temperature.i10_source_in",      direction: Dir.In,  group: "groundsource", scale: 10, // Köldbärare in (BT10)
-     info: {en: "Brine temperature entering the pump (BT10)", sv: "Köldbärartemperatur in till pumpen (BT10)"}},
+     info: {en: "Brine temperature entering your heat pump (BT10)", sv: "Köldbärartemperatur in till pumpen (BT10)"}},
     {address:   11, name: "measure_temperature.i11_source_out",     direction: Dir.In,  group: "groundsource", scale: 10, // Köldbärare ut (BT11)
-     info: {en: "Brine temperature leaving the pump (BT11)", sv: "Köldbärartemperatur ut från pumpen (BT11)"}},
+     info: {en: "Brine temperature leaving your heat pump (BT11)", sv: "Köldbärartemperatur ut från pumpen (BT11)"}},
     // Rad 6
     {address: 1028, name: "measure_enum_NIBE.i1028_priority",                 direction: Dir.In,  group: "core",       enum: priorityMap, // Prio
-     info: {en: "What the pump is producing right now (heating, hot water, pool…)", sv: "Vad pumpen producerar just nu (värme, varmvatten, pool…)"}},
+     info: {en: "What your heat pump is producing right now (heating, hot water, pool…)", sv: "Vad pumpen producerar just nu (värme, varmvatten, pool…)"}},
     // Same register 1028 as the enum above, kept as a raw number so it can be logged in
     // Insights (the enum is a string capability Homey can't chart). Hidden from the tile, and
     // `secondary` keeps it out of the pairing/repair lists too: it is one register with two
@@ -165,14 +165,14 @@ export const registers: Register[] = [
     // transitions so the two can be compared — never a capability, no assumed meaning, no
     // effect on attribution. See docs/energy-attribution.md for why this exists.
     {address: 3804, name: "measure_priority_NIBE.i3804_energylog_priority",  direction: Dir.In,  group: "energy",     role: "main", internal: true, // Prio (energy log, undocumented)
-     info: {en: "Undocumented second priority register, logged for comparison against 1028", sv: "Odokumenterat andra prioritetsregister, loggas för jämförelse med 1028"}},
+     info: {en: "Undocumented second priority value, logged for comparison with Priority", sv: "Odokumenterat andra prioritetsregister, loggas för jämförelse med 1028"}},
     {address:   40, name: "measure_water.i40_flow_sensor",          direction: Dir.In,  group: "heating",     scale:  10, // Flödesgivare (BF1)
      info: {en: "Heating medium flow (sensor BF1)", sv: "Värmebärarflöde (givare BF1)"}},
     // Rad 7
     {address: 1048, name: "measure_watt_NIBE.i1048_compressor_add_power",     direction: Dir.In,  group: "energy", role: "main", scale: 1, // Kompressor tillförd effekt
      info: {en: "Electrical power drawn by the compressor", sv: "Eleffekt som kompressorn drar"}},
     {address: 2166, name: "measure_watt_NIBE.i2166_energy_usage",             direction: Dir.In,  group: "energy", role: "main", scale: 1, size: 32, // Momentan använd effekt (u32)
-     info: {en: "Total electrical power used by the pump right now", sv: "Total eleffekt pumpen använder just nu"}},
+     info: {en: "Total electrical power used by your heat pump right now", sv: "Total eleffekt pumpen använder just nu"}},
     // Fallback power source for the energy allocator on models with no 2166 — it does not
     // exist on S320/S325, S330/S332 or S2125, and without a power reading the allocator is
     // skipped entirely, leaving every per-function meter and COP permanently empty.
@@ -189,7 +189,7 @@ export const registers: Register[] = [
     // every read but sat at a flat zero through a 3.3 kW compressor run, tracking the EME 20
     // accessory registers (2176/2178) rather than the pump.
     {address: 2305, name: "measure_watt_NIBE.i2305_energylog_power",          direction: Dir.In,  group: "energy", role: "main", scale: 0.1, size: 32, internal: true, // Energilogg momentan förbrukning
-     info: {en: "Total electrical power used by the pump right now (energy log, averaged)", sv: "Total eleffekt pumpen använder just nu (energilogg, medelvärde)"}},
+     info: {en: "Total electrical power used by your heat pump right now (energy log, averaged)", sv: "Total eleffekt pumpen använder just nu (energilogg, medelvärde)"}},
     // Rad 8
     {address: 1047, name: "measure_temperature.i1047_inverter",     direction: Dir.In,  group: "diagnostics", scale:  10, // Invertertemperatur
      info: {en: "Temperature of the compressor inverter", sv: "Temperatur på kompressorns inverter"}},
@@ -220,11 +220,11 @@ export const registers: Register[] = [
     // line already said driftläge. Exposed as a flag because that is the question a user has
     // ("is the immersion heater running?") and the mode's non-zero values are undocumented.
     {address: 1029, name: "status_NIBE.i1029_additive_heat_active",          direction: Dir.In,  group: "core",       bool: true, // Driftläge intern tillsats
-     info: {en: "Whether the internal electric additional heat is running", sv: "Om den interna eltillsatsen är igång"}},
+     info: {en: "Whether the immersion heater is running", sv: "Om den interna eltillsatsen är igång"}},
     // Incoming main fuse rating (A). Read-only info on the main device (replaces the old
     // static setting so it only appears there).
     {address:  103, name: "fuse_NIBE.h103_fuse",                              direction: Dir.Out, group: "core",       scale: 1, noAction: true, // Säkring inkommande (A)
-     info: {en: "Incoming main fuse rating", sv: "Inkommande huvudsäkring"}},
+     info: {en: "Main fuse rating", sv: "Inkommande huvudsäkring"}},
     // 16-bit raw with scale 100 means the register carries hundredths of a kW (a multi-kW
     // value in watts wouldn't fit 16 bits), so scale 0.1 converts that to plain watts to
     // match the other measure_watt_NIBE power registers. Retyped off meter_power so it no
@@ -235,19 +235,19 @@ export const registers: Register[] = [
     // raw / 0.1 == raw * 10 == watts. Don't "correct" this to 100 against the open-source
     // datasets — that would report kW into a watt capability (1000x low).
     {address: 1027, name: "measure_watt_NIBE.i1027_additive_effect",          direction: Dir.In,  group: "energy", role: "main", scale: 0.1, // Effekt intern tillsats
-     info: {en: "Power from the internal electric additive heater", sv: "Effekt från intern eltillsats"}},
+     info: {en: "Power from the immersion heater", sv: "Effekt från intern eltillsats"}},
     // Rad 13 Eltillsats statistik
     {address: 1025, name: "measure_hour_NIBE.i1025_additive_usage_total",     direction: Dir.In,  group: "statistics", scale:  10, size: 32, // Total drifttid tillsats (s32)
-     info: {en: "Total runtime of the additive heater", sv: "Total drifttid för tillsatsen"}},
+     info: {en: "Total runtime of the immersion heater", sv: "Total drifttid för tillsatsen"}},
     {address: 1069, name: "measure_hour_NIBE.i1069_additive_usage_hotwater",  direction: Dir.In,  group: "hotwater",   scale:  10, size: 32, // Total varmvatten drifttid tillsats (s32, tiondels timmar)
-     info: {en: "Additive heater runtime spent on hot water", sv: "Tillsatsens drifttid för varmvatten"}},
+     info: {en: "Immersion heater runtime spent on hot water", sv: "Tillsatsens drifttid för varmvatten"}},
     // Rad 14 Kompressor utomhus temp avg
     {address: 1083, name: "measure_count_NIBE.i1083_compressor_starts",       direction: Dir.In,  group: "statistics", scale: 1, size: 32, // Kompressorstarter (s32)
      info: {en: "Number of compressor starts", sv: "Antal kompressorstarter"}},
     // In "heating" rather than "statistics": this is the value register 184 is compared against,
     // so it belongs beside the setting it decides, not in a statistics list on another device.
     {address:   37, name: "measure_temperature.i37_outside_avg",    direction: Dir.In,  group: "heating",     scale:  10, // BT1 - Average outside temperature -Medeltemperatur (BT1)
-     info: {en: "Average outdoor temperature — what the heating cut-off is judged against", sv: "Medelutetemperatur — det som värmestoppet jämförs mot"}},
+     info: {en: "Average outdoor temperature, used to decide when heating stops", sv: "Medelutetemperatur — det som värmestoppet jämförs mot"}},
     // Rad 15 Kompressor statistik
     {address: 1087, name: "measure_hour_NIBE.i1087_compressor_usage_total",   direction: Dir.In,  group: "statistics", scale: 1, size: 32, // Total drifttid kompressor (s32)
      info: {en: "Total compressor runtime", sv: "Total drifttid för kompressorn"}},
@@ -257,18 +257,18 @@ export const registers: Register[] = [
     // would double-count. These feed the derived total COP (production / consumption) on
     // the main device — see TOTAL_COP_CAPABILITY in roles.ts.
     {address: 3821, name: "meter_kwh_NIBE.i3821_total_production",            direction: Dir.In,  group: "energy", role: "main", scale: 10, size: 32, relative: true, // Tot. production
-     info: {en: "Heat energy the pump has delivered since this device was added", sv: "Levererad värmeenergi sedan enheten lades till"}},
+     info: {en: "Heat energy your heat pump has delivered since this device was added", sv: "Levererad värmeenergi sedan enheten lades till"}},
     {address: 3823, name: "meter_kwh_NIBE.i3823_total_consumption",           direction: Dir.In,  group: "energy", role: "main", scale: 10, size: 32, relative: true, // Tot. consumption
-     info: {en: "Electricity the pump has consumed since this device was added", sv: "Elförbrukning sedan enheten lades till"}},
+     info: {en: "Electricity your heat pump has used since this device was added", sv: "Elförbrukning sedan enheten lades till"}},
     // Per-function delivered energy (u32, tenths of kWh), shown since pairing like the
     // totals above. incl-additive for heating/hot water (fair for COP, which is charged the
     // additive heater's electricity too); pool/cooling only exist compressor-only. Each
     // lands on its function device via its group and, with that device's used energy from
     // the allocator, drives the device's rolling COP (see producedRegisterForRole).
     {address: 1577, name: "meter_kwh_NIBE.i1577_heating_produced",           direction: Dir.In,  group: "energy", role: "heating",  scale: 10, size: 32, relative: true, // Heating, incl. int. add.
-     info: {en: "Heat energy delivered to heating (incl. electric additive)", sv: "Levererad värmeenergi till värme (inkl. eltillsats)"}},
+     info: {en: "Heat energy delivered to heating, including the immersion heater", sv: "Levererad värmeenergi till värme (inkl. eltillsats)"}},
     {address: 1575, name: "meter_kwh_NIBE.i1575_hotwater_produced",          direction: Dir.In,  group: "energy", role: "hotwater", scale: 10, size: 32, relative: true, // Hot water, incl. int. add.
-     info: {en: "Heat energy delivered to hot water (incl. electric additive)", sv: "Levererad värmeenergi till varmvatten (inkl. eltillsats)"}},
+     info: {en: "Heat energy delivered to hot water, including the immersion heater", sv: "Levererad värmeenergi till varmvatten (inkl. eltillsats)"}},
     {address: 1581, name: "meter_kwh_NIBE.i1581_pool_produced",              direction: Dir.In,  group: "energy", role: "pool",     scale: 10, size: 32, relative: true, // Pool, compressor only
      info: {en: "Heat energy delivered to the pool", sv: "Levererad värmeenergi till poolen"}},
     {address: 1579, name: "meter_kwh_NIBE.i1579_cooling_produced",           direction: Dir.In,  group: "energy", role: "cooling",  scale: 10, size: 32, relative: true, // Cooling, compressor only
@@ -392,7 +392,7 @@ export const registers: Register[] = [
     {address: 2505, name: "target_temperature",                                direction: Dir.Out, group: "heating",    scale: 10, size: 32, min: 5, max: 35,
      plausible: {min: 5, max: 35}, altPlausible: {min: 5, max: 35}, // Rumstemperatur börvärde zon 1
      sources: Array.from({length: 40}, (_, i) => ({address: 2505 + 2 * i, label: {en: `Zone ${i + 1}`, sv: `Zon ${i + 1}`}})),
-     info: {en: "The indoor temperature the pump aims for (menu 1.1, the chosen zone)", sv: "Inomhustemperaturen pumpen siktar på (meny 1.1, vald zon)"}},
+     info: {en: "The indoor temperature your heat pump aims for (menu 1.1, the chosen zone)", sv: "Inomhustemperaturen pumpen siktar på (meny 1.1, vald zon)"}},
     //
     // Smart Price Adaption. Worth having as a setting in its own right, and it is also the prime
     // suspect for why writes to the zone setpoint (2505) are accepted and then discarded: SPA
@@ -413,7 +413,7 @@ export const registers: Register[] = [
     // and answers on the pump this was built against, and the alternative, a feature group holding
     // a single register, cost a GroupId, five roleGroups entries and twelve locale strings.
     {address:  843, name: "boolean_NIBE.h843_spa_activated",                   direction: Dir.Out, group: "core",       bool: true, // Aktiverad (Smart prisanpassning)
-     info: {en: "Smart Price Adaption — shift consumption towards cheaper hours", sv: "Smart prisanpassning — flytta förbrukningen mot billigare timmar"}},
+     info: {en: "Smart price adaption. Shifts consumption towards cheaper hours", sv: "Smart prisanpassning — flytta förbrukningen mot billigare timmar"}},
     // SG Ready requested mode, written over Modbus instead of the wired SG Ready inputs. Flow-only,
     // for owners who drive SG Ready from an automation: its own "Set SG Ready mode" card on Main
     // and nothing else — no capability, no polling. The pump only acts on it once SG Ready is set
@@ -447,7 +447,7 @@ export const registers: Register[] = [
     // neither states a unit, so their true scale was never settled. dev/probe-spa.mjs still reads
     // all of them if that changes.
     {address:  844, name: "boolean_NIBE.h844_spa_heating_activated",          direction: Dir.Out, group: "heating",    bool: true, onValue: 3, offValue: 0, // Prisanpassning värme aktiverad
-     info: {en: "Let Smart Price Adaption act on heating", sv: "Låt smart prisanpassning påverka värmen"}},
+     info: {en: "Let Smart price adaption act on heating", sv: "Låt smart prisanpassning påverka värmen"}},
     // 1918, "Operating mode (Smart Price Adaption)", is deliberately not a capability — but the
     // decoding is recorded here so nobody has to derive it twice. It speaks the SAME code space as
     // the operating priority (1028): measured on a live S1155 it read 30 ("Heating") while SPA was
@@ -484,20 +484,20 @@ export const registers: Register[] = [
     // 851 ("area", 0..255, read 22 on the live pump) stays out: it is the electricity price area,
     // and neither Nibe nor any community source publishes what the numbers mean.
     {address:  846, name: "boolean_NIBE.h846_spa_hotwater_activated",         direction: Dir.Out, group: "hotwater",   bool: true, onValue: 4, offValue: 0, // Prisanpassning varmvatten aktiverad
-     info: {en: "Let Smart Price Adaption act on hot water", sv: "Låt smart prisanpassning påverka varmvattnet"}},
+     info: {en: "Let Smart price adaption act on hot water", sv: "Låt smart prisanpassning påverka varmvattnet"}},
     {address:  902, name: "spa_hotwater_influence_NIBE.h902_spa_hotwater_influence", direction: Dir.Out, group: "hotwater", enum: spaHotwaterInfluenceMap, picker: true, pickerValues: [1, 2, 3, 4], // Prisanpassning varmvatten grad av påverkan
      info: {en: "How strongly the electricity price is allowed to move hot water charging (1-4)", sv: "Hur mycket elpriset får påverka varmvattenladdningen (1-4)"}},
     {address:  848, name: "spa_influence_NIBE.h848_spa_pool_influence",       direction: Dir.Out, group: "pool",       enum: spaInfluenceMap, picker: true, pickerValues: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // Prisanpassning pool grad av påverkan
      info: {en: "How strongly the electricity price is allowed to move pool heating (0 = not at all)", sv: "Hur mycket elpriset får påverka poolvärmen (0 = inte alls)"}},
     {address:  849, name: "boolean_NIBE.h849_spa_cooling_activated",          direction: Dir.Out, group: "cooling",    bool: true, // Prisanpassning kyla aktiverad
-     info: {en: "Let Smart Price Adaption act on cooling", sv: "Låt smart prisanpassning påverka kylan"}},
+     info: {en: "Let Smart price adaption act on cooling", sv: "Låt smart prisanpassning påverka kylan"}},
     {address:  850, name: "spa_influence_NIBE.h850_spa_cooling_influence",    direction: Dir.Out, group: "cooling",    enum: spaInfluenceMap, picker: true, pickerValues: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // Prisanpassning kyla grad av påverkan
      info: {en: "How strongly the electricity price is allowed to move cooling (0 = not at all)", sv: "Hur mycket elpriset får påverka kylan (0 = inte alls)"}},
     // Why the setpoint above may appear to do nothing. On zone firmware this reads 0 and room
     // control runs through the zones; on older firmware it is what enables room-sensor
     // regulation at all. Read-only either way — writing it is the legacy path.
     {address:  202, name: "boolean_NIBE.h202_use_room_sensor",                direction: Dir.Out, group: "heating",    bool: true, noAction: true, // Använd rumsgivare klimatsystem 1
-     info: {en: "Whether room sensor regulation is switched on for climate system 1", sv: "Om rumsgivarreglering är påslagen för klimatsystem 1"}},
+     info: {en: "Whether room-sensor control is on for climate system 1", sv: "Om rumsgivarreglering är påslagen för klimatsystem 1"}},
     // Menu 2.1 "More hot water". Nibe's Modbus manual (M12676EN) omits 697 entirely, and the
     // S1155 manual describes menu 2.1 as a fixed list ("Setting range: 3, 6 and 12 hours, as well
     // as the modes 'Off' and 'One-time increase'"), which makes it look like an enum. It isn't.
@@ -513,7 +513,7 @@ export const registers: Register[] = [
     // Exposed as a plain on/off with onValue 2 (a 2-hour boost) rather than a duration picker.
     // Any 1..127 is legal if a longer boost is ever wanted.
     {address:  697, name: "boolean_NIBE.h697_more_hotwater",                         direction: Dir.Out, group: "hotwater",   bool: true, onValue: 2, offValue: 0, // Mer varmvatten engångshöjning
-     info: {en: "More hot water: a one-time 2-hour boost", sv: "Mer varmvatten: en engångshöjning på 2 timmar"}},
+     info: {en: "A one-time 2-hour hot water boost", sv: "Mer varmvatten: en engångshöjning på 2 timmar"}},
     // Rad 20 Strömförbrukning
     {address:   50, name: "measure_current.i50_sensor_v2",                    direction: Dir.In,  group: "electrical", scale: 10, size: 32, // Strömavkänare BE1 -L1 (u32)
      info: {en: "Current on phase L1 (sensor BE1)", sv: "Ström på fas L1 (givare BE1)"}},
@@ -523,7 +523,7 @@ export const registers: Register[] = [
      info: {en: "Current on phase L3 (sensor BE3)", sv: "Ström på fas L3 (givare BE3)"}},
     // Rad 21 Driftläge / pool
     {address:  237, name: "operating_mode_NIBE.h237_operating_mode",            direction: Dir.Out, group: "core",       enum: modeMap, picker: true, pickerValues: [0, 1, 2], // Driftläge
-     info: {en: "Operating mode: auto, manual or additional heat only", sv: "Driftläge: auto, manuellt eller endast tillsats"}},
+     info: {en: "Auto, manual or immersion heater only", sv: "Driftläge: auto, manuellt eller endast tillsats"}},
     {address:   27, name: "measure_temperature.i27_pool",           direction: Dir.In,  group: "pool",        scale:  10, // Pooltemperatur
      info: {en: "Pool water temperature", sv: "Poolens vattentemperatur"}},
     // Rad 22
@@ -574,7 +574,7 @@ export const registers: Register[] = [
 
     // Inställning värmekurva
     {address:   26, name: "curve_mode_NIBE.h26_heat_curve",                   direction: Dir.Out, group: "heating",    picker: true, pickerValues: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], // Värmekurva klimatsystem 1
-     info: {en: "Selector for the heat curve slope (0–10)", sv: "Väljare för värmekurvans lutning (0–10)"}},
+     info: {en: "Selector for the heat curve slope (0–15)", sv: "Väljare för värmekurvans lutning (0–10)"}},
     {address:   30, name: "curve_displacement_NIBE.h30_heat_curve_displacement", direction: Dir.Out, group: "heating", picker: true, pickerValues: [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // Värmeförskjutning klimatsystem 1 RW
      info: {en: "Selector for the heat curve offset (−10…+10)", sv: "Väljare för kurvförskjutning (−10…+10)"}},
     // Inställning varmvatten
@@ -593,20 +593,20 @@ export const registers: Register[] = [
     // S2125 allow up to 70 °C), and the pool/ventilation ranges below come from the manual
     // rather than hardware, since those accessories aren't docked here to check against.
     {address:   34, name: "target_temperature.h34_min_supply",                direction: Dir.Out, group: "heating",    scale: 10, min: 5, max: 80, // Min framledning klimatsystem 1
-     info: {en: "Lowest supply temperature the pump may produce (climate system 1)", sv: "Lägsta framledningstemperatur pumpen får producera (klimatsystem 1)"}},
+     info: {en: "Lowest supply temperature your heat pump may produce (climate system 1)", sv: "Lägsta framledningstemperatur pumpen får producera (klimatsystem 1)"}},
     {address:   38, name: "target_temperature.h38_max_supply",                direction: Dir.Out, group: "heating",    scale: 10, min: 5, max: 80, // Max framledning klimatsystem 1
-     info: {en: "Highest supply temperature the pump may produce (climate system 1)", sv: "Högsta framledningstemperatur pumpen får producera (klimatsystem 1)"}},
+     info: {en: "Highest supply temperature your heat pump may produce (climate system 1)", sv: "Högsta framledningstemperatur pumpen får producera (klimatsystem 1)"}},
     {address:  184, name: "target_temperature.h184_auto_stop_heating",        direction: Dir.Out, group: "heating",    scale: 10, min: -20, max: 40, // Auto: stopptemp värme
      info: {en: "Outdoor temperature where automatic mode stops heating", sv: "Utetemperatur där autoläget stoppar värmen"}},
     {address:  185, name: "target_temperature.h185_auto_stop_addition",       direction: Dir.Out, group: "heating",    scale: 10, min: -25, max: 40, // Auto: stopptemp tillsats
-     info: {en: "Outdoor temperature where automatic mode stops the additive heater", sv: "Utetemperatur där autoläget stoppar tillsatsen"}},
+     info: {en: "Outdoor temperature where automatic mode stops the immersion heater", sv: "Utetemperatur där autoläget stoppar tillsatsen"}},
     {address:   93, name: "measure_minute_NIBE.h93_periodtime_heating",       direction: Dir.Out, group: "heating",    scale: 1, min: 0, max: 180, // Periodtid värme
-     info: {en: "How long the pump makes heating before switching demand", sv: "Hur länge pumpen gör värme innan den byter behov"}},
+     info: {en: "How long your heat pump heats the house before it moves on to hot water or pool", sv: "Hur länge pumpen gör värme innan den byter behov"}},
     {address:   97, name: "measure_degree_minutes_NIBE.h97_dm_start_compressor", direction: Dir.Out, group: "heating", scale: 1, min: -1000, max: -30, // Startgradminuter kompressor
      info: {en: "Degree minutes at which the compressor starts heating", sv: "Gradminuter då kompressorn startar värmen"}},
     // A difference from h97, not an absolute degree-minute value — hence the positive range.
     {address:  679, name: "measure_degree_minutes_NIBE.h679_dm_diff_start_addition", direction: Dir.Out, group: "heating", scale: 1, min: 100, max: 2000, // Gradminuter differens start tillsats
-     info: {en: "How many degree minutes below the compressor start the additive heater joins in", sv: "Hur många gradminuter under kompressorstarten som tillsatsen går in"}},
+     info: {en: "How many degree minutes below the compressor start the immersion heater joins in", sv: "Hur många gradminuter under kompressorstarten som tillsatsen går in"}},
     // Holding 18 "Limit DM" is deliberately not mapped. It is the degree minutes clamped to the
     // band the controller regulates in, not a setting: on a live pump it changes in the same poll
     // as register 11 and pins at the edge of the band (summer 2026: 11 drifted 0..100 while 18 sat
@@ -654,14 +654,14 @@ export const registers: Register[] = [
     // Its floor is 55 °C, and the top of its 55..70 range needs the immersion heater — which is
     // exactly what the periodic charge is for.
     {address:   61, name: "target_temperature.h61_hotwater_stop_periodic",    direction: Dir.Out, group: "hotwater",   scale: 10, min: 55, max: 70, // Stopptemp. VV periodisk höjning
-     info: {en: "Stop temperature for the periodic anti-legionella hot water charge. Reaching it usually needs the immersion heater — a compressor alone tops out in the high 50s, and lower still when the ground loop is cold.",
+     info: {en: "Stop temperature for the periodic anti-legionella hot water charge. It usually needs the immersion heater.",
             sv: "Stopptemperatur för den periodiska legionellakörningen. För att nå den behövs oftast elpatronen — en kompressor ensam når knappt 60 °C, och lägre än så när köldbärarkretsen är kall."}},
     {address:   94, name: "measure_minute_NIBE.h94_periodtime_pool",          direction: Dir.Out, group: "pool",       scale: 1, min: 0, max: 180, // Periodtid pool
-     info: {en: "How long the pump heats the pool before switching demand", sv: "Hur länge pumpen värmer poolen innan den byter behov"}},
+     info: {en: "How long your heat pump heats the pool before it moves on to heating or hot water", sv: "Hur länge pumpen värmer poolen innan den byter behov"}},
 
     // Alarm handling. h22 is a command: write 1 to acknowledge, it reads back 0.
     {address:   22, name: "button.h22_reset_alarm",                           direction: Dir.Out, group: "alarm",      bool: true, writeOnly: true, noAction: true, // Återställ larm
-     info: {en: "Acknowledge and reset an active alarm on the pump", sv: "Kvittera och återställ ett aktivt larm på pumpen"}},
+     info: {en: "Acknowledge and reset an active alarm on your heat pump", sv: "Kvittera och återställ ett aktivt larm på pumpen"}},
     // Registers 196/197 ("on an alarm, lower the room / hot water temperature") are deliberately
     // not mapped. They are install-time pump configuration that fires only during a fault, so
     // they earn a permanent row in every user's pairing list for something nobody automates.
@@ -682,7 +682,7 @@ export const registers: Register[] = [
     // also gates hot water could not be tested, since the immersion is never called for heating
     // in summer. Main claims less than Heating does.
     {address:  180, name: "boolean_NIBE.h180_enable_addition",                       direction: Dir.Out, group: "core",       bool: true, // Tillåt tillsats
-     info: {en: "Nibe's permit for additional heat, which they label as heating-only. Note the pump's own schedule modes carry a separate, global \"block additional heat\" that this cannot see or override.", sv: "Nibes tillstånd för tillsatsvärme, som de märker som endast värme. Observera att värmepumpens schemalägen har en egen, global \"blockera tillsatsvärme\" som den här inte ser eller kan åsidosätta."}},
+     info: {en: "NIBE's permit for the immersion heater, labelled for heating only. A block set in your heat pump's schedule still applies.", sv: "Nibes tillstånd för tillsatsvärme, som de märker som endast värme. Observera att värmepumpens schemalägen har en egen, global \"blockera tillsatsvärme\" som den här inte ser eller kan åsidosätta."}},
     {address:  181, name: "onoff.h181_enable_heating",                        direction: Dir.Out, group: "heating",    bool: true, // Tillåt värme
      info: {en: "Allow heating operation", sv: "Tillåt värmedrift"}},
     {address:  182, name: "onoff.h182_enable_cooling",                        direction: Dir.Out, group: "cooling",    bool: true, // Tillåt kyla
@@ -703,7 +703,7 @@ export const registers: Register[] = [
     // short-cycling protection this cycle completion exists to prevent. A manual, occasional
     // override is a different risk profile than the app doing it silently and routinely.
     {address:  195, name: "onoff.h195_enable_hotwater",                       direction: Dir.Out, group: "hotwater",   bool: true, // Tillåt varmvatten
-     info: {en: "Allow hot water. Off disables all hot water, including the More hot water boost", sv: "Tillåt varmvatten. Av stänger av allt varmvatten, även engångshöjningen"}},
+     info: {en: "Off turns off all hot water, including More hot water", sv: "Tillåt varmvatten. Av stänger av allt varmvatten, även engångshöjningen"}},
 
     // ---- Offer-all expansion (specs verified against yozik04 s1155_s1255.csv) ----
     // Alarm code (0 = no alarm), a read-only insight beside the reset/alarm-action controls.

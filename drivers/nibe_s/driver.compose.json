@@ -545,7 +545,7 @@
     },
     "curve_displacement_NIBE.h30_heat_curve_displacement": {
       "title": {
-        "en": "Heat curve displacement",
+        "en": "Heat curve offset",
         "sv": "Värmeförskjutning",
         "de": "Parallelverschiebung",
         "nl": "Verschuiving stooklijn",
@@ -612,7 +612,7 @@
       "decimals": 0,
       "insights": true,
       "title": {
-        "en": "Compressor supplied power",
+        "en": "Compressor power",
         "sv": "Kompressor tillförd W",
         "de": "Zugeführte Verdichterleistung",
         "nl": "Toegevoerd compressorvermogen",
@@ -634,7 +634,7 @@
     },
     "fuse_NIBE.h103_fuse": {
       "title": {
-        "en": "Fuse incoming",
+        "en": "Main fuse",
         "sv": "Inkommande säkring",
         "de": "Sicherung (Hausanschluss)",
         "nl": "Hoofdzekering",
@@ -644,7 +644,7 @@
     },
     "measure_temperature.i1_outside": {
       "title": {
-        "en": "Outside temperature (BT1)",
+        "en": "Outdoor temperature (BT1)",
         "sv": "Utetemperatur (BT1)",
         "de": "Außentemperatur (BT1)",
         "nl": "Buitentemperatuur (BT1)",
@@ -762,7 +762,7 @@
       "insights": false,
       "setable": false,
       "title": {
-        "en": "Room sensor regulation active",
+        "en": "Room-sensor control",
         "sv": "Rumsgivarreglering aktiv",
         "de": "Raumfühlerregelung aktiv",
         "nl": "Ruimtevoelerregeling actief",
@@ -942,7 +942,7 @@
     },
     "measure_minute_NIBE.h93_periodtime_heating": {
       "title": {
-        "en": "Period time heating",
+        "en": "Heating period time",
         "sv": "Periodtid värme",
         "de": "Periodendauer Heizung",
         "nl": "Periodetijd verwarming",
@@ -1093,7 +1093,7 @@
     },
     "measure_minute_NIBE.h94_periodtime_pool": {
       "title": {
-        "en": "Period time pool",
+        "en": "Pool period time",
         "sv": "Periodtid pool",
         "de": "Periodendauer Pool",
         "nl": "Periodetijd zwembad",
@@ -1576,7 +1576,7 @@
             "da": "Del anonyme brugsdata"
           },
           "hint": {
-            "en": "Off by default. Sends your heat pump's model, which devices you paired, which Flow cards ran, alarm codes, and how Autopilot is set up and how each day went. Never readings, IP, serial or names.",
+            "en": "Sends your heat pump's model, paired devices, Flow cards used, alarm codes, and Autopilot setup and daily results. Never readings, IP, serial or names.",
             "sv": "Av som standard. Skickar din värmepumps modell, vilka enheter du parkopplat, vilka flödeskort som körts, larmkoder samt hur Autopilot är inställd och hur varje dag gick. Aldrig mätvärden, IP, serienummer eller namn.",
             "de": "Standardmäßig aus. Sendet das Modell Ihrer Wärmepumpe, gekoppelte Geräte, ausgeführte Flow-Karten, Alarmcodes sowie die Einstellungen von Autopilot und wie jeder Tag lief. Nie Messwerte, IP, Seriennummer oder Namen.",
             "nl": "Standaard uit. Verzendt het model van je warmtepomp, gekoppelde apparaten, uitgevoerde Flow-kaarten, alarmcodes en hoe Autopilot is ingesteld en hoe elke dag ging. Nooit metingen, IP, serienummer of namen.",
@@ -1602,7 +1602,7 @@
           "id": "pollInterval",
           "type": "number",
           "label": {
-            "en": "Poll interval (seconds)",
+            "en": "Update interval (seconds)",
             "sv": "Avläsningsintervall (sekunder)",
             "de": "Abfrageintervall (Sekunden)",
             "nl": "Uitleesinterval (seconden)",
@@ -1610,7 +1610,7 @@
             "da": "Aflæsningsinterval (sekunder)"
           },
           "hint": {
-            "en": "How often Homey reads your heat pump. Set it on Nibe Main. Shorter is quicker but busier.",
+            "en": "How often Homey reads your heat pump. Set it on the Main device. A shorter interval updates faster but sends more requests.",
             "sv": "Hur ofta Homey läser av din värmepump. Ställ in det på Nibe Main. Kortare är snabbare men mer belastande.",
             "de": "Wie oft Homey Ihre Wärmepumpe abfragt. Stellen Sie es an Nibe Main ein. Kürzer ist schneller, aber belastender.",
             "nl": "Hoe vaak Homey je warmtepomp uitleest. Stel het in op Nibe Main. Korter is sneller, maar drukker.",
@@ -1671,7 +1671,7 @@
           },
           "value": "For advanced users only. These settings apply to the Heating device, and only while its comfort range is Custom. Autopilot was tuned on Comfort, Save and Save most; other combinations are untested, and Autopilot may heat more, save less, or let the house get colder than you expect.",
           "hint": {
-            "en": "For advanced users only. These settings apply to the Heating device, and only while its comfort range is Custom. Autopilot was tuned on Comfort, Save and Save most; other combinations are untested, and Autopilot may heat more, save less, or let the house get colder than you expect.",
+            "en": "For advanced users. These settings apply to the Heating device when its comfort range is Custom. Autopilot is tuned for Comfort, Save and Save more. Other values are untested and may heat more, save less or let the house get colder than expected.",
             "sv": "Endast för avancerade användare. Inställningarna gäller enheten Uppvärmning, och bara när dess komfortspann är Anpassat. Autopilot är inställd för Komfort, Spara och Spara mest; andra kombinationer är oprövade, och Autopilot kan värma mer, spara mindre eller låta huset bli kallare än du räknar med.",
             "de": "Nur für fortgeschrittene Benutzer. Diese Einstellungen gelten für das Gerät Heizung und nur, solange dessen Komfortbereich Benutzerdefiniert ist. Autopilot wurde für Komfort, Sparen und Am meisten sparen abgestimmt; andere Kombinationen sind ungetestet, und Autopilot kann mehr heizen, weniger sparen oder das Haus kälter werden lassen, als Sie erwarten.",
             "nl": "Alleen voor gevorderde gebruikers. Deze instellingen gelden voor het apparaat Verwarming, en alleen als het comfortbereik op Aangepast staat. Autopilot is afgestemd op Comfort, Besparen en Meest besparen; andere combinaties zijn niet getest, en Autopilot kan meer verwarmen, minder besparen of het huis kouder laten worden dan je verwacht.",
@@ -1695,7 +1695,7 @@
           "max": 6,
           "step": 0.5,
           "hint": {
-            "en": "How far the house may cool below its indoor temperature while Autopilot eases off. Comfort 0.5, Save 3, Save most 6.",
+            "en": "How far the house may cool below its indoor temperature while Autopilot eases off. Comfort 0.5, Save 3, Save more 6.",
             "sv": "Hur långt huset får svalna under inomhustemperaturen när Autopilot drar ner. Komfort 0,5, Spara 3, Spara mest 6.",
             "de": "Wie weit das Haus unter die Innentemperatur abkühlen darf, während Autopilot zurückfährt. Komfort 0,5, Sparen 3, Am meisten sparen 6.",
             "nl": "Hoeveel het huis onder de binnentemperatuur mag afkoelen terwijl Autopilot terugschakelt. Comfort 0,5, Besparen 3, Meest besparen 6.",
@@ -1722,7 +1722,7 @@
           "max": 6,
           "step": 0.5,
           "hint": {
-            "en": "How far a pre-heat may take the house above its indoor temperature. Comfort 0.5, Save 3, Save most 6.",
+            "en": "How far a pre-heat may take the house above its indoor temperature. Comfort 0.5, Save 3, Save more 6.",
             "sv": "Hur långt en förvärmning får ta huset över inomhustemperaturen. Komfort 0,5, Spara 3, Spara mest 6.",
             "de": "Wie weit ein Vorheizen das Haus über die Innentemperatur bringen darf. Komfort 0,5, Sparen 3, Am meisten sparen 6.",
             "nl": "Hoeveel voorverwarmen het huis boven de binnentemperatuur mag brengen. Comfort 0,5, Besparen 3, Meest besparen 6.",
@@ -1749,7 +1749,7 @@
           "max": 3,
           "step": 0.05,
           "hint": {
-            "en": "Heat is moved between two hours only when the expensive one costs at least this many times the cheap one. Lower moves heat more often. Comfort 1.2, Save 1.1, Save most 1.0.",
+            "en": "Heat is moved between two hours only when the expensive one costs at least this many times the cheap one. Lower moves heat more often. Comfort 1.2, Save 1.1, Save more 1.0.",
             "sv": "Värme flyttas mellan två timmar bara när den dyra kostar minst så här många gånger den billiga. Lägre flyttar oftare. Komfort 1,2, Spara 1,1, Spara mest 1,0.",
             "de": "Wärme wird nur zwischen zwei Stunden verschoben, wenn die teure mindestens so viel Mal die günstige kostet. Niedriger verschiebt öfter. Komfort 1,2, Sparen 1,1, Am meisten sparen 1,0.",
             "nl": "Warmte wordt alleen tussen twee uren verschoven als het dure uur minstens zoveel keer het goedkope kost. Lager verschuift vaker. Comfort 1,2, Besparen 1,1, Meest besparen 1,0.",
@@ -1776,7 +1776,7 @@
           "max": 24,
           "step": 1,
           "hint": {
-            "en": "How long the house may run on stored heat before it is bought back. Comfort 6, Save 12, Save most 24.",
+            "en": "How long the house may run on stored heat before Autopilot heats it back up. Comfort 6, Save 12, Save more 24.",
             "sv": "Hur länge huset får gå på lagrad värme innan den köps tillbaka. Komfort 6, Spara 12, Spara mest 24.",
             "de": "Wie lange das Haus von gespeicherter Wärme leben darf, bevor sie zurückgekauft wird. Komfort 6, Sparen 12, Am meisten sparen 24.",
             "nl": "Hoe lang het huis op opgeslagen warmte mag draaien voordat die wordt teruggekocht. Comfort 6, Besparen 12, Meest besparen 24.",
@@ -1803,7 +1803,7 @@
           "max": 20,
           "step": 1,
           "hint": {
-            "en": "How far below the real outdoor temperature Autopilot may feed BT1 to heat harder. Comfort 10, Save 15, Save most 20.",
+            "en": "How far below the measured outdoor temperature Autopilot may send BT1, to heat more. Comfort 10, Save 15, Save more 20.",
             "sv": "Hur långt under den verkliga utetemperaturen Autopilot får mata BT1 för att värma mer. Komfort 10, Spara 15, Spara mest 20.",
             "de": "Wie weit unter der echten Außentemperatur Autopilot BT1 speisen darf, um stärker zu heizen. Komfort 10, Sparen 15, Am meisten sparen 20.",
             "nl": "Hoeveel onder de echte buitentemperatuur Autopilot BT1 mag voeden om harder te verwarmen. Comfort 10, Besparen 15, Meest besparen 20.",
@@ -1830,7 +1830,7 @@
           "max": 20,
           "step": 1,
           "hint": {
-            "en": "How far above the real outdoor temperature Autopilot may feed BT1 to heat less. Comfort 10, Save 15, Save most 20.",
+            "en": "How far above the measured outdoor temperature Autopilot may send BT1, to heat less. Comfort 10, Save 15, Save more 20.",
             "sv": "Hur långt över den verkliga utetemperaturen Autopilot får mata BT1 för att värma mindre. Komfort 10, Spara 15, Spara mest 20.",
             "de": "Wie weit über der echten Außentemperatur Autopilot BT1 speisen darf, um weniger zu heizen. Komfort 10, Sparen 15, Am meisten sparen 20.",
             "nl": "Hoeveel boven de echte buitentemperatuur Autopilot BT1 mag voeden om minder te verwarmen. Comfort 10, Besparen 15, Meest besparen 20.",
@@ -1857,7 +1857,7 @@
           "max": 3,
           "step": 0.1,
           "hint": {
-            "en": "What a degree away from your temperature costs against the money a shift saves. Higher keeps the house closer to your temperature. Comfort 1.4, Save 1.2, Save most 1.0.",
+            "en": "What a degree away from your temperature costs against the money a shift saves. Higher keeps the house closer to your temperature. Comfort 1.4, Save 1.2, Save more 1.0.",
             "sv": "Vad en grad från din temperatur kostar mot pengarna en förskjutning sparar. Högre håller huset närmare din temperatur. Komfort 1,4, Spara 1,2, Spara mest 1,0.",
             "de": "Was ein Grad Abweichung von Ihrer Temperatur gegenüber dem gesparten Geld kostet. Höher hält das Haus näher an Ihrer Temperatur. Komfort 1,4, Sparen 1,2, Am meisten sparen 1,0.",
             "nl": "Wat een graad van je temperatuur af kost tegenover het geld dat een verschuiving bespaart. Hoger houdt het huis dichter bij je temperatuur. Comfort 1,4, Besparen 1,2, Meest besparen 1,0.",
@@ -1881,7 +1881,7 @@
           "max": 1,
           "step": 0.05,
           "hint": {
-            "en": "As a share of how slowly your house warms and cools (its time constant). 1 lets a pre-heat start a full time constant before a price peak. Comfort, Save and Save most all use 0.3.",
+            "en": "As a share of how slowly your house warms and cools (its time constant). 1 lets a pre-heat start a full time constant before a price peak. Comfort, Save and Save more all use 0.3.",
             "sv": "Som andel av hur långsamt ditt hus värms och svalnar (dess tidskonstant). 1 låter förvärmningen börja en hel tidskonstant före en pristopp. Komfort, Spara och Spara mest använder alla 0,3.",
             "de": "Als Anteil daran, wie langsam Ihr Haus warm und kalt wird (seine Zeitkonstante). 1 lässt das Vorheizen eine ganze Zeitkonstante vor einer Preisspitze beginnen. Komfort, Sparen und Am meisten sparen nutzen alle 0,3.",
             "nl": "Als deel van hoe langzaam je huis opwarmt en afkoelt (de tijdconstante). Met 1 begint voorverwarmen een hele tijdconstante voor een prijspiek. Comfort, Besparen en Meest besparen gebruiken alle 0,3.",

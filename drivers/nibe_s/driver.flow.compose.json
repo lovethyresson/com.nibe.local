@@ -11,7 +11,7 @@
         "da": "Der opstod en alarm"
       },
       "hint": {
-        "en": "Fires when your heat pump reports a new alarm. Use the alarm description token to see what happened.",
+        "en": "Triggers when your heat pump reports a new alarm. The Alarm token says what happened.",
         "sv": "Utlöses när din värmepump rapporterar ett nytt larm. Använd larmbeskrivningen som tagg för att se vad som hänt.",
         "de": "Wird ausgelöst, wenn Ihre Wärmepumpe einen neuen Alarm meldet. Über das Tag mit der Alarmbeschreibung sehen Sie, was passiert ist.",
         "nl": "Wordt geactiveerd wanneer je warmtepomp een nieuw alarm meldt. Gebruik de tag met de alarmomschrijving om te zien wat er is gebeurd.",
@@ -73,7 +73,7 @@
         "da": "Driftsprioriteringen ændrede sig"
       },
       "hint": {
-        "en": "Fires when your heat pump switches between hot water, heating, pool, cooling and off. The reason token says why.",
+        "en": "Triggers when your heat pump switches between hot water, heating, pool, cooling and off. The Reason token says why.",
         "sv": "Utlöses när din värmepump växlar mellan varmvatten, värme, pool, kyla och av. Orsakstaggen säger varför.",
         "de": "Wird ausgelöst, wenn Ihre Wärmepumpe zwischen Warmwasser, Heizung, Pool, Kühlung und Aus wechselt. Das Tag „Grund“ sagt, warum.",
         "nl": "Gaat af wanneer je warmtepomp wisselt tussen warm water, verwarming, zwembad, koeling en uit. De tag met de reden zegt waarom.",
@@ -147,7 +147,7 @@
     {
       "id": "capability_changed",
       "title": {
-        "en": "Register changed",
+        "en": "Setting changed",
         "sv": "Registervärde ändrades",
         "de": "Register geändert",
         "nl": "Register gewijzigd",
@@ -163,7 +163,7 @@
         "da": "[[register]] ændret"
       },
       "hint": {
-        "en": "Fires when the selected register's value changes. Only registers with a fixed set of modes (operating mode, hot water demand, priority, fan mode) can be picked.",
+        "en": "Triggers when the selected setting changes. Only settings with a fixed set of modes (operating mode, hot water demand, priority, fan mode) can be picked.",
         "sv": "Utlöses när det valda registrets värde ändras. Bara register med ett fast antal lägen (driftläge, varmvattenbehov, prioritet, fläktläge) kan väljas.",
         "de": "Wird ausgelöst, wenn sich der Wert des gewählten Registers ändert. Es können nur Register mit einer festen Auswahl an Modi gewählt werden (Betriebsmodus, Brauchwasserbedarf, Betriebspriorität, Lüfterstufe).",
         "nl": "Wordt geactiveerd wanneer de waarde van het gekozen register verandert. Alleen registers met een vaste set standen kunnen worden gekozen (bedrijfsstand, warmtapwaterbehoefte, bedrijfsprioriteit, ventilatorstand).",
@@ -175,7 +175,7 @@
           "type": "autocomplete",
           "name": "register",
           "title": {
-            "en": "Register",
+            "en": "Setting",
             "sv": "Register",
             "de": "Register",
             "nl": "Register",
@@ -209,7 +209,7 @@
           "name": "register",
           "type": "string",
           "title": {
-            "en": "Register",
+            "en": "Setting",
             "sv": "Register",
             "de": "Register",
             "nl": "Register",
@@ -231,7 +231,7 @@
     {
       "id": "capability_turned_on",
       "title": {
-        "en": "Register turned on",
+        "en": "A setting turned on",
         "sv": "Registervärde sätts på",
         "de": "Register eingeschaltet",
         "nl": "Register ingeschakeld",
@@ -247,7 +247,7 @@
         "da": "[[register]] tændt"
       },
       "hint": {
-        "en": "Fires when the selected on/off register switches on.",
+        "en": "Triggers when the selected on/off setting turns on.",
         "sv": "Utlöses när det valda av/på-registret slås på.",
         "de": "Wird ausgelöst, wenn das gewählte Ein/Aus-Register einschaltet.",
         "nl": "Wordt geactiveerd wanneer het gekozen aan/uit-register inschakelt.",
@@ -259,7 +259,7 @@
           "type": "autocomplete",
           "name": "register",
           "title": {
-            "en": "Register",
+            "en": "Setting",
             "sv": "Register",
             "de": "Register",
             "nl": "Register",
@@ -273,7 +273,7 @@
           "name": "register",
           "type": "string",
           "title": {
-            "en": "Register",
+            "en": "Setting",
             "sv": "Register",
             "de": "Register",
             "nl": "Register",
@@ -294,7 +294,7 @@
     {
       "id": "capability_turned_off",
       "title": {
-        "en": "Register turned off",
+        "en": "A setting turned off",
         "sv": "Registervärde stängs på",
         "de": "Register ausgeschaltet",
         "nl": "Register uitgeschakeld",
@@ -310,7 +310,7 @@
         "da": "[[register]] slukket"
       },
       "hint": {
-        "en": "Fires when the selected on/off register switches off.",
+        "en": "Triggers when the selected on/off setting turns off.",
         "sv": "Utlöses när det valda av/på-registret stängs av.",
         "de": "Wird ausgelöst, wenn das gewählte Ein/Aus-Register ausschaltet.",
         "nl": "Wordt geactiveerd wanneer het gekozen aan/uit-register uitschakelt.",
@@ -322,7 +322,7 @@
           "type": "autocomplete",
           "name": "register",
           "title": {
-            "en": "Register",
+            "en": "Setting",
             "sv": "Register",
             "de": "Register",
             "nl": "Register",
@@ -336,7 +336,7 @@
           "name": "register",
           "type": "string",
           "title": {
-            "en": "Register",
+            "en": "Setting",
             "sv": "Register",
             "de": "Register",
             "nl": "Register",
@@ -357,7 +357,7 @@
     {
       "id": "curve_displacement_NIBE.h30_heat_curve_displacement.changed",
       "title": {
-        "en": "Heat curve displacement changed",
+        "en": "Heat curve offset changed",
         "sv": "Värmeförskjutningen ändrades",
         "de": "Parallelverschiebung geändert",
         "nl": "Verschuiving stooklijn gewijzigd",
@@ -365,7 +365,7 @@
         "da": "Varmeforskydningen ændret"
       },
       "hint": {
-        "en": "Fires when the heat curve displacement changes, whether set on your heat pump, in myUplink or from Homey.",
+        "en": "Triggers when the heat curve offset changes, on your heat pump, in myUplink or from Homey.",
         "sv": "Utlöses när värmeförskjutningen ändras, oavsett om den ställs in på din värmepump, i myUplink eller från Homey.",
         "de": "Wird ausgelöst, wenn sich die Parallelverschiebung ändert, ob an Ihrer Wärmepumpe, in myUplink oder über Homey eingestellt.",
         "nl": "Wordt geactiveerd wanneer de verschuiving van de stooklijn verandert, of die nu op je warmtepomp, in myUplink of via Homey is ingesteld.",
@@ -378,7 +378,7 @@
           "name": "value",
           "type": "number",
           "title": {
-            "en": "Displacement",
+            "en": "Offset",
             "sv": "Förskjutning",
             "de": "Verschiebung",
             "nl": "Verschuiving",
@@ -407,7 +407,7 @@
         "da": "Driftsindstillingen ændret"
       },
       "hint": {
-        "en": "Fires when the operating mode changes: auto, manual or additional heat only.",
+        "en": "Triggers when the operating mode changes to auto, manual or immersion heater only.",
         "sv": "Utlöses när driftläget ändras: auto, manuellt eller endast tillsats.",
         "de": "Wird ausgelöst, wenn sich der Betriebsmodus ändert: Auto, Manuell oder nur Zusatzheizung.",
         "nl": "Wordt geactiveerd wanneer de bedrijfsstand verandert: auto, handmatig of alleen bijverwarming.",
@@ -449,7 +449,7 @@
         "da": "Ventilatortrinnet ændret"
       },
       "hint": {
-        "en": "Fires when the exhaust air fan switches mode: normal or speed 1–4.",
+        "en": "Triggers when the exhaust air fan switches between normal and speed 1–4.",
         "sv": "Utlöses när frånluftsfläkten byter läge: normal eller hastighet 1–4.",
         "de": "Wird ausgelöst, wenn der Abluftventilator die Stufe wechselt: normal oder Stufe 1–4.",
         "nl": "Wordt geactiveerd wanneer de afzuigventilator van stand wisselt: normaal of stand 1–4.",
@@ -499,7 +499,7 @@
         "da": "Tilgængeligt varmt vand faldt under [[litres]] l"
       },
       "hint": {
-        "en": "Fires once when the estimate crosses your limit going down. Needs a tank picked in Repair.",
+        "en": "Triggers once when the estimate drops below the limit. Requires a hot water tank, set in Repair.",
         "sv": "Utlöses en gång när uppskattningen passerar din gräns på väg ned. Kräver en vald beredare under Reparera.",
         "de": "Wird einmal ausgelöst, wenn die Schätzung Ihre Grenze nach unten überschreitet. Erfordert einen gewählten Speicher.",
         "nl": "Wordt eenmalig geactiveerd wanneer de schatting je grens neerwaarts passeert. Vereist een gekozen boiler.",
@@ -551,7 +551,7 @@
         "da": "En opvarmning af varmt vand startede"
       },
       "hint": {
-        "en": "Fires when a charge starts, whether Autopilot or your heat pump started it. Works with Autopilot on, or in Simulation.",
+        "en": "Triggers when a charge starts, by Autopilot or your heat pump. Works in Live and Simulated.",
         "sv": "Utlöses när en laddning startar, oavsett om Autopilot eller din värmepump startade den. Fungerar med Autopilot på eller i Simulering.",
         "de": "Wird ausgelöst, wenn eine Ladung beginnt, egal ob Autopilot oder Ihre Wärmepumpe sie gestartet hat. Funktioniert mit Autopilot an oder in der Simulation.",
         "nl": "Gaat af wanneer het opwarmen begint, of Autopilot of je warmtepomp het nu startte. Werkt met Autopilot aan of in Simulatie.",
@@ -626,7 +626,7 @@
         "da": "Autopilot opvarmning ændrede sig"
       },
       "hint": {
-        "en": "For example from holding to easing off before expensive hours.",
+        "en": "Triggers when the status changes, for example from Holding to Easing off.",
         "sv": "Till exempel från håller till drar ner inför dyra timmar.",
         "de": "Zum Beispiel von Halten zu Drosseln vor teuren Stunden.",
         "nl": "Bijvoorbeeld van vasthouden naar afbouwen voor dure uren.",
@@ -688,7 +688,7 @@
         "da": "Autopilot opvarmning begyndte at forvarme"
       },
       "hint": {
-        "en": "Fires when the house gets extra heat ahead of expensive hours or your return. Works with Autopilot heating on, or in Simulation.",
+        "en": "Triggers when the house gets extra heat before expensive hours or your return. Works in Live and Simulated.",
         "sv": "Utlöses när huset får extra värme inför dyra timmar eller din hemkomst. Fungerar med Autopilot uppvärmning på eller i Simulering.",
         "nl": "Gaat af wanneer het huis extra warmte krijgt voor dure uren of je thuiskomst. Werkt met Autopilot verwarming aan of in Simulatie.",
         "de": "Wird ausgelöst, wenn das Haus vor teuren Stunden oder Ihrer Rückkehr zusätzlich Wärme bekommt. Funktioniert mit Autopilot Heizung an oder in der Simulation.",
@@ -730,7 +730,7 @@
         "da": "Autopilot opvarmning begyndte at skrue ned"
       },
       "hint": {
-        "en": "Fires when the house gets less heat through expensive hours or forecast sun. Works with Autopilot heating on, or in Simulation.",
+        "en": "Triggers when the house gets less heat during expensive hours or forecast sun. Works in Live and Simulated.",
         "sv": "Utlöses när huset får mindre värme under dyra timmar eller väntad sol. Fungerar med Autopilot uppvärmning på eller i Simulering.",
         "nl": "Gaat af wanneer het huis minder warmte krijgt tijdens dure uren of verwachte zon. Werkt met Autopilot verwarming aan of in Simulatie.",
         "de": "Wird ausgelöst, wenn das Haus in teuren Stunden oder bei erwarteter Sonne weniger Wärme bekommt. Funktioniert mit Autopilot Heizung an oder in der Simulation.",
@@ -780,7 +780,7 @@
         "da": "En dyr periode starter om [[minutes]] minutter"
       },
       "hint": {
-        "en": "The same expensive hours the Heating status names. Good for moving the dishwasher, sauna or car charging. Works with Autopilot heating on, or in Simulation.",
+        "en": "Triggers when the expensive hours shown in the Heating status are this many minutes away. Works in Live and Simulated.",
         "sv": "Samma dyra timmar som Uppvärmningens status visar. Bra för att flytta diskmaskinen, bastun eller billaddningen. Fungerar med Autopilot uppvärmning på eller i Simulering.",
         "nl": "Dezelfde dure uren die de status van Verwarming noemt. Handig om de vaatwasser, sauna of het laden van de auto te verschuiven. Werkt met Autopilot verwarming aan of in Simulatie.",
         "de": "Dieselben teuren Stunden, die der Status der Heizung nennt. Praktisch, um Geschirrspüler, Sauna oder das Laden des Autos zu verschieben. Funktioniert mit Autopilot Heizung an oder in der Simulation.",
@@ -867,7 +867,7 @@
         "da": "En billig periode starter om [[minutes]] minutter"
       },
       "hint": {
-        "en": "The cheapest hours in the plan, found the same way as the expensive ones. Good for starting the dishwasher, sauna or car charging. Works with Autopilot heating on, or in Simulation.",
+        "en": "Triggers when the cheapest hours in the plan are this many minutes away. Works in Live and Simulated.",
         "sv": "De billigaste timmarna i planen, hittade på samma sätt som de dyra. Bra för att starta diskmaskinen, bastun eller billaddningen. Fungerar med Autopilot uppvärmning på eller i Simulering.",
         "nl": "De goedkoopste uren in het plan, op dezelfde manier gevonden als de dure. Handig om de vaatwasser, sauna of het laden van de auto te starten. Werkt met Autopilot verwarming aan of in Simulatie.",
         "de": "Die günstigsten Stunden im Plan, genauso ermittelt wie die teuren. Praktisch, um Geschirrspüler, Sauna oder das Laden des Autos zu starten. Funktioniert mit Autopilot Heizung an oder in der Simulation.",
@@ -948,7 +948,7 @@
         "da": "Indstil min. fremløbstemperatur"
       },
       "titleFormatted": {
-        "en": "Set the minimum supply temperature to [[value]]",
+        "en": "Set the minimum supply temperature to [[value]] °C",
         "sv": "Ställ in lägsta framledningstemperatur till [[value]]",
         "de": "Min. Vorlauftemperatur auf [[value]] setzen",
         "nl": "Min. aanvoertemperatuur instellen op [[value]]",
@@ -990,7 +990,7 @@
         "da": "Indstil maks. fremløbstemperatur"
       },
       "titleFormatted": {
-        "en": "Set the maximum supply temperature to [[value]]",
+        "en": "Set the maximum supply temperature to [[value]] °C",
         "sv": "Ställ in högsta framledningstemperatur till [[value]]",
         "de": "Max. Vorlauftemperatur auf [[value]] setzen",
         "nl": "Max. aanvoertemperatuur instellen op [[value]]",
@@ -1032,7 +1032,7 @@
         "da": "Indstil udetemperatur, der starter køling"
       },
       "titleFormatted": {
-        "en": "Set the outdoor temperature that starts cooling to [[value]]",
+        "en": "Set the outdoor temperature that starts cooling to [[value]] °C",
         "sv": "Ställ in utetemperaturen som startar kylan till [[value]]",
         "de": "Außentemperatur zum Kühlungsstart auf [[value]] setzen",
         "nl": "Buitentemperatuur voor starten koeling instellen op [[value]]",
@@ -1074,7 +1074,7 @@
         "da": "Indstil udetemperatur, der stopper varmen"
       },
       "titleFormatted": {
-        "en": "Set the outdoor temperature that stops heating to [[value]]",
+        "en": "Set the outdoor temperature that stops heating to [[value]] °C",
         "sv": "Ställ in utetemperaturen som stoppar värmen till [[value]]",
         "de": "Außentemperatur zum Heizungsstopp auf [[value]] setzen",
         "nl": "Buitentemperatuur voor stoppen verwarming instellen op [[value]]",
@@ -1116,7 +1116,7 @@
         "da": "Indstil udetemperatur, der stopper tilskudsvarmen"
       },
       "titleFormatted": {
-        "en": "Set the outdoor temperature that stops the immersion heater to [[value]]",
+        "en": "Set the outdoor temperature that stops the immersion heater to [[value]] °C",
         "sv": "Ställ in utetemperaturen som stoppar elpatronen till [[value]]",
         "de": "Außentemperatur zum Stopp der Zusatzheizung auf [[value]] setzen",
         "nl": "Buitentemperatuur voor stoppen bijverwarming instellen op [[value]]",
@@ -1158,7 +1158,7 @@
         "da": "Indstil periodetid varme"
       },
       "titleFormatted": {
-        "en": "Set the heating period time to [[value]]",
+        "en": "Set the heating period time to [[value]] minutes",
         "sv": "Ställ in periodtiden för värme till [[value]]",
         "de": "Periodendauer Heizung auf [[value]] setzen",
         "nl": "Periodetijd verwarming instellen op [[value]]",
@@ -1166,7 +1166,7 @@
         "da": "Indstil periodetid varme til [[value]]"
       },
       "hint": {
-        "en": "How long your heat pump makes heating before switching demand. Accepts 0 to 180 minutes.",
+        "en": "How long your heat pump heats the house before it moves on to hot water or pool. Accepts 0 to 180 minutes.",
         "sv": "Hur länge din värmepump gör värme innan den byter behov. Tillåter 0 till 180 minuter.",
         "de": "Wie lange Ihre Wärmepumpe heizt, bevor sie den Bedarf wechselt. Bereich: 0 bis 180 Minuten.",
         "nl": "Hoe lang je warmtepomp verwarmt voordat de vraag wisselt. Bereik: 0 tot 180 minuten.",
@@ -1318,7 +1318,7 @@
     {
       "id": "target_temperature.h60_hotwater_start_small.set",
       "title": {
-        "en": "Set the hot water start temperature (Small)",
+        "en": "Set the hot water start temperature for Small demand",
         "sv": "Ställ in varmvattnets starttemperatur (Litet)",
         "de": "Brauchwasser-Starttemperatur einstellen (Klein)",
         "nl": "Starttemperatuur warmtapwater instellen (Klein)",
@@ -1326,7 +1326,7 @@
         "da": "Indstil starttemperatur varmt vand (Lille)"
       },
       "titleFormatted": {
-        "en": "Set the hot water start temperature (Small) to [[value]]",
+        "en": "Set the hot water start temperature for Small demand to [[value]] °C",
         "sv": "Ställ in varmvattnets starttemperatur (Litet) till [[value]]",
         "de": "Brauchwasser-Starttemperatur (Klein) auf [[value]] setzen",
         "nl": "Starttemperatuur warmtapwater (Klein) instellen op [[value]]",
@@ -1360,7 +1360,7 @@
     {
       "id": "target_temperature.h64_hotwater_stop_small.set",
       "title": {
-        "en": "Set the hot water stop temperature (Small)",
+        "en": "Set the hot water stop temperature for Small demand",
         "sv": "Ställ in varmvattnets stopptemperatur (Litet)",
         "de": "Brauchwasser-Stopptemperatur einstellen (Klein)",
         "nl": "Stoptemperatuur warmtapwater instellen (Klein)",
@@ -1368,7 +1368,7 @@
         "da": "Indstil stoptemperatur varmt vand (Lille)"
       },
       "titleFormatted": {
-        "en": "Set the hot water stop temperature (Small) to [[value]]",
+        "en": "Set the hot water stop temperature for Small demand to [[value]] °C",
         "sv": "Ställ in varmvattnets stopptemperatur (Litet) till [[value]]",
         "de": "Brauchwasser-Stopptemperatur (Klein) auf [[value]] setzen",
         "nl": "Stoptemperatuur warmtapwater (Klein) instellen op [[value]]",
@@ -1402,7 +1402,7 @@
     {
       "id": "target_temperature.h58_hotwater_start_large.set",
       "title": {
-        "en": "Set the hot water start temperature (Large)",
+        "en": "Set the hot water start temperature for Large demand",
         "sv": "Ställ in varmvattnets starttemperatur (Stort)",
         "de": "Brauchwasser-Starttemperatur einstellen (Groß)",
         "nl": "Starttemperatuur warmtapwater instellen (Groot)",
@@ -1410,7 +1410,7 @@
         "da": "Indstil starttemperatur varmt vand (Stor)"
       },
       "titleFormatted": {
-        "en": "Set the hot water start temperature (Large) to [[value]]",
+        "en": "Set the hot water start temperature for Large demand to [[value]] °C",
         "sv": "Ställ in varmvattnets starttemperatur (Stort) till [[value]]",
         "de": "Brauchwasser-Starttemperatur (Groß) auf [[value]] setzen",
         "nl": "Starttemperatuur warmtapwater (Groot) instellen op [[value]]",
@@ -1444,7 +1444,7 @@
     {
       "id": "target_temperature.h62_hotwater_stop_large.set",
       "title": {
-        "en": "Set the hot water stop temperature (Large)",
+        "en": "Set the hot water stop temperature for Large demand",
         "sv": "Ställ in varmvattnets stopptemperatur (Stort)",
         "de": "Brauchwasser-Stopptemperatur einstellen (Groß)",
         "nl": "Stoptemperatuur warmtapwater instellen (Groot)",
@@ -1452,7 +1452,7 @@
         "da": "Indstil stoptemperatur varmt vand (Stor)"
       },
       "titleFormatted": {
-        "en": "Set the hot water stop temperature (Large) to [[value]]",
+        "en": "Set the hot water stop temperature for Large demand to [[value]] °C",
         "sv": "Ställ in varmvattnets stopptemperatur (Stort) till [[value]]",
         "de": "Brauchwasser-Stopptemperatur (Groß) auf [[value]] setzen",
         "nl": "Stoptemperatuur warmtapwater (Groot) instellen op [[value]]",
@@ -1486,7 +1486,7 @@
     {
       "id": "target_temperature.h61_hotwater_stop_periodic.set",
       "title": {
-        "en": "Set the hot water stop temperature (Periodic)",
+        "en": "Set the periodic hot water stop temperature",
         "sv": "Ställ in varmvattnets stopptemperatur (Periodisk)",
         "de": "Brauchwasser-Stopptemperatur einstellen (Periodisch)",
         "nl": "Stoptemperatuur warmtapwater instellen (Periodiek)",
@@ -1494,7 +1494,7 @@
         "da": "Indstil stoptemperatur varmt vand (Periodisk)"
       },
       "titleFormatted": {
-        "en": "Set the hot water stop temperature (Periodic) to [[value]]",
+        "en": "Set the periodic hot water stop temperature to [[value]] °C",
         "sv": "Ställ in varmvattnets stopptemperatur (Periodisk) till [[value]]",
         "de": "Brauchwasser-Stopptemperatur (Periodisch) auf [[value]] setzen",
         "nl": "Stoptemperatuur warmtapwater (Periodiek) instellen op [[value]]",
@@ -1502,7 +1502,7 @@
         "da": "Indstil stoptemperatur varmt vand (Periodisk) til [[value]]"
       },
       "hint": {
-        "en": "Stop temperature for the periodic anti-legionella charge. Reaching it usually needs the immersion heater — a compressor alone tops out in the high 50s. Accepts 55 to 70 °C.",
+        "en": "Stop temperature for the periodic anti-legionella charge. It usually needs the immersion heater. Accepts 55 to 70 °C.",
         "sv": "Stopptemperatur för den periodiska legionellakörningen. För att nå den behövs oftast elpatronen — en kompressor ensam når knappt 60 °C. Tillåter 55 till 70 °C.",
         "de": "Stopptemperatur der periodischen Legionellenschaltung. Erfordert meist den Elektroheizstab. Bereich: 55 bis 70 °C.",
         "nl": "Stoptemperatuur van de periodieke legionellalading. Vereist meestal het elektrische element. Bereik: 55 tot 70 °C.",
@@ -1528,7 +1528,7 @@
     {
       "id": "target_temperature.h59_hotwater_start.set",
       "title": {
-        "en": "Set the hot water start temperature (Medium)",
+        "en": "Set the hot water start temperature for Medium demand",
         "sv": "Ställ in varmvattnets starttemperatur (Medel)",
         "de": "Brauchwasser-Starttemperatur einstellen (Mittel)",
         "nl": "Starttemperatuur warmtapwater instellen (Medium)",
@@ -1536,7 +1536,7 @@
         "da": "Indstil starttemperatur varmt vand (Medium)"
       },
       "titleFormatted": {
-        "en": "Set the hot water start temperature (Medium) to [[value]]",
+        "en": "Set the hot water start temperature for Medium demand to [[value]] °C",
         "sv": "Ställ in varmvattnets starttemperatur (Medel) till [[value]]",
         "de": "Brauchwasser-Starttemperatur (Mittel) auf [[value]] setzen",
         "nl": "Starttemperatuur warmtapwater (Medium) instellen op [[value]]",
@@ -1570,7 +1570,7 @@
     {
       "id": "target_temperature.h63_hotwater_stop.set",
       "title": {
-        "en": "Set the hot water stop temperature (Medium)",
+        "en": "Set the hot water stop temperature for Medium demand",
         "sv": "Ställ in varmvattnets stopptemperatur (Medel)",
         "de": "Brauchwasser-Stopptemperatur einstellen (Mittel)",
         "nl": "Stoptemperatuur warmtapwater instellen (Medium)",
@@ -1578,7 +1578,7 @@
         "da": "Indstil stoptemperatur varmt vand (Medium)"
       },
       "titleFormatted": {
-        "en": "Set the hot water stop temperature (Medium) to [[value]]",
+        "en": "Set the hot water stop temperature for Medium demand to [[value]] °C",
         "sv": "Ställ in varmvattnets stopptemperatur (Medel) till [[value]]",
         "de": "Brauchwasser-Stopptemperatur (Mittel) auf [[value]] setzen",
         "nl": "Stoptemperatuur warmtapwater (Medium) instellen op [[value]]",
@@ -1620,7 +1620,7 @@
         "da": "Indstil periodetid pool"
       },
       "titleFormatted": {
-        "en": "Set the pool period time to [[value]]",
+        "en": "Set the pool period time to [[value]] minutes",
         "sv": "Ställ in periodtiden för pool till [[value]]",
         "de": "Periodendauer Pool auf [[value]] setzen",
         "nl": "Periodetijd zwembad instellen op [[value]]",
@@ -1628,7 +1628,7 @@
         "da": "Indstil periodetid pool til [[value]]"
       },
       "hint": {
-        "en": "How long your heat pump heats the pool before switching demand. Accepts 0 to 180 minutes.",
+        "en": "How long your heat pump heats the pool before it moves on to heating or hot water. Accepts 0 to 180 minutes.",
         "sv": "Hur länge din värmepump värmer poolen innan den byter behov. Tillåter 0 till 180 minuter.",
         "de": "Wie lange Ihre Wärmepumpe den Pool beheizt, bevor sie den Bedarf wechselt. Bereich: 0 bis 180 Minuten.",
         "nl": "Hoe lang je warmtepomp het zwembad verwarmt voordat de vraag wisselt. Bereik: 0 tot 180 minuten.",
@@ -1704,7 +1704,7 @@
         "da": "Indstil starttemperatur pool"
       },
       "titleFormatted": {
-        "en": "Set the pool start temperature to [[value]]",
+        "en": "Set the pool start temperature to [[value]] °C",
         "sv": "Ställ in poolens starttemperatur till [[value]]",
         "de": "Pool-Starttemperatur auf [[value]] setzen",
         "nl": "Starttemperatuur zwembad instellen op [[value]]",
@@ -1746,7 +1746,7 @@
         "da": "Indstil stoptemperatur pool"
       },
       "titleFormatted": {
-        "en": "Set the pool stop temperature to [[value]]",
+        "en": "Set the pool stop temperature to [[value]] °C",
         "sv": "Ställ in poolens stopptemperatur till [[value]]",
         "de": "Pool-Stopptemperatur auf [[value]] setzen",
         "nl": "Stoptemperatuur zwembad instellen op [[value]]",
@@ -1809,7 +1809,7 @@
         "da": "Indstil driftsindstilling"
       },
       "titleFormatted": {
-        "en": "Set operating mode [[mode]]",
+        "en": "Set operating mode to [[mode]]",
         "sv": "Ställ in driftläge [[mode]]",
         "de": "Betriebsmodus [[mode]] einstellen",
         "nl": "Bedrijfsstand instellen op [[mode]]",
@@ -1817,7 +1817,7 @@
         "da": "Indstil driftsindstilling [[mode]]"
       },
       "hint": {
-        "en": "Operating mode: auto, manual or immersion heater only.",
+        "en": "Auto, manual or immersion heater only.",
         "sv": "Driftläge: auto, manuellt eller endast elpatron.",
         "de": "Betriebsmodus: Auto, Manuell oder nur Zusatzheizung.",
         "nl": "Bedrijfsstand: auto, handmatig of alleen bijverwarming.",
@@ -1901,7 +1901,7 @@
         "da": "Indstil prispåvirkning på varmt vand til [[mode]]"
       },
       "hint": {
-        "en": "How strongly Smart price adaption may shift hot water charging towards cheaper hours. Runs 1 to 4, not 1 to 10 like heating.",
+        "en": "How strongly Smart price adaption may shift hot water charging towards cheaper hours. Accepts 1 to 4.",
         "sv": "Hur mycket smart prisanpassning får flytta varmvattenladdningen mot billigare timmar. Går 1 till 4, inte 1 till 10 som värmen.",
         "de": "Wie stark Smart Price Adaption die Warmwasserbereitung in günstigere Stunden verschieben darf. Reicht von 1 bis 4, nicht 1 bis 10 wie beim Heizen.",
         "nl": "Hoe sterk Smart Price Adaption het opwarmen van warm water naar goedkopere uren mag verschuiven. Loopt van 1 tot 4, niet 1 tot 10 zoals verwarming.",
@@ -1943,7 +1943,7 @@
         "da": "Indstil prispåvirkning på poolvarmen til [[mode]]"
       },
       "hint": {
-        "en": "How strongly Smart price adaption may shift pool heating towards cheaper hours. 0 leaves pool heating alone entirely.",
+        "en": "How strongly Smart price adaption may shift pool heating towards cheaper hours. 0 is off.",
         "sv": "Hur mycket smart prisanpassning får flytta poolvärmen mot billigare timmar. 0 lämnar poolvärmen helt ifred.",
         "de": "Wie stark Smart Price Adaption die Poolheizung in günstigere Stunden verschieben darf. 0 lässt die Poolheizung völlig unberührt.",
         "nl": "Hoe sterk Smart Price Adaption de zwembadverwarming naar goedkopere uren mag verschuiven. 0 laat de zwembadverwarming volledig met rust.",
@@ -1985,7 +1985,7 @@
         "da": "Indstil prispåvirkning på kølingen til [[mode]]"
       },
       "hint": {
-        "en": "How strongly Smart price adaption may shift cooling towards cheaper hours. 0 leaves cooling alone entirely.",
+        "en": "How strongly Smart price adaption may shift cooling towards cheaper hours. 0 is off.",
         "sv": "Hur mycket smart prisanpassning får flytta kylan mot billigare timmar. 0 lämnar kylan helt ifred.",
         "de": "Wie stark Smart Price Adaption die Kühlung in günstigere Stunden verschieben darf. 0 lässt die Kühlung völlig unberührt.",
         "nl": "Hoe sterk Smart Price Adaption de koeling naar goedkopere uren mag verschuiven. 0 laat de koeling volledig met rust.",
@@ -2019,7 +2019,7 @@
         "da": "Indstil varmekurve"
       },
       "titleFormatted": {
-        "en": "Set heat curve [[mode]]",
+        "en": "Set heat curve to [[mode]]",
         "sv": "Ställ in värmekurva [[mode]]",
         "de": "Heizkurve [[mode]] einstellen",
         "nl": "Stooklijn instellen op [[mode]]",
@@ -2040,7 +2040,7 @@
           "type": "autocomplete",
           "name": "mode",
           "title": {
-            "en": "Mode",
+            "en": "Curve",
             "sv": "Läge",
             "de": "Modus",
             "nl": "Stand",
@@ -2053,7 +2053,7 @@
     {
       "id": "curve_displacement_NIBE.h30_heat_curve_displacement.enum",
       "title": {
-        "en": "Set heat curve displacement",
+        "en": "Set heat curve offset",
         "sv": "Ställ in värmeförskjutning",
         "de": "Parallelverschiebung einstellen",
         "nl": "Verschuiving stooklijn instellen",
@@ -2061,7 +2061,7 @@
         "da": "Indstil varmeforskydning"
       },
       "titleFormatted": {
-        "en": "Set heat curve displacement [[mode]]",
+        "en": "Set heat curve offset to [[mode]]",
         "sv": "Ställ in värmeförskjutning [[mode]]",
         "de": "Parallelverschiebung [[mode]] einstellen",
         "nl": "Verschuiving stooklijn instellen op [[mode]]",
@@ -2069,7 +2069,7 @@
         "da": "Indstil varmeforskydning [[mode]]"
       },
       "hint": {
-        "en": "Shifts the heat curve up or down (−10…+10).",
+        "en": "Shifts the heat curve up or down, from −10 to +10.",
         "sv": "Förskjuter värmekurvan uppåt eller nedåt (−10…+10).",
         "de": "Verschiebt die Heizkurve nach oben oder unten (−10…+10).",
         "nl": "Verschuift de stooklijn omhoog of omlaag (−10…+10).",
@@ -2082,7 +2082,7 @@
           "type": "autocomplete",
           "name": "mode",
           "title": {
-            "en": "Mode",
+            "en": "Offset",
             "sv": "Läge",
             "de": "Modus",
             "nl": "Stand",
@@ -2103,7 +2103,7 @@
         "da": "Indstil varmtvandsbehov"
       },
       "titleFormatted": {
-        "en": "Set hot water demand [[mode]]",
+        "en": "Set hot water demand to [[mode]]",
         "sv": "Ställ in varmvatten behov [[mode]]",
         "de": "Brauchwasserbedarf [[mode]] einstellen",
         "nl": "Warmtapwaterbehoefte instellen op [[mode]]",
@@ -2145,7 +2145,7 @@
         "da": "Indstil engangsforøgelse"
       },
       "titleFormatted": {
-        "en": "Set one-time increase [[mode]]",
+        "en": "Set one-time increase to [[mode]]",
         "sv": "Ställ in engångshöjning [[mode]]",
         "de": "Einmalige Erhöhung [[mode]] einstellen",
         "nl": "Eenmalige verhoging instellen op [[mode]]",
@@ -2166,7 +2166,7 @@
           "type": "autocomplete",
           "name": "mode",
           "title": {
-            "en": "Mode",
+            "en": "Duration",
             "sv": "Läge",
             "de": "Modus",
             "nl": "Stand",
@@ -2187,7 +2187,7 @@
         "da": "Indstil interval periodisk varmtvand"
       },
       "titleFormatted": {
-        "en": "Set periodic hot water interval [[mode]]",
+        "en": "Set periodic hot water interval to [[mode]]",
         "sv": "Ställ in periodiskt varmvatten intervall [[mode]]",
         "de": "Intervall periodische Erhöhung [[mode]] einstellen",
         "nl": "Interval periodiek warmtapwater instellen op [[mode]]",
@@ -2208,7 +2208,7 @@
           "type": "autocomplete",
           "name": "mode",
           "title": {
-            "en": "Mode",
+            "en": "Interval",
             "sv": "Läge",
             "de": "Modus",
             "nl": "Stand",
@@ -2229,7 +2229,7 @@
         "da": "Indstil varighed periodisk varmtvand"
       },
       "titleFormatted": {
-        "en": "Set periodic hot water length [[mode]]",
+        "en": "Set periodic hot water length to [[mode]]",
         "sv": "Ställ in periodiskt varmvatten längd [[mode]]",
         "de": "Dauer periodische Erhöhung [[mode]] einstellen",
         "nl": "Duur periodiek warmtapwater instellen op [[mode]]",
@@ -2250,7 +2250,7 @@
           "type": "autocomplete",
           "name": "mode",
           "title": {
-            "en": "Mode",
+            "en": "Length",
             "sv": "Läge",
             "de": "Modus",
             "nl": "Stand",
@@ -2279,7 +2279,7 @@
         "da": "Mere varmtvand – [[state]]"
       },
       "hint": {
-        "en": "More hot water: a one-time 2-hour boost",
+        "en": "A one-time 2-hour hot water boost.",
         "sv": "Mer varmvatten: en engångshöjning på 2 timmar"
       },
       "$filter": "capabilities=boolean_NIBE.h697_more_hotwater",
@@ -2341,7 +2341,7 @@
         "da": "Natkøling – [[state]]"
       },
       "hint": {
-        "en": "Night cooling using the exhaust air fan",
+        "en": "Night cooling using the exhaust air fan.",
         "sv": "Nattsvalka med hjälp av frånluftsfläkten"
       },
       "$filter": "capabilities=boolean_NIBE.h227_nightchill",
@@ -2403,7 +2403,7 @@
         "da": "Periodisk varmtvand – [[state]]"
       },
       "hint": {
-        "en": "Enable the periodic hot water boost",
+        "en": "Turns the periodic hot water boost on or off.",
         "sv": "Aktivera periodisk varmvattenhöjning"
       },
       "$filter": "capabilities=boolean_NIBE.h65_periodic_hotwater",
@@ -2465,7 +2465,7 @@
         "da": "Poolopvarmning – [[state]]"
       },
       "hint": {
-        "en": "Enable pool heating",
+        "en": "Turns pool heating on or off.",
         "sv": "Aktivera poolvärme"
       },
       "$filter": "capabilities=onoff.h691_pool_active",
@@ -2527,7 +2527,7 @@
         "da": "Tillad tilskudsvarme – [[state]]"
       },
       "hint": {
-        "en": "Allow the electric immersion heater for heating. Hot water has its own separate switch.",
+        "en": "Allows the immersion heater to help with heating.",
         "sv": "Tillåt elpatronen för värme. Varmvatten har en egen separat inställning."
       },
       "$filter": "capabilities=boolean_NIBE.h180_enable_addition",
@@ -2589,7 +2589,7 @@
         "da": "Tillad varme – [[state]]"
       },
       "hint": {
-        "en": "Allow heating operation",
+        "en": "Allows your heat pump to heat the house.",
         "sv": "Tillåt värmedrift"
       },
       "$filter": "capabilities=onoff.h181_enable_heating",
@@ -2651,7 +2651,7 @@
         "da": "Tillad køling – [[state]]"
       },
       "hint": {
-        "en": "Allow cooling operation",
+        "en": "Allows your heat pump to cool the house.",
         "sv": "Tillåt kyldrift"
       },
       "$filter": "capabilities=onoff.h182_enable_cooling",
@@ -2713,7 +2713,7 @@
         "da": "Tillad varmt vand – [[state]]"
       },
       "hint": {
-        "en": "Allow hot water. Off disables all hot water, including the More hot water boost",
+        "en": "Off turns off all hot water, including More hot water.",
         "sv": "Tillåt varmvatten. Av stänger av allt varmvatten, även engångshöjningen"
       },
       "$filter": "capabilities=onoff.h195_enable_hotwater",
@@ -3039,7 +3039,7 @@
         "da": "SG Ready – [[state]]"
       },
       "hint": {
-        "en": "On: Homey sets the SG Ready mode. Off: your heat pump's own SG Ready inputs decide.",
+        "en": "When on, Homey sets the SG Ready mode. When off, your heat pump's own SG Ready inputs do.",
         "sv": "På: Homey styr SG Ready-läget. Av: din värmepumps egna SG Ready-ingångar styr.",
         "de": "Ein: Homey setzt den SG-Ready-Modus. Aus: die eigenen SG-Ready-Eingänge Ihrer Wärmepumpe entscheiden.",
         "nl": "Aan: Homey stelt de SG Ready-modus in. Uit: de eigen SG Ready-ingangen van je warmtepomp beslissen.",
@@ -3097,7 +3097,7 @@
         "da": "Indstil SG Ready-tilstand"
       },
       "titleFormatted": {
-        "en": "Set SG Ready mode [[mode]]",
+        "en": "Set SG Ready mode to [[mode]]",
         "sv": "Ställ in SG Ready-läge [[mode]]",
         "de": "SG-Ready-Modus [[mode]] einstellen",
         "nl": "SG Ready-modus instellen op [[mode]]",
@@ -3105,7 +3105,7 @@
         "da": "Indstil SG Ready-tilstand [[mode]]"
       },
       "hint": {
-        "en": "Needs SG Ready set up on your heat pump and switched on.",
+        "en": "Requires SG Ready to be set up and turned on in your heat pump.",
         "sv": "Kräver att SG Ready är konfigurerat i din värmepump och påslaget.",
         "de": "Erfordert, dass SG Ready an Ihrer Wärmepumpe eingerichtet und eingeschaltet ist.",
         "nl": "Vereist dat SG Ready op je warmtepomp is ingesteld en aan staat.",
@@ -3131,7 +3131,7 @@
     {
       "id": "set_numeric_value",
       "title": {
-        "en": "Set value of a register (advanced)",
+        "en": "Change a setting (advanced)",
         "sv": "Sätt värdet på ett register (avancerat)",
         "de": "Registerwert setzen (erweitert)",
         "nl": "Registerwaarde instellen (geavanceerd)",
@@ -3139,7 +3139,7 @@
         "da": "Indstil værdi for et register (avanceret)"
       },
       "titleFormatted": {
-        "en": "Set value of [[register]] to [[value]]",
+        "en": "Set [[register]] to [[value]]",
         "sv": "Sätt värdet på [[register]] till [[value]]",
         "de": "[[register]] auf [[value]] setzen",
         "nl": "[[register]] instellen op [[value]]",
@@ -3147,7 +3147,7 @@
         "da": "Indstil [[register]] til [[value]]"
       },
       "hint": {
-        "en": "Writes any writable Modbus register, picked by name. Prefer the named cards (\"Set the heat curve to …\") — this is the escape hatch for registers that have none. Values outside the register’s range are rejected.",
+        "en": "Changes any adjustable setting, picked by name. Use a named card, like \"Set heat curve\", when there is one. Values outside the setting's range are rejected.",
         "sv": "Skriver till valfritt skrivbart Modbus-register, valt via namn. Använd hellre de namngivna korten (\"Ställ in värmekurvan till …\") — det här är reservutgången för register som saknar sådana. Värden utanför registrets intervall avvisas.",
         "de": "Beschreibt ein beliebiges beschreibbares Modbus-Register, ausgewählt über den Namen. Bevorzugen Sie die benannten Karten („Heizkurve auf … setzen“) – dies ist die Ausweichlösung für Register ohne eigene Karte. Werte außerhalb des Registerbereichs werden abgelehnt.",
         "nl": "Schrijft naar een willekeurig beschrijfbaar Modbus-register, gekozen op naam. Gebruik bij voorkeur de benoemde kaarten (\"Stooklijn instellen op …\") — dit is de noodoplossing voor registers zonder eigen kaart. Waarden buiten het bereik van het register worden geweigerd.",
@@ -3160,7 +3160,7 @@
           "type": "autocomplete",
           "name": "register",
           "title": {
-            "en": "Register",
+            "en": "Setting",
             "sv": "Register",
             "de": "Register",
             "nl": "Register",
@@ -3186,7 +3186,7 @@
     {
       "id": "enable_feature",
       "title": {
-        "en": "Enable a register (advanced)",
+        "en": "Turn on a setting (advanced)",
         "sv": "Slå på ett register (avancerat)",
         "de": "Register einschalten (erweitert)",
         "nl": "Register inschakelen (geavanceerd)",
@@ -3194,7 +3194,7 @@
         "da": "Tænd et register (avanceret)"
       },
       "titleFormatted": {
-        "en": "Enable [[register]]",
+        "en": "Turn on [[register]]",
         "sv": "Slå på [[register]]",
         "de": "[[register]] einschalten",
         "nl": "[[register]] inschakelen",
@@ -3202,7 +3202,7 @@
         "da": "Tænd [[register]]"
       },
       "hint": {
-        "en": "Switches on any writable on/off register, picked by name. Prefer the device’s own on/off cards — this is the escape hatch.",
+        "en": "Turns on any adjustable on/off setting, picked by name. Use the device's own on/off card when there is one.",
         "sv": "Slår på valfritt skrivbart av/på-register, valt via namn. Använd hellre enhetens egna av/på-kort — det här är reservutgången.",
         "de": "Schaltet ein beliebiges beschreibbares Ein/Aus-Register ein, ausgewählt über den Namen. Bevorzugen Sie die eigenen Ein/Aus-Karten des Geräts – dies ist die Ausweichlösung.",
         "nl": "Schakelt een willekeurig beschrijfbaar aan/uit-register in, gekozen op naam. Gebruik bij voorkeur de eigen aan/uit-kaarten van het apparaat — dit is de noodoplossing.",
@@ -3215,7 +3215,7 @@
           "type": "autocomplete",
           "name": "register",
           "title": {
-            "en": "Register",
+            "en": "Setting",
             "sv": "Register",
             "de": "Register",
             "nl": "Register",
@@ -3229,7 +3229,7 @@
     {
       "id": "disable_feature",
       "title": {
-        "en": "Disable a register (advanced)",
+        "en": "Turn off a setting (advanced)",
         "sv": "Stäng av ett register (avancerat)",
         "de": "Register ausschalten (erweitert)",
         "nl": "Register uitschakelen (geavanceerd)",
@@ -3237,7 +3237,7 @@
         "da": "Sluk et register (avanceret)"
       },
       "titleFormatted": {
-        "en": "Disable [[register]]",
+        "en": "Turn off [[register]]",
         "sv": "Stäng av [[register]]",
         "de": "[[register]] ausschalten",
         "nl": "[[register]] uitschakelen",
@@ -3245,7 +3245,7 @@
         "da": "Sluk [[register]]"
       },
       "hint": {
-        "en": "Switches off any writable on/off register, picked by name. Prefer the device’s own on/off cards — this is the escape hatch.",
+        "en": "Turns off any adjustable on/off setting, picked by name. Use the device's own on/off card when there is one.",
         "sv": "Stänger av valfritt skrivbart av/på-register, valt via namn. Använd hellre enhetens egna av/på-kort — det här är reservutgången.",
         "de": "Schaltet ein beliebiges beschreibbares Ein/Aus-Register aus, ausgewählt über den Namen. Bevorzugen Sie die eigenen Ein/Aus-Karten des Geräts – dies ist die Ausweichlösung.",
         "nl": "Schakelt een willekeurig beschrijfbaar aan/uit-register uit, gekozen op naam. Gebruik bij voorkeur de eigen aan/uit-kaarten van het apparaat — dit is de noodoplossing.",
@@ -3258,7 +3258,7 @@
           "type": "autocomplete",
           "name": "register",
           "title": {
-            "en": "Register",
+            "en": "Setting",
             "sv": "Register",
             "de": "Register",
             "nl": "Register",
@@ -3272,7 +3272,7 @@
     {
       "id": "external_temperature.h5217_bt1.set",
       "title": {
-        "en": "Set outdoor temperature (BT1)",
+        "en": "Set outdoor temperature BT1",
         "sv": "Ställ in utomhustemperatur (BT1)",
         "de": "Außentemperatur einstellen (BT1)",
         "nl": "Buitentemperatuur instellen (BT1)",
@@ -3280,7 +3280,7 @@
         "da": "Indstil udetemperatur (BT1)"
       },
       "titleFormatted": {
-        "en": "Set outdoor temperature (BT1): [[value]] °C",
+        "en": "Set outdoor temperature BT1 to [[value]] °C",
         "sv": "Ställ in utomhustemperatur (BT1): [[value]] °C",
         "de": "Außentemperatur einstellen (BT1): [[value]] °C",
         "nl": "Buitentemperatuur instellen (BT1): [[value]] °C",
@@ -3288,7 +3288,7 @@
         "da": "Indstil udetemperatur (BT1): [[value]] °C"
       },
       "hint": {
-        "en": "Enable external BT1 in menu 7.5.9.2 on your heat pump. Sends one reading; your Flow must supply fresh readings regularly. Success means the write was accepted, not that heating uses it.",
+        "en": "Requires external BT1 on your heat pump (menu 7.5.9.2). Sends one reading per run. Repeat every few minutes.",
         "sv": "Aktivera extern BT1 i meny 7.5.9.2 i din värmepump. Skickar ett värde; ditt Flow måste regelbundet skicka aktuella värden. Lyckat betyder att skrivningen accepterats, inte att värmen använder värdet.",
         "de": "Externen BT1 in Menü 7.5.9.2 Ihrer Wärmepumpe aktivieren. Sendet einen Messwert; der Flow muss regelmäßig aktuelle Werte liefern. Erfolg bestätigt die Übertragung, nicht die Nutzung zur Heizungsregelung.",
         "nl": "Activeer externe BT1 in menu 7.5.9.2 van je warmtepomp. Verzendt één meting; de Flow moet regelmatig actuele waarden leveren. Succes bevestigt ontvangst, niet gebruik voor verwarming.",
@@ -3391,7 +3391,7 @@
         "da": "Slå Fraværende til indtil [[date]] kl. [[time]]"
       },
       "hint": {
-        "en": "For a holiday of a week or more. Hot water keeps only its minimum warm, the house is warm again when you're back, and Away ends by itself.",
+        "en": "For a holiday of a week or more. Hot water stays at its minimum, the house is warm again when you're back, and Away ends on its own.",
         "sv": "För en semester på en vecka eller mer. Varmvattnet håller bara sitt minimum varmt, huset är varmt igen när du kommer hem, och Borta slutar av sig självt.",
         "de": "Für einen Urlaub von einer Woche oder länger. Das Warmwasser hält nur sein Minimum warm, das Haus ist wieder warm, wenn Sie zurück sind, und Abwesend endet von selbst.",
         "nl": "Voor een vakantie van een week of langer. Warm water houdt alleen het minimum warm, het huis is weer warm als je thuiskomt, en Afwezig stopt vanzelf.",
@@ -3490,7 +3490,7 @@
             {
               "id": "save_most",
               "label": {
-                "en": "I'd rather freeze (±6 °C)",
+                "en": "Save more (±6 °C)",
                 "sv": "Hellre frysa (±6 °C)",
                 "de": "Lieber frieren (±6 °C)",
                 "nl": "Liever kou lijden (±6 °C)",
@@ -3523,7 +3523,7 @@
         "da": "Værdisammenligning"
       },
       "titleFormatted": {
-        "en": "Value of [[register]] is [[comparison]] [[value]]",
+        "en": "[[register]] is [[comparison]] [[value]]",
         "sv": "Värdet på [[register]] är [[comparison]] [[value]]",
         "de": "Wert von [[register]] ist [[comparison]] [[value]]",
         "nl": "Waarde van [[register]] is [[comparison]] [[value]]",
@@ -3531,7 +3531,7 @@
         "da": "Værdien af [[register]] er [[comparison]] [[value]]"
       },
       "hint": {
-        "en": "Compares any readable numeric register against a value. Useful for readings that have no card of their own, such as degree minutes or compressor frequency.",
+        "en": "Compares a reading with a value. Useful for readings without a card of their own, like compressor frequency.",
         "sv": "Jämför valfritt läsbart numeriskt register mot ett värde. Användbart för mätvärden utan eget kort, till exempel gradminuter eller kompressorfrekvens.",
         "de": "Vergleicht ein beliebiges lesbares numerisches Register mit einem Wert. Nützlich für Messwerte ohne eigene Karte, etwa Gradminuten oder Verdichterfrequenz.",
         "nl": "Vergelijkt een willekeurig uitleesbaar numeriek register met een waarde. Handig voor metingen zonder eigen kaart, zoals graadminuten of compressorfrequentie.",
@@ -3543,7 +3543,7 @@
           "type": "autocomplete",
           "name": "register",
           "title": {
-            "en": "Register",
+            "en": "Reading",
             "sv": "Register",
             "de": "Register",
             "nl": "Register",
@@ -3604,7 +3604,7 @@
     {
       "id": "curve_displacement_NIBE.h30_heat_curve_displacement.compare",
       "title": {
-        "en": "Heat curve displacement is less/greater than",
+        "en": "Heat curve offset is less/greater than",
         "sv": "Värmeförskjutningen är mindre/större än",
         "de": "Parallelverschiebung ist kleiner/größer als",
         "nl": "Verschuiving stooklijn is kleiner/groter dan",
@@ -3612,7 +3612,7 @@
         "da": "Varmeforskydningen er mindre/større end"
       },
       "titleFormatted": {
-        "en": "Heat curve displacement is [[comparison]] [[value]]",
+        "en": "Heat curve offset is [[comparison]] [[value]]",
         "sv": "Värmeförskjutningen är [[comparison]] [[value]]",
         "de": "Parallelverschiebung ist [[comparison]] [[value]]",
         "nl": "Verschuiving stooklijn is [[comparison]] [[value]]",
@@ -3677,7 +3677,7 @@
     {
       "id": "feature_enabled",
       "title": {
-        "en": "A register is on (advanced)",
+        "en": "A setting is on",
         "sv": "Ett register är på (avancerat)",
         "de": "Ein Register ist eingeschaltet (erweitert)",
         "nl": "Een register is ingeschakeld (geavanceerd)",
@@ -3685,7 +3685,7 @@
         "da": "Et register er tændt (avanceret)"
       },
       "titleFormatted": {
-        "en": "[[register]] is !{{enabled|disabled}}",
+        "en": "[[register]] is !{{on|off}}",
         "sv": "[[register]] är !{{på|av}}",
         "de": "[[register]] ist !{{aktiviert|deaktiviert}}",
         "nl": "[[register]] is !{{ingeschakeld|uitgeschakeld}}",
@@ -3693,7 +3693,7 @@
         "da": "[[register]] er !{{aktiveret|deaktiveret}}"
       },
       "hint": {
-        "en": "Checks any on/off register, picked by name.",
+        "en": "Checks any on/off setting, picked by name.",
         "sv": "Kontrollerar valfritt av/på-register, valt via namn.",
         "de": "Prüft ein beliebiges Ein/Aus-Register, ausgewählt über den Namen.",
         "nl": "Controleert een willekeurig aan/uit-register, gekozen op naam.",
@@ -3706,7 +3706,7 @@
           "type": "autocomplete",
           "name": "register",
           "title": {
-            "en": "Register",
+            "en": "Setting",
             "sv": "Register",
             "de": "Register",
             "nl": "Register",
@@ -3735,7 +3735,7 @@
         "da": "Driftsindstilling er [[mode]]"
       },
       "hint": {
-        "en": "Operating mode: auto, manual or immersion heater only.",
+        "en": "Auto, manual or immersion heater only.",
         "sv": "Driftläge: auto, manuellt eller endast elpatron.",
         "de": "Betriebsmodus: Auto, Manuell oder nur Zusatzheizung.",
         "nl": "Bedrijfsstand: auto, handmatig of alleen bijverwarming.",
@@ -3790,7 +3790,7 @@
           "type": "autocomplete",
           "name": "mode",
           "title": {
-            "en": "Mode",
+            "en": "Curve",
             "sv": "Läge",
             "de": "Modus",
             "nl": "Stand",
@@ -3874,7 +3874,7 @@
           "type": "autocomplete",
           "name": "mode",
           "title": {
-            "en": "Mode",
+            "en": "Interval",
             "sv": "Läge",
             "de": "Modus",
             "nl": "Stand",
@@ -3916,7 +3916,7 @@
           "type": "autocomplete",
           "name": "mode",
           "title": {
-            "en": "Mode",
+            "en": "Length",
             "sv": "Läge",
             "de": "Modus",
             "nl": "Stand",
@@ -4029,7 +4029,7 @@
         "da": "Tilgængeligt varmt vand er mindre end [[litres]] l"
       },
       "hint": {
-        "en": "Needs a tank picked in Repair; false without one.",
+        "en": "Requires a hot water tank, set in Repair. False without one.",
         "sv": "Kräver en vald beredare under Reparera; falskt utan.",
         "de": "Erfordert einen gewählten Speicher; sonst falsch.",
         "nl": "Vereist een gekozen boiler; anders onwaar.",

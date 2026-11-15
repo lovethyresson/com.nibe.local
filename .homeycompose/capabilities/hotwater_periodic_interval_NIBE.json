@@ -1,6 +1,6 @@
 {
   "title": {
-    "en": "Periodic hotwater interval set",
+    "en": "Periodic hot water interval",
     "sv": "Ställ in intervall periodiskt varmvatten",
     "de": "Intervall periodische Erhöhung einstellen",
     "nl": "Interval periodiek warmtapwater instellen",
@@ -12,7 +12,7 @@
     {
       "id": "7",
       "title": {
-        "en": "7 = Days",
+        "en": "7 days",
         "sv": "7 = Dagar",
         "de": "7 = Tage",
         "nl": "7 = dagen",
@@ -23,7 +23,7 @@
     {
       "id": "14",
       "title": {
-        "en": "14 = Days",
+        "en": "14 days",
         "sv": "14 = Dagar",
         "de": "14 = Tage",
         "nl": "14 = dagen",
@@ -34,7 +34,7 @@
     {
       "id": "21",
       "title": {
-        "en": "21 = Days",
+        "en": "21 days",
         "sv": "21 = Dagar",
         "de": "21 = Tage",
         "nl": "21 = dagen",
@@ -45,7 +45,7 @@
     {
       "id": "28",
       "title": {
-        "en": "28 = Days",
+        "en": "28 days",
         "sv": "28 = Dagar",
         "de": "28 = Tage",
         "nl": "28 = dagen",
