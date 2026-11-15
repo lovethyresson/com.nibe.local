@@ -2,35 +2,31 @@
   <head>
     <meta charset="utf-8">
     <style>
-      /* The same card as the Autopilot widget (widgets/autopilot): title, a quiet chip, the status
-         with its one number in colour on the right, a reason, a muted detail, then the chart. */
+      /* One hierarchy, as Apple's Health and Fitness cards: a quiet caption, a short label, one large
+         number with its caption, then small figures and the picture. Spacing on an 8 px rhythm. */
       .sv { padding: var(--homey-su-2, 8px) var(--homey-su-3, 12px); }
-      .sv-title { opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .sv-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
-      .sv-chip { font-size: 0.8em; padding: 2px 8px; border-radius: 999px; background: transparent; border: 1px solid rgba(127, 127, 127, 0.4); opacity: 0.75; }
-      .sv-status { margin: 12px 0 0; font-size: 1.35em; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; }
-      .sv-value { font-variant-numeric: tabular-nums; white-space: nowrap; }
-      .sv-value-box { display: flex; flex-direction: column; align-items: flex-end; }
-      .sv-value-note { font-weight: 400; opacity: 0.75; white-space: nowrap; }
-      .sv-value.bad { color: var(--sv-dear); }
-      .sv-value.neutral { opacity: 0.75; }
-      .sv-reason { margin: 4px 0 0; opacity: 0.85; font-variant-numeric: proportional-nums; }
-      .sv-detail { margin: 2px 0 0; opacity: 0.65; font-variant-numeric: proportional-nums; }
-      .sv-chart { display: block; margin-top: 14px; overflow: visible; }
-      .sv-chart text { font-size: 11px; fill: currentColor; opacity: 0.75; }
-      .sv-chart text.row-label { font-size: 12px; font-weight: 600; opacity: 1; }
-      .sv-chart text.on-bar { fill: #ffffff; opacity: 1; font-weight: 600; }
-      .sv-chart text.on-bar.mid { fill: currentColor; }
-      .sv-value.good, .sv-tile-n.good { color: var(--sv-cheap); }
-      .sv-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.8em; opacity: 0.9; margin-top: 10px; }
-      .sv-key { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; box-sizing: border-box; }
-      .sv-foot { margin: 10px 0 0; font-size: 0.8em; opacity: 0.75; }
-      .sv-sub { margin: 14px 0 0; font-size: 0.8em; opacity: 0.75; }
-      .sv-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
-      .sv-tile { border-radius: 12px; padding: 8px 10px; background: var(--sv-tile); }
-      .sv-tile-k { font-size: 0.8em; opacity: 0.75; }
-      .sv-tile-n { font-size: 1.35em; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 1px; }
-      .sv-tile-s { font-size: 0.8em; opacity: 0.75; }
+      .sv-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+      .sv-title { opacity: 0.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .sv-tag { font-size: 0.72em; letter-spacing: 0.02em; padding: 1px 7px; border-radius: 999px; border: 1px solid rgba(127, 127, 127, 0.35); opacity: 0.65; white-space: nowrap; }
+      .sv-label { margin: 14px 0 0; font-size: 0.86em; font-weight: 600; opacity: 0.7; }
+      .sv-hero { margin: 2px 0 0; font-size: 2.3em; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+      .sv-hero.good { color: var(--sv-cheap); }
+      .sv-hero.bad { color: var(--sv-dear); }
+      .sv-caption { margin: 2px 0 0; opacity: 0.6; }
+      .sv-note { margin: 4px 0 0; opacity: 0.7; }
+      .sv-stats { display: flex; gap: 24px; margin: 14px 0 0; }
+      .sv-stat-k { font-size: 0.8em; opacity: 0.6; }
+      .sv-stat-v { font-size: 1.15em; font-weight: 600; font-variant-numeric: tabular-nums; }
+      .sv-stat-v.good { color: var(--sv-cheap); }
+      .sv-stat-s { font-size: 0.8em; opacity: 0.6; }
+      .sv-chart { display: block; margin-top: 16px; overflow: visible; }
+      .sv-chart text { font-size: 11px; fill: currentColor; opacity: 0.6; }
+      .sv-chart text.row-label { font-size: 12px; font-weight: 600; opacity: 0.9; }
+      .sv-chart text.on-bar { fill: #ffffff; opacity: 1; font-weight: 600; font-size: 10.5px; }
+      .sv-chart text.on-bar.mid { fill: currentColor; opacity: 0.8; }
+      .sv-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.78em; opacity: 0.7; margin-top: 12px; }
+      .sv-key { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+      .sv-sub { margin: 16px 0 0; font-size: 0.8em; font-weight: 600; opacity: 0.6; }
       .sv-empty { opacity: 0.8; margin: 12px 0; }
       /* Starting: the plan being drawn. A soft curve draws itself, charge pills light up in turn and
          bars grow in, then it starts over. Everything rests, fully drawn, when motion is reduced. */
@@ -52,7 +48,7 @@
 
       /* Cheap and dear meet 3:1 or better on their card; the middle third is a quiet grey on purpose.
          The theme is read from the text colour Homey gives the page (applyTheme), the media query first. */
-      :root { --ghost-accent: #2d6bd6; --sv-cheap: #0f8374; --sv-middle: rgba(127, 127, 127, 0.4); --sv-dear: #c4580d; --sv-tile: rgba(127, 127, 127, 0.1); --sv-mid-dot: #8e8e93; --sv-ring: rgba(255, 255, 255, 0.9); }
+      :root { --ghost-accent: #2d6bd6; --sv-cheap: #0f8374; --sv-middle: rgba(127, 127, 127, 0.4); --sv-dear: #c4580d; --sv-mid-dot: #8e8e93; --sv-ring: rgba(255, 255, 255, 0.9); }
       :root[data-theme="dark"] { --sv-cheap: #2bb3a3; --sv-dear: #e8833a; --sv-ring: rgba(0, 0, 0, 0.5); }
       @media (prefers-color-scheme: dark) {
         :root:not([data-theme="light"]) { --sv-cheap: #2bb3a3; --sv-dear: #e8833a; --sv-ring: rgba(0, 0, 0, 0.5); }
@@ -156,12 +152,12 @@
       // Heating: before and with Autopilot as two bars of 100 %, split by the share of kWh in the
       // cheapest, middle and most expensive third of each day's hours, with kWh a day beside them.
       function split(rows) {
-        var W = chartWidth(), STEP = 46 + Math.round(EXTRA / rows.length), BH = 22 + Math.min(14, Math.round(EXTRA / rows.length / 4)), H = rows.length * STEP + 2, svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'sv-chart', role: 'img'});
+        var W = chartWidth(), STEP = 50, BH = 20, H = rows.length * STEP - 8, svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'sv-chart', role: 'img'});
         rows.forEach(function (r, k) {
           var y = k * STEP + 18, x = 0, id = 'sv-clip-' + k;
           // Rounded ends on the whole bar, whatever the card colour behind it.
           var defs = svgEl('defs', {}), clip = svgEl('clipPath', {id: id});
-          clip.appendChild(svgEl('rect', {x: 0, y: y, width: W, height: BH, rx: 6}));
+          clip.appendChild(svgEl('rect', {x: 0, y: y, width: W, height: BH, rx: BH / 2}));
           defs.appendChild(clip); svg.appendChild(defs);
           var bar = svgEl('g', {'clip-path': 'url(#' + id + ')'});
           svg.appendChild(svgEl('text', {x: 0, y: y - 6, class: 'row-label'}, r.label));
@@ -169,7 +165,7 @@
           r.shares.forEach(function (p, i) {
             var w = W * p;
             if (w <= 0) return;
-            var gap = x > 0 ? 1 : 0;
+            var gap = x > 0 ? 2 : 0;
             bar.appendChild(svgEl('rect', {x: x + gap, y: y, width: Math.max(0.5, w - gap), height: BH, fill: TIER[i]}));
             var label = Math.round(p * 100) + ' %';
             if (w > label.length * 6.5 + 8) bar.appendChild(svgEl('text', {x: x + w / 2, y: y + BH / 2 + 4, 'text-anchor': 'middle', class: 'on-bar' + (i === 1 ? ' mid' : '')}, label));
@@ -181,16 +177,18 @@
       }
 
       // Hot water: a column a day, each charge a dot at its place in that day's prices: the cheapest
-      // third at the top, the most expensive at the bottom. The bands are the explanation.
+      // hours on the top lane, the most expensive on the bottom. Hairlines between the lanes.
       function charges(c) {
-        var W = chartWidth(), L = 66, R = W, T = 2, PH = 84 + EXTRA, B = T + PH, H = B + 18;
+        var W = chartWidth(), L = 66, R = W, T = 2, LANE = 22, PH = LANE * 3, B = T + PH, H = B + 18;
         var n = c.days.length, step = (R - L) / Math.max(n, 7);
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'sv-chart', role: 'img'});
-        var y = function (r) { return T + 7 + (PH - 14) * r; };
+        var y = function (r) { return T + LANE / 2 + (PH - LANE) * r; };
         c.bands.forEach(function (name, i) {
-          var y0 = T + PH * i / 3, y1 = T + PH * (i + 1) / 3;
-          svg.appendChild(svgEl('rect', {x: L, y: y0 + 1, width: R - L, height: y1 - y0 - 2, rx: 6, fill: TIER[i], 'fill-opacity': i === 1 ? 0.25 : 0.12}));
-          svg.appendChild(svgEl('text', {x: L - 8, y: (y0 + y1) / 2 + 4, 'text-anchor': 'end'}, name));
+          var y0 = T + LANE * i;
+          if (i) svg.appendChild(svgEl('line', {x1: L, x2: R, y1: y0, y2: y0, stroke: 'currentColor', 'stroke-opacity': 0.1}));
+          var t = svgEl('text', {x: L - 10, y: y0 + LANE / 2 + 4, 'text-anchor': 'end'}, name);
+          t.style.fill = TIER[i === 1 ? 1 : i]; if (i === 1) t.style.fill = 'currentColor';
+          svg.appendChild(t);
         });
         c.days.forEach(function (d, k) {
           var cx = L + (k + 0.5) * step;
@@ -202,19 +200,6 @@
           svg.appendChild(svgEl('text', {x: cx, y: H - 3, 'text-anchor': 'middle'}, d.label));
         });
         return svg;
-      }
-
-      function tiles(sh) {
-        var box = el('div', 'sv-tiles');
-        [sh.before, sh.now].forEach(function (t, i) {
-          if (!t) return;
-          var tile = el('div', 'sv-tile');
-          tile.appendChild(el('div', 'sv-tile-k', t.label));
-          tile.appendChild(el('div', 'sv-tile-n' + (i === 1 && sh.before ? ' good' : ''), t.value));
-          if (t.note) tile.appendChild(el('div', 'sv-tile-s', t.note));
-          box.appendChild(tile);
-        });
-        return box;
       }
 
       function legend(l) {
@@ -229,48 +214,28 @@
         return box;
       }
 
-      // Every Nibe Live card grows to one height for its width, so cards side by side on a dashboard
-      // line up. The chart takes the extra room; a card with more to say grows past it.
-      var EXTRA = 0;
+      // Every Nibe Live savings card is one height for its width, so cards side by side on a
+      // dashboard line up. Content keeps its own spacing; the room left over sits at the foot.
       function cardTarget() { return Math.max(280, Math.min(460, Math.round(170 + chartWidth() * 0.6))); }
-      function renderFitted(data) {
-        EXTRA = 0;
-        render(data);
-        if (data.empty) return;
-        var r = document.getElementById('sv');
-        var gap = cardTarget() - r.scrollHeight;
-        var dbg = 'DEBUG target ' + cardTarget() + ' scroll ' + r.scrollHeight + ' client ' + r.clientHeight + ' body ' + document.body.scrollHeight + ' w ' + chartWidth() + ' gap ' + gap;
-        if (gap > 4) { EXTRA = gap; render(data); }
-        var d = document.createElement('p'); d.style.cssText = 'font: 10px monospace; opacity: .7; margin: 4px 0 0';
-        d.textContent = dbg + ' after ' + document.getElementById('sv').scrollHeight; document.getElementById('sv').appendChild(d);
-      }
+      function renderFitted(data) { render(data); }
 
       var last = null;
       function render(data) {
         applyTheme();
         var root = document.getElementById('sv');
         root.replaceChildren();
-        if (data.title) root.appendChild(el('div', 'sv-title homey-text-small', data.title));
-        if (data.empty) { root.appendChild(el('p', 'sv-empty', data.empty)); return; }
-        if (data.badge) {
-          var chips = el('div', 'sv-chips');
-          chips.appendChild(el('span', 'sv-chip', data.badge));
-          root.appendChild(chips);
+        var head = el('div', 'sv-head');
+        head.appendChild(el('div', 'sv-title homey-text-small', data.title || ''));
+        if (data.badge && !data.empty) head.appendChild(el('span', 'sv-tag', data.badge));
+        root.appendChild(head);
+        if (data.empty) { root.appendChild(el('p', 'sv-note', data.empty)); return; }
+        if (data.status) root.appendChild(el('div', 'sv-label', data.status));
+        if (data.value) {
+          root.appendChild(el('div', 'sv-hero ' + (data.tone || ''), data.value));
+          if (data.valueNote) root.appendChild(el('div', 'sv-caption homey-text-small', data.valueNote));
         }
-        if (data.status) {
-          var status = el('p', 'sv-status');
-          var name = el('span', '', data.status);
-          status.appendChild(name);
-          if (data.value) {
-            var box = el('span', 'sv-value-box');
-            box.appendChild(el('span', 'sv-value ' + (data.tone || ''), data.value));
-            if (data.valueNote) box.appendChild(el('span', 'sv-value-note homey-text-small', data.valueNote));
-            status.appendChild(box);
-          }
-          root.appendChild(status);
-        }
-        if (data.reason) root.appendChild(el('p', 'sv-reason homey-text-small', data.reason));
-        if (data.detail) root.appendChild(el('p', 'sv-detail homey-text-small', data.detail));
+        if (data.reason) root.appendChild(el('p', 'sv-note homey-text-small', data.reason));
+        if (data.stats) root.appendChild(stats(data.stats));
         if (data.loading) root.appendChild(growing());
         if (data.split) {
           root.appendChild(split(data.split));
@@ -278,21 +243,30 @@
         }
         if (data.shower) {
           root.appendChild(el('div', 'sv-sub', data.shower.title));
-          root.appendChild(tiles(data.shower));
+          var items = [];
+          if (data.shower.before) items.push({label: data.shower.before.label, value: data.shower.before.value});
+          if (data.shower.now) items.push({label: data.shower.now.label, value: data.shower.now.value, sub: data.shower.now.note, good: !!data.shower.before});
+          var row = stats(items); row.style.marginTop = '4px'; root.appendChild(row);
         }
         if (data.charges) {
           root.appendChild(el('div', 'sv-sub', data.charges.title));
           root.appendChild(charges(data.charges));
         }
-        if (data.footnote) {
-          var foot = el('p', 'sv-foot', data.footnote);
-          // The extra room goes above the footnote, so it sits at the card's foot.
-          if (EXTRA && !data.charges) foot.style.marginTop = (10 + EXTRA) + 'px';
-          root.appendChild(foot);
-        }
+      }
+      function stats(items) {
+        var row = el('div', 'sv-stats');
+        items.forEach(function (s) {
+          var box = el('div');
+          box.appendChild(el('div', 'sv-stat-k', s.label));
+          box.appendChild(el('div', 'sv-stat-v' + (s.good ? ' good' : ''), s.value));
+          if (s.sub) box.appendChild(el('div', 'sv-stat-s', s.sub));
+          row.appendChild(box);
+        });
+        return row;
       }
       function fit(Homey) {
-        if (Homey && Homey.setHeight) Homey.setHeight(Math.ceil(document.getElementById('sv').scrollHeight) + 16);
+        var h = Math.ceil(document.getElementById('sv').scrollHeight);
+        if (Homey && Homey.setHeight) Homey.setHeight(Math.max(h, last && !last.empty ? cardTarget() : 0) + 16);
       }
 
       function onHomeyReady(Homey) {

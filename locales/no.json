@@ -713,7 +713,6 @@
       "empty": "Vises fra i morgen. Krever dynamiske strømpriser i Homey Energi.",
       "status_started": "Autopilot kjører",
       "first_day": "Besparelsen vises etter første hele døgn.",
-      "periods": "Siste 7 dager __week__ · i år __year__",
       "cheap": "Billigste timer",
       "middle": "Midten",
       "dear": "Dyreste timer",
@@ -738,7 +737,9 @@
       "charges_title": "Ladinger denne uken",
       "band_cheap": "Billig",
       "band_middle": "Midten",
-      "band_dear": "Dyrt"
+      "band_dear": "Dyrt",
+      "stat_week": "Siste 7 dager",
+      "stat_year": "I år"
     }
   }
 }

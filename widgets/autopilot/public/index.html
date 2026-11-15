@@ -309,12 +309,8 @@
         EXTRA = 0;
         render(data);
         if (data.empty) return;
-        var r = document.getElementById('ap');
-        var gap = cardTarget() - r.scrollHeight;
-        var dbg = 'DEBUG target ' + cardTarget() + ' scroll ' + r.scrollHeight + ' client ' + r.clientHeight + ' body ' + document.body.scrollHeight + ' w ' + chartWidth() + ' gap ' + gap;
+        var gap = cardTarget() - document.getElementById('ap').scrollHeight;
         if (gap > 4) { EXTRA = gap; render(data); }
-        var d = document.createElement('p'); d.style.cssText = 'font: 10px monospace; opacity: .7; margin: 4px 0 0';
-        d.textContent = dbg + ' after ' + document.getElementById('ap').scrollHeight; document.getElementById('ap').appendChild(d);
       }
 
       var last = null;

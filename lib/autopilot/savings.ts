@@ -243,6 +243,8 @@ export interface SavingsData {
     tone?: 'good' | 'bad' | 'neutral';
     reason?: string;
     detail?: string;
+    /** Small figures side by side under the hero number, e.g. the last 7 days and this year. */
+    stats?: {label: string; value: string}[];
     /** Heating: before and with Autopilot, as the share of kWh in each third of the day's hours. */
     split?: SplitRow[];
     /** Under `value`, quieter: the month the figure is for. */
@@ -341,7 +343,7 @@ export function savingsData(title: string, stored: SavingsDay[], t: Translate, c
         value: c.money(sums.month),
         valueNote: c.month(c.today),
         tone: sums.month >= 0 ? 'good' : 'bad',
-        reason: t('periods', {week: c.money(sums.week), year: c.money(sums.year)}),
+        stats: [{label: t('stat_week'), value: c.money(sums.week)}, {label: t('stat_year'), value: c.money(sums.year)}],
     };
 }
 

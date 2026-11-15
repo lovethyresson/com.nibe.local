@@ -713,7 +713,6 @@
       "empty": "Ab morgen sichtbar. Benötigt dynamische Strompreise in Homey Energie.",
       "status_started": "Autopilot läuft",
       "first_day": "Die Ersparnis erscheint nach dem ersten vollen Tag.",
-      "periods": "Letzte 7 Tage __week__ · dieses Jahr __year__",
       "cheap": "Günstigste Stunden",
       "middle": "Mitte",
       "dear": "Teuerste Stunden",
@@ -738,7 +737,9 @@
       "charges_title": "Ladungen diese Woche",
       "band_cheap": "Günstig",
       "band_middle": "Mitte",
-      "band_dear": "Teuer"
+      "band_dear": "Teuer",
+      "stat_week": "Letzte 7 Tage",
+      "stat_year": "Dieses Jahr"
     }
   }
 }

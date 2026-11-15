@@ -122,7 +122,7 @@ test('the widget shows money saved this month, the other periods and the shift a
     assert.equal(d.valueNote, 'November');
     assert.equal(d.value, '12 kr');
     assert.equal(d.tone, 'good');
-    assert.equal(d.reason, 'Last 7 days 12 kr · this year 12 kr');
+    assert.deepEqual(d.stats, [{label: 'Last 7 days', value: '12 kr'}, {label: 'This year', value: '12 kr'}]);
     assert.deepEqual(d.split!.map((r) => [r.label, r.shares.map((v) => Math.round(v * 100)), r.perDay]),
         [['Before Autopilot · 3 days', [30, 30, 40], '10 kWh a day'], ['With Autopilot · 3 days', [60, 30, 10], '10 kWh a day']]);
     // Costing more says so in the expensive colour.

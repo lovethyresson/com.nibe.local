@@ -713,7 +713,6 @@
       "empty": "Zichtbaar vanaf morgen. Vereist dynamische stroomprijzen in Homey Energie.",
       "status_started": "Autopilot draait",
       "first_day": "De besparing verschijnt na de eerste hele dag.",
-      "periods": "Laatste 7 dagen __week__ · dit jaar __year__",
       "cheap": "Goedkoopste uren",
       "middle": "Midden",
       "dear": "Duurste uren",
@@ -738,7 +737,9 @@
       "charges_title": "Opwarmbeurten deze week",
       "band_cheap": "Goedkoop",
       "band_middle": "Midden",
-      "band_dear": "Duur"
+      "band_dear": "Duur",
+      "stat_week": "Laatste 7 dagen",
+      "stat_year": "Dit jaar"
     }
   }
 }

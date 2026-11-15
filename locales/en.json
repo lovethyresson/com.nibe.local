@@ -713,7 +713,6 @@
       "empty": "Shows from tomorrow. Needs dynamic electricity prices in Homey Energy.",
       "status_started": "Autopilot is running",
       "first_day": "Savings show after its first full day.",
-      "periods": "Last 7 days __week__ · this year __year__",
       "cheap": "Cheapest hours",
       "middle": "Middle",
       "dear": "Most expensive hours",
@@ -738,7 +737,9 @@
       "charges_title": "Charges this week",
       "band_cheap": "Cheap",
       "band_middle": "Middle",
-      "band_dear": "Expensive"
+      "band_dear": "Expensive",
+      "stat_week": "Last 7 days",
+      "stat_year": "This year"
     }
   }
 }
