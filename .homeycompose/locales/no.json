@@ -397,7 +397,8 @@
       "error": "Kunne ikke laste Autopilot. Prøver igjen om et minutt.",
       "starting_title": "Starter",
       "starting_heating": "Leser prognosen og strømprisene. Tar omtrent ett minutt.",
-      "starting_hotwater": "Leser strømprisene og tanken. Tar omtrent ett minutt."
+      "starting_hotwater": "Leser strømprisene og tanken. Tar omtrent ett minutt.",
+      "starting_app": "Leser varmepumpen din. Tar omtrent ett minutt."
     },
     "hotwater_status": {
       "learning": "Lærer varmtvannsbruken deres",

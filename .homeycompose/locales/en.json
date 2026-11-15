@@ -397,7 +397,8 @@
       "error": "Couldn't load Autopilot. Trying again in a minute.",
       "starting_title": "Starting",
       "starting_heating": "Reading the forecast and prices. Takes about a minute.",
-      "starting_hotwater": "Reading prices and the tank. Takes about a minute."
+      "starting_hotwater": "Reading prices and the tank. Takes about a minute.",
+      "starting_app": "Reading your heat pump. Takes about a minute."
     },
     "hotwater_status": {
       "learning": "Learning your hot water use",

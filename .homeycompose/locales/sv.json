@@ -397,7 +397,8 @@
       "error": "Det gick inte att läsa in Autopilot. Försöker igen om en minut.",
       "starting_title": "Startar",
       "starting_heating": "Läser prognosen och elpriserna. Tar ungefär en minut.",
-      "starting_hotwater": "Läser elpriserna och tanken. Tar ungefär en minut."
+      "starting_hotwater": "Läser elpriserna och tanken. Tar ungefär en minut.",
+      "starting_app": "Läser av din värmepump. Tar ungefär en minut."
     },
     "hotwater_status": {
       "learning": "Lär sig er varmvattenanvändning",

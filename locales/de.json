@@ -679,7 +679,8 @@
       "error": "Autopilot konnte nicht geladen werden. Neuer Versuch in einer Minute.",
       "starting_title": "Startet",
       "starting_heating": "Prognose und Strompreise werden gelesen. Dauert etwa eine Minute.",
-      "starting_hotwater": "Strompreise und Speicher werden gelesen. Dauert etwa eine Minute."
+      "starting_hotwater": "Strompreise und Speicher werden gelesen. Dauert etwa eine Minute.",
+      "starting_app": "Ihre Wärmepumpe wird gelesen. Dauert etwa eine Minute."
     },
     "hotwater_status": {
       "learning": "Lernt Ihren Warmwasserverbrauch",

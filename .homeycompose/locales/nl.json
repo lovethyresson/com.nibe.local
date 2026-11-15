@@ -397,7 +397,8 @@
       "error": "Kon Autopilot niet laden. Over een minuut probeer ik het opnieuw.",
       "starting_title": "Opstarten",
       "starting_heating": "De voorspelling en stroomprijzen worden gelezen. Duurt ongeveer een minuut.",
-      "starting_hotwater": "De stroomprijzen en de boiler worden gelezen. Duurt ongeveer een minuut."
+      "starting_hotwater": "De stroomprijzen en de boiler worden gelezen. Duurt ongeveer een minuut.",
+      "starting_app": "Je warmtepomp wordt uitgelezen. Duurt ongeveer een minuut."
     },
     "hotwater_status": {
       "learning": "Leert je warmwatergebruik kennen",

@@ -352,7 +352,7 @@
             {text: data.legend.planned, line: true, style: 'background: repeating-linear-gradient(90deg, var(--ap-indoor) 0 4px, transparent 4px 7px);'},
             {text: data.legend.offset, style: 'background: var(--ap-offset);'},
           ]));
-        } else if (data.kind === 'hotwater' && data.loading) {
+        } else if (data.loading && !data.slots.length) {
           root.appendChild(placeholder(Math.max(100, Math.min(150, Math.round(chartWidth() * 0.33))) + 50 + EXTRA));
         } else if (data.kind === 'hotwater' && data.slots.length) {
           root.appendChild(hotwaterChart(data));

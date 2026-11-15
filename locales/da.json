@@ -679,7 +679,8 @@
       "error": "Kunne ikke indlæse Autopilot. Prøver igen om et minut.",
       "starting_title": "Starter",
       "starting_heating": "Læser prognosen og elpriserne. Tager omkring et minut.",
-      "starting_hotwater": "Læser elpriserne og tanken. Tager omkring et minut."
+      "starting_hotwater": "Læser elpriserne og tanken. Tager omkring et minut.",
+      "starting_app": "Læser din varmepumpe. Tager omkring et minut."
     },
     "hotwater_status": {
       "learning": "Lærer jeres forbrug af varmt vand",

@@ -56,6 +56,9 @@ class NibeApp extends Homey.App {
     const line = (key: string) => ({kind: 'none', title: '', chips: [], slots: [], ticks: [], legend: {}, empty: this.homey.__(key)});
     const devices = this.autopilotDevices();
     const device = devices.find((d) => String(d.getData().id) === String(id)) ?? (id ? undefined : devices[0]);
+    // Right after a start the devices are not up yet: "starting", not "pick a device".
+    if (!device && process.uptime() < 120) return {kind: 'none', title: '', chips: [], slots: [], ticks: [], legend: {}, loading: true,
+      status: this.homey.__('autopilot.widget.starting_title'), reason: this.homey.__('autopilot.widget.starting_app')};
     if (!device) return line('autopilot.widget.not_function');
     try {
       return device.autopilotWidget();
