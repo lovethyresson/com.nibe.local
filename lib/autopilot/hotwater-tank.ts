@@ -41,11 +41,29 @@ const tierOf = (prices: (number | undefined)[]) => {
     return tiers;
 };
 
+/** Readings this many slots apart or closer are joined; a longer gap stays a gap. */
+const JOIN_SLOTS = 6;
+
+/** The readings with the gaps between near ones filled in a straight line: Insights keeps today
+ *  hourly, one reading every fourth slot. Pure. */
+export function joinReadings(read: (number | undefined)[]): (number | undefined)[] {
+    const out = [...read];
+    let last = -1;
+    read.forEach((v, k) => {
+        if (v === undefined) return;
+        if (last >= 0 && k - last > 1 && k - last <= JOIN_SLOTS)
+            for (let j = last + 1; j < k; j++) out[j] = Math.round(read[last]! + (v - read[last]!) * (j - last) / (k - last));
+        last = k;
+    });
+    return out;
+}
+
 /** The chart for a day of slots, `now` the index of the slot now. */
 export function tankChart(view: TankView, now: number): TankChart {
+    const read = joinReadings(view.read);
     const tiers = tierOf(view.slots.map((s) => s.price));
     const slots = view.slots.map((s, k): TankSlot => ({
-        ...k <= now && view.read[k] !== undefined ? {read: view.read[k]} : {},
+        ...k <= now && read[k] !== undefined ? {read: read[k]} : {},
         ...k >= now && view.plan[k] !== undefined ? {plan: view.plan[k]} : {},
         ...s.charge !== undefined ? {charge: s.charge} : {},
         ...s.ran ? {ran: true as const} : {},

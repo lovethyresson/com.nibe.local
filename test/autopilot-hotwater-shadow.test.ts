@@ -456,6 +456,16 @@ test('chargedSlots reads the charges from the heat counter, after `since`', () =
     assert.deepStrictEqual(chargedSlots(quarters, t0 + 2 * q, 6), [slotOf(t0) + 2, slotOf(t0) + 3]);
 });
 
+test('chargedSlots times a slow near-full charge by its electricity, not its heat', () => {
+    // Hourly: 13:15–15:45 at a steady 2.3 kW, while a near-full tank takes in only 2 kWh/h of heat.
+    const h = 3_600_000, t = (hh: number, mm: number) => Date.UTC(2026, 10, 15, hh, mm);
+    const used = [0, 0, 0.575, 2.875, 5.175, 5.75, 5.75], produced = used.map((u) => u * 0.87);
+    const points = used.map((u, k) => ({t: t(11, 30) + k * h, used: u, produced: produced[k]}));
+    const got = chargedSlots(points, 0, 6, 2.3);
+    assert.deepStrictEqual([got[0], got[got.length - 1] + 1].map((slot) => new Date(slot * SLOT_MS).toISOString().slice(11, 16)),
+        ['13:15', '15:45']);
+});
+
 test('chargedSlots places a part hour against the full hour beside it (Insights keeps today hourly)', () => {
     // 2026-11-15, hourly buckets: a charge 10:15–12:15 at 6 kWh/h, then quiet. 09:30–10:30 holds a
     // quarter of an hour of it, 10:30–11:30 all of it, 11:30–12:30 three quarters.

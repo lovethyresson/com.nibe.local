@@ -158,22 +158,27 @@ const CHARGING_KWH_PER_HOUR = 1;
 /** A span that ran at least this share of its time charges throughout. */
 const FULL_SPAN = 0.9;
 
-/** The slots the tank was charging in since `since`, from the hot water heat counter: what the
- *  plan shows as done before the live record began (a restart, a fresh install). Insights keeps
- *  today in hourly buckets, so an hour that produced only part of an hour's heat at the tank's
- *  rate (`rate`, kWh/h) charged for that part, placed against its neighbour: at the start after a
- *  full hour, at the end before one (2026-11-15: a 10:15 start read as 09:30 when every
- *  producing hour counted in full). Readings more than an hour apart are left out. Pure. */
-export function chargedSlots(points: TankPoint[], since: number, rate: number): number[] {
+/** The slots the tank was charging in since `since`: what the plan shows as done before the live
+ *  record began (a restart, a fresh install). Insights keeps today in hourly buckets, so an hour
+ *  that charged for part of it charged for that part, placed against its neighbour: at the start
+ *  after a full hour, at the end before one (2026-11-15: a 10:15 start read as 09:30 when every
+ *  hour that charged at all counted in full). The part is the hot water electricity over the
+ *  charge's draw (`kw`): steady while it charges, where the heat a near-full tank takes falls to
+ *  a third; the heat counter at `rate` (kWh/h) where the electricity is not logged. Readings more
+ *  than an hour apart are left out. Pure. */
+export function chargedSlots(points: TankPoint[], since: number, rate: number, kw?: number): number[] {
     type Span = {a: number; b: number; share: number};
     const spans: (Span | undefined)[] = [];
     for (let k = 1; k < points.length; k++) {
         const p = points[k - 1], q = points[k];
         const hours = (q.t - p.t) / 3_600_000;
-        const ok = hours > 0 && hours <= 1.01 && typeof p.produced === 'number' && typeof q.produced === 'number';
-        const kwh = ok ? q.produced! - p.produced! : NaN;
-        spans.push(ok && kwh / hours >= CHARGING_KWH_PER_HOUR
-            ? {a: p.t, b: q.t, share: Math.min(1, kwh / (Math.max(rate, CHARGING_KWH_PER_HOUR) * hours))} : undefined);
+        if (!(hours > 0 && hours <= 1.01)) { spans.push(undefined); continue; }
+        const step = (field: 'used' | 'produced') => typeof p[field] === 'number' && typeof q[field] === 'number' ? q[field]! - p[field]! : NaN;
+        const used = step('used'), produced = step('produced');
+        const byPower = kw !== undefined && kw > 0 && used >= 0;
+        const share = byPower ? used / (kw! * hours) : produced / (Math.max(rate, CHARGING_KWH_PER_HOUR) * hours);
+        const charging = byPower ? share >= 0.1 : produced / hours >= CHARGING_KWH_PER_HOUR;
+        spans.push(charging && Number.isFinite(share) ? {a: p.t, b: q.t, share: Math.min(1, share)} : undefined);
     }
     const full = (s?: Span) => s !== undefined && s.share >= FULL_SPAN;
     const out = new Set<number>();
@@ -844,9 +849,11 @@ export class HotwaterAutopilot {
         });
         const hours = Math.ceil(n / 4);
         const drawn: (number | undefined)[] = new Array(hours).fill(undefined);
+        // Each step's draw goes to the hour that holds its middle: Insights keeps today hourly, from
+        // half past to half past, the live readings a slot apart.
         for (const i of intervals(this.history, model.loss, model.charge)) {
-            const k = Math.floor((Math.floor(i.start / SLOT_MS) - from) / 4);
-            if (k >= 0 && k < hours && i.hours <= 0.51 && Number.isFinite(i.draw)) drawn[k] = (drawn[k] ?? 0) + i.draw / KWH_PER_LITRE;
+            const k = Math.floor((Math.floor((i.start + i.hours * HOUR / 2) / SLOT_MS) - from) / 4);
+            if (k >= 0 && k < hours && i.hours <= 1.01 && Number.isFinite(i.draw)) drawn[k] = (drawn[k] ?? 0) + i.draw / KWH_PER_LITRE;
         }
         const forecast = Array.from({length: hours}, (_, k) => {
             const ms = (from + 4 * k) * SLOT_MS;
@@ -993,7 +1000,7 @@ export class HotwaterAutopilot {
         this.model = model;
         // Before the polls' own record, read from the counter. Where the polls saw the tank, they win.
         const firstSeen = Math.min(...this.ran);
-        this.ranBefore = new Set(chargedSlots(points, started - 2 * DAY_MS, model.charge?.producedPerHour ?? model.charge?.heatPerHour ?? 6)
+        this.ranBefore = new Set(chargedSlots(points, started - 2 * DAY_MS, model.charge?.producedPerHour ?? model.charge?.heatPerHour ?? 6, model.charge?.kw)
             .filter((slot) => slot < firstSeen));
         this.history = mergeHistory(points, this.history, started - HISTORY_MS);
         this.ceilingObs = mergeObservations(this.ceilingObs, [], started, ceilingFromHistory(points));

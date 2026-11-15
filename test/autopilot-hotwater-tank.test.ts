@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert';
-import {tankChart} from '../lib/autopilot/hotwater-tank';
+import {joinReadings, tankChart} from '../lib/autopilot/hotwater-tank';
 import {TankView} from '../lib/autopilot/hotwater-shadow';
 
 // Eight slots (two hours): read for the first three, planned from the third, a charge done at
@@ -31,4 +31,10 @@ test('prices fall into thirds; a slot with no price has no tier; the axis covers
     const c = tankChart(view(), 2);
     assert.deepStrictEqual(c.slots.map((s) => s.tier), [0, 0, 0, 1, 1, 2, 2, undefined]);
     assert.ok(c.max >= 230 && c.gridlines[0] === 0 && c.gridlines[c.gridlines.length - 1] === c.max);
+});
+
+test('hourly readings are joined into a line; a long gap stays open', () => {
+    const u = undefined;
+    assert.deepStrictEqual(joinReadings([u, 200, u, u, u, 160, u, u, u, u, u, u, u, 100]),
+        [u, 200, 190, 180, 170, 160, u, u, u, u, u, u, u, 100]);
 });
