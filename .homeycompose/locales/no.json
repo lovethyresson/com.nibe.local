@@ -287,8 +287,10 @@
       },
       "status": {
         "test": "Simulert: __text__",
-        "learning": "Blir kjent med huset ditt · dag __day__ av __of__",
-        "learning_short": "Blir kjent med huset ditt",
+        "learning_day": "Blir kjent med huset ditt · dag __day__ av __of__",
+        "learning_accuracy": "Blir kjent med huset ditt · forbedrer prognosene",
+        "learning_steady": "Blir kjent med huset ditt · bekrefter over 3 dager",
+        "starting": "Starter",
         "waiting": "Starter: venter på prognosen",
         "peak": "prisene er høyest __from__–__to__",
         "easing_off": "Til __until__",
@@ -384,7 +386,7 @@
       "offset": "Uteforskyvning (BT1)",
       "axis_indoor": "Inne °C",
       "axis_offset": "Uteforskyvning °C",
-      "learning": "Den forventede innetemperaturen vises når Autopilot har blitt kjent med huset ditt.",
+      "learning": "Autopilot starter etter minst 5 dager med data, når den forutsier innetemperaturen innen 0,35 °C og bildet av huset holder seg i 3 dager.",
       "surplus": "Soloverskudd",
       "charge_grid": "Nettlading",
       "charge_solar": "Sollading",
@@ -406,7 +408,9 @@
       "starting_hotwater": "Laster inn strømpriser og nivået i berederen. Dette tar omtrent ett minutt.",
       "starting_app": "Laster inn data fra varmepumpen din. Dette tar omtrent ett minutt.",
       "away_until": "Bortreist til __until__ · __c__ °C",
-      "charge_done": "Ladet"
+      "charge_done": "Ladet",
+      "learning_accuracy": "Forbedrer prognosene",
+      "learning_steady": "Bekrefter over 3 dager"
     },
     "hotwater_status": {
       "learning": "Lærer varmtvannsbruken din",

@@ -12,9 +12,18 @@ export const SHIFT_K = 0.25;
 export interface Learning {
     days: number;
     needed: number;
-    /** A house model exists (fitted or restored), so a plan that cannot be made waits on the
+    /** The model has met the readiness test, so a plan that cannot be made waits on the
      *  forecast, not on learning: after a restart, or while weather or prices are missing. */
-    hasModel?: boolean;
+    ready: boolean;
+    /** What the readiness test still misses (house.ts `readiness`). */
+    missing: ('accuracy' | 'days' | 'stability')[];
+}
+
+/** Learning in one line, naming the first test still open: days of data, then predictions
+ *  close enough, then the same result three days running. */
+export function learningText(learning: Learning, t: Translate, prefix = 'learning'): string {
+    if (learning.missing.includes('days')) return t(`${prefix}_day`, {day: Math.min(learning.days, learning.needed), of: learning.needed});
+    return t(learning.missing.includes('accuracy') ? `${prefix}_accuracy` : `${prefix}_steady`);
 }
 
 export type Translate = (key: string, tokens?: Record<string, string | number>) => string;
@@ -69,10 +78,11 @@ export function heatingStatus(s: FeedSnapshot, now: number, t: Translate, time: 
     const test = s.mode === 'test';
     const say = (text: string) => (test ? t('test', {text}) : text);
     if (s.mode === 'off' && s.stopped !== 'feed_failed') return {status: 'off', reason: ''};
-    if (s.stopped === 'no_model' && learning?.hasModel) return {status: 'holding', reason: say(t('waiting'))};
     if (s.stopped === 'no_model') {
-        return {status: 'learning', reason: say(learning ? t('learning', {day: Math.min(learning.days, learning.needed), of: learning.needed})
-            : t('learning_short'))};
+        // Not read yet (just after a restart): nothing is known about learning.
+        if (!learning) return {status: 'holding', reason: say(t('starting'))};
+        if (learning.ready) return {status: 'holding', reason: say(t('waiting'))};
+        return {status: 'learning', reason: say(learningText(learning, t))};
     }
     if (s.stopped) return {status: 'paused', reason: say(t(`paused.${s.stopped}`))};
     if (s.neutral) return {status: 'holding', reason: say(t('range_off'))};

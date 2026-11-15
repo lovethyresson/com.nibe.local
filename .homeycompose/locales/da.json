@@ -287,8 +287,10 @@
       },
       "status": {
         "test": "Simuleret: __text__",
-        "learning": "Lærer dit hus at kende · dag __day__ af __of__",
-        "learning_short": "Lærer dit hus at kende",
+        "learning_day": "Lærer dit hus at kende · dag __day__ af __of__",
+        "learning_accuracy": "Lærer dit hus at kende · forbedrer prognoserne",
+        "learning_steady": "Lærer dit hus at kende · bekræfter over 3 dage",
+        "starting": "Starter",
         "waiting": "Starter: venter på prognosen",
         "peak": "priserne topper __from__–__to__",
         "easing_off": "Indtil __until__",
@@ -384,7 +386,7 @@
       "offset": "Udeforskydning (BT1)",
       "axis_indoor": "Inde °C",
       "axis_offset": "Udeforskydning °C",
-      "learning": "Den forventede indetemperatur vises, når Autopilot har lært dit hus at kende.",
+      "learning": "Autopilot starter efter mindst 5 dages data, når den forudsiger indetemperaturen inden for 0,35 °C, og billedet af huset holder i 3 dage.",
       "surplus": "Soloverskud",
       "charge_grid": "Fra nettet",
       "charge_solar": "Fra soloverskud",
@@ -406,7 +408,9 @@
       "starting_hotwater": "Indlæser elpriserne og niveauet i beholderen. Det tager cirka et minut.",
       "starting_app": "Indlæser data fra din varmepumpe. Det tager cirka et minut.",
       "away_until": "Bortrejst indtil __until__ · __c__ °C",
-      "charge_done": "Opvarmet"
+      "charge_done": "Opvarmet",
+      "learning_accuracy": "Forbedrer prognoserne",
+      "learning_steady": "Bekræfter over 3 dage"
     },
     "hotwater_status": {
       "learning": "Lærer dit forbrug af varmt vand",

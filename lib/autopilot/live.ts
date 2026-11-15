@@ -70,8 +70,8 @@ export const CUSTOM_SETTINGS = {
     /** The expensive hour must cost at least this many times the cheap one: 1 + margin. */
     custom_price_ratio: {limit: 'margin', min: 1, max: 3, step: 0.05, unit: '×'},
     custom_coast_hours: {limit: 'maxCoastH', min: 0, max: 24, step: 1, unit: 'h'},
-    custom_preheat_shift: {limit: 'maxBias', min: 0, max: 20, step: 1, unit: 'K'},
-    custom_coast_shift: {limit: 'maxCoastBias', min: 0, max: 20, step: 1, unit: 'K'},
+    custom_preheat_shift: {limit: 'maxBias', min: 0, max: 20, step: 1, unit: '°C'},
+    custom_coast_shift: {limit: 'maxCoastBias', min: 0, max: 20, step: 1, unit: '°C'},
     custom_comfort_weight: {limit: 'comfortWeight', min: 0.5, max: 3, step: 0.1, unit: ''},
     custom_preheat_lead: {limit: 'preheatLeadTau', min: 0, max: 1, step: 0.05, unit: ''},
 } as const;
@@ -79,7 +79,16 @@ export const CUSTOM_SETTINGS = {
 /** The Custom values as setup shows and edits them: the stored ones, clamped, with Comfort's
  *  for any not set. Pure. */
 export function customValues(stored: Partial<Record<CustomSettingId, unknown>> | null | undefined): Record<CustomSettingId, number> {
-    const limits = customLimits(stored ?? {});
+    return limitsAsCustom(customLimits(stored ?? {}));
+}
+
+/** What each standard range sets, in the Custom fields' terms: shown under each field. Pure. */
+export function customPresets(): Record<typeof RANGE_IDS[number], Record<CustomSettingId, number>> {
+    return {comfortable: limitsAsCustom(PROFILE_LIMITS.comfortable), save_some: limitsAsCustom(PROFILE_LIMITS.save_some),
+        save_most: limitsAsCustom(PROFILE_LIMITS.save_most)};
+}
+
+function limitsAsCustom(limits: Limits): Record<CustomSettingId, number> {
     const out = {} as Record<CustomSettingId, number>;
     for (const [id, spec] of Object.entries(CUSTOM_SETTINGS) as [CustomSettingId, typeof CUSTOM_SETTINGS[CustomSettingId]][]) {
         const v = (limits as any)[spec.limit] as number;

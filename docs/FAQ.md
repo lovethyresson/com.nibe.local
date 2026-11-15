@@ -73,6 +73,17 @@ a BT50 sensor alarm (alarm 153). With room-sensor control off, your heat pump on
 **Heating → Repair → Heating setup**, right after Smart mode, Autopilot asks which indoor
 temperature to hold: your heat pump's own sensor or Homey sensors.
 
+### How long does Autopilot heating learn before it starts?
+
+At least 5 days. It starts once all three hold:
+
+- 5 days with enough readings to learn from.
+- It predicts your indoor temperature 6 hours ahead within 0.35 °C.
+- Its estimate of how fast your house cools stays about the same for 3 days in a row.
+
+The Heating device's Autopilot status shows the day count, then which check is still open. A day
+with gaps in the readings doesn't count. Once it has started, it keeps running.
+
 ### Why does the app need permission to access other Homey devices?
 
 It uses Homey's API permission to find temperature sensors, show their rooms, and read their

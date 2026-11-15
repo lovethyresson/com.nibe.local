@@ -287,8 +287,10 @@
       },
       "status": {
         "test": "Gesimuleerd: __text__",
-        "learning": "Leert je huis kennen · dag __day__ van __of__",
-        "learning_short": "Leert je huis kennen",
+        "learning_day": "Leert je huis kennen · dag __day__ van __of__",
+        "learning_accuracy": "Leert je huis kennen · verfijnt de voorspellingen",
+        "learning_steady": "Leert je huis kennen · bevestigt over 3 dagen",
+        "starting": "Opstarten",
         "waiting": "Opstarten: wacht op de weersverwachting",
         "peak": "prijzen pieken __from__–__to__",
         "easing_off": "Tot __until__",
@@ -384,7 +386,7 @@
       "offset": "Verschuiving buitentemperatuur (BT1)",
       "axis_indoor": "Binnen °C",
       "axis_offset": "Verschuiving buiten °C",
-      "learning": "De verwachte binnentemperatuur verschijnt zodra Autopilot je huis kent.",
+      "learning": "Autopilot start na minstens 5 dagen gegevens, zodra hij je binnentemperatuur tot op 0,35 °C voorspelt en zijn beeld van je huis 3 dagen gelijk blijft.",
       "surplus": "Zonne-overschot",
       "charge_grid": "Opwarmen met netstroom",
       "charge_solar": "Opwarmen met zonnestroom",
@@ -406,7 +408,9 @@
       "starting_hotwater": "De prijzen en de stand van de boiler worden geladen. Dit duurt ongeveer een minuut.",
       "starting_app": "Gegevens van je warmtepomp worden geladen. Dit duurt ongeveer een minuut.",
       "away_until": "Afwezig tot __until__ · __c__ °C",
-      "charge_done": "Opgewarmd"
+      "charge_done": "Opgewarmd",
+      "learning_accuracy": "Verfijnt de voorspellingen",
+      "learning_steady": "Bevestigt over 3 dagen"
     },
     "hotwater_status": {
       "learning": "Leert je warmwatergebruik kennen",

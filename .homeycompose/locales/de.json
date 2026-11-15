@@ -287,8 +287,10 @@
       },
       "status": {
         "test": "Simuliert: __text__",
-        "learning": "Lernt Ihr Haus kennen · Tag __day__ von __of__",
-        "learning_short": "Lernt Ihr Haus kennen",
+        "learning_day": "Lernt Ihr Haus kennen · Tag __day__ von __of__",
+        "learning_accuracy": "Lernt Ihr Haus kennen · verfeinert die Vorhersagen",
+        "learning_steady": "Lernt Ihr Haus kennen · bestätigt über 3 Tage",
+        "starting": "Startet",
         "waiting": "Startet: wartet auf die Prognose",
         "peak": "Preisspitze __from__–__to__",
         "easing_off": "Bis __until__",
@@ -384,7 +386,7 @@
       "offset": "Verschiebung Außentemperatur (BT1)",
       "axis_indoor": "Innen °C",
       "axis_offset": "Verschiebung Außentemp. °C",
-      "learning": "Die erwartete Innentemperatur erscheint, sobald Autopilot Ihr Haus kennt.",
+      "learning": "Autopilot startet nach mindestens 5 Tagen Daten, sobald er Ihre Innentemperatur auf 0,35 °C genau vorhersagt und sein Bild Ihres Hauses 3 Tage lang stabil bleibt.",
       "surplus": "Solarüberschuss",
       "charge_grid": "Netzladung",
       "charge_solar": "Solarladung",
@@ -406,7 +408,9 @@
       "starting_hotwater": "Strompreise und Speicherstand werden geladen. Dies dauert etwa eine Minute.",
       "starting_app": "Daten Ihrer Wärmepumpe werden geladen. Dies dauert etwa eine Minute.",
       "away_until": "Abwesend bis __until__ · __c__ °C",
-      "charge_done": "Geladen"
+      "charge_done": "Geladen",
+      "learning_accuracy": "Verfeinert die Vorhersagen",
+      "learning_steady": "Bestätigt über 3 Tage"
     },
     "hotwater_status": {
       "learning": "Lernt Ihren Brauchwasserverbrauch",

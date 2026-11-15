@@ -808,7 +808,10 @@ band.
 
 - "Model ready" = 6 h RMSE < 0.35 K over 7 days, at least 5 valid days, and τ stable within 15 %
   over 3 days.
-- Before that, only the trim (§7.3) runs, capped at the *Comfortable* limits.
+- Before that, Autopilot heating doesn't steer: the status is Learning and names the first test
+  still open (days, accuracy, stability). Once met, `readyAt` is kept with the model, so a later
+  day that misses a test doesn't stop live heating. (Built 2026-11-15; the trim-only phase this
+  line used to plan was never built, and live steered on any first fit until then.)
 
 ### 6.5 House insights (settings labels, written only when the rounded value changes)
 

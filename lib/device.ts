@@ -8,9 +8,9 @@ import {FlowConflict, moreHotwaterFlows} from './autopilot/hotwater-flows';
 import {KWH_PER_LITRE, STARTER_DAYS, localClock, readHousehold} from './autopilot/hotwater-learner';
 import {DAY_TYPE_SETTING, DEFAULT_DAY_TYPE, DayTypeState, awayOn, dayTypeAt, homeDayTypeAt, readDayType, typeSet} from './autopilot/day-type';
 import {Sample} from './autopilot/history';
-import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, StopReason, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits, rangeLimits, rangeFacts, CUSTOM_SETTINGS, customValues, sunTrust, surplusPrices, withHotwater} from './autopilot/live';
+import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, StopReason, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits, rangeLimits, rangeFacts, CUSTOM_SETTINGS, customPresets, customValues, sunTrust, surplusPrices, withHotwater} from './autopilot/live';
 import {AUTOPILOT_FUNCTIONS, SMART_MODE_STORE, SmartFunction, SmartMode, autopilotRuns, shownSmartMode, smartMode, smartModeWrites, spaOn} from './autopilot/smart-mode';
-import {HeatingStatus, heatingStatus} from './autopilot/heating-status';
+import {HeatingStatus, heatingStatus, learningText} from './autopilot/heating-status';
 import {PeriodWatch, pricePeriods, startedTrigger} from './autopilot/heating-flows';
 import {AWAY_UNTIL_SETTING, awayUntilLabel, readAwayUntil} from './autopilot/away';
 import {forecastCorrection} from './autopilot/outdoor';
@@ -1815,7 +1815,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.heating.status.${key}`, tokens);
         const state = feed.state;
         const {status, reason} = heatingStatus(state, Date.now(), t, this.clock,
-            house ? {days: house.days, needed: house.needed, hasModel: true} : undefined, (ms) => this.clockOn(ms));
+            house, (ms) => this.clockOn(ms));
         const set = async (name: string, value: any) => {
             if (this.hasCapability(name) && this.getCapabilityValue(name) !== value) await this.setCapabilityValue(name, value);
         };
@@ -2074,7 +2074,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             status: this.hasCapability(AUTOPILOT_REASON_CAPABILITY) ? this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) : null,
             range: this.heatingRange(),
             ranges: rangeFacts(),
-            custom: {spec: CUSTOM_SETTINGS, values: customValues(this.getStoreValue(CUSTOM_RANGE_STORE))},
+            custom: {spec: CUSTOM_SETTINGS, values: customValues(this.getStoreValue(CUSTOM_RANGE_STORE)), presets: customPresets()},
         };
     }
 
@@ -2180,7 +2180,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // The reason, without the words the status or the Simulation chip already say. A pause says what to do.
         const stored = (this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) as string | null) ?? undefined;
         const reason = status === 'learning' && summary && !summary.ready
-            ? t('learning_day', {day: Math.min(summary.days, summary.needed), of: summary.needed})
+            ? learningText(summary, t, 'learning')
             : status === 'paused' && stopped && WIDGET_PAUSES.includes(stopped) ? t(`paused.${stopped}`)
                 : stored === undefined ? undefined : stripLead(stored, [testLead, statusName ?? '']);
         const aim = aimingFor(slots, now, this.heatingFeed?.state?.setpoint);

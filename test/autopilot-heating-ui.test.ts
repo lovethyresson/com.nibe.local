@@ -43,10 +43,18 @@ test('holding names the next move, or why there is none', () => {
 });
 
 test('learning shows progress; waits are paused with their reason; off is off', () => {
-    assert.deepEqual(heatingStatus(live({stopped: 'no_model'}), now, t, time, {days: 3, needed: 5}),
-        {status: 'learning', reason: 'learning(day=3,of=5)'});
-    assert.deepEqual(heatingStatus(live({stopped: 'no_model'}), now, t, time, {days: 5, needed: 5, hasModel: true}),
-        {status: 'holding', reason: 'waiting'}, 'a house already learned waits on the forecast after a restart, not on learning');
+    const learning = (days: number, missing: ('accuracy' | 'days' | 'stability')[]) => ({days, needed: 5, ready: false, missing});
+    const stopped = live({stopped: 'no_model'});
+    assert.deepEqual(heatingStatus(stopped, now, t, time, learning(3, ['days', 'accuracy'])),
+        {status: 'learning', reason: 'learning_day(day=3,of=5)'});
+    assert.deepEqual(heatingStatus(stopped, now, t, time, learning(9, ['accuracy', 'stability'])),
+        {status: 'learning', reason: 'learning_accuracy'}, 'past the days, it names the next test still open');
+    assert.deepEqual(heatingStatus(stopped, now, t, time, learning(9, ['stability'])),
+        {status: 'learning', reason: 'learning_steady'});
+    assert.deepEqual(heatingStatus(stopped, now, t, time, {days: 5, needed: 5, ready: true, missing: ['stability']}),
+        {status: 'holding', reason: 'waiting'}, 'a house once ready waits on the forecast after a restart, not on learning');
+    assert.deepEqual(heatingStatus(stopped, now, t, time), {status: 'holding', reason: 'starting'},
+        'before the saved model is read, it is starting, not learning');
     assert.deepEqual(heatingStatus(live({stopped: 'no_outdoor'}), now, t, time), {status: 'paused', reason: 'paused.no_outdoor'});
     assert.deepEqual(heatingStatus({mode: 'off', bias: 0, target: 0, stopped: 'mode_off'}, now, t, time), {status: 'off', reason: ''});
     assert.equal(heatingStatus({mode: 'off', bias: 0, target: 0, stopped: 'feed_failed'}, now, t, time).status, 'paused',

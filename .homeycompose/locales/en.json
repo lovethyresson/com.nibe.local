@@ -287,8 +287,10 @@
       },
       "status": {
         "test": "Simulated: __text__",
-        "learning": "Learning your house · day __day__ of __of__",
-        "learning_short": "Learning your house",
+        "learning_day": "Learning your house · day __day__ of __of__",
+        "learning_accuracy": "Learning your house · refining its predictions",
+        "learning_steady": "Learning your house · confirming over 3 days",
+        "starting": "Starting",
         "waiting": "Starting: waiting for the forecast",
         "peak": "prices peak __from__–__to__",
         "easing_off": "Until __until__",
@@ -384,7 +386,7 @@
       "offset": "Outdoor shift (BT1)",
       "axis_indoor": "Indoor °C",
       "axis_offset": "Outdoor shift °C",
-      "learning": "The expected indoor line shows once Autopilot has learned your house.",
+      "learning": "Autopilot starts after at least 5 days of data, once it predicts your indoor temperature within 0.35 °C and its picture of your house holds for 3 days.",
       "surplus": "Solar surplus",
       "charge_grid": "Grid charge",
       "charge_solar": "Solar charge",
@@ -406,7 +408,9 @@
       "starting_hotwater": "Loading prices and the tank level. This takes about a minute.",
       "starting_app": "Loading data from your heat pump. This takes about a minute.",
       "away_until": "Away until __until__ · __c__ °C",
-      "charge_done": "Charged"
+      "charge_done": "Charged",
+      "learning_accuracy": "Refining its predictions",
+      "learning_steady": "Confirming over 3 days"
     },
     "hotwater_status": {
       "learning": "Learning your hot water use",

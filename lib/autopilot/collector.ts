@@ -12,7 +12,7 @@ import {
     appendJournal, appendLine, deleteHistory, loadHistory, loadJson, modelFileName, saveHistory, saveJson, shadowLogName,
     shadowStateName, trimLines,
 } from './store-file';
-import {DailyFit, HouseAnswers, HouseFit, drifting, fitHistory, READY_DAYS, readiness, recordDailyFit, sunReady} from './house';
+import {DailyFit, HouseAnswers, HouseFit, drifting, fitHistory, READY_DAYS, Readiness, readiness, recordDailyFit, sunReady} from './house';
 import {HouseInsights, houseInsights, insightsLine} from './insights';
 import {ForecastBias, forecastCorrection, learnForecastBias, newForecastBias, usableSensor} from './outdoor';
 import {SHADOW_PRESETS, ShadowMemory, curveViewOf, shadowForecast, shadowStep, wiredOf} from './shadow';
@@ -84,6 +84,16 @@ export function restoredFit(saved: HouseFit | undefined, slot: number): HouseFit
     return slot - at <= RESTORE_FIT_SLOTS ? saved : undefined;
 }
 
+/** Learning as the owner sees it: valid days against those needed, whether live heating may
+ *  start, what the readiness test still misses, and the house's numbers once plausible. */
+export interface HouseSummary {
+    days: number;
+    needed: number;
+    ready: boolean;
+    missing: Readiness['missing'];
+    insights?: HouseInsights;
+}
+
 export class AutopilotCollector {
     private history = new History();
     private aggregator: Aggregator;
@@ -96,6 +106,11 @@ export class AutopilotCollector {
     private stopped = false;
     private dailyFits: DailyFit[] = [];
     private fit?: HouseFit;
+    /** When the house model first met the readiness test (house.ts `readiness`). Live heating
+     *  starts then and does not stop if a later day's fit misses it. Undefined while learning. */
+    private readyAt?: number;
+    /** The saved model has been read: before that, nothing is known about learning. */
+    private loaded = false;
     private controls: Controls = {thresholds: {}};
     private shadowMemory: ShadowMemory = {};
     private forecastBias: ForecastBias = newForecastBias();
@@ -142,10 +157,15 @@ export class AutopilotCollector {
         // Save before the first journal record: a journal is read with the saved file's field
         // count, so a file from before a field was appended must not gain new-format records.
         await this.save().catch((error) => this.log('Autopilot history: save failed:', error?.message ?? error));
-        const model = await loadJson<{dailyFits?: DailyFit[]; fit?: HouseFit}>(modelFileName(this.fileName)).catch(() => undefined);
+        const model = await loadJson<{dailyFits?: DailyFit[]; fit?: HouseFit; at?: string; ready?: Readiness; readyAt?: number}>(
+            modelFileName(this.fileName)).catch(() => undefined);
         this.dailyFits = Array.isArray(model?.dailyFits) ? model!.dailyFits : [];
         // The last fit, so a restart plans at once instead of showing "learning" until the refit.
         this.fit = restoredFit(model?.fit, slotOf(Date.now()));
+        // A model saved before `readyAt` was kept: its last fit's verdict, dated by that fit.
+        this.readyAt = typeof model?.readyAt === 'number' ? model.readyAt
+            : model?.ready?.ready ? (Date.parse(model.at ?? '') || Date.now()) : undefined;
+        this.loaded = true;
         // `outdoorBias`, not the earlier `forecastBias`: that one learned from the BT1 test feeds of
         // 2026-11-02 before fed slots were recognised, and starts over.
         const shadow = await loadJson<{memory?: ShadowMemory; outdoorBias?: ForecastBias; slot?: number}>(
@@ -212,10 +232,11 @@ export class AutopilotCollector {
 
     /** What the owner sees of the model: learning progress and, once plausible, the house's
      *  heat loss and how long it holds a degree. */
-    houseSummary(): {days: number; needed: number; ready: boolean; insights?: HouseInsights} | undefined {
-        if (!this.fit) return undefined;
-        return {days: this.fit.validDays, needed: READY_DAYS, ready: readiness(this.fit, this.dailyFits).ready,
-            insights: houseInsights(this.fit)};
+    houseSummary(): HouseSummary | undefined {
+        if (!this.loaded) return undefined;
+        const missing = this.fit ? readiness(this.fit, this.dailyFits).missing : ['days', 'accuracy', 'stability'] as Readiness['missing'];
+        return {days: this.fit?.validDays ?? 0, needed: READY_DAYS, ready: this.readyAt !== undefined, missing,
+            insights: this.fit ? houseInsights(this.fit) : undefined};
     }
 
     /** Whether Homey Energy gives this home dynamic prices (anything to shift against). */
@@ -241,10 +262,11 @@ export class AutopilotCollector {
     }
 
     /** What the shift-only plan needs for the slot starting at `slot`; undefined until the model,
-     *  its lever, a day of indoor readings and 2 h of forecast exist. Reads only. */
+     *  its lever, a day of indoor readings and 2 h of forecast exist, and once the model has been
+     *  ready (`readyAt`). Reads only. */
     liveInputs(slot: number): ShiftInput | undefined {
         const fit = this.fit;
-        if (!fit?.params || !fit.state || !(fit.lever! > 0)) return undefined;
+        if (this.readyAt === undefined || !fit?.params || !fit.state || !(fit.lever! > 0)) return undefined;
         const range = this.history.range();
         const last = range.length ? this.history.get(range[range.length - 1])! : undefined;
         const mean = indoorMean(range.filter((s) => s >= slot - 96).map((s) => this.history.get(s)!.ti));
@@ -408,12 +430,13 @@ export class AutopilotCollector {
         const day = Math.floor(started / (24 * HOUR));
         this.dailyFits = recordDailyFit(this.dailyFits, day, fit);
         const ready = readiness(fit, this.dailyFits);
+        if (ready.ready && this.readyAt === undefined) this.readyAt = started;
         const insights = houseInsights(fit);
         const drift = drifting(this.dailyFits);
         this.log(`${insightsLine(fit, insights, ready)}${drift ? '; DRIFT' : ''} (${Date.now() - started} ms)`);
         this.onFit?.();
         await saveJson(modelFileName(this.fileName), {
-            at: new Date(started).toISOString(), answers: this.answers, fit, ready, insights, drift,
+            at: new Date(started).toISOString(), answers: this.answers, fit, ready, readyAt: this.readyAt, insights, drift,
             dailyFits: this.dailyFits,
         });
     }

@@ -592,7 +592,8 @@ function NibeSetup(options) {
     /** The comfort ranges setup offers. No Off: that is Smart mode Off, one step back. */
     var ALL_RANGES = ['comfortable', 'save_some', 'save_most', 'custom'];
     /** Custom's eight values, edited here: each with its label, hint, unit, range and step. */
-    function customForm(spec, values) {
+    function customForm(spec, values, presets) {
+        var num = function (v) { return String(v).replace('.', a('decimal')); };
         var form = el('div', undefined, 'setup-range-custom');
         form.appendChild(el('p', a('custom_warning'), 'setup-range-warning'));
         var inputs = {};
@@ -606,9 +607,21 @@ function NibeSetup(options) {
             input.value = values[id]; input.className = 'setup-range-input';
             var box = el('span', undefined, 'setup-range-input-box');
             box.appendChild(input);
-            if (f.unit) box.appendChild(el('span', f.unit, 'setup-range-unit'));
+            // Always there, so the inputs line up whether a value has a unit or not.
+            box.appendChild(el('span', f.unit || '', 'setup-range-unit'));
             head.appendChild(box);
             row.append(head, el('span', a(id + '_hint'), 'setup-range-field-hint'));
+            // What the standard ranges set it to, as a starting point.
+            if (presets) {
+                var ref = el('span', undefined, 'setup-range-field-presets');
+                RANGE_IDS.forEach(function (r) {
+                    if (presets[r] === undefined) return;
+                    var item = el('span');
+                    item.append(el('span', rangeName(r)), el('b', num(presets[r][id]) + (f.unit ? (f.unit === '×' ? '' : ' ') + f.unit : '')));
+                    ref.appendChild(item);
+                });
+                row.appendChild(ref);
+            }
             form.appendChild(row);
             inputs[id] = input;
         });
@@ -621,7 +634,7 @@ function NibeSetup(options) {
             return out;
         }};
     }
-    /** Choose the comfort range: every range as a card; the chosen one explained under the list
+    /** Choose the comfort range: the ranges side by side; the chosen one explained under them
      *  (an example day and the planner's numbers, or for Custom its values to set). Saved (Repair)
      *  or kept for the new device (pairing). */
     function rangeStep(next, from) {
@@ -631,6 +644,7 @@ function NibeSetup(options) {
         var current = ap.range || (ALL_RANGES.indexOf(st.range) >= 0 ? st.range : 'comfortable');
         clear(setupTitle(), a('range_intro'));
         view.querySelector('.pair-hero-title').textContent = a('range_title');
+        var pills = el('div', undefined, 'setup-segment setup-range-tabs');
         var panel = el('div', undefined, 'setup-range');
         var use = button('', function () {}, true);
         // The chart is made once, so it can move between the standard ranges.
@@ -646,6 +660,7 @@ function NibeSetup(options) {
         var num = function (v) { return String(v).replace('.', a('decimal')); };
         function show(id) {
             current = id;
+            pills.querySelectorAll('button').forEach(function (b) { b.classList.toggle('is-on', b.dataset.range === id); });
             var standard = RANGE_IDS.indexOf(id) >= 0;
             caption.hidden = !standard; chart.svg.style.display = standard ? '' : 'none'; legend.hidden = !standard;
             // A fresh block each time, so its fade-in runs on every switch.
@@ -665,7 +680,7 @@ function NibeSetup(options) {
                 details.appendChild(list);
             }
             if (id === 'custom') {
-                form = customForm(custom.spec, custom.values);
+                form = customForm(custom.spec, custom.values, custom.presets);
                 details.appendChild(form.node);
             } else {
                 var feel = el('div', undefined, 'setup-range-feel');
@@ -674,16 +689,19 @@ function NibeSetup(options) {
             }
             use.textContent = a('range_use', {name: rangeName(id)});
         }
-        var cards = radios('comfort-range', ALL_RANGES.map(function (id) {
-            return {id: id, title: rangeName(id), description: a('range_desc_' + id)};
-        }), current, show);
+        ALL_RANGES.forEach(function (id) {
+            var pill = el('button', rangeName(id), 'setup-segment-option hy-nostyle');
+            pill.type = 'button'; pill.dataset.range = id;
+            pill.onclick = function (e) { e.preventDefault(); show(id); };
+            pills.appendChild(pill);
+        });
         use.onclick = function (e) {
             e.preventDefault();
             var data = {value: current};
             if (current === 'custom' && form) data.custom = form.values();
             emit('heating_range', data).then(function () { ap.range = current; next(); }).catch(fail);
         };
-        shell.append(cards, panel);
+        shell.append(pills, panel);
         shell.appendChild(use);
         show(current);
         back(from);
