@@ -116,6 +116,28 @@ For the translation pass, later:
     the appendix (tank, bereder, beholder; Bortrest, Bortreist, Bortrejst; heating words rather than
     battery words).
 
+## Keys nothing reads
+
+The app-copy session flagged these locale keys as unused. A grep of `lib/`, `app.ts`, `drivers/`,
+`assets/` and `widgets/` on 2026-11-15 finds no code that reads them, either literally or as a built
+name. Rows below that rewrite them can be skipped. Delete the keys in both locale layers and all six
+languages instead.
+
+- `pair.devices.analytics_desc`
+- `pair.tank.inlet_hint`
+- `pair.setup.promise_desc`
+- `pair.setup.pump_enable`, `pump_zone`, `pump_control`
+- `autopilot.savings.status_started`, `pick_heating`, `pick_hotwater`
+
+These look unused but are built from a name at runtime, so keep them:
+
+- `pair.setup.smart.section_<role>` (`assets/pair/features.js:244`)
+- `choose_on_desc_<role>` and `choose_off_desc_<role>` (`assets/pair/setup.js:640`)
+- `ctl_*_sub` (`setup.js:497`)
+- `hw_reserve_*` and `hw_free_*`
+- `plan.as_planned_pump` and `recap.as_planned_pump` (`lib/autopilot/hotwater-shadow.ts:400`, `:425`)
+- `savings.status_<role>` (`lib/autopilot/savings.ts:333`)
+
 # Findings
 
 ## R0. Errors
