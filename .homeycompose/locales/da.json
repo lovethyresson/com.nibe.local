@@ -487,6 +487,18 @@
       "reserve": "Altid tilbage",
       "done": "Opvarmet",
       "planned": "Planlagt opvarmning"
+    },
+    "energy": {
+      "pick": "Vælg varmepumpens hovedenhed.",
+      "used": "brugt i dag",
+      "cost": "pris i dag",
+      "cheap": "i billige timer",
+      "heating": "Opvarmning",
+      "hotwater": "Varmt vand",
+      "price": "Pris",
+      "price_axis": "Pris pr. kWh",
+      "no_prices": "Kræver dynamiske elpriser i Homey Energi.",
+      "no_functions": "Varmepumpen har ingen enhed til opvarmning eller varmt vand."
     }
   }
 }

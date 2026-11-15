@@ -8237,6 +8237,39 @@
       },
       "id": "autopilot"
     },
+    "energy": {
+      "name": {
+        "en": "Energy today",
+        "sv": "Energi i dag",
+        "de": "Energie heute",
+        "nl": "Energie vandaag",
+        "no": "Energi i dag",
+        "da": "Energi i dag"
+      },
+      "height": 360,
+      "transparent": false,
+      "settings": [
+        {
+          "id": "device",
+          "type": "autocomplete",
+          "title": {
+            "en": "Device",
+            "sv": "Enhet",
+            "de": "Gerät",
+            "nl": "Apparaat",
+            "no": "Enhet",
+            "da": "Enhed"
+          }
+        }
+      ],
+      "api": {
+        "getData": {
+          "method": "GET",
+          "path": "/"
+        }
+      },
+      "id": "energy"
+    },
     "hotwater_tank": {
       "name": {
         "en": "Hot water tank",

@@ -1,0 +1,273 @@
+<html>
+  <head>
+    <style>
+      .en { padding: var(--homey-su-2, 8px) var(--homey-su-3, 12px); }
+      .en-title { opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .en-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
+      .en-chip { font-size: 0.8em; padding: 2px 8px; border-radius: 999px; background: transparent; border: 1px solid rgba(127, 127, 127, 0.4); opacity: 0.75; }
+      .en-status { text-wrap: balance; margin: 12px 0 0; font-size: 1.35em; font-weight: 600; }
+      .en-reason { margin: 4px 0 0; opacity: 0.85; }
+      .en-chart { display: block; margin-top: 14px; overflow: visible; }
+      .en-chart text { font-size: 11px; fill: currentColor; opacity: 0.75; }
+      .en-chart text.axis-title { font-size: 11px; font-weight: 600; opacity: 0.85; }
+      .en-chart text.grid { font-size: 10px; opacity: 0.55; }
+      .en-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.8em; opacity: 0.9; margin-top: 10px; }
+      .en-key { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; box-sizing: border-box; }
+      .en-key.line { height: 3px; border-radius: 2px; vertical-align: 3px; }
+      .en-empty { opacity: 0.8; margin: 12px 0; }
+      .skel { fill: currentColor; fill-opacity: 0.06; }
+      .ghost-line { fill: none; stroke: var(--en-heat); stroke-opacity: 0.35; stroke-width: 2.2; stroke-linecap: round; }
+      .ghost-bar { fill: currentColor; fill-opacity: 0.1; }
+      @media (prefers-reduced-motion: no-preference) {
+        .ghost-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: ghost-draw 4.2s cubic-bezier(.45, 0, .25, 1) infinite; }
+        .ghost-bar { transform-box: fill-box; transform-origin: center bottom; animation: ghost-rise 4.2s cubic-bezier(.3, 0, .2, 1) infinite both; }
+      }
+      @keyframes ghost-draw { 0% { stroke-dashoffset: 1; opacity: 0; } 8% { opacity: 1; } 55% { stroke-dashoffset: 0; } 85% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+      @keyframes ghost-rise { 0%, 35% { transform: scaleY(0); opacity: 0; } 55%, 85% { transform: scaleY(1); opacity: 1; } 100% { opacity: 0; } }
+      .en-nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+      .en-num b { display: block; font-size: 1.35em; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+      .en-num b.good { color: var(--en-cheap); }
+      .en-num span { opacity: 0.7; }
+      /* Heating in blue, hot water in violet (the hot water cards' use colour), the price in grey,
+         and the cheap share in the savings cards' cheap colour. */
+      :root { --en-heat: #2d6bd6; --en-water: #7652d6; --en-price: rgba(127, 127, 127, 0.95); --en-cheap: #0f8374; }
+      :root[data-theme="dark"] { --en-heat: #4da3ff; --en-water: #a48cff; --en-cheap: #2bb3a3; }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) { --en-heat: #4da3ff; --en-water: #a48cff; --en-cheap: #2bb3a3; }
+      }
+    </style>
+  </head>
+
+  <body class="homey-widget">
+    <div class="en" id="en"></div>
+
+    <script type="text/javascript">
+      var NS = 'http://www.w3.org/2000/svg';
+      // Used only when the app cannot be reached at all, so it cannot send a translated line.
+      var FALLBACK = {
+        en: {loading: 'Loading…', error: 'Couldn’t load this widget. Trying again in a minute.'},
+        sv: {loading: 'Laddar…', error: 'Det gick inte att läsa in widgeten. Försöker igen om en minut.'},
+        nl: {loading: 'Laden…', error: 'Kon de widget niet laden. Over een minuut probeer ik het opnieuw.'},
+        de: {loading: 'Lädt…', error: 'Das Widget konnte nicht geladen werden. Neuer Versuch in einer Minute.'},
+        no: {loading: 'Laster…', error: 'Kunne ikke laste widgeten. Prøver igjen om et minutt.'},
+        da: {loading: 'Indlæser…', error: 'Kunne ikke indlæse widgetten. Prøver igen om et minut.'}
+      };
+      function words() {
+        var lang = String((navigator.language || 'en')).slice(0, 2).toLowerCase();
+        if (lang === 'nb' || lang === 'nn') lang = 'no';
+        return FALLBACK[lang] || FALLBACK.en;
+      }
+      function el(tag, cls, text) {
+        var n = document.createElement(tag);
+        if (cls) n.className = cls;
+        if (text !== undefined) n.textContent = text;
+        return n;
+      }
+      function svgEl(tag, attrs, text) {
+        var n = document.createElementNS(NS, tag);
+        Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+        if (text !== undefined) n.textContent = text;
+        return n;
+      }
+      function nums(list) { return list.filter(function (v) { return typeof v === 'number'; }); }
+      function fmt(v, decimals) { return (Math.round(v * 100) / 100).toFixed(decimals); }
+
+      // Light or dark, from the text colour Homey gives the page: light text means a dark card.
+      function applyTheme() {
+        var rgb = (getComputedStyle(document.body).color.match(/[\d.]+/g) || []).map(Number);
+        if (rgb.length < 3) return;
+        document.documentElement.setAttribute('data-theme', (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255 > 0.5 ? 'dark' : 'light');
+      }
+
+      // The chart is drawn at its real pixel width, so its text stays 11 px on any card.
+      function chartWidth() {
+        var tk = document.getElementById('en'), cs = getComputedStyle(tk);
+        return Math.max(240, Math.floor(tk.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)));
+      }
+
+      // A smooth curve through points, monotone cubic (no overshoot), as on the help pages.
+      function monotone(pts) {
+        var n = pts.length;
+        if (!n) return '';
+        var d = 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1);
+        if (n < 2) return d;
+        var dx = [], m = [], s = [], i;
+        for (i = 0; i < n - 1; i++) { dx[i] = pts[i + 1][0] - pts[i][0]; m[i] = (pts[i + 1][1] - pts[i][1]) / dx[i]; }
+        s[0] = m[0]; s[n - 1] = m[n - 2];
+        for (i = 1; i < n - 1; i++) s[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+        for (i = 0; i < n - 1; i++) {
+          if (m[i] === 0) { s[i] = 0; s[i + 1] = 0; continue; }
+          var a = s[i] / m[i], b = s[i + 1] / m[i], h = a * a + b * b;
+          if (h > 9) { var tau = 3 / Math.sqrt(h); s[i] = tau * a * m[i]; s[i + 1] = tau * b * m[i]; }
+        }
+        for (i = 0; i < n - 1; i++)
+          d += 'C' + (pts[i][0] + dx[i] / 3).toFixed(1) + ' ' + (pts[i][1] + s[i] * dx[i] / 3).toFixed(1) + ' '
+            + (pts[i + 1][0] - dx[i] / 3).toFixed(1) + ' ' + (pts[i + 1][1] - s[i + 1] * dx[i] / 3).toFixed(1) + ' '
+            + pts[i + 1][0].toFixed(1) + ' ' + pts[i + 1][1].toFixed(1);
+        return d;
+      }
+      // Runs of consecutive slots that have a value: [[first, last], ...].
+      function runs(slots, pick) {
+        var out = [], from = -1;
+        slots.forEach(function (s, k) {
+          var has = typeof pick(s) === 'number';
+          if (has && from < 0) from = k;
+          if (!has && from >= 0) { out.push([from, k - 1]); from = -1; }
+        });
+        if (from >= 0) out.push([from, slots.length - 1]);
+        return out;
+      }
+
+      // The hours under a chart. An hour never touches its neighbour: text is about 6.2 px a character.
+      function hours(svg, ticks, y) {
+        var CHAR = 6.2, edge = -1e9;
+        ticks.forEach(function (t) {
+          var half = t.label.length * CHAR / 2;
+          if (t.x - half < edge + 8) return;
+          svg.appendChild(svgEl('text', {x: t.x, y: y, 'text-anchor': 'middle'}, t.label));
+          edge = t.x + half;
+        });
+      }
+
+
+      // Starting: bars rise where the hours are, so the card keeps its size.
+      function placeholder(height) {
+        var W = chartWidth(), H = height, B = H - 24, svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'en-chart', role: 'img'});
+        for (var k = 0; k < 24; k++) {
+          var h = 10 + (B - 30) * (0.25 + 0.6 * Math.abs(Math.sin(k * 0.7)) * (k < 9 ? 1 : 0.5));
+          var bar = svgEl('rect', {x: W * k / 24 + 2, y: B - h, width: W / 24 - 4, height: h, rx: 2, class: 'ghost-bar'});
+          bar.style.animationDelay = (k * 0.04) + 's';
+          svg.appendChild(bar);
+        }
+        return svg;
+      }
+
+      // kWh per hour as bars, heating at the bottom and hot water on top, on the left scale; the
+      // hour's price as a line on the right scale; a thin line at now.
+      function energyChart(data) {
+        var c = data.chart, W = chartWidth(), L = 26, R = W - 34, n = c.hours.length, step = (R - L) / n, bw = Math.max(2, step * 0.7);
+        var PH = Math.max(110, Math.min(170, Math.round(W * 0.38))) + EXTRA, T = 20, B = T + PH, H = B + 24;
+        var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'en-chart', role: 'img'});
+        var yk = function (v) { return B - PH * v / c.kwhAxis.max; }, yp = function (v) { return B - PH * v / c.priceAxis.max; };
+        var x = function (k) { return L + step * (k + 0.5); };
+        svg.appendChild(svgEl('text', {x: L - 4, y: T - 8, 'text-anchor': 'end', class: 'axis-title'}, data.axes.kwh));
+        svg.appendChild(svgEl('text', {x: W, y: T - 8, 'text-anchor': 'end', class: 'axis-title'}, data.axes.price));
+        c.kwhAxis.gridlines.forEach(function (v) {
+          if (v === 0) return;
+          svg.appendChild(svgEl('line', {x1: L, x2: R, y1: yk(v), y2: yk(v), stroke: 'currentColor', 'stroke-opacity': 0.08}));
+          svg.appendChild(svgEl('text', {x: L - 4, y: yk(v) + 4, 'text-anchor': 'end'}, String(v)));
+        });
+        c.priceAxis.gridlines.forEach(function (v) {
+          if (v === 0) return;
+          svg.appendChild(svgEl('text', {x: R + 4, y: yp(v) + 4}, fmt(v, c.priceAxis.decimals)));
+        });
+        svg.appendChild(svgEl('line', {x1: L, x2: R, y1: B, y2: B, stroke: 'currentColor', 'stroke-opacity': 0.2}));
+        c.hours.forEach(function (h, k) {
+          var y0 = B;
+          [['heating', 'var(--en-heat)'], ['hotwater', 'var(--en-water)']].forEach(function (r) {
+            var v = h.use[r[0]];
+            if (!(v > 0)) return;
+            var top = yk(v + (B - y0) * c.kwhAxis.max / PH);
+            svg.appendChild(svgEl('rect', {x: x(k) - bw / 2, y: top, width: bw, height: Math.max(1, y0 - top), rx: 1.5, fill: r[1]}));
+            y0 = top;
+          });
+        });
+        var p = [];
+        c.hours.forEach(function (h, k) { if (typeof h.price === 'number') p.push([x(k), yp(h.price)]); });
+        if (p.length) svg.appendChild(svgEl('path', {d: monotone(p), fill: 'none', stroke: 'var(--en-price)', 'stroke-width': 2, 'stroke-linecap': 'round'}));
+        if (typeof data.now === 'number')
+          svg.appendChild(svgEl('line', {x1: L + step * (data.now + 1), x2: L + step * (data.now + 1), y1: T - 4, y2: B, stroke: 'currentColor', 'stroke-opacity': 0.4}));
+        hours(svg, data.ticks.map(function (t) { return {x: L + step * t.at, label: t.label}; }), H - 6);
+        return svg;
+      }
+
+      function legend(items) {
+        var box = el('div', 'en-legend');
+        items.forEach(function (i) {
+          if (!i.text) return;
+          var item = el('span'); var key = el('span', 'en-key' + (i.line ? ' line' : ''));
+          key.style.cssText = i.style;
+          item.appendChild(key); item.appendChild(document.createTextNode(i.text)); box.appendChild(item);
+        });
+        return box;
+      }
+
+      var TOP = 22, EXTRA = 0;
+      function cardTarget() { return Math.max(340, Math.min(560, Math.round(150 + chartWidth() * 0.78))); }
+      function renderFitted(data) {
+        EXTRA = 0;
+        render(data);
+        if (data.empty) return;
+        var gap = cardTarget() - document.getElementById('en').scrollHeight;
+        if (gap > 4) { EXTRA = gap; render(data); }
+      }
+
+      var last = null;
+      function fit(Homey) {
+        if (Homey && Homey.setHeight) Homey.setHeight(Math.ceil(document.getElementById('en').scrollHeight) + 16);
+      }
+
+      function render(data) {
+        applyTheme();
+        var root = document.getElementById('en');
+        root.replaceChildren();
+        if (data.title) root.appendChild(el('div', 'en-title homey-text-small', data.title));
+        if (!data.empty && data.badge) {
+          var row = el('div', 'en-chips');
+          row.appendChild(el('span', 'en-chip', data.badge));
+          root.appendChild(row);
+        }
+        if (data.empty) { root.appendChild(el('p', 'en-empty', data.empty)); return; }
+        if (data.loading && !data.chart) {
+          root.appendChild(placeholder(Math.max(110, Math.min(170, Math.round(chartWidth() * 0.38))) + 60 + EXTRA));
+          return;
+        }
+        var nums = el('div', 'en-nums');
+        (data.numbers || []).forEach(function (n) {
+          var cell = el('div', 'en-num');
+          cell.appendChild(el('b', n.good ? 'good' : '', n.value));
+          cell.appendChild(el('span', 'homey-text-small', n.label));
+          nums.appendChild(cell);
+        });
+        root.appendChild(nums);
+        root.appendChild(energyChart(data));
+        var lg = data.legend;
+        root.appendChild(legend([
+          {text: lg.heating, style: 'background: var(--en-heat);'},
+          {text: lg.hotwater, style: 'background: var(--en-water);'},
+          {text: lg.price, line: true, style: 'background: var(--en-price);'}]));
+      }
+
+      function onHomeyReady(Homey) {
+        var settings = Homey.getSettings() || {};
+        var device = settings.device && settings.device.id;
+        document.getElementById('en').appendChild(el('p', 'en-empty', words().loading));
+        function show(data) { failures = 0; last = data; renderFitted(data); fit(Homey); }
+        var failures = 0;
+        function load() {
+          return Homey.api('GET', '/' + (device ? '?device=' + encodeURIComponent(device) : ''), {})
+            .then(show)
+            .catch(function (err) {
+              if (typeof console !== 'undefined') console.error(err);
+              if (last) return; // keep the last good picture until the app answers again
+              // An install or a restart leaves the app unreachable for a minute or two: keep saying
+              // "Loading…" and try every 30 s, and call it an error only after two minutes of that.
+              if (++failures < 5) { setTimeout(load, 30000); return; }
+              // The app answers its own problems with a translated line, so a rejection is the network.
+              var text = words().error;
+              document.getElementById('en').replaceChildren(el('p', 'en-empty', text));
+              fit(Homey);
+            });
+        }
+        load().finally(function () { Homey.ready(); });
+        setInterval(load, 60000);
+        // The card changes width: draw the chart again at the new width.
+        var timer = null;
+        window.addEventListener('resize', function () {
+          clearTimeout(timer);
+          timer = setTimeout(function () { if (last) { renderFitted(last); fit(Homey); } }, 150);
+        });
+      }
+    </script>
+  </body>
+</html>

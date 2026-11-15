@@ -772,6 +772,18 @@
       "reserve": "Alltid igjen",
       "done": "Ladet",
       "planned": "Planlagt lading"
+    },
+    "energy": {
+      "pick": "Velg varmepumpens hovedenhet.",
+      "used": "brukt i dag",
+      "cost": "kostnad i dag",
+      "cheap": "i billige timer",
+      "heating": "Oppvarming",
+      "hotwater": "Varmtvann",
+      "price": "Pris",
+      "price_axis": "Pris per kWh",
+      "no_prices": "Krever dynamiske strømpriser i Homey Energi.",
+      "no_functions": "Varmepumpen har ingen enhet for oppvarming eller varmtvann."
     }
   }
 }

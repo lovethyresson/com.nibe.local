@@ -18,6 +18,7 @@ import {readTrim} from './autopilot/setpoint';
 import {WidgetData, aimingFor, chargeBands, symmetricAxis, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks, todaySlots} from './autopilot/widget';
 import {HotwaterUseData, TodayRow, hotwaterWeek, useRuns} from './autopilot/hotwater-use';
 import {TankWidgetData, tankChart} from './autopilot/hotwater-tank';
+import {ENERGY_ROLES, EnergyWidgetData, energyChart} from './autopilot/energy';
 import {SLOT_MS, localDate, normalisePrices, slotOf} from './autopilot/prices';
 import {Edge, FORECAST_SLOTS, BlockedBy, HeatingDay, analyticsSmartMode, heatingBlock, reserveBucket} from './autopilot/analytics';
 import {SOLAR_SETTING, SolarSurplus, readSolarAnswer, solarOn} from './autopilot/solar-surplus';
@@ -2169,6 +2170,43 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         };
     }
 
+    // ---- The Energy today widget (widgets/energy) ----
+
+    /** What the Energy today widget draws for this pump (picked by its Main device): the hourly
+     *  use of its Heating and Hot water against today's price. Every string translated here. */
+    energyWidget(): EnergyWidgetData {
+        const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.energy.${key}`, tokens);
+        const title = this.getName();
+        const host = String(this.getData().id).split('#')[0];
+        const siblings = (this.driver.getDevices() as any[]).filter((d) => String(d.getData().id).split('#')[0] === host);
+        const byRole = new Map(siblings.map((d) => [d.role, d]));
+        if (!ENERGY_ROLES.some((role) => byRole.has(role))) return {title, empty: t('no_functions')};
+        const reads = ENERGY_ROLES.map((role) => [role, byRole.get(role)?.energyToday?.()] as const);
+        const known = reads.filter(([, r]) => r);
+        const badge = this.homey.__('autopilot.widget.experimental');
+        // The meters are read a few minutes after a start, then hourly. Past that, nothing read means
+        // no dynamic prices in Homey Energy (the read stops there).
+        if (!known.length) return process.uptime() < 15 * 60 ? {title, badge, loading: true} : {title, empty: t('no_prices')};
+        const prices = known.find(([, r]) => r!.prices)?.[1]!.prices;
+        if (!prices) return {title, empty: t('no_prices')};
+        const timeZone = this.homey.clock.getTimezone();
+        const hours = dayHours(localDate(Date.now(), timeZone), (ms) => localDate(ms, timeZone));
+        const chart = energyChart(hours, Object.fromEntries(known.map(([role, r]) => [role, r!.use])), prices);
+        const currency = known.find(([, r]) => r!.currency)?.[1]!.currency ?? '';
+        const language = this.homey.i18n.getLanguage();
+        const kwh = new Intl.NumberFormat(language, {maximumFractionDigits: 1}).format(chart.kwh);
+        const now = Math.max(0, hours.findIndex((at) => at > Date.now()) - 1);
+        return {title, badge, chart, now,
+            numbers: [
+                {value: `${kwh} kWh`, label: t('used')},
+                {value: moneyText(chart.cost, 0, language, currency), label: t('cost')},
+                ...chart.cheapShare === undefined ? [] : [{value: `${Math.round(chart.cheapShare * 100)} %`, label: t('cheap'), good: true}],
+            ],
+            ticks: [0, 6, 12, 18].map((k) => ({at: k, label: this.clock(hours[0] + k * HOUR_MS)})),
+            legend: {heating: t('heating'), hotwater: t('hotwater'), price: t('price')},
+            axes: {kwh: 'kWh', price: t('price_axis')}};
+    }
+
     // ---- The Hot water tank widget (widgets/hotwater_tank) ----
 
     /** What the Hot water tank widget draws, from local midnight to 06:00 tomorrow: the tank, the
@@ -2273,6 +2311,17 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private savingsReadOnce = false;
     /** Today's hourly prices, fetched once a day for the hourly count of today so far. */
     private savingsTodayPrices?: {date: string; prices: Map<number, number>};
+    /** Today's kWh per hour from the meter, as of the last savings refresh (hourly). */
+    private todayUse?: {date: string; use: Map<number, number>};
+
+    /** Today's hourly use and prices, for the Energy today widget; undefined until read today. */
+    energyToday(): {use: Map<number, number>; prices?: Map<number, number>; currency?: string} | undefined {
+        const today = localDate(Date.now(), this.homey.clock.getTimezone());
+        if (this.todayUse?.date !== today) return undefined;
+        const prices = this.savingsTodayPrices?.date === today ? this.savingsTodayPrices.prices : undefined;
+        const currency = this.getStoreValue(SAVINGS_CURRENCY_STORE);
+        return {use: this.todayUse.use, prices, currency: typeof currency === 'string' ? currency : undefined};
+    }
     /** Dates a refresh could not complete (a gap in the meter, no prices), and when. They are tried
      *  again once a day, so a day that never completes costs no hourly Homey API calls. */
     private savingsTried = new Map<string, number>();
@@ -2367,9 +2416,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const todayPrices = this.savingsTodayPrices?.date === today ? this.savingsTodayPrices.prices
                 : await api.energy.fetchDynamicElectricityPrices({date: today}).then((r: any) => hourlyPrices(normalisePrices(r, costs?.mathExpression).slots, SLOT_MS))
                     .catch(() => undefined);
+            // Today's hourly use, for the Energy today widget (widgets/energy).
+            const todayHours = dayHours(today, (ms) => localDate(ms, timeZone));
+            this.todayUse = {date: today, use: new Map(todayHours.filter((at) => use.has(at)).map((at) => [at, use.get(at)!]))};
             if (todayPrices?.size) {
                 this.savingsTodayPrices = {date: today, prices: todayPrices};
-                const hours = dayHours(today, (ms) => localDate(ms, timeZone));
+                const hours = todayHours;
                 const sofar = hours.filter((at) => use.has(at));
                 const day = partialDay(today, hours, use, todayPrices, liveShare(sofar, liveHour), this.role === 'hotwater');
                 if (!this.savingsStopped) await this.setStoreValue(SAVINGS_TODAY_STORE, day ?? null);

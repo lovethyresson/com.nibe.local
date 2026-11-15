@@ -772,6 +772,18 @@
       "reserve": "Immer vorrätig",
       "done": "Geladen",
       "planned": "Geplante Ladung"
+    },
+    "energy": {
+      "pick": "Wählen Sie das Hauptgerät Ihrer Wärmepumpe.",
+      "used": "heute verbraucht",
+      "cost": "Kosten heute",
+      "cheap": "in günstigen Stunden",
+      "heating": "Heizung",
+      "hotwater": "Warmwasser",
+      "price": "Preis",
+      "price_axis": "Preis pro kWh",
+      "no_prices": "Benötigt dynamische Strompreise in Homey Energie.",
+      "no_functions": "Diese Wärmepumpe hat kein Heizungs- oder Warmwasser-Gerät."
     }
   }
 }

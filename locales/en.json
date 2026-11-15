@@ -772,6 +772,18 @@
       "reserve": "Always kept",
       "done": "Charged",
       "planned": "Planned charge"
+    },
+    "energy": {
+      "pick": "Pick your heat pump's main device.",
+      "used": "used today",
+      "cost": "cost today",
+      "cheap": "in cheap hours",
+      "heating": "Heating",
+      "hotwater": "Hot water",
+      "price": "Price",
+      "price_axis": "Price per kWh",
+      "no_prices": "Needs dynamic electricity prices in Homey Energy.",
+      "no_functions": "This heat pump has no Heating or Hot water device."
     }
   }
 }

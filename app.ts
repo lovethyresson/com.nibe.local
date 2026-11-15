@@ -30,6 +30,7 @@ class NibeApp extends Homey.App {
     this.registerAutopilotWidget();
     this.registerHotwaterUseWidget();
     this.registerSavingsWidgets();
+    this.registerEnergyWidget();
 
     this.log('Nibe Live app has been initialized');
   }
@@ -77,6 +78,34 @@ class NibeApp extends Homey.App {
         .filter((d) => d.role === 'hotwater')
         .map((d) => ({id: String(d.getData().id), name: d.getName()}))
         .filter((d) => !query || d.name.toLowerCase().includes(query.toLowerCase())));
+    }
+  }
+
+  /** The heat pumps' Main devices: the Energy today widget shows one pump. */
+  private mainDevices(): any[] {
+    return Object.values(this.homey.drivers.getDrivers()).flatMap((driver: any) => driver.getDevices() as any[])
+      .filter((d) => d.role === 'main');
+  }
+
+  /** The Energy today widget (widgets/energy): its picker offers each pump by its Main device. */
+  private registerEnergyWidget() {
+    const widget = (this.homey as any).dashboards?.getWidget?.('energy');
+    widget?.registerSettingAutocompleteListener('device', async (query: string) => this.mainDevices()
+      .map((d) => ({id: String(d.getData().id), name: d.getName()}))
+      .filter((d) => !query || d.name.toLowerCase().includes(query.toLowerCase())));
+  }
+
+  /** For widgets/energy/api.js. Answers a problem with a line, like the others. */
+  energyWidget(id: unknown) {
+    const line = (key: string) => ({title: '', empty: this.homey.__(key)});
+    const devices = this.mainDevices();
+    const device = devices.find((d) => String(d.getData().id) === String(id)) ?? (id ? undefined : devices[0]);
+    if (!device) return line('autopilot.energy.pick');
+    try {
+      return device.energyWidget();
+    } catch (error) {
+      this.error('Energy today widget:', error);
+      return line('autopilot.widget.error');
     }
   }
 

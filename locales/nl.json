@@ -772,6 +772,18 @@
       "reserve": "Altijd over",
       "done": "Opgewarmd",
       "planned": "Geplande opwarming"
+    },
+    "energy": {
+      "pick": "Kies het hoofdapparaat van je warmtepomp.",
+      "used": "vandaag gebruikt",
+      "cost": "kosten vandaag",
+      "cheap": "in goedkope uren",
+      "heating": "Verwarming",
+      "hotwater": "Warm water",
+      "price": "Prijs",
+      "price_axis": "Prijs per kWh",
+      "no_prices": "Hiervoor zijn dynamische stroomprijzen in Homey Energie nodig.",
+      "no_functions": "Deze warmtepomp heeft geen apparaat voor verwarming of warm water."
     }
   }
 }
