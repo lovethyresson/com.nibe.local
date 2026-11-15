@@ -3,464 +3,461 @@
 Mostly "why doesn't this match?" questions. The mechanism behind the energy answers is in
 [`energy-attribution.md`](energy-attribution.md).
 
-## F-series beta
+## F-series (experimental)
 
-### What does the F-series beta support?
+### What does the F-series driver support?
 
-Choose **Nibe F-series (beta)** when pairing through a compatible Modbus gateway. Available
-readings and controls depend on the pump, accessories and gateway write support. Testing can
-start with gateway writes disabled. LOG.SET should include frequently used energy inputs;
-other readings update more slowly. See the [F-series guide](f-series.md).
+Choose **Nibe F-series (experimental)** when you pair through a compatible Modbus gateway. Which
+readings and controls you get depends on your heat pump, its accessories and whether the gateway
+accepts changes. You can start testing with writing turned off on the gateway. LOG.SET should
+include the energy readings you use most. Other readings update more slowly. See the
+[F-series guide](f-series.md).
 
-Energy allocation is experimental. F730 testing has shown changing compressor-power readings,
-but their watt scaling remains unverified and the tested production counters stayed zero.
-COP needs usable production data. Do not treat beta energy figures as a verified meter.
+Splitting energy between functions is experimental. On an F730 the compressor power reading
+moved, but its scale in watts isn't verified, and the produced-energy counters stayed at zero.
+COP needs working production figures. Don't treat F-series energy figures as a verified meter.
 
 ## Heating cutoff
 
 ### Why is heating running when it is warmer outside than the heating-stop setting?
 
-In Auto mode, the heating-stop setting is compared with the **average outdoor temperature**.
-The current outdoor reading can be above the limit while the average remains below it.
-For example, 16.8 °C outside with a 14.8 °C average does not reach a 15 °C heating cutoff.
-This cutoff does not apply in Manual mode. From 1.4.2, the S-series operational explanation
-uses the average too, and omits the cutoff explanation if that reading is unavailable.
+In Auto mode, your heat pump compares the heating-stop setting with the **average outdoor
+temperature**. The current outdoor reading can be above the limit while the average is still below
+it. For example, 16.8 °C outside with a 14.8 °C average doesn't reach a 15 °C heating stop. This
+doesn't apply in Manual mode. Since 1.4.2, the app's explanation of what your heat pump is doing
+uses the average too, and leaves out the heating-stop reason if that reading isn't available.
 
 ## Homey temperature sensors
 
 ### Can I use my own sensors instead of NIBE's room sensor?
 
-Yes, with a pump and firmware supporting external BT50. Open **Heating → Repair → Heating Setup**
-and choose **Use your own Homey temperature sensors**. Search by sensor name, room or device type,
-or select **Show all**. Rooms follow Homey's order. Choose one sensor or several for an equal average:
-three selected sensors each contribute one third. There are no custom weights or floor groups.
+Yes, if your heat pump and its software support an external room sensor (BT50). Open
+**Heating → Repair → Heating setup** and choose **Use your own Homey temperature sensors**. Search by
+sensor name, room or device type, or select **Show all sensors**. Rooms follow Homey's order. Choose
+one sensor, or several for an equal average. With three sensors, each counts for a third. There are
+no custom weights or floor groups.
 
-The app accepts standard Homey temperature sensors reporting Celsius, including temperature
-capabilities on devices such as smoke alarms. It excludes Nibe Live's own readings to avoid a loop.
+The app accepts standard Homey temperature sensors that report in Celsius, including the
+temperature on devices such as smoke alarms. It leaves out Nibe Live's own readings to avoid a loop.
 
-### What do I change on the pump?
+### What do I change on my heat pump?
 
-The setup screen guides you through enabling external room sensor BT50 in menu **7.5.9.2**,
-assigning BT50 to the intended zone in room sensor / zone settings (**1.3.3 / 1.3.4**),
-and selecting it to control heating. Replace the previous controlling sensor if that is your intent.
-Menus and support vary by model and firmware; effective BT50 writes were verified on an S1155-16. Unchanged temperatures are resent every 30 seconds.
+The setup screen guides you through it. Turn on external room sensor BT50 in menu **7.5.9.2**,
+assign BT50 to the right zone in the room sensor and zone settings (**1.3.3 / 1.3.4**), and select
+it to control heating. Replace the previous controlling sensor if that's what you want. Menus and
+support vary by model and software. BT50 updates were verified to take effect on an S1155-16. The
+temperature is sent again every 30 seconds, even when it hasn't changed.
 
-Use **Verify settings** in Repair to start updates and check the pump's BT50 reading.
-This verifies receipt of the temperature; it cannot prove which zone the pump uses for control.
-Pairing saves a pending selection; finish activation in Repair while you can access the pump.
+Use **Verify settings** in Repair to start sending and check the BT50 reading on your heat pump.
+This confirms that your heat pump receives the temperature. It can't show which zone your heat
+pump uses for control. Pairing saves your choice without sending anything. Finish the setup in
+Repair when you're at your heat pump.
 
-### Does this replace my thermostat or Smart Price Adaption?
+### Does this replace my thermostat or Smart price adaption?
 
-No. The app supplies the measured indoor temperature. The pump still controls heating and uses its
-existing target temperature and Smart Price Adaption settings. BT50 and the zone's averaged
-temperature can differ if the pump combines BT50 with other room sensors.
+No. The app sends the measured indoor temperature. Your heat pump still controls heating with its
+own target temperature and Smart price adaption settings. BT50 and the zone's average temperature
+can differ if your heat pump combines BT50 with other room sensors.
 
 ### Does Autopilot follow my thermostat?
 
-Yes. The Heating device's thermostat is Autopilot's goal. Autopilot steers the house to it
-through the outdoor temperature it sends (BT1), and moves heat in time around it within your
-comfort range. Change the thermostat and it follows; Away sets the thermostat to the
-Away temperature, so the house cools to that. A small steady offset is corrected slowly, over a
-few days. With Comfort range Off it neither shifts nor steers.
+Yes. The Heating device's thermostat is Autopilot's target. Autopilot steers the house toward it
+through the outdoor temperature it sends (BT1), and shifts heating in time within your comfort
+range. Change the thermostat and Autopilot follows. Away sets the thermostat to the Away
+temperature, so the house cools to that. A small steady offset is corrected slowly, over a few
+days. With Comfort range Off, Autopilot doesn't shift or steer.
 
-Room-sensor control on the heat pump must stay off, because Autopilot does that job itself. Your
-Homey sensors are what Autopilot regulates on; they are still sent as BT50 while the heat pump has
-an external BT50 enabled (menu 7.5.9.2), or it raises a BT50 sensor fault (alarm 153), but with
-room-sensor control off it only shows them: in **Heating → Repair →
-Heating setup**, Autopilot asks which indoor temperature to hold (the heat pump's own sensor, or
-Homey sensors) right after Smart mode.
+Room-sensor control on your heat pump must be off. Autopilot regulates on your Homey sensors.
+They're still sent to your heat pump as BT50 while external BT50 is on (menu 7.5.9.2), to prevent
+a BT50 sensor alarm (alarm 153). With room-sensor control off, your heat pump only shows them. In
+**Heating → Repair → Heating setup**, right after Smart mode, Autopilot asks which indoor
+temperature to hold: your heat pump's own sensor or Homey sensors.
 
 ### Why does the app need permission to access other Homey devices?
 
-It uses Homey's API permission to discover temperature sensors, show their rooms, and read their
-values and update times. The permission is broader than temperature access, but this feature uses
-it to read sensors and room information. It does not change those devices. Sensor names, room names
-and readings are not sent as anonymous usage data.
+It uses Homey's API permission to find temperature sensors, show their rooms, and read their
+values and update times. The permission covers more than temperatures, but this feature uses it to
+read sensors and rooms. It doesn't change those devices. Sensor names, room names and readings
+aren't sent as anonymous usage data.
 
 ### What happens if a sensor stops reporting?
 
-The app sends the latest temperature to BT50 every 30 seconds after each completed update,
-even when the value has not changed. A source's last temperature-change timestamp does not
-determine this schedule and does not expire the reading.
+The app sends the latest temperature to BT50 every 30 seconds after each completed update, even
+when the value hasn't changed. When a sensor last changed doesn't affect this, and an old reading
+doesn't expire.
 
-Every selected sensor must still be available and have a valid temperature. If a sensor is missing,
-unavailable or outside the supported 5–40 °C range, the app stops sending and retries. If updates
-keep failing for 5 minutes, it warns you once on the Heating device and in the timeline.
-It does not silently drop a room from the average. Homey's availability flag depends on the sensor
-app; it is not a guarantee that a battery-powered device is still communicating.
+Every selected sensor must be available and have a valid temperature. If a sensor is missing,
+unavailable or outside 5–40 °C, the app stops sending and tries again. If it keeps failing for 5
+minutes, you get one warning on the Heating device and in the timeline. The app doesn't drop a
+room from the average on its own. Homey's availability status depends on the sensor's app. It
+doesn't guarantee that a battery sensor is still reporting.
 
-Once activated, updates continue after Repair closes and resume after an app restart. If Homey
-or the feed stops for long enough, the pump can raise a BT50 alarm. Do not assume it automatically
-returns to the native sensor.
+Once set up, sending continues after Repair closes and resumes after an app restart. If Homey or
+the updates stop for long enough, your heat pump can raise a BT50 alarm. Don't assume it switches
+back to its own sensor by itself.
 
-### How do I return to the pump's own sensor?
+### How do I go back to my heat pump's own sensor?
 
-First restore the native sensor as the zone's controlling sensor and disable external BT50 on the
-pump. Then choose **Use the heat pump’s native temperature sensor** in Heating Setup.
-The app checks that external BT50 is disabled before stopping its feed.
+First, on your heat pump, make its own sensor the zone's controlling sensor again and turn off
+external BT50. Then choose **Use your heat pump’s own temperature sensor** in Heating setup. The
+app checks that external BT50 is off before it stops sending.
 
 ### Can the thermostat show one of my NIBE wireless room sensors?
 
-Yes, since 1.5.0 on S-series. Open **Heating → Repair → Heating Setup** and keep the pump's native
-sensor: each wireless sensor is listed with its current reading, next to the pump's average. The pump
-gives the sensors no names, and its order matches neither the zone list nor menu 5.4, so the reading
-is how you tell them apart. Each sensor can also have its own temperature on the Heating device.
+Yes, since 1.5.0 on S-series. Open **Heating → Repair → Heating setup** and keep your heat pump's
+own sensor. Each wireless sensor is listed with its current reading, next to your heat pump's
+average. Your heat pump doesn't name the sensors, and their order matches neither the zone list nor
+menu 5.4, so use the reading to tell them apart. Each sensor can also have its own temperature on
+the Heating device.
 
-### My pump has two zones. Which one does the thermostat set?
+### My heat pump has two zones. Which one does the thermostat set?
 
-The one you choose. On pumps with two or more zones, Heating Setup first asks which zone the
-thermostat sets. Pick the zone whose room sensor controls the heating (menu 1.3.3). Until 1.5.0 the
-thermostat always set zone 1, which on some pumps is a zone that only displays.
+The one you choose. On heat pumps with two or more zones, Heating setup first asks which zone the
+thermostat sets. Pick the zone whose room sensor controls the heating (menu 1.3.3). Before 1.5.0
+the thermostat always set zone 1, which on some heat pumps only displays.
 
 ### What does Set outdoor temperature (BT1) do?
 
-This Heating Flow action sends one outdoor-temperature reading. It is separate from the automatic
-indoor feed. A successful Flow action confirms the write was accepted, not that the pump is using
-it. Enable Modbus TCP/IP in menu **7.5.9**, then enable **Outdoor temperature (BT1)** under
-**7.5.9.2 — External sensor inputs**. Enabling Modbus alone is not enough. See the
-[README setup steps](../README.md#set-outdoor-temperature-bt1). The wired-sensor fallback and loss-of-feed
-behaviour are not verified; do not assume stopping a Flow restores the physical sensor.
+This Heating Flow card sends one outdoor temperature reading. It's separate from the indoor
+temperature the app sends automatically. If the card succeeds, your heat pump accepted the value,
+but that doesn't prove it uses it. Turn on Modbus TCP/IP in menu **7.5.9**, then turn on
+**Outdoor temperature (BT1)** under **7.5.9.2 External sensor inputs**. Modbus alone isn't enough.
+See the [README setup steps](../README.md#set-outdoor-temperature-bt1). What happens when the
+readings stop isn't verified. Don't assume that stopping a Flow brings the wired sensor back.
 
-### Where did the hot-water tank settings move?
+### Where did the hot water tank settings move?
 
-Open **Hot Water → Repair → Hot Water Setup**. The existing tank catalogue, automatic estimate,
-custom capacity and no-estimate choices remain available. **Save changes** saves directly.
+Open **Hot water → Repair → Hot water setup**. The tank list, automatic estimate, custom size and
+no-estimate choices are all still there. **Save changes** saves straight away.
 
-The incoming cold water temperature is now **Incoming water** on the Hot water device, and
-Autopilot's **Always keep at least** is in **Hot Water → Repair → Hot Water Setup**, in Smart
-mode after the tank, next to the other Autopilot hot water choices. Your earlier value carries over.
+The incoming cold water temperature is now **Incoming water** on the Hot water device. Autopilot's
+**Always enough for a shower** is in **Hot water → Repair → Hot water setup**, under Smart mode
+after the tank, next to the other Autopilot hot water choices. Your earlier value carries over.
 
-## Numbers that don't match myUplink or the pump
+## Numbers that don't match myUplink or your heat pump
 
-### Should the app agree with my pump's own display?
+### Should the app agree with my heat pump's own display?
 
-For temperatures, pressures, speeds, states and settings — yes, exactly. Those are read straight from the
-pump's registers with no arithmetic. If one disagrees with the pump's own menu, that's a bug worth reporting.
+For temperatures, pressures, speeds, states and settings, yes, exactly. The app reads those
+straight from your heat pump with no arithmetic. If one disagrees with the menu on your heat pump,
+report it as a bug.
 
-Energy and COP are a different story; see below.
+Energy and COP work differently. See below.
 
 ### Where did fan speed, fan mode and night cooling go?
 
-To the **Nibe Main** device, since 1.4.7. Ventilation serves heating and hot water alike, so it sits on Main next to
-the other whole-pump settings. Your on/off choice for ventilation moved with it. Flows that used these cards on the
-heating or cooling device need the Main device picked again; history from before the update stays on the old device.
+To the **Nibe Main** device, since 1.4.7. Ventilation serves heating and hot water alike, so it's
+on Main next to the other settings for the whole heat pump. Your on/off choice for ventilation
+moved with it. Flows that used these cards on the Heating or Cooling device need the Main device
+picked again. History from before the update stays on the old device.
 
 ### Do I need to update my heat pump's software?
 
-Yes, before pairing if you can. Many registers the app uses only exist on recent firmware, and older
-firmware has been seen booking several times too much delivered energy: one S1255 showed a hot-water COP
-near 9 until a firmware update, after which its counters matched the pump's own hourly log within 1%.
-Updating later works too; run **Repair** on each device afterwards so the app checks what the pump now
-offers. The COP is a 30-day average, so readings from before the update take a month to roll out.
+Yes, before pairing if you can. Many readings the app uses only exist on recent software, and older
+software has been seen counting several times too much delivered energy. One S1255 showed a hot
+water COP near 9 until a software update, after which its counters matched the heat pump's own
+hourly log within 1%. Updating later works too. Run **Repair** on each device afterwards so the
+app checks what your heat pump now offers. The COP is a 30-day average, so readings from before the
+update take a month to roll out.
 
-### Why doesn't my energy total match MyUplink?
+### Why doesn't my energy total match myUplink?
 
-Counters are **baselined when you add the device**, so everything reads "since you paired it" rather than
-since the pump was installed. That's deliberate — it's what lets the per-device figures reconcile with each
-other — but it means the absolute numbers will never equal MyUplink's lifetime totals.
+Counters start at zero **when you add the device**, so everything reads "since you paired it".
+That's what lets the figures on
+each device add up to the same total. It also means the totals will never equal myUplink's
+lifetime totals.
 
-The *change* over a given window should agree. Compare a day or a week, not the raw totals.
+The *change* over a given period should agree. Compare a day or a week.
 
 ### My solar panels show up in the Energy tab but with no production figure
 
-Fixed in **1.1.4**. The Solar device was publishing its live output under a name only the device's own
-tile could read, so Homey's Energy tab listed the device but had no production value to show. The tile
-was right the whole time — it was the Energy tab that saw nothing. Updating the app fixes it; there is
-nothing to change on the pump or in the device settings.
+Fixed in **1.1.4**. The Solar device published its live output under a name only its own tile
+could read, so Homey's Energy tab listed the device without a production value. The tile was
+right. Update the app to fix it. You don't need to change anything on your heat pump or in the
+device settings.
 
-Note that the solar energy total counts from when you added the device, not from when the panels were
-installed — same as every other energy figure in this app. Your pump's own lifetime total stays
-visible in MyUplink and in the pump's menus.
+The solar energy total counts from when you added the device, like every other energy figure in
+this app. Your heat pump's own lifetime total is still in myUplink and in its menus.
 
 ### Why does Main show so little energy used?
 
-Because Main is the **remainder**, not the whole pump. It carries standby draw plus any function you haven't
-paired a device for. The pump's true total is the sum across all your Nibe devices, which is exactly what
-Homey's Energy tab adds up.
+Main shows what's left over: standby draw, plus any function you haven't added a device for. Your
+heat pump's full total is the sum across all your Nibe devices, which is what Homey's Energy tab
+adds up.
 
-The capability is titled "Total energy consumed" on every device, which is misleading on Main specifically —
-Homey applies capability titles per capability, not per device, and renaming it would orphan the Insights
-history. It's a known wart, not a miscalculation.
+On Main this figure is called **Idle energy**. On the other devices it's **Energy used**.
 
 ### How does the app work out how much electricity heating, hot water and cooling each used?
 
-Your pump has one electricity meter, not four. What it does publish is its **total power right now** and
-**what it is currently working on**. So every few seconds the app asks both questions, works out the energy
-used since it last asked, and puts all of it on whichever function the pump named. Standby goes to Main.
+Your heat pump has one electricity meter for everything. It reports its **total power right now**
+and **what it's working on**. On every update (every 10 seconds by default) the app reads both,
+works out the energy used since the last update, and puts all of it on the function your heat pump
+named. Standby goes to Main.
 
-Because each moment is charged to exactly one function, the four devices always add up to the pump's real
-total — that's what Homey's Energy tab shows.
+Each moment goes to exactly one function, so the devices always add up to your heat pump's full
+total. That's what Homey's Energy tab shows.
 
-Delivered heat works the other way round: the pump *does* count that per function, so those figures are read
-straight off the pump and are exact.
+Delivered heat works the other way round. Your heat pump counts it per function, so those figures
+are read straight from your heat pump and are exact.
 
-### My heating device shows energy produced but 0 kWh used, even though it's genuinely heating
+### My Heating device shows energy produced but 0 kWh used, even though it's heating
 
-A bug, fixed in **0.9.14**. The register the app relies on for "what is the pump currently working
-on" (1028) was observed reading **idle** throughout a real, demand-driven heating cycle — degree
-minutes crossing the compressor-start threshold, real compressor draw, the produced-energy counter
-advancing the whole time. With 1028 saying idle, every watt of that cycle was booked to Main instead
-of Heating, which is exactly this symptom: energy *produced* (read straight off the pump, so still
-correct) with 0 kWh *used* on the device that actually did the work.
+A bug, fixed in **0.9.14**. The reading the app uses for "what is your heat pump working on"
+sometimes said **idle** through a whole heating cycle, while the compressor was running and the
+produced-energy counter was going up. So all the electricity for that cycle went to Main instead of
+Heating. Energy *produced* stayed right, because it's read straight from your heat pump. The
+Heating device showed 0 kWh *used*.
 
-The app now cross-checks 1028 against an undocumented second register, confirmed independently
-against myUplink's own reading, and corrects the mistake when it happens — see
-[`energy-attribution.md`](energy-attribution.md) for the mechanism. It only ever corrects an idle
-reading; if 1028 already says a function is active, that's trusted as-is. Not available on every
-model — S2125, S320/S325 and S330/S332 don't expose the second register, so they fall back to 1028
-alone, same as every release before this one.
+The app now cross-checks that reading against a second one and corrects it when it says idle by
+mistake. See [`energy-attribution.md`](energy-attribution.md) for how. It only ever corrects an
+idle reading. If the first reading already names a function, the app trusts it. The S2125,
+S320/S325 and S330/S332 don't have the second reading, so they use the first one alone, as before
+0.9.14.
 
-### Why not use the pump's own per-function energy figures instead?
+### Why not use my heat pump's own per-function energy figures instead?
 
-The pump does keep them — but it publishes them **once an hour, for the hour that just ended**. That's too
-late to be useful for the thing most people want it for:
+Your heat pump keeps them, but it only publishes them **once an hour, for the hour that just
+ended**. That's too late for what most people want them for:
 
-- **Electricity pricing moves faster than that.** With hourly or 15-minute tariffs, knowing at 15:00 what hot
-  water cost between 14:00 and 15:00 puts the cost in the wrong price slot. Homey can't go back and rewrite an
-  hour that has already passed, so being late can never be repaired afterwards.
-- **There'd be no live power reading at all.** The pump publishes no "right now" figure per function, so the
-  power shown on each device tile would simply not exist.
-- **Everything would move in hourly steps** rather than while things are actually happening.
+- **Electricity prices change faster.** With hourly or 15-minute prices, learning at 15:00 what hot
+  water cost between 14:00 and 15:00 puts the cost in the wrong price slot. Homey can't rewrite an
+  hour that has passed, so late figures can't be fixed afterwards.
+- **There'd be no live power reading.** Your heat pump publishes no current figure per function, so
+  the power on each device tile wouldn't exist.
+- **Everything would move in hourly steps** instead of while things happen.
 
-So the app uses the live method — and then checks itself against the pump's hourly figures every hour, which
-is the best of both: timely numbers, continuously audited against the pump's own books.
+So the app uses the live method and checks it against your heat pump's hourly figures every hour.
 
-**How well does that hold up?** Within about **1%** of the pump's own hourly figure on measured hot-water
-cycles, across two different pump models. That is the reason it's left alone rather than nudged toward the
-hourly numbers — and since the pump's hourly figures have been measured to be exactly what myUplink shows,
-it is also roughly how close to myUplink you should expect to land.
+**How close is it?** Within about **1%** of your heat pump's own hourly figure on measured hot water
+cycles, across two heat pump models. That's why the app doesn't adjust toward the hourly numbers.
+Your heat pump's hourly figures match what myUplink shows, so that's also about how close to
+myUplink you can expect to be.
 
-**What you give up.** Per-function electricity is a very good estimate, not a meter reading, so it won't tie
-out to the last decimal against myUplink. And if Homey restarts or loses contact with the pump, the
-electricity used while it wasn't watching is never counted — the pump kept counting, the app couldn't. Both
-are the price of having numbers that arrive while they still matter.
+**What you give up.** Per-function electricity is a close estimate from live readings, so it won't
+match myUplink to the last decimal. If Homey restarts or loses contact with your heat pump, the
+electricity used during the gap isn't counted. Your heat pump keeps counting, but the app can't see
+it.
 
 ### I compared for ten minutes and it's wildly wrong.
 
-Compare over a day. The pump's lifetime counters move in 0.1 kWh steps and settle about an hour behind its
-own internal hourly log, so a short comparison can look catastrophic while both figures are perfectly fine.
-A single 0.1 kWh tick can represent several hours of quiet accumulation.
+Compare over a day. Your heat pump's lifetime counters move in 0.1 kWh steps and settle about an
+hour behind its own hourly log, so a short comparison can look far off while both figures are fine.
+A single 0.1 kWh step can hold several hours of slow build-up.
 
 ### The app and myUplink show different power right now.
 
-Both are probably right. This app polls the pump directly every 5 seconds; myUplink goes via Nibe's cloud
-and can lag by minutes. They won't be in step moment to moment.
+Both are probably right. Nibe Live reads your heat pump directly every 10 seconds by default.
+myUplink goes through NIBE's cloud and can lag by minutes, so they won't match moment to moment.
 
-### Can I see this hour's energy, like menu 3.1 on the pump?
+### Can I see this hour's energy, like menu 3.1 on my heat pump?
 
-No. The pump computes it — that's the filling bar in the menu — but publishes no Modbus register for it.
-Checked three ways: every "hour" title across all six S-series register maps, Nibe's published symbol list,
-and the myUplink Homey device. Modbus offers only the *previous completed* hour.
+No. Your heat pump works it out (that's the filling bar in the menu) but doesn't make it available
+over Modbus. Checked three ways: every "hour" title in all six S-series Modbus lists, NIBE's
+published symbol list, and the myUplink Homey device. Modbus offers only the *previous completed*
+hour.
 
 ## COP
 
 ### Why is my COP blank?
 
-One of three reasons, all intentional:
+One of three reasons:
 
-- the rolling 30-day window needs an earlier snapshot to compare against, so it's blank on a fresh pair;
-- the value is withheld until more than 0.1 kWh has been used in the window, because a tiny sliver of
-  consumption divides into nonsense;
-- a function that never runs — a pool you don't have — never crosses that threshold, and showing nothing is
-  more honest than showing zero.
+- The 30-day average needs an earlier snapshot to compare against, so it's blank after you first
+  pair.
+- It stays blank until more than 0.1 kWh has been used in the 30 days, because a tiny amount gives
+  a meaningless number.
+- A function that never runs, such as a pool you don't have, never reaches that amount, so it shows
+  nothing instead of zero.
 
 ### Which COP should I trust?
 
-**Total COP on Main.** Both sides of it are the pump's own counters, so it reconciles with myUplink over the
-same window. A per-function COP divides a measured delivered figure by an attributed used figure, so it
-inherits the attribution's error — small, but present.
+**Total COP on Main.** Both sides of it come from your heat pump's own counters, so it matches
+myUplink over the same period. A per-function COP divides a measured heat figure by an estimated
+electricity figure, so it carries the estimate's small error.
 
 ### Why 30 days and not lifetime?
 
-A lifetime average stops moving. A 30-day window tracks the season, so you can actually see the effect of a
-setting change or a cold snap.
+A lifetime average stops moving. A 30-day average follows the season, so you can see the effect of
+a setting change or a cold spell.
 
 ### My hot water COP was 15. What happened?
 
-A bug, fixed in **0.9.12**. The delivered counter ran whenever the pump ran, while the used meter only
-advanced when the app could measure — so a numerator covering months was divided by a denominator covering
-hours. Both sides now advance over identical intervals. The affected history is discarded rather than
-migrated, so COP is blank for a while after upgrading and then rebuilds correctly.
+A bug, fixed in **0.9.12**. The delivered-heat counter ran whenever your heat pump ran, while
+electricity used only counted when the app could measure it. So months of heat were divided by
+hours of electricity. Both now count over the same periods. The affected history was discarded, so
+COP is blank for a while after the update and then rebuilds correctly.
 
 ### How does the app know how much hot water I have left?
 
 You tell it which tank you have, and it reads the tank's two temperature sensors.
 
-**The arithmetic.** "Hot water available" is litres of **40 °C** water — the same thing NIBE prints
-on its tank datasheets, and what you actually care about, since 175 litres at 55 °C is a lot more
-than 175 litres of shower. The app works out how much of the tank is still above 40 °C from where
-the warm/cold boundary sits between the two sensors, and how hot that part is. That is also why the
-figure can read higher than your tank holds: it is not measuring how full the tank is, it is
-measuring how much showering is in it.
+**How it's worked out.** "Hot water available" is litres of **40 °C** water. NIBE uses the same
+measure on its tank datasheets, and it's what matters for a shower. 175 litres at 55 °C gives a lot
+more than 175 litres of 40 °C water. The app works out how much of the tank is still above 40 °C
+from where the boundary between warm and cold water sits between the two sensors, and how hot that
+part is. That's also why the figure can read higher than your tank's size. Hot water mixed down to
+40 °C makes more than the tank holds.
 
-**Setting it up.** Open the Hot Water device, run **Repair**, and pick your tank. One entry per
-family — you do not need to know whether yours is copper, stainless or enamel, because that changes
-the answer by about 2 %. Without a tank there is no estimate.
+**Setting it up.** Open the Hot water device, run **Repair**, and pick your tank. There's one entry
+per tank family. You don't need to know whether yours is copper, stainless or enamel, because that
+changes the answer by about 2%. Without a tank there's no estimate.
 
-**Why you have to tell it.** The app did originally work the size out by itself, from the heat the
-pump reported against how far the sensors rose. Tested on a real pump with a known 176 L tank it
-measured 436 L. A charge only stops when the bottom sensor reaches its target, so any hot water used
-*during* the charge just makes it run longer — and that extra heat is indistinguishable from a
-bigger tank. Charges usually start because someone is using hot water, so this is the normal case.
+**Why you have to choose it.** The app used to work out the size by itself, from the heat your heat
+pump reported and how far the sensors rose. On a heat pump with a known 176 L tank it measured
+436 L. A charge only stops when the bottom sensor reaches its target, so hot water used *during*
+the charge makes it run longer, and that extra heat looks the same as a bigger tank. Charges
+usually start because someone is using hot water, so this happens most of the time.
 
-**Treat it as a good guide, not a gauge.** Two sensors is not many for a whole tank: the app cannot
-see the water above the top sensor or below the bottom one, so it under-reports a shower while it is
-happening. It moves in the right direction continuously, which is what matters for a Flow.
+**Treat it as a guide.** Two sensors aren't many for a whole tank. The app can't see the water
+above the top sensor or below the bottom one, so during a shower it lags behind the water being
+used. It changes steadily in the right direction, which is what a Flow needs.
 
-### It went to zero but the tank is not empty.
+### It went to zero but the tank isn't empty.
 
-That is correct. "Hot water available" counts water you could still shower in at 40 °C. Once the
-hottest water in the tank is below 40, there is none — even though the tank is full of 39 °C water
-that is perfectly good for washing up.
+That's expected. "Hot water available" counts water you could still shower in at 40 °C. Once the
+hottest water in the tank is below 40 °C, there is none, even if the tank is full of 39 °C water
+that's fine for washing up.
 
-### Hot water available is blank, or the capability is missing.
+### Hot water available is blank or missing.
 
-If it is missing, no tank has been chosen yet — run **Repair** on the Hot Water device.
+If it's missing, no tank has been chosen yet. Run **Repair** on the Hot water device.
 
-If it is present but empty, the pump has not reported both tank temperatures yet; that clears on the
-next poll.
+If it's there but empty, your heat pump hasn't reported both tank temperatures yet. That clears on
+the next update.
 
 ### Why does a hot water boost heat past my stop temperature?
 
-Because a boost temporarily promotes the pump to its **Large** hot water mode and charges to
-*that* stop temperature, whatever mode you normally run. NIBE's manuals describe menu 2.1 "More
-hot water" as temporarily raising the pump to luxury hot water, and measurement agrees: on an
-S1155 in demand mode Small (stop 48 °C), with Large set to 68 °C, a boost ran to **68.4 °C**.
+Because a boost temporarily switches your heat pump to its **Large** hot water mode and heats to
+*that* stop temperature, whatever mode you normally use. NIBE's manuals describe menu 2.1 "More hot
+water" as temporarily raising it to luxury hot water, and measurements agree. On an S1155 in demand
+mode Small (stop 48 °C), with Large set to 68 °C, a boost ran to **68.4 °C**.
 
-So the setting that decides how hot a boost gets is **Hot water stop (Large)** — even if Large is
-not the mode you use day to day.
+So the setting that decides how hot a boost gets is **Hot water stop (Large)**, even if you don't
+use Large day to day.
 
 ### My boost stops well short of that. Why?
 
-Almost certainly because the immersion heater is not available, and the compressor alone cannot
-get there.
+Most likely the immersion heater isn't available, and the compressor alone can't get there.
 
-The compressor has a hard ceiling — it must condense several degrees hotter than the tank, and
-a heat pump cannot push past a certain discharge temperature. Expect roughly **55–60 °C** in the
-tank on the compressor alone, less when the source is cold. Above that the immersion heater has
-to make up the difference, and there are two common reasons it does not:
+The compressor has a hard limit. It must run several degrees hotter than the tank, and a heat pump
+can't go past a certain discharge temperature. Expect about **55–60 °C** in the tank on the
+compressor alone, less when the source is cold. Above that the immersion heater has to make up the
+difference. Two common reasons it doesn't:
 
-- **Operating mode is Auto.** The immersion tick box in the pump's menu 4.1 — the app's **Allow
-  additional heat** — only applies in mode **Manual**. In Auto the pump decides for itself, and
-  the setting is ignored. You can switch mode from the Main device.
-- **A schedule is blocking it.** Each schedule mode has a **"Block additional heat"** switch
-  covering heating and hot water alike. It is not readable over Modbus, so the app cannot show
-  you it — see the schedules question above.
+- **Operating mode is Auto.** The immersion heater tick box in menu 4.1 on your heat pump,
+  **Allow immersion heater** in the app, only applies in **Manual** mode. In Auto your heat pump
+  decides for itself and ignores the setting. You can change the mode from the Main device.
+- **A schedule blocks it.** Each schedule mode has a **"Block additional heat"** switch that
+  covers heating and hot water alike. It can't be read over Modbus, so the app can't show it.
 
-Measured on an S1155: five boosts in a row stopped at 53–59 °C with the immersion drawing 0 W,
-first because a schedule had blocked it for a year and then because Auto mode ignored the permit.
-With both cleared and the mode set to Manual, the immersion ran to its full **7 kW** and the same
-boost reached 68 °C.
+On an S1155, five boosts in a row stopped at 53–59 °C with the immersion heater drawing 0 W. First
+a schedule had blocked it for a year, then Auto mode ignored the setting. With both fixed and the
+mode set to Manual, the immersion heater ran at its full **7 kW** and the same boost reached
+68 °C.
 
 ### Why doesn't cancelling "More hot water" stop the compressor?
 
-It cancels the *request* immediately — measured live, the pump's own internal minutes-remaining
-and status registers both reset within one poll of switching the boost off. What it doesn't do is
-interrupt a compressor cycle that has already started; the pump finishes that cycle regardless.
-That's normal short-cycling protection, present on essentially every heat pump, not a bug here.
+Cancelling ends the *request* straight away. Measured live, your heat pump's own minutes-remaining
+and status readings both reset within one update after the boost was turned off. It doesn't
+interrupt a compressor cycle that has already started. Your heat pump finishes that cycle to
+protect the compressor, like any heat pump.
 
-Toggling **Allow hot water** off and back on does force a running cycle to stop — that was
-confirmed too — but the app doesn't do this for you automatically. Forcing a running compressor
-off that bluntly, on every boost cancellation, is likely worse for it than letting the current
-cycle finish. It's left as something you choose to do occasionally, not something the app does
-silently and routinely on your behalf.
+Turning **Allow hot water** off and on again does stop a running cycle, which was also confirmed,
+but the app doesn't do this for you. Forcing the compressor off like that on every cancelled boost
+is likely worse for it than letting the cycle finish. It's something you can choose to do now and
+then.
 
 ## Setup and connectivity
 
-### Where did night cooling go?
-
-Since 1.4.4 it is on the **Heating** device, next to the other ventilation controls. It only runs
-the exhaust air fan, so pumps that cannot cool never had a Cooling device to find it on. A Flow
-that switched it on the Cooling device needs the Heating device picked again. If it is missing,
-run **Repair** on the Heating device and tick ventilation.
-
 ### Can I run this and myUplink at the same time?
 
-Yes. myUplink is a cloud service and never touches Modbus. What you *can't* do is point a second **Modbus**
-integration at the pump — it accepts one client at a time.
+Yes. myUplink is a cloud service and doesn't use Modbus. You can't connect a second **Modbus**
+integration to your heat pump at the same time. It accepts one client at a time.
 
-### Autodetect didn't find my pump.
+### Autodetect didn't find my heat pump.
 
-Modbus TCP has no announcement mechanism and Nibe pumps don't advertise themselves, so "discovery" is a sweep
-of your Homey's subnet for port 502. It only works when **Modbus TCP is enabled on the pump (menu 7.5.9)**
-and the Homey is on the same subnet. Otherwise enter the IP manually — that path always works.
+Modbus TCP has no way to announce itself, and NIBE heat pumps don't advertise themselves, so the app
+searches your Homey's subnet for port 502. It only works when **Modbus TCP is on in your heat pump
+(menu 7.5.9)** and Homey is on the same subnet. Otherwise enter the IP address by hand. That always
+works.
 
-### My devices say "Can't reach the heat pump".
+### My devices say "Can't reach your heat pump".
 
-Nothing answered at the pump's address. Usually either the router gave the pump a new IP address, or
-the pump dropped off the network (Wi-Fi is the usual suspect). The app retries on its own, less often as
-the outage goes on (up to once a minute). After three minutes it also searches your Homey's subnet for
-the pump. If it finds **exactly one** unpaired pump of the same model, it moves all of that pump's
-devices there and posts a notification. It won't guess between two candidates. If the address is a host
-name rather than a number, the app never replaces it.
+Nothing answered at your heat pump's address. Usually the router gave your heat pump a new IP
+address, or it dropped off the network (Wi-Fi is the usual cause). The app tries again by itself,
+less often as the outage goes on (down to once a minute). After three minutes it also searches your
+Homey's subnet for your heat pump. If it finds **exactly one** unpaired heat pump of the same model,
+it moves all of that heat pump's devices there and sends a notification. It won't guess between
+two. If the address is a host name instead of a number, the app never replaces it.
 
-The durable fix is a **DHCP reservation** for the pump in your router. To change the address by hand,
-edit **IP address** on any one of the pump's devices; its other devices follow.
+The lasting fix is a **DHCP reservation** for your heat pump in your router. To change the address
+by hand, edit **IP address** on any one of its devices. The others follow.
 
-"Refused the connection" is different: something is at that address, but Modbus TCP is off
+"Refused the connection" is different. Something is at that address, but Modbus TCP is off
 (menu 7.5.9 on S-series).
 
-"Answers, but returns no heat pump data" means something at that address speaks Modbus but returns
-nothing a pump would, which used to show as -1 on every capability. Check the address is the pump's own
-rather than another device's, and that Modbus TCP is on (menu 7.5.9). The log records what that
-address turned out to be.
+"Returns no NIBE data" means something at that address speaks Modbus but returns nothing a heat pump
+would. This used to show as -1 everywhere. Check that the address is your heat pump's own and not
+another device's, and that Modbus TCP is on (menu 7.5.9). The log records what that address turned
+out to be.
 
-### A capability sits blank forever.
+### A reading stays blank.
 
-Your model probably doesn't implement that register. Turn on **Debug logging** in the app's advanced
-settings: it names every register that has failed, with its address, and restates them after you enable it —
-so a log you send for support contains the cause even though the failure happened hours earlier.
+Your model probably doesn't have that reading. Turn on **Debug logging** under **Advanced** in the
+device's settings. It lists every reading that has failed, with its Modbus address, and lists them
+again after you turn it on. So a log you send for support shows the cause even if the failure
+happened hours earlier.
 
-### Why did a Flow action fail with a Modbus error?
+### Why did a Flow card fail with a Modbus error?
 
-The pump refuses writes it considers invalid — most often "Illegal Function", which usually means the
-feature is disabled. The classic case: turning **Allow hot water** off makes the pump block the demand-mode
-and "More hot water" registers entirely. The app now logs the exception name and the full response, so the
-log says which of these it was.
+Your heat pump refuses changes it considers invalid, most often with "Illegal Function", which
+usually means the feature is turned off. The classic case: turning **Allow hot water** off makes
+your heat pump block demand mode and "More hot water" entirely. The app logs the error name and the
+full response, so the log says which one it was.
 
 ## Privacy
 
-### What does "Share anonymous usage data" actually send?
+### What does "Share anonymous usage data" send?
 
-Which pump model and firmware you have (as the code the pump itself reports), which of the six devices you
-created — Main, Heating, Hot water, Pool, Cooling, Solar — which features you enabled on each, which Flow
-cards and buttons get used, whether register detection worked, and whether the connection to your pump drops.
-Plus your Homey's version, model, timezone and language.
+Your heat pump's model and software (as the code your heat pump reports), which of the six devices
+you created (Main, Heating, Hot water, Pool, Cooling, Solar), which features you turned on for each,
+which Flow cards and buttons get used, alarm codes, how Autopilot is set up and how each day went,
+whether detection worked, and whether the connection to your heat pump drops. Plus your Homey's
+version, model, timezone and language.
 
-It does **not** send any reading from your pump — no temperatures, no power, no hot water activity. That is a
-deliberate line, not an oversight: a timestamped log of when your compressor ran and when someone showered
-would say a great deal about when you are home, and it answers none of the questions the data exists to
-answer. It also sends no IP address, no pump serial, no device or Flow names, and nothing that identifies you.
-The only identifier attached is a random number generated on your Homey.
+It doesn't send any reading from your heat pump: no temperatures, no power, no hot water use. A
+timestamped log of when your compressor ran and when someone showered would say a lot about when
+you're home, and none of the questions the data is for need it. It also sends no IP address, no
+serial number, no device or Flow names, and nothing that identifies you. The only ID attached is a
+random number created on your Homey.
 
 ### Why does the app want this at all?
 
-It is maintained by one person with one heat pump. Whether a feature works on an S1255, an S320 or an S2125 —
-or whether detection finds anything at all on them — is otherwise guesswork, because the people whose setup
-works never post about it. Knowing which models and functions are actually out there is what decides where
-effort goes.
+It's maintained by one person with one heat pump. Whether a feature works on an S1255, an S320 or an
+S2125, or whether detection finds anything on them, is otherwise guesswork, because people whose
+setup works don't post about it. Knowing which models and functions are in use decides where the
+work goes.
 
 ### How do I turn it off?
 
-**More → Apps → Nibe Live → Configure**, then untick it under **Privacy**. It takes effect immediately, and
-you do not need to delete or repair anything. It is off unless you switched it on — the box during pairing
-starts unticked.
+Open the settings of any Nibe device and untick **Share anonymous usage data** under **Privacy**.
+It changes for all your Nibe devices and takes effect straight away. You don't need to delete or
+repair anything. It's off unless you turned it on. The box during pairing starts unticked.
 
 ### Where is the data stored?
 
-In the EU. The app sends to Amplitude's European servers and the data is held in their EU instance; it is not
-transferred outside. [docs/analytics.md](analytics.md) lists every single event and property, and everything
-deliberately excluded.
+In the EU. The app sends to Amplitude's European servers and the data is kept in their EU instance.
+It isn't transferred outside the EU. [docs/analytics.md](analytics.md) lists every event and
+property, and everything deliberately left out.
 
+### Why did hot water available or COP briefly go blank?
 
-### Why did hot-water availability or COP briefly go blank?
+Since 1.2.1, an update must include every reading that estimate needs. If one is missing, the app
+shows no estimate until readings resume. It doesn't combine a new temperature with an old one, or
+fire a low hot water trigger across a gap in readings.
 
-From 1.2.1, a completed poll must contain the readings needed for that estimate. If a required
-reading is missing, the app shows no estimate until measurement resumes. It does not combine a
-fresh temperature with an old one or trigger a low-water crossing across a measurement gap.
+### Why does a setting now say my heat pump didn't confirm it?
 
-### Why does a setting now report that the pump did not confirm it?
-
-The app checks the pump's value after writes from both tiles and Flows. A successful Modbus
-acknowledgement alone does not guarantee that the pump applied the setting. A confirmation error
-means the requested value could not be verified; check the current reading before retrying.
+The app checks your heat pump's value after every change from a tile or a Flow. Your heat pump
+accepting the change over Modbus doesn't guarantee it applied it. A confirmation error means the new
+value couldn't be verified. Check the current value before you try again.

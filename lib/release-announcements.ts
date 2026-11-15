@@ -23,7 +23,7 @@ export const CURRENT_ANNOUNCEMENT: Announcement | null = {
                 "heating"
             ],
             "text": {
-                "en": "Your Heating thermostat can now follow one NIBE wireless room sensor, and on pumps with several zones you choose which zone it sets. Run Repair on your Nibe Heating device to set it up.",
+                "en": "Your Heating thermostat can now show a NIBE wireless room sensor. On heat pumps with several zones, you choose which zone it sets. Run Repair on your Nibe Heating device to set it up.",
                 "sv": "Termostaten på Värme kan nu följa en trådlös NIBE-rumsgivare, och på värmepumpar med flera zoner väljer du vilken zon den ställer in. Kör Reparera på din Nibe Värme-enhet för att ställa in det.",
                 "de": "Der Thermostat von Heizung kann jetzt einem NIBE-Funk-Raumfühler folgen, und bei Wärmepumpen mit mehreren Zonen wählst du, welche Zone er einstellt. Führe Reparieren auf deinem Nibe-Heizungsgerät aus, um es einzurichten.",
                 "nl": "De thermostaat van Verwarming kan nu één draadloze NIBE-ruimtesensor volgen, en op warmtepompen met meerdere zones kies je welke zone hij instelt. Voer Repareren uit op je Nibe Verwarming-apparaat om het in te stellen.",
