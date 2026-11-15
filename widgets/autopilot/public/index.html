@@ -1,26 +1,27 @@
 <html>
   <head>
     <style>
-      .ap { padding: var(--homey-su-2, 8px) var(--homey-su-3, 12px); }
+      .ap { padding: 16px 16px 14px; }
       .ap-title { opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .ap-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
       .ap-chip { font-size: 0.8em; white-space: nowrap; padding: 2px 8px; border-radius: 999px; background: rgba(127, 127, 127, 0.15); }
       .ap-chip.quiet { background: transparent; border: 1px solid rgba(127, 127, 127, 0.4); opacity: 0.75; }
-      .ap-status { text-wrap: balance; margin: 4px 0 0; font-size: 1.35em; font-weight: 600; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-      .ap-status-name { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+      .ap-status { text-wrap: balance; margin: 0; font-size: 1.3em; font-weight: 600; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+      .ap-status-name { display: flex; flex-direction: column; gap: 10px; min-width: 0; line-height: 1.2; }
       .ap-status-name .ap-chips { margin: 0; font-size: 0.74em; font-weight: 400; }
-      .ap-now { color: var(--ap-indoor); font-variant-numeric: tabular-nums; white-space: nowrap; }
-      .ap-reason { margin: 4px 0 0; opacity: 0.85; font-variant-numeric: proportional-nums; }
-      .ap-now-box { display: flex; flex-direction: column; align-items: flex-end; }
+      .ap-now { line-height: 1.2; color: var(--ap-indoor); font-variant-numeric: tabular-nums; white-space: nowrap; }
+      .ap-reason { margin: 0; font-size: 14px; font-weight: 400; opacity: 0.85; font-variant-numeric: proportional-nums; }
+      .ap-now-box { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+      .ap-now.water { color: var(--ap-grid); }
       .ap-aim { font-weight: 400; opacity: 0.85; white-space: nowrap; }
       .ap-detail { margin-top: 2px; opacity: 0.65; }
-      .ap-chart { display: block; margin-top: 14px; overflow: visible; }
+      .ap-chart { display: block; margin-top: 22px; overflow: visible; }
       .ap-chart text { font-size: 11px; fill: currentColor; opacity: 0.75; }
       .ap-chart text.axis-title { font-size: 10.5px; opacity: 0.6; }
-      .ap-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.8em; opacity: 0.9; margin-top: 10px; }
+      .ap-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.8em; opacity: 0.9; margin-top: 16px; }
       .ap-key { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; box-sizing: border-box; }
       .ap-key.line { height: 3px; border-radius: 2px; vertical-align: 3px; }
-      .ap-foot { margin: 8px 0 0; font-size: 0.8em; opacity: 0.75; }
+      .ap-foot { margin: 12px 0 0; font-size: 0.8em; line-height: 1.4; opacity: 0.7; }
       .ap-empty { opacity: 0.8; margin: 12px 0; }
       /* Starting: the plan being drawn. A soft curve draws itself, charge pills light up in turn and
          bars grow in, then it starts over. Everything rests, fully drawn, when motion is reduced. */
@@ -188,7 +189,7 @@
       // Heating: indoor °C on the left axis (measured solid, expected dashed), the
       // BT1 shift on the right axis as one solid bar an hour from 0, and a line at now.
       function heatingChart(data) {
-        var W = chartWidth(), L = 34, R = W - 40, PH = Math.max(110, Math.min(170, Math.round(W * 0.36))) + EXTRA, B = TOP + PH, H = B + 24;
+        var W = chartWidth(), L = 34, R = W - 40, PH = Math.max(110, Math.min(170, Math.round(W * 0.36))) + EXTRA, B = TOP + PH, H = B + 30;
         var n = data.slots.length, step = (R - L) / n;
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'ap-chart', role: 'img'});
         var left = data.scale.left, right = data.scale.right;
@@ -239,7 +240,7 @@
       // from its start to its end, split inside into the solar part (solid warm) and the grid part (blue).
       function hotwaterChart(data) {
         var W = chartWidth(), L = 34, R = W - (data.scale.right ? 34 : 6), PH = Math.max(100, Math.min(150, Math.round(W * 0.33))) + EXTRA, B = TOP + PH;
-        var bands = data.bands || [], tickY = bands.length ? B + 56 : B + 18, H = tickY + 6;
+        var bands = data.bands || [], tickY = bands.length ? B + 44 : B + 24, H = tickY + 6;
         var n = data.slots.length, step = (R - L) / n;
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'ap-chart', role: 'img'});
         var left = data.scale.left, right = data.scale.right;
@@ -276,7 +277,7 @@
         // Charge bands: a rounded band from start to end, 14 px tall, with its time range under it.
         var edge = L - 100;
         bands.forEach(function (b) {
-          var bx = x(b.from), bw = Math.max(x(b.to) - bx, 6), by = B + 10, bh = 14, id = 'apclip' + (++clips);
+          var bx = x(b.from), bw = Math.max(x(b.to) - bx, 6), by = B + 8, bh = 10, id = 'apclip' + (++clips);
           // The part already done, muted; the planned rest, with its solar share first.
           var dx = typeof b.doneTo === 'number' ? Math.min(bx + bw, x(b.doneTo)) : bx, sw = (bx + bw - dx) * b.solar;
           svg.appendChild(svgEl('defs', {})).innerHTML = '<clipPath id="' + id + '"><rect x="' + bx + '" y="' + by + '" width="' + bw + '" height="' + bh + '" rx="5"/></clipPath>';
@@ -285,10 +286,7 @@
           if (bx + bw > dx) g.appendChild(svgEl('rect', {x: dx, y: by, width: bx + bw - dx, height: bh, fill: 'var(--ap-grid)'}));
           if (sw > 0) g.appendChild(svgEl('rect', {x: dx, y: by, width: sw, height: bh, fill: 'var(--ap-solar)'}));
           svg.appendChild(g);
-          var half = b.label.length * 3.1, cx = Math.min(R - half, Math.max(L + half, bx + bw / 2));
-          if (cx - half < edge + 8) return;
-          svg.appendChild(svgEl('text', {x: cx, y: by + bh + 14, 'text-anchor': 'middle'}, b.label));
-          edge = cx + half;
+          // No time label: the status names the next charge, and the hours sit right under the lane.
         });
         header(svg, data, x, W, L, R, B);
         hours(svg, data.ticks.map(function (t) { return {x: x(t.at), label: t.label}; }), tickY);
@@ -343,16 +341,19 @@
           name.appendChild(el('span', '', data.status));
           if (row) name.appendChild(row);
           status.appendChild(name);
-          if (typeof data.indoorNow === 'number') {
+          var big = data.nowValue || (typeof data.indoorNow === 'number' ? data.indoorNow.toFixed(1) + ' °C' : '');
+          if (big) {
             var now = el('span', 'ap-now-box');
-            now.appendChild(el('span', 'ap-now', data.indoorNow.toFixed(1) + ' °C'));
-            if (data.aim) now.appendChild(el('span', 'ap-aim homey-text-small', data.aim));
+            now.appendChild(el('span', 'ap-now' + (data.kind === 'hotwater' ? ' water' : ''), big));
+            if (data.aim || data.nowNote) now.appendChild(el('span', 'ap-aim homey-text-small', data.aim || data.nowNote));
             status.appendChild(now);
           }
           root.appendChild(status);
         }
-        if (data.reason) root.appendChild(el('p', 'ap-reason homey-text-small', data.reason));
-        if (data.detail) root.appendChild(el('p', 'ap-reason homey-text-small ap-detail', data.detail));
+        // The reason sits under the status, in the column left of the figure, so the two line up.
+        var col = data.status ? root.querySelector('.ap-status-name') : root;
+        if (data.reason) col.appendChild(el('p', 'ap-reason homey-text-small', data.reason));
+        if (data.detail) col.appendChild(el('p', 'ap-reason homey-text-small ap-detail', data.detail));
         if (data.kind === 'heating' && data.slots.length) {
           root.appendChild(heatingChart(data));
           root.appendChild(legend([

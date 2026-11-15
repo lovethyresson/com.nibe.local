@@ -4,29 +4,29 @@
     <style>
       /* One hierarchy, as Apple's Health and Fitness cards: a quiet caption, a short label, one large
          number with its caption, then small figures and the picture. Spacing on an 8 px rhythm. */
-      .sv { padding: var(--homey-su-2, 8px) var(--homey-su-3, 12px); }
+      .sv { padding: 16px 16px 14px; }
       .sv-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
       .sv-title { opacity: 0.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .sv-tag { font-size: 0.72em; letter-spacing: 0.02em; padding: 1px 7px; border-radius: 999px; border: 1px solid rgba(127, 127, 127, 0.35); opacity: 0.65; white-space: nowrap; }
-      .sv-label { margin: 14px 0 0; font-size: 0.86em; font-weight: 600; opacity: 0.7; }
-      .sv-hero { margin: 2px 0 0; font-size: 2.3em; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+      .sv-label { margin: 0; font-size: 1.3em; line-height: 1.2; font-weight: 600; }
+      .sv-hero { margin: 12px 0 0; font-size: 2.3em; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
       .sv-hero.good { color: var(--sv-cheap); }
       .sv-hero.bad { color: var(--sv-dear); }
-      .sv-caption { margin: 2px 0 0; opacity: 0.6; }
+      .sv-caption { margin: 4px 0 0; opacity: 0.65; }
       .sv-note { margin: 4px 0 0; opacity: 0.7; }
-      .sv-stats { display: flex; gap: 24px; margin: 14px 0 0; }
+      .sv-stats { display: flex; gap: 28px; margin: 20px 0 0; }
       .sv-stat-k { font-size: 0.8em; opacity: 0.6; }
       .sv-stat-v { font-size: 1.15em; font-weight: 600; font-variant-numeric: tabular-nums; }
       .sv-stat-v.good { color: var(--sv-cheap); }
       .sv-stat-s { font-size: 0.8em; opacity: 0.6; }
-      .sv-chart { display: block; margin-top: 16px; overflow: visible; }
+      .sv-chart { display: block; margin-top: 22px; overflow: visible; }
       .sv-chart text { font-size: 11px; fill: currentColor; opacity: 0.6; }
       .sv-chart text.row-label { font-size: 13px; font-weight: 600; opacity: 0.9; }
       .sv-chart text.on-bar { fill: #ffffff; opacity: 1; font-weight: 600; font-size: 12.5px; }
       .sv-chart text.on-bar.mid { fill: currentColor; opacity: 0.8; }
-      .sv-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.78em; opacity: 0.7; margin-top: 12px; }
+      .sv-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.8em; opacity: 0.75; margin-top: 16px; }
       .sv-key { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
-      .sv-sub { margin: 16px 0 0; font-size: 0.8em; font-weight: 600; opacity: 0.6; }
+      .sv-sub { margin: 24px 0 0; font-size: 0.86em; font-weight: 600; opacity: 0.7; }
       .sv-share { display: flex; align-items: baseline; gap: 8px; margin: 4px 0 0; }
       .sv-share-v { font-size: 1.6em; font-weight: 700; letter-spacing: -0.01em; color: var(--sv-cheap); font-variant-numeric: tabular-nums; }
       .sv-share-n { opacity: 0.6; }

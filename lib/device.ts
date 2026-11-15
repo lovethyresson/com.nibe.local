@@ -96,6 +96,11 @@ const INDOOR_ALERT_AFTER_MS = 5 * 60 * 1000;
 // registers to capabilities, and — for function roles — keeps the energy bucket the
 // connection's allocator feeds it. Model-specific data comes from the concrete subclass's
 // `profile` (S or F).
+/** A line's first letter in lower case, for a phrase that follows another ("Tomorrow · about 45 min"). */
+function lowerFirst(text: string): string {
+    return text ? text[0].toLowerCase() + text.slice(1) : text;
+}
+
 export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     abstract profile: ModelProfile;
 
@@ -2131,19 +2136,21 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             if (!this.solarAllowed()) chips.push(t('hotwater.solar_off'));
             else if (this.solarSurplus().forecastPaused) chips.push(t('hotwater.solar_paused'));
             const litres = o.litres === undefined ? undefined : t('hotwater.litres', {l: Math.round(o.litres)});
+            // The tank now, as the figure beside the status (heating shows indoor there).
+            const tank = o.litres === undefined ? {} : {nowValue: `${Math.round(o.litres)} L`, nowNote: t('hotwater.litres_note')};
             // No prices: while starting, the prices are on their way. Later they are missing: say where to look.
             if (!o.slots.some((s) => s.price !== undefined))
                 return process.uptime() < STARTING_SECONDS ? {...starting, detail: litres}
                     : {...base, kind: 'hotwater', chips, badge, test: mode === 'test', status: t('hotwater.no_prices'),
                         reason: t('hotwater.no_prices_hint'), detail: litres};
             const start = slotStart(day.from);
-            const when = o.next ? (dayOf(o.next.at) === dayOf(Date.now()) ? this.clock(o.next.at)
-                : t('hotwater.tomorrow', {time: this.clock(o.next.at)})) : '';
+            // The heading keeps to the time; the day, when it is not today, leads the line under it.
+            const later = !!o.next && dayOf(o.next.at) !== dayOf(Date.now());
             const duration = o.next ? formatDuration(o.next.minutes, (key, tokens) => this.homey.__(`autopilot.hotwater_charge.${key}`, tokens)) : '';
             const prices = o.slots.flatMap((s) => (s.price === undefined ? [] : [s.price]));
             const surplus = o.slots.flatMap((s) => (s.surplus === undefined ? [] : [s.surplus]));
             const bands = chargeBands(o.slots, start, this.clock, (from, to) => t('hotwater.band', {from, to}));
-            return {...base, kind: 'hotwater', chips, badge, test: mode === 'test', slots: o.slots, now,
+            return {...base, kind: 'hotwater', chips, badge, test: mode === 'test', slots: o.slots, now, ...tank,
                 ticks: ticks(start, day.n, this.clock),
                 scale: {left: niceAxis(0, Math.max(0, ...prices), {steps: [0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100]}),
                     right: solar ? niceAxis(0, Math.max(1, ...surplus), {steps: [0.5, 1, 2, 5, 10]}) : undefined},
@@ -2151,11 +2158,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 // A charge that has started is running (the outlook only keeps one that has while the
                 // tank charges): say so and when it ends, not "next" with its start.
                 status: !o.next ? t('hotwater.none') : o.next.running ? t('hotwater.charging_now')
-                    : t('hotwater.next', {when}),
-                reason: !o.next ? litres : o.next.running
-                    ? [t('hotwater.until', {time: this.clock(o.next.at + o.next.minutes * 60_000)}), reason].join(' · ')
-                    : [t('hotwater.about', {duration}), reason].join(' · '),
-                detail: o.next ? [share > 0 ? t('hotwater.share', {share}) : undefined, litres].filter(Boolean).join(' · ') || undefined : undefined,
+                    : t('hotwater.next', {when: this.clock(o.next.at)}),
+                reason: !o.next ? undefined : o.next.running
+                    ? t('hotwater.until', {time: this.clock(o.next.at + o.next.minutes * 60_000)})
+                    : [later ? t('hotwater.day_tomorrow') : undefined, later ? lowerFirst(t('hotwater.about', {duration})) : t('hotwater.about', {duration})]
+                        .filter(Boolean).join(' · '),
+                detail: o.next ? [reason, share > 0 ? t('hotwater.share', {share}) : undefined].filter(Boolean).join(' · ') || undefined : undefined,
                 legend: {price: t('price'), surplus: solar ? t('surplus') : '', grid: t('charge_grid'), solar: solar ? t('charge_solar') : '',
                     done: bands.some((b) => b.doneTo !== undefined) ? t('charge_done') : ''},
                 axes: {left: t('axis_price'), right: solar ? t('axis_surplus') : ''},

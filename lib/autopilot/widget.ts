@@ -81,6 +81,9 @@ export interface WidgetData {
     axes?: {left: string; right: string};
     /** Indoor temperature now, °C (heating), shown beside the status. */
     indoorNow?: number;
+    /** Hot water: the figure beside the status (the tank's litres) and its caption. */
+    nowValue?: string;
+    nowNote?: string;
     footnote?: string;
     empty?: string;
 }
