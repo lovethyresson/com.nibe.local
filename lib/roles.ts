@@ -611,6 +611,9 @@ export function extraCapabilityOptions(role: Role, name: string, profile?: Model
                 // No tile: while Autopilot feeds, "Outdoor temperature (BT1)" shows the same value. Kept
                 // for its Insights log, which the savings card reads to find the hours that ran live.
                 decimals: 1, uiComponent: null};
+    if (name === AUTOPILOT_REASON_CAPABILITY)
+        // Set on the instance: the type's title ("Autopilot now" until 2026-11-15) was stored when it was added.
+        return {title: {en: "Autopilot", sv: "Autopilot", de: "Autopilot", nl: "Autopilot", no: "Autopilot", da: "Autopilot"}};
     if (name === AUTOPILOT_OUTDOOR_CAPABILITY)
         return {title: {en: "Real outdoor temperature", sv: "Verklig utetemperatur", de: "Tatsächliche Außentemperatur",
                         nl: "Werkelijke buitentemperatuur", no: "Faktisk utetemperatur", da: "Faktisk udetemperatur"},
