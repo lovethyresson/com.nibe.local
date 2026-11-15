@@ -168,6 +168,10 @@ export interface InstallProfile {
         solarForecast?: boolean;
         dayTypeSource?: 'calendar' | 'set';
     };
+    // Which of the app's own dashboard widgets this Homey has placed anywhere, as a sorted set of
+    // widget ids. Undefined while unknown (the dashboards could not be read), so a failed read
+    // never overwrites what was last seen.
+    widgets?: string[];
 
     // The hub this is all running on. Same principle as pumpModelCode: send what the SDK reports,
     // not a marketing name derived from it. `platform` + `platformVersion` together identify the
@@ -229,6 +233,10 @@ export function reportInstallProfile(profile: InstallProfile): void {
             }))
                 if (value !== undefined)
                     identity.set(key, value);
+            if (snapshot.widgets) {
+                identity.set('widgets', snapshot.widgets);
+                identity.set('widget_count', snapshot.widgets.length);
+            }
             // One property per function so each is independently segmentable in Amplitude; a
             // single nested object would collapse into something you cannot group by.
             for (const [role, groups] of Object.entries(snapshot.featuresByFunction))
@@ -265,4 +273,20 @@ export function track(name: string, properties?: Record<string, any>): void {
     } catch (error) {
         logError(`Analytics: "${name}" threw before sending`, error);
     }
+}
+
+/** This app's widgets placed on any of the Homey's dashboards, as a sorted set of widget ids
+ *  (`autopilot`, `savings`, …). A dashboard is columns of widgets; an app's own is an
+ *  `app_webview` whose `appWidgetId` is `homey:app:<app id>:<widget id>`. Pure. */
+export function placedWidgets(dashboards: unknown, appId: string): string[] {
+    const prefix = `homey:app:${appId}:`;
+    const list = Array.isArray(dashboards) ? dashboards : Object.values((dashboards ?? {}) as object);
+    const out = new Set<string>();
+    for (const dashboard of list as any[])
+        for (const column of dashboard?.columns ?? [])
+            for (const widget of column?.widgets ?? []) {
+                const id = widget?.data?.appWidgetId;
+                if (typeof id === 'string' && id.startsWith(prefix)) out.add(id.slice(prefix.length));
+            }
+    return [...out].sort();
 }

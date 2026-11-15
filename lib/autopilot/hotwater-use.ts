@@ -16,6 +16,8 @@ export interface WeekBar {
     today?: boolean;
     /** Part of the day's use is not known (the tank ran low): `litres` is a lower bound. */
     atLeast?: boolean;
+    /** Today only: litres used so far, drawn as the bar's filled part. */
+    used?: number;
 }
 
 export interface HotwaterUseData {

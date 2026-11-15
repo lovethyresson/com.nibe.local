@@ -3,7 +3,7 @@ import {IndoorConfig, averageSensors, cleanIndoorConfig, readOnlyIndoorConfig, s
 import {Controls, AutopilotCollector} from './autopilot/collector';
 import {newHistoryFileName} from './autopilot/store-file';
 import {Baseline, LEDGER_DAYS, moneyText, partialDay, ModeMark, SavingsData, SavingsDay, baselineOf, dayHours, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay} from './autopilot/savings';
-import {ChargeEvent, HotwaterAutopilot, HotwaterMode, ownDeviceId} from './autopilot/hotwater-shadow';
+import {ChargeEvent, HotwaterAutopilot, HotwaterMode, TankView, ownDeviceId} from './autopilot/hotwater-shadow';
 import {FlowConflict, moreHotwaterFlows} from './autopilot/hotwater-flows';
 import {KWH_PER_LITRE, STARTER_DAYS, localClock, readHousehold} from './autopilot/hotwater-learner';
 import {DAY_TYPE_SETTING, DEFAULT_DAY_TYPE, DayTypeState, awayOn, dayTypeAt, homeDayTypeAt, readDayType, typeSet} from './autopilot/day-type';
@@ -2185,6 +2185,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (!week.bars.some((bar) => !bar.today && bar.litres !== undefined)) return {title, empty: t('learning')};
         const has = (kind: string) => week.bars.some((bar) => bar.kind === kind);
         const today = week.bars[week.bars.length - 1];
+        const local = localClock(this.homey.clock.getTimezone());
+        const day = todaySlots(slotOf(Date.now()), (ms) => local(ms).date);
+        const view = this.hotwaterAutopilot?.tank(day.from, day.n);
+        // Today's bar fills up to what has been used so far.
+        if (view) today.used = Math.round(view.drawn.reduce<number>((sum, v) => sum + (v ?? 0), 0) / 5) * 5;
         const typical = today.kind === 'away' ? undefined : week.typical[today.kind];
         return {title, ...week,
             status: today.litres === undefined ? undefined : t(today.kind === 'away' ? 'expected_away' : 'expected', {l: today.litres}),
@@ -2193,17 +2198,15 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 : [t(today.kind), typical === undefined ? undefined : t('typical_of', {l: typical})].filter(Boolean).join(' · '),
             legend: {title: t('title'), working: has('working') ? t('working') : '', free: has('free') ? t('free') : '',
                 away: has('away') ? t('away') : '', typical: t('typical')},
-            today: this.hotwaterToday(t)};
+            today: view && this.hotwaterToday(t, view, day)};
     }
 
     /** Today's lines for the Hot water use widget: the use in runs of hours, the charges done or
-     *  running, the tank now and the next charge. Undefined until the plan has what it needs. */
-    private hotwaterToday(t: (key: string, tokens?: Record<string, string | number>) => string): HotwaterUseData['today'] {
+     *  running, the tank now and the next charge. Undefined when there is nothing to tell. */
+    private hotwaterToday(t: (key: string, tokens?: Record<string, string | number>) => string, view: TankView,
+        day: {from: number; n: number}): HotwaterUseData['today'] {
         const local = localClock(this.homey.clock.getTimezone());
         const slot = slotOf(Date.now());
-        const day = todaySlots(slot, (ms) => local(ms).date);
-        const view = this.hotwaterAutopilot?.tank(day.from, day.n);
-        if (!view) return undefined;
         const SLOT = 15 * 60_000, start = day.from * SLOT, now = slot - day.from;
         const at = (k: number) => this.clock(start + k * SLOT);
         const duration = (slots: number) => formatDuration(slots * 15, (key, tokens) => this.homey.__(`autopilot.hotwater_charge.${key}`, tokens));

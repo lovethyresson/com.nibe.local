@@ -149,3 +149,17 @@ test('heating day: a day watched for under 20 h is not scored', () => {
     feed(day, 'd1', 0, 79, () => 21);
     assert.strictEqual(day.observe({slot: 200, date: 'd2', ti: 21, comfort: 21, lower: 1, upper: 1, simulation: false}), undefined);
 });
+
+test('placedWidgets: the app\'s own widgets on any dashboard, as a sorted set', async () => {
+    const {placedWidgets} = await import('../lib/analytics');
+    const app = (id: string) => ({type: 'app_webview', data: {appWidgetId: `homey:app:com.nibe.local:${id}`}});
+    const dashboards = {
+        a: {columns: [{widgets: [{type: 'devices_custom', data: {deviceIds: ['x']}}, app('savings'), app('autopilot')]},
+            {widgets: [app('autopilot'), {type: 'app_webview', data: {appWidgetId: 'homey:app:com.homevolt.local:battery'}}]}]},
+        b: {columns: [{widgets: [app('hotwater_use')]}]},
+        empty: {columns: []},
+    };
+    assert.deepStrictEqual(placedWidgets(dashboards, 'com.nibe.local'), ['autopilot', 'hotwater_use', 'savings']);
+    assert.deepStrictEqual(placedWidgets(Object.values(dashboards), 'com.nibe.local'), ['autopilot', 'hotwater_use', 'savings'], 'a list works too');
+    assert.deepStrictEqual(placedWidgets(undefined, 'com.nibe.local'), []);
+});

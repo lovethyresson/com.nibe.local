@@ -358,6 +358,8 @@ produce one identify rather than six.
 | `autopilot_reserve` | `"40"` | Hot water's "Always keep at least", bucketed as `setting_value` |
 | `solar_live`, `solar_forecast` | `true` | The home's two solar switches, once answered in setup |
 | `day_type_source` | `"calendar"` | `set` when the owner or a Flow set a day type, `calendar` when weekends decide |
+| `widgets` | `["autopilot","hotwater_use","savings"]` | Which of the app's dashboard widgets this Homey has placed, from the Homey API's dashboards (read a minute after start and every 6 h, only with consent; sent only when it changed). Widget ids only: never a dashboard's name, layout or the device a card shows |
+| `widget_count` | `3` | Length of `widgets` |
 
 **`roles` is the same vocabulary as the per-event `role`, at install scope.** `role` says which part of
 the installation an event happened on; `roles` says which parts the install *has*, and `role_count` is

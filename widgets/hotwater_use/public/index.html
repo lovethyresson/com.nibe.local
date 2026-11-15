@@ -82,7 +82,7 @@
         var W = chartWidth(), L = 4, R = W - 40, T = 20, PH = Math.max(90, Math.min(130, Math.round(W * 0.3))), B = T + PH, H = B + 24;
         var n = data.bars.length, step = (R - L) / n, bw = Math.min(36, step * 0.62);
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'hw-chart', role: 'img'});
-        var values = nums(data.bars.map(function (b) { return b.litres; })).concat(nums([data.typical.working, data.typical.free]));
+        var values = nums(data.bars.map(function (b) { return b.litres; })).concat(nums(data.bars.map(function (b) { return b.used; }))).concat(nums([data.typical.working, data.typical.free]));
         var max = Math.max(100, Math.ceil(Math.max.apply(null, values.concat([0])) * 1.1 / 100) * 100);
         var y = function (v) { return B - PH * v / max; };
         svg.appendChild(svgEl('line', {x1: L, x2: R, y1: B, y2: B, stroke: 'currentColor', 'stroke-opacity': 0.15}));
@@ -90,8 +90,17 @@
           var cx = L + (k + 0.5) * step, color = KIND[b.kind] || KIND.working;
           if (typeof b.litres === 'number') {
             var top = y(b.litres);
-            // Today is still to come: a lighter bar of its day's colour.
-            svg.appendChild(svgEl('rect', {x: cx - bw / 2, y: top, width: bw, height: B - top, rx: 3, fill: color, 'fill-opacity': b.today ? 0.35 : 0.9}));
+            if (b.today) {
+              // Today: the expected day as a light bar, filled solid up to what has been used so far.
+              // A day that has used more than expected grows its bar to the use.
+              var used = typeof b.used === 'number' ? b.used : 0, full = y(Math.max(b.litres, used));
+              svg.appendChild(svgEl('rect', {x: cx - bw / 2, y: full, width: bw, height: B - full, rx: 3, fill: color, 'fill-opacity': 0.3}));
+              if (used > 0) {
+                var clip = 'hwtoday' + k, fy = y(used);
+                svg.appendChild(svgEl('defs', {})).innerHTML = '<clipPath id="' + clip + '"><rect x="' + (cx - bw / 2) + '" y="' + full + '" width="' + bw + '" height="' + (B - full) + '" rx="3"/></clipPath>';
+                svg.appendChild(svgEl('rect', {x: cx - bw / 2, y: fy, width: bw, height: B - fy, fill: color, 'fill-opacity': 0.9, 'clip-path': 'url(#' + clip + ')'}));
+              }
+            } else svg.appendChild(svgEl('rect', {x: cx - bw / 2, y: top, width: bw, height: B - top, rx: 3, fill: color, 'fill-opacity': 0.9}));
           }
         });
         // Typical days go on top of the bars; their numbers sit to the right of the chart.
@@ -108,7 +117,7 @@
         data.bars.forEach(function (b, k) {
           var cx = L + (k + 0.5) * step;
           if (b.today && typeof b.litres === 'number') {
-            var top = y(b.litres), above = top - 5;
+            var top = y(Math.max(b.litres, b.used || 0)), above = top - 5;
             var num = svgEl('text', {x: cx, y: clear(above) ? above : top + 15, 'text-anchor': 'middle', 'font-weight': '600'}, String(b.litres));
             num.style.opacity = 1;
             svg.appendChild(num);
