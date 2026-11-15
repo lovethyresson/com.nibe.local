@@ -11,14 +11,14 @@
  *
  *  Switched by heating's Smart mode (smart-mode.ts): `test` plans and reports without writing,
  *  `autopilot` feeds. Design: docs/autopilot-plan.md §4.1, §7.2, §7.6, §10.0. */
-import {ActuatorOutput, PumpThresholds, fedValue} from './actuator';
+import {ActuatorOutput, PumpThresholds, RAMP_K_PER_SLOT, fedValue} from './actuator';
 import {HouseParams} from './model';
 import {ForecastBias, OutdoorReading, realOutdoor} from './outdoor';
-import {COP, ForecastSlot, Plan, PumpCurve, planShift} from './planner';
+import {COP, Comfort, ForecastSlot, Plan, PumpCurve, planShift, simulate} from './planner';
 import {SupplyCurve, curveInputFor} from './curve';
 import {effectivePrice} from './solar-surplus';
 import {Limits, PresetId} from './presets';
-import {slotOf} from './prices';
+import {SLOT_MS, slotOf} from './prices';
 import {TrimState, nextTrim} from './setpoint';
 
 /** `test` plans and reports without writing; `live` feeds BT1. */
@@ -81,6 +81,55 @@ export interface ShiftInput {
      *  both, a shift moves heat along the curve's real shape, not the lever's straight line. */
     supply?: SupplyCurve;
     heatPerSupplyK?: number;
+    /** The setpoint per slot when it changes inside the horizon (Away ending, `setpointPath`);
+     *  otherwise the plan aims at `mean` throughout. */
+    comfort?: Comfort;
+}
+
+/** When Away ends by itself: the time, and the setpoint the house is back at then. */
+export interface AwayReturn {
+    at: number;
+    setpoint: number;
+}
+
+/** The longest warm-up looked for, slots: four days. A house that needs longer starts then. */
+export const MAX_WARMUP_SLOTS = 4 * 96;
+
+/** Slack on the warm-up estimate: the plan still picks cheap hours inside it, which a warm-up
+ *  flat out from the first slot does not. */
+export const WARMUP_MARGIN = 1.15;
+
+/** Slots the house needs to warm from now to `target` with the most pre-heat the limits allow,
+ *  ramped from the bias in force as the feed ramps, from the model; the last forecast slot is held
+ *  past the horizon. The plan before the return aims at Away's setpoint, so the pre-heat alone has
+ *  to lift it. With `WARMUP_MARGIN`; `MAX_WARMUP_SLOTS` when it never gets there. */
+export function warmUpSlots(input: ShiftInput, limits: Limits, setpoint: number, target: number): number {
+    if (input.ti >= target || !input.forecast.length) return 0;
+    const last = input.forecast[input.forecast.length - 1];
+    const forecast = Array.from({length: MAX_WARMUP_SLOTS}, (_, k) => input.forecast[k] ?? last);
+    const biases = forecast.map((_, k) => Math.min(limits.maxBias, input.bias + RAMP_K_PER_SLOT * (k + 1)));
+    const sim = simulate(input.house, setpoint, {ti: input.ti, tm: input.tm, curve: input.curve, bias: input.bias}, forecast,
+        biases, livePump(input));
+    const k = sim.ti.findIndex((t) => t >= target);
+    return k < 0 ? MAX_WARMUP_SLOTS : Math.min(MAX_WARMUP_SLOTS, Math.ceil((k + 1) * WARMUP_MARGIN));
+}
+
+/** The setpoint per slot from `slot` on: `setpoint` (Away's) until the return, the home's from
+ *  the first slot that ends at or after it, since the plan's indoor path is each slot's end.
+ *
+ *  One number while the return is beyond the horizon and further off than the warm-up needs
+ *  (`lead`, slots, `warmUpSlots`). A slab house can need longer than the 24–36 h horizon: then the
+ *  step is placed at the horizon's last slot, and the plan warms as hard as it may until the real
+ *  return comes into view. */
+export function setpointPath(setpoint: number, slot: number, n: number, back: AwayReturn | undefined, lead = 0): Comfort {
+    if (!back || !Number.isFinite(back.at) || !Number.isFinite(back.setpoint) || n <= 0) return setpoint;
+    let from = Math.max(0, Math.ceil(back.at / SLOT_MS) - slot - 1);
+    if (from >= n) {
+        if (from - lead > 0) return setpoint;
+        from = n - 1;
+    }
+    // The owner gave the time: from it on, the setpoint is a promise (planner `FIRM_WEIGHT`).
+    return {setpoints: Array.from({length: n}, (_, k) => (k >= from ? back.setpoint : setpoint)), firmFrom: from};
 }
 
 /** How far live plans trust forecast sun, per profile, once the sun term has earned it (house.ts
@@ -117,12 +166,27 @@ export function liveLimits(limits: Limits, input: ShiftInput): Limits {
     return depth !== undefined && depth > limits.maxCoastBias ? {...limits, maxCoastBias: depth} : limits;
 }
 
+/** What the plan aims at from `slot` on: the setpoint, stepping up to the home's at Away's end
+ *  with the lead the house needs (`warmUpSlots`, `setpointPath`). `warming`: the warm-up for this
+ *  return has started, and holds. Without that the lead shrinks as the house warms, the step
+ *  leaves the horizon, the plan coasts, and the warm-up starts over: it arrived 0.4 K short. */
+export function planComfort(input: ShiftInput, limits: Limits, setpoint: number, slot: number, back: AwayReturn | undefined,
+    warming = false): Comfort {
+    const lead = !back ? 0 : warming ? Infinity : warmUpSlots(input, limits, setpoint, back.setpoint);
+    return setpointPath(setpoint, slot, input.forecast.length, back, lead);
+}
+
+/** Whether a plan's comfort is warming for a return (a step in view). */
+export function warmingUp(comfort: Comfort | undefined): boolean {
+    return typeof comfort === 'object' && !Array.isArray(comfort);
+}
+
 /** The shift-only plan: the curve holds the house (no comfort bias). Forecast sun counts at
  *  `trust`, 0 until the sun term has proven itself on sunny days. */
 export function planLive(input: ShiftInput, limits: Limits = LIVE_LIMITS, trust = 0): Plan {
     const forecast = input.forecast.map((s) => ({te: s.te, sun: s.sun * trust, sunE: (s.sunE ?? 0) * trust,
         sunW: (s.sunW ?? 0) * trust, price: s.price, busy: s.busy}));
-    return planShift(input.house, input.mean, {ti: input.ti, tm: input.tm, curve: input.curve, bias: input.bias},
+    return planShift(input.house, input.comfort ?? input.mean, {ti: input.ti, tm: input.tm, curve: input.curve, bias: input.bias},
         forecast, limits, livePump(input), input.previous);
 }
 
@@ -201,6 +265,8 @@ export interface FeedHooks {
     /** The thermostat setpoint the house is steered to (setpoint.ts), or undefined to leave the
      *  level to the curve. */
     setpoint?(): number | undefined;
+    /** Away with an end time: when it ends and the setpoint it goes back to. */
+    awayReturn?(): AwayReturn | undefined;
     /** The setpoint trim's integral, kept across restarts. */
     loadTrim?(): TrimState;
     saveTrim?(state: TrimState): void;
@@ -218,6 +284,8 @@ export interface FeedHooks {
     warn(reason?: StopReason): void;
     /** Something the owner sees changed: bias, plan, or the reason it is (not) feeding. */
     changed(): void;
+    /** After each cycle (every 30 s while it runs): the plan's Flow triggers look at it here. */
+    tick?(): void;
     log(...args: any[]): void;
     /** One record per slot for the shadow log. */
     record(entry: LiveEntry): void;
@@ -266,6 +334,8 @@ export interface FeedSnapshot {
     neutral?: boolean;
     /** The plan counts forecast sun (the sun term has earned it). */
     sunTrusted?: boolean;
+    /** Away ends at this time inside the plan, and the plan warms the house for it. */
+    back?: number;
 }
 
 /** The 30 s BT1 feed and the 15-min shift planner, on the Heating device. */
@@ -290,13 +360,15 @@ export class HeatingFeed {
     /** Whether the pump holds a value we wrote, so going idle or stopping hands it back. */
     private holding = false;
     private limits: Limits = LIVE_LIMITS;
-    private plan?: {slot: number; biases: number[]; forecast: ForecastSlot[]; reason?: string; indoor?: number[]};
+    private plan?: {slot: number; biases: number[]; forecast: ForecastSlot[]; reason?: string; indoor?: number[]; back?: number};
     private neutral = false;
     /** The setpoint trim in force (setpoint.ts), the setpoint it steers to, and the slot it last moved. */
     private trim = 0;
     private setpoint?: number;
     private trimSlot?: number;
     private trimState?: TrimState;
+    /** The return (Away's end, ms) whose warm-up has started: it holds until that return. */
+    private warmingFor?: number;
 
     constructor(private readonly hooks: FeedHooks) {}
 
@@ -305,7 +377,8 @@ export class HeatingFeed {
         return {mode: this.stopped ? 'off' : this.hooks.mode(), bias: this.bias, target: this.target, fed: this.lastFed?.fed,
             real: this.real?.value, stopped: this.stopState, slot: this.plan?.slot, biases: this.plan?.biases,
             forecast: this.plan?.forecast, planReason: this.plan?.reason, indoor: this.plan?.indoor, neutral: this.neutral || undefined,
-            sunTrusted: this.hooks.sunTrust() > 0 || undefined, trim: this.trim || undefined, setpoint: this.setpoint};
+            sunTrusted: this.hooks.sunTrust() > 0 || undefined, trim: this.trim || undefined, setpoint: this.setpoint,
+            back: this.plan?.back};
     }
 
     start() {
@@ -364,7 +437,11 @@ export class HeatingFeed {
             if (this.work) { this.schedule(FEED_EVERY_MS); return; }
             this.work = this.cycle()
                 .catch((error: any) => this.hooks.log('Autopilot heating:', error?.message ?? error))
-                .finally(() => { this.work = null; this.schedule(FEED_EVERY_MS); });
+                .finally(() => {
+                    this.work = null;
+                    try { this.hooks.tick?.(); } catch (error: any) { this.hooks.log('Autopilot heating:', error?.message ?? error); }
+                    this.schedule(FEED_EVERY_MS);
+                });
         }, ms);
     }
 
@@ -466,11 +543,17 @@ export class HeatingFeed {
         this.steer(slot, input!);
         // The planner aims at the thermostat (setpoint.ts): its band is setpoint ± range and its
         // expected path heads there. It plans the shift; the learned trim is under it.
-        const plan = planLive({...input!, mean: this.setpoint ?? input!.mean, bias: this.bias - this.trim, previous: this.previous},
+        // Away with an end time: the setpoint steps back up there, and the plan warms ahead of it.
+        const back = this.setpoint === undefined ? undefined : this.hooks.awayReturn?.();
+        const comfort = this.setpoint === undefined ? undefined
+            : planComfort(input!, this.limits, this.setpoint, slot, back, back !== undefined && this.warmingFor === back.at);
+        this.warmingFor = warmingUp(comfort) ? back!.at : undefined;
+        const plan = planLive({...input!, mean: this.setpoint ?? input!.mean, comfort, bias: this.bias - this.trim, previous: this.previous},
             this.limits, this.hooks.sunTrust());
         this.target = plan.biases[0];
         this.previous = plan.biases.slice(1);
-        this.plan = {slot, biases: plan.biases, forecast: input!.forecast, reason: plan.reason, indoor: plan.plan.ti};
+        this.plan = {slot, biases: plan.biases, forecast: input!.forecast, reason: plan.reason, indoor: plan.plan.ti,
+            back: warmingUp(comfort) ? back!.at : undefined};
         this.hooks.record({slot, bias: this.bias, trim: this.trim, setpoint: this.setpoint, fed: this.lastFed?.fed, real: this.real?.value,
             source: this.real?.source, clamped: this.lastFed?.clamped ?? [], planned: plan.biases.slice(0, 8), reason: plan.reason});
         this.hooks.changed();

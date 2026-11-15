@@ -588,7 +588,8 @@
         "range_off": "Komfortbereich ist Aus: Ihre Wärmepumpe sieht die echte Außentemperatur",
         "sun": "Sonne erwartet __from__–__to__",
         "waiting": "Startet: wartet auf die Prognose",
-        "before": "vor der __why__"
+        "before": "vor der __why__",
+        "back": "Rückkehr um __at__"
       },
       "status_name": {
         "learning": "Lernt",
@@ -610,7 +611,9 @@
         "not_followed": "Ihre Wärmepumpe hat die Außentemperatur nicht übernommen. Prüfen Sie, ob Menü 7.5.9.2 einen externen BT1 erlaubt und Modbus (Menü 7.5.9) Schreibzugriffe erlaubt."
       },
       "not_on": "Autopilot Heizung ist nicht an.",
-      "no_thermostat": "Das Heizungsgerät hat kein Thermostat zum Einstellen."
+      "no_thermostat": "Das Heizungsgerät hat kein Thermostat zum Einstellen.",
+      "away_time_past": "Dieser Zeitpunkt ist schon vorbei.",
+      "away_time_invalid": "Wählen Sie ein Datum und eine Uhrzeit, zu der Abwesend endet."
     },
     "smart": {
       "no_spa": "Ihre Wärmepumpe hat keine Smart price adaption.",

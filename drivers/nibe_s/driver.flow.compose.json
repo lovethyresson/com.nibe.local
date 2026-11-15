@@ -676,6 +676,264 @@
           }
         }
       ]
+    },
+    {
+      "id": "autopilot_heating_preheating_started",
+      "title": {
+        "en": "Autopilot heating started pre-heating",
+        "sv": "Autopilot uppvärmning började förvärma",
+        "nl": "Autopilot verwarming begon voor te verwarmen",
+        "de": "Autopilot Heizung hat mit dem Vorheizen begonnen",
+        "no": "Autopilot oppvarming begynte å forvarme",
+        "da": "Autopilot opvarmning begyndte at forvarme"
+      },
+      "hint": {
+        "en": "Fires when the house gets extra heat ahead of expensive hours or your return. Works with Autopilot heating on, or in Simulation.",
+        "sv": "Utlöses när huset får extra värme inför dyra timmar eller din hemkomst. Fungerar med Autopilot uppvärmning på eller i Simulering.",
+        "nl": "Gaat af wanneer het huis extra warmte krijgt voor dure uren of je thuiskomst. Werkt met Autopilot verwarming aan of in Simulatie.",
+        "de": "Wird ausgelöst, wenn das Haus vor teuren Stunden oder Ihrer Rückkehr zusätzlich Wärme bekommt. Funktioniert mit Autopilot Heizung an oder in der Simulation.",
+        "no": "Utløses når huset får ekstra varme før dyre timer eller hjemkomsten din. Virker med Autopilot oppvarming på eller i Simulering.",
+        "da": "Udløses når huset får ekstra varme før dyre timer eller din hjemkomst. Virker med Autopilot opvarmning tændt eller i Simulering."
+      },
+      "$filter": "capabilities=autopilot_status_NIBE",
+      "tokens": [
+        {
+          "type": "string",
+          "name": "reason",
+          "title": {
+            "en": "Reason",
+            "sv": "Anledning",
+            "nl": "Reden",
+            "de": "Grund",
+            "no": "Årsak",
+            "da": "Årsag"
+          },
+          "example": {
+            "en": "Until 16:00, before prices peak 17:00–19:00",
+            "sv": "Till 16:00, innan priserna toppar 17:00–19:00",
+            "nl": "Tot 16:00, voordat prijzen pieken 17:00–19:00",
+            "de": "Bis 16:00, vor der Preisspitze 17:00–19:00",
+            "no": "Til 16:00, før prisene topper 17:00–19:00",
+            "da": "Til 16:00, før priserne topper 17:00–19:00"
+          }
+        }
+      ]
+    },
+    {
+      "id": "autopilot_heating_easing_off_started",
+      "title": {
+        "en": "Autopilot heating started easing off",
+        "sv": "Autopilot uppvärmning började dra ner",
+        "nl": "Autopilot verwarming begon af te bouwen",
+        "de": "Autopilot Heizung hat mit dem Drosseln begonnen",
+        "no": "Autopilot oppvarming begynte å trappe ned",
+        "da": "Autopilot opvarmning begyndte at skrue ned"
+      },
+      "hint": {
+        "en": "Fires when the house gets less heat through expensive hours or forecast sun. Works with Autopilot heating on, or in Simulation.",
+        "sv": "Utlöses när huset får mindre värme under dyra timmar eller väntad sol. Fungerar med Autopilot uppvärmning på eller i Simulering.",
+        "nl": "Gaat af wanneer het huis minder warmte krijgt tijdens dure uren of verwachte zon. Werkt met Autopilot verwarming aan of in Simulatie.",
+        "de": "Wird ausgelöst, wenn das Haus in teuren Stunden oder bei erwarteter Sonne weniger Wärme bekommt. Funktioniert mit Autopilot Heizung an oder in der Simulation.",
+        "no": "Utløses når huset får mindre varme gjennom dyre timer eller ventet sol. Virker med Autopilot oppvarming på eller i Simulering.",
+        "da": "Udløses når huset får mindre varme i dyre timer eller ved ventet sol. Virker med Autopilot opvarmning tændt eller i Simulering."
+      },
+      "$filter": "capabilities=autopilot_status_NIBE",
+      "tokens": [
+        {
+          "type": "string",
+          "name": "reason",
+          "title": {
+            "en": "Reason",
+            "sv": "Anledning",
+            "nl": "Reden",
+            "de": "Grund",
+            "no": "Årsak",
+            "da": "Årsag"
+          },
+          "example": {
+            "en": "Until 19:00: prices peak 17:00–19:00",
+            "sv": "Till 19:00: priserna toppar 17:00–19:00",
+            "nl": "Tot 19:00: prijzen pieken 17:00–19:00",
+            "de": "Bis 19:00: Preisspitze 17:00–19:00",
+            "no": "Til 19:00: prisene topper 17:00–19:00",
+            "da": "Til 19:00: priserne topper 17:00–19:00"
+          }
+        }
+      ]
+    },
+    {
+      "id": "autopilot_heating_expensive_soon",
+      "title": {
+        "en": "An expensive period starts in …",
+        "sv": "En dyr period börjar om …",
+        "nl": "Een dure periode begint over …",
+        "de": "Eine teure Phase beginnt in …",
+        "no": "En dyr periode starter om …",
+        "da": "En dyr periode starter om …"
+      },
+      "titleFormatted": {
+        "en": "An expensive period starts in [[minutes]] minutes",
+        "sv": "En dyr period börjar om [[minutes]] minuter",
+        "nl": "Een dure periode begint over [[minutes]] minuten",
+        "de": "Eine teure Phase beginnt in [[minutes]] Minuten",
+        "no": "En dyr periode starter om [[minutes]] minutter",
+        "da": "En dyr periode starter om [[minutes]] minutter"
+      },
+      "hint": {
+        "en": "The same expensive hours the Heating status names. Good for moving the dishwasher, sauna or car charging. Works with Autopilot heating on, or in Simulation.",
+        "sv": "Samma dyra timmar som Uppvärmningens status visar. Bra för att flytta diskmaskinen, bastun eller billaddningen. Fungerar med Autopilot uppvärmning på eller i Simulering.",
+        "nl": "Dezelfde dure uren die de status van Verwarming noemt. Handig om de vaatwasser, sauna of het laden van de auto te verschuiven. Werkt met Autopilot verwarming aan of in Simulatie.",
+        "de": "Dieselben teuren Stunden, die der Status der Heizung nennt. Praktisch, um Geschirrspüler, Sauna oder das Laden des Autos zu verschieben. Funktioniert mit Autopilot Heizung an oder in der Simulation.",
+        "no": "De samme dyre timene som statusen for Oppvarming viser. Fint for å flytte oppvaskmaskinen, badstuen eller billadingen. Virker med Autopilot oppvarming på eller i Simulering.",
+        "da": "De samme dyre timer, som Opvarmnings status viser. Godt til at flytte opvaskemaskinen, saunaen eller opladningen af bilen. Virker med Autopilot opvarmning tændt eller i Simulering."
+      },
+      "$filter": "capabilities=autopilot_status_NIBE",
+      "args": [
+        {
+          "type": "number",
+          "name": "minutes",
+          "min": 0,
+          "max": 720,
+          "step": 5,
+          "placeholder": {
+            "en": "Minutes",
+            "sv": "Minuter",
+            "nl": "Minuten",
+            "de": "Minuten",
+            "no": "Minutter",
+            "da": "Minutter"
+          }
+        }
+      ],
+      "tokens": [
+        {
+          "type": "string",
+          "name": "start",
+          "title": {
+            "en": "Starts",
+            "sv": "Börjar",
+            "nl": "Begint",
+            "de": "Beginnt",
+            "no": "Starter",
+            "da": "Starter"
+          },
+          "example": {
+            "en": "17:00",
+            "sv": "17:00",
+            "nl": "17:00",
+            "de": "17:00",
+            "no": "17:00",
+            "da": "17:00"
+          }
+        },
+        {
+          "type": "string",
+          "name": "end",
+          "title": {
+            "en": "Ends",
+            "sv": "Slutar",
+            "nl": "Eindigt",
+            "de": "Endet",
+            "no": "Slutter",
+            "da": "Slutter"
+          },
+          "example": {
+            "en": "19:00",
+            "sv": "19:00",
+            "nl": "19:00",
+            "de": "19:00",
+            "no": "19:00",
+            "da": "19:00"
+          }
+        }
+      ]
+    },
+    {
+      "id": "autopilot_heating_cheap_soon",
+      "title": {
+        "en": "A cheap period starts in …",
+        "sv": "En billig period börjar om …",
+        "nl": "Een goedkope periode begint over …",
+        "de": "Eine günstige Phase beginnt in …",
+        "no": "En billig periode starter om …",
+        "da": "En billig periode starter om …"
+      },
+      "titleFormatted": {
+        "en": "A cheap period starts in [[minutes]] minutes",
+        "sv": "En billig period börjar om [[minutes]] minuter",
+        "nl": "Een goedkope periode begint over [[minutes]] minuten",
+        "de": "Eine günstige Phase beginnt in [[minutes]] Minuten",
+        "no": "En billig periode starter om [[minutes]] minutter",
+        "da": "En billig periode starter om [[minutes]] minutter"
+      },
+      "hint": {
+        "en": "The cheapest hours in the plan, found the same way as the expensive ones. Good for starting the dishwasher, sauna or car charging. Works with Autopilot heating on, or in Simulation.",
+        "sv": "De billigaste timmarna i planen, hittade på samma sätt som de dyra. Bra för att starta diskmaskinen, bastun eller billaddningen. Fungerar med Autopilot uppvärmning på eller i Simulering.",
+        "nl": "De goedkoopste uren in het plan, op dezelfde manier gevonden als de dure. Handig om de vaatwasser, sauna of het laden van de auto te starten. Werkt met Autopilot verwarming aan of in Simulatie.",
+        "de": "Die günstigsten Stunden im Plan, genauso ermittelt wie die teuren. Praktisch, um Geschirrspüler, Sauna oder das Laden des Autos zu starten. Funktioniert mit Autopilot Heizung an oder in der Simulation.",
+        "no": "De billigste timene i planen, funnet på samme måte som de dyre. Fint for å starte oppvaskmaskinen, badstuen eller billadingen. Virker med Autopilot oppvarming på eller i Simulering.",
+        "da": "De billigste timer i planen, fundet på samme måde som de dyre. Godt til at starte opvaskemaskinen, saunaen eller opladningen af bilen. Virker med Autopilot opvarmning tændt eller i Simulering."
+      },
+      "$filter": "capabilities=autopilot_status_NIBE",
+      "args": [
+        {
+          "type": "number",
+          "name": "minutes",
+          "min": 0,
+          "max": 720,
+          "step": 5,
+          "placeholder": {
+            "en": "Minutes",
+            "sv": "Minuter",
+            "nl": "Minuten",
+            "de": "Minuten",
+            "no": "Minutter",
+            "da": "Minutter"
+          }
+        }
+      ],
+      "tokens": [
+        {
+          "type": "string",
+          "name": "start",
+          "title": {
+            "en": "Starts",
+            "sv": "Börjar",
+            "nl": "Begint",
+            "de": "Beginnt",
+            "no": "Starter",
+            "da": "Starter"
+          },
+          "example": {
+            "en": "17:00",
+            "sv": "17:00",
+            "nl": "17:00",
+            "de": "17:00",
+            "no": "17:00",
+            "da": "17:00"
+          }
+        },
+        {
+          "type": "string",
+          "name": "end",
+          "title": {
+            "en": "Ends",
+            "sv": "Slutar",
+            "nl": "Eindigt",
+            "de": "Endet",
+            "no": "Slutter",
+            "da": "Slutter"
+          },
+          "example": {
+            "en": "19:00",
+            "sv": "19:00",
+            "nl": "19:00",
+            "de": "19:00",
+            "no": "19:00",
+            "da": "19:00"
+          }
+        }
+      ]
     }
   ],
   "actions": [
@@ -3260,6 +3518,44 @@
               }
             }
           ]
+        }
+      ]
+    },
+    {
+      "id": "autopilot_heating_away_until",
+      "title": {
+        "en": "Set Autopilot heating Away until …",
+        "sv": "Ställ in Borta för Autopilot uppvärmning till …",
+        "nl": "Afwezig van Autopilot verwarming instellen tot …",
+        "de": "Abwesend für Autopilot Heizung bis … einstellen",
+        "no": "Still inn Borte for Autopilot oppvarming til …",
+        "da": "Indstil Fraværende for Autopilot opvarmning til …"
+      },
+      "titleFormatted": {
+        "en": "Turn Autopilot heating Away on until [[date]] at [[time]]",
+        "sv": "Slå på Borta för Autopilot uppvärmning till [[date]] kl. [[time]]",
+        "nl": "Afwezig van Autopilot verwarming aan tot [[date]] om [[time]]",
+        "de": "Abwesend für Autopilot Heizung an bis [[date]] um [[time]]",
+        "no": "Slå på Borte for Autopilot oppvarming til [[date]] kl. [[time]]",
+        "da": "Slå Fraværende for Autopilot opvarmning til, indtil [[date]] kl. [[time]]"
+      },
+      "hint": {
+        "en": "For a holiday of a week or more. The house is warm again when you're back, heated in the cheapest hours it can, and Away ends by itself. Turning Away off ends it early.",
+        "sv": "För en semester på en vecka eller mer. Huset är varmt igen när du kommer hem, uppvärmt under de billigaste timmar som går, och Borta slutar av sig självt. Stäng av Borta för att avsluta tidigare.",
+        "nl": "Voor een vakantie van een week of langer. Het huis is weer warm als je thuiskomt, opgewarmd in de goedkoopste uren die kunnen, en Afwezig stopt vanzelf. Zet Afwezig uit om eerder te stoppen.",
+        "de": "Für einen Urlaub von einer Woche oder länger. Das Haus ist wieder warm, wenn Sie zurück sind, in den günstigsten möglichen Stunden aufgeheizt, und Abwesend endet von selbst. Abwesend aus beendet es früher.",
+        "no": "For en ferie på en uke eller mer. Huset er varmt igjen når du kommer hjem, varmet opp i de billigste timene det går, og Borte slutter av seg selv. Slå av Borte for å avslutte tidligere.",
+        "da": "Til en ferie på en uge eller mere. Huset er varmt igen, når du kommer hjem, opvarmet i de billigste timer, det kan, og Fraværende slutter af sig selv. Slå Fraværende fra for at afslutte tidligere."
+      },
+      "$filter": "capabilities=autopilot_status_NIBE",
+      "args": [
+        {
+          "type": "date",
+          "name": "date"
+        },
+        {
+          "type": "time",
+          "name": "time"
         }
       ]
     }

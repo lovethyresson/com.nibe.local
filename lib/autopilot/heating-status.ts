@@ -22,6 +22,17 @@ export type Translate = (key: string, tokens?: Record<string, string | number>) 
 /** The run of the highest prices in the horizon: slots within 10 % of the spread from the top,
  *  around the most expensive one. Undefined when the prices are flat. */
 export function pricePeak(prices: number[]): {from: number; to: number} | undefined {
+    return priceRun(prices, 1);
+}
+
+/** The run of the lowest prices, the same way: slots within 10 % of the spread from the bottom,
+ *  around the cheapest one. */
+export function priceTrough(prices: number[]): {from: number; to: number} | undefined {
+    return priceRun(prices, -1);
+}
+
+function priceRun(raw: number[], sign: 1 | -1): {from: number; to: number} | undefined {
+    const prices = raw.map((p) => sign * p);
     const ok = prices.filter(Number.isFinite);
     if (ok.length === 0) return undefined;
     const max = Math.max(...ok);
@@ -79,7 +90,9 @@ export function heatingStatus(s: FeedSnapshot, now: number, t: Translate, time: 
         const key = sign < 0 ? 'easing_off' : 'preheating';
         // Easing off with no price peak to name: the sun, when the plan counts it.
         const sunny = sign < 0 && !peakText && s.sunTrusted ? sunRun(s.forecast ?? [], at, end + 16) : undefined;
-        const why = peakText || (sunny ? t('sun', {from: clock(sunny.from), to: clock(sunny.to)}) : '');
+        // Pre-heating for the end of Away says so: the price peak is not why.
+        const back = sign > 0 && s.back !== undefined ? t('back', {at: time(s.back)}) : '';
+        const why = back || peakText || (sunny ? t('sun', {from: clock(sunny.from), to: clock(sunny.to)}) : '');
         // The status already says pre-heating or easing off, so the reason starts at "until".
         const tail = !why ? '' : sign > 0 ? `, ${t('before', {why})}` : `: ${why}`;
         return {status: sign < 0 ? 'easing_off' : 'preheating', reason: say(t(key, {until}) + tail)};

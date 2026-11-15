@@ -588,7 +588,8 @@
         "range_off": "Comfortbereik staat Uit: je warmtepomp ziet de echte buitentemperatuur",
         "sun": "zon verwacht __from__–__to__",
         "waiting": "Start: wacht op de voorspelling",
-        "before": "voordat __why__"
+        "before": "voordat __why__",
+        "back": "je om __at__ thuiskomt"
       },
       "status_name": {
         "learning": "Leert",
@@ -610,7 +611,9 @@
         "not_followed": "Je warmtepomp nam de buitentemperatuur niet over. Controleer of menu 7.5.9.2 een externe BT1 toestaat en of Modbus (menu 7.5.9) schrijven toestaat."
       },
       "not_on": "Autopilot verwarming staat niet aan.",
-      "no_thermostat": "Het verwarmingsapparaat heeft geen thermostaat om in te stellen."
+      "no_thermostat": "Het verwarmingsapparaat heeft geen thermostaat om in te stellen.",
+      "away_time_past": "Dat tijdstip is al voorbij.",
+      "away_time_invalid": "Kies een datum en een tijd waarop Afwezig stopt."
     },
     "smart": {
       "no_spa": "Je warmtepomp heeft geen Smart price adaption.",
