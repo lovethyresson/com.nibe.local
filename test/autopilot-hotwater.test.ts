@@ -101,6 +101,37 @@ test('the heat counter times how long a charge ran; the tank says what it stored
     assert.ok(old > 5 * Math.max(booked, 1), `the counter alone books ${old} kWh`);
 });
 
+test('near full the compressor slows and the tank takes little: that is the tank, not a draw', () => {
+    // 2026-11-15 on the S1155: half empty the counter books 6.6 kWh an hour and the tank takes it;
+    // near full the counter falls to about 2 and the tank takes 0.7. Daytime charges also run
+    // while water is drawn, which only ever lowers an hour's gain. The fit must find the slow end,
+    // and a near-full charging hour with nothing drawn must book (almost) no draw.
+    const points: TankPoint[] = [];
+    let s = 3, produced = 0, used = 0;
+    for (let h = 0; h < 24 * 14; h++) {
+        const hour = h % 24, charging = (hour >= 2 && hour < 5) || (hour >= 11 && hour < 14);
+        points.push({t: T0 + h * HOUR, litres: s / KWH_PER_LITRE, produced, used, top: 40 + 2 * s});
+        if (charging) {
+            const near = s > 7;
+            produced += near ? 2 : 6.6; used += near ? 1.4 : 2.3;
+            s = Math.min(10.2, s + (near ? 0.7 : 6.2));
+        }
+        if (hour === 12 && h % 48 === 12) s = Math.max(0.5, s - 3);  // a shower during every other midday charge
+        if (hour === 7 || hour === 19) s = Math.max(0.5, s - 4);
+        s = Math.max(0.2, s - 0.05);
+    }
+    const charge = learnCharge(intervals(points))!;
+    assert.ok(chargeRate(charge, 9.5) < 2.5, `near full: ${chargeRate(charge, 9.5)} kWh/h`);
+    assert.ok(chargeRate(charge, 4) > 4.5, `half empty: ${chargeRate(charge, 4)} kWh/h`);
+    const quiet = intervals(points, DEFAULT_LOSS, charge).filter((i) => {
+        const hour = clock(i.start).hour;
+        return hour >= 2 && hour < 5 && i.stored > 7 && Number.isFinite(i.draw);
+    });
+    assert.ok(quiet.length > 3, 'some near-full night hours');
+    const booked = quiet.reduce((sum, i) => sum + i.draw, 0) / quiet.length;
+    assert.ok(booked < 0.5, `a near-full charging hour books ${booked} kWh drawn on average`);
+});
+
 test('working and free days learn their own shapes; the pooled profile covers unset days', () => {
     // Weekdays working, weekends free, as the owner's Flow would set them.
     const type = (day: number): 'free' | 'working' => day % 7 >= 5 ? 'free' : 'working';

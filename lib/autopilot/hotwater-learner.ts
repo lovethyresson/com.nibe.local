@@ -242,6 +242,30 @@ export function chargeRate(charge: ChargeModel, storedKwh: number): number {
 
 /** kWh/h under the fitted line past which an hour of charging counts as a draw, not the tank. */
 const DRAW_RESIDUAL = 1;
+/** An hour of charging counts toward the tank's rate when the counter ran at least this share of
+ *  its full rate: near full the compressor slows, and at a half those hours never reached the fit,
+ *  which then saw only the fast, emptier hours and read a flat rate (2026-11-15: 6.7 kWh/h at any
+ *  fill, where the tank took 0.7 near full, the rest booked as 40–75 L an hour of phantom draws). */
+const RAN_SHARE = 0.2;
+
+/** The tank's rate against heat stored, from the upper end of the gains at each fill: a draw only
+ *  ever lowers an hour's gain, so the most an hour gained at a given fill is the tank. The gains
+ *  are cut into up to four bins by fill, each bin's upper quartile taken, and a falling line fitted
+ *  through those. Too few gains or too narrow a spread of fills: one rate, as `fitRate`. */
+function fitEnvelope(gains: {x: number; y: number}[]) {
+    const sorted = [...gains].sort((a, b) => a.x - b.x);
+    const bins = Math.min(4, Math.floor(sorted.length / 2));
+    if (bins < 2) return fitRate(gains);
+    const points = Array.from({length: bins}, (_, b) => {
+        const part = sorted.slice(Math.floor(b * sorted.length / bins), Math.floor((b + 1) * sorted.length / bins));
+        return {x: quantile(part.map((g) => g.x), 0.5), y: quantile(part.map((g) => g.y), 0.75)};
+    });
+    if (points[points.length - 1].x - points[0].x < 1) return fitRate(gains);
+    const mx = points.reduce((s, p) => s + p.x, 0) / points.length, my = points.reduce((s, p) => s + p.y, 0) / points.length;
+    const sxx = points.reduce((s, p) => s + (p.x - mx) ** 2, 0);
+    const perKwh = sxx > 0 ? Math.min(0, points.reduce((s, p) => s + (p.x - mx) * (p.y - my), 0) / sxx) : 0;
+    return {heatPerHour: my, perKwh, atStored: mx, at: (x: number) => my + perKwh * (x - mx)};
+}
 
 /** Tank gain against heat stored: a falling line where the fills spread enough to tell, else one
  *  rate for every fill. */
@@ -270,8 +294,11 @@ export function learnCharge(spans: Interval[]): ChargeModel | undefined {
     const inside = spans.filter((i, k) => i.hours <= 1.01 && isCharging(i)
         && isCharging(spans[k - 1]) && spans[k - 1].start + spans[k - 1].hours * HOUR === i.start
         && isCharging(spans[k + 1]) && i.start + i.hours * HOUR === spans[k + 1].start).map((i) => i.produced / i.hours);
-    const producedPerHour = inside.length >= 3 ? quantile(inside, 0.5)
-        : hourly.length ? quantile(hourly, 0.9) : quantile(charging.map((i) => i.produced / i.hours), 0.9);
+    // No hour runs faster than the full rate, so the fast end of all hours bounds it from below: a
+    // tank whose inside hours are all near full, where the compressor slows, reads its full rate
+    // from the hours that started a charge.
+    const fastest = hourly.length ? quantile(hourly, 0.9) : quantile(charging.map((i) => i.produced / i.hours), 0.9);
+    const producedPerHour = inside.length >= 3 ? Math.max(quantile(inside, 0.5), fastest) : fastest;
     const full = charging.filter((i) => i.hours <= 1.01 && i.produced / i.hours >= 0.8 * producedPerHour);
     const withEl = full.filter((i) => Number.isFinite(i.used) && i.used > 0);
     const runHours = withEl.reduce((s, i) => s + Math.min(i.hours, i.produced / producedPerHour), 0);
@@ -279,23 +306,16 @@ export function learnCharge(spans: Interval[]): ChargeModel | undefined {
     const kw = withEl.reduce((s, i) => s + i.used, 0) / runHours;
     // Tank gain per running hour, against the heat stored mid-hour.
     // Per hour the charge actually ran, so a charge that ends mid-hour at its stop still counts.
-    const ran = charging.filter((i) => i.hours <= 1.01 && i.produced / i.hours >= 0.5 * producedPerHour);
+    const ran = spans.filter((i) => i.hours <= 1.01 && i.produced / i.hours >= RAN_SHARE * producedPerHour);
     const gains = ran.filter((i) => Number.isFinite(i.stored) && Number.isFinite(i.storedEnd) && i.storedEnd >= i.stored)
         .map((i) => ({x: (i.stored + i.storedEnd) / 2, y: (i.storedEnd - i.stored) / Math.min(i.hours, i.produced / producedPerHour)}));
     if (gains.length < 3) return undefined;
     const tops = full.filter((i) => finite(i.top));
     const atTop = tops.length ? tops.reduce((s, i) => s + i.top!, 0) / tops.length : NaN;
-    // A draw during the hour only ever lowers its gain, so hours well under the upper part of the
-    // cloud are draws, not the tank: fit, drop them, fit again. Measured from the upper quartile
-    // of the residuals, since a line through many draw hours sits too low to show them.
-    let kept = gains, line = fitRate(kept);
-    for (let round = 0; round < 4; round++) {
-        const top = quantile(kept.map((g) => g.y - line.at(g.x)), 0.75);
-        const next = kept.filter((g) => g.y - line.at(g.x) >= top - DRAW_RESIDUAL);
-        if (next.length === kept.length || next.length < 3) break;
-        kept = next;
-        line = fitRate(kept);
-    }
+    // The line runs along the upper end of the gains at each fill; hours well under it had a draw.
+    const line = fitEnvelope(gains);
+    const near = gains.filter((g) => g.y >= line.at(g.x) - DRAW_RESIDUAL);
+    const kept = near.length >= 3 ? near : gains;
     const tank = kept.reduce((s, g) => s + g.y, 0) / kept.length;
     return {heatPerHour: line.heatPerHour, perKwh: line.perKwh, atStored: line.atStored, producedPerHour, kw,
         cop: Math.max(0.5, tank / kw), copPerK: 0, atTop, samples: kept.length};
