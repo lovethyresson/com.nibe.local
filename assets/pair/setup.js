@@ -508,13 +508,13 @@ function NibeSetup(options) {
     // from the live planner's limits (smart_status `ranges`), so the text says what it will do.
     var RANGE_IDS = ['comfortable', 'save_some', 'save_most'];
     /** An example day for a range: price (a cheap night, an expensive evening) and indoor moving
-     *  within the range, pre-heating in cheap hours and cooling in expensive ones. Illustrative,
-     *  and labelled so. */
+     *  within the range, as a share of it: Comfort a shallow pre-heat that barely cools, Balanced
+     *  a moderate swing, Savings most of its range. Illustrative, and labelled so. */
     var EXAMPLE_PRICE = [1.0, 0.95, 0.92, 0.9, 0.92, 1.0, 1.3, 1.7, 1.8, 1.5, 1.4, 1.35, 1.4, 1.6, 1.9, 2.2, 2.5, 2.7, 2.6, 2.3, 2.0, 1.8, 1.6, 1.3];
     var EXAMPLE_MOVE = {
-        comfortable: [0, 0.1, 0.24, 0.4, 0.56, 0.7, 0.8, 0.76, 0.66, 0.6, 0.56, 0.54, 0.6, 0.66, 0.64, 0.44, 0.2, 0, -0.16, -0.24, -0.2, -0.1, 0, 0],
+        comfortable: [0, 0.06, 0.13, 0.22, 0.31, 0.39, 0.44, 0.42, 0.36, 0.33, 0.31, 0.3, 0.33, 0.36, 0.35, 0.24, 0.11, 0, -0.09, -0.13, -0.11, -0.06, 0, 0],
         save_some: [0, 0.13, 0.3, 0.47, 0.6, 0.7, 0.73, 0.63, 0.5, 0.4, 0.37, 0.4, 0.47, 0.53, 0.43, 0.2, -0.1, -0.37, -0.53, -0.6, -0.53, -0.37, -0.17, -0.03],
-        save_most: [0, 0.13, 0.3, 0.47, 0.6, 0.7, 0.75, 0.67, 0.53, 0.43, 0.4, 0.43, 0.5, 0.53, 0.4, 0.13, -0.2, -0.47, -0.63, -0.7, -0.63, -0.47, -0.23, -0.07],
+        save_most: [0, 0.17, 0.38, 0.6, 0.77, 0.9, 0.96, 0.86, 0.68, 0.55, 0.51, 0.55, 0.64, 0.68, 0.51, 0.17, -0.26, -0.6, -0.81, -0.9, -0.81, -0.6, -0.29, -0.09],
     };
     var SVG = 'http://www.w3.org/2000/svg';
     function svgEl(tag, attrs, text) {
@@ -544,22 +544,18 @@ function NibeSetup(options) {
     }
     function rangeChart(id, band) {
         // Indoor on top, the price in its own low lane under it, so the two lines never cross.
-        var W = 340, L = 6, R = W - 36, T = 8, B = 118, mid = (T + B) / 2, PT = B + 12, PB = PT + 26, H = PB + 18;
+        var W = 340, L = 6, R = W - 36, T = 8, B = 96, mid = (T + B) / 2, PT = B + 14, PB = PT + 24, H = PB + 18;
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, 'class': 'setup-range-chart', role: 'img', 'aria-label': a('range_example')});
         var x = function (h) { return L + (R - L) * h / 23; };
-        // Indoor on a scale that fits the widest range, so the ranges compare at a glance.
-        var yt = function (dt) { return mid - dt * (B - T) / 2 / 6.5; };
+        // Indoor on the range's own scale, so each tab fills the chart; the ± label gives its size.
+        var yt = function (dt) { return mid - dt * (B - T) / 2 / (band * 1.25); };
         var yp = function (p) { return PB - (PB - PT) * (p - 0.8) / 2; };
         svg.appendChild(svgEl('rect', {x: L, y: yt(band), width: R - L, height: yt(-band) - yt(band), rx: 4, 'class': 'setup-range-band'}));
         svg.appendChild(svgEl('line', {x1: L, x2: R, y1: mid, y2: mid, 'class': 'setup-range-target'}));
-        // The band's edges, labelled at the right; a narrow band gets one ± label, as its two
-        // would overlap.
+        // The band's edges, labelled at the right.
         var num = String(band).replace('.', a('decimal'));
-        if (yt(-band) - yt(band) < 26) svg.appendChild(svgEl('text', {x: R + 6, y: mid + 4}, '±' + num));
-        else {
-            svg.appendChild(svgEl('text', {x: R + 6, y: yt(band) + 4}, '+' + num));
-            svg.appendChild(svgEl('text', {x: R + 6, y: yt(-band) + 4}, '−' + num));
-        }
+        svg.appendChild(svgEl('text', {x: R + 6, y: yt(band) + 4}, '+' + num));
+        svg.appendChild(svgEl('text', {x: R + 6, y: yt(-band) + 4}, '−' + num));
         var price = smooth(EXAMPLE_PRICE.map(function (p, h) { return [x(h), yp(p)]; }));
         svg.appendChild(svgEl('path', {d: price + 'L' + x(23).toFixed(1) + ' ' + PB + 'L' + x(0).toFixed(1) + ' ' + PB + 'Z', 'class': 'setup-range-price-area'}));
         svg.appendChild(svgEl('path', {d: price, 'class': 'setup-range-price'}));
@@ -615,9 +611,10 @@ function NibeSetup(options) {
             emit('heating_range', {value: current}).then(function () { ap.range = current; next(); }).catch(fail);
         };
         shell.append(pills, panel);
+        // Notes go above the button: the button is pinned to the bottom of the sheet.
         if (st.range === 'custom') shell.appendChild(el('p', a('range_custom_now'), 'register-desc'));
-        shell.appendChild(use);
         shell.appendChild(el('p', a('range_custom'), 'register-desc'));
+        shell.appendChild(use);
         show(current);
         back(from);
     }
