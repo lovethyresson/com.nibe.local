@@ -115,7 +115,15 @@ Flow cards, timeline messages, status lines, widgets) and the store changelog. T
   (maintainer, 2026-11-14; it replaced "your device"). "Device" is only ever a Homey tile: "the
   Heating device", "the Main device".
 - Quote on-screen names exactly, in sentence case: "Heating setup", "Hot water setup", "Device
-  setup", "Smart mode", "Smart price adaption".
+  setup", "Smart mode".
+- **Brand and NIBE names are written exactly as their owner writes them, in every language**
+  (maintainer, 2026-11-15): "Smart Price Adaption", "Smart Energy Source", "Smart control", "myUplink"
+  stay in English everywhere; NIBE display names (More hot water, demand modes, operating modes, curve
+  offset) follow NIBE's manual for that language; Homey's own names (Insights, Repair, Timeline, Flow)
+  follow Homey's localized app. Verified list with sources: `docs/brand-names.md`. One exception: the
+  electric backup is always the immersion heater word (immersion heater, elpatron, elektrisch element,
+  Elektroheizpatrone, elkolbe), never NIBE's "additional heat"/"tillsats", operating mode included
+  (maintainer: "Tillsats is super weird").
 - Smart mode lists Autopilot once, with **Live** or **Simulated** inside it: "Autopilot · Simulated"
   plans without acting (code value `test`; it was "Simulation", and before that "Test run").
   Smart mode is a step of Heating setup and Hot water setup (and Pool or Cooling setup), never a

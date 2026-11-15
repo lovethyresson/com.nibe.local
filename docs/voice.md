@@ -79,13 +79,16 @@ heat pump, menu 7.5.9.2." Owners and installers look for them on the display.
 | Heating the tank | charge, charging | heating the tank, charging run. Keep "boost" only for More hot water |
 | What Autopilot does to BT1 | Outdoor shift (BT1) | Shift °C, nudge |
 | Room regulation | room-sensor control | room control, room sensor regulation |
-| NIBE's price feature | Smart price adaption | Smart Price Adaption, Smart price |
+| NIBE's price feature | Smart Price Adaption (NIBE's menu 4.2.5 spelling, in every language, no ™). "Smart Price" only as a short column header | Smart price adaption, Smart Price Adaptation, a translated name |
 | Price | cheap, cheapest hours, expensive, most expensive hours, cost more | dear, dearest, pricey, pricier |
 | Holiday setting | Away, for a holiday of a week or more | Away for a day out |
 | A day off | day off | holiday |
 | Hot water | hot water | domestic hot water, DHW, tap water |
-| Electric backup | immersion heater | additive heater, additional heat, electric addition |
-| Heat curve | heat curve, heat curve offset | heating curve, displacement |
+| Hot water demand modes | Small, Medium, Large, Smart control | small, medium, large, smart control, Smart Control |
+| NIBE's other names | myUplink, Smart Energy Source, SG Ready, More hot water | MyUplink, myuplink (except in the web address), SG ready |
+| Homey's names | Homey, Homey Pro, Homey Energy, the Energy tab, Insights, Flow, Advanced Flow, Flow card, Repair, Timeline | timeline, flow, advanced flow, insights |
+| Electric backup: the element, the operating mode and the settings about it (180, 185, 679) | the immersion heater word: immersion heater / elpatron / elektrisch element / Elektroheizpatrone / elkolbe / elpatron. The mode is "Immersion heater only", even where NIBE's display says so (maintainer, 2026-11-15) | additional heat / tillsats / bijverwarming / Zusatzheizung / tilleggsvarme / tilskud, additive heater, electric addition |
+| Heat curve | heating curve, curve offset (NIBE's words, menu 1.30.1 and 1.1.1) | heat curve, heat curve offset, displacement |
 | Outdoor | outdoor temperature (BT1) | outside temperature |
 | Flow card picker | setting, or reading for sensors | register |
 | How often it reads | update interval | poll interval |
@@ -93,7 +96,8 @@ heat pump, menu 7.5.9.2." Owners and installers look for them on the display.
 | The maker | NIBE (the app is Nibe Live) | Nibe for the company |
 
 Quote names exactly as the screen shows them, in sentence case: "Heating setup", "Hot water setup",
-"Device setup", "Smart mode", "Smart price adaption", "More hot water".
+"Device setup", "Smart mode", "More hot water". NIBE's and Homey's own names keep their owner's
+spelling: "Smart Price Adaption", "Smart control", "Timeline".
 
 ## Other languages
 
