@@ -625,7 +625,7 @@ export const registers: Register[] = [
         "altPlausible": {"min": 0.1, "max": 429496729.4},
         "sources": [
             {"address": 42437, "label": {"en": "Whole system", "sv": "Hela systemet"}},
-            {"address": 44298, "label": {"en": "EP14 including immersion heater", "sv": "EP14 inklusive tillsats"}}
+            {"address": 44298, "label": {"en": "EP14 including immersion heater", "sv": "EP14 inklusive elpatron"}}
         ],
         "plausible": {"min": 0.1, "max": 429496729.4},
         "name": "meter_kwh_NIBE.h42437_hotwater_produced",
@@ -646,7 +646,7 @@ export const registers: Register[] = [
         "altPlausible": {"min": 0.1, "max": 429496729.4},
         "sources": [
             {"address": 42439, "label": {"en": "Whole system", "sv": "Hela systemet"}},
-            {"address": 44300, "label": {"en": "EP14 including immersion heater", "sv": "EP14 inklusive tillsats"}}
+            {"address": 44300, "label": {"en": "EP14 including immersion heater", "sv": "EP14 inklusive elpatron"}}
         ],
         "plausible": {"min": 0.1, "max": 429496729.4},
         "name": "meter_kwh_NIBE.h42439_heating_produced",
@@ -1051,7 +1051,7 @@ export const registers: Register[] = [
         "signed": false,
         "info": {
             "en": "Allow immersion (Manual mode)",
-            "sv": "Tillåt tillsats (manuellt läge)"
+            "sv": "Tillåt elpatron (manuellt läge)"
         },
         "bool": true
     },
@@ -1063,8 +1063,8 @@ export const registers: Register[] = [
         "size": 16,
         "signed": false,
         "info": {
-            "en": "Allow heating (Manual/addition mode)",
-            "sv": "Tillåt värme (manuellt/tillsatsläge)"
+            "en": "Allow heating (Manual/Immersion heater only)",
+            "sv": "Tillåt värme (manuellt/endast elpatron)"
         },
         "bool": true
     }

@@ -2,11 +2,11 @@
   "type": "number",
   "title": {
     "en": "Duration",
-    "de": "Minuten",
-    "nl": "Minuten",
-    "no": "Minutter",
-    "da": "Minutter",
-    "sv": "Minuter"
+    "de": "Dauer",
+    "nl": "Duur",
+    "no": "Varighet",
+    "da": "Varighed",
+    "sv": "Varaktighet"
   },
   "uiComponent": "sensor",
   "getable": true,

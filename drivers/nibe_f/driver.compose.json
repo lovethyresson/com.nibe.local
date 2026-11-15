@@ -476,7 +476,7 @@
       "title": {
         "en": "Immersion heater runtime",
         "sv": "Elpatronens drifttid",
-        "de": "Heizstab-Laufzeit",
+        "de": "Laufzeit Elektroheizpatrone",
         "nl": "Draaiuren elektrisch element",
         "no": "Elkolbens driftstid",
         "da": "Elpatronens driftstid"
@@ -657,7 +657,7 @@
       "title": {
         "en": "Total immersion heater runtime",
         "sv": "Total drifttid elpatron",
-        "de": "Gesamtlaufzeit Heizstab",
+        "de": "Gesamtlaufzeit Elektroheizpatrone",
         "nl": "Totale bedrijfstijd elektrisch element",
         "no": "Total driftstid elkolbe",
         "da": "Samlet driftstid elpatron"
@@ -750,7 +750,7 @@
       "title": {
         "en": "Immersion heater power",
         "sv": "Elpatronens effekt",
-        "de": "Heizstableistung",
+        "de": "Leistung Elektroheizpatrone",
         "nl": "Vermogen elektrisch element",
         "no": "Elkolbens effekt",
         "da": "Elpatronens effekt"
@@ -1014,7 +1014,7 @@
         "de": "Betriebsart",
         "nl": "Bedrijfsmodus",
         "no": "Driftsmodus",
-        "da": "Driftstilstand"
+        "da": "Driftsindstilling"
       },
       "getable": true,
       "setable": true
@@ -1022,23 +1022,23 @@
     "boolean_NIBE.h47370_allow_addition": {
       "title": {
         "en": "Allow immersion (Manual mode)",
-        "sv": "Tillåt tillsats (manuellt läge)",
-        "de": "Zusatzheizung erlauben (manuell)",
-        "nl": "Bijverwarming toestaan (handmatig)",
-        "no": "Tillat tilleggsvarme (manuell)",
-        "da": "Tillad tilskudsvarme (manuel)"
+        "sv": "Tillåt elpatron (manuellt läge)",
+        "de": "Elektroheizpatrone erlauben (manuell)",
+        "nl": "Elektrisch element toestaan (handmatig)",
+        "no": "Tillat elkolbe (manuell)",
+        "da": "Tillad elpatron (manuel)"
       },
       "getable": true,
       "setable": true
     },
     "boolean_NIBE.h47371_allow_heating": {
       "title": {
-        "en": "Allow heating (Manual/addition mode)",
-        "sv": "Tillåt värme (manuellt/tillsatsläge)",
-        "de": "Heizung erlauben (manuell/Zusatzheizung)",
-        "nl": "Verwarming toestaan (handmatig/bijverwarming)",
-        "no": "Tillat varme (manuell/tilleggsvarme)",
-        "da": "Tillad varme (manuel/tilskudsvarme)"
+        "en": "Allow heating (Manual/Immersion heater only)",
+        "sv": "Tillåt värme (manuellt/endast elpatron)",
+        "de": "Heizung erlauben (manuell/nur Elektroheizpatrone)",
+        "nl": "Verwarming toestaan (handmatig/alleen elektrisch element)",
+        "no": "Tillat varme (manuell/bare elkolbe)",
+        "da": "Tillad varme (manuel/kun elpatron)"
       },
       "getable": true,
       "setable": true

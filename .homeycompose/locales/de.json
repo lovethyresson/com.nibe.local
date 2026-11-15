@@ -14,14 +14,14 @@
       "intro": "Verbindung zu Ihrer Wärmepumpe wird hergestellt und beobachtet, welche Werte sich ändern. Dies dauert etwa eine halbe Minute.",
       "status": "Ihre Wärmepumpe wird geprüft",
       "failed": "Ihre Wärmepumpe lässt sich nicht lesen",
-      "no_data": "An dieser Adresse antwortet etwas, liefert aber keine NIBE-Daten. Prüfen Sie, ob die IP die Ihrer Wärmepumpe ist und Modbus TCP aktiv ist (Menü 7.5.9).",
+      "no_data": "Keine NIBE-Daten unter dieser Adresse. Prüfen Sie die IP-Adresse und ob Modbus TCP aktiv ist (Menü 7.5.9).",
       "retry": "Erneut versuchen",
       "skip": "Erkennung überspringen"
     },
     "features": {
       "title": "Funktionen auswählen",
-      "intro": "Wählen Sie, was angezeigt wird. Wir haben angehakt, was Ihre Wärmepumpe gemeldet hat.",
-      "insights_note": "Wird eine Funktion deaktiviert, werden ihre Fähigkeiten entfernt – einschließlich des Insights-Verlaufs."
+      "intro": "Wählen Sie, was angezeigt wird. Angehakte Einträge haben Daten von Ihrer Wärmepumpe.",
+      "insights_note": "Wenn Sie eine Funktion ausschalten, wird auch ihr Verlauf in Einblicke gelöscht."
     },
     "evidence": {
       "moving": "Werte ändern sich",
@@ -35,56 +35,56 @@
     },
     "devices": {
       "title": "Geräte hinzufügen",
-      "intro": "Ihre Wärmepumpe hat mehrere Aufgaben. Jede bekommt ein eigenes Gerät in Homey. Die mit Live-Daten haben wir angehakt.",
+      "intro": "Jede Funktion Ihrer Wärmepumpe erhält ein eigenes Gerät in Homey. Angehakte Geräte haben Live-Daten.",
       "add": "Ausgewählte Geräte hinzufügen",
       "detected": "Daten erkannt",
       "notdetected": "Keine Daten",
       "select_one": "Wählen Sie mindestens ein Gerät aus.",
       "main_desc": "Übersicht: Außentemperatur, Betriebspriorität und Betriebsmodus sowie Diagnose und Statistik",
       "analytics": "Anonyme Nutzungsdaten teilen",
-      "analytics_desc": "Hilft dem App-Autor zu sehen, welche Modelle und Funktionen tatsächlich genutzt werden und wo die Einrichtung scheitert. Keine personenbezogenen Daten, keine Messwerte aus Ihrem Zuhause, keine Netzwerkdaten. Sie können dies später in den App-Einstellungen ändern."
+      "analytics_desc": "Hilft dem Entwickler zu sehen, welche Modelle und Funktionen genutzt werden und wo die Einrichtung scheitert. Es werden keine personenbezogenen Daten, Messwerte oder Netzwerkdaten gesendet. Sie können dies später in den App-Einstellungen ändern."
     },
     "discover": {
       "title": "Wärmepumpe suchen",
-      "searching": "Das Netzwerk wird nach NIBE Wärmepumpen durchsucht …",
-      "confirm": "Wärmepumpe gefunden – zum Bestätigen tippen",
+      "searching": "Das Netzwerk wird nach NIBE-Wärmepumpen durchsucht …",
+      "confirm": "Wärmepumpe gefunden. Zum Bestätigen tippen.",
       "found": "Wärmepumpe auswählen",
-      "none_found": "Es wurde automatisch keine Wärmepumpe gefunden. Prüfen Sie, ob Modbus TCP an Ihrer Wärmepumpe aktiviert ist (Menü 7.5.9), oder geben Sie die IP-Adresse unten ein.",
+      "none_found": "Keine Wärmepumpe gefunden. Prüfen Sie, ob Modbus TCP aktiv ist (Menü 7.5.9), oder geben Sie unten die IP-Adresse ein.",
       "manual": "IP-Adresse manuell eingeben",
       "refresh": "Erneut suchen",
-      "pump": "NIBE Wärmepumpe",
+      "pump": "NIBE-Wärmepumpe",
       "outdoor": "Außentemperatur"
     },
     "sources": {
-      "prompt": "Mehr als ein Fühler kann dies melden. Wählen Sie den regelnden aus:",
+      "prompt": "Mehr als ein Fühler kann dies melden. Wählen Sie einen aus:",
       "using": "Verwendet:"
     },
     "tank": {
-      "title": "Warmwasserspeicher",
-      "hint": "Für die Warmwasserschätzung nötig. Wählen Sie die Baureihe Ihres Speichers, etwa VPB. Die Beschichtung ist egal.",
-      "auto": "Warmwasser nicht schätzen",
+      "title": "Brauchwasserspeicher",
+      "hint": "Erforderlich für die Brauchwasserschätzung. Wählen Sie die Baureihe Ihres Speichers, etwa VPB. Die Beschichtung spielt keine Rolle.",
+      "auto": "Brauchwasser nicht schätzen",
       "custom": "Anderer Speicher…",
       "litres": "Speichervolumen"
     },
     "gateway": {
       "title": "Gateway-Verbindung",
-      "type": "Registeradressierung",
+      "type": "Adressformat",
       "port": "TCP-Port",
       "unit": "Modbus-ID",
-      "hint": "Wählen Sie, wie Ihr Gateway NIBE-Register 40025 nummeriert. Unsicher? Fragen Sie, wer es eingerichtet hat.",
+      "hint": "Wählen Sie, wie Ihr Gateway die NIBE-Modbus-Adresse 40025 nummeriert. Unsicher? Fragen Sie, wer es eingerichtet hat.",
       "invalid": "Gateway, Port von 1–65535 und Modbus-ID von 1–247 auswählen.",
-      "detect_intro": "Die gemeldeten Werte Ihrer Wärmepumpe werden geprüft. Je nach Gateway kann dies mehrere Minuten dauern."
+      "detect_intro": "Die gemeldeten Werte Ihrer Wärmepumpe werden geprüft. Dies kann je nach Gateway einige Minuten dauern."
     },
     "firmware": {
       "title": "Aktualisieren Sie zuerst Ihre Wärmepumpe",
-      "intro": "Viele Funktionen brauchen eine aktuelle Software in Ihrer Wärmepumpe. Ältere Versionen liefern Werte nicht, die die App braucht, und können sogar falsche Energiewerte melden.",
+      "intro": "Viele Funktionen erfordern eine aktuelle Software auf Ihrer Wärmepumpe. Älteren Versionen fehlen einige Messwerte, und sie können falsche Energiewerte melden.",
       "online_title": "Über das Internet mit myUplink",
-      "online_body": "Wenn ein Update bereitsteht, bestätigen Sie es in der myUplink-App – oder am Display Ihrer Wärmepumpe: zur Produktübersicht wischen und auf Aktualisieren tippen.",
+      "online_body": "Wenn ein Update verfügbar ist, bestätigen Sie es in der myUplink-App oder am Display Ihrer Wärmepumpe. Wischen Sie zur Produktübersicht und tippen Sie auf Aktualisieren.",
       "usb_title": "Mit einem USB-Stick",
-      "usb_body": "Lade die neueste Software von myuplink.com auf einen USB-Stick. Stecke ihn in den Anschluss über dem Display und öffne Menü 8.1.",
+      "usb_body": "Laden Sie die neueste Software von myuplink.com auf einen USB-Stick. Stecken Sie ihn in den Anschluss über dem Display und öffnen Sie Menü 8.1.",
       "f_title": "Über myUplink oder einen USB-Stick",
-      "f_body": "Die Schritte unterscheiden sich je nach Modell – das Handbuch Ihrer Wärmepumpe zeigt, wie es geht.",
-      "note": "Dauert ein paar Minuten. Deine Einstellungen bleiben erhalten.",
+      "f_body": "Die Schritte unterscheiden sich je nach Modell. Siehe Handbuch Ihrer Wärmepumpe.",
+      "note": "Dies dauert einige Minuten. Ihre Einstellungen bleiben erhalten.",
       "continue": "Weiter"
     }
   },
@@ -101,7 +101,7 @@
     "diagnostics": "Kältemittel-Diagnose",
     "statistics": "Laufzeitstatistik",
     "energy": "Energie",
-    "solar": "Solar / PV"
+    "solar": "Solar"
   },
   "Normal": "Normal",
   "Blocking": "Sperre",
@@ -113,7 +113,7 @@
   "Speed 4": "Stufe 4",
   "Auto": "Auto",
   "Manual": "Manuell",
-  "Immersion heater only": "Nur Heizstab",
+  "Immersion heater only": "Nur Elektroheizpatrone",
   "Transfer": "Übertragung",
   "0": "0",
   "1": "1",
@@ -141,37 +141,37 @@
   "-3": "-3",
   "-2": "-2",
   "-1": "-1",
-  "0 = Small": "0 = Klein",
+  "0 = Small": "0 = Niedrig",
   "1 = Medium": "1 = Mittel",
-  "2 = Large": "2 = Groß",
-  "4 = Smart control": "4 = Smart Control",
+  "2 = Large": "2 = Hoch",
+  "4 = Smart control": "4 = Smart control",
   "3 hours": "3 Stunden",
   "6 hours": "6 Stunden",
   "12 hours": "12 Stunden",
-  "One-time increase": "Einmalige Erhöhung",
+  "One-time increase": "Einm. Erhöhung",
   "connection": {
     "connecting": "Verbindung zu Ihrer Wärmepumpe wird hergestellt…",
     "unreachable": "Ihre Wärmepumpe unter __host__ ist nicht erreichbar. Prüfen Sie, ob sie im Netzwerk ist und ob sich ihre IP-Adresse geändert hat.",
-    "refused": "Ihre Wärmepumpe unter __host__ hat die Verbindung abgelehnt. Prüfen Sie, ob Modbus TCP an der Wärmepumpe aktiviert ist.",
-    "silent": "Ihre Wärmepumpe unter __host__ antwortet nicht mehr. Verbindung wird neu aufgebaut…",
-    "no_data": "Unter __host__ antwortet etwas, liefert aber keine NIBE-Daten. Prüfen Sie, ob die IP die Ihrer Wärmepumpe ist und Modbus TCP aktiv ist (Menü 7.5.9).",
+    "refused": "Ihre Wärmepumpe unter __host__ hat die Verbindung abgelehnt. Prüfen Sie, ob Modbus TCP aktiv ist (Menü 7.5.9).",
+    "silent": "Ihre Wärmepumpe unter __host__ reagiert nicht mehr. Verbindung wird neu aufgebaut…",
+    "no_data": "Keine NIBE-Daten unter __host__. Prüfen Sie die IP-Adresse und ob Modbus TCP aktiv ist (Menü 7.5.9).",
     "searching": "Ihre Wärmepumpe unter __host__ ist nicht erreichbar. Sie wird im Netzwerk gesucht…",
-    "moved": "Nibe Live: Ihre Wärmepumpe ist von __from__ nach __to__ umgezogen. Die Geräte in Homey wurden aktualisiert.",
+    "moved": "Nibe Live: Die IP-Adresse Ihrer Wärmepumpe hat sich von __from__ auf __to__ geändert. Die zugehörigen Geräte wurden aktualisiert.",
     "address_in_use": "Eine andere gekoppelte Wärmepumpe verwendet bereits __host__."
   },
   "autopilot": {
     "hotwater_daily": {
       "title": {
-        "any": "Warmwasser",
-        "working": "Warmwasser, ein Arbeitstag",
-        "free": "Warmwasser, ein freier Tag",
-        "away": "Warmwasser, abwesend"
+        "any": "Brauchwasser",
+        "working": "Brauchwasser, ein Arbeitstag",
+        "free": "Brauchwasser, ein freier Tag",
+        "away": "Brauchwasser, abwesend"
       },
-      "use": "Sie verbrauchen heute etwa __litres__ L, bis zu __p80__ L an einem intensiven Tag.",
+      "use": "Sie verbrauchen heute etwa __litres__ L, bis zu __p80__ L an einem Tag mit viel Verbrauch.",
       "away": "Abwesend. Nur die Sicherheitsreserve wird warm gehalten.",
       "tank": "Der Speicher hat jetzt __litres__ L. Autopilot hält mindestens __reserve__ L.",
       "tank_no_reserve": "Der Speicher hat jetzt __litres__ L. Keine Sicherheitsreserve eingestellt.",
-      "none": "Keine Ladung nötig. Der Speicher reicht für den Tag.",
+      "none": "Heute ist keine Ladung nötig.",
       "charge": "Laden __time__ auf __target__ °C · __reason__",
       "reason": {
         "cheap": "Günstigste Stunden",
@@ -183,7 +183,7 @@
         "loss": "Weniger Wärmeverlust im Speicher"
       },
       "cost": "Erwartete Kosten __cost__. Die Preise für morgen sind noch nicht da.",
-      "shadow": "Simulation: Ihre Wärmepumpe bleibt, wie sie ist.",
+      "shadow": "Simuliert. Keine Änderungen an Ihrer Wärmepumpe.",
       "tomorrow": "morgen um __time__",
       "cost_tomorrow": "Erwartete Kosten __cost__.",
       "today": "um __time__",
@@ -193,7 +193,7 @@
     "hotwater_charge": {
       "reason": {
         "cheap": "Günstigste Stunden",
-        "before_use": "Rechtzeitig für den Verbrauch",
+        "before_use": "Rechtzeitig vor dem Verbrauch",
         "room": "Speicher bis dahin voll",
         "loss": "Weniger Wärmeverlust im Speicher",
         "surplus": "Solarüberschuss",
@@ -202,65 +202,65 @@
         "pump": "Von Ihrer Wärmepumpe gestartet"
       },
       "detail": {
-        "price": "Auf __target__ °C in etwa __duration__, zu __price__/kWh. Tagesmittel __mean__.",
+        "price": "Auf __target__ °C in etwa __duration__, zu __price__/kWh. Tagesdurchschnitt: __mean__.",
         "surplus": "Auf __target__ °C, etwa __duration__, __share__ % aus Solarüberschuss.",
         "reserve": "Der Speicher hat nur noch __litres__ L, unter Ihrer Sicherheitsreserve von __reserve__ L. Heizt auf __target__ °C, etwa __duration__.",
-        "pump": "Ihre Wärmepumpe startete bei __top__ °C nach ihrer eigenen Starttemperatur und lädt auf __stop__ °C.",
-        "pump_more": "Mehr Warmwasser ist an, daher lädt Ihre Wärmepumpe auf __stop__ °C.",
-        "immersion": "Der Heizstab hat bei __at__ °C übernommen. Autopilot lädt jetzt auf höchstens __cap__ °C."
+        "pump": "Von Ihrer Wärmepumpe bei __top__ °C gestartet. Läuft bis __stop__ °C.",
+        "pump_more": "Mehr Brauchwasser ist an, daher lädt Ihre Wärmepumpe auf __stop__ °C.",
+        "immersion": "Die Elektroheizpatrone hat bei __at__ °C übernommen. Autopilot lädt jetzt auf höchstens __cap__ °C."
       },
       "plan": {
         "as_planned": "Wie geplant.",
-        "moved": "Geändert: der Plan sah __time__ vor.",
-        "unplanned": "Nicht im Plan.",
-        "as_planned_pump": "Der Plan hatte dann auch eine Ladung."
+        "moved": "Verschoben von __time__.",
+        "unplanned": "Nicht geplant.",
+        "as_planned_pump": "Auch dann war eine Ladung geplant."
       },
       "duration": "__h__ Std. __m__ Min.",
       "duration_min": "__m__ Min.",
       "title": "Speicher wird geheizt · __reason__",
-      "title_would": "Simulation: würde eine Ladung starten · __reason__",
+      "title_would": "Simuliert: würde eine Ladung starten · __reason__",
       "recap": {
         "item": "__time__ auf __target__ °C: __reason__.",
         "would": "__time__ hätte auf __target__ °C geladen, __reason__.",
         "as_planned": "Wie geplant.",
         "moved": "Verschoben.",
         "unplanned": "Nicht geplant.",
-        "as_planned_pump": "Dann auch geplant.",
+        "as_planned_pump": "War auch geplant.",
         "yesterday": "Gestern:",
         "on": "__date__:",
         "last_night": "Letzte Nacht:",
-        "immersion": "Heizstab ab __at__ °C."
+        "immersion": "Elektroheizpatrone ab __at__ °C."
       },
       "duration_h": "__h__ Std.",
       "write_failed": "Autopilot konnte keine Ladung starten. Ihre Wärmepumpe meldete: __error__",
       "blocked": {
-        "hot_water_off": "Autopilot wartet. Warmwasser ist an Ihrer Wärmepumpe ausgeschaltet.",
-        "spa": "Autopilot wartet. Schalten Sie die Smarte Preisanpassung für Warmwasser an Ihrer Wärmepumpe aus.",
-        "smart_control": "Autopilot wartet. Der Warmwasserbedarf Ihrer Wärmepumpe steht auf Smart Control. Stellen Sie ihn auf Klein, Mittel oder Groß."
+        "hot_water_off": "Autopilot wartet. Brauchwasser ist an Ihrer Wärmepumpe ausgeschaltet.",
+        "spa": "Autopilot wartet. Schalten Sie Smart Price Adaption für Brauchwasser an Ihrer Wärmepumpe aus.",
+        "smart_control": "Autopilot wartet. Der Brauchwasserbedarf Ihrer Wärmepumpe steht auf Smart control. Stellen Sie ihn auf Niedrig, Mittel oder Hoch."
       }
     },
     "hotwater_update": {
       "title": {
-        "new_prices": "Neue Preise sind da. Warmwasserplan aktualisiert.",
-        "revised": "Preise geändert. Warmwasserplan aktualisiert."
+        "new_prices": "Brauchwasserplan mit neuen Preisen aktualisiert.",
+        "revised": "Brauchwasserplan nach einer Preisänderung aktualisiert."
       },
-      "added": "Neu: __time__, auf __target__ °C zu __price__/kWh (__reason__).",
-      "added_new_hours": "Neu: __time__, auf __target__ °C zu __price__/kWh (__reason__), in Stunden, die jetzt Preise haben.",
-      "moved": "Verschoben von __was__ auf __time__: auf __target__ °C zu __price__/kWh statt __wasPrice__.",
-      "dropped": "Die Ladung __time__ entfällt. __why__",
-      "resized": "Geändert: __time__ jetzt auf __target__ °C statt __was__ °C. __why__",
+      "added": "Neue Ladung __time__: __target__ °C zu __price__/kWh (__reason__).",
+      "added_new_hours": "Neue Ladung __time__: __target__ °C zu __price__/kWh (__reason__), in Stunden mit neuen Preisen.",
+      "moved": "Ladung verschoben von __was__ auf __time__: __target__ °C zu __price__/kWh statt __wasPrice__.",
+      "dropped": "Ladung __time__ entfällt. __why__",
+      "resized": "Ladung __time__ geändert: __target__ °C statt __was__ °C. __why__",
       "why": {
         "takes_over": "Die Ladung __time__ übernimmt den Rest, zu __price__/kWh.",
-        "covered": "Der Speicher reicht für den Tag ohne sie.",
-        "store_more": "Die kommenden Stunden sind teurer, daher wird jetzt mehr gespeichert.",
-        "needs_less": "Es wird jetzt weniger gebraucht."
+        "covered": "Nicht nötig.",
+        "store_more": "Spätere Stunden sind teurer.",
+        "needs_less": "Weniger Brauchwasser nötig."
       },
       "cost": "Erwartete Kosten __cost__. Die Preise für morgen sind noch nicht da.",
       "cost_tomorrow": "Erwartete Kosten __cost__.",
-      "shadow": "Simulation: Ihre Wärmepumpe bleibt, wie sie ist.",
+      "shadow": "Simuliert. Keine Änderungen an Ihrer Wärmepumpe.",
       "reason": {
         "cheap": "Günstigste Stunden",
-        "before_use": "Rechtzeitig für den Verbrauch",
+        "before_use": "Rechtzeitig vor dem Verbrauch",
         "room": "Speicher bis dahin voll",
         "loss": "Weniger Wärmeverlust im Speicher",
         "surplus": "Solarüberschuss",
@@ -268,53 +268,53 @@
         "running": "Lädt bereits",
         "pump": "Von Ihrer Wärmepumpe gestartet"
       },
-      "moved_repriced": "Verschoben von __was__ auf __time__: die Stunden ab __was__ kosten jetzt __wasNow__/kWh statt __wasPrice__, daher lädt sie auf __target__ °C zu __price__/kWh."
+      "moved_repriced": "Ladung verschoben von __was__ auf __time__: __was__ kostet jetzt __wasNow__/kWh statt __wasPrice__. Lädt auf __target__ °C zu __price__/kWh."
     },
     "hotwater_setting": {
-      "no_device": "Autopilot Warmwasser braucht das Warmwasser-Gerät. Fügen Sie es zuerst hinzu.",
-      "no_tank": "Wähle zuerst die Speichergröße: Warmwasser-Gerät → Reparieren."
+      "no_device": "Autopilot für Brauchwasser erfordert das Brauchwasser-Gerät. Fügen Sie es zuerst hinzu.",
+      "no_tank": "Wählen Sie zuerst die Speichergröße unter Brauchwasser → Reparieren."
     },
     "heating": {
       "warning": {
         "feed_failed": "Autopilot Heizung gestoppt. Ihre Wärmepumpe hat die Außentemperatur (BT1) nicht übernommen. Prüfen Sie Menü 7.5.9.2 und schalten Sie Autopilot dann unter Heizung → Reparieren wieder ein.",
         "no_outdoor": "Autopilot Heizung pausiert: keine Außentemperatur.",
-        "spa_on": "Autopilot Heizung pausiert: Smart price adaption ist für die Heizung an.",
+        "spa_on": "Autopilot Heizung pausiert: Smart Price Adaption ist für die Heizung an.",
         "room_control": "Autopilot Heizung pausiert: Raumfühlerregelung ist in Ihrer Wärmepumpe an.",
-        "immersion_only": "Autopilot Heizung pausiert: Ihre Wärmepumpe läuft nur mit dem Heizstab.",
-        "no_model": "Autopilot Heizung lernt Ihr Haus noch.",
+        "immersion_only": "Autopilot Heizung pausiert: Ihre Wärmepumpe läuft nur mit der Elektroheizpatrone.",
+        "no_model": "Autopilot Heizung lernt Ihr Haus noch kennen.",
         "mode_off": "Autopilot Heizung ist aus.",
         "cooling": "Autopilot Heizung pausiert: Ihre Wärmepumpe kühlt."
       },
       "status": {
-        "test": "Simulation: __text__",
-        "learning": "Lernt Ihr Haus · Tag __day__ von __of__",
-        "learning_short": "Lernt Ihr Haus",
+        "test": "Simuliert: __text__",
+        "learning": "Lernt Ihr Haus kennen · Tag __day__ von __of__",
+        "learning_short": "Lernt Ihr Haus kennen",
         "waiting": "Startet: wartet auf die Prognose",
         "peak": "Preisspitze __from__–__to__",
         "easing_off": "Bis __until__",
         "preheating": "Bis __until__",
         "before": "vor der __why__",
-        "holding": "Hält. Verschieben lohnt sich gerade nicht",
-        "holding_even": "Hält. Preise zu gleichmäßig zum Verschieben",
-        "next_easing_off": "Hält · drosselt um __at__",
-        "next_preheating": "Hält · heizt vor um __at__",
+        "holding": "Konstant. Keine Änderungen geplant",
+        "holding_even": "Konstant. Preise zu gleichmäßig zum Verschieben",
+        "next_easing_off": "Konstant · drosselt um __at__",
+        "next_preheating": "Konstant · heizt vor um __at__",
         "paused": {
-          "no_outdoor": "Pausiert: Außentemperatur meldet nicht mehr",
-          "spa_on": "Pausiert: Smart price adaption ist für die Heizung an",
+          "no_outdoor": "Pausiert: keine Außentemperatur",
+          "spa_on": "Pausiert: Smart Price Adaption ist für die Heizung an",
           "room_control": "Pausiert: Raumfühlerregelung ist in Ihrer Wärmepumpe an",
-          "immersion_only": "Pausiert: Ihre Wärmepumpe läuft nur mit dem Heizstab",
+          "immersion_only": "Pausiert: Ihre Wärmepumpe läuft nur mit der Elektroheizpatrone",
           "feed_failed": "Gestoppt. Ihre Wärmepumpe hat die Außentemperatur (BT1) nicht übernommen",
           "mode_off": "Aus",
-          "no_model": "Lernt Ihr Haus",
+          "no_model": "Lernt Ihr Haus kennen",
           "cooling": "Pausiert: Ihre Wärmepumpe kühlt"
         },
-        "range_off": "Komfortbereich ist Aus: Ihre Wärmepumpe sieht die echte Außentemperatur",
+        "range_off": "Komfortbereich ist Aus. Ihre Wärmepumpe nutzt die gemessene Außentemperatur",
         "sun": "Sonne erwartet __from__–__to__",
         "back": "Rückkehr um __at__"
       },
       "status_name": {
         "learning": "Lernt",
-        "holding": "Hält",
+        "holding": "Konstant",
         "preheating": "Heizt vor",
         "easing_off": "Drosselt",
         "paused": "Pausiert",
@@ -323,35 +323,35 @@
       "timeline": {
         "paused": "Autopilot Heizung: __reason__",
         "resumed": "Autopilot Heizung läuft wieder.",
-        "learned": "Autopilot Heizung hat Ihr Haus gelernt und verschiebt nun Wärme aus teuren Stunden."
+        "learned": "Autopilot Heizung kennt Ihr Haus jetzt und verschiebt Wärme aus teuren Stunden."
       },
       "verify": {
         "not_heating": "Autopilot Heizung wird am Gerät Heizung eingerichtet.",
         "room_control": "Zuerst die Raumfühlerregelung in Ihrer Wärmepumpe ausschalten.",
-        "no_outdoor": "Noch keine Außentemperatur: Sensor wählen oder Standort für die Wettervorhersage festlegen.",
+        "no_outdoor": "Noch keine Außentemperatur. Wählen Sie einen Sensor oder legen Sie Ihren Standort für die Wettervorhersage fest.",
         "not_followed": "Ihre Wärmepumpe hat die Außentemperatur nicht übernommen. Prüfen Sie, ob Menü 7.5.9.2 einen externen BT1 erlaubt und Modbus (Menü 7.5.9) Schreibzugriffe erlaubt."
       },
-      "not_on": "Autopilot Heizung ist nicht an.",
+      "not_on": "Autopilot Heizung ist aus.",
       "no_thermostat": "Das Heizungsgerät hat kein Thermostat zum Einstellen.",
       "away_time_past": "Dieser Zeitpunkt ist schon vorbei.",
       "away_time_invalid": "Wählen Sie ein Datum und eine Uhrzeit, zu der Abwesend endet."
     },
     "smart": {
-      "no_spa": "Ihre Wärmepumpe hat keine Smart price adaption.",
+      "no_spa": "Ihre Wärmepumpe hat keine Smart Price Adaption.",
       "no_heating": "Zuerst das Gerät Heizung hinzufügen.",
-      "verify_first": "Schalten Sie Autopilot unter Heizung → Reparieren → Smart-Modus ein: dort wird zuerst geprüft, dass Ihre Wärmepumpe die Außentemperatur übernimmt.",
+      "verify_first": "Schalten Sie zuerst Autopilot unter Heizung → Reparieren → Smart-Modus ein. Dabei wird geprüft, ob Ihre Wärmepumpe die Außentemperatur übernimmt.",
       "spa_took_over": {
-        "heating": "Smart price adaption wurde für die Heizung eingeschaltet, daher hat Autopilot Heizung gestoppt.",
-        "hotwater": "Smart price adaption wurde für Warmwasser eingeschaltet, daher hat Autopilot Warmwasser gestoppt."
+        "heating": "Smart Price Adaption wurde für die Heizung eingeschaltet, daher hat Autopilot Heizung gestoppt.",
+        "hotwater": "Smart Price Adaption wurde für Brauchwasser eingeschaltet, daher hat Autopilot Brauchwasser gestoppt."
       },
       "soon": "Autopilot dafür kommt bald.",
-      "paired_failed": "Der Smart-Modus aus der Einrichtung konnte nicht übernommen werden: __reason__ Schließen Sie ihn unter Reparieren ab."
+      "paired_failed": "Smart-Modus aus der Einrichtung konnte nicht übernommen werden. Schließen Sie ihn unter Reparieren ab. __reason__"
     },
     "widget": {
       "price": "Preis",
       "off": "Autopilot ist aus. Schalten Sie ihn unter Reparieren → Smart-Modus ein.",
-      "not_function": "Wählen Sie ein Heizungs- oder Warmwassergerät.",
-      "test": "Simulation",
+      "not_function": "Wählen Sie ein Heizungs- oder Brauchwassergerät.",
+      "test": "Simuliert",
       "away": "Abwesend · __c__ °C",
       "range": {
         "comfortable": "Komfort ±0,5 °C",
@@ -364,7 +364,7 @@
         "next": "Nächste Ladung __when__",
         "none": "In den nächsten 24 Stunden ist keine Ladung nötig",
         "litres": "Jetzt __l__ L Wasser mit 40 °C",
-        "share": "__share__ % aus Solar",
+        "share": "__share__ % aus Solarstrom",
         "solar_off": "Solar aus",
         "solar_paused": "Solarplan pausiert",
         "solar_total": "__share__ % der geplanten Ladung laufen mit Solarüberschuss.",
@@ -380,10 +380,10 @@
       },
       "indoor": "Innen",
       "expected": "Erwartet",
-      "aiming": "Ziel: __c__ °C",
-      "offset": "Außenverschiebung (BT1)",
+      "aiming": "Ziel __c__ °C",
+      "offset": "Verschiebung Außentemperatur (BT1)",
       "axis_indoor": "Innen °C",
-      "axis_offset": "Verschiebung °C (BT1)",
+      "axis_offset": "Verschiebung Außentemp. °C",
       "learning": "Die erwartete Innentemperatur erscheint, sobald Autopilot Ihr Haus kennt.",
       "surplus": "Solarüberschuss",
       "charge_grid": "Netzladung",
@@ -394,32 +394,32 @@
       "learning_day": "Tag __day__ von __of__",
       "paused": {
         "no_outdoor": "Autopilot hat keine Außentemperatur. Wählen Sie im Smart-Modus einen Fühler oder nutzen Sie die Prognose.",
-        "spa_on": "Smart price adaption ist für die Heizung an. Schalten Sie sie aus, damit Autopilot arbeiten kann.",
-        "room_control": "Die Raumfühlerregelung ist in Ihrer Wärmepumpe an. Schalten Sie sie aus, damit Autopilot arbeiten kann.",
-        "immersion_only": "Ihre Wärmepumpe läuft nur mit dem Heizstab. Autopilot wartet.",
+        "spa_on": "Smart Price Adaption ist für die Heizung an. Schalten Sie sie aus, um Autopilot zu aktivieren.",
+        "room_control": "Die Raumfühlerregelung ist in Ihrer Wärmepumpe an. Schalten Sie sie aus, um Autopilot zu aktivieren.",
+        "immersion_only": "Ihre Wärmepumpe läuft nur mit der Elektroheizpatrone. Autopilot ist pausiert.",
         "feed_failed": "Ihre Wärmepumpe hat die Außentemperatur (BT1) nicht übernommen. Prüfen Sie Menü 7.5.9.2.",
-        "cooling": "Ihre Wärmepumpe kühlt. Autopilot wartet."
+        "cooling": "Ihre Wärmepumpe kühlt. Autopilot ist pausiert."
       },
       "error": "Autopilot konnte nicht geladen werden. Neuer Versuch in einer Minute.",
       "starting_title": "Startet",
-      "starting_heating": "Prognose und Strompreise werden gelesen. Dauert etwa eine Minute.",
-      "starting_hotwater": "Strompreise und Speicher werden gelesen. Dauert etwa eine Minute.",
-      "starting_app": "Ihre Wärmepumpe wird gelesen. Dauert etwa eine Minute.",
+      "starting_heating": "Prognose und Strompreise werden geladen. Dies dauert etwa eine Minute.",
+      "starting_hotwater": "Strompreise und Speicherstand werden geladen. Dies dauert etwa eine Minute.",
+      "starting_app": "Daten Ihrer Wärmepumpe werden geladen. Dies dauert etwa eine Minute.",
       "away_until": "Abwesend bis __until__ · __c__ °C",
       "charge_done": "Geladen"
     },
     "hotwater_status": {
-      "learning": "Lernt Ihren Warmwasserverbrauch",
+      "learning": "Lernt Ihren Brauchwasserverbrauch",
       "no_prices": "Wartet auf Strompreise",
       "charging": "Heizt den Speicher",
       "charging_reason": "Heizt den Speicher · __reason__",
       "starting": "Startet eine Ladung auf __target__ °C · __reason__",
       "next": "Nächste Ladung __time__ auf __target__ °C · __reason__",
       "none": "Keine Ladung nötig bis __until__",
-      "test": "Simulation: __text__"
+      "test": "Simuliert: __text__"
     },
     "hotwater_use": {
-      "title": "Warmwasser pro Tag (L bei 40 °C)",
+      "title": "Brauchwasser pro Tag (L bei 40 °C)",
       "expected": "Heute etwa __l__ L erwartet",
       "expected_away": "Abwesend: heute etwa __l__ L",
       "typical_of": "üblich __l__ L",
@@ -427,13 +427,13 @@
       "free": "Freier Tag",
       "away": "Abwesend",
       "typical": "Üblicher Tag",
-      "learning": "Lernt Ihren Warmwasserverbrauch",
-      "off": "Autopilot für Warmwasser ist aus. Schalten Sie ihn unter Reparieren → Smart-Modus ein.",
-      "pick": "Wählen Sie ein Warmwasser-Gerät.",
+      "learning": "Lernt Ihren Brauchwasserverbrauch",
+      "off": "Autopilot für Brauchwasser ist aus. Schalten Sie ihn unter Reparieren → Smart-Modus ein.",
+      "pick": "Wählen Sie ein Brauchwasser-Gerät.",
       "away_keeps": "Autopilot hält nur Ihr Minimum warm.",
       "away_until": "Bis __until__",
       "today_title": "Heute",
-      "row_used": "Warmwasser verbraucht",
+      "row_used": "Brauchwasser verbraucht",
       "row_charged": "Geladen bis __end__",
       "row_charging": "Lädt bis etwa __end__",
       "row_tank": "Jetzt im Speicher",
@@ -441,23 +441,23 @@
       "row_next_tomorrow": "Nächste Ladung, morgen"
     },
     "savings": {
-      "pick": "Wählen Sie in den Widget-Einstellungen ein Gerät für Heizung oder Warmwasser.",
-      "empty": "Ab morgen sichtbar. Benötigt dynamische Strompreise in Homey Energie.",
+      "pick": "Wählen Sie in den Widget-Einstellungen ein Gerät für Heizung oder Brauchwasser.",
+      "empty": "Ab morgen verfügbar. Erfordert dynamische Strompreise in Homey Energie.",
       "status_started": "Autopilot läuft",
-      "first_day": "Die Ersparnis erscheint nach dem ersten vollen Tag.",
+      "first_day": "Die Ersparnis erscheint nach dem ersten vollen Tag von Autopilot.",
       "cheap": "Günstigste Stunden",
-      "middle": "Mitte",
+      "middle": "Mittel",
       "dear": "Teuerste Stunden",
       "per_day": "__kwh__ kWh pro Tag",
       "row_so_far": "Bisher",
       "row_before": "Vor Autopilot",
       "row_with": "Mit Autopilot",
       "status_heating": "Ersparnis Heizung",
-      "status_hotwater": "Ersparnis Warmwasser",
+      "status_hotwater": "Ersparnis Brauchwasser",
       "shower": "Pro Dusche (__litres__ L)",
-      "loading": "Die letzten zwei Wochen werden aus Insights gelesen. Dauert einige Minuten.",
+      "loading": "Die letzten zwei Wochen werden aus Einblicke geladen. Dies kann einige Minuten dauern.",
       "pick_heating": "Wählen Sie in den Widget-Einstellungen ein Gerät für Heizung.",
-      "pick_hotwater": "Wählen Sie in den Widget-Einstellungen ein Gerät für Warmwasser.",
+      "pick_hotwater": "Wählen Sie in den Widget-Einstellungen ein Gerät für Brauchwasser.",
       "status_start": "Ihr Ausgangspunkt",
       "in_expensive": "in den teuersten Stunden",
       "row_today": "Heute bisher",
@@ -471,12 +471,12 @@
       "stat_year": "Dieses Jahr",
       "share_note": "der Wärme in den günstigsten Stunden",
       "share_cheap": "__kwh__ kWh günstig",
-      "share_middle": "__kwh__ Mitte",
+      "share_middle": "__kwh__ mittel",
       "share_expensive": "__kwh__ teuer"
     },
     "away_until_token": "Abwesend bis",
     "tank": {
-      "pick": "Wählen Sie ein Warmwasser-Gerät.",
+      "pick": "Wählen Sie ein Brauchwasser-Gerät.",
       "now": "__l__ L im Speicher",
       "used": "__used__ L von etwa __expected__ L verbraucht",
       "next": "nächste Ladung __time__",
@@ -490,17 +490,17 @@
       "planned": "Geplante Ladung"
     },
     "energy": {
-      "pick": "Wählen Sie das Hauptgerät Ihrer Wärmepumpe.",
+      "pick": "Wählen Sie das Main-Gerät Ihrer Wärmepumpe.",
       "used": "heute verbraucht",
       "cost": "Kosten heute",
       "cheap": "in günstigen Stunden",
       "heating": "Heizung",
-      "hotwater": "Warmwasser",
+      "hotwater": "Brauchwasser",
       "price": "Preis",
       "price_axis": "Preis pro kWh",
-      "no_prices": "Benötigt dynamische Strompreise in Homey Energie.",
-      "no_functions": "Diese Wärmepumpe hat kein Heizungs- oder Warmwasser-Gerät."
+      "no_prices": "Erfordert dynamische Strompreise in Homey Energie.",
+      "no_functions": "Diese Wärmepumpe hat kein Heizungs- oder Brauchwasser-Gerät."
     },
-    "custom_warning": "Nur für fortgeschrittene Benutzer. Diese Einstellungen gelten für das Gerät Heizung und nur, solange dessen Komfortbereich Benutzerdefiniert ist. Autopilot wurde für Komfort, Sparen und Am meisten sparen abgestimmt; andere Kombinationen sind ungetestet, und Autopilot kann mehr heizen, weniger sparen oder das Haus kälter werden lassen, als Sie erwarten."
+    "custom_warning": "Nur für fortgeschrittene Benutzer. Diese Einstellungen gelten für das Gerät Heizung, solange dessen Komfortbereich Benutzerdefiniert ist. Autopilot ist auf Komfort, Sparen und Mehr sparen abgestimmt. Andere Kombinationen sind ungetestet und können mehr heizen, weniger sparen oder das Haus kälter werden lassen, als Sie erwarten."
   }
 }

@@ -509,13 +509,14 @@ export function roleRegisters(profile: ModelProfile, role: Role): Register[] {
 
 // Suggested device names, shown in pairing. Generic across models (the driver name
 // distinguishes S from F).
-export const roleNames: Record<Role, {en: string; sv: string}> = {
-    main: {en: "Nibe Main", sv: "Nibe Main"},
-    heating: {en: "Nibe Heating", sv: "Nibe Värme"},
-    hotwater: {en: "Nibe Hot Water", sv: "Nibe Varmvatten"},
-    pool: {en: "Nibe Pool", sv: "Nibe Pool"},
-    cooling: {en: "Nibe Cooling", sv: "Nibe Kyla"},
-    solar: {en: "Nibe Solar", sv: "Nibe Solceller"}
+export type RoleNameLanguage = 'en' | 'sv' | 'nl' | 'de' | 'no' | 'da';
+export const roleNames: Record<Role, Record<RoleNameLanguage, string>> = {
+    main: {en: "Nibe Main", sv: "Nibe Main", nl: "Nibe Main", de: "Nibe Main", no: "Nibe Main", da: "Nibe Main"},
+    heating: {en: "Nibe Heating", sv: "Nibe Värme", nl: "Nibe Verwarming", de: "Nibe Heizung", no: "Nibe Oppvarming", da: "Nibe Opvarmning"},
+    hotwater: {en: "Nibe Hot Water", sv: "Nibe Varmvatten", nl: "Nibe Warm water", de: "Nibe Brauchwasser", no: "Nibe Varmtvann", da: "Nibe Varmt vand"},
+    pool: {en: "Nibe Pool", sv: "Nibe Pool", nl: "Nibe Zwembad", de: "Nibe Pool", no: "Nibe Basseng", da: "Nibe Pool"},
+    cooling: {en: "Nibe Cooling", sv: "Nibe Kyla", nl: "Nibe Koeling", de: "Nibe Kühlung", no: "Nibe Kjøling", da: "Nibe Køling"},
+    solar: {en: "Nibe Solar", sv: "Nibe Solceller", nl: "Nibe Zonne-energie", de: "Nibe Solar", no: "Nibe Solceller", da: "Nibe Solceller"}
 };
 
 // The Homey Energy-tab meter for a function = electricity this function has used since the
@@ -566,7 +567,7 @@ export function extraCapabilityOptions(role: Role, name: string, profile?: Model
         return {title: pumpActiveTitle(), uiComponent: null, setable: false};
     if (name === ALARM_ACTIVE_CAPABILITY)
         return {title: {en: "Alarm active", sv: "Larm aktivt", de: "Alarm aktiv",
-                        nl: "Alarm actief", no: "Alarm aktivt", da: "Alarm aktivt"}};
+                        nl: "Alarm actief", no: "Alarm aktivt", da: "Alarm aktiv"}};
     if (name === ALARM_TEXT_CAPABILITY)
         return {title: {en: "Alarm", sv: "Larm", de: "Alarm", nl: "Alarm", no: "Alarm", da: "Alarm"}};
     if (name === TOTAL_COP_CAPABILITY)
@@ -611,7 +612,7 @@ export function extraCapabilityOptions(role: Role, name: string, profile?: Model
         return {title: {en: "Day type", sv: "Dagtyp", de: "Tagestyp", nl: "Dagtype", no: "Dagtype", da: "Dagtype"}};
     if (name === HOTWATER_VOLUME_CAPABILITY)
         return {title: {en: "Hot water available", sv: "Tillgängligt varmvatten",
-                        de: "Verfügbares Warmwasser", nl: "Beschikbaar warmtapwater",
+                        de: "Verfügbares Brauchwasser", nl: "Beschikbaar warmtapwater",
                         no: "Tilgjengelig varmtvann", da: "Tilgængeligt varmt vand"},
                 decimals: 1};
     if (name === HOTWATER_INLET_CAPABILITY)

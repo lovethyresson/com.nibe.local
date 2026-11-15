@@ -1,11 +1,11 @@
 {
   "title": {
     "en": "Hot water demand",
-    "sv": "Ställ in varmvattenbehov",
-    "de": "Brauchwasserbedarf einstellen",
-    "nl": "Warmtapwaterbehoefte instellen",
-    "no": "Still inn varmtvannsbehov",
-    "da": "Indstil varmtvandsbehov"
+    "sv": "Varmvattenbehov",
+    "de": "Brauchwasserbedarf",
+    "nl": "Warmwatervraag",
+    "no": "Varmtvannsbehov",
+    "da": "Varmtvandsbehov"
   },
   "type": "enum",
   "values": [
@@ -13,44 +13,44 @@
       "id": "0",
       "title": {
         "en": "Small",
-        "sv": "0 = Litet",
-        "de": "0 = Klein",
-        "nl": "0 = Klein",
-        "no": "0 = Liten",
-        "da": "0 = Lille"
+        "sv": "Litet",
+        "de": "Niedrig",
+        "nl": "Klein",
+        "no": "Lite",
+        "da": "Lille"
       }
     },
     {
       "id": "1",
       "title": {
         "en": "Medium",
-        "sv": "1 = Medel",
-        "de": "1 = Mittel",
-        "nl": "1 = Gemiddeld",
-        "no": "1 = Middels",
-        "da": "1 = Middel"
+        "sv": "Medel",
+        "de": "Mittel",
+        "nl": "Gemiddeld",
+        "no": "Middels",
+        "da": "Middelstort"
       }
     },
     {
       "id": "2",
       "title": {
         "en": "Large",
-        "sv": "2 = Stort",
-        "de": "2 = Groß",
-        "nl": "2 = Groot",
-        "no": "2 = Stor",
-        "da": "2 = Stor"
+        "sv": "Stort",
+        "de": "Hoch",
+        "nl": "Groot",
+        "no": "Stort",
+        "da": "Stort"
       }
     },
     {
       "id": "4",
       "title": {
         "en": "Smart control",
-        "sv": "4 = Smart kontrol",
-        "de": "4 = Smart Control",
-        "nl": "4 = Smart control",
-        "no": "4 = Smart styring",
-        "da": "4 = Smart styring"
+        "sv": "Smart control",
+        "de": "Smart control",
+        "nl": "Smart control",
+        "no": "Smart control",
+        "da": "Smart control"
       }
     }
   ],

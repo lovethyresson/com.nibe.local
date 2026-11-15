@@ -53,10 +53,10 @@ This confirms that your heat pump receives the temperature. It can't show which 
 pump uses for control. Pairing saves your choice without sending anything. Finish the setup in
 Repair when you're at your heat pump.
 
-### Does this replace my thermostat or Smart price adaption?
+### Does this replace my thermostat or Smart Price Adaption?
 
 No. The app sends the measured indoor temperature. Your heat pump still controls heating with its
-own target temperature and Smart price adaption settings. BT50 and the zone's average temperature
+own target temperature and Smart Price Adaption settings. BT50 and the zone's average temperature
 can differ if your heat pump combines BT50 with other room sensors.
 
 ### Does Autopilot follow my thermostat?
@@ -88,7 +88,7 @@ doesn't expire.
 
 Every selected sensor must be available and have a valid temperature. If a sensor is missing,
 unavailable or outside 5–40 °C, the app stops sending and tries again. If it keeps failing for 5
-minutes, you get one warning on the Heating device and in the timeline. The app doesn't drop a
+minutes, you get one warning on the Heating device and in the Timeline. The app doesn't drop a
 room from the average on its own. Homey's availability status depends on the sensor's app. It
 doesn't guarantee that a battery sensor is still reporting.
 
@@ -347,8 +347,8 @@ difference. Two common reasons it doesn't:
 - **Operating mode is Auto.** The immersion heater tick box in menu 4.1 on your heat pump,
   **Allow immersion heater** in the app, only applies in **Manual** mode. In Auto your heat pump
   decides for itself and ignores the setting. You can change the mode from the Main device.
-- **A schedule blocks it.** Each schedule mode has a **"Block additional heat"** switch that
-  covers heating and hot water alike. It can't be read over Modbus, so the app can't show it.
+- **A schedule blocks it.** Each schedule mode has a switch that blocks the immersion heater, for
+  heating and hot water alike. It can't be read over Modbus, so the app can't show it.
 
 On an S1155, five boosts in a row stopped at 53–59 °C with the immersion heater drawing 0 W. First
 a schedule had blocked it for a year, then Auto mode ignored the setting. With both fixed and the

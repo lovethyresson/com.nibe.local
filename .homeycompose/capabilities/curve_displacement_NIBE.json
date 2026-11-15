@@ -1,11 +1,11 @@
 {
   "title": {
-    "en": "Heat curve offset",
-    "sv": "Ställ in kurvförskjutning",
+    "en": "Curve offset",
+    "sv": "Kurvförskjutning",
     "de": "Parallelverschiebung",
     "nl": "Verschuiving stooklijn",
-    "no": "Varmeforskyvning",
-    "da": "Varmeforskydning"
+    "no": "Kurveforskyvning",
+    "da": "Kurveforskydning"
   },
   "type": "enum",
   "values": [

@@ -10,7 +10,7 @@ import type {LocalizedText, ReasonConfig, ReasonContext, ReasonState} from '../.
 //     the calculated supply temperature and the actual one. DM falls while the house is under-
 //     heated; when it reaches the start threshold (97, typically -60) the compressor starts,
 //     and heating ends when DM climbs back to 0. A further difference below that (679) brings
-//     in the electric addition.
+//     in the immersion heater.
 //   * Hot water starts when the charge sensor BT6 (9) drops to the start temperature for the
 //     active demand mode (56 → 60/59/58) and stops at that mode's stop temperature (64/63/62).
 //   * Pool works the same way against its own start/stop pair (687/689).
@@ -28,7 +28,7 @@ const HW_LIMITS: Record<number, {start: string; stop: string; mode: LocalizedTex
     1: {start: 'hwStartMedium', stop: 'hwStopMedium', mode: {en: 'Medium', sv: 'Medel'}},
     2: {start: 'hwStartLarge',  stop: 'hwStopLarge',  mode: {en: 'Large',  sv: 'Stort'}},
     // "Smart control" learns the household's pattern; it charges to the medium band.
-    4: {start: 'hwStartMedium', stop: 'hwStopMedium', mode: {en: 'Smart control', sv: 'Smart styrning'}}
+    4: {start: 'hwStartMedium', stop: 'hwStopMedium', mode: {en: 'Smart control', sv: 'Smart control'}}
 };
 
 // What started the hot water charge that is running, recorded when the pump enters hot water and
@@ -98,7 +98,7 @@ export const sReason: ReasonConfig = {
         addSteps:        {address: 1029, direction: Dir.In},
         stopHeatingOut:  {address:  184, direction: Dir.Out, scale: 10},
         // 184's own info string calls it out: the outdoor cut-off is an *auto-mode* rule
-        // (0 = Auto, 1 = Manual, 2 = Add. heat only — see registers.ts). Needed so the
+        // (0 = Auto, 1 = Manual, 2 = Immersion heater only — see registers.ts). Needed so the
         // "heating stays off" qualifier below doesn't cite a rule that isn't in effect.
         operatingMode:   {address:  237, direction: Dir.Out},
         // Hot water: the charge sensor, the demand mode, and that mode's start/stop pair.
@@ -367,7 +367,7 @@ function finished(role: string): LocalizedText {
 }
 
 // A second sentence, only when something is actively overriding the normal logic: the outdoor
-// heating cut-off, the electric addition, or an SG Ready price signal. Nothing otherwise —
+// heating cut-off, the immersion heater, or an SG Ready price signal. Nothing otherwise —
 // silence is better than filler.
 function qualifier(role: string, previousRole: string | undefined,
                    v: ReasonContext['v']): LocalizedText | undefined {
@@ -396,17 +396,17 @@ function qualifier(role: string, previousRole: string | undefined,
         const addDiff = v('dmAddDiff');
         if (steps > 0)
             return dmStart !== undefined && addDiff !== undefined
-                ? {en: `The compressor alone was not keeping up, so the electric addition has joined in `
+                ? {en: `The compressor alone was not keeping up, so the immersion heater has joined in `
                       + `at ${steps} step${steps === 1 ? '' : 's'} (it cuts in at ${dm(dmStart - addDiff)}).`,
-                   sv: `Kompressorn ensam räckte inte till, så eltillsatsen har gått in med ${steps} steg `
+                   sv: `Kompressorn ensam räckte inte till, så elpatronen har gått in med ${steps} steg `
                       + `(den kopplar in vid ${dm(dmStart - addDiff)}).`}
-                : {en: `The electric addition is running at ${steps} step${steps === 1 ? '' : 's'}.`,
-                   sv: `Eltillsatsen går med ${steps} steg.`};
+                : {en: `The immersion heater is running at ${steps} step${steps === 1 ? '' : 's'}.`,
+                   sv: `Elpatronen går med ${steps} steg.`};
         if (dmValue !== undefined && dmStart !== undefined && addDiff !== undefined
             && dmValue <= dmStart - addDiff)
             return {
-                en: `Degree minutes are past ${dm(dmStart - addDiff)}, so the electric addition may cut in.`,
-                sv: `Gradminuterna är förbi ${dm(dmStart - addDiff)}, så eltillsatsen kan koppla in.`
+                en: `Degree minutes are past ${dm(dmStart - addDiff)}, so the immersion heater may cut in.`,
+                sv: `Gradminuterna är förbi ${dm(dmStart - addDiff)}, så elpatronen kan koppla in.`
             };
     }
 

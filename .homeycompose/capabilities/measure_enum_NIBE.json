@@ -2,11 +2,11 @@
   "type": "string",
   "title": {
     "en": "Status",
-    "de": "Modus",
-    "nl": "Stand",
-    "no": "Modus",
-    "da": "Indstilling",
-    "sv": "Läge"
+    "de": "Status",
+    "nl": "Status",
+    "no": "Status",
+    "da": "Status",
+    "sv": "Status"
   },
   "uiComponent": "sensor",
   "getable": true,

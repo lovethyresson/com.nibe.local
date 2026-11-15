@@ -120,7 +120,7 @@ test('picker Flow cards offer the capability\'s own values, translated, and writ
     const demand = get('action:hotwater_demand_NIBE.h56_hotwater_demand_mode.enum');
     const choices = await demand.autocomplete('');
     assert.deepEqual(choices.map((c: any) => c.id), ['0', '1', '2', '4']);
-    assert.equal(choices[0].name, '0 = Klein', 'Dutch title from the manifest');
+    assert.equal(choices[0].name, 'Klein', 'Dutch title from the manifest');
     const writes: [string, any][] = [];
     await demand.run({device: {getName: () => 'Pump', writeRegister: async (r: Register, v: any) => { writes.push([r.name, v]); }},
         mode: choices[3]});

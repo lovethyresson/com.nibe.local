@@ -13,7 +13,7 @@ import {
     HOTWATER_TANK_CAPABILITIES, HOTWATER_VOLUME_CAPABILITY, METER_CAPABILITY, possibleExtraCapabilities,
     Role, TOTAL_COP_CAPABILITY, allRoles, energyTitle, extraCapabilities, extraCapabilityOptions,
     extraCapabilitySupport, functionRoles, powerTitle, registersForRole, roleClass, roleGroups, deviceClass, roomThermostatActive,
-    roleNames, roleOf, roleRegisters, autopilotInputs, hiddenBySmartMode, capabilitySyncPlan, AUTOPILOT_HEATING_CAPABILITIES,
+    roleNames, RoleNameLanguage, roleOf, roleRegisters, autopilotInputs, hiddenBySmartMode, capabilitySyncPlan, AUTOPILOT_HEATING_CAPABILITIES,
     AUTOPILOT_HOTWATER_CAPABILITIES, DAY_TYPE_CAPABILITY, changeReason
 } from './roles';
 import type {ModelProfile} from './profile';
@@ -1037,7 +1037,7 @@ export abstract class NibePumpDriver extends Driver {
             : caps;
         this.logCapabilityMapping(role, orderedCaps, selection, samples);
         return {
-            name: roleNames[role][language as 'en' | 'sv'] || roleNames[role].en,
+            name: roleNames[role][language as RoleNameLanguage] || roleNames[role].en,
             class: deviceClass(this.profile, role, selection),
             data: {id: `${ip}#${role}`, role},
             settings,
@@ -1183,7 +1183,7 @@ export abstract class NibePumpDriver extends Driver {
             .filter((role) => !paired.has(`${ip}#${role}`))
             .map((role) => ({
                 role,
-                name: roleNames[role][this.homey.i18n.getLanguage() as 'en' | 'sv'] || roleNames[role].en,
+                name: roleNames[role][this.homey.i18n.getLanguage() as RoleNameLanguage] || roleNames[role].en,
                 description: this.roleDescription(role),
                 detected: role === 'main'
                     ? true

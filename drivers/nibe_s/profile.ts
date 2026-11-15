@@ -357,7 +357,7 @@ export const sProfile = makeProfile({
                 decimals: 1, min: 10, max: 35, step: 0.5, insights: true,
                 title: {en: "Pool target temperature", sv: "Börvärde pooltemperatur",
                         de: "Pool-Solltemperatur", nl: "Streefwaarde zwembadtemperatuur",
-                        no: "Settpunkt bassengtemperatur", da: "Settpunkt pooltemperatur"}
+                        no: "Settpunkt bassengtemperatur", da: "Ønsket pooltemperatur"}
             },
             validate: (value, read) => {
                 const start = read("target_temperature.h687_pool_start");

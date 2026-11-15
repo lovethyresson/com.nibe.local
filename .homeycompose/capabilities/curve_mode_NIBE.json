@@ -1,11 +1,11 @@
 {
   "title": {
-    "en": "Heat curve",
-    "sv": "Ställ in värmekurva",
-    "de": "Heizkurve einstellen",
-    "nl": "Stooklijn instellen",
-    "no": "Still inn varmekurve",
-    "da": "Indstil varmekurve"
+    "en": "Heating curve",
+    "sv": "Värmekurva",
+    "de": "Heizkurve",
+    "nl": "Stooklijn",
+    "no": "Varmekurve",
+    "da": "Varmekurve"
   },
   "type": "enum",
   "values": [

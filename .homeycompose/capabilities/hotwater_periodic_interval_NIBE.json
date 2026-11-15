@@ -1,11 +1,11 @@
 {
   "title": {
     "en": "Periodic hot water interval",
-    "sv": "Ställ in intervall periodiskt varmvatten",
-    "de": "Intervall periodische Erhöhung einstellen",
-    "nl": "Interval periodiek warmtapwater instellen",
-    "no": "Still inn intervall periodisk varmtvann",
-    "da": "Indstil interval periodisk varmtvand"
+    "sv": "Intervall periodiskt varmvatten",
+    "de": "Intervall periodische Erhöhung",
+    "nl": "Interval periodiek warm water",
+    "no": "Intervall periodisk varmtvann",
+    "da": "Interval for periodisk varmt vand"
   },
   "type": "enum",
   "values": [
@@ -13,44 +13,44 @@
       "id": "7",
       "title": {
         "en": "7 days",
-        "sv": "7 = Dagar",
-        "de": "7 = Tage",
-        "nl": "7 = dagen",
-        "no": "7 = dager",
-        "da": "7 = dage"
+        "sv": "7 dagar",
+        "de": "7 Tage",
+        "nl": "7 dagen",
+        "no": "7 dager",
+        "da": "7 dage"
       }
     },
     {
       "id": "14",
       "title": {
         "en": "14 days",
-        "sv": "14 = Dagar",
-        "de": "14 = Tage",
-        "nl": "14 = dagen",
-        "no": "14 = dager",
-        "da": "14 = dage"
+        "sv": "14 dagar",
+        "de": "14 Tage",
+        "nl": "14 dagen",
+        "no": "14 dager",
+        "da": "14 dage"
       }
     },
     {
       "id": "21",
       "title": {
         "en": "21 days",
-        "sv": "21 = Dagar",
-        "de": "21 = Tage",
-        "nl": "21 = dagen",
-        "no": "21 = dager",
-        "da": "21 = dage"
+        "sv": "21 dagar",
+        "de": "21 Tage",
+        "nl": "21 dagen",
+        "no": "21 dager",
+        "da": "21 dage"
       }
     },
     {
       "id": "28",
       "title": {
         "en": "28 days",
-        "sv": "28 = Dagar",
-        "de": "28 = Tage",
-        "nl": "28 = dagen",
-        "no": "28 = dager",
-        "da": "28 = dage"
+        "sv": "28 dagar",
+        "de": "28 Tage",
+        "nl": "28 dagen",
+        "no": "28 dager",
+        "da": "28 dage"
       }
     }
   ],

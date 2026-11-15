@@ -24,11 +24,11 @@ export const CURRENT_ANNOUNCEMENT: Announcement | null = {
             ],
             "text": {
                 "en": "Your Heating thermostat can now show a NIBE wireless room sensor. On heat pumps with several zones, you choose which zone it sets. Run Repair on your Nibe Heating device to set it up.",
-                "sv": "Termostaten på Värme kan nu följa en trådlös NIBE-rumsgivare, och på värmepumpar med flera zoner väljer du vilken zon den ställer in. Kör Reparera på din Nibe Värme-enhet för att ställa in det.",
-                "de": "Der Thermostat von Heizung kann jetzt einem NIBE-Funk-Raumfühler folgen, und bei Wärmepumpen mit mehreren Zonen wählst du, welche Zone er einstellt. Führe Reparieren auf deinem Nibe-Heizungsgerät aus, um es einzurichten.",
-                "nl": "De thermostaat van Verwarming kan nu één draadloze NIBE-ruimtesensor volgen, en op warmtepompen met meerdere zones kies je welke zone hij instelt. Voer Repareren uit op je Nibe Verwarming-apparaat om het in te stellen.",
-                "no": "Termostaten på Varme kan nå følge én trådløs NIBE-romføler, og på varmepumper med flere soner velger du hvilken sone den stiller inn. Kjør Reparer på Nibe Varme-enheten din for å sette det opp.",
-                "da": "Termostaten på Varme kan nu følge én trådløs NIBE-rumføler, og på varmepumper med flere zoner vælger du, hvilken zone den indstiller. Kør Reparer på din Nibe Varme-enhed for at sætte det op."
+                "sv": "Termostaten på Värme kan nu visa en trådlös NIBE-rumsgivare. På värmepumpar med flera zoner väljer du vilken zon den ställer in. Kör Reparera på din Nibe Värme-enhet för att ställa in det.",
+                "de": "Der Thermostat von Heizung kann jetzt einen NIBE-Funk-Raumfühler anzeigen. Bei Wärmepumpen mit mehreren Zonen wählen Sie, welche Zone er einstellt. Führen Sie Reparieren am Gerät Heizung aus, um es einzurichten.",
+                "nl": "De thermostaat van Verwarming kan nu een draadloze NIBE-ruimtesensor tonen. Op warmtepompen met meerdere zones kies je welke zone hij instelt. Voer Repareren uit op het apparaat Nibe Verwarming om het in te stellen.",
+                "no": "Termostaten på Oppvarming kan nå vise en trådløs NIBE-romføler. På varmepumper med flere soner velger du hvilken sone den stiller inn. Kjør Reparer på enheten Oppvarming for å sette det opp.",
+                "da": "Termostaten på Opvarmning kan nu vise en trådløs NIBE-rumføler. På varmepumper med flere zoner vælger du, hvilken zone den indstiller. Kør Reparer på enheden Nibe Opvarmning for at sætte det op."
             }
         }
     ]

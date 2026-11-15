@@ -768,9 +768,9 @@ test('reason: heating start cites degree minutes against the start threshold', (
     assert.match(reason!.sv, /34,2 °C mot beräknade 35,1 °C/);
 });
 
-test('reason: heating with the electric addition running says so, and where it cuts in', () => {
+test('reason: heating with the immersion heater running says so, and where it cuts in', () => {
     const reason = why('heating', 'main', {dm: -470, addSteps: 2});
-    assert.match(reason!.en, /electric addition has joined in at 2 steps/);
+    assert.match(reason!.en, /immersion heater has joined in at 2 steps/);
     assert.match(reason!.en, /cuts in at -460/);          // dmStart (-60) - dmAddDiff (400)
 });
 
@@ -1293,11 +1293,14 @@ test('immersion heater wording is used consistently, and not on the master permi
     const options = sProfile.compose.capabilitiesOptions as Record<string, any>;
     const en = (name: string) => options[name]?.title?.en ?? '';
     const sv = (name: string) => options[name]?.title?.sv ?? '';
+    const all = (name: string) => Object.values(options[name]?.title ?? {}).join(' ');
 
-    // Nibe's own "additional heat" / "tillsatsvärme" wording is what users found confusing.
+    // Nibe's own "additional heat" / "tillsatsvärme" wording is what users found confusing. The
+    // electric backup is the immersion heater in every language, even where NIBE's display says
+    // otherwise (maintainer, 2026-11-15).
     for (const [name] of Object.entries(options))
-        assert.ok(!/addition|additive|tillsats/i.test(`${en(name)} ${sv(name)}`),
-            `${name} still uses additional-heat wording: "${en(name)}" / "${sv(name)}"`);
+        assert.ok(!/addition|additive|tillsats|bijverw|zusatzheiz|tilleggsvarme|till\.varme|tilskud/i.test(all(name)),
+            `${name} still uses additional-heat wording: "${all(name)}"`);
 
     // 181 and 195 are the master permits — Nibe calls them "Permit heating" and "Hot water
     // permitted". Relabelling either as an immersion-heater switch would sit it next to the

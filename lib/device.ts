@@ -532,7 +532,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             if (typeof sensor !== 'number' || sensor < 5 || sensor > 40)
                 throw new Error('Room temperature control requires a working indoor sensor.');
             if (register.name === room.target && await this.readRegister(this.profile.registerByName[room.enabled]) !== true)
-                throw new Error('Room-sensor control is off. Adjust the heat curve instead.');
+                throw new Error('Room-sensor control is off. Adjust the heating curve instead.');
         }
         const requirement = this.profile.writeRequirements?.[register.name];
         if (requirement && !requirement.values.includes(Number(await this.readRegister(this.profile.registerByName[requirement.register]))))

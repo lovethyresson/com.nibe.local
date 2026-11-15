@@ -4,9 +4,9 @@
     "en": "Operating mode",
     "sv": "Driftläge",
     "de": "Betriebsmodus",
-    "nl": "Bedrijfsmodus",
-    "no": "Driftsmodus",
-    "da": "Driftstilstand"
+    "nl": "Bedrijfsstand",
+    "no": "Driftsstilling",
+    "da": "Driftsindstilling"
   },
   "uiComponent": "picker",
   "getable": true,
@@ -39,11 +39,11 @@
       "id": "2",
       "title": {
         "en": "Immersion heater only",
-        "sv": "Endast tillsats",
-        "de": "Nur Zusatzheizung",
-        "nl": "Alleen bijverwarming",
-        "no": "Kun tilleggsvarme",
-        "da": "Kun tilskudsvarme"
+        "sv": "Endast elpatron",
+        "de": "Nur Elektroheizpatrone",
+        "nl": "Alleen elektrisch element",
+        "no": "Bare elkolbe",
+        "da": "Kun elpatron"
       }
     }
   ],

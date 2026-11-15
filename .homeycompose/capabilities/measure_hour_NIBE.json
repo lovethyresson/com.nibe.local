@@ -2,11 +2,11 @@
   "type": "number",
   "title": {
     "en": "Runtime",
-    "de": "Stunden",
-    "nl": "Uren",
-    "no": "Timer",
-    "da": "Timer",
-    "sv": "Timmar"
+    "de": "Laufzeit",
+    "nl": "Bedrijfstijd",
+    "no": "Driftstid",
+    "da": "Driftstid",
+    "sv": "Drifttid"
   },
   "uiComponent": "sensor",
   "getable": true,

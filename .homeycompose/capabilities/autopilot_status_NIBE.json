@@ -24,11 +24,11 @@
       "id": "holding",
       "title": {
         "en": "Holding",
-        "sv": "Håller",
-        "de": "Hält",
-        "nl": "Houdt vast",
+        "sv": "Avvaktar",
+        "de": "Konstant",
+        "nl": "Wacht af",
         "no": "Holder",
-        "da": "Holder"
+        "da": "Holder stille"
       }
     },
     {

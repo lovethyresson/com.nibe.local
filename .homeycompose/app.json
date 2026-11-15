@@ -7,15 +7,18 @@
     "local"
   ],
   "name": {
-    "en": "Nibe Live"
+    "en": "Nibe Live",
+    "nl": "Nibe Live",
+    "no": "Nibe Live",
+    "da": "Nibe Live"
   },
   "description": {
     "en": "Local control of your NIBE heat pump, with a device for each function",
-    "sv": "Lokal styrning av Nibe, uppdelad i de enheter du faktiskt automatiserar",
-    "de": "Lokale NIBE-Steuerung, aufgeteilt in die Geräte, die Sie wirklich automatisieren",
-    "nl": "Lokale NIBE-bediening, opgesplitst in de apparaten die je echt automatiseert",
-    "no": "Lokal styring av Nibe, delt opp i enhetene du faktisk automatiserer",
-    "da": "Lokal styring af Nibe, opdelt i de enheder du faktisk automatiserer"
+    "sv": "Lokal styrning av din NIBE-värmepump, med en enhet för varje funktion",
+    "de": "Lokale Steuerung Ihrer NIBE-Wärmepumpe, mit einem Gerät für jede Funktion",
+    "nl": "Lokale bediening van je NIBE-warmtepomp, met een apparaat per functie",
+    "no": "Lokal styring av NIBE-varmepumpen din, med en enhet for hver funksjon",
+    "da": "Lokal styring af din NIBE-varmepumpe med en enhed til hver funktion"
   },
   "category": [
     "climate"

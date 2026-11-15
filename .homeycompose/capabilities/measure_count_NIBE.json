@@ -3,10 +3,10 @@
   "title": {
     "en": "Count",
     "de": "Zähler",
-    "nl": "Teller",
-    "no": "Teller",
-    "da": "Tæller",
-    "sv": "Räknare"
+    "nl": "Aantal",
+    "no": "Antall",
+    "da": "Antal",
+    "sv": "Antal"
   },
   "uiComponent": "sensor",
   "getable": true,

@@ -13,11 +13,11 @@
   "setable": false,
   "units": {
     "en": "L",
-    "sv": "l",
+    "sv": "L",
     "de": "l",
-    "nl": "l",
-    "no": "l",
-    "da": "l"
+    "nl": "L",
+    "no": "L",
+    "da": "L"
   },
   "decimals": 1,
   "insights": true,

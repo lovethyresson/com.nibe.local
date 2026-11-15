@@ -235,7 +235,7 @@
       "write_failed": "Autopilot couldn't start a charge. Your heat pump said: __error__",
       "blocked": {
         "hot_water_off": "Autopilot is waiting. Hot water is turned off on your heat pump.",
-        "spa": "Autopilot is waiting. Turn off Smart price adaption for hot water on your heat pump.",
+        "spa": "Autopilot is waiting. Turn off Smart Price Adaption for hot water on your heat pump.",
         "smart_control": "Autopilot is waiting. Your heat pump's hot water demand is on Smart control. Set it to Small, Medium or Large."
       }
     },
@@ -278,9 +278,9 @@
       "warning": {
         "feed_failed": "Autopilot heating stopped. Your heat pump didn't accept the outdoor temperature (BT1). Check menu 7.5.9.2, then turn Autopilot on again in Heating → Repair.",
         "no_outdoor": "Autopilot heating paused: no outdoor temperature.",
-        "spa_on": "Autopilot heating paused: Smart price adaption is on for heating.",
+        "spa_on": "Autopilot heating paused: Smart Price Adaption is on for heating.",
         "room_control": "Autopilot heating paused: room-sensor control is on in your heat pump.",
-        "immersion_only": "Autopilot heating paused: your heat pump runs on the immersion heater only.",
+        "immersion_only": "Autopilot heating paused: your heat pump is set to Immersion heater only.",
         "no_model": "Autopilot heating is still learning your house.",
         "mode_off": "Autopilot heating is off.",
         "cooling": "Autopilot heating paused: your heat pump is cooling."
@@ -300,9 +300,9 @@
         "next_preheating": "Holding · pre-heating at __at__",
         "paused": {
           "no_outdoor": "Paused: no outdoor temperature",
-          "spa_on": "Paused: Smart price adaption is on for heating",
+          "spa_on": "Paused: Smart Price Adaption is on for heating",
           "room_control": "Paused: room-sensor control is on in your heat pump",
-          "immersion_only": "Paused: your heat pump runs on the immersion heater only",
+          "immersion_only": "Paused: your heat pump is set to Immersion heater only",
           "feed_failed": "Stopped. Your heat pump didn't accept the outdoor temperature (BT1)",
           "mode_off": "Off",
           "no_model": "Learning your house",
@@ -337,12 +337,12 @@
       "away_time_invalid": "Choose a date and a time for Away to end."
     },
     "smart": {
-      "no_spa": "Your heat pump has no Smart price adaption.",
+      "no_spa": "Your heat pump has no Smart Price Adaption.",
       "no_heating": "Add the Heating device first.",
       "verify_first": "Turn on Autopilot in Heating → Repair → Smart mode first. This checks that your heat pump accepts the outdoor temperature.",
       "spa_took_over": {
-        "heating": "Smart price adaption was turned on for heating, so Autopilot heating stopped.",
-        "hotwater": "Smart price adaption was turned on for hot water, so Autopilot hot water stopped."
+        "heating": "Smart Price Adaption was turned on for heating, so Autopilot heating stopped.",
+        "hotwater": "Smart Price Adaption was turned on for hot water, so Autopilot hot water stopped."
       },
       "soon": "Autopilot for this is coming soon.",
       "paired_failed": "Couldn't apply Smart mode from setup. Finish it in Repair. __reason__"
@@ -394,9 +394,9 @@
       "learning_day": "Day __day__ of __of__",
       "paused": {
         "no_outdoor": "Autopilot has no outdoor temperature. Pick a sensor in Smart mode, or use the forecast.",
-        "spa_on": "Smart price adaption is on for heating. Turn it off to enable Autopilot.",
+        "spa_on": "Smart Price Adaption is on for heating. Turn it off to enable Autopilot.",
         "room_control": "Room-sensor control is on in your heat pump. Turn it off to enable Autopilot.",
-        "immersion_only": "Your heat pump is running on the immersion heater only. Autopilot is paused.",
+        "immersion_only": "Your heat pump is set to Immersion heater only. Autopilot is paused.",
         "feed_failed": "Your heat pump didn't take the outdoor temperature (BT1). Check menu 7.5.9.2.",
         "cooling": "Your heat pump is cooling. Autopilot is paused."
       },

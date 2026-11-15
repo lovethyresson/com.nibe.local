@@ -22,10 +22,10 @@ export const fProfile = makeProfile({
     writeRequirements: {
         'boolean_NIBE.h47370_allow_addition': {register: 'operating_mode_NIBE.h47137_mode', values: [1],
             message: {en: 'Immersion permission applies only in Manual mode. Change operating mode explicitly first.',
-                sv: 'Tillsats kan ändras endast i manuellt läge. Ändra driftläge först.'}},
+                sv: 'Elpatronen kan ändras endast i manuellt läge. Ändra driftläge först.'}},
         'boolean_NIBE.h47371_allow_heating': {register: 'operating_mode_NIBE.h47137_mode', values: [1, 2],
-            message: {en: 'Heating permission applies only in Manual or addition-only mode. Adjust the curve in Auto mode.',
-                sv: 'Värme kan ändras endast i manuellt eller tillsatsläge. Justera kurvan i autoläge.'}}
+            message: {en: 'Heating permission applies only in Manual or Immersion heater only mode. Adjust the curve in Auto mode.',
+                sv: 'Värme kan ändras endast i manuellt läge eller Endast elpatron. Justera kurvan i autoläge.'}}
     },
     roomThermostat: {sensor: 'measure_temperature', enabled: 'boolean_NIBE.h47394_room_control',
         target: 'target_temperature.h47398_room_setpoint'},
