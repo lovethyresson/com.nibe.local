@@ -486,3 +486,12 @@ marker occurred twice, so the slice came out empty, and `replace('', new)` inser
 every character of `lib/device.ts`. Typecheck caught it and `git checkout` restored the file.
 **Rule:** every scripted edit asserts `old and s.count(old) == 1` before replacing, and a slice
 end is searched from the slice start (`s.index(marker, a)`).
+
+## 2026-11-15: the review itself was written in the voice it was reviewing
+
+The tone review followed `CLAUDE.md`, which asks for "a short two-part headline with full stops", so
+it missed the slogan headings on every help page. Its own summary also used bold lead-ins and "X, not
+Y" lines. The maintainer: "avoid the claude native tone of voice". **Rule:** before handing in any
+owner text, doc or report, check it against the AI-voice table in `docs/voice.md`. That covers slogan
+headings, number hooks, reassurance closers, the app talking about itself, hype words and contrast
+pairs. Agent-proposed copy gets the same check, since subagents write in that voice by default.
