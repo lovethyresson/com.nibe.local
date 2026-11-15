@@ -478,3 +478,11 @@ known limit in the docs; don't patch it with devices only some homes have.
   without `hy-nostyle` and styles every plain button. **Rule:** render pair/repair views with the
   Homey's own `/css/homey.css` + `homey.drivers.css` (fetched from the Homey, scratchpad
   `homeycss/`), opt our own controls out with `hy-nostyle`, and still ask for a phone check.
+
+## 2026-11-15: a scripted edit replaced an empty string and corrupted a 3 000-line file
+
+A Python `s.replace(old, new)` took `old` from a slice between two `index()` calls. The second
+marker occurred twice, so the slice came out empty, and `replace('', new)` inserted `new` between
+every character of `lib/device.ts`. Typecheck caught it and `git checkout` restored the file.
+**Rule:** every scripted edit asserts `old and s.count(old) == 1` before replacing, and a slice
+end is searched from the slice start (`s.index(marker, a)`).

@@ -20,9 +20,30 @@
       .ap-key.line { height: 3px; border-radius: 2px; vertical-align: 3px; }
       .ap-foot { margin: 8px 0 0; font-size: 0.8em; opacity: 0.75; }
       .ap-empty { opacity: 0.8; margin: 12px 0; }
+      /* Starting: the plan being drawn. A soft curve draws itself, charge pills light up in turn and
+         bars grow in, then it starts over. Everything rests, fully drawn, when motion is reduced. */
+      .skel { fill: currentColor; fill-opacity: 0.06; }
+      .ghost-line { fill: none; stroke: currentColor; stroke-opacity: 0.28; stroke-width: 2.2; stroke-linecap: round; }
+      .ghost-fill { fill: currentColor; fill-opacity: 0.05; }
+      .ghost-pill { fill: var(--ghost-accent, currentColor); fill-opacity: 0.55; }
+      .ghost-bar { fill: currentColor; fill-opacity: 0.1; }
+      .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--ghost-accent, currentColor); opacity: 0.6; margin-right: 8px; vertical-align: 3px; }
+      @media (prefers-reduced-motion: no-preference) {
+        .ghost-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: ghost-draw 4.2s cubic-bezier(.45, 0, .25, 1) infinite; }
+        .ghost-fill { animation: ghost-fade 4.2s ease-in-out infinite; }
+        .ghost-pill, .ghost-bar { transform-box: fill-box; transform-origin: left center; animation: ghost-grow 4.2s cubic-bezier(.3, 0, .2, 1) infinite both; }
+        .ghost-bar.up { transform-origin: center bottom; animation-name: ghost-rise; }
+        .pulse { animation: pulse 1.6s ease-in-out infinite; }
+      }
+      @keyframes ghost-draw { 0% { stroke-dashoffset: 1; opacity: 0; } 8% { opacity: 1; } 55% { stroke-dashoffset: 0; } 85% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+      @keyframes ghost-fade { 0%, 20% { opacity: 0; } 60%, 85% { opacity: 1; } 100% { opacity: 0; } }
+      @keyframes ghost-grow { 0%, 45% { transform: scaleX(0); opacity: 0; } 60%, 85% { transform: scaleX(1); opacity: 1; } 100% { opacity: 0; } }
+      @keyframes ghost-rise { 0%, 35% { transform: scaleY(0); opacity: 0; } 55%, 85% { transform: scaleY(1); opacity: 1; } 100% { opacity: 0; } }
+      @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.85; } }
+
       /* Light values meet 3:1 or better on white; dark values are the brighter originals. The theme is
          read from the text colour Homey gives the page (see applyTheme), with the media query as the start. */
-      :root { --ap-indoor: #c4580d; --ap-offset: #2d6bd6; --ap-solar: #d46a00; --ap-surplus: rgba(212, 106, 0, 0.18); --ap-grid: #2d6bd6;
+      :root { --ghost-accent: #2d6bd6; --ap-indoor: #c4580d; --ap-offset: #2d6bd6; --ap-solar: #d46a00; --ap-surplus: rgba(212, 106, 0, 0.18); --ap-grid: #2d6bd6;
         --ap-price-line: rgba(127, 127, 127, 0.9); --ap-price-top: rgba(127, 127, 127, 0.3); }
       :root[data-theme="dark"] { --ap-indoor: #e8833a; --ap-offset: #4da3ff; --ap-solar: #ff9f0a; --ap-surplus: rgba(255, 159, 10, 0.22); --ap-grid: #4da3ff; }
       @media (prefers-color-scheme: dark) {
@@ -130,6 +151,41 @@
         });
       }
 
+      // Starting: the plan being drawn, so the card keeps its size and shows what is coming.
+      // A typical day's price shape: low at night, a morning bump, the evening peak.
+      function dayShape(t) { return 0.42 + 0.16 * Math.exp(-Math.pow((t - 0.33) / 0.07, 2)) + 0.38 * Math.exp(-Math.pow((t - 0.72) / 0.1, 2)) - 0.12 * Math.exp(-Math.pow((t - 0.12) / 0.12, 2)); }
+      function ghostPath(x0, x1, y0, y1, f) {
+        var d = '';
+        for (var i = 0; i <= 60; i++) { var t = i / 60, x = x0 + (x1 - x0) * t, y = y1 - (y1 - y0) * f(t); d += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1); }
+        return d;
+      }
+      // Hot water: the price curve draws itself, then the cheap hours light up as charges, one by one.
+      function placeholder(height) {
+        var W = chartWidth(), H = height, T = 22, B = H - 26, svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'ap-chart', role: 'img'});
+        [T, (T + B) / 2, B].forEach(function (y) { svg.appendChild(svgEl('line', {x1: 0, x2: W, y1: y, y2: y, stroke: 'currentColor', 'stroke-opacity': 0.07})); });
+        var line = ghostPath(0, W, T, B, dayShape);
+        svg.appendChild(svgEl('path', {d: line + 'L' + W + ' ' + B + 'L0 ' + B + 'Z', class: 'ghost-fill'}));
+        svg.appendChild(svgEl('path', {d: line, class: 'ghost-line', pathLength: 1}));
+        // Charges at the cheap hours of that shape: the night, the midday dip.
+        [[0.06, 0.12, 0], [0.44, 0.07, 0.3], [0.9, 0.08, 0.6]].forEach(function (p) {
+          var pill = svgEl('rect', {x: W * p[0], y: B + 10, width: W * p[1], height: 8, rx: 4, class: 'ghost-pill'});
+          pill.style.animationDelay = p[2] + 's';
+          svg.appendChild(pill);
+        });
+        return svg;
+      }
+      // Heating: in the hours still to plan, the expected indoor line draws itself and shift bars rise.
+      function planning(svg, x0, x1, top, bottom) {
+        svg.appendChild(svgEl('path', {d: ghostPath(x0 + 6, x1, top + 10, bottom - 10, function (t) { return 0.55 + 0.12 * Math.sin(t * 5.5); }), class: 'ghost-line', pathLength: 1}));
+        var n = Math.max(3, Math.floor((x1 - x0) / 22)), step = (x1 - x0) / n, mid = (top + bottom) / 2;
+        for (var i = 0; i < n; i++) {
+          var h = (bottom - top) * (0.12 + 0.22 * Math.abs(Math.sin(i * 1.7))), up = i % 3 !== 1;
+          var bar = svgEl('rect', {x: x0 + i * step + step * 0.3, y: up ? mid - h : mid, width: step * 0.4, height: h, rx: 2, class: 'ghost-bar up'});
+          bar.style.animationDelay = (i * 0.08) + 's';
+          svg.appendChild(bar);
+        }
+      }
+
       // Heating: indoor °C on the left axis (measured solid, expected dashed), the
       // BT1 shift on the right axis as one solid bar an hour from 0, and a line at now.
       function heatingChart(data) {
@@ -168,6 +224,8 @@
         }
         var past = curve(0, data.now), ahead = curve(data.now - 1, n);
         if (past) svg.appendChild(svgEl('path', {d: past, fill: 'none', stroke: 'var(--ap-indoor)', 'stroke-width': 2.2, 'stroke-linecap': 'round'}));
+        // Starting: the hours still to plan hold a placeholder instead of an empty half.
+        if (data.loading) planning(svg, x(data.now), R, TOP, B);
         if (ahead) svg.appendChild(svgEl('path', {d: ahead, fill: 'none', stroke: 'var(--ap-indoor)', 'stroke-width': 2, 'stroke-dasharray': '4 4', 'stroke-linecap': 'round'}));
 
         svg.appendChild(svgEl('line', {x1: x(data.now), x2: x(data.now), y1: TOP - 8, y2: B, stroke: 'currentColor', 'stroke-opacity': 0.4}));
@@ -266,7 +324,9 @@
         if (data.empty) { root.appendChild(el('p', 'ap-empty', data.empty)); return; }
         if (data.status) {
           var status = el('p', 'ap-status');
-          status.appendChild(el('span', '', data.status));
+          var name = el('span', '', data.status);
+          if (data.loading) name.insertBefore(el('span', 'pulse'), name.firstChild);
+          status.appendChild(name);
           if (typeof data.indoorNow === 'number') {
             var now = el('span', 'ap-now-box');
             now.appendChild(el('span', 'ap-now', data.indoorNow.toFixed(1) + ' °C'));
@@ -284,6 +344,8 @@
             {text: data.legend.planned, line: true, style: 'background: repeating-linear-gradient(90deg, var(--ap-indoor) 0 4px, transparent 4px 7px);'},
             {text: data.legend.offset, style: 'background: var(--ap-offset);'},
           ]));
+        } else if (data.kind === 'hotwater' && data.loading) {
+          root.appendChild(placeholder(Math.max(100, Math.min(150, Math.round(chartWidth() * 0.33))) + 50));
         } else if (data.kind === 'hotwater' && data.slots.length) {
           root.appendChild(hotwaterChart(data));
           root.appendChild(legend([

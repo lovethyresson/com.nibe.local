@@ -23,6 +23,8 @@ export interface SavingsDay {
     mean: number;
     /** Share of the day's hours Autopilot ran live (0–1); missing where it is not known. */
     live?: number;
+    /** Hot water: litres of 40 °C water drawn that day, when the tank model knows the whole day. */
+    litres?: number;
     /** Hot water: each charge's place in the day's prices, 0 the cheapest hour and 1 the most
      *  expensive (the mean over its hours). */
     charges?: number[];
@@ -217,18 +219,24 @@ export interface SavingsData {
     detail?: string;
     /** Heating: before and with Autopilot, as the share of kWh in each third of the day's hours. */
     split?: SplitRow[];
-    /** Hot water: what a day's hot water cost, before and with Autopilot. */
-    perDay?: {title: string; before?: {label: string; value: string}; now?: {label: string; value: string; note?: string}};
+    /** Under `value`, quieter: the month the figure is for. */
+    valueNote?: string;
+    /** Hot water: what one shower cost, before and with Autopilot. */
+    shower?: {title: string; before?: {label: string; value: string}; now?: {label: string; value: string; note?: string}};
     /** Hot water: the last week's charges on their day's prices. */
     charges?: {title: string; days: ChargeDay[]; bands: [string, string, string]};
     legend?: Record<string, string>;
     footnote?: string;
     empty?: string;
+    /** The first read is running: the widget holds the chart's place. */
+    loading?: boolean;
 }
 
 /** Days the comparison and the charge chart look back over. */
 export const RECENT_DAYS = 14;
 export const CHARGE_DAYS = 7;
+/** Litres of 40 °C water in one shower: a long one, so the figure is not a rounding error. */
+export const SHOWER_LITRES = 80;
 
 /** What the widget is given besides the days. */
 export interface SavingsContext {
@@ -273,14 +281,17 @@ export function savingsData(title: string, days: SavingsDay[], t: Translate, c: 
         const week = days.slice(-CHARGE_DAYS).filter((d) => d.charges);
         if (week.length) pictures.charges = {title: t('charges_title'), days: week.map((d) => ({label: c.label(d.date), ranks: d.charges!})),
             bands: [t('band_cheap'), t('band_middle'), t('band_dear')]};
-        // A day's hot water with Autopilot, and the same days' kWh at the baseline's pattern.
-        const average = (list: SavingsDay[], extra: (d: SavingsDay) => number) =>
-            list.length ? list.reduce((s, d) => s + d.cost + extra(d), 0) / list.length : undefined;
-        const now = average(counted.length ? counted : recent, () => 0);
-        const was = counted.length && base.days ? average(counted, (d) => daySaving(d, base)) : undefined;
-        if (now !== undefined) pictures.perDay = {title: t('per_day_cost'),
-            before: was === undefined ? undefined : {label: t('row_before'), value: c.money(was)},
-            now: {label: counted.length ? t('row_with') : t('row_so_far'), value: c.money(now),
+        // A shower with Autopilot, and the same water at the baseline's pattern, at today's prices.
+        const shower = (list: SavingsDay[], extra: (d: SavingsDay) => number) => {
+            const known = list.filter((d) => (d.litres ?? 0) > 0);
+            const litres = known.reduce((s, d) => s + d.litres!, 0);
+            return litres > 0 ? known.reduce((s, d) => s + d.cost + extra(d), 0) / litres * SHOWER_LITRES : undefined;
+        };
+        const now = shower(counted.length ? counted : recent, () => 0);
+        const was = counted.length && base.days ? shower(counted, (d) => daySaving(d, base)) : undefined;
+        if (now !== undefined) pictures.shower = {title: t('shower', {litres: SHOWER_LITRES}),
+            before: was === undefined ? undefined : {label: t('row_before'), value: c.price(was)},
+            now: {label: counted.length ? t('row_with') : t('row_so_far'), value: c.price(now),
                 note: was === undefined ? undefined : signed(Math.round((now / was - 1) * 100)) + ' %'}};
     }
 
@@ -302,8 +313,9 @@ export function savingsData(title: string, days: SavingsDay[], t: Translate, c: 
     if (!sums.days) return {title, badge: c.badge, ...pictures, status: t('status_started'), reason: t('first_day'), detail: chargeLine(), footnote};
     return {
         title, badge: c.badge, ...pictures,
-        status: t(`status_month_${c.role}`, {month: c.month(c.today)}),
+        status: t(`status_${c.role}`),
         value: c.money(sums.month),
+        valueNote: c.month(c.today),
         tone: sums.month >= 0 ? 'good' : 'bad',
         reason: t('periods', {week: c.money(sums.week), year: c.money(sums.year)}),
         detail: chargeLine(),
@@ -370,4 +382,21 @@ export function firstLiveFrom(markAt: number, live: (at: number) => boolean | un
         if (markAt - at > 400 * 24 * HOUR) break;
     }
     return first;
+}
+
+/** Money as the owner writes it: the language's digits, and a currency written as letters after the
+ *  number ("2.79 kr", "2,79 kr."), whatever side the language's own format puts it. Symbols keep
+ *  their place ("€2.79", "2,79 €"). An unknown code is written after the number as it is. */
+export function moneyText(v: number, digits: number, language: string, currency: string): string {
+    const plain = (n: number) => new Intl.NumberFormat(language, {minimumFractionDigits: digits, maximumFractionDigits: digits}).format(n);
+    if (!/^[A-Z]{3}$/.test(currency)) return `${plain(v)} ${currency}`.trim();
+    try {
+        const parts = new Intl.NumberFormat(language, {style: 'currency', currency, currencyDisplay: 'narrowSymbol',
+            minimumFractionDigits: digits, maximumFractionDigits: digits}).formatToParts(v);
+        const symbol = parts.find((p) => p.type === 'currency')?.value ?? currency;
+        if (!/^[\p{L}.]+$/u.test(symbol)) return parts.map((p) => p.value).join('');
+        return `${plain(v)} ${symbol}`;
+    } catch {
+        return `${plain(v)} ${currency}`;
+    }
 }

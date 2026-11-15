@@ -2,10 +2,10 @@ import {CaptureSummary, logCaptureSummary} from './diagnostic-capture';
 import {IndoorConfig, averageSensors, cleanIndoorConfig, readOnlyIndoorConfig, selectedReadings, withApi} from './indoor-sensors';
 import {Controls, AutopilotCollector} from './autopilot/collector';
 import {newHistoryFileName} from './autopilot/store-file';
-import {Baseline, LEDGER_DAYS, ModeMark, SavingsData, SavingsDay, baselineOf, dayHours, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay} from './autopilot/savings';
+import {Baseline, LEDGER_DAYS, moneyText, ModeMark, SavingsData, SavingsDay, baselineOf, dayHours, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay} from './autopilot/savings';
 import {ChargeEvent, HotwaterAutopilot, HotwaterMode, ownDeviceId} from './autopilot/hotwater-shadow';
 import {FlowConflict, moreHotwaterFlows} from './autopilot/hotwater-flows';
-import {STARTER_DAYS, localClock, readHousehold} from './autopilot/hotwater-learner';
+import {KWH_PER_LITRE, STARTER_DAYS, localClock, readHousehold} from './autopilot/hotwater-learner';
 import {DAY_TYPE_SETTING, DEFAULT_DAY_TYPE, DayTypeState, dayTypeAt, readDayType, typeSet} from './autopilot/day-type';
 import {Sample} from './autopilot/history';
 import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, StopReason, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits, sunTrust, surplusPrices, withHotwater} from './autopilot/live';
@@ -65,6 +65,8 @@ const FIRST_LIVE_STORE = 'autopilotFirstLive';
 const BASELINE_STORE = 'autopilotSavingsBaseline';
 /** Days back the ledger is filled from: what Insights keeps hourly. */
 const SAVINGS_BACK_DAYS = 13;
+/** Seconds after the app starts during which missing prices or plans are still on their way. */
+const STARTING_SECONDS = 300;
 const HOUR_MS = 3_600_000;
 const DEFAULT_RESERVE_LITRES = 40;
 /** Pauses the Autopilot widget has an "what to do" line for (autopilot.widget.paused.*). */
@@ -1987,7 +1989,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const now = slot - day.from;
         if (this.role === 'hotwater') {
             const o = this.hotwaterAutopilot?.outlook(day.from, day.n);
-            if (!o) return {...base, kind: 'hotwater', chips, badge, empty: t('starting')};
+            // Right after a start the plan is still being made: say so, and hold the chart's place.
+            const starting = {...base, kind: 'hotwater' as const, chips, badge, test: mode === 'test', loading: true,
+                status: t('starting_title'), reason: t('starting_hotwater')};
+            if (!o) return starting;
             const reason = o.next ? this.homey.__(`autopilot.hotwater_charge.reason.${o.next.reason}`) : undefined;
             const solar = o.slots.some((s) => s.surplus !== undefined);
             const share = o.next ? Math.round(o.next.solar * 100) : 0;
@@ -1996,9 +2001,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             if (!this.solarAllowed()) chips.push(t('hotwater.solar_off'));
             else if (this.solarSurplus().forecastPaused) chips.push(t('hotwater.solar_paused'));
             const litres = o.litres === undefined ? undefined : t('hotwater.litres', {l: Math.round(o.litres)});
-            // No prices: say so, and draw nothing. The chart would be an empty frame.
+            // No prices: while starting, the prices are on their way. Later they are missing: say where to look.
             if (!o.slots.some((s) => s.price !== undefined))
-                return {...base, kind: 'hotwater', chips, badge, test: mode === 'test', status: t('hotwater.no_prices'), reason: litres};
+                return process.uptime() < STARTING_SECONDS ? {...starting, detail: litres}
+                    : {...base, kind: 'hotwater', chips, badge, test: mode === 'test', status: t('hotwater.no_prices'),
+                        reason: t('hotwater.no_prices_hint'), detail: litres};
             const start = slotStart(day.from);
             const when = o.next ? (dayOf(o.next.at) === dayOf(Date.now()) ? this.clock(o.next.at)
                 : t('hotwater.tomorrow', {time: this.clock(o.next.at)})) : '';
@@ -2040,6 +2047,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             : status === 'paused' && stopped && WIDGET_PAUSES.includes(stopped) ? t(`paused.${stopped}`)
                 : stored === undefined ? undefined : stripLead(stored, [testLead, statusName ?? '']);
         const aim = aimingFor(slots, now, this.heatingFeed?.state?.setpoint);
+        // Started, house learned, no plan yet: the forecast and prices are being read.
+        const waiting = stopped === 'no_model' && !!summary?.ready;
         const indoors = [...slots.flatMap((s) => (s.indoor === undefined ? [] : [s.indoor]))];
         const shifts = slots.flatMap((s) => (s.offset === undefined ? [] : [s.offset]));
         return {
@@ -2050,8 +2059,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     : niceAxis(19, 23, {steps: [0.5, 1, 2]}),
                 // The shift axis is symmetric, so 0 sits mid-height: bars read as above or below it.
                 right: symmetricAxis(shifts)},
-            status: statusName,
-            reason,
+            status: waiting ? t('starting_title') : statusName,
+            reason: waiting ? t('starting_heating') : reason,
+            loading: waiting || undefined,
             bars: shiftBars(slots),
             legend: {indoor: t('indoor'), planned: t('expected'), offset: t('offset')},
             axes: {left: t('axis_indoor'), right: t('axis_offset')},
@@ -2092,6 +2102,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     private savingsTimer?: NodeJS.Timeout;
     private savingsStopped = false;
+    /** A refresh has finished since the app started, whether or not it found days. */
+    private savingsReadOnce = false;
     /** Dates a refresh could not complete (a gap in the meter, no prices), and when. They are tried
      *  again once a day, so a day that never completes costs no hourly Homey API calls. */
     private savingsTried = new Map<string, number>();
@@ -2118,7 +2130,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.savingsTimer = this.homey.setTimeout(() => {
             this.refreshSavings()
                 .catch((error) => { this.log('Savings widget: refresh failed:', error?.message ?? error); return HOUR_MS; })
-                .then((next) => this.scheduleSavings(next));
+                .then((next) => { this.savingsReadOnce = true; this.scheduleSavings(next); });
         }, ms);
     }
 
@@ -2134,7 +2146,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const have = new Set(stored.map((d) => d.date));
         const wanted = Array.from({length: SAVINGS_BACK_DAYS}, (_, k) => localDate(now, timeZone, -(k + 1)))
             .filter((date) => !have.has(date) && date < today && now - (this.savingsTried.get(date) ?? 0) > 86_400_000);
-        if (!wanted.length) { await this.freezeBaseline(stored); return HOUR_MS; }
+        if (!wanted.length) {
+            const ledger = this.withLitres(stored);
+            if (ledger !== stored) await this.setStoreValue(SAVINGS_STORE, ledger);
+            await this.freezeBaseline(ledger);
+            return HOUR_MS;
+        }
         const appId = this.homey.manifest?.id ?? 'com.nibe.local';
         const marks: ModeMark[] = Array.isArray(this.getStoreValue(MODE_MARKS_STORE)) ? this.getStoreValue(MODE_MARKS_STORE) : [];
         const result = await withApi(this.homey, async (api) => {
@@ -2194,10 +2211,20 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             return days;
         });
         if (!result) return 6 * HOUR_MS;
-        const ledger = result.length ? mergeDays(stored, result) : stored;
-        if (result.length && !this.savingsStopped) await this.setStoreValue(SAVINGS_STORE, ledger);
+        const merged = result.length ? mergeDays(stored, result) : stored;
+        const ledger = this.withLitres(merged);
+        if ((result.length || ledger !== merged) && !this.savingsStopped) await this.setStoreValue(SAVINGS_STORE, ledger);
         if (!this.savingsStopped) await this.freezeBaseline(ledger);
         return HOUR_MS;
+    }
+
+    /** Hot water: the litres drawn each day, from the tank model, on the days that lack them. The
+     *  same array back when nothing was added. */
+    private withLitres(days: SavingsDay[]): SavingsDay[] {
+        const drawn = new Map((this.hotwaterAutopilot?.usage()?.recent ?? []).filter((d) => !d.partial && !d.away && d.draw > 0)
+            .map((d) => [d.date, Math.round(d.draw / KWH_PER_LITRE)]));
+        if (!drawn.size || !days.some((d) => d.litres === undefined && drawn.has(d.date))) return days;
+        return days.map((d) => (d.litres === undefined && drawn.has(d.date) ? {...d, litres: drawn.get(d.date)} : d));
     }
 
     /** Fix the baseline once Autopilot has run live and the days before it are in the ledger. With
@@ -2216,15 +2243,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const title = this.getName();
         if (this.role !== 'heating' && this.role !== 'hotwater') return {title, empty: t('pick')};
         const days: SavingsDay[] = Array.isArray(this.getStoreValue(SAVINGS_STORE)) ? this.getStoreValue(SAVINGS_STORE) : [];
+        // The first read of the last two weeks is still running: say so, and hold the chart's place.
+        if (!days.length && !this.savingsReadOnce) return {title, badge: this.homey.__('autopilot.widget.experimental'),
+            status: this.homey.__('autopilot.widget.starting_title'), reason: t('loading'), loading: true};
         const timeZone = this.homey.clock.getTimezone();
         const language = this.homey.i18n.getLanguage();
         const currency = String(this.getStoreValue(SAVINGS_CURRENCY_STORE) ?? '');
-        const amount = (v: number, digits: number) => {
-            try {
-                if (/^[A-Z]{3}$/.test(currency)) return new Intl.NumberFormat(language, {style: 'currency', currency, minimumFractionDigits: digits, maximumFractionDigits: digits}).format(v);
-            } catch { /* an unknown currency code: the plain number below */ }
-            return `${new Intl.NumberFormat(language, {minimumFractionDigits: digits, maximumFractionDigits: digits}).format(v)} ${currency}`.trim();
-        };
+        const amount = (v: number, digits: number) => moneyText(v, digits, language, currency);
         const firstLive = this.getStoreValue(FIRST_LIVE_STORE);
         const baseline = this.getStoreValue(BASELINE_STORE) as Baseline | null;
         const dayLabel = new Intl.DateTimeFormat(language, {weekday: 'short', timeZone: 'UTC'});

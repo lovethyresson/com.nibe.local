@@ -628,7 +628,6 @@
       "off": "Autopilot staat uit. Zet hem aan via Repareren → Slimme modus.",
       "not_function": "Kies een verwarmings- of warmwaterapparaat.",
       "test": "Simulatie",
-      "starting": "Bezig met starten…",
       "charge": "Opwarmen",
       "away": "Afwezig · __c__ °C",
       "range": {
@@ -650,7 +649,8 @@
         "tomorrow": "morgen __time__",
         "no_prices": "Wacht op stroomprijzen",
         "band": "__from__ tot __to__",
-        "about": "Ongeveer __duration__"
+        "about": "Ongeveer __duration__",
+        "no_prices_hint": "Controleer of Homey Energie dynamische stroomprijzen gebruikt."
       },
       "indoor": "Binnen",
       "expected": "Verwacht",
@@ -674,7 +674,10 @@
         "feed_failed": "Je warmtepomp nam de buitentemperatuur (BT1) niet over. Controleer menu 7.5.9.2.",
         "cooling": "Je warmtepomp koelt. Autopilot wacht."
       },
-      "error": "Kon Autopilot niet laden. Over een minuut probeer ik het opnieuw."
+      "error": "Kon Autopilot niet laden. Over een minuut probeer ik het opnieuw.",
+      "starting_title": "Opstarten",
+      "starting_heating": "De voorspelling en stroomprijzen worden gelezen. Duurt ongeveer een minuut.",
+      "starting_hotwater": "De stroomprijzen en de boiler worden gelezen. Duurt ongeveer een minuut."
     },
     "hotwater_status": {
       "learning": "Leert je warmwatergebruik kennen",
@@ -728,9 +731,10 @@
       "band_cheap": "Goedkoop",
       "band_middle": "Midden",
       "band_dear": "Duur",
-      "status_month_heating": "Bespaard op verwarming in __month__",
-      "status_month_hotwater": "Bespaard op warm water in __month__",
-      "per_day_cost": "Warm water per dag"
+      "status_heating": "Besparing verwarming",
+      "status_hotwater": "Besparing warm water",
+      "shower": "Per douche (__litres__ L)",
+      "loading": "De afgelopen twee weken worden uit Inzichten gelezen. Duurt een paar minuten."
     }
   }
 }

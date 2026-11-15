@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {SavingsDay, baselineOf, dayHours, daySaving, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, periodSavings, savingsData, savingsDay, totals} from '../lib/autopilot/savings';
+import {SavingsDay, moneyText, baselineOf, dayHours, daySaving, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, periodSavings, savingsData, savingsDay, totals} from '../lib/autopilot/savings';
 import {localDate} from '../lib/autopilot/prices';
 
 const HOUR = 3_600_000;
@@ -118,7 +118,8 @@ test('savings add up over the last 7 days, the month and the year, from the day 
 
 test('the widget shows money saved this month, the other periods and the shift against before', () => {
     const d = savingsData('Heating', [...before, ...after], translator('en'), ctx({firstLiveDate: '2026-11-14', baseline: baselineOf(before, '2026-11-14')}));
-    assert.equal(d.status, 'Saved on heating in November');
+    assert.equal(d.status, 'Heating savings');
+    assert.equal(d.valueNote, 'November');
     assert.equal(d.value, '12 kr');
     assert.equal(d.tone, 'good');
     assert.equal(d.reason, 'Last 7 days 12 kr · this year 12 kr');
@@ -192,23 +193,32 @@ test('hot water: charges are runs of charging hours, placed at their hours\' pri
     assert.ok(d.charges![1] > 2 / 3, `the 17:00 charge in the most expensive third, at ${d.charges![1]}`);
 });
 
-test('hot water: what a day cost before and with Autopilot, and how many charges hit cheap hours', () => {
+test('hot water: what a shower cost before and with Autopilot, and how many charges hit cheap hours', () => {
     const b = baselineOf(before, '2026-11-14')!;
-    const withCharges = after.map((d, i) => ({...d, charges: i === 0 ? [0.1, 0.9] : [0.05]}));
-    const d = savingsData('Hot water', [...before, ...withCharges], translator('en'),
+    const withWater = after.map((d, i) => ({...d, litres: 200, charges: i === 0 ? [0.1, 0.9] : [0.05]}));
+    const d = savingsData('Hot water', [...before, ...withWater], translator('en'),
         ctx({role: 'hotwater', firstLiveDate: '2026-11-14', baseline: b}));
     assert.equal(d.split, undefined);
-    assert.equal(d.perDay!.title, 'Hot water per day');
-    assert.equal(d.perDay!.now!.value, '12 kr');
-    assert.equal(d.perDay!.before!.value, '16 kr', 'the same kWh at the old pattern');
-    assert.equal(d.perDay!.now!.note, '\u221225 %');
+    assert.equal(d.shower!.title, 'Per shower (80 L)');
+    assert.equal(d.shower!.now!.value, '4.80 kr', '12 kr for 200 L: 4.80 kr per 80 L');
+    assert.equal(d.shower!.before!.value, '6.40 kr', 'the same water at the old pattern: 16 kr');
+    assert.equal(d.shower!.now!.note, '\u221225 %');
     assert.equal(d.detail, '3 of 4 charges in the cheapest hours this week');
     assert.equal(d.charges!.days.length, 3, 'only days with charge data: the days before carry none');
 });
-test('hot water says the month\'s total is for all hot water, and the tiles are per day', () => {
+test('hot water names the total and the month, and the tiles are per shower', () => {
     const b = baselineOf(before, '2026-11-14')!;
-    const d = savingsData('Hot water', [...before, ...after], translator('en'),
+    const d = savingsData('Hot water', [...before, ...after.map((x) => ({...x, litres: 200}))], translator('en'),
         ctx({role: 'hotwater', firstLiveDate: '2026-11-14', baseline: b}));
-    assert.equal(d.status, 'Saved on hot water in November');
-    assert.equal(d.perDay!.title, 'Hot water per day');
+    assert.equal(d.status, 'Hot water savings');
+    assert.equal(d.valueNote, 'November');
+    assert.equal(d.shower!.title, 'Per shower (80 L)');
+});
+
+test('money is written with the currency after the number when it is letters, symbols where the language puts them', () => {
+    assert.equal(moneyText(2.79, 2, 'en', 'SEK'), '2.79 kr');
+    assert.equal(moneyText(2.79, 2, 'sv', 'SEK'), '2,79 kr');
+    assert.equal(moneyText(2.79, 2, 'en', 'EUR'), '€2.79');
+    assert.equal(moneyText(2.79, 2, 'de', 'EUR').replace(/\s/g, ' '), '2,79 €', 'Intl keeps its own non-breaking space');
+    assert.equal(moneyText(17, 0, 'en', ''), '17');
 });

@@ -60,6 +60,8 @@ export interface WidgetData {
     hint?: string;
     /** Heating: the indoor temperature it steers for now, worded, shown under `indoorNow`. */
     aim?: string;
+    /** Starting: the plan is being made. The chart keeps its place with a placeholder. */
+    loading?: boolean;
     /** Heating: the shift as hourly bars. */
     bars?: ShiftBar[];
     /** A second, quieter line under the reason. */

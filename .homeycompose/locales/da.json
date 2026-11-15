@@ -347,7 +347,6 @@
       "off": "Autopilot er slået fra. Slå den til under Reparer → Smart tilstand.",
       "not_function": "Vælg en Opvarmnings- eller Varmtvandsenhed.",
       "test": "Simulering",
-      "starting": "Starter…",
       "away": "Fraværende · __c__ °C",
       "range": {
         "comfortable": "Komfort ±0,5 °C",
@@ -368,7 +367,8 @@
         "tomorrow": "i morgen __time__",
         "no_prices": "Venter på elpriser",
         "band": "__from__ til __to__",
-        "about": "Cirka __duration__"
+        "about": "Cirka __duration__",
+        "no_prices_hint": "Tjek, at Homey Energi bruger dynamiske elpriser."
       },
       "indoor": "Inde",
       "expected": "Forventet",
@@ -392,7 +392,10 @@
         "feed_failed": "Din varmepumpe modtog ikke udetemperaturen (BT1). Tjek menu 7.5.9.2.",
         "cooling": "Din varmepumpe køler. Autopilot venter."
       },
-      "error": "Kunne ikke indlæse Autopilot. Prøver igen om et minut."
+      "error": "Kunne ikke indlæse Autopilot. Prøver igen om et minut.",
+      "starting_title": "Starter",
+      "starting_heating": "Læser prognosen og elpriserne. Tager omkring et minut.",
+      "starting_hotwater": "Læser elpriserne og tanken. Tager omkring et minut."
     },
     "hotwater_status": {
       "learning": "Lærer jeres forbrug af varmt vand",
@@ -446,9 +449,10 @@
       "band_cheap": "Billig",
       "band_middle": "Midten",
       "band_dear": "Dyrt",
-      "status_month_heating": "Sparet på opvarmning i __month__",
-      "status_month_hotwater": "Sparet på varmt vand i __month__",
-      "per_day_cost": "Varmt vand pr. døgn"
+      "status_heating": "Besparelse opvarmning",
+      "status_hotwater": "Besparelse varmt vand",
+      "shower": "Pr. brusebad (__litres__ L)",
+      "loading": "Læser de seneste to uger fra Indsigt. Tager et par minutter."
     }
   }
 }

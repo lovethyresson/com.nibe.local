@@ -628,7 +628,6 @@
       "off": "Autopilot ist aus. Schalten Sie ihn unter Reparieren → Smart-Modus ein.",
       "not_function": "Wählen Sie ein Heizungs- oder Warmwassergerät.",
       "test": "Simulation",
-      "starting": "Startet…",
       "charge": "Ladung",
       "away": "Abwesend · __c__ °C",
       "range": {
@@ -650,7 +649,8 @@
         "tomorrow": "morgen __time__",
         "no_prices": "Wartet auf Strompreise",
         "band": "__from__ bis __to__",
-        "about": "Etwa __duration__"
+        "about": "Etwa __duration__",
+        "no_prices_hint": "Prüfen Sie, ob Homey Energie dynamische Strompreise nutzt."
       },
       "indoor": "Innen",
       "expected": "Erwartet",
@@ -674,7 +674,10 @@
         "feed_failed": "Ihre Wärmepumpe hat die Außentemperatur (BT1) nicht übernommen. Prüfen Sie Menü 7.5.9.2.",
         "cooling": "Ihre Wärmepumpe kühlt. Autopilot wartet."
       },
-      "error": "Autopilot konnte nicht geladen werden. Neuer Versuch in einer Minute."
+      "error": "Autopilot konnte nicht geladen werden. Neuer Versuch in einer Minute.",
+      "starting_title": "Startet",
+      "starting_heating": "Prognose und Strompreise werden gelesen. Dauert etwa eine Minute.",
+      "starting_hotwater": "Strompreise und Speicher werden gelesen. Dauert etwa eine Minute."
     },
     "hotwater_status": {
       "learning": "Lernt Ihren Warmwasserverbrauch",
@@ -728,9 +731,10 @@
       "band_cheap": "Günstig",
       "band_middle": "Mitte",
       "band_dear": "Teuer",
-      "status_month_heating": "Bei der Heizung gespart im __month__",
-      "status_month_hotwater": "Beim Warmwasser gespart im __month__",
-      "per_day_cost": "Warmwasser pro Tag"
+      "status_heating": "Ersparnis Heizung",
+      "status_hotwater": "Ersparnis Warmwasser",
+      "shower": "Pro Dusche (__litres__ L)",
+      "loading": "Die letzten zwei Wochen werden aus Insights gelesen. Dauert einige Minuten."
     }
   }
 }

@@ -628,7 +628,6 @@
       "off": "Autopilot is off. Turn it on in Repair → Smart mode.",
       "not_function": "Pick a Heating or Hot water device.",
       "test": "Simulation",
-      "starting": "Starting…",
       "charge": "Charge",
       "away": "Away · __c__ °C",
       "range": {
@@ -650,7 +649,8 @@
         "tomorrow": "tomorrow __time__",
         "no_prices": "Waiting for electricity prices",
         "band": "__from__ to __to__",
-        "about": "About __duration__"
+        "about": "About __duration__",
+        "no_prices_hint": "Check that Homey Energy uses dynamic electricity prices."
       },
       "indoor": "Indoor",
       "expected": "Expected",
@@ -674,7 +674,10 @@
         "feed_failed": "Your heat pump didn't take the outdoor temperature (BT1). Check menu 7.5.9.2.",
         "cooling": "Your heat pump is cooling. Autopilot waits."
       },
-      "error": "Couldn't load Autopilot. Trying again in a minute."
+      "error": "Couldn't load Autopilot. Trying again in a minute.",
+      "starting_title": "Starting",
+      "starting_heating": "Reading the forecast and prices. Takes about a minute.",
+      "starting_hotwater": "Reading prices and the tank. Takes about a minute."
     },
     "hotwater_status": {
       "learning": "Learning your hot water use",
@@ -728,9 +731,10 @@
       "band_cheap": "Cheap",
       "band_middle": "Middle",
       "band_dear": "Expensive",
-      "status_month_heating": "Saved on heating in __month__",
-      "status_month_hotwater": "Saved on hot water in __month__",
-      "per_day_cost": "Hot water per day"
+      "status_heating": "Heating savings",
+      "status_hotwater": "Hot water savings",
+      "shower": "Per shower (__litres__ L)",
+      "loading": "Reading the last two weeks from Insights. Takes a few minutes."
     }
   }
 }

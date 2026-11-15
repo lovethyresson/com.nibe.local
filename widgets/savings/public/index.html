@@ -10,6 +10,8 @@
       .sv-chip { font-size: 0.8em; padding: 2px 8px; border-radius: 999px; background: transparent; border: 1px solid rgba(127, 127, 127, 0.4); opacity: 0.75; }
       .sv-status { margin: 12px 0 0; font-size: 1.35em; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; }
       .sv-value { font-variant-numeric: tabular-nums; white-space: nowrap; }
+      .sv-value-box { display: flex; flex-direction: column; align-items: flex-end; }
+      .sv-value-note { font-weight: 400; opacity: 0.75; white-space: nowrap; }
       .sv-value.bad { color: var(--sv-dear); }
       .sv-value.neutral { opacity: 0.75; }
       .sv-reason { margin: 4px 0 0; opacity: 0.85; font-variant-numeric: proportional-nums; }
@@ -30,9 +32,30 @@
       .sv-tile-n { font-size: 1.35em; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 1px; }
       .sv-tile-s { font-size: 0.8em; opacity: 0.75; }
       .sv-empty { opacity: 0.8; margin: 12px 0; }
+      /* Starting: the plan being drawn. A soft curve draws itself, charge pills light up in turn and
+         bars grow in, then it starts over. Everything rests, fully drawn, when motion is reduced. */
+      .skel { fill: currentColor; fill-opacity: 0.06; }
+      .ghost-line { fill: none; stroke: currentColor; stroke-opacity: 0.28; stroke-width: 2.2; stroke-linecap: round; }
+      .ghost-fill { fill: currentColor; fill-opacity: 0.05; }
+      .ghost-pill { fill: var(--ghost-accent, currentColor); fill-opacity: 0.55; }
+      .ghost-bar { fill: currentColor; fill-opacity: 0.1; }
+      .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--ghost-accent, currentColor); opacity: 0.6; margin-right: 8px; vertical-align: 3px; }
+      @media (prefers-reduced-motion: no-preference) {
+        .ghost-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: ghost-draw 4.2s cubic-bezier(.45, 0, .25, 1) infinite; }
+        .ghost-fill { animation: ghost-fade 4.2s ease-in-out infinite; }
+        .ghost-pill, .ghost-bar { transform-box: fill-box; transform-origin: left center; animation: ghost-grow 4.2s cubic-bezier(.3, 0, .2, 1) infinite both; }
+        .ghost-bar.up { transform-origin: center bottom; animation-name: ghost-rise; }
+        .pulse { animation: pulse 1.6s ease-in-out infinite; }
+      }
+      @keyframes ghost-draw { 0% { stroke-dashoffset: 1; opacity: 0; } 8% { opacity: 1; } 55% { stroke-dashoffset: 0; } 85% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+      @keyframes ghost-fade { 0%, 20% { opacity: 0; } 60%, 85% { opacity: 1; } 100% { opacity: 0; } }
+      @keyframes ghost-grow { 0%, 45% { transform: scaleX(0); opacity: 0; } 60%, 85% { transform: scaleX(1); opacity: 1; } 100% { opacity: 0; } }
+      @keyframes ghost-rise { 0%, 35% { transform: scaleY(0); opacity: 0; } 55%, 85% { transform: scaleY(1); opacity: 1; } 100% { opacity: 0; } }
+      @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.85; } }
+
       /* Cheap and dear meet 3:1 or better on their card; the middle third is a quiet grey on purpose.
          The theme is read from the text colour Homey gives the page (applyTheme), the media query first. */
-      :root { --sv-cheap: #0f8374; --sv-middle: rgba(127, 127, 127, 0.4); --sv-dear: #c4580d; --sv-tile: rgba(127, 127, 127, 0.1); --sv-mid-dot: #8e8e93; --sv-ring: rgba(255, 255, 255, 0.9); }
+      :root { --ghost-accent: #2d6bd6; --sv-cheap: #0f8374; --sv-middle: rgba(127, 127, 127, 0.4); --sv-dear: #c4580d; --sv-tile: rgba(127, 127, 127, 0.1); --sv-mid-dot: #8e8e93; --sv-ring: rgba(255, 255, 255, 0.9); }
       :root[data-theme="dark"] { --sv-cheap: #2bb3a3; --sv-dear: #e8833a; --sv-ring: rgba(0, 0, 0, 0.5); }
       @media (prefers-color-scheme: dark) {
         :root:not([data-theme="light"]) { --sv-cheap: #2bb3a3; --sv-dear: #e8833a; --sv-ring: rgba(0, 0, 0, 0.5); }
@@ -83,6 +106,56 @@
         var sv = document.getElementById('sv'), cs = getComputedStyle(sv);
         return Math.max(240, Math.floor(sv.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)));
       }
+      // Starting: the plan being drawn, so the card keeps its size and shows what is coming.
+      // A typical day's price shape: low at night, a morning bump, the evening peak.
+      function dayShape(t) { return 0.42 + 0.16 * Math.exp(-Math.pow((t - 0.33) / 0.07, 2)) + 0.38 * Math.exp(-Math.pow((t - 0.72) / 0.1, 2)) - 0.12 * Math.exp(-Math.pow((t - 0.12) / 0.12, 2)); }
+      function ghostPath(x0, x1, y0, y1, f) {
+        var d = '';
+        for (var i = 0; i <= 60; i++) { var t = i / 60, x = x0 + (x1 - x0) * t, y = y1 - (y1 - y0) * f(t); d += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1); }
+        return d;
+      }
+      // Hot water: the price curve draws itself, then the cheap hours light up as charges, one by one.
+      function placeholder(height) {
+        var W = chartWidth(), H = height, T = 22, B = H - 26, svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'sv-chart', role: 'img'});
+        [T, (T + B) / 2, B].forEach(function (y) { svg.appendChild(svgEl('line', {x1: 0, x2: W, y1: y, y2: y, stroke: 'currentColor', 'stroke-opacity': 0.07})); });
+        var line = ghostPath(0, W, T, B, dayShape);
+        svg.appendChild(svgEl('path', {d: line + 'L' + W + ' ' + B + 'L0 ' + B + 'Z', class: 'ghost-fill'}));
+        svg.appendChild(svgEl('path', {d: line, class: 'ghost-line', pathLength: 1}));
+        // Charges at the cheap hours of that shape: the night, the midday dip.
+        [[0.06, 0.12, 0], [0.44, 0.07, 0.3], [0.9, 0.08, 0.6]].forEach(function (p) {
+          var pill = svgEl('rect', {x: W * p[0], y: B + 10, width: W * p[1], height: 8, rx: 4, class: 'ghost-pill'});
+          pill.style.animationDelay = p[2] + 's';
+          svg.appendChild(pill);
+        });
+        return svg;
+      }
+      // Savings: the before-and-with bars grow in, one after the other.
+      function growing() {
+        var W = chartWidth(), H = 96, svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'sv-chart', role: 'img'});
+        // Before: an even split. With Autopilot: most of it in the cheap hours.
+        [[8, 0, [0.34, 0.33, 0.33]], [54, 0.5, [0.55, 0.33, 0.12]]].forEach(function (r) {
+          svg.appendChild(svgEl('rect', {x: 0, y: r[0], width: W * 0.28, height: 9, rx: 4.5, class: 'skel'}));
+          var x = 0;
+          [[r[2][0], 'var(--sv-cheap)'], [r[2][1], 'var(--sv-middle)'], [r[2][2], 'var(--sv-dear)']].forEach(function (p, i) {
+            var bar = svgEl('rect', {x: x + (i ? 1 : 0), y: r[0] + 16, width: W * p[0] - (i ? 1 : 0), height: 22, rx: i === 0 || i === 2 ? 6 : 0, class: 'ghost-pill'});
+            bar.style.animationDelay = (r[1] + i * 0.12) + 's'; bar.style.fill = p[1];
+            svg.appendChild(bar); x += W * p[0];
+          });
+        });
+        return svg;
+      }
+      // Heating: in the hours still to plan, the expected indoor line draws itself and shift bars rise.
+      function planning(svg, x0, x1, top, bottom) {
+        svg.appendChild(svgEl('path', {d: ghostPath(x0 + 6, x1, top + 10, bottom - 10, function (t) { return 0.55 + 0.12 * Math.sin(t * 5.5); }), class: 'ghost-line', pathLength: 1}));
+        var n = Math.max(3, Math.floor((x1 - x0) / 22)), step = (x1 - x0) / n, mid = (top + bottom) / 2;
+        for (var i = 0; i < n; i++) {
+          var h = (bottom - top) * (0.12 + 0.22 * Math.abs(Math.sin(i * 1.7))), up = i % 3 !== 1;
+          var bar = svgEl('rect', {x: x0 + i * step + step * 0.3, y: up ? mid - h : mid, width: step * 0.4, height: h, rx: 2, class: 'ghost-bar up'});
+          bar.style.animationDelay = (i * 0.08) + 's';
+          svg.appendChild(bar);
+        }
+      }
+
       // Heating: before and with Autopilot as two bars of 100 %, split by the share of kWh in the
       // cheapest, middle and most expensive third of each day's hours, with kWh a day beside them.
       function split(rows) {
@@ -173,19 +246,27 @@
         }
         if (data.status) {
           var status = el('p', 'sv-status');
-          status.appendChild(el('span', '', data.status));
-          if (data.value) status.appendChild(el('span', 'sv-value ' + (data.tone || ''), data.value));
+          var name = el('span', '', data.status);
+          if (data.loading) name.insertBefore(el('span', 'pulse'), name.firstChild);
+          status.appendChild(name);
+          if (data.value) {
+            var box = el('span', 'sv-value-box');
+            box.appendChild(el('span', 'sv-value ' + (data.tone || ''), data.value));
+            if (data.valueNote) box.appendChild(el('span', 'sv-value-note homey-text-small', data.valueNote));
+            status.appendChild(box);
+          }
           root.appendChild(status);
         }
         if (data.reason) root.appendChild(el('p', 'sv-reason homey-text-small', data.reason));
         if (data.detail) root.appendChild(el('p', 'sv-detail homey-text-small', data.detail));
+        if (data.loading) root.appendChild(growing());
         if (data.split) {
           root.appendChild(split(data.split));
           root.appendChild(legend(data.legend || {}));
         }
-        if (data.perDay) {
-          root.appendChild(el('div', 'sv-sub', data.perDay.title));
-          root.appendChild(tiles(data.perDay));
+        if (data.shower) {
+          root.appendChild(el('div', 'sv-sub', data.shower.title));
+          root.appendChild(tiles(data.shower));
         }
         if (data.charges) {
           root.appendChild(el('div', 'sv-sub', data.charges.title));
