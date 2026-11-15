@@ -15,14 +15,18 @@ import {appendLine, deleteHistory, modelFileName, saveJson, shadowLogName, trimL
 import {DayTypeState, dayTypeAt} from './day-type';
 import {PumpFacts, countFor, leverDecision} from './hotwater-lever';
 import {BlockedBy, Edge, TankDay, hotwaterDayScore, leverBlock, tankDayUpdate} from './analytics';
+import {Ceiling, CeilingObservation, ChargeWatch, DEFAULT_CEILING_C, ONSET_MIN_C, PollReading, ceilingFromHistory, learnCeiling,
+    mergeObservations, targetCap, watchCharge} from './hotwater-ceiling';
 
 const HOUR = 3_600_000;
-/** Lowest and highest target the shadow plans with (doc §4.2). The highest is under where the
- *  compressor gives up: on the S1155 it stops near 58 °C (alarm 216 or 382) and the immersion
- *  heater finishes the rest at a third of the COP (docs/hot-water-heat-accounting.md). Below that
- *  the learned rate (hotwater-learner.ts `chargeRate`) already makes the last degrees slow and dear. */
+/** Lowest and highest target the shadow plans with (doc §4.2). The highest is a margin under
+ *  where the compressor gives up, learned per pump (hotwater-ceiling.ts); MAX_C is the cap before
+ *  anything is learned. On the S1155 the compressor stops near 58 °C (alarm 216 or 382) and the
+ *  immersion heater finishes the rest at a third of the COP (docs/hot-water-heat-accounting.md).
+ *  Below that the learned rate (hotwater-learner.ts `chargeRate`) already makes the last degrees
+ *  slow and dear. */
 export const MIN_C = 45;
-export const MAX_C = 58;
+export const MAX_C = targetCap(DEFAULT_CEILING_C);
 /** A plan needs at least two hours of known prices. */
 export const MIN_HORIZON = 8;
 /** Local hour the morning plan is sent. */
@@ -63,6 +67,8 @@ export interface ShadowStepInput {
      *  weekend); without it every slot is `dayType`. */
     dayTypeOf?: (ms: number) => DayType;
     reserveLitres?: number;
+    /** The highest target, °C: under the learned ceiling (hotwater-ceiling.ts). MAX_C without one. */
+    maxC?: number;
 }
 
 export interface ShadowEntry {
@@ -112,7 +118,7 @@ function planFrom(input: ShadowStepInput): Planned | {skip: string} {
         }),
         stored: now.litres! * KWH_PER_LITRE, charging, runningTargetC: now.more ? now.largeStopC : now.stopC,
         topC: now.top, tank: input.tank, charge: model.charge, loss: model.loss,
-        reserve: reserveKwh(input.reserveLitres ?? DEFAULT_RESERVE_LITRES), minC: MIN_C, maxC: MAX_C,
+        reserve: reserveKwh(input.reserveLitres ?? DEFAULT_RESERVE_LITRES), minC: MIN_C, maxC: input.maxC ?? MAX_C,
     });
     return {slots, plan: p, charging, profile, draws};
 }
@@ -222,11 +228,11 @@ function chargesOf(input: ShadowStepInput, out: Planned, before: number): {charg
     // at the day's 16:00 peak read "Cheapest hours". A charge starting now with the tank under the
     // safety net is the safety net's, rescue or not (a hot top only spares it the rescue).
     const under = (input.now.litres ?? Infinity) < (input.reserveLitres ?? DEFAULT_RESERVE_LITRES);
-    const full = heatAt(input.tank, MAX_C);
+    const full = heatAt(input.tank, input.maxC ?? MAX_C);
     /** Why a run that is not the cheapest of its window is where it is. Its start as cheap as any
      *  hour before it: it starts in time and reaches into dearer hours to be ready for a use
      *  ('before_use'). Cheaper hours before its start with the tank too full then for the
-     *  smallest charge worth starting (under 58 °C): 'room'. Room then: the plan judged heat made
+     *  smallest charge worth starting (under the highest target): 'room'. Room then: the plan judged heat made
      *  then and kept until used to cost more than the price saved ('loss'). */
     const dearer = (c: Plan['charges'][number], from: number): ChargeReason => {
         const earlier: number[] = [];
@@ -346,6 +352,9 @@ export interface ChargeEvent {
     plannedAt?: number;
     /** A test run's would-be start: nothing was written. */
     shadow?: boolean;
+    /** The immersion heater came on during this charge: when, the charge sensor then (°C), and
+     *  the highest target Autopilot plans with after learning from it. */
+    immersion?: {at: number; c: number; capC: number};
 }
 
 /** How near a planned charge has to be to count as this one, and how far a replanned one may
@@ -384,6 +393,19 @@ export function pumpCharge(at: number, now: TankNow, reserveLitres: number, morn
         ...againstPlan(at, morning, false)};
 }
 
+/** The immersion heater came on at `onset.c` °C during the charge `e`: the event with it recorded,
+ *  the ceiling observation it adds and the ceiling after. An Autopilot charge's onset counts at
+ *  most at its own target: the compressor did not reach the target, so the ceiling goes under it
+ *  and the next charge plans cooler. The charge is not stopped: 697 = 0 does not end a running
+ *  charge (doc §4.3). Pure. */
+export function immersionInCharge(e: ChargeEvent, onset: {at: number; c: number}, observations: readonly CeilingObservation[],
+                                  now: number): {event: ChargeEvent; observations: CeilingObservation[]; ceiling: Ceiling} {
+    const c = e.by === 'autopilot' && Number.isFinite(e.targetC) ? Math.min(onset.c, e.targetC!) : onset.c;
+    const merged = mergeObservations(observations, [{at: onset.at, c, kind: 'onset', source: 'live'}], now);
+    const ceiling = learnCeiling(merged, now);
+    return {event: {...e, immersion: {at: onset.at, c: round(onset.c, 1), capC: ceiling.maxC}}, observations: merged, ceiling};
+}
+
 /** The charge message: a short reason and a detailed one (the Flow trigger's two tokens), worded
  *  through `t` (keys under `autopilot.hotwater_charge`). Pure. */
 export function chargeText(e: ChargeEvent, t: Translate, time: (ms: number) => string, currency: string):
@@ -398,7 +420,8 @@ export function chargeText(e: ChargeEvent, t: Translate, time: (ms: number) => s
         : t(e.reason === 'reserve' || e.reason === 'surplus' ? `detail.${e.reason}` : 'detail.price', run);
     const plan = e.plan === 'moved' ? t('plan.moved', {time: time(e.plannedAt!)})
         : e.plan ? t(`plan.${e.plan}${e.by === 'pump' && e.plan === 'as_planned' ? '_pump' : ''}`) : '';
-    return {reason: t(`reason.${e.reason}`), detailedReason: plan ? `${detail} ${plan}` : detail};
+    const immersion = e.immersion ? t('detail.immersion', {at: Math.round(e.immersion.c), cap: e.immersion.capC}) : '';
+    return {reason: t(`reason.${e.reason}`), detailedReason: [detail, plan, immersion].filter((x) => x).join(' ')};
 }
 
 /** The timeline line for a charge event. */
@@ -424,7 +447,8 @@ export function recapLines(events: ChargeEvent[], t: Translate, time: (ms: numbe
         }
         const plan = e.plan ? ` ${t(`recap.${e.plan}${e.by === 'pump' && e.plan === 'as_planned' ? '_pump' : ''}`)}` : '';
         lines.push(t((e.shadow ?? shadow) && e.by === 'autopilot' ? 'recap.would' : 'recap.item',
-            {time: time(e.at), target: e.targetC ?? '?', reason: t(`reason.${e.reason}`)}) + plan);
+            {time: time(e.at), target: e.targetC ?? '?', reason: t(`reason.${e.reason}`)}) + plan
+            + (e.immersion ? ` ${t('recap.immersion', {at: Math.round(e.immersion.c)})}` : ''));
     }
     return lines;
 }
@@ -560,6 +584,10 @@ export const WRITES_KEY = 'autopilotHotwaterWrites';
  *  since, so a restart neither loses them (no plan to compare a charge with, an empty widget and
  *  recap until the next morning) nor sends the morning message twice. */
 export const PLAN_KEY = 'autopilotHotwaterPlan';
+/** Device store key: what taught the compressor ceiling (hotwater-ceiling.ts). */
+export const CEILING_KEY = 'autopilotHotwaterCeiling';
+/** A real charge started this long ago is still the one running. */
+const CHARGE_RUN_MS = 4 * HOUR;
 
 /** What PLAN_KEY holds. */
 export interface SavedPlan {
@@ -619,6 +647,10 @@ export class HotwaterAutopilot {
      *  prices: each told to analytics once per change, not every slot. */
     private leverBlocked = new Edge<BlockedBy | undefined>();
     private pricesBlocked = new Edge<boolean>();
+    /** What taught the compressor ceiling, the charge the polls follow, and the cap last logged. */
+    private ceilingObs: CeilingObservation[] = [];
+    private watch: ChargeWatch = {running: false};
+    private loggedCap?: number;
 
     /** `dataId` is the device's pairing id (`getData().id`): the SDK does not expose the Homey
      *  device id that Insights are keyed by, so it is looked up through the Homey API. */
@@ -644,6 +676,8 @@ export class HotwaterAutopilot {
             this.day = saved.day;
             if (saved.plan) this.reserveFor(saved.plan);
         }
+        this.ceilingObs = mergeObservations(this.hooks.store.get(CEILING_KEY), [], Date.now());
+        this.logCeiling();
         this.loop(() => this.fetchPrices(), 5_000);
         this.loop(async () => { await this.learn(); return LEARN_EVERY_MS; }, 60_000);
         this.loop(async () => { this.report(); return HOUR; }, 10 * 60_000);
@@ -686,6 +720,53 @@ export class HotwaterAutopilot {
             litres: this.last?.litres,
             next: next && {at: next.at, minutes: next.minutes, reason: next.reason, solar: next.surplusShare},
         };
+    }
+
+    /** The compressor ceiling and the highest target under it, from what the pump did recently. */
+    ceiling(): Ceiling {
+        return learnCeiling(this.ceilingObs, Date.now());
+    }
+
+    /** Every poll: follows the running charge for the immersion heater's onset and how hot a
+     *  charge got on the compressor alone. An onset in a real charge is recorded on that charge,
+     *  said in its detailed reason (log, recap, and the timeline for Autopilot's own) and lowers
+     *  the ceiling. */
+    poll(r: PollReading) {
+        if (this.stopped) return;
+        const {watch, observation} = watchCharge(this.watch, r);
+        this.watch = watch;
+        if (!observation) return;
+        const charge = this.lastStart;
+        if (observation.kind === 'onset' && observation.c >= ONSET_MIN_C && charge && !charge.immersion
+            && r.at - charge.at < CHARGE_RUN_MS) {
+            const out = immersionInCharge(charge, observation, this.ceilingObs, r.at);
+            this.ceilingObs = out.observations;
+            this.events = this.events.map((e) => e === charge ? out.event : e);
+            this.lastStart = out.event;
+            this.savePlan();
+            const t: Translate = (key, tokens) => this.homey.__(`autopilot.hotwater_charge.${key}`, tokens);
+            const text = chargeText(out.event, t, this.time, this.currency);
+            this.log(`Autopilot hot water: the immersion heater came on at ${observation.c} °C in the ${charge.by}'s charge. `
+                + `${text.detailedReason} ${JSON.stringify(out.event.immersion)}`);
+            if (charge.by === 'autopilot' && !charge.shadow)
+                this.homey.notifications.createNotification({excerpt: chargeLine(out.event, t, this.time, this.currency, this.shadow)})
+                    .catch((error: any) => this.log('Autopilot hot water: timeline failed:', error?.message ?? error));
+        } else this.ceilingObs = mergeObservations(this.ceilingObs, [observation], r.at);
+        this.saveCeiling();
+    }
+
+    private saveCeiling() {
+        this.hooks.store.set(CEILING_KEY, this.ceilingObs)
+            .catch((error) => this.log('Autopilot hot water: ceiling not saved:', error?.message ?? error));
+        this.logCeiling();
+    }
+
+    /** Logs the ceiling when the target cap it gives changes. */
+    private logCeiling() {
+        const c = this.ceiling();
+        if (c.maxC === this.loggedCap) return;
+        this.loggedCap = c.maxC;
+        this.log(`Autopilot hot water: compressor ceiling ${round(c.c, 1)} °C (${c.from}), charges to at most ${c.maxC} °C.`);
     }
 
     /** Learns again now, after the household answers changed. */
@@ -769,6 +850,8 @@ export class HotwaterAutopilot {
         for (const point of points) point.dayType = dayTypeAt(dayTypes, point.t, clock);
         const model = learn(points, this.clock(), started, undefined, this.hooks.household());
         this.model = model;
+        this.ceilingObs = mergeObservations(this.ceilingObs, [], started, ceilingFromHistory(points));
+        this.saveCeiling();
         const c = model.charge, any = model.profiles.any;
         const typed = (['working', 'free'] as const).filter((type) => model.profiles[type]).join(' and ');
         this.log(`Autopilot hot water: learned from ${points.length} readings over ${model.days} days: `
@@ -830,7 +913,7 @@ export class HotwaterAutopilot {
         const clock = this.clock(), dayTypes = this.hooks.dayType();
         return {slot, prices: this.prices, surplus: this.surplus(slot), model: this.model, now, tank, clock,
             dayType: dayTypeAt(dayTypes, at, clock), dayTypeOf: (ms) => dayTypeAt(dayTypes, ms, clock),
-            reserveLitres: this.hooks.reserveLitres()};
+            reserveLitres: this.hooks.reserveLitres(), maxC: this.ceiling().maxC};
     }
 
     private step() {

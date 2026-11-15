@@ -487,7 +487,8 @@
         "surplus": "Til __target__ °C, omkring __duration__, __share__ % fra solcelleoverskud.",
         "reserve": "Tanken har kun __litres__ L, under dit sikkerhedsniveau på __reserve__ L. Opvarmer til __target__ °C, omkring __duration__.",
         "pump": "Din varmepumpe startede den ved __top__ °C på sin egen starttemperatur og opvarmer til __stop__ °C.",
-        "pump_more": "Mere varmt vand er slået til, så din varmepumpe opvarmer til __stop__ °C."
+        "pump_more": "Mere varmt vand er slået til, så din varmepumpe opvarmer til __stop__ °C.",
+        "immersion": "Elpatronen tog over ved __at__ °C. Autopilot opvarmer nu til højst __cap__ °C."
       },
       "plan": {
         "as_planned": "Som planlagt.",
@@ -508,7 +509,8 @@
         "as_planned_pump": "Planlagt da også.",
         "yesterday": "I går:",
         "on": "__date__:",
-        "last_night": "I nat:"
+        "last_night": "I nat:",
+        "immersion": "Elpatron fra __at__ °C."
       },
       "duration_h": "__h__ t",
       "write_failed": "Autopilot kunne ikke starte en opvarmning. Din varmepumpe svarede: __error__",

@@ -11,7 +11,7 @@ export interface InsightsLog {
     values?: {t: string; v: number | null}[];
 }
 
-export type TankField = 'litres' | 'produced' | 'used' | 'top';
+export type TankField = 'litres' | 'produced' | 'used' | 'top' | 'aux' | 'charge';
 export type TankLogs = Partial<Record<TankField, InsightsLog[]>>;
 
 /** Finest first: where two resolutions overlap, the finer one is kept. Hourly reaches 14 days
@@ -25,7 +25,7 @@ export function pointsFromInsights(logs: TankLogs): TankPoint[] {
     // Each resolution's readings by time, then merged: finer readings win their span.
     const byResolution: Map<number, TankPoint>[] = [];
     const steps: number[] = [];
-    for (const field of ['litres', 'produced', 'used', 'top'] as TankField[]) {
+    for (const field of ['litres', 'produced', 'used', 'top', 'aux', 'charge'] as TankField[]) {
         (logs[field] ?? []).forEach((log, r) => {
             const step = log.step ?? 0;
             if (!(step > 0)) return;
@@ -61,6 +61,10 @@ export interface TankCapabilities {
     produced: string;
     used: string;
     top: string;
+    /** Immersion heater hours for hot water (1069) and the charge sensor (BT6): what the
+     *  compressor ceiling is learned from (hotwater-ceiling.ts). Optional per model. */
+    aux?: string;
+    charge?: string;
 }
 
 /** Reads every resolution of every field. A log that is missing or fails is left out: the
@@ -69,10 +73,10 @@ export async function fetchTankInsights(api: any, deviceId: string, caps: TankCa
                                         pause: (ms: number) => Promise<void> = async () => {}): Promise<TankLogs> {
     const uri = `homey:device:${deviceId}`;
     const logs: TankLogs = {};
-    for (const field of Object.keys(caps) as TankField[]) {
+    for (const field of (Object.keys(caps) as TankField[]).filter((f) => caps[f])) {
         logs[field] = [];
         for (const resolution of RESOLUTIONS) {
-            const log = await api.insights.getLogEntries({uri, id: `${uri}:${caps[field]}`, resolution, $timeout: 20_000})
+            const log = await api.insights.getLogEntries({uri, id: `${uri}:${caps[field]!}`, resolution, $timeout: 20_000})
                 .catch(() => undefined);
             logs[field]!.push(log ?? {});
             // The Homey rate-limits Insights; twelve requests back to back get refused.

@@ -201,8 +201,8 @@ prices (to midnight, or the next midnight after about 13:00):
 - **Bounds, all derived, none asked:**
   - *Floor:* the lowest stop that still gives 40 °C water at the top after a charge, about 45 °C.
   - *Ceiling:* the lowest of the register's range for 62, and the highest stop the compressor
-    reaches on its own. The learner finds the latter from charges that ended with the immersion
-    or the compressor stalling (alarm 382 here); above it every kWh is immersion, COP 1.
+    reaches on its own, learned per pump (§4.8). The plan's target stays a degree under it: 57 °C
+    until anything is learned. Above it every kWh is immersion, COP 1.
 - **Planned draws** (`plannedHours()`): the learned hours give the shape, the day totals the
   amount. A day is planned at the mean day plus half the way to the 80th-percentile day. The
   hours alone over-forecast twice over: each hour's draw is clipped at 0, so reading noise only
@@ -419,7 +419,7 @@ The design as first written:
   numbers. A charge that is not the cheapest of its window says why it is not earlier
   (`chargesOf`, since 2026-11-15): no hour before its start is cheaper, so it reaches into
   dearer hours for a use ("In time for use"); cheaper hours before it found the tank too full
-  for a 4 kWh charge under 58 °C ("Tank full until then"); or the tank had room then and the
+  for a 4 kWh charge under the highest target ("Tank full until then"); or the tank had room then and the
   plan judged the heat would stand too long ("Less heat lost in the tank"). Before, the last
   two read "In time for use", which on 2026-11-15 explained a 10:45 charge after a cheap
   night when the tank was simply still full from the evening before. Those numbers are the target, the run
@@ -497,6 +497,58 @@ Asked of the owner:
   no current plan saved, the plan from now becomes the one in force, without a message.
 - Pump alarms, a blocked 195, or a register the model lacks turn the feature off with a reason on
   the device. No silent failure.
+
+### 4.8 Keeping the immersion heater out (built 2026-11-15)
+
+On the S1155 the compressor gives up near 58 °C at BT6 (alarm 216 or 382) and the immersion heater
+finishes the charge at about a third of the efficiency: the 13 Nov charge to 60 °C ran 85 min on the
+compressor, then 37 min on the immersion, about 3 of its 6.5 kWh
+([hot-water-heat-accounting.md](hot-water-heat-accounting.md)). Where that happens differs per
+pump, brine and season, so it is learned (`lib/autopilot/hotwater-ceiling.ts`, pure).
+
+- **What it learns from.** An *onset*: the immersion heater (1029) came on while hot water was
+  charging (the allocator gives hot water power), with BT6 at or above 50 °C. A *clean end*: a
+  charge that ended on the compressor alone, at the hottest BT6 it reached. From two sources:
+  - every poll (`watchCharge`, on the Hot water device, which polls 1029 from Main while Autopilot
+    runs). Onsets and clean ends land in the device store `autopilotHotwaterCeiling`.
+  - each relearn from Insights (`ceilingFromHistory`): hourly buckets or finer; a run of charging
+    hours with immersion hours for hot water (1069) rising is an onset at the hottest bucket while
+    it ran, a run without is a clean end at its hottest bucket. Bucket means put an onset a little
+    high and a clean end a little low, so history moves the ceiling less than a poll does. The Hot
+    water device carries 1069 and BT6 while Autopilot runs, so their Insights exist.
+- **The ceiling** (`learnCeiling`): 58 °C, or the highest clean end of the last 60 days if higher,
+  lowered to the lowest onset of the last 60 days that no later clean end got above (a warmer brine
+  in spring lifts it again). Never under 50 or over 60. An immersion heater seen under 50 °C is
+  heating's, or a cold tank on a degree-minute deficit, and teaches nothing.
+- **The target** stays `CEILING_MARGIN_K` = 1 K under it, in whole degrees (`targetCap`): 57 °C by
+  default, where the cap was 58 before. Every charge the planner makes, and the Large stop (62) it
+  writes, stays under that.
+- **Two cooler charges over one hot one.** The planner already weighs this (§4.2): the tank fills
+  slower the fuller it is, so its last degrees cost far more electricity than a second, cooler
+  charge does, start cost included. Tested: at one price all day with 9 kWh of use and 60 °C
+  allowed, the plan charges twice to at most 55 °C, and pays less electricity per kWh of heat than
+  one charge to 60 °C. When a day needs more than fits under the cap, it charges twice and stays
+  under it.
+- **When an Autopilot charge starts the immersion heater anyway** (`immersionInCharge`): the onset
+  is recorded on the charge event (`immersion`: when, BT6 then, the new cap), counted at most at the
+  charge's own target (the compressor did not reach it, so the ceiling goes under it and the next
+  charge plans cooler), and said in the charge's detailed reason: "The immersion heater took over
+  at 57 °C. Autopilot now charges to at most 56 °C." The Flow trigger fired at the start, so the
+  sentence goes to the timeline as a fresh charge message (Autopilot's live charges only), the log
+  and the morning recap ("Immersion heater from 57 °C."). The pump's own charges teach the ceiling
+  and get the recap line, but no message.
+- **The charge is not stopped.** 697 = 0 does not end a running charge, and toggling 195 is
+  rejected (§4.3). The heater finishes this one; the next plans under it.
+- **Left out: DM-aware add heat** (autopilot-plan.md §12: plan the bias so predicted degree minutes
+  never cross `start − 0.7 × 679`). That rule is about heating's bias and lives in heating's
+  planner, which this change does not touch. Hot water charges do not move degree minutes
+  through a bias, and nothing in the hot water plan predicts DM. What the code can measure (DM in
+  register 11, 679, 1029) is collected in the heating history already, so the heating side can
+  build it there. Also left out: telling apart an immersion heater that hot water's charge needed
+  from one heating's DM deficit started during a charge, beyond the 50 °C floor. 1069 rising
+  separates them in history; live, the polls only have 1029.
+- **Not verified on hardware.** No real onset has been seen by the poll watcher yet; the first
+  charge that trips the heater on the S1155 should log "the immersion heater came on at … °C".
 
 ## 5. Build plan
 

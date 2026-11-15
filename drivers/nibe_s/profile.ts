@@ -205,6 +205,8 @@ export const sProfile = makeProfile({
             produced: "meter_kwh_NIBE.i1575_hotwater_produced",
             used: "meter_power.total",
             top: "measure_temperature.i8_warmwater_top",
+            aux: "measure_hour_NIBE.i1069_additive_usage_hotwater",
+            charge: "measure_temperature.i9_hot_water",
         },
         power: "measure_power",
         more: "boolean_NIBE.h697_more_hotwater",
@@ -214,6 +216,7 @@ export const sProfile = makeProfile({
         largeStop: "target_temperature.h62_hotwater_stop_large",
         allowed: "onoff.h195_enable_hotwater",
         spa: ["boolean_NIBE.h843_spa_activated", "boolean_NIBE.h846_spa_hotwater_activated"],
+        immersion: "status_NIBE.i1029_additive_heat_active",
     },
     autopilotFeed: {
         bt1: "external_temperature.h5217_bt1",

@@ -196,6 +196,7 @@ Per 5 K band of BT6 (the tank's lower sensor):
 ## What is safe now, whatever the checks find
 
 - Cap the charge target at the learned compressor ceiling (about 58 °C here), never the 60 °C default.
+  Built 2026-11-15: a degree under the learned ceiling ([autopilot-hot-water.md](autopilot-hot-water.md) §4.8).
 - Plan a run at its real length: measured tank gain per slot falls from about 1.1 to 0.3 kWh as the
   top warms, so a top-up of a warm tank takes 2–4× as long as the planner assumes.
 

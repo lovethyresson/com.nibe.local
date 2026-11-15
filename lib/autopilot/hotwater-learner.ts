@@ -25,6 +25,10 @@ export interface TankPoint {
     used?: number | null;
     /** Tank top (BT7), °C. */
     top?: number | null;
+    /** Immersion heater hours for hot water (1069), a counter; and the charge sensor (BT6), °C.
+     *  Only the compressor ceiling reads them (hotwater-ceiling.ts). */
+    aux?: number | null;
+    charge?: number | null;
     dayType?: DayType;
 }
 

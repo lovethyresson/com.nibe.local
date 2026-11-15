@@ -487,7 +487,8 @@
         "surplus": "To __target__ °C, about __duration__, __share__ % from solar surplus.",
         "reserve": "The tank is down to __litres__ L, below your __reserve__ L safety net. Heating to __target__ °C, about __duration__.",
         "pump": "Your heat pump started it at __top__ °C on its own start temperature and runs to __stop__ °C.",
-        "pump_more": "More hot water is on, so your heat pump runs to __stop__ °C."
+        "pump_more": "More hot water is on, so your heat pump runs to __stop__ °C.",
+        "immersion": "The immersion heater took over at __at__ °C. Autopilot now charges to at most __cap__ °C."
       },
       "plan": {
         "as_planned": "As planned.",
@@ -508,7 +509,8 @@
         "as_planned_pump": "Planned then too.",
         "yesterday": "Yesterday:",
         "on": "__date__:",
-        "last_night": "Last night:"
+        "last_night": "Last night:",
+        "immersion": "Immersion heater from __at__ °C."
       },
       "duration_h": "__h__ h",
       "write_failed": "Autopilot couldn't start a charge. Your heat pump said: __error__",
