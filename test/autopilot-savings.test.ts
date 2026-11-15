@@ -214,7 +214,8 @@ test('hot water: what a shower cost before and with Autopilot, and how many char
     assert.equal(d.shower!.now!.value, '4.80 kr', '12 kr for 200 L: 4.80 kr per 80 L');
     assert.equal(d.shower!.before!.value, '6.40 kr', 'the same water at the old pattern: 16 kr');
     assert.equal(d.shower!.now!.note, '\u221225 %');
-    assert.equal(d.charges!.days.length, 3, 'the dots carry the week\'s charges');
+    assert.equal(d.charges!.days.length, 7, 'always the last seven days, ending today');
+    assert.equal(d.charges!.days.filter((x) => x.known).length, 3, 'the days before Autopilot carry no charges');
     assert.equal(d.detail, undefined);
 });
 test('hot water names the total and the month, and the tiles are per shower', () => {
@@ -237,4 +238,17 @@ test('money is written with the currency after the number when it is letters, sy
 test('the Hot water savings widget draws with the same page as Heating savings, byte for byte', () => {
     const page = (id: string) => readFileSync(join(__dirname, '..', 'widgets', id, 'public', 'index.html'), 'utf8');
     assert.equal(page('savings_hotwater'), page('savings'), 'edit widgets/savings/public/index.html and copy it over');
+});
+
+test('hot water\'s first day: today so far counts while Autopilot runs Live, though its early hours predate the record', () => {
+    const sofar = {...day('2026-11-20', [2, 0.5, 0], 1.5, 3, undefined), charges: [0.1]};
+    const d = savingsData('Hot water', before, translator('en'),
+        ctx({role: 'hotwater', firstLiveDate: '2026-11-20', baseline: baselineOf(before, '2026-11-20'), sofar, liveNow: true}));
+    assert.equal(d.status, 'Hot water savings');
+    assert.equal(d.value, '80 %');
+    assert.equal(d.valueNote, 'in the cheapest hours today');
+    // Not Live (Simulated): no claim about today.
+    const sim = savingsData('Hot water', before, translator('en'),
+        ctx({role: 'hotwater', firstLiveDate: '2026-11-20', sofar, liveNow: false}));
+    assert.equal(sim.value, undefined);
 });

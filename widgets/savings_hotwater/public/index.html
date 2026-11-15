@@ -197,7 +197,10 @@
             svg.appendChild(svgEl('circle', {cx: cx + off, cy: y(r), r: 5, fill: r < 1 / 3 ? 'var(--sv-cheap)' : r < 2 / 3 ? 'var(--sv-mid-dot)' : 'var(--sv-dear)',
               stroke: 'var(--sv-ring)', 'stroke-width': 2}));
           });
-          svg.appendChild(svgEl('text', {x: cx, y: H - 3, 'text-anchor': 'middle'}, d.label));
+          var label = svgEl('text', {x: cx, y: H - 3, 'text-anchor': 'middle'}, d.label);
+          if (d.known === false) label.style.opacity = 0.3;
+          if (k === c.days.length - 1) label.setAttribute('font-weight', '700');
+          svg.appendChild(label);
         });
         return svg;
       }
@@ -214,9 +217,8 @@
         return box;
       }
 
-      // Every Nibe Live savings card is one height for its width, so cards side by side on a
-      // dashboard line up. Content keeps its own spacing; the room left over sits at the foot.
-      function cardTarget() { return Math.max(280, Math.min(460, Math.round(170 + chartWidth() * 0.6))); }
+      // The two savings cards share one structure (label, number, small figures, one picture), so
+      // they come out close in height on their own. No padding: a card is as tall as its content.
       function renderFitted(data) { render(data); }
 
       var last = null;
@@ -265,8 +267,7 @@
         return row;
       }
       function fit(Homey) {
-        var h = Math.ceil(document.getElementById('sv').scrollHeight);
-        if (Homey && Homey.setHeight) Homey.setHeight(Math.max(h, last && !last.empty ? cardTarget() : 0) + 16);
+        if (Homey && Homey.setHeight) Homey.setHeight(Math.ceil(document.getElementById('sv').scrollHeight) + 16);
       }
 
       function onHomeyReady(Homey) {

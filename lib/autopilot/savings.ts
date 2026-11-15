@@ -230,6 +230,8 @@ export interface SplitRow {
 export interface ChargeDay {
     label: string;
     ranks: number[];
+    /** False for a day with no record yet: drawn faint. */
+    known?: boolean;
 }
 
 export interface SavingsData {
@@ -273,6 +275,8 @@ export interface SavingsContext {
     firstLiveDate?: string;
     /** Today so far, counted with the complete days when Autopilot ran it. */
     sofar?: SavingsDay;
+    /** Autopilot runs Live now: on its first day, today counts even before its hours are all known. */
+    liveNow?: boolean;
     /** The frozen baseline, once found. */
     baseline?: Baseline;
     /** Today, local date. */
@@ -297,6 +301,8 @@ export function savingsData(title: string, stored: SavingsDay[], t: Translate, c
     const perDay = (kwh: number) => t('per_day', {kwh: kwh < 10 ? kwh.toFixed(1) : Math.round(kwh)});
     const base: Baseline = c.baseline ?? {days: 0, ratio: 1};
     const counted = c.firstLiveDate ? savingDays(recent, c.firstLiveDate) : [];
+    // The first day: today so far counts while Autopilot runs Live, though its early hours predate the record.
+    if (!counted.length && c.sofar && c.liveNow && c.firstLiveDate && c.firstLiveDate <= c.today) counted.push(c.sofar);
     const onlyToday = counted.length === 1 && counted[0] === c.sofar;
     const ap = totals(counted);
     const before = c.firstLiveDate ? undefined : totals(stored.slice(-RECENT_DAYS));
@@ -310,8 +316,11 @@ export function savingsData(title: string, stored: SavingsDay[], t: Translate, c
             perDay: onlyToday ? t('kwh_so_far', {kwh: ap.kwh.toFixed(1)}) : perDay(ap.kwh / ap.days)});
         if (rows.length) pictures.split = rows;
     } else {
-        const week = days.slice(-CHARGE_DAYS).filter((d) => d.charges);
-        if (week.length) pictures.charges = {title: t('charges_title'), days: week.map((d) => ({label: c.label(d.date), ranks: d.charges!})),
+        // Always the last seven days ending today, so the week fills up instead of starting squeezed.
+        const byDate = new Map(days.map((d) => [d.date, d]));
+        const week = Array.from({length: CHARGE_DAYS}, (_, k) => shiftDate(c.today, k - CHARGE_DAYS + 1))
+            .map((date) => ({label: c.label(date), ranks: byDate.get(date)?.charges ?? [], known: !!byDate.get(date)?.charges}));
+        if (week.some((d) => d.known)) pictures.charges = {title: t('charges_title'), days: week,
             bands: [t('band_cheap'), t('band_middle'), t('band_dear')]};
         const whole = counted.filter((d) => d !== c.sofar);
         const shower = (list: SavingsDay[], extra: (d: SavingsDay) => number) => {
