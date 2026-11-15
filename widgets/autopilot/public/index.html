@@ -309,8 +309,12 @@
         EXTRA = 0;
         render(data);
         if (data.empty) return;
-        var gap = cardTarget() - document.getElementById('ap').scrollHeight;
+        var r = document.getElementById('ap');
+        var gap = cardTarget() - r.scrollHeight;
+        var dbg = 'DEBUG target ' + cardTarget() + ' scroll ' + r.scrollHeight + ' client ' + r.clientHeight + ' body ' + document.body.scrollHeight + ' w ' + chartWidth() + ' gap ' + gap;
         if (gap > 4) { EXTRA = gap; render(data); }
+        var d = document.createElement('p'); d.style.cssText = 'font: 10px monospace; opacity: .7; margin: 4px 0 0';
+        d.textContent = dbg + ' after ' + document.getElementById('ap').scrollHeight; document.getElementById('ap').appendChild(d);
       }
 
       var last = null;
@@ -369,13 +373,17 @@
         var settings = Homey.getSettings() || {};
         var device = settings.device && settings.device.id;
         document.getElementById('ap').appendChild(el('p', 'ap-empty', words().loading));
-        function show(data) { last = data; renderFitted(data); fit(Homey); }
+        function show(data) { failures = 0; last = data; renderFitted(data); fit(Homey); }
+        var failures = 0;
         function load() {
           return Homey.api('GET', '/' + (device ? '?device=' + encodeURIComponent(device) : ''), {})
             .then(show)
             .catch(function (err) {
               if (typeof console !== 'undefined') console.error(err);
               if (last) return; // keep the last good picture until the app answers again
+              // An install or a restart leaves the app unreachable for a minute or two: keep saying
+              // "Loading…" and try every 30 s, and call it an error only after two minutes of that.
+              if (++failures < 5) { setTimeout(load, 30000); return; }
               // The app answers its own problems with a translated line, so a rejection is the network.
               var text = words().error;
               document.getElementById('ap').replaceChildren(el('p', 'ap-empty', text));

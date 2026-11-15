@@ -123,10 +123,8 @@ test('the widget shows money saved this month, the other periods and the shift a
     assert.equal(d.value, '12 kr');
     assert.equal(d.tone, 'good');
     assert.equal(d.reason, 'Last 7 days 12 kr · this year 12 kr');
-    assert.equal(d.footnote, 'Compared with how your heat pump used electricity in the 3 days before Autopilot.');
     assert.deepEqual(d.split!.map((r) => [r.label, r.shares.map((v) => Math.round(v * 100)), r.perDay]),
-        [['Before Autopilot', [30, 30, 40], '10 kWh a day'], ['With Autopilot', [60, 30, 10], '10 kWh a day']]);
-    assert.equal(d.detail, 'Most expensive hours: 10 % now, 40 % before Autopilot');
+        [['Before Autopilot · 3 days', [30, 30, 40], '10 kWh a day'], ['With Autopilot · 3 days', [60, 30, 10], '10 kWh a day']]);
     // Costing more says so in the expensive colour.
     const worse = savingsData('Heating', [...before, day('2026-11-15', [1, 3, 6], 1.5, 18, 1)], translator('en'),
         ctx({firstLiveDate: '2026-11-14', baseline: baselineOf(before, '2026-11-14')}));
@@ -139,9 +137,6 @@ test('before Autopilot the widget shows the starting point: the share Autopilot 
     assert.equal(d.tone, 'neutral');
     assert.equal(d.value, '40 %');
     assert.equal(d.valueNote, 'in the most expensive hours');
-    assert.equal(d.reason, 'Autopilot moves use out of the most expensive hours.');
-    assert.equal(d.detail, 'Paid 1.60 kr per kWh, average 1.50 kr · 3 days');
-    assert.equal(d.footnote, 'Savings count from the day Autopilot first runs Live.');
 });
 test('started today: the share of today\'s use in the cheapest hours, against the starting point', () => {
     const b = baselineOf(before, '2026-11-14')!;
@@ -151,13 +146,11 @@ test('started today: the share of today\'s use in the cheapest hours, against th
     assert.equal(d.value, '67 %', '3 of 4.5 kWh in the cheapest hours');
     assert.equal(d.valueNote, 'in the cheapest hours today');
     assert.equal(d.tone, 'good');
-    assert.equal(d.reason, 'Before Autopilot: 30 %. Kronor are counted when the day is done.');
-    assert.deepEqual(d.split!.map((r) => r.label), ['Before Autopilot', 'Today so far']);
+    assert.deepEqual(d.split!.map((r) => r.label), ['Before Autopilot · 3 days', 'Today so far']);
     assert.equal(d.split![1].perDay, '4.5 kWh so far');
     // No reading yet today: a line until there is.
     const none = savingsData('Heating', before, translator('en'), ctx({firstLiveDate: '2026-11-19'}));
     assert.equal(none.reason, 'Savings show after its first full day.');
-    assert.equal(none.footnote, 'Compared with using the same kWh evenly over each day.');
 });
 
 test('today so far ranks the hours with a reading against today\'s whole price list', () => {
@@ -221,7 +214,8 @@ test('hot water: what a shower cost before and with Autopilot, and how many char
     assert.equal(d.shower!.now!.value, '4.80 kr', '12 kr for 200 L: 4.80 kr per 80 L');
     assert.equal(d.shower!.before!.value, '6.40 kr', 'the same water at the old pattern: 16 kr');
     assert.equal(d.shower!.now!.note, '\u221225 %');
-    assert.equal(d.detail, '3 of 4 charges in the cheapest hours this week');
+    assert.equal(d.charges!.days.length, 3, 'the dots carry the week\'s charges');
+    assert.equal(d.detail, undefined);
 });
 test('hot water names the total and the month, and the tiles are per shower', () => {
     const b = baselineOf(before, '2026-11-14')!;
