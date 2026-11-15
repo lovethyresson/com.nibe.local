@@ -474,6 +474,16 @@
       "none": "Ingenting planlagt",
       "failed": "Varmtvann og oppvarming planlegger hver for seg nå",
       "test": "Simulering: __text__"
+    },
+    "day_plan": {
+      "off": "Slå på Autopilot for oppvarming eller varmtvann for å se dagens plan.",
+      "pick": "Velg en Main-enhet.",
+      "lane_hotwater": "Varmtvann",
+      "lane_heating": "Oppvarming",
+      "more": "Varmer mer",
+      "less": "Trapper ned",
+      "no_charge": "Ingen lading resten av dagen",
+      "no_shift": "Holder resten av dagen"
     }
   }
 }

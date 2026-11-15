@@ -30,6 +30,7 @@ class NibeApp extends Homey.App {
     this.registerAutopilotWidget();
     this.registerHotwaterUseWidget();
     this.registerSavingsWidgets();
+    this.registerDayPlanWidget();
 
     this.log('Nibe Live app has been initialized');
   }
@@ -109,6 +110,35 @@ class NibeApp extends Homey.App {
   }
 
   /** For widgets/hotwater_use/api.js. Answers a problem with a line, like the Autopilot widget. */
+  /** The Day plan widget (widgets/day_plan): one per pump, so its picker offers the Main devices. */
+  private registerDayPlanWidget() {
+    const widget = (this.homey as any).dashboards?.getWidget?.('day_plan');
+    widget?.registerSettingAutocompleteListener('device', async (query: string) => this.mainDevices()
+      .map((d) => ({id: String(d.getData().id), name: d.getName()}))
+      .filter((d) => !query || d.name.toLowerCase().includes(query.toLowerCase())));
+  }
+
+  private mainDevices(): any[] {
+    return Object.values(this.homey.drivers.getDrivers()).flatMap((driver: any) => driver.getDevices() as any[])
+      .filter((d) => d.role === 'main');
+  }
+
+  /** For widgets/day_plan/api.js. Like the others, a problem comes back as a translated line. */
+  dayPlanWidget(id: unknown) {
+    const line = (key: string) => ({title: '', chips: [], prices: [], ticks: [], lanes: {}, legend: {}, empty: this.homey.__(key)});
+    const devices = this.mainDevices();
+    const device = devices.find((d) => String(d.getData().id) === String(id)) ?? (id ? undefined : devices[0]);
+    if (!device && process.uptime() < 120) return {title: '', chips: [], prices: [], ticks: [], lanes: {}, legend: {}, loading: true,
+      status: this.homey.__('autopilot.widget.starting_title')};
+    if (!device) return line('autopilot.day_plan.pick');
+    try {
+      return device.dayPlanWidget();
+    } catch (error) {
+      this.error('Day plan widget:', error);
+      return line('autopilot.widget.error');
+    }
+  }
+
   hotwaterUseWidget(id: unknown) {
     const line = (key: string) => ({title: '', empty: this.homey.__(key)});
     const devices = this.autopilotDevices().filter((d) => d.role === 'hotwater');

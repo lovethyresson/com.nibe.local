@@ -474,6 +474,16 @@
       "none": "Intet planlagt",
       "failed": "Varmt vand og opvarmning planlægger hver for sig lige nu",
       "test": "Simulering: __text__"
+    },
+    "day_plan": {
+      "off": "Slå Autopilot til for opvarmning eller varmt vand for at se dagens plan.",
+      "pick": "Vælg en Main-enhed.",
+      "lane_hotwater": "Varmt vand",
+      "lane_heating": "Opvarmning",
+      "more": "Varmer mere",
+      "less": "Skruer ned",
+      "no_charge": "Ingen opladning resten af dagen",
+      "no_shift": "Holder resten af dagen"
     }
   }
 }

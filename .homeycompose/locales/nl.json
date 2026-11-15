@@ -474,6 +474,16 @@
       "none": "Niets gepland",
       "failed": "Warm water en verwarming plannen nu los van elkaar",
       "test": "Simulatie: __text__"
+    },
+    "day_plan": {
+      "off": "Zet Autopilot aan voor verwarming of warm water om de planning van vandaag te zien.",
+      "pick": "Kies een Main-apparaat.",
+      "lane_hotwater": "Warm water",
+      "lane_heating": "Verwarming",
+      "more": "Verwarmt meer",
+      "less": "Bouwt af",
+      "no_charge": "Geen opwarming meer vandaag",
+      "no_shift": "Houdt vast voor de rest van vandaag"
     }
   }
 }

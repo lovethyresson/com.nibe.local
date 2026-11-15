@@ -756,6 +756,16 @@
       "none": "Inget planerat",
       "failed": "Varmvatten och värme planerar var för sig just nu",
       "test": "Simulering: __text__"
+    },
+    "day_plan": {
+      "off": "Slå på Autopilot för värme eller varmvatten för att se dagens plan.",
+      "pick": "Välj en Main-enhet.",
+      "lane_hotwater": "Varmvatten",
+      "lane_heating": "Värme",
+      "more": "Värmer mer",
+      "less": "Drar ner",
+      "no_charge": "Ingen laddning resten av dagen",
+      "no_shift": "Håller resten av dagen"
     }
   }
 }

@@ -756,6 +756,16 @@
       "none": "Nichts geplant",
       "failed": "Warmwasser und Heizung planen gerade getrennt",
       "test": "Simulation: __text__"
+    },
+    "day_plan": {
+      "off": "Schalten Sie Autopilot für Heizung oder Warmwasser ein, um den Tagesplan zu sehen.",
+      "pick": "Wählen Sie ein Main-Gerät.",
+      "lane_hotwater": "Warmwasser",
+      "lane_heating": "Heizung",
+      "more": "Heizt mehr",
+      "less": "Drosselt",
+      "no_charge": "Keine Ladung mehr heute",
+      "no_shift": "Hält für den Rest des Tages"
     }
   }
 }

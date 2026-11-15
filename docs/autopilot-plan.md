@@ -1774,6 +1774,15 @@ their own rather than part of M3. Autopilot's candidates:
 - **Planned heating:** the next 24 h, with planned indoor against comfort, the pre-heat and coast
   blocks, and the price beneath; redrawn when the plan changes.
 - **Savings:** this month's saving with its band, and comfort held (§11).
+- **Day plan** (maintainer, 2026-11-15; `widgets/day_plan`, `lib/autopilot/day-plan.ts`): the
+  plan round (§2.1) drawn for one pump, picked by its Main device. Today 00:00 to 24:00, like the
+  other cards, so they line up. Headline: Main's status line. Three lanes on one time axis: the
+  price, hot water's charges (solar part amber, grid part blue) and heating's shift as one bar an
+  hour, up when it heats more (red) and down when it eases off (teal). Heat-up reads up here,
+  the other way round from the Autopilot card's BT1 offset, because this card is about what the
+  house gets. A function without Autopilot has no lane; with hot water off, heating's forecast
+  fills the price. No indoor line, to stay readable at phone width. It reuses the two Autopilot
+  cards' data, so the three always agree.
 
 ### 19.6 For later consideration
 

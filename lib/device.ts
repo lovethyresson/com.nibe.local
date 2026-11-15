@@ -19,6 +19,7 @@ import {SLOT_MS, localDate, normalisePrices, slotOf} from './autopilot/prices';
 import {Edge, FORECAST_SLOTS, BlockedBy, HeatingDay, analyticsSmartMode, heatingBlock, reserveBucket} from './autopilot/analytics';
 import {SOLAR_SETTING, SolarSurplus, readSolarAnswer, solarOn} from './autopilot/solar-surplus';
 import {PumpRound, mainStatusText, spanText} from './autopilot/orchestrator';
+import {DayPlanData, dayPlanData} from './autopilot/day-plan';
 import {Device} from 'homey';
 import net from 'net';
 import {analyticsConsent, setAnalyticsConsent, track} from './analytics';
@@ -1673,19 +1674,45 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             this.roundOff = this.round().onChange(() => this.showRoundStatus());
         }
         if (!this.hasCapability(AUTOPILOT_REASON_CAPABILITY)) return;
+        const text = this.roundStatusText();
+        if (text !== undefined && this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) !== text)
+            this.setCapabilityValue(AUTOPILOT_REASON_CAPABILITY, text).catch(this.error);
+    }
+
+    /** The plan round's line, worded, or undefined while no controller has a plan. */
+    private roundStatusText(): string | undefined {
         const status = this.round().status(Date.now());
-        if (!status) return;
+        if (!status) return undefined;
         const clock = localClock(this.homey.clock.getTimezone());
         const today = clock(Date.now()).date;
         const when = (ms: number) => clock(ms).date === today ? this.clock(ms)
             : this.homey.__('autopilot.hotwater_daily.tomorrow_bare', {time: this.clock(ms)});
-        const text = mainStatusText(status, (key, tokens) => this.homey.__(`autopilot.orchestrator.${key}`, tokens), when,
+        return mainStatusText(status, (key, tokens) => this.homey.__(`autopilot.orchestrator.${key}`, tokens), when,
             (from, to) => {
                 const span = spanText(from, to, this.clock);
                 return clock(from).date === today ? span : this.homey.__('autopilot.hotwater_daily.tomorrow_bare', {time: span});
             });
-        if (this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) !== text)
-            this.setCapabilityValue(AUTOPILOT_REASON_CAPABILITY, text).catch(this.error);
+    }
+
+    // ---- The Day plan widget (widgets/day_plan) ----
+
+    /** What the Day plan widget draws: the pump's whole plan today, from Main. It reuses the two
+     *  Autopilot widgets' data, so the three cards always agree. */
+    dayPlanWidget(): DayPlanData {
+        const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.day_plan.${key}`, tokens);
+        const w = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.widget.${key}`, tokens);
+        const slot = slotOf(Date.now());
+        const day = todaySlots(slot, (ms) => localClock(this.homey.clock.getTimezone())(ms).date);
+        const now = slot - day.from;
+        const sibling = (role: string) => this.pumpDevices().find((d) => d.role === role);
+        const heating = sibling('heating'), hotwater = sibling('hotwater');
+        // Heating's prices fill the price lane when hot water has no Autopilot: its plan's forecast.
+        const feed = heating?.heatingFeed?.state;
+        const heatingPrices = feed?.slot === undefined || !feed.forecast ? undefined
+            : Array.from({length: day.n}, (_, k) => feed.forecast![day.from + k - feed.slot!]?.price);
+        return dayPlanData({title: this.getName(), status: this.roundStatusText(), hotwater: hotwater?.autopilotWidget(),
+            heating: heating?.autopilotWidget(), heatingPrices, ticks: ticks(day.from * SLOT_MS, day.n, this.clock),
+            n: day.n, now, t, w});
     }
 
     private register(name: string): Register {
