@@ -714,6 +714,10 @@ export class HotwaterAutopilot {
     private ranBefore = new Set<number>();
     /** The plan in force: stored heat, kWh, at the start of each slot from `from`. */
     private planned?: {from: number; stored: number[]};
+    /** The tank's history has been read from Insights since the start: until then the day's
+     *  readings and use are not known, and the widgets say they are loading. */
+    private historyRead = false;
+    historyReady(): boolean { return this.historyRead; }
     /** The tank over the last day and a half, a reading a slot: Insights' until the live readings
      *  begin, then one per plan step. What the Hot water use widget reads today's use from. */
     private history: TankPoint[] = [];
@@ -835,7 +839,7 @@ export class HotwaterAutopilot {
      *  read behind now and planned from now, and per hour the litres drawn and expected. */
     tank(from: number, n: number): TankView | undefined {
         const model = this.model, o = this.outlook(from, n);
-        if (!model || !o) return undefined;
+        if (!model || !o || !this.historyRead) return undefined;
         const clock = this.clock(), dayTypes = this.hooks.dayType();
         const read: (number | undefined)[] = new Array(n).fill(undefined);
         for (const p of this.history) {
@@ -1014,6 +1018,7 @@ export class HotwaterAutopilot {
         this.ranBefore = new Set(chargedSlots(points, started - 2 * DAY_MS, model.charge?.producedPerHour ?? model.charge?.heatPerHour ?? 6, model.charge?.kw)
             .filter((slot) => slot < firstSeen));
         this.history = mergeHistory(points, this.history, started - HISTORY_MS);
+        this.historyRead = true;
         this.ceilingObs = mergeObservations(this.ceilingObs, [], started, ceilingFromHistory(points));
         this.saveCeiling();
         const c = model.charge, any = model.profiles.any;

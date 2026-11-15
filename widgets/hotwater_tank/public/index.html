@@ -258,12 +258,7 @@
         applyTheme();
         var root = document.getElementById('tk');
         root.replaceChildren();
-        if (data.title) root.appendChild(el('div', 'tk-title homey-text-small', data.title));
-        if (!data.empty && data.badge) {
-          var row = el('div', 'tk-chips');
-          row.appendChild(el('span', 'tk-chip', data.badge));
-          root.appendChild(row);
-        }
+        // The card's own title names it; the device name and an Experimental tag are not repeated.
         if (data.empty) { root.appendChild(el('p', 'tk-empty', data.empty)); return; }
         if (data.status) root.appendChild(el('p', 'tk-status', data.status));
         if (data.reason) root.appendChild(el('p', 'tk-reason homey-text-small', data.reason));

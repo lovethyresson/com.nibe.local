@@ -211,12 +211,7 @@
         applyTheme();
         var root = document.getElementById('en');
         root.replaceChildren();
-        if (data.title) root.appendChild(el('div', 'en-title homey-text-small', data.title));
-        if (!data.empty && data.badge) {
-          var row = el('div', 'en-chips');
-          row.appendChild(el('span', 'en-chip', data.badge));
-          root.appendChild(row);
-        }
+        // The card's own title names it; the device name and an Experimental tag are not repeated.
         if (data.empty) { root.appendChild(el('p', 'en-empty', data.empty)); return; }
         if (data.loading && !data.chart) {
           root.appendChild(placeholder(Math.max(110, Math.min(170, Math.round(chartWidth() * 0.38))) + 60 + EXTRA));

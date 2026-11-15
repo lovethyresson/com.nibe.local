@@ -22,6 +22,8 @@ export interface WeekBar {
 
 export interface HotwaterUseData {
     title: string;
+    /** Right after a start: the history is still being read. Drawn as a placeholder. */
+    loading?: boolean;
     /** Today's expected use, and the day type with its typical day. */
     status?: string;
     reason?: string;

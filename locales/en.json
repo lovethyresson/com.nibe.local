@@ -745,7 +745,8 @@
       "row_charging": "Charging until about __end__",
       "row_tank": "In the tank now",
       "row_next": "Next charge",
-      "row_next_tomorrow": "Next charge, tomorrow"
+      "row_next_tomorrow": "Next charge, tomorrow",
+      "loading": "Loading your hot water history. This takes a few minutes."
     },
     "savings": {
       "pick": "Pick a Heating or Hot water device in the widget's settings.",

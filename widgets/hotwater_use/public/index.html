@@ -13,6 +13,11 @@
       .hw-key { display: inline-block; width: 12px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; box-sizing: border-box; }
       .hw-key.line { height: 3px; vertical-align: 3px; margin-right: 2px; }
       .hw-empty { opacity: 0.8; margin: 12px 0; }
+      .ghost-bar { fill: currentColor; fill-opacity: 0.1; }
+      @media (prefers-reduced-motion: no-preference) {
+        .ghost-bar { transform-box: fill-box; transform-origin: center bottom; animation: ghost-rise 4.2s cubic-bezier(.3, 0, .2, 1) infinite both; }
+      }
+      @keyframes ghost-rise { 0%, 35% { transform: scaleY(0); opacity: 0; } 55%, 85% { transform: scaleY(1); opacity: 1; } 100% { opacity: 0; } }
       .hw-today { margin-top: 14px; }
       .hw-row { display: grid; grid-template-columns: 3.4em 10px minmax(0, 1fr) fit-content(45%); gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid rgba(127, 127, 127, 0.18); }
       .hw-sub + .hw-row { border-top: 0; margin-top: 2px; }
@@ -171,12 +176,28 @@
       }
 
       var last = null;
+      function placeholder() {
+        var W = chartWidth(), H = 150, B = 126, svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'hw-chart', role: 'img'});
+        var step = W / 7, bw = Math.min(36, step * 0.62);
+        [0.45, 0.42, 0.2, 0.55, 0.35, 0.85, 0.7].forEach(function (f, k) {
+          var h = (B - 20) * f;
+          var bar = svgEl('rect', {x: step * (k + 0.5) - bw / 2, y: B - h, width: bw, height: h, rx: 3, class: 'ghost-bar'});
+          bar.style.animationDelay = (k * 0.08) + 's';
+          svg.appendChild(bar);
+        });
+        return svg;
+      }
       function render(data) {
         applyTheme();
         var root = document.getElementById('hw');
         root.replaceChildren();
-        if (data.title) root.appendChild(el('div', 'hw-title homey-text-small', data.title));
         if (data.empty) { root.appendChild(el('p', 'hw-empty', data.empty)); return; }
+        if (data.loading) {
+          // Loading: the week's bars rise in place, so the card keeps its shape.
+          root.appendChild(el('p', 'hw-reason homey-text-small', data.status));
+          root.appendChild(placeholder());
+          return;
+        }
         if (data.status) root.appendChild(el('p', 'hw-status', data.status));
         if (data.reason) root.appendChild(el('p', 'hw-reason homey-text-small', data.reason));
         var l = data.legend;

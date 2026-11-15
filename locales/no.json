@@ -745,7 +745,8 @@
       "row_charging": "Lader til omtrent __end__",
       "row_tank": "I berederen nå",
       "row_next": "Neste lading",
-      "row_next_tomorrow": "Neste lading, i morgen"
+      "row_next_tomorrow": "Neste lading, i morgen",
+      "loading": "Laster inn varmtvannshistorikken din. Dette tar noen minutter."
     },
     "savings": {
       "pick": "Velg en enhet for Oppvarming eller Varmtvann i widgetens innstillinger.",

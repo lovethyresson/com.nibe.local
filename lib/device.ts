@@ -2260,8 +2260,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const SLOT = 15 * 60_000, start = day.from * SLOT, n = day.n + 24;
         const view = this.hotwaterAutopilot?.tank(day.from, n);
         const badge = this.homey.__('autopilot.widget.experimental');
-        if (!view) return {title, badge, loading: true, status: this.homey.__('autopilot.widget.starting_title'),
-            reason: this.homey.__('autopilot.widget.starting_hotwater')};
+        if (!view) return {title, badge, loading: true, status: this.homey.__('autopilot.hotwater_use.loading')};
         const now = slot - day.from;
         const chart = tankChart(view, now, day.n);
         const bands = chargeBands(view.slots, start, this.clock, (from, to) => this.homey.__('autopilot.widget.hotwater.band', {from, to}));
@@ -2288,6 +2287,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.role !== 'hotwater') return {title, empty: t('pick')};
         if (!autopilotRuns(this.smartMode())) return {title, empty: t('off')};
         const usage = this.hotwaterAutopilot?.usage();
+        // Right after a start the model and the day's readings are still being read: say so,
+        // rather than "Learning", which means too little history.
+        const reading = !this.hotwaterAutopilot?.historyReady() && process.uptime() < 15 * 60;
+        if (reading) return {title, loading: true, status: t('loading')};
         if (!usage) return {title, empty: t('learning')};
         const format = new Intl.DateTimeFormat(this.homey.i18n.getLanguage(), {weekday: 'short', timeZone: 'UTC'});
         const week = hotwaterWeek(usage, (date) => format.format(new Date(`${date}T12:00:00Z`)));

@@ -325,12 +325,11 @@
         applyTheme();
         var root = document.getElementById('ap');
         root.replaceChildren();
-        if (data.title) root.appendChild(el('div', 'ap-title homey-text-small', data.title));
+        // The card's own title names it; the device name and an Experimental tag are not repeated.
         var chips = (data.chips || []).slice();
-        if (!data.empty && (chips.length || data.badge)) {
+        if (!data.empty && chips.length) {
           var row = el('div', 'ap-chips');
           chips.forEach(function (c) { row.appendChild(el('span', 'ap-chip', c)); });
-          if (data.badge) row.appendChild(el('span', 'ap-chip quiet', data.badge));
           root.appendChild(row);
         }
         if (data.empty) { root.appendChild(el('p', 'ap-empty', data.empty)); return; }

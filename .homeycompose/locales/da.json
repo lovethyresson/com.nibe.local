@@ -438,7 +438,8 @@
       "row_charging": "Opvarmer indtil cirka __end__",
       "row_tank": "I beholderen nu",
       "row_next": "Næste opvarmning",
-      "row_next_tomorrow": "Næste opvarmning, i morgen"
+      "row_next_tomorrow": "Næste opvarmning, i morgen",
+      "loading": "Indlæser din varmtvandshistorik. Det tager et par minutter."
     },
     "savings": {
       "pick": "Vælg enheden Opvarmning eller Varmt vand i widgettens indstillinger.",

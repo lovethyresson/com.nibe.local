@@ -438,7 +438,8 @@
       "row_charging": "Laddar till cirka __end__",
       "row_tank": "I tanken nu",
       "row_next": "Nästa laddning",
-      "row_next_tomorrow": "Nästa laddning, i morgon"
+      "row_next_tomorrow": "Nästa laddning, i morgon",
+      "loading": "Läser in din varmvattenhistorik. Det tar några minuter."
     },
     "savings": {
       "pick": "Välj en enhet för Värme eller Varmvatten i widgetens inställningar.",

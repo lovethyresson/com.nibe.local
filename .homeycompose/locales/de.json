@@ -438,7 +438,8 @@
       "row_charging": "Lädt bis etwa __end__",
       "row_tank": "Jetzt im Speicher",
       "row_next": "Nächste Ladung",
-      "row_next_tomorrow": "Nächste Ladung, morgen"
+      "row_next_tomorrow": "Nächste Ladung, morgen",
+      "loading": "Ihr Warmwasserverlauf wird geladen. Das dauert einige Minuten."
     },
     "savings": {
       "pick": "Wählen Sie in den Widget-Einstellungen ein Gerät für Heizung oder Brauchwasser.",

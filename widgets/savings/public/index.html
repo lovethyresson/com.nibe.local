@@ -262,10 +262,7 @@
         applyTheme();
         var root = document.getElementById('sv');
         root.replaceChildren();
-        var head = el('div', 'sv-head');
-        head.appendChild(el('div', 'sv-title homey-text-small', data.title || ''));
-        if (data.badge && !data.empty) head.appendChild(el('span', 'sv-tag', data.badge));
-        root.appendChild(head);
+        // The card's own title names it; the device name and an Experimental tag are not repeated.
         if (data.empty) { root.appendChild(el('p', 'sv-note', data.empty)); return; }
         if (data.status) root.appendChild(el('div', 'sv-label', data.status));
         if (data.value) {

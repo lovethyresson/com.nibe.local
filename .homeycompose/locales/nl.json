@@ -438,7 +438,8 @@
       "row_charging": "Opwarmen tot ongeveer __end__",
       "row_tank": "Nu in de boiler",
       "row_next": "Volgende opwarming",
-      "row_next_tomorrow": "Volgende opwarming, morgen"
+      "row_next_tomorrow": "Volgende opwarming, morgen",
+      "loading": "Je warmwatergeschiedenis wordt geladen. Dit duurt een paar minuten."
     },
     "savings": {
       "pick": "Kies een apparaat Verwarming of Warm water in de instellingen van de widget.",
