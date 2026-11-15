@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import {HotwaterModel, KWH_PER_LITRE, localClock} from '../lib/autopilot/hotwater-learner';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {COAST_HOURS, DAILY_HOUR, chargedSlots, nextCharge, trackedReason, DailyPlan, MIN_HORIZON, ShadowEntry, coastLitres, againstPlan, planChanges, planUpdateText, autopilotCharge, chargeLine, chargeText, dailyPlan, dailyPlanText, hotwaterShadowStep, hotwaterStatusText, ownDeviceId, resumePlan, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
+import {COAST_HOURS, DAILY_HOUR, EXTEND_MIN_K, extendTarget, chargedSlots, nextCharge, trackedReason, DailyPlan, MIN_HORIZON, ShadowEntry, coastLitres, againstPlan, planChanges, planUpdateText, autopilotCharge, chargeLine, chargeText, dailyPlan, dailyPlanText, hotwaterShadowStep, hotwaterStatusText, ownDeviceId, resumePlan, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
 import {SLOT_MS, slotOf} from '../lib/autopilot/prices';
 
 const clock = localClock('UTC');
@@ -477,4 +477,30 @@ test('chargedSlots places a part hour against the full hour beside it (Insights 
         ['10:15', '12:15']);
     assert.strictEqual(got.length, 8, 'continuous');
     assert.deepStrictEqual(chargedSlots([{t: t(9, 0), produced: 0}, {t: t(15, 0), produced: 20}], 0, 6), [], 'six hours apart: too vague');
+});
+
+test('a running charge is raised while cheap hours go on and use follows; not when cheap comes later', () => {
+    // 00:00 now, a charge to 48 °C running (More hot water, Large stop 48). Cheap until 04:00,
+    // expensive after, the evening's use ahead.
+    const cheapNow = new Map(Array.from({length: 96}, (_, k) => [S0 + k, {price: k < 16 ? 1.0 : 3.3}]));
+    const running = {litres: 110, top: 46, powerW: 2300, more: true, largeStopC: 48, stopC: 48};
+    const raise = extendTarget({slot: S0, prices: cheapNow, model, tank, clock, now: running});
+    assert.ok(raise, 'extended');
+    assert.ok(raise!.targetC >= 48 + EXTEND_MIN_K && raise!.targetC <= 60, `to ${raise!.targetC}`);
+    assert.ok(raise!.saves > 0);
+    // Expensive now, cheap from 04:00: let the charge end and buy the rest later.
+    const cheapLater = new Map(Array.from({length: 96}, (_, k) => [S0 + k, {price: k < 16 ? 3.3 : 1.0}]));
+    assert.strictEqual(extendTarget({slot: S0, prices: cheapLater, model, tank, clock, now: running}), undefined);
+    // Not a More hot water charge (the pump's own, to its demand mode's stop): never touched.
+    assert.strictEqual(extendTarget({slot: S0, prices: cheapNow, model, tank, clock, now: {...running, more: false}}), undefined);
+    // Nothing running.
+    assert.strictEqual(extendTarget({slot: S0, prices: cheapNow, model, tank, clock, now: {...running, powerW: 0}}), undefined);
+});
+
+test('an extension never passes the highest target (the learned compressor ceiling)', () => {
+    const cheapNow = new Map(Array.from({length: 96}, (_, k) => [S0 + k, {price: k < 16 ? 1.0 : 3.3}]));
+    const running = {litres: 110, top: 46, powerW: 2300, more: true, largeStopC: 48, stopC: 48};
+    const capped = extendTarget({slot: S0, prices: cheapNow, model, tank, clock, now: running, maxC: 50});
+    assert.ok(!capped || capped.targetC <= 50, `to ${capped?.targetC}`);
+    assert.strictEqual(extendTarget({slot: S0, prices: cheapNow, model, tank, clock, now: running, maxC: 48.5}), undefined, 'no room under the ceiling');
 });

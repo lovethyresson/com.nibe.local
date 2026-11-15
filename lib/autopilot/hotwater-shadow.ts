@@ -13,7 +13,7 @@ import {TankCapabilities, fetchTankInsights, pointsFromInsights} from './hotwate
 import {DEFAULT_RESERVE_LITRES, MIN_CHARGE_KWH, Plan, SLOT_H, TankSpec, drawsFor, heatAt, plan, plannedHours, reserveKwh} from './hotwater-planner';
 import {appendLine, deleteHistory, loadJson, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
 import {DayTypeState, dayTypeAt} from './day-type';
-import {PumpFacts, countFor, leverDecision} from './hotwater-lever';
+import {DEMAND_LARGE, MAX_STOP_WRITES_PER_DAY, PumpFacts, countFor, leverDecision} from './hotwater-lever';
 import {BlockedBy, Edge, TankDay, hotwaterDayScore, leverBlock, tankDayUpdate} from './analytics';
 import {Ceiling, CeilingObservation, ChargeWatch, DEFAULT_CEILING_C, ONSET_MIN_C, PollReading, ceilingFromHistory, learnCeiling,
     mergeObservations, targetCap, watchCharge} from './hotwater-ceiling';
@@ -194,6 +194,32 @@ export function chargedSlots(points: TankPoint[], since: number, rate: number, k
         for (let slot = Math.round(Math.max(from, since) / SLOT_MS); slot * SLOT_MS < Math.round(to / SLOT_MS) * SLOT_MS; slot++) out.add(slot);
     });
     return [...out].sort((x, y) => x - y);
+}
+
+/** An extension must take the charge at least this much hotter, K, and save at least this much,
+ *  kr, over the known prices: smaller gains are not worth a write to the pump. */
+export const EXTEND_MIN_K = 1;
+export const EXTEND_MIN_KR = 0.3;
+
+/** A running More hot water charge (Autopilot's, to the Large stop) raised mid-charge: the plan
+ *  made as if the charge could run past its stop, against the plan that ends it there. The pump
+ *  follows a Large stop raised during a charge (S1155, 2026-11-15: 54 → 56 °C at 21:25, charged on
+ *  to 56.1 °C, no immersion heater). Extend when that plan heats at least `EXTEND_MIN_K` hotter
+ *  now, saves at least `EXTEND_MIN_KR` and leaves the tank no shorter; never above the highest
+ *  target (`input.maxC`, under the learned ceiling). Pure. */
+export function extendTarget(input: ShadowStepInput): {targetC: number; from: number; saves: number} | undefined {
+    const now = input.now;
+    if (!now.more || !((now.powerW ?? 0) > 0) || now.largeStopC === undefined) return undefined;
+    const held = planFrom(input);
+    const free = planFrom({...input, now: {...now, largeStopC: undefined}});
+    if ('skip' in held || 'skip' in free) return undefined;
+    const first = free.plan.charges[0];
+    if (!first || first.start !== 0) return undefined;
+    const targetC = Math.min(first.targetC, input.maxC ?? MAX_C);
+    if (targetC < now.largeStopC + EXTEND_MIN_K) return undefined;
+    const saves = held.plan.cost - free.plan.cost;
+    if (saves < EXTEND_MIN_KR || free.plan.shortfall > held.plan.shortfall + 1e-6) return undefined;
+    return {targetC, from: now.largeStopC, saves: round(saves)};
 }
 
 /** The charge to show as next: the one running now while the tank charges, else the first that
@@ -1097,6 +1123,7 @@ export class HotwaterAutopilot {
         this.morning(input);
         this.adoptPlan(input);
         this.watchStarts(input, at).catch((error) => this.log('Autopilot hot water: start failed:', error?.message ?? error));
+        this.watchExtend(input, at).catch((error) => this.log('Autopilot hot water: extending the charge failed:', error?.message ?? error));
         const out = hotwaterShadowStep(input);
         this.showStatus(input, out);
         // No prices blocks the plan until a plan is made again; other skips change nothing.
@@ -1135,6 +1162,37 @@ export class HotwaterAutopilot {
         }
         this.starting = true;
         try { await this.startCharge(e, input.clock(at).date); } finally { this.starting = false; }
+    }
+
+    /** The charge an extension was last decided for (its start), so a charge is extended once. */
+    private extendedFor?: number;
+
+    /** A running More hot water charge raised mid-charge when cheap hours go on (`extendTarget`):
+     *  live, the Large stop is written, within the day's stop writes; in a test run it is logged. */
+    private async watchExtend(input: ShadowStepInput, at: number) {
+        if (this.starting || !((input.now.powerW ?? 0) > 0) || !input.now.more) return;
+        const charge = this.lastStart?.at ?? at;
+        if (this.extendedFor === charge) return;
+        const e = extendTarget(input);
+        if (!e) return;
+        this.extendedFor = charge;
+        if (this.shadow) {
+            this.log(`Autopilot hot water (test run): would raise the running charge ${e.from} → ${e.targetC} °C, saving about ${e.saves} ${this.currency}.`);
+            return;
+        }
+        const date = input.clock(at).date;
+        const count = countFor(this.hooks.store.get(WRITES_KEY), date);
+        const facts = await this.hooks.pumpFacts();
+        if (count.stops >= MAX_STOP_WRITES_PER_DAY || facts.demandMode === DEMAND_LARGE) {
+            this.log(`Autopilot hot water: running charge not extended (${count.stops >= MAX_STOP_WRITES_PER_DAY ? 'daily limit' : 'the owner uses the Large stop'}).`);
+            return;
+        }
+        await this.hooks.store.set(WRITES_KEY, {...count, stops: count.stops + 1});
+        await this.hooks.write('stop', e.targetC);
+        const stored = this.hooks.store.get(CHARGE_KEY);
+        if (stored && typeof stored === 'object') await this.hooks.store.set(CHARGE_KEY, {...stored, targetC: e.targetC});
+        if (this.lastStart) this.lastStart = {...this.lastStart, targetC: e.targetC};
+        this.log(`Autopilot hot water: running charge raised ${e.from} → ${e.targetC} °C while prices stay cheap (saves about ${e.saves} ${this.currency}).`);
     }
 
     /** The live lever: 62 to the target if it differs, then 697 = 2. */
