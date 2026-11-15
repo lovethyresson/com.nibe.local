@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {SavingsDay, dayHours, hourlyPrices, hourlyUse, isAutopilotDay, liveAt, liveShare, mergeDays, savingsData, savingsDay, totals} from '../lib/autopilot/savings';
+import {SavingsDay, baselineOf, dayHours, daySaving, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, periodSavings, savingsData, savingsDay, totals} from '../lib/autopilot/savings';
 import {localDate} from '../lib/autopilot/prices';
 
 const HOUR = 3_600_000;
@@ -84,40 +84,79 @@ const translator = (lang: string) => (key: string, tokens: Record<string, string
     return Object.entries(tokens).reduce((out: string, [name, value]) => out.split(`__${name}__`).join(String(value)), text);
 };
 
-test('the widget says what Autopilot days paid against the average, and the dearest share both ways', () => {
-    const before = [day('2026-11-10', [3, 3, 4], 1.5, 16, 0), day('2026-11-11', [3, 3, 4], 1.5, 16, 0)];
-    const after = [day('2026-11-15', [6, 3, 1], 1.5, 12, 1)];
-    const d = savingsData('Heating', [...before, ...after], translator('en'), (date) => date.slice(8), (v) => `${v.toFixed(2)} kr`, 'Experimental');
-    assert.equal(d.status, 'Price per kWh');
-    assert.equal(d.value, '\u221220 %');
-    assert.equal(d.tone, 'good');
-    assert.equal(d.reason, 'Paid 1.20 kr per kWh, average 1.50 kr · 1 day');
-    assert.equal(d.detail, 'Most expensive hours: 10 % with Autopilot, 40 % without');
-    assert.equal(d.badge, 'Experimental');
-    assert.deepEqual(d.bars!.map((b) => b.autopilot), [false, false, true]);
-    assert.ok(isAutopilotDay(after[0]));
-    // Paying over the average with Autopilot says so in the dear colour.
-    const dear = savingsData('Heating', [day('2026-11-15', [1, 3, 6], 1.5, 18, 1)], translator('en'), String, String);
-    assert.equal(dear.value, '+20 %');
-    assert.equal(dear.tone, 'bad');
+const ctx = (over: Partial<Parameters<typeof savingsData>[3]> = {}) => ({role: 'heating' as const, today: '2026-11-20', label: (d: string) => d.slice(8), month: () => 'November',
+    price: (v: number) => `${v.toFixed(2)} kr`, money: (v: number) => `${Math.round(v)} kr`, badge: 'Experimental', ...over});
+/** Before: 10 kWh a day, 40 % in the most expensive third, paying 1.6 against an average of 1.5. */
+const before = ['2026-11-10', '2026-11-11', '2026-11-12'].map((date) => day(date, [3, 3, 4], 1.5, 16, 0));
+/** With Autopilot: the same 10 kWh, 10 % in the most expensive third, paying 1.2. */
+const after = ['2026-11-15', '2026-11-16', '2026-11-17'].map((date) => day(date, [6, 3, 1], 1.5, 12, 1));
+
+test('the baseline is the days before Autopilot first ran live, as the price paid against the average', () => {
+    const b = baselineOf([...before, ...after], '2026-11-14')!;
+    assert.equal(b.days, 3);
+    assert.equal(b.dearShare, 0.4);
+    assert.ok(Math.abs(b.ratio - 16 / 15) < 0.001);
+    assert.equal(baselineOf(before.slice(0, 2), '2026-11-14'), undefined, 'two days are too few');
 });
 
-test('before Autopilot the figure is the baseline, shown without a verdict', () => {
-    const d = savingsData('Heating', [day('2026-11-10', [3, 3, 4], 1.5, 16, 0)], translator('en'), String, String);
+test('a day saves what its kWh would have cost at the baseline\'s ratio, minus what they cost', () => {
+    const b = baselineOf(before, '2026-11-14')!;
+    assert.ok(Math.abs(daySaving(after[0], b) - 4) < 0.01, '10 kWh at 1.6 against 1.2: 4 kr');
+    assert.ok(Math.abs(daySaving(after[0], {days: 0, ratio: 1}) - 3) < 0.01, 'with no baseline, against the average: 3 kr');
+});
+
+test('savings add up over the last 7 days, the month and the year, from the day after Autopilot started', () => {
+    const b = baselineOf(before, '2026-11-14')!;
+    const startDay = day('2026-11-14', [6, 3, 1], 1.5, 12, 0.4);
+    const october = day('2026-10-20', [6, 3, 1], 1.5, 12, 1);
+    const sums = periodSavings([october, ...before, startDay, ...after], '2026-10-01', b, '2026-11-20');
+    assert.equal(sums.days, 4, 'the half day and the days without Autopilot do not count');
+    assert.ok(Math.abs(sums.week - 12) < 0.05);
+    assert.ok(Math.abs(sums.month - 12) < 0.05);
+    assert.ok(Math.abs(sums.year - 16) < 0.05);
+});
+
+test('the widget shows money saved this month, the other periods and the shift against before', () => {
+    const d = savingsData('Heating', [...before, ...after], translator('en'), ctx({firstLiveDate: '2026-11-14', baseline: baselineOf(before, '2026-11-14')}));
+    assert.equal(d.status, 'Saved on heating in November');
+    assert.equal(d.value, '12 kr');
+    assert.equal(d.tone, 'good');
+    assert.equal(d.reason, 'Last 7 days 12 kr · this year 12 kr');
+    assert.equal(d.footnote, 'Compared with how your heat pump used electricity in the 3 days before Autopilot.');
+    assert.deepEqual(d.split!.map((r) => [r.label, r.shares.map((v) => Math.round(v * 100)), r.perDay]),
+        [['Before Autopilot', [30, 30, 40], '10 kWh a day'], ['With Autopilot', [60, 30, 10], '10 kWh a day']]);
+    assert.equal(d.detail, undefined, 'heating has no charge line');
+    // Costing more says so in the expensive colour.
+    const worse = savingsData('Heating', [...before, day('2026-11-15', [1, 3, 6], 1.5, 18, 1)], translator('en'),
+        ctx({firstLiveDate: '2026-11-14', baseline: baselineOf(before, '2026-11-14')}));
+    assert.equal(worse.tone, 'bad');
+});
+
+test('before Autopilot the widget shows the figures it will be measured against, with no verdict', () => {
+    const d = savingsData('Heating', before, translator('en'), ctx());
     assert.equal(d.status, 'Before Autopilot');
     assert.equal(d.tone, 'neutral');
-    assert.equal(d.detail, 'Most expensive hours: 40 % of use');
-    // A day switched on halfway is neither, and an unknown day counts for neither side.
-    const mixed = savingsData('Heating', [day('2026-11-12', [1, 1, 1], 1, 3, 0.5), day('2026-11-13', [1, 1, 1], 1, 3)],
-        translator('en'), String, String);
-    // Nothing sorted (no record of the Smart mode yet): the days as they are, with no verdict.
-    assert.equal(mixed.status, 'Price per kWh');
-    assert.equal(mixed.tone, 'neutral');
-    assert.match(mixed.reason!, /· 2 days$/);
+    assert.equal(d.value, '+7 %');
+    assert.equal(d.reason, 'Paid 1.60 kr per kWh, average 1.50 kr · 3 days');
+    assert.equal(d.footnote, 'Savings count from the day Autopilot first runs Live.');
+});
+
+test('started today: a line until the first full day; with no days before it, against the average', () => {
+    const d = savingsData('Heating', before, translator('en'), ctx({firstLiveDate: '2026-11-19'}));
+    assert.equal(d.status, 'Autopilot is running');
+    assert.equal(d.reason, 'Savings show after its first full day.');
+    assert.equal(d.footnote, 'Compared with using the same kWh evenly over each day.');
 });
 
 test('no days yet: one line', () => {
-    assert.deepEqual(savingsData('Heating', [], translator('en'), String, String), {title: 'Heating', empty: strings('en').empty});
+    assert.deepEqual(savingsData('Heating', [], translator('en'), ctx()), {title: 'Heating', empty: strings('en').empty});
+});
+
+test('a device that ran Autopilot before it was recorded: first live is where the live hours began', () => {
+    const mark = T0 + 30 * HOUR;
+    const live = (at: number) => at >= T0 + 10 * HOUR ? (at === T0 + 20 * HOUR ? false : true) : false;
+    assert.equal(firstLiveFrom(mark, live), T0 + 10 * HOUR, 'a one-hour gap is bridged');
+    assert.equal(firstLiveFrom(mark + 15 * 60_000, () => undefined), mark, 'nothing known before the mark: the mark');
 });
 
 test('every savings string is in all six languages, with the same tokens', () => {
@@ -138,17 +177,38 @@ test('merged days keep one per date, newest wins, oldest first', () => {
     assert.deepEqual(merged.map((d) => [d.date, d.cost]), [['2026-11-01', 3], ['2026-11-02', 6]]);
 });
 
-test('the baseline counts every day the ledger keeps without Autopilot, past the chart\'s 14', () => {
-    const old = Array.from({length: 10}, (_, i) => day(`2026-10-${String(10 + i).padStart(2, '0')}`, [3, 3, 4], 1.5, 16, 0));
-    const live = Array.from({length: 14}, (_, i) => day(`2026-11-${String(1 + i).padStart(2, '0')}`, [6, 3, 1], 1.5, 12, 1));
-    const d = savingsData('Heating', [...old, ...live], translator('en'), String, String);
-    assert.equal(d.bars!.length, 14);
-    assert.equal(d.detail, 'Most expensive hours: 10 % with Autopilot, 40 % without');
-});
-
 test('a local day is found in any time zone', () => {
     for (const zone of ['Pacific/Auckland', 'Asia/Kolkata', 'America/Los_Angeles', 'Europe/Stockholm']) {
         const hours = dayHours('2026-11-15', (ms) => localDate(ms, zone));
         assert.ok(hours.length >= 24 && hours.length <= 25, `${zone}: ${hours.length}`);
     }
+});
+
+test('hot water: charges are runs of charging hours, placed at their hours\' price rank', () => {
+    const use = new Map(hours24.map((at, h) => [at, h >= 2 && h < 4 ? 1.8 : h === 17 ? 1.5 : 0.05]));
+    const d = savingsDay('2026-11-15', hours24, use, prices, 1, true)!;
+    assert.equal(d.charges!.length, 2);
+    assert.ok(d.charges![0] < 0.2, `night charge at ${d.charges![0]}`);
+    assert.ok(d.charges![1] > 2 / 3, `the 17:00 charge in the most expensive third, at ${d.charges![1]}`);
+});
+
+test('hot water: what a day cost before and with Autopilot, and how many charges hit cheap hours', () => {
+    const b = baselineOf(before, '2026-11-14')!;
+    const withCharges = after.map((d, i) => ({...d, charges: i === 0 ? [0.1, 0.9] : [0.05]}));
+    const d = savingsData('Hot water', [...before, ...withCharges], translator('en'),
+        ctx({role: 'hotwater', firstLiveDate: '2026-11-14', baseline: b}));
+    assert.equal(d.split, undefined);
+    assert.equal(d.perDay!.title, 'Hot water per day');
+    assert.equal(d.perDay!.now!.value, '12 kr');
+    assert.equal(d.perDay!.before!.value, '16 kr', 'the same kWh at the old pattern');
+    assert.equal(d.perDay!.now!.note, '\u221225 %');
+    assert.equal(d.detail, '3 of 4 charges in the cheapest hours this week');
+    assert.equal(d.charges!.days.length, 3, 'only days with charge data: the days before carry none');
+});
+test('hot water says the month\'s total is for all hot water, and the tiles are per day', () => {
+    const b = baselineOf(before, '2026-11-14')!;
+    const d = savingsData('Hot water', [...before, ...after], translator('en'),
+        ctx({role: 'hotwater', firstLiveDate: '2026-11-14', baseline: b}));
+    assert.equal(d.status, 'Saved on hot water in November');
+    assert.equal(d.perDay!.title, 'Hot water per day');
 });

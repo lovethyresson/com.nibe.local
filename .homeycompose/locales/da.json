@@ -423,19 +423,32 @@
     "savings": {
       "pick": "Vælg en enhed for Opvarmning eller Varmt vand i widgettens indstillinger.",
       "empty": "Vises fra i morgen. Kræver dynamiske elpriser i Homey Energi.",
-      "status_autopilot": "Pris pr. kWh",
       "status_before": "Før Autopilot",
+      "status_started": "Autopilot kører",
+      "first_day": "Besparelsen vises efter første hele døgn.",
+      "periods": "Seneste 7 dage __week__ · i år __year__",
       "paid": "Betalt __paid__ pr. kWh, gennemsnit __mean__",
       "days": "__days__ dage",
       "days_one": "1 dag",
-      "dear_both": "Dyreste timer: __a__ % af forbruget med Autopilot, __b__ % uden",
       "dear_one": "Dyreste timer: __a__ % af forbruget",
-      "axis": "kWh pr. døgn",
       "cheap": "Billigste timer",
       "middle": "Midten",
       "dear": "Dyreste timer",
-      "autopilot_day": "Autopilot til",
-      "footnote": "Hver dags timer, delt i tre efter pris."
+      "footnote_before": "Besparelsen tælles fra den dag, Autopilot først kører Live.",
+      "footnote_baseline": "Sammenlignet med, hvordan din varmepumpe brugte strøm de __days__ dage før Autopilot.",
+      "footnote_flat": "Sammenlignet med de samme kWh jævnt fordelt over døgnet.",
+      "per_day": "__kwh__ kWh pr. døgn",
+      "row_so_far": "Indtil nu",
+      "row_before": "Før Autopilot",
+      "row_with": "Med Autopilot",
+      "charges_title": "Hver opvarmning, efter hvor billige timerne var",
+      "charges_cheap": "__n__ af __of__ opvarmninger i de billigste timer i denne uge",
+      "band_cheap": "Billig",
+      "band_middle": "Midten",
+      "band_dear": "Dyrt",
+      "status_month_heating": "Sparet på opvarmning i __month__",
+      "status_month_hotwater": "Sparet på varmt vand i __month__",
+      "per_day_cost": "Varmt vand pr. døgn"
     }
   }
 }

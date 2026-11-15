@@ -1,9 +1,12 @@
-/** The Autopilot savings widget's data (widgets/savings): when a function used its electricity,
- *  read from the meter. Each day's hours are split into the cheapest, middle and dearest third
- *  by that day's price, and the function's kWh are summed per third. Autopilot works when its days
- *  move kWh out of the dearest third, and when the price paid per kWh sits under the day's average.
- *  No house model, no counterfactual: the meter and the prices, so an owner can check it
- *  (autopilot-plan.md §11 keeps the modelled figure for later). Pure; the device gathers the
+/** The Autopilot savings widget's data (widgets/savings), read from the meter and the prices so an
+ *  owner can check it (autopilot-plan.md §11 keeps the modelled figure for later).
+ *
+ *  Each day's hours are split into the cheapest, middle and most expensive third by that day's
+ *  price, and the function's kWh are summed per third. The days before Autopilot first ran live are
+ *  the baseline, frozen once found: how the heat pump used electricity on its own, as the share in
+ *  the most expensive third and as its price paid against the day's average (the ratio). An
+ *  Autopilot day's saving is what its kWh would have cost at the baseline's ratio, minus what they
+ *  cost. Those add up into the last 7 days, this month and this year. Pure; the device gathers the
  *  inputs and the widget only draws. Strings arrive translated. */
 
 const HOUR = 3_600_000;
@@ -20,6 +23,9 @@ export interface SavingsDay {
     mean: number;
     /** Share of the day's hours Autopilot ran live (0–1); missing where it is not known. */
     live?: number;
+    /** Hot water: each charge's place in the day's prices, 0 the cheapest hour and 1 the most
+     *  expensive (the mean over its hours). */
+    charges?: number[];
 }
 
 /** kWh per hour (hour start, ms) from Insights' hourly points of a cumulative meter. Each point is
@@ -56,7 +62,7 @@ export function hourlyPrices(slots: {slot: number; price: number}[], slotMs: num
 /** A day from its hours. Every hour needs a price; up to two hours without a meter reading count
  *  as no use, and a day with more gaps is left out, since its missing kWh would land in no third. */
 export function savingsDay(date: string, hours: number[], use: Map<number, number>, prices: Map<number, number>,
-    live?: number): SavingsDay | undefined {
+    live?: number, withCharges = false): SavingsDay | undefined {
     const priced = hours.filter((at) => prices.has(at));
     if (priced.length < hours.length || hours.length < 20) return undefined;
     const metered = priced.filter((at) => use.has(at));
@@ -70,12 +76,33 @@ export function savingsDay(date: string, hours: number[], use: Map<number, numbe
         cost += kwh * prices.get(at)!;
     });
     const mean = priced.reduce((s, at) => s + prices.get(at)!, 0) / priced.length;
-    return {date, tiers: tiers.map(round) as [number, number, number], cost: round(cost), mean: round(mean), live};
+    const day: SavingsDay = {date, tiers: tiers.map(round) as [number, number, number], cost: round(cost), mean: round(mean), live};
+    if (withCharges) {
+        const rank = new Map(ranked.map((at, i) => [at, ranked.length > 1 ? i / (ranked.length - 1) : 0]));
+        day.charges = chargeRanks(hours, use, rank);
+    }
+    return day;
 }
 
-/** Days kept. The chart shows the last 14; the days without Autopilot are compared over all of
- *  these, so the comparison stays after two weeks of Autopilot. */
-export const LEDGER_DAYS = 60;
+/** kWh in an hour from which the tank counts as being charged: a compressor charge draws 1–2 kW,
+ *  a tank standing still next to nothing. */
+export const CHARGE_KWH = 0.4;
+
+/** The charges in a day: runs of consecutive charging hours, each placed at the mean price rank
+ *  of its hours. */
+export function chargeRanks(hours: number[], use: Map<number, number>, rank: Map<number, number>): number[] {
+    const out: number[] = [];
+    let run: number[] = [];
+    for (const at of [...hours, NaN]) {
+        if ((use.get(at) ?? 0) >= CHARGE_KWH) { run.push(rank.get(at)!); continue; }
+        if (run.length) out.push(round(run.reduce((a, b) => a + b, 0) / run.length));
+        run = [];
+    }
+    return out;
+}
+
+/** Days kept: a year and a month, so "this year" adds up from the ledger. About 100 bytes a day. */
+export const LEDGER_DAYS = 400;
 
 /** The stored days with fresh ones merged in, one per date, oldest first. */
 export function mergeDays(stored: SavingsDay[], fresh: SavingsDay[]): SavingsDay[] {
@@ -84,16 +111,16 @@ export function mergeDays(stored: SavingsDay[], fresh: SavingsDay[]): SavingsDay
     return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date)).slice(-LEDGER_DAYS);
 }
 
-/** A day counts as Autopilot's when it ran live most of the day, and as one without when it hardly
- *  ran; a day it was switched on halfway counts as neither. */
+/** A day counts as Autopilot's when it ran live most of the day. */
 export const isAutopilotDay = (d: SavingsDay) => d.live !== undefined && d.live >= 0.8;
-export const isOtherDay = (d: SavingsDay) => d.live !== undefined && d.live <= 0.2;
 
-/** A set of days in one figure: kWh, its dearest third's share, and the price paid against the
- *  days' average (at the same kWh per day). */
+/** A set of days in one figure: kWh, its most expensive third's share, and the price paid against
+ *  the days' average (each day's average weighted by its kWh). */
 export interface Totals {
     days: number;
     kwh: number;
+    /** Share of kWh in the cheapest, middle and most expensive third. */
+    shares: [number, number, number];
     dearShare: number;
     paid: number;
     mean: number;
@@ -106,68 +133,192 @@ export function totals(days: SavingsDay[]): Totals | undefined {
     const dear = used.reduce((s, d) => s + d.tiers[2], 0);
     const cost = used.reduce((s, d) => s + d.cost, 0);
     const flat = used.reduce((s, d) => s + (d.tiers[0] + d.tiers[1] + d.tiers[2]) * d.mean, 0);
-    return {days: used.length, kwh, dearShare: dear / kwh, paid: cost / kwh, mean: flat / kwh};
+    const third = (i: number) => used.reduce((s, d) => s + d.tiers[i], 0) / kwh;
+    return {days: used.length, kwh, shares: [third(0), third(1), third(2)], dearShare: dear / kwh, paid: cost / kwh, mean: flat / kwh};
+}
+
+/** How the function used electricity before Autopilot first ran live. Frozen once found. */
+export interface Baseline {
+    /** Days it is made of; 0 when there were none, and the day's average stands in (ratio 1). */
+    days: number;
+    /** Share of kWh in the most expensive third of the hours. */
+    dearShare?: number;
+    /** Price paid against the day's average: above 1 when use leaned to the expensive hours. */
+    ratio: number;
+    /** Share of kWh in the cheapest, middle and most expensive third, and kWh a day. */
+    shares?: [number, number, number];
+    kwhPerDay?: number;
+}
+
+/** Days before Autopilot first ran live that the baseline uses, at most. */
+export const BASELINE_DAYS = 28;
+/** Days a baseline needs, else none is made from them. */
+export const BASELINE_MIN_DAYS = 3;
+
+/** The baseline from the days before `firstLiveDate` (local date), or undefined with too few. */
+export function baselineOf(days: SavingsDay[], firstLiveDate: string): Baseline | undefined {
+    const before = days.filter((d) => d.date < firstLiveDate).slice(-BASELINE_DAYS);
+    const t = totals(before);
+    if (!t || t.days < BASELINE_MIN_DAYS) return undefined;
+    return {days: t.days, dearShare: round(t.dearShare), ratio: round(t.paid / t.mean), shares: t.shares.map(round) as [number, number, number],
+        kwhPerDay: round(t.kwh / t.days)};
+}
+
+/** What a day saved against the baseline, in money: its kWh at the baseline's ratio to the day's
+ *  average, minus what they cost. Negative when it cost more. */
+export function daySaving(d: SavingsDay, base: Baseline): number {
+    const kwh = d.tiers[0] + d.tiers[1] + d.tiers[2];
+    return kwh * d.mean * base.ratio - d.cost;
+}
+
+/** The days that count as Autopilot's savings: whole days after the one it first ran live, that it ran. */
+export const savingDays = (days: SavingsDay[], firstLiveDate: string) =>
+    days.filter((d) => d.date > firstLiveDate && isAutopilotDay(d));
+
+/** Savings over the last 7 days, this calendar month and this calendar year, as of `today` (local date). */
+export function periodSavings(days: SavingsDay[], firstLiveDate: string, base: Baseline, today: string):
+    {week: number; month: number; year: number; days: number} {
+    const counted = savingDays(days, firstLiveDate);
+    const weekFrom = shiftDate(today, -7);
+    const sum = (keep: (d: SavingsDay) => boolean) => counted.filter(keep).reduce((s, d) => s + daySaving(d, base), 0);
+    return {
+        week: sum((d) => d.date >= weekFrom),
+        month: sum((d) => d.date.slice(0, 7) === today.slice(0, 7)),
+        year: sum((d) => d.date.slice(0, 4) === today.slice(0, 4)),
+        days: counted.length,
+    };
 }
 
 export type Translate = (key: string, tokens?: Record<string, string | number>) => string;
 
-export interface SavingsBar {
-    /** Short day label, in the owner's language. */
+/** One row of the before-and-with comparison: the share of kWh in each third, and kWh a day. */
+export interface SplitRow {
     label: string;
-    tiers: [number, number, number];
-    autopilot: boolean;
+    shares: [number, number, number];
+    perDay: string;
+}
+
+/** Hot water: one day of charges, each at its place in the day's prices (0 cheapest, 1 most expensive). */
+export interface ChargeDay {
+    label: string;
+    ranks: number[];
 }
 
 export interface SavingsData {
     title: string;
     /** The "Experimental" mark, shown quietly like the Autopilot widget's. */
     badge?: string;
-    /** "Price per kWh" with Autopilot, or "Before Autopilot". */
     status?: string;
-    /** The price paid against the days' average, signed: "−20 %". */
+    /** The status's one figure: money saved this month, or the price paid against the average. */
     value?: string;
-    /** Autopilot's days under the average (good) or over it. Before Autopilot the figure is the
-     *  baseline and gets no colour (neutral). */
+    /** Saved (good) or cost more (bad). Before Autopilot the figure is the baseline: neutral. */
     tone?: 'good' | 'bad' | 'neutral';
     reason?: string;
     detail?: string;
-    axis?: string;
-    bars?: SavingsBar[];
+    /** Heating: before and with Autopilot, as the share of kWh in each third of the day's hours. */
+    split?: SplitRow[];
+    /** Hot water: what a day's hot water cost, before and with Autopilot. */
+    perDay?: {title: string; before?: {label: string; value: string}; now?: {label: string; value: string; note?: string}};
+    /** Hot water: the last week's charges on their day's prices. */
+    charges?: {title: string; days: ChargeDay[]; bands: [string, string, string]};
     legend?: Record<string, string>;
     footnote?: string;
     empty?: string;
 }
 
-/** Days the chart shows. */
-export const CHART_DAYS = 14;
+/** Days the comparison and the charge chart look back over. */
+export const RECENT_DAYS = 14;
+export const CHARGE_DAYS = 7;
 
-/** The widget's text and bars. `label` turns a date into a short day label; `money` formats a price. */
-export function savingsData(title: string, days: SavingsDay[], t: Translate, label: (date: string) => string,
-    money: (v: number) => string, badge?: string): SavingsData {
-    const shown = days.slice(-CHART_DAYS);
-    if (!shown.length) return {title, empty: t('empty')};
-    const ap = totals(shown.filter(isAutopilotDay));
-    // The days without Autopilot are the baseline: all the ledger keeps, not only the chart's.
-    const other = totals(days.filter(isOtherDay));
+/** What the widget is given besides the days. */
+export interface SavingsContext {
+    role: 'heating' | 'hotwater';
+    /** Local date Autopilot first ran live; undefined while it never has. */
+    firstLiveDate?: string;
+    /** The frozen baseline, once found. */
+    baseline?: Baseline;
+    /** Today, local date. */
+    today: string;
+    /** A short weekday for a date. */
+    label: (date: string) => string;
+    /** The month's name for a date, as it reads in a sentence ("November", "november"). */
+    month: (date: string) => string;
+    /** A price per kWh. */
+    price: (v: number) => string;
+    /** A sum of money. */
+    money: (v: number) => string;
+    badge?: string;
+}
+
+/** The widget's text and pictures. */
+export function savingsData(title: string, days: SavingsDay[], t: Translate, c: SavingsContext): SavingsData {
+    const recent = days.slice(-RECENT_DAYS);
+    if (!recent.length) return {title, empty: t('empty')};
     const pct = (v: number) => Math.round(v * 100);
-    // Nothing sorted yet (no record of the Smart mode before this version): the chart's days as they are.
-    const focus = ap ?? other ?? totals(shown);
-    const off = focus ? pct(focus.paid / focus.mean - 1) : 0;
-    const reason = focus ? [t('paid', {paid: money(focus.paid), mean: money(focus.mean)}),
-        focus.days === 1 ? t('days_one') : t('days', {days: focus.days})].join(' · ') : undefined;
-    const detail = ap && other ? t('dear_both', {a: pct(ap.dearShare), b: pct(other.dearShare)})
-        : focus ? t('dear_one', {a: pct(focus.dearShare)}) : undefined;
-    return {
-        title, badge,
-        status: ap || !other ? t('status_autopilot') : t('status_before'),
-        value: focus ? `${off > 0 ? '+' : off < 0 ? '\u2212' : ''}${Math.abs(off)} %` : undefined,
-        tone: !focus ? undefined : !ap ? 'neutral' : off <= 0 ? 'good' : 'bad',
-        reason, detail,
-        axis: t('axis'),
-        bars: shown.map((d) => ({label: label(d.date), tiers: d.tiers, autopilot: isAutopilotDay(d)})),
-        legend: {cheap: t('cheap'), middle: t('middle'), dear: t('dear'), autopilot: t('autopilot_day')},
-        footnote: t('footnote'),
+    const perDay = (kwh: number) => t('per_day', {kwh: kwh < 10 ? kwh.toFixed(1) : Math.round(kwh)});
+    const legend = {cheap: t('cheap'), middle: t('middle'), dear: t('dear')};
+    const base: Baseline = c.baseline ?? {days: 0, ratio: 1};
+    const counted = c.firstLiveDate ? savingDays(recent, c.firstLiveDate) : [];
+    const ap = totals(counted);
+    const before = c.firstLiveDate ? undefined : totals(recent);
+    const pictures: Partial<SavingsData> = {legend};
+
+    if (c.role === 'heating') {
+        const rows: SplitRow[] = [];
+        if (before) rows.push({label: t('row_so_far'), shares: before.shares, perDay: perDay(before.kwh / before.days)});
+        if (!before && base.shares) rows.push({label: t('row_before'), shares: base.shares, perDay: perDay(base.kwhPerDay ?? 0)});
+        if (ap) rows.push({label: t('row_with'), shares: ap.shares, perDay: perDay(ap.kwh / ap.days)});
+        if (rows.length) pictures.split = rows;
+    } else {
+        const week = days.slice(-CHARGE_DAYS).filter((d) => d.charges);
+        if (week.length) pictures.charges = {title: t('charges_title'), days: week.map((d) => ({label: c.label(d.date), ranks: d.charges!})),
+            bands: [t('band_cheap'), t('band_middle'), t('band_dear')]};
+        // A day's hot water with Autopilot, and the same days' kWh at the baseline's pattern.
+        const average = (list: SavingsDay[], extra: (d: SavingsDay) => number) =>
+            list.length ? list.reduce((s, d) => s + d.cost + extra(d), 0) / list.length : undefined;
+        const now = average(counted.length ? counted : recent, () => 0);
+        const was = counted.length && base.days ? average(counted, (d) => daySaving(d, base)) : undefined;
+        if (now !== undefined) pictures.perDay = {title: t('per_day_cost'),
+            before: was === undefined ? undefined : {label: t('row_before'), value: c.money(was)},
+            now: {label: counted.length ? t('row_with') : t('row_so_far'), value: c.money(now),
+                note: was === undefined ? undefined : signed(Math.round((now / was - 1) * 100)) + ' %'}};
+    }
+
+    const chargeLine = () => {
+        const ranks = days.slice(-CHARGE_DAYS).flatMap((d) => d.charges ?? []);
+        return c.role === 'hotwater' && ranks.length ? t('charges_cheap', {n: ranks.filter((r) => r < 1 / 3).length, of: ranks.length}) : undefined;
     };
+    // Before Autopilot: the figures it will be measured against.
+    if (!c.firstLiveDate) {
+        const off = before ? pct(before.paid / before.mean - 1) : 0;
+        return {title, badge: c.badge, ...pictures, status: t('status_before'), tone: 'neutral',
+            value: before ? signed(off) + ' %' : undefined,
+            reason: before ? [t('paid', {paid: c.price(before.paid), mean: c.price(before.mean)}), before.days === 1 ? t('days_one') : t('days', {days: before.days})].join(' · ') : undefined,
+            detail: chargeLine() ?? (before ? t('dear_one', {a: pct(before.dearShare)}) : undefined),
+            footnote: t('footnote_before')};
+    }
+    const sums = periodSavings(days, c.firstLiveDate, base, c.today);
+    const footnote = base.days ? t('footnote_baseline', {days: base.days}) : t('footnote_flat');
+    if (!sums.days) return {title, badge: c.badge, ...pictures, status: t('status_started'), reason: t('first_day'), detail: chargeLine(), footnote};
+    return {
+        title, badge: c.badge, ...pictures,
+        status: t(`status_month_${c.role}`, {month: c.month(c.today)}),
+        value: c.money(sums.month),
+        tone: sums.month >= 0 ? 'good' : 'bad',
+        reason: t('periods', {week: c.money(sums.week), year: c.money(sums.year)}),
+        detail: chargeLine(),
+        footnote,
+    };
+}
+
+function signed(v: number): string {
+    return `${v > 0 ? '+' : v < 0 ? '\u2212' : ''}${Math.abs(v)}`;
+}
+
+function shiftDate(date: string, days: number): string {
+    const d = new Date(`${date}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
 }
 
 function round(v: number): number {
@@ -206,4 +357,17 @@ export function liveShare(hours: number[], live: (at: number) => boolean | undef
     const known = hours.map(live).filter((v): v is boolean => v !== undefined);
     if (known.length < hours.length * 0.75) return undefined;
     return round(known.filter(Boolean).length / known.length);
+}
+
+/** When Autopilot first ran live, for a device that ran it before this was recorded: walk back
+ *  from the first live mark while the hours say live, with gaps of up to two hours bridged. */
+export function firstLiveFrom(markAt: number, live: (at: number) => boolean | undefined): number {
+    let first = Math.floor(markAt / HOUR) * HOUR, at = first - HOUR, gap = 0;
+    while (gap <= 2) {
+        const v = live(at);
+        if (v === true) { first = at; gap = 0; } else gap++;
+        at -= HOUR;
+        if (markAt - at > 400 * 24 * HOUR) break;
+    }
+    return first;
 }

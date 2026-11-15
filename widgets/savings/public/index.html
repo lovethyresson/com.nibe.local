@@ -8,26 +8,34 @@
       .sv-title { opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .sv-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
       .sv-chip { font-size: 0.8em; padding: 2px 8px; border-radius: 999px; background: transparent; border: 1px solid rgba(127, 127, 127, 0.4); opacity: 0.75; }
-      .sv-status { text-wrap: balance; margin: 12px 0 0; font-size: 1.35em; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; }
+      .sv-status { margin: 12px 0 0; font-size: 1.35em; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; }
       .sv-value { font-variant-numeric: tabular-nums; white-space: nowrap; }
-      .sv-value.good { color: var(--sv-cheap); }
       .sv-value.bad { color: var(--sv-dear); }
       .sv-value.neutral { opacity: 0.75; }
       .sv-reason { margin: 4px 0 0; opacity: 0.85; font-variant-numeric: proportional-nums; }
       .sv-detail { margin: 2px 0 0; opacity: 0.65; font-variant-numeric: proportional-nums; }
       .sv-chart { display: block; margin-top: 14px; overflow: visible; }
       .sv-chart text { font-size: 11px; fill: currentColor; opacity: 0.75; }
-      .sv-chart text.axis-title { font-size: 10.5px; opacity: 0.6; }
+      .sv-chart text.row-label { font-size: 12px; font-weight: 600; opacity: 1; }
+      .sv-chart text.on-bar { fill: #ffffff; opacity: 1; font-weight: 600; }
+      .sv-chart text.on-bar.mid { fill: currentColor; }
+      .sv-value.good, .sv-tile-n.good { color: var(--sv-cheap); }
       .sv-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.8em; opacity: 0.9; margin-top: 10px; }
       .sv-key { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; box-sizing: border-box; }
-      .sv-foot { margin: 8px 0 0; font-size: 0.8em; opacity: 0.75; }
+      .sv-foot { margin: 10px 0 0; font-size: 0.8em; opacity: 0.75; }
+      .sv-sub { margin: 14px 0 0; font-size: 0.8em; opacity: 0.75; }
+      .sv-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+      .sv-tile { border-radius: 12px; padding: 8px 10px; background: var(--sv-tile); }
+      .sv-tile-k { font-size: 0.8em; opacity: 0.75; }
+      .sv-tile-n { font-size: 1.35em; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 1px; }
+      .sv-tile-s { font-size: 0.8em; opacity: 0.75; }
       .sv-empty { opacity: 0.8; margin: 12px 0; }
       /* Cheap and dear meet 3:1 or better on their card; the middle third is a quiet grey on purpose.
          The theme is read from the text colour Homey gives the page (applyTheme), the media query first. */
-      :root { --sv-cheap: #0f8374; --sv-middle: rgba(127, 127, 127, 0.4); --sv-dear: #c4580d; --sv-autopilot: rgba(45, 107, 214, 0.1); --sv-card: #ffffff; }
-      :root[data-theme="dark"] { --sv-cheap: #2bb3a3; --sv-dear: #e8833a; --sv-autopilot: rgba(77, 163, 255, 0.16); --sv-card: #1c1c1e; }
+      :root { --sv-cheap: #0f8374; --sv-middle: rgba(127, 127, 127, 0.4); --sv-dear: #c4580d; --sv-tile: rgba(127, 127, 127, 0.1); --sv-mid-dot: #8e8e93; --sv-ring: rgba(255, 255, 255, 0.9); }
+      :root[data-theme="dark"] { --sv-cheap: #2bb3a3; --sv-dear: #e8833a; --sv-ring: rgba(0, 0, 0, 0.5); }
       @media (prefers-color-scheme: dark) {
-        :root:not([data-theme="light"]) { --sv-cheap: #2bb3a3; --sv-dear: #e8833a; --sv-autopilot: rgba(77, 163, 255, 0.16); --sv-card: #1c1c1e; }
+        :root:not([data-theme="light"]) { --sv-cheap: #2bb3a3; --sv-dear: #e8833a; --sv-ring: rgba(0, 0, 0, 0.5); }
       }
     </style>
   </head>
@@ -75,72 +83,79 @@
         var sv = document.getElementById('sv'), cs = getComputedStyle(sv);
         return Math.max(240, Math.floor(sv.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)));
       }
-      // Round gridlines: 0, half and the top, the top the first round value above the tallest bar.
-      function niceTop(v) {
-        var tops = [1, 2, 4, 6, 10, 20, 30, 40, 60, 80, 100, 150, 200, 300, 400, 600, 800, 1000];
-        for (var i = 0; i < tops.length; i++) if (v * 1.08 <= tops[i]) return tops[i];
-        return Math.ceil(v * 1.08 / 500) * 500;
-      }
-      // A rectangle with only its top corners rounded: the top of a stacked bar.
-      function topRounded(x, y, w, h, r) {
-        r = Math.min(r, w / 2, h);
-        return 'M' + x + ' ' + (y + h) + 'V' + (y + r) + 'Q' + x + ' ' + y + ' ' + (x + r) + ' ' + y
-          + 'H' + (x + w - r) + 'Q' + (x + w) + ' ' + y + ' ' + (x + w) + ' ' + (y + r) + 'V' + (y + h) + 'Z';
-      }
-
-      // A bar per day: kWh in the day's cheapest third of hours at the bottom, the dearest on top,
-      // split by a hairline of the card's colour. A day Autopilot ran is a soft column behind its bar.
-      var TOP = 22;
-      function chart(data) {
-        var W = chartWidth(), L = 30, R = W, PH = Math.max(100, Math.min(150, Math.round(W * 0.34))), B = TOP + PH, H = B + 20;
-        var n = data.bars.length, step = (R - L) / Math.max(n, 7), bw = Math.min(20, step * 0.6);
-        var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'sv-chart', role: 'img'});
-        if (data.axis) svg.appendChild(svgEl('text', {x: 0, y: 11, class: 'axis-title'}, data.axis));
-        var top = niceTop(Math.max.apply(null, data.bars.map(function (b) { return b.tiers[0] + b.tiers[1] + b.tiers[2]; }).concat([0.25])));
-        var y = function (v) { return B - PH * v / top; };
-        // Days Autopilot ran, as one band per run of days, behind the bars and their day numbers.
-        var from = -1;
-        data.bars.concat([{}]).forEach(function (b, k) {
-          if (b.autopilot && from < 0) from = k;
-          if (!b.autopilot && from >= 0) {
-            svg.appendChild(svgEl('rect', {x: L + from * step + 1, y: TOP - 4, width: (k - from) * step - 2, height: PH + 4 + 18, rx: 6, fill: 'var(--sv-autopilot)'}));
-            from = -1;
-          }
-        });
-        [0, top / 2, top].forEach(function (v) {
-          svg.appendChild(svgEl('line', {x1: L, x2: R, y1: y(v), y2: y(v), stroke: 'currentColor', 'stroke-opacity': v ? 0.1 : 0.2}));
-          svg.appendChild(svgEl('text', {x: L - 6, y: y(v) + 4, 'text-anchor': 'end'}, String(Math.round(v * 10) / 10)));
-        });
-        // Day numbers never touch: one in two, or one in three, when the card is narrow.
-        var every = step >= 18 ? 1 : step >= 10 ? 2 : 3;
-        data.bars.forEach(function (b, k) {
-          var cx = L + (k + 0.5) * step, base = 0, segs = [];
-          b.tiers.forEach(function (v, i) { if (v > 0) segs.push({i: i, v: v}); });
-          segs.forEach(function (s, j) {
-            var y0 = y(base), y1 = y(base + s.v), last = j === segs.length - 1;
-            // A hairline between segments, so stacked thirds read as parts of one bar.
-            var gap = j ? 1 : 0, h = Math.max(0.8, y0 - y1 - gap);
-            svg.appendChild(last
-              ? svgEl('path', {d: topRounded(cx - bw / 2, y1, bw, h, 3), fill: TIER[s.i]})
-              : svgEl('rect', {x: cx - bw / 2, y: y1, width: bw, height: h, fill: TIER[s.i]}));
-            base += s.v;
+      // Heating: before and with Autopilot as two bars of 100 %, split by the share of kWh in the
+      // cheapest, middle and most expensive third of each day's hours, with kWh a day beside them.
+      function split(rows) {
+        var W = chartWidth(), H = rows.length * 46 + 2, svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'sv-chart', role: 'img'});
+        rows.forEach(function (r, k) {
+          var y = k * 46 + 18, x = 0, id = 'sv-clip-' + k;
+          // Rounded ends on the whole bar, whatever the card colour behind it.
+          var defs = svgEl('defs', {}), clip = svgEl('clipPath', {id: id});
+          clip.appendChild(svgEl('rect', {x: 0, y: y, width: W, height: 22, rx: 6}));
+          defs.appendChild(clip); svg.appendChild(defs);
+          var bar = svgEl('g', {'clip-path': 'url(#' + id + ')'});
+          svg.appendChild(svgEl('text', {x: 0, y: y - 6, class: 'row-label'}, r.label));
+          svg.appendChild(svgEl('text', {x: W, y: y - 6, 'text-anchor': 'end'}, r.perDay));
+          r.shares.forEach(function (p, i) {
+            var w = W * p;
+            if (w <= 0) return;
+            var gap = x > 0 ? 1 : 0;
+            bar.appendChild(svgEl('rect', {x: x + gap, y: y, width: Math.max(0.5, w - gap), height: 22, fill: TIER[i]}));
+            var label = Math.round(p * 100) + ' %';
+            if (w > label.length * 6.5 + 8) bar.appendChild(svgEl('text', {x: x + w / 2, y: y + 15, 'text-anchor': 'middle', class: 'on-bar' + (i === 1 ? ' mid' : '')}, label));
+            x += w;
           });
-          if ((n - 1 - k) % every === 0) svg.appendChild(svgEl('text', {x: cx, y: H - 4, 'text-anchor': 'middle'}, b.label));
+          svg.appendChild(bar);
         });
         return svg;
       }
 
-      function legend(l, anyAutopilot) {
+      // Hot water: a column a day, each charge a dot at its place in that day's prices: the cheapest
+      // third at the top, the most expensive at the bottom.
+      function charges(c) {
+        var W = chartWidth(), L = 70, R = W, T = 2, PH = 108, B = T + PH, H = B + 18;
+        var n = c.days.length, step = (R - L) / Math.max(n, 7);
+        var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'sv-chart', role: 'img'});
+        var y = function (r) { return T + 8 + (PH - 16) * r; };
+        c.bands.forEach(function (name, i) {
+          var y0 = T + PH * i / 3, y1 = T + PH * (i + 1) / 3;
+          svg.appendChild(svgEl('rect', {x: L, y: y0 + 1, width: R - L, height: y1 - y0 - 2, rx: 6, fill: TIER[i], 'fill-opacity': i === 1 ? 0.25 : 0.12}));
+          svg.appendChild(svgEl('text', {x: L - 8, y: (y0 + y1) / 2 + 4, 'text-anchor': 'end'}, name));
+        });
+        c.days.forEach(function (d, k) {
+          var cx = L + (k + 0.5) * step;
+          d.ranks.forEach(function (r, j) {
+            var off = d.ranks.length > 1 ? (j - (d.ranks.length - 1) / 2) * 9 : 0;
+            svg.appendChild(svgEl('circle', {cx: cx + off, cy: y(r), r: 5.5, fill: r < 1 / 3 ? 'var(--sv-cheap)' : r < 2 / 3 ? 'var(--sv-mid-dot)' : 'var(--sv-dear)',
+              stroke: 'var(--sv-ring)', 'stroke-width': 2}));
+          });
+          svg.appendChild(svgEl('text', {x: cx, y: H - 3, 'text-anchor': 'middle'}, d.label));
+        });
+        return svg;
+      }
+
+      function tiles(sh) {
+        var box = el('div', 'sv-tiles');
+        [sh.before, sh.now].forEach(function (t, i) {
+          if (!t) return;
+          var tile = el('div', 'sv-tile');
+          tile.appendChild(el('div', 'sv-tile-k', t.label));
+          tile.appendChild(el('div', 'sv-tile-n' + (i === 1 && sh.before ? ' good' : ''), t.value));
+          if (t.note) tile.appendChild(el('div', 'sv-tile-s', t.note));
+          box.appendChild(tile);
+        });
+        return box;
+      }
+
+      function legend(l) {
         var box = el('div', 'sv-legend');
         [{text: l.cheap, style: 'background: var(--sv-cheap);'}, {text: l.middle, style: 'background: var(--sv-middle);'},
-          {text: l.dear, style: 'background: var(--sv-dear);'},
-          anyAutopilot ? {text: l.autopilot, style: 'background: var(--sv-autopilot); border: 1px solid rgba(127, 127, 127, 0.25);'} : null]
-          .forEach(function (i) {
-            if (!i || !i.text) return;
-            var item = el('span'), key = el('span', 'sv-key');
-            key.style.cssText = i.style;
-            item.appendChild(key); item.appendChild(document.createTextNode(i.text)); box.appendChild(item);
-          });
+          {text: l.dear, style: 'background: var(--sv-dear);'}].forEach(function (i) {
+          if (!i.text) return;
+          var item = el('span'), key = el('span', 'sv-key');
+          key.style.cssText = i.style;
+          item.appendChild(key); item.appendChild(document.createTextNode(i.text)); box.appendChild(item);
+        });
         return box;
       }
 
@@ -164,9 +179,17 @@
         }
         if (data.reason) root.appendChild(el('p', 'sv-reason homey-text-small', data.reason));
         if (data.detail) root.appendChild(el('p', 'sv-detail homey-text-small', data.detail));
-        if (data.bars && data.bars.length) {
-          root.appendChild(chart(data));
-          root.appendChild(legend(data.legend || {}, data.bars.some(function (b) { return b.autopilot; })));
+        if (data.split) {
+          root.appendChild(split(data.split));
+          root.appendChild(legend(data.legend || {}));
+        }
+        if (data.perDay) {
+          root.appendChild(el('div', 'sv-sub', data.perDay.title));
+          root.appendChild(tiles(data.perDay));
+        }
+        if (data.charges) {
+          root.appendChild(el('div', 'sv-sub', data.charges.title));
+          root.appendChild(charges(data.charges));
         }
         if (data.footnote) root.appendChild(el('p', 'sv-foot', data.footnote));
       }

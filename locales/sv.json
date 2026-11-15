@@ -705,19 +705,32 @@
     "savings": {
       "pick": "Välj en enhet för Uppvärmning eller Varmvatten i widgetens inställningar.",
       "empty": "Visas från i morgon. Kräver dynamiska elpriser i Homey Energi.",
-      "status_autopilot": "Pris per kWh",
       "status_before": "Före Autopilot",
+      "status_started": "Autopilot är igång",
+      "first_day": "Besparingen visas efter första hela dygnet.",
+      "periods": "Senaste 7 dagarna __week__ · i år __year__",
       "paid": "Betalt __paid__ per kWh, snitt __mean__",
       "days": "__days__ dagar",
       "days_one": "1 dag",
-      "dear_both": "Dyraste timmarna: __a__ % av förbrukningen med Autopilot, __b__ % utan",
       "dear_one": "Dyraste timmarna: __a__ % av förbrukningen",
-      "axis": "kWh per dygn",
       "cheap": "Billigaste timmarna",
       "middle": "Mitten",
       "dear": "Dyraste timmarna",
-      "autopilot_day": "Autopilot på",
-      "footnote": "Varje dygns timmar, delade i tre efter pris."
+      "footnote_before": "Besparingen räknas från dagen Autopilot först körs Live.",
+      "footnote_baseline": "Jämfört med hur din värmepump använde el de __days__ dagarna före Autopilot.",
+      "footnote_flat": "Jämfört med att använda samma kWh jämnt över dygnet.",
+      "per_day": "__kwh__ kWh per dygn",
+      "row_so_far": "Hittills",
+      "row_before": "Före Autopilot",
+      "row_with": "Med Autopilot",
+      "charges_title": "Varje laddning, efter hur billiga timmarna var",
+      "charges_cheap": "__n__ av __of__ laddningar under de billigaste timmarna i veckan",
+      "band_cheap": "Billigt",
+      "band_middle": "Mitten",
+      "band_dear": "Dyrt",
+      "status_month_heating": "Sparat på uppvärmning i __month__",
+      "status_month_hotwater": "Sparat på varmvatten i __month__",
+      "per_day_cost": "Varmvatten per dygn"
     }
   }
 }

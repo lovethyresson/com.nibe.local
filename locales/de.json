@@ -705,19 +705,32 @@
     "savings": {
       "pick": "Wählen Sie in den Widget-Einstellungen ein Gerät für Heizung oder Warmwasser.",
       "empty": "Ab morgen sichtbar. Benötigt dynamische Strompreise in Homey Energie.",
-      "status_autopilot": "Preis pro kWh",
       "status_before": "Vor Autopilot",
+      "status_started": "Autopilot läuft",
+      "first_day": "Die Ersparnis erscheint nach dem ersten vollen Tag.",
+      "periods": "Letzte 7 Tage __week__ · dieses Jahr __year__",
       "paid": "Bezahlt __paid__ pro kWh, Durchschnitt __mean__",
       "days": "__days__ Tage",
       "days_one": "1 Tag",
-      "dear_both": "Teuerste Stunden: __a__ % des Verbrauchs mit Autopilot, __b__ % ohne",
       "dear_one": "Teuerste Stunden: __a__ % des Verbrauchs",
-      "axis": "kWh pro Tag",
       "cheap": "Günstigste Stunden",
       "middle": "Mitte",
       "dear": "Teuerste Stunden",
-      "autopilot_day": "Autopilot an",
-      "footnote": "Die Stunden jedes Tages, nach Preis gedrittelt."
+      "footnote_before": "Die Ersparnis zählt ab dem Tag, an dem Autopilot zum ersten Mal Live läuft.",
+      "footnote_baseline": "Verglichen damit, wie Ihre Wärmepumpe in den __days__ Tagen vor Autopilot Strom genutzt hat.",
+      "footnote_flat": "Verglichen mit denselben kWh, gleichmäßig über den Tag verteilt.",
+      "per_day": "__kwh__ kWh pro Tag",
+      "row_so_far": "Bisher",
+      "row_before": "Vor Autopilot",
+      "row_with": "Mit Autopilot",
+      "charges_title": "Jede Ladung, nach Preis ihrer Stunden",
+      "charges_cheap": "__n__ von __of__ Ladungen diese Woche in den günstigsten Stunden",
+      "band_cheap": "Günstig",
+      "band_middle": "Mitte",
+      "band_dear": "Teuer",
+      "status_month_heating": "Bei der Heizung gespart im __month__",
+      "status_month_hotwater": "Beim Warmwasser gespart im __month__",
+      "per_day_cost": "Warmwasser pro Tag"
     }
   }
 }

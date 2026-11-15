@@ -705,19 +705,32 @@
     "savings": {
       "pick": "Pick a Heating or Hot water device in the widget's settings.",
       "empty": "Shows from tomorrow. Needs dynamic electricity prices in Homey Energy.",
-      "status_autopilot": "Price per kWh",
       "status_before": "Before Autopilot",
+      "status_started": "Autopilot is running",
+      "first_day": "Savings show after its first full day.",
+      "periods": "Last 7 days __week__ · this year __year__",
       "paid": "Paid __paid__ per kWh, average __mean__",
       "days": "__days__ days",
       "days_one": "1 day",
-      "dear_both": "Most expensive hours: __a__ % with Autopilot, __b__ % without",
       "dear_one": "Most expensive hours: __a__ % of use",
-      "axis": "kWh per day",
       "cheap": "Cheapest hours",
       "middle": "Middle",
       "dear": "Most expensive hours",
-      "autopilot_day": "Autopilot on",
-      "footnote": "Each day's hours, split in three by price."
+      "footnote_before": "Savings count from the day Autopilot first runs Live.",
+      "footnote_baseline": "Compared with how your heat pump used electricity in the __days__ days before Autopilot.",
+      "footnote_flat": "Compared with using the same kWh evenly over each day.",
+      "per_day": "__kwh__ kWh a day",
+      "row_so_far": "So far",
+      "row_before": "Before Autopilot",
+      "row_with": "With Autopilot",
+      "charges_title": "Each charge, by how cheap its hours were",
+      "charges_cheap": "__n__ of __of__ charges in the cheapest hours this week",
+      "band_cheap": "Cheap",
+      "band_middle": "Middle",
+      "band_dear": "Expensive",
+      "status_month_heating": "Saved on heating in __month__",
+      "status_month_hotwater": "Saved on hot water in __month__",
+      "per_day_cost": "Hot water per day"
     }
   }
 }

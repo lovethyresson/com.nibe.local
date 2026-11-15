@@ -1508,15 +1508,27 @@ never swallow them.
 - **Widget:** this month's saving with its band, and comfort held, once the 14-day rule passes.
   A candidate for the widgets milestone (§19.5), not part of M3.
 - **Built first instead (2026-11-15): the measured view, `widgets/savings`, `lib/autopilot/savings.ts`.**
-  The maintainer's test of "does it work" is kWh leaving the dear hours, so the first widget
-  needs no model: per complete day, the function's kWh in the cheapest, middle and dearest third
-  of that day's hours, and the price paid per kWh against the day's unweighted average (a flat
-  use pays the average). Days Autopilot ran live (≥ 80 % of hours) are compared with days it
-  did not (≤ 20 %); a day switched halfway, or not known, counts for neither. Sources: Insights'
-  hourly `meter_power.total` (14 days back, then a 60-day ledger in the device store), the
-  day's prices from Homey Energy, and a log of Smart mode changes (`autopilotModeMarks`). For
-  heating, hours before that log are live when the pump showed the fed BT1. It shows when the
-  energy was used. Total kWh and comfort are what the modelled figure above adds.
+  The maintainer's test of "does it work" is kWh leaving the expensive hours, so the first widget
+  needs no model. Per complete day it keeps the function's kWh in the cheapest, middle and most
+  expensive third of that day's hours, and its cost. Sources: Insights' hourly `meter_power.total`
+  (14 days back, then a 400-day ledger in the device store) and the day's prices from Homey Energy.
+  - **Fixed baseline.** A rolling "days without Autopilot" comparison fades out as the window fills
+    with Autopilot days, so the comparison is frozen instead: `autopilotFirstLive` is stored the
+    first time the Smart mode switches to Live, and the up to 28 days before it become the baseline
+    (`autopilotSavingsBaseline`), never recomputed. A device that ran Autopilot before this was
+    recorded dates it from the hours before its first mode mark (heating: the pump showed the fed
+    BT1; on the S1155 that dated 2026-11-14 21:00 for a 23:14 start). With fewer than 3 days before
+    it, the day's average stands in.
+  - **Kronor saved.** The baseline is kept as the price paid against the day's average (its ratio).
+    A whole Autopilot day after the first-live day saves its kWh at that ratio of its own average,
+    minus what they cost. That holds the old usage pattern at today's prices, so a price change
+    between the periods does not read as a saving. Days add up into the last 7 days, this month and
+    this year.
+  - **Views** (the maintainer's picks from ten mocks): heating shows before and with as two 100 %
+    bars of the three thirds with kWh a day; hot water shows what a 40 L shower cost before and with
+    (litres from the tank model), and the week's charges as dots on their day's price rank (a charge
+    is a run of hours over 0.4 kWh).
+  - It shows when the energy was used. Total kWh and comfort are what the modelled figure above adds.
 
 ---
 

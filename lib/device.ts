@@ -2,7 +2,7 @@ import {CaptureSummary, logCaptureSummary} from './diagnostic-capture';
 import {IndoorConfig, averageSensors, cleanIndoorConfig, readOnlyIndoorConfig, selectedReadings, withApi} from './indoor-sensors';
 import {Controls, AutopilotCollector} from './autopilot/collector';
 import {newHistoryFileName} from './autopilot/store-file';
-import {LEDGER_DAYS, ModeMark, SavingsData, SavingsDay, dayHours, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay} from './autopilot/savings';
+import {Baseline, LEDGER_DAYS, ModeMark, SavingsData, SavingsDay, baselineOf, dayHours, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay} from './autopilot/savings';
 import {ChargeEvent, HotwaterAutopilot, HotwaterMode, ownDeviceId} from './autopilot/hotwater-shadow';
 import {FlowConflict, moreHotwaterFlows} from './autopilot/hotwater-flows';
 import {STARTER_DAYS, localClock, readHousehold} from './autopilot/hotwater-learner';
@@ -60,6 +60,9 @@ const PAIRED_SMART_STORE = 'pairedSmartMode';
 const SAVINGS_STORE = 'autopilotSavingsDays';
 const SAVINGS_CURRENCY_STORE = 'autopilotSavingsCurrency';
 const MODE_MARKS_STORE = 'autopilotModeMarks';
+/** When Autopilot first ran live on this device (ms), and the baseline frozen from the days before. */
+const FIRST_LIVE_STORE = 'autopilotFirstLive';
+const BASELINE_STORE = 'autopilotSavingsBaseline';
 /** Days back the ledger is filled from: what Insights keeps hourly. */
 const SAVINGS_BACK_DAYS = 13;
 const HOUR_MS = 3_600_000;
@@ -2095,9 +2098,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     /** Keep the Smart mode changes the savings widget sorts days by: Autopilot live or not. */
     private async markMode(mode: SmartMode) {
-        const marks: ModeMark[] = Array.isArray(this.getStoreValue(MODE_MARKS_STORE)) ? this.getStoreValue(MODE_MARKS_STORE) : [];
+        const stored = this.getStoreValue(MODE_MARKS_STORE);
+        const marks: ModeMark[] = Array.isArray(stored) ? stored : [];
         const live = mode === 'autopilot';
         if (marks.length && marks[marks.length - 1].live === live) return;
+        // A real switch to Live is the moment the savings count from. The first mark on a device
+        // that already ran Autopilot is not: refreshSavings() dates that from the hours before it.
+        if (live && Array.isArray(stored) && typeof this.getStoreValue(FIRST_LIVE_STORE) !== 'number')
+            await this.setStoreValue(FIRST_LIVE_STORE, Date.now());
         const keepFrom = Date.now() - (LEDGER_DAYS + 2) * 86_400_000;
         // The last mark before the kept window still says what the window's first hours were.
         const older = marks.filter((m) => m.at < keepFrom).slice(-1);
@@ -2126,7 +2134,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const have = new Set(stored.map((d) => d.date));
         const wanted = Array.from({length: SAVINGS_BACK_DAYS}, (_, k) => localDate(now, timeZone, -(k + 1)))
             .filter((date) => !have.has(date) && date < today && now - (this.savingsTried.get(date) ?? 0) > 86_400_000);
-        if (!wanted.length) return HOUR_MS;
+        if (!wanted.length) { await this.freezeBaseline(stored); return HOUR_MS; }
         const appId = this.homey.manifest?.id ?? 'com.nibe.local';
         const marks: ModeMark[] = Array.isArray(this.getStoreValue(MODE_MARKS_STORE)) ? this.getStoreValue(MODE_MARKS_STORE) : [];
         const result = await withApi(this.homey, async (api) => {
@@ -2165,6 +2173,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 const mark = liveAt(marks, at), fed = fedLive?.get(at);
                 return mark === undefined ? fed : mark && fed !== false;
             };
+            const firstMark = marks.find((m) => m.live);
+            if (firstMark && typeof this.getStoreValue(FIRST_LIVE_STORE) !== 'number')
+                await this.setStoreValue(FIRST_LIVE_STORE, firstLiveFrom(firstMark.at, (at) => fedLive?.get(at)));
             const costs = await api.energy.getDynamicElectricityPriceUserCosts().catch(() => undefined);
             if (!this.getStoreValue(SAVINGS_CURRENCY_STORE)) {
                 const currency = await api.energy.getCurrency().catch(() => undefined);
@@ -2176,15 +2187,27 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 await pause();
                 const hours = dayHours(date, (ms) => localDate(ms, timeZone));
                 const day = response && savingsDay(date, hours, use, hourlyPrices(normalisePrices(response, costs?.mathExpression).slots, SLOT_MS),
-                    liveShare(hours, liveHour));
+                    liveShare(hours, liveHour), this.role === 'hotwater');
                 if (day) days.push(day);
                 else this.savingsTried.set(date, now);
             }
             return days;
         });
         if (!result) return 6 * HOUR_MS;
-        if (result.length && !this.savingsStopped) await this.setStoreValue(SAVINGS_STORE, mergeDays(stored, result));
+        const ledger = result.length ? mergeDays(stored, result) : stored;
+        if (result.length && !this.savingsStopped) await this.setStoreValue(SAVINGS_STORE, ledger);
+        if (!this.savingsStopped) await this.freezeBaseline(ledger);
         return HOUR_MS;
+    }
+
+    /** Fix the baseline once Autopilot has run live and the days before it are in the ledger. With
+     *  too few days before it, and none left to fetch, the day's average stands in (ratio 1). */
+    private async freezeBaseline(ledger: SavingsDay[]) {
+        const firstLive = this.getStoreValue(FIRST_LIVE_STORE);
+        if (typeof firstLive !== 'number' || this.getStoreValue(BASELINE_STORE)) return;
+        const found = baselineOf(ledger, localDate(firstLive, this.homey.clock.getTimezone()));
+        if (found) await this.setStoreValue(BASELINE_STORE, found);
+        else if (Date.now() - firstLive > SAVINGS_BACK_DAYS * 86_400_000) await this.setStoreValue(BASELINE_STORE, {days: 0, ratio: 1});
     }
 
     /** What the Autopilot savings widget draws. Every string translated here. */
@@ -2193,11 +2216,30 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const title = this.getName();
         if (this.role !== 'heating' && this.role !== 'hotwater') return {title, empty: t('pick')};
         const days: SavingsDay[] = Array.isArray(this.getStoreValue(SAVINGS_STORE)) ? this.getStoreValue(SAVINGS_STORE) : [];
+        const timeZone = this.homey.clock.getTimezone();
+        const language = this.homey.i18n.getLanguage();
         const currency = String(this.getStoreValue(SAVINGS_CURRENCY_STORE) ?? '');
-        const format = new Intl.DateTimeFormat(this.homey.i18n.getLanguage(), {day: 'numeric', timeZone: 'UTC'});
-        return savingsData(title, days, t, (date) => format.format(new Date(`${date}T12:00:00Z`)),
-            (v) => `${new Intl.NumberFormat(this.homey.i18n.getLanguage(), {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(v)} ${currency}`.trim(),
-            this.homey.__('autopilot.widget.experimental'));
+        const amount = (v: number, digits: number) => {
+            try {
+                if (/^[A-Z]{3}$/.test(currency)) return new Intl.NumberFormat(language, {style: 'currency', currency, minimumFractionDigits: digits, maximumFractionDigits: digits}).format(v);
+            } catch { /* an unknown currency code: the plain number below */ }
+            return `${new Intl.NumberFormat(language, {minimumFractionDigits: digits, maximumFractionDigits: digits}).format(v)} ${currency}`.trim();
+        };
+        const firstLive = this.getStoreValue(FIRST_LIVE_STORE);
+        const baseline = this.getStoreValue(BASELINE_STORE) as Baseline | null;
+        const dayLabel = new Intl.DateTimeFormat(language, {weekday: 'short', timeZone: 'UTC'});
+        const monthName = new Intl.DateTimeFormat(language, {month: 'long', timeZone: 'UTC'});
+        return savingsData(title, days, t, {
+            role: this.role,
+            firstLiveDate: typeof firstLive === 'number' ? localDate(firstLive, timeZone) : undefined,
+            baseline: baseline ?? undefined,
+            today: localDate(Date.now(), timeZone),
+            label: (date) => dayLabel.format(new Date(`${date}T12:00:00Z`)),
+            month: (date) => monthName.format(new Date(`${date}T12:00:00Z`)),
+            price: (v) => amount(v, 2),
+            money: (v) => amount(v, Math.abs(v) < 10 ? 1 : 0),
+            badge: this.homey.__('autopilot.widget.experimental'),
+        });
     }
 
     // ---- Away: the thermostat goes to the Away temperature and comes back ----
