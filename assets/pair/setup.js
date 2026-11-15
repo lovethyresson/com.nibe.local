@@ -589,8 +589,8 @@ function NibeSetup(options) {
     }
     function rangeName(id) { return id === 'custom' ? a('range_custom_name') : a('range_' + id); }
     /** Choose the comfort range: explained, then saved (Repair) or kept for the new device (pairing). */
-    /** Every comfort range the Heating device offers, in the picker's order. */
-    var ALL_RANGES = ['off', 'comfortable', 'save_some', 'save_most', 'custom'];
+    /** The comfort ranges setup offers. No Off: that is Smart mode Off, one step back. */
+    var ALL_RANGES = ['comfortable', 'save_some', 'save_most', 'custom'];
     /** Custom's eight values, edited here: each with its label, hint, unit, range and step. */
     function customForm(spec, values) {
         var form = el('div', undefined, 'setup-range-custom');

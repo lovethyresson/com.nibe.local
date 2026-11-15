@@ -378,13 +378,10 @@
         "custom_comfort_weight_hint": "Vad en grad från din temperatur kostar mot pengarna en förskjutning sparar. Högre håller huset närmare din temperatur. Prioritera komfort 1,4, Balanserat 1,2, Prioritera besparing 1,0.",
         "custom_preheat_lead_label": "Hur tidigt förvärmning får börja",
         "custom_preheat_lead_hint": "Som andel av hur långsamt ditt hus värms och svalnar (dess tidskonstant). 1 låter förvärmningen börja en hel tidskonstant före en pristopp. Prioritera komfort, Balanserat och Prioritera besparing använder alla 0,3.",
-        "range_off": "Av",
-        "range_desc_off": "Ingen förskjutning",
         "range_desc_comfortable": "±0,5 °C",
         "range_desc_save_some": "±3 °C",
         "range_desc_save_most": "±6 °C",
-        "range_desc_custom": "Ställ in gränserna själv",
-        "range_feel_off": "Autopilot flyttar ingen värme mellan timmar. Värmepumpen värmer efter sin värmekurva, som utan Autopilot."
+        "range_desc_custom": "Ställ in gränserna själv"
       },
       "gets_added": "Det här läggs till",
       "gets_added_intro": "De här enheterna läggs till.",

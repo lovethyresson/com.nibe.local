@@ -181,8 +181,10 @@ export const AUTOPILOT_RANGE_CAPABILITY = "autopilot_range_NIBE";
 export const AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY = "target_temperature.autopilot_away";
 export const AUTOPILOT_FED_CAPABILITY = "measure_temperature.autopilot_fed";
 export const AUTOPILOT_SHIFT_CAPABILITY = "autopilot_shift_NIBE";
+// The comfort range is not among them: it is set in Heating setup and kept in the device's store
+// (device.ts heatingRange). Its capability type stays declared until no device carries it.
 export const AUTOPILOT_HEATING_CAPABILITIES = [AUTOPILOT_STATUS_CAPABILITY, AUTOPILOT_REASON_CAPABILITY,
-    AUTOPILOT_RANGE_CAPABILITY, AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY,
+    AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY,
     AUTOPILOT_SHIFT_CAPABILITY, AUTOPILOT_FED_CAPABILITY];
 
 // Autopilot hot water on the Hot water device, only while its Smart mode is Autopilot or a test

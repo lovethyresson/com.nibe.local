@@ -378,13 +378,10 @@
         "custom_comfort_weight_hint": "Was ein Grad Abweichung von Ihrer Temperatur gegenüber dem gesparten Geld kostet. Höher hält das Haus näher an Ihrer Temperatur. Komfort priorisieren 1,4, Ausgewogen 1,2, Sparen priorisieren 1,0.",
         "custom_preheat_lead_label": "Wie früh das Vorheizen beginnen darf",
         "custom_preheat_lead_hint": "Als Anteil daran, wie langsam Ihr Haus warm und kalt wird (seine Zeitkonstante). 1 lässt das Vorheizen eine ganze Zeitkonstante vor einer Preisspitze beginnen. Komfort priorisieren, Ausgewogen und Sparen priorisieren nutzen alle 0,3.",
-        "range_off": "Aus",
-        "range_desc_off": "Keine Verschiebung",
         "range_desc_comfortable": "±0,5 °C",
         "range_desc_save_some": "±3 °C",
         "range_desc_save_most": "±6 °C",
-        "range_desc_custom": "Grenzen selbst festlegen",
-        "range_feel_off": "Autopilot verschiebt keine Wärme zwischen Stunden. Ihre Wärmepumpe heizt nach ihrer Heizkurve, wie ohne Autopilot."
+        "range_desc_custom": "Grenzen selbst festlegen"
       },
       "gets_added": "Das wird hinzugefügt",
       "gets_added_intro": "Diese Geräte werden hinzugefügt.",

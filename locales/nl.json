@@ -378,13 +378,10 @@
         "custom_comfort_weight_hint": "Wat een graad van je temperatuur af kost tegenover het geld dat een verschuiving bespaart. Hoger houdt het huis dichter bij je temperatuur. Comfort voorop 1,4, Gebalanceerd 1,2, Besparen voorop 1,0.",
         "custom_preheat_lead_label": "Hoe vroeg voorverwarmen mag beginnen",
         "custom_preheat_lead_hint": "Als deel van hoe langzaam je huis opwarmt en afkoelt (de tijdconstante). Met 1 begint voorverwarmen een hele tijdconstante voor een prijspiek. Comfort voorop, Gebalanceerd en Besparen voorop gebruiken alle 0,3.",
-        "range_off": "Uit",
-        "range_desc_off": "Geen verschuiving",
         "range_desc_comfortable": "±0,5 °C",
         "range_desc_save_some": "±3 °C",
         "range_desc_save_most": "±6 °C",
-        "range_desc_custom": "Stel de grenzen zelf in",
-        "range_feel_off": "Autopilot verschuift geen warmte tussen uren. Je warmtepomp verwarmt volgens de stooklijn, zoals zonder Autopilot."
+        "range_desc_custom": "Stel de grenzen zelf in"
       },
       "gets_added": "Dit wordt toegevoegd",
       "gets_added_intro": "Deze apparaten worden toegevoegd.",

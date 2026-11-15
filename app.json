@@ -5452,17 +5452,6 @@
             "name": "profile",
             "values": [
               {
-                "id": "off",
-                "label": {
-                  "en": "Off (no shift)",
-                  "sv": "Av (ingen förskjutning)",
-                  "de": "Aus (keine Verschiebung)",
-                  "nl": "Uit (geen verschuiving)",
-                  "no": "Av (ingen forskyvning)",
-                  "da": "Fra (ingen forskydning)"
-                }
-              },
-              {
                 "id": "comfortable",
                 "label": {
                   "en": "Prioritize comfort (±0.5 °C)",

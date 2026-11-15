@@ -65,6 +65,8 @@ const RESERVE_STORE = 'autopilotReserve';
 const PAIRED_SMART_STORE = 'pairedSmartMode';
 /** The Custom comfort range's values, set in Heating setup (live.ts CUSTOM_SETTINGS). */
 const CUSTOM_RANGE_STORE = 'autopilotCustomRange';
+/** The comfort range, set in Heating setup (no capability: it is not changed from the device). */
+const RANGE_STORE = 'autopilotRange';
 /** Heating's time in range, day by day (comfort-days.ts). */
 const COMFORT_DAYS_STORE = 'autopilotComfortDays';
 /** The savings widget's complete days, its currency, and the Smart mode changes it sorts days by. */
@@ -1231,11 +1233,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             }
             // Autopilot heating's own controls: registered whether or not the device carries them.
             if (this.role === 'heating' && this.profile.autopilotFeed) {
-                this.registerCapabilityListener(AUTOPILOT_RANGE_CAPABILITY, async (value) => {
-                    this.log(`Comfort range set to ${value}`);
-                    this.trackSetting('comfort_range', String(value), this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY));
-                    this.heatingFeed?.replanSoon();
-                });
                 this.registerCapabilityListener(AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY, async (value) => {
                     this.log(`Away temperature set to ${value}`);
                     // A temperature is a setpoint: only that it changed is told, never to what.
@@ -1303,7 +1300,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             this.log(`Smart mode from pairing applied: ${this.role} = ${mode}`);
             // The comfort range chosen in setup, once Autopilot's controls are on the device.
             if (this.role === 'heating' && paired.range && (mode === 'autopilot' || mode === 'test')) {
-                if (!this.hasCapability(AUTOPILOT_RANGE_CAPABILITY)) await this.syncCapabilities();
                 if (paired.range === 'custom') await this.setCustomRange(paired.custom);
                 else await this.setAutopilotProfile(paired.range);
             }
@@ -1642,9 +1638,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.heatingFeed = new HeatingFeed({
             mode: () => this.heatingMode,
             limits: () => this.heatingLimits(),
-            neutral: () => this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY) === 'off',
+            neutral: () => this.heatingRange() === 'off',
             sunTrust: () => this.autopilot?.sunReady()
-                ? sunTrust(this.autopilotAway() ? 'save_most' : this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY)) : 0,
+                ? sunTrust(this.autopilotAway() ? 'save_most' : this.heatingRange()) : 0,
             plan: (slot) => {
                 const planned = this.autopilot?.liveInputs(slot);
                 if (!planned) return planned;
@@ -1877,7 +1873,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     /** One plan step's indoor against the range; saved hourly and when the day turns. Not while
      *  the range is Off: there is no promise to keep then. */
     private recordComfortSlot(slot: number, s: ComfortSlot) {
-        if (this.comfortSlot === slot || this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY) === 'off') return;
+        if (this.comfortSlot === slot || this.heatingRange() === 'off') return;
         this.comfortSlot = slot;
         const before = this.comfortLog();
         const after = addComfortSlot(before, s);
@@ -2076,7 +2072,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             outdoor: this.autopilot?.outdoorNow().sensor ?? null,
             prices: this.autopilot?.hasPrices() ?? false,
             status: this.hasCapability(AUTOPILOT_REASON_CAPABILITY) ? this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) : null,
-            range: this.hasCapability(AUTOPILOT_RANGE_CAPABILITY) ? this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY) : null,
+            range: this.heatingRange(),
             ranges: rangeFacts(),
             custom: {spec: CUSTOM_SETTINGS, values: customValues(this.getStoreValue(CUSTOM_RANGE_STORE))},
         };
@@ -2091,9 +2087,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     async setAutopilotProfile(profile: string) {
-        if (!this.hasCapability(AUTOPILOT_RANGE_CAPABILITY)) throw new Error(this.homey.__('autopilot.heating.not_on'));
-        const from = this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY);
-        await this.setCapabilityValue(AUTOPILOT_RANGE_CAPABILITY, profile);
+        if (this.role !== 'heating') throw new Error(this.homey.__('autopilot.heating.not_on'));
+        const from = this.heatingRange();
+        await this.setStoreValue(RANGE_STORE, profile);
         this.trackSetting('comfort_range', String(profile), from);
         this.log(`Comfort range set to ${profile}.`);
         this.heatingFeed?.replanSoon();
@@ -2166,7 +2162,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     t('hotwater.solar_live')].filter(Boolean).join(' ') : undefined};
         }
         const status = this.getCapabilityValue(AUTOPILOT_STATUS_CAPABILITY) as HeatingStatus | null;
-        const range = String(this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY) ?? DEFAULT_PROFILE);
+        const range = this.heatingRange();
         chips.push(t(`range.${range}`));
         if (this.autopilotAway()) {
             const c = this.getCapabilityValue(AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY) ?? AWAY_DEFAULT_C;
@@ -2591,7 +2587,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             if (this.hasCapability(name) && this.getCapabilityValue(name) === null)
                 await this.setCapabilityValue(name, value).catch(this.error);
         };
-        await init(AUTOPILOT_RANGE_CAPABILITY, DEFAULT_PROFILE);
         await init(AUTOPILOT_AWAY_TEMPERATURE_CAPABILITY, AWAY_DEFAULT_C);
     }
 
@@ -3180,11 +3175,20 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.setSettings({analyticsConsent: consent}).catch(this.error);
     }
 
+    /** The comfort range heating Autopilot plans in, set in Heating setup and kept in the store.
+     *  A device that still carries the old capability starts from its value. */
+    heatingRange(): string {
+        const stored = this.getStoreValue(RANGE_STORE);
+        if (typeof stored === 'string') return stored;
+        const old = this.hasCapability(AUTOPILOT_RANGE_CAPABILITY) ? this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY) : null;
+        return typeof old === 'string' ? old : DEFAULT_PROFILE;
+    }
+
     /** The limits heating Autopilot plans with: Save most while Away, else the comfort range's,
      *  or the Custom range's own settings. */
     private heatingLimits() {
         if (this.autopilotAway()) return profileLimits('save_most');
-        return rangeLimits(this.getCapabilityValue(AUTOPILOT_RANGE_CAPABILITY), this.getStoreValue(CUSTOM_RANGE_STORE) ?? {});
+        return rangeLimits(this.heatingRange(), this.getStoreValue(CUSTOM_RANGE_STORE) ?? {});
     }
 
     async onSettings({oldSettings, newSettings, changedKeys}: {

@@ -378,13 +378,10 @@
         "custom_comfort_weight_hint": "What a degree away from your temperature costs against the money a shift saves. Higher keeps the house closer to your temperature. Prioritize comfort 1.4, Balanced 1.2, Prioritize savings 1.0.",
         "custom_preheat_lead_label": "How early a pre-heat may start",
         "custom_preheat_lead_hint": "As a share of how slowly your house warms and cools (its time constant). 1 lets a pre-heat start a full time constant before a price peak. Prioritize comfort, Balanced and Prioritize savings all use 0.3.",
-        "range_off": "Off",
-        "range_desc_off": "No shifting",
         "range_desc_comfortable": "±0.5 °C",
         "range_desc_save_some": "±3 °C",
         "range_desc_save_most": "±6 °C",
-        "range_desc_custom": "Set the limits yourself",
-        "range_feel_off": "Autopilot doesn't move heat between hours. Your heat pump heats by its heating curve, as without Autopilot."
+        "range_desc_custom": "Set the limits yourself"
       },
       "gets_added": "What gets added",
       "gets_added_intro": "These devices will be added.",

@@ -378,13 +378,10 @@
         "custom_comfort_weight_hint": "Hva en grad fra temperaturen din koster mot pengene en forskyvning sparer. Høyere holder huset nærmere temperaturen din. Prioriter komfort 1,4, Balansert 1,2, Prioriter sparing 1,0.",
         "custom_preheat_lead_label": "Hvor tidlig forvarming kan starte",
         "custom_preheat_lead_hint": "Som andel av hvor sakte huset ditt varmes og kjøles (tidskonstanten). 1 lar forvarmingen starte en hel tidskonstant før en pristopp. Prioriter komfort, Balansert og Prioriter sparing bruker alle 0,3.",
-        "range_off": "Av",
-        "range_desc_off": "Ingen forskyvning",
         "range_desc_comfortable": "±0,5 °C",
         "range_desc_save_some": "±3 °C",
         "range_desc_save_most": "±6 °C",
-        "range_desc_custom": "Still inn grensene selv",
-        "range_feel_off": "Autopilot flytter ingen varme mellom timer. Varmepumpen varmer etter varmekurven, som uten Autopilot."
+        "range_desc_custom": "Still inn grensene selv"
       },
       "gets_added": "Dette legges til",
       "gets_added_intro": "Disse enhetene legges til.",
