@@ -1408,7 +1408,7 @@ Add each card to the generic allowlist in `test/unit.test.ts:219`.
 | Profile is … | condition | dropdown |
 | Set away until … / Back home | action | **built 2026-11-15** as `autopilot_heating_away_until` (date, time); Back home is the existing `autopilot_heating_away` off (§19.2) |
 | Away mode is on | condition | – |
-| Expensive period starts in … | trigger | **built 2026-11-15** `autopilot_heating_expensive_soon`: 0–720 min ahead; tokens `start`, `end` (§19.1) |
+| Expensive period starts in … | trigger | **built 2026-11-15** `autopilot_heating_expensive_soon`: 5–720 min ahead; tokens `start`, `end` (§19.1) |
 | Cheap period starts in … | trigger | **built** `autopilot_heating_cheap_soon`, as above |
 | Pre-heating / easing off started | trigger | **built** `autopilot_heating_preheating_started`, `autopilot_heating_easing_off_started`: token `reason` |
 
@@ -1704,11 +1704,16 @@ The competitors are black boxes. Owners switch off what they don't understand.
     disagree.
   - **Once per period, per Flow.** The device checks after each 30 s feed cycle and fires the card with the
     window since the last check; a Flow fires when `start − minutes` falls in it (`periodDue`). A
-    period stays the same one while it overlaps the one seen before (edges move a slot as prices
-    arrive), and every Flow's moment counts from the start it had when first seen, so a later edge
-    never fires it twice. A period that appears inside a Flow's lead (tomorrow's prices) fires it
-    late, once. The first check after a restart only learns what is there. 0 minutes never fires:
-    by then the period has begun.
+    period stays the same one while it overlaps or touches the one seen before (edges move a slot
+    as prices arrive; a one-slot spike that moves a slot only touches its old self), and every
+    Flow's moment counts from the start it had when first seen, so a later edge never fires it
+    twice. A period that appears inside a Flow's lead (tomorrow's prices) fires it late, once. The
+    first check after a restart, or after the plan stopped (Autopilot off, paused), only learns
+    what is there. The lead starts at 5 minutes: at 0 the period has begun.
+  - **One expensive and one cheap period per horizon,** the most extreme runs, as the status names
+    them. Once tomorrow's prices land and tomorrow's peak is higher, tonight's peak no longer fires.
+    Open for the maintainer: a daily peak would serve the dishwasher use better, but the status
+    would then have to name it too, or the two disagree.
   - **Pre-heating / easing off started** fire on entering that status from any other, next to the
     existing "Autopilot heating changed"; the existing status condition covers "is pre-heating".
 
@@ -1741,10 +1746,14 @@ Our own, rather than the pump's holiday setting, so the planner knows when the o
     (C 9.5 kWh/K) and ~87 h for the slab (C 15 kWh/K), longer than the 24–36 h plan. `warmUpSlots` simulates the warm-up flat out (ramped as the
     feed ramps, +15 %) from the house's state; once the return is that close, the step is placed
     at the horizon's last slot until the real one comes into view.
-  - **The warm-up latches** for that return (`warmingFor`). Without it the lead shrank as the
-    house warmed, the step left the horizon, Save more coasted, and the house arrived short.
+  - **The warm-up latches** for that return (`warmingFor`, kept in the device store across a
+    restart). Without it the lead shrank as the house warmed, the step left the horizon, Save more
+    coasted, and the house arrived short.
+  - **Ending by itself is retried.** If a device fails to follow (the thermostat write, pump
+    offline), the driver tries again each minute until it does: the end time and day type are
+    already gone by then, and nothing else would put the thermostat back.
   - **Status:** while it pre-heats for the return the reason says so ("Until 16:00, before you're
-    back at 18:00") instead of naming a price peak.
+    back at 18:00", with the weekday when the return is not today) instead of naming a price peak.
   - **Tested closed loop** on the radiator and slab sim houses (`test/autopilot-away-flows.test.ts`):
     with four days' notice both are within 0.2 K of the setpoint at the return, neither more than
     1 K over, no warm-up long before the lead.

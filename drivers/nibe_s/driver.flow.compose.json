@@ -792,7 +792,7 @@
         {
           "type": "number",
           "name": "minutes",
-          "min": 0,
+          "min": 5,
           "max": 720,
           "step": 5,
           "placeholder": {
@@ -879,7 +879,7 @@
         {
           "type": "number",
           "name": "minutes",
-          "min": 0,
+          "min": 5,
           "max": 720,
           "step": 5,
           "placeholder": {

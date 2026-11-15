@@ -579,14 +579,27 @@ export abstract class NibePumpDriver extends Driver {
      *  `until`, Away ends by itself then, and heating is warm again by that time; without it, Away
      *  holds until turned off. Throws on an end time that has passed. */
     async setAway(on: boolean, until?: number) {
+        if (on) this.awayEndPending = false;
         if (on && until !== undefined && !(until > Date.now())) throw new Error(this.homey.__('autopilot.heating.away_time_past'));
         if (on && until !== undefined) this.homey.settings.set(AWAY_UNTIL_SETTING, until);
         else this.homey.settings.unset(AWAY_UNTIL_SETTING);
         await this.storeDayType(setAway(this.dayTypeState(), on, Date.now()), 'away');
     }
 
-    /** End Away when its end time has come. Logged, never thrown: there is nobody to tell. */
+    /** Ending Away by itself failed on some device (the thermostat write): retried each minute. */
+    private awayEndPending = false;
+
+    /** End Away when its end time has come. Logged, never thrown: there is nobody to tell. A device
+     *  that failed to follow (pump offline) is retried each minute until it does, since the end
+     *  time and the day type are already gone and nothing else would put the thermostat back. */
     private endAwayIfDue() {
+        if (this.awayEndPending) {
+            this.setAway(false).then(() => {
+                this.awayEndPending = false;
+                this.log('Away ended on every device.');
+            }, (error: unknown) => this.error('Ending Away failed again, retrying:', error));
+            return;
+        }
         const until = readAwayUntil(this.homey.settings.get(AWAY_UNTIL_SETTING));
         if (!awayEnded(until, Date.now())) return;
         if (this.dayTypeState()?.type !== 'away') {
@@ -594,7 +607,10 @@ export abstract class NibePumpDriver extends Driver {
             return;
         }
         this.log(`Away ends by itself (until ${new Date(until!).toISOString()}).`);
-        this.setAway(false).catch((error: unknown) => this.error('Ending Away failed:', error));
+        this.setAway(false).catch((error: unknown) => {
+            this.awayEndPending = true;
+            this.error('Ending Away failed, retrying each minute:', error);
+        });
     }
 
     private dayTypeState() {

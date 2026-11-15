@@ -48,6 +48,8 @@ import {ConnectionProblem, PumpConnection, PumpSubscriber, POLL_SECONDS_DEFAULT,
 
 /** The setpoint trim's integral (autopilot/setpoint.ts), kept across restarts. */
 const TRIM_STORE = 'autopilotTrim';
+// The Away return whose warm-up has started (live.ts `warmingFor`).
+const WARMING_STORE = 'autopilotWarmingFor';
 // The Away temperature until the owner sets one.
 const AWAY_DEFAULT_C = 17;
 /** Device store key (Hot water): setup's household answers, Autopilot hot water's starting profile. */
@@ -1630,6 +1632,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 const home = Number(this.getStoreValue('autopilotHome'));
                 return at !== undefined && Number.isFinite(home) ? {at, setpoint: home} : undefined;
             },
+            // The warm-up for a return holds across a restart (live.ts `warmingFor`).
+            loadWarming: () => {
+                const v = Number(this.getStoreValue(WARMING_STORE));
+                return Number.isFinite(v) && v > 0 ? v : undefined;
+            },
+            saveWarming: (at) => { (at === undefined ? this.unsetStoreValue(WARMING_STORE) : this.setStoreValue(WARMING_STORE, at)).catch(this.error); },
             loadTrim: () => readTrim(this.getStoreValue(TRIM_STORE)),
             saveTrim: (state) => { this.setStoreValue(TRIM_STORE, state).catch(this.error); },
             pump: () => this.heatingPumpFacts(),
@@ -1729,7 +1737,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
      *  30 s feed cycle, so only while Autopilot heating plans, live or Simulated. */
     private checkPricePeriods() {
         const state = this.heatingFeed?.state;
-        if (!state || state.mode === 'off' || state.stopped || state.slot === undefined || !state.forecast?.length) return;
+        if (!state || state.mode === 'off' || state.stopped || state.slot === undefined || !state.forecast?.length) {
+            this.periodWatch.pause();
+            return;
+        }
         const now = Date.now();
         const periods = pricePeriods(state.forecast.map((f) => f.price), state.slot, now);
         for (const trigger of this.periodWatch.check(periods, now)) {
@@ -1740,6 +1751,15 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     private clock = (ms: number) => new Date(ms).toLocaleTimeString('sv-SE',
         {timeZone: this.homey.clock.getTimezone(), hour: '2-digit', minute: '2-digit'});
+
+    /** A time, with the weekday in the owner's language when it is not today: "Thu 18:00". */
+    private clockOn(ms: number): string {
+        const timeZone = this.homey.clock.getTimezone();
+        const date = (t: number) => new Date(t).toLocaleDateString('en-CA', {timeZone});
+        if (date(ms) === date(Date.now())) return this.clock(ms);
+        const day = new Date(ms).toLocaleDateString(this.homey.i18n?.getLanguage?.() ?? 'en', {timeZone, weekday: 'short'});
+        return `${day} ${this.clock(ms)}`;
+    }
 
     /** For the Flow condition: what Autopilot heating is doing now. */
     heatingStatusNow(): HeatingStatus {
@@ -1755,7 +1775,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.heating.status.${key}`, tokens);
         const state = feed.state;
         const {status, reason} = heatingStatus(state, Date.now(), t, this.clock,
-            house ? {days: house.days, needed: house.needed, hasModel: true} : undefined);
+            house ? {days: house.days, needed: house.needed, hasModel: true} : undefined, (ms) => this.clockOn(ms));
         const set = async (name: string, value: any) => {
             if (this.hasCapability(name) && this.getCapabilityValue(name) !== value) await this.setCapabilityValue(name, value);
         };

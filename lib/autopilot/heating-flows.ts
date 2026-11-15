@@ -51,8 +51,9 @@ export function periodDue(trigger: PeriodTrigger, minutes: number): boolean {
 }
 
 /** Keeps which periods each check has seen, so each period fires each Flow once. A period counts
- *  as the same one while it overlaps one seen before: the peak's edges move a slot as the horizon
- *  rolls or prices arrive, and that must not fire it again. */
+ *  as the same one while it overlaps or touches one seen before: the peak's edges move a slot as
+ *  the horizon rolls or prices arrive, and a one-slot spike that moves a slot no longer overlaps
+ *  its old self. That must not fire it again. */
 export class PeriodWatch {
     private last?: number;
     private seen: (PricePeriod & {anchor: number})[] = [];
@@ -64,7 +65,7 @@ export class PeriodWatch {
         const out: PeriodTrigger[] = [];
         for (const p of periods) {
             if (p.start <= now) continue;
-            const known = this.seen.find((s) => s.kind === p.kind && s.start < p.end && p.start < s.end);
+            const known = this.seen.find((s) => s.kind === p.kind && s.start <= p.end && p.start <= s.end);
             if (known) {
                 known.start = p.start;
                 known.end = p.end;
@@ -76,6 +77,12 @@ export class PeriodWatch {
         }
         this.last = now;
         return out;
+    }
+
+    /** The plan stopped (Autopilot off, paused): the next check only learns again, so Flows whose
+     *  moment fell in the gap don't all fire at once on resuming. */
+    pause() {
+        this.last = undefined;
     }
 }
 

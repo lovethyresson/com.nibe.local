@@ -267,6 +267,9 @@ export interface FeedHooks {
     setpoint?(): number | undefined;
     /** Away with an end time: when it ends and the setpoint it goes back to. */
     awayReturn?(): AwayReturn | undefined;
+    /** The return whose warm-up has started, kept across restarts (`warmingFor`). */
+    loadWarming?(): number | undefined;
+    saveWarming?(at: number | undefined): void;
     /** The setpoint trim's integral, kept across restarts. */
     loadTrim?(): TrimState;
     saveTrim?(state: TrimState): void;
@@ -367,8 +370,17 @@ export class HeatingFeed {
     private setpoint?: number;
     private trimSlot?: number;
     private trimState?: TrimState;
-    /** The return (Away's end, ms) whose warm-up has started: it holds until that return. */
+    /** The return (Away's end, ms) whose warm-up has started: it holds until that return, and
+     *  across a restart, where the warmer house would otherwise get a shorter lead and coast. */
     private warmingFor?: number;
+    private warmingLoaded = false;
+    private warming(): number | undefined {
+        if (!this.warmingLoaded) {
+            this.warmingLoaded = true;
+            this.warmingFor ??= this.hooks.loadWarming?.();
+        }
+        return this.warmingFor;
+    }
 
     constructor(private readonly hooks: FeedHooks) {}
 
@@ -546,8 +558,10 @@ export class HeatingFeed {
         // Away with an end time: the setpoint steps back up there, and the plan warms ahead of it.
         const back = this.setpoint === undefined ? undefined : this.hooks.awayReturn?.();
         const comfort = this.setpoint === undefined ? undefined
-            : planComfort(input!, this.limits, this.setpoint, slot, back, back !== undefined && this.warmingFor === back.at);
-        this.warmingFor = warmingUp(comfort) ? back!.at : undefined;
+            : planComfort(input!, this.limits, this.setpoint, slot, back, back !== undefined && this.warming() === back.at);
+        const warming = warmingUp(comfort) ? back!.at : undefined;
+        if (warming !== this.warmingFor) this.hooks.saveWarming?.(warming);
+        this.warmingFor = warming;
         const plan = planLive({...input!, mean: this.setpoint ?? input!.mean, comfort, bias: this.bias - this.trim, previous: this.previous},
             this.limits, this.hooks.sunTrust());
         this.target = plan.biases[0];

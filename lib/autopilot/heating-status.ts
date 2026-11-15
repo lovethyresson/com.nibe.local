@@ -63,8 +63,9 @@ function runEnd(biases: number[], from: number, sign: number): number {
     return k;
 }
 
+/** `on` formats a time that may be days away (Away's return), with its day when not today. */
 export function heatingStatus(s: FeedSnapshot, now: number, t: Translate, time: (ms: number) => string,
-    learning?: Learning): {status: HeatingStatus; reason: string} {
+    learning?: Learning, on: (ms: number) => string = time): {status: HeatingStatus; reason: string} {
     const test = s.mode === 'test';
     const say = (text: string) => (test ? t('test', {text}) : text);
     if (s.mode === 'off' && s.stopped !== 'feed_failed') return {status: 'off', reason: ''};
@@ -91,7 +92,7 @@ export function heatingStatus(s: FeedSnapshot, now: number, t: Translate, time: 
         // Easing off with no price peak to name: the sun, when the plan counts it.
         const sunny = sign < 0 && !peakText && s.sunTrusted ? sunRun(s.forecast ?? [], at, end + 16) : undefined;
         // Pre-heating for the end of Away says so: the price peak is not why.
-        const back = sign > 0 && s.back !== undefined ? t('back', {at: time(s.back)}) : '';
+        const back = sign > 0 && s.back !== undefined ? t('back', {at: on(s.back)}) : '';
         const why = back || peakText || (sunny ? t('sun', {from: clock(sunny.from), to: clock(sunny.to)}) : '');
         // The status already says pre-heating or easing off, so the reason starts at "until".
         const tail = !why ? '' : sign > 0 ? `, ${t('before', {why})}` : `: ${why}`;

@@ -217,3 +217,34 @@ test('pre-heating and easing off fire on entering them, never on staying', () =>
     assert.equal(startedTrigger(undefined, 'preheating'), undefined, 'the first status after a start is not a change');
     assert.equal(startedTrigger('paused', 'learning'), undefined);
 });
+
+test('a one-slot spike that moves a slot is still the same period', () => {
+    const watch = new PeriodWatch();
+    const start = 10 * 60 * MIN;
+    let shift = 0;
+    const periods = () => [{kind: 'expensive' as const, start: start + shift, end: start + shift + 15 * MIN}];
+    const first = run(watch, periods, 0, start - 50 * MIN, [60]);
+    assert.equal(first.length, 1);
+    shift = 15 * MIN; // touches the old one, no longer overlaps it
+    assert.equal(run(watch, periods, start - 49 * MIN, start + 30 * MIN, [60]).length, 0);
+});
+
+test('after a pause the first check only learns: moments in the gap do not all fire at once', () => {
+    const watch = new PeriodWatch();
+    const start = 10 * 60 * MIN;
+    const periods = () => [{kind: 'cheap' as const, start, end: start + 60 * MIN}];
+    run(watch, periods, 0, 60 * MIN, [120, 30]);
+    watch.pause();
+    const after = run(watch, periods, start - 60 * MIN, start, [120, 30]);
+    assert.deepEqual(after.map((f) => f.lead), [30], 'the 2 h Flow fell in the pause; the 30 min one still fires on time');
+});
+
+test('the status names the day of a return that is not today', () => {
+    const slot0 = 1_000_000;
+    const t = (key: string, tokens?: Record<string, string | number>) =>
+        key + (tokens ? `(${Object.entries(tokens).map(([k, v]) => `${k}=${v}`).join(',')})` : '');
+    const s: FeedSnapshot = {mode: 'live', bias: 2, target: 2, slot: slot0, biases: [2, 2, 0, 0],
+        forecast: [1, 1, 1, 5].map((price) => ({te: 3, sun: 0, price})), back: (slot0 + 300) * SLOT_MS};
+    const reason = heatingStatus(s, slot0 * SLOT_MS, t, () => '18:00', undefined, () => 'Thu 18:00').reason;
+    assert.match(reason, /back\(at=Thu 18:00\)/);
+});
