@@ -37,9 +37,7 @@
       .sv-now { font-size: 1.4em; font-weight: 600; font-variant-numeric: tabular-nums; }
       .sv-change { font-size: 0.86em; font-weight: 600; }
       .sv-days { display: grid; margin: 12px 0 0; text-align: center; font-size: 0.78em; }
-      .sv-day-col { height: 26px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 4px; }
-      .sv-day-bar { width: 14px; border-radius: 3px; background: var(--sv-cheap); }
-      .sv-day-bar.none { height: 3px; background: var(--sv-rule); }
+      .sv-day-col { display: flex; justify-content: center; margin-bottom: 4px; }
       .sv-day-k { opacity: 0.6; }
       .sv-day-k.today { opacity: 1; font-weight: 700; }
       .sv-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.78em; opacity: 0.7; margin-top: 12px; }
@@ -255,16 +253,27 @@
           root.appendChild(el('div', 'sv-sub', c.title));
           if (c.value) root.appendChild(el('div', 'sv-caption homey-text-small', c.value + (c.note ? ' · ' + c.note : '')));
           root.appendChild(tierBar(c.tiers, [l.cheap, l.middle, l.dear]));
-          // A bar a day, as tall as that day's share in the cheapest third. A stub: no record, or no heat.
+          // A ring a day, filled to that day's share in the cheapest third. An empty ring: no
+          // record, or no heat; fainter when there is no record at all.
           if (c.days && c.days.length) {
-            var days = el('div', 'sv-days');
+            var days = el('div', 'sv-days'), R = 10, SW = 4, S = 2 * R + SW, m = S / 2;
             days.style.gridTemplateColumns = 'repeat(' + c.days.length + ', 1fr)';
             c.days.forEach(function (d, k) {
-              var col = el('div'), well = el('div', 'sv-day-col'), bar = el('div', 'sv-day-bar');
-              if (d.share === undefined || d.share <= 0) bar.className += ' none';
-              else bar.style.height = Math.max(3, Math.round(26 * Math.min(1, d.share))) + 'px';
-              well.appendChild(bar); col.appendChild(well);
-              col.appendChild(el('div', 'sv-day-k' + (k === c.days.length - 1 ? ' today' : ''), d.label));
+              var col = el('div'), well = el('div', 'sv-day-col');
+              var ring = svgEl('svg', {viewBox: '0 0 ' + S + ' ' + S, width: S, height: S, role: 'img'});
+              ring.appendChild(svgEl('circle', {cx: m, cy: m, r: R, fill: 'none', stroke: 'currentColor', 'stroke-opacity': d.share === undefined ? 0.08 : 0.15, 'stroke-width': SW}));
+              if (d.share !== undefined && d.share > 0) {
+                if (d.share >= 0.999) ring.appendChild(svgEl('circle', {cx: m, cy: m, r: R, fill: 'none', stroke: 'var(--sv-cheap)', 'stroke-width': SW}));
+                else {
+                  var t = d.share * 2 * Math.PI;
+                  ring.appendChild(svgEl('path', {d: 'M' + m + ' ' + (m - R) + ' A' + R + ' ' + R + ' 0 ' + (t > Math.PI ? 1 : 0) + ' 1 ' + (m + R * Math.sin(t)) + ' ' + (m - R * Math.cos(t)),
+                    fill: 'none', stroke: 'var(--sv-cheap)', 'stroke-width': SW, 'stroke-linecap': 'round'}));
+                }
+              }
+              well.appendChild(ring); col.appendChild(well);
+              var label = el('div', 'sv-day-k' + (k === c.days.length - 1 ? ' today' : ''), d.label);
+              if (d.share === undefined) label.style.opacity = 0.3;
+              col.appendChild(label);
               days.appendChild(col);
             });
             root.appendChild(days);
