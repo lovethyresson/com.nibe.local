@@ -510,3 +510,8 @@ The maintainer said the in-app text was "a bit wordy at times". I answered with 
 ## 2026-11-15: invented phrasing
 
 I kept "Turn it off so Autopilot can work" as the warm version. The maintainer: the normal way is "Turn it off to enable Autopilot", and they wanted the pattern learned, not the line fixed. The pattern: my warm and crisp attempts both invented their own phrasing ("carries on as usual", "the day averages", "so no sensor alarm"). Rule: write each line the way mainstream software says the same thing ("to enable", "Requires", "Loading", "This may take a few minutes", "Preview without making changes"), and when corrected on one line, re-check every line for the same habit.
+
+- **A multi-day log never lives in the scratchpad.** The scratchpad is under /private/tmp, which a
+  reboot clears: on 2026-11-16 a restart took the 48 h hardware-test logger's script and its 30 s CSV
+  with it. Long-running test logs and the scripts that write them go in a folder outside /tmp
+  (`~/nibe-logs/`), written in append mode so a restart continues the file.
