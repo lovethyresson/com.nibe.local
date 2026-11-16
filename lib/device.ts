@@ -2612,7 +2612,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             role: this.role,
             sofar: sofar?.date === localDate(Date.now(), timeZone) ? sofar : undefined,
             liveNow: this.smartMode() === 'autopilot',
-            simulated: this.smartMode() === 'test',
             firstLiveDate: typeof firstLive === 'number' ? localDate(firstLive, timeZone) : undefined,
             baseline: baseline ?? undefined,
             today: localDate(Date.now(), timeZone),

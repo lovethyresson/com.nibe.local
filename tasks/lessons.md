@@ -515,3 +515,9 @@ I kept "Turn it off so Autopilot can work" as the warm version. The maintainer: 
   reboot clears: on 2026-11-16 a restart took the 48 h hardware-test logger's script and its 30 s CSV
   with it. Long-running test logs and the scripts that write them go in a folder outside /tmp
   (`~/nibe-logs/`), written in append mode so a restart continues the file.
+
+## Read the mode the code reads, not a leftover setting (2026-11-16)
+I told the maintainer hot water was "set to Simulated" from a device setting (`autopilotHotwater:
+shadow`) that the app no longer reads; it was live, and hot water has no Simulated mode at all.
+Rule: before stating what mode a function runs in, read what the code reads (Smart mode, the
+widget's `test` flag), and check the UI offers the state I am about to name.

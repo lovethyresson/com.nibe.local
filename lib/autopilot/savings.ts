@@ -293,8 +293,6 @@ export interface SavingsContext {
     sofar?: SavingsDay;
     /** Autopilot runs Live now: on its first day, today counts even before its hours are all known. */
     liveNow?: boolean;
-    /** Smart mode is Autopilot in Simulated: it plans, but your heat pump runs its own schedule. */
-    simulated?: boolean;
     /** The frozen baseline, once found. */
     baseline?: Baseline;
     /** Today, local date. */
@@ -364,7 +362,7 @@ export function savingsData(title: string, stored: SavingsDay[], t: Translate, c
         const was = whole.length && base.days ? shower(whole, (d) => daySaving(d, base)) : undefined;
         if (now !== undefined) pictures.shower = {title: t('shower', {litres: SHOWER_LITRES}),
             before: was === undefined ? undefined : {label: t('row_before'), value: c.price(was)},
-            now: {label: whole.length ? t('row_with') : c.liveNow === false ? t('stat_week') : t('row_so_far'), value: c.price(now),
+            now: {label: whole.length ? t('row_with') : t('stat_week'), value: c.price(now),
                 note: was === undefined ? undefined : signed(Math.round((now / was - 1) * 100)) + ' %'}};
     }
     // Before Autopilot: the starting point, as the share of use Autopilot will move.
@@ -378,7 +376,11 @@ export function savingsData(title: string, stored: SavingsDay[], t: Translate, c
     // Not running live now and no live day to count: no kronor to show, and saying 0 would read as a
     // result. The pictures stay: they show what the week cost.
     if (!counted.length && c.liveNow === false) return {title, badge: c.badge, ...pictures, status: t(`status_${c.role}`),
-        reason: t(c.simulated ? 'not_live_simulated' : 'not_live')};
+        reason: t('not_live')};
+    // Live, but no whole day yet and nothing used today to take a share of: no kronor yet, which a
+    // 0 would present as a result.
+    if (!counted.some((d) => d !== c.sofar) && !(onlyToday && ap))
+        return {title, badge: c.badge, ...pictures, status: t(`status_${c.role}`), reason: t('first_day')};
     const sums = periodSavings(days, c.firstLiveDate, base, c.today);
     if (!sums.days) return {title, badge: c.badge, ...pictures, status: t(`status_${c.role}`), reason: t('first_day')};
     return {

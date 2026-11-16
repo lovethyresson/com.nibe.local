@@ -804,7 +804,6 @@
       "share_cheap": "__kwh__ kWh goedkoop",
       "share_middle": "__kwh__ midden",
       "share_expensive": "__kwh__ duur",
-      "not_live_simulated": "Autopilot staat op Gesimuleerd. De besparing verschijnt na de eerste volledige dag in bedrijf.",
       "not_live": "Autopilot staat uit. De besparing telt op de dagen dat hij draait."
     },
     "away_until_token": "Afwezig tot",

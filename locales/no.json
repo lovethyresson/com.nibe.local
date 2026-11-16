@@ -804,7 +804,6 @@
       "share_cheap": "__kwh__ kWh billig",
       "share_middle": "__kwh__ midten",
       "share_expensive": "__kwh__ dyrt",
-      "not_live_simulated": "Autopilot er satt til Simulert. Besparelsen vises etter første hele døgn i drift.",
       "not_live": "Autopilot er ikke i gang. Besparelsen telles de dagene den er i gang."
     },
     "away_until_token": "Bortreist til",

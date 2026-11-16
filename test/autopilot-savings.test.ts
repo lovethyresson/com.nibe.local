@@ -260,13 +260,22 @@ test('hot water\'s first day: today so far counts while Autopilot runs Live, tho
     assert.equal(sim.value, undefined);
 });
 
-test('hot water in Simulated with no live day: no kronor, a reason, and the shower cost as the last 7 days', () => {
+test('hot water not running Autopilot, no live day: no kronor, a reason, and the shower cost as the last 7 days', () => {
     const days = after.map((x) => ({...x, live: 0, litres: 200}));
     const d = savingsData('Hot water', [...before, ...days], translator('en'),
-        ctx({role: 'hotwater', firstLiveDate: '2026-11-14', baseline: baselineOf(before, '2026-11-14')!, liveNow: false, simulated: true}));
+        ctx({role: 'hotwater', firstLiveDate: '2026-11-14', baseline: baselineOf(before, '2026-11-14')!, liveNow: false}));
     assert.equal(d.value, undefined);
     assert.equal(d.stats, undefined);
-    assert.equal(d.reason, 'Autopilot is set to Simulated. Savings appear after its first full day live.');
+    assert.equal(d.reason, "Autopilot isn't running. Savings count on the days it runs.");
     assert.equal(d.shower!.now!.label, 'Last 7 days');
     assert.equal(d.shower!.before, undefined);
+});
+
+test('the first live day before any use: the first-day line, not 0 kr; the shower cost is the last 7 days', () => {
+    const sofar = day('2026-11-20', [0, 0, 0], 1.5, 3, 1);
+    const d = savingsData('Hot water', before.map((x) => ({...x, litres: 200})), translator('en'),
+        ctx({role: 'hotwater', firstLiveDate: '2026-11-19', baseline: baselineOf(before, '2026-11-19'), sofar, liveNow: true}));
+    assert.equal(d.value, undefined);
+    assert.equal(d.reason, "Savings appear after Autopilot's first full day.");
+    assert.equal(d.shower!.now!.label, 'Last 7 days');
 });

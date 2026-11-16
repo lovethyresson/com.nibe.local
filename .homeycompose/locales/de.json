@@ -479,7 +479,6 @@
       "share_cheap": "__kwh__ kWh günstig",
       "share_middle": "__kwh__ mittel",
       "share_expensive": "__kwh__ teuer",
-      "not_live_simulated": "Autopilot steht auf Simuliert. Die Ersparnis erscheint nach dem ersten vollen Tag im Betrieb.",
       "not_live": "Autopilot läuft nicht. Die Ersparnis zählt an den Tagen, an denen er läuft."
     },
     "away_until_token": "Abwesend bis",
