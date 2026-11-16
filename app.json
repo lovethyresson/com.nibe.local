@@ -8265,6 +8265,39 @@
       },
       "id": "autopilot"
     },
+    "cost_check": {
+      "name": {
+        "en": "Plan vs actual",
+        "sv": "Plan mot utfall",
+        "de": "Plan und Ist",
+        "nl": "Plan en werkelijk",
+        "no": "Plan mot faktisk",
+        "da": "Plan mod faktisk"
+      },
+      "height": 420,
+      "transparent": false,
+      "settings": [
+        {
+          "id": "device",
+          "type": "autocomplete",
+          "title": {
+            "en": "Device",
+            "sv": "Enhet",
+            "de": "Gerät",
+            "nl": "Apparaat",
+            "no": "Enhet",
+            "da": "Enhed"
+          }
+        }
+      ],
+      "api": {
+        "getData": {
+          "method": "GET",
+          "path": "/"
+        }
+      },
+      "id": "cost_check"
+    },
     "energy": {
       "name": {
         "en": "Energy today",

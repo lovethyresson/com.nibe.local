@@ -96,19 +96,20 @@ class NibeApp extends Homey.App {
       .filter((d) => !query || d.name.toLowerCase().includes(query.toLowerCase())));
   }
 
-  /** The Plan vs actual widget (widgets/cost_check): its picker offers each pump by its Heating or
-   *  Hot water device; the card shows both of that pump's. */
+  /** The Plan vs actual widget (widgets/cost_check): its picker offers each pump by its Main
+   *  device, and the card shows that pump's Heating and Hot water together. */
   private registerCostCheckWidget() {
     const widget = (this.homey as any).dashboards?.getWidget?.('cost_check');
-    widget?.registerSettingAutocompleteListener('device', async (query: string) => this.autopilotDevices()
+    widget?.registerSettingAutocompleteListener('device', async (query: string) => this.mainDevices()
       .map((d) => ({id: String(d.getData().id), name: d.getName()}))
       .filter((d) => !query || d.name.toLowerCase().includes(query.toLowerCase())));
   }
 
-  /** For widgets/cost_check/api.js. Answers a problem with a line, like the others. */
+  /** For widgets/cost_check/api.js. Any device of the pump answers for the whole pump. Answers a
+   *  problem with a line, like the others. */
   costCheckWidget(id: unknown) {
     const line = (key: string) => ({title: '', empty: this.homey.__(key)});
-    const devices = this.autopilotDevices();
+    const devices = [...this.mainDevices(), ...this.autopilotDevices()];
     const device = devices.find((d) => String(d.getData().id) === String(id)) ?? (id ? undefined : devices[0]);
     if (!device && process.uptime() < 120) return {title: '', loading: true, empty: this.homey.__('autopilot.widget.starting_app')};
     if (!device) return line('autopilot.cost_check.pick');

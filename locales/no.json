@@ -841,7 +841,7 @@
       "actual": "Faktisk",
       "today": "i dag",
       "empty": "Starter med neste plan kl. 07:00. Krever dynamiske strømpriser i Homey Energy.",
-      "pick": "Velg en Oppvarming- eller Varmtvann-enhet i widgetinnstillingene.",
+      "pick": "Velg varmepumpen din i widgetinnstillingene.",
       "first_day": "første hele dag i morgen",
       "week": "7 dager: __share__",
       "no_plan_today": "Ingen plan i dag",

@@ -516,7 +516,7 @@
       "actual": "Actual",
       "today": "today",
       "empty": "Starts with the next 07:00 plan. Requires dynamic electricity prices in Homey Energy.",
-      "pick": "Choose a Heating or Hot water device in the widget settings.",
+      "pick": "Choose your heat pump in the widget settings.",
       "first_day": "first full day tomorrow",
       "week": "7 days: __share__",
       "no_plan_today": "No plan today",
