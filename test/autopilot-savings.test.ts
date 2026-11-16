@@ -85,7 +85,7 @@ const translator = (lang: string) => (key: string, tokens: Record<string, string
 };
 
 const ctx = (over: Partial<Parameters<typeof savingsData>[3]> = {}) => ({role: 'heating' as const, today: '2026-11-20', label: (d: string) => d.slice(8), month: () => 'November',
-    price: (v: number) => `${v.toFixed(2)} kr`, money: (v: number) => `${Math.round(v)} kr`, badge: 'Experimental', ...over});
+    price: (v: number) => `${v.toFixed(2)} kr`, money: (v: number) => `${Math.round(v)} kr`, ...over});
 /** Before: 10 kWh a day, 40 % in the most expensive third, paying 1.6 against an average of 1.5. */
 const before = ['2026-11-10', '2026-11-11', '2026-11-12'].map((date) => day(date, [3, 3, 4], 1.5, 16, 0));
 /** With Autopilot: the same 10 kWh, 10 % in the most expensive third, paying 1.2. */

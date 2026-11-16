@@ -393,7 +393,6 @@
       "charge_solar": "Fra soloverskud",
       "axis_price": "Pris pr. kWh",
       "axis_surplus": "Overskud kW",
-      "experimental": "Eksperimentel",
       "learning_day": "Dag __day__ af __of__",
       "paused": {
         "no_outdoor": "Autopilot har ingen udetemperatur. Vælg en sensor i Smart tilstand, eller brug vejrudsigten.",

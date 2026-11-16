@@ -250,8 +250,6 @@ export interface SharePicture {
 
 export interface SavingsData {
     title: string;
-    /** The "Experimental" mark, shown quietly like the Autopilot widget's. */
-    badge?: string;
     status?: string;
     /** The status's one figure: money saved this month, or the price paid against the average. */
     value?: string;
@@ -305,7 +303,6 @@ export interface SavingsContext {
     price: (v: number) => string;
     /** A sum of money. */
     money: (v: number) => string;
-    badge?: string;
 }
 
 /** The widget's text and pictures. */
@@ -366,25 +363,25 @@ export function savingsData(title: string, stored: SavingsDay[], t: Translate, c
                 note: was === undefined ? undefined : signed(Math.round((now / was - 1) * 100)) + ' %'}};
     }
     // Before Autopilot: the starting point, as the share of use Autopilot will move.
-    if (!c.firstLiveDate) return {title, badge: c.badge, ...pictures, status: t('status_start'), tone: 'neutral',
+    if (!c.firstLiveDate) return {title, ...pictures, status: t('status_start'), tone: 'neutral',
         value: before ? `${pct(before.dearShare)} %` : undefined, valueNote: before ? t('in_expensive') : undefined};
     // Only today so far: kronor come out once the expensive hours have passed with less use, so a
     // morning reads about zero however well the day goes. The share in the cheapest hours does not.
-    if (onlyToday && ap) return {title, badge: c.badge, ...pictures, status: t(`status_${c.role}`),
+    if (onlyToday && ap) return {title, ...pictures, status: t(`status_${c.role}`),
         value: `${pct(ap.shares[0])} %`, valueNote: t('in_cheapest_today'),
         tone: base.shares && ap.shares[0] < base.shares[0] ? 'neutral' : 'good'};
     // Not running live now and no live day to count: no kronor to show, and saying 0 would read as a
     // result. The pictures stay: they show what the week cost.
-    if (!counted.length && c.liveNow === false) return {title, badge: c.badge, ...pictures, status: t(`status_${c.role}`),
+    if (!counted.length && c.liveNow === false) return {title, ...pictures, status: t(`status_${c.role}`),
         reason: t('not_live')};
     // Live, but no whole day yet and nothing used today to take a share of: no kronor yet, which a
     // 0 would present as a result.
     if (!counted.some((d) => d !== c.sofar) && !(onlyToday && ap))
-        return {title, badge: c.badge, ...pictures, status: t(`status_${c.role}`), reason: t('first_day')};
+        return {title, ...pictures, status: t(`status_${c.role}`), reason: t('first_day')};
     const sums = periodSavings(days, c.firstLiveDate, base, c.today);
-    if (!sums.days) return {title, badge: c.badge, ...pictures, status: t(`status_${c.role}`), reason: t('first_day')};
+    if (!sums.days) return {title, ...pictures, status: t(`status_${c.role}`), reason: t('first_day')};
     return {
-        title, badge: c.badge, ...pictures,
+        title, ...pictures,
         status: t(`status_${c.role}`),
         value: c.money(sums.month),
         valueNote: c.month(c.today),

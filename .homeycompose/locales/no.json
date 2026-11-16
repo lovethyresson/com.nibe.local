@@ -393,7 +393,6 @@
       "charge_solar": "Sollading",
       "axis_price": "Pris per kWh",
       "axis_surplus": "Overskudd kW",
-      "experimental": "Eksperimentell",
       "learning_day": "Dag __day__ av __of__",
       "paused": {
         "no_outdoor": "Autopilot har ingen utetemperatur. Velg en føler i Smartmodus, eller bruk værmeldingen.",

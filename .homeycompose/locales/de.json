@@ -393,7 +393,6 @@
       "charge_solar": "Solarladung",
       "axis_price": "Preis pro kWh",
       "axis_surplus": "Überschuss kW",
-      "experimental": "Experimentell",
       "learning_day": "Tag __day__ von __of__",
       "paused": {
         "no_outdoor": "Autopilot hat keine Außentemperatur. Wählen Sie im Smart-Modus einen Fühler oder nutzen Sie die Prognose.",

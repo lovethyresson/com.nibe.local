@@ -56,8 +56,6 @@ export interface WidgetData {
     reason?: string;
     test?: boolean;
     chips: string[];
-    /** The "Experimental" mark: shown last, quietly. */
-    badge?: string;
     /** Round gridlines for the left and right axes. */
     scale?: {left?: Axis; right?: Axis};
     /** Planned charges (hot water). */

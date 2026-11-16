@@ -2131,14 +2131,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const base = {title, chips: [] as string[], slots: [], ticks: [], legend: {}};
         if (!autopilotRuns(mode)) return {...base, kind: 'none', empty: t(this.role === 'heating' || this.role === 'hotwater' ? 'off' : 'not_function')};
         const chips = [...(mode === 'test' ? [t('test')] : [])];
-        const badge = t('experimental');
         // Both charts show today, 00:00 to 24:00, local.
         const day = todaySlots(slot, dayOf);
         const now = slot - day.from;
         if (this.role === 'hotwater') {
             const o = this.hotwaterAutopilot?.outlook(day.from, day.n);
             // Right after a start the plan is still being made: say so, and hold the chart's place.
-            const starting = {...base, kind: 'hotwater' as const, chips, badge, test: mode === 'test', loading: true,
+            const starting = {...base, kind: 'hotwater' as const, chips, test: mode === 'test', loading: true,
                 status: t('starting_title'), reason: t('starting_hotwater')};
             if (!o) return starting;
             const reason = o.next ? this.homey.__(`autopilot.hotwater_charge.reason.${o.next.reason}`) : undefined;
@@ -2157,7 +2156,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             // No prices: while starting, the prices are on their way. Later they are missing: say where to look.
             if (!o.slots.some((s) => s.price !== undefined))
                 return process.uptime() < STARTING_SECONDS ? {...starting, detail: litres}
-                    : {...base, kind: 'hotwater', chips, badge, test: mode === 'test', status: t('hotwater.no_prices'),
+                    : {...base, kind: 'hotwater', chips, test: mode === 'test', status: t('hotwater.no_prices'),
                         reason: t('hotwater.no_prices_hint'), detail: litres};
             const start = slotStart(day.from);
             // The heading keeps to the time; the day, when it is not today, leads the line under it.
@@ -2166,7 +2165,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const prices = o.slots.flatMap((s) => (s.price === undefined ? [] : [s.price]));
             const surplus = o.slots.flatMap((s) => (s.surplus === undefined ? [] : [s.surplus]));
             const bands = chargeBands(o.slots, start, this.clock, (from, to) => t('hotwater.band', {from, to}));
-            return {...base, kind: 'hotwater', chips, badge, test: mode === 'test', slots: o.slots, now, ...tank,
+            return {...base, kind: 'hotwater', chips, test: mode === 'test', slots: o.slots, now, ...tank,
                 ticks: ticks(start, day.n, this.clock),
                 scale: {left: niceAxis(0, Math.max(0, ...prices), {steps: [0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100]}),
                     right: solar ? niceAxis(0, Math.max(1, ...surplus), {steps: [0.5, 1, 2, 5, 10]}) : undefined},
@@ -2216,7 +2215,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const indoors = [...slots.flatMap((s) => (s.indoor === undefined ? [] : [s.indoor]))];
         const shifts = slots.flatMap((s) => (s.offset === undefined ? [] : [s.offset]));
         return {
-            ...base, kind: 'heating', chips, badge, test: mode === 'test',
+            ...base, kind: 'heating', chips, test: mode === 'test',
             slots, now,
             ticks: ticks(slotStart(from), day.n, this.clock),
             scale: {left: indoors.length ? niceAxis(Math.min(...indoors) - 0.3, Math.max(...indoors) + 0.3, {minSpan: 2, steps: [0.5, 1, 2, 5]})
@@ -2252,11 +2251,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const known = reads.filter(([, r]) => r);
         // A function not read yet (they read minutes apart after a start) would look like one that
         // used nothing: wait for every function this pump has, for the start-up minutes at least.
-        if (known.length < reads.length && process.uptime() < 15 * 60) return {title, badge: this.homey.__('autopilot.widget.experimental'), loading: true};
-        const badge = this.homey.__('autopilot.widget.experimental');
+        if (known.length < reads.length && process.uptime() < 15 * 60) return {title, loading: true};
         // The meters are read a few minutes after a start, then hourly. Past that, nothing read means
         // no dynamic prices in Homey Energy (the read stops there).
-        if (!known.length) return process.uptime() < 15 * 60 ? {title, badge, loading: true} : {title, empty: t('no_prices')};
+        if (!known.length) return process.uptime() < 15 * 60 ? {title, loading: true} : {title, empty: t('no_prices')};
         const prices = known.find(([, r]) => r!.prices)?.[1]!.prices;
         if (!prices) return {title, empty: t('no_prices')};
         const timeZone = this.homey.clock.getTimezone();
@@ -2266,7 +2264,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const language = this.homey.i18n.getLanguage();
         const kwh = new Intl.NumberFormat(language, {maximumFractionDigits: 1}).format(chart.kwh);
         const now = Math.max(0, hours.findIndex((at) => at > Date.now()) - 1);
-        return {title, badge, chart, now,
+        return {title, chart, now,
             numbers: [
                 {value: `${kwh} kWh`, label: t('used')},
                 {value: moneyText(chart.cost, 0, language, currency), label: t('cost')},
@@ -2291,8 +2289,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const day = todaySlots(slot, (ms) => local(ms).date);
         const SLOT = 15 * 60_000, start = day.from * SLOT, n = day.n + 24;
         const view = this.hotwaterAutopilot?.tank(day.from, n);
-        const badge = this.homey.__('autopilot.widget.experimental');
-        if (!view) return {title, badge, loading: true, status: this.homey.__('autopilot.hotwater_use.loading')};
+        if (!view) return {title, loading: true, status: this.homey.__('autopilot.hotwater_use.loading')};
         const now = slot - day.from;
         const chart = tankChart(view, now, day.n);
         const bands = chargeBands(view.slots, start, this.clock, (from, to) => this.homey.__('autopilot.widget.hotwater.band', {from, to}));
@@ -2301,7 +2298,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const next = view.next && !view.next.running
             ? t(local(view.next.at).date === local(Date.now()).date ? 'next' : 'next_tomorrow', {time: this.clock(view.next.at)})
             : view.next?.running ? t('charging') : undefined;
-        return {title, badge, chart, slots: n, now, bands, reserve: reserve > 0 ? reserve : undefined,
+        return {title, chart, slots: n, now, bands, reserve: reserve > 0 ? reserve : undefined,
             ticks: [0, 6, 12, 18, 24, 30].map((h) => ({at: Math.min(n, h * 4), label: this.clock(start + h * 4 * SLOT)})),
             status: litres === undefined ? undefined : t('now', {l: litres}),
             reason: [t('used', {used: chart.usedTotal, expected: chart.expectedTotal}), next].filter(Boolean).join(' · '),
@@ -2582,7 +2579,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const dayLabel = new Intl.DateTimeFormat(language, {weekday: 'short', timeZone: 'UTC'});
         return costCheckData(t('title'), ledgers, localDate(Date.now(), timeZone), Date.now(), t,
             (v) => moneyText(v, Math.abs(v) < 100 ? 2 : 0, language, currency),
-            (date) => dayLabel.format(new Date(`${date}T12:00:00Z`)), this.homey.__('autopilot.widget.experimental'));
+            (date) => dayLabel.format(new Date(`${date}T12:00:00Z`)));
     }
 
     costLedger(): CostDay[] {
@@ -2597,7 +2594,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.role !== 'heating' && this.role !== 'hotwater') return {title, empty: t('pick')};
         const days: SavingsDay[] = Array.isArray(this.getStoreValue(SAVINGS_STORE)) ? this.getStoreValue(SAVINGS_STORE) : [];
         // The first read of the last two weeks is still running: say so, and hold the chart's place.
-        if (!days.length && !this.savingsReadOnce) return {title, badge: this.homey.__('autopilot.widget.experimental'),
+        if (!days.length && !this.savingsReadOnce) return {title,
             status: this.homey.__('autopilot.widget.starting_title'), reason: t('loading'), loading: true};
         const timeZone = this.homey.clock.getTimezone();
         const language = this.homey.i18n.getLanguage();
@@ -2619,7 +2616,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             month: (date) => monthName.format(new Date(`${date}T12:00:00Z`)),
             price: (v) => amount(v, 2),
             money: (v) => amount(v, Math.abs(v) < 10 ? 1 : 0),
-            badge: this.homey.__('autopilot.widget.experimental'),
+
         });
     }
 

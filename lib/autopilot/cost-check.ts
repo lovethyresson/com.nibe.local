@@ -94,7 +94,6 @@ export function dayTotals(d: CostDay) {
 /** What the widget draws. Every string comes in translated. */
 export interface CostCheckData {
     title: string;
-    badge?: string;
     empty?: string;
     rows?: {label: string; sofar: string; expected: string; fill: number; mark?: number; tone: 'ahead' | 'behind' | 'even'; note: string}[];
     total?: {label: string; sofar: string; expected: string};
@@ -115,9 +114,9 @@ export function overShare(expected: number, actual: number): number | undefined 
 
 export function costCheckData(title: string, ledgers: CostLedger[], today: string, now: number,
     t: (key: string, tokens?: Record<string, string | number>) => string, money: (v: number) => string,
-    dayLabel: (date: string) => string, badge?: string): CostCheckData {
+    dayLabel: (date: string) => string): CostCheckData {
     const withDays = ledgers.filter((l) => l.days.length);
-    if (!withDays.length) return {title, badge, empty: t('empty')};
+    if (!withDays.length) return {title, empty: t('empty')};
     const pct = (v: number | undefined) => v === undefined ? '' : `${v > 0 ? '+' : v < 0 ? '−' : '±'}${Math.abs(v)} %`;
     const rows = withDays.map((l) => {
         const day = l.days.find((d) => d.date === today);
@@ -149,7 +148,7 @@ export function costCheckData(title: string, ledgers: CostLedger[], today: strin
         return {label: dayLabel(date), expected: money(expected), actual: money(actual), diff: pct(share),
             tone: share === undefined || Math.abs(share) < 3 ? 'even' as const : share > 0 ? 'over' as const : 'under' as const};
     });
-    return {title, badge, rows, total, days: {head: [t('plan'), t('actual')], rows: dayRows}, footnote: t('footnote')};
+    return {title, rows, total, days: {head: [t('plan'), t('actual')], rows: dayRows}, footnote: t('footnote')};
 }
 
 function round(v: number) {

@@ -715,7 +715,6 @@
       "charge_solar": "Solar charge",
       "axis_price": "Price per kWh",
       "axis_surplus": "Surplus kW",
-      "experimental": "Experimental",
       "learning_day": "Day __day__ of __of__",
       "paused": {
         "no_outdoor": "Autopilot has no outdoor temperature. Pick a sensor in Smart mode, or use the forecast.",
