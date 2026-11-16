@@ -88,7 +88,7 @@ export function dayTotals(d: CostDay) {
         if (a === null || a === undefined) return;
         actual += a; expectedKnown += v; known++;
     });
-    return {expected: round(expected), actual: round(actual), expectedKnown: round(expectedKnown), complete: known === d.actual.length};
+    return {expected: round(expected), actual: round(actual), expectedKnown: round(expectedKnown), known, complete: known === d.actual.length};
 }
 
 /** What the widget draws. Every string comes in translated. */
@@ -130,7 +130,9 @@ export function costCheckData(title: string, ledgers: CostLedger[], today: strin
         const gap = s.actual - s.expectedKnown;
         const tone = Math.abs(gap) <= Math.max(0.05 * s.expected, 0.2) ? 'even' as const : gap > 0 ? 'ahead' as const : 'behind' as const;
         return {label: l.label, sofar: money(s.actual), expected: money(s.expected), fill: round(s.actual / scale),
-            mark: s.complete ? undefined : round(s.expectedKnown / scale), tone, note: `${t(`pace_${tone}`)} · ${weekNote}`};
+            // No reading yet: nothing to say about pace.
+            ...s.known && !s.complete ? {mark: round(s.expectedKnown / scale)} : {}, tone,
+            note: s.known ? `${t(`pace_${tone}`)} · ${weekNote}` : weekNote};
     });
     const todays = withDays.map((l) => l.days.find((d) => d.date === today)).filter((d): d is CostDay => !!d).map((d) => dayTotals(d));
     const total = withDays.length > 1 && todays.length ? {label: t('both'),

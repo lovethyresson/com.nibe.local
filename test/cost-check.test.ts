@@ -84,7 +84,8 @@ test('the day list sums both functions and shows a past day only when complete',
     ]);
     assert.equal(data.total!.expected, '10.00');
     assert.equal(data.rows![1].note, 'no_plan_today');
-    assert.match(data.rows![0].note, /week\(±0 %\)/);
+    assert.equal(data.rows![0].mark, undefined, 'no mark before the first reading');
+    assert.equal(data.rows![0].note, 'week(±0 %)');
 });
 
 test('no plans yet: one line', () => {
