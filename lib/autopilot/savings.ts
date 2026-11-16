@@ -386,7 +386,9 @@ export function savingsData(title: string, stored: SavingsDay[], t: Translate, c
         value: c.money(sums.month),
         valueNote: c.month(c.today),
         tone: sums.month >= 0 ? 'good' : 'bad',
-        stats: [{label: t('stat_week'), value: c.money(sums.week)}, {label: t('stat_year'), value: c.money(sums.year)}],
+        // The year's figure only once it says more than the month's.
+        stats: [{label: t('stat_week'), value: c.money(sums.week)},
+            ...c.money(sums.year) !== c.money(sums.month) ? [{label: t('stat_year'), value: c.money(sums.year)}] : []],
     };
 }
 
