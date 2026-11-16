@@ -31,6 +31,7 @@ const WIDGETS = {
     hotwater_use: 'Hot water',
     hotwater_tank: 'Hot water',
     energy: 'Heat pump',
+    cost_check: 'Plan vs actual',
 };
 
 const dataDir = process.argv[2];
