@@ -242,11 +242,6 @@ test('money is written with the currency after the number when it is letters, sy
     assert.equal(moneyText(17, 0, 'en', ''), '17');
 });
 
-test('the Hot water savings widget draws with the same page as Heating savings, byte for byte', () => {
-    const page = (id: string) => readFileSync(join(__dirname, '..', 'widgets', id, 'public', 'index.html'), 'utf8');
-    assert.equal(page('savings_hotwater'), page('savings'), 'edit widgets/savings/public/index.html and copy it over');
-});
-
 test('hot water\'s first day: today so far counts while Autopilot runs Live, though its early hours predate the record', () => {
     const sofar = {...day('2026-11-20', [2, 0.5, 0], 1.5, 3, undefined), charges: [0.1]};
     const d = savingsData('Hot water', before, translator('en'),

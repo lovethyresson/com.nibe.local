@@ -521,3 +521,9 @@ I told the maintainer hot water was "set to Simulated" from a device setting (`a
 shadow`) that the app no longer reads; it was live, and hot water has no Simulated mode at all.
 Rule: before stating what mode a function runs in, read what the code reads (Smart mode, the
 widget's `test` flag), and check the UI offers the state I am about to name.
+
+## Scope a UI change to the widget asked for (2026-11-16)
+- Asked to redesign Hot water savings, I edited the page it shared byte-for-byte with Heating savings and
+  shipped five commits that changed Heating too, without saying so.
+- Rule: before editing a shared file, list every surface it drives. If the request names one, split the file
+  or ask first; never let a change ride along to a surface nobody asked about.
