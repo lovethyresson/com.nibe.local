@@ -24,6 +24,7 @@
       .sv-chart text.row-label { font-size: 13px; font-weight: 600; opacity: 0.9; }
       .sv-chart text.on-bar { fill: #ffffff; opacity: 1; font-weight: 600; font-size: 12.5px; }
       .sv-chart text.on-bar.mid { fill: currentColor; opacity: 0.8; }
+      .sv-chart text.under-bar { font-size: 13px; font-weight: 600; opacity: 1; }
       .sv-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.78em; opacity: 0.7; margin-top: 12px; }
       .sv-key { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
       .sv-sub { margin: 16px 0 0; font-size: 0.8em; font-weight: 600; opacity: 0.6; }
@@ -155,7 +156,7 @@
       // Heating: before and with Autopilot as two bars of 100 %, split by the share of kWh in the
       // cheapest, middle and most expensive third of each day's hours, with kWh a day beside them.
       function split(rows) {
-        var W = chartWidth(), STEP = 66, BH = 30, H = rows.length * STEP - 12, svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'sv-chart', role: 'img'});
+        var W = chartWidth(), STEP = 86, BH = 30, H = rows.length * STEP - 12, svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'sv-chart', role: 'img'});
         rows.forEach(function (r, k) {
           var y = k * STEP + 18, x = 0, id = 'sv-clip-' + k;
           // Rounded ends on the whole bar, whatever the card colour behind it.
@@ -165,16 +166,29 @@
           var bar = svgEl('g', {'clip-path': 'url(#' + id + ')'});
           svg.appendChild(svgEl('text', {x: 0, y: y - 6, class: 'row-label'}, r.label));
           svg.appendChild(svgEl('text', {x: W, y: y - 6, 'text-anchor': 'end'}, r.perDay));
+          var parts = [];
           r.shares.forEach(function (p, i) {
             var w = W * p;
-            if (w <= 0) return;
-            var gap = x > 0 ? 2 : 0;
-            bar.appendChild(svgEl('rect', {x: x + gap, y: y, width: Math.max(0.5, w - gap), height: BH, fill: TIER[i]}));
-            var label = Math.round(p * 100) + ' %';
-            if (w > label.length * 7.5 + 10) bar.appendChild(svgEl('text', {x: x + w / 2, y: y + BH / 2 + 4.5, 'text-anchor': 'middle', class: 'on-bar' + (i === 1 ? ' mid' : '')}, label));
+            if (w > 0) {
+              var gap = x > 0 ? 2 : 0;
+              bar.appendChild(svgEl('rect', {x: x + gap, y: y, width: Math.max(0.5, w - gap), height: BH, fill: TIER[i]}));
+            }
+            parts.push({p: p, centre: x + w / 2});
             x += w;
           });
           svg.appendChild(bar);
+          // Each share under its part: the cheap one from the left edge, the expensive one to the
+          // right edge, the middle one centred under its part, kept clear of the other two.
+          var ty = y + BH + 17, CHAR = 7.4, text = function (p) { return Math.round(p * 100) + ' %'; };
+          var label = function (p, x, anchor, i) {
+            var n = svgEl('text', {x: x, y: ty, 'text-anchor': anchor, class: 'under-bar'}, text(p));
+            if (i !== 1) n.style.fill = TIER[i];
+            svg.appendChild(n);
+          };
+          label(parts[0].p, 0, 'start', 0);
+          label(parts[2].p, W, 'end', 2);
+          var mw = text(parts[1].p).length * CHAR, lo = text(parts[0].p).length * CHAR + 12, hi = W - text(parts[2].p).length * CHAR - 12;
+          if (parts[1].p > 0 && hi - lo >= mw) label(parts[1].p, Math.min(hi - mw / 2, Math.max(lo + mw / 2, parts[1].centre)), 'middle', 1);
         });
         return svg;
       }
