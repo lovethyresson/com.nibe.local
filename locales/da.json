@@ -803,7 +803,9 @@
       "share_note": "af varmen i de billigste timer",
       "share_cheap": "__kwh__ kWh billig",
       "share_middle": "__kwh__ mellem",
-      "share_expensive": "__kwh__ dyrt"
+      "share_expensive": "__kwh__ dyrt",
+      "not_live_simulated": "Autopilot er sat til Simuleret. Besparelsen vises efter første hele døgn i drift.",
+      "not_live": "Autopilot kører ikke. Besparelsen tælles de dage, den kører."
     },
     "away_until_token": "Bortrejst indtil",
     "tank": {

@@ -803,7 +803,9 @@
       "share_note": "of the heat in the cheapest hours",
       "share_cheap": "__kwh__ kWh cheap",
       "share_middle": "__kwh__ middle",
-      "share_expensive": "__kwh__ expensive"
+      "share_expensive": "__kwh__ expensive",
+      "not_live_simulated": "Autopilot is set to Simulated. Savings appear after its first full day live.",
+      "not_live": "Autopilot isn't running. Savings count on the days it runs."
     },
     "away_until_token": "Away until",
     "tank": {
