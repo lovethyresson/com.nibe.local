@@ -831,6 +831,24 @@
       "price_axis": "Preis pro kWh",
       "no_prices": "Erfordert dynamische Strompreise in Homey Energie.",
       "no_functions": "Diese Wärmepumpe hat kein Heizungs- oder Brauchwasser-Gerät."
+    },
+    "cost_check": {
+      "title": "Plan und Ist",
+      "heating": "Heizung",
+      "hotwater": "Brauchwasser",
+      "both": "Gesamt",
+      "plan": "Plan",
+      "actual": "Ist",
+      "today": "heute",
+      "empty": "Beginnt mit dem nächsten Plan um 07:00. Erfordert dynamische Strompreise in Homey Energie.",
+      "pick": "Wählen Sie in den Widget-Einstellungen ein Heizungs- oder Brauchwassergerät.",
+      "first_day": "erster ganzer Tag morgen",
+      "week": "7 Tage: __share__",
+      "no_plan_today": "Heute kein Plan",
+      "pace_ahead": "Über Plan",
+      "pace_behind": "Unter Plan",
+      "pace_even": "Im Plan",
+      "footnote": "Plan: der Plan um 07:00 für den Rest des Tages. Die Markierung zeigt, was er bis zur letzten Messung erwartet hat."
     }
   }
 }

@@ -3,7 +3,7 @@ import {IndoorConfig, averageSensors, cleanIndoorConfig, readOnlyIndoorConfig, s
 import {Controls, AutopilotCollector} from './autopilot/collector';
 import {newHistoryFileName} from './autopilot/store-file';
 import {Baseline, LEDGER_DAYS, moneyText, partialDay, ModeMark, SavingsData, SavingsDay, baselineOf, dayHours, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay} from './autopilot/savings';
-import {ChargeEvent, HotwaterAutopilot, HotwaterMode, TankView, ownDeviceId} from './autopilot/hotwater-shadow';
+import {ChargeEvent, DAILY_HOUR, HotwaterAutopilot, HotwaterMode, TankView, ownDeviceId} from './autopilot/hotwater-shadow';
 import {FlowConflict, moreHotwaterFlows} from './autopilot/hotwater-flows';
 import {KWH_PER_LITRE, STARTER_DAYS, localClock, readHousehold} from './autopilot/hotwater-learner';
 import {DAY_TYPE_SETTING, DEFAULT_DAY_TYPE, DayTypeState, awayOn, dayTypeAt, homeDayTypeAt, readDayType, typeSet} from './autopilot/day-type';
@@ -20,7 +20,9 @@ import {HotwaterUseData, TodayRow, hotwaterWeek, useRuns} from './autopilot/hotw
 import {TankWidgetData, tankChart} from './autopilot/hotwater-tank';
 import {ComfortDay, ComfortSlot, addComfortSlot, readComfortDays} from './autopilot/comfort-days';
 import {ENERGY_ROLES, EnergyWidgetData, energyChart} from './autopilot/energy';
-import {SLOT_MS, localDate, normalisePrices, slotOf} from './autopilot/prices';
+import {SLOT_MS, localDate, localMinutes, normalisePrices, slotOf} from './autopilot/prices';
+import {CostCheckData, CostDay, PlannedCost, addDay, chargeCosts, costCheckData, costDay, fillActual} from './autopilot/cost-check';
+import {COP} from './autopilot/planner';
 import {Edge, FORECAST_SLOTS, BlockedBy, HeatingDay, analyticsSmartMode, heatingBlock, reserveBucket} from './autopilot/analytics';
 import {SOLAR_SETTING, SolarSurplus, readSolarAnswer, solarOn} from './autopilot/solar-surplus';
 import {Device} from 'homey';
@@ -78,6 +80,8 @@ const FIRST_LIVE_STORE = 'autopilotFirstLive';
 const BASELINE_STORE = 'autopilotSavingsBaseline';
 /** Today so far, recounted every hour. */
 const SAVINGS_TODAY_STORE = 'autopilotSavingsToday';
+/** Plan vs actual (cost-check.ts): each day's first plan from DAILY_HOUR on, hour by hour, and what it cost. */
+export const COST_CHECK_STORE = 'autopilotCostCheck';
 /** Days back the ledger is filled from: what Insights keeps hourly. */
 const SAVINGS_BACK_DAYS = 13;
 /** Seconds after the app starts during which missing prices or plans are still on their way. */
@@ -1559,6 +1563,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             },
             household: () => readHousehold(this.getStoreValue(HOUSEHOLD_STORE)),
             track: (event, properties) => track(event, properties),
+            planned: (from, charges) => this.noteCostPlan(from, chargeCosts(charges, SLOT_MS)),
             status: (text) => {
                 if (this.hasCapability(AUTOPILOT_REASON_CAPABILITY) && this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) !== text)
                     this.setCapabilityValue(AUTOPILOT_REASON_CAPABILITY, text).catch(this.error);
@@ -1568,6 +1573,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.solarSurplus().draw(this, () => number(spec.power));
         this.log(`Autopilot hot water started (${live() === 'live' ? 'live' : 'test run'}).`);
         await this.hotwaterAutopilot.start();
+        // After a restart past the morning: the plan in force stands in for today's.
+        const kept = this.hotwaterAutopilot.dayPlan();
+        if (kept?.charges.length) this.noteCostPlan(Date.now(), chargeCosts(kept.charges, SLOT_MS));
     }
 
     /** This poll for the hot water compressor ceiling: is a charge running, is the immersion heater
@@ -1688,6 +1696,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             tick: () => this.checkPricePeriods(),
             log: (...args) => this.log(...args),
             record: (entry) => collector.recordLive(entry),
+            planned: (slot, forecast, heat) => {
+                const cop = Number(this.getCapabilityValue('measure_cop_NIBE.rolling'));
+                const use = Number.isFinite(cop) && cop > 1 ? cop : COP;
+                this.noteCostPlan(slot * SLOT_MS, forecast.map((f, k) => ({at: (slot + k) * SLOT_MS, cost: (heat[k] ?? 0) / use * f.price})));
+            },
             setTimeout: (fn, ms) => this.homey.setTimeout(fn, ms),
             clearTimeout: (timer) => this.homey.clearTimeout(timer),
             sleep: (ms) => new Promise((resolve) => this.homey.setTimeout(resolve, ms)),
@@ -2486,6 +2499,19 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 const day = partialDay(today, hours, use, todayPrices, liveShare(sofar, liveHour), this.role === 'hotwater');
                 if (!this.savingsStopped) await this.setStoreValue(SAVINGS_TODAY_STORE, day ?? null);
             }
+            // Plan vs actual: the hours since the morning plans, at each hour's price.
+            const ledger = this.costLedger();
+            const open = [...new Set(ledger.filter((d) => !d.done).flatMap((d) => [d.date, localDate(d.until - 1, timeZone)]))];
+            if (open.length) {
+                const prices = new Map<number, number>(todayPrices ?? []);
+                for (const date of open.filter((d) => d !== today || !todayPrices)) {
+                    const r = await api.energy.fetchDynamicElectricityPrices({date}).catch(() => undefined);
+                    await pause();
+                    if (r) for (const [at, p] of hourlyPrices(normalisePrices(r, costs?.mathExpression).slots, SLOT_MS)) prices.set(at, p);
+                }
+                const filled = fillActual(ledger, use, prices, now);
+                if (filled !== ledger && !this.savingsStopped) await this.setStoreValue(COST_CHECK_STORE, filled);
+            }
             const days: SavingsDay[] = [];
             for (const date of wanted) {
                 const response = await api.energy.fetchDynamicElectricityPrices({date}).catch(() => undefined);
@@ -2523,6 +2549,45 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const found = baselineOf(ledger, localDate(firstLive, this.homey.clock.getTimezone()));
         if (found) await this.setStoreValue(BASELINE_STORE, found);
         else if (Date.now() - firstLive > SAVINGS_BACK_DAYS * 86_400_000) await this.setStoreValue(BASELINE_STORE, {days: 0, ratio: 1});
+    }
+
+    /** Plan vs actual: hold the day to its first plan from DAILY_HOUR on, up to local midnight. */
+    private noteCostPlan(from: number, planned: PlannedCost[]) {
+        const timeZone = this.homey.clock.getTimezone();
+        if (localMinutes(from, timeZone) < DAILY_HOUR * 60) return;
+        const date = localDate(from, timeZone);
+        const ledger = this.costLedger();
+        if (ledger.some((d) => d.date === date)) return;
+        const hours = dayHours(date, (ms) => localDate(ms, timeZone));
+        const until = hours[hours.length - 1] + HOUR_MS;
+        const day = costDay(date, from, until, planned);
+        if (!day.expected.some((v) => v > 0)) return;
+        this.log(`Plan vs actual: ${date} expected ${day.expected.reduce((a, b) => a + b, 0).toFixed(2)} from ${new Date(day.from).toISOString()}.`);
+        this.setStoreValue(COST_CHECK_STORE, addDay(ledger, day)).catch(this.error);
+    }
+
+    /** What the Plan vs actual widget draws: this pump's Heating and Hot water, side by side. */
+    costCheckWidget(): CostCheckData {
+        const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.cost_check.${key}`, tokens);
+        const address = this.getSettings().address;
+        const pump = (this.driver.getDevices() as NibePumpDevice[]).filter((d) => d.getSettings().address === address);
+        const of = (role: string) => pump.find((d) => d.role === role);
+        const ledgers = (['heating', 'hotwater'] as const).flatMap((role) => {
+            const d = of(role);
+            return d ? [{label: t(role), days: d.costLedger()}] : [];
+        });
+        const timeZone = this.homey.clock.getTimezone();
+        const language = this.homey.i18n.getLanguage();
+        const currency = String(pump.map((d) => d.getStoreValue(SAVINGS_CURRENCY_STORE)).find(Boolean) ?? '');
+        const dayLabel = new Intl.DateTimeFormat(language, {weekday: 'short', timeZone: 'UTC'});
+        return costCheckData(t('title'), ledgers, localDate(Date.now(), timeZone), Date.now(), t,
+            (v) => moneyText(v, Math.abs(v) < 100 ? 2 : 0, language, currency),
+            (date) => dayLabel.format(new Date(`${date}T12:00:00Z`)), this.homey.__('autopilot.widget.experimental'));
+    }
+
+    costLedger(): CostDay[] {
+        const v = this.getStoreValue(COST_CHECK_STORE);
+        return Array.isArray(v) ? v : [];
     }
 
     /** What the Autopilot savings widget draws. Every string translated here. */

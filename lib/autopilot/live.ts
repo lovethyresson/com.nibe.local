@@ -357,6 +357,9 @@ export interface FeedHooks {
     log(...args: any[]): void;
     /** One record per slot for the shadow log. */
     record(entry: LiveEntry): void;
+    /** Each new plan: its first slot, the forecast it used (prices) and the heat it plans per slot,
+     *  kWh. Plan vs actual (cost-check.ts) keeps the day's first. */
+    planned?(slot: number, forecast: ForecastSlot[], heat: number[]): void;
     setTimeout(fn: () => void, ms: number): any;
     clearTimeout(timer: any): void;
     sleep(ms: number): Promise<void>;
@@ -635,6 +638,7 @@ export class HeatingFeed {
             back: warmingUp(comfort) ? back!.at : undefined};
         this.hooks.record({slot, bias: this.bias, trim: this.trim, setpoint: this.setpoint, fed: this.lastFed?.fed, real: this.real?.value,
             source: this.real?.source, clamped: this.lastFed?.clamped ?? [], planned: plan.biases.slice(0, 8), reason: plan.reason});
+        this.hooks.planned?.(slot, input!.forecast, plan.plan.heat);
         this.hooks.changed();
         return undefined;
     }

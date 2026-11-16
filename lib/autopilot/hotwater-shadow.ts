@@ -665,6 +665,8 @@ export interface HotwaterHooks {
     household(): Household | undefined;
     /** An analytics event (lib/analytics.ts `track`): a no-op without the owner's consent. */
     track(event: string, properties: Record<string, string | number | boolean>): void;
+    /** The morning plan's charges, for Plan vs actual (cost-check.ts). */
+    planned?(from: number, charges: ChargeFacts[]): void;
 }
 
 /** Device store keys: the charge Autopilot started last, and the day's writes. Both are written
@@ -1315,6 +1317,11 @@ export class HotwaterAutopilot {
             .catch((error: any) => this.log('Autopilot hot water: timeline failed:', error?.message ?? error));
     }
 
+    /** The plan in force, for Plan vs actual after a restart (cost-check.ts). */
+    dayPlan(): DailyPlan | undefined {
+        return this.morningPlan;
+    }
+
     private time = (ms: number) => new Date(ms).toLocaleTimeString('sv-SE',
         {timeZone: this.homey.clock.getTimezone(), hour: '2-digit', minute: '2-digit'});
 
@@ -1348,6 +1355,7 @@ export class HotwaterAutopilot {
         const text = dailyPlanText(d, (key, tokens) => this.homey.__(`autopilot.hotwater_daily.${key}`, tokens),
             this.time, this.currency, this.shadow, recap);
         this.log(`Autopilot hot water morning plan: ${JSON.stringify(d)}`);
+        this.hooks.planned?.(input.slot * SLOT_MS, d.charges);
         this.homey.notifications.createNotification({excerpt: text})
             .catch((error: any) => this.log('Autopilot hot water: timeline failed:', error?.message ?? error));
     }

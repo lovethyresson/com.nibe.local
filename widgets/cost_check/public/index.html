@@ -1,0 +1,159 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <style>
+      /* The savings cards' hierarchy: a quiet caption, then a row per function (today so far against
+         the 07:00 plan, with a mark where the plan expected it by the latest reading), then the days. */
+      .cc { padding: var(--homey-su-2, 8px) var(--homey-su-3, 12px); }
+      .cc-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+      .cc-title { opacity: 0.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .cc-tag { font-size: 0.72em; letter-spacing: 0.02em; padding: 1px 7px; border-radius: 999px; border: 1px solid rgba(127, 127, 127, 0.35); opacity: 0.65; white-space: nowrap; }
+      .cc-row { margin-top: 16px; }
+      .cc-line { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+      .cc-name { font-weight: 600; }
+      .cc-v { font-size: 1.35em; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+      .cc-of { opacity: 0.6; font-variant-numeric: tabular-nums; }
+      .cc-bar { position: relative; height: 10px; border-radius: 5px; background: rgba(127, 127, 127, 0.22); margin-top: 6px; }
+      .cc-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; background: var(--cc-good); }
+      .cc-fill.ahead { background: var(--cc-over); }
+      .cc-mark { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: currentColor; opacity: 0.85; }
+      .cc-note { margin-top: 4px; font-size: 0.8em; opacity: 0.6; }
+      .cc-total { display: flex; justify-content: space-between; margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(127, 127, 127, 0.25); }
+      .cc-total .k { opacity: 0.6; }
+      .cc-total .v { font-weight: 600; font-variant-numeric: tabular-nums; }
+      .cc-days { display: grid; grid-template-columns: auto 1fr 1fr auto; gap: 6px 12px; margin-top: 18px; font-variant-numeric: tabular-nums; align-items: baseline; }
+      .cc-days .h { font-size: 0.8em; opacity: 0.6; text-align: right; }
+      .cc-days .d { font-weight: 600; }
+      .cc-days .p { text-align: right; opacity: 0.6; }
+      .cc-days .a { text-align: right; }
+      .cc-days .x { text-align: right; font-size: 0.85em; min-width: 3.6em; opacity: 0.65; }
+      .cc-days .x.over { color: var(--cc-over); opacity: 1; }
+      .cc-days .x.under { color: var(--cc-good); opacity: 1; }
+      .cc-foot { margin-top: 12px; font-size: 0.78em; opacity: 0.6; }
+      .cc-empty { opacity: 0.8; margin: 12px 0; }
+      :root { --cc-good: #0f8374; --cc-over: #c4580d; }
+      :root[data-theme="dark"] { --cc-good: #2bb3a3; --cc-over: #e8833a; }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) { --cc-good: #2bb3a3; --cc-over: #e8833a; }
+      }
+    </style>
+  </head>
+
+  <body class="homey-widget">
+    <div class="cc" id="cc"></div>
+
+    <script type="text/javascript">
+      // Used only when the app cannot be reached at all, so it cannot send a translated line.
+      var FALLBACK = {
+        en: {loading: 'Loading…', error: 'Couldn’t load this widget. Trying again in a minute.'},
+        sv: {loading: 'Laddar…', error: 'Det gick inte att läsa in widgeten. Försöker igen om en minut.'},
+        nl: {loading: 'Laden…', error: 'Kon de widget niet laden. Over een minuut probeer ik het opnieuw.'},
+        de: {loading: 'Lädt…', error: 'Das Widget konnte nicht geladen werden. Neuer Versuch in einer Minute.'},
+        no: {loading: 'Laster…', error: 'Kunne ikke laste widgeten. Prøver igjen om et minutt.'},
+        da: {loading: 'Indlæser…', error: 'Kunne ikke indlæse widgetten. Prøver igen om et minut.'}
+      };
+      function words() {
+        var lang = String((navigator.language || 'en')).slice(0, 2).toLowerCase();
+        if (lang === 'nb' || lang === 'nn') lang = 'no';
+        return FALLBACK[lang] || FALLBACK.en;
+      }
+      function el(tag, cls, text) {
+        var n = document.createElement(tag);
+        if (cls) n.className = cls;
+        if (text !== undefined) n.textContent = text;
+        return n;
+      }
+      // Light or dark, from the text colour Homey gives the page: light text means a dark card.
+      function applyTheme() {
+        var rgb = (getComputedStyle(document.body).color.match(/[\d.]+/g) || []).map(Number);
+        if (rgb.length < 3) return;
+        document.documentElement.setAttribute('data-theme', (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255 > 0.5 ? 'dark' : 'light');
+      }
+      var last = null;
+      function render(data) {
+        applyTheme();
+        var root = document.getElementById('cc');
+        root.replaceChildren();
+        var head = el('div', 'cc-head');
+        head.appendChild(el('span', 'cc-title', data.title || ''));
+        if (data.badge) head.appendChild(el('span', 'cc-tag', data.badge));
+        root.appendChild(head);
+        if (data.empty) { root.appendChild(el('p', 'cc-empty', data.empty)); return; }
+        (data.rows || []).forEach(function (r) {
+          var row = el('div', 'cc-row');
+          var line = el('div', 'cc-line');
+          line.appendChild(el('span', 'cc-name', r.label));
+          var v = el('span');
+          v.appendChild(el('span', 'cc-v', r.sofar));
+          v.appendChild(document.createTextNode(' '));
+          v.appendChild(el('span', 'cc-of', '/ ' + r.expected));
+          line.appendChild(v);
+          row.appendChild(line);
+          var bar = el('div', 'cc-bar');
+          var fill = el('div', 'cc-fill' + (r.tone === 'ahead' ? ' ahead' : ''));
+          fill.style.width = Math.round(Math.min(1, r.fill) * 100) + '%';
+          bar.appendChild(fill);
+          if (typeof r.mark === 'number') {
+            var mark = el('div', 'cc-mark');
+            mark.style.left = Math.round(Math.min(1, r.mark) * 100) + '%';
+            bar.appendChild(mark);
+          }
+          row.appendChild(bar);
+          row.appendChild(el('div', 'cc-note', r.note));
+          root.appendChild(row);
+        });
+        if (data.total) {
+          var total = el('div', 'cc-total');
+          total.appendChild(el('span', 'k', data.total.label));
+          var tv = el('span');
+          tv.appendChild(el('span', 'v', data.total.sofar));
+          tv.appendChild(document.createTextNode(' '));
+          tv.appendChild(el('span', 'cc-of', '/ ' + data.total.expected));
+          total.appendChild(tv);
+          root.appendChild(total);
+        }
+        if (data.days && data.days.rows.length) {
+          var grid = el('div', 'cc-days');
+          grid.appendChild(el('span'));
+          grid.appendChild(el('span', 'h', data.days.head[0]));
+          grid.appendChild(el('span', 'h', data.days.head[1]));
+          grid.appendChild(el('span'));
+          data.days.rows.forEach(function (d) {
+            grid.appendChild(el('span', 'd', d.label));
+            grid.appendChild(el('span', 'p', d.expected));
+            grid.appendChild(el('span', 'a', d.actual));
+            grid.appendChild(el('span', 'x ' + d.tone, d.diff));
+          });
+          root.appendChild(grid);
+        }
+        if (data.footnote) root.appendChild(el('div', 'cc-foot', data.footnote));
+      }
+      function fit(Homey) {
+        if (Homey && Homey.setHeight) Homey.setHeight(Math.ceil(document.getElementById('cc').scrollHeight) + 16);
+      }
+
+      function onHomeyReady(Homey) {
+        var settings = Homey.getSettings() || {};
+        var device = settings.device && settings.device.id;
+        document.getElementById('cc').appendChild(el('p', 'cc-empty', words().loading));
+        function show(data) { failures = 0; last = data; render(data); fit(Homey); }
+        var failures = 0;
+        function load() {
+          return Homey.api('GET', '/' + (device ? '?device=' + encodeURIComponent(device) : ''), {})
+            .then(show)
+            .catch(function (err) {
+              if (typeof console !== 'undefined') console.error(err);
+              if (last) return; // keep the last good picture until the app answers again
+              if (++failures < 5) { setTimeout(load, 30000); return; }
+              document.getElementById('cc').replaceChildren(el('p', 'cc-empty', words().error));
+              fit(Homey);
+            });
+        }
+        load().finally(function () { Homey.ready(); });
+        // The hours come in once an hour: a quarter-hour refresh is plenty.
+        setInterval(function () { if (!last || last.loading || last.empty) load(); }, 30000);
+        setInterval(load, 15 * 60000);
+      }
+    </script>
+  </body>
+</html>

@@ -31,6 +31,7 @@ class NibeApp extends Homey.App {
     this.registerHotwaterUseWidget();
     this.registerSavingsWidgets();
     this.registerEnergyWidget();
+    this.registerCostCheckWidget();
 
     this.log('Nibe Live app has been initialized');
   }
@@ -93,6 +94,30 @@ class NibeApp extends Homey.App {
     widget?.registerSettingAutocompleteListener('device', async (query: string) => this.mainDevices()
       .map((d) => ({id: String(d.getData().id), name: d.getName()}))
       .filter((d) => !query || d.name.toLowerCase().includes(query.toLowerCase())));
+  }
+
+  /** The Plan vs actual widget (widgets/cost_check): its picker offers each pump by its Heating or
+   *  Hot water device; the card shows both of that pump's. */
+  private registerCostCheckWidget() {
+    const widget = (this.homey as any).dashboards?.getWidget?.('cost_check');
+    widget?.registerSettingAutocompleteListener('device', async (query: string) => this.autopilotDevices()
+      .map((d) => ({id: String(d.getData().id), name: d.getName()}))
+      .filter((d) => !query || d.name.toLowerCase().includes(query.toLowerCase())));
+  }
+
+  /** For widgets/cost_check/api.js. Answers a problem with a line, like the others. */
+  costCheckWidget(id: unknown) {
+    const line = (key: string) => ({title: '', empty: this.homey.__(key)});
+    const devices = this.autopilotDevices();
+    const device = devices.find((d) => String(d.getData().id) === String(id)) ?? (id ? undefined : devices[0]);
+    if (!device && process.uptime() < 120) return {title: '', loading: true, empty: this.homey.__('autopilot.widget.starting_app')};
+    if (!device) return line('autopilot.cost_check.pick');
+    try {
+      return device.costCheckWidget();
+    } catch (error) {
+      this.error('Plan vs actual widget:', error);
+      return line('autopilot.widget.error');
+    }
   }
 
   /** For widgets/energy/api.js. Answers a problem with a line, like the others. */

@@ -831,6 +831,24 @@
       "price_axis": "Pris per kWh",
       "no_prices": "Kräver dynamiska elpriser i Homey Energy.",
       "no_functions": "Värmepumpen har ingen enhet för uppvärmning eller varmvatten."
+    },
+    "cost_check": {
+      "title": "Plan mot utfall",
+      "heating": "Värme",
+      "hotwater": "Varmvatten",
+      "both": "Totalt",
+      "plan": "Plan",
+      "actual": "Utfall",
+      "today": "idag",
+      "empty": "Börjar med nästa plan kl. 07:00. Kräver dynamiska elpriser i Homey Energy.",
+      "pick": "Välj en Värme- eller Varmvattenenhet i widgetens inställningar.",
+      "first_day": "första hela dagen i morgon",
+      "week": "7 dagar: __share__",
+      "no_plan_today": "Ingen plan idag",
+      "pace_ahead": "Över plan",
+      "pace_behind": "Under plan",
+      "pace_even": "Enligt plan",
+      "footnote": "Plan: planen kl. 07:00, för resten av dagen. Markeringen visar vad den räknade med fram till senaste avläsningen."
     }
   }
 }

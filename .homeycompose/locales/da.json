@@ -506,6 +506,24 @@
       "price_axis": "Pris pr. kWh",
       "no_prices": "Kræver dynamiske elpriser i Homey Energy.",
       "no_functions": "Varmepumpen har ingen enhed til opvarmning eller varmt vand."
+    },
+    "cost_check": {
+      "title": "Plan mod faktisk",
+      "heating": "Opvarmning",
+      "hotwater": "Varmt vand",
+      "both": "I alt",
+      "plan": "Plan",
+      "actual": "Faktisk",
+      "today": "i dag",
+      "empty": "Starter med næste plan kl. 07:00. Kræver dynamiske elpriser i Homey Energy.",
+      "pick": "Vælg en Opvarmning- eller Varmt vand-enhed i widgettens indstillinger.",
+      "first_day": "første hele dag i morgen",
+      "week": "7 dage: __share__",
+      "no_plan_today": "Ingen plan i dag",
+      "pace_ahead": "Over plan",
+      "pace_behind": "Under plan",
+      "pace_even": "Efter planen",
+      "footnote": "Plan: planen kl. 07:00 for resten af dagen. Mærket viser, hvad den forventede frem til seneste aflæsning."
     }
   }
 }

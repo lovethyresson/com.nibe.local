@@ -831,6 +831,24 @@
       "price_axis": "Price per kWh",
       "no_prices": "Requires dynamic electricity prices in Homey Energy.",
       "no_functions": "This heat pump has no Heating or Hot water device."
+    },
+    "cost_check": {
+      "title": "Plan vs actual",
+      "heating": "Heating",
+      "hotwater": "Hot water",
+      "both": "Both",
+      "plan": "Plan",
+      "actual": "Actual",
+      "today": "today",
+      "empty": "Starts with the next 07:00 plan. Requires dynamic electricity prices in Homey Energy.",
+      "pick": "Choose a Heating or Hot water device in the widget settings.",
+      "first_day": "first full day tomorrow",
+      "week": "7 days: __share__",
+      "no_plan_today": "No plan today",
+      "pace_ahead": "Above plan",
+      "pace_behind": "Below plan",
+      "pace_even": "On plan",
+      "footnote": "Plan: the 07:00 plan, for the rest of the day. The mark shows what it expected up to the latest reading."
     }
   }
 }
