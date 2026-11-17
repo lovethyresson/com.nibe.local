@@ -17,6 +17,8 @@ Search `TEMP(` across `lib/` and `dev/` before packaging; each hit is listed her
   at 35–56 L, so a 50 L floor is the candidate). Then either the credit goes live with its floor,
   or this and `creditEarly`/`drawnEarly` are removed. The skip lines and the `produced` field may
   stay.
+  - Days to read with care in that comparison: **2026-11-17**, one of the household home sick,
+    a midday shower; not a normal working day.
 
 ## Autopilot hot water: build (2026-11-08, [docs/autopilot-hot-water.md](../docs/autopilot-hot-water.md))
 
