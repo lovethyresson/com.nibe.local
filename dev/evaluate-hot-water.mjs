@@ -16,7 +16,7 @@ import {join} from 'path';
 import {intervals, learn, localClock, profileFor} from '../lib/autopilot/hotwater-learner.ts';
 import {pointsFromInsights, RESOLUTIONS} from '../lib/autopilot/hotwater-insights.ts';
 import {chargeRate, copAt} from '../lib/autopilot/hotwater-learner.ts';
-import {SLOT_H, drawsFor, heatAt, plan, reserveKwh, tempOf} from '../lib/autopilot/hotwater-planner.ts';
+import {EARLY_DRAW_HOURS, SLOT_H, creditEarly, drawsFor, heatAt, plan, plannedHours, reserveKwh, tempOf} from '../lib/autopilot/hotwater-planner.ts';
 
 const argv = process.argv.slice(2);
 const flag = (name, fallback) => { const i = argv.indexOf(`--${name}`); return i >= 0 ? argv[i + 1] : fallback; };
@@ -68,8 +68,13 @@ const startStored = (() => { const p = points.find((x) => x.t >= days[0] * SLOT 
 
 /** One simulated pump: `decide(slot, stored)` returns a target °C to start a charge (or
  *  {target, slots} for a boost that also expires), or undefined. */
+/** The three most expensive hours of the local day holding each day's slots. */
+const dearHours = new Map(days.map((day) => {
+    const hours = [...Array(24).keys()].map((h) => ({h, p: [0, 1, 2, 3].reduce((x, q) => x + price.get(day + 4 * h + q), 0)}));
+    return [day, new Set(hours.sort((a, b) => b.p - a.p).slice(0, 3).map((x) => x.h))];
+}));
 function simulate(decide) {
-    let stored = startStored, target, until, cost = 0, el = 0, charges = 0, below = 0, targets = 0, runSlots = 0;
+    let stored = startStored, target, until, cost = 0, el = 0, charges = 0, below = 0, targets = 0, runSlots = 0, dearEl = 0;
     for (const day of days) for (let s = day; s < day + 96; s++) {
         if (target === undefined) {
             const d = decide(s, stored);
@@ -83,6 +88,7 @@ function simulate(decide) {
             const q = Math.min(full, heatAt(tank, target) - stored);
             const e = charge.kw !== undefined ? charge.kw * SLOT_H * q / full : q / copAt(charge, tempOf(tank, stored + q));
             stored += q; el += e; cost += e * price.get(s); runSlots++;
+            if (dearHours.get(day).has(Math.floor((s - day) / 4))) dearEl += e;
             if (stored >= heatAt(tank, target) - 1e-6 || s + 1 >= until) target = undefined;
         }
         stored = Math.max(0, stored - drawBySlot.get(s) - (loss.base + loss.perKwh * stored) * SLOT_H);
@@ -90,7 +96,7 @@ function simulate(decide) {
     }
     const n = days.length;
     return {krDay: cost / n, elDay: el / n, chargesDay: charges / n, meanTarget: charges ? targets / charges : NaN, below,
-        runH: charges ? runSlots * SLOT_H / charges : NaN};
+        runH: charges ? runSlots * SLOT_H / charges : NaN, dear: el > 0 ? dearEl / el : NaN};
 }
 
 // Model relearned each midnight from readings before it.
@@ -111,14 +117,26 @@ const horizon = (s) => {
     return out;
 };
 
-function planner(foresight) {
+/** Heat drawn in the EARLY_DRAW_HOURS before slot s beyond what the profile planned for them, as
+ *  the live planner works it out (hotwater-shadow.ts `drawnEarly`), from the draws that happened. */
+function drawnEarly(s, model) {
+    let drawn = 0, planned = 0;
+    for (let k = s - EARLY_DRAW_HOURS * 4; k < s; k++) {
+        drawn += drawBySlot.get(k) ?? 0;
+        const p = profileFor(model, dayType(k * SLOT));
+        if (p) planned += plannedHours(p)[clock(k * SLOT).hour] * SLOT_H;
+    }
+    return Math.max(0, drawn - planned);
+}
+
+function planner(foresight, early = false) {
     return (s, stored) => {
         const ks = horizon(s);
         const model = modelFor(s);
-        const draws = foresight
-            ? ks.map((k) => drawBySlot.get(k) ?? 0)
-            : drawsFor(ks.map((k) => profileFor(model, dayType(k * SLOT))), ks.map((k) => clock(k * SLOT).hour),
-                undefined, ks.map((k) => Math.floor((clock(k * SLOT).minute ?? 0) / 15)));
+        const learned = () => drawsFor(ks.map((k) => profileFor(model, dayType(k * SLOT))), ks.map((k) => clock(k * SLOT).hour),
+            undefined, ks.map((k) => Math.floor((clock(k * SLOT).minute ?? 0) / 15)));
+        const draws = foresight ? ks.map((k) => drawBySlot.get(k) ?? 0)
+            : early ? creditEarly(learned(), drawnEarly(s, model)) : learned();
         const slots = ks.map((k, j) => ({price: price.get(k), draw: draws[j]}));
         const p = plan({slots, stored, charging: false, tank, charge: model.charge ?? charge, loss: model.loss, reserve, minC, maxC});
         return p.startNow ? p.charges[0].targetC : undefined;
@@ -174,14 +192,16 @@ const rows = [
     ['Owner\'s Flow, simulated', simulate(flow)],
     ['Pump alone (start 42 °C, stop 50 °C)', simulate((s, stored) => tempOf(tank, stored) < 42 ? 50 : undefined)],
     ['Planner, learned profile', simulate(planner(false))],
+    ['Planner, early draws credited', simulate(planner(false, true))],
     ['Planner, draws known ahead', simulate(planner(true))],
 ];
 const r = (v, d = 2) => Number.isFinite(v) ? v.toFixed(d) : '–';
 console.log(`${days.length} days, ${clock(days[0] * SLOT).date} to ${clock((days[days.length - 1] + 95) * SLOT).date};`
     + ` reserve ${r(reserve, 1)} kWh; day types: ${has('weekends-free') ? 'weekends free' : 'none'}`);
-console.log('strategy'.padEnd(40) + 'kr/day  kr/month  kWh el/day  charges/day  mean target  slots below reserve  h/charge');
+console.log('strategy'.padEnd(40) + 'kr/day  kr/month  kWh el/day  charges/day  mean target  slots below reserve  h/charge  in 3 dearest h');
 const base = rows[0][1].krDay;
 for (const [name, x] of rows)
     console.log(name.padEnd(40) + r(x.krDay).padStart(6) + r(x.krDay * 30, 0).padStart(10) + r(x.elDay).padStart(12)
         + r(x.chargesDay, 1).padStart(13) + (Number.isFinite(x.meanTarget) ? r(x.meanTarget, 0) + ' °C' : '–').padStart(13)
-        + String(x.below ?? '–').padStart(21) + r(x.runH, 1).padStart(10) + `   ${r((x.krDay / base - 1) * 100, 0)} %`);
+        + String(x.below ?? '–').padStart(21) + r(x.runH, 1).padStart(10)
+        + (Number.isFinite(x.dear) ? `${r(x.dear * 100, 0)} %` : '–').padStart(16) + `   ${r((x.krDay / base - 1) * 100, 0)} %`);

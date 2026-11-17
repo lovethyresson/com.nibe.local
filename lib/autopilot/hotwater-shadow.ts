@@ -10,7 +10,7 @@ import {withApi} from '../indoor-sensors';
 import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, normalisePrices, slotOf} from './prices';
 import {DayDraw, DayProfile, DayType, HotwaterModel, Household, KWH_PER_LITRE, LocalClock, TankPoint, chargeRate, intervals, learn, localClock, lossAt, profileFor} from './hotwater-learner';
 import {TankCapabilities, fetchTankInsights, pointsFromInsights} from './hotwater-insights';
-import {DEFAULT_RESERVE_LITRES, MIN_CHARGE_KWH, Plan, SLOT_H, TankSpec, drawsFor, heatAt, plan, plannedHours, reserveKwh} from './hotwater-planner';
+import {DEFAULT_RESERVE_LITRES, EARLY_DRAW_HOURS, MIN_CHARGE_KWH, Plan, SLOT_H, TankSpec, creditEarly, drawsFor, heatAt, plan, plannedHours, reserveKwh} from './hotwater-planner';
 import {appendLine, deleteHistory, loadJson, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
 import {DayTypeState, dayTypeAt} from './day-type';
 import {DEMAND_LARGE, MAX_STOP_WRITES_PER_DAY, PumpFacts, countFor, leverDecision} from './hotwater-lever';
@@ -77,6 +77,12 @@ export interface ShadowStepInput {
     maxC?: number;
     /** Start of the charge the last slot's plan had next (ms): due once this slot reaches it. */
     dueAt?: number;
+    /** kWh heat drawn in the last EARLY_DRAW_HOURS beyond what was planned for them (`drawnEarly`):
+     *  taken off the draws the plan expects next (`creditEarly`). Not passed live yet: the log
+     *  records what the plan would do with it (`ShadowEntry.withEarly`) until two weeks of
+     *  Autopilot's own days show it is safe (2026-11-17: a busy Saturday read as early draws held
+     *  the tank at 35–56 L for an afternoon). */
+    early?: number;
 }
 
 export interface ShadowEntry {
@@ -97,6 +103,22 @@ export interface ShadowEntry {
      *  charge, by dev/review-hotwater-shadow.mjs (the go-live check, doc §6). A plan's own
      *  charges cannot be scored in a test run, since the pump's charges are what happen. */
     coast?: number[];
+    /** Hot water heat produced, the kWh counter: with the litres, the draws of a slot that charged. */
+    produced?: number;
+    /** Litres drawn early (`drawnEarly`), and what the plan would do with them taken off the
+     *  draws ahead (`creditEarly`). Logged only, from 3 L. */
+    early?: number;
+    withEarly?: {action: ShadowEntry['action']; next?: ShadowEntry['next']};
+}
+
+/** A slot with no plan, and why: so a gap in the log is a reason, not a lost line. */
+export interface ShadowSkip {
+    slot: number;
+    at: string;
+    skip: string;
+    litres?: number;
+    top?: number;
+    produced?: number;
 }
 
 /** A slot's plan: the log line, the first charge after any running one, with its reason, and
@@ -117,8 +139,8 @@ function planFrom(input: ShadowStepInput): Planned | {skip: string} {
     if (slots.length < MIN_HORIZON) return {skip: 'no prices'};
     const profile = profileFor(model, input.dayType);
     const times = slots.map((k) => input.clock(k * SLOT_MS));
-    const draws = drawsFor(slots.map((k) => input.dayTypeOf ? profileFor(model, input.dayTypeOf(k * SLOT_MS)) : profile),
-        times.map((c) => c.hour), undefined, times.map((c) => Math.floor((c.minute ?? 0) / 15)));
+    const draws = creditEarly(drawsFor(slots.map((k) => input.dayTypeOf ? profileFor(model, input.dayTypeOf(k * SLOT_MS)) : profile),
+        times.map((c) => c.hour), undefined, times.map((c) => Math.floor((c.minute ?? 0) / 15))), input.early ?? 0);
     const charging = (now.powerW ?? 0) > 0;
     const p = plan({
         slots: slots.map((k, j) => {
@@ -131,6 +153,24 @@ function planFrom(input: ShadowStepInput): Planned | {skip: string} {
         due: input.dueAt !== undefined && input.dueAt <= slot * SLOT_MS,
     });
     return {slots, plan: p, charging, profile, draws};
+}
+
+/** kWh heat drawn in the `hours` before `at` beyond what the profiles planned for them, ≥ 0: a
+ *  draw that came early, whose usual hour is still ahead (`creditEarly`). Pure. */
+export function drawnEarly(points: TankPoint[], model: HotwaterModel, at: number, clock: LocalClock,
+    profileAt: (ms: number) => DayProfile | undefined, hours = EARLY_DRAW_HOURS): number {
+    const from = at - hours * HOUR;
+    let drawn = 0;
+    for (const i of intervals(points, model.loss, model.charge)) {
+        const mid = i.start + i.hours * HOUR / 2;
+        if (mid >= from && mid < at && i.hours <= 1.01 && Number.isFinite(i.draw)) drawn += i.draw;
+    }
+    let planned = 0;
+    for (let ms = from; ms < at; ms += SLOT_MS) {
+        const p = profileAt(ms);
+        if (p) planned += plannedHours(p)[clock(ms).hour] * SLOT_H;
+    }
+    return Math.max(0, drawn - planned);
 }
 
 /** Litres at the end of each whole hour ahead with no charge: draws and standing loss only. */
@@ -1132,12 +1172,35 @@ export class HotwaterAutopilot {
         const noPrices = 'skip' in out && out.skip === 'no prices';
         if ((noPrices || !('skip' in out)) && this.pricesBlocked.changed(noPrices) && noPrices)
             this.hooks.track('Blocked Autopilot', {role: 'hotwater', blocked_by: 'no_prices', simulation: this.shadow});
-        if ('skip' in out) return this.skip(out.skip);
+        if ('skip' in out) {
+            this.skip(out.skip);
+            return this.writeLine({slot: slotOf(at), at: new Date(at).toISOString(), skip: out.skip,
+                litres: now.litres, top: now.top, produced: now.produced} satisfies ShadowSkip);
+        }
         this.last = out.entry;
         this.planned = {from: out.entry.slot, stored: out.stored};
         if (Number.isFinite(now.litres)) this.history = mergeHistory([], [...this.history,
             {t: at, litres: now.litres, produced: now.produced ?? null, top: now.top ?? null}], Date.now() - HISTORY_MS);
-        appendLine(shadowLogName(this.fileName), out.entry)
+        this.writeLine({...out.entry, produced: now.produced, ...this.withEarly(input)});
+    }
+
+    // TEMP(early-draw log): remove before the release is packaged (tasks/todo.md, "Before the
+    // release"), with `ShadowEntry.early`/`withEarly` and the `early` input, unless the two-week
+    // comparison has moved the credit into the live plan by then.
+    /** What the plan would do with the early draws taken off (`creditEarly`), for the log only. */
+    private withEarly(input: ShadowStepInput): Pick<ShadowEntry, 'early' | 'withEarly'> {
+        const model = this.model;
+        if (!model) return {};
+        const early = drawnEarly(this.history, model, input.slot * SLOT_MS, input.clock,
+            (ms) => profileFor(model, input.dayTypeOf ? input.dayTypeOf(ms) : input.dayType));
+        if (!(early / KWH_PER_LITRE >= 3)) return {};
+        const out = hotwaterShadowStep({...input, early});
+        return {early: round(early / KWH_PER_LITRE, 0),
+            ...('entry' in out ? {withEarly: {action: out.entry.action, next: out.entry.next}} : {})};
+    }
+
+    private writeLine(line: ShadowEntry | ShadowSkip) {
+        appendLine(shadowLogName(this.fileName), line)
             .then(async () => {
                 if (++this.lines > KEEP + 2 * 96) this.lines = await trimLines(shadowLogName(this.fileName), KEEP);
             })

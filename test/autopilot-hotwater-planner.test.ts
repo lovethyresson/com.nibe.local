@@ -214,3 +214,17 @@ test('a planned charge ends when it fills the tank: no holding it full for hours
             assert.ok(p.stored[k] < top - 0.1 + 1e-9, `charge ${c.start}–${c.end} still running at slot ${k} with the tank full`);
     }
 });
+
+test('creditEarly takes an early draw off the next hours, nearest first, and nothing past them', async () => {
+    const {creditEarly, EARLY_DRAW_HOURS} = await import('../lib/autopilot/hotwater-planner');
+    const n = EARLY_DRAW_HOURS * 4;
+    const draws = Array.from({length: n + 4}, () => 1);
+    const out = creditEarly(draws, 2.5);
+    assert.deepStrictEqual(out.slice(0, 4), [0, 0, 0.5, 1]);
+    // More than the window holds: the window empties, the hours past it stay as planned.
+    const all = creditEarly(draws, 100);
+    assert.deepStrictEqual(all.slice(0, n), new Array(n).fill(0));
+    assert.deepStrictEqual(all.slice(n), [1, 1, 1, 1]);
+    assert.deepStrictEqual(creditEarly(draws, 0), draws);
+    assert.deepStrictEqual(creditEarly(draws, NaN), draws);
+});

@@ -504,3 +504,24 @@ test('an extension never passes the highest target (the learned compressor ceili
     assert.ok(!capped || capped.targetC <= 50, `to ${capped?.targetC}`);
     assert.strictEqual(extendTarget({slot: S0, prices: cheapNow, model, tank, clock, now: running, maxC: 48.5}), undefined, 'no room under the ceiling');
 });
+
+// 2026-11-16: 130 L went at 17:15–17:45, ahead of the usual 18–21 showers. The plan still expected
+// those on top, saw the tank run out by 20:00 and charged at 19:15, the day's most expensive hour.
+test('a draw that came early is not expected again at its usual hour', async () => {
+    const {drawnEarly} = await import('../lib/autopilot/hotwater-shadow');
+    const at = T0 + 19 * 3_600_000;
+    // Readings a slot apart from 16:00: steady at 214 L, a big draw 17:00–17:45, then 60 L.
+    const litres = (ms: number) => ms < T0 + 17 * 3_600_000 ? 214 : ms >= T0 + 17.75 * 3_600_000 ? 60 : 214 - 154 * (ms - (T0 + 17 * 3_600_000)) / (0.75 * 3_600_000);
+    const points = [];
+    for (let ms = T0 + 16 * 3_600_000; ms <= at; ms += SLOT_MS) points.push({t: ms, litres: litres(ms), produced: 100, used: 30, top: 50});
+    const early = drawnEarly(points, model, at, clock, () => model.profiles.any);
+    // 154 L drawn, of which the profile planned 1.5 kWh (hour 18) in the window.
+    assert.ok(Math.abs(early - (154 * KWH_PER_LITRE - 1.5)) < 0.6, `early ${early}`);
+    // Evening prices: 19–21 dearest, the night cheap. Without the credit it starts now, with it it waits.
+    const evening = new Map(Array.from({length: 48}, (_, k) => [slotOf(at) + k, {price: k < 8 ? 3.3 : 1.2}]));
+    const base = {slot: slotOf(at), prices: evening, now: {litres: 60, top: 50}};
+    assert.strictEqual(entry(step(base)).action, 'start');
+    assert.strictEqual(entry(step({...base, early})).action, 'wait');
+    // Nothing drawn early: nothing credited.
+    assert.strictEqual(drawnEarly(points.map((p) => ({...p, litres: 214})), model, at, clock, () => model.profiles.any), 0);
+});

@@ -159,6 +159,27 @@ export function drawsFor(profiles: (DayProfile | undefined)[], hours: number[], 
     });
 }
 
+/** How far a draw may come early and still be the draw the profile expects later: an evening
+ *  shower taken an hour before its usual time is that shower, not another one. */
+export const EARLY_DRAW_HOURS = 3;
+
+/** The draws ahead less what was drawn early: `early` (kWh heat drawn in the last
+ *  EARLY_DRAW_HOURS beyond what was planned for them) comes off the draws planned for the next
+ *  EARLY_DRAW_HOURS, nearest first. Without it, a shower taken early is counted twice, once in the
+ *  tank and once more at its usual hour, and the plan buys a charge at the evening's peak for
+ *  water nobody draws (2026-11-16: 130 L at 17:15–17:45, then a charge at 19:15 for the 18–21
+ *  draws it still expected). Draws past the window are left alone: a big draw does not mean
+ *  tomorrow's shower is skipped. */
+export function creditEarly(draws: number[], early: number, slots = EARLY_DRAW_HOURS / SLOT_H): number[] {
+    let left = Number.isFinite(early) ? Math.max(0, early) : 0;
+    return draws.map((d, k) => {
+        if (k >= slots || left <= 0) return d;
+        const take = Math.min(d, left);
+        left -= take;
+        return d - take;
+    });
+}
+
 /** Effective price of a kWh of electricity: surplus first, then the grid. */
 function effective(slot: PlanSlot, kw: number): {price: number; surplus: number} {
     const surplus = kw > 0 ? Math.min(1, Math.max(0, slot.surplusKw ?? 0) / kw) : 0;

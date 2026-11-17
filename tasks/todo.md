@@ -4,6 +4,20 @@ Three things are live. Everything else that used to be here has shipped — the 
 commits and in the **Releases** table in [`README.md`](../README.md), the durable rules are in
 [`CLAUDE.md`](../CLAUDE.md), and the design write-ups are under [`docs/`](../docs).
 
+## Before the release: drop temporary test code
+
+Search `TEMP(` across `lib/` and `dev/` before packaging; each hit is listed here.
+
+- [ ] **TEMP(early-draw log)**, added 2026-11-17 (`lib/autopilot/hotwater-shadow.ts`):
+  the hot water log's `early` and `withEarly` fields and `withEarly()`, which plan a second time
+  with early draws credited (`creditEarly`, `drawnEarly`). Logged only, never acted on. Kept
+  until two weeks of Autopilot-run days are compared: how often the credit would have waited,
+  what it saves, and how close each wait came to the reserve (the 2026-11-16 19:15 charge was an
+  early shower counted twice; a 7-day replay found a busy Saturday read as early draws, tank held
+  at 35–56 L, so a 50 L floor is the candidate). Then either the credit goes live with its floor,
+  or this and `creditEarly`/`drawnEarly` are removed. The skip lines and the `produced` field may
+  stay.
+
 ## Autopilot hot water: build (2026-11-08, [docs/autopilot-hot-water.md](../docs/autopilot-hot-water.md))
 
 The maintainer asked for it now (2026-11-08): a generic learner of the household's hot water use

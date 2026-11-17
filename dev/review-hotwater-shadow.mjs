@@ -26,7 +26,10 @@ const timeZone = arg('--tz', 'Europe/Stockholm');
 const TOLERANCE_L = 50, PASS_SHARE = 0.8, SLOT_MS = 15 * 60_000, HOUR_MS = 3_600_000;
 const read = async (s) => (/^https?:/.test(s) ? (await fetch(s)).text() : fs.readFileSync(s, 'utf8'));
 
-const entries = (await read(source)).split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l));
+const lines = (await read(source)).split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l));
+// A slot with no plan is logged with its reason (`skip`): counted, not scored.
+const entries = lines.filter((e) => !e.skip);
+const skips = lines.length - entries.length;
 if (!entries.length) {
     console.log('The test run log is empty: no slot has been planned yet.');
     process.exit(0);
@@ -55,7 +58,7 @@ function error(e, lead) {
 }
 
 const withCoast = entries.filter((e) => e.coast);
-console.log(`${entries.length} slots logged, ${withCoast.length} with a prediction.`);
+console.log(`${entries.length} slots logged, ${withCoast.length} with a prediction${skips ? `, ${skips} with no plan` : ''}.`);
 console.log('If nothing charges, predicted vs read litres (stretches with no real charge only):');
 for (const lead of [1, 2, 3, 6, 12]) {
     const errs = withCoast.map((e) => error(e, lead)).filter(Number.isFinite);

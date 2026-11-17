@@ -80,6 +80,10 @@ Review these together when preparing a release:
    each touched page in light, dark and at 375 px before calling it done. This is a gate, not a
    nice-to-have: a help page that contradicts the app is worse than none.
 
+8. **Drop temporary test code.** `grep -rn "TEMP(" lib dev` must come back empty: each hit is
+   test-only code (extra logging, counterfactual plans) listed under "Before the release" in
+   `tasks/todo.md`, with what decides whether it goes or becomes real.
+
 Per release, not per build — these are documentation, not generated artifacts.
 
 Verify with `npm test`, `npm run typecheck`, `npx homey app validate --level publish` — the same
