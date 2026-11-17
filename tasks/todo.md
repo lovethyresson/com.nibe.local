@@ -12,6 +12,9 @@ commits and in the **Releases** table in [`README.md`](../README.md), the durabl
 - [ ] Merge the held branches: insights-backfill → cop-optimiser → orchestrator; gifted-euler any time.
 - [ ] Install the app batch: savings fixes, badge removal, savings-card redesign, Plan vs actual,
   the early-draw log (a826834).
+- [ ] Check the Energy today widget against Homey Energy's Top consumers mid-evening: "used today"
+  should now match to about 0.1 kWh (it ran an hour or two behind before; live hours since the
+  last Insights hour).
 
 ## Before the release: drop temporary test code
 

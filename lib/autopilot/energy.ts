@@ -53,6 +53,32 @@ export function energyChart(hours: number[], use: Partial<Record<EnergyRole, Map
 
 const round = (v: number, d: number) => Math.round(v * 10 ** d) / 10 ** d;
 
+const HOUR = 3_600_000;
+
+/** Today's use up to now. Insights' hours (`hourlyUse`) arrive with the hourly refresh, so they end
+ *  an hour or two back; the rest comes from the meter itself. `seam` is Insights' last point (the
+ *  meter's mean over that hour, so about its middle); `meterNow` the meter now; `live` what the
+ *  meter added in each hour since the app started (hour start, ms). The hours after the seam take
+ *  their live kWh, and whatever the meter added since the seam beyond those (the half hour after
+ *  the seam, or hours from before a restart) goes to the hour after the seam, or to this hour. So
+ *  the total is the meter's own, as Homey Energy shows it. */
+export function withLiveHours(insights: Map<number, number>, seam: {at: number; v: number} | undefined,
+    meterNow: number, live: Map<number, number>, now = Date.now()): Map<number, number> {
+    const out = new Map(insights);
+    if (!seam) {
+        for (const [at, v] of live) if (!out.has(at)) out.set(at, v);
+        return out;
+    }
+    let after = 0;
+    for (const [at, v] of live) if (at > seam.at) { out.set(at, v); after += v; }
+    const rest = meterNow - seam.v - after;
+    // Never past the hour now: Insights' last point can be this hour's, still filling.
+    const to = Math.min(seam.at + HOUR, Math.floor(now / HOUR) * HOUR);
+    // A meter set back by hand, or a seam not read from this meter: nothing to add.
+    if (rest > 0 && rest < 30) out.set(to, (out.get(to) ?? 0) + rest);
+    return out;
+}
+
 /** Everything the widget draws, translated. Without `chart` it shows `empty`, or the loading state. */
 export interface EnergyWidgetData {
     title: string;

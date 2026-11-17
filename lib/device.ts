@@ -19,7 +19,7 @@ import {WidgetData, aimingFor, chargeBands, symmetricAxis, formatDuration, heati
 import {HotwaterUseData, TodayRow, hotwaterWeek, useRuns} from './autopilot/hotwater-use';
 import {TankWidgetData, tankChart} from './autopilot/hotwater-tank';
 import {ComfortDay, ComfortSlot, addComfortSlot, readComfortDays} from './autopilot/comfort-days';
-import {ENERGY_ROLES, EnergyWidgetData, energyChart} from './autopilot/energy';
+import {ENERGY_ROLES, EnergyWidgetData, energyChart, withLiveHours} from './autopilot/energy';
 import {SLOT_MS, localDate, localMinutes, normalisePrices, slotOf} from './autopilot/prices';
 import {CostCheckData, CostDay, PlannedCost, addDay, chargeCosts, costCheckData, costDay, fillActual} from './autopilot/cost-check';
 import {COP} from './autopilot/planner';
@@ -2381,8 +2381,17 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private savingsReadOnce = false;
     /** Today's hourly prices, fetched once a day for the hourly count of today so far. */
     private savingsTodayPrices?: {date: string; prices: Map<number, number>};
-    /** Today's kWh per hour from the meter, as of the last savings refresh (hourly). */
-    private todayUse?: {date: string; use: Map<number, number>};
+    /** Today's kWh per hour from the meter, as of the last savings refresh (hourly), and Insights'
+     *  last point of the meter (hour start, its mean over that hour). */
+    private todayUse?: {date: string; use: Map<number, number>; seam?: {at: number; v: number}};
+    /** What the meter added in each hour since the app started (hour start, ms), the last two days. */
+    private liveHours = new Map<number, number>();
+
+    private noteLiveHour(kwh: number) {
+        const at = Math.floor(Date.now() / HOUR_MS) * HOUR_MS;
+        this.liveHours.set(at, (this.liveHours.get(at) ?? 0) + kwh);
+        for (const k of this.liveHours.keys()) if (k < at - 48 * HOUR_MS) this.liveHours.delete(k);
+    }
 
     /** Today's hourly use and prices, for the Energy today widget; undefined until read today. */
     energyToday(): {use: Map<number, number>; prices?: Map<number, number>; currency?: string} | undefined {
@@ -2390,7 +2399,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.todayUse?.date !== today) return undefined;
         const prices = this.savingsTodayPrices?.date === today ? this.savingsTodayPrices.prices : undefined;
         const currency = this.getStoreValue(SAVINGS_CURRENCY_STORE);
-        return {use: this.todayUse.use, prices, currency: typeof currency === 'string' ? currency : undefined};
+        // Insights' hours end an hour or two back; the meter fills in up to now.
+        const hours = new Set(dayHours(today, (ms) => localDate(ms, this.homey.clock.getTimezone())));
+        const all = withLiveHours(this.todayUse.use, this.todayUse.seam, this.cumulativeEnergy, this.liveHours);
+        const use = new Map([...all].filter(([at]) => hours.has(at)));
+        return {use, prices, currency: typeof currency === 'string' ? currency : undefined};
     }
     /** Dates a refresh could not complete (a gap in the meter, no prices), and when. They are tried
      *  again once a day, so a day that never completes costs no hourly Homey API calls. */
@@ -2488,7 +2501,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     .catch(() => undefined);
             // Today's hourly use, for the Energy today widget (widgets/energy).
             const todayHours = dayHours(today, (ms) => localDate(ms, timeZone));
-            this.todayUse = {date: today, use: new Map(todayHours.filter((at) => use.has(at)).map((at) => [at, use.get(at)!]))};
+            const last = meter.filter((p) => typeof p.v === 'number' && Number.isFinite(p.v)).pop();
+            const seam = last && Number.isFinite(Date.parse(last.t)) ? {at: Date.parse(last.t), v: last.v as number} : undefined;
+            this.todayUse = {date: today, use: new Map(todayHours.filter((at) => use.has(at)).map((at) => [at, use.get(at)!])), seam};
             if (todayPrices?.size) {
                 this.savingsTodayPrices = {date: today, prices: todayPrices};
                 const hours = todayHours;
@@ -3205,6 +3220,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             // is untouched — this is measurement, not correction.
             this.bookedThisHour += deltaKwh;
             this.cumulativeEnergy += deltaKwh;
+            this.noteLiveHour(deltaKwh);
             if (this.hasCapability(METER_CAPABILITY))
                 this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
             this.persistCumulativeEnergy();
