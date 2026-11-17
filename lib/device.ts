@@ -2254,9 +2254,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (known.length < reads.length && process.uptime() < 15 * 60) return {title, loading: true};
         // The meters are read a few minutes after a start, then hourly. Past that, nothing read means
         // no dynamic prices in Homey Energy (the read stops there).
-        if (!known.length) return process.uptime() < 15 * 60 ? {title, loading: true} : {title, empty: t('no_prices')};
+        // A new day not read yet (minutes after midnight) is loading, not missing prices: this
+        // Homey had dynamic prices at the last read.
+        const pending = process.uptime() < 15 * 60 || siblings.some((d) => d.hadDynamicPrices);
+        if (!known.length) return pending ? {title, loading: true} : {title, empty: t('no_prices')};
         const prices = known.find(([, r]) => r!.prices)?.[1]!.prices;
-        if (!prices) return {title, empty: t('no_prices')};
+        if (!prices) return pending ? {title, loading: true} : {title, empty: t('no_prices')};
         const timeZone = this.homey.clock.getTimezone();
         const hours = dayHours(localDate(Date.now(), timeZone), (ms) => localDate(ms, timeZone));
         const chart = energyChart(hours, Object.fromEntries(known.map(([role, r]) => [role, r!.use])), prices);
@@ -2386,6 +2389,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private todayUse?: {date: string; use: Map<number, number>; seam?: {at: number; v: number}};
     /** What the meter added in each hour since the app started (hour start, ms), the last two days. */
     private liveHours = new Map<number, number>();
+    /** Homey Energy had dynamic prices at the last savings refresh. */
+    hadDynamicPrices = false;
 
     private noteLiveHour(kwh: number) {
         const at = Math.floor(Date.now() / HOUR_MS) * HOUR_MS;
@@ -2428,6 +2433,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private scheduleSavings(ms: number) {
         if (this.savingsTimer) this.homey.clearTimeout(this.savingsTimer);
         if (this.savingsStopped) return;
+        // A new day reads its prices and meter minutes after midnight, not up to an hour later: until
+        // then the Energy today widget has nothing for the day while Homey Energy already does.
+        // Heating first, the others later, as at a start: Homey refuses back-to-back Insights reads.
+        const timeZone = this.homey.clock.getTimezone();
+        const midnight = dayHours(localDate(Date.now(), timeZone, 1), (at) => localDate(at, timeZone))[0];
+        const after = midnight + (this.role === 'heating' ? 2 : 7) * 60_000 - Date.now();
+        if (after > 0) ms = Math.min(ms, after);
         this.savingsTimer = this.homey.setTimeout(() => {
             this.refreshSavings()
                 .catch((error) => { this.log('Savings widget: refresh failed:', error?.message ?? error); return HOUR_MS; })
@@ -2452,7 +2464,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const appId = this.homey.manifest?.id ?? 'com.nibe.local';
         const marks: ModeMark[] = Array.isArray(this.getStoreValue(MODE_MARKS_STORE)) ? this.getStoreValue(MODE_MARKS_STORE) : [];
         const result = await withApi(this.homey, async (api) => {
-            if (await api.energy.getElectricityPriceType() !== 'dynamic') return undefined;
+            this.hadDynamicPrices = await api.energy.getElectricityPriceType() === 'dynamic';
+            if (!this.hadDynamicPrices) return undefined;
             const id = ownDeviceId(await api.devices.getDevices({$timeout: 10_000}), appId, String(this.getData().id));
             if (!id) return undefined;
             const uri = `homey:device:${id}`;
