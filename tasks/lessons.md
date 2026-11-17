@@ -527,3 +527,10 @@ widget's `test` flag), and check the UI offers the state I am about to name.
   shipped five commits that changed Heating too, without saying so.
 - Rule: before editing a shared file, list every surface it drives. If the request names one, split the file
   or ask first; never let a change ride along to a surface nobody asked about.
+
+## A figure must match where else the owner sees it (2026-11-17)
+- The Energy today widget said 22.7 kWh / 86 kr while Homey Energy said 24.4 kWh / 92 kr: the widget
+  stopped at the last hourly Insights refresh. Each figure was "right"; together they read as a bug.
+- Rule: for every displayed figure, name the other places the same quantity shows (Homey Energy,
+  Insights, other widgets, myUplink) and make them agree in source, time span, price basis and
+  rounding, or label what differs. Check it before calling a widget ready.
