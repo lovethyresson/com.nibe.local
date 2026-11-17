@@ -12,9 +12,11 @@ commits and in the **Releases** table in [`README.md`](../README.md), the durabl
 - [ ] Merge the held branches: insights-backfill → cop-optimiser → orchestrator; gifted-euler any time.
 - [ ] Install the app batch: savings fixes, badge removal, savings-card redesign, Plan vs actual,
   the early-draw log (a826834).
-- [ ] Check the Energy today widget against Homey Energy's Top consumers mid-evening: "used today"
-  should now match to about 0.1 kWh (it ran an hour or two behind before; live hours since the
-  last Insights hour).
+- [ ] Compare figures with where else they show (897a839, 6700246, ee7e952, 68ecd46), mid-evening
+  and just after midnight: Energy today's kWh and kr against Homey Energy's Top consumers (to
+  about 0.1 kWh and a few öre); the savings cards' today against Energy today; tank litres in
+  the three hot water widgets against the Tank volume tile; the tank widget's usual day against
+  Hot water use's expected.
 
 ## Before the release: drop temporary test code
 
