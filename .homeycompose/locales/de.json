@@ -514,7 +514,7 @@
       "both": "Gesamt",
       "plan": "Plan",
       "actual": "Ist",
-      "today": "heute",
+      "today": "seit 07:00",
       "empty": "Beginnt mit dem nächsten Plan um 07:00. Erfordert dynamische Strompreise in Homey Energie.",
       "pick": "Wählen Sie Ihre Wärmepumpe in den Widget-Einstellungen.",
       "first_day": "erster ganzer Tag morgen",

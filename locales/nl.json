@@ -839,7 +839,7 @@
       "both": "Samen",
       "plan": "Plan",
       "actual": "Werkelijk",
-      "today": "vandaag",
+      "today": "sinds 07:00",
       "empty": "Begint met het volgende plan om 07:00. Vereist dynamische stroomprijzen in Homey Energy.",
       "pick": "Kies je warmtepomp in de widgetinstellingen.",
       "first_day": "eerste volledige dag morgen",

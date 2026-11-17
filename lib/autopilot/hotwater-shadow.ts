@@ -941,7 +941,9 @@ export class HotwaterAutopilot {
         const forecast = Array.from({length: hours}, (_, k) => {
             const ms = (from + 4 * k) * SLOT_MS;
             const p = profileFor(model, dayTypeAt(dayTypes, ms, clock));
-            return p ? round(plannedHours(p)[clock(ms).hour] / KWH_PER_LITRE, 0) : 0;
+            // The usual day, as Hot water use states it (`usage().expected`): the mean, without the
+            // margin the plan adds for a busy day.
+            return p ? round(plannedHours(p, 0)[clock(ms).hour] / KWH_PER_LITRE, 0) : 0;
         });
         return {...o, litres: o.litres ?? reading.litres, read, plan, drawn: drawn.map((v) => v === undefined ? undefined : round(v, 0)), forecast};
     }

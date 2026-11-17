@@ -514,7 +514,7 @@
       "both": "I alt",
       "plan": "Plan",
       "actual": "Faktisk",
-      "today": "i dag",
+      "today": "siden 07:00",
       "empty": "Starter med næste plan kl. 07:00. Kræver dynamiske elpriser i Homey Energy.",
       "pick": "Vælg din varmepumpe i widgettens indstillinger.",
       "first_day": "første hele dag i morgen",

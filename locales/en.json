@@ -839,7 +839,7 @@
       "both": "Both",
       "plan": "Plan",
       "actual": "Actual",
-      "today": "today",
+      "today": "since 07:00",
       "empty": "Starts with the next 07:00 plan. Requires dynamic electricity prices in Homey Energy.",
       "pick": "Choose your heat pump in the widget settings.",
       "first_day": "first full day tomorrow",

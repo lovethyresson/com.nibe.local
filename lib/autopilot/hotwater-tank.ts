@@ -59,7 +59,8 @@ export function tankChart(view: TankView, now: number, today: number): TankChart
     if (now > nowHour * 4) used.push([now, Math.round(u)]);
     const tank = niceAxis(0, Math.max(100, ...[...read, ...plan].map((v) => v ?? 0)), {steps: [50, 100, 200]});
     const use = niceAxis(0, Math.max(100, u, e), {steps: [100, 200, 250, 500]});
-    return {read, plan, used, expected, usedTotal: Math.round(u), expectedTotal: Math.round(e),
+    // Totals to 5 L, as Hot water use states the same day.
+    return {read, plan, used, expected, usedTotal: Math.round(u / 5) * 5, expectedTotal: Math.round(e / 5) * 5,
         tankAxis: {max: tank.hi, gridlines: tank.ticks}, useAxis: {max: use.hi, gridlines: use.ticks}};
 }
 
