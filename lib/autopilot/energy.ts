@@ -27,7 +27,7 @@ export interface EnergyChart {
 /** `hours` are the day's hour starts (ms, local day: 23, 24 or 25 of them); `use` the meters'
  *  hourly kWh by hour start; `prices` the day's hourly prices. */
 export function energyChart(hours: number[], use: Partial<Record<EnergyRole, Map<number, number>>>,
-    prices: Map<number, number>): EnergyChart {
+    prices: Map<number, number>, bySlot: {slots?: Partial<Record<EnergyRole, Map<number, number>>>; prices?: Map<number, number>} = {}): EnergyChart {
     // The day's prices in thirds, as the savings widgets rank them.
     const ranked = hours.filter((at) => prices.has(at)).sort((a, b) => prices.get(a)! - prices.get(b)!);
     const cheap = new Set(ranked.slice(0, Math.ceil(ranked.length / 3)));
@@ -39,7 +39,15 @@ export function energyChart(hours: number[], use: Partial<Record<EnergyRole, Map
             if (v === undefined) continue;
             hour.use[role] = v;
             kwh += v;
-            if (hour.price !== undefined) cost += v * hour.price;
+            // Each 15-minute slot at its own price, as Homey Energy counts it; the rest of the
+            // hour (read from Insights) at the hour's mean.
+            let rest = v;
+            const slots = bySlot.slots?.[role];
+            if (slots && bySlot.prices) for (let s = at; s < at + 3_600_000; s += 900_000) {
+                const kwh = slots.get(s), price = bySlot.prices.get(s);
+                if (kwh !== undefined && price !== undefined) { cost += kwh * price; rest -= kwh; }
+            }
+            if (hour.price !== undefined) cost += Math.max(0, rest) * hour.price;
             if (cheap.has(at)) inCheap += v;
         }
         return hour;
@@ -55,28 +63,57 @@ const round = (v: number, d: number) => Math.round(v * 10 ** d) / 10 ** d;
 
 const HOUR = 3_600_000;
 
-/** Today's use up to now. Insights' hours (`hourlyUse`) arrive with the hourly refresh, so they end
- *  an hour or two back; the rest comes from the meter itself. `seam` is Insights' last point (the
- *  meter's mean over that hour, so about its middle); `meterNow` the meter now; `live` what the
- *  meter added in each hour since the app started (hour start, ms). The hours after the seam take
- *  their live kWh, and whatever the meter added since the seam beyond those (the half hour after
- *  the seam, or hours from before a restart) goes to the hour after the seam, or to this hour. So
- *  the total is the meter's own, as Homey Energy shows it. */
-export function withLiveHours(insights: Map<number, number>, seam: {at: number; v: number} | undefined,
-    meterNow: number, live: Map<number, number>, now = Date.now()): Map<number, number> {
-    const out = new Map(insights);
-    if (!seam) {
-        for (const [at, v] of live) if (!out.has(at)) out.set(at, v);
-        return out;
+/** What is known of one function's meter (kWh, cumulative). */
+export interface MeterReads {
+    /** Insights' hourly points, oldest first: each the meter's mean over the hour from `at`, so
+     *  about its value at the hour's middle. Read hourly, so they end an hour or two back. */
+    points: {at: number; v: number}[];
+    /** The meter at the first 15-minute boundary the app has seen run: every slot from here on is
+     *  in `slots`, whole. */
+    liveFrom?: {at: number; v: number};
+    /** kWh the meter added in each 15-minute slot (slot start, ms) since the app started. */
+    slots: Map<number, number>;
+    meterNow: number;
+}
+
+/** A function's use today, up to now, in the day's hours (`hours`: their starts, ms), and the part of
+ *  it known per 15-minute slot. Since the app's first whole slot the meter itself is counted, slot by
+ *  slot, so the hours start at midnight and end now, as Homey Energy counts them. Before that,
+ *  Insights' hours (middle to middle of the hour), bridged to the first whole slot; the hours read
+ *  that way only begin at 23:30 when the app started after midnight. */
+export function useToday(m: MeterReads, hours: number[], now = Date.now()): {use: Map<number, number>; slots: Map<number, number>} {
+    const use = new Map<number, number>(), slots = new Map<number, number>();
+    const first = hours[0], end = hours[hours.length - 1] + HOUR;
+    const hourOf = (at: number) => { let h: number | undefined; for (const x of hours) if (x <= at) h = x; return h; };
+    const add = (at: number, kwh: number, slot?: number) => {
+        if (at < first || at >= end || !(kwh >= 0)) return;
+        const h = hourOf(at)!;
+        use.set(h, (use.get(h) ?? 0) + kwh);
+        if (slot !== undefined) slots.set(slot, (slots.get(slot) ?? 0) + kwh);
+    };
+    const from = m.liveFrom?.at ?? Infinity;
+    for (const [at, kwh] of m.slots) if (at >= from) add(at, kwh, at);
+    // Before the first whole slot: Insights' hours that end by then, each mean to the next.
+    const cut = Math.min(from, now);
+    let last: {end: number; v: number} | undefined;
+    for (let i = 0; i < m.points.length; i++) {
+        const p = m.points[i], prev = m.points[i - 1];
+        if (p.at + HOUR / 2 > cut) break;
+        if (prev && p.at - prev.at === HOUR) {
+            const kwh = p.v - prev.v;
+            if (kwh >= 0 && kwh < 30) add(p.at, kwh);
+        }
+        last = {end: p.at + HOUR / 2, v: p.v};
     }
-    let after = 0;
-    for (const [at, v] of live) if (at > seam.at) { out.set(at, v); after += v; }
-    const rest = meterNow - seam.v - after;
-    // Never past the hour now: Insights' last point can be this hour's, still filling.
-    const to = Math.min(seam.at + HOUR, Math.floor(now / HOUR) * HOUR);
-    // A meter set back by hand, or a seam not read from this meter: nothing to add.
-    if (rest > 0 && rest < 30) out.set(to, (out.get(to) ?? 0) + rest);
-    return out;
+    // The stretch between: Insights' last middle to the first whole slot, or to now.
+    if (last) {
+        const to = m.liveFrom ?? {at: now, v: m.meterNow - [...m.slots.values()].reduce((a, b) => a + b, 0)};
+        const kwh = to.v - last.v;
+        if (kwh > 0 && kwh < 30 * Math.max(1, (to.at - last.end) / HOUR)) add(Math.max(last.end, to.at - 1), kwh);
+    }
+    // Still in the first slot: what it added so far.
+    if (!m.liveFrom) for (const [at, kwh] of m.slots) add(at, kwh);
+    return {use, slots};
 }
 
 /** Everything the widget draws, translated. Without `chart` it shows `empty`, or the loading state. */

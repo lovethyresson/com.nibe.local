@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert';
-import {energyChart, withLiveHours} from '../lib/autopilot/energy';
+import {energyChart, useToday} from '../lib/autopilot/energy';
 
 const H = 3_600_000;
 // Six hours; prices 1–6 kr; heating every hour so far (four), hot water in two.
@@ -31,21 +31,34 @@ test('no use yet: no share; no prices: no cost', () => {
     assert.strictEqual(free.kwh, 3);
 });
 
-test('today runs up to now: live hours after the last Insights hour, the meter\'s total kept', () => {
-    // Insights to the 18:00 hour (its mean 118.5); the meter now 121; live from 19:00: 1 and 0.3.
-    const insights = new Map([[17 * H, 1], [18 * H, 1]]);
-    const live = new Map([[17 * H, 0.9], [19 * H, 1], [20 * H, 0.3]]);
-    const out = withLiveHours(insights, {at: 18 * H, v: 118.5}, 121, live, 20.3 * H);
-    assert.deepEqual([...out].sort((a, b) => a[0] - b[0]),
-        [[17 * H, 1], [18 * H, 1], [19 * H, 2.2], [20 * H, 0.3]]); // 19:00 also takes the 1.2 not in live
-    const added = [...out.values()].reduce((s, v) => s + v, 0) - 2;
-    assert.ok(Math.abs(added - 2.5) < 1e-9); // what the meter added since the seam
-    // No seam (nothing from Insights yet): the live hours alone.
-    assert.deepEqual([...withLiveHours(new Map(), undefined, 121, live)].length, 3);
-    // Insights' last point is this hour's, still filling: the rest stays in this hour.
-    const filling = withLiveHours(new Map([[20 * H, 0.5]]), {at: 20 * H, v: 120}, 120.2, new Map(), 20.3 * H);
-    assert.deepEqual([...filling.keys()], [20 * H]);
-    assert.ok(Math.abs(filling.get(20 * H)! - 0.7) < 1e-9);
-    // A meter set back: nothing beyond the live hours.
-    assert.equal(withLiveHours(insights, {at: 18 * H, v: 118.5}, 50, live, 20.3 * H).get(19 * H), 1);
+test('today, up to now: the meter slot by slot since the app ran, Insights before', () => {
+    const Q = H / 4, day = Array.from({length: 24}, (_, k) => k * H);
+    // App ran since before midnight: every slot counted, nothing from yesterday.
+    const slots = new Map([[-Q, 5], [0, 0.25], [Q, 0.25], [20 * H, 0.1]]);
+    const a = useToday({points: [{at: -H, v: 100}], liveFrom: {at: -2 * H, v: 90}, slots, meterNow: 200}, day, 20.3 * H);
+    assert.deepEqual([...a.use], [[0, 0.5], [20 * H, 0.1]]);
+    assert.deepEqual([...a.slots], [[0, 0.25], [Q, 0.25], [20 * H, 0.1]]);
+    // Started at 19:05: Insights to the 17:00 hour (mean 117.5, about 17:30), the meter 118.7 at
+    // 19:15, then two slots.
+    const points = [{at: 16 * H, v: 116.5}, {at: 17 * H, v: 117.5}];
+    const b = useToday({points, liveFrom: {at: 19.25 * H, v: 118.7}, slots: new Map([[19 * H, 0.1], [19.25 * H, 0.3], [19.5 * H, 0.2]]), meterNow: 119.2}, day, 19.7 * H);
+    const close = (x: number | undefined, y: number) => assert.ok(x !== undefined && Math.abs(x - y) < 1e-9, `${x} vs ${y}`);
+    close(b.use.get(17 * H), 1);       // 16:30–17:30 from Insights
+    close(b.use.get(19 * H), 1.2 + 0.5); // 17:30–19:15 bridged into the hour before 19:15, then the slots
+    assert.equal(b.slots.size, 2);
+    // The total is the meter's own since Insights' first middle.
+    close([...b.use.values()].reduce((x, y) => x + y, 0), 119.2 - 116.5);
+    // Still in the first slot: the bridge to now and the slot so far.
+    const c = useToday({points, slots: new Map([[19 * H, 0.1]]), meterNow: 118.9}, day, 19.1 * H);
+    close([...c.use.values()].reduce((x, y) => x + y, 0), 118.9 - 116.5);
+    // Nothing from Insights, the app running since 19:15: the slots alone.
+    assert.deepEqual([...useToday({points: [], liveFrom: {at: 19.25 * H, v: 1}, slots: new Map([[19.25 * H, 0.3]]), meterNow: 1.3}, day, 19.4 * H).use], [[19 * H, 0.3]]);
+});
+
+test('cost: each 15-minute slot at its own price, the rest at the hour\'s mean', () => {
+    const Q = H / 4;
+    const slotPrices = new Map([[0, 0.8], [Q, 0.8], [2 * Q, 2], [3 * Q, 2]]);
+    const c = energyChart([0], {heating: new Map([[0, 1]])}, new Map([[0, 1.4]]),
+        {slots: {heating: new Map([[0, 0.5], [Q, 0.5]])}, prices: slotPrices});
+    assert.equal(c.cost, 0.8); // Homey Energy's figure; the hour's mean would say 1.40
 });
