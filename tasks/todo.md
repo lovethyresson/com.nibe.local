@@ -4,6 +4,15 @@ Three things are live. Everything else that used to be here has shipped — the 
 commits and in the **Releases** table in [`README.md`](../README.md), the durable rules are in
 [`CLAUDE.md`](../CLAUDE.md), and the design write-ups are under [`docs/`](../docs).
 
+## After the heating test ends (Thursday 2026-11-19), in this order
+
+- [ ] Homey system update, held since 2026-11-17 so the test sees no firmware change. Install
+  it, then check the app is back and polling before going on.
+- [ ] Review the heating test and the Mac logger's gaps.
+- [ ] Merge the held branches: insights-backfill → cop-optimiser → orchestrator; gifted-euler any time.
+- [ ] Install the app batch: savings fixes, badge removal, savings-card redesign, Plan vs actual,
+  the early-draw log (a826834).
+
 ## Before the release: drop temporary test code
 
 Search `TEMP(` across `lib/` and `dev/` before packaging; each hit is listed here.
