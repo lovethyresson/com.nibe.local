@@ -484,7 +484,8 @@ export class AutopilotCollector {
         });
         this.shadowMemory = out.memory;
         this.shadowSlot = slot;
-        this.lastShadow = {slot: next, at: new Date(next * SLOT_MS).toISOString(), ti: values.ti, te: values.te,
+        // tm: the model's mass (walls, floors), logged to judge a felt indoor temperature against air.
+        this.lastShadow = {slot: next, at: new Date(next * SLOT_MS).toISOString(), ti: values.ti, tm: Math.round(fit.state.tm * 100) / 100, te: values.te,
             comfort, setpoint: c.comfort, mode: c.mode, horizon: forecast.length, ms: Date.now() - started,
             fitSlot: fit.state.slot, baseline: out.baseline, presets: out.presets,
             ...(this.liveEntry ? {live: this.liveEntry} : {})};

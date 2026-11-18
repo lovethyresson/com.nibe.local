@@ -21,6 +21,24 @@ commits and in the **Releases** table in [`README.md`](../README.md), the durabl
   start); the savings cards' today against Energy today; tank litres in
   the three hot water widgets against the Tank volume tile; the tank widget's usual day against
   Hot water use's expected.
+- [ ] The shadow log now carries `tm`, the model's mass temperature, next to `ti` (in this batch).
+  After a few ease-offs, check that tm lags ti as expected (dips less, recovers later).
+
+## Autopilot heating: "feels like" indoor temperature (idea, 2026-11-18)
+
+Felt temperature is about (air + radiant) / 2. The house model's mass `tm` stands in for the inner
+surfaces; outer surfaces sit about U·(ti − te)/7.7 below air (windows dominate, share unknown).
+During an ease-off the air dips more than what is felt, so judging comfort on felt temperature
+allows somewhat longer or deeper ease-offs.
+
+- [ ] UX: one option in the heating settings, "Use feels-like as indoor temperature" (or
+  similar), off by default. When on, the comfort range is judged on the felt estimate instead of
+  air; status and widgets say "feels like" where they show it, since thermostats and Insights
+  show air.
+- [ ] Before building it: fix the plan miss first. Then a DIY globe sensor (black ball with a
+  temperature sensor, mid-room at 0.6 m) next to the indoor sensor for a week, logged by the Mac
+  logger, to check whether a mix of ti and tm tracks it. Without that, a wrong tm directly allows
+  colder air.
 
 ## Before the release: drop temporary test code
 
