@@ -1285,6 +1285,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             // Heating and Hot water read Insights a few minutes apart, so their requests don't meet.
             this.scheduleSavings(this.role === 'heating' ? 90_000 : 6 * 60_000);
         }
+        // Main reads only its idle meter, for Energy today, five minutes after Hot water.
+        if (this.role === 'main' && this.hasCapability(METER_CAPABILITY)) this.scheduleSavings(11 * 60_000);
         if (this.getStoreValue(PAIRED_SMART_STORE)) this.homey.setTimeout(() => this.applyPairedSmartMode().catch(this.error), 15_000);
     }
 
@@ -2237,14 +2239,15 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     // ---- The Energy today widget (widgets/energy) ----
 
     /** What the Energy today widget draws for this pump (picked by its Main device): the hourly
-     *  use of its Heating and Hot water against today's price. Every string translated here. */
+     *  use of its Heating and Hot water, and Main's idle use, against today's price. Every string translated here. */
     energyWidget(): EnergyWidgetData {
         const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.energy.${key}`, tokens);
         const title = this.getName();
         const host = String(this.getData().id).split('#')[0];
         const siblings = (this.driver.getDevices() as any[]).filter((d) => String(d.getData().id).split('#')[0] === host);
-        const byRole = new Map(siblings.map((d) => [d.role, d]));
-        if (!ENERGY_ROLES.some((role) => byRole.has(role))) return {title, empty: t('no_functions')};
+        // Main only where it carries an idle meter (a model with no power source has none).
+        const byRole = new Map(siblings.filter((d) => d.role !== 'main' || d.hasCapability(METER_CAPABILITY)).map((d) => [d.role, d]));
+        if (!byRole.has('heating') && !byRole.has('hotwater')) return {title, empty: t('no_functions')};
         const reads = ENERGY_ROLES.filter((role) => byRole.has(role)).map((role) => [role, byRole.get(role).energyToday?.()] as const);
         const known = reads.filter(([, r]) => r);
         // A function not read yet (they read minutes apart after a start) would look like one that
@@ -2275,7 +2278,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 ...chart.cheapShare === undefined ? [] : [{value: `${Math.round(chart.cheapShare * 100)} %`, label: t('cheap'), good: true}],
             ],
             ticks: [0, 6, 12, 18].map((k) => ({at: k, label: this.clock(hours[0] + k * HOUR_MS)})),
-            legend: {heating: t('heating'), hotwater: t('hotwater'), price: t('price')},
+            legend: {heating: t('heating'), hotwater: t('hotwater'), main: t('idle'), price: t('price')},
             axes: {kwh: 'kWh', price: t('price_axis')}};
     }
 
@@ -2456,7 +2459,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // Heating first, the others later, as at a start: Homey refuses back-to-back Insights reads.
         const timeZone = this.homey.clock.getTimezone();
         const midnight = dayHours(localDate(Date.now(), timeZone, 1), (at) => localDate(at, timeZone))[0];
-        const after = midnight + (this.role === 'heating' ? 2 : 7) * 60_000 - Date.now();
+        const after = midnight + ({heating: 2, hotwater: 7, main: 12}[this.role as string] ?? 7) * 60_000 - Date.now();
         if (after > 0) ms = Math.min(ms, after);
         this.savingsTimer = this.homey.setTimeout(() => {
             this.refreshSavings()
@@ -2498,6 +2501,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             };
             const meter = await log('meter_power.total');
             if (!meter) return [];
+            // The meter's hourly points, for today up to now (energyToday).
+            this.meterPoints = meter.flatMap((p) => typeof p.v === 'number' && Number.isFinite(p.v) && Number.isFinite(Date.parse(p.t))
+                ? [{at: Date.parse(p.t), v: p.v}] : []).filter((p) => p.at > now - 48 * HOUR_MS);
+            // Main has no savings: its idle meter is read for Energy today only.
+            if (this.role === 'main') return [];
             const use = hourlyUse(meter);
             // Heating: an hour ran live when the pump showed the BT1 Autopilot fed. That catches a
             // halt or pause the Smart mode alone does not, and dates the hours before the marks.
@@ -2534,9 +2542,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     slots: new Map(slots.map((x: {slot: number; price: number}) => [x.slot * SLOT_MS, x.price]))};
             }
             const todayPrices = this.savingsTodayPrices?.date === today ? this.savingsTodayPrices.prices : undefined;
-            // The meter's hourly points, for today up to now (energyToday).
-            this.meterPoints = meter.flatMap((p) => typeof p.v === 'number' && Number.isFinite(p.v) && Number.isFinite(Date.parse(p.t))
-                ? [{at: Date.parse(p.t), v: p.v}] : []).filter((p) => p.at > now - 48 * HOUR_MS);
             const todayHours = dayHours(today, (ms) => localDate(ms, timeZone));
             if (todayPrices?.size) {
                 const hours = todayHours;

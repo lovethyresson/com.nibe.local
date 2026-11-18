@@ -502,6 +502,7 @@
       "cheap": "in günstigen Stunden",
       "heating": "Heizung",
       "hotwater": "Brauchwasser",
+      "idle": "Standby",
       "price": "Preis",
       "price_axis": "Preis pro kWh",
       "no_prices": "Erfordert dynamische Strompreise in Homey Energie.",

@@ -827,6 +827,7 @@
       "cheap": "in cheap hours",
       "heating": "Heating",
       "hotwater": "Hot water",
+      "idle": "Idle",
       "price": "Price",
       "price_axis": "Price per kWh",
       "no_prices": "Requires dynamic electricity prices in Homey Energy.",

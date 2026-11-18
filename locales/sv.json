@@ -827,6 +827,7 @@
       "cheap": "under billiga timmar",
       "heating": "Uppvärmning",
       "hotwater": "Varmvatten",
+      "idle": "Tomgång",
       "price": "Pris",
       "price_axis": "Pris per kWh",
       "no_prices": "Kräver dynamiska elpriser i Homey Energy.",

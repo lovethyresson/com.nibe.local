@@ -62,3 +62,11 @@ test('cost: each 15-minute slot at its own price, the rest at the hour\'s mean',
         {slots: {heating: new Map([[0, 0.5], [Q, 0.5]])}, prices: slotPrices});
     assert.equal(c.cost, 0.8); // Homey Energy's figure; the hour's mean would say 1.40
 });
+
+test('Main\'s idle use adds to the total, the cost and the hour, on top of the functions', () => {
+    const main = new Map([[0, 0.1], [H, 0.1]]);
+    const c = energyChart(hours, {heating, hotwater, main}, prices);
+    assert.strictEqual(c.kwh, 7.2);
+    assert.ok(Math.abs(c.cost - (1 * 3 + 2 * 1 + 3 * 0.5 + 4 * 2.5 + 0.1 * 1 + 0.1 * 2)) < 1e-9);
+    assert.deepStrictEqual(c.hours[0].use, {heating: 1, hotwater: 2, main: 0.1});
+});

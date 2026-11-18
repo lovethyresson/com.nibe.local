@@ -502,6 +502,7 @@
       "cheap": "in goedkope uren",
       "heating": "Verwarming",
       "hotwater": "Warm water",
+      "idle": "Stand-by",
       "price": "Prijs",
       "price_axis": "Prijs per kWh",
       "no_prices": "Vereist dynamische stroomprijzen in Homey Energy.",

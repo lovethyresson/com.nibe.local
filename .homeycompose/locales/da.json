@@ -502,6 +502,7 @@
       "cheap": "i billige timer",
       "heating": "Opvarmning",
       "hotwater": "Varmt vand",
+      "idle": "Tomgang",
       "price": "Pris",
       "price_axis": "Pris pr. kWh",
       "no_prices": "Kræver dynamiske elpriser i Homey Energy.",

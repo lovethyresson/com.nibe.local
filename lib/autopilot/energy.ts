@@ -1,10 +1,11 @@
 /** The Energy today widget's data (widgets/energy): the heat pump's electricity per hour today,
- *  split by function, against the hour's price, and three numbers: kWh so far, what it cost, and
+ *  split by function (and Main's idle use), against the hour's price, and three numbers: kWh so far, what it cost, and
  *  the share used in the day's cheapest hours. Pure; the device gathers the inputs. */
 import {niceAxis} from './widget';
 
-/** The functions whose use is shown, in stacking order (bottom first). */
-export const ENERGY_ROLES = ['heating', 'hotwater'] as const;
+/** The devices whose use is shown, in stacking order (bottom first): the functions, then Main's
+ *  idle use, so the total matches the pump's devices in Homey Energy. */
+export const ENERGY_ROLES = ['heating', 'hotwater', 'main'] as const;
 export type EnergyRole = typeof ENERGY_ROLES[number];
 
 export interface EnergyHour {
@@ -128,6 +129,6 @@ export interface EnergyWidgetData {
     /** The hour now (index), the hours to label, and the legend. */
     now?: number;
     ticks?: {at: number; label: string}[];
-    legend?: {heating: string; hotwater: string; price: string};
+    legend?: {heating: string; hotwater: string; main: string; price: string};
     axes?: {kwh: string; price: string};
 }

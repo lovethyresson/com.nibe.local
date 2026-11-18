@@ -30,10 +30,10 @@
       .en-num span { opacity: 0.7; }
       /* Heating in blue, hot water in violet (the hot water cards' use colour), the price in grey,
          and the cheap share in the savings cards' cheap colour. */
-      :root { --en-heat: #2d6bd6; --en-water: #7652d6; --en-price: rgba(127, 127, 127, 0.95); --en-cheap: #0f8374; }
-      :root[data-theme="dark"] { --en-heat: #4da3ff; --en-water: #a48cff; --en-cheap: #2bb3a3; }
+      :root { --en-heat: #2d6bd6; --en-water: #7652d6; --en-idle: #a7adb6; --en-price: rgba(127, 127, 127, 0.95); --en-cheap: #0f8374; }
+      :root[data-theme="dark"] { --en-heat: #4da3ff; --en-water: #a48cff; --en-idle: #6c737d; --en-cheap: #2bb3a3; }
       @media (prefers-color-scheme: dark) {
-        :root:not([data-theme="light"]) { --en-heat: #4da3ff; --en-water: #a48cff; --en-cheap: #2bb3a3; }
+        :root:not([data-theme="light"]) { --en-heat: #4da3ff; --en-water: #a48cff; --en-idle: #6c737d; --en-cheap: #2bb3a3; }
       }
     </style>
   </head>
@@ -142,7 +142,7 @@
         return svg;
       }
 
-      // kWh per hour as bars, heating at the bottom and hot water on top, on the left scale; the
+      // kWh per hour as bars, heating at the bottom, then hot water, Main's idle use on top, on the left scale; the
       // hour's price as a line on the right scale; a thin line at now.
       function energyChart(data) {
         var c = data.chart, W = chartWidth(), L = 26, R = W - 34, n = c.hours.length, step = (R - L) / n, bw = Math.max(2, step * 0.7);
@@ -164,7 +164,7 @@
         svg.appendChild(svgEl('line', {x1: L, x2: R, y1: B, y2: B, stroke: 'currentColor', 'stroke-opacity': 0.2}));
         c.hours.forEach(function (h, k) {
           var y0 = B;
-          [['heating', 'var(--en-heat)'], ['hotwater', 'var(--en-water)']].forEach(function (r) {
+          [['heating', 'var(--en-heat)'], ['hotwater', 'var(--en-water)'], ['main', 'var(--en-idle)']].forEach(function (r) {
             var v = h.use[r[0]];
             if (!(v > 0)) return;
             var top = yk(v + (B - y0) * c.kwhAxis.max / PH);
@@ -230,6 +230,7 @@
         root.appendChild(legend([
           {text: lg.heating, style: 'background: var(--en-heat);'},
           {text: lg.hotwater, style: 'background: var(--en-water);'},
+          {text: lg.main, style: 'background: var(--en-idle);'},
           {text: lg.price, line: true, style: 'background: var(--en-price);'}]));
       }
 
