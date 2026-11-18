@@ -534,3 +534,9 @@ widget's `test` flag), and check the UI offers the state I am about to name.
 - Rule: for every displayed figure, name the other places the same quantity shows (Homey Energy,
   Insights, other widgets, myUplink) and make them agree in source, time span, price basis and
   rounding, or label what differs. Check it before calling a widget ready.
+
+## Plan vs actual is a verdict on the plan (2026-11-18)
+I explained "above plan" away as a forecast check rather than a saving. The owner: it measures
+whether the plan is good. A plan that runs 13–16 % low is a planner problem, since Autopilot
+decides from that forecast. Treat a plan miss as a defect to explain (kWh or price, which
+function), not as noise, and don't lead with what the card does not measure.

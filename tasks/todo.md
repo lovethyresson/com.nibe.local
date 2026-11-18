@@ -9,6 +9,9 @@ commits and in the **Releases** table in [`README.md`](../README.md), the durabl
 - [ ] Homey system update, held since 2026-11-17 so the test sees no firmware change. Install
   it, then check the app is back and polling before going on.
 - [ ] Review the heating test and the Mac logger's gaps.
+  Plan vs actual ran 13–16 % low on Mon and Tue (2026-11-16/17) while indoor sat below target:
+  split each day's miss into kWh (house model, COP) and price, per function, and fix the one that
+  is off. Also why holding sits at 22.1 °C and doesn't climb back to 22.5 °C.
 - [ ] Merge the held branches: insights-backfill → cop-optimiser → orchestrator; gifted-euler any time.
 - [ ] Install the app batch: savings fixes, badge removal, savings-card redesign, Plan vs actual,
   the early-draw log (a826834).
