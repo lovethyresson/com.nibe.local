@@ -15,6 +15,7 @@ import {ActuatorOutput, PumpThresholds, RAMP_K_PER_SLOT, fedValue} from './actua
 import {HouseParams} from './model';
 import {ForecastBias, OutdoorReading, realOutdoor} from './outdoor';
 import {COP, Comfort, ForecastSlot, Plan, PumpCurve, planShift, simulate} from './planner';
+import {CopModel} from './cop';
 import {SupplyCurve, curveInputFor} from './curve';
 import {effectivePrice} from './solar-surplus';
 import {Limits, PresetId} from './presets';
@@ -149,6 +150,8 @@ export interface ShiftInput {
     /** The setpoint per slot when it changes inside the horizon (Away ending, `setpointPath`);
      *  otherwise the plan aims at `mean` throughout. */
     comfort?: Comfort;
+    /** The learned COP once trusted (cop.ts): heat priced at the supply each slot runs at. */
+    cop?: CopModel;
 }
 
 /** When Away ends by itself: the time, and the setpoint the house is back at then. */
@@ -208,7 +211,8 @@ export function sunTrust(profile: unknown): number {
  *  the lever's straight line. */
 export function livePump(input: ShiftInput): PumpCurve {
     return input.supply && input.heatPerSupplyK! > 0
-        ? {supply: input.supply, heatPerSupplyK: input.heatPerSupplyK, shiftOnly: true} : {lever: input.lever};
+        ? {supply: input.supply, heatPerSupplyK: input.heatPerSupplyK, shiftOnly: true, ...(input.cop ? {cop: input.cop} : {})}
+        : {lever: input.lever};
 }
 
 /** The deepest coast that still does something, K: where the learned curve's supply falls to the

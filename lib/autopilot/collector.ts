@@ -16,6 +16,7 @@ import {DailyFit, HouseAnswers, HouseFit, drifting, fitHistory, READY_DAYS, Read
 import {HouseInsights, houseInsights, insightsLine} from './insights';
 import {ForecastBias, forecastCorrection, learnForecastBias, newForecastBias, usableSensor} from './outdoor';
 import {SHADOW_PRESETS, ShadowMemory, curveViewOf, shadowForecast, shadowStep, wiredOf} from './shadow';
+import {DP_PRESET, shadowOptimise} from './optimiser';
 import {PumpThresholds} from './actuator';
 import {LiveEntry, ShiftInput, indoorMean} from './live';
 import {BackfillLogs, backfillSummary, backfillWindow, insertBackfill, slotsFromInsights, withWeather} from './heating-insights';
@@ -307,7 +308,7 @@ export class AutopilotCollector {
         const forecast = shadowForecast(slot, fresh, this.prices, (s) => forecastCorrection(this.forecastBias, this.localHour(s)));
         if (forecast.length < 8) return undefined;
         return {house: fit.params, lever: fit.lever!, ti: last.ti, tm: fit.state.tm, mean, curve, bias: 0, forecast,
-            supply: fit.pump?.supply, heatPerSupplyK: fit.pump?.heatPerSupplyK};
+            supply: fit.pump?.supply, heatPerSupplyK: fit.pump?.heatPerSupplyK, cop: fit.pump?.cop};
     }
 
     /** The real outdoor temperature's sources for now: the sensor's latest reading (≤ 2 min old,
@@ -516,12 +517,14 @@ export class AutopilotCollector {
             (s) => forecastCorrection(this.forecastBias, this.localHour(s)));
         if (forecast.length < 8) return skip('no forecast');
         const started = Date.now();
+        const before = this.shadowMemory[DP_PRESET];
+        const curveNow = curveViewOf(this.history);
+        const slots = this.shadowSlot !== undefined && slot > this.shadowSlot ? Math.min(4, slot - this.shadowSlot) : 1;
         const out = shadowStep({
             house: fit.params, pump: fit.pump, ti: values.ti,
             // The mass moves slowly: the hourly fit's is close enough, the air is the reading.
             tm: fit.state.tm, comfort, real: values.te, auto: c.mode === 0, thresholds: c.thresholds,
-            forecast, memory: this.shadowMemory, wired: wiredOf(this.history), curveNow: curveViewOf(this.history),
-            slots: this.shadowSlot !== undefined && slot > this.shadowSlot ? Math.min(4, slot - this.shadowSlot) : 1,
+            forecast, memory: this.shadowMemory, wired: wiredOf(this.history), curveNow, slots,
         });
         this.shadowMemory = out.memory;
         this.shadowSlot = slot;
@@ -531,7 +534,13 @@ export class AutopilotCollector {
             fitSlot: fit.state.slot, baseline: out.baseline, presets: out.presets,
             ...(this.liveEntry ? {live: this.liveEntry} : {})};
         this.liveEntry = undefined;
-        appendLine(shadowLogName(this.fileName), this.lastShadow)
+        const line = this.lastShadow;
+        // The predictive optimiser (§13) beside the default preset: logged, never fed. It yields
+        // as it goes and falls back to the planner after 5 s; the line waits for it.
+        shadowOptimise({house: fit.params, pump: fit.pump, ti: values.ti, tm: fit.state.tm, comfort, forecast,
+            memory: before, curveNow: curveNow ?? values.te, slots})
+            .then((dp) => { line.dp = dp; }, (error) => { line.dp = {error: error?.message ?? String(error)}; })
+            .then(() => appendLine(shadowLogName(this.fileName), line))
             .then(() => { this.shadowLines++; })
             .catch((error) => this.log('Autopilot shadow: log write failed:', error?.message ?? error));
     }
@@ -552,7 +561,10 @@ export class AutopilotCollector {
             const p = last.presets[id];
             return p ? `${id} ${p.bias > 0 ? '+' : ''}${p.bias} K → ${p.fed} °C (${(p.saving * 100).toFixed(1)} %)` : `${id} -`;
         }).join(', ');
-        this.log(`Autopilot shadow: ${presets}; doing nothing ${last.baseline.join('/')} °C in 1/6 h; `
+        const dp = last.dp && Number.isFinite(last.dp.cost)
+            ? `; DP ${last.dp.bias > 0 ? '+' : ''}${last.dp.bias} K, cost ${last.dp.cost} vs planner ${last.dp.planner}`
+                + ` (${last.dp.ms} ms${last.dp.fallback ? `, ${last.dp.fallback}` : ''})` : '';
+        this.log(`Autopilot shadow: ${presets}${dp}; doing nothing ${last.baseline.join('/')} °C in 1/6 h; `
             + `${last.horizon} slots ahead, ${last.ms} ms${skipped ? `; skipped ${skipped}` : ''}.`);
     }
 

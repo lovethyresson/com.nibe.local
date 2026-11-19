@@ -38,6 +38,8 @@ export const FIELDS = [
     'tset',    // indoor setpoint °C (last)
     'roomctl', // room-sensor control on (1) or off (0) (last): while on, 1017 is not the curve alone
     'tesrc',   // which outdoor source `te` came from (outdoor.ts outdoorSourceCode); older slots: `outdoorSource`
+    'pmeter',  // produced heat, all functions, kWh counter (last): with emeter, the COP (cop.ts)
+    'heat',    // fraction of polls with heating priority: a heating-only slot for the COP
 ] as const;
 export type Field = typeof FIELDS[number];
 /** fedOutdoor: input 1 was a fed BT1. sensorOutdoor / forecastOutdoor: where `te` came from
@@ -66,14 +68,15 @@ export function outdoorSource(v: Record<Field, number>): number {
     return SOURCE_CODE.wired;
 }
 
-const LAST: ReadonlySet<Field> = new Set(['qmeter', 'emeter', 'hcurve', 'hoffset', 'supmin', 'supmax', 'tset', 'roomctl']);
+const LAST: ReadonlySet<Field> = new Set(['qmeter', 'emeter', 'pmeter', 'hcurve', 'hoffset', 'supmin', 'supmax', 'tset', 'roomctl']);
 export const PARTIAL_BELOW = 0.8;
 export const CAPACITY = 28 * 96;
 const MAGIC = 0x4e534831; // "NSH1"
 export const VERSION = 1;
 
 export type Sample = Partial<Record<'ti' | 'te' | 'tsup' | 'tret' | 'tcalc' | 'tbrine' | 'hz' | 'dm' | 'pw'
-    | 'qmeter' | 'emeter' | 'hcurve' | 'hoffset' | 'supmin' | 'supmax' | 'tset' | 'roomctl', number>> & {dhw?: boolean; aux?: boolean};
+    | 'qmeter' | 'emeter' | 'pmeter' | 'hcurve' | 'hoffset' | 'supmin' | 'supmax' | 'tset' | 'roomctl', number>>
+    & {dhw?: boolean; aux?: boolean; heat?: boolean};
 
 export interface SlotContext {
     price?: {price: number; spot: number; costsApplied: boolean};

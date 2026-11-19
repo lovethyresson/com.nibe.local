@@ -1,6 +1,7 @@
 /** Model → the numbers the owner will see as "House insights" (§6.5). Pure, and numbers only:
  *  the six-language labels are built from these when the insights reach the UI. */
 import {curveLine} from './curve';
+import {copLine} from './cop';
 import {HouseParams, envelopeTau, stepHouse} from './model';
 import {HouseFit, Readiness} from './house';
 
@@ -80,7 +81,7 @@ export function insightsLine(fit: HouseFit, insights: HouseInsights | undefined,
         + `6 h error ${Number.isFinite(fit.rmse) ? fit.rmse.toFixed(2) : '-'} K, `
         + (ready.ready ? 'ready' : `learning (${ready.missing.join(', ')})`)
         + (fit.lever !== undefined ? `, lever ${Math.round(fit.lever * 1000)} W/K` : '')
-        + `, ${curveLine(fit.curve)}`;
+        + `, ${curveLine(fit.curve)}, ${copLine(fit.cop)}`;
     if (!insights) return `${head}; still learning`;
     return `${head}; heat loss ${Math.round(insights.heatLoss)} W/°C, τ ${Math.round(insights.tau)} h, `
         + `stored ${insights.stored.toFixed(1)} kWh/°C, −${insights.coolingIn6h.toFixed(1)} °C in 6 h at 0 °C off, `
