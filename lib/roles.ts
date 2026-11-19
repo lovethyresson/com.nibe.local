@@ -374,8 +374,10 @@ function buildExtraCapabilities(
             caps.push(...ENERGY_CAPABILITIES.filter(enabled));
         if (hasTotalCounters && enabled(TOTAL_COP_CAPABILITY))
             caps.push(TOTAL_COP_CAPABILITY);
+        // With it, the plan round's line (orchestrator.ts): what the pump does next across
+        // hot water and heating.
         if (profile.autopilotHotwater && autopilot)
-            caps.push(DAY_TYPE_CAPABILITY);
+            caps.push(DAY_TYPE_CAPABILITY, AUTOPILOT_REASON_CAPABILITY);
         if ((profile.autopilotHotwater || profile.autopilotFeed) && away)
             caps.push(AWAY_CAPABILITY);
         return [...caps, ...mirrored];

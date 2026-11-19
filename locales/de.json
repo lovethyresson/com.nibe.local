@@ -850,6 +850,33 @@
       "pace_behind": "Unter Plan",
       "pace_even": "Im Plan",
       "footnote": "Plan: der Plan um Mitternacht für den ganzen Tag. Die Markierung zeigt, was er bis zur letzten Messung erwartet hat."
+    },
+    "orchestrator": {
+      "first": {
+        "hotwater": "Warmwasser __time__",
+        "hotwater_now": "Warmwasser jetzt",
+        "preheat": "Heizung heizt vor __span__",
+        "ease": "Heizung drosselt __span__"
+      },
+      "then": {
+        "hotwater": "danach Warmwasser __time__",
+        "hotwater_now": "danach Warmwasser jetzt",
+        "preheat": "danach heizt die Heizung vor __span__",
+        "ease": "danach drosselt die Heizung __span__"
+      },
+      "none": "Nichts geplant",
+      "failed": "Warmwasser und Heizung planen gerade getrennt",
+      "test": "Simulation: __text__"
+    },
+    "day_plan": {
+      "off": "Schalten Sie Autopilot für Heizung oder Warmwasser ein, um den Tagesplan zu sehen.",
+      "pick": "Wählen Sie ein Main-Gerät.",
+      "lane_hotwater": "Warmwasser",
+      "lane_heating": "Heizung",
+      "more": "Heizt mehr",
+      "less": "Drosselt",
+      "no_charge": "Keine Ladung mehr heute",
+      "no_shift": "Hält für den Rest des Tages"
     }
   }
 }

@@ -8298,6 +8298,39 @@
       },
       "id": "cost_check"
     },
+    "day_plan": {
+      "name": {
+        "en": "Day plan",
+        "sv": "Dagsplan",
+        "de": "Tagesplan",
+        "nl": "Dagplanning",
+        "no": "Dagsplan",
+        "da": "Dagsplan"
+      },
+      "height": 420,
+      "transparent": false,
+      "settings": [
+        {
+          "id": "device",
+          "type": "autocomplete",
+          "title": {
+            "en": "Device",
+            "sv": "Enhet",
+            "de": "Gerät",
+            "nl": "Apparaat",
+            "no": "Enhet",
+            "da": "Enhed"
+          }
+        }
+      ],
+      "api": {
+        "getData": {
+          "method": "GET",
+          "path": "/"
+        }
+      },
+      "id": "day_plan"
+    },
     "energy": {
       "name": {
         "en": "Energy today",

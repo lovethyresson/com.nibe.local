@@ -46,8 +46,12 @@ export interface PlanSlot {
     exportPrice?: number;
     /** Draw planned for this slot, kWh heat. */
     draw: number;
-    /** The orchestrator's reserved slots: no charge may start here (autopilot-plan.md §2.1). */
+    /** The orchestrator's reserved slots: no charge may start here (autopilot-plan.md §2.1).
+     *  The safety net's charge starts anyway. */
     reserved?: boolean;
+    /** The orchestrator's price on top of each kWh charged in this slot (orchestrator.ts
+     *  `preheatAdders`): it moves the plan, never the costs it reports. */
+    adder?: number;
 }
 
 export interface PlanInput {
@@ -239,14 +243,14 @@ export function plan(input: PlanInput): Plan {
         const idleAfter = Math.max(0, kwh - slot.draw - lost);
         const idle = below(kwh, slot.draw) * SHORTFALL_KR_PER_KWH + value(v, 0, idleAfter);
         let heat = INF, q = 0, el = 0;
-        if ((c === 1 || !slot.reserved) && kwh < cap - 1e-9) {
+        if ((c === 1 || !slot.reserved || (k === 0 && rescue)) && kwh < cap - 1e-9) {
             ({q, el} = step(kwh, cap));
             const after = Math.max(0, kwh + q - slot.draw - lost);
             // A charge that reaches the top has reached its stop: the pump ends it there. Without
             // this a plan could hold a full tank "charging" for hours, topping up its standing
             // loss for öre, to skip the price of a new start (2026-11-15: a 17 h 45 min charge).
             const ends = kwh + q >= cap - STEP_KWH;
-            heat = el * effective(slot, kw).price + (c === 0 ? START_KR : 0)
+            heat = el * (effective(slot, kw).price + (slot.adder ?? 0)) + (c === 0 ? START_KR : 0)
                 + below(kwh + q, slot.draw) * SHORTFALL_KR_PER_KWH + value(v, ends ? 0 : 1, after);
         }
         // A running charge stops only at its target, which is at least the lowest allowed one.
@@ -330,9 +334,11 @@ export function plan(input: PlanInput): Plan {
             left = Math.max(0, left - slots[k].draw - lossAt(loss, left) * SLOT_H);
         }
         if (need === undefined || need === 0) return false;
-        const now = effective(slots[0], kw).price;
+        // As the plan prices a slot: a heating pre-heat's adder (orchestrator.ts) counts.
+        const at = (k: number) => effective(slots[k], kw).price + (slots[k].adder ?? 0);
+        const now = at(0);
         let later = Number.POSITIVE_INFINITY;
-        for (let k = 1; k <= need; k++) if (!slots[k].reserved) later = Math.min(later, effective(slots[k], kw).price);
+        for (let k = 1; k <= need; k++) if (!slots[k].reserved) later = Math.min(later, at(k));
         return now < later - 1e-9;
     }
 }

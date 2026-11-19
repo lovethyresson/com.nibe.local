@@ -850,6 +850,33 @@
       "pace_behind": "Under plan",
       "pace_even": "Enligt plan",
       "footnote": "Plan: planen vid midnatt, för hela dagen. Markeringen visar vad den räknade med fram till senaste avläsningen."
+    },
+    "orchestrator": {
+      "first": {
+        "hotwater": "Varmvatten __time__",
+        "hotwater_now": "Varmvatten nu",
+        "preheat": "Värmen förvärmer __span__",
+        "ease": "Värmen drar ner __span__"
+      },
+      "then": {
+        "hotwater": "sedan varmvatten __time__",
+        "hotwater_now": "sedan varmvatten nu",
+        "preheat": "sedan förvärmer värmen __span__",
+        "ease": "sedan drar värmen ner __span__"
+      },
+      "none": "Inget planerat",
+      "failed": "Varmvatten och värme planerar var för sig just nu",
+      "test": "Simulering: __text__"
+    },
+    "day_plan": {
+      "off": "Slå på Autopilot för värme eller varmvatten för att se dagens plan.",
+      "pick": "Välj en Main-enhet.",
+      "lane_hotwater": "Varmvatten",
+      "lane_heating": "Värme",
+      "more": "Värmer mer",
+      "less": "Drar ner",
+      "no_charge": "Ingen laddning resten av dagen",
+      "no_shift": "Håller resten av dagen"
     }
   }
 }

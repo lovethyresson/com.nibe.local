@@ -1,0 +1,298 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <style>
+      .ap { padding: var(--homey-su-2, 8px) var(--homey-su-3, 12px); }
+      .ap-title { opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .ap-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
+      .ap-chip { font-size: 0.8em; padding: 2px 8px; border-radius: 999px; background: rgba(127, 127, 127, 0.15); }
+      .ap-chip.quiet { background: transparent; border: 1px solid rgba(127, 127, 127, 0.4); opacity: 0.75; }
+      .ap-status { text-wrap: balance; margin: 12px 0 0; font-size: 1.35em; font-weight: 600; }
+      .ap-chart { display: block; margin-top: 14px; overflow: visible; }
+      .ap-chart text { font-size: 11px; fill: currentColor; opacity: 0.75; }
+      .ap-chart text.lane { font-size: 10.5px; opacity: 0.6; }
+      .ap-chart text.quiet { opacity: 0.55; font-style: italic; }
+      .ap-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.8em; opacity: 0.9; margin-top: 10px; }
+      .ap-key { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; box-sizing: border-box; }
+      .ap-empty { opacity: 0.8; margin: 12px 0; }
+      .ghost-line { fill: none; stroke: currentColor; stroke-opacity: 0.28; stroke-width: 2.2; stroke-linecap: round; }
+      .ghost-pill { fill: currentColor; fill-opacity: 0.12; }
+      @media (prefers-reduced-motion: no-preference) {
+        .ghost-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: ghost-draw 4.2s cubic-bezier(.45, 0, .25, 1) infinite; }
+      }
+      @keyframes ghost-draw { 0% { stroke-dashoffset: 1; opacity: 0; } 8% { opacity: 1; } 55% { stroke-dashoffset: 0; } 85% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+
+      /* The Autopilot card's colours, so the lanes read the same on both. Light values meet 3:1 or
+         better on white. Heats more is red, eases off is teal: neither is a charge's amber or blue. */
+      :root { --ap-solar: #d46a00; --ap-grid: #2d6bd6; --dp-more: #c43a3a; --dp-less: #13857a;
+        --ap-price-line: rgba(127, 127, 127, 0.9); --ap-price-top: rgba(127, 127, 127, 0.3); }
+      :root[data-theme="dark"] { --ap-solar: #ff9f0a; --ap-grid: #4da3ff; --dp-more: #ff6b6b; --dp-less: #3cc4b4; }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) { --ap-solar: #ff9f0a; --ap-grid: #4da3ff; --dp-more: #ff6b6b; --dp-less: #3cc4b4; }
+      }
+    </style>
+  </head>
+
+  <body class="homey-widget">
+    <div class="ap" id="ap"></div>
+
+    <script type="text/javascript">
+      var NS = 'http://www.w3.org/2000/svg';
+      // Used only when the app cannot be reached at all, so it cannot send a translated line.
+      var FALLBACK = {
+        en: {loading: 'Loading…', error: 'Couldn’t load this widget. Trying again in a minute.'},
+        sv: {loading: 'Laddar…', error: 'Det gick inte att läsa in widgeten. Försöker igen om en minut.'},
+        nl: {loading: 'Laden…', error: 'Kon de widget niet laden. Over een minuut probeer ik het opnieuw.'},
+        de: {loading: 'Lädt…', error: 'Das Widget konnte nicht geladen werden. Neuer Versuch in einer Minute.'},
+        no: {loading: 'Laster…', error: 'Kunne ikke laste widgeten. Prøver igjen om et minutt.'},
+        da: {loading: 'Indlæser…', error: 'Kunne ikke indlæse widgetten. Prøver igen om et minut.'}
+      };
+      function words() {
+        var lang = String((navigator.language || 'en')).slice(0, 2).toLowerCase();
+        if (lang === 'nb' || lang === 'nn') lang = 'no';
+        return FALLBACK[lang] || FALLBACK.en;
+      }
+      function el(tag, cls, text) {
+        var n = document.createElement(tag);
+        if (cls) n.className = cls;
+        if (text !== undefined) n.textContent = text;
+        return n;
+      }
+      function svgEl(tag, attrs, text) {
+        var n = document.createElementNS(NS, tag);
+        Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+        if (text !== undefined) n.textContent = text;
+        return n;
+      }
+      function fmt(v, decimals) { return (Math.round(v * 100) / 100).toFixed(decimals); }
+
+      // Light or dark, from the text colour Homey gives the page: light text means a dark card.
+      function applyTheme() {
+        var rgb = (getComputedStyle(document.body).color.match(/[\d.]+/g) || []).map(Number);
+        if (rgb.length < 3) return;
+        document.documentElement.setAttribute('data-theme', (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255 > 0.5 ? 'dark' : 'light');
+      }
+
+      // The chart is drawn at its real pixel width, so its text stays 11 px on any card.
+      function chartWidth() {
+        var ap = document.getElementById('ap'), cs = getComputedStyle(ap);
+        return Math.max(240, Math.floor(ap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)));
+      }
+
+      // A smooth curve through points, monotone cubic (no overshoot), as on the help pages.
+      function monotone(pts) {
+        var n = pts.length;
+        if (!n) return '';
+        var d = 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1);
+        if (n < 2) return d;
+        var dx = [], m = [], s = [], i;
+        for (i = 0; i < n - 1; i++) { dx[i] = pts[i + 1][0] - pts[i][0]; m[i] = (pts[i + 1][1] - pts[i][1]) / dx[i]; }
+        s[0] = m[0]; s[n - 1] = m[n - 2];
+        for (i = 1; i < n - 1; i++) s[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+        for (i = 0; i < n - 1; i++) {
+          if (m[i] === 0) { s[i] = 0; s[i + 1] = 0; continue; }
+          var a = s[i] / m[i], b = s[i + 1] / m[i], h = a * a + b * b;
+          if (h > 9) { var tau = 3 / Math.sqrt(h); s[i] = tau * a * m[i]; s[i + 1] = tau * b * m[i]; }
+        }
+        for (i = 0; i < n - 1; i++)
+          d += 'C' + (pts[i][0] + dx[i] / 3).toFixed(1) + ' ' + (pts[i][1] + s[i] * dx[i] / 3).toFixed(1) + ' '
+            + (pts[i + 1][0] - dx[i] / 3).toFixed(1) + ' ' + (pts[i + 1][1] - s[i + 1] * dx[i] / 3).toFixed(1) + ' '
+            + pts[i + 1][0].toFixed(1) + ' ' + pts[i + 1][1].toFixed(1);
+        return d;
+      }
+      // Runs of consecutive slots with a price: [[first, last], ...].
+      function runs(values) {
+        var out = [], from = -1;
+        values.forEach(function (v, k) {
+          var has = typeof v === 'number';
+          if (has && from < 0) from = k;
+          if (!has && from >= 0) { out.push([from, k - 1]); from = -1; }
+        });
+        if (from >= 0) out.push([from, values.length - 1]);
+        return out;
+      }
+      // The hours under the chart. An hour never touches its neighbour: text is about 6.2 px a character.
+      function hours(svg, ticks, y) {
+        var CHAR = 6.2, edge = -1e9;
+        ticks.forEach(function (t) {
+          var half = t.label.length * CHAR / 2;
+          if (t.x - half < edge + 8) return;
+          svg.appendChild(svgEl('text', {x: t.x, y: y, 'text-anchor': 'middle'}, t.label));
+          edge = t.x + half;
+        });
+      }
+
+      var clips = 0;
+      // Three lanes on one time axis, today 00:00 to 24:00: the price as a smooth curve with a soft
+      // fade (it drives both plans), hot water's charges as bands (solar part warm, grid part blue),
+      // and heating's shift as one bar an hour, up when it heats more and down when it eases off.
+      // The plan after now is lighter, and one line marks now through all three.
+      function chart(data) {
+        var W = chartWidth(), L = 34, R = W - 34, n = Math.max(1, data.prices.length), step = (R - L) / n;
+        var x = function (k) { return L + k * step; };
+        var PH = Math.max(80, Math.min(130, Math.round(W * 0.26))) + Math.round(EXTRA * 0.6);
+        var SH = Math.max(44, Math.min(70, Math.round(W * 0.15))) + Math.round(EXTRA * 0.4);
+        var TOP = 24, B = TOP + PH, y = B;
+        var hasHot = data.lanes.hotwater !== undefined && data.lanes.hotwater !== null;
+        var hasHeat = data.lanes.heating !== undefined && data.lanes.heating !== null;
+        var hotTop = 0, heatTop = 0;
+        if (hasHot) { hotTop = y + 22; y = hotTop + 14 + 18; }
+        if (hasHeat) { heatTop = y + 22; y = heatTop + SH; }
+        var tickY = y + 18, H = tickY + 6;
+        var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'ap-chart', role: 'img'});
+
+        // Price.
+        svg.appendChild(svgEl('text', {x: 0, y: 10, class: 'lane'}, data.lanes.price));
+        var price = data.scale && data.scale.price;
+        if (price) {
+          var yp = function (v) { return B - PH * (v - price.lo) / (price.hi - price.lo); };
+          price.ticks.forEach(function (v) {
+            svg.appendChild(svgEl('line', {x1: L, x2: R, y1: yp(v), y2: yp(v), stroke: 'currentColor', 'stroke-opacity': 0.1}));
+            svg.appendChild(svgEl('text', {x: L - 5, y: yp(v) + 4, 'text-anchor': 'end'}, fmt(v, price.decimals)));
+          });
+          var fade = 'dpfade' + (++clips);
+          svg.appendChild(svgEl('defs', {})).innerHTML = '<linearGradient id="' + fade + '" x1="0" y1="0" x2="0" y2="1">'
+            + '<stop offset="0" stop-color="var(--ap-price-top)"/><stop offset="1" stop-color="var(--ap-price-top)" stop-opacity="0"/></linearGradient>';
+          runs(data.prices).forEach(function (r) {
+            var p = [];
+            for (var k = r[0]; k <= r[1]; k++) p.push([x(k) + step / 2, yp(data.prices[k])]);
+            var line = monotone(p);
+            svg.appendChild(svgEl('path', {d: line + 'L' + p[p.length - 1][0].toFixed(1) + ' ' + B + 'L' + p[0][0].toFixed(1) + ' ' + B + 'Z', fill: 'url(#' + fade + ')'}));
+            svg.appendChild(svgEl('path', {d: line, fill: 'none', stroke: 'var(--ap-price-line)', 'stroke-width': 2, 'stroke-linecap': 'round'}));
+          });
+        } else if (data.loading) {
+          var d = '';
+          for (var i = 0; i <= 60; i++) { var t = i / 60; d += (i ? 'L' : 'M') + (L + (R - L) * t).toFixed(1) + ' ' + (B - PH * (0.35 + 0.3 * Math.exp(-Math.pow((t - 0.72) / 0.1, 2)))).toFixed(1); }
+          svg.appendChild(svgEl('path', {d: d, class: 'ghost-line', pathLength: 1}));
+        }
+        svg.appendChild(svgEl('line', {x1: L, x2: R, y1: B, y2: B, stroke: 'currentColor', 'stroke-opacity': 0.2}));
+
+        // Hot water.
+        if (hasHot) {
+          svg.appendChild(svgEl('text', {x: 0, y: hotTop - 6, class: 'lane'}, data.lanes.hotwater));
+          svg.appendChild(svgEl('rect', {x: L, y: hotTop, width: R - L, height: 14, rx: 5, fill: 'currentColor', 'fill-opacity': 0.05}));
+          var edge = L - 100;
+          (data.bands || []).forEach(function (b) {
+            var bx = x(b.from), bw = Math.max(x(b.to) - bx, 6), sw = bw * b.solar, id = 'dpclip' + (++clips);
+            var ahead = b.to > data.now;
+            svg.appendChild(svgEl('defs', {})).innerHTML = '<clipPath id="' + id + '"><rect x="' + bx + '" y="' + hotTop + '" width="' + bw + '" height="14" rx="5"/></clipPath>';
+            var g = svgEl('g', {'clip-path': 'url(#' + id + ')', opacity: ahead ? 1 : 0.45});
+            g.appendChild(svgEl('rect', {x: bx, y: hotTop, width: bw, height: 14, fill: 'var(--ap-grid)'}));
+            if (sw > 0) g.appendChild(svgEl('rect', {x: bx, y: hotTop, width: sw, height: 14, fill: 'var(--ap-solar)'}));
+            svg.appendChild(g);
+            var half = b.label.length * 3.1, cx = Math.min(R - half, Math.max(L + half, bx + bw / 2));
+            if (cx - half < edge + 8) return;
+            svg.appendChild(svgEl('text', {x: cx, y: hotTop + 28, 'text-anchor': 'middle'}, b.label));
+            edge = cx + half;
+          });
+          if (data.quiet && data.quiet.hotwater)
+            svg.appendChild(svgEl('text', {x: Math.max(x(data.now), L) + 6, y: hotTop + 28, class: 'quiet'}, data.quiet.hotwater));
+        }
+
+        // Heating.
+        if (hasHeat) {
+          svg.appendChild(svgEl('text', {x: 0, y: heatTop - 6, class: 'lane'}, data.lanes.heating));
+          var shift = data.scale && data.scale.shift;
+          var mid = heatTop + SH / 2;
+          var ys = shift ? function (v) { return heatTop + SH - SH * (v - shift.lo) / (shift.hi - shift.lo); } : function () { return mid; };
+          svg.appendChild(svgEl('line', {x1: L, x2: R, y1: ys(0), y2: ys(0), stroke: 'currentColor', 'stroke-opacity': 0.25, 'stroke-width': 0.8}));
+          if (shift) [shift.lo, shift.hi].forEach(function (v) {
+            svg.appendChild(svgEl('text', {x: R + 5, y: ys(v) + 4}, (v > 0 ? '+' : '') + fmt(v, shift.decimals)));
+          });
+          (data.bars || []).forEach(function (b) {
+            var y0 = ys(0), y1 = ys(b.value), h = Math.max(Math.abs(y1 - y0), 2);
+            svg.appendChild(svgEl('rect', {x: x(b.at) + 1.5, width: Math.max((b.to - b.at) * step - 3, 2), y: b.value > 0 ? y0 - h : y0, height: h, rx: 2.5,
+              fill: b.value > 0 ? 'var(--dp-more)' : 'var(--dp-less)', 'fill-opacity': b.at >= data.now ? 0.45 : 0.9}));
+          });
+          if (data.quiet && data.quiet.heating)
+            svg.appendChild(svgEl('text', {x: Math.max(x(data.now), L) + 6, y: ys(0) - 6, class: 'quiet'}, data.quiet.heating));
+        }
+
+        if (typeof data.now === 'number')
+          svg.appendChild(svgEl('line', {x1: x(data.now), x2: x(data.now), y1: TOP - 4, y2: y, stroke: 'currentColor', 'stroke-opacity': 0.4}));
+        hours(svg, data.ticks.map(function (t) { return {x: x(t.at), label: t.label}; }), tickY);
+        return svg;
+      }
+
+      function legend(items) {
+        var box = el('div', 'ap-legend');
+        items.forEach(function (i) {
+          if (!i.text) return;
+          var item = el('span'); var key = el('span', 'ap-key');
+          key.style.cssText = i.style;
+          item.appendChild(key); item.appendChild(document.createTextNode(i.text)); box.appendChild(item);
+        });
+        return box;
+      }
+
+      // Every Nibe Live card grows to one height for its width, so cards side by side on a dashboard
+      // line up. The chart takes the extra room; a card with more to say grows past it.
+      var EXTRA = 0;
+      function cardTarget() { return Math.max(340, Math.min(560, Math.round(150 + chartWidth() * 0.78))); }
+      function renderFitted(data) {
+        EXTRA = 0;
+        render(data);
+        if (data.empty) return;
+        var gap = cardTarget() - document.getElementById('ap').scrollHeight;
+        if (gap > 4) { EXTRA = gap; render(data); }
+      }
+
+      var last = null;
+      function fit(Homey) {
+        if (Homey && Homey.setHeight) Homey.setHeight(Math.ceil(document.getElementById('ap').scrollHeight) + 16);
+      }
+
+      function render(data) {
+        applyTheme();
+        var root = document.getElementById('ap');
+        root.replaceChildren();
+        if (data.title) root.appendChild(el('div', 'ap-title homey-text-small', data.title));
+        var chips = (data.chips || []).slice();
+        if (!data.empty && (chips.length || data.badge)) {
+          var row = el('div', 'ap-chips');
+          chips.forEach(function (c) { row.appendChild(el('span', 'ap-chip', c)); });
+          if (data.badge) row.appendChild(el('span', 'ap-chip quiet', data.badge));
+          root.appendChild(row);
+        }
+        if (data.empty) { root.appendChild(el('p', 'ap-empty', data.empty)); return; }
+        if (data.status) root.appendChild(el('p', 'ap-status', data.status));
+        if (!data.lanes || !data.prices) return;
+        root.appendChild(chart(data));
+        var lg = data.legend || {};
+        root.appendChild(legend([
+          {text: lg.price, style: 'border-top: 2px solid var(--ap-price-line); background: linear-gradient(to bottom, var(--ap-price-top), transparent);'},
+          {text: lg.solar, style: 'background: var(--ap-solar);'}, {text: lg.grid, style: 'background: var(--ap-grid);'},
+          {text: lg.more, style: 'background: var(--dp-more);'}, {text: lg.less, style: 'background: var(--dp-less);'}]));
+      }
+
+      function onHomeyReady(Homey) {
+        var settings = Homey.getSettings() || {};
+        var device = settings.device && settings.device.id;
+        document.getElementById('ap').appendChild(el('p', 'ap-empty', words().loading));
+        function show(data) { failures = 0; last = data; renderFitted(data); fit(Homey); }
+        var failures = 0;
+        function load() {
+          return Homey.api('GET', '/' + (device ? '?device=' + encodeURIComponent(device) : ''), {})
+            .then(show)
+            .catch(function (err) {
+              if (typeof console !== 'undefined') console.error(err);
+              if (last) return; // keep the last good picture until the app answers again
+              // An install or a restart leaves the app unreachable for a minute or two: keep saying
+              // "Loading…" and try every 30 s, and call it an error only after two minutes of that.
+              if (++failures < 5) { setTimeout(load, 30000); return; }
+              document.getElementById('ap').replaceChildren(el('p', 'ap-empty', words().error));
+              fit(Homey);
+            });
+        }
+        load().finally(function () { Homey.ready(); });
+        setInterval(load, 60000);
+        // The card changes width: draw the chart again at the new width.
+        var timer = null;
+        window.addEventListener('resize', function () {
+          clearTimeout(timer);
+          timer = setTimeout(function () { if (last) { renderFitted(last); fit(Homey); } }, 150);
+        });
+      }
+    </script>
+  </body>
+</html>

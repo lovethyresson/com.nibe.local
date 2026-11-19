@@ -525,6 +525,33 @@
       "pace_behind": "Under plan",
       "pace_even": "Etter planen",
       "footnote": "Plan: planen ved midnatt, for hele dagen. Merket viser hva den forventet frem til siste avlesning."
+    },
+    "orchestrator": {
+      "first": {
+        "hotwater": "Varmtvann __time__",
+        "hotwater_now": "Varmtvann nå",
+        "preheat": "Oppvarmingen forvarmer __span__",
+        "ease": "Oppvarmingen trapper ned __span__"
+      },
+      "then": {
+        "hotwater": "så varmtvann __time__",
+        "hotwater_now": "så varmtvann nå",
+        "preheat": "så forvarmer oppvarmingen __span__",
+        "ease": "så trapper oppvarmingen ned __span__"
+      },
+      "none": "Ingenting planlagt",
+      "failed": "Varmtvann og oppvarming planlegger hver for seg nå",
+      "test": "Simulering: __text__"
+    },
+    "day_plan": {
+      "off": "Slå på Autopilot for oppvarming eller varmtvann for å se dagens plan.",
+      "pick": "Velg en Main-enhet.",
+      "lane_hotwater": "Varmtvann",
+      "lane_heating": "Oppvarming",
+      "more": "Varmer mer",
+      "less": "Trapper ned",
+      "no_charge": "Ingen lading resten av dagen",
+      "no_shift": "Holder resten av dagen"
     }
   }
 }

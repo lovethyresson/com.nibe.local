@@ -125,7 +125,7 @@ function heatingDevice(r: ReturnType<typeof rig>) {
     Object.assign(d, {profile: sProfile, role: 'heating', homey: r.homey, driver: r.driver,
         hasCapability: (n: string) => caps.has(n) || n.startsWith('autopilot') || n.startsWith('measure_temperature'),
         getCapabilityValue: (n: string) => caps.get(n), setCapabilityValue: async (n: string, v: any) => { caps.set(n, v); },
-        getStoreValue: (n: string) => store.get(n), log: () => {}, error: (e: any) => { throw e; }});
+        getStoreValue: (n: string) => store.get(n), getSettings: () => ({address: '10.0.0.2'}), log: () => {}, error: (e: any) => { throw e; }});
     return {d, caps, store};
 }
 

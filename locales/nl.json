@@ -850,6 +850,33 @@
       "pace_behind": "Onder plan",
       "pace_even": "Volgens plan",
       "footnote": "Plan: het plan van middernacht, voor de hele dag. De markering toont wat het verwachtte tot de laatste meting."
+    },
+    "orchestrator": {
+      "first": {
+        "hotwater": "Warm water __time__",
+        "hotwater_now": "Warm water nu",
+        "preheat": "Verwarming warmt voor __span__",
+        "ease": "Verwarming bouwt af __span__"
+      },
+      "then": {
+        "hotwater": "daarna warm water __time__",
+        "hotwater_now": "daarna warm water nu",
+        "preheat": "daarna warmt de verwarming voor __span__",
+        "ease": "daarna bouwt de verwarming af __span__"
+      },
+      "none": "Niets gepland",
+      "failed": "Warm water en verwarming plannen nu los van elkaar",
+      "test": "Simulatie: __text__"
+    },
+    "day_plan": {
+      "off": "Zet Autopilot aan voor verwarming of warm water om de planning van vandaag te zien.",
+      "pick": "Kies een Main-apparaat.",
+      "lane_hotwater": "Warm water",
+      "lane_heating": "Verwarming",
+      "more": "Verwarmt meer",
+      "less": "Bouwt af",
+      "no_charge": "Geen opwarming meer vandaag",
+      "no_shift": "Houdt vast voor de rest van vandaag"
     }
   }
 }

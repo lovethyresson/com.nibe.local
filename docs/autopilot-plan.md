@@ -142,7 +142,7 @@ and those need one owner per pump, whether one controller is on or four.
 | **Autopilot Heating** | Heating device | its mode choice, profile, status (§10) | 5217 |
 | **Autopilot Hot Water** | Hot water device | its on/off, next charge and why ([autopilot-hot-water.md](autopilot-hot-water.md) §4.5) | 697, 62 |
 | Autopilot Pool, Cooling | their devices | later; out of scope for v1 (§1) | – |
-| **Orchestrator** | a pure function, `lib/autopilot/orchestrator.ts`, called by a per-host registry beside `autopilotOwners` (§7.6), not by `PumpConnection` | one status line on Main: what runs next and why ("Hot water 13:15, then heating coasts 17–20") | **none** |
+| **Orchestrator** | pure functions in `lib/autopilot/orchestrator.ts`, called by a per-host registry beside `autopilotOwners` (§7.6, `PumpRound` in the same file), not by `PumpConnection` | one status line on Main: what runs next and why ("Hot water 13:15, then heating eases off 17–20") | **none** |
 | **Shared inputs** | home and pump level, below | Main shows the day type picker: working, free, away, with an optional "away until" from the Flow card (hot water doc §4.1, §19.2) | none |
 
 - **The orchestrator never writes to the pump.** It only changes what each controller plans
@@ -191,6 +191,45 @@ or household state change:
 before hard floors (hot water reserve, the indoor minimum), before comfort, before cost. In v1
 this only decides rescue against a pre-heat, and rescue wins.
 
+**As built (2026-11-15).** The first real round, in `lib/autopilot/orchestrator.ts`:
+- **The registry.** `PumpRound.for(host)` holds each controller's latest plan. Hot water publishes
+  the charges of the plan it makes every slot (`HotwaterHooks.planned`, the same plan that starts
+  charges; the morning plan only words the morning message); heating publishes its biases from each replan (`FeedHooks.changed`).
+  Each publishes `undefined` when it stops. Every answer runs under a guard: if one throws, it
+  answers "no reservations" and Main reads "Hot water and heating plan apart for now" until it
+  works again.
+- **The order.** Heating's planner runs at slot + 20 s and hot water's at + 30 s (§7.6), so
+  heating would plan first. When hot water's published charges change the slots heating loses,
+  the round calls heating's `replanSoon()`, so heating plans second within the slot. Heating's
+  plan never triggers hot water: hot water replans at its next slot anyway, which keeps the loop
+  one-way.
+- **Delivery-free slots** (`deliveryFree`): every slot a planned charge touches, from its start
+  to the end of its predicted run. They reach heating as `ForecastSlot.busy` (planner.ts: no heat
+  that slot, caught up afterwards).
+- **Pre-heat as a price adder** (`preheatSlots`, `preheatAdders`). A pre-heat
+  slot is one where heating's planned bias is above 0. Hot water sees each one with the horizon's
+  price spread (highest minus lowest price, at least 0.01) added to every kWh charged there
+  (`PlanSlot.adder`). So no slot inside a pre-heat is ever cheaper than one outside it, and price
+  alone never puts a charge there; the reserve or a draw that cannot wait still can, because the
+  planner's shortfall (50 per kWh) dwarfs it. That is "hard floors before cost" in one number. A
+  reservation would have turned "must" into a shortfall. The adder moves the plan only: the costs
+  a plan reports stay at real prices.
+- **Hot water's own charge slots are never pre-heat to it.** Heating keeps a bias through the
+  slots it planned around a charge; counting those against the charge would push it out of the
+  room heating made for it, and the two plans would chase each other.
+- **The safety net always wins.** A rescue charge starts in slot 0 whatever the slot costs and
+  even in a reserved slot (`hotwater-planner.ts`).
+- **Simulated counts like Live.** A test run's plan is in the round like a live one's, so a
+  simulated controller shows what live would do; Main's line is marked "Simulation" only when
+  every controller in the round is a test run. *For the maintainer:* this keeps today's
+  behaviour (heating already planned around hot water's morning plan in either mode), but a live
+  heating beside a simulated hot water plans around charges the pump will not make.
+- **Main's status line** ("Autopilot now", the same capability as on Heating and Hot water, shown
+  on Main with the day type): the next two events in time order, a charge running now first:
+  "Hot water 13:15, then heating eases off 17–20". Stretches on the hour read as hours, others as
+  times ("16:45–20:00"); "tomorrow" in front of anything not today. It refreshes whenever a
+  controller publishes and each hour.
+
 **Shared inputs (maintainer, 2026-11-08).** Anything more than one function is likely to use
 is collected once and shared, never fetched or learned per controller. Each input lives at the
 widest level it is true for:
@@ -224,7 +263,8 @@ slots, and returns delivery-free and reserved slots.
   the reserved-slots input on the hot water planner, always empty for now. Nothing to arbitrate
   yet.
 - **M3:** the round order above, delivery-free slots in the heating model, rescue against
-  pre-heat.
+  pre-heat. Built ahead of M3 on 2026-11-15, with heating's pre-heat reaching hot water as a
+  price adder (see "As built").
 - **M5:** price adders and the joint plan.
 
 **Failure and neutral.**
@@ -1935,6 +1975,15 @@ their own rather than part of M3. Autopilot's candidates:
 - **Planned heating:** the next 24 h, with planned indoor against comfort, the pre-heat and coast
   blocks, and the price beneath; redrawn when the plan changes.
 - **Savings:** this month's saving with its band, and comfort held (§11).
+- **Day plan** (maintainer, 2026-11-15; `widgets/day_plan`, `lib/autopilot/day-plan.ts`): the
+  plan round (§2.1) drawn for one pump, picked by its Main device. Today 00:00 to 24:00, like the
+  other cards, so they line up. Headline: Main's status line. Three lanes on one time axis: the
+  price, hot water's charges (solar part amber, grid part blue) and heating's shift as one bar an
+  hour, up when it heats more (red) and down when it eases off (teal). Heat-up reads up here,
+  the other way round from the Autopilot card's BT1 offset, because this card is about what the
+  house gets. A function without Autopilot has no lane; with hot water off, heating's forecast
+  fills the price. No indoor line, to stay readable at phone width. It reuses the two Autopilot
+  cards' data, so the three always agree.
 
 ### 19.6 For later consideration
 
