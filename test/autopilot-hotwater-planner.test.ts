@@ -100,6 +100,34 @@ test('a small top-up waits for a proper charge', () => {
     if (p.charges[0]?.start === 0) assert.ok(p.charges[0].heat >= 4 || p.startNow === false);
 });
 
+test('a small charge starts in the cheapest hour before the water is needed instead of sliding later', () => {
+    // 2026-11-19: night prices rising gently towards the morning, showers at 7 and 8. The charge
+    // the morning needs is under the 4 kWh minimum; held each replan, it slid from about 03:00 to
+    // the morning and cost more. Replanned slot by slot here, as the device does.
+    const night = (h: number) => h < 7 ? 1 + h * 0.02 - (h === 3 ? 0.03 : 0) : 1.2;
+    const slots = day(night, (h) => h === 7 ? 2.5 : h === 8 ? 1.5 : 0).map((s, k) => ({...s, price: s.price + (k % 4) * 0.001}));
+    let stored = heatAt(tank, 30), started: number | undefined, heat = 0;
+    for (let k = 0; k < 40 && started === undefined; k++) {
+        const p = plan(input(slots.slice(k, k + 40), {stored, reserve: reserveKwh(40), minC: 40}));
+        if (p.startNow) { started = k; heat = p.charges[0].heat; }
+        stored = Math.max(0, stored - slots[k].draw - (loss.base + loss.perKwh * stored) * SLOT_H);
+    }
+    assert.ok(started !== undefined && hourOf(started) === 3, `started in hour ${started === undefined ? '-' : hourOf(started)}`);
+    assert.ok(heat < 4, `a small charge (${heat} kWh)`);
+});
+
+test('a nearly full tank is not topped up for being in the cheapest slot', () => {
+    const slots = day((h) => h === 0 ? 1 : 1.5, (h) => h === 6 ? 6 : h === 7 ? 4 : 0);
+    const p = plan(input(slots, {stored: heatAt(tank, 59.5), reserve: reserveKwh(40)}));
+    if (p.charges[0]?.start === 0 && p.charges[0].heat < 1) assert.strictEqual(p.startNow, false);
+});
+
+test('equal prices up to the need keep the minimum: waiting costs nothing', () => {
+    const slots = day(() => 1, (h) => h === 7 ? 2.5 : h === 8 ? 1.5 : 0).slice(12, 40);
+    const p = plan(input(slots, {stored: heatAt(tank, 40), reserve: reserveKwh(40), minC: 40}));
+    if (p.charges[0]?.start === 0 && p.charges[0].heat < 4) assert.strictEqual(p.startNow, false);
+});
+
 test('a full tank and no draws: nothing to do', () => {
     const p = plan(input(day(price, () => 0), {stored: heatAt(tank, 58)}));
     assert.strictEqual(p.charges.length, 0);

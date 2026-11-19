@@ -25,6 +25,10 @@ const SHORTFALL_KR_PER_KWH = 50;
 export const START_KR = 1;
 /** Smallest charge worth starting, kWh heat, unless the reserve is already breached. */
 export const MIN_CHARGE_KWH = 4;
+/** Smallest charge started for being in the cheapest slot before the water is needed, kWh heat:
+ *  about 5 °C over a 176 L tank. Less is a top-up of a nearly full tank, not worth a start
+ *  (back-test 2026-11-19: without it, 0.1 kWh starts at a full tank). */
+export const MIN_CHEAP_CHARGE_KWH = 1;
 
 export interface TankSpec {
     /** Water volume, litres. */
@@ -309,8 +313,28 @@ export function plan(input: PlanInput): Plan {
     const first = charges[0];
     const startNow = !input.charging && first !== undefined
         && (first.start === 0 || (input.due === true && first.start <= DUE_SLOTS))
-        && (first.heat >= (input.minChargeKwh ?? MIN_CHARGE_KWH) || (rescue && first.start === 0));
+        && (first.heat >= (input.minChargeKwh ?? MIN_CHARGE_KWH) || (rescue && first.start === 0)
+            || (first.start === 0 && first.heat >= MIN_CHEAP_CHARGE_KWH && cheapestBeforeNeed()));
     return {charges, stored, cost, shortfall, startNow, rescue};
+
+    /** A small charge still starts when this slot is cheaper than every slot left before the
+     *  water is needed: waiting can then only cost more. The owner's reason reads "the cheapest
+     *  hour before the showers"; a rule that let it slide into a more expensive hour reads as a
+     *  bug (2026-11-19: planned at 03:00 under 4 kWh, held all night, started at 06:00 for about
+     *  1 kr more). Needed = the first slot where, with no charge, a draw would take the tank
+     *  below the floor; equal prices later mean waiting costs nothing, so the minimum holds. */
+    function cheapestBeforeNeed(): boolean {
+        let left = Math.max(0, input.stored), need: number | undefined;
+        for (let k = 0; k < n; k++) {
+            if (below(left, slots[k].draw) > 1e-9) { need = k; break; }
+            left = Math.max(0, left - slots[k].draw - lossAt(loss, left) * SLOT_H);
+        }
+        if (need === undefined || need === 0) return false;
+        const now = effective(slots[0], kw).price;
+        let later = Number.POSITIVE_INFINITY;
+        for (let k = 1; k <= need; k++) if (!slots[k].reserved) later = Math.min(later, effective(slots[k], kw).price);
+        return now < later - 1e-9;
+    }
 }
 
 /** The "always keep at least" default, litres of 40 °C water: about one shower. On by default,

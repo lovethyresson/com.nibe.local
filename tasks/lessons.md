@@ -540,3 +540,7 @@ I explained "above plan" away as a forecast check rather than a saving. The owne
 whether the plan is good. A plan that runs 13–16 % low is a planner problem, since Autopilot
 decides from that forecast. Treat a plan miss as a defect to explain (kWh or price, which
 function), not as noise, and don't lead with what the card does not measure.
+
+## "Expensive", never "dear" — in chat too (2026-11-19)
+The rule covers everything I write to the user, not only owner text: recaps, wrap-up boxes, chat.
+Before sending, scan for dear/dearer/dearest and write "more expensive" / "most expensive".
