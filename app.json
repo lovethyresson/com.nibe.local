@@ -8451,6 +8451,39 @@
       },
       "id": "hotwater_use"
     },
+    "overview": {
+      "name": {
+        "en": "Heat pump overview",
+        "sv": "Värmepumpsöversikt",
+        "de": "Wärmepumpe im Überblick",
+        "nl": "Overzicht warmtepomp",
+        "no": "Varmepumpeoversikt",
+        "da": "Varmepumpeoversigt"
+      },
+      "height": 360,
+      "transparent": false,
+      "settings": [
+        {
+          "id": "device",
+          "type": "autocomplete",
+          "title": {
+            "en": "Device",
+            "sv": "Enhet",
+            "de": "Gerät",
+            "nl": "Apparaat",
+            "no": "Enhet",
+            "da": "Enhed"
+          }
+        }
+      ],
+      "api": {
+        "getData": {
+          "method": "GET",
+          "path": "/"
+        }
+      },
+      "id": "overview"
+    },
     "savings": {
       "name": {
         "en": "Heating savings",

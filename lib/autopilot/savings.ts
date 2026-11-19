@@ -263,6 +263,8 @@ export interface SavingsData {
     split?: SplitRow[];
     /** Under `value`, quieter: the month the figure is for. */
     valueNote?: string;
+    /** `value` as a number when it is this month's savings (the Overview widget adds them up). */
+    monthValue?: number;
     /** Hot water: the week's charges, each a dot at its place in its day's prices. */
     share?: SharePicture;
     /** Hot water: what one shower cost, before and with Autopilot. */
@@ -385,6 +387,7 @@ export function savingsData(title: string, stored: SavingsDay[], t: Translate, c
         status: t(`status_${c.role}`),
         value: c.money(sums.month),
         valueNote: c.month(c.today),
+        monthValue: sums.month,
         tone: sums.month >= 0 ? 'good' : 'bad',
         // The year's figure only once it says more than the month's.
         stats: [{label: t('stat_week'), value: c.money(sums.week)},

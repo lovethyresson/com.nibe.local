@@ -22,6 +22,7 @@ import {HotwaterUseData, TodayRow, hotwaterWeek, useRuns} from './autopilot/hotw
 import {TankWidgetData, tankChart} from './autopilot/hotwater-tank';
 import {ComfortDay, ComfortSlot, addComfortSlot, readComfortDays} from './autopilot/comfort-days';
 import {ENERGY_ROLES, EnergyWidgetData, energyChart, useToday} from './autopilot/energy';
+import {OVERVIEW_KINDS, OverviewData, OverviewRow, overviewData, priceThirds} from './autopilot/overview';
 import {SLOT_MS, localDate, normalisePrices, slotOf} from './autopilot/prices';
 import {CostCheckData, CostDay, PlannedCost, addDay, chargeCosts, costCheckData, costDay, fillActual} from './autopilot/cost-check';
 import {COP} from './autopilot/planner';
@@ -142,6 +143,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private adviceWarning?: string;
     private problemWarning = false;
     private adviceShown = false;
+    /** The device warning and the unavailable reason as last set, for the Overview widget (Homey
+     *  gives neither back). */
+    private warningText?: string;
+    private unavailableText?: string;
     private heatingStatusShown?: HeatingStatus;
     /** Analytics, edge-triggered: the heating status and block last reported, and heating's day. */
     private heatingStateTold = new Edge<HeatingStatus>();
@@ -2559,11 +2564,110 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             axes: {kwh: 'kWh', price: t('price_axis')}};
     }
 
+    // ---- The Overview widget (widgets/overview) ----
+
+    /** One heat pump at a glance, from its Main device: today's use by price third, this month's
+     *  savings, a row per function and what needs the owner. Each figure is the one another widget
+     *  or tile shows, so they agree: the ring and cost from Energy today, the month from the two
+     *  savings widgets, the rows from the devices' own capabilities. */
+    overviewWidget(): OverviewData {
+        const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.overview.${key}`, tokens);
+        const title = this.getName();
+        const host = String(this.getData().id).split('#')[0];
+        const siblings = (this.driver.getDevices() as any[]).filter((d) => String(d.getData().id).split('#')[0] === host);
+        const byRole = new Map<string, any>(siblings.map((d) => [d.role, d]));
+        const offline = this.getAvailable() ? undefined : this.unavailableText ?? t('offline');
+        const local = localClock(this.homey.clock.getTimezone());
+        const rows: OverviewRow[] = OVERVIEW_KINDS.filter((k) => byRole.has(k)).map((kind) => {
+            const d = byRole.get(kind);
+            const row: OverviewRow = {kind, name: this.homey.__(`groups.${kind}`)};
+            if (offline) return {...row, muted: true};
+            const mode = d.smartMode() as SmartMode;
+            // Only what is known: Off in the app may still be SPA on the pump itself (Repair reads that).
+            const modeName = mode === 'spa' ? t('mode_spa') : undefined;
+            if (kind === 'heating') {
+                const indoor = Number(d.getCapabilityValue('measure_temperature'));
+                const set = Number(d.getCapabilityValue('target_temperature'));
+                const runs = autopilotRuns(mode);
+                const limits = runs ? d.heatingLimits() : undefined;
+                row.state = runs ? d.autopilotWidget().status : modeName;
+                if (Number.isFinite(indoor)) {
+                    row.value = `${indoor.toFixed(1)} °C`;
+                    const mid = Number.isFinite(set) ? set : indoor;
+                    row.bar = {type: 'range', min: mid - 3, max: mid + 3, value: indoor,
+                        ...Number.isFinite(set) ? {set} : {},
+                        ...limits && Number.isFinite(set) && limits.lower + limits.upper > 0 ? {lo: set - limits.lower, hi: set + limits.upper} : {}};
+                }
+            } else if (kind === 'hotwater') {
+                const litres = d.tankLitresNow();
+                const size = d.tankConfig().litres;
+                const runs = autopilotRuns(mode);
+                const day = todaySlots(slotOf(Date.now()), (ms) => local(ms).date);
+                const view = runs ? d.hotwaterAutopilot?.tank(day.from, day.n) : undefined;
+                const next: string | undefined = runs ? d.nextChargeText(view?.next, local) : undefined;
+                row.state = runs ? next && next.charAt(0).toLocaleUpperCase() + next.slice(1) : modeName;
+                if (typeof litres === 'number') {
+                    row.value = `${Math.round(litres)} L`;
+                    if (size) row.bar = {type: 'fill', value: litres, max: size};
+                }
+            } else {
+                row.state = modeName;
+                const cap = (d.getCapabilities() as string[]).find((c) => c.startsWith('measure_temperature'));
+                const v = cap ? Number(d.getCapabilityValue(cap)) : NaN;
+                if (Number.isFinite(v)) row.value = `${v.toFixed(1)} °C`;
+            }
+            if (!row.value) row.muted = true;
+            return row;
+        });
+        // The ring and today's cost, as Energy today has them.
+        const energy = this.energyWidget();
+        let tiers: [number, number, number] | undefined;
+        if (energy.chart) {
+            const timeZone = this.homey.clock.getTimezone();
+            const hours = dayHours(localDate(Date.now(), timeZone), (ms) => localDate(ms, timeZone));
+            const prices = new Map<number, number>();
+            hours.forEach((at, k) => { const p = energy.chart!.hours[k]?.price; if (p !== undefined) prices.set(at, p); });
+            tiers = priceThirds(hours, (at) => {
+                const h = energy.chart!.hours[hours.indexOf(at)];
+                return h ? Object.values(h.use).reduce((a: number, b) => a + (b ?? 0), 0) : 0;
+            }, prices);
+        }
+        // This month's savings: the two savings widgets' figures, added up.
+        const months = (['heating', 'hotwater'] as const).flatMap((role) => {
+            const d = byRole.get(role);
+            if (!d || !autopilotRuns(d.smartMode())) return [];
+            const data = d.savingsWidget() as SavingsData;
+            return data.monthValue === undefined ? [] : [{value: data.monthValue, month: data.valueNote ?? '', currency: String(d.getStoreValue(SAVINGS_CURRENCY_STORE) ?? '')}];
+        });
+        const sum = months.reduce((a, m) => a + m.value, 0);
+        const saved = months.length ? {value: moneyText(sum, Math.abs(sum) < 10 ? 1 : 0, this.homey.i18n.getLanguage(), months[0].currency),
+            month: months[0].month} : undefined;
+        const alarm = this.hasCapability(ALARM_ACTIVE_CAPABILITY) && this.getCapabilityValue(ALARM_ACTIVE_CAPABILITY) === true
+            ? String(this.getCapabilityValue(ALARM_TEXT_CAPABILITY) ?? '') || undefined : undefined;
+        const warnings = OVERVIEW_KINDS.flatMap((k) => {
+            const d = byRole.get(k);
+            return d?.warningText ? [{text: d.warningText as string, advice: !!d.adviceShown}] : [];
+        });
+        if (this.warningText) warnings.unshift({text: this.warningText, advice: false});
+        if (!rows.length) return {title, empty: this.homey.__('autopilot.energy.no_functions'), rows: [], attention: []};
+        if (energy.loading && !offline) return {title, loading: true, rows, attention: []};
+        return overviewData({title, autopilot: siblings.some((d) => autopilotRuns(d.smartMode?.())), offline, alarm, warnings,
+            tiers, spent: energy.numbers?.[1]?.value, saved, rows}, t);
+    }
+
     /** The tank now, as its tile shows it (read every poll). The planner's own figure is from the
      *  start of its 15-minute slot, up to 100 L or more behind during a shower: only a fallback. */
     private tankLitresNow(planned?: number): number | undefined {
         const read = this.hasCapability(HOTWATER_VOLUME_CAPABILITY) ? this.getCapabilityValue(HOTWATER_VOLUME_CAPABILITY) : null;
         return typeof read === 'number' && Number.isFinite(read) ? read : planned;
+    }
+
+    /** The tank's next charge, worded: "next charge 04:15", tomorrow's, or "charging now". */
+    private nextChargeText(next: {at: number; running?: boolean} | undefined, local: ReturnType<typeof localClock>): string | undefined {
+        const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.tank.${key}`, tokens);
+        if (next?.running) return t('charging');
+        if (!next) return undefined;
+        return t(local(next.at).date === local(Date.now()).date ? 'next' : 'next_tomorrow', {time: this.clock(next.at)});
     }
 
     // ---- The Hot water tank widget (widgets/hotwater_tank) ----
@@ -2587,9 +2691,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const reserve = this.reserveLitres();
         const tankNow = this.tankLitresNow(view.litres);
         const litres = tankNow === undefined ? undefined : Math.round(tankNow);
-        const next = view.next && !view.next.running
-            ? t(local(view.next.at).date === local(Date.now()).date ? 'next' : 'next_tomorrow', {time: this.clock(view.next.at)})
-            : view.next?.running ? t('charging') : undefined;
+        const next = this.nextChargeText(view.next, local);
         return {title, chart, slots: n, now, bands, reserve: reserve > 0 ? reserve : undefined,
             ticks: ticks(start, n, this.clock),
             status: litres === undefined ? undefined : t('now', {l: litres}),
@@ -3341,6 +3443,26 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         } finally {
             this.dumping = false;
         }
+    }
+
+    async setWarning(message?: string | null) {
+        this.warningText = message || undefined;
+        return super.setWarning(message);
+    }
+
+    async unsetWarning() {
+        this.warningText = undefined;
+        return super.unsetWarning();
+    }
+
+    async setUnavailable(message?: string | null) {
+        this.unavailableText = message || undefined;
+        return super.setUnavailable(message);
+    }
+
+    async setAvailable() {
+        this.unavailableText = undefined;
+        return super.setAvailable();
     }
 
     onConnectionDown(problem: ConnectionProblem) {

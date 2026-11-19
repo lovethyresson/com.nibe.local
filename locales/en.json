@@ -897,6 +897,14 @@
       "less": "Eases off",
       "no_charge": "No charge for the rest of today",
       "no_shift": "Holding for the rest of today"
+    },
+    "overview": {
+      "offline": "Offline",
+      "cheap": "cheap",
+      "saved_month": "saved in __month__",
+      "spent": "cost today",
+      "spent_line": "__cost__ today",
+      "mode_spa": "Smart Price Adaption"
     }
   }
 }

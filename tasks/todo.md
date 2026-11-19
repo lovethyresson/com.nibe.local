@@ -884,3 +884,21 @@ failed retry). Tests added for backoff/quiet logging/single down, the connect ti
 trigger and window, candidate choice, the pump-wide settings move, relocation and BT50 ownership.
 Shipped as part of 1.3.6, combined with the F-series work: one changelog entry, one releases row. Not verified against a real pump changing address; the sweep is the pairing
 discovery code, which is.
+
+## Overview widget (F3 mock, chosen 2026-11-19)
+
+One widget per pump, picked by its Main device. Title: the Main device's name. Ring: today's use in
+the day's cheapest / middle / most expensive third of hours (same thirds as Energy today and the
+savings widgets). Beside it: savings this month (Heating + Hot water savings widgets' month figures,
+summed), and a small line with what today cost (Energy today's figure). Rows: one per function
+device, with indoor temperature in the comfort range and the tank level as small bars. At most two
+attention lines: offline, pump alarm, a device warning (problems first, then advice).
+
+- [x] thirds computed in overview.ts `priceThirds` from Energy today's hours (energy.ts unchanged)
+- [x] savings.ts: the month figure as a number (`monthValue`)
+- [x] lib/autopilot/overview.ts: pure model + tests
+- [x] device.ts: `overviewWidget()` on Main; track warning and unavailable text
+- [x] app.ts: register picker + endpoint; widgets/overview (compose, api, page, previews)
+- [x] locales, six languages, both layers
+- [x] npm test (719 pass), typecheck, homey app validate --level publish
+- [ ] install after the heating test ends; fetch the live endpoint and render it (not done: the install restarts the app mid-test)

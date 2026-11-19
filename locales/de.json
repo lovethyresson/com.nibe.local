@@ -897,6 +897,14 @@
       "less": "Drosselt",
       "no_charge": "Keine Ladung mehr heute",
       "no_shift": "Hält für den Rest des Tages"
+    },
+    "overview": {
+      "offline": "Offline",
+      "cheap": "günstig",
+      "saved_month": "gespart im __month__",
+      "spent": "Kosten heute",
+      "spent_line": "heute __cost__",
+      "mode_spa": "Smart Price Adaption"
     }
   }
 }

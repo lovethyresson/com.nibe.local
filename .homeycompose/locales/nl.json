@@ -562,6 +562,14 @@
       "less": "Bouwt af",
       "no_charge": "Geen opwarming meer vandaag",
       "no_shift": "Houdt vast voor de rest van vandaag"
+    },
+    "overview": {
+      "offline": "Offline",
+      "cheap": "goedkoop",
+      "saved_month": "bespaard in __month__",
+      "spent": "kosten vandaag",
+      "spent_line": "__cost__ vandaag",
+      "mode_spa": "Smart price adaption"
     }
   }
 }

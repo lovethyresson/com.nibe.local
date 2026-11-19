@@ -1,0 +1,225 @@
+<html>
+  <head>
+    <style>
+      .ov { padding: var(--homey-su-2, 8px) var(--homey-su-3, 12px); }
+      .ov-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+      .ov-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+      .ov-chip { font-size: 0.8em; white-space: nowrap; padding: 2px 8px; border-radius: 999px; background: rgba(127, 127, 127, 0.15); }
+      .ov-chip.quiet { background: transparent; border: 1px solid rgba(127, 127, 127, 0.4); opacity: 0.75; }
+      .ov-empty { opacity: 0.8; margin: 12px 0; }
+
+      /* The ring: today's use by price third, the cheap share in the middle; the month beside it. */
+      .ov-top { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 16px; align-items: center; margin-top: 10px; }
+      .ov-ring { width: 112px; height: 112px; display: block; }
+      .ov-ring text { fill: currentColor; }
+      .ov-hero b { display: block; font-size: 1.9em; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; line-height: 1.15; }
+      .ov-hero b.good { color: var(--ov-cheap); }
+      .ov-hero span { display: block; opacity: 0.7; font-size: 0.87em; }
+      .ov-line { margin-top: 8px; opacity: 0.65; font-size: 0.8em; }
+
+      /* One row per function: icon, name and state, value, and a small bar. */
+      .ov-rows { list-style: none; margin: 12px 0 0; padding: 0; }
+      .ov-row { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; column-gap: 10px; row-gap: 5px; align-items: center;
+        padding: 7px 0; border-top: 1px solid rgba(127, 127, 127, 0.16); }
+      .ov-ic { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; grid-row: span 2;
+        background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); }
+      .ov-row.flat .ov-ic { grid-row: auto; }
+      .ov-ic svg { width: 17px; height: 17px; }
+      .ov-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .ov-state { font-weight: 400; opacity: 0.6; font-size: 0.87em; margin-left: 6px; }
+      .ov-val { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+      .ov-val.muted { opacity: 0.45; font-weight: 400; }
+      .ov-bar { grid-column: 2 / 4; position: relative; height: 6px; border-radius: 3px; background: var(--ov-track); }
+      .ov-band { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: color-mix(in srgb, var(--c) 28%, transparent); }
+      .ov-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--c); }
+      .ov-dot { position: absolute; top: -3px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 2px var(--ov-bg); }
+      .ov-set { position: absolute; top: -3px; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: currentColor; opacity: 0.55; }
+
+      /* At most two lines that need the owner. */
+      .ov-att { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+      .ov-att li { display: grid; grid-template-columns: 18px minmax(0, 1fr); column-gap: 8px; align-items: center; font-size: 0.87em; line-height: 1.3;
+        padding: 7px 9px; border-radius: 10px; }
+      .ov-att li.bad { background: color-mix(in srgb, var(--ov-bad) 14%, transparent); }
+      .ov-att li.warn { background: color-mix(in srgb, var(--ov-warn) 14%, transparent); }
+      .ov-mark { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #fff; }
+      .bad .ov-mark { background: var(--ov-bad); }
+      .warn .ov-mark { background: var(--ov-warn); }
+      .ov-att p { margin: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+      .skel { background: rgba(127, 127, 127, 0.08); border-radius: 10px; }
+
+      /* The same colours as the Energy today, savings and tank widgets. */
+      :root { --ov-heat: #2d6bd6; --ov-water: #7652d6; --ov-pool: #0f8374; --ov-cool: #3b8fd9; --ov-cheap: #0f8374;
+        --ov-middle: #c7c7cc; --ov-exp: #e07a1f; --ov-warn: #b25f00; --ov-bad: #c62828; --ov-track: rgba(127, 127, 127, 0.16); --ov-bg: #fff; }
+      :root[data-theme="dark"] { --ov-heat: #4da3ff; --ov-water: #a48cff; --ov-pool: #2bb3a3; --ov-cool: #6cb4f5; --ov-cheap: #2bb3a3;
+        --ov-middle: #636366; --ov-exp: #f0954a; --ov-warn: #f0b04a; --ov-bad: #ff6b6b; --ov-track: rgba(127, 127, 127, 0.28); --ov-bg: #1c1c1e; }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) { --ov-heat: #4da3ff; --ov-water: #a48cff; --ov-pool: #2bb3a3; --ov-cool: #6cb4f5; --ov-cheap: #2bb3a3;
+          --ov-middle: #636366; --ov-exp: #f0954a; --ov-warn: #f0b04a; --ov-bad: #ff6b6b; --ov-track: rgba(127, 127, 127, 0.28); --ov-bg: #1c1c1e; }
+      }
+    </style>
+  </head>
+
+  <body class="homey-widget">
+    <div class="ov" id="ov"></div>
+
+    <script type="text/javascript">
+      var NS = 'http://www.w3.org/2000/svg';
+      // Used only when the app cannot be reached at all, so it cannot send a translated line.
+      var FALLBACK = {
+        en: {loading: 'Loading…', error: 'Couldn’t load this widget. Trying again in a minute.'},
+        sv: {loading: 'Laddar…', error: 'Det gick inte att läsa in widgeten. Försöker igen om en minut.'},
+        nl: {loading: 'Laden…', error: 'Kon de widget niet laden. Over een minuut probeer ik het opnieuw.'},
+        de: {loading: 'Lädt…', error: 'Das Widget konnte nicht geladen werden. Neuer Versuch in einer Minute.'},
+        no: {loading: 'Laster…', error: 'Kunne ikke laste widgeten. Prøver igjen om et minutt.'},
+        da: {loading: 'Indlæser…', error: 'Kunne ikke indlæse widgetten. Prøver igen om et minut.'}
+      };
+      function words() {
+        var lang = String((navigator.language || 'en')).slice(0, 2).toLowerCase();
+        if (lang === 'nb' || lang === 'nn') lang = 'no';
+        return FALLBACK[lang] || FALLBACK.en;
+      }
+      function el(tag, cls, text) {
+        var n = document.createElement(tag);
+        if (cls) n.className = cls;
+        if (text !== undefined) n.textContent = text;
+        return n;
+      }
+      function svgEl(tag, attrs, text) {
+        var n = document.createElementNS(NS, tag);
+        Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+        if (text !== undefined) n.textContent = text;
+        return n;
+      }
+      // Light or dark, from the text colour Homey gives the page: light text means a dark card.
+      function applyTheme() {
+        var rgb = (getComputedStyle(document.body).color.match(/[\d.]+/g) || []).map(Number);
+        if (rgb.length < 3) return;
+        document.documentElement.setAttribute('data-theme', (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255 > 0.5 ? 'dark' : 'light');
+      }
+
+      var ICON = {
+        heating: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M12 17a2 2 0 0 0 2-2c0-1.5-2-3.5-2-3.5s-2 2-2 3.5a2 2 0 0 0 2 2z"/>',
+        hotwater: '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',
+        pool: '<path d="M2 15c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 4-1.5"/><path d="M2 19.5c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 4-1.5"/><path d="M8 11V5a2 2 0 0 1 4 0M16 11V5"/>',
+        cooling: '<path d="M12 2v20M4.5 6.5l15 11M19.5 6.5l-15 11"/><path d="M9 4l3 2 3-2M9 20l3-2 3 2"/>'
+      };
+      var COLOUR = {heating: 'var(--ov-heat)', hotwater: 'var(--ov-water)', pool: 'var(--ov-pool)', cooling: 'var(--ov-cool)'};
+
+      function pct(v, lo, hi) { return Math.max(0, Math.min(100, (v - lo) / (hi - lo) * 100)); }
+
+      function ring(r) {
+        var total = r.tiers[0] + r.tiers[1] + r.tiers[2];
+        var svg = svgEl('svg', {viewBox: '0 0 88 88', class: 'ov-ring', role: 'img', 'aria-label': r.centre + ' ' + r.label});
+        var C = 2 * Math.PI * 34, off = 0;
+        [['var(--ov-cheap)', r.tiers[0]], ['var(--ov-middle)', r.tiers[1]], ['var(--ov-exp)', r.tiers[2]]].forEach(function (p) {
+          var len = p[1] / total * C;
+          if (len > 0) svg.appendChild(svgEl('circle', {r: 34, cx: 44, cy: 44, fill: 'none', stroke: p[0], 'stroke-width': 12,
+            'stroke-dasharray': Math.max(0, len - 2) + ' ' + C, 'stroke-dashoffset': -off, transform: 'rotate(-90 44 44)'}));
+          off += len;
+        });
+        svg.appendChild(svgEl('text', {x: 44, y: 46, 'text-anchor': 'middle', 'font-size': 17, 'font-weight': 600}, r.centre));
+        svg.appendChild(svgEl('text', {x: 44, y: 60, 'text-anchor': 'middle', 'font-size': 8.5, opacity: 0.6}, r.label));
+        return svg;
+      }
+
+      function bar(b) {
+        var n = el('div', 'ov-bar');
+        if (b.type === 'fill') {
+          var f = el('span', 'ov-fill'); f.style.width = pct(b.value, 0, b.max) + '%'; n.appendChild(f);
+          return n;
+        }
+        if (b.lo !== undefined && b.hi !== undefined) {
+          var band = el('span', 'ov-band');
+          band.style.left = pct(b.lo, b.min, b.max) + '%';
+          band.style.width = (pct(b.hi, b.min, b.max) - pct(b.lo, b.min, b.max)) + '%';
+          n.appendChild(band);
+        }
+        if (b.set !== undefined) { var s = el('span', 'ov-set'); s.style.left = pct(b.set, b.min, b.max) + '%'; n.appendChild(s); }
+        var d = el('span', 'ov-dot'); d.style.left = pct(b.value, b.min, b.max) + '%'; n.appendChild(d);
+        return n;
+      }
+
+      function render(data) {
+        applyTheme();
+        var root = document.getElementById('ov');
+        root.replaceChildren();
+        if (data.empty) { root.appendChild(el('p', 'ov-empty', data.empty)); return; }
+        var head = el('div', 'ov-head');
+        head.appendChild(el('span', 'ov-title', data.title));
+        if (data.chip) head.appendChild(el('span', 'ov-chip' + (data.chipQuiet ? ' quiet' : ''), data.chip));
+        root.appendChild(head);
+        if (data.loading) {
+          var sk = el('div', 'skel'); sk.style.height = '112px'; sk.style.marginTop = '10px'; root.appendChild(sk);
+        } else if (data.ring || data.hero) {
+          var top = el('div', 'ov-top');
+          if (data.ring) top.appendChild(ring(data.ring)); else top.style.gridTemplateColumns = '1fr';
+          var side = el('div', 'ov-hero');
+          if (data.hero) {
+            side.appendChild(el('b', data.hero.good ? 'good' : '', data.hero.value));
+            side.appendChild(el('span', '', data.hero.label));
+          }
+          if (data.line) side.appendChild(el('div', 'ov-line', data.line));
+          top.appendChild(side);
+          root.appendChild(top);
+        }
+        var rows = el('ul', 'ov-rows');
+        // More than two functions: one line each, so the card keeps its height.
+        var flat = (data.rows || []).length > 2;
+        (data.rows || []).forEach(function (r) {
+          var li = el('li', 'ov-row' + (flat || !r.bar ? ' flat' : ''));
+          li.style.setProperty('--c', COLOUR[r.kind]);
+          var ic = el('span', 'ov-ic');
+          ic.appendChild(svgEl('svg', {viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'}));
+          ic.firstChild.innerHTML = ICON[r.kind];
+          li.appendChild(ic);
+          var name = el('span', 'ov-name', r.name);
+          if (r.state) name.appendChild(el('span', 'ov-state', r.state));
+          li.appendChild(name);
+          li.appendChild(el('span', 'ov-val' + (r.muted ? ' muted' : ''), r.value || '—'));
+          if (r.bar && !flat) li.appendChild(bar(r.bar));
+          rows.appendChild(li);
+        });
+        root.appendChild(rows);
+        if ((data.attention || []).length) {
+          var att = el('ul', 'ov-att');
+          data.attention.forEach(function (a) {
+            var li = el('li', a.tone);
+            li.appendChild(el('span', 'ov-mark', '!'));
+            li.appendChild(el('p', '', a.text));
+            att.appendChild(li);
+          });
+          root.appendChild(att);
+        }
+      }
+
+      var last = null;
+      function fit(Homey) {
+        if (Homey && Homey.setHeight) Homey.setHeight(Math.ceil(document.getElementById('ov').scrollHeight) + 16);
+      }
+
+      function onHomeyReady(Homey) {
+        var settings = Homey.getSettings() || {};
+        var device = settings.device && settings.device.id;
+        document.getElementById('ov').appendChild(el('p', 'ov-empty', words().loading));
+        function show(data) { failures = 0; last = data; render(data); fit(Homey); }
+        var failures = 0;
+        function load() {
+          return Homey.api('GET', '/' + (device ? '?device=' + encodeURIComponent(device) : ''), {})
+            .then(show)
+            .catch(function (err) {
+              if (typeof console !== 'undefined') console.error(err);
+              if (last) return; // keep the last good picture until the app answers again
+              // An install or a restart leaves the app unreachable for a minute or two: keep saying
+              // "Loading…" and try every 30 s, and call it an error only after two minutes of that.
+              if (++failures < 5) { setTimeout(load, 30000); return; }
+              document.getElementById('ov').replaceChildren(el('p', 'ov-empty', words().error));
+              fit(Homey);
+            });
+        }
+        load().finally(function () { Homey.ready(); });
+        setInterval(load, 60000);
+      }
+    </script>
+  </body>
+</html>

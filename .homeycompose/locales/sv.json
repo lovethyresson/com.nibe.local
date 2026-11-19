@@ -562,6 +562,14 @@
       "less": "Drar ner",
       "no_charge": "Ingen laddning resten av dagen",
       "no_shift": "Håller resten av dagen"
+    },
+    "overview": {
+      "offline": "Offline",
+      "cheap": "billigt",
+      "saved_month": "sparat i __month__",
+      "spent": "kostnad i dag",
+      "spent_line": "__cost__ i dag",
+      "mode_spa": "Smart Price Adaption"
     }
   }
 }
