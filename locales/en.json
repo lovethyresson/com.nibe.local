@@ -840,8 +840,8 @@
       "both": "Both",
       "plan": "Plan",
       "actual": "Actual",
-      "today": "since 07:00",
-      "empty": "Starts with the next 07:00 plan. Requires dynamic electricity prices in Homey Energy.",
+      "today": "today",
+      "empty": "Starts with the plan at midnight. Requires dynamic electricity prices in Homey Energy.",
       "pick": "Choose your heat pump in the widget settings.",
       "first_day": "first full day tomorrow",
       "week": "7 days: __share__",
@@ -849,7 +849,7 @@
       "pace_ahead": "Above plan",
       "pace_behind": "Below plan",
       "pace_even": "On plan",
-      "footnote": "Plan: the 07:00 plan, for the rest of the day. The mark shows what it expected up to the latest reading."
+      "footnote": "Plan: the plan at midnight, for the whole day. The mark shows what it expected up to the latest reading."
     }
   }
 }

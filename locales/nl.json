@@ -840,8 +840,8 @@
       "both": "Samen",
       "plan": "Plan",
       "actual": "Werkelijk",
-      "today": "sinds 07:00",
-      "empty": "Begint met het volgende plan om 07:00. Vereist dynamische stroomprijzen in Homey Energy.",
+      "today": "vandaag",
+      "empty": "Begint met het plan om middernacht. Vereist dynamische stroomprijzen in Homey Energy.",
       "pick": "Kies je warmtepomp in de widgetinstellingen.",
       "first_day": "eerste volledige dag morgen",
       "week": "7 dagen: __share__",
@@ -849,7 +849,7 @@
       "pace_ahead": "Boven plan",
       "pace_behind": "Onder plan",
       "pace_even": "Volgens plan",
-      "footnote": "Plan: het plan van 07:00, voor de rest van de dag. De markering toont wat het verwachtte tot de laatste meting."
+      "footnote": "Plan: het plan van middernacht, voor de hele dag. De markering toont wat het verwachtte tot de laatste meting."
     }
   }
 }

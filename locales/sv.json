@@ -840,8 +840,8 @@
       "both": "Totalt",
       "plan": "Plan",
       "actual": "Utfall",
-      "today": "sedan 07:00",
-      "empty": "Börjar med nästa plan kl. 07:00. Kräver dynamiska elpriser i Homey Energy.",
+      "today": "idag",
+      "empty": "Börjar med planen vid midnatt. Kräver dynamiska elpriser i Homey Energy.",
       "pick": "Välj din värmepump i widgetens inställningar.",
       "first_day": "första hela dagen i morgon",
       "week": "7 dagar: __share__",
@@ -849,7 +849,7 @@
       "pace_ahead": "Över plan",
       "pace_behind": "Under plan",
       "pace_even": "Enligt plan",
-      "footnote": "Plan: planen kl. 07:00, för resten av dagen. Markeringen visar vad den räknade med fram till senaste avläsningen."
+      "footnote": "Plan: planen vid midnatt, för hela dagen. Markeringen visar vad den räknade med fram till senaste avläsningen."
     }
   }
 }
