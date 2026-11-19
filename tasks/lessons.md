@@ -544,3 +544,17 @@ function), not as noise, and don't lead with what the card does not measure.
 ## "Expensive", never "dear" — in chat too (2026-11-19)
 The rule covers everything I write to the user, not only owner text: recaps, wrap-up boxes, chat.
 Before sending, scan for dear/dearer/dearest and write "more expensive" / "most expensive".
+
+## Check the page as published, not the local copy (2026-11-19)
+- The Autopilot loop artifact went out three times with garbled characters (° − – ·) and text running out
+  of its boxes. I checked a local copy whose garbling I explained away as "local only", and judged the
+  diagram by eye.
+- Rule: write non-ASCII as HTML entities in published pages, so the encoding never matters. Before
+  saying a page is done, measure every diagram label against its box with a script, and look at it
+  in light, dark and phone width.
+
+## Simulate a control change before proposing it (2026-11-19)
+- I proposed a "trim per outdoor temperature" to the maintainer as the fix. The simulation afterwards
+  showed it made both test houses worse, and that any faster trim overshoots a slow house.
+- Rule: run a fix through the simulator (several house types, a wrong curve, weather that turns) before
+  it is presented as the plan. Present the measured result, not the idea.
