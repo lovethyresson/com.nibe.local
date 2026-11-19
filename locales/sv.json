@@ -377,7 +377,17 @@
         "custom_comfort_weight_label": "Komfortvikt",
         "custom_comfort_weight_hint": "Vad en grad från din temperatur kostar mot pengarna en förskjutning sparar. Högre håller huset närmare din temperatur.",
         "custom_preheat_lead_label": "Hur tidigt förvärmning får börja",
-        "custom_preheat_lead_hint": "Som andel av hur långsamt ditt hus värms och svalnar (dess tidskonstant). 1 låter förvärmningen börja en hel tidskonstant före en pristopp."
+        "custom_preheat_lead_hint": "Som andel av hur långsamt ditt hus värms och svalnar (dess tidskonstant). 1 låter förvärmningen börja en hel tidskonstant före en pristopp.",
+        "curve_title": "Värmekurva",
+        "curve_intro": "När Autopilot inte är igång går din värmepump bara på sin värmekurva. Efter en vecka vet Autopilot hur mycket den slår fel.",
+        "curve_auto": "Justera den åt mig",
+        "curve_auto_desc": "Autopilot ändrar kurvförskjutningen (meny 1.1.1) en gång, med högst 3 steg, och berättar det i Tidslinjen. Du kan ångra det här.",
+        "curve_self": "Jag gör det själv",
+        "curve_self_desc": "Autopilot berättar i Tidslinjen vad du ska ändra. Håll utkik efter första veckan.",
+        "row_curve": "Värmekurva",
+        "curve_adjusted_row": "kurvförskjutningen ändrad från __from__ till __to__",
+        "curve_undo": "Ångra",
+        "curve_advice_row": "Ändra kurvförskjutningen från __from__ till __to__ (meny 1.1.1)"
       },
       "gets_added": "Det här läggs till",
       "gets_added_intro": "De här enheterna läggs till.",
@@ -657,7 +667,17 @@
       "not_on": "Autopilot för uppvärmning är av.",
       "no_thermostat": "Enheten Värme har ingen termostat att ställa in.",
       "away_time_past": "Den tiden har redan passerat.",
-      "away_time_invalid": "Välj ett datum och en tid då Borta ska sluta."
+      "away_time_invalid": "Välj ett datum och en tid då Borta ska sluta.",
+      "curve": {
+        "adjusted": "Autopilot ändrade din kurvförskjutning (meny 1.1.1) från __from__ till __to__, så att din värmepump håller din temperatur även på egen hand. Du kan ångra det i Värmeinställningar.",
+        "advise": "Ändra din kurvförskjutning (meny 1.1.1) från __from__ till __to__, så att din värmepump håller din temperatur även på egen hand.",
+        "slope_steeper": "Ditt hus blir svalare när det blir kallare ute. Höj din värmekurva (meny 1.30.1) ett steg.",
+        "slope_flatter": "Ditt hus blir varmare när det blir kallare ute. Sänk din värmekurva (meny 1.30.1) ett steg.",
+        "warning_offset": "Ändra kurvförskjutningen från __from__ till __to__ (meny 1.1.1).",
+        "warning_steeper": "Höj värmekurvan ett steg (meny 1.30.1).",
+        "warning_flatter": "Sänk värmekurvan ett steg (meny 1.30.1).",
+        "nothing_to_undo": "Autopilot har inte ändrat din kurvförskjutning."
+      }
     },
     "smart": {
       "no_spa": "Din värmepump har ingen Smart Price Adaption.",

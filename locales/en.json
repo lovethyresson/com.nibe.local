@@ -377,7 +377,17 @@
         "custom_comfort_weight_label": "Comfort weight",
         "custom_comfort_weight_hint": "What a degree away from your temperature costs against the money a shift saves. Higher keeps the house closer to your temperature.",
         "custom_preheat_lead_label": "How early a pre-heat may start",
-        "custom_preheat_lead_hint": "As a share of how slowly your house warms and cools (its time constant). 1 lets a pre-heat start a full time constant before a price peak."
+        "custom_preheat_lead_hint": "As a share of how slowly your house warms and cools (its time constant). 1 lets a pre-heat start a full time constant before a price peak.",
+        "curve_title": "Heating curve",
+        "curve_intro": "When Autopilot isn't running, your heat pump goes by its heating curve alone. After a week, Autopilot knows how far off it is.",
+        "curve_auto": "Adjust it for me",
+        "curve_auto_desc": "Autopilot changes the curve offset (menu 1.1.1) once, by up to 3 steps, and tells you in the Timeline. You can undo it here.",
+        "curve_self": "I'll do it myself",
+        "curve_self_desc": "Autopilot tells you in the Timeline what to change. Look for it after the first week.",
+        "row_curve": "Heating curve",
+        "curve_adjusted_row": "curve offset changed from __from__ to __to__",
+        "curve_undo": "Undo",
+        "curve_advice_row": "Change the curve offset from __from__ to __to__ (menu 1.1.1)"
       },
       "gets_added": "What gets added",
       "gets_added_intro": "These devices will be added.",
@@ -657,7 +667,17 @@
       "not_on": "Autopilot heating is off.",
       "no_thermostat": "The Heating device has no thermostat to set.",
       "away_time_past": "That time has already passed.",
-      "away_time_invalid": "Choose a date and a time for Away to end."
+      "away_time_invalid": "Choose a date and a time for Away to end.",
+      "curve": {
+        "adjusted": "Autopilot changed your curve offset (menu 1.1.1) from __from__ to __to__, so your heat pump holds your temperature on its own too. You can undo it in Heating setup.",
+        "advise": "Change your curve offset (menu 1.1.1) from __from__ to __to__, so your heat pump holds your temperature on its own too.",
+        "slope_steeper": "Your house gets cooler as it gets colder outside. Raise your heating curve (menu 1.30.1) by one step.",
+        "slope_flatter": "Your house gets warmer as it gets colder outside. Lower your heating curve (menu 1.30.1) by one step.",
+        "warning_offset": "Change the curve offset from __from__ to __to__ (menu 1.1.1).",
+        "warning_steeper": "Raise the heating curve by one step (menu 1.30.1).",
+        "warning_flatter": "Lower the heating curve by one step (menu 1.30.1).",
+        "nothing_to_undo": "Autopilot hasn't changed your curve offset."
+      }
     },
     "smart": {
       "no_spa": "Your heat pump has no Smart Price Adaption.",

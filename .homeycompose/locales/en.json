@@ -336,7 +336,17 @@
       "not_on": "Autopilot heating is off.",
       "no_thermostat": "The Heating device has no thermostat to set.",
       "away_time_past": "That time has already passed.",
-      "away_time_invalid": "Choose a date and a time for Away to end."
+      "away_time_invalid": "Choose a date and a time for Away to end.",
+      "curve": {
+        "adjusted": "Autopilot changed your curve offset (menu 1.1.1) from __from__ to __to__, so your heat pump holds your temperature on its own too. You can undo it in Heating setup.",
+        "advise": "Change your curve offset (menu 1.1.1) from __from__ to __to__, so your heat pump holds your temperature on its own too.",
+        "slope_steeper": "Your house gets cooler as it gets colder outside. Raise your heating curve (menu 1.30.1) by one step.",
+        "slope_flatter": "Your house gets warmer as it gets colder outside. Lower your heating curve (menu 1.30.1) by one step.",
+        "warning_offset": "Change the curve offset from __from__ to __to__ (menu 1.1.1).",
+        "warning_steeper": "Raise the heating curve by one step (menu 1.30.1).",
+        "warning_flatter": "Lower the heating curve by one step (menu 1.30.1).",
+        "nothing_to_undo": "Autopilot hasn't changed your curve offset."
+      }
     },
     "smart": {
       "no_spa": "Your heat pump has no Smart Price Adaption.",

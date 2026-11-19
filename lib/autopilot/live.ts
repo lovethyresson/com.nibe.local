@@ -20,7 +20,7 @@ import {SupplyCurve, curveInputFor} from './curve';
 import {effectivePrice} from './solar-surplus';
 import {Limits, PresetId} from './presets';
 import {SLOT_MS, slotOf} from './prices';
-import {TrimState, nextTrim} from './setpoint';
+import {TRIM_RANGE, TrimState, nextTrim} from './setpoint';
 
 /** `test` plans and reports without writing; `live` feeds BT1. */
 export type LiveMode = 'off' | 'test' | 'live';
@@ -655,6 +655,23 @@ export class HeatingFeed {
         this.hooks.planned?.(slot, input!.forecast, plan.plan.heat);
         this.hooks.changed();
         return undefined;
+    }
+
+    /** The heat curve offset moved (curve-advice.ts `trimShiftFor`): the curve now gives part of
+     *  what the trim's learned part gave, so that part moves by `deltaK` at once. Saved, and used
+     *  from the next slot. */
+    shiftTrim(deltaK: number) {
+        if (!Number.isFinite(deltaK) || deltaK === 0) return;
+        this.trimState ??= this.hooks.loadTrim?.() ?? {integral: 0};
+        const integral = Math.max(-TRIM_RANGE, Math.min(TRIM_RANGE, this.trimState.integral + deltaK));
+        this.trimState = {...this.trimState, integral};
+        this.hooks.saveTrim?.({integral});
+        this.hooks.log(`Autopilot heating: the heat curve offset moved, the trim's learned part by ${deltaK.toFixed(2)} K.`);
+    }
+
+    /** The trim's learned part, K of fed outdoor (positive warms). */
+    get learnedTrim(): number {
+        return (this.trimState ?? this.hooks.loadTrim?.() ?? {integral: 0}).integral;
     }
 
     /** No plan yet: the model is learning. Room-sensor control is off from the day Autopilot is

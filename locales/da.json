@@ -377,7 +377,17 @@
         "custom_comfort_weight_label": "Komfortvægt",
         "custom_comfort_weight_hint": "Hvad en grad fra din temperatur koster mod de penge, en forskydning sparer. Højere holder huset tættere på din temperatur.",
         "custom_preheat_lead_label": "Hvor tidligt forvarmning må starte",
-        "custom_preheat_lead_hint": "Som andel af, hvor langsomt dit hus varmes op og køles af (dets tidskonstant). 1 lader en forvarmning starte en hel tidskonstant før en pristop."
+        "custom_preheat_lead_hint": "Som andel af, hvor langsomt dit hus varmes op og køles af (dets tidskonstant). 1 lader en forvarmning starte en hel tidskonstant før en pristop.",
+        "curve_title": "Varmekurve",
+        "curve_intro": "Når Autopilot ikke kører, går din varmepumpe kun efter sin varmekurve. Efter en uge ved Autopilot, hvor meget den rammer ved siden af.",
+        "curve_auto": "Justér den for mig",
+        "curve_auto_desc": "Autopilot ændrer kurveforskydningen (menu 1.1.1) én gang, med højst 3 trin, og fortæller det i Tidslinjen. Du kan fortryde det her.",
+        "curve_self": "Jeg gør det selv",
+        "curve_self_desc": "Autopilot fortæller dig i Tidslinjen, hvad du skal ændre. Hold øje efter den første uge.",
+        "row_curve": "Varmekurve",
+        "curve_adjusted_row": "kurveforskydningen ændret fra __from__ til __to__",
+        "curve_undo": "Fortryd",
+        "curve_advice_row": "Ændr kurveforskydningen fra __from__ til __to__ (menu 1.1.1)"
       },
       "gets_added": "Dette tilføjes",
       "gets_added_intro": "Disse enheder tilføjes.",
@@ -657,7 +667,17 @@
       "not_on": "Autopilot for opvarmning er slået fra.",
       "no_thermostat": "Enheden Opvarmning har ingen termostat at indstille.",
       "away_time_past": "Det tidspunkt er allerede passeret.",
-      "away_time_invalid": "Vælg en dato og et tidspunkt, hvor Bortrejst skal slutte."
+      "away_time_invalid": "Vælg en dato og et tidspunkt, hvor Bortrejst skal slutte.",
+      "curve": {
+        "adjusted": "Autopilot ændrede din kurveforskydning (menu 1.1.1) fra __from__ til __to__, så din varmepumpe også selv holder din temperatur. Du kan fortryde det i Varmeopsætning.",
+        "advise": "Ændr din kurveforskydning (menu 1.1.1) fra __from__ til __to__, så din varmepumpe også selv holder din temperatur.",
+        "slope_steeper": "Dit hus bliver køligere, når det bliver koldere udenfor. Hæv din varmekurve (menu 1.30.1) ét trin.",
+        "slope_flatter": "Dit hus bliver varmere, når det bliver koldere udenfor. Sænk din varmekurve (menu 1.30.1) ét trin.",
+        "warning_offset": "Ændr kurveforskydningen fra __from__ til __to__ (menu 1.1.1).",
+        "warning_steeper": "Hæv varmekurven ét trin (menu 1.30.1).",
+        "warning_flatter": "Sænk varmekurven ét trin (menu 1.30.1).",
+        "nothing_to_undo": "Autopilot har ikke ændret din kurveforskydning."
+      }
     },
     "smart": {
       "no_spa": "Din varmepumpe har ingen Smart Price Adaption.",

@@ -225,6 +225,8 @@ export const sProfile = makeProfile({
         addHeat: "status_NIBE.i1029_additive_heat_active",
         // Room-sensor control, climate system 1 (id 12671, u8 0..3; docs/autopilot-plan.md §4.3).
         roomControl: 2978,
+        // "Set value for heating (curve offset)", menu 1.1.1 with room-sensor control off.
+        curveOffset: "curve_displacement_NIBE.h30_heat_curve_displacement",
     },
     spaSwitches: {master: "boolean_NIBE.h843_spa_activated", heating: "boolean_NIBE.h844_spa_heating_activated",
         hotwater: "boolean_NIBE.h846_spa_hotwater_activated",

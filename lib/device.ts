@@ -16,6 +16,7 @@ import {PeriodWatch, pricePeriods, startedTrigger} from './autopilot/heating-flo
 import {AWAY_UNTIL_SETTING, awayUntilLabel, readAwayUntil} from './autopilot/away';
 import {forecastCorrection} from './autopilot/outdoor';
 import {readTrim} from './autopilot/setpoint';
+import {CurveStore, REPEAT_DAYS, addSample, curveAdvice, isNews, readCurveStore, trimShiftFor} from './autopilot/curve-advice';
 import {WidgetData, aimingFor, chargeBands, symmetricAxis, formatDuration, heatingSlots, niceAxis, shiftBars, stripLead, ticks, todaySlots} from './autopilot/widget';
 import {HotwaterUseData, TodayRow, hotwaterWeek, useRuns} from './autopilot/hotwater-use';
 import {TankWidgetData, tankChart} from './autopilot/hotwater-tank';
@@ -75,6 +76,8 @@ const HOUSEHOLD_STORE = 'autopilotHotwaterHousehold';
 const RESERVE_STORE = 'autopilotReserve';
 /** Smart mode chosen in pairing, applied once when the device first runs (applyPairedSmartMode). */
 const PAIRED_SMART_STORE = 'pairedSmartMode';
+/** Heat curve advice (autopilot/curve-advice.ts): the owner's choice, daily samples, the last change. */
+const CURVE_STORE = 'autopilotHeatCurve';
 /** The Custom comfort range's values, set in Heating setup (live.ts CUSTOM_SETTINGS). */
 const CUSTOM_RANGE_STORE = 'autopilotCustomRange';
 /** The comfort range, set in Heating setup (no capability: it is not changed from the device). */
@@ -134,6 +137,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private periodWatch = new PeriodWatch();
     // The heating Smart mode as a feed mode, as last applied (syncHeatingFeed).
     private heatingMode: LiveMode = 'off';
+    /** The advice shown as the device warning, and whether a problem's warning is up instead
+     *  (problems always win; advice shows only with the adviceWarnings setting on). */
+    private adviceWarning?: string;
+    private problemWarning = false;
+    private adviceShown = false;
     private heatingStatusShown?: HeatingStatus;
     /** Analytics, edge-triggered: the heating status and block last reported, and heating's day. */
     private heatingStateTold = new Edge<HeatingStatus>();
@@ -783,6 +791,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (register.name === 'measure_temperature' && this.indoorReadOnly()) return;
         await this.publishMirrors(register, value);
         const spa = this.profile.spaSwitches;
+        // Awaited: a write by heat curve advice or Undo reads its own change back through here.
+        if (register.name === this.profile.autopilotFeed?.curveOffset && this.role === 'heating')
+            await this.curveOffsetRead(Number(value)).catch(this.error);
         if (spa && Object.values(spa).includes(register.name)) {
             const before = this.spaSeen.has(register.name) ? this.spaSeen.get(register.name) : null;
             this.spaSeen.set(register.name, value);
@@ -1306,7 +1317,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
      *  verified on the pump in pairing (pairing-pump.ts), so it is stored as verified. A failure
      *  is said on the device, never dropped: the owner can finish it in Repair. */
     private async applyPairedSmartMode() {
-        const paired = this.getStoreValue(PAIRED_SMART_STORE) as {mode?: string; verified?: boolean; range?: string; custom?: unknown} | null;
+        const paired = this.getStoreValue(PAIRED_SMART_STORE) as {mode?: string; verified?: boolean; range?: string; custom?: unknown; curve?: string} | null;
         if (!paired?.mode) return;
         await this.unsetStoreValue(PAIRED_SMART_STORE);
         const mode = smartMode(paired.mode);
@@ -1325,6 +1336,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 if (paired.range === 'custom') await this.setCustomRange(paired.custom);
                 else await this.setAutopilotProfile(paired.range);
             }
+            if (this.role === 'heating' && (paired.curve === 'auto' || paired.curve === 'self')) await this.setCurveChoice(paired.curve);
         } catch (error: any) {
             this.error('Smart mode from pairing could not be applied:', error?.message ?? error);
             await this.setWarning(this.homey.__('autopilot.smart.paired_failed', {reason: error?.message ?? String(error)})).catch(this.error);
@@ -1655,6 +1667,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.homey.settings.unset(`smartHistoryFile.${this.getData().id}`);
         this.homey.settings.set(`autopilotHistoryFile.${this.getData().id}`, file);
         this.autopilot = new AutopilotCollector(this.homey, file, (...args) => this.log(...args));
+        this.autopilot.onFit = () => this.checkHeatCurve().catch((error) => this.log('Heat curve advice:', error?.message ?? error));
         await this.autopilot.start();
         this.scheduleBackfill(BACKFILL_FIRST_MS, BACKFILL_TRIES);
         this.startHeatingFeed();
@@ -1757,8 +1770,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             readBack: () => this.readFedOutdoor(),
             feeding: (on) => collector.setFeeding(on),
             // Waiting on the forecast with a model in hand is not a problem to warn about.
-            warn: (reason) => (reason && !(reason === 'no_model' && this.autopilot?.houseSummary()) ? this.setWarning(this.homey.__(`autopilot.heating.warning.${reason}`))
-                : this.unsetWarning()).catch(this.error),
+            warn: (reason) => {
+                this.problemWarning = !!reason && !(reason === 'no_model' && this.autopilot?.houseSummary());
+                (this.problemWarning ? this.setWarning(this.homey.__(`autopilot.heating.warning.${reason}`)) : this.showAdviceWarning(true))
+                    .catch(this.error);
+            },
             changed: () => {
                 const state = this.heatingFeed?.state;
                 this.round().setHeating(state?.slot !== undefined && state.biases ? {slot: state.slot, biases: state.biases} : undefined,
@@ -2231,9 +2247,132 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             prices: this.autopilot?.hasPrices() ?? false,
             status: this.hasCapability(AUTOPILOT_REASON_CAPABILITY) ? this.getCapabilityValue(AUTOPILOT_REASON_CAPABILITY) : null,
             range: this.heatingRange(),
+            curve: this.heatCurveStatus(),
             ranges: rangeFacts(),
             custom: {spec: CUSTOM_SETTINGS, values: customValues(this.getStoreValue(CUSTOM_RANGE_STORE)), presets: customPresets()},
         };
+    }
+
+    // ---- Heat curve advice (autopilot/curve-advice.ts) ----
+
+    private heatCurveStore(): CurveStore {
+        return readCurveStore(this.getStoreValue(CURVE_STORE));
+    }
+
+    /** For Heating setup: the owner's choice, the change Autopilot made (for Undo), the advice now. */
+    heatCurveStatus() {
+        const store = this.heatCurveStore();
+        return {choice: store.choice, offset: store.offset ?? null,
+            adjusted: store.adjusted ? {from: store.adjusted.from, to: store.adjusted.to, at: store.adjusted.at} : null,
+            advice: store.told && dayNumber(Date.now()) - store.told.day < REPEAT_DAYS ? store.told : null};
+    }
+
+    /** Setup's choice: Autopilot changes the offset, or tells the owner to. */
+    async setCurveChoice(value: unknown) {
+        if (value !== 'auto' && value !== 'self') throw new Error(`Unknown heat curve choice ${value}`);
+        await this.setStoreValue(CURVE_STORE, {...this.heatCurveStore(), choice: value});
+    }
+
+    /** Hourly, after the house fit: today's sample of the trim, and the advice once it is steady.
+     *  With the owner's "auto", the offset is written once (at most every 30 days); otherwise the
+     *  advice goes to the timeline once and, with the setting on, to the device warning. */
+    private async checkHeatCurve() {
+        const name = this.profile.autopilotFeed?.curveOffset;
+        const collector = this.autopilot;
+        if (this.role !== 'heating' || !name || !collector || !this.heatingFeed || this.heatingMode !== 'live') return;
+        let store = this.heatCurveStore();
+        const facts = collector.curveFacts();
+        const today = dayNumber(Date.now());
+        if (facts.te !== undefined) store.samples = addSample(store.samples, {day: today, integral: this.heatingFeed.learnedTrim, te: facts.te});
+        const offset = Number(await this.readNamed(name));
+        const advice = curveAdvice({today, samples: store.samples, offset: Number.isFinite(offset) ? offset : undefined,
+            readyDays: facts.readyAt === undefined ? undefined : (Date.now() - facts.readyAt) / 86_400_000,
+            curveGain: facts.curveGain, stepK: facts.stepK, changed: store.changed});
+        const fmt = (v: number) => (v > 0 ? `+${v}` : String(v));
+        const say = (key: string, tokens?: Record<string, string>) =>
+            this.homey.notifications.createNotification({excerpt: this.homey.__(`autopilot.heating.curve.${key}`, tokens)}).catch(this.error);
+        let warning: string | undefined;
+        if (advice && advice.to !== advice.from && store.choice === 'auto') {
+            // The write reads itself back through setValue → curveOffsetRead, which moves the trim
+            // once from the offset stored here.
+            await this.setStoreValue(CURVE_STORE, {...store, offset: advice.from});
+            await this.writeRegister(this.profile.registerByName[name], advice.to);
+            store = {...this.heatCurveStore(), adjusted: {day: today, at: Date.now(), from: advice.from, to: advice.to}};
+            this.log(`Heat curve advice: offset ${advice.from} -> ${advice.to} (learned trim ${advice.integral.toFixed(2)} K, `
+                + `${advice.supplyK.toFixed(1)} K of supply).`);
+            await say('adjusted', {from: fmt(advice.from), to: fmt(advice.to)});
+        } else if (advice && isNews(advice, store.told, today)) {
+            if (advice.to !== advice.from) await say('advise', {from: fmt(advice.from), to: fmt(advice.to)});
+            if (advice.slope) await say(`slope_${advice.slope}`);
+            this.log(`Heat curve advice told: offset ${advice.from} -> ${advice.to}${advice.slope ? `, curve ${advice.slope}` : ''}.`);
+        }
+        if (advice) {
+            store.told = {day: store.told && !isNews(advice, store.told, today) ? store.told.day : today,
+                ...advice.to !== advice.from && store.choice !== 'auto' ? {to: advice.to} : {}, ...advice.slope ? {slope: advice.slope} : {}};
+            if (store.told.to !== undefined) warning = this.homey.__('autopilot.heating.curve.warning_offset', {from: fmt(advice.from), to: fmt(store.told.to)});
+            else if (store.told.slope) warning = this.homey.__(`autopilot.heating.curve.warning_${store.told.slope}`);
+        }
+        await this.setStoreValue(CURVE_STORE, store);
+        this.adviceWarning = warning;
+        await this.showAdviceWarning();
+    }
+
+    /** The offset as polled: a change from the last one seen, by anyone (Autopilot, Undo, the
+     *  owner on the pump or in myUplink), moves the trim, so curve and trim never give the same
+     *  heat twice. Kept in the store, so a change while Homey was off counts too. */
+    private async curveOffsetRead(value: number) {
+        if (!Number.isFinite(value)) return;
+        const store = this.heatCurveStore();
+        if (store.offset === value) return;
+        if (store.offset !== undefined) {
+            this.offsetMoved(store.offset, value, store, this.autopilot?.curveFacts() ?? {});
+            this.log(`Heat curve offset ${store.offset} -> ${value}.`);
+        }
+        store.offset = value;
+        await this.setStoreValue(CURVE_STORE, store);
+    }
+
+    /** One offset change, counted once: the trim moves, and advice waits for the new curve. */
+    private offsetMoved(from: number, to: number, store: CurveStore, facts: {curveGain?: number; stepK?: number}) {
+        if (from === to) return;
+        const shift = trimShiftFor(to - from, facts.curveGain, facts.stepK);
+        if (this.heatingFeed) this.heatingFeed.shiftTrim(shift);
+        else if (shift) {
+            const trim = readTrim(this.getStoreValue(TRIM_STORE));
+            this.setStoreValue(TRIM_STORE, {integral: readTrim({integral: trim.integral + shift}).integral}).catch(this.error);
+        }
+        store.offset = to;
+        store.changed = dayNumber(Date.now());
+        store.told = undefined;
+    }
+
+    /** Heating setup's Undo: the offset back to what it was before Autopilot changed it, and
+     *  from then on only told, never changed. */
+    async undoCurveAdjust() {
+        const name = this.profile.autopilotFeed?.curveOffset;
+        const store = this.heatCurveStore();
+        if (!name || !store.adjusted) throw new Error(this.homey.__('autopilot.heating.curve.nothing_to_undo'));
+        // The trim moves back through setValue → curveOffsetRead, as for any change.
+        await this.writeRegister(this.profile.registerByName[name], store.adjusted.from);
+        await this.setStoreValue(CURVE_STORE, {...this.heatCurveStore(), choice: 'self', adjusted: undefined});
+        this.adviceWarning = undefined;
+        await this.showAdviceWarning();
+    }
+
+    /** The device warning when no problem holds it: the advice, if the owner wants advice there. */
+    /** `clearing`: the feed's problem has ended, and its warning goes either way (as before). */
+    private async showAdviceWarning(clearing = false) {
+        if (this.problemWarning) return;
+        const on = this.getSettings().adviceWarnings !== false;
+        if (on && this.adviceWarning) {
+            await this.setWarning(this.adviceWarning);
+            this.adviceShown = true;
+        } else if (this.adviceShown || clearing) {
+            // Only what this device put there: another warning (an indoor alert, a failed pairing
+            // step) is not advice's to clear.
+            this.adviceShown = false;
+            await this.unsetWarning();
+        }
     }
 
     /** The Custom range from setup: its values kept on the device (clamped), then the range. */
@@ -3477,6 +3616,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             if (this.hasCapability(METER_CAPABILITY))
                 this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
         }
+        if (changedKeys.includes('adviceWarnings') && this.role === 'heating')
+            this.homey.setTimeout(() => this.showAdviceWarning().catch(this.error), 1000);
         if (changedKeys.includes('pollInterval')) {
             const seconds = clampPollSeconds(newSettings.pollInterval);
             this.log(`Poll interval set to ${seconds} s`);

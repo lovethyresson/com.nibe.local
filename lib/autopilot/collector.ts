@@ -19,6 +19,7 @@ import {SHADOW_PRESETS, ShadowMemory, curveViewOf, shadowForecast, shadowStep, w
 import {DP_PRESET, shadowOptimise} from './optimiser';
 import {PumpThresholds} from './actuator';
 import {LiveEntry, ShiftInput, indoorMean} from './live';
+import {gainBetween} from './curve';
 import {BackfillLogs, backfillSummary, backfillWindow, insertBackfill, slotsFromInsights, withWeather} from './heating-insights';
 
 const HOUR = 60 * 60 * 1000;
@@ -309,6 +310,21 @@ export class AutopilotCollector {
         if (forecast.length < 8) return undefined;
         return {house: fit.params, lever: fit.lever!, ti: last.ti, tm: fit.state.tm, mean, curve, bias: 0, forecast,
             supply: fit.pump?.supply, heatPerSupplyK: fit.pump?.heatPerSupplyK, cop: fit.pump?.cop};
+    }
+
+    /** What heat curve advice reads (curve-advice.ts): when the model became ready, the learned
+     *  curve's gain where the house has been over the last day, its supply per offset step if
+     *  measured, and the last day's mean outdoor temperature. */
+    curveFacts(): {readyAt?: number; curveGain?: number; stepK?: number; te?: number} {
+        const range = this.history.range();
+        const last = range.length ? range[range.length - 1] : undefined;
+        const te = last === undefined ? [] : range.filter((s) => s > last - 96)
+            .map((s) => this.history.get(s)!.te).filter(Number.isFinite);
+        const mean = te.length >= 48 ? te.reduce((a, b) => a + b, 0) / te.length : undefined;
+        const curve = this.fit?.curve;
+        return {readyAt: this.readyAt, te: mean,
+            curveGain: curve && mean !== undefined ? gainBetween(curve, mean - 5, mean + 5) : undefined,
+            stepK: curve?.offsetGain};
     }
 
     /** The 24 h indoor mean before `slot`, as liveInputs takes it: for the trim while the model

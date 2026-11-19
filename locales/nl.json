@@ -377,7 +377,17 @@
         "custom_comfort_weight_label": "Comfortgewicht",
         "custom_comfort_weight_hint": "Wat een graad van je temperatuur af kost tegenover het geld dat een verschuiving bespaart. Hoger houdt het huis dichter bij je temperatuur.",
         "custom_preheat_lead_label": "Hoe vroeg voorverwarmen mag beginnen",
-        "custom_preheat_lead_hint": "Als deel van hoe langzaam je huis opwarmt en afkoelt (de tijdconstante). Met 1 begint voorverwarmen een hele tijdconstante voor een prijspiek."
+        "custom_preheat_lead_hint": "Als deel van hoe langzaam je huis opwarmt en afkoelt (de tijdconstante). Met 1 begint voorverwarmen een hele tijdconstante voor een prijspiek.",
+        "curve_title": "Stooklijn",
+        "curve_intro": "Als Autopilot niet draait, volgt je warmtepomp alleen zijn stooklijn. Na een week weet Autopilot hoeveel die ernaast zit.",
+        "curve_auto": "Pas hem voor me aan",
+        "curve_auto_desc": "Autopilot wijzigt de verschuiving van de stooklijn (menu 1.1.1) één keer, met maximaal 3 stappen, en meldt het in de Tijdlijn. Je kunt het hier ongedaan maken.",
+        "curve_self": "Ik doe het zelf",
+        "curve_self_desc": "Autopilot vertelt je in de Tijdlijn wat je moet wijzigen. Let erop na de eerste week.",
+        "row_curve": "Stooklijn",
+        "curve_adjusted_row": "verschuiving stooklijn gewijzigd van __from__ naar __to__",
+        "curve_undo": "Ongedaan maken",
+        "curve_advice_row": "Wijzig de verschuiving van de stooklijn van __from__ naar __to__ (menu 1.1.1)"
       },
       "gets_added": "Dit wordt toegevoegd",
       "gets_added_intro": "Deze apparaten worden toegevoegd.",
@@ -657,7 +667,17 @@
       "not_on": "Autopilot voor verwarming staat uit.",
       "no_thermostat": "Het apparaat Verwarming heeft geen thermostaat om in te stellen.",
       "away_time_past": "Dat tijdstip is al voorbij.",
-      "away_time_invalid": "Kies een datum en een tijd waarop Afwezig stopt."
+      "away_time_invalid": "Kies een datum en een tijd waarop Afwezig stopt.",
+      "curve": {
+        "adjusted": "Autopilot heeft de verschuiving van je stooklijn (menu 1.1.1) gewijzigd van __from__ naar __to__, zodat je warmtepomp je temperatuur ook zelf vasthoudt. Je kunt het ongedaan maken in Verwarming instellen.",
+        "advise": "Wijzig de verschuiving van je stooklijn (menu 1.1.1) van __from__ naar __to__, zodat je warmtepomp je temperatuur ook zelf vasthoudt.",
+        "slope_steeper": "Je huis wordt koeler als het buiten kouder wordt. Zet je stooklijn (menu 1.30.1) één stap hoger.",
+        "slope_flatter": "Je huis wordt warmer als het buiten kouder wordt. Zet je stooklijn (menu 1.30.1) één stap lager.",
+        "warning_offset": "Wijzig de verschuiving van de stooklijn van __from__ naar __to__ (menu 1.1.1).",
+        "warning_steeper": "Zet de stooklijn één stap hoger (menu 1.30.1).",
+        "warning_flatter": "Zet de stooklijn één stap lager (menu 1.30.1).",
+        "nothing_to_undo": "Autopilot heeft de verschuiving van je stooklijn niet gewijzigd."
+      }
     },
     "smart": {
       "no_spa": "Je warmtepomp heeft geen Smart Price Adaption.",

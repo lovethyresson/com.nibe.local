@@ -1042,6 +1042,27 @@ Runs every 15 min and on new prices or weather. Horizon: 24–36 h of slots.
        constant off by up to 40 %, cold spells, ±7 K swings, sensor noise): better than the old
        trim on 185–200, worse on none; the gain starts to misbehave at 5. With the planner on top
        (`dev/simulate-trim-planner.ts`) see the numbers there.
+     - **Heating curve advice (2026-11-19, `curve-advice.ts`).** The trim's learned part is how
+       far the owner's heating curve is from holding the setpoint. Once the model has been ready a
+       week and the learned part has stayed within 0.4 K for 3 days, it is read as a curve offset
+       (register 30, menu 1.1.1 "set value for heating (curve offset)" with room-sensor control off,
+       −10 – 10): learned K × the curve's gain where the house has been ÷ supply K per step (the
+       curve fit's `offsetGain`, else NIBE's "+2 steps = +5 °C", 2.5, which errs towards fewer steps;
+       the S1155 measured 1.53), at most ±3 steps, at most once in 30 days. Heating setup asks once:
+       **Adjust it for me** (default: Autopilot writes the offset once and says so in the Timeline,
+       with Undo in Heating setup) or **I'll do it myself** (the Timeline, and the device warning
+       when the Advanced setting "Show advice as a device warning" is on; problems always win the
+       warning slot). A learned part that moves with the outdoor temperature (≥ 0.15 K per K over
+       ≥ 5 K of daily means) is a slope that is off: advice only, raise or lower the curve (1.30.1)
+       one step, since a curve number changes the heat differently in every kind of weather. Any
+       offset change, by Autopilot, Undo or the owner on the pump, moves the trim's learned part
+       by the heat the curve now gives itself (`trimShiftFor`), so the two never correct the same
+       error twice; the last offset seen is stored, so a change while Homey was off counts too.
+       Why: the curve is what holds the house whenever Autopilot can't (Homey down, the app
+       restarting), and room-sensor control, which used to cover a curve that was never set, is
+       off. NIBE's own tip matches the split: constantly too warm or cold is the offset (1.1.1),
+       changing with the weather is the slope (1.30.1); menus checked in the S1155, SMO S40, VVM
+       S320, S735 and S1255 installer manuals.
      - **The daily heat check (2026-11-19, `heat-check.ts`).** Indoor alone cannot tell more heat
        loss with more free gains from less of both; the S1155 fit settled ~10 % low, so plans
        expected less heat than the meter delivered (Plan vs actual 13–16 % low). The model's two

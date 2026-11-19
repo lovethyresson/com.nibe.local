@@ -268,6 +268,17 @@ test('while learning, the pump\'s guards still hold, and without a setpoint or a
     }
 });
 
+test('a curve offset change moves the trim\'s learned part once, and it is saved', async () => {
+    const {feed, state} = harness({setpoint: 21});
+    state.trim = {integral: 2};
+    assert.equal(feed.learnedTrim, 2);
+    feed.shiftTrim(-1.5);
+    assert.equal(feed.learnedTrim, 0.5);
+    assert.deepEqual(state.trim, {integral: 0.5});
+    feed.shiftTrim(-50);
+    assert.equal(feed.learnedTrim, -10, 'within the trim\'s range');
+});
+
 test('a wait clears at the next slot', async () => {
     const {feed, state, advance} = harness({facts: {spaHeating: true}});
     feed.start();

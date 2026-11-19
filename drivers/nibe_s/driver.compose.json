@@ -1629,6 +1629,27 @@
           }
         },
         {
+          "id": "adviceWarnings",
+          "type": "checkbox",
+          "label": {
+            "en": "Show advice as a device warning",
+            "sv": "Visa råd som enhetsvarning",
+            "de": "Ratschläge als Gerätewarnung anzeigen",
+            "nl": "Advies tonen als apparaatwaarschuwing",
+            "no": "Vis råd som enhetsvarsel",
+            "da": "Vis råd som enhedsadvarsel"
+          },
+          "hint": {
+            "en": "For example a heating curve to adjust. Problems always show.",
+            "sv": "Till exempel en värmekurva att justera. Problem visas alltid.",
+            "de": "Zum Beispiel eine Heizkurve, die angepasst werden sollte. Probleme werden immer angezeigt.",
+            "nl": "Bijvoorbeeld een stooklijn om aan te passen. Problemen worden altijd getoond.",
+            "no": "For eksempel en varmekurve som bør justeres. Problemer vises alltid.",
+            "da": "For eksempel en varmekurve, der bør justeres. Problemer vises altid."
+          },
+          "value": true
+        },
+        {
           "id": "debugLogging",
           "type": "checkbox",
           "label": {

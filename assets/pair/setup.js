@@ -63,13 +63,14 @@ function NibeSetup(options) {
         error = el('p', '', 'setup-error'); error.setAttribute('role', 'alert'); shell.appendChild(error);
     }
     function fail(err) { error.textContent = err && err.message || String(err); }
-    var LOCAL = {smart_choose: true, hotwater_household: true, hotwater_reserve: true, heating_range: true};
+    var LOCAL = {smart_choose: true, hotwater_household: true, hotwater_reserve: true, heating_range: true, heating_curve: true};
     function emit(event, data) {
         if (options.mode === 'pair' && LOCAL[event]) {
             var saved = ap.saved = ap.saved || {};
             if (event === 'smart_choose') saved.mode = data.value;
             else if (event === 'hotwater_household') saved.household = data;
             else if (event === 'heating_range') { saved.range = data.value; if (data.custom) saved.custom = data.custom; }
+            else if (event === 'heating_curve') saved.curve = data.value;
             else saved.reserve = data.litres;
             return Promise.resolve(true);
         }
@@ -501,7 +502,7 @@ function NibeSetup(options) {
             tiles.appendChild(tile);
         });
         shell.appendChild(tiles);
-        shell.appendChild(button(t('next'), function () { rangeStep(pumpStep, expect); }, true));
+        shell.appendChild(button(t('next'), rangeThenCurve, true));
         back(apIndoor);
     }
     // ---- Comfort range: one explained choice per range, with an example day. The numbers come
@@ -708,6 +709,25 @@ function NibeSetup(options) {
         show(current);
         back(from);
     }
+    /** Starting Autopilot: the comfort range, then the heating curve, then the pump's checklist. */
+    function rangeThenCurve() { rangeStep(function () { curveStep(pumpStep, rangeThenCurve); }, expect); }
+    function signed(v) { return v > 0 ? '+' + v : String(v); }
+    /** Who changes the curve offset once Autopilot has learned how far off the heating curve is
+     *  (curve-advice.ts): Autopilot, once, or the owner, told in the Timeline. */
+    function curveStep(next, from) {
+        var st = ap.status || {};
+        var choice = ap.curve || (st.curve && st.curve.choice) || 'auto';
+        clear(setupTitle(), a('curve_intro'));
+        view.querySelector('.pair-hero-title').textContent = a('curve_title');
+        shell.appendChild(radios('ap-curve', [
+            {id: 'auto', title: a('curve_auto'), description: a('curve_auto_desc')},
+            {id: 'self', title: a('curve_self'), description: a('curve_self_desc')},
+        ], choice, function (id) { choice = id; }));
+        var go = button(t('next'), function () {
+            emit('heating_curve', {value: choice}).then(function () { ap.curve = choice; next(); }).catch(fail);
+        }, true);
+        shell.appendChild(go); back(from);
+    }
     /** What the pump needs for this combination of indoor source and Smart mode, in one list. */
     function pumpStep() {
         var st = ap.status;
@@ -812,6 +832,22 @@ function NibeSetup(options) {
             var range = ap.range || st.range;
             row(a('row_range'), ALL_RANGES.indexOf(range) >= 0 ? rangeName(range) : '—',
                 function () { rangeStep(function () { st.range = ap.range; summary(); }, summary); });
+        }
+        if (runsNow) {
+            var curve = st.curve || {choice: 'self'};
+            var choice = ap.curve || curve.choice;
+            var text = a(choice === 'auto' ? 'curve_auto' : 'curve_self');
+            if (curve.adjusted) text += ' · ' + a('curve_adjusted_row', {from: signed(curve.adjusted.from), to: signed(curve.adjusted.to)});
+            else if (curve.advice && curve.advice.to !== undefined && curve.offset !== null)
+                text += ' · ' + a('curve_advice_row', {from: signed(curve.offset), to: signed(curve.advice.to)});
+            var undo = curve.adjusted ? smallAction(a('curve_undo'), function () { busy(undo, async function () {
+                st.curve = await emit('heating_curve_undo'); ap.curve = 'self'; summary();
+            }); }) : null;
+            var curveRow = checkRow(true, a('row_curve'), text, smallAction(a('change'), function () {
+                curveStep(function () { summary(); }, summary);
+            }));
+            if (undo) curveRow.lastChild.appendChild(undo);
+            list.appendChild(curveRow);
         }
         if (runsNow) row(a('row_indoor'), readHomey || active ? a('indoor_homey', {n: selected.length}) : a('indoor_pump'), apIndoor);
         else row(a('row_indoor'), useHomey ? a('indoor_homey', {n: selected.length}) : a('indoor_pump'), temperature);

@@ -86,6 +86,17 @@ hours. Price shifting starts once all three hold:
 The Heating device's Autopilot status shows the day count, then which check is still open. A day
 with gaps in the readings doesn't count. Once it has started, it keeps running.
 
+### Will Autopilot change my heating curve?
+
+Only if you chose **Adjust it for me** in Heating setup. After the first week, Autopilot knows how far
+your heating curve is from holding your temperature. It then changes the curve offset (menu 1.1.1)
+once, by up to 3 steps, and tells you in the Timeline. You can undo it in Heating setup. With **I'll
+do it myself**, it tells you what to change instead. It never changes the heating curve itself (menu
+1.30.1); if that is off, it tells you which way.
+
+Why it matters: when Autopilot isn't running, for example while Homey restarts, your heat pump goes
+by its heating curve alone.
+
 ### Why does the app need permission to access other Homey devices?
 
 It uses Homey's API permission to find temperature sensors, show their rooms, and read their

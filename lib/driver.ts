@@ -1368,6 +1368,11 @@ export abstract class NibePumpDriver extends Driver {
         }
         this.registerHomeSetupHandlers(session, device.role === 'heating');
         if (device.role === 'heating') session.setHandler('activate_autopilot', async () => device.activateAutopilotHeating());
+        // Heat curve advice (autopilot/curve-advice.ts): the owner's choice, and Undo.
+        if (device.role === 'heating') {
+            session.setHandler('heating_curve', async (data: any) => { await device.setCurveChoice(data?.value); return true; });
+            session.setHandler('heating_curve_undo', async () => { await device.undoCurveAdjust(); return device.heatCurveStatus(); });
+        }
         // The comfort range from setup's range step (Repair): one of the explained ranges.
         if (device.role === 'heating') session.setHandler('heating_range', async (data: any) => {
             const value = String(data?.value);

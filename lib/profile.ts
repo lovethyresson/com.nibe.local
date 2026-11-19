@@ -205,7 +205,9 @@ export interface ModelProfile {
     // Autopilot heating's live BT1 feed (lib/autopilot/live.ts): the register it writes, the one
     // that shows what the pump took, Smart price adaption's switches for heating (all on = active),
     // the immersion heater, and room-sensor control's raw holding address (no capability).
-    autopilotFeed?: {bt1: string; outdoor: string; spa: string[]; addHeat: string; roomControl?: number};
+    /** `curveOffset`: the heat curve offset setting, which heat curve advice reads and, when the
+     *  owner chose it, writes (autopilot/curve-advice.ts). */
+    autopilotFeed?: {bt1: string; outdoor: string; spa: string[]; addHeat: string; roomControl?: number; curveOffset?: string};
     // Smart price adaption's master switch, each function's own and each function's SPA controls:
     // Smart mode (smart-mode.ts) writes the switches, hides the controls while Autopilot runs, and
     // flips a function to SPA when the pump turns its switch on by itself.
