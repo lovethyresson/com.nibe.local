@@ -12,7 +12,7 @@
  *  Switched by heating's Smart mode (smart-mode.ts): `test` plans and reports without writing,
  *  `autopilot` feeds. Design: docs/autopilot-plan.md §4.1, §7.2, §7.6, §10.0. */
 import {ActuatorOutput, PumpThresholds, RAMP_K_PER_SLOT, fedValue} from './actuator';
-import {HouseParams} from './model';
+import {HouseParams, envelopeTau} from './model';
 import {ForecastBias, OutdoorReading, realOutdoor} from './outdoor';
 import {COP, Comfort, ForecastSlot, Plan, PumpCurve, planShift, simulate} from './planner';
 import {CopModel} from './cop';
@@ -647,8 +647,9 @@ export class HeatingFeed {
         return undefined;
     }
 
-    /** Move the learned trim for this slot. Live learns; Simulated holds it. At most an hour
-     *  counts, so a restart or a pause does not land as one big step. */
+    /** Move the trim for this slot (setpoint.ts). Live learns; Simulated holds the learned part.
+     *  At most an hour counts, so a restart or a pause does not land as one big step. The learned
+     *  part is stored when it moves; the recovery history lives in memory. */
     private steer(slot: number, input: ShiftInput) {
         const setpoint = this.hooks.setpoint?.();
         this.setpoint = setpoint !== undefined && Number.isFinite(setpoint) ? setpoint : undefined;
@@ -656,13 +657,12 @@ export class HeatingFeed {
         this.trimState ??= this.hooks.loadTrim?.() ?? {integral: 0};
         const hours = this.trimSlot === undefined ? 0 : Math.min(1, Math.max(0, (slot - this.trimSlot) * 0.25));
         const next = nextTrim(this.trimState, {setpoint: this.setpoint, mean: input.mean, hours,
-            integrate: this.hooks.mode() === 'live'});
+            integrate: this.hooks.mode() === 'live', tauHours: envelopeTau(input.house)});
         this.trimSlot = slot;
         this.trim = Math.round(next.trim * 10) / 10;
-        if (next.state.integral !== this.trimState.integral) {
-            this.trimState = next.state;
-            this.hooks.saveTrim?.(next.state);
-        }
+        const moved = next.state.integral !== this.trimState.integral;
+        this.trimState = next.state;
+        if (moved) this.hooks.saveTrim?.({integral: next.state.integral});
     }
 
     private warn(reason?: StopReason) {

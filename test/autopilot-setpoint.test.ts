@@ -1,29 +1,68 @@
 import {test} from 'node:test';
 import assert from 'node:assert';
-import {INTEGRATE_WITHIN, TRIM_KI, TRIM_RANGE, nextTrim, readTrim} from '../lib/autopilot/setpoint';
+import {DEFAULT_TAU_H, HOLD_BEYOND, RECOVERY_H, TRIM_KP, TRIM_RANGE, TRIM_SPEED, TrimState, nextTrim, readTrim}
+    from '../lib/autopilot/setpoint';
 
-const base = {setpoint: 21, mean: 21, hours: 0.25, integrate: true};
+const base = {setpoint: 21, mean: 21, hours: 0.25, integrate: true, tauHours: 96};
 
 test('at the setpoint the trim is just what it has learned', () => {
-    assert.deepEqual(nextTrim({integral: -3}, base), {trim: -3, state: {integral: -3}});
+    assert.equal(nextTrim({integral: -3}, base).trim, -3);
+    assert.equal(nextTrim({integral: -3}, base).state.integral, -3);
 });
 
-test('a house below the setpoint learns a pre-heat, above it an ease-off', () => {
+test('below the setpoint it warms at once, and learns the rest at the house\'s own speed', () => {
     const cold = nextTrim({integral: 0}, {...base, mean: 20.5, hours: 1});
-    assert.ok(Math.abs(cold.trim - TRIM_KI * 0.5) < 1e-9, 'an hour of 0.5 K adds Ki × 0.5');
-    assert.ok(nextTrim({integral: 0}, {...base, mean: 21.5, hours: 1}).trim < 0);
+    const learned = 0.5 * TRIM_SPEED / 96;
+    assert.ok(Math.abs(cold.state.integral - learned) < 1e-9, 'an hour of 0.5 K adds speed / τ × 0.5');
+    assert.ok(Math.abs(cold.trim - (learned + TRIM_KP * 0.5)) < 1e-9, 'plus the proportional part');
+    assert.ok(nextTrim({integral: 0}, {...base, mean: 21.5, hours: 1}).trim < 0, 'above it eases off');
 });
 
-test('the trim learns only while live, and only near the setpoint', () => {
-    assert.equal(nextTrim({integral: 1}, {...base, mean: 20, integrate: false}).state.integral, 1, 'Simulated holds it');
-    assert.equal(nextTrim({integral: 1}, {...base, mean: 21 - INTEGRATE_WITHIN - 0.5, hours: 1}).state.integral, 1,
-        'far off (a setpoint jump, Away) is the planner\'s to close, not the trim\'s to learn');
+test('a heavy house learns more slowly than a light one', () => {
+    const light = nextTrim({integral: 0}, {...base, mean: 20.5, hours: 1, tauHours: 48}).state.integral;
+    const heavy = nextTrim({integral: 0}, {...base, mean: 20.5, hours: 1, tauHours: 240}).state.integral;
+    assert.ok(light > 4 * heavy, `${light} vs ${heavy}`);
+    // Without a time constant a default is used, never a division by nothing.
+    const unknown = nextTrim({integral: 0}, {...base, mean: 20.5, hours: 1, tauHours: undefined}).state.integral;
+    assert.ok(Math.abs(unknown - 0.5 * TRIM_SPEED / DEFAULT_TAU_H) < 1e-9);
+});
+
+test('while the house is already recovering the learned part waits', () => {
+    // Six hours ago it was 0.6 K below; now 0.3 K: catching up, so nothing more is added.
+    let state: TrimState = {integral: 1};
+    state = nextTrim(state, {...base, mean: 20.4, hours: 0.25}).state;
+    for (let h = 0; h < RECOVERY_H * 4; h++) state = nextTrim(state, {...base, mean: 20.4 + 0.3 * h / (RECOVERY_H * 4), hours: 0.25}).state;
+    const before = state.integral;
+    const now = nextTrim(state, {...base, mean: 20.7, hours: 0.25});
+    assert.equal(now.state.integral, before);
+    assert.ok(now.trim > before, 'the proportional part still pushes');
+    // Still 0.6 K below after six hours: not recovering, it learns.
+    let stuck: TrimState = {integral: 1};
+    for (let h = 0; h <= RECOVERY_H * 4; h++) stuck = nextTrim(stuck, {...base, mean: 20.4, hours: 0.25}).state;
+    assert.ok(stuck.integral > 1);
+});
+
+test('a jump of the setpoint (Away) holds the trim still instead of chasing it', () => {
+    const before = nextTrim({integral: 0.8}, {...base, mean: 20.8});
+    const away = nextTrim(before.state, {...base, setpoint: 16, mean: 20.8, hours: 1});
+    assert.ok(Math.abs(16 - 20.8) > HOLD_BEYOND);
+    assert.equal(away.trim, before.trim);
+    assert.equal(away.state.integral, before.state.integral);
+    // Back near the setpoint it moves again.
+    assert.notEqual(nextTrim(away.state, {...base, mean: 20.5, hours: 1}).trim, before.trim);
+});
+
+test('Simulated shows the trim but learns nothing', () => {
+    const shown = nextTrim({integral: 1}, {...base, mean: 20.5, hours: 1, integrate: false});
+    assert.equal(shown.state.integral, 1);
+    assert.equal(shown.trim, 1 + TRIM_KP * 0.5);
 });
 
 test('the trim never passes its range', () => {
-    let state = {integral: 0};
-    for (let i = 0; i < 5000; i++) state = nextTrim(state, {...base, mean: 20.2, hours: 1}).state;
+    let state: TrimState = {integral: 0};
+    for (let i = 0; i < 5000; i++) state = nextTrim(state, {...base, mean: 19.5, hours: 1, tauHours: 12}).state;
     assert.equal(state.integral, TRIM_RANGE);
+    assert.equal(nextTrim(state, {...base, mean: 19.5}).trim, TRIM_RANGE);
 });
 
 test('a stored trim reads back, and anything else reads as none', () => {
