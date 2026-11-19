@@ -1719,6 +1719,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             neutral: () => this.heatingRange() === 'off',
             sunTrust: () => this.autopilot?.sunReady()
                 ? sunTrust(this.autopilotAway() ? 'save_most' : this.heatingRange()) : 0,
+            indoorMean: (slot) => this.autopilot?.indoorMeanAt(slot),
             plan: (slot) => {
                 const planned = this.autopilot?.liveInputs(slot);
                 if (!planned) return planned;

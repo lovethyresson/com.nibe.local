@@ -892,10 +892,19 @@ band.
 
 - "Model ready" = 6 h RMSE < 0.35 K over 7 days, at least 5 valid days, and τ stable within 15 %
   over 3 days.
-- Before that, Autopilot heating doesn't steer: the status is Learning and names the first test
-  still open (days, accuracy, stability). Once met, `readyAt` is kept with the model, so a later
-  day that misses a test doesn't stop live heating. (Built 2026-11-15; the trim-only phase this
-  line used to plan was never built, and live steered on any first fit until then.)
+- Before that, Autopilot heating shifts nothing for price: the status is Learning and names the
+  first test still open (days, accuracy, stability). Once met, `readyAt` is kept with the model, so
+  a later day that misses a test doesn't stop live heating. (Built 2026-11-15.)
+- **The trim holds the setpoint while it learns (2026-11-19, live.ts `learn`).** Room-sensor
+  control is off from the day Autopilot is chosen, and until then it had held the house on a curve
+  the owner never had to set. Without the trim, that curve held the house alone for the 3–8 days
+  of learning. Now the trim runs from the first slot with 12 h of indoor readings and a setpoint,
+  at the default time constant (72 h) until the model's is known; the pump's guards hold as with a
+  plan. `dev/simulate-trim-dayone.ts`, 200 houses with curves up to ±4 K off in level as well as
+  slope: worst day of days 1–5 at the 90th percentile 1.0 K against 3.1 K on the bare curve (cold
+  spell), 1.4 against 3.3 (±7 K swings); better on 163–180 houses, worse on at most 5, by at most
+  0.12 K rms. Heavy houses (τ > 150 h) overshoot a little more at the default speed (90th
+  percentile 0.7–0.9 K against 0.5).
 
 ### 6.5 House insights (settings labels, written only when the rounded value changes)
 
@@ -1024,8 +1033,10 @@ Runs every 15 min and on new prices or weather. Horizon: 24–36 h of slots.
        K·h, learning within 1 K) left the S1155 at 21.9–22.2 °C against 22.5 for days: about
        0.2 K a day, and on a heavy house its lag carried it past the target. Now, on setpoint −
        24 h mean: `TRIM_KP` 2 K per K at once; the rest learned at `TRIM_SPEED` 4 ÷ the model's
-       envelope time constant, paused while the error is already shrinking (6 h back); held
-       still beyond 2 K, and for 24 h after the setpoint changes (Away starting or ending, the
+       envelope time constant, paused while the error is already shrinking (6 h back); an error
+       beyond 2 K counts as 2 K (it held still there until the same day, which left houses whose curve
+       was set over 2 K off uncorrected for good: 59 of 200 in `dev/simulate-trim-dayone.ts`); held
+       still for 24 h after the setpoint changes (Away starting or ending, the
        thermostat), while the 24 h mean still holds the old target's hours. Chosen on 200 simulated houses
        (`dev/simulate-trim.ts`: light to slab, curves 40 % too flat to 20 % too steep, the time
        constant off by up to 40 %, cold spells, ±7 K swings, sensor noise): better than the old

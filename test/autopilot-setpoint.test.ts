@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert';
-import {DEFAULT_TAU_H, HOLD_BEYOND, RECOVERY_H, SETTLE_H, TRIM_KP, TRIM_RANGE, TRIM_SPEED, TrimState, nextTrim, readTrim}
+import {DEFAULT_TAU_H, MAX_ERROR, RECOVERY_H, SETTLE_H, TRIM_KP, TRIM_RANGE, TRIM_SPEED, TrimState, nextTrim, readTrim}
     from '../lib/autopilot/setpoint';
 
 const base = {setpoint: 21, mean: 21, hours: 0.25, integrate: true, tauHours: 96};
@@ -45,13 +45,20 @@ test('while the house is already recovering the learned part waits', () => {
 test('a jump of the setpoint (Away) holds the trim still instead of chasing it', () => {
     const before = nextTrim({integral: 0.8}, {...base, mean: 20.8});
     const away = nextTrim(before.state, {...base, setpoint: 16, mean: 20.8, hours: 1});
-    assert.ok(Math.abs(16 - 20.8) > HOLD_BEYOND);
     assert.equal(away.trim, before.trim);
     assert.equal(away.state.integral, before.state.integral);
     // Back at the old setpoint it holds a day longer (the mean still holds Away), then moves again.
     let state = away.state;
     for (let h = 0; h < SETTLE_H; h++) state = nextTrim(state, {...base, mean: 20.5, hours: 1}).state;
     assert.notEqual(nextTrim(state, {...base, mean: 20.5, hours: 1}).trim, before.trim);
+});
+
+test('far from the setpoint it still steers, no faster than at MAX_ERROR', () => {
+    // A curve set 4 K low: the house sits 3 K under. It used to hold still here, for good.
+    const far = nextTrim({integral: 0}, {...base, mean: 18, hours: 1});
+    const edge = nextTrim({integral: 0}, {...base, mean: 21 - MAX_ERROR, hours: 1});
+    assert.ok(far.trim > 0);
+    assert.deepEqual(far, edge);
 });
 
 test('Simulated shows the trim but learns nothing', () => {

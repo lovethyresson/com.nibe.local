@@ -75,7 +75,9 @@ temperature to hold: your heat pump's own sensor or Homey sensors.
 
 ### How long does Autopilot heating learn before it starts?
 
-At least 5 days. It starts once all three hold:
+At least 5 days, or 3 if your Homey already has a few weeks of readings from your heat pump. Until
+then Autopilot keeps your house at the thermostat temperature, but doesn't move heating to cheaper
+hours. Price shifting starts once all three hold:
 
 - 5 days with enough readings to learn from.
 - It predicts your indoor temperature 6 hours ahead within 0.35 °C.

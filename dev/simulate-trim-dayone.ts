@@ -8,13 +8,15 @@
 // on the curve. The model is "ready" on day READY (no price planner here); until then the trim
 // only knows the default time constant, after it the model's (off by up to ±40 %).
 // Compared, scored on each day's indoor mean against the target, days 1–14:
-//   bare curve        what ships today: nothing steers until the model is ready, then the trim
-//   day one           the shipped trim from day 0 (default τ until ready)
-//   day one, clamp    the same, but an error beyond HOLD_BEYOND is clamped instead of held
+//   bare until ready  nothing steers until the model is ready, then the trim (before 2026-11-19)
+//   day one           the trim from day 0 (default τ until ready), as shipped
+// An error beyond 2 K used to hold the trim still; with that, 59 of 200 houses (curves ±4 K off,
+// cold weather) were still more than 2 K off on day 14 under "bare until ready". It now counts as
+// MAX_ERROR, and none are.
 //
 //   npx tsx dev/simulate-trim-dayone.ts [--houses 200] [--seed 7] [--weather cold|swing] [--offset 4] [--ready 6]
 import {HouseParams, stepHouse} from '../lib/autopilot/model';
-import {DEFAULT_TAU_H, HOLD_BEYOND, TrimState, nextTrim} from '../lib/autopilot/setpoint';
+import {DEFAULT_TAU_H, MAX_ERROR, TrimState, nextTrim} from '../lib/autopilot/setpoint';
 
 const arg = (name: string, fallback: string) => {
     const i = process.argv.indexOf(`--${name}`);
@@ -36,12 +38,10 @@ function rng(seed: number) {
     return () => (s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296;
 }
 
-type Variant = {name: string; from: number; clamp: boolean};
+type Variant = {name: string; from: number};
 const variants: Variant[] = [
-    {name: 'bare curve (today)', from: READY, clamp: false},
-    {name: 'bare, then clamp', from: READY, clamp: true},
-    {name: 'day one', from: 0, clamp: false},
-    {name: 'day one, clamp', from: 0, clamp: true},
+    {name: 'bare until ready', from: READY},
+    {name: 'day one', from: 0},
 ];
 
 function run(house: HouseParams, flat: number, offset: number, lagH: number, tauModel: number, v: Variant, noise: () => number) {
@@ -58,8 +58,7 @@ function run(house: HouseParams, flat: number, offset: number, lagH: number, tau
         const te = outdoor(k), day = k / 96;
         seen.push(ti + noise());
         if (day >= v.from) {
-            let m = mean(seen.slice(-96));
-            if (v.clamp) m = SP - Math.max(-HOLD_BEYOND, Math.min(HOLD_BEYOND, SP - m));
+            const m = mean(seen.slice(-96));
             const next = nextTrim(state, {setpoint: SP, mean: m, hours: SLOT_H, integrate: true,
                 tauHours: day >= READY ? tauModel : DEFAULT_TAU_H});
             state = next.state;
@@ -99,12 +98,12 @@ for (const v of variants) {
         'overshoot p90/max', `${pct(over, .9).toFixed(2)}/${Math.max(...over).toFixed(2)}`,
         ' heavy', `${pct(overHeavy, .9).toFixed(2)}/${Math.max(...overHeavy).toFixed(2)}`);
 }
-const bare = res.get('bare curve (today)')!;
-for (const v of variants) {
+const bare = res.get('bare until ready')!;
+for (const v of variants.slice(1)) {
     const r = res.get(v.name)!, rms = (d: number[]) => Math.sqrt(mean(d.slice(1).map((e) => e * e)));
     const worse = r.map((d, i) => rms(d) - rms(bare[i])).filter((x) => x > 0.05);
     console.log(`${v.name} vs bare: better on ${r.filter((d, i) => rms(d) < rms(bare[i]) - 0.05).length}, worse on ${worse.length}`
         + (worse.length ? ` (by at most ${Math.max(...worse).toFixed(2)} K rms)` : ''));
-    const stuck = r.filter((d) => Math.abs(d.at(-1)!) > HOLD_BEYOND).length;
-    console.log(`  still beyond ${HOLD_BEYOND} K on day 14: ${stuck} houses`);
+    const stuck = r.filter((d) => Math.abs(d.at(-1)!) > MAX_ERROR).length;
+    console.log(`  still beyond ${MAX_ERROR} K on day 14: ${stuck} houses`);
 }

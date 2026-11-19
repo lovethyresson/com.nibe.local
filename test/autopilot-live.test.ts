@@ -82,7 +82,7 @@ test('no pre-heat while the immersion heater runs; coasting is still allowed', (
 
 /** A fake pump: 5217 writes show on input 1 unless `deaf`. Timers run by hand. */
 function harness(over: {mode?: LiveMode; facts?: Partial<PumpFacts>; sensor?: number; forecast?: number; deaf?: boolean;
-    plan?: ShiftInput | undefined; setpoint?: number} = {}) {
+    plan?: ShiftInput | undefined; setpoint?: number; mean?: number} = {}) {
     let now = 1_800_000 * SLOT_MS + 1000;
     let input1: number | undefined;
     const state = {
@@ -97,6 +97,7 @@ function harness(over: {mode?: LiveMode; facts?: Partial<PumpFacts>; sensor?: nu
         neutral: () => state.neutral,
         sunTrust: () => 0,
         plan: () => ('plan' in over ? over.plan : input({curve: 3})),
+        indoorMean: () => over.mean,
         setpoint: () => state.setpoint,
         loadTrim: () => state.trim,
         saveTrim: (t) => { state.trim = t; state.saves++; },
@@ -230,6 +231,41 @@ test('without a model it plans as soon as one lands, not at the next slot', asyn
     await feed.cycle();
     assert.equal(feed.state.stopped, undefined, 'the first fit after a restart, a cycle later');
     assert.equal(state.writes.length, 1);
+});
+
+test('while the model learns, the trim alone holds the setpoint', async () => {
+    const over: {plan?: any; setpoint: number; mean: number} = {plan: undefined, setpoint: 21, mean: 20.5};
+    const {feed, state, advance} = harness(over as any);
+    feed.start();
+    await feed.cycle();
+    assert.equal(feed.state.stopped, undefined, 'feeding, not waiting');
+    assert.equal(feed.state.learning, true);
+    assert.equal(feed.state.biases, undefined, 'no price plan');
+    assert.ok(feed.state.trim! > 0, '0.5 K under warms');
+    assert.equal(state.writes.at(-1), Math.round((3 - feed.state.trim!) * 10) / 10, 'fed colder by the trim');
+    assert.equal(state.records.at(-1)?.reason, 'learning');
+    // The model lands: the next slot plans, under the same trim.
+    over.plan = input({curve: 3});
+    advance(SLOT_MS);
+    await feed.cycle();
+    const planned = feed.state;
+    assert.equal(planned.learning, undefined);
+    assert.ok(planned.biases?.length);
+});
+
+test('while learning, the pump\'s guards still hold, and without a setpoint or a mean it waits', async () => {
+    const room = harness({plan: undefined, setpoint: 21, mean: 20.5, facts: {roomControl: 1}} as any);
+    room.feed.start();
+    await room.feed.cycle();
+    assert.equal(room.feed.state.stopped, 'room_control');
+    assert.deepEqual(room.state.writes, []);
+    for (const over of [{setpoint: undefined, mean: 20.5}, {setpoint: 21, mean: undefined}]) {
+        const {feed, state} = harness({plan: undefined, ...over} as any);
+        feed.start();
+        await feed.cycle();
+        assert.equal(feed.state.stopped, 'no_model');
+        assert.deepEqual(state.writes, []);
+    }
 });
 
 test('a wait clears at the next slot', async () => {

@@ -74,6 +74,12 @@ test('learning shows progress; waits are paused with their reason; off is off', 
         'a feed that failed is not quietly off');
 });
 
+test('the trim alone while learning reads as learning', () => {
+    const learning = {days: 2, needed: 5, ready: false, missing: ['days' as const]};
+    assert.deepEqual(heatingStatus(live({bias: 1, trim: 1, learning: true}), now, t, time, learning),
+        {status: 'learning', reason: 'learning_day(day=2,of=5)'});
+});
+
 test('Comfort range Off is holding, and says why', () => {
     assert.deepEqual(heatingStatus(live({neutral: true}), now, t, time), {status: 'holding', reason: 'range_off'});
 });

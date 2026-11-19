@@ -311,6 +311,12 @@ export class AutopilotCollector {
             supply: fit.pump?.supply, heatPerSupplyK: fit.pump?.heatPerSupplyK, cop: fit.pump?.cop};
     }
 
+    /** The 24 h indoor mean before `slot`, as liveInputs takes it: for the trim while the model
+     *  learns (live.ts `learn`). */
+    indoorMeanAt(slot: number): number | undefined {
+        return indoorMean(this.history.range().filter((s) => s >= slot - 96).map((s) => this.history.get(s)!.ti));
+    }
+
     /** The real outdoor temperature's sources for now: the sensor's latest reading (≤ 2 min old,
      *  it is read every minute) and the forecast for this slot, with the correction to apply. */
     /** Prices and forecast outdoor temperature for `n` slots from `from`, as far as known: what the

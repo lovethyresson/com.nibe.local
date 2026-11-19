@@ -331,6 +331,9 @@ export interface FeedHooks {
     neutral(): boolean;
     /** The model and forecast for the slot about to start; undefined without them. */
     plan(slot: number): ShiftInput | undefined;
+    /** The house's 24 h indoor mean, for the trim while there is no plan (the model learning);
+     *  undefined with under 12 h of readings. */
+    indoorMean?(slot: number): number | undefined;
     /** The thermostat setpoint the house is steered to (setpoint.ts), or undefined to leave the
      *  level to the curve. */
     setpoint?(): number | undefined;
@@ -411,6 +414,8 @@ export interface FeedSnapshot {
     sunTrusted?: boolean;
     /** Away ends at this time inside the plan, and the plan warms the house for it. */
     back?: number;
+    /** No plan yet (the model learning): it feeds the trim alone, to hold the setpoint. */
+    learning?: boolean;
 }
 
 /** The 30 s BT1 feed and the 15-min shift planner, on the Heating device. */
@@ -442,6 +447,8 @@ export class HeatingFeed {
     private setpoint?: number;
     private trimSlot?: number;
     private trimState?: TrimState;
+    /** Feeding the trim alone while the model learns (`replan`). */
+    private learning = false;
     /** The return (Away's end, ms) whose warm-up has started: it holds until that return, and
      *  across a restart, where the warmer house would otherwise get a shorter lead and coast. */
     private warmingFor?: number;
@@ -462,7 +469,7 @@ export class HeatingFeed {
             real: this.real?.value, stopped: this.stopState, slot: this.plan?.slot, biases: this.plan?.biases,
             forecast: this.plan?.forecast, planReason: this.plan?.reason, indoor: this.plan?.indoor, neutral: this.neutral || undefined,
             sunTrusted: this.hooks.sunTrust() > 0 || undefined, trim: this.trim || undefined, setpoint: this.setpoint,
-            back: this.plan?.back};
+            back: this.plan?.back, learning: this.learning || undefined};
     }
 
     start() {
@@ -494,6 +501,7 @@ export class HeatingFeed {
         if (this.stopped && this.stopState) return;
         this.stopped = true;
         this.stopState = reason;
+        this.learning = false;
         if (this.timer) this.hooks.clearTimeout(this.timer);
         this.timer = undefined;
         if (this.work) await this.work.catch(() => undefined);
@@ -620,11 +628,13 @@ export class HeatingFeed {
         this.facts = await this.hooks.pump();
         const input = this.hooks.plan(slot);
         this.limits = input ? liveLimits(this.hooks.limits(), input) : this.hooks.limits();
-        const wait = stopReason(this.facts, input !== undefined);
+        if (!input) return this.learn(slot);
+        this.learning = false;
+        const wait = stopReason(this.facts, true);
         if (wait) return wait;
         this.slotBias = this.bias;
         // `input.curve` is the curve's view of what the pump saw (history `bt1`), our feed included.
-        this.steer(slot, input!);
+        this.steer(slot, input.mean, input.house);
         // The planner aims at the thermostat (setpoint.ts): its band is setpoint ± range and its
         // expected path heads there. It plans the shift; the learned trim is under it.
         // Away with an end time: the setpoint steps back up there, and the plan warms ahead of it.
@@ -647,17 +657,42 @@ export class HeatingFeed {
         return undefined;
     }
 
+    /** No plan yet: the model is learning. Room-sensor control is off from the day Autopilot is
+     *  chosen, so the trim holds the setpoint from then, alone, with no price shift: otherwise the
+     *  owner's curve, never set while that control held the house, would hold it alone for the
+     *  days of learning (setpoint.ts). The pump's guards hold as with a plan. Waits without a
+     *  setpoint or 12 h of indoor readings. */
+    private async learn(slot: number): Promise<StopReason | undefined> {
+        this.learning = false;
+        const wait = stopReason(this.facts, true);
+        if (wait) return wait;
+        const mean = this.hooks.indoorMean?.(slot);
+        if (mean === undefined) return 'no_model';
+        this.slotBias = this.bias;
+        this.steer(slot, mean, undefined);
+        if (this.setpoint === undefined) return 'no_model';
+        this.learning = true;
+        this.target = 0;
+        this.previous = undefined;
+        this.plan = undefined;
+        this.hooks.record({slot, bias: this.bias, trim: this.trim, setpoint: this.setpoint, fed: this.lastFed?.fed, real: this.real?.value,
+            source: this.real?.source, clamped: this.lastFed?.clamped ?? [], planned: [], reason: 'learning'});
+        this.hooks.changed();
+        return undefined;
+    }
+
     /** Move the trim for this slot (setpoint.ts). Live learns; Simulated holds the learned part.
      *  At most an hour counts, so a restart or a pause does not land as one big step. The learned
      *  part is stored when it moves; the recovery history lives in memory. */
-    private steer(slot: number, input: ShiftInput) {
+    private steer(slot: number, mean: number, house: HouseParams | undefined) {
         const setpoint = this.hooks.setpoint?.();
         this.setpoint = setpoint !== undefined && Number.isFinite(setpoint) ? setpoint : undefined;
         if (this.setpoint === undefined) { this.trim = 0; return; }
         this.trimState ??= this.hooks.loadTrim?.() ?? {integral: 0};
         const hours = this.trimSlot === undefined ? 0 : Math.min(1, Math.max(0, (slot - this.trimSlot) * 0.25));
-        const next = nextTrim(this.trimState, {setpoint: this.setpoint, mean: input.mean, hours,
-            integrate: this.hooks.mode() === 'live', tauHours: envelopeTau(input.house)});
+        // While learning the house's time constant is not known yet: the default's (setpoint.ts).
+        const next = nextTrim(this.trimState, {setpoint: this.setpoint, mean, hours,
+            integrate: this.hooks.mode() === 'live', tauHours: house && envelopeTau(house)});
         this.trimSlot = slot;
         this.trim = Math.round(next.trim * 10) / 10;
         const moved = next.state.integral !== this.trimState.integral;
@@ -676,6 +711,7 @@ export class HeatingFeed {
         if (this.stopState === reason) return;
         const first = this.stopState === undefined;
         this.stopState = reason;
+        this.learning = false;
         this.bias = 0;
         this.target = 0;
         this.plan = undefined;

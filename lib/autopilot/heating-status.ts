@@ -93,7 +93,8 @@ export function heatingStatus(s: FeedSnapshot, now: number, t: Translate, time: 
     const test = s.mode === 'test';
     const say = (text: string) => (test ? t('test', {text}) : text);
     if (s.mode === 'off' && s.stopped !== 'feed_failed') return {status: 'off', reason: ''};
-    if (s.stopped === 'no_model') {
+    // Learning: no plan, or the trim alone while the model learns (live.ts `learn`).
+    if (s.stopped === 'no_model' || (s.learning && !s.stopped)) {
         // Not read yet (just after a restart): nothing is known about learning.
         if (!learning) return {status: 'holding', reason: say(t('starting'))};
         if (learning.ready) return {status: 'holding', reason: say(t('waiting'))};

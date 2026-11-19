@@ -23,8 +23,17 @@
  *    shrinking (`RECOVERY_H`): the house is catching up, and adding more would overshoot.
  *  - After the setpoint changes (Away starting or ending, the owner's thermostat) the trim holds
  *    still for `SETTLE_H`: the 24 h mean still holds the old target's hours, and read as an error
- *    it would add warmth to a house the planner has already brought there. Beyond `HOLD_BEYOND`
- *    of error it holds still too. The planner does the jump, the trim the level.
+ *    it would add warmth to a house the planner has already brought there. The planner does the
+ *    jump, the trim the level.
+ *  - An error beyond `MAX_ERROR` counts as `MAX_ERROR`. It used to hold the trim still instead,
+ *    which left a house whose curve was set more than 2 K off never corrected: 59 of 200 simulated
+ *    houses were still over 2 K off after two weeks (dev/simulate-trim-dayone.ts). The Away jump
+ *    it was for is the settle's now.
+ *  It runs from the day Autopilot is chosen, before the house model is ready (live.ts): room-sensor
+ *  control is off from then, and the owner's curve, never set while that control held the house,
+ *  would otherwise hold it alone for the days of learning. Then it only knows the default time
+ *  constant. On 200 simulated houses with curves up to 4 K off, the worst day of the first five
+ *  was 1.0 K off at the 90th percentile against 3.1 K on the bare curve.
  *  Chosen on 200 simulated houses (light to slab-heavy, curves 40 % too flat to 20 % too steep,
  *  model numbers off by up to 40 %, cold spells and ±7 K weather swings, ±0.2 K sensor noise):
  *  better than the integral-only trim on 194–200 of them and worse on none
@@ -42,8 +51,9 @@ export const TRIM_SPEED = 4;
 /** The time constant used when the house's is unknown, and the range one is trusted in, hours. */
 export const DEFAULT_TAU_H = 72;
 export const TAU_RANGE_H = [12, 14 * 24] as const;
-/** Further than this from the setpoint the trim holds still, K. */
-export const HOLD_BEYOND = 2;
+/** An error larger than this counts as this, K: a sensor gone wrong or a curve far off moves the
+ *  trim no faster than a 2 K error does. */
+export const MAX_ERROR = 2;
 /** A setpoint change of more than `SETPOINT_STEP` holds the trim still this long, hours. */
 export const SETTLE_H = 24;
 export const SETPOINT_STEP = 0.2;
@@ -56,7 +66,7 @@ export interface TrimState {
     integral: number;
     /** Recent errors with their age, hours, for the recovery test. In memory only. */
     recent?: {error: number; age: number}[];
-    /** The trim last given, held while the error is beyond `HOLD_BEYOND`. In memory only. */
+    /** The trim last given, held while settling or without a mean. In memory only. */
     last?: number;
     /** The setpoint last seen, and hours left holding still after it changed. In memory only. */
     setpoint?: number;
@@ -77,12 +87,13 @@ export interface TrimInput {
 
 /** The trim for this slot and the state to keep. */
 export function nextTrim(state: TrimState, input: TrimInput): {trim: number; state: TrimState} {
-    const error = input.setpoint - input.mean;
+    const raw = input.setpoint - input.mean;
+    const error = Math.max(-MAX_ERROR, Math.min(MAX_ERROR, raw));
     const hours = Math.max(0, Number.isFinite(input.hours) ? input.hours : 0);
     const changed = state.setpoint !== undefined && Math.abs(input.setpoint - state.setpoint) > SETPOINT_STEP;
     const settling = changed ? SETTLE_H : Math.max(0, (state.settling ?? 0) - hours);
-    if (!Number.isFinite(error) || Math.abs(error) > HOLD_BEYOND || settling > 0) {
-        // A jump, a new setpoint, or no mean: hold what was given. The recovery history starts over.
+    if (!Number.isFinite(raw) || settling > 0) {
+        // A new setpoint, or no mean: hold what was given. The recovery history starts over.
         const held = state.last ?? clamp(state.integral);
         return {trim: held, state: {integral: state.integral, recent: [], last: held, setpoint: input.setpoint, settling}};
     }
