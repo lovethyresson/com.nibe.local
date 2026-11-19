@@ -34,6 +34,19 @@ test('pre-heating says until when', () => {
     assert.match(heatingStatus(s, now, t, time).reason, /^preheating\(until=s2\), before\(why=peak/);
 });
 
+test('the setpoint trim alone is holding, not pre-heating for a price', () => {
+    // 2026-11-19 17:13: the house 0.8 K under its setpoint, the plan flat until a pre-heat at 21:00,
+    // and the widget said "Pre-heating until 17:00, before prices peak 18:00–18:15".
+    const s = live({bias: 1.2, trim: 1.2, biases: [0, 0, 0, 2, 2], forecast: forecast([3.6, 3.65, 3.5, 2.5, 2.3])});
+    assert.deepEqual(heatingStatus(s, now, t, time), {status: 'holding', reason: 'next_preheating(at=s3)'});
+});
+
+test('pre-heating names the peak it is for, not the highest price left', () => {
+    // Pre-heat now, ease off at s4–s5 (price 4); s8 is higher but far beyond the run.
+    const s = live({bias: 2, biases: [2, 2, 0, 0, -2, -2, 0, 0, 0], forecast: forecast([1, 1, 2, 2, 4, 4, 2, 2, 4.2])});
+    assert.equal(heatingStatus(s, now, t, time).reason, 'preheating(until=s2), before(why=peak(from=s4,to=s6))');
+});
+
 test('holding names the next move, or why there is none', () => {
     assert.deepEqual(heatingStatus(live({biases: [0, 0, -2], forecast: forecast([1, 1, 3])}), now, t, time),
         {status: 'holding', reason: 'next_easing_off(at=s2)'});

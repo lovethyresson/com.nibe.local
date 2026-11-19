@@ -30,8 +30,8 @@ export type Translate = (key: string, tokens?: Record<string, string | number>) 
 
 /** The run of the highest prices in the horizon: slots within 10 % of the spread from the top,
  *  around the most expensive one. Undefined when the prices are flat. */
-export function pricePeak(prices: number[]): {from: number; to: number} | undefined {
-    return priceRun(prices, 1);
+export function pricePeak(prices: number[], within?: [number, number]): {from: number; to: number} | undefined {
+    return priceRun(prices, 1, within);
 }
 
 /** The run of the lowest prices, the same way: slots within 10 % of the spread from the bottom,
@@ -40,7 +40,10 @@ export function priceTrough(prices: number[]): {from: number; to: number} | unde
     return priceRun(prices, -1);
 }
 
-function priceRun(raw: number[], sign: 1 | -1): {from: number; to: number} | undefined {
+/** `within` [from, to) picks the top inside that window; the run and its 10 % still come from the
+ *  whole horizon, so a window whose top is well below the horizon's is named no peak. */
+function priceRun(raw: number[], sign: 1 | -1, within: [number, number] = [0, raw.length]):
+    {from: number; to: number} | undefined {
     const prices = raw.map((p) => sign * p);
     const ok = prices.filter(Number.isFinite);
     if (ok.length === 0) return undefined;
@@ -48,7 +51,10 @@ function priceRun(raw: number[], sign: 1 | -1): {from: number; to: number} | und
     const min = Math.min(...ok);
     if (max - min < 1e-9) return undefined;
     const floor = max - 0.1 * (max - min);
-    const top = prices.indexOf(max);
+    let top = -1;
+    for (let k = Math.max(0, within[0]); k < Math.min(prices.length, within[1]); k++)
+        if (Number.isFinite(prices[k]) && (top < 0 || prices[k] > prices[top])) top = k;
+    if (top < 0 || prices[top] < floor) return undefined;
     let from = top;
     let to = top;
     while (from > 0 && prices[from - 1] >= floor) from--;
@@ -72,6 +78,15 @@ function runEnd(biases: number[], from: number, sign: number): number {
     return k;
 }
 
+/** The easing-off run that follows a pre-heat ending at `end`: from its first eased slot to its
+ *  last, or the rest of the plan when none follows. */
+function afterRun(biases: number[], end: number): [number, number] {
+    let from = end;
+    while (from < biases.length && Math.abs(biases[from]) < SHIFT_K) from++;
+    if (from >= biases.length || biases[from] > 0) return [end, biases.length || Infinity];
+    return [from, runEnd(biases, from, -1)];
+}
+
 /** `on` formats a time that may be days away (Away's return), with its day when not today. */
 export function heatingStatus(s: FeedSnapshot, now: number, t: Translate, time: (ms: number) => string,
     learning?: Learning, on: (ms: number) => string = time): {status: HeatingStatus; reason: string} {
@@ -90,13 +105,19 @@ export function heatingStatus(s: FeedSnapshot, now: number, t: Translate, time: 
     const slot0 = s.slot ?? Math.floor(now / SLOT_MS);
     // Where in the plan "now" is: the plan was made at its slot's start.
     const at = Math.max(0, Math.min(biases.length, Math.floor(now / SLOT_MS) - slot0));
-    const prices = (s.forecast ?? []).map((f) => f.price);
-    const peak = pricePeak(prices.slice(at));
+    const prices = (s.forecast ?? []).map((f) => f.price).slice(at);
     const clock = (k: number) => time((slot0 + k) * SLOT_MS);
-    const peakText = peak ? t('peak', {from: clock(at + peak.from), to: clock(at + peak.to)}) : '';
-    const sign = Math.abs(s.bias) < SHIFT_K ? 0 : Math.sign(s.bias);
+    // The plan's own shift, never the setpoint trim inside the bias: a house held up to its
+    // setpoint is not pre-heating for a price.
+    const shift = at < biases.length ? biases[at] : s.bias - (s.trim ?? 0);
+    const sign = Math.abs(shift) < SHIFT_K ? 0 : Math.sign(shift);
     if (sign !== 0) {
         const end = runEnd(biases, at, sign);
+        // The peak this run is for: inside an easing-off run, or the easing-off run after a
+        // pre-heat.
+        const within: [number, number] = sign < 0 ? [at, end] : afterRun(biases, end);
+        const peak = pricePeak(prices, [within[0] - at, within[1] - at]);
+        const peakText = peak ? t('peak', {from: clock(at + peak.from), to: clock(at + peak.to)}) : '';
         const until = clock(end);
         const key = sign < 0 ? 'easing_off' : 'preheating';
         // Easing off with no price peak to name: the sun, when the plan counts it.
