@@ -1,6 +1,7 @@
 import {CaptureSummary, logCaptureSummary} from './diagnostic-capture';
 import {IndoorConfig, averageSensors, cleanIndoorConfig, readOnlyIndoorConfig, selectedReadings, withApi} from './indoor-sensors';
-import {Controls, AutopilotCollector} from './autopilot/collector';
+import {Controls, AutopilotCollector, OUTDOOR_SENSOR_SETTING} from './autopilot/collector';
+import {BACKFILL_FIELDS, BackfillField, LogSource, anyLogRead, backfillSources, fetchHeatingInsights} from './autopilot/heating-insights';
 import {newHistoryFileName} from './autopilot/store-file';
 import {Baseline, LEDGER_DAYS, moneyText, partialDay, ModeMark, SavingsData, SavingsDay, baselineOf, dayHours, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay} from './autopilot/savings';
 import {ChargeEvent, HotwaterAutopilot, HotwaterMode, TankView, ownDeviceId} from './autopilot/hotwater-shadow';
@@ -51,6 +52,13 @@ import type {LocalizedText, ModelProfile} from './profile';
 import {ConnectionProblem, PumpConnection, PumpSubscriber, POLL_SECONDS_DEFAULT, Transport,
     clampPollSeconds, inLanguage} from './connection';
 
+/** Device store key (Heating): when the one-time Insights backfill of Autopilot's history ran
+ *  (autopilot/heating-insights.ts) and how many slots it put in. Set once it ran, found or not. */
+const BACKFILL_STORE = 'autopilotBackfill';
+/** The backfill waits for init to settle, then retries while the device has no Homey id yet. */
+const BACKFILL_FIRST_MS = 3 * 60_000;
+const BACKFILL_RETRY_MS = 10 * 60_000;
+const BACKFILL_TRIES = 6;
 /** The setpoint trim's integral (autopilot/setpoint.ts), kept across restarts. */
 const TRIM_STORE = 'autopilotTrim';
 // The Away return whose warm-up has started (live.ts `warmingFor`).
@@ -116,6 +124,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private static indoorOwners = new Map<string, NibePumpDevice>();
     // Autopilot history, collected on Heating (lib/autopilot). Reads only.
     private autopilot: AutopilotCollector | null = null;
+    private backfillTimer: any;
     // Hot water Autopilot in shadow, on Hot water, while the app setting below is on. Reads only.
     private hotwaterAutopilot: HotwaterAutopilot | null = null;
     private heatingFeed: HeatingFeed | null = null;
@@ -1641,7 +1650,55 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.homey.settings.set(`autopilotHistoryFile.${this.getData().id}`, file);
         this.autopilot = new AutopilotCollector(this.homey, file, (...args) => this.log(...args));
         await this.autopilot.start();
+        this.scheduleBackfill(BACKFILL_FIRST_MS, BACKFILL_TRIES);
         this.startHeatingFeed();
+    }
+
+    private scheduleBackfill(ms: number, tries: number) {
+        if (this.getStoreValue(BACKFILL_STORE) != null) return;
+        this.backfillTimer = this.homey.setTimeout(() => {
+            this.backfillTimer = undefined;
+            this.backfillAutopilotHistory(tries).catch((error) => this.log('Autopilot history: backfill failed:', error?.message ?? error));
+        }, ms);
+    }
+
+    /** Once per device: fill Autopilot's history before its first polled slot from this pump's
+     *  Insights, so the house model fits on day one. Runs off init; needs the device's Homey id,
+     *  which a just-paired device may not have yet, so it retries a few times and otherwise tries
+     *  again at the next start. Reads only. */
+    private async backfillAutopilotHistory(tries: number) {
+        const collector = this.autopilot;
+        const spec = this.profile.autopilotHistory;
+        if (!collector || !spec || this.getStoreValue(BACKFILL_STORE) != null) return;
+        const done = (slots: number) => this.setStoreValue(BACKFILL_STORE, {at: Date.now(), slots});
+        if (!collector.backfillWindow()) return done(0);
+        const appId = this.homey.manifest?.id ?? 'com.nibe.local';
+        const dataIds = new Set(this.pumpDevices().map((d) => String(d.getData().id)));
+        const {te, ...rest} = spec.numeric;
+        const named: Record<string, string | undefined> = {...rest, bt1: te};
+        const capabilities = Object.fromEntries(BACKFILL_FIELDS.filter((f) => named[f]).map((f) => [f, named[f]])) as
+            Partial<Record<BackfillField, string>>;
+        const ref = this.homey.settings.get(OUTDOOR_SENSOR_SETTING) as LogSource | null;
+        const sensor = ref?.deviceId && ref.capabilityId ? ref : undefined;
+        const found = await withApi(this.homey, async (api) => {
+            const devices = await api.devices.getDevices({$timeout: 10_000});
+            const ownId = ownDeviceId(devices, appId, String(this.getData().id));
+            if (!ownId) return undefined;
+            const pumpIds = Object.entries(devices ?? {}).filter(([, d]: [string, any]) =>
+                String(d?.driverId ?? '').startsWith(`homey:app:${appId}:`) && dataIds.has(String(d?.data?.id))).map(([id]) => id);
+            const sources = backfillSources(devices, ownId, pumpIds, capabilities, sensor);
+            const pause = (ms: number) => new Promise<void>((resolve) => this.homey.setTimeout(resolve, ms));
+            return fetchHeatingInsights(api, sources, pause);
+        }).catch((error: any) => {
+            this.log('Autopilot history: could not read Insights for the backfill:', error?.message ?? error);
+            return undefined;
+        });
+        if (this.autopilot !== collector) return;
+        if (!found || !anyLogRead(found)) {
+            if (tries > 1) this.scheduleBackfill(BACKFILL_RETRY_MS, tries - 1);
+            return;
+        }
+        await done(await collector.backfill(found, sensor && `${sensor.deviceId}/${sensor.capabilityId}`));
     }
 
     /** Autopilot heating (live.ts), run by heating's Smart mode: `test` plans and reports,
@@ -3441,6 +3498,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         await this.stopHeatingFeed();
         // History first: an app update may not wait for the rest. If it doesn't wait at all, the
         // hourly save bounds the loss to an hour, and the model re-anchors across the gap.
+        if (this.backfillTimer) this.homey.clearTimeout(this.backfillTimer);
         await this.autopilot?.stop(this.connection?.currentPollSeconds() ?? 10).catch(this.error);
         this.autopilot = null;
         this.hotwaterAutopilot?.stop();
@@ -3467,6 +3525,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     async onDeleted() {
         await this.stopHeatingFeed();
         await this.stopIndoor();
+        if (this.backfillTimer) this.homey.clearTimeout(this.backfillTimer);
         await this.autopilot?.remove().catch(this.error);
         this.autopilot = null;
         await this.hotwaterAutopilot?.remove().catch(this.error);

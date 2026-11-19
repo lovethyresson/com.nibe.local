@@ -41,8 +41,12 @@ export const FIELDS = [
 ] as const;
 export type Field = typeof FIELDS[number];
 /** fedOutdoor: input 1 was a fed BT1. sensorOutdoor / forecastOutdoor: where `te` came from
- *  (neither: input 1). */
-export const FLAG = {partial: 1, reconnect: 2, costs: 4, fedOutdoor: 8, sensorOutdoor: 16, forecastOutdoor: 32} as const;
+ *  (neither: input 1). backfill: built from Homey Insights before the first polled slot
+ *  (heating-insights.ts), so `coverage` is NaN. hourly: a backfilled slot interpolated from
+ *  buckets longer than a slot; the model weighs its indoor reading as a quarter of one (model.ts
+ *  `INTERPOLATED_VARIANCE`) and never scores its accuracy on it. */
+export const FLAG = {partial: 1, reconnect: 2, costs: 4, fedOutdoor: 8, sensorOutdoor: 16, forecastOutdoor: 32,
+    backfill: 64, hourly: 128} as const;
 
 /** Room-sensor control off in this slot. The S1155 on zone firmware keeps reporting 202 as on
  *  whatever the menu says, but answers the curve offset (30) only with the loop off: on

@@ -18,6 +18,7 @@ import {ForecastBias, forecastCorrection, learnForecastBias, newForecastBias, us
 import {SHADOW_PRESETS, ShadowMemory, curveViewOf, shadowForecast, shadowStep, wiredOf} from './shadow';
 import {PumpThresholds} from './actuator';
 import {LiveEntry, ShiftInput, indoorMean} from './live';
+import {BackfillLogs, backfillSummary, backfillWindow, insertBackfill, slotsFromInsights, withWeather} from './heating-insights';
 
 const HOUR = 60 * 60 * 1000;
 /** App setting: the Homey sensor the owner picked for outdoor, a SensorRef. Setup will write it
@@ -224,6 +225,36 @@ export class AutopilotCollector {
         return this.history;
     }
 
+    /** The slots an Insights backfill could still fill; undefined when there are none. */
+    backfillWindow(): {from: number; until: number} | undefined {
+        return this.stopped ? undefined : backfillWindow(this.history, slotOf(Date.now()));
+    }
+
+    /** Fill the history before its first polled slot from the Heating device's Insights
+     *  (heating-insights.ts), with the recent past's weather, then save and refit at once so the
+     *  owner sees a model without waiting for the hourly fit. Returns how many slots went in. */
+    async backfill(logs: BackfillLogs, sensorId?: string): Promise<number> {
+        const window = this.backfillWindow();
+        if (!window) return 0;
+        let slots = slotsFromInsights(logs, window.from, window.until, sensorId);
+        if (!slots.length) return 0;
+        const days = Math.min(31, Math.ceil((Date.now() - slots[0].slot * SLOT_MS) / (24 * HOUR)) + 1);
+        const weather = await this.pastWeather(days).catch((error) => {
+            this.log('Autopilot history: no past weather for the backfill:', error?.message ?? error);
+            return new Map<number, WeatherSlot>();
+        });
+        slots = withWeather(slots, weather, (slot) => forecastCorrection(this.forecastBias, this.localHour(slot)));
+        if (this.stopped) return 0;
+        const put = insertBackfill(this.history, slots, slotOf(Date.now()));
+        const summary = backfillSummary(slots);
+        this.log(`Autopilot history: backfilled ${put} slots from Insights (${summary.days} days, ${summary.hourly} from hourly means, `
+            + `${slots.filter((s) => weather.has(s.slot)).length} with weather).`);
+        if (!put) return 0;
+        await this.save();
+        await this.fitModel();
+        return put;
+    }
+
     /** The live feed (live.ts) fed BT1 now, or stopped: the current slot is ours either way once
      *  it fed in it. */
     setFeeding(on: boolean) {
@@ -398,6 +429,16 @@ export class AutopilotCollector {
         this.pricesAt = now;
         const haveTomorrow = (days[1]?.slots.length ?? 0) > 0;
         return nextPriceFetchMs(now, timeZone, haveTomorrow);
+    }
+
+    /** Open-Meteo's hourly weather for the last `days` days, for a backfill. Empty without a
+     *  location. */
+    private async pastWeather(days: number): Promise<Map<number, WeatherSlot>> {
+        const homeyLocation: any = await withApi(this.homey, (api) => api.geolocation.getOptionLocation()).catch(() => undefined);
+        const location = weatherLocation(homeyLocation?.value, this.homey.settings.get(LOCATION_SETTING) as Place | null);
+        if (!location) return new Map();
+        const slots = weatherSlots(await getJson(openMeteoUrl(location.latitude, location.longitude, days, 1)));
+        return new Map(slots.map((s) => [s.slot, s]));
     }
 
     private async fetchWeather(): Promise<number> {

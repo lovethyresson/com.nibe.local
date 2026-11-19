@@ -84,7 +84,7 @@ export function modelSlotsFromHistory(history: History): ModelSlot[] {
     const rows = currentSourceSlots(history).map((slot) => ({slot, ...history.get(slot)!}));
     const heat = heatPerSlot(rows.map((r) => ({slot: r.slot, qmeter: r.qmeter, hz: r.hz, dhw: r.dhw})));
     return toModelSlots(rows.map((r) => ({slot: r.slot, ti: r.ti, te: r.te, gtiS: r.gtiS, gtiE: r.gtiE, gtiW: r.gtiW, dhw: r.dhw,
-        partial: (r.flags & FLAG.partial) !== 0, q: heat.get(r.slot)})));
+        partial: (r.flags & FLAG.partial) !== 0, q: heat.get(r.slot), interpolated: (r.flags & FLAG.hourly) !== 0})));
 }
 
 export function validDays(slots: ModelSlot[]): number {
@@ -171,6 +171,10 @@ export function recordDailyFit(log: DailyFit[], day: number, fit: HouseFit): Dai
 }
 
 export const READY_RMSE = 0.35;
+/** Days backfilled from Insights (heating-insights.ts) count like polled ones when they have the
+ *  usable slots: an hourly mean is a real reading of the room, weighed as one (model.ts
+ *  `INTERPOLATED_VARIANCE`). Accuracy is scored on polled slots only, and stability needs three
+ *  daily fits, so a backfilled owner is ready after three days at the earliest. */
 export const READY_DAYS = 5;
 export const TAU_STABLE = 0.15;
 

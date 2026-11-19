@@ -295,7 +295,14 @@ export interface ModelSlot {
     inputs: Inputs;
     /** False skips the measurement update (§6.2) but still runs the prediction. */
     usable: boolean;
+    /** Indoor interpolated from hourly Insights means (history.ts FLAG.hourly): weighed as a
+     *  quarter of a reading, and never scored for accuracy. */
+    interpolated?: boolean;
 }
+
+/** An hourly mean spread over its four slots is one reading, not four: each slot's update gets
+ *  four times the measurement variance, so the four together carry what the one mean does. */
+export const INTERPOLATED_VARIANCE = 4;
 
 /** Longest run of missing slots predicted through; anything longer re-anchors on the reading. */
 const MAX_GAP = 8;
@@ -326,7 +333,7 @@ export function ekfStep(ekf: Ekf, slot: ModelSlot, tuning = TUNING): Ekf {
         for (let i = NS; i < NZ; i++) P[i][i] += tuning.paramSd ** 2;
     }
     if (slot.usable && reading !== undefined) {
-        const S = P[0][0] + tuning.measurementSd ** 2;
+        const S = P[0][0] + tuning.measurementSd ** 2 * (slot.interpolated ? INTERPOLATED_VARIANCE : 1);
         const K = P.map((row) => row[0] / S);
         const innovation = reading - z[0];
         z = z.map((v, i) => v + K[i] * innovation);
@@ -362,7 +369,7 @@ const orZero = (v?: number) => v !== undefined && Number.isFinite(v) ? v : 0;
 /** History rows (heat already spread, see heat.ts) → what the model reads. Slots from before the
  *  east and west walls were recorded read as no sun there, which the south wall then absorbs. */
 export function toModelSlots(rows: {slot: number; ti: number; te: number; gtiS: number; gtiE?: number; gtiW?: number;
-    dhw: number; partial: boolean; q?: number}[]): ModelSlot[] {
+    dhw: number; partial: boolean; q?: number; interpolated?: boolean}[]): ModelSlot[] {
     const sorted = [...rows].sort((a, b) => a.slot - b.slot);
     return sorted.map((r, i) => {
         const previous = sorted[i - 1]?.slot === r.slot - 1 ? sorted[i - 1].ti : undefined;
@@ -374,6 +381,7 @@ export function toModelSlots(rows: {slot: number; ti: number; te: number; gtiS: 
             // An unknown heat amount (the slot before the first counter step) is not a zero.
             usable: r.q !== undefined && Number.isFinite(r.te) && usableSlot({ti: r.ti, previousTi: previous,
                 partial: r.partial, dhw: r.dhw}),
+            ...(r.interpolated ? {interpolated: true} : {}),
         };
     });
 }
@@ -383,8 +391,8 @@ export function toModelSlots(rows: {slot: number; ti: number; te: number; gtiS: 
 export const HORIZON_SLOTS = 24; // 6 h
 
 /** Open-loop prediction error at `horizon` slots ahead: start from a filtered state, drive the
- *  model with the measured inputs only, compare with what the sensor read then. Windows with a gap or
- *  an unusable slot are skipped. */
+ *  model with the measured inputs only, compare with what the sensor read then. Windows with a gap,
+ *  an unusable slot or an interpolated one are skipped: a smoothed reading would flatter it. */
 export function predictionRmse(params: HouseParams, slots: ModelSlot[], states: Map<number, [number, number]>,
                                horizon = HORIZON_SLOTS): {rmse: number; windows: number} {
     let sum = 0;
@@ -393,7 +401,7 @@ export function predictionRmse(params: HouseParams, slots: ModelSlot[], states: 
         const state = states.get(slots[start].slot);
         if (!state) continue;
         const window = slots.slice(start + 1, start + 1 + horizon);
-        if (window.some((s, i) => s.slot !== slots[start].slot + i + 1 || !s.usable)) continue;
+        if (window.some((s, i) => s.slot !== slots[start].slot + i + 1 || !s.usable || s.interpolated)) continue;
         let [ti, tm] = state;
         for (const s of window) [ti, tm] = stepHouse(params, ti, tm, s.inputs);
         sum += (ti - window.at(-1)!.ti) ** 2;
@@ -415,7 +423,7 @@ export function sunScore(params: HouseParams, slots: ModelSlot[], states: Map<nu
         const state = states.get(slots[start].slot);
         if (!state) continue;
         const window = slots.slice(start + 1, start + 1 + horizon);
-        if (window.some((s, i) => s.slot !== slots[start].slot + i + 1 || !s.usable)) continue;
+        if (window.some((s, i) => s.slot !== slots[start].slot + i + 1 || !s.usable || s.interpolated)) continue;
         if (window.reduce((sum, s) => sum + s.inputs.sun, 0) / window.length < SUNNY_W) continue;
         let [a, am] = state, [b, bm] = state;
         for (const s of window) {

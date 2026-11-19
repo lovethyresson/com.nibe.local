@@ -26,12 +26,12 @@ const HOURLY = ['temperature_2m', 'wind_speed_10m', 'relative_humidity_2m', 'clo
     'shortwave_radiation', 'global_tilted_irradiance', 'direct_normal_irradiance', 'diffuse_radiation'];
 
 /** The location is rounded to 2 decimals (~1 km) before it leaves the Homey. */
-export function openMeteoUrl(latitude: number, longitude: number): string {
+export function openMeteoUrl(latitude: number, longitude: number, pastDays = 1, forecastDays = 3): string {
     const round = (v: number) => (Math.round(v * 100) / 100).toFixed(2);
     return 'https://api.open-meteo.com/v1/forecast'
         + `?latitude=${round(latitude)}&longitude=${round(longitude)}`
         + `&hourly=${HOURLY.join(',')}&tilt=90&azimuth=0&models=metno_seamless`
-        + '&past_days=1&forecast_days=3&timezone=GMT&timeformat=unixtime&wind_speed_unit=ms';
+        + `&past_days=${pastDays}&forecast_days=${forecastDays}&timezone=GMT&timeformat=unixtime&wind_speed_unit=ms`;
 }
 
 /** Where the weather is for: the Homey's own location, else a place the owner searched for in
