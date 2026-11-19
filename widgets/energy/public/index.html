@@ -145,7 +145,7 @@
       // kWh per hour as bars, heating at the bottom, then hot water, Main's idle use on top, on the left scale; the
       // hour's price as a line on the right scale; a thin line at now.
       function energyChart(data) {
-        var c = data.chart, W = chartWidth(), L = 26, R = W - 34, n = c.hours.length, step = (R - L) / n, bw = Math.max(2, step * 0.7);
+        var c = data.chart, W = chartWidth(), L = GUTTER, R = W - GUTTER, n = c.hours.length, step = (R - L) / n, bw = Math.max(2, step * 0.7);
         var PH = Math.max(110, Math.min(170, Math.round(W * 0.38))) + EXTRA, T = 20, B = T + PH, H = B + 24;
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'en-chart', role: 'img'});
         var yk = function (v) { return B - PH * v / c.kwhAxis.max; }, yp = function (v) { return B - PH * v / c.priceAxis.max; };
@@ -176,7 +176,7 @@
         c.hours.forEach(function (h, k) { if (typeof h.price === 'number') p.push([x(k), yp(h.price)]); });
         if (p.length) svg.appendChild(svgEl('path', {d: monotone(p), fill: 'none', stroke: 'var(--en-price)', 'stroke-width': 2, 'stroke-linecap': 'round'}));
         if (typeof data.now === 'number')
-          svg.appendChild(svgEl('line', {x1: L + step * (data.now + 1), x2: L + step * (data.now + 1), y1: T - 4, y2: B, stroke: 'currentColor', 'stroke-opacity': 0.4}));
+          svg.appendChild(svgEl('line', {x1: L + step * data.now, x2: L + step * data.now, y1: T - 4, y2: B, stroke: 'currentColor', 'stroke-opacity': 0.4}));
         hours(svg, data.ticks.map(function (t) { return {x: L + step * t.at, label: t.label}; }), H - 6);
         return svg;
       }
@@ -192,6 +192,9 @@
         return box;
       }
 
+      // Every chart of a day (Autopilot, Energy today, Hot water tank) keeps the same gutters, so their
+      // hours line up on a dashboard: 00:00, now and 18:00 at the same x in every card.
+      var GUTTER = 34;
       var TOP = 22, EXTRA = 0;
       function cardTarget() { return Math.max(340, Math.min(560, Math.round(150 + chartWidth() * 0.78))); }
       function renderFitted(data) {

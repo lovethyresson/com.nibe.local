@@ -1,7 +1,7 @@
 <html>
   <head>
     <style>
-      .ap { padding: 16px 16px 14px; }
+      .ap { padding: var(--homey-su-2, 8px) var(--homey-su-3, 12px); }
       .ap-title { opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .ap-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
       .ap-chip { font-size: 0.8em; white-space: nowrap; padding: 2px 8px; border-radius: 999px; background: rgba(127, 127, 127, 0.15); }
@@ -135,6 +135,9 @@
       // The top of a chart is a header band: the axis titles, small and muted, above their axes.
       // Both charts show today, so no day word is needed.
       var TOP = 28;
+      // Every chart of a day (Autopilot, Energy today, Hot water tank) keeps the same gutters, so their
+      // hours line up on a dashboard: 00:00, now and 18:00 at the same x in every card.
+      var GUTTER = 34;
       function header(svg, data, x, W, L, R, B) {
         if (data.axes && data.axes.left) svg.appendChild(svgEl('text', {x: 0, y: 11, class: 'axis-title'}, data.axes.left));
         if (data.axes && data.axes.right) svg.appendChild(svgEl('text', {x: W, y: 11, class: 'axis-title', 'text-anchor': 'end'}, data.axes.right));
@@ -189,7 +192,7 @@
       // Heating: indoor °C on the left axis (measured solid, expected dashed), the
       // BT1 shift on the right axis as one solid bar an hour from 0, and a line at now.
       function heatingChart(data) {
-        var W = chartWidth(), L = 34, R = W - 40, PH = Math.max(110, Math.min(170, Math.round(W * 0.36))) + EXTRA, B = TOP + PH, H = B + 30;
+        var W = chartWidth(), L = GUTTER, R = W - GUTTER, PH = Math.max(110, Math.min(170, Math.round(W * 0.36))) + EXTRA, B = TOP + PH, H = B + 30;
         var n = data.slots.length, step = (R - L) / n;
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'ap-chart', role: 'img'});
         var left = data.scale.left, right = data.scale.right;
@@ -239,7 +242,7 @@
       // as a light warm area (right axis, kW), and each planned charge as a real band on the time axis
       // from its start to its end, split inside into the solar part (solid warm) and the grid part (blue).
       function hotwaterChart(data) {
-        var W = chartWidth(), L = 34, R = W - (data.scale.right ? 34 : 6), PH = Math.max(100, Math.min(150, Math.round(W * 0.33))) + EXTRA, B = TOP + PH;
+        var W = chartWidth(), L = GUTTER, R = W - GUTTER, PH = Math.max(100, Math.min(150, Math.round(W * 0.33))) + EXTRA, B = TOP + PH;
         var bands = data.bands || [], tickY = bands.length ? B + 44 : B + 24, H = tickY + 6;
         var n = data.slots.length, step = (R - L) / n;
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'ap-chart', role: 'img'});

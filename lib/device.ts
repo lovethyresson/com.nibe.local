@@ -2269,7 +2269,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const currency = known.find(([, r]) => r!.currency)?.[1]!.currency ?? '';
         const language = this.homey.i18n.getLanguage();
         const kwh = new Intl.NumberFormat(language, {maximumFractionDigits: 1}).format(chart.kwh);
-        const now = Math.max(0, hours.findIndex((at) => at > Date.now()) - 1);
+        // Now in hours from midnight, at the start of its 15-minute slot, where the other day charts
+        // draw it: the line falls inside the hour's bar, which holds the use so far.
+        const hour = Math.max(0, hours.findIndex((at) => at > Date.now()) - 1);
+        const now = hour + Math.floor((Date.now() - hours[hour]) / (15 * 60_000)) / 4;
         return {title, chart, now,
             numbers: [
                 {value: `${kwh} kWh`, label: t('used')},
@@ -2291,8 +2294,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     // ---- The Hot water tank widget (widgets/hotwater_tank) ----
 
-    /** What the Hot water tank widget draws, from local midnight to 06:00 tomorrow: the tank, the
-     *  use against a usual day, and the charges. Every string translated here. */
+    /** What the Hot water tank widget draws, today from local midnight to midnight like the other
+     *  day charts: the tank, the use against a usual day, and the charges. Every string translated here. */
     hotwaterTankWidget(): TankWidgetData {
         const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.tank.${key}`, tokens);
         const title = this.getName();
@@ -2301,7 +2304,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const local = localClock(this.homey.clock.getTimezone());
         const slot = slotOf(Date.now());
         const day = todaySlots(slot, (ms) => local(ms).date);
-        const SLOT = 15 * 60_000, start = day.from * SLOT, n = day.n + 24;
+        const SLOT = 15 * 60_000, start = day.from * SLOT, n = day.n;
         const view = this.hotwaterAutopilot?.tank(day.from, n);
         if (!view) return {title, loading: true, status: this.homey.__('autopilot.hotwater_use.loading')};
         const now = slot - day.from;
@@ -2314,7 +2317,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             ? t(local(view.next.at).date === local(Date.now()).date ? 'next' : 'next_tomorrow', {time: this.clock(view.next.at)})
             : view.next?.running ? t('charging') : undefined;
         return {title, chart, slots: n, now, bands, reserve: reserve > 0 ? reserve : undefined,
-            ticks: [0, 6, 12, 18, 24, 30].map((h) => ({at: Math.min(n, h * 4), label: this.clock(start + h * 4 * SLOT)})),
+            ticks: ticks(start, n, this.clock),
             status: litres === undefined ? undefined : t('now', {l: litres}),
             reason: [t('used', {used: chart.usedTotal, expected: chart.expectedTotal}), next].filter(Boolean).join(' · '),
             labels: {tank: t('panel_tank'), used: t('panel_used'), usual: t('usual', {l: chart.expectedTotal}), reserve: t('reserve')},

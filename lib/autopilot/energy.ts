@@ -126,7 +126,7 @@ export interface EnergyWidgetData {
     chart?: EnergyChart;
     /** The three numbers, each a value and its label. */
     numbers?: {value: string; label: string; good?: boolean}[];
-    /** The hour now (index), the hours to label, and the legend. */
+    /** Now in hours from midnight, at its 15-minute slot (14.75 is 14:45), the hours to label, and the legend. */
     now?: number;
     ticks?: {at: number; label: string}[];
     legend?: {heating: string; hotwater: string; main: string; price: string};

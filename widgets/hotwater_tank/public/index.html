@@ -141,7 +141,7 @@
         return svg;
       }
 
-      // Two panels on one time axis (midnight to 06:00 tomorrow), so a moment lines up in both:
+      // Two panels on one time axis (today, midnight to midnight), so a moment lines up in both:
       // on top the litres in the tank (read solid, planned dashed, a dotted floor at what is always
       // kept); under it the litres used today as a running total (solid) against a usual day
       // (dashed). The charges run along the bottom, done ones muted, planned ones full blue.
@@ -149,7 +149,7 @@
       function points(list, x, y) { return list.map(function (p) { return [x(p[0]), y(p[1])]; }); }
       function poly(pts) { return pts.map(function (p, i) { return (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(''); }
       function tankChart(data) {
-        var c = data.chart, W = chartWidth(), L = 6, R = W - 6, n = data.slots, step = (R - L) / n;
+        var c = data.chart, W = chartWidth(), L = GUTTER, R = W - GUTTER, n = data.slots, step = (R - L) / n;
         var x = function (k) { return L + k * step; };
         var PH = Math.max(80, Math.min(120, Math.round(W * 0.27))) + Math.round(EXTRA * 0.6), UH = Math.max(56, Math.min(84, Math.round(W * 0.19))) + Math.round(EXTRA * 0.4);
         // A planned charge is labelled under its band, so the hours go below that label.
@@ -157,19 +157,16 @@
         var T1 = 16, B1 = T1 + PH, T2 = B1 + 30, B2 = T2 + UH, BY = B2 + 14, tickY = BY + (labelled ? 42 : 28), H = tickY + 6;
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'tk-chart', role: 'img'});
         var y1 = function (v) { return B1 - PH * v / c.tankAxis.max; }, y2 = function (v) { return B2 - UH * v / c.useAxis.max; };
-        // A panel's gridlines; `labelled` puts each value just under its line on the left (not the
-        // top one, which sits by the title). The use panel's lines carry their own values instead.
+        // A panel's gridlines; `labelled` puts each value in the left gutter, as the other day charts
+        // do (not the top one, which sits by the title). The use panel's lines carry no values.
         function panel(title, top, bottom, axis, y, labelled) {
           svg.appendChild(svgEl('text', {x: L, y: top - 6, class: 'axis-title'}, title));
           axis.gridlines.forEach(function (v) {
             if (v === 0) return;
             svg.appendChild(svgEl('line', {x1: L, x2: R, y1: y(v), y2: y(v), stroke: 'currentColor', 'stroke-opacity': 0.08}));
-            if (labelled && v < axis.max) svg.appendChild(svgEl('text', {x: L + 2, y: y(v) + 11, class: 'grid'}, v + ' L'));
+            if (labelled && v < axis.max) svg.appendChild(svgEl('text', {x: L - 4, y: y(v) + 4, 'text-anchor': 'end', class: 'grid'}, v + ' L'));
           });
           svg.appendChild(svgEl('line', {x1: L, x2: R, y1: bottom, y2: bottom, stroke: 'currentColor', 'stroke-opacity': 0.15}));
-          // Midnight: where today ends and tomorrow's hours begin.
-          var mid = data.ticks[4];
-          if (mid) svg.appendChild(svgEl('line', {x1: x(mid.at), x2: x(mid.at), y1: top, y2: bottom, stroke: 'currentColor', 'stroke-opacity': 0.12}));
         }
         panel(data.labels.tank, T1, B1, c.tankAxis, y1, true);
         panel(data.labels.used, T2, B2, c.useAxis, y2, false);
@@ -195,7 +192,7 @@
         svg.appendChild(svgEl('path', {d: poly(ex), fill: 'none', stroke: 'var(--tk-use)', 'stroke-opacity': 0.5, 'stroke-width': 2, 'stroke-dasharray': '4 4'}));
         svg.appendChild(svgEl('path', {d: poly(us), fill: 'none', stroke: 'var(--tk-use)', 'stroke-width': 2.4, 'stroke-linejoin': 'round'}));
         var end = ex[ex.length - 1];
-        svg.appendChild(svgEl('text', {x: end[0] + 4, y: end[1] + 4, class: 'grid'}, data.labels.usual));
+        svg.appendChild(svgEl('text', {x: end[0], y: end[1] - 7, 'text-anchor': 'end', class: 'grid'}, data.labels.usual));
         var last = us[us.length - 1];
         if (last) {
           svg.appendChild(svgEl('circle', {cx: last[0], cy: last[1], r: 3.5, fill: 'var(--tk-use)'}));
@@ -239,6 +236,9 @@
         return box;
       }
 
+      // Every chart of a day (Autopilot, Energy today, Hot water tank) keeps the same gutters, so their
+      // hours line up on a dashboard: 00:00, now and 18:00 at the same x in every card.
+      var GUTTER = 34;
       var TOP = 22, EXTRA = 0;
       function cardTarget() { return Math.max(340, Math.min(560, Math.round(150 + chartWidth() * 0.78))); }
       function renderFitted(data) {

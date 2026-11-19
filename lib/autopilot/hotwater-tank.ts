@@ -1,5 +1,5 @@
 /** The Hot water tank widget's chart (widgets/hotwater_tank): two panels on one time axis, from
- *  local midnight to 06:00 tomorrow, so the night's planned charge is on it. On top the litres in
+ *  local midnight to midnight, the same day as the other day charts. On top the litres in
  *  the tank, read behind now and planned from now; under it the litres used today, running total
  *  against a usual day. The charges, done and planned, run along the bottom. Pure; the device
  *  gathers the inputs and translates, the widget only draws. */
