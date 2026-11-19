@@ -13,6 +13,7 @@ import {
 import {PumpCurve, estimateLever} from './planner';
 import {DEFAULT_GAIN, SupplyCurve, curvePoints, fitSupplyCurve, gainBetween} from './curve';
 import {CopModel, copFromHistory} from './cop';
+import {HeatCheck, checkedParams, heatCheck} from './heat-check';
 
 const DAY_SLOTS = 96;
 /** A day counts toward readiness when this many of its slots taught the model something. */
@@ -47,6 +48,10 @@ export interface HouseFit {
     sun?: {windows: number; rmseOn: number; rmseOff: number};
     /** The filter's air and mass at the last slot it saw: where a plan starts (shadow.ts). */
     state?: {slot: number; ti: number; tm: number};
+    /** The daily heat check against the meter (heat-check.ts). When it corrects, `params` carries
+     *  the meter's heat loss and `fittedHeatLoss` the filter's own. */
+    heatCheck?: HeatCheck;
+    fittedHeatLoss?: number;
 }
 
 /** Whole hours of steady space heating (no hot water, every slot read) for `estimateLever`. */
@@ -114,8 +119,12 @@ export function fitHouse(slots: ModelSlot[], answers: HouseAnswers, lever?: numb
     // with no heat, which leaves its state there too cold.
     const lastUsable = [...slots].reverse().find((s) => s.usable && fit.states.has(s.slot));
     const last = lastUsable && ([lastUsable.slot, fit.states.get(lastUsable.slot)!] as const);
+    // The daily heat check: the plan uses the meter's heat loss when the fit's is off (heat-check.ts).
+    const check = fit.params ? heatCheck(fit.params, slots, fit.states) : undefined;
     return {
-        params: fit.params,
+        params: fit.params && checkedParams(fit.params, check),
+        ...(check ? {heatCheck: check} : {}),
+        ...(check?.heatLoss !== undefined ? {fittedHeatLoss: fit.params!.heatLoss} : {}),
         firstOrderHeatLoss: rlsHouse(fit.rls)?.heatLoss,
         rmse: quality.rmse,
         windows: quality.windows,
@@ -169,7 +178,8 @@ export const KEEP_DAYS = 30;
 /** Replace or append today's entry. */
 export function recordDailyFit(log: DailyFit[], day: number, fit: HouseFit): DailyFit[] {
     if (!fit.params) return log;
-    const p = fit.params;
+    // The filter's own heat loss: drift and stability judge the fit, not the meter's correction.
+    const p = fit.fittedHeatLoss !== undefined ? {...fit.params, heatLoss: fit.fittedHeatLoss} : fit.params;
     const entry: DailyFit = {day, heatLoss: p.heatLoss, tau: envelopeTau(p), rmse: fit.rmse, sun: (p.sun + p.sunE + p.sunW) * 500,
         ...(fit.sun && fit.sun.windows ? {sunWindows: fit.sun.windows, sunOn: fit.sun.rmseOn, sunOff: fit.sun.rmseOff} : {})};
     return [...log.filter((d) => d.day !== day), entry].sort((a, b) => a.day - b.day).slice(-KEEP_DAYS);
