@@ -12,7 +12,27 @@ commits and in the **Releases** table in [`README.md`](../README.md), the durabl
   Plan vs actual ran 13–16 % low on Mon and Tue (2026-11-16/17) while indoor sat below target:
   split each day's miss into kWh (house model, COP) and price, per function, and fix the one that
   is off. Also why holding sits at 22.1 °C and doesn't climb back to 22.5 °C.
-- [ ] Merge the held branches: insights-backfill → cop-optimiser → orchestrator; gifted-euler any time.
+  - **Reviewed 2026-11-19 (read-only):**
+    - **Price is not it.** Plan and actual use the same price list (`normalisePrices` with the
+      owner's formula).
+    - **COP is a small part.** From 07:00 to midnight on Mon–Wed the pump made 61.3 / 59.2 /
+      83.4 kWh of heat for 16.9 / 16.0 / 23.4 kWh of electricity. That is a COP of 3.63 / 3.71 /
+      3.57, against the 3.74 rolling COP the plan divides by (`noteCostPlan`): 1–5 % of the miss.
+    - **The rest is heat.** The house took about 10 % more heat than the model planned, and still
+      sat below target.
+    - **Holding at 22.1 °C is the same cause.** While holding, fed − real outdoor averaged −0.2 K
+      every day: the comfort bias is almost zero, so the pump's own curve decides. Indoor while
+      holding went 22.8 → 22.1 → 22.2 → 21.9 °C as outdoor fell from about 5 to 1 °C: the curve
+      is too flat for the cold. The model's steady state says the curve holds 22.5 °C, so it adds
+      no bias. A heat loss that is too low gives both the low plan and the missing bias.
+    - **Fix, to decide:** fit the heat loss to the heat meter (1577) as an energy balance, or a
+      closed-loop holding trim on the measured indoor error, or both.
+  - **Logger gaps** (35 % of the time covered): the Homey cloud API's rate limit, not the Mac
+    sleeping. The logger makes 60 calls an hour, so each hour stops at about :50, and longer stretches
+    go when other calls share the quota. The local shadow log is the record. A future logger reads
+    once every 5 minutes, or reads local files only.
+- [x] Merge the held branches: insights-backfill → cop-optimiser → orchestrator; gifted-euler any time.
+  Done 2026-11-19 (c1a92bf, 1f80ebd, dff95aa, e640bed); 684 tests and validate pass.
 - [ ] Install the app batch: savings fixes, badge removal, savings-card redesign, Plan vs actual,
   the early-draw log (a826834).
 - [ ] Compare figures with where else they show (897a839, 6700246, ee7e952, 68ecd46), mid-evening
