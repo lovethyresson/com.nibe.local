@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert';
-import {DEFAULT_TAU_H, HOLD_BEYOND, RECOVERY_H, TRIM_KP, TRIM_RANGE, TRIM_SPEED, TrimState, nextTrim, readTrim}
+import {DEFAULT_TAU_H, HOLD_BEYOND, RECOVERY_H, SETTLE_H, TRIM_KP, TRIM_RANGE, TRIM_SPEED, TrimState, nextTrim, readTrim}
     from '../lib/autopilot/setpoint';
 
 const base = {setpoint: 21, mean: 21, hours: 0.25, integrate: true, tauHours: 96};
@@ -48,8 +48,10 @@ test('a jump of the setpoint (Away) holds the trim still instead of chasing it',
     assert.ok(Math.abs(16 - 20.8) > HOLD_BEYOND);
     assert.equal(away.trim, before.trim);
     assert.equal(away.state.integral, before.state.integral);
-    // Back near the setpoint it moves again.
-    assert.notEqual(nextTrim(away.state, {...base, mean: 20.5, hours: 1}).trim, before.trim);
+    // Back at the old setpoint it holds a day longer (the mean still holds Away), then moves again.
+    let state = away.state;
+    for (let h = 0; h < SETTLE_H; h++) state = nextTrim(state, {...base, mean: 20.5, hours: 1}).state;
+    assert.notEqual(nextTrim(state, {...base, mean: 20.5, hours: 1}).trim, before.trim);
 });
 
 test('Simulated shows the trim but learns nothing', () => {
@@ -69,4 +71,20 @@ test('a stored trim reads back, and anything else reads as none', () => {
     assert.deepEqual(readTrim({integral: -2.5}), {integral: -2.5});
     assert.deepEqual(readTrim(null), {integral: 0});
     assert.deepEqual(readTrim({integral: 99}), {integral: TRIM_RANGE});
+});
+
+test('after the setpoint changes the trim waits a day, so the old target\'s hours do not read as an error', () => {
+    // Back from Away: the setpoint returns to 21 while the 24 h mean still holds the away days.
+    let state: TrimState = nextTrim({integral: 0.5}, {...base, setpoint: 16, mean: 16.2}).state;
+    const held = nextTrim(state, {...base, mean: 16.2}).trim;
+    for (let h = 0; h < SETTLE_H * 4 - 1; h++) {
+        const next = nextTrim(state, {...base, mean: 19.5 + h * 0.01, hours: 0.25});
+        assert.equal(next.trim, held, `still holding after ${h / 4} h`);
+        state = next.state;
+    }
+    // A day later it steers again.
+    assert.notEqual(nextTrim(state, {...base, mean: 20.6, hours: 0.5}).trim, held);
+    // A small change (the owner nudging 0.1 K) is no jump.
+    const nudged = nextTrim({integral: 0, setpoint: 21}, {...base, setpoint: 21.1, mean: 20.8});
+    assert.ok(nudged.trim > 0);
 });

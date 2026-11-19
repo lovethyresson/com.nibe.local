@@ -21,8 +21,10 @@
  *  - Integral: the rest, learned at `TRIM_SPEED` divided by the house's own time constant, so a
  *    heavy house is corrected more slowly than a light one. It pauses while the error is already
  *    shrinking (`RECOVERY_H`): the house is catching up, and adding more would overshoot.
- *  - Beyond `HOLD_BEYOND` of error (Away starting or ending, a new setpoint) the trim holds still:
- *    the planner does that jump, the trim the level.
+ *  - After the setpoint changes (Away starting or ending, the owner's thermostat) the trim holds
+ *    still for `SETTLE_H`: the 24 h mean still holds the old target's hours, and read as an error
+ *    it would add warmth to a house the planner has already brought there. Beyond `HOLD_BEYOND`
+ *    of error it holds still too. The planner does the jump, the trim the level.
  *  Chosen on 200 simulated houses (light to slab-heavy, curves 40 % too flat to 20 % too steep,
  *  model numbers off by up to 40 %, cold spells and ±7 K weather swings, ±0.2 K sensor noise):
  *  better than the integral-only trim on 194–200 of them and worse on none
@@ -42,6 +44,9 @@ export const DEFAULT_TAU_H = 72;
 export const TAU_RANGE_H = [12, 14 * 24] as const;
 /** Further than this from the setpoint the trim holds still, K. */
 export const HOLD_BEYOND = 2;
+/** A setpoint change of more than `SETPOINT_STEP` holds the trim still this long, hours. */
+export const SETTLE_H = 24;
+export const SETPOINT_STEP = 0.2;
 /** The error is compared with this many hours ago: smaller by `RECOVERING_K` means recovering. */
 export const RECOVERY_H = 6;
 export const RECOVERING_K = 0.02;
@@ -53,6 +58,9 @@ export interface TrimState {
     recent?: {error: number; age: number}[];
     /** The trim last given, held while the error is beyond `HOLD_BEYOND`. In memory only. */
     last?: number;
+    /** The setpoint last seen, and hours left holding still after it changed. In memory only. */
+    setpoint?: number;
+    settling?: number;
 }
 
 export interface TrimInput {
@@ -71,10 +79,12 @@ export interface TrimInput {
 export function nextTrim(state: TrimState, input: TrimInput): {trim: number; state: TrimState} {
     const error = input.setpoint - input.mean;
     const hours = Math.max(0, Number.isFinite(input.hours) ? input.hours : 0);
-    if (!Number.isFinite(error) || Math.abs(error) > HOLD_BEYOND) {
-        // A jump, or no mean: hold what was given. The recovery history starts over after it.
+    const changed = state.setpoint !== undefined && Math.abs(input.setpoint - state.setpoint) > SETPOINT_STEP;
+    const settling = changed ? SETTLE_H : Math.max(0, (state.settling ?? 0) - hours);
+    if (!Number.isFinite(error) || Math.abs(error) > HOLD_BEYOND || settling > 0) {
+        // A jump, a new setpoint, or no mean: hold what was given. The recovery history starts over.
         const held = state.last ?? clamp(state.integral);
-        return {trim: held, state: {integral: state.integral, recent: [], last: held}};
+        return {trim: held, state: {integral: state.integral, recent: [], last: held, setpoint: input.setpoint, settling}};
     }
     const aged = (state.recent ?? []).map((r) => ({error: r.error, age: r.age + hours}));
     const before = [...aged].reverse().find((r) => r.age >= RECOVERY_H);
@@ -85,7 +95,7 @@ export function nextTrim(state: TrimState, input: TrimInput): {trim: number; sta
     // Keep the readings younger than the window and the youngest one past it.
     const recent = [...aged.filter((r) => r.age < RECOVERY_H), ...before ? [before] : [], {error, age: 0}]
         .sort((a, b) => b.age - a.age);
-    return {trim, state: {integral, recent, last: trim}};
+    return {trim, state: {integral, recent, last: trim, setpoint: input.setpoint, settling: 0}};
 }
 
 function tau(hours: number | undefined): number {

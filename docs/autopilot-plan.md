@@ -1018,10 +1018,26 @@ Runs every 15 min and on new prices or weather. Horizon: 24–36 h of slots.
      - **A learned trim makes "no shift" hold the setpoint.** The shift-only model assumes feeding
        the real outdoor temperature holds the reference; a real house holds whatever the curve
        gives (the model's steady level was ~1 K off on the S1155, `tasks/todo.md` 2026-11-11). The
-       trim is that difference, fed *under* the planner's shift (`comfortBias` to `fedValue`):
-       integral only, `TRIM_KI` 0.02 K per K·h on setpoint − 24 h mean, learning only while live
-       and within 1 K of the setpoint (a jump is the planner's to close), ±10 K, stored in
-       `autopilotTrim`, 0 while neutral.
+       trim is that difference, fed *under* the planner's shift (`comfortBias` to `fedValue`),
+       ±10 K, its learned part stored in `autopilotTrim`, 0 while neutral.
+     - **The trim is PI, paced by the house (2026-11-19).** The integral-only trim (0.02 K per
+       K·h, learning within 1 K) left the S1155 at 21.9–22.2 °C against 22.5 for days: about
+       0.2 K a day, and on a heavy house its lag carried it past the target. Now, on setpoint −
+       24 h mean: `TRIM_KP` 2 K per K at once; the rest learned at `TRIM_SPEED` 4 ÷ the model's
+       envelope time constant, paused while the error is already shrinking (6 h back); held
+       still beyond 2 K, and for 24 h after the setpoint changes (Away starting or ending, the
+       thermostat), while the 24 h mean still holds the old target's hours. Chosen on 200 simulated houses
+       (`dev/simulate-trim.ts`: light to slab, curves 40 % too flat to 20 % too steep, the time
+       constant off by up to 40 %, cold spells, ±7 K swings, sensor noise): better than the old
+       trim on 185–200, worse on none; the gain starts to misbehave at 5. With the planner on top
+       (`dev/simulate-trim-planner.ts`) see the numbers there.
+     - **The daily heat check (2026-11-19, `heat-check.ts`).** Indoor alone cannot tell more heat
+       loss with more free gains from less of both; the S1155 fit settled ~10 % low, so plans
+       expected less heat than the meter delivered (Plan vs actual 13–16 % low). The model's two
+       equations added give a daily balance (heat in + gains + sun − H × degree-hours = heat
+       stored in air and mass); over the last 3 complete days, when the model's heat is more than
+       5 % off the meter's, the plan uses the heat loss the meter supports. Recomputed at every
+       fit; drift and readiness still judge the filter's own heat loss.
      - **First version (09f1322), replaced:** a proportional trim on top of a planner that still
        aimed at the 24 h mean. It steered, but the planner's band and Expected curve ignored the
        setpoint, so the owner saw the house expected to stay where it was while it was being
@@ -1943,7 +1959,7 @@ Our own, rather than the pump's holiday setting, so the planner knows when the o
     1 K over, no warm-up long before the lead.
   - **Unverified on hardware.** The model's "no shift" holds whatever setpoint the plan aims at;
     on the pump it holds the level the trim learned at home, which Away does not unlearn (it is
-    outside the trim's 1 K window). So the real house likely warms faster than planned, and the
+    beyond the trim's 2 K hold, so the trim stays where it was). So the real house likely warms faster than planned, and the
     estimate is conservative. Hot water before the return is not part of this (M4).
 - **Hot water** (M4): no boosts while away, and refilled before return.
 
