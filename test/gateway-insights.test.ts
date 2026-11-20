@@ -87,3 +87,17 @@ test('through the Gateway: Insights reads are served by the store and counted', 
     assert.equal(calls, 1);
     assert.match(gateway.report(), /1 from store \/ 1 fetched/);
 });
+
+test('an owner never shares a request already made for background work', async () => {
+    const h = harness();
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    let calls = 0;
+    const slow = async (args: any) => { calls++; if (calls === 1) await gate; return hourly(h.now(), 336); };
+    const background = h.store.entries(h.args, slow, 3);
+    const owner = h.store.entries(h.args, slow, 1);
+    await owner;
+    assert.equal(calls, 2, 'the owner made its own request');
+    release();
+    await background;
+});

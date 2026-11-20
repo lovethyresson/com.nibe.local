@@ -42,7 +42,7 @@ test('real homey-api: locked manager methods go through, items come back whole, 
     assert.equal(device.name, 'Hall');
     assert.equal(await h.gateway.call((a) => a.energy.getCurrency()), 'SEK');
     assert.equal(h.clients(), 1);
-    assert.match(h.gateway.report(), /2 Homey requests.*devices\.getDevice 1, energy\.getCurrency 1/);
+    assert.match(h.gateway.report(), /2 Homey requests.*sensor\.getDevice 1, energy\.getCurrency 1/);
     assert.match(h.gateway.report(), /0 Homey requests/, 'counts start over after a report');
 });
 
@@ -92,18 +92,18 @@ test('"too many" pauses only that family; queued requests wait it out; a success
 
 test('refusals in a row pause longer; several at once count as one; a success ends it', async () => {
     let refuse = true;
-    const api = {devices: {getDevice: async () => { if (refuse) throw refused(); return {id: 'd'}; }}};
+    const api = {zones: {getZones: async () => { if (refuse) throw refused(); return {}; }}};
     const h = harness(api);
-    await Promise.allSettled([1, 2, 3].map(() => h.gateway.call((a) => a.devices.getDevice({id: 'd'}))));
+    await Promise.allSettled([1, 2, 3].map(() => h.gateway.call((a) => a.zones.getZones())));
     assert.equal(h.logs.length, 1, 'three requests refused together: one pause');
     assert.match(h.logs[0], /20 s/);
-    await assert.rejects(h.gateway.call((a) => a.devices.getDevice({id: 'd'})));
+    await assert.rejects(h.gateway.call((a) => a.zones.getZones()));
     assert.equal(h.slept.at(-1), BACKOFF_MS[0], 'the next request waited out the pause');
     assert.match(h.logs.at(-1)!, /60 s/, 'refused again after the pause: 1 min');
     refuse = false;
-    await h.gateway.call((a) => a.devices.getDevice({id: 'd'}));
+    await h.gateway.call((a) => a.zones.getZones());
     const n = h.slept.length;
-    await h.gateway.call((a) => a.devices.getDevice({id: 'd'}));
+    await h.gateway.call((a) => a.zones.getZones());
     assert.equal(h.slept.length, n, 'after a success nothing waits');
 });
 
@@ -153,4 +153,18 @@ test('what counts as too many and as a lost connection', () => {
     assert.ok(connectionLost(new Error('connect ECONNREFUSED')) && connectionLost({statusCode: 401}));
     assert.ok(connectionLost(Object.assign(new Error('fetch failed'), {cause: {code: 'ECONNRESET'}})));
     assert.ok(!connectionLost(Object.assign(new Error('Not Found'), {statusCode: 404})));
+});
+
+test('a refused whole-home device list never holds a sensor read (the BT50 feed)', async () => {
+    let refuse = true;
+    const api = {devices: {
+        getDevices: async () => { if (refuse) throw refused(); return {}; },
+        getDevice: async () => { if (refuse) throw refused(); return {id: 'sensor'}; },
+    }};
+    const h = harness(api);
+    await assert.rejects(h.gateway.call((a) => a.devices.getDevices()));
+    await assert.rejects(h.gateway.call((a) => a.devices.getDevice({id: 'sensor'})));
+    refuse = false;
+    assert.deepEqual(await h.gateway.call((a) => a.devices.getDevice({id: 'sensor'})), {id: 'sensor'});
+    assert.equal(h.slept.length, 0, 'the sensor read never waited, though a list was refused and so was the sensor itself');
 });

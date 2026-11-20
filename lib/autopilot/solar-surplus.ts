@@ -12,8 +12,9 @@ import {LOCATION_SETTING} from './collector';
 import {weatherFor} from '../gateway-weather';
 import {PRIORITY, Priority} from '../gateway';
 
-/** How often the live surplus is sampled from Homey Energy's live report. */
-export const LIVE_SAMPLE_MS = 2 * 60_000;
+/** How often the live surplus is sampled from Homey Energy's live report: once a minute, since
+ *  `liveSurplusKw` wants LIVE_MIN_READINGS (8) in its 10-minute window. */
+export const LIVE_SAMPLE_MS = 60_000;
 const HOUR = 3_600_000;
 /** The surplus model is relearned this often; the forecast comes with it. */
 const LEARN_EVERY_MS = 3 * HOUR;
@@ -335,8 +336,7 @@ export class SolarSurplus {
         }
         const now = Date.now();
         const own = [...this.draws.values()].reduce((sum, watts) => sum + Math.max(0, watts() ?? 0), 0);
-        // Every 2 minutes (5 samples in the 10-minute window); a failed read is tried at the next
-        // sample, not after the 3-hour learn loop's default.
+        // A failed read is tried at the next sample, not after the 3-hour learn loop's default.
         const report = await withApi(this.homey, (api) => api.energy.getLiveReport({})).catch(() => undefined);
         const w = report === undefined ? undefined : liveSurplusW(report, own);
         if (w !== undefined) this.live.push({at: now, w});

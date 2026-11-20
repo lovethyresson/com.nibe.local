@@ -41,3 +41,9 @@ test('a deleted sensor is left out; any other failure is thrown and not kept', a
     assert.equal(reads.filter((r) => r === 'hall').length, 2);
     useGatewayForTests(undefined);
 });
+
+test('solar samples often enough to ever count live surplus', async () => {
+    const {LIVE_SAMPLE_MS} = await import('../lib/autopilot/solar-surplus');
+    const {LIVE_WINDOW, LIVE_MIN_READINGS} = await import('../lib/autopilot/hotwater-surplus');
+    assert.ok(LIVE_WINDOW * 60_000 / LIVE_SAMPLE_MS >= LIVE_MIN_READINGS);
+});

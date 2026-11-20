@@ -33,7 +33,6 @@ export interface LogStoreDeps {
 }
 
 export class LogStore {
-    private logs = new Map<string, Stored>();
     private index?: Record<string, IndexRow>;
     private asks = new Map<string, Promise<any>>();
     fetches = 0;
@@ -43,23 +42,23 @@ export class LogStore {
 
     /** The log for these arguments: stored while Homey has nothing newer, else fetched (only the
      *  gap where a shorter window can supply it) and stored. */
-    async entries(args: LogArgs, fetch: (args: LogArgs) => Promise<any>): Promise<any> {
+    async entries(args: LogArgs, fetch: (args: LogArgs) => Promise<any>, priority = 2): Promise<any> {
         const key = `${args.id}|${args.resolution}`;
-        const ask = this.asks.get(key);
+        // Shared only within a priority: an owner never waits on background work's request.
+        const askKey = `${key}|${priority}`;
+        const ask = this.asks.get(askKey);
         if (ask) return ask;
-        const run = this.answer(key, args, fetch).finally(() => this.asks.delete(key));
-        this.asks.set(key, run);
+        const run = this.answer(key, args, fetch).finally(() => this.asks.delete(askKey));
+        this.asks.set(askKey, run);
         return run;
     }
 
     private async answer(key: string, args: LogArgs, fetch: (args: LogArgs) => Promise<any>): Promise<any> {
         const index = await this.loadIndex();
         const now = this.deps.now();
-        let stored = this.logs.get(key);
-        if (!stored && index[key]) {
-            stored = await this.deps.load(index[key].file).catch(() => undefined);
-            if (stored) this.logs.set(key, stored);
-        }
+        // Read from disk each time, never held in memory: a log is small to read, and a hundred
+        // kept as objects is not (the app was stopped for memory, 2026-11-20).
+        const stored: Stored | undefined = index[key] ? await this.deps.load(index[key].file).catch(() => undefined) : undefined;
         if (index[key]) index[key].usedAt = now;
         if (stored && now < stored.fetchedAt + Math.max(0, stored.updatesIn)) {
             this.served++;
@@ -85,7 +84,6 @@ export class LogStore {
             next = {id: args.id, resolution: args.resolution, step: full?.step, fetchedAt: now,
                 updatesIn: Number(full?.updatesIn) || 0, values: Array.isArray(full?.values) ? full.values : []};
         }
-        this.logs.set(key, next);
         await this.keep(key, next).catch((error) => this.deps.log('Gateway: Insights log not stored:', error?.message ?? error));
         return view(next, now);
     }
@@ -95,8 +93,17 @@ export class LogStore {
         return this.index!;
     }
 
-    /** Store one log, then drop what nobody uses and anything past the budget. */
-    private async keep(key: string, stored: Stored) {
+    private writing: Promise<void> = Promise.resolve();
+
+    /** Store one log, then drop what nobody uses and anything past the budget. One write at a
+     *  time: two would share the index's temporary file. */
+    private keep(key: string, stored: Stored): Promise<void> {
+        const write = this.writing.then(() => this.write(key, stored));
+        this.writing = write.catch(() => undefined);
+        return write;
+    }
+
+    private async write(key: string, stored: Stored) {
         const index = await this.loadIndex();
         const file = `insights-${createHash('sha1').update(key).digest('hex').slice(0, 16)}.json`;
         const bytes = JSON.stringify(stored).length;
@@ -109,7 +116,6 @@ export class LogStore {
             total += row.bytes;
             if (now - row.usedAt > UNUSED_MS || total > DISK_BUDGET_BYTES) {
                 delete index[k];
-                this.logs.delete(k);
                 await this.deps.remove(row.file).catch(() => undefined);
             }
         }

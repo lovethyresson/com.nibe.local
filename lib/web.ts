@@ -9,7 +9,8 @@ export function getJson(url: string, timeoutMs = 15_000): Promise<any> {
             response.setEncoding('utf8');
             response.on('data', (chunk) => { body += chunk; });
             response.on('end', () => {
-                if ((response.statusCode ?? 0) >= 400) return reject(new Error(`HTTP ${response.statusCode}`));
+                if ((response.statusCode ?? 0) >= 400)
+                    return reject(Object.assign(new Error(`HTTP ${response.statusCode}`), {statusCode: response.statusCode}));
                 try { resolve(JSON.parse(body)); } catch (error) { reject(error); }
             });
         });

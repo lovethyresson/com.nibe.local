@@ -22,6 +22,8 @@ export const QUIET_START_MS = 5 * 60_000;
  *  families (a room sensor read behind the BT50 feed, say) are never held by it. */
 export const BACKOFF_MS = [20_000, 60_000, 300_000];
 export const REPORT_EVERY_MS = 60 * 60_000;
+/** The family of single-device reads (sensors): never backed off. */
+export const SENSOR_FAMILY = 'sensor';
 
 export interface GatewayDeps {
     createClient(): Promise<any>;
@@ -95,10 +97,13 @@ export class Gateway {
                     get: (__, method) => {
                         const fn = real[method];
                         if (typeof method !== 'string' || typeof fn !== 'function') return fn;
-                        const send = (...args: any[]) => this.request(manager, method, priority, from, () => fn.apply(real, args));
+                        // One device read (a room or outdoor sensor, the BT50 feed) is its own family: a
+                        // refusal of a whole-home device list never holds it.
+                        const family = manager === 'devices' && method === 'getDevice' ? SENSOR_FAMILY : manager;
+                        const send = (...args: any[]) => this.request(family, method, priority, from, () => fn.apply(real, args));
                         // Every Insights log read goes through the store: kept on disk, only the gap fetched.
                         if (manager === 'insights' && method === 'getLogEntries' && this.logs)
-                            return (args: any) => (isLogArgs(args) ? this.logs!.entries(args, (a) => send(a)) : send(args));
+                            return (args: any) => (isLogArgs(args) ? this.logs!.entries(args, (a) => send(a), priority) : send(args));
                         return send;
                     },
                 });
@@ -126,7 +131,8 @@ export class Gateway {
                 return result;
             } catch (error: any) {
                 stat.failures++;
-                if (tooMany(error)) this.backOff(family, method);
+                // A sensor read is never paused: waiting can't help the BT50 feed, only stop it.
+                if (tooMany(error) && family !== SENSOR_FAMILY) this.backOff(family, method);
                 else if (from && connectionLost(error) && this.client === from) {
                     // Only a lost connection drops the client, and only the one this request used.
                     this.client = undefined;

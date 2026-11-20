@@ -1301,6 +1301,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.connection = PumpConnection.get(this.host(), this.profile, this.transport());
         this.connection.attach(this);
         if (this.role === 'heating') {
+            // TEMP(warning clear): the 12:36 build's Proxy error was left as Heating's warning by code
+            // that didn't store it (clearIndoorWarning came later). Cleared once, before this start's
+            // own warnings are set. Remove with the other TEMP code.
+            if (this.getStoreValue('proxyWarningCleared') !== 1) {
+                await this.unsetWarning().catch(this.error);
+                await this.setStoreValue('proxyWarningCleared', 1).catch(this.error);
+            }
             this.indoorStopped = false;
             if (this.getStoreValue('indoorSensors')?.state === 'active') {
                 const owner = NibePumpDevice.indoorOwners.get(this.host());
@@ -1318,13 +1325,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.role === 'hotwater') await this.syncHotwaterAutopilot().catch(this.error);
         if (this.role === 'heating' || this.role === 'hotwater') {
             if (!Array.isArray(this.getStoreValue(MODE_MARKS_STORE))) await this.markMode(this.smartMode()).catch(this.error);
-            // TEMP(warning clear): the 12:36 build's Proxy error was left as Heating's warning by code
-            // that didn't store it (clearIndoorWarning came later). Cleared once; owners of other
-            // warnings set theirs again at their next check. Remove with the other TEMP code.
-            if (this.role === 'heating' && this.getStoreValue('proxyWarningCleared') !== 1) {
-                await this.unsetWarning().catch(this.error);
-                await this.setStoreValue('proxyWarningCleared', 1);
-            }
             // TEMP(savings reset): heating's start date and baseline were stored by the code before
             // b870c03 (at the switch, not when the house model was ready). Read again once from
             // Insights. Remove with the other TEMP code (tasks/todo.md).

@@ -55,6 +55,13 @@ export class WeatherBook {
         return this.kept(this.slot(this.forecasts, url), FORECAST_MAX_AGE_MS, () => this.deps.getJson(url, 'open-meteo forecast'));
     }
 
+    /** When the forecast `forecast()` returns was fetched (ms), so staleness is judged on the data,
+     *  not on when it was asked for; undefined before the first. */
+    forecastAt(): number | undefined {
+        const kept = [...this.forecasts.values()][0];
+        return kept?.value !== undefined ? kept.at : undefined;
+    }
+
     /** Sun on the ground, hour start (ms) → W/m²: the last 92 days (fetched daily) with the
      *  forecast's hours laid over them, so the hours ahead are an hour old at most. */
     async ghi(): Promise<Map<number, number> | undefined> {

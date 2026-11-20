@@ -447,7 +447,10 @@ export class AutopilotCollector {
     /** Open-Meteo's hourly weather for the last `days` days, for a backfill. Empty without a
      *  location. */
     private async pastWeather(days: number): Promise<Map<number, WeatherSlot>> {
-        const slots = weatherSlots(await weatherFor(this.homey, LOCATION_SETTING).past(days).catch(() => undefined));
+        const slots = weatherSlots(await weatherFor(this.homey, LOCATION_SETTING).past(days).catch((error: any) => {
+            this.log('Autopilot history: past weather not read:', error?.message ?? error);
+            return undefined;
+        }));
         return new Map(slots.map((s) => [s.slot, s]));
     }
 
@@ -467,7 +470,9 @@ export class AutopilotCollector {
         const slots = weatherSlots(await book.forecast());
         if (slots.length) {
             this.weather = new Map(slots.map((s) => [s.slot, s]));
-            this.weatherAt = Date.now();
+            // When the forecast was fetched, not now: a service that is down keeps the last one,
+            // and its age must still show (WEATHER_STALE_MS).
+            this.weatherAt = book.forecastAt() ?? Date.now();
         }
         return HOUR + jitter;
     }

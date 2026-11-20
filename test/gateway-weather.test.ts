@@ -78,3 +78,13 @@ test('a service that is down is asked again after 15 minutes, and the last answe
     await h.book.forecast();
     assert.equal(h.calls.filter((c) => c === 'open-meteo forecast').length, 3);
 });
+
+test('a forecast kept through an outage keeps the time it was fetched, so its age shows', async () => {
+    const h = harness();
+    await h.book.forecast();
+    const fetchedAt = h.book.forecastAt();
+    h.advance(FORECAST_MAX_AGE_MS + 1);
+    h.setDown(true);
+    await h.book.forecast();
+    assert.equal(h.book.forecastAt(), fetchedAt);
+});
