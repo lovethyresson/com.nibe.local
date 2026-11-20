@@ -102,12 +102,35 @@ export async function indoorInventory(homey: any): Promise<SensorReading[]> {
 
 /** The feed's 30 s read: only the selected devices. Every device and zone on the Homey each
  *  cycle timed out after 10 s often enough to interrupt the feed several times a day. */
-export async function selectedReadings(homey: any, sensors: SensorRef[]): Promise<SensorReading[]> {
-    return withApi(homey, async (api) => {
-        const ids = [...new Set(sensors.map(s => s.deviceId))];
-        // A deleted device is left out, so averageSensors() reports it as missing.
-        const devices = await Promise.all(ids.map(id => api.devices.getDevice({id, $cache: false, $timeout: 10000})
-            .catch((error: any) => error?.statusCode === 404 ? null : Promise.reject(error))));
-        return sensorInventory(Object.fromEntries(devices.filter(d => d).map(d => [d.id, d])), {});
-    });
+/** A sensor device read within this long is shared (docs/external-io.md step 4): the indoor read,
+ *  the BT50 feed and the outdoor sensor each read on their own timer, and a device that two of
+ *  them use was fetched twice. */
+export const READING_MAX_AGE_MS = 25_000;
+
+interface Read {at: number; device: any | null; ask?: Promise<any | null>}
+const reads = new Map<string, Read>();
+
+export async function selectedReadings(homey: any, sensors: SensorRef[], now = Date.now()): Promise<SensorReading[]> {
+    const ids = [...new Set(sensors.map(s => s.deviceId))];
+    // A deleted device is left out, so averageSensors() reports it as missing.
+    const devices = await Promise.all(ids.map((id) => readDevice(homey, id, now)));
+    // Only devices still picked by someone are kept.
+    if (reads.size > 50) for (const [id, r] of reads) if (now - r.at > 10 * READING_MAX_AGE_MS) reads.delete(id);
+    return sensorInventory(Object.fromEntries(devices.filter(d => d).map(d => [d.id, d])), {});
 }
+
+function readDevice(homey: any, id: string, now: number): Promise<any | null> {
+    const kept = reads.get(id);
+    if (kept && !kept.ask && now - kept.at < READING_MAX_AGE_MS) return Promise.resolve(kept.device);
+    if (kept?.ask) return kept.ask;
+    const entry: Read = kept ?? {at: -Infinity, device: null};
+    entry.ask = withApi(homey, (api) => api.devices.getDevice({id, $cache: false, $timeout: 10000}))
+        .catch((error: any) => (error?.statusCode === 404 ? null : Promise.reject(error)))
+        .then((device: any) => { entry.device = device; entry.at = Date.now(); return device; })
+        .finally(() => { entry.ask = undefined; });
+    reads.set(id, entry);
+    return entry.ask;
+}
+
+/** Tests only: forget every kept read. */
+export function forgetReadings() { reads.clear(); }

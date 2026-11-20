@@ -213,3 +213,6 @@ export function gatewayFor(homey: any): Gateway {
     }
     return shared;
 }
+
+/** Tests only: put a Gateway in place of the app's (or remove it with undefined). */
+export function useGatewayForTests(gateway: Gateway | undefined) { shared = gateway; }
