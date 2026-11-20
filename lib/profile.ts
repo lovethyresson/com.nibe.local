@@ -228,6 +228,11 @@ export interface ModelProfile {
         /** The immersion heater runs (1029), polled for the compressor ceiling; not a capability
          *  of the Hot water device (it serves heating too, so it lives on Main). */
         immersion?: string;
+        /** More hot water in hours (697's picker): the legionella run's 6 h boost. */
+        moreHours?: string;
+        /** What Autopilot takes over while live (hotwater-takeover.ts): Small's start (60) and
+         *  periodic hot water (65) are written; its interval (66) and stop (61) are read. */
+        takeover?: {startSmall: string; periodic: string; interval: string; periodicStop: string};
     };
     writeRequirements?: Record<string, {register: string; values: number[]; message: LocalizedText}>;
     indoorSensorFeed?: boolean;

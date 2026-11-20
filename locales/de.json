@@ -418,7 +418,15 @@
         "hw_plan_b1": "Lädt auf 56 °C für den Tag",
         "hw_plan_b2": "Ein ungeplantes Bad. Der Speicher wird knapp",
         "hw_plan_b3": "Ein neuer Plan: jetzt nachladen, in der günstigsten Stunde vor dem Abend",
-        "hw_plan_b4": "Abendliche Duschen, wie immer"
+        "hw_plan_b4": "Abendliche Duschen, wie immer",
+        "hw_legionella_title": "Legionellen",
+        "hw_legionella_intro": "Alle __days__ Tage heizt Autopilot den Speicher so heiß, dass Legionellen absterben, in den günstigsten Stunden. Hat eine Ladung das schon erreicht, entfällt sie.",
+        "hw_legionella_pump": "Einstellung Ihrer Wärmepumpe",
+        "hw_legionella_recommended": "Empfohlen",
+        "hw_legionella_custom": "Eigener Wert",
+        "hw_legionella_note": "Die eigene periodische Erhöhung Ihrer Wärmepumpe wird ausgeschaltet. Schalten Sie Autopilot aus, kommt sie zurück.",
+        "hw_legionella_link": "Über Legionellen",
+        "hw_legionella_invalid": "Geben Sie eine Temperatur von 55 bis 70 °C ein."
       },
       "gets_added": "Das wird hinzugefügt",
       "gets_added_intro": "Diese Geräte werden hinzugefügt.",
@@ -554,7 +562,8 @@
         "running": "Lädt bereits",
         "before_use": "Rechtzeitig vor dem Verbrauch",
         "room": "Speicher bis dahin voll",
-        "loss": "Weniger Wärmeverlust im Speicher"
+        "loss": "Weniger Wärmeverlust im Speicher",
+        "legionella": "Legionellen"
       },
       "cost": "Erwartete Kosten __cost__. Die Preise für morgen sind noch nicht da.",
       "shadow": "Simuliert. Keine Änderungen an Ihrer Wärmepumpe.",
@@ -573,7 +582,8 @@
         "surplus": "Solarüberschuss",
         "reserve": "Sicherheitsreserve",
         "running": "Lädt bereits",
-        "pump": "Von Ihrer Wärmepumpe gestartet"
+        "pump": "Von Ihrer Wärmepumpe gestartet",
+        "legionella": "Legionellen"
       },
       "detail": {
         "price": "Auf __target__ °C in etwa __duration__, zu __price__/kWh. Tagesdurchschnitt: __mean__.",
@@ -581,7 +591,8 @@
         "reserve": "Der Speicher hat nur noch __litres__ L, unter Ihrer Sicherheitsreserve von __reserve__ L. Heizt auf __target__ °C, etwa __duration__.",
         "pump": "Von Ihrer Wärmepumpe bei __top__ °C gestartet. Läuft bis __stop__ °C.",
         "pump_more": "Mehr Brauchwasser ist an, daher lädt Ihre Wärmepumpe auf __stop__ °C.",
-        "immersion": "Die Elektroheizpatrone hat bei __at__ °C übernommen. Autopilot lädt jetzt auf höchstens __cap__ °C."
+        "immersion": "Die Elektroheizpatrone hat bei __at__ °C übernommen. Autopilot lädt jetzt auf höchstens __cap__ °C.",
+        "legionella": "Auf __target__ °C gegen Legionellen, in den günstigsten 2 Stunden zu __price__/kWh. Die Elektroheizpatrone heizt die letzten Grad."
       },
       "plan": {
         "as_planned": "Wie geplant.",
@@ -613,6 +624,16 @@
         "smart_control": "Autopilot wartet. Der Brauchwasserbedarf Ihrer Wärmepumpe steht auf Smart control. Stellen Sie ihn auf Niedrig, Mittel oder Hoch."
       }
     },
+    "hotwater_legionella": {
+      "overdue": "Der Speicher hat __target__ °C gegen Legionellen nicht erreicht. Die periodische Erhöhung Ihrer Wärmepumpe ist wieder an, bis eine Ladung es schafft.",
+      "fallback_failed": "Autopilot konnte die periodische Erhöhung Ihrer Wärmepumpe nicht ändern. Ihre Wärmepumpe meldete: __error__"
+    },
+    "hotwater_takeover": {
+      "write_failed": "Autopilot konnte __settings__ an Ihrer Wärmepumpe nicht ändern. Es versucht es später erneut.",
+      "restore_failed": "Autopilot konnte __settings__ an Ihrer Wärmepumpe nicht zurücksetzen. Es versucht es später erneut.",
+      "gave_up": "Autopilot versucht nicht mehr, __setting__ an Ihrer Wärmepumpe zu ändern. Prüfen Sie den Wert im Menü der Wärmepumpe.",
+      "deleted_failed": "Das Gerät Brauchwasser wurde entfernt, aber diese Einstellungen konnten an Ihrer Wärmepumpe nicht zurückgesetzt werden: __settings__. Stellen Sie sie im Menü der Wärmepumpe ein."
+    },
     "hotwater_update": {
       "title": {
         "new_prices": "Brauchwasserplan mit neuen Preisen aktualisiert.",
@@ -640,7 +661,8 @@
         "surplus": "Solarüberschuss",
         "reserve": "Sicherheitsreserve",
         "running": "Lädt bereits",
-        "pump": "Von Ihrer Wärmepumpe gestartet"
+        "pump": "Von Ihrer Wärmepumpe gestartet",
+        "legionella": "Legionellen"
       },
       "moved_repriced": "Ladung verschoben von __was__ auf __time__: __was__ kostet jetzt __wasNow__/kWh statt __wasPrice__. Lädt auf __target__ °C zu __price__/kWh."
     },

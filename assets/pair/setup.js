@@ -63,7 +63,7 @@ function NibeSetup(options) {
         error = el('p', '', 'setup-error'); error.setAttribute('role', 'alert'); shell.appendChild(error);
     }
     function fail(err) { error.textContent = err && err.message || String(err); }
-    var LOCAL = {smart_choose: true, hotwater_household: true, hotwater_reserve: true, heating_range: true, heating_curve: true};
+    var LOCAL = {smart_choose: true, hotwater_household: true, hotwater_reserve: true, hotwater_legionella: true, heating_range: true, heating_curve: true};
     function emit(event, data) {
         if (options.mode === 'pair' && LOCAL[event]) {
             var saved = ap.saved = ap.saved || {};
@@ -71,6 +71,7 @@ function NibeSetup(options) {
             else if (event === 'hotwater_household') saved.household = data;
             else if (event === 'heating_range') { saved.range = data.value; if (data.custom) saved.custom = data.custom; }
             else if (event === 'heating_curve') saved.curve = data.value;
+            else if (event === 'hotwater_legionella') saved.legionella = data;
             else saved.reserve = data.litres;
             return Promise.resolve(true);
         }
@@ -875,6 +876,7 @@ function NibeSetup(options) {
             if (ap.saved.verified) st.verified = true;
             if (ap.saved.household) st.household = ap.saved.household;
             if (typeof ap.saved.reserve === 'number') st.reserve = ap.saved.reserve;
+            if (ap.saved.legionella) st.legionella = ap.saved.legionella;
         }
         return st;
     }
@@ -1075,8 +1077,61 @@ function NibeSetup(options) {
         shell.append(seg, chips, card, legend, table);
         if (HOTWATER_HELP_URL) shell.appendChild(smallAction(a('hw_plan_link') + ' ›', function () { Homey.openURL(HOTWATER_HELP_URL); }));
         draw();
-        shell.appendChild(button(t('next'), hotwaterStep, true));
+        shell.appendChild(button(t('next'), hotwaterLegionellaStep, true));
         back(smart);
+    }
+    /** Legionella: Autopilot heats the tank for legionella every interval (the pump's own, 66) in
+     *  the cheapest hours, while the pump's own periodic hot water is off. Three temperatures side
+     *  by side: the pump's own (61, when it reads), 65 °C, or the owner's own. */
+    var LEGIONELLA_MIN = 55, LEGIONELLA_MAX = 70, LEGIONELLA_RECOMMENDED = 65;
+    function hotwaterLegionellaStep() {
+        var st = ap.status;
+        var days = typeof st.legionellaDays === 'number' ? st.legionellaDays : 14;
+        clear(a('hw_legionella_title'), a('hw_legionella_intro', {days: days}));
+        var pumpC = typeof st.legionellaPumpC === 'number' ? st.legionellaPumpC : null;
+        var kept = st.legionella || {choice: 'recommended', c: LEGIONELLA_RECOMMENDED};
+        var choice = kept.choice === 'pump' && pumpC === null ? 'recommended' : kept.choice;
+        var box = el('div', undefined, 'hwl-choices'); box.setAttribute('role', 'radiogroup');
+        box.setAttribute('aria-label', a('hw_legionella_title'));
+        var own = document.createElement('input'); own.type = 'number'; own.min = String(LEGIONELLA_MIN); own.max = String(LEGIONELLA_MAX);
+        own.step = '1'; own.inputMode = 'numeric'; own.setAttribute('aria-label', a('hw_legionella_custom'));
+        own.value = String(kept.choice === 'custom' ? kept.c : LEGIONELLA_RECOMMENDED);
+        function mark() {
+            box.querySelectorAll('.hwl-card').forEach(function (c) {
+                var input = c.querySelector('input[type=radio]');
+                input.checked = input.value === choice; c.classList.toggle('is-selected', input.checked);
+            });
+        }
+        function card(id, big, small) {
+            var c = el('label', undefined, 'hwl-card');
+            var input = document.createElement('input'); input.type = 'radio'; input.name = 'hw-legionella'; input.value = id;
+            input.onchange = function () { choice = id; mark(); };
+            c.append(input, big, el('span', small, 'hwl-small'));
+            box.appendChild(c); return c;
+        }
+        if (pumpC !== null) card('pump', el('span', pumpC + ' °C', 'hwl-big'), a('hw_legionella_pump'));
+        card('recommended', el('span', LEGIONELLA_RECOMMENDED + ' °C', 'hwl-big'), a('hw_legionella_recommended'));
+        var field = el('span', undefined, 'hwl-big hwl-custom'); field.append(own, el('span', '°C'));
+        card('custom', field, a('hw_legionella_custom'));
+        own.onfocus = own.oninput = function () { choice = 'custom'; mark(); };
+        mark();
+        shell.append(box, el('p', a('hw_legionella_note'), 'register-desc hwl-note'));
+        if (HOTWATER_HELP_URL) shell.appendChild(smallAction(a('hw_legionella_link') + ' ›', function () { Homey.openURL(HOTWATER_HELP_URL); }));
+        var next = button(t('next'), function () {
+            var c = choice === 'pump' ? pumpC : choice === 'custom' ? Number(own.value) : LEGIONELLA_RECOMMENDED;
+            if (choice === 'custom' && (own.value === '' || !(c >= LEGIONELLA_MIN && c <= LEGIONELLA_MAX))) {
+                fail(new Error(a('hw_legionella_invalid'))); return;
+            }
+            var value = {choice: choice, c: c};
+            if (value.choice === kept.choice && value.c === kept.c) { hotwaterStep(); return; }
+            busy(next, async function () {
+                await emit('hotwater_legionella', value);
+                st.legionella = value;
+                hotwaterStep();
+            });
+        }, true);
+        shell.appendChild(next);
+        back(hotwaterPlanStep);
     }
     /** Autopilot hot water: the Flows that would fight it, and for a home with a short history
      *  the household answers it starts from. */
@@ -1164,7 +1219,7 @@ function NibeSetup(options) {
                 done(ap.choice === 'test' ? a('saved_test') : a('saved'));
             });
         }, true));
-        back(hotwaterPlanStep);
+        back(hotwaterLegionellaStep);
     }
     /** Solar: what a scan of the home found, then two switches: charge on live export, and plan
      *  around the sun ahead. The answer is the home's, read by every function; hot water asks it

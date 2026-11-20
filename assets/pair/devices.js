@@ -274,6 +274,7 @@ function buildDevice(candidate, index) {
         range: chosen.range || undefined, custom: chosen.custom || undefined};
     if (chosen && chosen.household) device.store.autopilotHotwaterHousehold = chosen.household;
     if (chosen && typeof chosen.reserve === 'number') device.store.autopilotReserve = chosen.reserve;
+    if (chosen && chosen.legionella) device.store.autopilotLegionella = chosen.legionella;
     return device;
 }
 

@@ -418,7 +418,15 @@
         "hw_plan_b1": "Lader til 56 °C for dagen",
         "hw_plan_b2": "Et uplanlagt bad. Tanken blir lav",
         "hw_plan_b3": "En ny plan: fyller på nå, i den billigste timen som er igjen før kvelden",
-        "hw_plan_b4": "Kveldsdusjer, som vanlig"
+        "hw_plan_b4": "Kveldsdusjer, som vanlig",
+        "hw_legionella_title": "Legionella",
+        "hw_legionella_intro": "Hver __days__. dag varmer Autopilot berederen så varm at legionella dør, i de billigste timene. Har en lading allerede nådd dit, hoppes den over.",
+        "hw_legionella_pump": "Varmepumpens innstilling",
+        "hw_legionella_recommended": "Anbefalt",
+        "hw_legionella_custom": "Egen",
+        "hw_legionella_note": "Varmepumpens eget periodiske varmtvann slås av. Slå av Autopilot, så kommer det tilbake.",
+        "hw_legionella_link": "Om legionella",
+        "hw_legionella_invalid": "Skriv inn en temperatur fra 55 til 70 °C."
       },
       "gets_added": "Dette legges til",
       "gets_added_intro": "Disse enhetene legges til.",
@@ -554,7 +562,8 @@
         "running": "Varmer allerede",
         "before_use": "I tide til forbruket",
         "room": "Berederen full til da",
-        "loss": "Mindre varmetap i berederen"
+        "loss": "Mindre varmetap i berederen",
+        "legionella": "Legionella"
       },
       "cost": "Forventet kostnad __cost__. Morgendagens priser er ikke kommet ennå.",
       "shadow": "Simulert. Ingen endringer på varmepumpen din.",
@@ -573,7 +582,8 @@
         "surplus": "Soloverskudd",
         "reserve": "Sikkerhetsnivå",
         "running": "Varmer allerede",
-        "pump": "Startet av varmepumpen din"
+        "pump": "Startet av varmepumpen din",
+        "legionella": "Legionella"
       },
       "detail": {
         "price": "Til __target__ °C på omtrent __duration__, for __price__/kWh. Snitt i dag: __mean__.",
@@ -581,7 +591,8 @@
         "reserve": "Berederen har bare __litres__ L, under sikkerhetsnivået ditt på __reserve__ L. Varmer til __target__ °C, omtrent __duration__.",
         "pump": "Startet av varmepumpen din ved __top__ °C. Går til __stop__ °C.",
         "pump_more": "Mer varmtvann er på, så varmepumpen din varmer til __stop__ °C.",
-        "immersion": "Elkolben tok over ved __at__ °C. Autopilot varmer nå til høyst __cap__ °C."
+        "immersion": "Elkolben tok over ved __at__ °C. Autopilot varmer nå til høyst __cap__ °C.",
+        "legionella": "Til __target__ °C mot legionella, i de billigste 2 timene til __price__/kWh. Elkolben varmer de siste gradene."
       },
       "plan": {
         "as_planned": "Som planlagt.",
@@ -613,6 +624,16 @@
         "smart_control": "Autopilot venter. Varmtvannsbehovet på varmepumpen din er satt til Smart control. Sett det til Lite, Middels eller Stort."
       }
     },
+    "hotwater_legionella": {
+      "overdue": "Berederen har ikke nådd __target__ °C mot legionella. Varmepumpens eget periodiske varmtvann er på igjen til en lading når dit.",
+      "fallback_failed": "Autopilot kunne ikke endre varmepumpens periodiske varmtvann. Varmepumpen din svarte: __error__"
+    },
+    "hotwater_takeover": {
+      "write_failed": "Autopilot kunne ikke endre __settings__ på varmepumpen din. Den prøver igjen senere.",
+      "restore_failed": "Autopilot kunne ikke sette tilbake __settings__ på varmepumpen din. Den prøver igjen senere.",
+      "gave_up": "Autopilot sluttet å prøve å endre __setting__ på varmepumpen din. Sjekk den i varmepumpens meny.",
+      "deleted_failed": "Varmtvann-enheten ble fjernet, men disse innstillingene kunne ikke settes tilbake på varmepumpen din: __settings__. Still dem inn i varmepumpens meny."
+    },
     "hotwater_update": {
       "title": {
         "new_prices": "Varmtvannsplanen er oppdatert med nye priser.",
@@ -640,7 +661,8 @@
         "surplus": "Soloverskudd",
         "reserve": "Sikkerhetsnivå",
         "running": "Varmer allerede",
-        "pump": "Startet av varmepumpen din"
+        "pump": "Startet av varmepumpen din",
+        "legionella": "Legionella"
       },
       "moved_repriced": "Lading flyttet fra __was__ til __time__: __was__ koster nå __wasNow__/kWh i stedet for __wasPrice__. Lader til __target__ °C for __price__/kWh."
     },

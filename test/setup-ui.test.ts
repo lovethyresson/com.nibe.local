@@ -211,10 +211,11 @@ test('Repair preselects the stored zone and saves a new pick; a single zone skip
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 const NO_SOLAR = {meters: [], meter: null, solar: [], followsSun: false, peakKw: null, live: null, forecast: null};
-async function hotwaterSmart(status: any, scan: any = NO_SOLAR) {
+async function hotwaterSmart(status: any, scan: any = NO_SOLAR, legionella = false) {
     const f = fixture('repair', 'hotwater', 0, undefined, {context: {smart: true},
         results: {smart_status: {role: 'hotwater', mode: 'off', spa: true, spaOn: false, autopilot: true, tank: true,
-            starterDays: 14, household: null, reserve: 40, ...status}, hotwater_household: true, hotwater_reserve: true, smart_choose: true,
+            starterDays: 14, household: null, reserve: 40, legionella: null, legionellaPumpC: 60, legionellaDays: 14, ...status},
+            hotwater_household: true, hotwater_reserve: true, hotwater_legionella: true, smart_choose: true,
             solar_scan: scan, solar_save: true}});
     // Hot water setup: the tank, then its Smart mode; Autopilot, Simulated.
     f.click('Continue'); f.menu('Hot water setup'); f.click('Continue'); await tick();
@@ -222,11 +223,58 @@ async function hotwaterSmart(status: any, scan: any = NO_SOLAR) {
     autopilot.checked = true; autopilot.dispatchEvent(new f.win.Event('change'));
     f.click(english.pair.setup.smart.mode_simulated);
     f.click('Continue'); await tick();
-    // When to charge: made-up days, then on to the hot water checklist.
+    // When to charge: made-up days, then Legionella, then on to the hot water checklist.
     assert.ok(f.win.document.body.textContent.includes(english.pair.setup.smart.hw_plan_title));
     f.click('Continue'); await tick();
+    if (!legionella) {
+        assert.ok(f.win.document.body.textContent.includes(english.pair.setup.smart.hw_legionella_title));
+        f.click('Continue'); await tick();
+    }
     return f;
 }
+
+test('the Legionella step comes after When to charge: the pump\'s own, 65 °C recommended and preselected, or their own', async () => {
+    const s = english.pair.setup.smart;
+    const f = await hotwaterSmart({flows: [], historyDays: 60, legionellaPumpC: 60, legionellaDays: 21}, NO_SOLAR, true);
+    const body = () => f.win.document.body.textContent;
+    assert.ok(body().includes(s.hw_legionella_title));
+    assert.ok(body().includes(s.hw_legionella_intro.replace('__days__', '21')), 'the heat pump\'s own interval');
+    const cards = [...f.win.document.querySelectorAll('.hwl-card')] as any[];
+    assert.equal(cards.length, 3);
+    assert.ok(cards[0].textContent.includes('60 °C') && cards[0].textContent.includes(s.hw_legionella_pump), 'the heat pump\'s own setting');
+    assert.ok(cards[1].textContent.includes('65 °C') && cards[1].textContent.includes(s.hw_legionella_recommended));
+    assert.ok(cards[1].classList.contains('is-selected'), '65 °C is preselected');
+    assert.ok(body().includes(s.hw_legionella_note));
+    assert.ok(!body().includes(s.hw_legionella_link), 'no link until the help page is published');
+    // Back to When to charge and forward again.
+    f.click('Back'); await tick();
+    assert.ok(body().includes(s.hw_plan_title));
+    f.click('Continue'); await tick();
+    // A temperature of their own: out of range is refused, in range is saved.
+    const own = f.win.document.querySelector('.hwl-custom input');
+    own.value = '75'; own.dispatchEvent(new f.win.Event('input'));
+    assert.ok(cards.length && f.win.document.querySelectorAll('.hwl-card')[2].classList.contains('is-selected'));
+    f.click('Continue'); await tick();
+    assert.ok(body().includes(s.hw_legionella_invalid));
+    assert.equal(f.emitted.some((e) => e.name === 'hotwater_legionella'), false);
+    own.value = '68'; own.dispatchEvent(new f.win.Event('input'));
+    f.click('Continue'); await tick(); await tick();
+    assert.equal(JSON.stringify(f.emitted.find((e) => e.name === 'hotwater_legionella')?.data), JSON.stringify({choice: 'custom', c: 68}));
+    assert.ok(body().includes(s.hw_flows_none), 'on to the hot water checklist');
+    // Back from the checklist returns here, with their own temperature kept.
+    f.click('Back'); await tick();
+    assert.ok(f.win.document.querySelectorAll('.hwl-card')[2].classList.contains('is-selected'));
+    assert.equal(f.win.document.querySelector('.hwl-custom input').value, '68');
+    f.dom.window.close();
+});
+
+test('the Legionella step leaves the recommended 65 °C unsaved, and hides the heat pump\'s card when it does not read', async () => {
+    const f = await hotwaterSmart({flows: [], historyDays: 60, legionellaPumpC: null}, NO_SOLAR, true);
+    assert.equal(f.win.document.querySelectorAll('.hwl-card').length, 2);
+    f.click('Continue'); await tick();
+    assert.equal(f.emitted.some((e) => e.name === 'hotwater_legionella'), false);
+    f.dom.window.close();
+});
 
 test('hot water setup shows made-up days without and with Autopilot, each with its own plan', async () => {
     const f = fixture('repair', 'hotwater', 0, undefined, {context: {smart: true},

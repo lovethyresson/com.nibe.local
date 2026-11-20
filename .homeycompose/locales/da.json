@@ -180,7 +180,8 @@
         "running": "Opvarmer allerede",
         "before_use": "I tide til forbruget",
         "room": "Fuld beholder indtil da",
-        "loss": "Mindre varmetab i beholderen"
+        "loss": "Mindre varmetab i beholderen",
+        "legionella": "Legionella"
       },
       "cost": "Forventet pris __cost__. Morgendagens priser er ikke kommet endnu.",
       "shadow": "Simuleret. Ingen ændringer på din varmepumpe.",
@@ -199,7 +200,8 @@
         "surplus": "Soloverskud",
         "reserve": "Sikkerhedsniveau",
         "running": "Opvarmer allerede",
-        "pump": "Startet af din varmepumpe"
+        "pump": "Startet af din varmepumpe",
+        "legionella": "Legionella"
       },
       "detail": {
         "price": "Til __target__ °C på cirka __duration__ for __price__/kWh. Dagens gennemsnit: __mean__.",
@@ -207,7 +209,8 @@
         "reserve": "Beholderen har kun __litres__ L, under dit sikkerhedsniveau på __reserve__ L. Opvarmer til __target__ °C, cirka __duration__.",
         "pump": "Startet af din varmepumpe ved __top__ °C. Kører til __stop__ °C.",
         "pump_more": "Mere varmtvand er slået til, så din varmepumpe opvarmer til __stop__ °C.",
-        "immersion": "Elpatronen tog over ved __at__ °C. Autopilot opvarmer nu til højst __cap__ °C."
+        "immersion": "Elpatronen tog over ved __at__ °C. Autopilot opvarmer nu til højst __cap__ °C.",
+        "legionella": "Til __target__ °C mod legionella, i de billigste 2 timer til __price__/kWh. Elpatronen opvarmer de sidste grader."
       },
       "plan": {
         "as_planned": "Som planlagt.",
@@ -239,6 +242,16 @@
         "smart_control": "Autopilot venter. Varmtvandsbehovet på din varmepumpe står på Smart control. Sæt det til Lille, Middelstort eller Stort."
       }
     },
+    "hotwater_legionella": {
+      "overdue": "Beholderen har ikke nået __target__ °C mod legionella. Varmepumpens eget periodiske varme vand er tændt igen, til en opvarmning når dertil.",
+      "fallback_failed": "Autopilot kunne ikke ændre varmepumpens periodiske varme vand. Din varmepumpe svarede: __error__"
+    },
+    "hotwater_takeover": {
+      "write_failed": "Autopilot kunne ikke ændre __settings__ på din varmepumpe. Den prøver igen senere.",
+      "restore_failed": "Autopilot kunne ikke sætte __settings__ tilbage på din varmepumpe. Den prøver igen senere.",
+      "gave_up": "Autopilot holdt op med at prøve at ændre __setting__ på din varmepumpe. Tjek den i varmepumpens menu.",
+      "deleted_failed": "Varmt vand-enheden blev fjernet, men disse indstillinger kunne ikke sættes tilbage på din varmepumpe: __settings__. Indstil dem i varmepumpens menu."
+    },
     "hotwater_update": {
       "title": {
         "new_prices": "Varmtvandsplanen er opdateret med nye priser.",
@@ -266,7 +279,8 @@
         "surplus": "Soloverskud",
         "reserve": "Sikkerhedsniveau",
         "running": "Opvarmer allerede",
-        "pump": "Startet af din varmepumpe"
+        "pump": "Startet af din varmepumpe",
+        "legionella": "Legionella"
       },
       "moved_repriced": "Opvarmning flyttet fra __was__ til __time__: __was__ koster nu __wasNow__/kWh i stedet for __wasPrice__. Opvarmer til __target__ °C for __price__/kWh."
     },

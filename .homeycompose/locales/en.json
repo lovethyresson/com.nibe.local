@@ -180,7 +180,8 @@
         "running": "Already charging",
         "before_use": "In time for use",
         "room": "Tank full until then",
-        "loss": "Less heat lost in the tank"
+        "loss": "Less heat lost in the tank",
+        "legionella": "Legionella"
       },
       "cost": "Expected cost __cost__. Tomorrow's prices aren't in yet.",
       "shadow": "Simulated. No changes made to your heat pump.",
@@ -199,7 +200,8 @@
         "surplus": "Solar surplus",
         "reserve": "Safety net",
         "running": "Already charging",
-        "pump": "Started by your heat pump"
+        "pump": "Started by your heat pump",
+        "legionella": "Legionella"
       },
       "detail": {
         "price": "To __target__ °C in about __duration__, at __price__/kWh. Today's average: __mean__.",
@@ -207,7 +209,8 @@
         "reserve": "The tank is down to __litres__ L, below your __reserve__ L safety net. Heating to __target__ °C, about __duration__.",
         "pump": "Started by your heat pump at __top__ °C. Runs to __stop__ °C.",
         "pump_more": "More hot water is on, so your heat pump runs to __stop__ °C.",
-        "immersion": "The immersion heater took over at __at__ °C. Autopilot now charges to at most __cap__ °C."
+        "immersion": "The immersion heater took over at __at__ °C. Autopilot now charges to at most __cap__ °C.",
+        "legionella": "To __target__ °C against legionella, in the cheapest 2 hours at __price__/kWh. The immersion heater heats the last degrees."
       },
       "plan": {
         "as_planned": "As planned.",
@@ -239,6 +242,16 @@
         "smart_control": "Autopilot is waiting. Your heat pump's hot water demand is on Smart control. Set it to Small, Medium or Large."
       }
     },
+    "hotwater_legionella": {
+      "overdue": "The tank hasn't reached __target__ °C for legionella. Your heat pump's own periodic hot water is back on until a charge gets there.",
+      "fallback_failed": "Autopilot couldn't change your heat pump's periodic hot water. Your heat pump said: __error__"
+    },
+    "hotwater_takeover": {
+      "write_failed": "Autopilot couldn't change __settings__ on your heat pump. It tries again later.",
+      "restore_failed": "Autopilot couldn't put __settings__ back on your heat pump. It tries again later.",
+      "gave_up": "Autopilot stopped trying to change __setting__ on your heat pump. Check it in the heat pump's menu.",
+      "deleted_failed": "The Hot water device was removed, but these settings couldn't be put back on your heat pump: __settings__. Set them in the heat pump's menu."
+    },
     "hotwater_update": {
       "title": {
         "new_prices": "Hot water plan updated with new prices.",
@@ -266,7 +279,8 @@
         "surplus": "Solar surplus",
         "reserve": "Safety net",
         "running": "Already charging",
-        "pump": "Started by your heat pump"
+        "pump": "Started by your heat pump",
+        "legionella": "Legionella"
       },
       "moved_repriced": "Charge moved from __was__ to __time__: __was__ now costs __wasNow__/kWh instead of __wasPrice__. Charging to __target__ °C at __price__/kWh."
     },

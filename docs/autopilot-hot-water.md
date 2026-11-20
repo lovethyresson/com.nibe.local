@@ -252,15 +252,40 @@ at 195).
 |---|---|---|
 | **When** | 697 = 2 | a planned slot, surplus, rescue; only when BT7 < the planned temperature − 3 K; at most 3 a day |
 | **How hot** | 62 before the charge, only when it changes | the target temperature the plan chose for that charge (§4.2) |
-| **Advice only** | periodic hot water 65/66/92 | "Your weekly boost runs at 03:00; the cheapest slot this week is Sunday 02:15"; never written |
+| **Taken over while live** | 56 = Small, 60 = 5 °C, 65 = off | the pump starts no charge of its own; Autopilot runs legionella itself (below) |
 
 - **Writes:** one or two per charge, at most 6 a day. 62 is left at its last value, not restored:
   only boosts use it, and a hotter or cooler tank afterwards is harmless if the app stops.
-- **Owners in demand mode Large:** 62 is also their own stop temperature, so changing it would
-  change every normal charge. For them Autopilot chooses *when* only and never writes 62.
-- **Pumps that start charges themselves** (Medium or Large with a normal start): Autopilot
-  advances charges but does not defer them, which would need start-temperature writes. Setup
-  says so and offers the owner's own setup (Small with a low start) as a one-time change.
+- **Takeover (2026-11-20, `hotwater-takeover.ts`).** When hot water Autopilot goes live (not
+  Simulated, Off or SPA) it reads 56, 60, 61, 62, 65 and 66, keeps them in the store
+  (`hotwaterOwnerSettings`) and only then writes what differs: demand mode Small, Small's start
+  5 °C, periodic hot water off. So the pump starts no charge itself, and an owner in Medium or Large
+  becomes Small, whose 62 the lever may write. Smart control (56 = 4) is left alone and stays a
+  block. Each setting is read back and the record holds what the pump confirmed (a clamped value
+  too), so a takeover cut short by a restart or a failed write is finished on the next try, for
+  settings still at the owner's value. A setting the owner changes while it runs is theirs.
+- **Restore.** When it stops being live (Off, Simulated, SPA) each setting goes back to the kept
+  value, but only where the pump still holds what Autopilot left there. An owner going back to
+  Large also gets their own 62 back first, unconditionally: while Autopilot ran, 62 was its charge
+  target. Deleting the device makes one unread attempt at every value; a failure goes to the log
+  and the timeline with the values to set by hand.
+- **Retries.** Anything left undone is tried again after 5 min, 30 min, 2 h, then every 6 h. After
+  4 failed tries on one setting Autopilot stops writing it and names it in a device warning.
+- **Legionella run (`legionella.ts`).** Every interval (the pump's own 66, 14 days if unread)
+  Autopilot heats to the legionella temperature chosen in setup: the pump's own 61, 65 °C
+  (recommended) or the owner's own, 55–70 °C. It runs in the cheapest 2 hours (8 slots of known
+  prices) that end by when it is due, picked from 48 h before. A tank top within 0.5 K of the
+  target, from any charge, restarts the interval, so a hot charge makes the run unnecessary. The run
+  is 62 = target, then More hot water for 6 h (697 = 6): uncapped by the compressor ceiling, since
+  on the S1155 the immersion heater takes over only once the compressor stops near 58 °C and a 2 h
+  boost ran out first. It counts as one start and one stop write of the day's, and the plan's
+  extension leaves it alone; the next normal charge writes 62 back. One run an interval: a run
+  that falls short is not repeated. The interval (last reached, last run) is kept across
+  Simulated and back.
+- **Safety net.** Not reached when due after a run that fell short, or a day past due without
+  one: periodic hot water (65) goes back on, the owner is told once (device warning and timeline),
+  and runs stop until a charge gets there, which turns 65 off again. While it is on, the pump's own
+  61 counts as there, if lower than the target.
 - **Considered: the three demand modes as presets** (switch 56 to Medium or Large to charge,
   Small to hold). It would also defer charges on every pump, but it rewrites all six of the
   owner's start and stop temperatures and changes how the pump behaves without the app. Kept in
@@ -275,7 +300,7 @@ at 195).
   way seen to end a running charge (`registers.ts` at 195), but it is two more likely-EEPROM
   writes, and if the app dies between them the house has no hot water at all. Setting 62
   before the charge makes stopping unnecessary.
-- **Never touched:** 195 (allow hot water), the legionella settings, SPA hot water, Smart control
+- **Never touched:** 195 (allow hot water), 61 and 66 (read only), SPA hot water, Smart control
   (56 = 4). SPA and Autopilot are exclusive per pump ([autopilot-plan.md](autopilot-plan.md) §0.5), so
   Autopilot hot water runs only with SPA off.
 

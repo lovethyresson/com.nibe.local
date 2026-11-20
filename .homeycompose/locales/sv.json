@@ -180,7 +180,8 @@
         "running": "Laddar redan",
         "before_use": "I tid till förbrukningen",
         "room": "Tanken full till dess",
-        "loss": "Mindre värmeförlust i tanken"
+        "loss": "Mindre värmeförlust i tanken",
+        "legionella": "Legionella"
       },
       "cost": "Förväntad kostnad __cost__. Morgondagens priser har inte kommit än.",
       "shadow": "Simulerad. Inga ändringar görs i din värmepump.",
@@ -199,7 +200,8 @@
         "surplus": "Solöverskott",
         "reserve": "Säkerhetsnivå",
         "running": "Laddar redan",
-        "pump": "Startad av din värmepump"
+        "pump": "Startad av din värmepump",
+        "legionella": "Legionella"
       },
       "detail": {
         "price": "Till __target__ °C på cirka __duration__, för __price__/kWh. Dagens snitt: __mean__.",
@@ -207,7 +209,8 @@
         "reserve": "Tanken har bara __litres__ L, under din säkerhetsnivå på __reserve__ L. Värmer till __target__ °C, cirka __duration__.",
         "pump": "Startad av din värmepump vid __top__ °C. Laddar till __stop__ °C.",
         "pump_more": "Mer varmvatten är på, så din värmepump laddar till __stop__ °C.",
-        "immersion": "Elpatronen tog över vid __at__ °C. Autopilot laddar nu till högst __cap__ °C."
+        "immersion": "Elpatronen tog över vid __at__ °C. Autopilot laddar nu till högst __cap__ °C.",
+        "legionella": "Till __target__ °C mot legionella, under de billigaste 2 timmarna för __price__/kWh. Elpatronen värmer de sista graderna."
       },
       "plan": {
         "as_planned": "Som planerat.",
@@ -239,6 +242,16 @@
         "smart_control": "Autopilot väntar. Varmvattenbehovet på din värmepump står på Smart control. Ställ in Litet, Medel eller Stort."
       }
     },
+    "hotwater_legionella": {
+      "overdue": "Tanken har inte nått __target__ °C mot legionella. Värmepumpens eget periodiska varmvatten är på igen tills en laddning kommer dit.",
+      "fallback_failed": "Autopilot kunde inte ändra värmepumpens periodiska varmvatten. Din värmepump svarade: __error__"
+    },
+    "hotwater_takeover": {
+      "write_failed": "Autopilot kunde inte ändra __settings__ på din värmepump. Den försöker igen senare.",
+      "restore_failed": "Autopilot kunde inte återställa __settings__ på din värmepump. Den försöker igen senare.",
+      "gave_up": "Autopilot slutade försöka ändra __setting__ på din värmepump. Kontrollera den i värmepumpens meny.",
+      "deleted_failed": "Varmvatten-enheten togs bort, men de här inställningarna kunde inte återställas på din värmepump: __settings__. Ställ in dem i värmepumpens meny."
+    },
     "hotwater_update": {
       "title": {
         "new_prices": "Varmvattenplanen uppdaterad med nya priser.",
@@ -266,7 +279,8 @@
         "surplus": "Solöverskott",
         "reserve": "Säkerhetsnivå",
         "running": "Laddar redan",
-        "pump": "Startad av din värmepump"
+        "pump": "Startad av din värmepump",
+        "legionella": "Legionella"
       },
       "moved_repriced": "Laddning flyttad från __was__ till __time__: __was__ kostar nu __wasNow__/kWh i stället för __wasPrice__. Laddar till __target__ °C för __price__/kWh."
     },

@@ -6,7 +6,11 @@ import {Controls, AutopilotCollector, OUTDOOR_SENSOR_SETTING} from './autopilot/
 import {BACKFILL_FIELDS, BackfillField, LogSource, anyLogRead, backfillSources, fetchHeatingInsights} from './autopilot/heating-insights';
 import {newHistoryFileName} from './autopilot/store-file';
 import {Baseline, LEDGER_DAYS, moneyText, partialDay, ModeMark, SavingsData, SavingsDay, baselineOf, dayHours, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay, savingsLive} from './autopilot/savings';
-import {ChargeEvent, HotwaterAutopilot, HotwaterMode, TankView, ownDeviceId} from './autopilot/hotwater-shadow';
+import {ChargeEvent, HotwaterAutopilot, HotwaterMode, LEGIONELLA_STATE_KEY, TankView, ownDeviceId} from './autopilot/hotwater-shadow';
+import {DEFAULT_INTERVAL_DAYS, MAX_FAILURES, OwnerHotwater, RestoreKey, TakeoverRecord, TakeoverWrite, gaveUp, noteFailure, noteRestored, noteTaken,
+    noteWrite, readTakeover, restoreAll, restorePlan, retryDelayMs, same, takeoverPlan} from './autopilot/hotwater-takeover';
+import {LEGIONELLA_WHEN_PERIODIC_OFF, LegionellaState, readSetting as readLegionella, readState as readLegionellaState,
+    validSetting as validLegionella} from './autopilot/legionella';
 import {FlowConflict, moreHotwaterFlows} from './autopilot/hotwater-flows';
 import {KWH_PER_LITRE, STARTER_DAYS, localClock, readHousehold} from './autopilot/hotwater-learner';
 import {DAY_TYPE_SETTING, DEFAULT_DAY_TYPE, DayTypeState, awayOn, dayTypeAt, homeDayTypeAt, readDayType, typeSet} from './autopilot/day-type';
@@ -77,6 +81,12 @@ const HOUSEHOLD_STORE = 'autopilotHotwaterHousehold';
  *  Set in Repair → Smart mode next to the other hot water choices (2026-11-14); it was a device
  *  setting shown, and mirrored, on every device of the pump. */
 const RESERVE_STORE = 'autopilotReserve';
+/** The owner's hot water settings from before Autopilot took them over, and what it wrote
+ *  (autopilot/hotwater-takeover.ts): present only while Autopilot holds them. */
+const TAKEOVER_STORE = 'hotwaterOwnerSettings';
+/** The legionella temperature chosen in setup (autopilot/legionella.ts). */
+const LEGIONELLA_STORE = 'autopilotLegionella';
+
 /** Smart mode chosen in pairing, applied once when the device first runs (applyPairedSmartMode). */
 const PAIRED_SMART_STORE = 'pairedSmartMode';
 /** Heat curve advice (autopilot/curve-advice.ts): the owner's choice, daily samples, the last change. */
@@ -1560,8 +1570,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             this.hotwaterAutopilot = null;
             this.round().setHotwater(undefined);
             await this.unsetWarning().catch(this.error);
+            await this.syncHotwaterTakeover();
             return;
         }
+        // Live takes over the pump's own charging, a test run gives it back.
+        await this.syncHotwaterTakeover();
         if (this.hotwaterAutopilot) return;
         let file = this.getStoreValue('autopilotHotwaterFile') as string | undefined;
         if (!file) await this.setStoreValue('autopilotHotwaterFile', file = newHistoryFileName());
@@ -1605,10 +1618,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     allowed: (await readPump(spec.allowed)) as boolean | undefined, spaHotwater: spa.every((on) => on === true)};
             },
             write: async (what, value) => {
-                const name = what === 'stop' ? spec.largeStop : spec.more;
+                if (what === 'boost' && !spec.moreHours) throw new Error('More hot water in hours is not available on this heat pump');
+                const name = what === 'stop' ? spec.largeStop : what === 'boost' ? spec.moreHours! : spec.more;
                 this.log(`Autopilot hot water: writing ${name} = ${value}`);
-                await this.writeRegister(register(name), value);
+                if (what !== 'boost') return this.writeRegister(register(name), value);
+                await this.writeBoost(Number(value));
             },
+            legionella: () => this.legionellaRun(),
+            periodicBoost: (on) => this.setPeriodicBoost(on),
             store: {get: (key) => this.getStoreValue(key), set: (key, value) => this.setStoreValue(key, value)},
             charged: (e: ChargeEvent, text) => {
                 this.homey.flow.getDeviceTriggerCard((this.profile.flowPrefix ?? '') + 'hotwater_charge_started')
@@ -1635,6 +1652,229 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // After a restart with no plan for today yet: the plan in force stands in for it.
         const kept = this.hotwaterAutopilot.dayPlan();
         if (kept?.charges.length) this.noteCostPlan(Date.now(), chargeCosts(kept.charges, SLOT_MS));
+    }
+
+    /** More hot water for `hours` (697's hours picker, as text, as a Flow card sends it). Its
+     *  read-back may not match: the pump may report the hours left rather than the hours written
+     *  (not verified on hardware). So a boost that reads on afterwards has started, and a mismatch
+     *  is only logged. */
+    async writeBoost(hours: number) {
+        const spec = this.profile.autopilotHotwater;
+        if (!spec?.moreHours) throw new Error('More hot water in hours is not available on this heat pump');
+        try {
+            await this.writeRegister(this.register(spec.moreHours), String(hours));
+        } catch (error: any) {
+            if ((await this.readNamed(spec.more)) !== true) throw error;
+            this.log(`Autopilot hot water: More hot water is on after writing ${hours} h, though the read-back differed:`,
+                error?.message ?? error);
+        }
+    }
+
+    /** The pump's hot water settings Autopilot takes over, read now; missing where one did not answer. */
+    private async readOwnerHotwater(): Promise<OwnerHotwater> {
+        const spec = this.profile.autopilotHotwater, t = spec?.takeover;
+        if (!spec || !t) return {};
+        return {demandMode: await this.readTakenValue('demandMode'), startSmallC: await this.readTakenValue('startSmallC'),
+            periodic: await this.readTakenValue('periodic') as boolean | undefined, largeStopC: await this.readTakenValue('largeStopC') as number | undefined,
+            intervalDays: await this.readNumber(t.interval), periodicStopC: await this.readNumber(t.periodicStop)};
+    }
+
+    private async readNumber(name: string): Promise<number | undefined> {
+        // A picker (demand mode, interval) reads back as its id in text: "0".
+        const v = await this.readNamed(name);
+        const n = typeof v === 'string' && v.trim() !== '' ? Number(v) : v;
+        return typeof n === 'number' && Number.isFinite(n) ? n : undefined;
+    }
+
+    private takenRegister(key: RestoreKey): string {
+        const spec = this.profile.autopilotHotwater!, t = spec.takeover!;
+        return key === 'demandMode' ? spec.demandMode : key === 'startSmallC' ? t.startSmall : key === 'periodic' ? t.periodic : spec.largeStop;
+    }
+
+    private async readTakenValue(key: RestoreKey): Promise<any> {
+        const name = this.takenRegister(key);
+        if (key !== 'periodic') return this.readNumber(name);
+        const v = await this.readNamed(name);
+        return typeof v === 'boolean' ? v : undefined;
+    }
+
+    /** Writes one setting and reads it back: what the pump holds afterwards, whether or not the
+     *  write itself reported a problem (a clamped value fails writeRegister's check, yet it is
+     *  what the pump now holds). Undefined when it does not read. */
+    private async writeTaken(w: TakeoverWrite): Promise<number | boolean | undefined> {
+        const name = this.takenRegister(w.key);
+        this.log(`Autopilot hot water: writing ${name} = ${w.value}`);
+        await this.writeRegister(this.register(name), w.key === 'demandMode' ? String(w.value) : w.value)
+            .catch((error) => this.error(`Autopilot hot water: writing ${name} failed:`, error?.message ?? error));
+        return this.readTakenValue(w.key);
+    }
+
+    private takeoverQueue: Promise<void> = Promise.resolve();
+    private takeoverTimer?: any;
+    private takeoverWaiting?: string;
+    /** Tries in a row that left something undone, for the back-off. */
+    private takeoverAttempts = 0;
+    /** Set while the device is being deleted: Autopilot gives the settings back whatever its mode. */
+    private removing = false;
+
+    /** Live Autopilot holds the pump's own charging and periodic boost; anything else gives them
+     *  back. One at a time; whatever is left undone is tried again after a back-off. */
+    private syncHotwaterTakeover(): Promise<void> {
+        const run = this.takeoverQueue.then(() => this.applyTakeover());
+        this.takeoverQueue = run.catch(() => undefined);
+        return run;
+    }
+
+    /** Something is left undone: again in 5 min, 30 min, 2 h, then every 6 h. */
+    private retryTakeover(why: string) {
+        if (this.takeoverWaiting !== why) this.log(`Autopilot hot water: the heat pump's own charging not ${why}; trying again later.`);
+        this.takeoverWaiting = why;
+        if (this.removing) return;
+        const ms = retryDelayMs(this.takeoverAttempts++);
+        this.takeoverTimer = this.homey.setTimeout(() => {
+            this.takeoverTimer = undefined;
+            this.syncHotwaterTakeover().catch(this.error);
+        }, ms);
+    }
+
+    private takeoverDone() {
+        this.takeoverWaiting = undefined;
+        this.takeoverAttempts = 0;
+    }
+
+    /** Settings Autopilot stopped writing after MAX_FAILURES tries, said once on the device by name. */
+    private async warnGaveUp(saved: TakeoverRecord, key: string) {
+        const keys = (Object.keys(saved.failures ?? {}) as RestoreKey[]).filter((k) => gaveUp(saved, k));
+        if (!keys.length) return;
+        const names = keys.map((k) => this.registerTitle(this.register(this.takenRegister(k)))).join(', ');
+        this.error(`Autopilot hot water: stopped writing ${names} after ${MAX_FAILURES} failed tries.`);
+        await this.setWarning(this.homey.__(key, {setting: names})).catch(this.error);
+    }
+
+    private async applyTakeover() {
+        if (this.takeoverTimer) this.homey.clearTimeout(this.takeoverTimer);
+        this.takeoverTimer = undefined;
+        if (!this.profile.autopilotHotwater?.takeover) return;
+        let saved = readTakeover(this.getStoreValue(TAKEOVER_STORE));
+        if (this.removing) return saved ? this.restoreOnDelete(saved) : undefined;
+        const live = this.autopilotMode() === 'live';
+        if (!live && !saved) return this.takeoverDone();
+        if (live) {
+            const plan = takeoverPlan(await this.readOwnerHotwater(), saved, Date.now());
+            if ('skip' in plan) return this.retryTakeover(plan.skip === 'unread' ? 'taken over (no reading)' : 'taken over (Smart control)');
+            // The owner's values are kept before anything is written, so a cut-short takeover still restores.
+            if (plan.save) {
+                saved = plan.save;
+                await this.setStoreValue(TAKEOVER_STORE, saved);
+                // The legionella interval carries on from an earlier takeover; only the safety net ends.
+                const state = readLegionellaState(this.getStoreValue(LEGIONELLA_STATE_KEY));
+                const next: LegionellaState = state ? {...state} : {since: saved.at};
+                delete next.fallbackAt;
+                await this.setStoreValue(LEGIONELLA_STATE_KEY, next);
+                this.log(`Autopilot hot water took over the heat pump's own charging; the owner's settings: ${JSON.stringify(saved.owner)}`);
+            }
+            for (const c of plan.confirmed) saved = noteTaken(saved!, c.key, c.value);
+            for (const w of plan.writes) {
+                saved = noteTaken(saved!, w.key, await this.writeTaken(w));
+                await this.setStoreValue(TAKEOVER_STORE, saved);
+            }
+            if (plan.confirmed.length) await this.setStoreValue(TAKEOVER_STORE, saved);
+            const left = plan.writes.filter((w) => saved!.wrote[w.key] === undefined);
+            if (!left.length) return this.takeoverDone();
+            await this.warnGaveUp(saved!, 'autopilot.hotwater_takeover.gave_up');
+            if (left.every((w) => gaveUp(saved, w.key))) return this.takeoverDone();
+            await this.setWarning(this.homey.__('autopilot.hotwater_takeover.write_failed',
+                {settings: left.map((w) => this.registerTitle(this.register(this.takenRegister(w.key)))).join(', ')})).catch(this.error);
+            return this.retryTakeover('taken over (write failed)');
+        }
+        const plan = restorePlan(await this.readOwnerHotwater(), saved!);
+        if (plan.unread.length) return this.retryTakeover('given back (no reading)');
+        const failed: TakeoverWrite[] = [];
+        for (const w of plan.writes) {
+            // 56 back to Large only once Large's own stop is back.
+            if (w.key === 'demandMode' && failed.length) continue;
+            const back = await this.writeTaken(w);
+            saved = same(back, w.value) ? noteRestored(saved!, w.key) : noteFailure(saved!, w.key);
+            if (!same(back, w.value) && !gaveUp(saved, w.key)) failed.push(w);
+            await this.setStoreValue(TAKEOVER_STORE, saved);
+        }
+        await this.warnGaveUp(saved!, 'autopilot.hotwater_takeover.gave_up');
+        if (failed.length) {
+            await this.setWarning(this.homey.__('autopilot.hotwater_takeover.restore_failed',
+                {settings: failed.map((w) => this.registerTitle(this.register(this.takenRegister(w.key)))).join(', ')})).catch(this.error);
+            return this.retryTakeover('given back (write failed)');
+        }
+        await this.unsetStoreValue(TAKEOVER_STORE);
+        // Kept: the interval carries on if Autopilot goes live again. The safety net ends with the restore.
+        const state = readLegionellaState(this.getStoreValue(LEGIONELLA_STATE_KEY));
+        if (state?.fallbackAt !== undefined) {
+            const next = {...state};
+            delete next.fallbackAt;
+            await this.setStoreValue(LEGIONELLA_STATE_KEY, next);
+        }
+        this.takeoverDone();
+        this.log(`Autopilot hot water gave the heat pump its own charging back: ${plan.writes.length
+            ? plan.writes.map((w) => `${w.key} = ${w.value}`).join(', ') : 'nothing to put back'}.`);
+    }
+
+    /** The device is being deleted: one attempt to write every owner value back without reading
+     *  first (an unreachable pump reads nothing). There is no device left to warn on, so a failure
+     *  goes to the log and the timeline with the values to set by hand. */
+    private async restoreOnDelete(saved: TakeoverRecord) {
+        const writes = restoreAll(saved);
+        const failed: string[] = [];
+        for (const w of writes) {
+            const back = await this.writeTaken(w).catch(() => undefined);
+            if (!same(back, w.value)) failed.push(`${this.registerTitle(this.register(this.takenRegister(w.key)))} = ${w.value}`);
+        }
+        if (!failed.length) return this.log('Autopilot hot water: the device was deleted; the heat pump has its own hot water settings back.');
+        this.error(`AUTOPILOT HOT WATER: the device was deleted but these settings could not be put back on the heat pump: ${failed.join(', ')}`);
+        await this.homey.notifications?.createNotification({excerpt: this.homey.__('autopilot.hotwater_takeover.deleted_failed',
+            {settings: failed.join(', ')})}).catch(this.error);
+    }
+
+    /** The legionella run's temperature and interval while live Autopilot holds the periodic
+     *  boost, and the pump's own boost temperature (61) for ending the safety net. */
+    private legionellaRun(): {targetC: number; intervalDays: number; pumpC?: number} | undefined {
+        if (this.autopilotMode() !== 'live') return undefined;
+        const saved = readTakeover(this.getStoreValue(TAKEOVER_STORE));
+        if (!saved) return undefined;
+        // An owner who had the periodic boost off: the one branch the maintainer may change.
+        if (!LEGIONELLA_WHEN_PERIODIC_OFF && saved.owner.periodic === false) return undefined;
+        return {targetC: readLegionella(this.getStoreValue(LEGIONELLA_STORE)).c,
+            intervalDays: saved.owner.intervalDays ?? DEFAULT_INTERVAL_DAYS, pumpC: saved.owner.periodicStopC};
+    }
+
+    /** The legionella safety net: the pump's own periodic boost on, or off again once a charge got
+     *  there (only if it is still on as Autopilot left it). Recorded as what the pump confirmed, so
+     *  stopping Autopilot puts the owner's value back. Throws when the pump does not take it. */
+    private async setPeriodicBoost(on: boolean) {
+        const saved = readTakeover(this.getStoreValue(TAKEOVER_STORE));
+        if (!this.profile.autopilotHotwater?.takeover || !saved) return;
+        const now = await this.readTakenValue('periodic');
+        if (now === on || (!on && saved.wrote.periodic !== true)) return;
+        const back = await this.writeTaken({key: 'periodic', value: on});
+        if (back !== on) throw new Error(`Couldn't set "${this.registerTitle(this.register(this.takenRegister('periodic')))}"`);
+        await this.setStoreValue(TAKEOVER_STORE, noteWrite(readTakeover(this.getStoreValue(TAKEOVER_STORE)) ?? saved, 'periodic', on));
+    }
+
+    /** Setup's legionella step: the choice and temperature. */
+    async setLegionella(raw: any) {
+        const setting = validLegionella(raw);
+        if (!setting) throw new Error(this.homey.__('pair.setup.smart.hw_legionella_invalid'));
+        await this.setStoreValue(LEGIONELLA_STORE, setting);
+        this.log(`Autopilot hot water legionella: ${setting.choice}, ${setting.c} °C`);
+    }
+
+    /** What the legionella step shows: the choice, the pump's own temperature (61) and interval (66). */
+    private async legionellaStatus() {
+        const t = this.profile.autopilotHotwater?.takeover;
+        const saved = readTakeover(this.getStoreValue(TAKEOVER_STORE));
+        const read = t ? await this.readOwnerHotwater() : {} as OwnerHotwater;
+        const stored = this.getStoreValue(LEGIONELLA_STORE);
+        return {legionella: stored == null ? null : readLegionella(stored),
+            legionellaPumpC: read.periodicStopC ?? saved?.owner.periodicStopC ?? null,
+            legionellaDays: saved?.owner.intervalDays ?? read.intervalDays ?? DEFAULT_INTERVAL_DAYS};
     }
 
     /** This poll for the hot water compressor ceiling: is a charge running, is the immersion heater
@@ -2263,7 +2503,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             return {...base, tank: this.tankConfig().litres !== null, flows: flows ?? null, historyDays: historyDays ?? null,
                 starterDays: STARTER_DAYS, household: readHousehold(this.getStoreValue(HOUSEHOLD_STORE)) ?? null,
                 dayType: this.dayTypeToday(),
-                reserve: this.reserveLitres()};
+                reserve: this.reserveLitres(), ...await this.legionellaStatus()};
         }
         if (this.role !== 'heating') return {...base, tank: undefined};
         const indoor = Number(this.getCapabilityValue('measure_temperature'));
@@ -3214,6 +3454,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             return;
         if (register.name === tank.topRegister) {
             this.tankTopC = value;
+            this.hotwaterAutopilot?.noteTop(value ?? undefined);
         } else if (register.name === tank.lowerRegister) {
             this.tankLowerC = value;
             if (value !== null) this.noteColdWater(value);
@@ -3913,6 +4154,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.hotwaterAutopilot?.stop();
         if (this.hotwaterAutopilot) this.round().setHotwater(undefined);
         this.hotwaterAutopilot = null;
+        if (this.takeoverTimer) this.homey.clearTimeout(this.takeoverTimer);
         this.roundOff?.();
         if (this.dayTypeTimer) this.homey.clearTimeout(this.dayTypeTimer);
         this.savingsStopped = true;
@@ -3942,6 +4184,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         await this.hotwaterAutopilot?.remove().catch(this.error);
         if (this.hotwaterAutopilot) this.round().setHotwater(undefined);
         this.hotwaterAutopilot = null;
+        // The heat pump gets its own charging back while the connection is still up.
+        this.removing = true;
+        if (this.role === 'hotwater') await this.syncHotwaterTakeover().catch(this.error);
+        if (this.takeoverTimer) this.homey.clearTimeout(this.takeoverTimer);
         this.roundOff?.();
         this.homey.settings.unset(`autopilotHotwaterFile.${this.getData().id}`);
         this.homey.settings.unset(`autopilotHistoryFile.${this.getData().id}`);

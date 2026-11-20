@@ -1,5 +1,6 @@
 import {averageSensors, cleanIndoorConfig, indoorInventory, withApi} from './indoor-sensors';
 import {pricesFor} from './gateway-prices';
+import {DEFAULT_INTERVAL_DAYS} from './autopilot/hotwater-takeover';
 import {PRIORITY} from './gateway';
 import {CUSTOM_SETTINGS, RANGE_IDS, customPresets, customValues, rangeFacts} from './autopilot/live';
 import {OUTDOOR_SENSOR_SETTING} from './autopilot/collector';
@@ -1367,6 +1368,7 @@ export abstract class NibePumpDriver extends Driver {
         if (device.role === 'hotwater') {
             session.setHandler('hotwater_household', async (data: any) => { await device.setHousehold(data ?? null); return true; });
             session.setHandler('hotwater_reserve', async (data: any) => { await device.setReserve(data?.litres); return true; });
+            session.setHandler('hotwater_legionella', async (data: any) => { await device.setLegionella(data); return true; });
         }
         this.registerHomeSetupHandlers(session, device.role === 'heating');
         if (device.role === 'heating') session.setHandler('activate_autopilot', async () => device.activateAutopilotHeating());
@@ -1480,8 +1482,15 @@ export abstract class NibePumpDriver extends Driver {
             const state = readDayType(this.homey.settings.get(DAY_TYPE_SETTING));
             const type = dayTypeAt(state, Date.now(), localClock(this.homey.clock.getTimezone()));
             // A new pump has no hot water history, and no Flow can target devices that do not exist yet.
+            // The legionella step shows the pump's own periodic stop (61) and interval (66) as detection read them.
+            const takeover = this.profile.autopilotHotwater?.takeover;
+            const sample = (name?: string) => {
+                const v = name ? detection?.samples[name]?.value : undefined;
+                return typeof v === 'number' && Number.isFinite(v) ? v : null;
+            };
             return {...base, tank: true, flows: [], historyDays: null, starterDays: STARTER_DAYS, household: null,
-                dayType: {name: this.homey.__(`autopilot.hotwater_use.${type}`), set: typeSet(state)}, reserve: 40};
+                dayType: {name: this.homey.__(`autopilot.hotwater_use.${type}`), set: typeSet(state)}, reserve: 40,
+                legionella: null, legionellaPumpC: sample(takeover?.periodicStop), legionellaDays: sample(takeover?.interval) ?? DEFAULT_INTERVAL_DAYS};
         }
         const room = await withPump(this.profile, host, this.pairingTransport(transport),
             (pump) => readRoomControl(pump, this.profile)).catch(() => undefined);

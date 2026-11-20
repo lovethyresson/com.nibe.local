@@ -17,6 +17,7 @@ import {preheatAdders} from './orchestrator';
 import {appendLine, deleteHistory, loadJson, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
 import {DayTypeState, dayTypeAt} from './day-type';
 import {DEMAND_LARGE, MAX_STOP_WRITES_PER_DAY, PumpFacts, countFor, leverDecision} from './hotwater-lever';
+import {BOOST_HOURS, LegionellaState, NOTE_EVERY_MS, REACHED_K, legionellaStep, noteTop, readState} from './legionella';
 import {BlockedBy, Edge, TankDay, hotwaterDayScore, leverBlock, tankDayUpdate} from './analytics';
 import {Ceiling, CeilingObservation, ChargeWatch, DEFAULT_CEILING_C, ONSET_MIN_C, PollReading, ceilingFromHistory, learnCeiling,
     mergeObservations, targetCap, watchCharge} from './hotwater-ceiling';
@@ -326,8 +327,9 @@ export function hotwaterStatusText(s: HotwaterStatus, t: Translate, when: (ms: n
  *  (its start temperature, or More hot water). A charge that is not the cheapest it could be says
  *  why it is not earlier: `before_use` (no cheaper hours before it; it is ready for a use), `room`
  *  (cheaper hours before it, but the tank had no room for it then), `loss` (room then, but the
- *  heat would have waited too long). */
-export type ChargeReason = 'running' | 'reserve' | 'surplus' | 'cheap' | 'before_use' | 'room' | 'loss' | 'pump';
+ *  heat would have waited too long). `legionella`: the run to the legionella temperature, in the
+ *  cheapest two hours before it is due (legionella.ts). */
+export type ChargeReason = 'running' | 'reserve' | 'surplus' | 'cheap' | 'before_use' | 'room' | 'loss' | 'pump' | 'legionella';
 /** The analytics value: `room` and `loss` are kinds of `before_use` (not the cheapest of their
  *  window), so `charge_reason` keeps the cross-app taxonomy's four values. */
 export const trackedReason = (r: ChargeReason) => r === 'room' || r === 'loss' ? 'before_use' : r;
@@ -557,7 +559,7 @@ export function chargeText(e: ChargeEvent, t: Translate, time: (ms: number) => s
         share: Math.round((e.surplusShare ?? 0) * 100), litres: e.litres ?? '?', reserve: e.reserveLitres,
         top: e.top ?? '?', stop: e.targetC ?? '?'};
     const detail = e.reason === 'pump' ? t(e.more ? 'detail.pump_more' : 'detail.pump', run)
-        : t(e.reason === 'reserve' || e.reason === 'surplus' ? `detail.${e.reason}` : 'detail.price', run);
+        : t(e.reason === 'reserve' || e.reason === 'surplus' || e.reason === 'legionella' ? `detail.${e.reason}` : 'detail.price', run);
     const plan = e.plan === 'moved' ? t('plan.moved', {time: time(e.plannedAt!)})
         : e.plan ? t(`plan.${e.plan}${e.by === 'pump' && e.plan === 'as_planned' ? '_pump' : ''}`) : '';
     const immersion = e.immersion ? t('detail.immersion', {at: Math.round(e.immersion.c), cap: e.immersion.capC}) : '';
@@ -703,8 +705,15 @@ export interface HotwaterHooks {
     dayType(): DayTypeState | undefined;
     /** The pump's state read just before a start, live from the pump. */
     pumpFacts(): Promise<PumpFacts>;
-    /** The two writes of a start: the Large stop (62) in °C, then More hot water (697 = 2). */
-    write(what: 'stop' | 'more', value: number | boolean): Promise<void>;
+    /** The two writes of a start: the Large stop (62) in °C, then More hot water (697 = 2), or
+     *  for the legionella run More hot water for `value` hours ('boost'). */
+    write(what: 'stop' | 'more' | 'boost', value: number | boolean): Promise<void>;
+    /** The legionella run's temperature and interval while Autopilot holds the pump's periodic
+     *  boost (hotwater-takeover.ts); undefined otherwise. */
+    legionella?(): {targetC: number; intervalDays: number; pumpC?: number} | undefined;
+    /** The legionella run did not get there in time: the pump's own periodic boost back on
+     *  (true), or off again once a charge got there (false). Throws when the write fails. */
+    periodicBoost?(on: boolean): Promise<void>;
     store: {get(key: string): any; set(key: string, value: any): Promise<void>};
     /** A real charge started, Autopilot's or the pump's: the Flow trigger. */
     charged(e: ChargeEvent, text: {reason: string; detailedReason: string}): void;
@@ -734,6 +743,8 @@ export const WRITES_KEY = 'autopilotHotwaterWrites';
 export const PLAN_KEY = 'autopilotHotwaterPlan';
 /** Device store key: what taught the compressor ceiling (hotwater-ceiling.ts). */
 export const CEILING_KEY = 'autopilotHotwaterCeiling';
+/** Device store key: the legionella state (legionella.ts), set when Autopilot takes over. */
+export const LEGIONELLA_STATE_KEY = 'autopilotLegionellaState';
 /** A real charge started this long ago is still the one running. */
 const CHARGE_RUN_MS = 4 * HOUR;
 
@@ -823,6 +834,8 @@ export class HotwaterAutopilot {
      *  started one, so that its own charge is not also reported as the pump's. */
     private wouldRunUntil = 0;
     private autopilotStartedAt = -Infinity;
+    /** When the legionella run started: the plan's extension leaves it alone for its 6 h. */
+    private legionellaRunAt?: number;
     /** Why the last planned start was not made, so a reason is logged once, not every slot. */
     private leverSkip?: string;
     private starting = false;
@@ -849,10 +862,11 @@ export class HotwaterAutopilot {
 
     async start() {
         this.lines = await trimLines(shadowLogName(this.fileName), KEEP).catch(() => 0);
-        const charge = this.hooks.store.get(CHARGE_KEY) as {at: number; minutes: number} | undefined;
-        if (charge && Date.now() - charge.at < 2 * HOUR) {
+        const charge = this.hooks.store.get(CHARGE_KEY) as {at: number; minutes: number; legionella?: boolean} | undefined;
+        if (charge && Date.now() - charge.at < (charge.legionella ? BOOST_HOURS : 2) * HOUR) {
             this.autopilotStartedAt = charge.at;
             this.wouldRunUntil = charge.at + charge.minutes * 60_000;
+            if (charge.legionella) this.legionellaRunAt = charge.at;
         }
         const saved = resumePlan(this.hooks.store.get(PLAN_KEY), Date.now());
         if (saved) {
@@ -1194,7 +1208,10 @@ export class HotwaterAutopilot {
         this.watchDay(input);
         this.morning(input);
         this.adoptPlan(input);
-        this.watchStarts(input, at).catch((error) => this.log('Autopilot hot water: start failed:', error?.message ?? error));
+        // The legionella run first: a slot it starts in has no other start.
+        this.watchLegionella(input, at).catch((error) => this.log('Autopilot hot water: legionella run failed:', error?.message ?? error))
+            .then(() => this.watchStarts(input, at))
+            .catch((error) => this.log('Autopilot hot water: start failed:', error?.message ?? error));
         this.watchExtend(input, at).catch((error) => this.log('Autopilot hot water: extending the charge failed:', error?.message ?? error));
         const out = hotwaterShadowStep(input);
         this.showStatus(input, out);
@@ -1267,6 +1284,8 @@ export class HotwaterAutopilot {
      *  live, the Large stop is written, within the day's stop writes; in a test run it is logged. */
     private async watchExtend(input: ShadowStepInput, at: number) {
         if (this.starting || !((input.now.powerW ?? 0) > 0) || !input.now.more) return;
+        // The legionella run goes to its own temperature: the plan's extension never touches it.
+        if (this.legionellaRunAt !== undefined && at - this.legionellaRunAt < BOOST_HOURS * HOUR) return;
         const charge = this.lastStart?.at ?? at;
         if (this.extendedFor === charge) return;
         const e = extendTarget(input);
@@ -1299,7 +1318,7 @@ export class HotwaterAutopilot {
         // not only in the log.
         const blocked = 'skip' in d ? BLOCKED[d.skip] : undefined;
         if (blocked) this.warn(this.homey.__(`autopilot.hotwater_charge.blocked.${blocked}`));
-        else this.warn(undefined);
+        else this.clearWarning();
         if ('skip' in d) {
             if (this.leverSkip !== d.skip) this.log(`Autopilot hot water: planned charge not started (${d.skip}).`);
             this.leverSkip = d.skip;
@@ -1341,6 +1360,118 @@ export class HotwaterAutopilot {
         this.hooks.status(hotwaterStatusText(s, (key, tokens) => this.homey.__(`autopilot.${key}`, tokens), when, this.shadow));
     }
 
+    /** The run to the legionella temperature this slot, when it is due and this is the cheapest
+     *  two hours before then (legionella.ts); or, a day past due and not reached, the pump's own
+     *  periodic boost back on. Live only, and only while Autopilot holds that boost. */
+    private async watchLegionella(input: ShadowStepInput, at: number) {
+        if (this.shadow || this.starting || !this.hooks.periodicBoost) return;
+        const setup = this.hooks.legionella?.();
+        const state = readState(this.hooks.store.get(LEGIONELLA_STATE_KEY));
+        if (!setup || !state) return;
+        const busy = (input.now.powerW ?? 0) > 0 || this.chargingNow === true || at < this.wouldRunUntil;
+        const prices = new Map([...this.prices].map(([slot, p]) => [slot * SLOT_MS, p.price]));
+        const d = legionellaStep({state, now: at, slotStart: at, intervalDays: setup.intervalDays, targetC: setup.targetC,
+            topC: input.now.top, busy, prices});
+        if (d.action === 'fallback') return this.legionellaFallback(state, setup.targetC, at);
+        if (d.action !== 'start') return;
+        this.starting = true;
+        try { await this.startLegionella(input, at, setup.targetC, d.window.price); } finally { this.starting = false; }
+    }
+
+    /** The legionella run: 62 to the legionella temperature, then More hot water for 6 h. Not
+     *  capped by the compressor ceiling: the immersion heater is meant to finish it. One start
+     *  and one stop write of the day's. */
+    private async startLegionella(input: ShadowStepInput, at: number, targetC: number, price: number) {
+        const count = countFor(this.hooks.store.get(WRITES_KEY), input.clock(at).date);
+        const d = leverDecision(targetC, await this.hooks.pumpFacts(), count, REACHED_K);
+        const blocked = 'skip' in d ? BLOCKED[d.skip] : undefined;
+        if (blocked) this.warn(this.homey.__(`autopilot.hotwater_charge.blocked.${blocked}`));
+        // The run needs 62 at its own temperature: with the day's stop writes used it waits.
+        const skip = 'skip' in d ? d.skip : d.targetC !== targetC ? 'daily limit' : undefined;
+        if (skip) {
+            if (this.leverSkip !== `legionella: ${skip}`) this.log(`Autopilot hot water: legionella run not started (${skip}).`);
+            this.leverSkip = `legionella: ${skip}`;
+            return;
+        }
+        const writeStop = !('skip' in d) && d.writeStop;
+        const minutes = BOOST_HOURS * 60;
+        // Saved before the writes, so a restart mid-run still knows the charge is the run's. The
+        // writes count against the day's limit whether they land or not.
+        const before = this.hooks.store.get(CHARGE_KEY);
+        await this.hooks.store.set(CHARGE_KEY, {at, targetC, minutes, legionella: true});
+        await this.hooks.store.set(WRITES_KEY, {...count, starts: count.starts + 1, stops: count.stops + (writeStop ? 1 : 0)});
+        try {
+            if (writeStop) await this.hooks.write('stop', targetC);
+            await this.hooks.write('boost', BOOST_HOURS);
+        } catch (error: any) {
+            // The run never began: a restart must not hold normal charges back for it.
+            await this.hooks.store.set(CHARGE_KEY, before ?? null).catch(() => undefined);
+            this.warn(this.homey.__('autopilot.hotwater_charge.write_failed', {error: error?.message ?? String(error)}));
+            throw error;
+        }
+        // One run an interval: a run that falls short is not repeated (legionella.ts).
+        const state = readState(this.hooks.store.get(LEGIONELLA_STATE_KEY));
+        if (state) await this.hooks.store.set(LEGIONELLA_STATE_KEY, {...state, runAt: at});
+        this.leverSkip = undefined;
+        this.clearWarning();
+        this.autopilotStartedAt = at;
+        this.wouldRunUntil = at + minutes * 60_000;
+        this.legionellaRunAt = at;
+        this.extendedFor = at;
+        this.chargeStarted({at, by: 'autopilot', reason: 'legionella', targetC, minutes, price: round(price),
+            litres: input.now.litres === undefined ? undefined : round(input.now.litres, 0), top: input.now.top,
+            reserveLitres: input.reserveLitres ?? DEFAULT_RESERVE_LITRES});
+    }
+
+    /** A day past due and not reached: the pump's own periodic boost back on, said once on the
+     *  device and the timeline. Legionella runs stop until a charge gets there. A failed write is
+     *  said and tried again next slot. */
+    private async legionellaFallback(state: LegionellaState, targetC: number, at: number) {
+        try {
+            await this.hooks.periodicBoost!(true);
+        } catch (error: any) {
+            this.log('Autopilot hot water: could not turn the periodic boost back on:', error?.message ?? error);
+            this.warn(this.homey.__('autopilot.hotwater_legionella.fallback_failed', {error: error?.message ?? String(error)}));
+            return;
+        }
+        await this.hooks.store.set(LEGIONELLA_STATE_KEY, {...state, fallbackAt: at});
+        const text = this.homey.__('autopilot.hotwater_legionella.overdue', {target: targetC});
+        this.log(`Autopilot hot water: legionella run overdue (${targetC} °C not reached); the heat pump's periodic boost is back on.`);
+        this.warn(text);
+        this.homey.notifications.createNotification({excerpt: text})
+            .catch((error: any) => this.log('Autopilot hot water: timeline failed:', error?.message ?? error));
+    }
+
+    /** A tank top reading: at the legionella temperature, the interval starts again, and a
+     *  fallback in force ends (the periodic boost off again). Stored at most once an hour. */
+    noteTop(topC: number | undefined, at = Date.now()) {
+        if (this.stopped || this.shadow) return;
+        const setup = this.hooks.legionella?.();
+        const state = readState(this.hooks.store.get(LEGIONELLA_STATE_KEY));
+        if (!setup || !state) return;
+        const next = noteTop(state, topC, at, setup.targetC, setup.pumpC);
+        if (next === state) return;
+        const recovered = state.fallbackAt !== undefined;
+        if (!recovered && state.lastReachedAt !== undefined && at - state.lastReachedAt < NOTE_EVERY_MS) return;
+        this.hooks.store.set(LEGIONELLA_STATE_KEY, next)
+            .catch((error) => this.log('Autopilot hot water: legionella state not saved:', error?.message ?? error));
+        if (!recovered) return;
+        this.log(`Autopilot hot water: the tank reached ${topC} °C; legionella runs resume and the periodic boost goes off again.`);
+        this.warn(undefined);
+        this.hooks.periodicBoost?.(false).catch((error: any) => {
+            this.log('Autopilot hot water: could not turn the periodic boost off again:', error?.message ?? error);
+            this.warn(this.homey.__('autopilot.hotwater_legionella.fallback_failed', {error: error?.message ?? String(error)}));
+        });
+    }
+
+    /** No problem with the lever: the warning cleared, unless the legionella safety net is on,
+     *  which stays said until a charge gets there. */
+    private clearWarning() {
+        const state = readState(this.hooks.store.get(LEGIONELLA_STATE_KEY));
+        const setup = state?.fallbackAt !== undefined ? this.hooks.legionella?.() : undefined;
+        this.warn(setup ? this.homey.__('autopilot.hotwater_legionella.overdue', {target: setup.targetC}) : undefined);
+    }
+
     /** The device warning, set or cleared only on a change. */
     private warning?: string;
     private warn(text: string | undefined) {
@@ -1366,7 +1497,8 @@ export class HotwaterAutopilot {
         this.log(`Autopilot hot water charge (${e.by}${e.shadow ? ', test run' : ''}): ${text.reason}. ${text.detailedReason} ${JSON.stringify(e)}`);
         if (!e.shadow) this.hooks.charged(e, text);
         this.hooks.track('Started Hot Water Charge', {started_by: e.by === 'pump' ? 'device' : 'autopilot',
-            ...e.reason !== 'pump' && e.reason !== 'running' ? {charge_reason: trackedReason(e.reason)} : {}, simulation: this.shadow});
+            ...e.reason !== 'pump' && e.reason !== 'running' && e.reason !== 'legionella' ? {charge_reason: trackedReason(e.reason)} : {},
+            simulation: this.shadow});
         // The timeline hears only what the morning plan did not say: a safety-net start, a moved
         // or unplanned one. Charges as planned, and the pump's own, are for Flows and the recap.
         if (e.by !== 'autopilot' || (e.reason !== 'reserve' && e.plan === 'as_planned')) return;

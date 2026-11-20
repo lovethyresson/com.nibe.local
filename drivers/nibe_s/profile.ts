@@ -217,6 +217,9 @@ export const sProfile = makeProfile({
         allowed: "onoff.h195_enable_hotwater",
         spa: ["boolean_NIBE.h843_spa_activated", "boolean_NIBE.h846_spa_hotwater_activated"],
         immersion: "status_NIBE.i1029_additive_heat_active",
+        moreHours: "hotwater_increase_NIBE.h697_onetimeincrease_hotwater",
+        takeover: {startSmall: "target_temperature.h60_hotwater_start_small", periodic: "boolean_NIBE.h65_periodic_hotwater",
+            interval: "hotwater_periodic_interval_NIBE.h66_periodic_hw_interval", periodicStop: "target_temperature.h61_hotwater_stop_periodic"},
     },
     autopilotFeed: {
         bt1: "external_temperature.h5217_bt1",

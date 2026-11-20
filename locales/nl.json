@@ -418,7 +418,15 @@
         "hw_plan_b1": "Warmt op naar 56 °C voor de dag",
         "hw_plan_b2": "Een onverwacht bad. Het vat raakt bijna leeg",
         "hw_plan_b3": "Een nieuw plan: nu bijvullen, in het goedkoopste uur dat nog over is voor de avond",
-        "hw_plan_b4": "Avonddouches, zoals altijd"
+        "hw_plan_b4": "Avonddouches, zoals altijd",
+        "hw_legionella_title": "Legionella",
+        "hw_legionella_intro": "Elke __days__ dagen warmt Autopilot de boiler zo heet op dat legionella doodgaat, in de goedkoopste uren. Kwam een opwarming er al, dan slaat hij die over.",
+        "hw_legionella_pump": "Instelling van je warmtepomp",
+        "hw_legionella_recommended": "Aanbevolen",
+        "hw_legionella_custom": "Eigen",
+        "hw_legionella_note": "Het eigen periodieke warm water van je warmtepomp gaat uit. Zet je Autopilot uit, dan komt het terug.",
+        "hw_legionella_link": "Over legionella",
+        "hw_legionella_invalid": "Vul een temperatuur van 55 tot 70 °C in."
       },
       "gets_added": "Dit wordt toegevoegd",
       "gets_added_intro": "Deze apparaten worden toegevoegd.",
@@ -554,7 +562,8 @@
         "running": "Warmt al op",
         "before_use": "Op tijd voor gebruik",
         "room": "Boiler vol tot dan",
-        "loss": "Minder warmteverlies in de boiler"
+        "loss": "Minder warmteverlies in de boiler",
+        "legionella": "Legionella"
       },
       "cost": "Verwachte kosten __cost__. De prijzen van morgen zijn er nog niet.",
       "shadow": "Gesimuleerd. Er is niets gewijzigd aan je warmtepomp.",
@@ -573,7 +582,8 @@
         "surplus": "Zonne-overschot",
         "reserve": "Veiligheidsmarge",
         "running": "Warmt al op",
-        "pump": "Gestart door je warmtepomp"
+        "pump": "Gestart door je warmtepomp",
+        "legionella": "Legionella"
       },
       "detail": {
         "price": "Tot __target__ °C in ongeveer __duration__, voor __price__/kWh. Gemiddelde vandaag: __mean__.",
@@ -581,7 +591,8 @@
         "reserve": "De boiler heeft nog maar __litres__ L, onder je veiligheidsmarge van __reserve__ L. Opwarmen tot __target__ °C, ongeveer __duration__.",
         "pump": "Gestart door je warmtepomp bij __top__ °C. Warmt op tot __stop__ °C.",
         "pump_more": "Meer warmwater staat aan, dus je warmtepomp warmt op tot __stop__ °C.",
-        "immersion": "Het elektrische element nam het over bij __at__ °C. Autopilot warmt nu op tot hooguit __cap__ °C."
+        "immersion": "Het elektrische element nam het over bij __at__ °C. Autopilot warmt nu op tot hooguit __cap__ °C.",
+        "legionella": "Tot __target__ °C tegen legionella, in de goedkoopste 2 uur voor __price__/kWh. Het elektrische element warmt de laatste graden op."
       },
       "plan": {
         "as_planned": "Zoals gepland.",
@@ -613,6 +624,16 @@
         "smart_control": "Autopilot wacht. De warmwatervraag van je warmtepomp staat op Smart control. Zet die op Klein, Gemiddeld of Groot."
       }
     },
+    "hotwater_legionella": {
+      "overdue": "De boiler heeft __target__ °C tegen legionella niet gehaald. Het eigen periodieke warm water van je warmtepomp staat weer aan tot een opwarming het haalt.",
+      "fallback_failed": "Autopilot kon het periodieke warm water van je warmtepomp niet wijzigen. Je warmtepomp meldde: __error__"
+    },
+    "hotwater_takeover": {
+      "write_failed": "Autopilot kon __settings__ op je warmtepomp niet wijzigen. Hij probeert het later opnieuw.",
+      "restore_failed": "Autopilot kon __settings__ op je warmtepomp niet terugzetten. Hij probeert het later opnieuw.",
+      "gave_up": "Autopilot probeert __setting__ op je warmtepomp niet meer te wijzigen. Controleer het in het menu van je warmtepomp.",
+      "deleted_failed": "Het Warm water-apparaat is verwijderd, maar deze instellingen konden niet worden teruggezet op je warmtepomp: __settings__. Stel ze in via het menu van je warmtepomp."
+    },
     "hotwater_update": {
       "title": {
         "new_prices": "Warmwaterplan bijgewerkt met nieuwe prijzen.",
@@ -640,7 +661,8 @@
         "surplus": "Zonne-overschot",
         "reserve": "Veiligheidsmarge",
         "running": "Warmt al op",
-        "pump": "Gestart door je warmtepomp"
+        "pump": "Gestart door je warmtepomp",
+        "legionella": "Legionella"
       },
       "moved_repriced": "Opwarming verschoven van __was__ naar __time__: __was__ kost nu __wasNow__/kWh in plaats van __wasPrice__. Opwarmen tot __target__ °C voor __price__/kWh."
     },

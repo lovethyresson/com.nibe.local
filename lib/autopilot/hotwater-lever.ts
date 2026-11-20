@@ -56,8 +56,10 @@ export function countFor(stored: WriteCount | undefined, date: string): WriteCou
  *  - Once 62 has been written its daily share, the charge runs to the stop already set, if that
  *    still leaves it worth starting.
  *  - Smart price adaption and Smart control (56 = 4) move hot water themselves; Autopilot does not
- *    fight them. A pump with hot water disallowed (195 off) gets nothing. */
-export function leverDecision(plannedC: number, facts: PumpFacts, count: WriteCount): LeverDecision {
+ *    fight them. A pump with hot water disallowed (195 off) gets nothing.
+ *  - `belowK`: how far under the target the top has to be. The legionella run passes half a
+ *    degree: it has to get there, not only be worth a write. */
+export function leverDecision(plannedC: number, facts: PumpFacts, count: WriteCount, belowK = BELOW_TARGET_K): LeverDecision {
     if (facts.allowed === false) return {skip: 'hot water off'};
     if (facts.spaHotwater) return {skip: 'smart price adaption'};
     if (facts.demandMode === DEMAND_SMART) return {skip: 'smart control'};
@@ -67,6 +69,6 @@ export function leverDecision(plannedC: number, facts: PumpFacts, count: WriteCo
     const mayWrite = facts.demandMode !== DEMAND_LARGE && count.stops < MAX_STOP_WRITES_PER_DAY;
     if (!mayWrite && set === undefined) return {skip: 'no stop reading'};
     const targetC = mayWrite ? plannedC : set!;
-    if (facts.top > targetC - BELOW_TARGET_K) return {skip: 'tank hot enough'};
+    if (facts.top > targetC - belowK) return {skip: 'tank hot enough'};
     return {targetC, writeStop: mayWrite && (set === undefined || Math.abs(set - plannedC) >= 0.5)};
 }
