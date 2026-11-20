@@ -101,6 +101,9 @@ const SAVINGS_BACK_DAYS = 13;
 /** Seconds after the app starts during which missing prices or plans are still on their way. */
 const STARTING_SECONDS = 300;
 const HOUR_MS = 3_600_000;
+/** A failed meter read is tried again this soon, this many times, before the hourly rhythm. */
+const SAVINGS_RETRY_MS = 4 * 60_000;
+const SAVINGS_RETRIES = 4;
 const DEFAULT_RESERVE_LITRES = 40;
 /** Pauses the Autopilot widget has an "what to do" line for (autopilot.widget.paused.*). */
 const WIDGET_PAUSES = ['no_outdoor', 'spa_on', 'room_control', 'immersion_only', 'feed_failed', 'cooling'];
@@ -2781,6 +2784,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private savingsStopped = false;
     /** A refresh has finished since the app started, whether or not it found days. */
     private savingsReadOnce = false;
+    /** Quick retries left of a failed meter read (scheduleSavings). */
+    private savingsRetries = 0;
     /** Today's prices, fetched once a day: per hour (the mean of its quarters) and per 15-minute
      *  slot (slot start, ms). */
     private savingsTodayPrices?: {date: string; prices: Map<number, number>; slots: Map<number, number>};
@@ -2850,9 +2855,18 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const after = midnight + ({heating: 2, hotwater: 7, main: 12}[this.role as string] ?? 7) * 60_000 - Date.now();
         if (after > 0) ms = Math.min(ms, after);
         this.savingsTimer = this.homey.setTimeout(() => {
+            let failed = false;
             this.refreshSavings()
-                .catch((error) => { this.log('Savings widget: refresh failed:', error?.message ?? error); return HOUR_MS; })
-                .then((next) => { this.savingsReadOnce = true; this.scheduleSavings(next); });
+                .catch((error) => { failed = true; this.log('Savings widget: refresh failed:', error?.message ?? error); return HOUR_MS; })
+                .then((next) => {
+                    this.savingsReadOnce = true;
+                    // A read that failed or brought no meter (Homey busy after a start or an update)
+                    // is tried again in a few minutes, a few times: Energy today and the overview wait
+                    // for it, and an hour of "Loading" reads as broken.
+                    const retry = (failed || (next === HOUR_MS && !this.meterPoints.length)) && this.savingsRetries < SAVINGS_RETRIES;
+                    this.savingsRetries = retry ? this.savingsRetries + 1 : 0;
+                    this.scheduleSavings(retry ? SAVINGS_RETRY_MS : next);
+                });
         }, ms);
     }
 
