@@ -118,6 +118,7 @@
     <div class="steps">
       <div class="tile reveal"><div class="k">Before you start</div><h3>Room-sensor control off</h3><p>Otherwise your heat pump corrects by room temperature and undoes what Autopilot does. Autopilot holds the room temperature itself. Setup checks it.</p></div>
       <div class="tile reveal"><div class="k">Before you start</div><h3>External outdoor sensor on</h3><p>On your heat pump's display. Setup shows the menu and waits until it works.</p></div>
+      <div class="tile reveal"><div class="k">Before you start</div><h3>Save your settings</h3><p>Plug a USB stick into your heat pump and choose Save settings in menu 8.3. It's your heat pump's own copy, and works without Homey.</p></div>
       <div class="tile reveal"><div class="k">Before you start</div><h3>One planner</h3><p>Autopilot turns off Smart Price Adaption for heating when it takes over.</p></div>
     </div>
   </div>
@@ -145,7 +146,7 @@
       <details><summary>Will my house get cold?</summary><p>It stays within the comfort range you picked. On Comfort, that's half a degree either side of your thermostat.</p></details>
       <details><summary>Can I pause it for a while?</summary><p>Set Comfort range to Off. Your heat pump then sees the measured outdoor temperature, and Autopilot neither shifts heat nor steers to your thermostat, until you pick a range again.</p></details>
       <details><summary>What does it do while my heat pump is cooling?</summary><p>It pauses, and Autopilot now says so. It picks up again when heating does.</p></details>
-      <details><summary>How do I hand heating back to my heat pump?</summary><p>Set Smart mode to Off in Heating setup, under Repair on the Heating device. Then turn off the external outdoor sensor on your heat pump, in menu 7.5.9.2. Setup reminds you.</p></details>
+      <details><summary>How do I hand heating back to my heat pump?</summary><p>Set Smart mode to Off in Heating setup, under Repair on the Heating device. Then turn off the external outdoor sensor on your heat pump, in menu 7.5.9.2. Setup reminds you. To put every setting back as it was, choose Restore settings in menu 8.3 with your USB stick in. That replaces all settings, including changes made since, and can't be undone.</p></details>
       <details><summary>Can I set it up while pairing?</summary><p>Yes. Heating setup asks for Smart mode first, then the indoor temperature, the checks on your heat pump and Verify. Later, it's all under Repair on the Heating device.</p></details>
       <details><summary>Where can I see the plan?</summary><p>In the Autopilot widget on your Homey dashboard: indoor temperature, measured and expected, for the last and next twelve hours.</p></details>
     </div>
