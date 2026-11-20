@@ -558,3 +558,9 @@ Before sending, scan for dear/dearer/dearest and write "more expensive" / "most 
   showed it made both test houses worse, and that any faster trim overshoots a slow house.
 - Rule: run a fix through the simulator (several house types, a wrong curve, weather that turns) before
   it is presented as the plan. Present the measured result, not the idea.
+
+## 2026-11-20: never implement UI before the user has seen it
+Added a pairing card and a Heating setup step straight into code, on a "yes" to the idea.
+A yes to an idea is not a yes to its UI. **Rule:** any visible change (view, step, card, copy
+placement, widget) is mocked and shown first: a rendered screenshot of the real page with the
+change, light and dark. Build only after the user approves that mock.

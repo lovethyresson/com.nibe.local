@@ -1158,8 +1158,7 @@ function NibeSetup(options) {
         group.appendChild(el('h3', t('on_pump')));
         var steps = el('ol', undefined, 'setup-pump-steps');
         // Modbus is on already (the app is connected); whether it allows writes, Verify proves.
-        // The backup first: the heat pump's own copy of every setting, usable without this app.
-        [['backup', 'backup_detail'], ['bt1', 'bt1_detail']].forEach(function (k) {
+        [['bt1', 'bt1_detail']].forEach(function (k) {
             var step = el('li'); var copy = el('div'); copy.append(el('strong', a(k[0])), el('p', a(k[1])));
             step.appendChild(copy); steps.appendChild(step);
         });
