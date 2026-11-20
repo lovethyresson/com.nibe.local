@@ -211,6 +211,8 @@
         "room_control_off": "Av.",
         "room_control_on": "Den är på i din värmepump. Stäng av den för att aktivera Autopilot.",
         "room_control_unknown": "Kunde inte läsas. Låt den vara av.",
+        "backup": "Spara värmepumpens inställningar",
+        "backup_detail": "Sätt i ett USB-minne i värmepumpen och välj Spara inställningar i meny 8.3. För att gå tillbaka väljer du Återställ inställningar där.",
         "bt1": "Låt Autopilot skicka utetemperaturen (BT1)",
         "bt1_detail": "På din värmepump, meny 7.5.9.2. Slå på extern BT1.",
         "start_test": "Starta Autopilot",

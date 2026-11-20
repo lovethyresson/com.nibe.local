@@ -211,6 +211,8 @@
         "room_control_off": "Off.",
         "room_control_on": "This is on in your heat pump. Turn it off to enable Autopilot.",
         "room_control_unknown": "Couldn't be read. Keep it off.",
+        "backup": "Save your heat pump's settings",
+        "backup_detail": "Plug a USB stick into your heat pump and choose Save settings in menu 8.3. To go back to how it was, choose Restore settings there.",
         "bt1": "Let Autopilot send the outdoor temperature (BT1)",
         "bt1_detail": "On your heat pump, menu 7.5.9.2. Turn on external BT1.",
         "start_test": "Start Autopilot",

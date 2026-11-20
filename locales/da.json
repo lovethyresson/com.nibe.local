@@ -211,6 +211,8 @@
         "room_control_off": "Fra.",
         "room_control_on": "Den er slået til i din varmepumpe. Slå den fra for at aktivere Autopilot.",
         "room_control_unknown": "Kunne ikke læses. Lad den være fra.",
+        "backup": "Gem din varmepumpes indstillinger",
+        "backup_detail": "Sæt en USB-nøgle i din varmepumpe, og vælg Gem indstillinger i menu 8.3. Vil du tilbage til, som det var, vælger du Gendan indstillinger der.",
         "bt1": "Lad Autopilot sende udetemperaturen (BT1)",
         "bt1_detail": "På din varmepumpe, menu 7.5.9.2. Slå ekstern BT1 til.",
         "start_test": "Start Autopilot",

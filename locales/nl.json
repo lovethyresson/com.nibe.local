@@ -211,6 +211,8 @@
         "room_control_off": "Uit.",
         "room_control_on": "Dit staat aan op je warmtepomp. Zet het uit om Autopilot in te schakelen.",
         "room_control_unknown": "Kon niet worden gelezen. Laat hem uit.",
+        "backup": "Bewaar de instellingen van je warmtepomp",
+        "backup_detail": "Steek een USB-stick in je warmtepomp en kies Instellingen opslaan in menu 8.3. Wil je terug naar hoe het was, kies daar dan Instellingen herstellen.",
         "bt1": "Laat Autopilot de buitentemperatuur sturen (BT1)",
         "bt1_detail": "Op je warmtepomp, menu 7.5.9.2. Zet externe BT1 aan.",
         "start_test": "Autopilot starten",
