@@ -258,8 +258,7 @@ export async function fetchHeatingInsights(api: any, sources: Partial<Record<Bac
                 await pause(20_000);
                 return get().catch(() => undefined);
             });
-            logs[field]!.push(log ?? {});
-            await pause(2_000);
+            logs[field]!.push(log ?? {}); // paced by the Gateway
         }
     }
     return logs;

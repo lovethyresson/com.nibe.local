@@ -78,9 +78,9 @@ export async function fetchTankInsights(api: any, deviceId: string, caps: TankCa
         for (const resolution of RESOLUTIONS) {
             const log = await api.insights.getLogEntries({uri, id: `${uri}:${caps[field]!}`, resolution, $timeout: 20_000})
                 .catch(() => undefined);
+            // Pacing is the Gateway's (one Insights request at a time, 2 s apart), and a log
+            // served from its store needs none.
             logs[field]!.push(log ?? {});
-            // The Homey rate-limits Insights; twelve requests back to back get refused.
-            await pause(1_500);
         }
     }
     return logs;

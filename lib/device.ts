@@ -2931,13 +2931,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const id = await this.homeyDeviceId(api);
             if (!id) return undefined;
             const uri = `homey:device:${id}`;
-            // Homey refuses Insights and Energy requests that come back to back.
-            const pause = () => new Promise((resolve) => this.homey.setTimeout(resolve, 5_000));
-            /** A log's hourly points; undefined when it could not be read. */
+            /** A log's hourly points; undefined when it could not be read. Paced by the Gateway,
+             *  and served from its store while Homey has no newer point. */
             const log = async (cap: string) => {
                 const entries = await api.insights.getLogEntries({uri, id: `${uri}:${cap}`, resolution: 'last14Days', $timeout: 20_000})
                     .catch(() => undefined);
-                await pause();
                 return entries ? (entries.values ?? []) as {t: string; v: number | null}[] : undefined;
             };
             const meter = await log('meter_power.total');
