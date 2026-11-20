@@ -9,6 +9,7 @@
 import {withApi} from '../indoor-sensors';
 import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, slotOf} from './prices';
 import {pricesFor} from '../gateway-prices';
+import {PRIORITY} from '../gateway';
 import {DayDraw, DayProfile, DayType, HotwaterModel, Household, KWH_PER_LITRE, LocalClock, TankPoint, chargeRate, intervals, learn, localClock, lossAt, profileFor} from './hotwater-learner';
 import {TankCapabilities, fetchTankInsights, pointsFromInsights} from './hotwater-insights';
 import {DEFAULT_RESERVE_LITRES, EARLY_DRAW_HOURS, MIN_CHARGE_KWH, Plan, SLOT_H, TankSpec, creditEarly, drawsFor, heatAt, plan, plannedHours, reserveKwh} from './hotwater-planner';
@@ -1100,7 +1101,7 @@ export class HotwaterAutopilot {
             if (!this.deviceId) throw new Error('could not find this device through the Homey API');
             return fetchTankInsights(api, this.deviceId, this.caps,
                 (ms) => new Promise((resolve) => this.homey.setTimeout(resolve, ms)));
-        });
+        }, PRIORITY.background); // the saved model plans meanwhile; learning waits out the start
         const points = pointsFromInsights(logs);
         if (points.length < 48) {
             this.log(`Autopilot hot water: ${points.length} readings in Insights, too few to learn from yet.`);

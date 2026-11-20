@@ -1,5 +1,6 @@
 import {CaptureSummary, logCaptureSummary} from './diagnostic-capture';
 import {pricesFor} from './gateway-prices';
+import {PRIORITY} from './gateway';
 import {IndoorConfig, averageSensors, cleanIndoorConfig, readOnlyIndoorConfig, selectedReadings, withApi} from './indoor-sensors';
 import {Controls, AutopilotCollector, OUTDOOR_SENSOR_SETTING} from './autopilot/collector';
 import {BACKFILL_FIELDS, BackfillField, LogSource, anyLogRead, backfillSources, fetchHeatingInsights} from './autopilot/heating-insights';
@@ -1477,7 +1478,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 String(d?.driverId ?? '').startsWith(`homey:app:${appId}:`) && dataIds.has(String(d?.data?.id))).map(([id]) => id);
             const [flows, advanced] = await Promise.all([api.flow.getFlows({$timeout: 10_000}), api.flow.getAdvancedFlows({$timeout: 10_000})]);
             return moreHotwaterFlows(flows, advanced, {deviceIds, capabilities, prefix: this.profile.flowPrefix});
-        }).catch((error: any) => {
+        }, PRIORITY.owner).catch((error: any) => {
             this.log('Autopilot hot water: could not read the Flows:', error?.message ?? error);
             return undefined;
         });
@@ -1498,7 +1499,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const log = await api.insights.getLogEntries({uri, id: `${uri}:${litres}`, resolution: 'last3Months', $timeout: 20_000});
             const dates = new Set((log?.values ?? []).filter((v: any) => typeof v?.v === 'number').map((v: any) => String(v.t).slice(0, 10)));
             return dates.size;
-        }).catch(() => undefined);
+        }, PRIORITY.owner).catch(() => undefined);
     }
 
     /** Setup's answers for a home with a short history: stored, and learned from at once. */
@@ -1737,7 +1738,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const sources = backfillSources(devices, ownId, pumpIds, capabilities, sensor);
             const pause = (ms: number) => new Promise<void>((resolve) => this.homey.setTimeout(resolve, ms));
             return fetchHeatingInsights(api, sources, pause);
-        }).catch((error: any) => {
+        }, PRIORITY.background).catch((error: any) => {
             this.log('Autopilot history: could not read Insights for the backfill:', error?.message ?? error);
             return undefined;
         });

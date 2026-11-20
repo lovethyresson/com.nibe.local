@@ -1,5 +1,6 @@
 import {averageSensors, cleanIndoorConfig, indoorInventory, withApi} from './indoor-sensors';
 import {pricesFor} from './gateway-prices';
+import {PRIORITY} from './gateway';
 import {CUSTOM_SETTINGS, RANGE_IDS, customPresets, customValues, rangeFacts} from './autopilot/live';
 import {OUTDOOR_SENSOR_SETTING} from './autopilot/collector';
 import {SOLAR_SETTING, SolarSurplus, readSolarAnswer, scanSolar} from './autopilot/solar-surplus';
@@ -292,7 +293,7 @@ export abstract class NibePumpDriver extends Driver {
     private async refreshWidgets() {
         if (!analyticsConsent(this.homey)) return;
         try {
-            const dashboards = await withApi(this.homey, (api) => api.dashboards.getDashboards());
+            const dashboards = await withApi(this.homey, (api) => api.dashboards.getDashboards(), PRIORITY.background);
             const widgets = placedWidgets(dashboards, (this.homey.manifest as any).id);
             if (this.widgets && this.widgets.join() === widgets.join()) return;
             this.widgets = widgets;
