@@ -975,7 +975,7 @@ function NibeSetup(options) {
         shell.appendChild(smartPicker(st));
         if (heating && st.spaOn) shell.appendChild(el('p', a('spa_note'), 'register-desc'));
         var next = button(t('next'), function () {
-            if (st.role === 'hotwater' && (ap.choice === 'autopilot' || ap.choice === 'test')) { hotwaterStep(); return; }
+            if (st.role === 'hotwater' && (ap.choice === 'autopilot' || ap.choice === 'test')) { hotwaterPlanStep(); return; }
             if (ap.choice === st.mode && (ap.choice !== 'autopilot' || !heating || live)) { hub(); return; }
             if (heating && (ap.choice === 'autopilot' || ap.choice === 'test')) { checklist(); return; }
             busy(next, async function () {
@@ -985,6 +985,98 @@ function NibeSetup(options) {
             });
         }, true);
         shell.appendChild(next);
+    }
+    /** Hot water: what Autopilot does, shown on made-up days (help: "How Autopilot picks each
+     *  charge"). Without Autopilot, the pump charges when the tank cools, whatever the price; with
+     *  it, four example days, each planned differently. Nothing here is read from the pump. */
+    var HOTWATER_HELP_URL = null; // the help page's address once it is published; the link is hidden until then
+    var HW_PRICES = {
+        base: [.30,.28,.26,.25,.27,.35,.60,.95,1.0,.80,.55,.45,.40,.42,.50,.65,.85,1.0,.98,.85,.60,.45,.38,.33],
+        sun: [.30,.28,.26,.25,.27,.33,.50,.70,.60,.35,.15,.08,.05,.08,.20,.45,.80,.95,.95,.80,.60,.45,.38,.33],
+        dip: [.30,.28,.26,.25,.27,.35,.60,.95,1.0,.80,.55,.45,.40,.20,.12,.40,.85,1.0,.98,.85,.60,.45,.38,.33]
+    };
+    var HW_DAYS = {
+        without: {prices: 'base', color: '#ff3b30', tank: [[0,180],[6.9,178],[7.4,95],[7.6,232],[8.3,234],[21.1,212],[21.6,120],[21.8,232],[22.5,234],[24,232]],
+            charges: [[7.4,8.3],[21.6,22.5]], rows: [['07:15','','s1'],['07:25','1','s2'],['21:30','','s3'],['21:40','2','s4']]},
+        work: {prices: 'base', color: '#34c759', tank: [[0,150],[2,146],[2.1,148],[3.6,236],[6.9,226],[7.5,140],[19.4,124],[20.1,56],[24,52]],
+            charges: [[2.1,3.6]], rows: [['02:00','1','w1'],['07:15','','w2'],['19:30','','w3']]},
+        sun: {prices: 'sun', color: '#34c759', sun: [10,14.5], tank: [[0,150],[2,146],[2.1,148],[3,190],[8.9,182],[9.5,120],[11,112],[11.1,112],[13,232],[18.9,220],[19.6,130],[21,120],[24,116]],
+            charges: [[2.1,3],[11.1,13,'#ff9f0a']], rows: [['02:00','1','u1'],['09:15','','u2'],['11:00','2','u3'],['19:30','','u4']]},
+        dip: {prices: 'dip', color: '#34c759', tank: [[0,150],[2,146],[2.1,148],[3,200],[6.9,192],[7.5,110],[13,98],[13.1,98],[14.6,210],[18.9,200],[19.6,110],[24,104]],
+            charges: [[2.1,3],[13.1,14.6]], rows: [['02:00','1','d1'],['07:15','','d2'],['13:00','2','d3'],['19:30','','d4']]},
+        bath: {prices: 'base', color: '#34c759', tank: [[0,150],[2,146],[2.1,148],[3.6,236],[6.9,226],[7.5,140],[10,138],[10.4,62],[11,60],[11.1,60],[12.6,170],[19.4,160],[20.1,90],[24,86]],
+            charges: [[2.1,3.6],[11.1,12.6,'#0a84ff']], rows: [['02:00','1','b1'],['10:15','','b2'],['11:00','2','b3'],['19:30','','b4']]}
+    };
+    function hwChart(day) {
+        var NS = 'http://www.w3.org/2000/svg', w = 340, h = 136, x0 = 26, y0 = 16, cw = w - x0 - 4, ch = 78, top = 240, reserve = 40;
+        var X = function (t) { return x0 + t / 24 * cw; }, Y = function (l) { return y0 + ch - l / top * ch; };
+        var svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h); svg.setAttribute('class', 'hwp-chart');
+        svg.setAttribute('role', 'img');
+        function add(tag, attrs, text) {
+            var n = document.createElementNS(NS, tag);
+            Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+            if (text !== undefined) n.textContent = text;
+            svg.appendChild(n); return n;
+        }
+        day.charges.forEach(function (c, i) {
+            var color = c[2] || day.color, mid = (X(c[0]) + X(c[1])) / 2;
+            add('rect', {x: X(c[0]), y: y0, width: X(c[1]) - X(c[0]), height: ch, fill: color, opacity: '.14'});
+            add('circle', {cx: mid, cy: y0 - 7, r: 6.5, fill: color});
+            add('text', {x: mid, y: y0 - 4, 'text-anchor': 'middle', class: 'hwp-num'}, String(i + 1));
+        });
+        HW_PRICES[day.prices].forEach(function (p, i) {
+            add('rect', {x: X(i) + .5, y: y0 + ch + 6 + (1 - p) * 18, width: cw / 24 - 1, height: p * 18, rx: 1, class: 'hwp-bar'});
+        });
+        if (day.sun) {
+            add('rect', {x: X(day.sun[0]), y: y0 + ch + 4, width: X(day.sun[1]) - X(day.sun[0]), height: 22, rx: 2, fill: '#ff9f0a', opacity: '.18'});
+            add('text', {x: (X(day.sun[0]) + X(day.sun[1])) / 2, y: y0 + ch + 38, 'text-anchor': 'middle', class: 'hwp-sun'}, a('hw_plan_sun'));
+        }
+        add('line', {x1: x0, x2: x0 + cw, y1: Y(reserve), y2: Y(reserve), class: 'hwp-reserve'});
+        add('polyline', {points: day.tank.map(function (p) { return X(p[0]).toFixed(1) + ',' + Y(p[1]).toFixed(1); }).join(' '), class: 'hwp-tank'});
+        [0, 6, 12, 18, 24].forEach(function (t) {
+            if (day.sun && Math.abs(t - 12) < 1) return;
+            add('text', {x: X(t), y: y0 + ch + 38, 'text-anchor': 'middle', class: 'hwp-tick'}, (t < 10 ? '0' : '') + t);
+        });
+        [0, 120, 240].forEach(function (l) { add('text', {x: x0 - 4, y: Y(l) + 3, 'text-anchor': 'end', class: 'hwp-tick'}, String(l)); });
+        return svg;
+    }
+    function hotwaterPlanStep() {
+        clear(a('hw_plan_title'), '');
+        var mode = 'with', pick = 'work';
+        var seg = el('div', undefined, 'hwp-seg'), chips = el('div', undefined, 'hwp-chips');
+        var card = el('div', undefined, 'hwp-card'), table = el('table', undefined, 'hwp-table');
+        var legend = el('div', undefined, 'hwp-legend');
+        legend.append(el('span', a('hw_plan_tank'), 'hwp-key-tank'), el('span', a('hw_plan_price'), 'hwp-key-price'), el('span', a('hw_plan_madeup'), 'hwp-key-note'));
+        function draw() {
+            var day = HW_DAYS[mode === 'without' ? 'without' : pick];
+            Array.from(seg.children).forEach(function (b) { b.classList.toggle('on', b.dataset.mode === mode); });
+            chips.hidden = mode === 'without';
+            Array.from(chips.children).forEach(function (b) { b.classList.toggle('on', b.dataset.day === pick); });
+            card.replaceChildren(hwChart(day));
+            table.replaceChildren();
+            day.rows.forEach(function (r) {
+                var tr = el('tr'), what = el('td');
+                if (r[1]) {
+                    var charge = day.charges[Number(r[1]) - 1];
+                    var badge = el('span', r[1], 'hwp-badge'); badge.style.background = charge[2] || day.color; what.appendChild(badge);
+                }
+                what.appendChild(document.createTextNode(a('hw_plan_' + r[2])));
+                tr.append(el('td', r[0], 'hwp-time'), what); table.appendChild(tr);
+            });
+        }
+        [['without', 'hw_plan_without'], ['with', 'hw_plan_with']].forEach(function (m) {
+            var b = el('button', a(m[1])); b.type = 'button'; b.dataset.mode = m[0];
+            b.onclick = function () { mode = m[0]; draw(); }; seg.appendChild(b);
+        });
+        ['work', 'sun', 'dip', 'bath'].forEach(function (d) {
+            var b = el('button', a('hw_plan_day_' + d), 'hwp-chip'); b.type = 'button'; b.dataset.day = d;
+            b.onclick = function () { pick = d; draw(); }; chips.appendChild(b);
+        });
+        shell.append(seg, chips, card, legend, table);
+        if (HOTWATER_HELP_URL) shell.appendChild(smallAction(a('hw_plan_link') + ' ›', function () { Homey.openURL(HOTWATER_HELP_URL); }));
+        draw();
+        shell.appendChild(button(t('next'), hotwaterStep, true));
+        back(smart);
     }
     /** Autopilot hot water: the Flows that would fight it, and for a home with a short history
      *  the household answers it starts from. */
@@ -1072,7 +1164,7 @@ function NibeSetup(options) {
                 done(ap.choice === 'test' ? a('saved_test') : a('saved'));
             });
         }, true));
-        back(smart);
+        back(hotwaterPlanStep);
     }
     /** Solar: what a scan of the home found, then two switches: charge on live export, and plan
      *  around the sun ahead. The answer is the home's, read by every function; hot water asks it

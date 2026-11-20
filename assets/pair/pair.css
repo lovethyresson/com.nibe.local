@@ -994,3 +994,28 @@ body {
 .setup-range-field-presets > span > span { opacity: .7; line-height: 1.25; }
 .setup-range-field-presets b { font-size: 1.08em; font-weight: 600; font-variant-numeric: tabular-nums; }
 @media (prefers-color-scheme: dark) { .setup-range-warning { background: rgba(232, 131, 58, .14); } }
+
+/* Hot water setup: When to charge (made-up days, without and with Autopilot). */
+.hwp-seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface); border: 1px solid var(--surface-border); border-radius: 10px; padding: 3px; margin: 0 0 .8em; }
+.hwp-seg button { border: 0; background: transparent; color: inherit; font: inherit; font-size: .92em; padding: .5em; border-radius: 8px; cursor: pointer; }
+.hwp-seg button.on { background: #0a84ff; color: #fff; font-weight: 600; }
+.hwp-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 .7em; }
+.hwp-chip { border: 1px solid var(--surface-border); background: var(--surface); color: inherit; border-radius: 999px; padding: .32em .8em; font: inherit; font-size: .82em; cursor: pointer; }
+.hwp-chip.on { border-color: #34c759; background: rgba(52, 199, 89, .14); font-weight: 600; }
+.hwp-card { border: 1px solid var(--surface-border); border-radius: 12px; background: var(--surface); padding: .75em .9em; }
+.hwp-chart { display: block; width: 100%; height: auto; }
+.hwp-bar { fill: currentColor; opacity: .16; }
+.hwp-tick { font-size: 9px; fill: currentColor; opacity: .55; }
+.hwp-sun { font-size: 9px; fill: #c77700; }
+.hwp-num { font-size: 9px; font-weight: 700; fill: #fff; }
+.hwp-reserve { stroke: currentColor; opacity: .35; stroke-dasharray: 3 3; }
+.hwp-tank { fill: none; stroke: #0a84ff; stroke-width: 2; }
+.hwp-legend { display: flex; gap: 1em; flex-wrap: wrap; font-size: .78em; opacity: .75; margin: .4em 0 0; }
+.hwp-legend span::before { content: ""; display: inline-block; width: 14px; margin-right: .35em; vertical-align: middle; }
+.hwp-key-tank::before { height: 3px; background: #0a84ff; }
+.hwp-key-price::before { height: 8px; background: currentColor; opacity: .3; }
+.hwp-key-note::before { display: none !important; }
+.hwp-table { width: 100%; border-collapse: collapse; font-size: .88em; margin-top: .6em; }
+.hwp-table td { padding: .5em .3em; border-top: 1px solid var(--surface-border); vertical-align: top; line-height: 1.35; }
+.hwp-time { font-variant-numeric: tabular-nums; opacity: .7; width: 3.4em; white-space: nowrap; }
+.hwp-badge { display: inline-flex; align-items: center; justify-content: center; width: 1.25em; height: 1.25em; border-radius: 50%; color: #fff; font-size: .8em; font-weight: 700; margin-right: .45em; vertical-align: 1px; }

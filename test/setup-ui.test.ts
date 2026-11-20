@@ -222,8 +222,31 @@ async function hotwaterSmart(status: any, scan: any = NO_SOLAR) {
     autopilot.checked = true; autopilot.dispatchEvent(new f.win.Event('change'));
     f.click(english.pair.setup.smart.mode_simulated);
     f.click('Continue'); await tick();
+    // When to charge: made-up days, then on to the hot water checklist.
+    assert.ok(f.win.document.body.textContent.includes(english.pair.setup.smart.hw_plan_title));
+    f.click('Continue'); await tick();
     return f;
 }
+
+test('hot water setup shows made-up days without and with Autopilot, each with its own plan', async () => {
+    const f = fixture('repair', 'hotwater', 0, undefined, {context: {smart: true},
+        results: {smart_status: {role: 'hotwater', mode: 'off', spa: true, spaOn: false, autopilot: true, tank: true,
+            starterDays: 14, household: null, reserve: 40, historyDays: 30}}});
+    f.click('Continue'); f.menu('Hot water setup'); f.click('Continue'); await tick();
+    const autopilot = f.win.document.querySelector('input[name="smart-choice"][value="autopilot"]');
+    autopilot.checked = true; autopilot.dispatchEvent(new f.win.Event('change'));
+    f.click(english.pair.setup.smart.mode_simulated);
+    f.click('Continue'); await tick();
+    const sm = english.pair.setup.smart;
+    const body = () => f.win.document.body.textContent;
+    assert.ok(body().includes(sm.hw_plan_w1), 'opens on Autopilot, a workday');
+    f.click(sm.hw_plan_day_sun);
+    assert.ok(body().includes(sm.hw_plan_u3), 'a sunny day charges on solar');
+    f.click(sm.hw_plan_without);
+    assert.ok(body().includes(sm.hw_plan_s2), 'without Autopilot it charges right away');
+    assert.ok(f.win.document.querySelector('.hwp-chips').hidden, 'the example days belong to Autopilot');
+    assert.equal(f.win.document.querySelectorAll('.hwp-chart').length, 1);
+});
 test('Autopilot hot water setup lists the Flows that switch More hot water, and asks a young home about its household', async () => {
     const f = await hotwaterSmart({flows: [{id: 'a', name: 'Cheap hot water', advanced: true}], historyDays: 3});
     const text = f.win.document.body.textContent;
