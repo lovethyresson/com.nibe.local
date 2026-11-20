@@ -1,6 +1,6 @@
 # External I/O: one layer for everything outside the pump
 
-Status: **approved 2026-11-20**; step 1 in progress.
+Status: **approved 2026-11-20**; steps 1 (62b79d6, with review fixes) and 2 (prices) built, not installed.
 
 ## Why
 
