@@ -109,8 +109,10 @@ are trimmed to 2,880 lines, the journal is cut hourly, and the models are single
 
 ### Measurable
 
-One log line an hour: calls per resource, kilobytes, queue wait, retries, cache sizes and the
-process's memory. A rise shows up there before Homey stops the app. A unit test runs a day of
+One log line an hour: calls per resource, kilobytes, queue wait, retries, and cache sizes.
+Not memory: Homey reports the app's own (the figure it stops the app on), and
+`process.memoryUsage()` throws in Homey's sandbox, which has no /proc. Called from this report's
+timer, it took the app down an hour after every start (2026-11-20). A unit test runs a day of
 the app against a fake Homey API and fails if any resource exceeds its call budget.
 
 ## Migration, one consumer at a time

@@ -30,8 +30,6 @@ export interface GatewayDeps {
     now(): number;
     sleep(ms: number): Promise<void>;
     log(...args: any[]): void;
-    /** Process memory, bytes (V8 heap in use). */
-    memory?(): number;
 }
 
 interface Stat {calls: number; failures: number; waitMs: number}
@@ -186,21 +184,20 @@ export class Gateway {
         return stat;
     }
 
-    /** The hour's line: calls per resource (failures in brackets), queue wait, resets, memory.
+    /** The hour's line: calls per resource (failures in brackets), queue wait, resets. Not
+     *  memory: Homey reports the app's own, the figure it stops the app on.
      *  Counts start over after each report. */
     report(): string {
         const rows = [...this.stats.entries()].sort((a, b) => b[1].calls - a[1].calls);
         const calls = rows.reduce((a, [, s]) => a + s.calls, 0);
         const wait = rows.reduce((a, [, s]) => a + s.waitMs, 0);
         const each = rows.map(([r, s]) => `${r} ${s.calls}${s.failures ? ` (${s.failures} failed)` : ''}`).join(', ');
-        let mem = '';
-        try { if (this.deps.memory) mem = `, heap ${Math.round(this.deps.memory() / 1e6)} MB`; } catch { /* the line goes out without it */ }
         const logs = this.logs ? `, Insights logs ${this.logs.served} from store / ${this.logs.fetches} fetched, ${Math.round(this.logs.diskBytes() / 1000)} KB on disk` : '';
         if (this.logs) { this.logs.served = 0; this.logs.fetches = 0; }
         this.stats.clear();
         const resets = this.resets; this.resets = 0;
         return `Gateway: ${calls} Homey requests in the last hour, ${Math.round(wait / 1000)} s queued`
-            + `${resets ? `, ${resets} client resets` : ''}${mem}${logs}${each ? `. ${each}` : ''}.`;
+            + `${resets ? `, ${resets} client resets` : ''}${logs}${each ? `. ${each}` : ''}.`;
     }
 }
 
@@ -228,9 +225,6 @@ export function gatewayFor(homey: any): Gateway {
             now: () => Date.now(),
             sleep: (ms) => new Promise((resolve) => homey.setTimeout(resolve, ms)),
             log: (...args) => homey.app?.log?.(...args),
-            // Heap, not rss: process.memoryUsage() reads /proc, which Homey's sandbox lacks, and
-            // threw from the hourly report, an hour after every start (2026-11-20).
-            memory: () => require('v8').getHeapStatistics().used_heap_size,
         });
         created.logs = new LogStore({now: () => Date.now(), load: loadJson, save: saveJson, remove: deleteFile,
             log: (...args) => homey.app?.log?.(...args)});

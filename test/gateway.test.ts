@@ -26,7 +26,6 @@ function harness(api: any, opts: {sleepThrowsOnce?: boolean} = {}) {
             slept.push(ms); now += ms;
         },
         log: (...a) => logs.push(a.join(' ')),
-        memory: () => 90e6,
     });
     return {gateway, slept, logs, clients: () => clients, advance: (ms: number) => { now += ms; }, now: () => now};
 }
@@ -169,13 +168,21 @@ test('a refused whole-home device list never holds a sensor read (the BT50 feed)
     assert.equal(h.slept.length, 0, 'the sensor read never waited, though a list was refused and so was the sensor itself');
 });
 
-test('the hourly report never throws: a memory read that fails leaves memory out of the line', () => {
-    // Homey's sandbox has no /proc: process.memoryUsage() threw from the report an hour after
-    // every start, and the throw from a timer ended the app (2026-11-20).
-    const gateway = new Gateway({createClient: async () => ({}), now: () => 0, sleep: async () => {}, log: () => {},
-        memory: () => { throw new Error('ENOENT: no such file or directory, uv_resident_set_memory'); }});
-    assert.doesNotMatch(gateway.report(), /heap/);
-    const ok = new Gateway({createClient: async () => ({}), now: () => 0, sleep: async () => {}, log: () => {},
-        memory: () => require('v8').getHeapStatistics().used_heap_size});
-    assert.match(ok.report(), /heap \d+ MB/);
+test('a report that throws inside the hourly timer is logged, not fatal', () => {
+    // process.memoryUsage() threw from the report (no /proc in Homey's sandbox), and a throw from
+    // a timer ended the app an hour after every start (2026-11-20). The report reads no memory
+    // now, and gatewayFor's timer catches whatever else it might throw.
+    const {gatewayFor, useGatewayForTests} = require('../lib/gateway');
+    let tick: (() => void) | undefined;
+    const errors: string[] = [];
+    const homey = {setInterval: (fn: () => void) => { tick = fn; }, setTimeout: setTimeout,
+        app: {log: () => { throw new Error('boom'); }, error: (...a: any[]) => errors.push(a.join(' '))}};
+    useGatewayForTests(undefined);
+    try {
+        gatewayFor(homey);
+        assert.doesNotThrow(() => tick!());
+        assert.match(errors[0], /Gateway report failed: boom/);
+    } finally {
+        useGatewayForTests(undefined);
+    }
 });
