@@ -168,3 +168,14 @@ test('a refused whole-home device list never holds a sensor read (the BT50 feed)
     assert.deepEqual(await h.gateway.call((a) => a.devices.getDevice({id: 'sensor'})), {id: 'sensor'});
     assert.equal(h.slept.length, 0, 'the sensor read never waited, though a list was refused and so was the sensor itself');
 });
+
+test('the hourly report never throws: a memory read that fails leaves memory out of the line', () => {
+    // Homey's sandbox has no /proc: process.memoryUsage() threw from the report an hour after
+    // every start, and the throw from a timer ended the app (2026-11-20).
+    const gateway = new Gateway({createClient: async () => ({}), now: () => 0, sleep: async () => {}, log: () => {},
+        memory: () => { throw new Error('ENOENT: no such file or directory, uv_resident_set_memory'); }});
+    assert.doesNotMatch(gateway.report(), /heap/);
+    const ok = new Gateway({createClient: async () => ({}), now: () => 0, sleep: async () => {}, log: () => {},
+        memory: () => require('v8').getHeapStatistics().used_heap_size});
+    assert.match(ok.report(), /heap \d+ MB/);
+});
