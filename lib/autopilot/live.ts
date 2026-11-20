@@ -122,6 +122,9 @@ export const VERIFY_TRIES = 4;
 export const VERIFY_GAP_MS = 750;
 /** Failed feed cycles in a row before the feed stops (§7.2 `lever_error`). */
 export const MAX_FAILED_CYCLES = 3;
+/** After a start, no outdoor temperature is not warned about for this long (first sensor reading,
+ *  first forecast). */
+export const OUTDOOR_GRACE_MS = 5 * 60_000;
 
 /** Indoor readings outside this range are not a room's air temperature (a sensor fault). */
 export const INDOOR_PLAUSIBLE: [number, number] = [5, 35];
@@ -431,6 +434,7 @@ export class HeatingFeed {
     private previous?: number[];
     private plannedSlot?: number;
     private failures = 0;
+    private startedAt?: number;
     private degradedSince?: number;
     private real?: OutdoorReading;
     private facts: PumpFacts = {thresholds: {}};
@@ -480,6 +484,7 @@ export class HeatingFeed {
         this.stopped = false;
         this.stopState = undefined;
         this.failures = 0;
+        this.startedAt = this.hooks.now();
         // Replan (and so re-check every guard) before the first write, even within a slot.
         this.plannedSlot = undefined;
         this.warn(undefined);
@@ -728,7 +733,12 @@ export class HeatingFeed {
 
     /** Not feeding for a reason that clears by itself: hand BT1 back, keep checking. */
     private async idle(reason: StopReason) {
-        if (this.stopState === reason) return;
+        const graceOver = this.hooks.now() - (this.startedAt ?? -Infinity) > OUTDOOR_GRACE_MS;
+        if (this.stopState === reason) {
+            // Still none once the start-up minutes are over: now it is worth telling.
+            if (reason === 'no_outdoor' && !this.warned && graceOver) this.warn(reason);
+            return;
+        }
         const first = this.stopState === undefined;
         this.stopState = reason;
         this.learning = false;
@@ -736,7 +746,9 @@ export class HeatingFeed {
         this.target = 0;
         this.plan = undefined;
         this.hooks.record({slot: slotOf(this.hooks.now()), bias: 0, clamped: [], planned: [], stopped: reason});
-        this.warn(reason);
+        // Right after a start the outdoor sensor's first reading and the forecast are still on their
+        // way: no outdoor temperature then is waiting, not a problem to tell the owner about.
+        if (reason !== 'no_outdoor' || graceOver) this.warn(reason);
         if (first || this.holding) this.hooks.log(`Autopilot heating: waiting (${reason}).`);
         await this.handBack();
         this.hooks.changed();

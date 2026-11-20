@@ -442,3 +442,15 @@ test('without a thermostat the plan centres on the house\'s own level, as before
     assert.equal(feed.state.setpoint, undefined);
     assert.equal(state.writes[0], 3, 'a flat price and a house at its level: nothing to shift');
 });
+
+test('no outdoor temperature right after a start waits quietly, and is told if it lasts', async () => {
+    const {OUTDOOR_GRACE_MS} = await import('../lib/autopilot/live');
+    const {feed, state, advance} = harness({sensor: undefined, forecast: undefined});
+    feed.start();
+    await feed.cycle();
+    assert.equal(feed.state.stopped, 'no_outdoor');
+    assert.ok(!state.warnings.includes('no_outdoor'), 'the first sensor reading is still on its way');
+    advance(OUTDOOR_GRACE_MS + 60_000);
+    await feed.cycle();
+    assert.ok(state.warnings.includes('no_outdoor'), 'still none after the start-up minutes: told');
+});
