@@ -4,6 +4,7 @@
 // owner picked (app.ts savingsWidget, lib/autopilot/savings.ts).
 module.exports = {
   async getData({homey, query}) {
+    homey.app.widgetShown('savings');
     return homey.app.savingsWidget(query.device, 'heating');
   },
 };

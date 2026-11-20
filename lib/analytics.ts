@@ -275,18 +275,37 @@ export function track(name: string, properties?: Record<string, any>): void {
     }
 }
 
-/** This app's widgets placed on any of the Homey's dashboards, as a sorted set of widget ids
- *  (`autopilot`, `savings`, …). A dashboard is columns of widgets; an app's own is an
- *  `app_webview` whose `appWidgetId` is `homey:app:<app id>:<widget id>`. Pure. */
-export function placedWidgets(dashboards: unknown, appId: string): string[] {
-    const prefix = `homey:app:${appId}:`;
-    const list = Array.isArray(dashboards) ? dashboards : Object.values((dashboards ?? {}) as object);
-    const out = new Set<string>();
-    for (const dashboard of list as any[])
-        for (const column of dashboard?.columns ?? [])
-            for (const widget of column?.widgets ?? []) {
-                const id = widget?.data?.appWidgetId;
-                if (typeof id === 'string' && id.startsWith(prefix)) out.add(id.slice(prefix.length));
-            }
-    return [...out].sort();
+/** Which of the app's widgets are on a dashboard. Homey gives an app no read of the dashboards
+ *  (the token lacks `homey.dashboard.readonly`: "Missing Scopes", 2026-11-20), so each widget's
+ *  endpoint says it was shown, and a widget not shown for SHOWN_KEEP_MS counts as removed. Stored
+ *  in a setting as widget id → when last shown, so a restart does not shrink the set. */
+export const SHOWN_SETTING = 'widgetsShown';
+export const SHOWN_KEEP_MS = 14 * 24 * 3_600_000;
+/** A widget polls its endpoint every few seconds: its time is saved again only after a day. */
+export const SHOWN_SAVE_MS = 24 * 3_600_000;
+
+export type Shown = Record<string, number>;
+
+function liveShown(raw: unknown, now: number): Shown {
+    const out: Shown = {};
+    if (raw && typeof raw === 'object')
+        for (const [id, at] of Object.entries(raw as Shown))
+            if (Number.isFinite(at) && now - at < SHOWN_KEEP_MS) out[id] = at;
+    return out;
+}
+
+/** The widgets shown within SHOWN_KEEP_MS, as a sorted set of widget ids. Pure. */
+export function shownWidgets(raw: unknown, now: number): string[] {
+    return Object.keys(liveShown(raw, now)).sort();
+}
+
+/** `id` was shown now. `save`: the stored value to write, when it needs writing. `changed`: the
+ *  set of widgets differs from before. Pure. */
+export function noteShown(raw: unknown, id: string, now: number): {save?: Shown; changed: boolean} {
+    const before = shownWidgets(raw, now), live = liveShown(raw, now);
+    const pruned = Object.keys(live).length !== Object.keys((raw ?? {}) as object).length;
+    const fresh = live[id] !== undefined && now - live[id] < SHOWN_SAVE_MS;
+    if (fresh && !pruned) return {changed: false};
+    const save = {...live, [id]: now};
+    return {save, changed: Object.keys(save).sort().join() !== before.join() || pruned};
 }

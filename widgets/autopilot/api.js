@@ -4,6 +4,7 @@
 // picked (app.ts autopilotWidget, lib/autopilot/widget.ts).
 module.exports = {
   async getData({homey, query}) {
+    homey.app.widgetShown('autopilot');
     return homey.app.autopilotWidget(query.device);
   },
 };

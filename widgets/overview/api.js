@@ -4,6 +4,7 @@
 // device the owner picked (app.ts overviewWidget, lib/autopilot/overview.ts).
 module.exports = {
   async getData({homey, query}) {
+    homey.app.widgetShown('overview');
     return homey.app.overviewWidget(query.device);
   },
 };

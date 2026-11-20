@@ -150,16 +150,21 @@ test('heating day: a day watched for under 20 h is not scored', () => {
     assert.strictEqual(day.observe({slot: 200, date: 'd2', ti: 21, comfort: 21, lower: 1, upper: 1, simulation: false}), undefined);
 });
 
-test('placedWidgets: the app\'s own widgets on any dashboard, as a sorted set', async () => {
-    const {placedWidgets} = await import('../lib/analytics');
-    const app = (id: string) => ({type: 'app_webview', data: {appWidgetId: `homey:app:com.nibe.local:${id}`}});
-    const dashboards = {
-        a: {columns: [{widgets: [{type: 'devices_custom', data: {deviceIds: ['x']}}, app('savings'), app('autopilot')]},
-            {widgets: [app('autopilot'), {type: 'app_webview', data: {appWidgetId: 'homey:app:com.homevolt.local:battery'}}]}]},
-        b: {columns: [{widgets: [app('hotwater_use')]}]},
-        empty: {columns: []},
-    };
-    assert.deepStrictEqual(placedWidgets(dashboards, 'com.nibe.local'), ['autopilot', 'hotwater_use', 'savings']);
-    assert.deepStrictEqual(placedWidgets(Object.values(dashboards), 'com.nibe.local'), ['autopilot', 'hotwater_use', 'savings'], 'a list works too');
-    assert.deepStrictEqual(placedWidgets(undefined, 'com.nibe.local'), []);
+test('shown widgets: a widget reports itself, saved at most daily, dropped after 14 days', async () => {
+    const {noteShown, shownWidgets, SHOWN_KEEP_MS, SHOWN_SAVE_MS} = await import('../lib/analytics');
+    const t0 = 1_000_000_000_000;
+    let first = noteShown(undefined, 'savings', t0);
+    assert.deepStrictEqual(first, {save: {savings: t0}, changed: true}, 'a first widget is new');
+    assert.deepStrictEqual(noteShown(first.save, 'savings', t0 + 5_000), {changed: false}, 'polling writes nothing');
+    const later = noteShown(first.save, 'savings', t0 + SHOWN_SAVE_MS);
+    assert.deepStrictEqual(later, {save: {savings: t0 + SHOWN_SAVE_MS}, changed: false}, 'a day on: saved again, same set');
+    const two = noteShown(later.save, 'autopilot', t0 + SHOWN_SAVE_MS);
+    assert.strictEqual(two.changed, true);
+    assert.deepStrictEqual(shownWidgets(two.save, t0 + SHOWN_SAVE_MS), ['autopilot', 'savings'], 'a sorted set');
+    // Savings not shown for 14 days: it drops out, the next note says so.
+    const end = t0 + SHOWN_SAVE_MS + SHOWN_KEEP_MS;
+    assert.deepStrictEqual(shownWidgets(two.save, end), []);
+    const back = noteShown({savings: t0, autopilot: end - 1000}, 'autopilot', end);
+    assert.deepStrictEqual(back, {save: {autopilot: end}, changed: true}, 'a pruned widget changes the set');
+    assert.deepStrictEqual(shownWidgets('junk', t0), []);
 });

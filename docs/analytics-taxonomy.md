@@ -186,7 +186,7 @@ once collapse into one call.
 | `autopilot_reserve` | string | same values as `setting_value` for `reserve` | nibe |
 | `solar_live`, `solar_forecast` | boolean | the home's two solar switches | nibe |
 | `day_type_source` | string | `calendar`, `set` | nibe |
-| `widgets` | string[] | the app's own dashboard widgets placed on any of the Homey's dashboards — a **deduplicated, sorted set** of widget ids. Read every 6 h; absent until the first read | nibe |
+| `widgets` | string[] | the app's own dashboard widgets on any of the Homey's dashboards — a **deduplicated, sorted set** of widget ids. Each widget reports itself when shown; one not shown for 14 days drops out. Absent until one has been shown | nibe |
 | `widget_count` | number | length of `widgets` | nibe |
 
 `timezone` is the country signal; `language` is locale and must not be read as location. Model and

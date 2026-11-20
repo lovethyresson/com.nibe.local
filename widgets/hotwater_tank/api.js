@@ -4,6 +4,7 @@
 // owner picked (app.ts hotwaterTankWidget, lib/autopilot/hotwater-tank.ts).
 module.exports = {
   async getData({homey, query}) {
+    homey.app.widgetShown('hotwater_tank');
     return homey.app.hotwaterTankWidget(query.device);
   },
 };

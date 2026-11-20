@@ -33,7 +33,7 @@ import {
 } from './detection';
 import {Transport, destroyAllConnections, existingConnection} from './connection';
 import {DiscoveryOptions, choosePumpCandidate, diagnoseNoData, discoverPumps} from './discovery';
-import {CONSENT_SETTING, InstallProfile, analyticsConsent, placedWidgets, reportInstallProfile, setAnalyticsConsent, track} from './analytics';
+import {CONSENT_SETTING, InstallProfile, SHOWN_SETTING, analyticsConsent, reportInstallProfile, shownWidgets, setAnalyticsConsent, track} from './analytics';
 import {DEFAULT_INLET_C, MAX_TANK_LITRES, MIN_TANK_LITRES, cleanTankChoice} from './hotwater';
 import {SmartMode, smartMode} from './autopilot/smart-mode';
 
@@ -75,10 +75,6 @@ export abstract class NibePumpDriver extends Driver {
                 .then((token: any) => { this.awayUntilToken = token; },
                     (error: unknown) => this.error('Creating the Away token failed:', error));
         }
-        // Which of the app's widgets are on a dashboard: read a minute after start (the devices'
-        // own profile reports come first), then every 6 h, and told only when it changed.
-        this.homey.setTimeout(() => this.refreshWidgets(), 60_000);
-        this.homey.setInterval(() => this.refreshWidgets(), 6 * 3_600_000);
         // The consent checkbox now lives in device settings, but it can still be answered from the
         // pairing view — including while pairing a second pump, long after these devices existed.
         // Without this their checkboxes would sit stale until the next restart, and a consent
@@ -87,7 +83,6 @@ export abstract class NibePumpDriver extends Driver {
             if (key !== CONSENT_SETTING)
                 return;
             const consent = analyticsConsent(this.homey);
-            if (consent) this.refreshWidgets();
             for (const device of this.getDevices() as any[])
                 if (device.getSettings?.().analyticsConsent !== consent)
                     device.setSettings({analyticsConsent: consent}).catch((e: any) => this.error(e));
@@ -242,7 +237,9 @@ export abstract class NibePumpDriver extends Driver {
             roles: [...new Set(devices.map((device) => roleOf(device.getData())))].sort(),
             featuresByFunction,
             autopilot: this.autopilotFacts(devices),
-            ...this.widgets ? {widgets: this.widgets} : {},
+            // Which widgets are on a dashboard, as the widgets themselves told (app.ts widgetShown).
+            // Absent until one has been shown.
+            ...this.homey.settings.get(SHOWN_SETTING) ? {widgets: shownWidgets(this.homey.settings.get(SHOWN_SETTING), Date.now())} : {},
             ...this.hostFacts()
         };
     }
@@ -283,24 +280,6 @@ export abstract class NibePumpDriver extends Driver {
         } catch (error) {
             this.error('Could not read host facts for the install profile', error);
             return {};
-        }
-    }
-
-    /** The app's widgets placed on the Homey's dashboards, from the last read. */
-    private widgets?: string[];
-
-    /** Read the dashboards for the app's widgets; report the install profile when they changed.
-     *  Only with analytics on: nothing else needs it. */
-    private async refreshWidgets() {
-        if (!analyticsConsent(this.homey)) return;
-        try {
-            const dashboards = await withApi(this.homey, (api) => api.dashboards.getDashboards(), PRIORITY.background);
-            const widgets = placedWidgets(dashboards, (this.homey.manifest as any).id);
-            if (this.widgets && this.widgets.join() === widgets.join()) return;
-            this.widgets = widgets;
-            this.syncInstallProfile();
-        } catch (error) {
-            this.error('Reading the dashboards for the install profile failed:', error);
         }
     }
 

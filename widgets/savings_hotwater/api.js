@@ -4,6 +4,7 @@
 // page is its own: Heating savings (widgets/savings) is designed separately.
 module.exports = {
   async getData({homey, query}) {
+    homey.app.widgetShown('savings_hotwater');
     return homey.app.savingsWidget(query.device, 'hotwater');
   },
 };

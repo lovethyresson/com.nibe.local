@@ -1,7 +1,7 @@
 import Homey from 'homey';
 import {announceRelease} from './lib/release-announcements';
 import {errorEntry, readJournal, record} from './lib/crash-journal';
-import {CONSENT_SETTING, appVersion, initAnalytics, refreshConsent, track} from './lib/analytics';
+import {CONSENT_SETTING, SHOWN_SETTING, analyticsConsent, appVersion, initAnalytics, noteShown, refreshConsent, track} from './lib/analytics';
 
 class NibeApp extends Homey.App {
 
@@ -114,6 +114,20 @@ class NibeApp extends Homey.App {
   /** The crash journal (lib/crash-journal.ts), for api.ts `crashes`. */
   crashJournal() {
     return readJournal();
+  }
+
+  /** A widget's endpoint was asked (widgets/<id>/api.js): it is on a dashboard. Feeds the
+   *  `widgets` install property, only with consent. Never throws: the widget's data comes first. */
+  widgetShown(id: string) {
+    try {
+      if (!analyticsConsent(this.homey)) return;
+      const {save, changed} = noteShown(this.homey.settings.get(SHOWN_SETTING), id, Date.now());
+      if (save) this.homey.settings.set(SHOWN_SETTING, save);
+      if (changed)
+        for (const driver of Object.values(this.homey.drivers.getDrivers()) as any[]) driver.syncInstallProfile?.();
+    } catch (error) {
+      this.error('Noting a shown widget failed:', error);
+    }
   }
 
   /** For widgets/overview/api.js. Answers a problem with a line, like the others. */
