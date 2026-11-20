@@ -92,6 +92,8 @@ const MODE_MARKS_STORE = 'autopilotModeMarks';
 /** When Autopilot first ran live on this device (ms), and the baseline frozen from the days before. */
 const FIRST_LIVE_STORE = 'autopilotFirstLive';
 const BASELINE_STORE = 'autopilotSavingsBaseline';
+/** This device's Homey id, for Insights URIs: looked up once (homeyDeviceId), it never changes. */
+const HOMEY_ID_STORE = 'homeyDeviceId';
 /** Today so far, recounted every hour. */
 const SAVINGS_TODAY_STORE = 'autopilotSavingsToday';
 /** Plan vs actual (cost-check.ts): each day's first plan from local midnight on, hour by hour, and what it cost. */
@@ -1460,7 +1462,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const dataIds = new Set(this.pumpDevices().map((d) => String(d.getData().id)));
         const appId = this.homey.manifest?.id ?? 'com.nibe.local';
         return withApi(this.homey, async (api) => {
-            const devices = await api.devices.getDevices({$timeout: 10_000});
+            const devices = await api.devices.getDevices({$cache: false, $timeout: 10_000});
             const deviceIds = Object.entries(devices ?? {}).filter(([, d]: [string, any]) =>
                 String(d?.driverId ?? '').startsWith(`homey:app:${appId}:`) && dataIds.has(String(d?.data?.id))).map(([id]) => id);
             const [flows, advanced] = await Promise.all([api.flow.getFlows({$timeout: 10_000}), api.flow.getAdvancedFlows({$timeout: 10_000})]);
@@ -1480,7 +1482,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (!litres) return undefined;
         const appId = this.homey.manifest?.id ?? 'com.nibe.local';
         return withApi(this.homey, async (api) => {
-            const id = ownDeviceId(await api.devices.getDevices({$timeout: 10_000}), appId, String(this.getData().id));
+            const id = await this.homeyDeviceId(api);
             if (!id) return undefined;
             const uri = `homey:device:${id}`;
             const log = await api.insights.getLogEntries({uri, id: `${uri}:${litres}`, resolution: 'last3Months', $timeout: 20_000});
@@ -1716,7 +1718,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const ref = this.homey.settings.get(OUTDOOR_SENSOR_SETTING) as LogSource | null;
         const sensor = ref?.deviceId && ref.capabilityId ? ref : undefined;
         const found = await withApi(this.homey, async (api) => {
-            const devices = await api.devices.getDevices({$timeout: 10_000});
+            const devices = await api.devices.getDevices({$cache: false, $timeout: 10_000});
             const ownId = ownDeviceId(devices, appId, String(this.getData().id));
             if (!ownId) return undefined;
             const pumpIds = Object.entries(devices ?? {}).filter(([, d]: [string, any]) =>
@@ -2342,6 +2344,18 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     /** The offset as polled: a change from the last one seen, by anyone (Autopilot, Undo, the
      *  owner on the pump or in myUplink), moves the trim, so curve and trim never give the same
      *  heat twice. Kept in the store, so a change while Homey was off counts too. */
+    /** This device's Homey id, which Insights needs and the SDK does not give. The whole device
+     *  list is fetched once for it, uncached (184 devices is about 1 MB, and a cached list is kept
+     *  and updated for every change in the home); after that the stored id is used. */
+    async homeyDeviceId(api: any): Promise<string | undefined> {
+        const kept = this.getStoreValue(HOMEY_ID_STORE);
+        if (typeof kept === 'string' && kept) return kept;
+        const appId = this.homey.manifest?.id ?? 'com.nibe.local';
+        const id = ownDeviceId(await api.devices.getDevices({$cache: false, $timeout: 10_000}), appId, String(this.getData().id));
+        if (id) await this.setStoreValue(HOMEY_ID_STORE, id);
+        return id;
+    }
+
     private async curveOffsetRead(value: number) {
         if (!Number.isFinite(value)) return;
         const store = this.heatCurveStore();
@@ -2899,7 +2913,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const result = await withApi(this.homey, async (api) => {
             this.hadDynamicPrices = await api.energy.getElectricityPriceType() === 'dynamic';
             if (!this.hadDynamicPrices) return undefined;
-            const id = ownDeviceId(await api.devices.getDevices({$timeout: 10_000}), appId, String(this.getData().id));
+            const id = await this.homeyDeviceId(api);
             if (!id) return undefined;
             const uri = `homey:device:${id}`;
             // Homey refuses Insights and Energy requests that come back to back.
