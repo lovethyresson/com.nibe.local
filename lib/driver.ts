@@ -1,4 +1,5 @@
 import {averageSensors, cleanIndoorConfig, indoorInventory, withApi} from './indoor-sensors';
+import {pricesFor} from './gateway-prices';
 import {CUSTOM_SETTINGS, RANGE_IDS, customPresets, customValues, rangeFacts} from './autopilot/live';
 import {OUTDOOR_SENSOR_SETTING} from './autopilot/collector';
 import {SOLAR_SETTING, SolarSurplus, readSolarAnswer, scanSolar} from './autopilot/solar-surplus';
@@ -1485,7 +1486,7 @@ export abstract class NibePumpDriver extends Driver {
             (pump) => readRoomControl(pump, this.profile)).catch(() => undefined);
         const indoor = detection?.samples['measure_temperature']?.value;
         const target = detection?.samples['target_temperature']?.value;
-        const prices = await withApi(this.homey, async (api) => await api.energy.getElectricityPriceType() === 'dynamic').catch(() => false);
+        const prices = await pricesFor(this.homey).info().then((info) => info.dynamic).catch(() => false);
         return {...base, verified: false, roomControl: room ?? null, indoor: typeof indoor === 'number' ? indoor : null,
             target: typeof target === 'number' ? target : null,
             prices, status: null, range: null, ranges: rangeFacts(), custom: {spec: CUSTOM_SETTINGS, values: customValues(undefined), presets: customPresets()},

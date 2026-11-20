@@ -7,7 +7,8 @@
  *  which already hold the tank's history, and fetches prices itself. When the split lands, the
  *  price fetch moves to the home service and the tank fields to the per-pump history. */
 import {withApi} from '../indoor-sensors';
-import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, normalisePrices, slotOf} from './prices';
+import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, slotOf} from './prices';
+import {pricesFor} from '../gateway-prices';
 import {DayDraw, DayProfile, DayType, HotwaterModel, Household, KWH_PER_LITRE, LocalClock, TankPoint, chargeRate, intervals, learn, localClock, lossAt, profileFor} from './hotwater-learner';
 import {TankCapabilities, fetchTankInsights, pointsFromInsights} from './hotwater-insights';
 import {DEFAULT_RESERVE_LITRES, EARLY_DRAW_HOURS, MIN_CHARGE_KWH, Plan, SLOT_H, TankSpec, creditEarly, drawsFor, heatAt, plan, plannedHours, reserveKwh} from './hotwater-planner';
@@ -1132,20 +1133,16 @@ export class HotwaterAutopilot {
         return true;
     }
 
-    /** Today's and tomorrow's prices, as the heating collector fetches them (it will be one fetch
-     *  once the home service exists). */
+    /** Today's and tomorrow's prices, from the Gateway's price book (shared with heating and the
+     *  savings widgets). */
     private async fetchPrices(): Promise<number> {
         const now = Date.now();
         const timeZone = this.homey.clock.getTimezone();
-        const days = await withApi(this.homey, async (api) => {
-            if (await api.energy.getElectricityPriceType() !== 'dynamic') return [] as DayPrices[];
-            this.currency = String(await api.energy.getCurrency().catch(() => '') ?? '');
-            const costs = await api.energy.getDynamicElectricityPriceUserCosts().catch(() => undefined);
-            const fetchDay = (date: string) => api.energy.fetchDynamicElectricityPrices({date})
-                .then((response: any) => normalisePrices(response, costs?.mathExpression))
-                .catch(() => ({slots: [], costsApplied: false}) as DayPrices);
-            return Promise.all([fetchDay(localDate(now, timeZone)), fetchDay(localDate(now, timeZone, 1))]);
-        });
+        const book = pricesFor(this.homey);
+        const info = await book.info();
+        this.currency = info.currency ?? '';
+        const days: DayPrices[] = info.dynamic
+            ? await Promise.all([book.day(localDate(now, timeZone)), book.day(localDate(now, timeZone, 1))]) : [];
         const keepFrom = slotOf(now - 24 * HOUR);
         for (const slot of [...this.prices.keys()]) if (slot < keepFrom) this.prices.delete(slot);
         const old = new Map(this.prices);

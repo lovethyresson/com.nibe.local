@@ -1,4 +1,5 @@
 import {CaptureSummary, logCaptureSummary} from './diagnostic-capture';
+import {pricesFor} from './gateway-prices';
 import {IndoorConfig, averageSensors, cleanIndoorConfig, readOnlyIndoorConfig, selectedReadings, withApi} from './indoor-sensors';
 import {Controls, AutopilotCollector, OUTDOOR_SENSOR_SETTING} from './autopilot/collector';
 import {BACKFILL_FIELDS, BackfillField, LogSource, anyLogRead, backfillSources, fetchHeatingInsights} from './autopilot/heating-insights';
@@ -23,7 +24,7 @@ import {TankWidgetData, tankChart} from './autopilot/hotwater-tank';
 import {ComfortDay, ComfortSlot, addComfortSlot, readComfortDays} from './autopilot/comfort-days';
 import {ENERGY_ROLES, EnergyWidgetData, energyChart, useToday} from './autopilot/energy';
 import {OVERVIEW_KINDS, OverviewData, OverviewRow, overviewData, priceThirds} from './autopilot/overview';
-import {SLOT_MS, localDate, normalisePrices, slotOf} from './autopilot/prices';
+import {SLOT_MS, localDate, slotOf} from './autopilot/prices';
 import {CostCheckData, CostDay, PlannedCost, addDay, chargeCosts, costCheckData, costDay, fillActual} from './autopilot/cost-check';
 import {COP} from './autopilot/planner';
 import {Edge, FORECAST_SLOTS, BlockedBy, HeatingDay, analyticsSmartMode, heatingBlock, reserveBucket} from './autopilot/analytics';
@@ -2912,7 +2913,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const appId = this.homey.manifest?.id ?? 'com.nibe.local';
         const marks: ModeMark[] = Array.isArray(this.getStoreValue(MODE_MARKS_STORE)) ? this.getStoreValue(MODE_MARKS_STORE) : [];
         const result = await withApi(this.homey, async (api) => {
-            this.hadDynamicPrices = await api.energy.getElectricityPriceType() === 'dynamic';
+            // Prices come from the Gateway's price book, shared with heating and hot water.
+            const book = pricesFor(this.homey);
+            const info = await book.info();
+            this.hadDynamicPrices = info.dynamic;
             if (!this.hadDynamicPrices) return undefined;
             const id = await this.homeyDeviceId(api);
             if (!id) return undefined;
@@ -2958,15 +2962,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const firstMark = marks.find((m) => m.live);
             if (firstMark && shiftsFrom !== Infinity && typeof this.getStoreValue(FIRST_LIVE_STORE) !== 'number')
                 await this.setStoreValue(FIRST_LIVE_STORE, firstLiveFrom(Math.max(firstMark.at, shiftsFrom), fedShifting));
-            const costs = await api.energy.getDynamicElectricityPriceUserCosts().catch(() => undefined);
-            if (!this.getStoreValue(SAVINGS_CURRENCY_STORE)) {
-                const currency = await api.energy.getCurrency().catch(() => undefined);
-                if (typeof currency === 'string') await this.setStoreValue(SAVINGS_CURRENCY_STORE, currency);
-            }
+            if (!this.getStoreValue(SAVINGS_CURRENCY_STORE) && info.currency) await this.setStoreValue(SAVINGS_CURRENCY_STORE, info.currency);
             // Today so far: the hours that have a reading, ranked against today's whole price list.
             if (this.savingsTodayPrices?.date !== today) {
-                const slots = await api.energy.fetchDynamicElectricityPrices({date: today})
-                    .then((r: any) => normalisePrices(r, costs?.mathExpression).slots).catch(() => undefined);
+                const slots = (await book.day(today)).slots;
                 if (slots?.length) this.savingsTodayPrices = {date: today, prices: hourlyPrices(slots, SLOT_MS),
                     slots: new Map(slots.map((x: {slot: number; price: number}) => [x.slot * SLOT_MS, x.price]))};
             }
@@ -2984,19 +2983,16 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             if (open.length) {
                 const prices = new Map<number, number>(todayPrices ?? []);
                 for (const date of open.filter((d) => d !== today || !todayPrices)) {
-                    const r = await api.energy.fetchDynamicElectricityPrices({date}).catch(() => undefined);
-                    await pause();
-                    if (r) for (const [at, p] of hourlyPrices(normalisePrices(r, costs?.mathExpression).slots, SLOT_MS)) prices.set(at, p);
+                    for (const [at, p] of hourlyPrices((await book.day(date)).slots, SLOT_MS)) prices.set(at, p);
                 }
                 const filled = fillActual(ledger, use, prices, now);
                 if (filled !== ledger && !this.savingsStopped) await this.setStoreValue(COST_CHECK_STORE, filled);
             }
             const days: SavingsDay[] = [];
             for (const date of wanted) {
-                const response = await api.energy.fetchDynamicElectricityPrices({date}).catch(() => undefined);
-                await pause();
+                const response = await book.day(date);
                 const hours = dayHours(date, (ms) => localDate(ms, timeZone));
-                const day = response && savingsDay(date, hours, use, hourlyPrices(normalisePrices(response, costs?.mathExpression).slots, SLOT_MS),
+                const day = response.slots.length > 0 && savingsDay(date, hours, use, hourlyPrices(response.slots, SLOT_MS),
                     liveShare(hours, liveHour), this.role === 'hotwater');
                 if (day) days.push(day);
                 else this.savingsTried.set(date, now);

@@ -6,7 +6,8 @@ import {HouseParams} from './model';
 import https from 'https';
 import {SensorRef, selectedReadings, withApi} from '../indoor-sensors';
 import {Aggregator, FLAG, Field, History, Sample, SlotContext, encodeRecord} from './history';
-import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, normalisePrices, slotOf} from './prices';
+import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, slotOf} from './prices';
+import {pricesFor} from '../gateway-prices';
 import {Place, WEATHER_STALE_MS, WeatherSlot, openMeteoUrl, placeSearchUrl, placesFrom, weatherLocation, weatherSlots} from './weather';
 import {
     appendJournal, appendLine, deleteHistory, loadHistory, loadJson, modelFileName, saveHistory, saveJson, shadowLogName,
@@ -441,14 +442,10 @@ export class AutopilotCollector {
     private async fetchPrices(): Promise<number> {
         const now = Date.now();
         const timeZone = this.homey.clock.getTimezone();
-        const days = await withApi(this.homey, async (api) => {
-            if (await api.energy.getElectricityPriceType() !== 'dynamic') return [] as DayPrices[];
-            const costs = await api.energy.getDynamicElectricityPriceUserCosts().catch(() => undefined);
-            const fetchDay = (date: string) => api.energy.fetchDynamicElectricityPrices({date})
-                .then((response: any) => normalisePrices(response, costs?.mathExpression))
-                .catch(() => ({slots: [], costsApplied: false}) as DayPrices);
-            return Promise.all([fetchDay(localDate(now, timeZone)), fetchDay(localDate(now, timeZone, 1))]);
-        });
+        // The Gateway's price book: one fetch shared with hot water and the savings widgets.
+        const book = pricesFor(this.homey);
+        const days: DayPrices[] = (await book.info()).dynamic
+            ? await Promise.all([book.day(localDate(now, timeZone)), book.day(localDate(now, timeZone, 1))]) : [];
         const keepFrom = slotOf(now - 2 * 24 * HOUR);
         for (const slot of [...this.prices.keys()]) if (slot < keepFrom) this.prices.delete(slot);
         for (const day of days) {
