@@ -1312,6 +1312,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.role === 'hotwater') await this.syncHotwaterAutopilot().catch(this.error);
         if (this.role === 'heating' || this.role === 'hotwater') {
             if (!Array.isArray(this.getStoreValue(MODE_MARKS_STORE))) await this.markMode(this.smartMode()).catch(this.error);
+            // TEMP(savings reset): heating's start date and baseline were stored by the code before
+            // b870c03 (at the switch, not when the house model was ready). Read again once from
+            // Insights. Remove with the other TEMP code (tasks/todo.md).
+            if (this.role === 'heating' && this.getStoreValue('autopilotSavingsReset') !== 1) {
+                for (const key of [FIRST_LIVE_STORE, BASELINE_STORE, SAVINGS_STORE]) await this.unsetStoreValue(key).catch(this.error);
+                await this.setStoreValue('autopilotSavingsReset', 1);
+                this.log('Savings: heating start, baseline and days reset, to be read again from Insights.');
+            }
             // Heating and Hot water read Insights a few minutes apart, so their requests don't meet.
             this.scheduleSavings(this.role === 'heating' ? 90_000 : 6 * 60_000);
         }

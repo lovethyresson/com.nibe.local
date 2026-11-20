@@ -54,6 +54,9 @@ export const TAU_RANGE_H = [12, 14 * 24] as const;
 /** An error larger than this counts as this, K: a sensor gone wrong or a curve far off moves the
  *  trim no faster than a 2 K error does. */
 export const MAX_ERROR = 2;
+/** A 24 h mean this far from the setpoint is a sensor problem (wrong room, failing, a heater
+ *  beside it), not the house: the trim holds rather than wind up to its limit on it. */
+export const IMPLAUSIBLE_K = 5;
 /** A setpoint change of more than `SETPOINT_STEP` holds the trim still this long, hours. */
 export const SETTLE_H = 24;
 export const SETPOINT_STEP = 0.2;
@@ -92,8 +95,8 @@ export function nextTrim(state: TrimState, input: TrimInput): {trim: number; sta
     const hours = Math.max(0, Number.isFinite(input.hours) ? input.hours : 0);
     const changed = state.setpoint !== undefined && Math.abs(input.setpoint - state.setpoint) > SETPOINT_STEP;
     const settling = changed ? SETTLE_H : Math.max(0, (state.settling ?? 0) - hours);
-    if (!Number.isFinite(raw) || settling > 0) {
-        // A new setpoint, or no mean: hold what was given. The recovery history starts over.
+    if (!Number.isFinite(raw) || Math.abs(raw) > IMPLAUSIBLE_K || settling > 0) {
+        // A new setpoint, no mean, or one no heated house shows: hold what was given. The recovery history starts over.
         const held = state.last ?? clamp(state.integral);
         return {trim: held, state: {integral: state.integral, recent: [], last: held, setpoint: input.setpoint, settling}};
     }

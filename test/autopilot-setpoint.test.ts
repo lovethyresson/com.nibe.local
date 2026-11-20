@@ -95,3 +95,18 @@ test('after the setpoint changes the trim waits a day, so the old target\'s hour
     const nudged = nextTrim({integral: 0, setpoint: 21}, {...base, setpoint: 21.1, mean: 20.8});
     assert.ok(nudged.trim > 0);
 });
+
+test('a mean no heated house shows holds the trim, and impossible readings never enter the mean', async () => {
+    const {indoorMean} = await import('../lib/autopilot/live');
+    const {nextTrim, IMPLAUSIBLE_K} = await import('../lib/autopilot/setpoint');
+    const start = {integral: 1.5, last: 1.5, setpoint: 22.5, settling: 0};
+    // A sensor reading 15 °C in a house held at 22.5: the learned part does not move, the trim holds.
+    const held = nextTrim(start, {setpoint: 22.5, mean: 22.5 - IMPLAUSIBLE_K - 2.5, hours: 24, integrate: true});
+    assert.equal(held.trim, 1.5);
+    assert.equal(held.state.integral, 1.5);
+    // 3 K off is a cold house, not a sensor: it still learns.
+    assert.ok(nextTrim(start, {setpoint: 22.5, mean: 19.5, hours: 24, integrate: true}).state.integral > 1.5);
+    // A reading of 0 or 85 °C (a probe unplugged, a sensor on the boiler) is not counted.
+    const day = Array.from({length: 96}, () => 21);
+    assert.equal(indoorMean([...day.slice(0, 90), 0, 0, 85, 85, 85, 85]), 21);
+});

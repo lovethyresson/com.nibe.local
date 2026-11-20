@@ -123,9 +123,12 @@ export const VERIFY_GAP_MS = 750;
 /** Failed feed cycles in a row before the feed stops (§7.2 `lever_error`). */
 export const MAX_FAILED_CYCLES = 3;
 
+/** Indoor readings outside this range are not a room's air temperature (a sensor fault). */
+export const INDOOR_PLAUSIBLE: [number, number] = [5, 35];
+
 /** The plan's indoor reference: the house's mean over the last 24 h, from slots that have one. */
 export function indoorMean(values: number[]): number | undefined {
-    const ok = values.filter(Number.isFinite);
+    const ok = values.filter((v) => Number.isFinite(v) && v >= INDOOR_PLAUSIBLE[0] && v <= INDOOR_PLAUSIBLE[1]);
     return ok.length >= 48 ? ok.reduce((a, b) => a + b, 0) / ok.length : undefined;
 }
 

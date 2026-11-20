@@ -52,6 +52,14 @@ commits and in the **Releases** table in [`README.md`](../README.md), the durabl
 - [ ] The shadow log now carries `tm`, the model's mass temperature, next to `ti` (in this batch).
   After a few ease-offs, check that tm lags ti as expected (dips less, recovers later).
 
+## Autopilot heating: evaluate the trim, then Balanced (2026-11-20)
+
+- [ ] 4–5 days on Comfort with b870c03 + 5b81952: indoor 24 h mean within ±0.5 °C of 22.5 without
+  oscillating, Plan vs actual's miss under 5 %, no "Pre-heating" for a trim-only shift. Held: SPA
+  off, room control (2978) off, curve offset unchanged, same indoor sensor. Read locally only.
+- [ ] Then Balanced: how much more it shifts and saves against Comfort, and what indoor does.
+  Not before the trim is judged, or the two changes can't be told apart.
+
 ## Autopilot heating: "feels like" indoor temperature (idea, 2026-11-18)
 
 Felt temperature is about (air + radiant) / 2. The house model's mass `tm` stands in for the inner
@@ -71,6 +79,10 @@ allows somewhat longer or deeper ease-offs.
 ## Before the release: drop temporary test code
 
 Search `TEMP(` across `lib/` and `dev/` before packaging; each hit is listed here.
+
+- [ ] **TEMP(savings reset)**, added 2026-11-20 (`lib/device.ts`, heating `onInit`): clears
+  heating's savings start, baseline and days once (store flag `autopilotSavingsReset`), so the
+  test Homey reads them again under b870c03's rule. Remove once it has run on the test Homey.
 
 - [ ] **TEMP(early-draw log)**, added 2026-11-17 (`lib/autopilot/hotwater-shadow.ts`):
   the hot water log's `early` and `withEarly` fields and `withEarly()`, which plan a second time
