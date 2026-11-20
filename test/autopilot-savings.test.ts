@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {SavingsDay, moneyText, partialDay, baselineOf, dayHours, daySaving, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, periodSavings, savingsData, savingsDay, totals} from '../lib/autopilot/savings';
+import {SavingsDay, moneyText, partialDay, baselineOf, dayHours, daySaving, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, periodSavings, savingsData, savingsDay, savingsLive, totals} from '../lib/autopilot/savings';
 import {localDate} from '../lib/autopilot/prices';
 
 const HOUR = 3_600_000;
@@ -274,4 +274,19 @@ test('the first live day before any use: the first-day line, not 0 kr; the showe
     assert.equal(d.value, undefined);
     assert.equal(d.reason, "Savings appear after Autopilot's first full day.");
     assert.equal(d.shower!.now!.label, 'Last 7 days');
+});
+
+test('heating counts from the hour it first shifts heat: learning hours are the starting point', () => {
+    const ready = 100 * HOUR;
+    // Learning: BT1 fed (the trim holds the thermostat temperature), Smart mode on, yet not a saving.
+    assert.equal(savingsLive(99 * HOUR, ready, true, true), false);
+    assert.equal(savingsLive(100 * HOUR, ready, true, true), true);
+    assert.equal(savingsLive(101 * HOUR, ready, true, false), false, 'BT1 not shown: not live');
+    // Still learning: nothing counts.
+    assert.equal(savingsLive(500 * HOUR, Infinity, true, true), false);
+    // Hot water has no learning phase.
+    assert.equal(savingsLive(5 * HOUR, -Infinity, true, undefined), true);
+    // The first live hour walks back no further than the first shift.
+    const fed = (at: number) => savingsLive(at, ready, undefined, true);
+    assert.equal(firstLiveFrom(Math.max(90 * HOUR, ready), fed), ready);
 });

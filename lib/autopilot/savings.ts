@@ -443,6 +443,15 @@ export function liveShare(hours: number[], live: (at: number) => boolean | undef
     return round(known.filter(Boolean).length / known.length);
 }
 
+/** Whether an hour counts as Autopilot's for savings. `shiftsFrom`: when heating first shifted heat
+ *  (the house model ready); before it, heating only held the thermostat temperature while it learned,
+ *  and those hours are the starting point, never a saving. Hot water passes -Infinity. Then the Smart
+ *  mode's mark, checked against what the pump showed (`fed`) where that is known. */
+export function savingsLive(at: number, shiftsFrom: number, mark: boolean | undefined, fed: boolean | undefined): boolean | undefined {
+    if (at < shiftsFrom) return false;
+    return mark === undefined ? fed : mark && fed !== false;
+}
+
 /** When Autopilot first ran live, for a device that ran it before this was recorded: walk back
  *  from the first live mark while the hours say live, with gaps of up to two hours bridged. */
 export function firstLiveFrom(markAt: number, live: (at: number) => boolean | undefined): number {

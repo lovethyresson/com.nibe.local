@@ -3,7 +3,7 @@ import {IndoorConfig, averageSensors, cleanIndoorConfig, readOnlyIndoorConfig, s
 import {Controls, AutopilotCollector, OUTDOOR_SENSOR_SETTING} from './autopilot/collector';
 import {BACKFILL_FIELDS, BackfillField, LogSource, anyLogRead, backfillSources, fetchHeatingInsights} from './autopilot/heating-insights';
 import {newHistoryFileName} from './autopilot/store-file';
-import {Baseline, LEDGER_DAYS, moneyText, partialDay, ModeMark, SavingsData, SavingsDay, baselineOf, dayHours, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay} from './autopilot/savings';
+import {Baseline, LEDGER_DAYS, moneyText, partialDay, ModeMark, SavingsData, SavingsDay, baselineOf, dayHours, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay, savingsLive} from './autopilot/savings';
 import {ChargeEvent, HotwaterAutopilot, HotwaterMode, TankView, ownDeviceId} from './autopilot/hotwater-shadow';
 import {FlowConflict, moreHotwaterFlows} from './autopilot/hotwater-flows';
 import {KWH_PER_LITRE, STARTER_DAYS, localClock, readHousehold} from './autopilot/hotwater-learner';
@@ -2901,13 +2901,15 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     }));
                 }
             }
-            const liveHour = (at: number) => {
-                const mark = liveAt(marks, at), fed = fedLive?.get(at);
-                return mark === undefined ? fed : mark && fed !== false;
-            };
+            // Heating saves from the hour it first shifts heat. While it learns, it feeds BT1 only to
+            // hold the thermostat temperature and moves nothing to cheaper hours: those days are the
+            // starting point the savings are counted against. Still learning: no hour counts yet.
+            const shiftsFrom = this.role === 'heating' ? this.autopilot?.curveFacts().readyAt ?? Infinity : -Infinity;
+            const fedShifting = (at: number) => (at < shiftsFrom ? false : fedLive?.get(at));
+            const liveHour = (at: number) => savingsLive(at, shiftsFrom, liveAt(marks, at), fedLive?.get(at));
             const firstMark = marks.find((m) => m.live);
-            if (firstMark && typeof this.getStoreValue(FIRST_LIVE_STORE) !== 'number')
-                await this.setStoreValue(FIRST_LIVE_STORE, firstLiveFrom(firstMark.at, (at) => fedLive?.get(at)));
+            if (firstMark && shiftsFrom !== Infinity && typeof this.getStoreValue(FIRST_LIVE_STORE) !== 'number')
+                await this.setStoreValue(FIRST_LIVE_STORE, firstLiveFrom(Math.max(firstMark.at, shiftsFrom), fedShifting));
             const costs = await api.energy.getDynamicElectricityPriceUserCosts().catch(() => undefined);
             if (!this.getStoreValue(SAVINGS_CURRENCY_STORE)) {
                 const currency = await api.energy.getCurrency().catch(() => undefined);

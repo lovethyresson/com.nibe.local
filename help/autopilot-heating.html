@@ -101,7 +101,7 @@
     <p class="lead reveal">Your Heating device shows Autopilot's state, and a line called <b>Autopilot now</b> with the reason.</p>
     <div class="status reveal">Easing off · Until 19:00: <em>prices peak 17:00–19:00</em></div>
     <div class="reasons">
-      <div class="pill reveal" style="--c:var(--sub)"><b>Learning</b><p>Getting to know your house. This takes at least five days, with no changes yet.</p></div>
+      <div class="pill reveal" style="--c:var(--sub)"><b>Learning</b><p>Getting to know your house, for five days or three with earlier readings. It holds your thermostat temperature meanwhile, without shifting heat.</p></div>
       <div class="pill reveal" style="--c:var(--water)"><b>Holding</b><p>No change planned right now, for example when prices are too even to shift heat.</p></div>
       <div class="pill reveal" style="--c:var(--warm)"><b>Pre-heating</b><p>Storing a little warmth before expensive hours.</p></div>
       <div class="pill reveal" style="--c:var(--green)"><b>Easing off</b><p>Heating less while power is expensive.</p></div>
@@ -123,11 +123,24 @@
   </div>
 </section>
 
+<section class="center" id="savings">
+  <div class="wrap">
+    <h2 class="display reveal">How savings are counted</h2>
+    <p class="lead reveal">The savings widgets work them out from your heat pump's meter and the prices in Homey Energy, for heating and hot water separately.</p>
+    <div class="how">
+      <div class="reveal"><div class="n">01</div><h3>Your starting point</h3><p>From the days before Autopilot shifted any heat, its learning days included: how your heat pump paid for electricity compared with each day's average price. If Homey has no readings from before, the learning days are the starting point.</p></div>
+      <div class="reveal"><div class="n">02</div><h3>Each day with Autopilot</h3><p>The electricity it used, priced the way your heat pump paid before. The saving is that, minus what it actually cost.</p></div>
+      <div class="reveal"><div class="n">03</div><h3>Added up</h3><p>Whole days only, into the last 7 days, this month and this year. Today shows the share used in cheap hours instead.</p></div>
+    </div>
+    <p class="reveal" style="margin-top:32px;opacity:.8">Both sides use the same amount of electricity, so a cold week or a busy one doesn't change the figure. It counts only when electricity was used. If Autopilot uses a little more, for example to pre-heat, the figure doesn't take that off.</p>
+  </div>
+</section>
+
 <section>
   <div class="wrap">
     <h2 class="display center reveal">Good to know</h2>
     <div class="faq reveal">
-      <details><summary>How long until it does something?</summary><p>It learns your house for at least five days first, and changes nothing meanwhile. Your Homey Timeline tells you when it's done and starts moving heat away from expensive hours.</p></details>
+      <details><summary>How long until it does something?</summary><p>It learns your house for five days, or three if your Homey already has a few weeks of readings. Meanwhile it holds your thermostat temperature, without shifting heat. Your Homey Timeline tells you when it's done and starts moving heat away from expensive hours.</p></details>
       <details><summary>Does it keep my thermostat temperature?</summary><p>Yes. Autopilot steers the house to your thermostat and moves heat around it within your comfort range. Change the thermostat and it follows. It corrects a small, steady offset slowly, over a few days.</p></details>
       <details><summary>Will my house get cold?</summary><p>It stays within the comfort range you picked. On Comfort, that's half a degree either side of your thermostat.</p></details>
       <details><summary>Can I pause it for a while?</summary><p>Set Comfort range to Off. Your heat pump then sees the measured outdoor temperature, and Autopilot neither shifts heat nor steers to your thermostat, until you pick a range again.</p></details>
