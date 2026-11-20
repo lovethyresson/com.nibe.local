@@ -428,6 +428,8 @@
       "online_body": "Wenn ein Update verfügbar ist, bestätigen Sie es in der myUplink-App oder am Display Ihrer Wärmepumpe. Wischen Sie zur Produktübersicht und tippen Sie auf Aktualisieren.",
       "usb_title": "Mit einem USB-Stick",
       "usb_body": "Laden Sie die neueste Software von myuplink.com auf einen USB-Stick. Stecken Sie ihn in den Anschluss über dem Display und öffnen Sie Menü 8.1.",
+      "backup_title": "Einstellungen speichern (optional)",
+      "backup_body": "Wählen Sie bei eingestecktem USB-Stick in Menü 8.3 Einstellungen speichern. Um zum vorherigen Stand Ihrer Wärmepumpe zurückzukehren, wählen Sie dort Einstellungen wiederherstellen.",
       "f_title": "Über myUplink oder einen USB-Stick",
       "f_body": "Die Schritte unterscheiden sich je nach Modell. Siehe Handbuch Ihrer Wärmepumpe.",
       "note": "Dies dauert einige Minuten. Ihre Einstellungen bleiben erhalten.",

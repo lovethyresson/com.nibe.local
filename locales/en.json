@@ -428,6 +428,8 @@
       "online_body": "When an update is available, approve it in the myUplink app or on your heat pump's display. Swipe to the product overview and tap Update.",
       "usb_title": "With a USB stick",
       "usb_body": "Download the latest software from myuplink.com and put it on a USB stick. Insert it in the port above the display and open menu 8.1.",
+      "backup_title": "Save your settings (optional)",
+      "backup_body": "With a USB stick in, choose Save settings in menu 8.3. To go back to how your heat pump was, choose Restore settings there.",
       "f_title": "Via myUplink or a USB stick",
       "f_body": "The steps differ between models. See your heat pump's manual.",
       "note": "This takes a few minutes. Your settings are kept.",

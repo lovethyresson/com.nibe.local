@@ -428,6 +428,8 @@
       "online_body": "Når en oppdatering er tilgjengelig, godkjenner du den i myUplink-appen eller på displayet til varmepumpen din. Sveip til produktoversikten og trykk på Oppdater.",
       "usb_title": "Med en USB-pinne",
       "usb_body": "Last ned den nyeste programvaren fra myuplink.com og legg den på en USB-pinne. Sett den i porten over displayet og åpne meny 8.1.",
+      "backup_title": "Lagre innstillingene dine (valgfritt)",
+      "backup_body": "Med en USB-pinne i, velg Lagre innstillinger i meny 8.3. For å gå tilbake til slik varmepumpen var, velg Gjenopprett innstillinger der.",
       "f_title": "Via myUplink eller en USB-pinne",
       "f_body": "Stegene varierer mellom modeller. Se manualen til varmepumpen din.",
       "note": "Dette tar noen minutter. Innstillingene dine beholdes.",

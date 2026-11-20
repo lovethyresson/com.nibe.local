@@ -428,6 +428,8 @@
       "online_body": "Når der er en opdatering, skal du godkende den i myUplink-appen eller på din varmepumpes display. Swipe til produktoversigten, og tryk på Opdater.",
       "usb_title": "Med en USB-nøgle",
       "usb_body": "Hent den nyeste software fra myuplink.com, og læg den på en USB-nøgle. Sæt den i porten over displayet, og åbn menu 8.1.",
+      "backup_title": "Gem dine indstillinger (valgfrit)",
+      "backup_body": "Med en USB-nøgle i, vælg Gem indstillinger i menu 8.3. Vil du tilbage til, som din varmepumpe var, vælger du Gendan indstillinger der.",
       "f_title": "Via myUplink eller en USB-nøgle",
       "f_body": "Trinnene er forskellige fra model til model. Se din varmepumpes manual.",
       "note": "Det tager et par minutter. Dine indstillinger bevares.",

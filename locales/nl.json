@@ -428,6 +428,8 @@
       "online_body": "Als er een update beschikbaar is, keur je die goed in de myUplink-app of op het display van je warmtepomp. Veeg naar het productoverzicht en tik op Bijwerken.",
       "usb_title": "Met een USB-stick",
       "usb_body": "Download de nieuwste software van myuplink.com en zet die op een USB-stick. Steek die in de poort boven het display en open menu 8.1.",
+      "backup_title": "Bewaar je instellingen (optioneel)",
+      "backup_body": "Met een USB-stick erin kies je Instellingen opslaan in menu 8.3. Wil je terug naar hoe je warmtepomp was, kies daar dan Instellingen herstellen.",
       "f_title": "Via myUplink of een USB-stick",
       "f_body": "De stappen verschillen per model. Zie de handleiding van je warmtepomp.",
       "note": "Dit duurt een paar minuten. Je instellingen blijven behouden.",

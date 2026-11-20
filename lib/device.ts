@@ -1321,10 +1321,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 this.log('Savings: heating start, baseline and days reset, to be read again from Insights.');
             }
             // Heating and Hot water read Insights a few minutes apart, so their requests don't meet.
-            this.scheduleSavings(this.role === 'heating' ? 90_000 : 6 * 60_000);
+            this.scheduleSavings(this.role === 'heating' ? 90_000 : 3 * 60_000);
         }
-        // Main reads only its idle meter, for Energy today, five minutes after Hot water.
-        if (this.role === 'main' && this.hasCapability(METER_CAPABILITY)) this.scheduleSavings(11 * 60_000);
+        // Main reads only its idle meter, for Energy today, after Hot water: Energy today waits for all three.
+        if (this.role === 'main' && this.hasCapability(METER_CAPABILITY)) this.scheduleSavings(4.5 * 60_000);
         if (this.getStoreValue(PAIRED_SMART_STORE)) this.homey.setTimeout(() => this.applyPairedSmartMode().catch(this.error), 15_000);
     }
 
@@ -2657,7 +2657,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const data = d.savingsWidget() as SavingsData;
             return data.monthValue === undefined ? [] : [{value: data.monthValue, month: data.valueNote ?? '', currency: String(d.getStoreValue(SAVINGS_CURRENCY_STORE) ?? '')}];
         });
-        const sum = months.reduce((a, m) => a + m.value, 0);
+        // Each part as its widget shows it (one decimal under 10, whole above), so 11 + 2.4 reads 13, not 14.
+        const shown = (v: number) => (Math.abs(v) < 10 ? Math.round(v * 10) / 10 : Math.round(v));
+        const sum = months.reduce((a, m) => a + shown(m.value), 0);
         const saved = months.length ? {value: moneyText(sum, Math.abs(sum) < 10 ? 1 : 0, this.homey.i18n.getLanguage(), months[0].currency),
             month: months[0].month, good: sum >= 0} : undefined;
         const alarm = this.hasCapability(ALARM_ACTIVE_CAPABILITY) && this.getCapabilityValue(ALARM_ACTIVE_CAPABILITY) === true
