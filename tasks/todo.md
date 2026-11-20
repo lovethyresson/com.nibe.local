@@ -6,8 +6,16 @@ commits and in the **Releases** table in [`README.md`](../README.md), the durabl
 
 ## After the heating test ends (Thursday 2026-11-19), in this order
 
-- [ ] Homey system update, held since 2026-11-17 so the test sees no firmware change. Install
-  it, then check the app is back and polling before going on.
+- [x] Homey system update, held since 2026-11-17 so the test sees no firmware change. Done
+  2026-11-20: Homey 13.5.5 at 10.136.1.16.
+- [ ] **Athom account rate-limited (2026-11-20).** Every account call answers 429, including
+  `homey login`; the cause was the Mac test logger (`local.nibe-logger`, two `homey api raw`
+  calls every 2 min), now unloaded (plist and `~/nibe-logs/live.csv`, 1009 rows, kept). Wait for
+  the limit to lift, then `homey login`, then install. All later checks read the Homey locally
+  with a Homey API key (scratchpad `check_after_install.py`), never through the CLI.
+- Main's 1.5.1 (01a2513) stays off this branch: Autopilot work is separate from it. When the
+  branch is merged to main, the conflict is in driver.ts `pendingSelection`: pass `stored` to
+  `cleanSelection`, as `selection_done` on main does; keep both sides' integration tests.
 - [ ] Review the heating test and the Mac logger's gaps.
   Plan vs actual ran 13–16 % low on Mon and Tue (2026-11-16/17) while indoor sat below target:
   split each day's miss into kWh (house model, COP) and price, per function, and fix the one that

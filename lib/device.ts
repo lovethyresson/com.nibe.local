@@ -798,7 +798,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const spa = this.profile.spaSwitches;
         // Awaited: a write by heat curve advice or Undo reads its own change back through here.
         if (register.name === this.profile.autopilotFeed?.curveOffset && this.role === 'heating')
-            await this.curveOffsetRead(Number(value)).catch(this.error);
+            await this.curveOffsetRead(value === null || value === undefined ? NaN : Number(value)).catch(this.error);
         if (spa && Object.values(spa).includes(register.name)) {
             const before = this.spaSeen.has(register.name) ? this.spaSeen.get(register.name) : null;
             this.spaSeen.set(register.name, value);
@@ -2285,11 +2285,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const name = this.profile.autopilotFeed?.curveOffset;
         const collector = this.autopilot;
         if (this.role !== 'heating' || !name || !collector || !this.heatingFeed || this.heatingMode !== 'live') return;
-        let store = this.heatCurveStore();
+        // Read the pump first: the store is read after it, so an offset change a poll saved meanwhile
+        // (curveOffsetRead) is not overwritten. Nibe's "not available" reads as null, not offset 0.
+        const raw = await this.readNamed(name);
+        const offset = raw === null || raw === undefined ? NaN : Number(raw);
+        const store = this.heatCurveStore();
         const facts = collector.curveFacts();
         const today = dayNumber(Date.now());
         if (facts.te !== undefined) store.samples = addSample(store.samples, {day: today, integral: this.heatingFeed.learnedTrim, te: facts.te});
-        const offset = Number(await this.readNamed(name));
         const advice = curveAdvice({today, samples: store.samples, offset: Number.isFinite(offset) ? offset : undefined,
             readyDays: facts.readyAt === undefined ? undefined : (Date.now() - facts.readyAt) / 86_400_000,
             curveGain: facts.curveGain, stepK: facts.stepK, changed: store.changed});
@@ -2299,10 +2302,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         let warning: string | undefined;
         if (advice && advice.to !== advice.from && store.choice === 'auto') {
             // The write reads itself back through setValue → curveOffsetRead, which moves the trim
-            // once from the offset stored here.
-            await this.setStoreValue(CURVE_STORE, {...store, offset: advice.from});
+            // once from the offset stored here. The change is dated before the write, so the 30-day
+            // wait holds even if the read-back never comes (offset not polled, a failed confirm).
+            await this.setStoreValue(CURVE_STORE, {...store, offset: advice.from, changed: today,
+                adjusted: {day: today, at: Date.now(), from: advice.from, to: advice.to}});
             await this.writeRegister(this.profile.registerByName[name], advice.to);
-            store = {...this.heatCurveStore(), adjusted: {day: today, at: Date.now(), from: advice.from, to: advice.to}};
             this.log(`Heat curve advice: offset ${advice.from} -> ${advice.to} (learned trim ${advice.integral.toFixed(2)} K, `
                 + `${advice.supplyK.toFixed(1)} K of supply).`);
             await say('adjusted', {from: fmt(advice.from), to: fmt(advice.to)});
@@ -2311,13 +2315,15 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             if (advice.slope) await say(`slope_${advice.slope}`);
             this.log(`Heat curve advice told: offset ${advice.from} -> ${advice.to}${advice.slope ? `, curve ${advice.slope}` : ''}.`);
         }
+        let told = store.told;
         if (advice) {
-            store.told = {day: store.told && !isNews(advice, store.told, today) ? store.told.day : today,
+            told = {day: told && !isNews(advice, told, today) ? told.day : today,
                 ...advice.to !== advice.from && store.choice !== 'auto' ? {to: advice.to} : {}, ...advice.slope ? {slope: advice.slope} : {}};
-            if (store.told.to !== undefined) warning = this.homey.__('autopilot.heating.curve.warning_offset', {from: fmt(advice.from), to: fmt(store.told.to)});
-            else if (store.told.slope) warning = this.homey.__(`autopilot.heating.curve.warning_${store.told.slope}`);
+            if (told.to !== undefined) warning = this.homey.__('autopilot.heating.curve.warning_offset', {from: fmt(advice.from), to: fmt(told.to)});
+            else if (told.slope) warning = this.homey.__(`autopilot.heating.curve.warning_${told.slope}`);
         }
-        await this.setStoreValue(CURVE_STORE, store);
+        // Fresh again after the awaits: only the samples and what was told are this job's to save.
+        await this.setStoreValue(CURVE_STORE, {...this.heatCurveStore(), samples: store.samples, told});
         this.adviceWarning = warning;
         await this.showAdviceWarning();
     }
@@ -2635,13 +2641,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // This month's savings: the two savings widgets' figures, added up.
         const months = (['heating', 'hotwater'] as const).flatMap((role) => {
             const d = byRole.get(role);
-            if (!d || !autopilotRuns(d.smartMode())) return [];
+            // As the savings widget shows it: a month with counted days stays, whatever the mode now.
+            if (!d) return [];
             const data = d.savingsWidget() as SavingsData;
             return data.monthValue === undefined ? [] : [{value: data.monthValue, month: data.valueNote ?? '', currency: String(d.getStoreValue(SAVINGS_CURRENCY_STORE) ?? '')}];
         });
         const sum = months.reduce((a, m) => a + m.value, 0);
         const saved = months.length ? {value: moneyText(sum, Math.abs(sum) < 10 ? 1 : 0, this.homey.i18n.getLanguage(), months[0].currency),
-            month: months[0].month} : undefined;
+            month: months[0].month, good: sum >= 0} : undefined;
         const alarm = this.hasCapability(ALARM_ACTIVE_CAPABILITY) && this.getCapabilityValue(ALARM_ACTIVE_CAPABILITY) === true
             ? String(this.getCapabilityValue(ALARM_TEXT_CAPABILITY) ?? '') || undefined : undefined;
         const warnings = OVERVIEW_KINDS.flatMap((k) => {
@@ -2652,7 +2659,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (!rows.length) return {title, empty: this.homey.__('autopilot.energy.no_functions'), rows: [], attention: []};
         if (energy.loading && !offline) return {title, loading: true, rows, attention: []};
         return overviewData({title, autopilot: siblings.some((d) => autopilotRuns(d.smartMode?.())), offline, alarm, warnings,
-            tiers, spent: energy.numbers?.[1]?.value, saved, rows}, t);
+            tiers, cheapShare: energy.chart?.cheapShare, spent: energy.numbers?.[1]?.value, saved, rows}, t);
     }
 
     /** The tank now, as its tile shows it (read every poll). The planner's own figure is from the
@@ -2822,7 +2829,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (marks.length && marks[marks.length - 1].live === live) return;
         // A real switch to Live is the moment the savings count from. The first mark on a device
         // that already ran Autopilot is not: refreshSavings() dates that from the hours before it.
-        if (live && Array.isArray(stored) && typeof this.getStoreValue(FIRST_LIVE_STORE) !== 'number')
+        // Heating's starts when the house model is ready, not at the switch: refreshSavings() dates
+        // it, so its learning days are the starting point.
+        if (live && this.role !== 'heating' && Array.isArray(stored) && typeof this.getStoreValue(FIRST_LIVE_STORE) !== 'number')
             await this.setStoreValue(FIRST_LIVE_STORE, Date.now());
         const keepFrom = Date.now() - (LEDGER_DAYS + 2) * 86_400_000;
         // The last mark before the kept window still says what the window's first hours were.

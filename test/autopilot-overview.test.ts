@@ -9,6 +9,8 @@ test('the ring is the share of today\'s use in the cheapest third', () => {
     const d = overviewData({...base, tiers: [6.9, 2.5, 0.6]}, t);
     assert.deepEqual(d.ring, {tiers: [6.9, 2.5, 0.6], centre: '69 %', label: 'cheap'});
     assert.equal(overviewData({...base, tiers: [0, 0, 0]}, t).ring, undefined, 'nothing used yet: no ring');
+    // Energy today's share wins, so the two never differ by a rounding step (0.6849 → 68 %, not 69 %).
+    assert.equal(overviewData({...base, tiers: [6.849, 2.5, 0.651], cheapShare: 0.68}, t).ring?.centre, '68 %');
 });
 
 test('the month\'s savings lead, with today\'s cost under them; without savings, today\'s cost leads', () => {
@@ -18,6 +20,8 @@ test('the month\'s savings lead, with today\'s cost under them; without savings,
     const e = overviewData({...base, spent: '14 kr'}, t);
     assert.deepEqual(e.hero, {value: '14 kr', label: 'spent'});
     assert.equal(e.line, undefined, 'the cost is not said twice');
+    const loss = overviewData({...base, saved: {value: '-12 kr', month: 'November', good: false}}, t);
+    assert.equal(loss.hero?.good, false, 'a month that cost more is not shown as a saving');
 });
 
 test('problems come before advice, a pump-wide line shows once, and two at most', () => {

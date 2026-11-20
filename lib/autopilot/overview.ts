@@ -59,10 +59,13 @@ export interface OverviewInput {
     warnings: {text: string; advice?: boolean}[];
     /** Today's kWh per price third; undefined before the meters and prices are read. */
     tiers?: [number, number, number];
+    /** Energy today's cheap share (0–1), so both show the same percentage; the tiers' own when absent. */
+    cheapShare?: number;
     /** What today cost so far, worded as Energy today shows it. */
     spent?: string;
-    /** This month's savings, worded, and the month's name; undefined while there are none to show. */
-    saved?: {value: string; month: string};
+    /** This month's savings, worded, the month's name, and whether it is a saving (not a loss);
+     *  undefined while there are none to show. */
+    saved?: {value: string; month: string; good?: boolean};
     rows: OverviewRow[];
 }
 
@@ -80,9 +83,9 @@ export function overviewData(i: OverviewInput, t: Translate): OverviewData {
     const chip = i.offline ? {chip: t('offline'), chipQuiet: true} : i.autopilot ? {chip: 'Autopilot'} : {};
     const total = i.tiers ? i.tiers[0] + i.tiers[1] + i.tiers[2] : 0;
     const ring = i.tiers && total > 0
-        ? {tiers: i.tiers, centre: `${Math.round(i.tiers[0] / total * 100)} %`, label: t('cheap')} : undefined;
+        ? {tiers: i.tiers, centre: `${Math.round((i.cheapShare ?? i.tiers[0] / total) * 100)} %`, label: t('cheap')} : undefined;
     const hero = i.saved
-        ? {value: i.saved.value, label: t('saved_month', {month: i.saved.month}), good: true}
+        ? {value: i.saved.value, label: t('saved_month', {month: i.saved.month}), good: i.saved.good !== false}
         : i.spent ? {value: i.spent, label: t('spent')} : undefined;
     const line = i.saved && i.spent ? t('spent_line', {cost: i.spent}) : undefined;
     return {title: i.title, ...chip, ...ring ? {ring} : {}, ...hero ? {hero} : {}, ...line ? {line} : {},
