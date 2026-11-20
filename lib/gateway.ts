@@ -232,7 +232,10 @@ export function gatewayFor(homey: any): Gateway {
         created.logs = new LogStore({now: () => Date.now(), load: loadJson, save: saveJson, remove: deleteFile,
             log: (...args) => homey.app?.log?.(...args)});
         shared = created;
-        homey.setInterval?.(() => homey.app?.log?.(created.report()), REPORT_EVERY_MS);
+        homey.setInterval?.(() => {
+            // A timer callback that throws ends the app: the report must never do that.
+            try { homey.app?.log?.(created.report()); } catch (e: any) { homey.app?.error?.('Gateway report failed:', e?.message ?? e); }
+        }, REPORT_EVERY_MS);
     }
     return shared;
 }

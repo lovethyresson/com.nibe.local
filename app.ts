@@ -1,5 +1,6 @@
 import Homey from 'homey';
 import {announceRelease} from './lib/release-announcements';
+import {errorEntry, readJournal, record} from './lib/crash-journal';
 import {CONSENT_SETTING, appVersion, initAnalytics, refreshConsent, track} from './lib/analytics';
 
 class NibeApp extends Homey.App {
@@ -11,7 +12,11 @@ class NibeApp extends Homey.App {
     // app in the log rather than letting the reason disappear.
     process.on('unhandledRejection', (reason: any) => {
       this.error('Unhandled promise rejection:', reason?.stack ?? reason?.message ?? reason);
+      record(errorEntry('rejection', reason));
     });
+    // What stops the app: written before the process goes, read back through api.ts `crashes`.
+    process.on('uncaughtExceptionMonitor', (error: any) => record(errorEntry('uncaught', error)));
+    record({kind: 'start'});
 
     // The single init for the whole app lifecycle. Without stored consent this touches nothing.
     initAnalytics(this.homey, (...args) => this.log(...args), (...args) => this.error(...args));
@@ -104,6 +109,11 @@ class NibeApp extends Homey.App {
     widget?.registerSettingAutocompleteListener('device', async (query: string) => this.mainDevices()
       .map((d) => ({id: String(d.getData().id), name: d.getName()}))
       .filter((d) => !query || d.name.toLowerCase().includes(query.toLowerCase())));
+  }
+
+  /** The crash journal (lib/crash-journal.ts), for api.ts `crashes`. */
+  crashJournal() {
+    return readJournal();
   }
 
   /** For widgets/overview/api.js. Answers a problem with a line, like the others. */

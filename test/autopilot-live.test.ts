@@ -454,3 +454,14 @@ test('no outdoor temperature right after a start waits quietly, and is told if i
     await feed.cycle();
     assert.ok(state.warnings.includes('no_outdoor'), 'still none after the start-up minutes: told');
 });
+
+test('the wait for the first outdoor reading after a start counts as starting up, not as a pause', async () => {
+    const {OUTDOOR_GRACE_MS} = await import('../lib/autopilot/live');
+    const {feed, advance} = harness({sensor: undefined, forecast: undefined});
+    feed.start();
+    await feed.cycle();
+    assert.equal(feed.startingUp, true);
+    advance(OUTDOOR_GRACE_MS + 60_000);
+    await feed.cycle();
+    assert.equal(feed.startingUp, false, 'still none after the start-up minutes: a real pause');
+});

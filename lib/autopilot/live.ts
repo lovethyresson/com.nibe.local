@@ -732,6 +732,11 @@ export class HeatingFeed {
     }
 
     /** Not feeding for a reason that clears by itself: hand BT1 back, keep checking. */
+    /** Waiting for the first outdoor temperature after a start: not a pause to tell anyone about. */
+    get startingUp(): boolean {
+        return this.stopState === 'no_outdoor' && this.hooks.now() - (this.startedAt ?? -Infinity) <= OUTDOOR_GRACE_MS;
+    }
+
     private async idle(reason: StopReason) {
         const graceOver = this.hooks.now() - (this.startedAt ?? -Infinity) > OUTDOOR_GRACE_MS;
         if (this.stopState === reason) {

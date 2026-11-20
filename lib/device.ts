@@ -166,6 +166,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
      *  gives neither back). */
     private warningText?: string;
     private unavailableText?: string;
+    /** A "paused" line went to the timeline, so the "resumed" after it is told too. */
+    private pauseAnnounced = false;
     private heatingStatusShown?: HeatingStatus;
     /** Analytics, edge-triggered: the heating status and block last reported, and heating's day. */
     private heatingStateTold = new Edge<HeatingStatus>();
@@ -2275,14 +2277,19 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const before = this.heatingStatusShown;
         this.heatingStatusShown = status;
         if (before === undefined || before === status) return;
+        // The minute after a start, before the first outdoor reading, is not a pause: no Flow, no
+        // timeline line, and so no "resumed" after it either.
+        if (status === 'paused' && this.heatingFeed?.startingUp) { this.pauseAnnounced = false; return; }
         this.homey.flow.getDeviceTriggerCard((this.profile.flowPrefix ?? '') + 'autopilot_heating_status_changed')
             .trigger(this, {status: this.homey.__(`autopilot.heating.status_name.${status}`), reason}).catch(this.error);
         const started = startedTrigger(before, status);
         if (started) this.homey.flow.getDeviceTriggerCard((this.profile.flowPrefix ?? '') + `autopilot_heating_${started}_started`)
             .trigger(this, {reason}).catch(this.error);
         const line = status === 'paused' ? 'timeline.paused'
-            : before === 'paused' && status !== 'off' ? 'timeline.resumed'
+            : before === 'paused' && status !== 'off' ? (this.pauseAnnounced ? 'timeline.resumed' : undefined)
                 : before === 'learning' && status !== 'off' ? 'timeline.learned' : undefined;
+        if (status === 'paused') this.pauseAnnounced = true;
+        else if (before === 'paused') this.pauseAnnounced = false;
         if (line) this.homey.notifications.createNotification({excerpt: this.homey.__(`autopilot.heating.${line}`, {reason})})
             .catch(this.error);
     }
