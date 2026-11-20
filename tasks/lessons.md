@@ -574,3 +574,10 @@ the after-install check read `crashed` (true only while down), never `crashedCou
 review, not only new commits, and asks per repeated call: what does it cost per hour on a large
 home (100+ devices), does it cache, does it grow. Every after-install check reads `crashedCount`
 and memory; any rise is a failure, never "running".
+
+## 2026-11-20: a test double must have the real library's shape
+The Gateway's Proxy passed every test and broke every Homey API call in production: homey-api
+defines manager methods as read-only, non-configurable properties, and the fake API used plain
+objects. **Rule:** a double for a third-party object copies its property descriptors (or is built
+from the real class), and anything that wraps a library is tried once against the real library
+before an install. The after-install check fails on any device warning or a paused Autopilot.
