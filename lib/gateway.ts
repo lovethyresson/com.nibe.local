@@ -5,6 +5,9 @@
  *
  *  Pump Modbus is not here: PumpConnection owns the wire. */
 
+import {LogArgs, LogStore} from './gateway-insights';
+import {deleteFile, loadJson, saveJson} from './autopilot/store-file';
+
 export type Priority = 1 | 2 | 3;
 /** 1: an owner is waiting (setup, Repair, a Flow card). 2: steers the pump now. 3: background. */
 export const PRIORITY = {owner: 1, control: 2, background: 3} as const;
@@ -41,6 +44,8 @@ export class Gateway {
     private backoffs = new Map<string, Backoff>();
     private order = 0;
     private stats = new Map<string, Stat>();
+    /** The Insights log store (gateway-insights.ts), when the app has one. */
+    logs?: LogStore;
     private resets = 0;
 
     constructor(private readonly deps: GatewayDeps) {
@@ -90,7 +95,11 @@ export class Gateway {
                     get: (__, method) => {
                         const fn = real[method];
                         if (typeof method !== 'string' || typeof fn !== 'function') return fn;
-                        return (...args: any[]) => this.request(manager, method, priority, from, () => fn.apply(real, args));
+                        const send = (...args: any[]) => this.request(manager, method, priority, from, () => fn.apply(real, args));
+                        // Every Insights log read goes through the store: kept on disk, only the gap fetched.
+                        if (manager === 'insights' && method === 'getLogEntries' && this.logs)
+                            return (args: any) => (isLogArgs(args) ? this.logs!.entries(args, (a) => send(a)) : send(args));
+                        return send;
                     },
                 });
             },
@@ -179,11 +188,17 @@ export class Gateway {
         const wait = rows.reduce((a, [, s]) => a + s.waitMs, 0);
         const each = rows.map(([r, s]) => `${r} ${s.calls}${s.failures ? ` (${s.failures} failed)` : ''}`).join(', ');
         const mem = this.deps.memory ? `, memory ${Math.round(this.deps.memory() / 1e6)} MB` : '';
+        const logs = this.logs ? `, Insights logs ${this.logs.served} from store / ${this.logs.fetches} fetched, ${Math.round(this.logs.diskBytes() / 1000)} KB on disk` : '';
+        if (this.logs) { this.logs.served = 0; this.logs.fetches = 0; }
         this.stats.clear();
         const resets = this.resets; this.resets = 0;
         return `Gateway: ${calls} Homey requests in the last hour, ${Math.round(wait / 1000)} s queued`
-            + `${resets ? `, ${resets} client resets` : ''}${mem}${each ? `. ${each}` : ''}.`;
+            + `${resets ? `, ${resets} client resets` : ''}${mem}${logs}${each ? `. ${each}` : ''}.`;
     }
+}
+
+function isLogArgs(args: any): args is LogArgs {
+    return typeof args?.uri === 'string' && typeof args?.id === 'string' && typeof args?.resolution === 'string';
 }
 
 export function tooMany(error: any): boolean {
@@ -208,6 +223,8 @@ export function gatewayFor(homey: any): Gateway {
             log: (...args) => homey.app?.log?.(...args),
             memory: () => process.memoryUsage().rss,
         });
+        created.logs = new LogStore({now: () => Date.now(), load: loadJson, save: saveJson, remove: deleteFile,
+            log: (...args) => homey.app?.log?.(...args)});
         shared = created;
         homey.setInterval?.(() => homey.app?.log?.(created.report()), REPORT_EVERY_MS);
     }

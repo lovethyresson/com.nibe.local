@@ -98,3 +98,10 @@ export async function saveJson(name: string, value: unknown): Promise<void> {
     await fs.writeFile(`${path}.tmp`, JSON.stringify(value));
     await fs.rename(`${path}.tmp`, path);
 }
+
+/** Remove one file from /userdata; a file already gone is fine. */
+export async function deleteFile(name: string): Promise<void> {
+    await fs.unlink(`${DIR}/${name}`).catch((error: any) => {
+        if (error?.code !== 'ENOENT') throw error;
+    });
+}
