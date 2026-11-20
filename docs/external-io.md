@@ -74,7 +74,7 @@ Each resource is fetched once, kept with an age rule, and shared by everyone who
 | `location` | daily | — | 3 consumers |
 | `reading(deviceId, capability)` | at the fastest rate any subscriber asks, at least 30 s | latest value + time | per-consumer sensor reads |
 | `liveReport` | every 2 min, only while subscribed | latest | solar every minute |
-| `meterLog(device, capability)` | hourly, **incremental**: `last24Hours` merged into what is kept | 14 days | savings `last14Days` ×3 devices hourly, hot water learn ×3 resolutions |
+| `meterLog(device, capability)` | hourly, **only the gap** since the last stored point, with the smallest Insights window that covers it (`lastHour`, `last6Hours`, `last24Hours`, …) | hourly points in /userdata, as far back as a consumer needs (3 months for hot water) | savings `last14Days` ×3 devices hourly, hot water learn 18 logs every 6 h, solar 3 resolutions every 3 h |
 | `ownDeviceId(dataId)` | once | device store | done in d674152 |
 | `deviceList()` | never cached; setup and Repair only, through the queue | — | 7 call sites |
 
@@ -128,7 +128,6 @@ learner and solar each read the meter log in a different shape.
 
 - **Name.** `Gateway` (decided 2026-11-20).
 - **Order.** Proposed above: skeleton, then prices (most duplicated), then the rest.
-- **Meter logs on disk.** Keep the incremental logs in memory only (rebuilt with one 14-day read
-  per start), or in /userdata so a start reads only the last day.
-- **The pending install.** Today's fixes (d674152, 34e97f3) are committed, not installed. Install
-  them now, or wait for step 1 so the hourly line measures before and after.
+- **Meter logs on disk: decided 2026-11-20.** Stored in /userdata; a restart or a system update
+  fetches only the gap, normally under an hour of points.
+- **The pending install: decided.** Today's fixes and step 1 installed together on 2026-11-20.
