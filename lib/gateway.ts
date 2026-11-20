@@ -61,17 +61,20 @@ export class Gateway {
         return this.client;
     }
 
-    /** The client as features see it: `api.<manager>.<method>(...)` becomes a Gateway request. */
+    /** The client as features see it: `api.<manager>.<method>(...)` becomes a Gateway request.
+     *  The proxies wrap empty objects, never the client: homey-api defines its managers' methods
+     *  as read-only, non-configurable properties, and a proxy on such an object may only return
+     *  the property itself (a wrapped method there throws on every call: 2026-11-20). */
     private wrap(client: any): any {
-        return new Proxy(client, {
-            get: (target, manager) => {
-                const real = target[manager];
+        return new Proxy({}, {
+            get: (_, manager) => {
+                const real = client[manager];
                 if (typeof manager !== 'string' || !real || typeof real !== 'object') return real;
-                return new Proxy(real, {
-                    get: (m, method) => {
-                        const fn = m[method];
+                return new Proxy({}, {
+                    get: (__, method) => {
+                        const fn = real[method];
                         if (typeof method !== 'string' || typeof fn !== 'function') return fn;
-                        return (...args: any[]) => this.request(`${manager}.${method}`, () => fn.apply(m, args));
+                        return (...args: any[]) => this.request(`${manager}.${method}`, () => fn.apply(real, args));
                     },
                 });
             },

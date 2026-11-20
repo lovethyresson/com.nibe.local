@@ -93,3 +93,15 @@ test('what counts as too many and as a lost connection', () => {
     assert.ok(connectionLost(new Error('connect ECONNREFUSED')) && connectionLost({statusCode: 401}));
     assert.ok(!connectionLost(Object.assign(new Error('Not Found'), {statusCode: 404})));
 });
+
+test('homey-api\'s locked methods (read-only, non-configurable) are wrapped without a proxy error', async () => {
+    // homey-api defines manager methods like this; a proxy over such an object may not return a
+    // wrapper. The 2026-11-20 install threw on every call because of it.
+    const devices = {};
+    Object.defineProperty(devices, 'getDevice', {value: async ({id}: any) => ({id}), writable: false, configurable: false, enumerable: true});
+    const api = {};
+    Object.defineProperty(api, 'devices', {value: devices, writable: false, configurable: false, enumerable: true});
+    const h = harness(api);
+    assert.deepEqual(await h.gateway.call((a) => a.devices.getDevice({id: 'x'})), {id: 'x'});
+    assert.match(h.gateway.report(), /devices\.getDevice 1/);
+});
