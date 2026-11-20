@@ -550,15 +550,15 @@
         "away": "Brauchwasser, abwesend"
       },
       "use": "Sie verbrauchen heute etwa __litres__ L, bis zu __p80__ L an einem Tag mit viel Verbrauch.",
-      "away": "Abwesend. Nur die Sicherheitsreserve wird warm gehalten.",
+      "away": "Abwesend. Nur das Minimum wird warm gehalten.",
       "tank": "Der Speicher hat jetzt __litres__ L. Autopilot hält mindestens __reserve__ L.",
-      "tank_no_reserve": "Der Speicher hat jetzt __litres__ L. Keine Sicherheitsreserve eingestellt.",
+      "tank_no_reserve": "Der Speicher hat jetzt __litres__ L. Kein Minimum eingestellt.",
       "none": "Heute ist keine Ladung nötig.",
       "charge": "Laden __time__ auf __target__ °C · __reason__",
       "reason": {
         "cheap": "Günstigste Stunden",
         "surplus": "__share__ % aus Solarstrom",
-        "reserve": "Sicherheitsreserve",
+        "reserve": "Unter dem Minimum",
         "running": "Lädt bereits",
         "before_use": "Rechtzeitig vor dem Verbrauch",
         "room": "Speicher bis dahin voll",
@@ -580,7 +580,7 @@
         "room": "Speicher bis dahin voll",
         "loss": "Weniger Wärmeverlust im Speicher",
         "surplus": "Solarüberschuss",
-        "reserve": "Sicherheitsreserve",
+        "reserve": "Unter dem Minimum",
         "running": "Lädt bereits",
         "pump": "Von Ihrer Wärmepumpe gestartet",
         "legionella": "Legionellen"
@@ -588,7 +588,7 @@
       "detail": {
         "price": "Auf __target__ °C in etwa __duration__, zu __price__/kWh. Tagesdurchschnitt: __mean__.",
         "surplus": "Auf __target__ °C, etwa __duration__, __share__ % aus Solarüberschuss.",
-        "reserve": "Der Speicher hat nur noch __litres__ L, unter Ihrer Sicherheitsreserve von __reserve__ L. Heizt auf __target__ °C, etwa __duration__.",
+        "reserve": "Der Speicher hat nur noch __litres__ L, unter Ihrem Minimum von __reserve__ L. Heizt auf __target__ °C, etwa __duration__.",
         "pump": "Von Ihrer Wärmepumpe bei __top__ °C gestartet. Läuft bis __stop__ °C.",
         "pump_more": "Mehr Brauchwasser ist an, daher lädt Ihre Wärmepumpe auf __stop__ °C.",
         "immersion": "Die Elektroheizpatrone hat bei __at__ °C übernommen. Autopilot lädt jetzt auf höchstens __cap__ °C.",
@@ -659,7 +659,7 @@
         "room": "Speicher bis dahin voll",
         "loss": "Weniger Wärmeverlust im Speicher",
         "surplus": "Solarüberschuss",
-        "reserve": "Sicherheitsreserve",
+        "reserve": "Unter dem Minimum",
         "running": "Lädt bereits",
         "pump": "Von Ihrer Wärmepumpe gestartet",
         "legionella": "Legionellen"

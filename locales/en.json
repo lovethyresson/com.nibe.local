@@ -550,15 +550,15 @@
         "away": "Hot water, away"
       },
       "use": "You'll use about __litres__ L today, up to __p80__ L on a busy day.",
-      "away": "Away. Only the safety net is kept warm.",
+      "away": "Away. Only the minimum is kept warm.",
       "tank": "The tank has __litres__ L now. Autopilot keeps at least __reserve__ L.",
-      "tank_no_reserve": "The tank has __litres__ L now. No safety net is set.",
+      "tank_no_reserve": "The tank has __litres__ L now. No minimum is set.",
       "none": "No charge needed today.",
       "charge": "Charge __time__ to __target__ °C · __reason__",
       "reason": {
         "cheap": "Cheapest hours",
         "surplus": "__share__ % from solar",
-        "reserve": "Safety net",
+        "reserve": "Below minimum",
         "running": "Already charging",
         "before_use": "In time for use",
         "room": "Tank full until then",
@@ -580,7 +580,7 @@
         "room": "Tank full until then",
         "loss": "Less heat lost in the tank",
         "surplus": "Solar surplus",
-        "reserve": "Safety net",
+        "reserve": "Below minimum",
         "running": "Already charging",
         "pump": "Started by your heat pump",
         "legionella": "Legionella"
@@ -588,7 +588,7 @@
       "detail": {
         "price": "To __target__ °C in about __duration__, at __price__/kWh. Today's average: __mean__.",
         "surplus": "To __target__ °C, about __duration__, __share__ % from solar surplus.",
-        "reserve": "The tank is down to __litres__ L, below your __reserve__ L safety net. Heating to __target__ °C, about __duration__.",
+        "reserve": "The tank is down to __litres__ L, below your __reserve__ L minimum. Heating to __target__ °C, about __duration__.",
         "pump": "Started by your heat pump at __top__ °C. Runs to __stop__ °C.",
         "pump_more": "More hot water is on, so your heat pump runs to __stop__ °C.",
         "immersion": "The immersion heater took over at __at__ °C. Autopilot now charges to at most __cap__ °C.",
@@ -659,7 +659,7 @@
         "room": "Tank full until then",
         "loss": "Less heat lost in the tank",
         "surplus": "Solar surplus",
-        "reserve": "Safety net",
+        "reserve": "Below minimum",
         "running": "Already charging",
         "pump": "Started by your heat pump",
         "legionella": "Legionella"

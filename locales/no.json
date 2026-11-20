@@ -550,15 +550,15 @@
         "away": "Varmtvann, bortreist"
       },
       "use": "Du bruker omtrent __litres__ L i dag, opptil __p80__ L en travel dag.",
-      "away": "Bortreist. Bare sikkerhetsnivået holdes varmt.",
+      "away": "Bortreist. Bare minimumsnivået holdes varmt.",
       "tank": "Berederen har __litres__ L nå. Autopilot holder minst __reserve__ L.",
-      "tank_no_reserve": "Berederen har __litres__ L nå. Ingen sikkerhetsnivå er satt.",
+      "tank_no_reserve": "Berederen har __litres__ L nå. Ingen minimumsnivå er satt.",
       "none": "Ingen lading trengs i dag.",
       "charge": "Lading __time__ til __target__ °C · __reason__",
       "reason": {
         "cheap": "Billigste timer",
         "surplus": "__share__ % fra solstrøm",
-        "reserve": "Sikkerhetsnivå",
+        "reserve": "Under minimumsnivået",
         "running": "Varmer allerede",
         "before_use": "I tide til forbruket",
         "room": "Berederen full til da",
@@ -580,7 +580,7 @@
         "room": "Berederen full til da",
         "loss": "Mindre varmetap i berederen",
         "surplus": "Soloverskudd",
-        "reserve": "Sikkerhetsnivå",
+        "reserve": "Under minimumsnivået",
         "running": "Varmer allerede",
         "pump": "Startet av varmepumpen din",
         "legionella": "Legionella"
@@ -588,7 +588,7 @@
       "detail": {
         "price": "Til __target__ °C på omtrent __duration__, for __price__/kWh. Snitt i dag: __mean__.",
         "surplus": "Til __target__ °C, omtrent __duration__, __share__ % fra soloverskudd.",
-        "reserve": "Berederen har bare __litres__ L, under sikkerhetsnivået ditt på __reserve__ L. Varmer til __target__ °C, omtrent __duration__.",
+        "reserve": "Berederen har bare __litres__ L, under minimumsnivået ditt på __reserve__ L. Varmer til __target__ °C, omtrent __duration__.",
         "pump": "Startet av varmepumpen din ved __top__ °C. Går til __stop__ °C.",
         "pump_more": "Mer varmtvann er på, så varmepumpen din varmer til __stop__ °C.",
         "immersion": "Elkolben tok over ved __at__ °C. Autopilot varmer nå til høyst __cap__ °C.",
@@ -659,7 +659,7 @@
         "room": "Berederen full til da",
         "loss": "Mindre varmetap i berederen",
         "surplus": "Soloverskudd",
-        "reserve": "Sikkerhetsnivå",
+        "reserve": "Under minimumsnivået",
         "running": "Varmer allerede",
         "pump": "Startet av varmepumpen din",
         "legionella": "Legionella"

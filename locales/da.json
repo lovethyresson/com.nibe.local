@@ -550,15 +550,15 @@
         "away": "Varmt vand, bortrejst"
       },
       "use": "Du bruger omkring __litres__ L i dag, op til __p80__ L på en travl dag.",
-      "away": "Bortrejst. Kun sikkerhedsniveauet holdes varmt.",
+      "away": "Bortrejst. Kun minimumsniveauet holdes varmt.",
       "tank": "Beholderen har __litres__ L nu. Autopilot holder mindst __reserve__ L.",
-      "tank_no_reserve": "Beholderen har __litres__ L nu. Intet sikkerhedsniveau er sat.",
+      "tank_no_reserve": "Beholderen har __litres__ L nu. Intet minimumsniveau er sat.",
       "none": "Ingen opvarmning nødvendig i dag.",
       "charge": "Opvarmning __time__ til __target__ °C · __reason__",
       "reason": {
         "cheap": "Billigste timer",
         "surplus": "__share__ % fra soloverskud",
-        "reserve": "Sikkerhedsniveau",
+        "reserve": "Under minimumsniveauet",
         "running": "Opvarmer allerede",
         "before_use": "I tide til forbruget",
         "room": "Fuld beholder indtil da",
@@ -580,7 +580,7 @@
         "room": "Fuld beholder indtil da",
         "loss": "Mindre varmetab i beholderen",
         "surplus": "Soloverskud",
-        "reserve": "Sikkerhedsniveau",
+        "reserve": "Under minimumsniveauet",
         "running": "Opvarmer allerede",
         "pump": "Startet af din varmepumpe",
         "legionella": "Legionella"
@@ -588,7 +588,7 @@
       "detail": {
         "price": "Til __target__ °C på cirka __duration__ for __price__/kWh. Dagens gennemsnit: __mean__.",
         "surplus": "Til __target__ °C, cirka __duration__, __share__ % fra soloverskud.",
-        "reserve": "Beholderen har kun __litres__ L, under dit sikkerhedsniveau på __reserve__ L. Opvarmer til __target__ °C, cirka __duration__.",
+        "reserve": "Beholderen har kun __litres__ L, under dit minimumsniveau på __reserve__ L. Opvarmer til __target__ °C, cirka __duration__.",
         "pump": "Startet af din varmepumpe ved __top__ °C. Kører til __stop__ °C.",
         "pump_more": "Mere varmtvand er slået til, så din varmepumpe opvarmer til __stop__ °C.",
         "immersion": "Elpatronen tog over ved __at__ °C. Autopilot opvarmer nu til højst __cap__ °C.",
@@ -659,7 +659,7 @@
         "room": "Fuld beholder indtil da",
         "loss": "Mindre varmetab i beholderen",
         "surplus": "Soloverskud",
-        "reserve": "Sikkerhedsniveau",
+        "reserve": "Under minimumsniveauet",
         "running": "Opvarmer allerede",
         "pump": "Startet af din varmepumpe",
         "legionella": "Legionella"

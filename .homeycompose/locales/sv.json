@@ -168,15 +168,15 @@
         "away": "Varmvatten, bortrest"
       },
       "use": "Du använder cirka __litres__ L i dag, upp till __p80__ L en dag med hög förbrukning.",
-      "away": "Bortrest. Bara säkerhetsnivån hålls varm.",
+      "away": "Bortrest. Bara miniminivån hålls varm.",
       "tank": "Tanken har __litres__ L nu. Autopilot håller minst __reserve__ L.",
-      "tank_no_reserve": "Tanken har __litres__ L nu. Ingen säkerhetsnivå är inställd.",
+      "tank_no_reserve": "Tanken har __litres__ L nu. Ingen miniminivå är inställd.",
       "none": "Ingen laddning behövs i dag.",
       "charge": "Ladda __time__ till __target__ °C · __reason__",
       "reason": {
         "cheap": "Billigaste timmarna",
         "surplus": "__share__ % från solel",
-        "reserve": "Säkerhetsnivå",
+        "reserve": "Under miniminivån",
         "running": "Laddar redan",
         "before_use": "I tid till förbrukningen",
         "room": "Tanken full till dess",
@@ -198,7 +198,7 @@
         "room": "Tanken full till dess",
         "loss": "Mindre värmeförlust i tanken",
         "surplus": "Solöverskott",
-        "reserve": "Säkerhetsnivå",
+        "reserve": "Under miniminivån",
         "running": "Laddar redan",
         "pump": "Startad av din värmepump",
         "legionella": "Legionella"
@@ -206,7 +206,7 @@
       "detail": {
         "price": "Till __target__ °C på cirka __duration__, för __price__/kWh. Dagens snitt: __mean__.",
         "surplus": "Till __target__ °C, cirka __duration__, __share__ % från solöverskott.",
-        "reserve": "Tanken har bara __litres__ L, under din säkerhetsnivå på __reserve__ L. Värmer till __target__ °C, cirka __duration__.",
+        "reserve": "Tanken har bara __litres__ L, under din miniminivå på __reserve__ L. Värmer till __target__ °C, cirka __duration__.",
         "pump": "Startad av din värmepump vid __top__ °C. Laddar till __stop__ °C.",
         "pump_more": "Mer varmvatten är på, så din värmepump laddar till __stop__ °C.",
         "immersion": "Elpatronen tog över vid __at__ °C. Autopilot laddar nu till högst __cap__ °C.",
@@ -277,7 +277,7 @@
         "room": "Tanken full till dess",
         "loss": "Mindre värmeförlust i tanken",
         "surplus": "Solöverskott",
-        "reserve": "Säkerhetsnivå",
+        "reserve": "Under miniminivån",
         "running": "Laddar redan",
         "pump": "Startad av din värmepump",
         "legionella": "Legionella"

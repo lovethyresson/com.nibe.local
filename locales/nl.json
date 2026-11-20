@@ -550,15 +550,15 @@
         "away": "Warm water, afwezig"
       },
       "use": "Je gebruikt vandaag ongeveer __litres__ L, tot __p80__ L op een drukke dag.",
-      "away": "Afwezig. Alleen de veiligheidsmarge blijft warm.",
+      "away": "Afwezig. Alleen het minimum blijft warm.",
       "tank": "De boiler heeft nu __litres__ L. Autopilot houdt minstens __reserve__ L.",
-      "tank_no_reserve": "De boiler heeft nu __litres__ L. Er is geen veiligheidsmarge ingesteld.",
+      "tank_no_reserve": "De boiler heeft nu __litres__ L. Er is geen minimum ingesteld.",
       "none": "Vandaag geen opwarming nodig.",
       "charge": "Opwarmen __time__ tot __target__ °C · __reason__",
       "reason": {
         "cheap": "Goedkoopste uren",
         "surplus": "__share__ % uit zonnestroom",
-        "reserve": "Veiligheidsmarge",
+        "reserve": "Onder het minimum",
         "running": "Warmt al op",
         "before_use": "Op tijd voor gebruik",
         "room": "Boiler vol tot dan",
@@ -580,7 +580,7 @@
         "room": "Boiler vol tot dan",
         "loss": "Minder warmteverlies in de boiler",
         "surplus": "Zonne-overschot",
-        "reserve": "Veiligheidsmarge",
+        "reserve": "Onder het minimum",
         "running": "Warmt al op",
         "pump": "Gestart door je warmtepomp",
         "legionella": "Legionella"
@@ -588,7 +588,7 @@
       "detail": {
         "price": "Tot __target__ °C in ongeveer __duration__, voor __price__/kWh. Gemiddelde vandaag: __mean__.",
         "surplus": "Tot __target__ °C, ongeveer __duration__, __share__ % uit zonne-overschot.",
-        "reserve": "De boiler heeft nog maar __litres__ L, onder je veiligheidsmarge van __reserve__ L. Opwarmen tot __target__ °C, ongeveer __duration__.",
+        "reserve": "De boiler heeft nog maar __litres__ L, onder je minimum van __reserve__ L. Opwarmen tot __target__ °C, ongeveer __duration__.",
         "pump": "Gestart door je warmtepomp bij __top__ °C. Warmt op tot __stop__ °C.",
         "pump_more": "Meer warmwater staat aan, dus je warmtepomp warmt op tot __stop__ °C.",
         "immersion": "Het elektrische element nam het over bij __at__ °C. Autopilot warmt nu op tot hooguit __cap__ °C.",
@@ -659,7 +659,7 @@
         "room": "Boiler vol tot dan",
         "loss": "Minder warmteverlies in de boiler",
         "surplus": "Zonne-overschot",
-        "reserve": "Veiligheidsmarge",
+        "reserve": "Onder het minimum",
         "running": "Warmt al op",
         "pump": "Gestart door je warmtepomp",
         "legionella": "Legionella"
