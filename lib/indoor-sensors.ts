@@ -1,4 +1,6 @@
 /** Homey sensor selection and read-only discovery. No pump writes happen here. */
+import {Priority, gatewayFor} from './gateway';
+
 export interface SensorRef { deviceId: string; capabilityId: string }
 export interface IndoorConfig {
     sensors: SensorRef[];
@@ -83,20 +85,10 @@ export function sensorInventory(devices: Record<string, any>, zones: Record<stri
     });
 }
 
-const clients = new WeakMap<object, Promise<any>>();
-export async function withApi<T>(homey: any, use: (api: any) => Promise<T>): Promise<T> {
-    let client = clients.get(homey);
-    if (!client) {
-        const {HomeyAPI} = require('homey-api');
-        client = HomeyAPI.createAppAPI({homey}) as Promise<any>;
-        clients.set(homey, client);
-    }
-    try {
-        return await use(await client);
-    } catch (error) {
-        clients.delete(homey);
-        throw error;
-    }
+/** The Homey API, through the app's Gateway (lib/gateway.ts): one client, every call counted and
+ *  paced. Kept under this name while the features move to the Gateway's resources. */
+export async function withApi<T>(homey: any, use: (api: any) => Promise<T>, priority?: Priority): Promise<T> {
+    return gatewayFor(homey).call(use, priority);
 }
 
 export async function indoorInventory(homey: any): Promise<SensorReading[]> {

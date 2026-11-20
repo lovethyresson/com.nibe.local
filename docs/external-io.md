@@ -1,6 +1,6 @@
 # External I/O: one layer for everything outside the pump
 
-Status: **proposal, for review** (2026-11-20). Nothing here is built.
+Status: **approved 2026-11-20**; step 1 in progress.
 
 ## Why
 
@@ -46,17 +46,17 @@ A first install adds the backfill: about 36 Insights requests and 1–2 more ful
 **One client that resets on any error.** `withApi` drops the shared HomeyAPI client on every
 error, including a sensor read that fails once a minute, so the next call builds a new one.
 
-## Proposal: `Outside`, one owner of external I/O
+## Proposal: `Gateway`, one owner of external I/O
 
 An app-level service, created in `App.onInit`, stopped in `onUninit`. Features never call
-homey-api or `fetch` themselves; they ask `Outside` for a resource and get it from its cache,
+homey-api or `fetch` themselves; they ask `Gateway` for a resource and get it from its cache,
 or subscribe to it.
 
 ```
 features (collector, hot water, solar, savings, sensors, setup, announcements)
         │  get / subscribe
         ▼
-   Outside ── resources (cache + age rule + subscribers)
+   Gateway ── resources (cache + age rule + subscribers)
         │
         ├── Homey queue ── one HomeyAPI client
         └── web queue   ── Open-Meteo
@@ -102,7 +102,7 @@ the app against a fake Homey API and fails if any resource exceeds its call budg
 
 Each step is installable on its own, has its own tests, and changes no behaviour an owner sees.
 
-1. **Skeleton.** `Outside` with the queue, client and hourly line; `withApi` becomes a thin call
+1. **Skeleton.** `Gateway` with the queue, client and hourly line; `withApi` becomes a thin call
    into it. Nothing else changes. Gives the measurements before anything moves.
 2. **Prices.** One `prices` resource; collector, hot water and savings read it.
 3. **Weather and location.** Collector's forecast becomes the resource; solar reads GHI from it
@@ -126,7 +126,7 @@ learner and solar each read the meter log in a different shape.
 
 ## To decide
 
-- **Name.** `Outside` is a placeholder.
+- **Name.** `Gateway` (decided 2026-11-20).
 - **Order.** Proposed above: skeleton, then prices (most duplicated), then the rest.
 - **Meter logs on disk.** Keep the incremental logs in memory only (rebuilt with one 14-day read
   per start), or in /userdata so a start reads only the last day.
