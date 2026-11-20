@@ -1,5 +1,6 @@
 import type Homey from 'homey';
 import type {Role} from './roles';
+import {withApi} from './indoor-sensors';
 
 export interface Announcement {
     // Stable across copy edits and patch releases; replace when announcing a new feature release.
@@ -74,9 +75,8 @@ export function announcementDevices(devices: Record<string, any>, appId: string)
 }
 
 async function pairedDevices(homey: Homey.App['homey']): Promise<Record<string, any>> {
-    const {HomeyAPI} = require('homey-api');
-    const api = await HomeyAPI.createAppAPI({homey});
-    return api.devices.getDevices({$cache: false, $timeout: 10000});
+    // The app's one shared Homey API client, not a new one per call.
+    return withApi(homey, (api) => api.devices.getDevices({$cache: false, $timeout: 10000}));
 }
 
 export async function announceRelease(

@@ -1577,6 +1577,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 tank: litres === null ? undefined : {litres, inletC},
             };
         }, (...args) => this.log(...args), {
+            homeyId: (api) => this.homeyDeviceId(api),
             mode: live,
             reserveLitres: () => this.reserveLitres(),
             solar: () => this.solarAllowed(),

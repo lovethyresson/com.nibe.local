@@ -105,7 +105,13 @@ export class AutopilotCollector {
     private weather = new Map<number, WeatherSlot>();
     private weatherAt = 0;
     private pricesAt = 0;
-    private timers: any[] = [];
+    /** The timers still pending. Each removes itself when it fires, so this holds only the live ones
+     *  (it used to keep every timer ever started: thousands a day). */
+    private timers = new Set<any>();
+    private later(fn: () => void, ms: number) {
+        const timer = this.homey.setTimeout(() => { this.timers.delete(timer); fn(); }, ms);
+        this.timers.add(timer);
+    }
     private stopped = false;
     private dailyFits: DailyFit[] = [];
     private fit?: HouseFit;
@@ -212,7 +218,7 @@ export class AutopilotCollector {
     async stop(pollSeconds: number) {
         this.stopped = true;
         this.timers.forEach((timer) => this.homey.clearTimeout(timer));
-        this.timers = [];
+        this.timers.clear();
         this.aggregator.flush(pollSeconds);
         await this.save();
     }
@@ -403,9 +409,9 @@ export class AutopilotCollector {
             if (this.stopped) return;
             let next = 15 * 60 * 1000;
             try { next = await job(); } catch (error: any) { this.log('Autopilot history:', error?.message ?? error); }
-            if (!this.stopped) this.timers.push(this.homey.setTimeout(run, next));
+            if (!this.stopped) this.later(run, next);
         };
-        this.timers.push(this.homey.setTimeout(run, firstMs));
+        this.later(run, firstMs);
     }
 
     /** One minute's reading of the owner's outdoor sensor, if one is picked. Logged only when

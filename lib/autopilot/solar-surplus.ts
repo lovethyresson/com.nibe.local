@@ -136,13 +136,21 @@ export function heldLive(liveKw: number, ghi: Map<number, number>, nowMs: number
 
 /** What the home has for surplus: its grid meters and solar devices, the meter's export history
  *  as far back as Insights keeps it, and the sun over the same time and two days ahead. */
-async function survey(homey: any, preferred?: string) {
+async function survey(homey: any, preferred?: string, known?: {id: string; exported: string}) {
     return withApi(homey, async (api) => {
-        const [devices, report] = await Promise.all([api.devices.getDevices({$cache: false, $timeout: 10_000}),
-            api.energy.getLiveReport({})]);
-        const meters = gridMeters(devices, report);
-        const solar = solarDevices(devices);
-        const meter = gridMeter(devices, report, preferred);
+        // The meter found last time is read directly: listing every device in the home to find it
+        // again every 3 hours cost a full device list each time. Setup (`known` unset) still scans.
+        let meters: ReturnType<typeof gridMeters> = [];
+        let solar: ReturnType<typeof solarDevices> = [];
+        let meter = known && (!preferred || preferred === known.id)
+            && await api.devices.getDevice({id: known.id, $cache: false, $timeout: 10_000}).then(() => known).catch(() => undefined);
+        if (!meter) {
+            const [devices, report] = await Promise.all([api.devices.getDevices({$cache: false, $timeout: 10_000}),
+                api.energy.getLiveReport({})]);
+            meters = gridMeters(devices, report);
+            solar = solarDevices(devices);
+            meter = gridMeter(devices, report, preferred);
+        }
         if (!meter) return {meters, solar};
         const uri = `homey:device:${meter.id}`;
         const logs: ExportBucket[][] = [];
@@ -183,7 +191,15 @@ export async function scanSolar(homey: any) {
 export class SolarSurplus {
     private static instance?: SolarSurplus;
     private users = new Set<object>();
-    private timers: any[] = [];
+    /** The timers still pending. Each removes itself when it fires, so this holds only the live ones
+     *  (it used to keep every timer ever started: thousands a day). */
+    /** The grid meter the last survey used, so the next one reads it without a full device list. */
+    private meter?: {id: string; exported: string};
+    private timers = new Set<any>();
+    private later(fn: () => void, ms: number) {
+        const timer = this.homey.setTimeout(() => { this.timers.delete(timer); fn(); }, ms);
+        this.timers.add(timer);
+    }
     private ready = false;
     private fit?: SurplusFit;
     private ghi = new Map<number, number>();
@@ -215,7 +231,7 @@ export class SolarSurplus {
         this.users.delete(owner);
         if (this.users.size) return;
         this.timers.forEach((timer) => this.homey.clearTimeout(timer));
-        this.timers = [];
+        this.timers.clear();
         if (SolarSurplus.instance === this) SolarSurplus.instance = undefined;
     }
 
@@ -274,9 +290,9 @@ export class SolarSurplus {
             if (!this.users.size) return;
             let next = LEARN_EVERY_MS;
             try { next = await job(); } catch (error: any) { this.log('Solar surplus:', error?.message ?? error); }
-            if (this.users.size) this.timers.push(this.homey.setTimeout(run, next));
+            if (this.users.size) this.later(run, next);
         };
-        this.timers.push(this.homey.setTimeout(run, firstMs));
+        this.later(run, firstMs);
     }
 
     /** What surplus needs from the home (a grid meter Homey Energy counts and the owner's yes, or
@@ -284,7 +300,8 @@ export class SolarSurplus {
     private async learn(): Promise<number> {
         const answer = this.answer();
         const off = !solarOn(answer);
-        const found = off ? undefined : await survey(this.homey, answer?.meter);
+        const found = off ? undefined : await survey(this.homey, answer?.meter, this.meter);
+        this.meter = found?.meter || undefined;
         if (!found?.meter || !found.location) {
             const state = off ? 'the owner turned it off' : !found?.meter ? 'no grid meter' : 'no location';
             if (state !== this.state) this.log(`Solar surplus: none (${state}).`);

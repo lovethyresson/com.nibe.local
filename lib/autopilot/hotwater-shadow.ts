@@ -688,6 +688,8 @@ export type HotwaterMode = 'shadow' | 'live';
 /** What the device gives the running Autopilot. Read on every use, so a settings change takes
  *  effect at the next slot without a restart. */
 export interface HotwaterHooks {
+    /** This device's Homey id for Insights, looked up once and kept (device.ts homeyDeviceId). */
+    homeyId?(api: any): Promise<string | undefined>;
     mode(): HotwaterMode;
     reserveLitres(): number;
     solar(): boolean;
@@ -779,7 +781,13 @@ export interface TankView extends HotwaterOutlook {
 export class HotwaterAutopilot {
     private prices = new Map<number, PriceSlot>();
     private model?: HotwaterModel;
-    private timers: any[] = [];
+    /** The timers still pending. Each removes itself when it fires, so this holds only the live ones
+     *  (it used to keep every timer ever started: thousands a day). */
+    private timers = new Set<any>();
+    private later(fn: () => void, ms: number) {
+        const timer = this.homey.setTimeout(() => { this.timers.delete(timer); fn(); }, ms);
+        this.timers.add(timer);
+    }
     private stopped = false;
     private lines = 0;
     private skipped = new Map<string, number>();
@@ -866,7 +874,17 @@ export class HotwaterAutopilot {
             }
         }).catch((error) => this.log('Autopilot hot water: saved model not read:', error?.message ?? error));
         // A learn that found too little (Insights refusing requests, say) tries again soon.
-        this.loop(async () => (await this.learn() ? LEARN_EVERY_MS : LEARN_RETRY_MS), 60_000);
+        // Each failure in a row waits longer (15 min, 1 h, then 6 h), so a Homey refusing Insights
+        // is not asked 18 logs every 15 minutes.
+        let failures = 0;
+        this.loop(async () => {
+            const learned = await this.learn().catch((error: any) => {
+                this.log('Autopilot hot water: learning failed:', error?.message ?? error); return false;
+            });
+            if (learned) { failures = 0; return LEARN_EVERY_MS; }
+            failures++;
+            return failures === 1 ? LEARN_RETRY_MS : failures === 2 ? 60 * 60_000 : LEARN_EVERY_MS;
+        }, 60_000);
         this.loop(async () => { this.report(); return HOUR; }, 10 * 60_000);
         this.scheduleStep();
     }
@@ -874,7 +892,7 @@ export class HotwaterAutopilot {
     stop() {
         this.stopped = true;
         this.timers.forEach((timer) => this.homey.clearTimeout(timer));
-        this.timers = [];
+        this.timers.clear();
     }
 
     async remove() {
@@ -1051,9 +1069,9 @@ export class HotwaterAutopilot {
             if (this.stopped) return;
             let next = 15 * 60_000;
             try { next = await job(); } catch (error: any) { this.log('Autopilot hot water:', error?.message ?? error); }
-            if (!this.stopped) this.timers.push(this.homey.setTimeout(run, next));
+            if (!this.stopped) this.later(run, next);
         };
-        this.timers.push(this.homey.setTimeout(run, firstMs));
+        this.later(run, firstMs);
     }
 
     /** Half a minute into each slot, so the poll has read the tank since the boundary. */
@@ -1061,7 +1079,7 @@ export class HotwaterAutopilot {
         if (this.stopped) return;
         const now = Date.now();
         const wait = (slotOf(now) + 1) * SLOT_MS + 30_000 - now;
-        this.timers.push(this.homey.setTimeout(() => { this.step(); this.scheduleStep(); }, wait));
+        this.later(() => { this.step(); this.scheduleStep(); }, wait);
     }
 
     private clock(): LocalClock {
@@ -1076,8 +1094,8 @@ export class HotwaterAutopilot {
     private async learn(): Promise<boolean> {
         const started = Date.now();
         const logs = await withApi(this.homey, async (api) => {
-            this.deviceId ??= ownDeviceId(await api.devices.getDevices({$cache: false, $timeout: 10_000}),
-                this.homey.manifest?.id ?? 'com.nibe.local', this.dataId);
+            this.deviceId ??= this.hooks.homeyId ? await this.hooks.homeyId(api)
+                : ownDeviceId(await api.devices.getDevices({$cache: false, $timeout: 10_000}), this.homey.manifest?.id ?? 'com.nibe.local', this.dataId);
             if (!this.deviceId) throw new Error('could not find this device through the Homey API');
             return fetchTankInsights(api, this.deviceId, this.caps,
                 (ms) => new Promise((resolve) => this.homey.setTimeout(resolve, ms)));
