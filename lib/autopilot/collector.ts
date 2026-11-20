@@ -3,12 +3,12 @@ import {HouseParams} from './model';
  *  from Homey Energy and weather from Open-Meteo; refits the house model hourly; and runs the
  *  controller in shadow every slot. Reads only; nothing here writes to the pump.
  *  Design: docs/autopilot-plan.md §5.2–5.4, §6, §7.5. */
-import https from 'https';
-import {SensorRef, selectedReadings, withApi} from '../indoor-sensors';
+import {SensorRef, selectedReadings} from '../indoor-sensors';
 import {Aggregator, FLAG, Field, History, Sample, SlotContext, encodeRecord} from './history';
 import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, slotOf} from './prices';
 import {pricesFor} from '../gateway-prices';
-import {Place, WEATHER_STALE_MS, WeatherSlot, openMeteoUrl, placeSearchUrl, placesFrom, weatherLocation, weatherSlots} from './weather';
+import {weatherFor} from '../gateway-weather';
+import {Place, WEATHER_STALE_MS, WeatherSlot, placeSearchUrl, placesFrom, weatherSlots} from './weather';
 import {
     appendJournal, appendLine, deleteHistory, loadHistory, loadJson, modelFileName, saveHistory, saveJson, shadowLogName,
     shadowStateName, trimLines,
@@ -62,21 +62,8 @@ export interface Controls {
     thresholds: PumpThresholds;
 }
 
-export function getJson(url: string, timeoutMs = 15_000): Promise<any> {
-    return new Promise((resolve, reject) => {
-        const request = https.get(url, {headers: {'User-Agent': 'com.nibe.local (Homey app)'}}, (response) => {
-            let body = '';
-            response.setEncoding('utf8');
-            response.on('data', (chunk) => { body += chunk; });
-            response.on('end', () => {
-                if ((response.statusCode ?? 0) >= 400) return reject(new Error(`HTTP ${response.statusCode}`));
-                try { resolve(JSON.parse(body)); } catch (error) { reject(error); }
-            });
-        });
-        request.setTimeout(timeoutMs, () => request.destroy(new Error('timed out')));
-        request.on('error', reject);
-    });
-}
+import {getJson} from '../web';
+export {getJson};
 
 /** A saved fit is used at start only while its state is recent: the plan starts from that air
  *  and mass, and the refit two minutes later replaces it anyway. */
@@ -460,19 +447,16 @@ export class AutopilotCollector {
     /** Open-Meteo's hourly weather for the last `days` days, for a backfill. Empty without a
      *  location. */
     private async pastWeather(days: number): Promise<Map<number, WeatherSlot>> {
-        const homeyLocation: any = await withApi(this.homey, (api) => api.geolocation.getOptionLocation()).catch(() => undefined);
-        const location = weatherLocation(homeyLocation?.value, this.homey.settings.get(LOCATION_SETTING) as Place | null);
-        if (!location) return new Map();
-        const slots = weatherSlots(await getJson(openMeteoUrl(location.latitude, location.longitude, days, 1)));
+        const slots = weatherSlots(await weatherFor(this.homey, LOCATION_SETTING).past(days).catch(() => undefined));
         return new Map(slots.map((s) => [s.slot, s]));
     }
 
     private async fetchWeather(): Promise<number> {
         const jitter = (Math.random() - 0.5) * 10 * 60 * 1000;
-        const homeyLocation: any = await withApi(this.homey, (api) => api.geolocation.getOptionLocation())
-            .catch(() => undefined);
+        // The Gateway's weather book: one location and one forecast, shared with solar surplus.
+        const book = weatherFor(this.homey, LOCATION_SETTING);
         const chosen = this.homey.settings.get(LOCATION_SETTING) as Place | null;
-        const location = weatherLocation(homeyLocation?.value, chosen);
+        const location = await book.location();
         const state = location?.source === 'chosen' ? `the chosen place ${chosen!.name}` : location ? 'the Homey\'s location' : 'none';
         if (state !== this.locationState) {
             this.log(`Autopilot history: weather for ${location ? state
@@ -480,7 +464,7 @@ export class AutopilotCollector {
             this.locationState = state;
         }
         if (!location) return HOUR;
-        const slots = weatherSlots(await getJson(openMeteoUrl(location.latitude, location.longitude)));
+        const slots = weatherSlots(await book.forecast());
         if (slots.length) {
             this.weather = new Map(slots.map((s) => [s.slot, s]));
             this.weatherAt = Date.now();

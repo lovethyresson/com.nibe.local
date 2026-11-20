@@ -11,7 +11,7 @@ export const PRIORITY = {owner: 1, control: 2, background: 3} as const;
 
 /** Families Homey refuses back to back, and the gap kept between two of their requests (from the
  *  end of one to the start of the next). One request at a time per family, by priority. */
-export const LANE_GAP_MS: Record<string, number> = {insights: 2_000, energy: 2_000};
+export const LANE_GAP_MS: Record<string, number> = {insights: 2_000, energy: 2_000, web: 1_000};
 export const INSIGHTS_GAP_MS = LANE_GAP_MS.insights;
 /** After a start, background work waits this long, so a start is not one burst of requests. */
 export const QUIET_START_MS = 5 * 60_000;
@@ -58,6 +58,16 @@ export class Gateway {
         return use(this.wrap(await client, client, priority));
     }
 
+    /** A web request (Open-Meteo), counted and paced like the Homey families: one lane, by
+     *  priority, a backoff when the service says too many. */
+    async web<T>(name: string, run: () => Promise<T>, priority: Priority = PRIORITY.control): Promise<T> {
+        if (priority === PRIORITY.background) {
+            const wait = this.startedAt + QUIET_START_MS - this.deps.now();
+            if (wait > 0) await this.deps.sleep(wait);
+        }
+        return this.request('web', name, priority, null, run);
+    }
+
     private api(): Promise<any> {
         if (!this.client) {
             const created = this.deps.createClient();
@@ -87,7 +97,7 @@ export class Gateway {
         });
     }
 
-    private async request<T>(family: string, method: string, priority: Priority, from: Promise<any>, run: () => Promise<T>): Promise<T> {
+    private async request<T>(family: string, method: string, priority: Priority, from: Promise<any> | null, run: () => Promise<T>): Promise<T> {
         const queued = this.deps.now();
         const lane = family in LANE_GAP_MS ? this.lane(family) : undefined;
         if (lane) await this.turn(lane, priority);
@@ -108,7 +118,7 @@ export class Gateway {
             } catch (error: any) {
                 stat.failures++;
                 if (tooMany(error)) this.backOff(family, method);
-                else if (connectionLost(error) && this.client === from) {
+                else if (from && connectionLost(error) && this.client === from) {
                     // Only a lost connection drops the client, and only the one this request used.
                     this.client = undefined;
                     this.resets++;

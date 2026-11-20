@@ -5,11 +5,11 @@
  *  Design: docs/autopilot-plan.md §1 of the solar plan (2026-11-12), §19.3. */
 import {withApi} from '../indoor-sensors';
 import {SLOT_MS} from './prices';
-import {ExportBucket, LIVE_WINDOW, SurplusFit, exportBuckets, fitSurplus, gridMeter, gridMeters, hourlyGhi, irradianceUrl,
+import {ExportBucket, LIVE_WINDOW, SurplusFit, exportBuckets, fitSurplus, gridMeter, gridMeters,
     liveSurplusKw, liveSurplusW, mergeBuckets, peakExportKw, solarDevices, SUNNY_GHI, sunNow, surplusForecast} from './hotwater-surplus';
 import {RESOLUTIONS} from './hotwater-insights';
-import {getJson, LOCATION_SETTING} from './collector';
-import {weatherLocation} from './weather';
+import {LOCATION_SETTING} from './collector';
+import {weatherFor} from '../gateway-weather';
 
 const HOUR = 3_600_000;
 /** The surplus model is relearned this often; the forecast comes with it. */
@@ -159,9 +159,7 @@ async function survey(homey: any, preferred?: string, known?: {id: string; expor
                 .catch(() => undefined);
             logs.push(exportBuckets(log));
         }
-        const homeyLocation: any = await api.geolocation.getOptionLocation().catch(() => undefined);
-        return {meters, solar, meter, buckets: mergeBuckets(logs),
-            location: weatherLocation(homeyLocation?.value, homey.settings.get(LOCATION_SETTING))};
+        return {meters, solar, meter, buckets: mergeBuckets(logs), location: await weatherFor(homey, LOCATION_SETTING).location()};
     });
 }
 
@@ -172,7 +170,7 @@ export async function scanSolar(homey: any) {
     const found = await survey(homey, answer?.meter);
     let fit: SurplusFit | undefined;
     if (found.buckets?.length && found.location) {
-        const ghi = hourlyGhi(await getJson(irradianceUrl(found.location.latitude, found.location.longitude)));
+        const ghi = await weatherFor(homey, LOCATION_SETTING).ghi() ?? new Map<number, number>();
         fit = fitSurplus(ghi, found.buckets);
     }
     const peak = found.buckets ? peakExportKw(found.buckets) : undefined;
@@ -312,7 +310,8 @@ export class SolarSurplus {
             return LEARN_EVERY_MS;
         }
         this.ready = true;
-        this.ghi = hourlyGhi(await getJson(irradianceUrl(found.location.latitude, found.location.longitude)));
+        // The weather book's sun: 92 days fetched daily, the hours ahead from the shared forecast.
+        this.ghi = await weatherFor(this.homey, LOCATION_SETTING).ghi() ?? new Map<number, number>();
         this.fit = fitSurplus(this.ghi, found.buckets ?? []);
         this.check = this.fit ? forecastHeld(this.fit, this.ghi, found.buckets ?? [], Date.now()) : undefined;
         const check = this.check ? `; last ${CHECK_DAYS} days ${this.check.actualKwh} of ${this.check.expectedKwh} kWh expected arrived` : '';
