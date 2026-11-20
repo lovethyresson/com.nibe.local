@@ -9,13 +9,16 @@
 
 Homey.setTitle(Homey.__('pair.title'));
 
+var fSeries = false;
+
 Homey.emit('get_context', {}, function (err, ctx) {
-    var fSeries = !err && ctx && ctx.driverId === 'nibe_f';
+    fSeries = !err && ctx && ctx.driverId === 'nibe_f';
     document.getElementById('options-s').hidden = fSeries;
     document.getElementById('options-f').hidden = !fSeries;
 });
 
 document.getElementById('continue').onclick = function (e) {
     e.preventDefault();
-    Homey.showView('ip_address');
+    // S-series next offers the settings backup (menu 8.3); F-series menus differ, so it goes on.
+    Homey.showView(fSeries ? 'ip_address' : 'backup');
 };

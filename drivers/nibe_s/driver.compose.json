@@ -1403,6 +1403,9 @@
       "id": "firmware"
     },
     {
+      "id": "backup"
+    },
+    {
       "id": "ip_address"
     },
     {

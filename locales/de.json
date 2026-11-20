@@ -430,6 +430,18 @@
       "f_body": "Die Schritte unterscheiden sich je nach Modell. Siehe Handbuch Ihrer Wärmepumpe.",
       "note": "Dies dauert einige Minuten. Ihre Einstellungen bleiben erhalten.",
       "continue": "Weiter"
+    },
+    "backup": {
+      "title": "Aktuelle Einstellungen speichern",
+      "intro": "Optional. Ihre Wärmepumpe kann eine Kopie aller Einstellungen auf einem USB-Stick speichern, damit Sie später dorthin zurückkehren können, mit oder ohne Nibe Live.",
+      "insert_title": "USB-Stick einstecken",
+      "insert_body": "In den Anschluss über dem Display. Menü 8 erscheint.",
+      "save_title": "Einstellungen speichern",
+      "save_body": "Öffnen Sie Menü 8.3 Einstellungen verwalten und wählen Sie Einstellungen speichern. Bewahren Sie den Stick auf.",
+      "restore_title": "Später zurückkehren",
+      "restore_body": "Stecken Sie den Stick ein und wählen Sie in Menü 8.3 Einstellungen wiederherstellen. Das ersetzt alle Einstellungen, auch spätere Änderungen, und kann nicht rückgängig gemacht werden.",
+      "continue": "Weiter",
+      "skip": "Überspringen"
     }
   },
   "groups": {

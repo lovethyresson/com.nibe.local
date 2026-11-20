@@ -638,6 +638,19 @@ body {
     opacity: 0.8;
 }
 
+/* Optional backup step: the pump's own settings to USB (menu 8.3). */
+.backup-art .fw-badge { fill: #34c759; }
+.backup-steps { list-style: none; padding: 0; margin: 1.2em 0 0; counter-reset: backup; }
+.backup-steps li { display: flex; gap: .8em; align-items: flex-start; margin: .9em 0; }
+.backup-steps li::before {
+    counter-increment: backup; content: counter(backup); flex: none;
+    width: 1.7em; height: 1.7em; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--surface-border); background: var(--surface); font-size: .85em;
+}
+.backup-steps p { margin: .2em 0 0; font-size: .9em; line-height: 1.45; opacity: .8; }
+.backup-restore { margin-top: 1.2em; }
+.backup-skip { display: block; width: 100%; margin-top: .4em; }
+
 .firmware-note {
     text-align: center;
     font-size: 0.85em;

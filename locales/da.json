@@ -430,6 +430,18 @@
       "f_body": "Trinnene er forskellige fra model til model. Se din varmepumpes manual.",
       "note": "Det tager et par minutter. Dine indstillinger bevares.",
       "continue": "Fortsæt"
+    },
+    "backup": {
+      "title": "Gem dine nuværende indstillinger",
+      "intro": "Valgfrit. Din varmepumpe kan gemme en kopi af alle sine indstillinger på en USB-nøgle, så du senere kan gå tilbage til dem, med eller uden Nibe Live.",
+      "insert_title": "Sæt en USB-nøgle i",
+      "insert_body": "I porten over displayet. Menu 8 vises.",
+      "save_title": "Gem indstillinger",
+      "save_body": "Åbn menu 8.3 Administrer indstillinger, og vælg Gem indstillinger. Behold nøglen.",
+      "restore_title": "For at gå tilbage senere",
+      "restore_body": "Sæt nøglen i, og vælg Gendan indstillinger i menu 8.3. Det erstatter alle indstillinger, også ændringer foretaget siden, og kan ikke fortrydes.",
+      "continue": "Fortsæt",
+      "skip": "Spring over"
     }
   },
   "groups": {

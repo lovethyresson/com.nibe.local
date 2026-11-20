@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../assets/pair/pair.css">
+</head>
+<body>
+
+<div class="pair-hero">
+    <div class="firmware-art backup-art" aria-hidden="true">
+        <svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
+            <rect class="fw-body" x="14" y="10" width="64" height="82" rx="8"/>
+            <rect class="fw-screen" x="24" y="20" width="44" height="26" rx="4"/>
+            <path class="fw-screen-lines" d="M31 29h18M31 37h28"/>
+            <path class="fw-vents" d="M28 60h36M28 68h36M28 76h36"/>
+            <circle class="fw-badge" cx="88" cy="70" r="20"/>
+            <path class="fw-arrow" d="M88 60v20M80 73l8 8 8-8"/>
+        </svg>
+    </div>
+    <div class="pair-hero-title" data-i18n="pair.backup.title"></div>
+    <p class="pair-hero-sub" data-i18n="pair.backup.intro"></p>
+</div>
+
+<ol class="backup-steps">
+    <li><div><strong data-i18n="pair.backup.insert_title"></strong><p data-i18n="pair.backup.insert_body"></p></div></li>
+    <li><div><strong data-i18n="pair.backup.save_title"></strong><p data-i18n="pair.backup.save_body"></p></div></li>
+</ol>
+
+<div class="firmware-option backup-restore">
+    <div>
+        <strong data-i18n="pair.backup.restore_title"></strong>
+        <p class="firmware-detail" data-i18n="pair.backup.restore_body"></p>
+    </div>
+</div>
+
+<form class="homey-form">
+    <button class="homey-button-primary-full" id="continue" data-i18n="pair.backup.continue"></button>
+    <button class="homey-button-transparent backup-skip" id="skip" data-i18n="pair.backup.skip"></button>
+</form>
+
+<script src="../../../assets/pair/backup.js"></script>
+</body>
+</html>

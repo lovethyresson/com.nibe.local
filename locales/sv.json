@@ -430,6 +430,18 @@
       "f_body": "Stegen skiljer sig mellan modeller. Se handboken till din värmepump.",
       "note": "Det här tar några minuter. Dina inställningar behålls.",
       "continue": "Fortsätt"
+    },
+    "backup": {
+      "title": "Spara dina nuvarande inställningar",
+      "intro": "Valfritt. Värmepumpen kan spara en kopia av alla sina inställningar på ett USB-minne, så att du kan gå tillbaka till dem senare, med eller utan Nibe Live.",
+      "insert_title": "Sätt i ett USB-minne",
+      "insert_body": "I porten ovanför displayen. Meny 8 visas.",
+      "save_title": "Spara inställningar",
+      "save_body": "Öppna meny 8.3 Hantera inställningar och välj Spara inställningar. Behåll minnet.",
+      "restore_title": "För att gå tillbaka senare",
+      "restore_body": "Sätt i minnet och välj Återställ inställningar i meny 8.3. Det ersätter alla inställningar, även ändringar gjorda sedan dess, och kan inte ångras.",
+      "continue": "Fortsätt",
+      "skip": "Hoppa över"
     }
   },
   "groups": {

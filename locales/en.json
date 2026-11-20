@@ -430,6 +430,18 @@
       "f_body": "The steps differ between models. See your heat pump's manual.",
       "note": "This takes a few minutes. Your settings are kept.",
       "continue": "Continue"
+    },
+    "backup": {
+      "title": "Save your current settings",
+      "intro": "Optional. Your heat pump can keep a copy of all its settings on a USB stick, so you can go back to them later, with or without Nibe Live.",
+      "insert_title": "Insert a USB stick",
+      "insert_body": "In the port above the display. Menu 8 appears.",
+      "save_title": "Save settings",
+      "save_body": "Open menu 8.3 Manage settings and choose Save settings. Keep the stick.",
+      "restore_title": "To go back later",
+      "restore_body": "Insert the stick and choose Restore settings in menu 8.3. This replaces every setting, including changes made since, and can't be undone.",
+      "continue": "Continue",
+      "skip": "Skip"
     }
   },
   "groups": {

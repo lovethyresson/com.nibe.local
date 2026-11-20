@@ -430,6 +430,18 @@
       "f_body": "De stappen verschillen per model. Zie de handleiding van je warmtepomp.",
       "note": "Dit duurt een paar minuten. Je instellingen blijven behouden.",
       "continue": "Doorgaan"
+    },
+    "backup": {
+      "title": "Bewaar je huidige instellingen",
+      "intro": "Optioneel. Je warmtepomp kan een kopie van al zijn instellingen op een USB-stick bewaren, zodat je er later naar terug kunt, met of zonder Nibe Live.",
+      "insert_title": "Steek een USB-stick erin",
+      "insert_body": "In de poort boven het display. Menu 8 verschijnt.",
+      "save_title": "Instellingen opslaan",
+      "save_body": "Open menu 8.3 Instellingen beheren en kies Instellingen opslaan. Bewaar de stick.",
+      "restore_title": "Later terug",
+      "restore_body": "Steek de stick erin en kies Instellingen herstellen in menu 8.3. Dit vervangt alle instellingen, ook wijzigingen van daarna, en kan niet ongedaan worden gemaakt.",
+      "continue": "Doorgaan",
+      "skip": "Overslaan"
     }
   },
   "groups": {

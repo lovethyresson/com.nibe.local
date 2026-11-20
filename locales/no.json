@@ -430,6 +430,18 @@
       "f_body": "Stegene varierer mellom modeller. Se manualen til varmepumpen din.",
       "note": "Dette tar noen minutter. Innstillingene dine beholdes.",
       "continue": "Fortsett"
+    },
+    "backup": {
+      "title": "Lagre de nåværende innstillingene",
+      "intro": "Valgfritt. Varmepumpen kan lagre en kopi av alle innstillingene sine på en USB-pinne, så du kan gå tilbake til dem senere, med eller uten Nibe Live.",
+      "insert_title": "Sett inn en USB-pinne",
+      "insert_body": "I porten over displayet. Meny 8 vises.",
+      "save_title": "Lagre innstillinger",
+      "save_body": "Åpne meny 8.3 Administrer innstillinger og velg Lagre innstillinger. Ta vare på pinnen.",
+      "restore_title": "For å gå tilbake senere",
+      "restore_body": "Sett inn pinnen og velg Gjenopprett innstillinger i meny 8.3. Det erstatter alle innstillinger, også endringer gjort siden, og kan ikke angres.",
+      "continue": "Fortsett",
+      "skip": "Hopp over"
     }
   },
   "groups": {
