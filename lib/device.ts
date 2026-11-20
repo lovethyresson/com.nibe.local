@@ -95,6 +95,8 @@ const FIRST_LIVE_STORE = 'autopilotFirstLive';
 const BASELINE_STORE = 'autopilotSavingsBaseline';
 /** This device's Homey id, for Insights URIs: looked up once (homeyDeviceId), it never changes. */
 const HOMEY_ID_STORE = 'homeyDeviceId';
+/** The indoor sensor read or feed set the device warning (clearIndoorWarning). */
+const INDOOR_WARNING_STORE = 'indoorWarning';
 /** Today so far, recounted every hour. */
 const SAVINGS_TODAY_STORE = 'autopilotSavingsToday';
 /** Plan vs actual (cost-check.ts): each day's first plan from local midnight on, hour by hour, and what it cost. */
@@ -302,14 +304,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 }
                 if (this.hasCapability('measure_temperature') && this.getCapabilityValue('measure_temperature') !== value)
                     await this.setCapabilityValue('measure_temperature', value);
-                if (this.indoorFailingSince !== null) await this.unsetWarning().catch(this.error);
+                await this.clearIndoorWarning();
                 this.indoorFailingSince = null;
             } catch (error: any) {
                 if (this.indoorFailingSince === null) {
                     this.indoorFailingSince = Date.now();
                     this.log('Reading the Homey indoor sensors failed, retrying:', error.message);
                 } else if (Date.now() - this.indoorFailingSince >= INDOOR_ALERT_AFTER_MS) {
-                    await this.setWarning(error.message).catch(this.error);
+                    await this.setIndoorWarning(error.message);
                 }
             } finally {
                 this.scheduleIndoorRead(60_000);
@@ -367,7 +369,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             this.indoorTimer = null;
             if (this.indoorWork) { this.scheduleIndoor(); return; }
             this.indoorWork = this.sendIndoor(this.getStoreValue('indoorSensors'))
-                .then(() => { this.indoorFailingSince = null; this.indoorAlerted = false; })
+                .then(async () => { this.indoorFailingSince = null; this.indoorAlerted = false; await this.clearIndoorWarning(); })
                 .catch(async (error) => {
                     this.indoorStatus = {state: 'error', message: error.message};
                     // A missed cycle or two is routine (a slow Homey API call, a pump reconnect) and the
@@ -378,7 +380,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     }
                     if (this.indoorAlerted || Date.now() - this.indoorFailingSince < INDOOR_ALERT_AFTER_MS) return;
                     this.indoorAlerted = true;
-                    await this.setWarning(error.message).catch(this.error);
+                    await this.setIndoorWarning(error.message);
                     await this.homey.notifications.createNotification({
                         excerpt: 'Nibe Live can\'t send the indoor temperature. Open Heating → Repair. ' + error.message
                     }).catch(this.error);
@@ -1315,6 +1317,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.role === 'hotwater') await this.syncHotwaterAutopilot().catch(this.error);
         if (this.role === 'heating' || this.role === 'hotwater') {
             if (!Array.isArray(this.getStoreValue(MODE_MARKS_STORE))) await this.markMode(this.smartMode()).catch(this.error);
+            // TEMP(warning clear): the 12:36 build's Proxy error was left as Heating's warning by code
+            // that didn't store it (clearIndoorWarning came later). Cleared once; owners of other
+            // warnings set theirs again at their next check. Remove with the other TEMP code.
+            if (this.role === 'heating' && this.getStoreValue('proxyWarningCleared') !== 1) {
+                await this.unsetWarning().catch(this.error);
+                await this.setStoreValue('proxyWarningCleared', 1);
+            }
             // TEMP(savings reset): heating's start date and baseline were stored by the code before
             // b870c03 (at the switch, not when the house model was ready). Read again once from
             // Insights. Remove with the other TEMP code (tasks/todo.md).
@@ -3494,6 +3503,19 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     async setWarning(message?: string | null) {
         this.warningText = message || undefined;
         return super.setWarning(message);
+    }
+
+    /** The indoor sensor warning, remembered in the store: Homey keeps a device warning across a
+     *  restart, so the first good read after one must still know to clear it. */
+    private async setIndoorWarning(message: string) {
+        await this.setStoreValue(INDOOR_WARNING_STORE, true).catch(this.error);
+        await this.setWarning(message).catch(this.error);
+    }
+
+    private async clearIndoorWarning() {
+        if (!this.getStoreValue(INDOOR_WARNING_STORE)) return;
+        await this.unsetStoreValue(INDOOR_WARNING_STORE).catch(this.error);
+        await this.unsetWarning().catch(this.error);
     }
 
     async unsetWarning() {

@@ -80,6 +80,9 @@ allows somewhat longer or deeper ease-offs.
 
 Search `TEMP(` across `lib/` and `dev/` before packaging; each hit is listed here.
 
+- [ ] **TEMP(warning clear)**, added 2026-11-20 (`lib/device.ts`, heating `onInit`): clears the
+  Proxy error left as Heating's warning by the 12:36 build, once (store flag
+  `proxyWarningCleared`). Remove once it has run on the test Homey.
 - [ ] **TEMP(savings reset)**, added 2026-11-20 (`lib/device.ts`, heating `onInit`): clears
   heating's savings start, baseline and days once (store flag `autopilotSavingsReset`), so the
   test Homey reads them again under b870c03's rule. Remove once it has run on the test Homey.
