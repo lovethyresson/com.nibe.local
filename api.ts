@@ -1,6 +1,6 @@
 /** The app's Web API: one read-only endpoint that returns exactly what a dashboard widget is sent,
  *  so the maintainer (or Claude) can check a widget against live data without a phone:
- *  GET /api/app/com.nibe.local/widget/<savings|savings_hotwater|autopilot|hotwater_use|hotwater_tank|energy|cost_check|day_plan>?device=<data id>.
+ *  GET /api/app/com.nibe.local/widget/<savings|savings_hotwater|autopilot|hotwater_use|hotwater_tank|energy|cost_check|day_plan|overview>?device=<data id>.
  *  It needs an owner's token like any app endpoint, and writes nothing. */
 module.exports = {
   async getWidgetData({homey, params, query}: {homey: any; params: {id: string}; query: {device?: string}}) {
@@ -14,6 +14,7 @@ module.exports = {
       case 'energy': return app.energyWidget(query.device);
       case 'cost_check': return app.costCheckWidget(query.device);
       case 'day_plan': return app.dayPlanWidget(query.device);
+      case 'overview': return app.overviewWidget(query.device);
       default: throw new Error(`No widget ${params.id}`);
     }
   },
