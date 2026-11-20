@@ -564,3 +564,13 @@ Added a pairing card and a Heating setup step straight into code, on a "yes" to 
 A yes to an idea is not a yes to its UI. **Rule:** any visible change (view, step, card, copy
 placement, widget) is mocked and shown first: a rendered screenshot of the real page with the
 change, light and dark. Build only after the user approves that mock.
+
+## 2026-11-20: review what runs, not only what changed; check crash count after install
+The app was stopped seven times for memory ("Memory Warning Limit Reached"): every hourly meter
+read fetched all 184 devices, cached, to find the device's own id. The code came in on 13–15 Nov;
+the review covered only the commits since the last install and asked only about correctness, and
+the after-install check read `crashed` (true only while down), never `crashedCount`.
+**Rules:** a review before an install covers everything that will run on the Homey since the last
+review, not only new commits, and asks per repeated call: what does it cost per hour on a large
+home (100+ devices), does it cache, does it grow. Every after-install check reads `crashedCount`
+and memory; any rise is a failure, never "running".
