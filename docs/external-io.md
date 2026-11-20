@@ -78,6 +78,21 @@ Each resource is fetched once, kept with an age rule, and shared by everyone who
 | `ownDeviceId(dataId)` | once | device store | done in d674152 |
 | `deviceList()` | never cached; setup and Repair only, through the queue | — | 7 call sites |
 
+### Disk
+
+Nothing the Gateway stores may grow without a limit. Each stored resource has a fixed cap,
+checked on every write, and the Gateway's hourly line includes its total size in /userdata.
+
+- **Meter logs:** hourly points only, at most 92 days per capability (about 2,200 points, under
+  50 KB as JSON), and only for capabilities a consumer has asked for in the last 7 days. Older
+  points are dropped on write; a log nobody asks for is deleted.
+- **Prices:** in memory only (16 days).
+- **Total budget:** 5 MB for everything the Gateway keeps on disk. Over it, the oldest points go
+  first and the hourly line says so.
+
+What exists already is bounded: the heating history is a fixed-size ring buffer, the shadow logs
+are trimmed to 2,880 lines, the journal is cut hourly, and the models are single files.
+
 ### Queue
 
 - **One Homey queue** with one pacing rule (Insights: one at a time, 2 s apart; other calls
