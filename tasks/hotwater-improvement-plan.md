@@ -1,9 +1,9 @@
 # Hot water Autopilot: plan to pay less without colder showers
 
-Draft 6, 2026-11-21. Draft 1 from the week's analysis, draft 2 with outside research, drafts 3 and 4
-after two independent critiques against the code and data. Evidence and scripts: scratchpad `hwa/`.
+2026-11-21. Based on the week 14–21 Nov, outside research, and two independent reviews against the
+code and data. Evidence and scripts: scratchpad `hwa/`.
 
-## What we know (and what draft 1 got wrong)
+## What we know
 
 - The prize is small and specific. Mon–Fri cost 65 kr, paying 1.025× each day's average price.
   Hindsight with perfect knowledge is 0.88×. That gap is about 7–12 %, roughly 1 kr a day here.
@@ -27,8 +27,8 @@ after two independent critiques against the code and data. Evidence and scripts:
   legionella run spends a start as well, and the pump's own charging is taken over. Tue used all
   three. A refused rescue is logged once and nothing else: a silent cold-shower path, today.
 - Sun 15 13–15: ~8 kWh of compressor heating an already full tank (272 L, 56 °C → 57.5 °C, COP ≈ 1.1,
-  plus 0.9 kWh immersion), ≈ 15 kr. Draft 1 called it old code; the code that raises a running
-  run's stop (`extendTarget`, df6cbf1, capped by `maxC`) is still in. Not established as fixed.
+  plus 0.9 kWh immersion), ≈ 15 kr. The code that raises a running run's stop (`extendTarget`,
+  capped by `maxC`) is still in, so it may recur.
 - Legionella runs to 65 °C every 14 days, above the compressor's ~58 °C, so the last degrees are
   the immersion heater. Estimated 2.5–3 kWh, ≈ 5–6 kr a run (not measured); the pump's own 61 °C
   is also above the ceiling, so 65 vs 61 is ≈ 2 kr a run, ≈ 0.15 kr a day. Small; measure first.
@@ -49,18 +49,17 @@ after two independent critiques against the code and data. Evidence and scripts:
   larger. Evenings also follow a weekly rhythm in the proxy: median evening litres Mon 81, Tue 184,
   Wed 121, Thu 171, Fri 134 (Tue above 230 L in 4 of the last 8 weeks, Mon in 2). To confirm on
   labelled days as they accumulate.
-- Dropped from draft 2, with reasons:
-  - Early-draw credit (1.2): Thu's 17:00 draw was the first of two; crediting it cancels the 19:00
-    run before a 154 L draw at 21. The code withholds it for this reason (hotwater-shadow.ts:84-89).
-  - Faster half-life (2.2): over 14 days of hourly data it barely changes the weights.
-  - kNN on "today so far" as a first build: ~10 working days of hourly data exist today, so one odd
-    day would dominate. Not dropped: it returns in Step 5 once the history from 1.1 has grown, and
-    competes there with the simpler rules on the same replay.
-  - Quantile window (3.1 as written): with replanning every slot it moves the top-up to the window's
-    first slot, not the cheapest, and adds starts.
-  - Smaller rescue (3.2): the planner already sizes the rescue; smaller means more starts.
-  - Recoverable loss (5): standing loss is 0.05–0.1 kWh/h, the fill penalty is COP, and crediting
-    it would make hot water cost disagree with Homey Energy.
+
+## Considered and rejected
+
+- Early-draw credit: Thu's 17:00 draw was the first of two; crediting it cancels the 19:00
+  run before a 154 L draw at 21. The code withholds it for this reason (hotwater-shadow.ts:84-89).
+- Faster half-life: over 14 days of hourly data it barely changes the weights.
+- Quantile window (plan the evening at P85 within a few hours of it): with replanning every slot
+  it moves the top-up to the window's first slot, not the cheapest, and adds starts.
+- Smaller rescue: the planner already sizes the rescue; smaller means more starts.
+- Crediting tank loss as space heat: standing loss is 0.05–0.1 kWh/h, the fill penalty is COP, and crediting
+  it would make hot water cost disagree with Homey Energy.
 
 ## How we judge any change
 
@@ -149,12 +148,13 @@ after two independent critiques against the code and data. Evidence and scripts:
     it below about 6 days per state. Hourly Insights are enough for the feature; the wait is for
     the state counts. One-line reason from the measured fact, not an inference: "More hot water was
     used this morning, so less is planned tonight." Gate: paired replay and safety metrics.
+    A first look is mixed: in the week of 16 Nov low mornings came before big evenings and high
+    ones before small; the week before showed no pattern. The state counts decide.
 5.3 "Days like today" (k nearest days on draws so far, same day type and weekday), once 1.1 holds
     enough 15-minute days per weekday. Built as a challenger: it runs in the replay against 5.1 and
     5.2 and replaces them only if it beats both on cost and safety. Its owner reason is the plan's
-    own ("Planned for a usual Tuesday evening"), never "days like today".
-    First look supports testing it (week of 16 Nov: low mornings → big evenings, high → small) but
-    the week before does not; 8 weeks decide.
+    own ("Planned for a usual Tuesday evening"), never "days like today". Too little 15-minute
+    history exists today for it to be a first build (one odd day would dominate).
 
 ## Step 6 — only if the replay shows it pays
 
