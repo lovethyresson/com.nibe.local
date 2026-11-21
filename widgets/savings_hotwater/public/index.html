@@ -256,13 +256,15 @@
           if (n) line.appendChild(el('span', 'sv-now', n.value));
           if (b) line.appendChild(el('span', 'sv-was', b.value));
           var was = amount(b && b.value), now = amount(n && n.value);
-          if (b && n && was > 0 && isFinite(now)) {
+          var shown = b && n && was > 0 && isFinite(now);
+          if (shown) {
             var change = Math.round((now / was - 1) * 100);
             line.appendChild(el('span', 'sv-change ' + (change < 0 ? 'good' : change > 0 ? 'bad' : ''), (change > 0 ? '+' : change < 0 ? '−' : '±') + Math.abs(change) + ' %'));
           }
           root.appendChild(line);
-          // The struck figure says "before" on its own; the caption names the period.
-          var cap = [n && n.label, n && n.note].filter(Boolean).join(' · ');
+          // The struck figure says "before" on its own; the caption names the period. The change
+          // is already on the line, so the note joins it only when the line has none.
+          var cap = [n && n.label, !shown && n && n.note].filter(Boolean).join(' · ');
           if (cap) root.appendChild(el('div', 'sv-caption homey-text-small', cap));
         }
         layouts.forEach(function (f) { f(); });
