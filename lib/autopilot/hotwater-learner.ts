@@ -104,6 +104,23 @@ export interface HotwaterModel {
     days: number;
     /** The last RECENT_DAYS full days, oldest first: what the widget's week chart draws. */
     recent?: DayDraw[];
+    /** Working-day evenings per weekday (1 = Monday … 5 = Friday): a challenger to the day type's
+     *  evening, logged but not planned with until a replay shows it pays (plan step 5.1). */
+    evenings?: Partial<Record<number, WeekdayEvening>>;
+}
+
+/** Local hours of "the evening", [from, to). */
+export const EVENING_FROM = 16;
+export const EVENING_TO = 23;
+/** A weekday leans on the working-day evening until it has this many (weighted) days of its own. */
+const WEEKDAY_SHRINK = 6;
+
+/** kWh heat drawn over a working day's evening, for one weekday: shrunk toward every working
+ *  evening until the weekday has WEEKDAY_SHRINK days of its own. */
+export interface WeekdayEvening {
+    days: number;
+    mean: number;
+    p80: number;
 }
 
 /** One full day's hot water use. */
@@ -507,12 +524,38 @@ export function learn(points: TankPoint[], clock: LocalClock, now: number, halfL
         const ownShapes = shapeDays.filter((d) => d.dayType === type);
         if (own.length || ownShapes.length || start) profiles[type] = profileOf(own, weight, start?.[type] ?? any, ownShapes);
     }
+    const evenings = weekdayEvenings(shapeDays.filter((d) => d.dayType === 'working'), weight);
     const today = clock(now).date;
     const recent = every.filter((d) => d.date < today).slice(-RECENT_DAYS).map((d): DayDraw => ({date: d.date,
         draw: Math.round(d.draw * 100) / 100, ...(d.dayType ? {dayType: d.dayType} : {}),
         ...(away.includes(d) ? {away: true} : {}),
         ...(d.hoursCovered < FULL_DAY_HOURS ? {partial: Math.round(d.hoursCovered * 10) / 10} : {})}));
-    return {loss, charge, profiles, away: away.map((d) => d.date), days: all.length, recent};
+    return {loss, charge, profiles, away: away.map((d) => d.date), days: all.length, recent, ...evenings ? {evenings} : {}};
+}
+
+/** The weekday of a local date, 0 = Sunday. */
+export const weekdayOf = (date: string) => new Date(`${date}T12:00:00Z`).getUTCDay();
+
+/** Per weekday, the evening draw of working days whose every evening hour was read. */
+function weekdayEvenings(days: Day[], weight: (d: Day) => number): HotwaterModel['evenings'] {
+    const known = days.filter((d) => d.byHour && d.known && d.known.slice(EVENING_FROM, EVENING_TO).every((k) => k >= KNOWN_HOUR));
+    if (!known.length) return undefined;
+    const evening = (d: Day) => d.byHour!.slice(EVENING_FROM, EVENING_TO).reduce((a, b) => a + b, 0);
+    const all = known.map((d) => [evening(d), weight(d)] as const);
+    const total = all.reduce((s, [, w]) => s + w, 0);
+    const refMean = all.reduce((s, [v, w]) => s + v * w, 0) / total;
+    const refP80 = weightedQuantile(all.map(([v]) => v), all.map(([, w]) => w), 0.8);
+    const out: NonNullable<HotwaterModel['evenings']> = {};
+    for (let wd = 1; wd <= 5; wd++) {
+        const own = known.filter((d) => weekdayOf(d.date) === wd).map((d) => [evening(d), weight(d)] as const);
+        const n = own.reduce((s, [, w]) => s + w, 0);
+        const k = Math.max(0, WEEKDAY_SHRINK - n);
+        const mean = n > 0 ? own.reduce((s, [v, w]) => s + v * w, 0) / n : refMean;
+        const p80 = n > 0 ? weightedQuantile(own.map(([v]) => v), own.map(([, w]) => w), 0.8) : refP80;
+        const r = (v: number) => Math.round(v * 100) / 100;
+        out[wd] = {days: r(n), mean: r((mean * n + refMean * k) / (n + k)), p80: r((p80 * n + refP80 * k) / (n + k))};
+    }
+    return out;
 }
 
 /** The profile to plan a day with: its type's, else the pooled one. */

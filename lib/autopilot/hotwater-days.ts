@@ -46,6 +46,16 @@ export interface DayRecord {
     underMin: number;
     /** Slots read: under 96 the day was not watched all through (a restart, the first day). */
     slots: number;
+    /** The evening as forecast that morning, kWh: what the plan used (the day type's) and the
+     *  per-weekday challenger (plan step 5.1), each mean and P80. Scored against `hours`. */
+    eve?: EveningForecast;
+}
+
+export interface EveningForecast {
+    base: number;
+    baseP80: number;
+    mean: number;
+    p80: number;
 }
 
 interface HourAcc {l0?: number; l1?: number; p0?: number; p1?: number; top?: number; priceSum: number; priceN: number}
@@ -59,6 +69,7 @@ export interface DayAcc {
     refused: number;
     underMin: number;
     slots: number;
+    eve?: EveningForecast;
 }
 
 const finite = (v: number | undefined): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -98,5 +109,6 @@ export function dayRecord(acc: DayAcc): DayRecord {
     return {date: acc.date, ...dt ? {dt} : {},
         hours: acc.hours.map((h) => (h ? [r(h.l0, 0), r(h.l1, 0), r(h.p0, 2), r(h.p1, 2), r(h.top, 1),
             h.priceN ? r(h.priceSum / h.priceN, 3) : null] : null)),
-        starts: acc.starts, rescues: acc.rescues, refused: acc.refused, underMin: acc.underMin, slots: acc.slots};
+        starts: acc.starts, rescues: acc.rescues, refused: acc.refused, underMin: acc.underMin, slots: acc.slots,
+        ...acc.eve ? {eve: acc.eve} : {}};
 }

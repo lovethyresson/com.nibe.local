@@ -179,6 +179,20 @@ test('a day with its tank cold overnight still shapes its day type: each hour le
     assert.ok(model.profiles.free!.hours[12] > 1, 'free days keep their midday');
 });
 
+test('per-weekday evenings: a busy weekday stands out once it has days of its own, shrunk until then', () => {
+    // T0 is a Monday. Tuesdays draw twice the evening of the other working days.
+    const free = (day: number) => day % 7 >= 5;
+    const tuesday = (day: number) => day % 7 === 1;
+    const draw = (day: number, hour: number) => free(day) ? freeDay(hour) : workingDay(hour) * (tuesday(day) && hour >= 18 ? 2 : 1);
+    const kind = {dayType: (day: number) => (free(day) ? 'free' : 'working') as 'free' | 'working'};
+    const long = simulate(70, draw, kind);
+    const ev = learn(long, clock, long[long.length - 1].t).evenings!;
+    assert.ok(ev[2]!.mean > 1.5 * ev[1]!.mean, `Tuesday ${ev[2]!.mean} vs Monday ${ev[1]!.mean}`);
+    const short = simulate(10, draw, kind);
+    const young = learn(short, clock, short[short.length - 1].t).evenings!;
+    assert.ok(young[2]!.mean < ev[2]!.mean, 'with two Tuesdays it leans on the working-day evening');
+});
+
 test('the local clock follows the time zone across the autumn change', () => {
     const stockholm = localClock('Europe/Stockholm');
     // 25 Oct 2026: clocks go back at 03:00 CEST = 01:00 UTC.
