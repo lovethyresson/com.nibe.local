@@ -1,6 +1,6 @@
 # Hot water Autopilot: plan to pay less without colder showers
 
-Draft 4, 2026-11-21. Draft 1 from the week's analysis, draft 2 with outside research, drafts 3 and 4
+Draft 5, 2026-11-21. Draft 1 from the week's analysis, draft 2 with outside research, drafts 3 and 4
 after two independent critiques against the code and data. Evidence and scripts: scratchpad `hwa/`.
 
 ## What we know (and what draft 1 got wrong)
@@ -30,12 +30,26 @@ after two independent critiques against the code and data. Evidence and scripts:
 - Legionella runs to 65 °C every 14 days, above the compressor's ~58 °C, so the last degrees are
   the immersion heater. Estimated 2.5–3 kWh, ≈ 5–6 kr a run (not measured); the pump's own 61 °C
   is also above the ceiling, so 65 vs 61 is ≈ 2 kr a run, ≈ 0.15 kr a day. Small; measure first.
+- Day type matters a lot, and so does the weekday (Insights, 1 Sep–20 Nov, 6-hour blocks, ±1 h at
+  the clock change):
+
+  | | Litres a day (mean / median / P80) | Electricity | 01–07 | 07–13 | 13–19 | 19–01 |
+  |---|---|---|---|---|---|---|
+  | Working days (59) | 325 / 282 / 430 | 4.0 kWh | 82 | 62 | 130 | 50 |
+  | Days off (22) | 557 / 570 / 801 | 7.3 kWh | 132 | 232 | 154 | 38 |
+
+  Days off use 1.7× the water and put it at midday; working days put it in the evening, with almost
+  nothing 07–13. So a working-day profile with midday peaks (16 Nov) is a labelling or pooling
+  fault, not the household. Evenings follow a weekly rhythm: median evening litres Mon 81, Tue 184,
+  Wed 121, Thu 171, Fri 134 (Tue above 230 L in 4 of the last 8 weeks, Mon in 2). Fixed activity
+  days, most likely.
 - Dropped from draft 2, with reasons:
   - Early-draw credit (1.2): Thu's 17:00 draw was the first of two; crediting it cancels the 19:00
     run before a 154 L draw at 21. The code withholds it for this reason (hotwater-shadow.ts:84-89).
   - Faster half-life (2.2): over 14 days of hourly data it barely changes the weights.
-  - kNN on "today so far" (2.1): ~10 working days of hourly data exist; one odd day would dominate,
-    the settling estimate reads as draws, and "days like today" is not a reason an owner can check.
+  - kNN on "today so far" as a first build: ~10 working days of hourly data exist today, so one odd
+    day would dominate. Not dropped: it returns in Step 5 once the history from 1.1 has grown, and
+    competes there with the simpler rules on the same replay.
   - Quantile window (3.1 as written): with replanning every slot it moves the top-up to the window's
     first slot, not the cheapest, and adds starts.
   - Smaller rescue (3.2): the planner already sizes the rescue; smaller means more starts.
@@ -99,13 +113,30 @@ after two independent critiques against the code and data. Evidence and scripts:
     Only then price options with the replay: target, and timing after a big draw (which would need
     a new trigger: today the window is chosen up to 48 h ahead by price, `legionella.ts:114-130`).
 
-## Step 5 — conditional evening forecast (after 6–8 weeks of 1.1)
+## Step 5 — a forecast that knows this household's week
 
-5.1 One yes/no feature: did the morning (05–09) draw reach about 80 L? Forecast the evening from
+5.0 Ask in setup (Hot water setup already asks people, morning hour and the busiest time on a day
+    off when history is short). Add, always asked and editable later:
+    - "Any weekdays with more hot water in the evening?" (Mon … Fri, multi-select; e.g. sports or
+      bath nights). Seeds a per-weekday evening profile; the data above says this household has
+      two such days.
+    - "On working days, when does your household mostly shower?" (Mornings / Evenings / Both /
+      It varies). Seeds the morning→evening rule in 5.1 and its sign.
+    The answers are a prior that learning overrides as days accumulate (as the existing household
+    answers are), and each gives a one-line reason: "Tuesday is a busy evening, so more is planned."
+    Mock first; six languages.
+5.1 Per-weekday evening: learn the evening draw per weekday (mean and P80), shrunk toward the day
+    type's evening until a weekday has about 6 days of its own. Uses 6-hourly Insights back to the
+    install, so it can start now. Reason: "Tuesday evenings usually use more."
+5.2 One yes/no feature: did the morning (05–09) draw reach about 80 L? Forecast the evening from
     days in the same state (mean and P80), shrunk toward the unconditional profile, falling back to
     it below about 6 days per state. Hourly Insights are enough for the feature; the wait is for
     the state counts. One-line reason from the measured fact, not an inference: "More hot water was
     used this morning, so less is planned tonight." Gate: paired replay and safety metrics.
+5.3 "Days like today" (k nearest days on draws so far, same day type and weekday), once 1.1 holds
+    enough 15-minute days per weekday. Built as a challenger: it runs in the replay against 5.1 and
+    5.2 and replaces them only if it beats both on cost and safety. Its owner reason is the plan's
+    own ("Planned for a usual Tuesday evening"), never "days like today".
     First look supports testing it (week of 16 Nov: low mornings → big evenings, high → small) but
     the week before does not; 8 weeks decide.
 
@@ -129,9 +160,10 @@ after two independent critiques against the code and data. Evidence and scripts:
 
 ## Order
 
-1 (from the 28 days already logged) → 2 (protects every later step) → 3 (cheap) → 4 (measure first).
-5 when the morning/evening state counts reach about 6 days each (6–8 weeks). 6 only on evidence.
-7 alongside, after the mock.
+1 (from the 28 days already logged) → 2 (protects every later step) → 3 (cheap) → 4 (measure first)
+→ 5.0 and 5.1 (setup questions and per-weekday evenings: data exists now, likely the largest
+forecast gain) → 5.2 when its state counts reach about 6 days each → 5.3 when 1.1 has enough
+15-minute history. 6 only on evidence. 7 alongside, after the mock.
 
 ## Sources
 
