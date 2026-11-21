@@ -9,8 +9,8 @@ import {BACKFILL_FIELDS, BackfillField, LogSource, anyLogRead, backfillSources, 
 import {newHistoryFileName} from './autopilot/store-file';
 import {DEFAULT_BASE_C, seasonCurve} from './autopilot/season';
 import {weatherFor} from './gateway-weather';
-import {BASELINE_DAYS, Baseline, LEDGER_DAYS, kwhPerLitreOf, moneyText, partialDay, ModeMark, SavingsData, SavingsDay, baselineOf, dayHours, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay, savingsLive} from './autopilot/savings';
-import {ChargeEvent, HotwaterAutopilot, HotwaterMode, LEGIONELLA_STATE_KEY, TankView, ownDeviceId} from './autopilot/hotwater-shadow';
+import {BASELINE_DAYS, Baseline, LEDGER_DAYS, boostDays, kwhPerLitreOf, moneyText, partialDay, ModeMark, SavingsData, SavingsDay, baselineOf, dayHours, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay, savingsLive} from './autopilot/savings';
+import {LEGIONELLA_DATES_KEY, ChargeEvent, HotwaterAutopilot, HotwaterMode, LEGIONELLA_STATE_KEY, TankView, ownDeviceId} from './autopilot/hotwater-shadow';
 import {DEFAULT_INTERVAL_DAYS, MAX_FAILURES, OwnerHotwater, RestoreKey, TakeoverRecord, TakeoverWrite, gaveUp, noteFailure, noteRestored, noteTaken,
     noteWrite, readTakeover, restoreAll, restorePlan, retryDelayMs, same, takeoverPlan} from './autopilot/hotwater-takeover';
 import {LEGIONELLA_WHEN_PERIODIC_OFF, LegionellaState, readSetting as readLegionella, readState as readLegionellaState,
@@ -108,6 +108,8 @@ const MODE_MARKS_STORE = 'autopilotModeMarks';
 /** When Autopilot first ran live on this device (ms), and the baseline frozen from the days before. */
 const FIRST_LIVE_STORE = 'autopilotFirstLive';
 const BASELINE_STORE = 'autopilotSavingsBaseline';
+/** Hot water's immersion heater hours (1069): a rise is a legionella boost day. */
+const IMMERSION_HOURS_CAPABILITY = 'measure_hour_NIBE.i1069_additive_usage_hotwater';
 /** Heating's season where the heat pump is (season.ts): the curve, the base it was made with, when. */
 const SEASON_STORE = 'autopilotSeason';
 /** The stored season is asked for again daily: the weather book goes to the network only when the
@@ -3214,8 +3216,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const uri = `homey:device:${id}`;
             /** A log's hourly points; undefined when it could not be read. Paced by the Gateway,
              *  and served from its store while Homey has no newer point. */
-            const log = async (cap: string) => {
-                const entries = await api.insights.getLogEntries({uri, id: `${uri}:${cap}`, resolution: 'last14Days', $timeout: 20_000})
+            const log = async (cap: string, resolution = 'last14Days') => {
+                const entries = await api.insights.getLogEntries({uri, id: `${uri}:${cap}`, resolution, $timeout: 20_000})
                     .catch(() => undefined);
                 return entries ? (entries.values ?? []) as {t: string; v: number | null}[] : undefined;
             };
@@ -3227,6 +3229,22 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             // Main has no savings: its idle meter is read for Energy today only.
             if (this.role === 'main') return [];
             const use = hourlyUse(meter);
+            // Hot water: which days the immersion heater ran (a legionella boost), from its hours
+            // counter; read only while a day in the ledger, or one about to be added, is not known.
+            // Before Autopilot, any day the immersion heater ran is left out: the pump's own boosts
+            // and tests. From Autopilot's first live day, only its own legionella runs are: any other
+            // immersion use is a cost the comparison must see.
+            if (this.role === 'hotwater' && this.hasCapability(IMMERSION_HOURS_CAPABILITY)
+                && (wanted.length || stored.some((d) => d.boost === undefined))) {
+                const older = await log(IMMERSION_HOURS_CAPABILITY, 'last3Months');
+                const recent = await log(IMMERSION_HOURS_CAPABILITY);
+                const firstLive = this.getStoreValue(FIRST_LIVE_STORE);
+                const firstDate = typeof firstLive === 'number' ? localDate(firstLive, timeZone) : undefined;
+                const runs = this.getStoreValue(LEGIONELLA_DATES_KEY);
+                const legionella = new Set(Array.isArray(runs) ? runs : []);
+                if (older || recent) this.boostByDate = new Map([...boostDays([...older ?? [], ...recent ?? []], (ms) => localDate(ms, timeZone))]
+                    .map(([date, ran]) => [date, firstDate !== undefined && date >= firstDate ? legionella.has(date) : ran]));
+            }
             // Heating: an hour ran live when the pump showed the BT1 Autopilot fed. That catches a
             // halt or pause the Smart mode alone does not, and dates the hours before the marks.
             // Either log unread: nothing is known from them.
@@ -3290,11 +3308,20 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         });
         if (!result) return 6 * HOUR_MS;
         const merged = result.length ? mergeDays(stored, result) : stored;
-        const ledger = this.withLitres(merged);
+        const ledger = this.withBoosts(this.withLitres(merged));
         if ((result.length || ledger !== merged) && !this.savingsStopped) await this.setStoreValue(SAVINGS_STORE, ledger);
         if (!this.savingsStopped) await this.freezeBaseline(ledger);
         return HOUR_MS;
     }
+
+    /** Hot water: whether the immersion heater ran, on the days the counter's log knows and the
+     *  ledger does not yet. The same array back when nothing was added. */
+    private withBoosts(days: SavingsDay[]): SavingsDay[] {
+        const known = this.boostByDate;
+        if (!known?.size || !days.some((d) => d.boost === undefined && known.has(d.date))) return days;
+        return days.map((d) => (d.boost === undefined && known.has(d.date) ? {...d, boost: known.get(d.date)} : d));
+    }
+    private boostByDate?: Map<string, boolean>;
 
     /** Hot water: the litres drawn each day, from the tank model, on the days that lack them. The
      *  same array back when nothing was added. */
@@ -3314,10 +3341,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (kept) {
             // A baseline frozen before kWh per litre was kept gets it once, from the same days
             // (2026-11-21); the rest of it stays as frozen.
-            if (this.role === 'hotwater' && kept.days > 0 && kept.kwhPerLitre === undefined) {
+            // ...and again without the immersion heater's boost days, once (2026-11-21).
+            if (this.role === 'hotwater' && kept.days > 0 && (kept.kwhPerLitre === undefined || !kept.perLitreNoBoost)
+                && ledger.some((d) => d.boost !== undefined)) {
                 const firstDate = localDate(firstLive, this.homey.clock.getTimezone());
                 const perLitre = kwhPerLitreOf(ledger.filter((d) => d.date < firstDate).slice(-BASELINE_DAYS));
-                if (perLitre !== undefined) await this.setStoreValue(BASELINE_STORE, {...kept, kwhPerLitre: perLitre});
+                if (perLitre !== undefined) await this.setStoreValue(BASELINE_STORE, {...kept, kwhPerLitre: perLitre, perLitreNoBoost: true});
             }
             return;
         }

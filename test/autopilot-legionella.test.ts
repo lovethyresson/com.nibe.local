@@ -3,7 +3,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {BOOST_HOURS, LOOKAHEAD_MS, OVERDUE_MS, WINDOW_SLOTS, dueAt, legionellaStep, noteTop, overdue, pickWindow, readSetting, reachedC, validSetting}
     from '../lib/autopilot/legionella';
-import {CHARGE_KEY, HotwaterAutopilot, HotwaterHooks, LEGIONELLA_STATE_KEY, WRITES_KEY} from '../lib/autopilot/hotwater-shadow';
+import {LEGIONELLA_DATES_KEY, CHARGE_KEY, HotwaterAutopilot, HotwaterHooks, LEGIONELLA_STATE_KEY, WRITES_KEY} from '../lib/autopilot/hotwater-shadow';
 import {MAX_C} from '../lib/autopilot/hotwater-shadow';
 import {localClock} from '../lib/autopilot/hotwater-learner';
 import {SLOT_MS} from '../lib/autopilot/prices';
@@ -110,6 +110,7 @@ test('a due run starts at the cheapest slot: 62 to 65 °C, uncapped by the ceili
     assert.deepEqual(f.store.get(CHARGE_KEY), {at: T0 + DAY + 2 * HOUR, targetC: 65, minutes: 360, legionella: true});
     assert.deepEqual(f.store.get(WRITES_KEY), {date: '2026-11-21', starts: 1, stops: 1}, 'one start and one stop write of the day');
     assert.equal(f.store.get(LEGIONELLA_STATE_KEY).runAt, T0 + DAY + 2 * HOUR, 'the run is kept: one an interval');
+    assert.deepEqual(f.store.get(LEGIONELLA_DATES_KEY), ['2026-11-21'], 'its day, for the savings comparison');
     await f.run(T0 + DAY + 2 * HOUR + SLOT_MS);
     assert.equal(f.writes.length, 2, 'once');
 });

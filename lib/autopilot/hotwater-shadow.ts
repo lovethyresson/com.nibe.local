@@ -769,6 +769,10 @@ export const PLAN_KEY = 'autopilotHotwaterPlan';
 export const CEILING_KEY = 'autopilotHotwaterCeiling';
 /** Device store key: the legionella state (legionella.ts), set when Autopilot takes over. */
 export const LEGIONELLA_STATE_KEY = 'autopilotLegionellaState';
+/** Local dates Autopilot started a legionella run on, newest last (the savings widget leaves those
+ *  days out of the comparison, as it does the heat pump's own boosts before Autopilot). */
+export const LEGIONELLA_DATES_KEY = 'autopilotLegionellaDates';
+const LEGIONELLA_DATES_KEPT = 40;
 /** A real charge started this long ago is still the one running. */
 const CHARGE_RUN_MS = 4 * HOUR;
 
@@ -1495,6 +1499,10 @@ export class HotwaterAutopilot {
             this.warn(this.homey.__('autopilot.hotwater_charge.write_failed', {error: error?.message ?? String(error)}));
             throw error;
         }
+        const dates = this.hooks.store.get(LEGIONELLA_DATES_KEY);
+        const day = input.clock(at).date;
+        const list = Array.isArray(dates) ? dates.filter((d: unknown) => typeof d === 'string' && d !== day) : [];
+        await this.hooks.store.set(LEGIONELLA_DATES_KEY, [...list, day].slice(-LEGIONELLA_DATES_KEPT));
         // One run an interval: a run that falls short is not repeated (legionella.ts).
         const state = readState(this.hooks.store.get(LEGIONELLA_STATE_KEY));
         if (state) await this.hooks.store.set(LEGIONELLA_STATE_KEY, {...state, runAt: at});

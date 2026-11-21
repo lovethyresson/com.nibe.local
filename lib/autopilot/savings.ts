@@ -27,6 +27,12 @@ export interface SavingsDay {
     live?: number;
     /** Hot water: litres of 40 °C water drawn that day, when the tank model knows the whole day. */
     litres?: number;
+    /** Hot water: the immersion heater ran that day (its hours counter, register 1069, rose): a
+     *  legionella boost, the pump's own or Autopilot's. Such days are left out of the comparison on
+     *  both sides, since the boost comes every interval either way (2026-11-21: two of the pump's
+     *  boosts in the baseline and none yet under Autopilot made a shower look 22 % cheaper).
+     *  Undefined: not known yet. */
+    boost?: boolean;
     /** Hot water: each charge's place in the day's prices, 0 the cheapest hour and 1 the most
      *  expensive (the mean over its hours). */
     charges?: number[];
@@ -182,6 +188,8 @@ export interface Baseline {
      *  way would have used for the same water, so heating hotter or the immersion heater show up as
      *  a cost (2026-11-21: the ratio alone, applied to Autopilot's own kWh, hid them). */
     kwhPerLitre?: number;
+    /** `kwhPerLitre` was made without the immersion heater's boost days (since 2026-11-21). */
+    perLitreNoBoost?: true;
 }
 
 /** Days before Autopilot first ran live that the baseline uses, at most. */
@@ -196,12 +204,12 @@ export function baselineOf(days: SavingsDay[], firstLiveDate: string): Baseline 
     if (!t || t.days < BASELINE_MIN_DAYS) return undefined;
     const perLitre = kwhPerLitreOf(before);
     return {days: t.days, dearShare: round(t.dearShare), ratio: round(t.paid / t.mean), shares: t.shares.map(round) as [number, number, number],
-        kwhPerDay: round(t.kwh / t.days), ...perLitre !== undefined ? {kwhPerLitre: perLitre} : {}};
+        kwhPerDay: round(t.kwh / t.days), ...perLitre !== undefined ? {kwhPerLitre: perLitre, perLitreNoBoost: true as const} : {}};
 }
 
 /** kWh per litre over the days that know their litres; undefined with under BASELINE_MIN_DAYS. */
 export function kwhPerLitreOf(days: SavingsDay[]): number | undefined {
-    const known = days.filter((d) => (d.litres ?? 0) > 0 && d.tiers[0] + d.tiers[1] + d.tiers[2] > 0);
+    const known = days.filter((d) => (d.litres ?? 0) > 0 && d.tiers[0] + d.tiers[1] + d.tiers[2] > 0 && !d.boost);
     if (known.length < BASELINE_MIN_DAYS) return undefined;
     const kwh = known.reduce((s, d) => s + d.tiers[0] + d.tiers[1] + d.tiers[2], 0);
     return Math.round(kwh / known.reduce((s, d) => s + d.litres!, 0) * 1e5) / 1e5;
@@ -256,7 +264,23 @@ export function yearOutlook(days: SavingsDay[], firstLiveDate: string, base: Bas
 
 /** The days that count as Autopilot's savings: whole days after the one it first ran live, that it ran. */
 export const savingDays = (days: SavingsDay[], firstLiveDate: string) =>
-    days.filter((d) => d.date > firstLiveDate && isAutopilotDay(d));
+    days.filter((d) => d.date > firstLiveDate && isAutopilotDay(d) && !d.boost);
+
+/** Local date → whether the immersion heater ran, from its hours counter's points (Insights, any
+ *  resolution): a day whose last reading is above the day before's by more than a few minutes.
+ *  Only days with a reading and one the day before are known. */
+export function boostDays(points: {t: string; v: number | null}[], localDateOf: (ms: number) => string): Map<string, boolean> {
+    const last = new Map<string, number>();
+    for (const p of points) {
+        const at = Date.parse(p.t);
+        if (typeof p.v !== 'number' || !Number.isFinite(p.v) || !Number.isFinite(at)) continue;
+        last.set(localDateOf(at), p.v);
+    }
+    const dates = [...last.keys()].sort();
+    const out = new Map<string, boolean>();
+    for (let k = 1; k < dates.length; k++) out.set(dates[k], last.get(dates[k])! - last.get(dates[k - 1])! > 0.05);
+    return out;
+}
 
 /** Savings over the last 7 days, this calendar month and this calendar year, as of `today` (local date). */
 export function periodSavings(days: SavingsDay[], firstLiveDate: string, base: Baseline, today: string):

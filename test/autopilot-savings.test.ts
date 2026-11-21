@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {SavingsDay, moneyText, seasonWeight, yearOutlook, partialDay, baselineOf, dayHours, daySaving, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, periodSavings, savingsData, savingsDay, savingsLive, totals} from '../lib/autopilot/savings';
+import {SavingsDay, boostDays, kwhPerLitreOf, savingDays, moneyText, seasonWeight, yearOutlook, partialDay, baselineOf, dayHours, daySaving, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, periodSavings, savingsData, savingsDay, savingsLive, totals} from '../lib/autopilot/savings';
 import {localDate} from '../lib/autopilot/prices';
 
 const HOUR = 3_600_000;
@@ -332,4 +332,17 @@ test('the year ahead: heating by season, hot water at a flat pace, and nothing p
     assert.equal(seasonWeight('2027-07-10', 'hotwater'), 1);
     assert.equal(seasonWeight('2027-01-10', 'heating', SEASON), 18);
     assert.ok(Number.isNaN(seasonWeight('2027-01-10', 'heating')), 'no season: no weight');
+});
+
+test('immersion heater days come from its hours counter; they leave the baseline per litre and the scored days', () => {
+    const pts = [['2026-11-06T22:00:00Z', 203.0], ['2026-11-07T10:00:00Z', 203.0], ['2026-11-07T20:00:00Z', 203.3],
+        ['2026-11-08T12:00:00Z', 203.3], ['2026-11-09T12:00:00Z', 203.31]].map(([t, v]) => ({t: t as string, v: v as number}));
+    const b = boostDays(pts, (ms) => localDate(ms, 'Europe/Stockholm'));
+    assert.deepEqual([...b], [['2026-11-07', true], ['2026-11-08', false], ['2026-11-09', false]], 'a few minutes are no boost');
+    // A boost day costs 15 kWh for 200 L; three normal days 10 kWh each.
+    const normal = before.map((d) => ({...d, litres: 200, boost: false}));
+    const boosted = {...day('2026-11-13', [5, 5, 5], 1.5, 22, 0), litres: 200, boost: true};
+    assert.ok(Math.abs(kwhPerLitreOf([...normal, boosted])! - 0.05) < 1e-9, 'the boost day is left out');
+    const scored = savingDays([...after, {...after[0], date: '2026-11-18', boost: true}], '2026-11-14');
+    assert.deepEqual(scored.map((d) => d.date), after.map((d) => d.date), 'Autopilot\'s legionella day is not scored');
 });
