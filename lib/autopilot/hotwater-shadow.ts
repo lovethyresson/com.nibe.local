@@ -14,7 +14,8 @@ import {DayDraw, DayProfile, DayType, HotwaterModel, Household, KWH_PER_LITRE, L
 import {TankCapabilities, fetchTankInsights, pointsFromInsights} from './hotwater-insights';
 import {DEFAULT_RESERVE_LITRES, EARLY_DRAW_HOURS, MIN_CHARGE_KWH, Plan, SLOT_H, TankSpec, creditEarly, drawsFor, heatAt, plan, plannedHours, reserveKwh} from './hotwater-planner';
 import {preheatAdders} from './orchestrator';
-import {appendLine, deleteHistory, loadJson, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
+import {appendLine, daysLogName, deleteHistory, loadJson, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
+import {DAYS_KEPT, DayAcc, daySample} from './hotwater-days';
 import {DayTypeState, dayTypeAt} from './day-type';
 import {DEMAND_LARGE, MAX_RESCUE_STARTS_PER_DAY, MAX_STOP_WRITES_PER_DAY, PumpFacts, countFor, leverDecision} from './hotwater-lever';
 import {BOOST_HOURS, LegionellaState, NOTE_EVERY_MS, REACHED_K, legionellaStep, noteTop, readState} from './legionella';
@@ -116,6 +117,24 @@ export interface ShadowEntry {
      *  draws ahead (`creditEarly`). Logged only, from 3 L. */
     early?: number;
     withEarly?: {action: ShadowEntry['action']; next?: ShadowEntry['next']};
+    /** What a replay needs to rebuild this slot's input (dev/replay-hot-water.mjs). */
+    ctx?: SlotContext;
+}
+
+/** The slot's input beyond the tank: day type, buy price, the owner's minimum, the target cap,
+ *  the pump's charge state and the day's lever writes so far. */
+export interface SlotContext {
+    dt?: string;
+    price?: number;
+    reserve?: number;
+    maxC?: number;
+    powerW?: number;
+    more?: boolean;
+    stopC?: number;
+    largeStopC?: number;
+    starts?: number;
+    stops?: number;
+    tank?: TankSpec;
 }
 
 /** A slot with no plan, and why: so a gap in the log is a reason, not a lost line. */
@@ -126,6 +145,7 @@ export interface ShadowSkip {
     litres?: number;
     top?: number;
     produced?: number;
+    ctx?: SlotContext;
 }
 
 /** A slot's plan: the log line, the first charge after any running one, with its reason, and
@@ -805,6 +825,9 @@ export class HotwaterAutopilot {
     }
     private stopped = false;
     private lines = 0;
+    /** Today so far, for the day record; and the records kept. */
+    private dayAcc?: DayAcc;
+    private dayLines = 0;
     private skipped = new Map<string, number>();
     private last?: ShadowEntry;
     /** Whether the tank is charging, from the latest poll. The plan step's own reading is up to a
@@ -864,6 +887,8 @@ export class HotwaterAutopilot {
 
     async start() {
         this.lines = await trimLines(shadowLogName(this.fileName), KEEP).catch(() => 0);
+        this.dayLines = await trimLines(daysLogName(this.fileName), DAYS_KEPT).catch(() => 0);
+        this.log(`Autopilot hot water log: /userdata/${shadowLogName(this.fileName)} (days: /userdata/${daysLogName(this.fileName)}).`);
         const charge = this.hooks.store.get(CHARGE_KEY) as {at: number; minutes: number; legionella?: boolean} | undefined;
         if (charge && Date.now() - charge.at < (charge.legionella ? BOOST_HOURS : 2) * HOUR) {
             this.autopilotStartedAt = charge.at;
@@ -1215,6 +1240,8 @@ export class HotwaterAutopilot {
             .then(() => this.watchStarts(input, at))
             .catch((error) => this.log('Autopilot hot water: start failed:', error?.message ?? error));
         this.watchExtend(input, at).catch((error) => this.log('Autopilot hot water: extending the charge failed:', error?.message ?? error));
+        const ctx = this.slotContext(input, at);
+        this.recordDay(input, at, ctx);
         const out = hotwaterShadowStep(input);
         this.showStatus(input, out);
         // No prices blocks the plan until a plan is made again; other skips change nothing.
@@ -1224,14 +1251,37 @@ export class HotwaterAutopilot {
         if ('skip' in out) {
             this.skip(out.skip);
             return this.writeLine({slot: slotOf(at), at: new Date(at).toISOString(), skip: out.skip,
-                litres: now.litres, top: now.top, produced: now.produced} satisfies ShadowSkip);
+                litres: now.litres, top: now.top, produced: now.produced, ctx} satisfies ShadowSkip);
         }
         this.hooks.replanned?.(out.charges);
         this.last = out.entry;
         this.planned = {from: out.entry.slot, stored: out.stored};
         if (Number.isFinite(now.litres)) this.history = mergeHistory([], [...this.history,
             {t: at, litres: now.litres, produced: now.produced ?? null, top: now.top ?? null}], Date.now() - HISTORY_MS);
-        this.writeLine({...out.entry, produced: now.produced, ...this.withEarly(input)});
+        this.writeLine({...out.entry, produced: now.produced, ...this.withEarly(input), ctx});
+    }
+
+    private slotContext(input: ShadowStepInput, at: number): SlotContext {
+        const count = countFor(this.hooks.store.get(WRITES_KEY), input.clock(at).date);
+        const p = this.prices.get(input.slot)?.price;
+        const n = input.now;
+        return {dt: input.dayType, ...Number.isFinite(p) ? {price: round(p!, 4)} : {}, reserve: input.reserveLitres, maxC: input.maxC,
+            powerW: n.powerW, more: n.more, stopC: n.stopC, largeStopC: n.largeStopC, starts: count.starts, stops: count.stops, tank: input.tank};
+    }
+
+    /** The day's compact record (hotwater-days.ts), written when a new local day starts. */
+    private recordDay(input: ShadowStepInput, at: number, ctx: SlotContext) {
+        const {date, hour} = input.clock(at);
+        const {acc, done} = daySample(this.dayAcc, {at, date, hour, dayType: input.dayType, litres: input.now.litres,
+            produced: input.now.produced, top: input.now.top, price: ctx.price, reserveLitres: input.reserveLitres});
+        this.dayAcc = acc;
+        if (!done) return;
+        const name = daysLogName(this.fileName);
+        appendLine(name, done)
+            .then(async () => {
+                if (++this.dayLines > DAYS_KEPT + 31) this.dayLines = await trimLines(name, DAYS_KEPT);
+            })
+            .catch((error) => this.log('Autopilot hot water: day record write failed:', error?.message ?? error));
     }
 
     // TEMP(early-draw log): remove before the release is packaged (tasks/todo.md, "Before the
@@ -1497,6 +1547,10 @@ export class HotwaterAutopilot {
 
     private chargeStarted(e: ChargeEvent) {
         this.events.push(e);
+        if (this.dayAcc && !e.shadow) {
+            this.dayAcc.starts[e.by === 'pump' ? 'pump' : 'autopilot']++;
+            if (e.by === 'autopilot' && e.reason === 'reserve') this.dayAcc.rescues++;
+        }
         if (!e.shadow) this.lastStart = e;
         this.savePlan();
         const t: Translate = (key, tokens) => this.homey.__(`autopilot.hotwater_charge.${key}`, tokens);
@@ -1597,6 +1651,7 @@ export class HotwaterAutopilot {
     private noteRefusedRescue() {
         const day = this.day ??= {from: Date.now()};
         this.day = {...day, refusedRescues: (day.refusedRescues ?? 0) + 1};
+        if (this.dayAcc) this.dayAcc.refused++;
         this.savePlan();
     }
 

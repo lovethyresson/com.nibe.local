@@ -45,7 +45,7 @@ export async function appendJournal(name: string, record: Buffer): Promise<void>
 }
 
 export async function deleteHistory(name: string): Promise<void> {
-    for (const file of [name, journalName(name), modelFileName(name), shadowLogName(name), shadowStateName(name)]) {
+    for (const file of [name, journalName(name), modelFileName(name), shadowLogName(name), shadowStateName(name), daysLogName(name)]) {
         await fs.unlink(`${DIR}/${file}`).catch((error: any) => {
             if (error?.code !== 'ENOENT') throw error;
         });
@@ -60,6 +60,11 @@ export function modelFileName(historyName: string): string {
 /** Shadow mode's per-slot log (JSON lines) and its carried state, beside the history. */
 export function shadowLogName(historyName: string): string {
     return historyName.replace(/\.bin$/, '.shadow.jsonl');
+}
+
+/** Hot water's day records (hotwater-days.ts), JSON lines, kept a year. */
+export function daysLogName(historyName: string): string {
+    return historyName.replace(/\.bin$/, '.days.jsonl');
 }
 
 export function shadowStateName(historyName: string): string {
