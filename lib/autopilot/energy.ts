@@ -2,6 +2,7 @@
  *  split by function (and Main's idle use), against the hour's price, and three numbers: kWh so far, what it cost, and
  *  the share used in the day's cheapest hours. Pure; the device gathers the inputs. */
 import {niceAxis} from './widget';
+import {RESET_SHARE} from './savings';
 
 /** The devices whose use is shown, in stacking order (bottom first): the functions, then Main's
  *  idle use, so the total matches the pump's devices in Homey Energy. */
@@ -103,13 +104,13 @@ export function useToday(m: MeterReads, hours: number[], now = Date.now()): {use
     for (let i = 0; i < m.points.length; i++) {
         const p = m.points[i], prev = m.points[i - 1];
         if (p.at + HOUR / 2 > cut) break;
-        if (p.v < high * 0.9) high = -Infinity;
+        if (p.v < high * (1 - RESET_SHARE)) high = -Infinity;
         if (prev && p.at - prev.at === HOUR) {
             const kwh = p.v - Math.max(prev.v, high);
             if (kwh >= 0 && kwh < 30) add(p.at, kwh);
         }
         high = Math.max(high, p.v);
-        last = {end: p.at + HOUR / 2, v: Math.max(p.v, high)};
+        last = {end: p.at + HOUR / 2, v: high};
     }
     // The stretch between: Insights' last middle to the first whole slot, or to now.
     if (last) {

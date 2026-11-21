@@ -1210,13 +1210,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const tidy = Math.round(this.cumulativeEnergy * 1000) / 1000;
             if (tidy !== this.cumulativeEnergy)
                 await this.setSettings({cumulativeEnergy: tidy}).catch(this.error);
-            // The meter shows the kept total from the start. A Homey restored from a backup brought
-            // the capability back older than the setting (2026-11-21: 477.9 against 486.6 kWh), and
-            // an idle device only writes it once energy moves: hours later, as one step that
-            // Insights, Homey Energy and the widgets read as an hour's use.
-            const shown = this.hasCapability(METER_CAPABILITY) ? Number(this.getCapabilityValue(METER_CAPABILITY)) : NaN;
-            if (this.hasCapability(METER_CAPABILITY) && Math.abs(shown - this.cumulativeEnergy) >= 0.001)
-                await this.setCapabilityValue(METER_CAPABILITY, this.cumulativeEnergy).catch(this.error);
         }
         if (functionRoles.includes(this.role)) {
             this.copUsed = this.cumulativeEnergy;

@@ -64,7 +64,7 @@ export function hourlyUse(points: {t: string; v: number | null}[]): Map<number, 
     return out;
 }
 /** A meter reading this far under the highest so far is a reset, not a step back. */
-const RESET_SHARE = 0.1;
+export const RESET_SHARE = 0.1;
 
 /** Price per hour (hour start, ms): the mean of its 15-minute slots. */
 export function hourlyPrices(slots: {slot: number; price: number}[], slotMs: number): Map<number, number> {
