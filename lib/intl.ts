@@ -12,6 +12,7 @@
 const MAX_KEPT = 200;
 const dates = new Map<string, Intl.DateTimeFormat>();
 const numbers = new Map<string, Intl.NumberFormat>();
+const collators = new Map<string, Intl.Collator>();
 
 function kept<F>(map: Map<string, F>, key: string, make: () => F): F {
     let f = map.get(key);
@@ -43,4 +44,9 @@ export function localeDate(ms: number, locale: string | undefined, options: Intl
 export function localeTime(ms: number, locale: string | undefined, options: Intl.DateTimeFormatOptions): string {
     const named = ['dayPeriod', 'hour', 'minute', 'second', 'fractionalSecondDigits', 'timeStyle'].some((k) => k in options);
     return dateFormat(locale, named ? options : {...options, hour: 'numeric', minute: 'numeric', second: 'numeric'}).format(new Date(ms));
+}
+
+/** A kept collator: `a.localeCompare(b, locale)` makes one per comparison. */
+export function collator(locale: string | undefined): Intl.Collator {
+    return kept(collators, locale ?? '', () => new Intl.Collator(locale));
 }

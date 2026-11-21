@@ -1,7 +1,9 @@
 /** Kept Intl formatters (lib/intl.ts): the same text as the built-ins, one formatter per key. */
 import {test} from 'node:test';
+import {readFileSync, readdirSync, statSync} from 'node:fs';
+import {join} from 'node:path';
 import assert from 'node:assert/strict';
-import {dateFormat, localeDate, localeTime, numberFormat} from '../lib/intl';
+import {collator, dateFormat, localeDate, localeTime, numberFormat} from '../lib/intl';
 
 const at = [Date.UTC(2026, 10, 21, 22, 30), Date.UTC(2026, 2, 29, 1, 15), Date.UTC(2026, 9, 25, 0, 45)];
 
@@ -22,4 +24,24 @@ test('one formatter per locale and options, made once', () => {
     assert.notEqual(dateFormat('en-CA', {timeZone: 'UTC', year: 'numeric'}), a);
     assert.equal(numberFormat('sv', {maximumFractionDigits: 1}), numberFormat('sv', {maximumFractionDigits: 1}));
     assert.equal(numberFormat('sv', {maximumFractionDigits: 1}).format(2.25), (2.25).toLocaleString('sv', {maximumFractionDigits: 1}));
+});
+
+test('a kept collator sorts as localeCompare does', () => {
+    const names = ['Övre', 'arbetsrum', 'Ångbastu', 'Zon', 'äng'];
+    assert.deepEqual([...names].sort(collator('sv').compare), [...names].sort((a, b) => a.localeCompare(b, 'sv')));
+});
+
+test('the app makes no Intl object outside lib/intl.ts: each holds native memory the small heap rarely frees', () => {
+    const files: string[] = [];
+    const walk = (dir: string) => readdirSync(dir).forEach((f) => {
+        const p = join(dir, f);
+        if (statSync(p).isDirectory()) walk(p); else if (p.endsWith('.ts')) files.push(p);
+    });
+    walk(join(__dirname, '..', 'lib'));
+    files.push(join(__dirname, '..', 'app.ts'));
+    const offenders = files.filter((f) => !f.endsWith('intl.ts')).flatMap((f) => {
+        const src = readFileSync(f, 'utf8');
+        return /new Intl\.|\.toLocale(Date|Time)?String\(|\.localeCompare\([^)]*,/.test(src) ? [f] : [];
+    });
+    assert.deepEqual(offenders, [], 'use lib/intl.ts');
 });

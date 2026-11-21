@@ -1,4 +1,5 @@
 /** Homey sensor selection and read-only discovery. No pump writes happen here. */
+import {collator} from './intl';
 import {Priority, gatewayFor} from './gateway';
 
 export interface SensorRef { deviceId: string; capabilityId: string }
@@ -48,12 +49,13 @@ export function averageSensors(config: IndoorConfig, readings: SensorReading[]):
 }
 
 export function sensorInventory(devices: Record<string, any>, zones: Record<string, any>, language = 'en'): SensorReading[] {
+    const byName = collator(language);
     const order: string[] = [];
     const paths = new Map<string, string>();
     const walk = (parent: string | null, path: string, seen: Set<string>) => {
         Object.values(zones).filter((z: any) => (z.parent ?? null) === parent)
             .sort((a: any, b: any) => (a.sortIndex ?? Infinity) - (b.sortIndex ?? Infinity)
-                || String(a.name).localeCompare(String(b.name), language))
+                || byName.compare(String(a.name), String(b.name)))
             .forEach((z: any) => {
                 if (seen.has(z.id)) return;
                 seen.add(z.id);
@@ -80,7 +82,7 @@ export function sensorInventory(devices: Record<string, any>, zones: Record<stri
     }
     return readings.sort((a, b) => {
         const rank = (id: string) => order.includes(id) ? order.indexOf(id) : order.length;
-        return rank(a.zoneId) - rank(b.zoneId) || a.name.localeCompare(b.name, language)
+        return rank(a.zoneId) - rank(b.zoneId) || byName.compare(a.name, b.name)
             || a.capabilityId.localeCompare(b.capabilityId);
     });
 }
