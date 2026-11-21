@@ -253,6 +253,33 @@ test('while the model learns, the trim alone holds the setpoint', async () => {
     assert.ok(planned.biases?.length);
 });
 
+test('just after a start, a model that loads plans within the slot, not at the next one', async () => {
+    const over: {plan?: any; setpoint: number; mean: number} = {plan: undefined, setpoint: 21, mean: 20.5};
+    const {feed, advance} = harness(over as any);
+    feed.start();
+    await feed.cycle();
+    assert.equal(feed.state.learning, true, 'the model is still loading');
+    over.plan = input({curve: 3});
+    advance(30_000);
+    await feed.cycle();
+    assert.equal(feed.state.learning, undefined, 'planned 30 s later, in the same slot');
+    assert.ok(feed.state.biases?.length);
+});
+
+test('long after a start, learning waits for the next slot to try a plan again', async () => {
+    const {STARTUP_REPLAN_MS} = await import('../lib/autopilot/live');
+    const over: {plan?: any; setpoint: number; mean: number} = {plan: undefined, setpoint: 21, mean: 20.5};
+    const {feed, advance} = harness(over as any);
+    feed.start();
+    advance(STARTUP_REPLAN_MS + SLOT_MS);
+    await feed.cycle();
+    assert.equal(feed.state.learning, true);
+    over.plan = input({curve: 3});
+    advance(30_000);
+    await feed.cycle();
+    assert.equal(feed.state.learning, true, 'days of learning do not plan every 30 s');
+});
+
 test('while learning, the pump\'s guards still hold, and without a setpoint or a mean it waits', async () => {
     const room = harness({plan: undefined, setpoint: 21, mean: 20.5, facts: {roomControl: 1}} as any);
     room.feed.start();

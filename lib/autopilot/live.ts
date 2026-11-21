@@ -125,6 +125,10 @@ export const MAX_FAILED_CYCLES = 3;
 /** After a start, no outdoor temperature is not warned about for this long (first sensor reading,
  *  first forecast). */
 export const OUTDOOR_GRACE_MS = 5 * 60_000;
+/** After a start the house model loads in about a minute: until it does, the feed holds on the
+ *  trim alone (learning). Within this long of the start it tries to plan every cycle, not at the
+ *  next slot, so a restart costs a minute of pre-heating, not up to 15 (2026-11-21). */
+export const STARTUP_REPLAN_MS = 15 * 60_000;
 
 /** Indoor readings outside this range are not a room's air temperature (a sensor fault). */
 export const INDOOR_PLAUSIBLE: [number, number] = [5, 35];
@@ -576,8 +580,10 @@ export class HeatingFeed {
             } else if (this.stopState && this.stopState !== 'no_outdoor') {
                 return;
             }
-        } else if (slot !== this.plannedSlot || this.stopState === 'no_model') {
-            // Without a model, retry each cycle: the first fit and the weather land minutes after a start.
+        } else if (slot !== this.plannedSlot || this.stopState === 'no_model'
+            || (this.learning && now - (this.startedAt ?? -Infinity) < STARTUP_REPLAN_MS)) {
+            // Without a model, retry each cycle: the first fit and the weather land minutes after a
+            // start. The same while learning just after a start, when the model is only loading.
             this.plannedSlot = slot;
             const wait = await this.replan(slot);
             if (wait) return this.idle(wait);
