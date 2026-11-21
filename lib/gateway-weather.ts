@@ -11,10 +11,13 @@ import {PRIORITY, gatewayFor} from './gateway';
 import {getJson} from './web';
 import {openMeteoUrl, weatherLocation} from './autopilot/weather';
 import {hourlyGhi, irradianceUrl} from './autopilot/hotwater-surplus';
+import {dailyMeans, seasonUrl} from './autopilot/season';
 
 export const LOCATION_MAX_AGE_MS = 24 * 60 * 60_000;
 export const FORECAST_MAX_AGE_MS = 60 * 60_000;
 export const HISTORY_MAX_AGE_MS = 24 * 60 * 60_000;
+/** The season's history is whole past years: it changes once a year. */
+export const SEASON_MAX_AGE_MS = 30 * 24 * 60 * 60_000;
 /** A failed fetch is not asked again sooner than this (a forecast service that is down). */
 export const RETRY_MS = 15 * 60_000;
 
@@ -36,6 +39,7 @@ export class WeatherBook {
     private homeyPlace: Kept<any> = {at: -Infinity};
     private forecasts = new Map<string, Kept<any>>();
     private histories = new Map<string, Kept<Map<number, number>>>();
+    private seasons = new Map<string, Kept<Map<string, number>>>();
 
     constructor(private readonly deps: WeatherBookDeps) {}
 
@@ -75,6 +79,18 @@ export class WeatherBook {
         const merged = new Map(history ?? []);
         for (const [at, w] of hourlyGhi(forecast)) merged.set(at, w);
         return merged;
+    }
+
+    /** Daily mean outdoor temperature over the last full years at the location (season.ts), for
+     *  the heating savings estimate; fetched at most monthly. Undefined without a location or an
+     *  answer. */
+    async seasonDays(today: string): Promise<Map<string, number> | undefined> {
+        const at = await this.location();
+        if (!at) return undefined;
+        const url = seasonUrl(at.latitude, at.longitude, today);
+        const days = await this.kept(this.slot(this.seasons, url), SEASON_MAX_AGE_MS,
+            async () => dailyMeans(await this.deps.getJson(url, 'open-meteo archive')));
+        return days?.size ? days : undefined;
     }
 
     /** The past `days` of weather, for the one-off history backfill. Not kept. */

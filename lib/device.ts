@@ -2,9 +2,11 @@ import {CaptureSummary, logCaptureSummary} from './diagnostic-capture';
 import {pricesFor} from './gateway-prices';
 import {PRIORITY} from './gateway';
 import {IndoorConfig, averageSensors, cleanIndoorConfig, readOnlyIndoorConfig, selectedReadings, withApi} from './indoor-sensors';
-import {Controls, AutopilotCollector, OUTDOOR_SENSOR_SETTING} from './autopilot/collector';
+import {Controls, AutopilotCollector, LOCATION_SETTING, OUTDOOR_SENSOR_SETTING} from './autopilot/collector';
 import {BACKFILL_FIELDS, BackfillField, LogSource, anyLogRead, backfillSources, fetchHeatingInsights} from './autopilot/heating-insights';
 import {newHistoryFileName} from './autopilot/store-file';
+import {DEFAULT_BASE_C, seasonCurve} from './autopilot/season';
+import {weatherFor} from './gateway-weather';
 import {BASELINE_DAYS, Baseline, LEDGER_DAYS, kwhPerLitreOf, moneyText, partialDay, ModeMark, SavingsData, SavingsDay, baselineOf, dayHours, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay, savingsLive} from './autopilot/savings';
 import {ChargeEvent, HotwaterAutopilot, HotwaterMode, LEGIONELLA_STATE_KEY, TankView, ownDeviceId} from './autopilot/hotwater-shadow';
 import {DEFAULT_INTERVAL_DAYS, MAX_FAILURES, OwnerHotwater, RestoreKey, TakeoverRecord, TakeoverWrite, gaveUp, noteFailure, noteRestored, noteTaken,
@@ -104,6 +106,9 @@ const MODE_MARKS_STORE = 'autopilotModeMarks';
 /** When Autopilot first ran live on this device (ms), and the baseline frozen from the days before. */
 const FIRST_LIVE_STORE = 'autopilotFirstLive';
 const BASELINE_STORE = 'autopilotSavingsBaseline';
+/** Heating's season where the heat pump is (season.ts): the curve, the base it was made with, when. */
+const SEASON_STORE = 'autopilotSeason';
+const SEASON_KEEP_MS = 30 * 86_400_000;
 /** This device's Homey id, for Insights URIs: looked up once (homeyDeviceId), it never changes. */
 const HOMEY_ID_STORE = 'homeyDeviceId';
 /** The indoor sensor read or feed set the device warning (clearIndoorWarning). */
@@ -3346,6 +3351,31 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         return Array.isArray(v) ? v : [];
     }
 
+    /** Heating's season where the heat pump is, from the store; fetched again (in the background)
+     *  when missing, a month old, or made with another base. The base is the heat pump's own
+     *  "stop heating" temperature (184) when it reads, else DEFAULT_BASE_C. Undefined until the
+     *  first fetch lands: the widget shows the month meanwhile, never a guessed season. */
+    private heatingSeason(today: string): number[] | undefined {
+        const stop = this.hasCapability('target_temperature.h184_auto_stop_heating')
+            ? Number(this.getCapabilityValue('target_temperature.h184_auto_stop_heating')) : NaN;
+        const base = Number.isFinite(stop) && stop > 0 && stop < 30 ? stop : DEFAULT_BASE_C;
+        const kept = this.getStoreValue(SEASON_STORE) as {curve?: number[]; base?: number; at?: number} | null;
+        const fresh = kept?.curve?.length === 12 && kept.base === base && Date.now() - (kept.at ?? 0) < SEASON_KEEP_MS;
+        if (!fresh && !this.seasonAsking) {
+            this.seasonAsking = true;
+            weatherFor(this.homey, LOCATION_SETTING).seasonDays(today)
+                .then(async (days) => {
+                    const curve = days && seasonCurve(days, base);
+                    if (curve) await this.setStoreValue(SEASON_STORE, {curve, base, at: Date.now()});
+                    else this.log('Heating savings: no season for this location yet; the month is shown.');
+                })
+                .catch((error) => this.log('Heating savings: season not read:', error?.message ?? error))
+                .finally(() => { this.seasonAsking = false; });
+        }
+        return kept?.curve?.length === 12 && kept.base === base ? kept.curve : undefined;
+    }
+    private seasonAsking = false;
+
     /** What the Autopilot savings widget draws. Every string translated here. */
     savingsWidget(): SavingsData {
         const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.savings.${key}`, tokens);
@@ -3383,6 +3413,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             price: (v) => amount(v, 2),
             money: (v) => amount(v, Math.abs(v) < 10 ? 1 : 0),
             dayMonth: (date) => dayMonth.format(new Date(`${date}T12:00:00Z`)),
+            season: this.role === 'heating' ? this.heatingSeason(today) : undefined,
 
         });
     }

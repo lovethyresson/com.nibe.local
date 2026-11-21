@@ -1669,9 +1669,11 @@ never swallow them.
     litre while buying in cheap hours.
   - **The year (2026-11-21).** Both widgets lead with this calendar year's estimate: saved so far
     plus the rest of the year at the pace so far (`yearOutlook`), drawn as one bar, solid then
-    hatched. Heating's rest is weighted by a typical year's heating degree-days per month
-    (`HEATING_SEASON`, approximate central-Swedish monthly means, not a published normal), so a
-    winter pace is not projected over the summer; hot water's days weigh the same. A week's kronor
+    hatched. Heating's rest is weighted by the heating degree-days per month where the heat pump is
+    (`season.ts`: the last three full years of daily mean temperature at the Homey's location, from
+    Open-Meteo's archive, below the pump's own stop-heating temperature, register 184, else 17 °C),
+    so a winter pace is not projected over the summer, in any climate. Without that history heating
+    shows the month, never a guessed season. Hot water's days weigh the same. A week's kronor
     were too few to say anything on their own. The Overview adds both estimates up.
   - **Views** (the maintainer's picks from ten mocks): heating shows before and with as two 100 %
     bars of the three thirds with kWh a day; hot water shows what a shower cost before and with

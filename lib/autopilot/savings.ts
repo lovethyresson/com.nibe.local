@@ -216,19 +216,12 @@ export function daySaving(d: SavingsDay, base: Baseline): number {
     return kwh * d.mean * base.ratio - d.cost;
 }
 
-/** A typical year's heating need per month, as heating degree-days (base 17 °C) from approximate
- *  monthly mean temperatures for central Sweden (about −1 °C in January and February, 18 °C in
- *  July; not a published normal): what weights the rest of the year for heating, so a winter pace
- *  is not taken for the year's. Only the shape matters, and it is an estimate's shape: a milder
- *  place (Denmark, the Netherlands) has a flatter one. Hot water's use barely follows the season:
- *  every day weighs the same. */
-export const HEATING_SEASON = [558, 504, 477, 315, 174, 39, 0, 0, 123, 291, 402, 515];
-
-/** A day's weight for the year's projection. */
-export function seasonWeight(date: string, role: 'heating' | 'hotwater'): number {
+/** A day's weight for the year's projection. Hot water's use barely follows the season: every day
+ *  weighs the same. Heating's follows the heating need where the heat pump is (`season`: heating
+ *  degree-days per day for each month, season.ts); without it, NaN, and no projection is made. */
+export function seasonWeight(date: string, role: 'heating' | 'hotwater', season?: number[]): number {
     if (role !== 'heating') return 1;
-    const y = Number(date.slice(0, 4)), m = Number(date.slice(5, 7));
-    return HEATING_SEASON[m - 1] / new Date(Date.UTC(y, m, 0)).getUTCDate();
+    return season?.[Number(date.slice(5, 7)) - 1] ?? NaN;
 }
 
 /** This calendar year: saved so far, the rest of the year at the pace so far (weighted by
@@ -244,17 +237,17 @@ export interface YearOutlook {
 export const PROJECT_MIN_DAYS = 7;
 
 export function yearOutlook(days: SavingsDay[], firstLiveDate: string, base: Baseline, today: string,
-    role: 'heating' | 'hotwater'): YearOutlook | undefined {
+    role: 'heating' | 'hotwater', season?: number[]): YearOutlook | undefined {
     const year = today.slice(0, 4);
     const counted = savingDays(days, firstLiveDate).filter((d) => d.date.slice(0, 4) === year && d.date <= today);
     // The pace from whole days only: today so far has its season weight but only part of its saving.
     const whole = counted.filter((d) => d.date < today);
     if (whole.length < PROJECT_MIN_DAYS) return undefined;
     const saved = counted.reduce((s, d) => s + daySaving(d, base), 0);
-    const weight = whole.reduce((s, d) => s + seasonWeight(d.date, role), 0);
+    const weight = whole.reduce((s, d) => s + seasonWeight(d.date, role, season), 0);
     if (!(weight > 0)) return undefined;
     let ahead = 0;
-    for (let date = shiftDate(today, 1); date.slice(0, 4) === year; date = shiftDate(date, 1)) ahead += seasonWeight(date, role);
+    for (let date = shiftDate(today, 1); date.slice(0, 4) === year; date = shiftDate(date, 1)) ahead += seasonWeight(date, role, season);
     const rest = whole.reduce((s, d) => s + daySaving(d, base), 0) / weight * ahead;
     return {saved, rest, total: saved + rest};
 }
@@ -347,6 +340,8 @@ export interface SavingsContext {
     money: (v: number) => string;
     /** A date as day and month, "14 Nov". */
     dayMonth: (date: string) => string;
+    /** Heating: the season where the heat pump is (season.ts); without it no year is projected. */
+    season?: number[];
 }
 
 /** The widget's text and pictures. */
@@ -410,7 +405,7 @@ export function savingsData(title: string, stored: SavingsDay[], t: Translate, c
     if (!sums.days) return {title, ...pictures, status: t(`status_${c.role}`), reason: t('first_day')};
     // The year: saved so far and the rest at the pace so far, as one estimate. The kronor of a week
     // are too few to say much; the year is the scale an owner weighs Autopilot on.
-    const outlook = yearOutlook(days, c.firstLiveDate, base, c.today, c.role);
+    const outlook = yearOutlook(days, c.firstLiveDate, base, c.today, c.role, c.season);
     if (outlook) {
         const year = c.today.slice(0, 4);
         return {

@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {HEATING_SEASON, SavingsDay, moneyText, seasonWeight, yearOutlook, partialDay, baselineOf, dayHours, daySaving, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, periodSavings, savingsData, savingsDay, savingsLive, totals} from '../lib/autopilot/savings';
+import {SavingsDay, moneyText, seasonWeight, yearOutlook, partialDay, baselineOf, dayHours, daySaving, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, periodSavings, savingsData, savingsDay, savingsLive, totals} from '../lib/autopilot/savings';
 import {localDate} from '../lib/autopilot/prices';
 
 const HOUR = 3_600_000;
@@ -116,16 +116,19 @@ test('savings add up over the last 7 days, the month and the year, from the day 
     assert.ok(Math.abs(sums.year - 16) < 0.05);
 });
 
+/** A test season: heating degree-days per day for each month (any shape will do; season.ts makes
+ *  the real one from the owner's location). */
+const SEASON = [18, 18, 15.4, 10.5, 5.6, 1.3, 0, 0, 4.1, 9.4, 13.4, 16.6];
 /** A week with Autopilot, 15–21 Nov, as `after`: the projection needs seven whole days. */
 const week = Array.from({length: 7}, (_, k) => day(`2026-11-${15 + k}`, [6, 3, 1], 1.5, 12, 1));
 
 test('the widget shows the year: saved so far, the rest by season, the estimate, and the shift against before', () => {
     const b = baselineOf(before, '2026-11-14')!;
-    const d = savingsData('Heating', [...before, ...week], translator('en'), ctx({today: '2026-11-22', firstLiveDate: '2026-11-14', baseline: b}));
+    const d = savingsData('Heating', [...before, ...week], translator('en'), ctx({today: '2026-11-22', firstLiveDate: '2026-11-14', baseline: b, season: SEASON}));
     assert.equal(d.status, 'Heating savings');
-    // Seven November days (weight 402/30 each); ahead: 8 November days and December's 515.
+    // Seven November days (13.4 each); ahead: 8 November days and December's 31 × 16.6.
     const saved = week.reduce((s, x) => s + daySaving(x, b), 0);
-    const rest = saved / (7 * 402 / 30) * (8 * 402 / 30 + 515);
+    const rest = saved / (7 * 13.4) * (8 * 13.4 + 31 * 16.6);
     assert.equal(d.value, `~${Math.round(saved + rest)} kr`);
     assert.equal(d.valueNote, 'estimated for 2026 · from 11-14');
     assert.equal(d.tone, 'good');
@@ -133,6 +136,10 @@ test('the widget shows the year: saved so far, the rest by season, the estimate,
         restLabel: 'Rest of the year, by season', rest: `~${Math.round(rest)} kr`});
     assert.ok(Math.abs(d.year!.share - d.yearSaved! / d.yearValue!) < 1e-9);
     assert.equal(d.stats, undefined, 'the year bar says it');
+    // No season for the location yet: no projection, never a guessed one.
+    const noSeason = savingsData('Heating', [...before, ...week], translator('en'), ctx({today: '2026-11-22', firstLiveDate: '2026-11-14', baseline: b}));
+    assert.equal(noSeason.year, undefined);
+    assert.equal(noSeason.valueNote, 'November');
     // Under seven whole days: no projection yet, the month as before.
     const young = savingsData('Heating', [...before, ...after], translator('en'), ctx({firstLiveDate: '2026-11-14', baseline: b}));
     assert.equal(young.year, undefined);
@@ -312,15 +319,17 @@ test('the year ahead: heating by season, hot water at a flat pace, and nothing p
         const date = new Date(Date.UTC(2027, 0, 1 + k)).toISOString().slice(0, 10);
         winter.push(day(date, [10, 0, 0], 1.4, 10, 1));
     }
-    const heat = yearOutlook(winter, '2026-11-14', base, '2027-02-14', 'heating')!;
+    const heat = yearOutlook(winter, '2026-11-14', base, '2027-02-14', 'heating', SEASON)!;
     const water = yearOutlook(winter, '2026-11-14', base, '2027-02-14', 'hotwater')!;
     assert.ok(Math.abs(heat.saved - 180) < 1e-6 && Math.abs(water.saved - 180) < 1e-6);
     assert.ok(Math.abs(water.rest - 4 * 320) < 1e-6, 'hot water: 320 days left at 4 kr');
     assert.ok(heat.rest < water.rest / 2, `heating's rest weighs the mild months less: ${heat.rest}`);
-    const last = yearOutlook(winter, '2026-11-14', base, '2027-12-31', 'heating');
+    const last = yearOutlook(winter, '2026-11-14', base, '2027-12-31', 'heating', SEASON);
     assert.equal(last?.rest, 0, 'the last day: nothing ahead');
     // A summer start: heating's days so far weigh nothing, so there is no pace to project.
-    assert.equal(yearOutlook([day('2027-07-10', [1, 0, 0], 1.4, 1, 1)], '2027-07-01', base, '2027-07-11', 'heating'), undefined);
+    const summer = Array.from({length: 8}, (_, k) => day(`2027-07-0${k + 1}`, [1, 0, 0], 1.4, 1, 1));
+    assert.equal(yearOutlook(summer, '2027-07-01', base, '2027-07-09', 'heating', SEASON), undefined);
     assert.equal(seasonWeight('2027-07-10', 'hotwater'), 1);
-    assert.ok(Math.abs(seasonWeight('2027-01-10', 'heating') - HEATING_SEASON[0] / 31) < 1e-9);
+    assert.equal(seasonWeight('2027-01-10', 'heating', SEASON), 18);
+    assert.ok(Number.isNaN(seasonWeight('2027-01-10', 'heating')), 'no season: no weight');
 });
