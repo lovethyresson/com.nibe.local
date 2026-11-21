@@ -422,6 +422,8 @@ export interface FeedSnapshot {
     back?: number;
     /** No plan yet (the model learning): it feeds the trim alone, to hold the setpoint. */
     learning?: boolean;
+    /** Just started and waiting for the first outdoor temperature: starting, not paused. */
+    startingUp?: boolean;
 }
 
 /** The 30 s BT1 feed and the 15-min shift planner, on the Heating device. */
@@ -476,7 +478,7 @@ export class HeatingFeed {
             real: this.real?.value, stopped: this.stopState, slot: this.plan?.slot, biases: this.plan?.biases,
             forecast: this.plan?.forecast, planReason: this.plan?.reason, indoor: this.plan?.indoor, neutral: this.neutral || undefined,
             sunTrusted: this.hooks.sunTrust() > 0 || undefined, trim: this.trim || undefined, setpoint: this.setpoint,
-            back: this.plan?.back, learning: this.learning || undefined};
+            back: this.plan?.back, learning: this.learning || undefined, startingUp: this.startingUp || undefined};
     }
 
     start() {
@@ -740,8 +742,9 @@ export class HeatingFeed {
     private async idle(reason: StopReason) {
         const graceOver = this.hooks.now() - (this.startedAt ?? -Infinity) > OUTDOOR_GRACE_MS;
         if (this.stopState === reason) {
-            // Still none once the start-up minutes are over: now it is worth telling.
-            if (reason === 'no_outdoor' && !this.warned && graceOver) this.warn(reason);
+            // Still none once the start-up minutes are over: now it is worth telling, and the
+            // status turns from Starting to Paused.
+            if (reason === 'no_outdoor' && !this.warned && graceOver) { this.warn(reason); this.hooks.changed(); }
             return;
         }
         const first = this.stopState === undefined;

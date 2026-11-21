@@ -2277,9 +2277,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const before = this.heatingStatusShown;
         this.heatingStatusShown = status;
         if (before === undefined || before === status) return;
-        // The minute after a start, before the first outdoor reading, is not a pause: no Flow, no
-        // timeline line, and so no "resumed" after it either.
-        if (status === 'paused' && this.heatingFeed?.startingUp) { this.pauseAnnounced = false; return; }
         this.homey.flow.getDeviceTriggerCard((this.profile.flowPrefix ?? '') + 'autopilot_heating_status_changed')
             .trigger(this, {status: this.homey.__(`autopilot.heating.status_name.${status}`), reason}).catch(this.error);
         const started = startedTrigger(before, status);
@@ -2779,8 +2776,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             : status === 'paused' && stopped && WIDGET_PAUSES.includes(stopped) ? t(`paused.${stopped}`)
                 : stored === undefined || stored === statusName ? undefined : stripLead(stored, [testLead, statusName ?? '']);
         const aim = aimingFor(slots, now, this.heatingFeed?.state?.setpoint);
-        // Started, house learned, no plan yet: the forecast and prices are being read.
-        const waiting = stopped === 'no_model' && !!summary?.ready;
+        // Started, house learned, no plan yet: the forecast and prices are being read. Or the
+        // first outdoor reading after a start is still on its way.
+        const waiting = (stopped === 'no_model' && !!summary?.ready) || !!this.heatingFeed?.state?.startingUp;
         const indoors = [...slots.flatMap((s) => (s.indoor === undefined ? [] : [s.indoor]))];
         const shifts = slots.flatMap((s) => (s.offset === undefined ? [] : [s.offset]));
         return {

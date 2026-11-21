@@ -69,6 +69,8 @@ test('learning shows progress; waits are paused with their reason; off is off', 
     assert.deepEqual(heatingStatus(stopped, now, t, time), {status: 'holding', reason: 'starting'},
         'before the saved model is read, it is starting, not learning');
     assert.deepEqual(heatingStatus(live({stopped: 'no_outdoor'}), now, t, time), {status: 'paused', reason: 'paused.no_outdoor'});
+    assert.deepEqual(heatingStatus(live({stopped: 'no_outdoor', startingUp: true}), now, t, time), {status: 'holding', reason: 'starting'},
+        'the first outdoor reading after a start is still on its way: starting, not paused');
     assert.deepEqual(heatingStatus({mode: 'off', bias: 0, target: 0, stopped: 'mode_off'}, now, t, time), {status: 'off', reason: ''});
     assert.equal(heatingStatus({mode: 'off', bias: 0, target: 0, stopped: 'feed_failed'}, now, t, time).status, 'paused',
         'a feed that failed is not quietly off');

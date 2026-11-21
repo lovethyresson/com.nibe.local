@@ -100,6 +100,8 @@ export function heatingStatus(s: FeedSnapshot, now: number, t: Translate, time: 
         if (learning.ready) return {status: 'holding', reason: say(t('waiting'))};
         return {status: 'learning', reason: say(learningText(learning, t))};
     }
+    // The minutes after a start, before the first outdoor reading: starting, not a pause.
+    if (s.startingUp) return {status: 'holding', reason: say(t('starting'))};
     if (s.stopped) return {status: 'paused', reason: say(t(`paused.${s.stopped}`))};
     if (s.neutral) return {status: 'holding', reason: say(t('range_off'))};
     const biases = s.biases ?? [];
