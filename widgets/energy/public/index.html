@@ -240,8 +240,21 @@
       function onHomeyReady(Homey) {
         var settings = Homey.getSettings() || {};
         var device = settings.device && settings.device.id;
+        // Widgets share one storage: the key names this one (its path) and the device it shows.
+        var cacheKey = 'last:' + location.pathname + ':' + (device || ''), KEEP_MS = 3 * 3600000;
+        function keep(data) {
+          if (!data || data.loading || data.empty) return;
+          try { localStorage.setItem(cacheKey, JSON.stringify({at: Date.now(), data: data})); } catch (e) { /* no storage */ }
+        }
         document.getElementById('en').appendChild(el('p', 'en-empty', words().loading));
-        function show(data) { failures = 0; last = data; renderFitted(data); fit(Homey); }
+        function show(data) {
+          // Starting (just after a restart): ask again in 5 s, not at the next refresh, and keep
+          // the picture already shown meanwhile.
+          if (data && data.loading && !soon) soon = setTimeout(function () { soon = null; load(); }, 5000);
+          if (data && data.loading && last && !last.loading) return;
+          failures = 0; last = data; renderFitted(data); fit(Homey); keep(data);
+        }
+        var soon = null;
         var failures = 0;
         function load() {
           return Homey.api('GET', '/' + (device ? '?device=' + encodeURIComponent(device) : ''), {})
@@ -260,7 +273,14 @@
         }
         // ready() without a height puts the widget back to its compose height: the fit done while
         // loading would be lost, and a long card clipped (Plan vs actual, 2026-11-21).
-        load().finally(function () { Homey.ready({height: Math.ceil(document.getElementById('en').scrollHeight) + 16}); });
+        // The last picture this card showed, drawn at once while the app is asked: the dashboard
+        // opens without waiting on the app, and the answer replaces it a moment later.
+        var shown = false;
+        try {
+          var kept = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+          if (kept && Date.now() - kept.at < KEEP_MS) { last = kept.data; renderFitted(kept.data); Homey.ready({height: Math.ceil(document.getElementById('en').scrollHeight) + 16}); shown = true; }
+        } catch (e) { /* no storage: wait for the app, as before */ }
+        load().finally(function () { if (!shown) Homey.ready({height: Math.ceil(document.getElementById('en').scrollHeight) + 16}); });
         setInterval(load, 60000);
         // The card changes width: draw the chart again at the new width.
         var timer = null;
