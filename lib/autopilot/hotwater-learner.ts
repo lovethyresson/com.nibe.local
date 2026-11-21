@@ -220,7 +220,8 @@ export function intervals(points: TankPoint[], loss: StandingLoss = DEFAULT_LOSS
             ? Math.max(0, s0 - s1 + heatIn - (charging ? 0 : lossAt(loss, (s0 + s1) / 2) * hours)) : NaN;
         // The hour that emptied the tank was a big draw, and leaving it out would teach the
         // profile that the busiest hours are light (2026-11-21 review): count at least what left.
-        const emptied = Number.isFinite(s0) && b.litres === 0;
+        // Litres 0 with the top still hot is a reading gone wrong, not an empty tank.
+        const emptied = Number.isFinite(s0) && b.litres === 0 && !(finite(b.top) && b.top >= 40);
         const drawAtLeast = emptied ? Math.max(0, s0 + tankHeatIn(produced, hours, s0 / 2, charge) - lossAt(loss, s0 / 2) * hours) : undefined;
         out.push({start: a.t, hours, draw, produced, used, stored: s0, storedEnd: s1,
             ...drawAtLeast !== undefined ? {drawAtLeast} : {}, ...a.litres === 0 && b.litres === 0 ? {cold: true} : {},
@@ -381,6 +382,8 @@ interface Day {
     known?: number[];
     /** Hours the tank was under 40 °C all through, per local hour (0–1): nothing hot to draw. */
     cold?: number[];
+    /** Local hours a draw emptied the tank in (`Interval.drawAtLeast`). */
+    emptied?: number[];
     dayType?: DayType;
 }
 
@@ -394,6 +397,7 @@ function shapeOnly(map: Map<string, Day & {votes: Map<DayType, number>}>, i: Int
     if (i.drawAtLeast !== undefined) {
         (day.byHour ??= new Array(24).fill(0))[hour] += i.drawAtLeast;
         (day.known ??= new Array(24).fill(0))[hour] += i.hours;
+        (day.emptied ??= []).push(hour);
     } else (day.cold ??= new Array(24).fill(0))[hour] += i.hours;
 }
 
@@ -556,7 +560,7 @@ export function learn(points: TankPoint[], clock: LocalClock, now: number, halfL
     }
     const evenings = weekdayEvenings(shapeDays.filter((d) => d.dayType === 'working'), weight);
     const today = clock(now).date;
-    const recent = every.filter((d) => d.date < today).slice(-RECENT_DAYS).map((d): DayDraw => ({date: d.date,
+    const recent = every.filter((d) => d.date < today && d.hoursCovered > 0).slice(-RECENT_DAYS).map((d): DayDraw => ({date: d.date,
         draw: Math.round(d.draw * 100) / 100, ...(d.dayType ? {dayType: d.dayType} : {}),
         ...(away.includes(d) ? {away: true} : {}),
         ...(d.hoursCovered < FULL_DAY_HOURS ? {partial: Math.round(d.hoursCovered * 10) / 10} : {})}));
@@ -568,10 +572,15 @@ export const weekdayOf = (date: string) => new Date(`${date}T12:00:00Z`).getUTCD
 
 /** Per weekday, the evening draw of working days whose every evening hour was read. */
 function weekdayEvenings(days: Day[], weight: (d: Day) => number): HotwaterModel['evenings'] {
-    // Each evening hour read, or cold (nothing hot left to draw): an evening that emptied the tank
-    // counts with its draw at least, rather than being left out as the busy evenings were.
-    const known = days.filter((d) => d.byHour && d.known
-        && d.known.slice(EVENING_FROM, EVENING_TO).every((k, j) => k + (d.cold?.[EVENING_FROM + j] ?? 0) >= KNOWN_HOUR));
+    // Each evening hour read, or cold after a draw emptied the tank earlier that evening: such an
+    // evening counts with its draw at least, rather than being left out as the busy evenings were.
+    // A tank cold from before the evening is unmet demand, not a light evening: left out.
+    const known = days.filter((d) => {
+        if (!d.byHour || !d.known) return false;
+        const first = Math.min(...(d.emptied ?? []).filter((h) => h >= EVENING_FROM && h < EVENING_TO));
+        return d.known.slice(EVENING_FROM, EVENING_TO).every((k, j) =>
+            k >= KNOWN_HOUR || (EVENING_FROM + j > first && (d.cold?.[EVENING_FROM + j] ?? 0) + k >= KNOWN_HOUR));
+    });
     if (!known.length) return undefined;
     const evening = (d: Day) => d.byHour!.slice(EVENING_FROM, EVENING_TO).reduce((a, b) => a + b, 0);
     const all = known.map((d) => [evening(d), weight(d)] as const);

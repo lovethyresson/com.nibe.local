@@ -203,7 +203,7 @@ test('an evening that empties the tank counts, with its draw at least, instead o
     const points = simulate(70, draw, {dayType: (day) => (free(day) ? 'free' : 'working')})
         .map((p) => {
             const day = Math.floor((p.t - T0) / (24 * HOUR)), hour = clock(p.t).hour;
-            return tuesday(day) && hour >= 20 ? {...p, litres: 0} : p;
+            return tuesday(day) && hour >= 20 ? {...p, litres: 0, top: 35} : p;
         });
     const model = learn(points, clock, points[points.length - 1].t);
     const ev = model.evenings!;
@@ -213,9 +213,28 @@ test('an evening that empties the tank counts, with its draw at least, instead o
     assert.ok(model.profiles.working!.hours[19] > 1.5, `the emptying hour is not learned light: ${model.profiles.working!.hours[19]}`);
 });
 
+test('a tank cold from before the evening is unmet demand: that evening is left out, not learned light', () => {
+    // Thursdays read empty from 15:00, before any evening draw: nothing says what the evening wanted.
+    const free = (day: number) => day % 7 >= 5;
+    const thursday = (day: number) => day % 7 === 3;
+    const points = simulate(70, (day, hour) => free(day) ? freeDay(hour) : workingDay(hour),
+        {dayType: (day) => (free(day) ? 'free' : 'working')})
+        .map((p) => (thursday(Math.floor((p.t - T0) / (24 * HOUR))) && clock(p.t).hour >= 15 ? {...p, litres: 0, top: 35} : p));
+    const ev = learn(points, clock, points[points.length - 1].t).evenings!;
+    assert.strictEqual(ev[4]!.days, 0, 'no Thursday evening of its own');
+    assert.ok(Math.abs(ev[4]!.mean - ev[1]!.mean) < 0.5, `leans on the working evening: ${ev[4]!.mean} vs ${ev[1]!.mean}`);
+});
+
+test('litres 0 with the top still hot is a bad reading, not an emptied tank', () => {
+    const spans = intervals([{t: 0, litres: 200, produced: 10, top: 55}, {t: HOUR, litres: 0, produced: 10, top: 54}]);
+    assert.strictEqual(spans[0].drawAtLeast, undefined);
+    const real = intervals([{t: 0, litres: 200, produced: 10, top: 55}, {t: HOUR, litres: 0, produced: 10, top: 36}]);
+    assert.ok(real[0].drawAtLeast! > 5);
+});
+
 test('part days alone make no profile: a total needs full days or a starting point', () => {
     // Every day reads empty 00–05: no full day at all.
-    const points = simulate(14, (day, hour) => workingDay(hour)).map((p) => (clock(p.t).hour < 5 ? {...p, litres: 0} : p));
+    const points = simulate(14, (day, hour) => workingDay(hour)).map((p) => (clock(p.t).hour < 5 ? {...p, litres: 0, top: 35} : p));
     const model = learn(points, clock, points[points.length - 1].t);
     assert.strictEqual(model.profiles.any, undefined);
     assert.strictEqual(model.profiles.working, undefined);
