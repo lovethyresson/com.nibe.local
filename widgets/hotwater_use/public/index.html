@@ -233,7 +233,9 @@
             })
             .then(fit);
         }
-        load().finally(function () { Homey.ready(); });
+        // ready() without a height puts the widget back to its compose height: the fit done while
+        // loading would be lost, and a long card clipped (Plan vs actual, 2026-11-21).
+        load().finally(function () { Homey.ready({height: Math.ceil(document.getElementById('hw').scrollHeight) + 16}); });
         // Today's list moves with each charge and shower: every 2 minutes.
         setInterval(load, 120000);
         // The card changes width: draw the chart again at the new width.

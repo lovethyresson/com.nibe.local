@@ -149,7 +149,9 @@
               fit(Homey);
             });
         }
-        load().finally(function () { Homey.ready(); });
+        // ready() without a height puts the widget back to its compose height: the fit done while
+        // loading would be lost, and a long card clipped (Plan vs actual, 2026-11-21).
+        load().finally(function () { Homey.ready({height: Math.ceil(document.getElementById('cc').scrollHeight) + 16}); });
         // The hours come in once an hour: a quarter-hour refresh is plenty.
         setInterval(function () { if (!last || last.loading || last.empty) load(); }, 30000);
         setInterval(load, 15 * 60000);

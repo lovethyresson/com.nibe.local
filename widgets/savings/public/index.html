@@ -309,7 +309,9 @@
               fit(Homey);
             });
         }
-        load().finally(function () { Homey.ready(); });
+        // ready() without a height puts the widget back to its compose height: the fit done while
+        // loading would be lost, and a long card clipped (Plan vs actual, 2026-11-21).
+        load().finally(function () { Homey.ready({height: Math.ceil(document.getElementById('sv').scrollHeight) + 16}); });
         // A day is written once an hour at most: a quarter-hour refresh is plenty. While the card is
         // starting, or answered with a line, it asks again every 30 s until it has its picture.
         setInterval(function () { if (!last || last.loading || last.empty) load(); }, 30000);
