@@ -565,7 +565,7 @@
         "running": "Varmer allerede",
         "before_use": "I tide til forbruket",
         "room": "Nok varmtvann til da",
-        "loss": "Mindre varmetap",
+        "loss": "Beste tid for behovet ditt",
         "legionella": "Legionella"
       },
       "cost": "Forventet kostnad __cost__. Morgendagens priser er ikke kommet ennå.",
@@ -581,7 +581,7 @@
         "cheap": "Billigste timer",
         "before_use": "I tide til forbruket",
         "room": "Nok varmtvann til da",
-        "loss": "Mindre varmetap",
+        "loss": "Beste tid for behovet ditt",
         "surplus": "Soloverskudd",
         "reserve": "Under minimumsnivået",
         "running": "Varmer allerede",
@@ -624,7 +624,8 @@
       "blocked": {
         "hot_water_off": "Autopilot venter. Varmtvann er slått av på varmepumpen din.",
         "spa": "Autopilot venter. Slå av Smart Price Adaption for varmtvann på varmepumpen din.",
-        "smart_control": "Autopilot venter. Varmtvannsbehovet på varmepumpen din er satt til Smart control. Sett det til Lite, Middels eller Stort."
+        "smart_control": "Autopilot venter. Varmtvannsbehovet på varmepumpen din er satt til Smart control. Sett det til Lite, Middels eller Stort.",
+        "rescue_limit": "Varmtvannet er under minimumsnivået ditt, og Autopilot har brukt dagens __max__ starter. Slå på Mer varmtvann på varmepumpen din hvis du trenger det før midnatt."
       }
     },
     "hotwater_legionella": {
@@ -660,7 +661,7 @@
         "cheap": "Billigste timer",
         "before_use": "I tide til forbruket",
         "room": "Nok varmtvann til da",
-        "loss": "Mindre varmetap",
+        "loss": "Beste tid for behovet ditt",
         "surplus": "Soloverskudd",
         "reserve": "Under minimumsnivået",
         "running": "Varmer allerede",

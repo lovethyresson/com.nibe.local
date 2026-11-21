@@ -180,7 +180,7 @@
         "running": "Warmt al op",
         "before_use": "Op tijd voor gebruik",
         "room": "Genoeg warm water tot dan",
-        "loss": "Minder warmteverlies",
+        "loss": "Beste moment voor je gebruik",
         "legionella": "Legionella"
       },
       "cost": "Verwachte kosten __cost__. De prijzen van morgen zijn er nog niet.",
@@ -196,7 +196,7 @@
         "cheap": "Goedkoopste uren",
         "before_use": "Op tijd voor gebruik",
         "room": "Genoeg warm water tot dan",
-        "loss": "Minder warmteverlies",
+        "loss": "Beste moment voor je gebruik",
         "surplus": "Zonne-overschot",
         "reserve": "Onder het minimum",
         "running": "Warmt al op",
@@ -239,7 +239,8 @@
       "blocked": {
         "hot_water_off": "Autopilot wacht. Warm water staat uit op je warmtepomp.",
         "spa": "Autopilot wacht. Zet Smart Price Adaption voor warm water uit op je warmtepomp.",
-        "smart_control": "Autopilot wacht. De warmwatervraag van je warmtepomp staat op Smart control. Zet die op Klein, Gemiddeld of Groot."
+        "smart_control": "Autopilot wacht. De warmwatervraag van je warmtepomp staat op Smart control. Zet die op Klein, Gemiddeld of Groot.",
+        "rescue_limit": "Het warme water is onder je minimum en Autopilot heeft de __max__ starts van vandaag gebruikt. Zet Meer warmwater aan op je warmtepomp als je het voor middernacht nodig hebt."
       }
     },
     "hotwater_legionella": {
@@ -275,7 +276,7 @@
         "cheap": "Goedkoopste uren",
         "before_use": "Op tijd voor gebruik",
         "room": "Genoeg warm water tot dan",
-        "loss": "Minder warmteverlies",
+        "loss": "Beste moment voor je gebruik",
         "surplus": "Zonne-overschot",
         "reserve": "Onder het minimum",
         "running": "Warmt al op",

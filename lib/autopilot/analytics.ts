@@ -80,6 +80,8 @@ export interface TankDay {
     minLitres?: number;
     minTop?: number;
     belowNet?: true;
+    /** Rescues under the minimum that the day's starts refused (hotwater-lever.ts). */
+    refusedRescues?: number;
 }
 
 /** The day after one slot's reading; the same object when nothing changed (no store write). */

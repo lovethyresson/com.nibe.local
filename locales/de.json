@@ -565,7 +565,7 @@
         "running": "Heizt bereits",
         "before_use": "Rechtzeitig vor dem Verbrauch",
         "room": "Bis dahin genug Warmwasser",
-        "loss": "Weniger Wärmeverlust",
+        "loss": "Beste Zeit für Ihren Bedarf",
         "legionella": "Legionellen"
       },
       "cost": "Erwartete Kosten __cost__. Die Preise für morgen sind noch nicht da.",
@@ -581,7 +581,7 @@
         "cheap": "Günstigste Stunden",
         "before_use": "Rechtzeitig vor dem Verbrauch",
         "room": "Bis dahin genug Warmwasser",
-        "loss": "Weniger Wärmeverlust",
+        "loss": "Beste Zeit für Ihren Bedarf",
         "surplus": "Solarüberschuss",
         "reserve": "Unter dem Minimum",
         "running": "Heizt bereits",
@@ -624,7 +624,8 @@
       "blocked": {
         "hot_water_off": "Autopilot wartet. Brauchwasser ist an Ihrer Wärmepumpe ausgeschaltet.",
         "spa": "Autopilot wartet. Schalten Sie Smart Price Adaption für Brauchwasser an Ihrer Wärmepumpe aus.",
-        "smart_control": "Autopilot wartet. Der Brauchwasserbedarf Ihrer Wärmepumpe steht auf Smart control. Stellen Sie ihn auf Niedrig, Mittel oder Hoch."
+        "smart_control": "Autopilot wartet. Der Brauchwasserbedarf Ihrer Wärmepumpe steht auf Smart control. Stellen Sie ihn auf Niedrig, Mittel oder Hoch.",
+        "rescue_limit": "Das Warmwasser liegt unter Ihrem Minimum, und Autopilot hat die __max__ Starts von heute verbraucht. Schalten Sie Mehr Brauchwasser an Ihrer Wärmepumpe ein, wenn Sie es vor Mitternacht brauchen."
       }
     },
     "hotwater_legionella": {
@@ -660,7 +661,7 @@
         "cheap": "Günstigste Stunden",
         "before_use": "Rechtzeitig vor dem Verbrauch",
         "room": "Bis dahin genug Warmwasser",
-        "loss": "Weniger Wärmeverlust",
+        "loss": "Beste Zeit für Ihren Bedarf",
         "surplus": "Solarüberschuss",
         "reserve": "Unter dem Minimum",
         "running": "Heizt bereits",

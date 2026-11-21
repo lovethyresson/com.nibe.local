@@ -346,8 +346,11 @@ interface Day {
     t: number;
     hoursCovered: number;
     draw: number;
-    /** Per local hour; undefined when any reading was coarser than an hour. */
+    /** Per local hour, from the hourly readings; undefined when the day had none. */
     byHour?: number[];
+    /** Hours of known hourly draw behind each local hour (0–1): an hour the tank was under 40 °C,
+     *  or read only in a coarser bucket, is unknown, and the day's other hours still count. */
+    known?: number[];
     dayType?: DayType;
 }
 
@@ -361,12 +364,14 @@ function days(spans: Interval[], clock: LocalClock): Day[] {
             const t = i.start + (k + 0.5) * (i.hours / steps) * HOUR;
             const {date, hour} = clock(t);
             let day = map.get(date);
-            if (!day) map.set(date, day = {date, t, hoursCovered: 0, draw: 0, byHour: new Array(24).fill(0), votes: new Map()});
+            if (!day) map.set(date, day = {date, t, hoursCovered: 0, draw: 0, votes: new Map()});
             day.t = Math.max(day.t, t);
             day.hoursCovered += i.hours / steps;
             day.draw += i.draw / steps;
-            if (i.hours > 1.01) day.byHour = undefined;
-            else if (day.byHour) day.byHour[hour] += i.draw / steps;
+            if (i.hours <= 1.01) {
+                (day.byHour ??= new Array(24).fill(0))[hour] += i.draw / steps;
+                (day.known ??= new Array(24).fill(0))[hour] += i.hours / steps;
+            }
             if (i.dayType) day.votes.set(i.dayType, (day.votes.get(i.dayType) ?? 0) + i.hours / steps);
         }
     }
@@ -376,12 +381,19 @@ function days(spans: Interval[], clock: LocalClock): Day[] {
     }).sort((x, y) => x.t - y.t);
 }
 
-function profileOf(list: Day[], weight: (d: Day) => number, prior?: DayProfile): DayProfile | undefined {
-    if (!list.length && !prior) return undefined;
+/** An hour counts toward a day's shape when this much of it was read hourly. */
+const KNOWN_HOUR = 0.99;
+
+/** The day type's profile: its daily total from full days (`list`), its hour shape from every
+ *  day with hourly readings (`shapes`, part days included), each hour from the days that hour is
+ *  known on. Until 2026-11-21 an hour shape took full days only, and a full day needed 22 known
+ *  hours: a tank left under 40 °C overnight dropped the whole day, so on 16 Nov no working day
+ *  had a shape of its own and the working-day plan took the pooled one, weekend middays and all. */
+function profileOf(list: Day[], weight: (d: Day) => number, prior?: DayProfile, shapes: Day[] = list): DayProfile | undefined {
+    if (!list.length && !shapes.length && !prior) return undefined;
     const w = list.map(weight);
     const total = w.reduce((s, v) => s + v, 0);
-    const shaped = list.map((d, k) => [d, w[k]] as const).filter(([d]) => d.byHour);
-    const shapeTotal = shaped.reduce((s, [, v]) => s + v, 0);
+    const shapedAll = shapes.filter((d) => d.byHour && d.known).map((d) => [d, weight(d)] as const);
     const blend = (own: number, ownWeight: number, from: number | undefined) => {
         const k = Math.max(0, SHRINK_DAYS - ownWeight);
         return prior && k > 0 && from !== undefined && Number.isFinite(from) ? (own * ownWeight + from * k) / (ownWeight + k) : own;
@@ -390,6 +402,8 @@ function profileOf(list: Day[], weight: (d: Day) => number, prior?: DayProfile):
     const dailyP80 = total > 0 ? weightedQuantile(list.map((d) => d.draw), w, 0.8) : NaN;
     const hours: number[] = [], p80: number[] = [];
     for (let h = 0; h < 24; h++) {
+        const shaped = shapedAll.filter(([d]) => d.known![h] >= KNOWN_HOUR);
+        const shapeTotal = shaped.reduce((s, [, v]) => s + v, 0);
         const own = shapeTotal > 0 ? shaped.reduce((s, [d, v]) => s + d.byHour![h] * v, 0) / shapeTotal : NaN;
         const ownP80 = shapeTotal > 0 ? weightedQuantile(shaped.map(([d]) => d.byHour![h]), shaped.map(([, v]) => v), 0.8) : NaN;
         hours.push(Number.isFinite(own) ? blend(own, shapeTotal, prior?.hours[h]) : prior?.hours[h] ?? NaN);
@@ -480,15 +494,18 @@ export function learn(points: TankPoint[], clock: LocalClock, now: number, halfL
     const typical = weightedQuantile(present.map((d) => d.draw), present.map(weight), 0.5);
     const away = all.filter((d) => d.dayType === 'away' || (!d.dayType && Number.isFinite(typical) && d.draw < AWAY_SHARE * typical));
     const kept = present.filter((d) => !away.includes(d));
+    // Part days give hour shapes, never totals: a day short of readings is short of draw too.
+    const shapeDays = every.filter((d) => d.dayType !== 'away' && !away.some((a) => a.date === d.date));
     const start = household && starterProfiles(household);
-    const any = profileOf(kept, weight, start?.any);
+    const any = profileOf(kept, weight, start?.any, shapeDays);
     const profiles: HotwaterModel['profiles'] = {};
     if (any) profiles.any = any;
     for (const type of ['working', 'free'] as const) {
         const own = kept.filter((d) => d.dayType === type);
         // With a household the type has its own prior (a free day draws more, at other hours);
         // without one it leans on the pooled day.
-        if (own.length || start) profiles[type] = profileOf(own, weight, start?.[type] ?? any);
+        const ownShapes = shapeDays.filter((d) => d.dayType === type);
+        if (own.length || ownShapes.length || start) profiles[type] = profileOf(own, weight, start?.[type] ?? any, ownShapes);
     }
     const today = clock(now).date;
     const recent = every.filter((d) => d.date < today).slice(-RECENT_DAYS).map((d): DayDraw => ({date: d.date,

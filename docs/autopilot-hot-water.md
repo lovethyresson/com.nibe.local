@@ -237,8 +237,8 @@ once; Autopilot works inside them.
 **How much EEPROM wear is acceptable.** Nibe publishes nothing. The only figure found is second
 hand: a Nibe reply quoted on energiesparhaus.at, 1 million writes per position, which that thread
 turns into a budget of 182 writes a day per setting over 15 years. At this design's limit (697 at
-most 3 a day, 62 at most 3) that is about 1,100 writes a year per register: centuries at 1
-million, about 90 years even at 100,000. Whether the controller levels wear is unknown. What does
+most 3 a day, 5 when the tank is under the owner's minimum; 62 at most 3) that is under 1,900 writes a year per register: centuries at 1
+million, about 55 years even at 100,000. Whether the controller levels wear is unknown. What does
 wear a pump out is a write every poll or every second (11.5 days at 1 million), which is why
 Autopilot never writes on a timer, only per planned charge.
 
@@ -472,7 +472,11 @@ The design as first written:
   never guesses a type from the weekday, and neither does the learner. Today's bar is the use Autopilot expects. Dashed lines mark a typical day of
   each type over the four weeks, recency-weighted as in learning. A day with under 22 h of
   knowable draw is a light bar marked "≥": the tank top fell below 40 °C for a while, so the
-  draw is a lower bound. Such a day is left out of the typical lines, as it is out of learning.
+  draw is a lower bound. Such a day is left out of the typical lines and of the daily totals
+  Autopilot learns. Its hours that were read still shape its day type: each hour of a profile is
+  learned from the days that hour was known on (since 2026-11-21; before, a tank cold overnight
+  dropped the whole day, and on 16 Nov the working-day shape was the pooled one, weekend
+  middays included).
 - Flows that switch "More hot water" fight the planner. Setup lists them (read through
   `homey-api`) and asks the owner to turn them off.
 

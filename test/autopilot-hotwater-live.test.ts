@@ -9,7 +9,7 @@ import {
     mergeBuckets, peakExportKw, solarDevices,
     liveSurplusKw, liveSurplusW, sunNow, surplusForecast,
 } from '../lib/autopilot/hotwater-surplus';
-import {BELOW_TARGET_K, DEMAND_LARGE, DEMAND_SMART, MAX_STARTS_PER_DAY, MAX_STOP_WRITES_PER_DAY, countFor, leverDecision} from '../lib/autopilot/hotwater-lever';
+import {BELOW_TARGET_K, DEMAND_LARGE, DEMAND_SMART, MAX_RESCUE_STARTS_PER_DAY, MAX_STARTS_PER_DAY, MAX_STOP_WRITES_PER_DAY, countFor, leverDecision} from '../lib/autopilot/hotwater-lever';
 import {dayTypeAt, readDayType, recordDayType, typeSet} from '../lib/autopilot/day-type';
 import {AWAY_CAPABILITY, DAY_TYPE_CAPABILITY, allRoles, autopilotInputs, capabilitySyncPlan, changeReason, extraCapabilities, extraCapabilityOptions, possibleExtraCapabilities} from '../lib/roles';
 import {sProfile} from '../drivers/nibe_s/profile';
@@ -184,6 +184,14 @@ test('the writes are capped per day; past the 62 cap a charge runs to the stop a
     assert.deepStrictEqual(leverDecision(58, facts, stops), {targetC: 50, writeStop: false});
     assert.deepStrictEqual(leverDecision(58, facts, {...fresh, starts: MAX_STARTS_PER_DAY}), {skip: 'daily limit'});
     assert.deepStrictEqual(countFor({date: '2026-06-08', starts: 3, stops: 3}, '2026-06-09'), fresh, 'a new day resets');
+});
+
+test('a rescue under the minimum is not refused by the planned cap, and has a bound of its own', () => {
+    const full = {...fresh, starts: MAX_STARTS_PER_DAY};
+    assert.ok(MAX_RESCUE_STARTS_PER_DAY > MAX_STARTS_PER_DAY);
+    assert.deepStrictEqual(leverDecision(58, facts, full, BELOW_TARGET_K, true), {targetC: 58, writeStop: true});
+    assert.deepStrictEqual(leverDecision(58, facts, {...fresh, starts: MAX_RESCUE_STARTS_PER_DAY}, BELOW_TARGET_K, true),
+        {skip: 'daily limit'});
 });
 
 test('it stays out of the pump\'s way, and skips a charge that buys nothing', () => {

@@ -163,6 +163,22 @@ test('a day type with little history leans on the pooled profile', () => {
     assert.ok(free.daily > any.daily && free.daily < 3 * 12 * 1.4, `shrunk: ${free.daily} between ${any.daily} and ${3 * 12 * 1.4}`);
 });
 
+test('a day with its tank cold overnight still shapes its day type: each hour learns where it is known', () => {
+    // Working days (Mon–Fri) whose tank reads under 40 °C from 00 to 05, so none is a full day;
+    // weekends draw at midday and are full. Until 2026-11-21 the working-day shape was the pooled
+    // one, weekend middays and all.
+    const free = (day: number) => day % 7 >= 5;
+    const points = simulate(14, (day, hour) => free(day) ? freeDay(hour) : workingDay(hour),
+        {dayType: (day) => free(day) ? 'free' : 'working'})
+        .map((p) => !free(Math.floor((p.t - T0) / (24 * HOUR))) && clock(p.t).hour < 5 ? {...p, litres: 0} : p);
+    const model = learn(points, clock, points[points.length - 1].t);
+    const working = model.profiles.working!;
+    near(working.hours[12], 0, 0.2, 'no midday on a working day');
+    near(working.hours[6], 1.6, 0.4, 'the morning shower');
+    near(working.hours[19], 1.5, 0.4, 'the evening');
+    assert.ok(model.profiles.free!.hours[12] > 1, 'free days keep their midday');
+});
+
 test('the local clock follows the time zone across the autumn change', () => {
     const stockholm = localClock('Europe/Stockholm');
     // 25 Oct 2026: clocks go back at 03:00 CEST = 01:00 UTC.

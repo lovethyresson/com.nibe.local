@@ -16,7 +16,7 @@ import {DEFAULT_RESERVE_LITRES, EARLY_DRAW_HOURS, MIN_CHARGE_KWH, Plan, SLOT_H, 
 import {preheatAdders} from './orchestrator';
 import {appendLine, deleteHistory, loadJson, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
 import {DayTypeState, dayTypeAt} from './day-type';
-import {DEMAND_LARGE, MAX_STOP_WRITES_PER_DAY, PumpFacts, countFor, leverDecision} from './hotwater-lever';
+import {DEMAND_LARGE, MAX_RESCUE_STARTS_PER_DAY, MAX_STOP_WRITES_PER_DAY, PumpFacts, countFor, leverDecision} from './hotwater-lever';
 import {BOOST_HOURS, LegionellaState, NOTE_EVERY_MS, REACHED_K, legionellaStep, noteTop, readState} from './legionella';
 import {BlockedBy, Edge, TankDay, hotwaterDayScore, leverBlock, tankDayUpdate} from './analytics';
 import {Ceiling, CeilingObservation, ChargeWatch, DEFAULT_CEILING_C, ONSET_MIN_C, PollReading, ceilingFromHistory, learnCeiling,
@@ -375,7 +375,9 @@ function chargesOf(input: ShadowStepInput, out: Planned, before: number): {charg
      *  hour before it: it starts in time and reaches into dearer hours to be ready for a use
      *  ('before_use'). Cheaper hours before its start with the tank too full then for the
      *  smallest charge worth starting (under the highest target): 'room'. Room then: the plan judged heat made
-     *  then and kept until used to cost more than the price saved ('loss'). */
+     *  then and kept until used to cost more than the price saved ('loss'). The owner reads 'loss'
+     *  as "Best time for your use": the plan weighs the whole day at once, so naming one cost
+     *  term as the cause would be a guess. */
     const dearer = (c: Plan['charges'][number], from: number): ChargeReason => {
         const earlier: number[] = [];
         for (let k = from; k < c.start; k++) if (buy(k) * 1.02 < buy(c.start)) earlier.push(k);
@@ -1313,14 +1315,19 @@ export class HotwaterAutopilot {
     /** The live lever: 62 to the target if it differs, then 697 = 2. */
     private async startCharge(e: ChargeEvent, date: string) {
         const count = countFor(this.hooks.store.get(WRITES_KEY), date);
-        const d = leverDecision(e.targetC!, await this.hooks.pumpFacts(), count);
+        const rescue = e.reason === 'reserve';
+        const d = leverDecision(e.targetC!, await this.hooks.pumpFacts(), count, undefined, rescue);
         // A pump setting that keeps Autopilot out is the owner's to change, so it is on the device,
-        // not only in the log.
-        const blocked = 'skip' in d ? BLOCKED[d.skip] : undefined;
-        if (blocked) this.warn(this.homey.__(`autopilot.hotwater_charge.blocked.${blocked}`));
+        // not only in the log. So is a rescue the day's starts refused: the pump's own start is held
+        // out of the way, so nothing else heats the water until midnight.
+        const blocked = 'skip' in d ? BLOCKED[d.skip] ?? (rescue && d.skip === 'daily limit' ? 'rescue_limit' : undefined) : undefined;
+        if (blocked) this.warn(this.homey.__(`autopilot.hotwater_charge.blocked.${blocked}`, {max: MAX_RESCUE_STARTS_PER_DAY}));
         else this.clearWarning();
         if ('skip' in d) {
-            if (this.leverSkip !== d.skip) this.log(`Autopilot hot water: planned charge not started (${d.skip}).`);
+            if (this.leverSkip !== d.skip) {
+                this.log(`Autopilot hot water: ${rescue ? 'rescue under the minimum' : 'planned charge'} not started (${d.skip}).`);
+                if (blocked === 'rescue_limit') this.noteRefusedRescue();
+            }
             this.leverSkip = d.skip;
             // A skip that is not a block (the tank hot enough) leaves the last block standing.
             const block = leverBlock(d.skip);
@@ -1385,7 +1392,7 @@ export class HotwaterAutopilot {
         const count = countFor(this.hooks.store.get(WRITES_KEY), input.clock(at).date);
         const d = leverDecision(targetC, await this.hooks.pumpFacts(), count, REACHED_K);
         const blocked = 'skip' in d ? BLOCKED[d.skip] : undefined;
-        if (blocked) this.warn(this.homey.__(`autopilot.hotwater_charge.blocked.${blocked}`));
+        if (blocked) this.warn(this.homey.__(`autopilot.hotwater_charge.blocked.${blocked}`, {max: MAX_RESCUE_STARTS_PER_DAY}));
         // The run needs 62 at its own temperature: with the day's stop writes used it waits.
         const skip = 'skip' in d ? d.skip : d.targetC !== targetC ? 'daily limit' : undefined;
         if (skip) {
@@ -1584,6 +1591,13 @@ export class HotwaterAutopilot {
         this.hooks.planned?.(input.slot * SLOT_MS, d.charges);
         this.homey.notifications.createNotification({excerpt: text})
             .catch((error: any) => this.log('Autopilot hot water: timeline failed:', error?.message ?? error));
+    }
+
+    /** A rescue the day's starts refused: counted in the day, so the daily score shows it. */
+    private noteRefusedRescue() {
+        const day = this.day ??= {from: Date.now()};
+        this.day = {...day, refusedRescues: (day.refusedRescues ?? 0) + 1};
+        this.savePlan();
     }
 
     /** The tank's lowest volume and top since the morning, saved only when they change. */

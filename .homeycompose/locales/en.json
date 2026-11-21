@@ -180,7 +180,7 @@
         "running": "Already heating",
         "before_use": "In time for use",
         "room": "Enough hot water until then",
-        "loss": "Less heat lost before use",
+        "loss": "Best time for your use",
         "legionella": "Legionella"
       },
       "cost": "Expected cost __cost__. Tomorrow's prices aren't in yet.",
@@ -196,7 +196,7 @@
         "cheap": "Cheapest hours",
         "before_use": "In time for use",
         "room": "Enough hot water until then",
-        "loss": "Less heat lost before use",
+        "loss": "Best time for your use",
         "surplus": "Solar surplus",
         "reserve": "Below minimum",
         "running": "Already heating",
@@ -239,7 +239,8 @@
       "blocked": {
         "hot_water_off": "Autopilot is waiting. Hot water is turned off on your heat pump.",
         "spa": "Autopilot is waiting. Turn off Smart Price Adaption for hot water on your heat pump.",
-        "smart_control": "Autopilot is waiting. Your heat pump's hot water demand is on Smart control. Set it to Small, Medium or Large."
+        "smart_control": "Autopilot is waiting. Your heat pump's hot water demand is on Smart control. Set it to Small, Medium or Large.",
+        "rescue_limit": "Hot water is below your minimum, and Autopilot has used today's __max__ starts. Turn on More hot water on your heat pump if you need it before midnight."
       }
     },
     "hotwater_legionella": {
@@ -275,7 +276,7 @@
         "cheap": "Cheapest hours",
         "before_use": "In time for use",
         "room": "Enough hot water until then",
-        "loss": "Less heat lost before use",
+        "loss": "Best time for your use",
         "surplus": "Solar surplus",
         "reserve": "Below minimum",
         "running": "Already heating",

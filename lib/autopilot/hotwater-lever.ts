@@ -8,6 +8,11 @@
 
 /** Charges Autopilot starts a day (697 writes), and changes of the Large stop (62 writes). */
 export const MAX_STARTS_PER_DAY = 3;
+/** Starts a day a rescue may use (the tank under the owner's minimum): above the planned cap, so a
+ *  day of planned runs and a legionella run never leaves a rescue refused, and still bounded, as a
+ *  wear guard: 5 a day is ~1,800 writes a year, about 55 years even at 100,000 writes per position
+ *  (docs/autopilot-hot-water.md §4.3 has the only figure found, a quoted 1 million). */
+export const MAX_RESCUE_STARTS_PER_DAY = 5;
 export const MAX_STOP_WRITES_PER_DAY = 3;
 /** A charge starts only when the tank top is this far under its target: a charge of a degree or
  *  two buys nothing and costs a write. */
@@ -58,12 +63,15 @@ export function countFor(stored: WriteCount | undefined, date: string): WriteCou
  *  - Smart price adaption and Smart control (56 = 4) move hot water themselves; Autopilot does not
  *    fight them. A pump with hot water disallowed (195 off) gets nothing.
  *  - `belowK`: how far under the target the top has to be. The legionella run passes half a
- *    degree: it has to get there, not only be worth a write. */
-export function leverDecision(plannedC: number, facts: PumpFacts, count: WriteCount, belowK = BELOW_TARGET_K): LeverDecision {
+ *    degree: it has to get there, not only be worth a write.
+ *  - `rescue`: the tank is under the owner's minimum. It may use the day's starts up to
+ *    `MAX_RESCUE_STARTS_PER_DAY`, past the planned cap. */
+export function leverDecision(plannedC: number, facts: PumpFacts, count: WriteCount, belowK = BELOW_TARGET_K,
+    rescue = false): LeverDecision {
     if (facts.allowed === false) return {skip: 'hot water off'};
     if (facts.spaHotwater) return {skip: 'smart price adaption'};
     if (facts.demandMode === DEMAND_SMART) return {skip: 'smart control'};
-    if (count.starts >= MAX_STARTS_PER_DAY) return {skip: 'daily limit'};
+    if (count.starts >= (rescue ? MAX_RESCUE_STARTS_PER_DAY : MAX_STARTS_PER_DAY)) return {skip: 'daily limit'};
     if (facts.top === undefined) return {skip: 'no tank reading'};
     const set = facts.largeStopC;
     const mayWrite = facts.demandMode !== DEMAND_LARGE && count.stops < MAX_STOP_WRITES_PER_DAY;
