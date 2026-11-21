@@ -400,6 +400,8 @@
         "hw_plan_madeup": "Verzonnen dagen",
         "hw_plan_sun": "zon",
         "hw_plan_link": "Hoe Autopilot elke opwarming kiest",
+        "hw_plan_open": "Zo warmt Autopilot de boiler op",
+        "hw_plan_back": "Terug naar de keuze",
         "hw_plan_s1": "Ochtenddouches. Het vat zakt onder zijn starttemperatuur",
         "hw_plan_s2": "Warmt meteen op naar 60 °C. Dit keer in de dure ochtenduren",
         "hw_plan_s3": "Late douches. Het vat zakt weer",

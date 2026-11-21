@@ -1036,3 +1036,4 @@ body {
 .hwl-custom input::-webkit-outer-spin-button, .hwl-custom input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .hwl-note { font-size: .85em; text-align: center; }
 .hw-link-line { text-align: center; margin: .2em 0 .1em; }
+.setup-choice-link { display: block; margin: .3em 0 0; }

@@ -906,6 +906,11 @@ function NibeSetup(options) {
         });
         seg.append(pills, el('p', a('mode_note'), 'setup-segment-note'));
         var card = box.querySelector('input[value="autopilot"]').closest('.setup-choice');
+        // Hot water: how Autopilot charges, shown on made-up days, one tap away from the choice.
+        if (st.role === 'hotwater' && !soon) {
+            var how = smallAction(a('hw_plan_open') + ' ›', function (e) { if (e) e.preventDefault(); hotwaterPlanStep(); });
+            card.querySelector('.setup-source-copy').appendChild(el('span', undefined, 'setup-choice-link')).appendChild(how);
+        }
         card.querySelector('.setup-source-copy').appendChild(seg);
         return box;
     }
@@ -977,7 +982,7 @@ function NibeSetup(options) {
         shell.appendChild(smartPicker(st));
         if (heating && st.spaOn) shell.appendChild(el('p', a('spa_note'), 'register-desc'));
         var next = button(t('next'), function () {
-            if (st.role === 'hotwater' && (ap.choice === 'autopilot' || ap.choice === 'test')) { hotwaterPlanStep(); return; }
+            if (st.role === 'hotwater' && (ap.choice === 'autopilot' || ap.choice === 'test')) { hotwaterLegionellaStep(); return; }
             if (ap.choice === st.mode && (ap.choice !== 'autopilot' || !heating || live)) { hub(); return; }
             if (heating && (ap.choice === 'autopilot' || ap.choice === 'test')) { checklist(); return; }
             busy(next, async function () {
@@ -989,7 +994,7 @@ function NibeSetup(options) {
         shell.appendChild(next);
     }
     /** Hot water: what Autopilot does, shown on made-up days (help: "How Autopilot picks each
-     *  charge"). Without Autopilot, the pump charges when the tank cools, whatever the price; with
+     *  charge"). Opened from the link on the Autopilot choice, and back to it. Without Autopilot, the pump charges when the tank cools, whatever the price; with
      *  it, four example days, each planned differently. Nothing here is read from the pump. */
     // help/autopilot-hot-water.html, served by GitHub Pages.
     var HOTWATER_HELP_URL = 'https://lovethyresson.github.io/com.nibe.local/autopilot-hot-water.html';
@@ -1079,7 +1084,7 @@ function NibeSetup(options) {
         shell.append(seg, chips, card, legend, table);
         if (HOTWATER_HELP_URL) shell.appendChild(centred(smallAction(a('hw_plan_link') + ' ›', function () { Homey.openURL(HOTWATER_HELP_URL + '#how-it-picks'); })));
         draw();
-        shell.appendChild(button(t('next'), hotwaterLegionellaStep, true));
+        shell.appendChild(button(a('hw_plan_back'), smart, true));
         back(smart);
     }
     /** Legionella: Autopilot heats the tank for legionella every interval (the pump's own, 66) in
@@ -1140,7 +1145,7 @@ function NibeSetup(options) {
             });
         }, true);
         shell.appendChild(next);
-        back(hotwaterPlanStep);
+        back(smart);
     }
     /** Autopilot hot water: the Flows that would fight it, and for a home with a short history
      *  the household answers it starts from. */

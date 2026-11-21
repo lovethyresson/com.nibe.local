@@ -400,6 +400,8 @@
         "hw_plan_madeup": "Erfundene Tage",
         "hw_plan_sun": "Sonne",
         "hw_plan_link": "Wie Autopilot jede Ladung wählt",
+        "hw_plan_open": "So lädt Autopilot den Speicher",
+        "hw_plan_back": "Zurück zur Auswahl",
         "hw_plan_s1": "Morgendliche Duschen. Der Speicher fällt unter seine Starttemperatur",
         "hw_plan_s2": "Lädt sofort auf 60 °C. Diesmal in den teuren Morgenstunden",
         "hw_plan_s3": "Späte Duschen. Der Speicher fällt wieder",

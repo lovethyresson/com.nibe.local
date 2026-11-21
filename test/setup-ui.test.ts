@@ -222,9 +222,8 @@ async function hotwaterSmart(status: any, scan: any = NO_SOLAR, legionella = fal
     const autopilot = f.win.document.querySelector('input[name="smart-choice"][value="autopilot"]');
     autopilot.checked = true; autopilot.dispatchEvent(new f.win.Event('change'));
     f.click(english.pair.setup.smart.mode_simulated);
-    f.click('Continue'); await tick();
-    // When to charge: made-up days, then Legionella, then on to the hot water checklist.
-    assert.ok(f.win.document.body.textContent.includes(english.pair.setup.smart.hw_plan_title));
+    // The choice goes straight on to Legionella, then the hot water checklist; When to charge is
+    // a link on the Autopilot choice.
     f.click('Continue'); await tick();
     if (!legionella) {
         assert.ok(f.win.document.body.textContent.includes(english.pair.setup.smart.hw_legionella_title));
@@ -251,14 +250,19 @@ test('When to charge: the segment and the day chips opt out of Homey styling', a
     f.click('Continue'); f.menu('Hot water setup'); f.click('Continue'); await tick();
     const autopilot = f.win.document.querySelector('input[name="smart-choice"][value="autopilot"]');
     autopilot.checked = true; autopilot.dispatchEvent(new f.win.Event('change'));
-    f.click(english.pair.setup.smart.mode_simulated); f.click('Continue'); await tick();
+    f.click(english.pair.setup.smart.mode_simulated);
+    // When to charge opens from the link on the Autopilot choice, and its button goes back to the choice.
+    f.click(english.pair.setup.smart.hw_plan_open + ' ›');
+    assert.ok(f.win.document.body.textContent.includes(english.pair.setup.smart.hw_plan_day_work));
     const controls = [...f.win.document.querySelectorAll('.hwp-seg button, .hwp-chips button')] as any[];
     assert.equal(controls.length, 6);
     assert.ok(controls.every((b) => b.classList.contains('hy-nostyle')));
+    f.click(english.pair.setup.smart.hw_plan_back); await tick();
+    assert.ok(f.win.document.querySelector('input[name="smart-choice"]'), 'back at the choice');
     f.dom.window.close();
 });
 
-test('the Legionella step comes after When to charge: the pump\'s own, 65 °C recommended and preselected, or their own', async () => {
+test('the Legionella step comes after the choice: the pump\'s own, 65 °C recommended and preselected, or their own', async () => {
     const s = english.pair.setup.smart;
     const f = await hotwaterSmart({flows: [], historyDays: 60, legionellaPumpC: 60, legionellaDays: 21}, NO_SOLAR, true);
     const body = () => f.win.document.body.textContent;
@@ -271,9 +275,9 @@ test('the Legionella step comes after When to charge: the pump\'s own, 65 °C re
     assert.ok(cards[1].classList.contains('is-selected'), '65 °C is preselected');
     assert.ok(body().includes(s.hw_legionella_note));
     assert.ok(body().includes(s.hw_legionella_link), 'a link to the help page\'s Legionella section');
-    // Back to When to charge and forward again.
+    // Back to the choice and forward again.
     f.click('Back'); await tick();
-    assert.ok(body().includes(s.hw_plan_title));
+    assert.ok(f.win.document.querySelector('input[name="smart-choice"]'));
     f.click('Continue'); await tick();
     // A temperature of their own: out of range is refused, in range is saved.
     const own = f.win.document.querySelector('.hwl-custom input');
@@ -309,7 +313,7 @@ test('hot water setup shows made-up days without and with Autopilot, each with i
     const autopilot = f.win.document.querySelector('input[name="smart-choice"][value="autopilot"]');
     autopilot.checked = true; autopilot.dispatchEvent(new f.win.Event('change'));
     f.click(english.pair.setup.smart.mode_simulated);
-    f.click('Continue'); await tick();
+    f.click(english.pair.setup.smart.hw_plan_open + ' ›');
     const sm = english.pair.setup.smart;
     const body = () => f.win.document.body.textContent;
     assert.ok(body().includes(sm.hw_plan_w1), 'opens on Autopilot, a workday');

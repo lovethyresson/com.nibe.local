@@ -400,6 +400,8 @@
         "hw_plan_madeup": "Påhittade dagar",
         "hw_plan_sun": "sol",
         "hw_plan_link": "Så väljer Autopilot varje laddning",
+        "hw_plan_open": "Så laddar Autopilot tanken",
+        "hw_plan_back": "Tillbaka till valet",
         "hw_plan_s1": "Morgonduschar. Tanken sjunker under sin starttemperatur",
         "hw_plan_s2": "Laddar till 60 °C direkt. Den här gången under morgonens dyraste timmar",
         "hw_plan_s3": "Sena duschar. Tanken sjunker igen",

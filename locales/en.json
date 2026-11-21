@@ -400,6 +400,8 @@
         "hw_plan_madeup": "Made-up days",
         "hw_plan_sun": "sun",
         "hw_plan_link": "How Autopilot picks each charge",
+        "hw_plan_open": "How Autopilot charges the tank",
+        "hw_plan_back": "Back to the choice",
         "hw_plan_s1": "Morning showers. The tank drops below its start temperature",
         "hw_plan_s2": "Charges to 60 °C right away. This time in the morning's expensive hours",
         "hw_plan_s3": "Late showers. The tank drops again",

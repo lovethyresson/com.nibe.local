@@ -400,6 +400,8 @@
         "hw_plan_madeup": "Oppdiktede dager",
         "hw_plan_sun": "sol",
         "hw_plan_link": "Slik velger Autopilot hver lading",
+        "hw_plan_open": "Slik lader Autopilot berederen",
+        "hw_plan_back": "Tilbake til valget",
         "hw_plan_s1": "Morgendusjer. Tanken synker under starttemperaturen",
         "hw_plan_s2": "Lader til 60 °C med en gang. Denne gangen i morgenens dyreste timer",
         "hw_plan_s3": "Sene dusjer. Tanken synker igjen",

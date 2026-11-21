@@ -400,6 +400,8 @@
         "hw_plan_madeup": "Opdigtede dage",
         "hw_plan_sun": "sol",
         "hw_plan_link": "Sådan vælger Autopilot hver opladning",
+        "hw_plan_open": "Sådan oplader Autopilot beholderen",
+        "hw_plan_back": "Tilbage til valget",
         "hw_plan_s1": "Morgenbrusebade. Tanken falder under sin starttemperatur",
         "hw_plan_s2": "Oplader til 60 °C med det samme. Denne gang i morgenens dyre timer",
         "hw_plan_s3": "Sene brusebade. Tanken falder igen",
