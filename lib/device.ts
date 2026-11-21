@@ -2925,29 +2925,29 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     : Object.values(h.use).reduce((a: number, b) => a + (b ?? 0), 0);
             }, prices);
         }
-        // This month's savings: the two savings widgets' figures, added up.
-        const months = (['heating', 'hotwater'] as const).flatMap((role) => {
+        // The savings widgets' own figures, each worked out once: the year's estimates when every
+        // function with a figure has one, else this month's, as before.
+        const figures = (['heating', 'hotwater'] as const).flatMap((role) => {
             const d = byRole.get(role);
             // As the savings widget shows it: a month with counted days stays, whatever the mode now.
             if (!d) return [];
             const data = d.savingsWidget() as SavingsData;
-            return data.monthValue === undefined ? [] : [{value: data.monthValue, month: data.valueNote ?? '', currency: String(d.getStoreValue(SAVINGS_CURRENCY_STORE) ?? '')}];
+            const currency = String(d.getStoreValue(SAVINGS_CURRENCY_STORE) ?? '');
+            return data.yearValue === undefined && data.monthValue === undefined ? [] : [{data, currency}];
         });
+        const language = this.homey.i18n.getLanguage();
+        const allYears = figures.length > 0 && figures.every((f) => f.data.yearValue !== undefined);
+        const months = allYears ? [] : figures.filter((f) => f.data.monthValue !== undefined)
+            .map((f) => ({value: f.data.monthValue!, month: f.data.valueNote ?? '', currency: f.currency}));
         // Each part as its widget shows it (one decimal under 10, whole above), so 11 + 2.4 reads 13, not 14.
         const shown = (v: number) => (Math.abs(v) < 10 ? Math.round(v * 10) / 10 : Math.round(v));
         const sum = months.reduce((a, m) => a + shown(m.value), 0);
-        const saved = months.length ? {value: moneyText(sum, Math.abs(sum) < 10 ? 1 : 0, this.homey.i18n.getLanguage(), months[0].currency),
+        const saved = months.length ? {value: moneyText(sum, Math.abs(sum) < 10 ? 1 : 0, language, months[0].currency),
             month: months[0].month, good: sum >= 0} : undefined;
-        // The year: both functions' estimates and what is saved of them so far, added up.
-        const years = (['heating', 'hotwater'] as const).flatMap((role) => {
-            const data = byRole.get(role)?.savingsWidget() as SavingsData | undefined;
-            return data?.yearValue === undefined ? [] : [{total: data.yearValue, saved: data.yearSaved ?? 0,
-                currency: String(byRole.get(role)!.getStoreValue(SAVINGS_CURRENCY_STORE) ?? '')}];
-        });
-        const language = this.homey.i18n.getLanguage();
-        const yearMoney = (v: number) => moneyText(v, Math.abs(v) < 10 ? 1 : 0, language, years[0]?.currency ?? '');
-        const yearTotal = years.reduce((a, y) => a + y.total, 0), yearSaved = years.reduce((a, y) => a + y.saved, 0);
-        const year = years.length ? {value: `~${yearMoney(yearTotal)}`, saved: yearMoney(yearSaved),
+        const yearMoney = (v: number) => moneyText(v, Math.abs(v) < 10 ? 1 : 0, language, figures[0]?.currency ?? '');
+        const yearTotal = figures.reduce((a, f) => a + (f.data.yearValue ?? 0), 0);
+        const yearSaved = figures.reduce((a, f) => a + (f.data.yearSaved ?? 0), 0);
+        const year = allYears ? {value: `~${yearMoney(yearTotal)}`, saved: yearMoney(yearSaved),
             year: localDate(Date.now(), this.homey.clock.getTimezone()).slice(0, 4), good: yearTotal >= 0} : undefined;
         const alarm = this.hasCapability(ALARM_ACTIVE_CAPABILITY) && this.getCapabilityValue(ALARM_ACTIVE_CAPABILITY) === true
             ? String(this.getCapabilityValue(ALARM_TEXT_CAPABILITY) ?? '') || undefined : undefined;

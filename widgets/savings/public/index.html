@@ -213,7 +213,7 @@
           var est = el('span', 'est'); est.style.width = ((1 - y.share) * 100) + '%';
           bar.append(got, est); yb.appendChild(bar);
           var lab = el('div', 'sv-ylab'), so = el('span'), rest = el('span');
-          so.append(el('i', '', y.savedLabel), el('b', 'good', y.saved));
+          so.append(el('i', '', y.savedLabel), el('b', y.good === false ? 'bad' : 'good', y.saved));
           rest.append(el('i', '', y.restLabel), el('b', '', y.rest));
           lab.append(so, rest); yb.appendChild(lab); root.appendChild(yb);
         }

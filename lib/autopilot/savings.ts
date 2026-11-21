@@ -208,7 +208,9 @@ export function kwhPerLitreOf(days: SavingsDay[]): number | undefined {
 /** What a day saved against the baseline, in money: the old way at the day's own prices (the
  *  baseline's ratio to the day's average), minus what the day cost. Negative when it cost more.
  *  The old way's kWh: hot water with its litres known, those litres at the baseline's kWh per
- *  litre; otherwise the day's own kWh (heating: the house sets the heat, Autopilot only moves it). */
+ *  litre; otherwise the day's own kWh (heating: the house sets the heat, Autopilot only moves it).
+ *  Hot water without a kWh per litre (no tank readings before Autopilot, or the ratio-1 fallback
+ *  baseline) is priced from its own kWh too, which does not see a hotter tank: a known gap. */
 export function daySaving(d: SavingsDay, base: Baseline): number {
     const kwh = (d.litres ?? 0) > 0 && base.kwhPerLitre ? d.litres! * base.kwhPerLitre : d.tiers[0] + d.tiers[1] + d.tiers[2];
     return kwh * d.mean * base.ratio - d.cost;
@@ -238,17 +240,22 @@ export interface YearOutlook {
     total: number;
 }
 
+/** Whole days this year a projection needs: fewer, and one odd day would set the year. */
+export const PROJECT_MIN_DAYS = 7;
+
 export function yearOutlook(days: SavingsDay[], firstLiveDate: string, base: Baseline, today: string,
     role: 'heating' | 'hotwater'): YearOutlook | undefined {
     const year = today.slice(0, 4);
     const counted = savingDays(days, firstLiveDate).filter((d) => d.date.slice(0, 4) === year && d.date <= today);
-    if (!counted.length) return undefined;
+    // The pace from whole days only: today so far has its season weight but only part of its saving.
+    const whole = counted.filter((d) => d.date < today);
+    if (whole.length < PROJECT_MIN_DAYS) return undefined;
     const saved = counted.reduce((s, d) => s + daySaving(d, base), 0);
-    const weight = counted.reduce((s, d) => s + seasonWeight(d.date, role), 0);
+    const weight = whole.reduce((s, d) => s + seasonWeight(d.date, role), 0);
     if (!(weight > 0)) return undefined;
     let ahead = 0;
     for (let date = shiftDate(today, 1); date.slice(0, 4) === year; date = shiftDate(date, 1)) ahead += seasonWeight(date, role);
-    const rest = saved / weight * ahead;
+    const rest = whole.reduce((s, d) => s + daySaving(d, base), 0) / weight * ahead;
     return {saved, rest, total: saved + rest};
 }
 
@@ -300,7 +307,7 @@ export interface SavingsData {
     yearValue?: number;
     yearSaved?: number;
     /** The calendar year: saved so far (solid) and the rest at the pace so far (hatched). */
-    year?: {share: number; savedLabel: string; saved: string; restLabel: string; rest: string};
+    year?: {share: number; savedLabel: string; saved: string; restLabel: string; rest: string; good: boolean};
     /** Hot water: what one shower cost, before and with Autopilot. */
     shower?: {title: string; before?: {label: string; value: string}; now?: {label: string; value: string; note?: string}};
     legend?: Record<string, string>;
@@ -415,7 +422,7 @@ export function savingsData(title: string, stored: SavingsDay[], t: Translate, c
             yearValue: outlook.total,
             yearSaved: outlook.saved,
             year: {share: outlook.total > 0 ? Math.max(0, Math.min(1, outlook.saved / outlook.total)) : 1,
-                savedLabel: t('saved_so_far'), saved: c.money(outlook.saved),
+                good: outlook.saved >= 0, savedLabel: t('saved_so_far'), saved: c.money(outlook.saved),
                 restLabel: t(c.role === 'heating' ? 'rest_season' : 'rest'), rest: `~${c.money(outlook.rest)}`},
         };
     }

@@ -116,20 +116,29 @@ test('savings add up over the last 7 days, the month and the year, from the day 
     assert.ok(Math.abs(sums.year - 16) < 0.05);
 });
 
+/** A week with Autopilot, 15–21 Nov, as `after`: the projection needs seven whole days. */
+const week = Array.from({length: 7}, (_, k) => day(`2026-11-${15 + k}`, [6, 3, 1], 1.5, 12, 1));
+
 test('the widget shows the year: saved so far, the rest by season, the estimate, and the shift against before', () => {
-    const d = savingsData('Heating', [...before, ...after], translator('en'), ctx({firstLiveDate: '2026-11-14', baseline: baselineOf(before, '2026-11-14')}));
+    const b = baselineOf(before, '2026-11-14')!;
+    const d = savingsData('Heating', [...before, ...week], translator('en'), ctx({today: '2026-11-22', firstLiveDate: '2026-11-14', baseline: b}));
     assert.equal(d.status, 'Heating savings');
-    // 12 kr over three November days (weight 402/30 each); the rest of the year weighs 10 November
-    // days and December's 515: 12 / 40.2 × 649 ≈ 194 kr more.
-    assert.equal(d.value, '~206 kr');
+    // Seven November days (weight 402/30 each); ahead: 8 November days and December's 515.
+    const saved = week.reduce((s, x) => s + daySaving(x, b), 0);
+    const rest = saved / (7 * 402 / 30) * (8 * 402 / 30 + 515);
+    assert.equal(d.value, `~${Math.round(saved + rest)} kr`);
     assert.equal(d.valueNote, 'estimated for 2026 · from 11-14');
     assert.equal(d.tone, 'good');
-    assert.deepEqual(d.year, {share: d.year!.share, savedLabel: 'Saved so far', saved: '12 kr', restLabel: 'Rest of the year, by season', rest: '~194 kr'});
+    assert.deepEqual(d.year, {share: d.year!.share, good: true, savedLabel: 'Saved so far', saved: `${Math.round(saved)} kr`,
+        restLabel: 'Rest of the year, by season', rest: `~${Math.round(rest)} kr`});
     assert.ok(Math.abs(d.year!.share - d.yearSaved! / d.yearValue!) < 1e-9);
-    assert.ok(Math.abs(d.yearSaved! - 12) < 0.05, 'the baseline ratio is kept rounded');
     assert.equal(d.stats, undefined, 'the year bar says it');
+    // Under seven whole days: no projection yet, the month as before.
+    const young = savingsData('Heating', [...before, ...after], translator('en'), ctx({firstLiveDate: '2026-11-14', baseline: b}));
+    assert.equal(young.year, undefined);
+    assert.equal(young.valueNote, 'November');
     assert.deepEqual(d.split!.map((r) => [r.label, r.shares.map((v) => Math.round(v * 100)), r.perDay]),
-        [['Before Autopilot · 3 days', [30, 30, 40], '10 kWh a day'], ['With Autopilot · 3 days', [60, 30, 10], '10 kWh a day']]);
+        [['Before Autopilot · 3 days', [30, 30, 40], '10 kWh a day'], ['With Autopilot · 7 days', [60, 30, 10], '10 kWh a day']]);
     // Costing more says so in the expensive colour.
     const worse = savingsData('Heating', [...before, day('2026-11-15', [1, 3, 6], 1.5, 18, 1)], translator('en'),
         ctx({firstLiveDate: '2026-11-14', baseline: baselineOf(before, '2026-11-14')}));
@@ -221,10 +230,13 @@ test('hot water: a shower now and the old way at the same prices, priced from li
     assert.equal(d.shower!.now!.note, '\u221225 %');
     assert.equal((d as any).share, undefined, 'no share of heat in the cheapest hours for hot water');
     assert.equal(d.status, 'Hot water savings');
-    assert.equal(d.valueNote, 'estimated for 2026 · from 11-14');
-    assert.equal(d.year!.restLabel, 'Rest of the year', 'every day weighs the same for hot water');
-    // 12 kr over 3 days, 41 days left: 12 + 4 × 41.
-    assert.equal(d.value, `~${12 + 4 * 41} kr`);
+    const w = savingsData('Hot water', [...before, ...week.map((x) => ({...x, litres: 200}))], translator('en'),
+        ctx({role: 'hotwater', today: '2026-11-22', firstLiveDate: '2026-11-14', baseline: b}));
+    assert.equal(w.valueNote, 'estimated for 2026 · from 11-14');
+    assert.equal(w.year!.restLabel, 'Rest of the year', 'every day weighs the same for hot water');
+    // Seven days' saving, and the same pace for the 39 days left after today.
+    const saved = week.reduce((a, x) => a + daySaving(x, b), 0);
+    assert.equal(w.value, `~${Math.round(saved + saved / 7 * 39)} kr`);
 });
 
 test('hot water heated in cheap hours but less efficiently is not counted as a saving it is not', () => {
