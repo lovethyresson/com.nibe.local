@@ -79,12 +79,13 @@ function autopilot(state: any, facts: any = {}) {
     const store = new Map<string, any>([[LEGIONELLA_STATE_KEY, state]]);
     const writes: [string, any][] = [];
     const notes: string[] = [];
+    const warnings: (string | undefined)[] = [];
     let fail: string | undefined;
     const homey = {__: (key: string) => key, clock: {getTimezone: () => 'UTC'}, setTimeout, clearTimeout,
         notifications: {createNotification: async (n: any) => { notes.push(n.excerpt); }}};
     const hooks: HotwaterHooks = {
         mode: () => 'live', reserveLitres: () => 40, solar: () => false, surplus: () => undefined, reserveSurplus() {},
-        dayType: () => undefined, household: () => undefined, track() {}, warn() {}, status() {}, charged() {},
+        dayType: () => undefined, household: () => undefined, track() {}, warn(text) { warnings.push(text); }, status() {}, charged() {},
         pumpFacts: async () => ({top: 50, largeStopC: 55, demandMode: 0, allowed: true, spaHotwater: false, ...facts}),
         write: async (what, value) => { if (fail === what) throw new Error('refused'); writes.push([what, value]); },
         store: {get: (key) => store.get(key), set: async (key, value) => { store.set(key, value); }},
@@ -95,7 +96,7 @@ function autopilot(state: any, facts: any = {}) {
     (ap as any).prices = new Map([...prices].map(([ms, price]) => [ms / SLOT_MS, {slot: ms / SLOT_MS, price}]));
     const run = (at: number, top = 50) => (ap as any).watchLegionella({slot: at / SLOT_MS, prices: new Map(), tank: {litres: 176, inletC: 10},
         clock: localClock('UTC'), now: {litres: 120, top, powerW: 0}, reserveLitres: 40}, at);
-    return {ap, store, writes, notes, run, failOn: (what?: string) => { fail = what; }};
+    return {ap, store, writes, notes, warnings, run, failOn: (what?: string) => { fail = what; }};
 }
 
 test('a due run starts at the cheapest slot: 62 to 65 °C, uncapped by the ceiling, then More hot water for 6 h', async () => {
@@ -140,4 +141,18 @@ test('overdue live: the periodic boost goes back on and the owner is told on the
     await new Promise((resolve) => setImmediate(resolve));
     assert.deepEqual(f.writes, [['periodic', true], ['periodic', false]], 'a charge got there: the boost goes off again');
     assert.equal(f.store.get(LEGIONELLA_STATE_KEY).fallbackAt, undefined);
+});
+
+test('a rescue refused after a refused planned run is still counted and told, and its warning goes at midnight', async () => {
+    const f = autopilot(undefined);
+    const date = '2026-11-21';
+    await f.store.set(WRITES_KEY, {date, starts: 5, stops: 3});
+    const charge = (reason: string) => (f.ap as any).startCharge({at: T0, by: 'autopilot', reason, targetC: 55, minutes: 60}, date);
+    await charge('cheap');
+    await charge('reserve');
+    assert.equal((f.ap as any).day?.refusedRescues, 1, 'counted although the planned run was refused for the cap first');
+    assert.equal(f.warnings[f.warnings.length - 1], 'autopilot.hotwater_charge.blocked.rescue_limit');
+    assert.deepEqual(f.writes, [], 'nothing written');
+    (f.ap as any).showBlocked(undefined, '2026-11-22');
+    assert.equal(f.warnings[f.warnings.length - 1], undefined, 'cleared');
 });

@@ -189,9 +189,9 @@ test('the writes are capped per day; past the 62 cap a charge runs to the stop a
 test('a rescue under the minimum is not refused by the planned cap, and has a bound of its own', () => {
     const full = {...fresh, starts: MAX_STARTS_PER_DAY};
     assert.ok(MAX_RESCUE_STARTS_PER_DAY > MAX_STARTS_PER_DAY);
-    assert.deepStrictEqual(leverDecision(58, facts, full, BELOW_TARGET_K, true), {targetC: 58, writeStop: true});
-    assert.deepStrictEqual(leverDecision(58, facts, {...fresh, starts: MAX_RESCUE_STARTS_PER_DAY}, BELOW_TARGET_K, true),
-        {skip: 'daily limit'});
+    assert.deepStrictEqual(leverDecision(58, facts, full, {rescue: true}), {targetC: 58, writeStop: true});
+    assert.deepStrictEqual(leverDecision(58, facts, {...fresh, starts: MAX_RESCUE_STARTS_PER_DAY}, {rescue: true}),
+        {skip: 'rescue limit'}, 'its own reason, so it is told and counted apart from the planned cap');
 });
 
 test('it stays out of the pump\'s way, and skips a charge that buys nothing', () => {

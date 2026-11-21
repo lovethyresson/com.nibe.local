@@ -10,7 +10,8 @@
 //
 // What a diff means: the code changed since, or an input the log cannot carry differs. Those are
 // the model (the file holds today's, not the one in force then), the solar surplus and the
-// heating pre-heat slots; a line that ran with surplus or pre-heat is marked, not judged.
+// heating pre-heat slots. None of them is in the log, so on a sunny day, or one heating pre-heats
+// through, a diff may be theirs, not the code's: read those days with that in mind.
 import fs from 'node:fs';
 import {hotwaterShadowStep, ShadowEntry, SlotContext} from '../lib/autopilot/hotwater-shadow';
 import {localClock, HotwaterModel, DayType} from '../lib/autopilot/hotwater-learner';
@@ -40,6 +41,7 @@ if (!withCtx.length) {
     console.log('No line carries ctx yet: the log predates 2026-11-21, or the app has not run since.');
     return;
 }
+const bySlot = new Map(lines.filter((l) => !l.skip).map((l) => [l.slot, l]));
 const prices = new Map<number, {price: number}>();
 const types = new Map<number, DayType>();
 for (const l of lines) {
@@ -64,7 +66,10 @@ for (const l of withCtx) {
         continue;
     }
     const dayType = c.dt as DayType | undefined;
-    const out = hotwaterShadowStep({slot: l.slot, prices: known, model, clock, tank: c.tank!,
+    // Live passes the previous slot's next run as due (hotwater-shadow.ts `input`): so does the replay.
+    const prev = bySlot.get(l.slot - 1);
+    const dueAt = prev?.next ? Date.parse(prev.next.at) : undefined;
+    const out = hotwaterShadowStep({slot: l.slot, prices: known, model, clock, tank: c.tank!, dueAt,
         now: {litres: l.litres, top: l.top, powerW: c.powerW, more: c.more, stopC: c.stopC, largeStopC: c.largeStopC, produced: l.produced},
         dayType, dayTypeOf: (ms) => types.get(Math.floor(ms / SLOT_MS)) ?? dayType!, reserveLitres: c.reserve, maxC: c.maxC});
     if ('skip' in out) {

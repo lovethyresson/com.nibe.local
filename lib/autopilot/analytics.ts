@@ -45,6 +45,8 @@ export type BlockedBy = 'spa_on' | 'hot_water_off' | 'smart_control' | 'daily_li
  *  (tank hot enough, a register that did not read) are not a block worth counting. */
 const LEVER_BLOCKS: Record<string, BlockedBy> = {
     'hot water off': 'hot_water_off', 'smart price adaption': 'spa_on', 'smart control': 'smart_control', 'daily limit': 'daily_limit',
+    // A rescue the day's starts refused is the same block as the planned cap (taxonomy unchanged).
+    'rescue limit': 'daily_limit',
 };
 export function leverBlock(skip: string): BlockedBy | undefined {
     return LEVER_BLOCKS[skip];

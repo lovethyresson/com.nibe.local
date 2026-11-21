@@ -41,6 +41,7 @@ test('blocks: lever skips that block map; the rest are not a block', () => {
     assert.strictEqual(leverBlock('smart price adaption'), 'spa_on');
     assert.strictEqual(leverBlock('smart control'), 'smart_control');
     assert.strictEqual(leverBlock('daily limit'), 'daily_limit');
+    assert.strictEqual(leverBlock('rescue limit'), 'daily_limit', 'a refused rescue is the same block in analytics');
     for (const skip of ['tank hot enough', 'no tank reading', 'no stop reading']) assert.strictEqual(leverBlock(skip), undefined);
     assert.strictEqual(heatingBlock('spa_on'), 'spa_on');
     assert.strictEqual(heatingBlock('room_control'), 'room_control');

@@ -193,6 +193,34 @@ test('per-weekday evenings: a busy weekday stands out once it has days of its ow
     assert.ok(young[2]!.mean < ev[2]!.mean, 'with two Tuesdays it leans on the working-day evening');
 });
 
+test('an evening that empties the tank counts, with its draw at least, instead of being left out', () => {
+    // Tuesdays draw hard at 19 and the tank reads empty (litres 0) from 20 until midnight.
+    const free = (day: number) => day % 7 >= 5;
+    const tuesday = (day: number) => day % 7 === 1;
+    // One bath that empties the tank at 19; nothing after it (the tank is cold).
+    const draw = (day: number, hour: number) => free(day) ? freeDay(hour)
+        : tuesday(day) && hour >= 19 ? (hour === 19 ? 8 : 0) : workingDay(hour);
+    const points = simulate(70, draw, {dayType: (day) => (free(day) ? 'free' : 'working')})
+        .map((p) => {
+            const day = Math.floor((p.t - T0) / (24 * HOUR)), hour = clock(p.t).hour;
+            return tuesday(day) && hour >= 20 ? {...p, litres: 0} : p;
+        });
+    const model = learn(points, clock, points[points.length - 1].t);
+    const ev = model.evenings!;
+    assert.ok(ev[2]!.days > 3, `Tuesdays counted: ${ev[2]!.days} days`);
+    // At least what the tank held: never learned lighter than a Monday that did not empty it.
+    assert.ok(ev[2]!.mean > ev[1]!.mean, `Tuesday ${ev[2]!.mean} vs Monday ${ev[1]!.mean}`);
+    assert.ok(model.profiles.working!.hours[19] > 1.5, `the emptying hour is not learned light: ${model.profiles.working!.hours[19]}`);
+});
+
+test('part days alone make no profile: a total needs full days or a starting point', () => {
+    // Every day reads empty 00–05: no full day at all.
+    const points = simulate(14, (day, hour) => workingDay(hour)).map((p) => (clock(p.t).hour < 5 ? {...p, litres: 0} : p));
+    const model = learn(points, clock, points[points.length - 1].t);
+    assert.strictEqual(model.profiles.any, undefined);
+    assert.strictEqual(model.profiles.working, undefined);
+});
+
 test('the local clock follows the time zone across the autumn change', () => {
     const stockholm = localClock('Europe/Stockholm');
     // 25 Oct 2026: clocks go back at 03:00 CEST = 01:00 UTC.

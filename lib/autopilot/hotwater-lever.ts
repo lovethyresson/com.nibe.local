@@ -42,7 +42,7 @@ export interface WriteCount {
     stops: number;
 }
 
-export type LeverSkip = 'hot water off' | 'smart price adaption' | 'smart control' | 'daily limit' | 'no tank reading'
+export type LeverSkip = 'hot water off' | 'smart price adaption' | 'smart control' | 'daily limit' | 'rescue limit' | 'no tank reading'
     | 'no stop reading' | 'tank hot enough';
 
 export type LeverDecision =
@@ -65,13 +65,14 @@ export function countFor(stored: WriteCount | undefined, date: string): WriteCou
  *  - `belowK`: how far under the target the top has to be. The legionella run passes half a
  *    degree: it has to get there, not only be worth a write.
  *  - `rescue`: the tank is under the owner's minimum. It may use the day's starts up to
- *    `MAX_RESCUE_STARTS_PER_DAY`, past the planned cap. */
-export function leverDecision(plannedC: number, facts: PumpFacts, count: WriteCount, belowK = BELOW_TARGET_K,
-    rescue = false): LeverDecision {
+ *    `MAX_RESCUE_STARTS_PER_DAY`, past the planned cap; past that it is 'rescue limit'. */
+export function leverDecision(plannedC: number, facts: PumpFacts, count: WriteCount,
+    {belowK = BELOW_TARGET_K, rescue = false}: {belowK?: number; rescue?: boolean} = {}): LeverDecision {
     if (facts.allowed === false) return {skip: 'hot water off'};
     if (facts.spaHotwater) return {skip: 'smart price adaption'};
     if (facts.demandMode === DEMAND_SMART) return {skip: 'smart control'};
-    if (count.starts >= (rescue ? MAX_RESCUE_STARTS_PER_DAY : MAX_STARTS_PER_DAY)) return {skip: 'daily limit'};
+    if (rescue ? count.starts >= MAX_RESCUE_STARTS_PER_DAY : count.starts >= MAX_STARTS_PER_DAY)
+        return {skip: rescue ? 'rescue limit' : 'daily limit'};
     if (facts.top === undefined) return {skip: 'no tank reading'};
     const set = facts.largeStopC;
     const mayWrite = facts.demandMode !== DEMAND_LARGE && count.stops < MAX_STOP_WRITES_PER_DAY;

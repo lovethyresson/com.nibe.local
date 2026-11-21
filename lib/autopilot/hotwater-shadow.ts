@@ -798,7 +798,10 @@ const SURPLUS_EVERY_MS = 3 * HOUR;
  *  best guess for the next half hour. */
 const LIVE_SLOTS = 2;
 /** Lever skips the owner must fix on the pump, and their locale key. */
-const BLOCKED: Partial<Record<string, string>> = {'hot water off': 'hot_water_off', 'smart price adaption': 'spa', 'smart control': 'smart_control'};
+const BLOCKED: Partial<Record<string, string>> = {'hot water off': 'hot_water_off', 'smart price adaption': 'spa', 'smart control': 'smart_control',
+    // The pump's own start is held out of the way, so a refused rescue leaves nothing heating the
+    // water until midnight: the owner hears it.
+    'rescue limit': 'rescue_limit'};
 
 /** The working-day evening the plan uses, and the per-weekday challenger's (plan step 5.1). */
 export function eveningForecast(model: HotwaterModel, weekday: number): EveningForecast | undefined {
@@ -1240,6 +1243,7 @@ export class HotwaterAutopilot {
         if (!tank) return this.skip('no tank size');
         const at = slotOf(Date.now()) * SLOT_MS;
         const input = this.input(at, now, tank);
+        if (this.rescueWarnedOn !== undefined && this.rescueWarnedOn !== input.clock(at).date) this.showBlocked(undefined, input.clock(at).date);
         this.watchDay(input);
         this.morning(input);
         this.adoptPlan(input);
@@ -1374,21 +1378,30 @@ export class HotwaterAutopilot {
         this.log(`Autopilot hot water: running charge raised ${e.from} → ${e.targetC} °C while prices stay cheap (saves about ${e.saves} ${this.currency}).`);
     }
 
+    /** The day a refused rescue was told on the device: its warning says "before midnight", so
+     *  it goes when the day does (`step`). */
+    private rescueWarnedOn?: string;
+
+    /** A lever block on the device, or none: the warning of a block, cleared when nothing blocks. */
+    private showBlocked(blocked: string | undefined, date: string) {
+        if (blocked) this.warn(this.homey.__(`autopilot.hotwater_charge.blocked.${blocked}`, {max: MAX_RESCUE_STARTS_PER_DAY}));
+        else this.clearWarning();
+        if (blocked === 'rescue_limit') this.rescueWarnedOn = date;
+    }
+
     /** The live lever: 62 to the target if it differs, then 697 = 2. */
     private async startCharge(e: ChargeEvent, date: string) {
         const count = countFor(this.hooks.store.get(WRITES_KEY), date);
         const rescue = e.reason === 'reserve';
-        const d = leverDecision(e.targetC!, await this.hooks.pumpFacts(), count, undefined, rescue);
+        const d = leverDecision(e.targetC!, await this.hooks.pumpFacts(), count, {rescue});
         // A pump setting that keeps Autopilot out is the owner's to change, so it is on the device,
-        // not only in the log. So is a rescue the day's starts refused: the pump's own start is held
-        // out of the way, so nothing else heats the water until midnight.
-        const blocked = 'skip' in d ? BLOCKED[d.skip] ?? (rescue && d.skip === 'daily limit' ? 'rescue_limit' : undefined) : undefined;
-        if (blocked) this.warn(this.homey.__(`autopilot.hotwater_charge.blocked.${blocked}`, {max: MAX_RESCUE_STARTS_PER_DAY}));
-        else this.clearWarning();
+        // not only in the log; so is a refused rescue (BLOCKED).
+        const blocked = 'skip' in d ? BLOCKED[d.skip] : undefined;
+        this.showBlocked(blocked, date);
         if ('skip' in d) {
             if (this.leverSkip !== d.skip) {
                 this.log(`Autopilot hot water: ${rescue ? 'rescue under the minimum' : 'planned charge'} not started (${d.skip}).`);
-                if (blocked === 'rescue_limit') this.noteRefusedRescue();
+                if (d.skip === 'rescue limit') this.noteRefusedRescue();
             }
             this.leverSkip = d.skip;
             // A skip that is not a block (the tank hot enough) leaves the last block standing.
@@ -1452,9 +1465,9 @@ export class HotwaterAutopilot {
      *  and one stop write of the day's. */
     private async startLegionella(input: ShadowStepInput, at: number, targetC: number, price: number) {
         const count = countFor(this.hooks.store.get(WRITES_KEY), input.clock(at).date);
-        const d = leverDecision(targetC, await this.hooks.pumpFacts(), count, REACHED_K);
+        const d = leverDecision(targetC, await this.hooks.pumpFacts(), count, {belowK: REACHED_K});
         const blocked = 'skip' in d ? BLOCKED[d.skip] : undefined;
-        if (blocked) this.warn(this.homey.__(`autopilot.hotwater_charge.blocked.${blocked}`, {max: MAX_RESCUE_STARTS_PER_DAY}));
+        if (blocked) this.showBlocked(blocked, input.clock(at).date);
         // The run needs 62 at its own temperature: with the day's stop writes used it waits.
         const skip = 'skip' in d ? d.skip : d.targetC !== targetC ? 'daily limit' : undefined;
         if (skip) {
@@ -1544,6 +1557,8 @@ export class HotwaterAutopilot {
     /** The device warning, set or cleared only on a change. */
     private warning?: string;
     private warn(text: string | undefined) {
+        // Any other warning replaces a refused rescue's, so midnight must not clear that one.
+        this.rescueWarnedOn = undefined;
         if (text === this.warning) return;
         this.warning = text;
         this.hooks.warn(text);

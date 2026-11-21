@@ -45,6 +45,11 @@ export interface Interval {
     /** Stored heat at the start and the end, kWh (NaN when the top was under 40 °C). */
     stored: number;
     storedEnd: number;
+    /** The interval that took the tank under 40 °C (litres 0 at its end): its draw is not knowable,
+     *  but it is at least all that was stored, plus what came in, less loss. */
+    drawAtLeast?: number;
+    /** The tank was under 40 °C all through (litres 0 at both ends): no hot water to draw. */
+    cold?: boolean;
     top?: number;
     dayType?: DayType;
 }
@@ -213,7 +218,12 @@ export function intervals(points: TankPoint[], loss: StandingLoss = DEFAULT_LOSS
         const heatIn = charging ? 0 : tankHeatIn(produced, hours, (s0 + s1) / 2, charge);
         const draw = Number.isFinite(s0) && Number.isFinite(s1)
             ? Math.max(0, s0 - s1 + heatIn - (charging ? 0 : lossAt(loss, (s0 + s1) / 2) * hours)) : NaN;
+        // The hour that emptied the tank was a big draw, and leaving it out would teach the
+        // profile that the busiest hours are light (2026-11-21 review): count at least what left.
+        const emptied = Number.isFinite(s0) && b.litres === 0;
+        const drawAtLeast = emptied ? Math.max(0, s0 + tankHeatIn(produced, hours, s0 / 2, charge) - lossAt(loss, s0 / 2) * hours) : undefined;
         out.push({start: a.t, hours, draw, produced, used, stored: s0, storedEnd: s1,
+            ...drawAtLeast !== undefined ? {drawAtLeast} : {}, ...a.litres === 0 && b.litres === 0 ? {cold: true} : {},
             top: finite(a.top) ? a.top : undefined, dayType: a.dayType});
     }
     return out;
@@ -366,15 +376,34 @@ interface Day {
     /** Per local hour, from the hourly readings; undefined when the day had none. */
     byHour?: number[];
     /** Hours of known hourly draw behind each local hour (0–1): an hour the tank was under 40 °C,
-     *  or read only in a coarser bucket, is unknown, and the day's other hours still count. */
+     *  or read only in a coarser bucket, is unknown, and the day's other hours still count. The
+     *  hour that emptied the tank counts, with its draw at least (`Interval.drawAtLeast`). */
     known?: number[];
+    /** Hours the tank was under 40 °C all through, per local hour (0–1): nothing hot to draw. */
+    cold?: number[];
     dayType?: DayType;
+}
+
+/** An hourly interval with no knowable draw that still says something about the hour: the one that
+ *  emptied the tank (its draw at least, known) or one with the tank cold all through (cold). It
+ *  feeds the day's hour shape only, never its total or its hours covered. */
+function shapeOnly(map: Map<string, Day & {votes: Map<DayType, number>}>, i: Interval, clock: LocalClock) {
+    const {date, hour} = clock(i.start + i.hours * HOUR / 2);
+    let day = map.get(date);
+    if (!day) map.set(date, day = {date, t: i.start, hoursCovered: 0, draw: 0, votes: new Map()});
+    if (i.drawAtLeast !== undefined) {
+        (day.byHour ??= new Array(24).fill(0))[hour] += i.drawAtLeast;
+        (day.known ??= new Array(24).fill(0))[hour] += i.hours;
+    } else (day.cold ??= new Array(24).fill(0))[hour] += i.hours;
 }
 
 function days(spans: Interval[], clock: LocalClock): Day[] {
     const map = new Map<string, Day & {votes: Map<DayType, number>}>();
     for (const i of spans) {
-        if (!Number.isFinite(i.draw)) continue;
+        if (!Number.isFinite(i.draw)) {
+            if (i.hours <= 1.01 && (i.drawAtLeast !== undefined || i.cold)) shapeOnly(map, i, clock);
+            continue;
+        }
         // Spread the interval over the hours it covers, so a 6-hour bucket lands on its own day(s).
         const steps = Math.max(1, Math.round(i.hours));
         for (let k = 0; k < steps; k++) {
@@ -407,7 +436,8 @@ const KNOWN_HOUR = 0.99;
  *  hours: a tank left under 40 °C overnight dropped the whole day (9–13 Nov on the S1155: 15–21
  *  known hours each), and with too few full days a type's shape leans on the pooled one. */
 function profileOf(list: Day[], weight: (d: Day) => number, prior?: DayProfile, shapes: Day[] = list): DayProfile | undefined {
-    if (!list.length && !shapes.length && !prior) return undefined;
+    // Shapes alone make no profile: its daily total needs full days, or a prior to start from.
+    if (!list.length && !prior) return undefined;
     const w = list.map(weight);
     const total = w.reduce((s, v) => s + v, 0);
     const shapedAll = shapes.filter((d) => d.byHour && d.known).map((d) => [d, weight(d)] as const);
@@ -522,7 +552,7 @@ export function learn(points: TankPoint[], clock: LocalClock, now: number, halfL
         // With a household the type has its own prior (a free day draws more, at other hours);
         // without one it leans on the pooled day.
         const ownShapes = shapeDays.filter((d) => d.dayType === type);
-        if (own.length || ownShapes.length || start) profiles[type] = profileOf(own, weight, start?.[type] ?? any, ownShapes);
+        if (own.length || (ownShapes.length && any) || start) profiles[type] = profileOf(own, weight, start?.[type] ?? any, ownShapes);
     }
     const evenings = weekdayEvenings(shapeDays.filter((d) => d.dayType === 'working'), weight);
     const today = clock(now).date;
@@ -538,7 +568,10 @@ export const weekdayOf = (date: string) => new Date(`${date}T12:00:00Z`).getUTCD
 
 /** Per weekday, the evening draw of working days whose every evening hour was read. */
 function weekdayEvenings(days: Day[], weight: (d: Day) => number): HotwaterModel['evenings'] {
-    const known = days.filter((d) => d.byHour && d.known && d.known.slice(EVENING_FROM, EVENING_TO).every((k) => k >= KNOWN_HOUR));
+    // Each evening hour read, or cold (nothing hot left to draw): an evening that emptied the tank
+    // counts with its draw at least, rather than being left out as the busy evenings were.
+    const known = days.filter((d) => d.byHour && d.known
+        && d.known.slice(EVENING_FROM, EVENING_TO).every((k, j) => k + (d.cold?.[EVENING_FROM + j] ?? 0) >= KNOWN_HOUR));
     if (!known.length) return undefined;
     const evening = (d: Day) => d.byHour!.slice(EVENING_FROM, EVENING_TO).reduce((a, b) => a + b, 0);
     const all = known.map((d) => [evening(d), weight(d)] as const);
