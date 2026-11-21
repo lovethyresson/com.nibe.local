@@ -3,6 +3,8 @@ import {HouseParams} from './model';
  *  from Homey Energy and weather from Open-Meteo; refits the house model hourly; and runs the
  *  controller in shadow every slot. Reads only; nothing here writes to the pump.
  *  Design: docs/autopilot-plan.md §5.2–5.4, §6, §7.5. */
+import {dateFormat} from '../intl';
+import {memMark} from '../mem-probe';
 import {SensorRef, selectedReadings} from '../indoor-sensors';
 import {Aggregator, FLAG, Field, History, Sample, SlotContext, encodeRecord} from './history';
 import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, slotOf} from './prices';
@@ -479,7 +481,9 @@ export class AutopilotCollector {
 
     /** Refit the house model over the whole history and keep the result beside it. Reads only:
      *  nothing here reaches the pump or the owner yet. */
-    private async fitModel() {
+    // TEMP(mem)
+    private fitModel() { return memMark('heating fit', () => this.fitModelInner()); }
+    private async fitModelInner() {
         const started = Date.now();
         const fit = fitHistory(this.history, this.answers);
         this.fit = fit;
@@ -502,7 +506,7 @@ export class AutopilotCollector {
     }
 
     private localHour(slot: number): number {
-        const parts = new Intl.DateTimeFormat('en-GB', {timeZone: this.homey.clock.getTimezone(), hour: 'numeric', hourCycle: 'h23'})
+        const parts = dateFormat('en-GB', {timeZone: this.homey.clock.getTimezone(), hour: 'numeric', hourCycle: 'h23'})
             .formatToParts(new Date(slot * SLOT_MS));
         return Number(parts.find((p) => p.type === 'hour')?.value ?? 0);
     }

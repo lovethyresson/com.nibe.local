@@ -1,3 +1,4 @@
+import {dateFormat} from '../intl';
 /** Hot water learner: what a household draws, by hour and day type, what the tank loses standing,
  *  and what a charge delivers. Pure: the caller supplies the tank readings and the local clock.
  *  Design: docs/autopilot-hot-water.md §4.1.
@@ -152,7 +153,7 @@ export const RECENT_DAYS = 28;
 export type LocalClock = (ms: number) => {date: string; hour: number; minute?: number};
 
 export function localClock(timeZone: string): LocalClock {
-    const format = new Intl.DateTimeFormat('en-CA', {timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+    const format = dateFormat('en-CA', {timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit', hourCycle: 'h23'});
     return (ms) => {
         const parts = Object.fromEntries(format.formatToParts(new Date(ms)).map((p) => [p.type, p.value]));

@@ -1,4 +1,6 @@
 import {CaptureSummary, logCaptureSummary} from './diagnostic-capture';
+import {dateFormat, localeDate, localeTime, numberFormat} from './intl';
+import {memMark, memNow} from './mem-probe';
 import {pricesFor} from './gateway-prices';
 import {PRIORITY} from './gateway';
 import {IndoorConfig, averageSensors, cleanIndoorConfig, readOnlyIndoorConfig, selectedReadings, withApi} from './indoor-sensors';
@@ -1964,7 +1966,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
      *  Insights, so the house model fits on day one. Runs off init; needs the device's Homey id,
      *  which a just-paired device may not have yet, so it retries a few times and otherwise tries
      *  again at the next start. Reads only. */
-    private async backfillAutopilotHistory(tries: number) {
+    // TEMP(mem)
+    private backfillAutopilotHistory(tries: number) { return memMark('history backfill', () => this.backfillAutopilotHistoryInner(tries)); }
+    private async backfillAutopilotHistoryInner(tries: number) {
         const collector = this.autopilot;
         const spec = this.profile.autopilotHistory;
         if (!collector || !spec || this.getStoreValue(BACKFILL_STORE) != null) return;
@@ -2230,15 +2234,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         }
     }
 
-    private clock = (ms: number) => new Date(ms).toLocaleTimeString('sv-SE',
-        {timeZone: this.homey.clock.getTimezone(), hour: '2-digit', minute: '2-digit'});
+    private clock = (ms: number) => localeTime(ms, 'sv-SE', {timeZone: this.homey.clock.getTimezone(), hour: '2-digit', minute: '2-digit'});
 
     /** A time, with the weekday in the owner's language when it is not today: "Thu 18:00". */
     private clockOn(ms: number): string {
         const timeZone = this.homey.clock.getTimezone();
-        const date = (t: number) => new Date(t).toLocaleDateString('en-CA', {timeZone});
+        const date = (t: number) => localeDate(t, 'en-CA', {timeZone});
         if (date(ms) === date(Date.now())) return this.clock(ms);
-        const day = new Date(ms).toLocaleDateString(this.homey.i18n?.getLanguage?.() ?? 'en', {timeZone, weekday: 'short'});
+        const day = localeDate(ms, this.homey.i18n?.getLanguage?.() ?? 'en', {timeZone, weekday: 'short'});
         return `${day} ${this.clock(ms)}`;
     }
 
@@ -2842,7 +2845,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             {slots: Object.fromEntries(known.map(([role, r]) => [role, r!.slots])), prices: slotPrices});
         const currency = known.find(([, r]) => r!.currency)?.[1]!.currency ?? '';
         const language = this.homey.i18n.getLanguage();
-        const kwh = new Intl.NumberFormat(language, {maximumFractionDigits: 1}).format(chart.kwh);
+        const kwh = numberFormat(language, {maximumFractionDigits: 1}).format(chart.kwh);
         // Now in hours from midnight, at the start of its 15-minute slot, where the other day charts
         // draw it: the line falls inside the hour's bar, which holds the use so far.
         const hour = Math.max(0, hours.findIndex((at) => at > Date.now()) - 1);
@@ -2865,7 +2868,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
      *  savings, a row per function and what needs the owner. Each figure is the one another widget
      *  or tile shows, so they agree: the ring and cost from Energy today, the month from the two
      *  savings widgets, the rows from the devices' own capabilities. */
+    // TEMP(mem)
     overviewWidget(): OverviewData {
+        this.log(`TEMP(mem) start overview: ${memNow()}`);
+        const out = this.overviewWidgetInner();
+        this.log(`TEMP(mem) end overview: ${memNow()}`);
+        return out;
+    }
+    private overviewWidgetInner(): OverviewData {
         const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.overview.${key}`, tokens);
         const title = this.getName();
         const host = String(this.getData().id).split('#')[0];
@@ -3030,7 +3040,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const reading = !this.hotwaterAutopilot?.historyReady() && process.uptime() < 15 * 60;
         if (reading) return {title, loading: true, status: t('loading')};
         if (!usage) return {title, empty: t('learning')};
-        const format = new Intl.DateTimeFormat(this.homey.i18n.getLanguage(), {weekday: 'short', timeZone: 'UTC'});
+        const format = dateFormat(this.homey.i18n.getLanguage(), {weekday: 'short', timeZone: 'UTC'});
         const week = hotwaterWeek(usage, (date) => format.format(new Date(`${date}T12:00:00Z`)));
         // No full day yet: one line, not a week of dashes.
         if (!week.bars.some((bar) => !bar.today && bar.litres !== undefined)) return {title, empty: t('learning')};
@@ -3178,7 +3188,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     /** Add the complete days the ledger lacks, from Insights' hourly meter (14 days back) and the
      *  day's prices. A day once written is final, so a refresh only reads what is new. Returns when
      *  to look again: an hour, or six when this Homey has no dynamic prices or the device is not found. */
-    private async refreshSavings(): Promise<number> {
+    // TEMP(mem)
+    private refreshSavings(): Promise<number> { return memMark(`savings ${this.role}`, () => this.refreshSavingsInner()); }
+    private async refreshSavingsInner(): Promise<number> {
         const timeZone = this.homey.clock.getTimezone();
         const now = Date.now();
         const today = localDate(now, timeZone);
@@ -3342,7 +3354,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const timeZone = this.homey.clock.getTimezone();
         const language = this.homey.i18n.getLanguage();
         const currency = String(pump.map((d) => d.getStoreValue(SAVINGS_CURRENCY_STORE)).find(Boolean) ?? '');
-        const dayLabel = new Intl.DateTimeFormat(language, {weekday: 'short', timeZone: 'UTC'});
+        const dayLabel = dateFormat(language, {weekday: 'short', timeZone: 'UTC'});
         return costCheckData(t('title'), ledgers, localDate(Date.now(), timeZone), Date.now(), t,
             (v) => moneyText(v, Math.abs(v) < 100 ? 2 : 0, language, currency),
             (date) => dayLabel.format(new Date(`${date}T12:00:00Z`)));
@@ -3386,7 +3398,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private seasonTold = false;
 
     /** What the Autopilot savings widget draws. Every string translated here. */
+    // TEMP(mem)
     savingsWidget(): SavingsData {
+        this.log(`TEMP(mem) start savings widget ${this.role}: ${memNow()}`);
+        const out = this.savingsWidgetInner();
+        this.log(`TEMP(mem) end savings widget ${this.role}: ${memNow()}`);
+        return out;
+    }
+    private savingsWidgetInner(): SavingsData {
         const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.savings.${key}`, tokens);
         const title = this.getName();
         if (this.role !== 'heating' && this.role !== 'hotwater') return {title, empty: t('pick')};
@@ -3400,9 +3419,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const amount = (v: number, digits: number) => moneyText(v, digits, language, currency);
         const firstLive = this.getStoreValue(FIRST_LIVE_STORE);
         const baseline = this.getStoreValue(BASELINE_STORE) as Baseline | null;
-        const dayLabel = new Intl.DateTimeFormat(language, {weekday: 'short', timeZone: 'UTC'});
-        const monthName = new Intl.DateTimeFormat(language, {month: 'long', timeZone: 'UTC'});
-        const dayMonth = new Intl.DateTimeFormat(language, {day: 'numeric', month: 'short', timeZone: 'UTC'});
+        const dayLabel = dateFormat(language, {weekday: 'short', timeZone: 'UTC'});
+        const monthName = dateFormat(language, {month: 'long', timeZone: 'UTC'});
+        const dayMonth = dateFormat(language, {day: 'numeric', month: 'short', timeZone: 'UTC'});
         const today = localDate(Date.now(), timeZone);
         const stored = this.getStoreValue(SAVINGS_TODAY_STORE) as SavingsDay | null;
         // Today so far, up to now as Energy today counts it; the stored one (as of the hourly
@@ -3695,8 +3714,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (!entry)
             return '';
         // sv-SE renders as "2026-07-24 11:26" — unambiguous and sorts naturally.
-        const when = new Date(entry.t).toLocaleString('sv-SE',
-            {timeZone: this.homey.clock.getTimezone(), dateStyle: 'short', timeStyle: 'short'});
+        const when = dateFormat('sv-SE', {timeZone: this.homey.clock.getTimezone(), dateStyle: 'short', timeStyle: 'short'}).format(new Date(entry.t));
         // Timestamp on its own line: the alarm text runs long enough that a single line wraps
         // mid-sentence and the date stops being scannable.
         return `${when}\n${entry.text}`;

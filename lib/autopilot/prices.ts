@@ -1,3 +1,4 @@
+import {dateFormat} from '../intl';
 /** Homey Energy prices → 15-minute UTC slots. Pure: the collector does the fetching.
  *  Design: docs/autopilot-plan.md §5.2. */
 
@@ -93,8 +94,7 @@ export function normalisePrices(response: any, costExpression: unknown): DayPric
 
 /** The owner's local calendar date ('YYYY-MM-DD') at `ms`, plus `days`. */
 export function localDate(ms: number, timeZone: string, days = 0): string {
-    const parts = new Intl.DateTimeFormat('en-CA', {timeZone, year: 'numeric', month: '2-digit', day: '2-digit'})
-        .format(new Date(ms));
+    const parts = dateFormat('en-CA', {timeZone, year: 'numeric', month: '2-digit', day: '2-digit'}).format(new Date(ms));
     if (!days) return parts;
     const [y, m, d] = parts.split('-').map(Number);
     return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
@@ -102,7 +102,7 @@ export function localDate(ms: number, timeZone: string, days = 0): string {
 
 /** Local minutes since midnight at `ms`. */
 export function localMinutes(ms: number, timeZone: string): number {
-    const [h, m] = new Intl.DateTimeFormat('en-GB', {timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23'})
+    const [h, m] = dateFormat('en-GB', {timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23'})
         .format(new Date(ms)).split(':').map(Number);
     return h * 60 + m;
 }

@@ -9,6 +9,8 @@
  *  cost. Those add up into the last 7 days, this month and this year. Pure; the device gathers the
  *  inputs and the widget only draws. Strings arrive translated. */
 
+import {numberFormat} from '../intl';
+
 const HOUR = 3_600_000;
 
 /** One complete local day of one function. */
@@ -508,10 +510,10 @@ export function firstLiveFrom(markAt: number, live: (at: number) => boolean | un
  *  number ("2.79 kr", "2,79 kr."), whatever side the language's own format puts it. Symbols keep
  *  their place ("€2.79", "2,79 €"). An unknown code is written after the number as it is. */
 export function moneyText(v: number, digits: number, language: string, currency: string): string {
-    const plain = (n: number) => new Intl.NumberFormat(language, {minimumFractionDigits: digits, maximumFractionDigits: digits}).format(n);
+    const plain = (n: number) => numberFormat(language, {minimumFractionDigits: digits, maximumFractionDigits: digits}).format(n);
     if (!/^[A-Z]{3}$/.test(currency)) return `${plain(v)} ${currency}`.trim();
     try {
-        const parts = new Intl.NumberFormat(language, {style: 'currency', currency, currencyDisplay: 'narrowSymbol',
+        const parts = numberFormat(language, {style: 'currency', currency, currencyDisplay: 'narrowSymbol',
             minimumFractionDigits: digits, maximumFractionDigits: digits}).formatToParts(v);
         const symbol = parts.find((p) => p.type === 'currency')?.value ?? currency;
         if (!/^[\p{L}.]+$/u.test(symbol)) return parts.map((p) => p.value).join('');

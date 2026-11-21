@@ -6,6 +6,8 @@
  *  collector split (autopilot-plan.md, shared inputs): it learns from the device's own Insights,
  *  which already hold the tank's history, and fetches prices itself. When the split lands, the
  *  price fetch moves to the home service and the tank fields to the per-pump history. */
+import {localeTime} from '../intl';
+import {memMark} from '../mem-probe';
 import {withApi} from '../indoor-sensors';
 import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, slotOf} from './prices';
 import {pricesFor} from '../gateway-prices';
@@ -1145,7 +1147,9 @@ export class HotwaterAutopilot {
     }
 
     /** True when a model was learned. */
-    private async learn(): Promise<boolean> {
+    // TEMP(mem)
+    private learn(): Promise<boolean> { return memMark('hot water learn', () => this.learnInner()); }
+    private async learnInner(): Promise<boolean> {
         const started = Date.now();
         const logs = await withApi(this.homey, async (api) => {
             this.deviceId ??= this.hooks.homeyId ? await this.hooks.homeyId(api)
@@ -1636,8 +1640,7 @@ export class HotwaterAutopilot {
         return this.morningPlan;
     }
 
-    private time = (ms: number) => new Date(ms).toLocaleTimeString('sv-SE',
-        {timeZone: this.homey.clock.getTimezone(), hour: '2-digit', minute: '2-digit'});
+    private time = (ms: number) => localeTime(ms, 'sv-SE', {timeZone: this.homey.clock.getTimezone(), hour: '2-digit', minute: '2-digit'});
 
     /** With no plan in force (a first start, or a restart with none saved that is still current),
      *  the plan from now becomes it, without a message: charges are compared with it, and the

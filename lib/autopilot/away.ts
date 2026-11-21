@@ -3,6 +3,8 @@
  *  for the home, like the day type (day-type.ts), kept apart from it so hot water's state is not
  *  touched. Pure. Design: docs/autopilot-plan.md §19.2. */
 
+import {dateFormat, localeDate, localeTime} from '../intl';
+
 export const AWAY_UNTIL_SETTING = 'autopilotAwayUntil';
 
 /** The stored end time, or undefined when Away has none. */
@@ -19,12 +21,12 @@ export function awayEnded(until: number | undefined, now: number): boolean {
 /** When Away ends, as the owner reads it: the time today, "Thu 18:00" within the week,
  *  "22 Nov 18:00" beyond it. 24-hour time; weekday and month in the owner's language. */
 export function awayUntilLabel(until: number, now: number, timeZone: string, language = 'en'): string {
-    const time = new Date(until).toLocaleTimeString('sv-SE', {timeZone, hour: '2-digit', minute: '2-digit'});
-    const date = (t: number) => new Date(t).toLocaleDateString('en-CA', {timeZone});
+    const time = localeTime(until, 'sv-SE', {timeZone, hour: '2-digit', minute: '2-digit'});
+    const date = (t: number) => localeDate(t, 'en-CA', {timeZone});
     if (date(until) === date(now)) return time;
     const day = until - now < 6 * 86_400_000
-        ? new Date(until).toLocaleDateString(language, {timeZone, weekday: 'short'})
-        : new Date(until).toLocaleDateString(language, {timeZone, day: 'numeric', month: 'short'});
+        ? localeDate(until, language, {timeZone, weekday: 'short'})
+        : localeDate(until, language, {timeZone, day: 'numeric', month: 'short'});
     return `${day} ${time}`;
 }
 
@@ -46,7 +48,7 @@ export function localDateTime(date: unknown, time: unknown, timeZone: string): n
 
 /** The zone's offset from UTC at `ms`, ms. */
 function offset(ms: number, timeZone: string): number {
-    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {timeZone, year: 'numeric', month: '2-digit',
+    const parts = Object.fromEntries(dateFormat('en-CA', {timeZone, year: 'numeric', month: '2-digit',
         day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'})
         .formatToParts(new Date(ms)).map((p) => [p.type, p.value]));
     const local = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour) % 24,

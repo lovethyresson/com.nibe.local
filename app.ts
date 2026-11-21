@@ -1,5 +1,6 @@
 import Homey from 'homey';
 import {announceRelease} from './lib/release-announcements';
+import {startMemProbe} from './lib/mem-probe';
 import {errorEntry, readJournal, record} from './lib/crash-journal';
 import {CONSENT_SETTING, SHOWN_SETTING, analyticsConsent, appVersion, initAnalytics, noteShown, refreshConsent, track} from './lib/analytics';
 
@@ -17,6 +18,8 @@ class NibeApp extends Homey.App {
     // What stops the app: written before the process goes, read back through api.ts `crashes`.
     process.on('uncaughtExceptionMonitor', (error: any) => record(errorEntry('uncaught', error)));
     record({kind: 'start'});
+    // TEMP(mem): memory over the first minutes (lib/mem-probe.ts).
+    startMemProbe((...args) => this.log(...args), (fn, ms) => this.homey.setInterval(fn, ms), (t) => this.homey.clearInterval(t));
 
     // The single init for the whole app lifecycle. Without stored consent this touches nothing.
     initAnalytics(this.homey, (...args) => this.log(...args), (...args) => this.error(...args));
