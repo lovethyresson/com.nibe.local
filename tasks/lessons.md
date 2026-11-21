@@ -593,3 +593,9 @@ before an install. The after-install check fails on any device warning or a paus
   borrowed "charge" (laddning, Ladung) and "the tank" from the register names and NIBE's manual.
   **Rule:** owner text says what the owner gets, hot water heated, never the mechanism. "Tank"
   only for the physical tank (its model or size). Code identifiers and docs/ may keep "charge".
+
+## Read a register the way the code reads it (2026-11-21)
+I told the user room-sensor control was on because 202 read 1. The S1155 on zone firmware always
+reports 202 = 1; the app treats an answering curve offset (30) as "off" (history.ts
+`roomControlOff`). Rule: before stating a pump fact from a register, grep how the app interprets
+that register, and say what the code concludes, not the raw value.
