@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {DEFAULT_STEP_K, MAX_STEPS, READY_DAYS_BEFORE, REPEAT_DAYS, CurveSample, addSample, curveAdvice, isNews, readCurveStore,
+import {DEFAULT_STEP_K, MAX_STEPS, OWNER_SETTLE_DAYS, READY_DAYS_BEFORE, REPEAT_DAYS, CurveSample, addSample, curveAdvice, isNews, readCurveStore,
     slopeOf, trimShiftFor} from '../lib/autopilot/curve-advice';
 
 const days = (n: number, integral: (d: number) => number, te: (d: number) => number = () => 2): CurveSample[] =>
@@ -37,18 +37,25 @@ test('without a measured step it errs towards fewer steps, NIBE\'s 2.5 K', () =>
 
 test('after its own change Autopilot waits a month, and reads only what the new curve has seen', () => {
     const samples = days(40, (d) => (d < 10 ? 2 : 0.1));
-    assert.equal(curveAdvice({...base, today: 120, samples, changed: 109, adjusted: 109}), undefined, 'within the month');
-    assert.equal(curveAdvice({...base, today: 139, samples, changed: 109, adjusted: 109}), undefined, 'the new curve holds');
+    assert.equal(curveAdvice({...base, today: 120, samples, changed: 109, wrote: 109}), undefined, 'within the month');
+    assert.equal(curveAdvice({...base, today: 139, samples, changed: 109, wrote: 109}), undefined, 'the new curve holds');
     const still = days(40, () => 2);
-    assert.equal(curveAdvice({...base, today: 120, samples: still, changed: 109, adjusted: 109}), undefined, 'still short: the month first');
-    assert.equal(curveAdvice({...base, today: 139, samples: still, changed: 109, adjusted: 109})?.to, 2, 'a month on, still short');
+    assert.equal(curveAdvice({...base, today: 120, samples: still, changed: 109, wrote: 109}), undefined, 'still short: the month first');
+    assert.equal(curveAdvice({...base, today: 139, samples: still, changed: 109, wrote: 109})?.to, 2, 'a month on, still short');
 });
 
-test('after the owner\'s own change it needs only three steady days on the new curve', () => {
+test('after the owner\'s own change it waits a week on the new curve, not the month', () => {
     // The owner moved the offset on day 109; the curve is still short by the same 2 K after it.
     const upTo = (today: number) => days(40, () => 2).filter((s) => s.day <= today);
-    assert.equal(curveAdvice({...base, today: 111, samples: upTo(111), changed: 109}), undefined, 'two days on the new curve');
-    assert.equal(curveAdvice({...base, today: 112, samples: upTo(112), changed: 109})?.to, 2, 'three days: advice');
+    assert.equal(curveAdvice({...base, today: 112, samples: upTo(112), changed: 109}), undefined, 'three steady days are not enough');
+    assert.equal(curveAdvice({...base, today: 109 + OWNER_SETTLE_DAYS, samples: upTo(109 + OWNER_SETTLE_DAYS), changed: 109})?.to, 2,
+        'a week on: advice');
+});
+
+test('the month counts from Autopilot\'s last write, Undo included, also in a store from before', () => {
+    assert.equal(readCurveStore({wrote: 109}).wrote, 109);
+    assert.equal(readCurveStore({adjusted: {day: 105, at: 0, from: 6, to: 8}}).wrote, 105, 'dated by adjusted before wrote existed');
+    assert.equal(readCurveStore({adjusted: {at: 0, from: 6, to: 8}}).wrote, undefined, 'no day, no wait invented');
 });
 
 test('a trim that grows with the cold is a curve too flat: steeper, as advice', () => {

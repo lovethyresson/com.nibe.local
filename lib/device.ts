@@ -2564,7 +2564,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (facts.te !== undefined) store.samples = addSample(store.samples, {day: today, integral: this.heatingFeed.learnedTrim, te: facts.te});
         const advice = curveAdvice({today, samples: store.samples, offset: Number.isFinite(offset) ? offset : undefined,
             readyDays: facts.readyAt === undefined ? undefined : (Date.now() - facts.readyAt) / 86_400_000,
-            curveGain: facts.curveGain, stepK: facts.stepK, changed: store.changed, adjusted: store.adjusted?.day});
+            curveGain: facts.curveGain, stepK: facts.stepK, changed: store.changed, wrote: store.wrote});
         const fmt = (v: number) => (v > 0 ? `+${v}` : String(v));
         const say = (key: string, tokens?: Record<string, string>) =>
             this.homey.notifications.createNotification({excerpt: this.homey.__(`autopilot.heating.curve.${key}`, tokens)}).catch(this.error);
@@ -2573,7 +2573,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             // The write reads itself back through setValue → curveOffsetRead, which moves the trim
             // once from the offset stored here. The change is dated before the write, so the 30-day
             // wait holds even if the read-back never comes (offset not polled, a failed confirm).
-            await this.setStoreValue(CURVE_STORE, {...store, offset: advice.from, changed: today,
+            await this.setStoreValue(CURVE_STORE, {...store, offset: advice.from, changed: today, wrote: today,
                 adjusted: {day: today, at: Date.now(), from: advice.from, to: advice.to}});
             await this.writeRegister(this.profile.registerByName[name], advice.to);
             this.log(`Heat curve advice: offset ${advice.from} -> ${advice.to} (learned trim ${advice.integral.toFixed(2)} K, `
@@ -2646,7 +2646,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (!name || !store.adjusted) throw new Error(this.homey.__('autopilot.heating.curve.nothing_to_undo'));
         // The trim moves back through setValue → curveOffsetRead, as for any change.
         await this.writeRegister(this.profile.registerByName[name], store.adjusted.from);
-        await this.setStoreValue(CURVE_STORE, {...this.heatCurveStore(), choice: 'self', adjusted: undefined});
+        await this.setStoreValue(CURVE_STORE, {...this.heatCurveStore(), choice: 'self', adjusted: undefined, wrote: dayNumber(Date.now())});
         this.adviceWarning = undefined;
         await this.showAdviceWarning();
     }

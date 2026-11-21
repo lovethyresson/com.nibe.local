@@ -28,8 +28,11 @@ export const STEADY_K = 0.4;
  *  errs towards fewer steps; the trim covers the rest, and the fit measures the real gain once the
  *  offset has moved. */
 export const DEFAULT_STEP_K = 2.5;
-/** Days between changes, and between repeating the same advice. */
+/** Days between Autopilot's own changes, and between repeating the same advice. */
 export const REPEAT_DAYS = 30;
+/** Days on a curve the owner changed before advice reads it: the trim's integral settles at the
+ *  house's pace, so three steady days alone can be a half-settled trim. */
+export const OWNER_SETTLE_DAYS = 7;
 /** The slope is off when the learned part moves this many K per K of outdoor temperature, over a
  *  spread of at least `SLOPE_SPREAD_K` of daily outdoor means. */
 export const SLOPE_K_PER_K = 0.15;
@@ -52,6 +55,9 @@ export interface CurveStore {
     samples: CurveSample[];
     /** The last offset change Autopilot made, kept for Undo. */
     adjusted?: {day: number; at: number; from: number; to: number};
+    /** The day Autopilot last wrote the offset, a change or an Undo: its month's wait counts from
+     *  here. Kept through Undo, which clears `adjusted`. */
+    wrote?: number;
     /** The offset last seen on the pump, so a change made while Homey was off still counts. */
     offset?: number;
     /** The day the offset last changed, by anyone: samples before it describe the old curve. */
@@ -82,6 +88,8 @@ export function readCurveStore(raw: unknown): CurveStore {
         samples,
         ...r.adjusted && Number.isFinite(r.adjusted.from) && Number.isFinite(r.adjusted.to) ? {adjusted: r.adjusted} : {},
         ...Number.isFinite(r.changed) ? {changed: r.changed} : {},
+        // Before `wrote` existed, Autopilot's own change was dated by `adjusted`.
+        ...Number.isFinite(r.wrote) ? {wrote: r.wrote} : Number.isFinite(r.adjusted?.day) ? {wrote: r.adjusted!.day} : {},
         ...Number.isFinite(r.offset) ? {offset: r.offset} : {},
         ...r.told && Number.isFinite(r.told.day) ? {told: r.told} : {},
     };
@@ -106,17 +114,18 @@ export interface AdviceInput {
     stepK?: number;
     /** The day the offset last changed, by anyone: only samples after it describe this curve. */
     changed?: number;
-    /** The day Autopilot itself last changed the offset: it changes it at most once a month. A
-     *  change by the owner does not wait the month (2026-11-21: the owner's own +6 on 14 Nov
-     *  held the advice until 14 Dec); it only needs `STEADY_DAYS` on the new curve. */
-    adjusted?: number;
+    /** The day Autopilot itself last wrote the offset (`CurveStore.wrote`): it changes it at most
+     *  once a month. A change by the owner does not wait the month (2026-11-21: the owner's own +6
+     *  on 14 Nov held the advice until 14 Dec), only `OWNER_SETTLE_DAYS` on the new curve. */
+    wrote?: number;
 }
 
 /** The advice for today, or undefined when there is none yet (or none needed). */
 export function curveAdvice(input: AdviceInput): Advice | undefined {
     const {today, readyDays, offset, curveGain} = input;
     if (readyDays === undefined || readyDays < READY_DAYS_BEFORE) return undefined;
-    if (input.adjusted !== undefined && today - input.adjusted < REPEAT_DAYS) return undefined;
+    if (input.wrote !== undefined && today - input.wrote < REPEAT_DAYS) return undefined;
+    if (input.changed !== undefined && today - input.changed < OWNER_SETTLE_DAYS) return undefined;
     if (offset === undefined || !Number.isFinite(offset) || curveGain === undefined || !(curveGain > 0)) return undefined;
     // Only what the curve as it now is has seen.
     const since = input.samples.filter((s) => input.changed === undefined || s.day > input.changed);
