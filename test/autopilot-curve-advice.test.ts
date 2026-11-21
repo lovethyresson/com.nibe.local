@@ -35,10 +35,20 @@ test('without a measured step it errs towards fewer steps, NIBE\'s 2.5 K', () =>
     assert.equal(curveAdvice({...base, stepK: undefined, samples: days(10, () => 2)})?.to, Math.round(2.4 / DEFAULT_STEP_K));
 });
 
-test('after a change it waits a month, and reads only what the new curve has seen', () => {
+test('after its own change Autopilot waits a month, and reads only what the new curve has seen', () => {
     const samples = days(40, (d) => (d < 10 ? 2 : 0.1));
-    assert.equal(curveAdvice({...base, today: 120, samples, changed: 109}), undefined, 'within the month');
-    assert.equal(curveAdvice({...base, today: 139, samples, changed: 109}), undefined, 'the new curve holds');
+    assert.equal(curveAdvice({...base, today: 120, samples, changed: 109, adjusted: 109}), undefined, 'within the month');
+    assert.equal(curveAdvice({...base, today: 139, samples, changed: 109, adjusted: 109}), undefined, 'the new curve holds');
+    const still = days(40, () => 2);
+    assert.equal(curveAdvice({...base, today: 120, samples: still, changed: 109, adjusted: 109}), undefined, 'still short: the month first');
+    assert.equal(curveAdvice({...base, today: 139, samples: still, changed: 109, adjusted: 109})?.to, 2, 'a month on, still short');
+});
+
+test('after the owner\'s own change it needs only three steady days on the new curve', () => {
+    // The owner moved the offset on day 109; the curve is still short by the same 2 K after it.
+    const upTo = (today: number) => days(40, () => 2).filter((s) => s.day <= today);
+    assert.equal(curveAdvice({...base, today: 111, samples: upTo(111), changed: 109}), undefined, 'two days on the new curve');
+    assert.equal(curveAdvice({...base, today: 112, samples: upTo(112), changed: 109})?.to, 2, 'three days: advice');
 });
 
 test('a trim that grows with the cold is a curve too flat: steeper, as advice', () => {

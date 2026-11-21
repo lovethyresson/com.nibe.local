@@ -2564,7 +2564,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (facts.te !== undefined) store.samples = addSample(store.samples, {day: today, integral: this.heatingFeed.learnedTrim, te: facts.te});
         const advice = curveAdvice({today, samples: store.samples, offset: Number.isFinite(offset) ? offset : undefined,
             readyDays: facts.readyAt === undefined ? undefined : (Date.now() - facts.readyAt) / 86_400_000,
-            curveGain: facts.curveGain, stepK: facts.stepK, changed: store.changed});
+            curveGain: facts.curveGain, stepK: facts.stepK, changed: store.changed, adjusted: store.adjusted?.day});
         const fmt = (v: number) => (v > 0 ? `+${v}` : String(v));
         const say = (key: string, tokens?: Record<string, string>) =>
             this.homey.notifications.createNotification({excerpt: this.homey.__(`autopilot.heating.curve.${key}`, tokens)}).catch(this.error);

@@ -104,15 +104,19 @@ export interface AdviceInput {
     curveGain?: number;
     /** Supply K per offset step, when the curve fit has measured it. */
     stepK?: number;
-    /** The day the offset last changed. */
+    /** The day the offset last changed, by anyone: only samples after it describe this curve. */
     changed?: number;
+    /** The day Autopilot itself last changed the offset: it changes it at most once a month. A
+     *  change by the owner does not wait the month (2026-11-21: the owner's own +6 on 14 Nov
+     *  held the advice until 14 Dec); it only needs `STEADY_DAYS` on the new curve. */
+    adjusted?: number;
 }
 
 /** The advice for today, or undefined when there is none yet (or none needed). */
 export function curveAdvice(input: AdviceInput): Advice | undefined {
     const {today, readyDays, offset, curveGain} = input;
     if (readyDays === undefined || readyDays < READY_DAYS_BEFORE) return undefined;
-    if (input.changed !== undefined && today - input.changed < REPEAT_DAYS) return undefined;
+    if (input.adjusted !== undefined && today - input.adjusted < REPEAT_DAYS) return undefined;
     if (offset === undefined || !Number.isFinite(offset) || curveGain === undefined || !(curveGain > 0)) return undefined;
     // Only what the curve as it now is has seen.
     const since = input.samples.filter((s) => input.changed === undefined || s.day > input.changed);

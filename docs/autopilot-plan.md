@@ -1048,7 +1048,9 @@ Runs every 15 min and on new prices or weather. Horizon: 24–36 h of slots.
        (register 30, menu 1.1.1 "set value for heating (curve offset)" with room-sensor control off,
        −10 – 10): learned K × the curve's gain where the house has been ÷ supply K per step (the
        curve fit's `offsetGain`, else NIBE's "+2 steps = +5 °C", 2.5, which errs towards fewer steps;
-       the S1155 measured 1.53), at most ±3 steps, at most once in 30 days. Heating setup asks once:
+       the S1155 measured 1.53), at most ±3 steps; Autopilot changes it at most once in 30 days. An
+       owner's own offset change does not start that wait (2026-11-21): only the 3 steady days on the
+       new curve. Heating setup asks once:
        **Adjust it for me** (default: Autopilot writes the offset once and says so in the Timeline,
        with Undo in Heating setup) or **I'll do it myself** (the Timeline, and the device warning
        when the Advanced setting "Show advice as a device warning" is on; problems always win the
