@@ -97,14 +97,19 @@ export function useToday(m: MeterReads, hours: number[], now = Date.now()): {use
     // Before the first whole slot: Insights' hours that end by then, each mean to the next.
     const cut = Math.min(from, now);
     let last: {end: number; v: number} | undefined;
+    // Only a rise past the highest reading is use, as in savings.ts `hourlyUse`: a meter that
+    // stepped back (restored from a backup) and catches up later is not an hour's use.
+    let high = -Infinity;
     for (let i = 0; i < m.points.length; i++) {
         const p = m.points[i], prev = m.points[i - 1];
         if (p.at + HOUR / 2 > cut) break;
+        if (p.v < high * 0.9) high = -Infinity;
         if (prev && p.at - prev.at === HOUR) {
-            const kwh = p.v - prev.v;
+            const kwh = p.v - Math.max(prev.v, high);
             if (kwh >= 0 && kwh < 30) add(p.at, kwh);
         }
-        last = {end: p.at + HOUR / 2, v: p.v};
+        high = Math.max(high, p.v);
+        last = {end: p.at + HOUR / 2, v: Math.max(p.v, high)};
     }
     // The stretch between: Insights' last middle to the first whole slot, or to now.
     if (last) {

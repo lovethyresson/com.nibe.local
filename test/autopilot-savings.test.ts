@@ -20,6 +20,19 @@ test('hourly use comes from neighbouring hourly means of the meter, gaps and res
     assert.deepEqual([...use], [[T0 + HOUR, 1.5], [T0 + 2 * HOUR, 1.5]]);
 });
 
+test('a meter that steps back a little and catches up later counts no use for the catch-up', () => {
+    // A Homey restored from a backup: the meter steps back 8.7 kWh, then the pump's energy log puts
+    // it right four hours on (2026-11-21, the hot water device: 486.6 → 477.9 → 486.6).
+    const v = [486.5, 486.6, 477.9, 477.9, 477.9, 477.9, 486.6, 487.4];
+    const use = hourlyUse(v.map((x, k) => ({t: iso(T0 + k * HOUR), v: x})));
+    assert.equal(use.get(T0 + 6 * HOUR), 0, 'the catch-up is no use');
+    assert.ok(Math.abs(use.get(T0 + 7 * HOUR)! - 0.8) < 1e-9, 'a rise past the highest is');
+    assert.equal(use.get(T0 + 2 * HOUR), undefined, 'the step back is not known');
+    // Heating: back 6.8, then real use and the catch-up in one hour: only what passes the highest.
+    const h = hourlyUse([1177.1, 1179.0, 1172.2, 1181.9].map((x, k) => ({t: iso(T0 + k * HOUR), v: x})));
+    assert.ok(Math.abs(h.get(T0 + 3 * HOUR)! - 2.9) < 1e-9);
+});
+
 test('an hour\'s price is the mean of its quarter-hour slots', () => {
     const slots = [0, 1, 2, 3, 4].map((k) => ({slot: T0 / (15 * 60_000) + k, price: k < 4 ? k : 10}));
     const prices = hourlyPrices(slots, 15 * 60_000);

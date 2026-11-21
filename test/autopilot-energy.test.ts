@@ -70,3 +70,12 @@ test('Main\'s idle use adds to the total, the cost and the hour, on top of the f
     assert.ok(Math.abs(c.cost - (1 * 3 + 2 * 1 + 3 * 0.5 + 4 * 2.5 + 0.1 * 1 + 0.1 * 2)) < 1e-9);
     assert.deepStrictEqual(c.hours[0].use, {heating: 1, hotwater: 2, main: 0.1});
 });
+
+test('a meter restored older than it was, then caught up, puts no use in the catch-up hour', () => {
+    const H = 3_600_000, T0 = Date.UTC(2026, 10, 21);
+    const hours = Array.from({length: 24}, (_, h) => T0 + h * H);
+    const v = [486.5, 486.6, 477.9, 477.9, 477.9, 477.9, 486.6, 487.4];
+    const {use} = useToday({points: v.map((x, k) => ({at: T0 + k * H, v: x})), slots: new Map(), meterNow: 487.4}, hours, T0 + 8 * H);
+    assert.equal(use.get(T0 + 6 * H) ?? 0, 0, 'the catch-up is no use');
+    assert.ok(Math.abs((use.get(T0 + 7 * H) ?? 0) - 0.8) < 1e-9);
+});

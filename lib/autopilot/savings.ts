@@ -45,17 +45,26 @@ export interface SavingsDay {
 export function hourlyUse(points: {t: string; v: number | null}[]): Map<number, number> {
     const out = new Map<number, number>();
     let prev: {at: number; v: number} | undefined;
+    // The highest reading so far: a meter that steps back a little (restored from a backup older
+    // than the meter, 2026-11-21: −8.7 kWh after a Homey migration) and later catches up must not
+    // count the catch-up as one hour's use. Only a rise past the highest counts. A drop of more
+    // than RESET_SHARE is a real reset (a new meter), and counting starts again from it.
+    let high = -Infinity;
     for (const p of points) {
         const at = Date.parse(p.t);
         if (!Number.isFinite(at) || typeof p.v !== 'number' || !Number.isFinite(p.v)) { prev = undefined; continue; }
+        if (p.v < high * (1 - RESET_SHARE)) high = -Infinity;
         if (prev && at - prev.at === HOUR) {
-            const kwh = p.v - prev.v;
+            const kwh = p.v - Math.max(prev.v, high);
             if (kwh >= 0 && kwh < 30) out.set(at, kwh);
         }
+        high = Math.max(high, p.v);
         prev = {at, v: p.v};
     }
     return out;
 }
+/** A meter reading this far under the highest so far is a reset, not a step back. */
+const RESET_SHARE = 0.1;
 
 /** Price per hour (hour start, ms): the mean of its 15-minute slots. */
 export function hourlyPrices(slots: {slot: number; price: number}[], slotMs: number): Map<number, number> {
