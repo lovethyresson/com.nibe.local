@@ -175,6 +175,7 @@
       "success_received": "Bekræftet af din varmepumpe",
       "success_one": "1 sensor tilsluttet",
       "success_many": "sensorer tilsluttet",
+      "review_changes": "Gennemgå ændringer",
       "save_changes": "Gem ændringer",
       "smart": {
         "title": "Smart tilstand",

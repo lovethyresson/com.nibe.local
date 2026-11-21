@@ -70,13 +70,25 @@ test('pairing preserves native source and custom tank through overview and Back,
     assert.equal(f.emitted.some(e => e.name === 'activate_indoor'), false);
     f.dom.window.close();
 });
+test('Repair: the setup list says Review changes, and only What changes says Save changes', () => {
+    // Heating (Smart mode on, so already set up) and hot water share the one setup list.
+    const f = fixture('repair', 'heating', 0, undefined, {context: {smart: true}});
+    f.click('Continue'); f.menu('Hot water setup'); f.click('Save setup');
+    const visible = (text: string) => [...f.win.document.querySelectorAll('button')]
+        .filter((b: any) => b.textContent === text && !b.closest('[hidden]')).length;
+    assert.ok(f.win.document.body.textContent.includes('Heating setup'));
+    assert.equal(visible('Save changes'), 0, 'the setup list only leads on');
+    f.click('Review changes');
+    assert.equal(visible('Save changes'), 1, 'What changes saves');
+    f.dom.window.close();
+});
 test('hot water Repair retains catalogue and custom tank without saving when navigating', () => {
     const f = fixture('repair'); f.click('Continue'); f.menu('Hot water setup');
     assert.equal(f.win.document.querySelector('#repair-tank').value, 'custom');
     assert.equal(f.win.document.querySelector('#repair-litres').value, '275');
     f.click('Back'); assert.equal(f.emitted.some(e => e.name === 'selection_done'), false);
-    f.menu('Hot water setup'); f.click('Save setup'); f.click('Save changes');
-    // Save changes opens What changes, which asks the driver for the preview; saving is the next click.
+    f.menu('Hot water setup'); f.click('Save setup'); f.click('Review changes');
+    // Review changes opens What changes, which asks the driver for the preview; saving is the next click.
     assert.ok(f.emitted.some(e => e.name === 'preview_changes')); assert.equal(f.emitted.some(e => e.name === 'selection_done'), false);
     f.click('Save changes');
     const saved = f.emitted.find(e => e.name === 'selection_done');
@@ -193,7 +205,7 @@ test('Repair preselects the stored zone and saves a new pick; a single zone skip
     const doc = f.win.document.getElementById('nibe-repair-setup');
     assert.equal(doc.querySelector('.pair-hero-title').textContent, 'Which zone should the thermostat set?');
     doc.querySelector('input[data-source="target_temperature"][value="2509"]').click();
-    f.click('Continue'); f.click('Save setup'); f.menu('Hot water setup'); f.click('Save setup'); f.click('Save changes'); f.click('Save changes');
+    f.click('Continue'); f.click('Save setup'); f.menu('Hot water setup'); f.click('Save setup'); f.click('Review changes'); f.click('Save changes');
     const saved = f.emitted.find(e => e.name === 'selection_done');
     assert.equal(saved.data.sources.target_temperature, 2509);
     f.dom.window.close();

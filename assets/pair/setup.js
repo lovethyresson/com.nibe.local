@@ -1436,7 +1436,8 @@ function NibeSetup(options) {
             var badge = !ready[section.id] ? t('needs_setup') : mine && mine.status ? apBadge(mine.status) : t('ready');
             menu.append(text, el('span', badge + ' ›')); shell.appendChild(menu);
         });
-        var next = button(t(options.mode === 'repair' ? 'save_changes' : 'review'), review, true);
+        // The next screen says what saving does and saves: this one only leads there.
+        var next = button(t(options.mode === 'repair' ? 'review_changes' : 'review'), review, true);
         next.disabled = sections.some(function (s) { return !ready[s.id]; }); shell.appendChild(next);
         back(function () {
             shell.hidden = true; navigation.hidden = true;

@@ -175,6 +175,7 @@
       "success_received": "Bekreftet av varmepumpen din",
       "success_one": "1 sensor tilkoblet",
       "success_many": "sensorer tilkoblet",
+      "review_changes": "Se over endringer",
       "save_changes": "Lagre endringer",
       "smart": {
         "title": "Smartmodus",

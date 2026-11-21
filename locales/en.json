@@ -175,6 +175,7 @@
       "success_received": "Confirmed by your heat pump",
       "success_one": "1 sensor connected",
       "success_many": "sensors connected",
+      "review_changes": "Review changes",
       "save_changes": "Save changes",
       "smart": {
         "title": "Smart mode",
