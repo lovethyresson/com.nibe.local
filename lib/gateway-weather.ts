@@ -88,8 +88,13 @@ export class WeatherBook {
         const at = await this.location();
         if (!at) return undefined;
         const url = seasonUrl(at.latitude, at.longitude, today);
-        const days = await this.kept(this.slot(this.seasons, url), SEASON_MAX_AGE_MS,
-            async () => dailyMeans(await this.deps.getJson(url, 'open-meteo archive')));
+        // An answer without days (an error body) is a failure, retried after RETRY_MS, never kept
+        // as a month's season.
+        const days = await this.kept(this.slot(this.seasons, url), SEASON_MAX_AGE_MS, async () => {
+            const parsed = dailyMeans(await this.deps.getJson(url, 'open-meteo archive'));
+            if (!parsed.size) throw new Error('open-meteo archive: no days');
+            return parsed;
+        });
         return days?.size ? days : undefined;
     }
 

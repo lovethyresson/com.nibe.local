@@ -88,3 +88,22 @@ test('a forecast kept through an outage keeps the time it was fetched, so its ag
     await h.book.forecast();
     assert.equal(h.book.forecastAt(), fetchedAt);
 });
+
+test('the season is fetched once a month; an answer without days is a failure retried soon, not kept', async () => {
+    let answer: any = {error: true, reason: 'down for maintenance'};
+    let now = Date.parse('2026-11-20T12:00:00Z');
+    const calls: string[] = [];
+    const book = new WeatherBook({
+        homeyLocation: async () => ({value: {latitude: 59.33, longitude: 18.07}}),
+        chosenPlace: () => null,
+        getJson: async (url, name) => { calls.push(name); return answer; },
+        now: () => now,
+    });
+    assert.equal(await book.seasonDays('2026-11-20'), undefined);
+    answer = {daily: {time: ['2025-01-01'], temperature_2m_mean: [-2]}};
+    now += RETRY_MS + 1;
+    assert.equal((await book.seasonDays('2026-11-20'))?.get('2025-01-01'), -2, 'asked again after the retry wait');
+    now += 7 * 24 * HOUR;
+    await book.seasonDays('2026-11-20');
+    assert.equal(calls.filter((c) => c === 'open-meteo archive').length, 2, 'kept for the month');
+});

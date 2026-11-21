@@ -29,6 +29,7 @@ indoor sensor): about **205 Homey API calls**.
 | Insights logs | ~9, in bursts | savings (3 devices), hot water learn, solar |
 | Geolocation | ~1.3 | collector, solar |
 | Open-Meteo | 1.3 | collector forecast; solar fetches the same `shortwave_radiation` again |
+| Open-Meteo archive | ~0.0014 (monthly) | heating savings: three years of daily mean temperature at the location, for the season (`season.ts`, since 2026-11-21) |
 | Full device list | 0 (0.33 on homes without a grid meter) | setup, first run, solar on homes without a meter |
 
 **Duplicates.** Prices are fetched by five consumers. Hot water's meter log is read about 28

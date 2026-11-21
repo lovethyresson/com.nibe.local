@@ -108,7 +108,9 @@ const FIRST_LIVE_STORE = 'autopilotFirstLive';
 const BASELINE_STORE = 'autopilotSavingsBaseline';
 /** Heating's season where the heat pump is (season.ts): the curve, the base it was made with, when. */
 const SEASON_STORE = 'autopilotSeason';
-const SEASON_KEEP_MS = 30 * 86_400_000;
+/** The stored season is asked for again daily: the weather book goes to the network only when the
+ *  place or the year's window changed, or a month passed, so a moved Homey gets its own season. */
+const SEASON_KEEP_MS = 86_400_000;
 /** This device's Homey id, for Insights URIs: looked up once (homeyDeviceId), it never changes. */
 const HOMEY_ID_STORE = 'homeyDeviceId';
 /** The indoor sensor read or feed set the device warning (clearIndoorWarning). */
@@ -3366,8 +3368,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             weatherFor(this.homey, LOCATION_SETTING).seasonDays(today)
                 .then(async (days) => {
                     const curve = days && seasonCurve(days, base);
-                    if (curve) await this.setStoreValue(SEASON_STORE, {curve, base, at: Date.now()});
-                    else this.log('Heating savings: no season for this location yet; the month is shown.');
+                    if (curve) {
+                        this.seasonTold = false;
+                        await this.setStoreValue(SEASON_STORE, {curve, base, at: Date.now()});
+                    } else if (!this.seasonTold) {
+                        // Once, not at every widget refresh, until a season lands.
+                        this.seasonTold = true;
+                        this.log('Heating savings: no season for this location yet; the month is shown.');
+                    }
                 })
                 .catch((error) => this.log('Heating savings: season not read:', error?.message ?? error))
                 .finally(() => { this.seasonAsking = false; });
@@ -3375,6 +3383,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         return kept?.curve?.length === 12 && kept.base === base ? kept.curve : undefined;
     }
     private seasonAsking = false;
+    private seasonTold = false;
 
     /** What the Autopilot savings widget draws. Every string translated here. */
     savingsWidget(): SavingsData {
