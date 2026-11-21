@@ -404,8 +404,8 @@ const KNOWN_HOUR = 0.99;
 /** The day type's profile: its daily total from full days (`list`), its hour shape from every
  *  day with hourly readings (`shapes`, part days included), each hour from the days that hour is
  *  known on. Until 2026-11-21 an hour shape took full days only, and a full day needed 22 known
- *  hours: a tank left under 40 °C overnight dropped the whole day, so on 16 Nov no working day
- *  had a shape of its own and the working-day plan took the pooled one, weekend middays and all. */
+ *  hours: a tank left under 40 °C overnight dropped the whole day (9–13 Nov on the S1155: 15–21
+ *  known hours each), and with too few full days a type's shape leans on the pooled one. */
 function profileOf(list: Day[], weight: (d: Day) => number, prior?: DayProfile, shapes: Day[] = list): DayProfile | undefined {
     if (!list.length && !shapes.length && !prior) return undefined;
     const w = list.map(weight);

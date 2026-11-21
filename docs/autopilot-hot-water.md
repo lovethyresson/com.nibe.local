@@ -475,8 +475,7 @@ The design as first written:
   draw is a lower bound. Such a day is left out of the typical lines and of the daily totals
   Autopilot learns. Its hours that were read still shape its day type: each hour of a profile is
   learned from the days that hour was known on (since 2026-11-21; before, a tank cold overnight
-  dropped the whole day, and on 16 Nov the working-day shape was the pooled one, weekend
-  middays included).
+  dropped the whole day: 9–13 Nov on the S1155 had 15–21 known hours each).
 - Flows that switch "More hot water" fight the planner. Setup lists them (read through
   `homey-api`) and asks the owner to turn them off.
 

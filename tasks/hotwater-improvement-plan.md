@@ -57,11 +57,16 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
   guessed (below); 1.1 (slot context in every log line, one record a day kept 400 days, the log path
   logged at start); 1.3 tool (`dev/replay-hot-water.ts`, checked against a synthetic log: all
   replayable slots match); 5.1 as a logged challenger.
-- **3.2 finding:** the midday runs were not a day-type cold start. On 16 Nov no working day of
-  9–13 Nov was a full day (15–21 of 22 known hours: the tank sat under 40 °C overnight, so those
-  hours are unknowable), and only full days gave hour shapes. The working-day profile had no shape
-  of its own and took the pooled one, built from weekend middays. Fixed: each hour learns from the
-  days it was known on (part days included); the 16 Nov working midday drops from 10.4 to 1.5 kWh.
+- **3.2, checked:** none of the working days 9–13 Nov was a full day (15–21 of 22 known hours:
+  the tank sat under 40 °C overnight, so those hours are unknowable), and only full days gave hour
+  shapes. Fixed: each hour learns from the days it was known on (part days included; a test fails
+  on the old learner and passes on the new).
+- **3.2, not proven:** that this caused the Tue/Wed midday runs. The rebuild of the 16 Nov model
+  used Insights fetched 21 Nov, whose hourly data starts 7 Nov; live on 16 Nov had hourly data from
+  about 2 Nov, so 3–6 Nov may have been full working days with their own shape. With that data
+  missing, the rebuild's working midday (10.4 → 1.5 kWh with the fix) cannot be taken as what
+  live planned with, and it cannot be rechecked now. The day-type cold start is not ruled out
+  either. The day records (1.1) keep this answerable next time.
 - **4:** Insights cannot say who started Sun 15's run (697 has no log; the charge events kept two
   days are gone). The new slot context logs 697 and both stops, so a recurrence is identifiable.
   No legionella run yet. No change made.
