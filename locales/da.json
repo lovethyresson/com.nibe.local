@@ -306,7 +306,7 @@
         "hw_reserve_off": "Overlad til din varmepumpe",
         "hw_reserve_hint": "Den mindste mængde varmt vand, Autopilot holder i beholderen. Mere betyder af og til en opvarmning i en dyrere time.",
         "hw_reserve_invalid": "Vælg, hvor meget varmt vand der altid skal være.",
-        "solar_intro": "Opvarm beholderen med overskydende solstrøm.",
+        "solar_intro": "Opvarm dit varme vand med overskydende solstrøm.",
         "solar_scanning": "Leder efter energimålere i dit hjem…",
         "solar_meter": "Elmåler",
         "solar_meter_none": "Ingen fundet i Homey Energy",

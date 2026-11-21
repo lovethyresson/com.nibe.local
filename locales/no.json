@@ -306,7 +306,7 @@
         "hw_reserve_off": "Overlat til varmepumpen din",
         "hw_reserve_hint": "Den minste mengden varmtvann Autopilot holder i berederen. Mer betyr at den av og til lader i en dyrere time.",
         "hw_reserve_invalid": "Velg hvor mye varmtvann som alltid skal være igjen.",
-        "solar_intro": "Varm opp berederen med overskuddsstrøm fra solcellene.",
+        "solar_intro": "Varm opp varmtvannet ditt med overskuddsstrøm fra solcellene.",
         "solar_scanning": "Ser etter energimålere i hjemmet ditt…",
         "solar_meter": "Strømmåler",
         "solar_meter_none": "Ingen funnet i Homey Energy",
