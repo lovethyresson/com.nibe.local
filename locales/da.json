@@ -882,17 +882,17 @@
       "row_before_days": "Før Autopilot · __days__ dage",
       "row_so_far_days": "Indtil nu · __days__ dage",
       "row_with_days": "Med Autopilot · __days__ dage",
-      "charges_title": "Seneste 7 dage",
       "band_cheap": "Billig",
       "band_middle": "Mellem",
       "band_dear": "Dyr",
       "stat_week": "Seneste 7 dage",
       "stat_year": "I år",
-      "share_note": "af varmen i de billigste timer",
-      "share_cheap": "__kwh__ kWh billig",
-      "share_middle": "__kwh__ mellem",
-      "share_expensive": "__kwh__ dyrt",
-      "not_live": "Autopilot kører ikke. Besparelsen tælles de dage, den kører."
+      "not_live": "Autopilot kører ikke. Besparelsen tælles de dage, den kører.",
+      "year": "anslået for __year__",
+      "year_from": "anslået for __year__ · fra __date__",
+      "saved_so_far": "Sparet indtil nu",
+      "rest": "Resten af året",
+      "rest_season": "Resten af året, efter sæson"
     },
     "away_until_token": "Bortrejst indtil",
     "tank": {
@@ -973,7 +973,10 @@
       "saved_month": "sparet i __month__",
       "spent": "pris i dag",
       "spent_line": "__cost__ i dag",
-      "mode_spa": "Smart Price Adaption"
+      "mode_spa": "Smart Price Adaption",
+      "cheap_heat": "billig varme",
+      "estimated_year": "anslået for __year__",
+      "saved_line": "__money__ sparet i år"
     }
   }
 }

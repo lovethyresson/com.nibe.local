@@ -5,7 +5,7 @@ import {IndoorConfig, averageSensors, cleanIndoorConfig, readOnlyIndoorConfig, s
 import {Controls, AutopilotCollector, OUTDOOR_SENSOR_SETTING} from './autopilot/collector';
 import {BACKFILL_FIELDS, BackfillField, LogSource, anyLogRead, backfillSources, fetchHeatingInsights} from './autopilot/heating-insights';
 import {newHistoryFileName} from './autopilot/store-file';
-import {Baseline, LEDGER_DAYS, moneyText, partialDay, ModeMark, SavingsData, SavingsDay, baselineOf, dayHours, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay, savingsLive} from './autopilot/savings';
+import {BASELINE_DAYS, Baseline, LEDGER_DAYS, kwhPerLitreOf, moneyText, partialDay, ModeMark, SavingsData, SavingsDay, baselineOf, dayHours, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay, savingsLive} from './autopilot/savings';
 import {ChargeEvent, HotwaterAutopilot, HotwaterMode, LEGIONELLA_STATE_KEY, TankView, ownDeviceId} from './autopilot/hotwater-shadow';
 import {DEFAULT_INTERVAL_DAYS, MAX_FAILURES, OwnerHotwater, RestoreKey, TakeoverRecord, TakeoverWrite, gaveUp, noteFailure, noteRestored, noteTaken,
     noteWrite, readTakeover, restoreAll, restorePlan, retryDelayMs, same, takeoverPlan} from './autopilot/hotwater-takeover';
@@ -2915,9 +2915,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const hours = dayHours(localDate(Date.now(), timeZone), (ms) => localDate(ms, timeZone));
             const prices = new Map<number, number>();
             hours.forEach((at, k) => { const p = energy.chart!.hours[k]?.price; if (p !== undefined) prices.set(at, p); });
+            // Heating's own use when there is a Heating device: its share of cheap hours is what Autopilot
+            // moves; hot water's is not a saving (savings.ts). Without one, the whole use, as before.
+            const heatingOnly = byRole.has('heating');
             tiers = priceThirds(hours, (at) => {
                 const h = energy.chart!.hours[hours.indexOf(at)];
-                return h ? Object.values(h.use).reduce((a: number, b) => a + (b ?? 0), 0) : 0;
+                if (!h) return 0;
+                return heatingOnly ? Number((h.use as Record<string, number | undefined>).heating ?? 0)
+                    : Object.values(h.use).reduce((a: number, b) => a + (b ?? 0), 0);
             }, prices);
         }
         // This month's savings: the two savings widgets' figures, added up.
@@ -2933,6 +2938,17 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const sum = months.reduce((a, m) => a + shown(m.value), 0);
         const saved = months.length ? {value: moneyText(sum, Math.abs(sum) < 10 ? 1 : 0, this.homey.i18n.getLanguage(), months[0].currency),
             month: months[0].month, good: sum >= 0} : undefined;
+        // The year: both functions' estimates and what is saved of them so far, added up.
+        const years = (['heating', 'hotwater'] as const).flatMap((role) => {
+            const data = byRole.get(role)?.savingsWidget() as SavingsData | undefined;
+            return data?.yearValue === undefined ? [] : [{total: data.yearValue, saved: data.yearSaved ?? 0,
+                currency: String(byRole.get(role)!.getStoreValue(SAVINGS_CURRENCY_STORE) ?? '')}];
+        });
+        const language = this.homey.i18n.getLanguage();
+        const yearMoney = (v: number) => moneyText(v, Math.abs(v) < 10 ? 1 : 0, language, years[0]?.currency ?? '');
+        const yearTotal = years.reduce((a, y) => a + y.total, 0), yearSaved = years.reduce((a, y) => a + y.saved, 0);
+        const year = years.length ? {value: `~${yearMoney(yearTotal)}`, saved: yearMoney(yearSaved),
+            year: localDate(Date.now(), this.homey.clock.getTimezone()).slice(0, 4), good: yearTotal >= 0} : undefined;
         const alarm = this.hasCapability(ALARM_ACTIVE_CAPABILITY) && this.getCapabilityValue(ALARM_ACTIVE_CAPABILITY) === true
             ? String(this.getCapabilityValue(ALARM_TEXT_CAPABILITY) ?? '') || undefined : undefined;
         const warnings = OVERVIEW_KINDS.flatMap((k) => {
@@ -2943,7 +2959,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (!rows.length) return {title, empty: this.homey.__('autopilot.energy.no_functions'), rows: [], attention: []};
         if (energy.loading && !offline) return {title, loading: true, rows, attention: []};
         return overviewData({title, autopilot: siblings.some((d) => autopilotRuns(d.smartMode?.())), offline, alarm, warnings,
-            tiers, cheapShare: energy.chart?.cheapShare, spent: energy.numbers?.[1]?.value, saved, rows}, t);
+            tiers, cheapShare: byRole.has('heating') ? undefined : energy.chart?.cheapShare, spent: energy.numbers?.[1]?.value, saved, year,
+            heatingOnly: byRole.has('heating'), rows}, t);
     }
 
     /** The tank now, as its tile shows it (read every poll). The planner's own figure is from the
@@ -3273,7 +3290,18 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
      *  too few days before it, and none left to fetch, the day's average stands in (ratio 1). */
     private async freezeBaseline(ledger: SavingsDay[]) {
         const firstLive = this.getStoreValue(FIRST_LIVE_STORE);
-        if (typeof firstLive !== 'number' || this.getStoreValue(BASELINE_STORE)) return;
+        if (typeof firstLive !== 'number') return;
+        const kept = this.getStoreValue(BASELINE_STORE) as Baseline | null;
+        if (kept) {
+            // A baseline frozen before kWh per litre was kept gets it once, from the same days
+            // (2026-11-21); the rest of it stays as frozen.
+            if (this.role === 'hotwater' && kept.days > 0 && kept.kwhPerLitre === undefined) {
+                const firstDate = localDate(firstLive, this.homey.clock.getTimezone());
+                const perLitre = kwhPerLitreOf(ledger.filter((d) => d.date < firstDate).slice(-BASELINE_DAYS));
+                if (perLitre !== undefined) await this.setStoreValue(BASELINE_STORE, {...kept, kwhPerLitre: perLitre});
+            }
+            return;
+        }
         const found = baselineOf(ledger, localDate(firstLive, this.homey.clock.getTimezone()));
         if (found) await this.setStoreValue(BASELINE_STORE, found);
         else if (Date.now() - firstLive > SAVINGS_BACK_DAYS * 86_400_000) await this.setStoreValue(BASELINE_STORE, {days: 0, ratio: 1});
@@ -3335,6 +3363,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const baseline = this.getStoreValue(BASELINE_STORE) as Baseline | null;
         const dayLabel = new Intl.DateTimeFormat(language, {weekday: 'short', timeZone: 'UTC'});
         const monthName = new Intl.DateTimeFormat(language, {month: 'long', timeZone: 'UTC'});
+        const dayMonth = new Intl.DateTimeFormat(language, {day: 'numeric', month: 'short', timeZone: 'UTC'});
         const today = localDate(Date.now(), timeZone);
         const stored = this.getStoreValue(SAVINGS_TODAY_STORE) as SavingsDay | null;
         // Today so far, up to now as Energy today counts it; the stored one (as of the hourly
@@ -3353,6 +3382,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             month: (date) => monthName.format(new Date(`${date}T12:00:00Z`)),
             price: (v) => amount(v, 2),
             money: (v) => amount(v, Math.abs(v) < 10 ? 1 : 0),
+            dayMonth: (date) => dayMonth.format(new Date(`${date}T12:00:00Z`)),
 
         });
     }

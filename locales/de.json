@@ -882,17 +882,17 @@
       "row_before_days": "Vor Autopilot · __days__ Tage",
       "row_so_far_days": "Bisher · __days__ Tage",
       "row_with_days": "Mit Autopilot · __days__ Tage",
-      "charges_title": "Letzte 7 Tage",
       "band_cheap": "Günstig",
       "band_middle": "Mittel",
       "band_dear": "Teuer",
       "stat_week": "Letzte 7 Tage",
       "stat_year": "Dieses Jahr",
-      "share_note": "der Wärme in den günstigsten Stunden",
-      "share_cheap": "__kwh__ kWh günstig",
-      "share_middle": "__kwh__ mittel",
-      "share_expensive": "__kwh__ teuer",
-      "not_live": "Autopilot läuft nicht. Die Ersparnis zählt an den Tagen, an denen er läuft."
+      "not_live": "Autopilot läuft nicht. Die Ersparnis zählt an den Tagen, an denen er läuft.",
+      "year": "geschätzt für __year__",
+      "year_from": "geschätzt für __year__ · ab __date__",
+      "saved_so_far": "Bisher gespart",
+      "rest": "Rest des Jahres",
+      "rest_season": "Rest des Jahres, nach Jahreszeit"
     },
     "away_until_token": "Abwesend bis",
     "tank": {
@@ -973,7 +973,10 @@
       "saved_month": "gespart im __month__",
       "spent": "Kosten heute",
       "spent_line": "heute __cost__",
-      "mode_spa": "Smart Price Adaption"
+      "mode_spa": "Smart Price Adaption",
+      "cheap_heat": "günstige Wärme",
+      "estimated_year": "geschätzt für __year__",
+      "saved_line": "__money__ dieses Jahr gespart"
     }
   }
 }

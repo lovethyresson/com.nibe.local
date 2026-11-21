@@ -496,14 +496,14 @@
       "row_before_days": "Before Autopilot · __days__ days",
       "row_so_far_days": "So far · __days__ days",
       "row_with_days": "With Autopilot · __days__ days",
-      "charges_title": "Last 7 days",
       "stat_week": "Last 7 days",
       "stat_year": "This year",
-      "share_note": "of the heat in the cheapest hours",
-      "share_cheap": "__kwh__ kWh cheap",
-      "share_middle": "__kwh__ middle",
-      "share_expensive": "__kwh__ expensive",
-      "not_live": "Autopilot isn't running. Savings count on the days it runs."
+      "not_live": "Autopilot isn't running. Savings count on the days it runs.",
+      "year": "estimated for __year__",
+      "year_from": "estimated for __year__ · from __date__",
+      "saved_so_far": "Saved so far",
+      "rest": "Rest of the year",
+      "rest_season": "Rest of the year, by season"
     },
     "away_until_token": "Away until",
     "tank": {
@@ -584,7 +584,10 @@
       "saved_month": "saved in __month__",
       "spent": "cost today",
       "spent_line": "__cost__ today",
-      "mode_spa": "Smart Price Adaption"
+      "mode_spa": "Smart Price Adaption",
+      "cheap_heat": "cheap heat",
+      "estimated_year": "estimated for __year__",
+      "saved_line": "__money__ saved this year"
     }
   }
 }

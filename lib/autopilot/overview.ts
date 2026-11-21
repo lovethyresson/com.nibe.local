@@ -66,6 +66,12 @@ export interface OverviewInput {
     /** This month's savings, worded, the month's name, and whether it is a saving (not a loss);
      *  undefined while there are none to show. */
     saved?: {value: string; month: string; good?: boolean};
+    /** The year's estimate (both functions' savings widgets, added up), what of it is saved so far,
+     *  and the year; when present it is the headline instead of the month. */
+    year?: {value: string; saved: string; year: string; good?: boolean};
+    /** The ring is heating's own use, so it says so (hot water's share in cheap hours is not a
+     *  saving: see savings.ts). */
+    heatingOnly?: boolean;
     rows: OverviewRow[];
 }
 
@@ -83,11 +89,13 @@ export function overviewData(i: OverviewInput, t: Translate): OverviewData {
     const chip = i.offline ? {chip: t('offline'), chipQuiet: true} : i.autopilot ? {chip: 'Autopilot'} : {};
     const total = i.tiers ? i.tiers[0] + i.tiers[1] + i.tiers[2] : 0;
     const ring = i.tiers && total > 0
-        ? {tiers: i.tiers, centre: `${Math.round((i.cheapShare ?? i.tiers[0] / total) * 100)} %`, label: t('cheap')} : undefined;
-    const hero = i.saved
+        ? {tiers: i.tiers, centre: `${Math.round((i.cheapShare ?? i.tiers[0] / total) * 100)} %`, label: t(i.heatingOnly ? 'cheap_heat' : 'cheap')} : undefined;
+    const hero = i.year
+        ? {value: i.year.value, label: t('estimated_year', {year: i.year.year}), good: i.year.good !== false}
+        : i.saved
         ? {value: i.saved.value, label: t('saved_month', {month: i.saved.month}), good: i.saved.good !== false}
         : i.spent ? {value: i.spent, label: t('spent')} : undefined;
-    const line = i.saved && i.spent ? t('spent_line', {cost: i.spent}) : undefined;
+    const line = i.year ? t('saved_line', {money: i.year.saved}) : i.saved && i.spent ? t('spent_line', {cost: i.spent}) : undefined;
     return {title: i.title, ...chip, ...ring ? {ring} : {}, ...hero ? {hero} : {}, ...line ? {line} : {},
         rows: i.rows, attention: lines};
 }

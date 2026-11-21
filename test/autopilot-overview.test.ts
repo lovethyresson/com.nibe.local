@@ -48,3 +48,13 @@ test('thirds rank the day\'s hours by price, as the savings widgets do', () => {
     assert.equal(priceThirds(short, () => 1, prices)![0], 8);
     assert.equal(priceThirds(hours, () => 1, new Map()), undefined);
 });
+
+test('with savings for the year, the headline is the year and the ring says it is heating\'s', () => {
+    const d = overviewData({title: 'Nibe', autopilot: true, warnings: [], tiers: [3, 1, 1], heatingOnly: true,
+        saved: {value: '9 kr', month: 'November'}, spent: '120 kr',
+        year: {value: '~267 kr', saved: '31 kr', year: '2026'}, rows: []}, (key, tokens) => `${key}${tokens ? JSON.stringify(tokens) : ''}`);
+    assert.deepEqual(d.hero, {value: '~267 kr', label: 'estimated_year{"year":"2026"}', good: true});
+    assert.equal(d.line, 'saved_line{"money":"31 kr"}');
+    assert.equal(d.ring!.label, 'cheap_heat');
+    assert.equal(d.ring!.centre, '60 %');
+});

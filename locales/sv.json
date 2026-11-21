@@ -882,17 +882,17 @@
       "row_before_days": "Före Autopilot · __days__ dagar",
       "row_so_far_days": "Hittills · __days__ dagar",
       "row_with_days": "Med Autopilot · __days__ dagar",
-      "charges_title": "Senaste 7 dagarna",
       "band_cheap": "Billigt",
       "band_middle": "Mitten",
       "band_dear": "Dyrt",
       "stat_week": "Senaste 7 dagarna",
       "stat_year": "I år",
-      "share_note": "av värmen under de billigaste timmarna",
-      "share_cheap": "__kwh__ kWh billigt",
-      "share_middle": "__kwh__ mitten",
-      "share_expensive": "__kwh__ dyrt",
-      "not_live": "Autopilot är inte igång. Besparingen räknas de dagar den är igång."
+      "not_live": "Autopilot är inte igång. Besparingen räknas de dagar den är igång.",
+      "year": "uppskattat för __year__",
+      "year_from": "uppskattat för __year__ · från __date__",
+      "saved_so_far": "Sparat hittills",
+      "rest": "Resten av året",
+      "rest_season": "Resten av året, efter säsong"
     },
     "away_until_token": "Borta till",
     "tank": {
@@ -973,7 +973,10 @@
       "saved_month": "sparat i __month__",
       "spent": "kostnad i dag",
       "spent_line": "__cost__ i dag",
-      "mode_spa": "Smart Price Adaption"
+      "mode_spa": "Smart Price Adaption",
+      "cheap_heat": "billig värme",
+      "estimated_year": "uppskattat för __year__",
+      "saved_line": "__money__ sparat i år"
     }
   }
 }

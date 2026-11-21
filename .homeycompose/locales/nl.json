@@ -496,14 +496,14 @@
       "row_before_days": "Vóór Autopilot · __days__ dagen",
       "row_so_far_days": "Tot nu toe · __days__ dagen",
       "row_with_days": "Met Autopilot · __days__ dagen",
-      "charges_title": "Afgelopen 7 dagen",
       "stat_week": "Laatste 7 dagen",
       "stat_year": "Dit jaar",
-      "share_note": "van de warmte in de goedkoopste uren",
-      "share_cheap": "__kwh__ kWh goedkoop",
-      "share_middle": "__kwh__ midden",
-      "share_expensive": "__kwh__ duur",
-      "not_live": "Autopilot staat uit. De besparing telt op de dagen dat hij draait."
+      "not_live": "Autopilot staat uit. De besparing telt op de dagen dat hij draait.",
+      "year": "geschat voor __year__",
+      "year_from": "geschat voor __year__ · vanaf __date__",
+      "saved_so_far": "Tot nu toe bespaard",
+      "rest": "Rest van het jaar",
+      "rest_season": "Rest van het jaar, naar seizoen"
     },
     "away_until_token": "Afwezig tot",
     "tank": {
@@ -584,7 +584,10 @@
       "saved_month": "bespaard in __month__",
       "spent": "kosten vandaag",
       "spent_line": "__cost__ vandaag",
-      "mode_spa": "Smart price adaption"
+      "mode_spa": "Smart price adaption",
+      "cheap_heat": "goedkope warmte",
+      "estimated_year": "geschat voor __year__",
+      "saved_line": "__money__ bespaard dit jaar"
     }
   }
 }

@@ -176,6 +176,10 @@ export interface Baseline {
     /** Share of kWh in the cheapest, middle and most expensive third, and kWh a day. */
     shares?: [number, number, number];
     kwhPerDay?: number;
+    /** Hot water: kWh of electricity per litre of 40 °C water drawn, before Autopilot. What the old
+     *  way would have used for the same water, so heating hotter or the immersion heater show up as
+     *  a cost (2026-11-21: the ratio alone, applied to Autopilot's own kWh, hid them). */
+    kwhPerLitre?: number;
 }
 
 /** Days before Autopilot first ran live that the baseline uses, at most. */
@@ -188,15 +192,64 @@ export function baselineOf(days: SavingsDay[], firstLiveDate: string): Baseline 
     const before = days.filter((d) => d.date < firstLiveDate).slice(-BASELINE_DAYS);
     const t = totals(before);
     if (!t || t.days < BASELINE_MIN_DAYS) return undefined;
+    const perLitre = kwhPerLitreOf(before);
     return {days: t.days, dearShare: round(t.dearShare), ratio: round(t.paid / t.mean), shares: t.shares.map(round) as [number, number, number],
-        kwhPerDay: round(t.kwh / t.days)};
+        kwhPerDay: round(t.kwh / t.days), ...perLitre !== undefined ? {kwhPerLitre: perLitre} : {}};
 }
 
-/** What a day saved against the baseline, in money: its kWh at the baseline's ratio to the day's
- *  average, minus what they cost. Negative when it cost more. */
+/** kWh per litre over the days that know their litres; undefined with under BASELINE_MIN_DAYS. */
+export function kwhPerLitreOf(days: SavingsDay[]): number | undefined {
+    const known = days.filter((d) => (d.litres ?? 0) > 0 && d.tiers[0] + d.tiers[1] + d.tiers[2] > 0);
+    if (known.length < BASELINE_MIN_DAYS) return undefined;
+    const kwh = known.reduce((s, d) => s + d.tiers[0] + d.tiers[1] + d.tiers[2], 0);
+    return Math.round(kwh / known.reduce((s, d) => s + d.litres!, 0) * 1e5) / 1e5;
+}
+
+/** What a day saved against the baseline, in money: the old way at the day's own prices (the
+ *  baseline's ratio to the day's average), minus what the day cost. Negative when it cost more.
+ *  The old way's kWh: hot water with its litres known, those litres at the baseline's kWh per
+ *  litre; otherwise the day's own kWh (heating: the house sets the heat, Autopilot only moves it). */
 export function daySaving(d: SavingsDay, base: Baseline): number {
-    const kwh = d.tiers[0] + d.tiers[1] + d.tiers[2];
+    const kwh = (d.litres ?? 0) > 0 && base.kwhPerLitre ? d.litres! * base.kwhPerLitre : d.tiers[0] + d.tiers[1] + d.tiers[2];
     return kwh * d.mean * base.ratio - d.cost;
+}
+
+/** A typical year's heating need per month, as heating degree-days (base 17 °C) from approximate
+ *  monthly mean temperatures for central Sweden (about −1 °C in January and February, 18 °C in
+ *  July; not a published normal): what weights the rest of the year for heating, so a winter pace
+ *  is not taken for the year's. Only the shape matters, and it is an estimate's shape: a milder
+ *  place (Denmark, the Netherlands) has a flatter one. Hot water's use barely follows the season:
+ *  every day weighs the same. */
+export const HEATING_SEASON = [558, 504, 477, 315, 174, 39, 0, 0, 123, 291, 402, 515];
+
+/** A day's weight for the year's projection. */
+export function seasonWeight(date: string, role: 'heating' | 'hotwater'): number {
+    if (role !== 'heating') return 1;
+    const y = Number(date.slice(0, 4)), m = Number(date.slice(5, 7));
+    return HEATING_SEASON[m - 1] / new Date(Date.UTC(y, m, 0)).getUTCDate();
+}
+
+/** This calendar year: saved so far, the rest of the year at the pace so far (weighted by
+ *  `seasonWeight`), and the two as the year's estimate. Undefined before a day this year counts, or
+ *  when the days counted so far carry no weight (heating's summer). */
+export interface YearOutlook {
+    saved: number;
+    rest: number;
+    total: number;
+}
+
+export function yearOutlook(days: SavingsDay[], firstLiveDate: string, base: Baseline, today: string,
+    role: 'heating' | 'hotwater'): YearOutlook | undefined {
+    const year = today.slice(0, 4);
+    const counted = savingDays(days, firstLiveDate).filter((d) => d.date.slice(0, 4) === year && d.date <= today);
+    if (!counted.length) return undefined;
+    const saved = counted.reduce((s, d) => s + daySaving(d, base), 0);
+    const weight = counted.reduce((s, d) => s + seasonWeight(d.date, role), 0);
+    if (!(weight > 0)) return undefined;
+    let ahead = 0;
+    for (let date = shiftDate(today, 1); date.slice(0, 4) === year; date = shiftDate(date, 1)) ahead += seasonWeight(date, role);
+    const rest = saved / weight * ahead;
+    return {saved, rest, total: saved + rest};
 }
 
 /** The days that count as Autopilot's savings: whole days after the one it first ran live, that it ran. */
@@ -226,28 +279,6 @@ export interface SplitRow {
     perDay: string;
 }
 
-/** Hot water: one day of the last seven, and the share of its heat in its cheapest third of
- *  hours. No share: no record, or no heat that day; drawn as an empty ring. */
-export interface ShareDay {
-    label: string;
-    share?: number;
-}
-
-/** Hot water: where the last seven days' heat went, by price third. */
-export interface SharePicture {
-    title: string;
-    /** The cheap share, "80 %"; left out while the headline already is today's share. */
-    value?: string;
-    note?: string;
-    /** kWh in the cheapest, middle and most expensive third. */
-    tiers: [number, number, number];
-    /** "9.6 kWh cheap", "1.6 middle" and "0.8 expensive", each under its part of the bar. */
-    cheap: string;
-    middle: string;
-    expensive: string;
-    days: ShareDay[];
-}
-
 export interface SavingsData {
     title: string;
     status?: string;
@@ -265,8 +296,11 @@ export interface SavingsData {
     valueNote?: string;
     /** `value` as a number when it is this month's savings (the Overview widget adds them up). */
     monthValue?: number;
-    /** Hot water: the week's charges, each a dot at its place in its day's prices. */
-    share?: SharePicture;
+    /** The year's estimate and what is saved of it so far, as numbers (the Overview adds them up). */
+    yearValue?: number;
+    yearSaved?: number;
+    /** The calendar year: saved so far (solid) and the rest at the pace so far (hatched). */
+    year?: {share: number; savedLabel: string; saved: string; restLabel: string; rest: string};
     /** Hot water: what one shower cost, before and with Autopilot. */
     shower?: {title: string; before?: {label: string; value: string}; now?: {label: string; value: string; note?: string}};
     legend?: Record<string, string>;
@@ -276,9 +310,8 @@ export interface SavingsData {
     loading?: boolean;
 }
 
-/** Days the comparison and the charge chart look back over. */
+/** Days the comparison looks back over. */
 export const RECENT_DAYS = 14;
-export const CHARGE_DAYS = 7;
 /** Less heat than this in a day or a week says nothing about when it was used. */
 const MIN_KWH = 0.05;
 /** Litres of 40 °C water in one shower: a long one, so the figure is not a rounding error. */
@@ -305,6 +338,8 @@ export interface SavingsContext {
     price: (v: number) => string;
     /** A sum of money. */
     money: (v: number) => string;
+    /** A date as day and month, "14 Nov". */
+    dayMonth: (date: string) => string;
 }
 
 /** The widget's text and pictures. */
@@ -331,25 +366,9 @@ export function savingsData(title: string, stored: SavingsDay[], t: Translate, c
             perDay: onlyToday ? t('kwh_so_far', {kwh: ap.kwh.toFixed(1)}) : perDay(ap.kwh / ap.days)});
         if (rows.length) pictures.split = rows;
     } else {
-        // Always the last seven days ending today, so the week fills up instead of starting squeezed.
-        const byDate = new Map(days.map((d) => [d.date, d]));
-        const dates = Array.from({length: CHARGE_DAYS}, (_, k) => shiftDate(c.today, k - CHARGE_DAYS + 1));
-        const sum = (d?: SavingsDay) => (d ? d.tiers[0] + d.tiers[1] + d.tiers[2] : 0);
-        const tiers = dates.reduce<[number, number, number]>((a, date) => {
-            const d = byDate.get(date);
-            return d ? [a[0] + d.tiers[0], a[1] + d.tiers[1], a[2] + d.tiers[2]] : a;
-        }, [0, 0, 0]);
-        const total = tiers[0] + tiers[1] + tiers[2];
-        if (total >= MIN_KWH) pictures.share = {title: t('charges_title'),
-            ...onlyToday ? {} : {value: `${pct(tiers[0] / total)} %`, note: t('share_note')},
-            tiers: [round(tiers[0]), round(tiers[1]), round(tiers[2])],
-            cheap: t('share_cheap', {kwh: tiers[0].toFixed(1)}),
-            middle: t('share_middle', {kwh: tiers[1].toFixed(1)}),
-            expensive: t('share_expensive', {kwh: tiers[2].toFixed(1)}),
-            days: dates.map((date) => {
-                const d = byDate.get(date);
-                return {label: c.label(date), ...sum(d) >= MIN_KWH ? {share: round(d!.tiers[0] / sum(d))} : {}};
-            })};
+        // The share of heat in the cheapest hours is not shown for hot water (2026-11-21): heating
+        // the tank hotter, or with the immersion heater, in cheap hours raises it while costing more.
+        // The shower below prices the same water the old way at the same prices instead.
         const whole = counted.filter((d) => d !== c.sofar);
         const shower = (list: SavingsDay[], extra: (d: SavingsDay) => number) => {
             const known = list.filter((d) => (d.litres ?? 0) > 0);
@@ -369,7 +388,7 @@ export function savingsData(title: string, stored: SavingsDay[], t: Translate, c
         value: before ? `${pct(before.dearShare)} %` : undefined, valueNote: before ? t('in_expensive') : undefined};
     // Only today so far: kronor come out once the expensive hours have passed with less use, so a
     // morning reads about zero however well the day goes. The share in the cheapest hours does not.
-    if (onlyToday && ap) return {title, ...pictures, status: t(`status_${c.role}`),
+    if (onlyToday && ap && c.role === 'heating') return {title, ...pictures, status: t(`status_${c.role}`),
         value: `${pct(ap.shares[0])} %`, valueNote: t('in_cheapest_today'),
         tone: base.shares && ap.shares[0] < base.shares[0] ? 'neutral' : 'good'};
     // Not running live now and no live day to count: no kronor to show, and saying 0 would read as a
@@ -382,6 +401,24 @@ export function savingsData(title: string, stored: SavingsDay[], t: Translate, c
         return {title, ...pictures, status: t(`status_${c.role}`), reason: t('first_day')};
     const sums = periodSavings(days, c.firstLiveDate, base, c.today);
     if (!sums.days) return {title, ...pictures, status: t(`status_${c.role}`), reason: t('first_day')};
+    // The year: saved so far and the rest at the pace so far, as one estimate. The kronor of a week
+    // are too few to say much; the year is the scale an owner weighs Autopilot on.
+    const outlook = yearOutlook(days, c.firstLiveDate, base, c.today, c.role);
+    if (outlook) {
+        const year = c.today.slice(0, 4);
+        return {
+            title, ...pictures,
+            status: t(`status_${c.role}`),
+            value: `~${c.money(outlook.total)}`,
+            valueNote: c.firstLiveDate.slice(0, 4) === year ? t('year_from', {year, date: c.dayMonth(c.firstLiveDate)}) : t('year', {year}),
+            tone: outlook.total >= 0 ? 'good' : 'bad',
+            yearValue: outlook.total,
+            yearSaved: outlook.saved,
+            year: {share: outlook.total > 0 ? Math.max(0, Math.min(1, outlook.saved / outlook.total)) : 1,
+                savedLabel: t('saved_so_far'), saved: c.money(outlook.saved),
+                restLabel: t(c.role === 'heating' ? 'rest_season' : 'rest'), rest: `~${c.money(outlook.rest)}`},
+        };
+    }
     return {
         title, ...pictures,
         status: t(`status_${c.role}`),

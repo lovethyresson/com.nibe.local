@@ -45,13 +45,17 @@
       .sv-now { font-size: 1.6em; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
       .sv-was { font-size: 1em; opacity: 0.6; text-decoration: line-through; font-variant-numeric: tabular-nums; }
       .sv-change { font-size: 0.86em; font-weight: 600; }
-      .sv-days { display: grid; margin: 16px 0 0; text-align: center; font-size: 0.78em; }
-      .sv-day-ring { display: flex; justify-content: center; margin-bottom: 4px; }
-      .sv-day-k { opacity: 0.6; }
-      .sv-day-k.none { opacity: 0.4; }
-      .sv-day-k.today { opacity: 1; font-weight: 700; }
       .sv-note { margin: 16px 0 0; opacity: 0.7; }
       .sv-empty { opacity: 0.8; margin: 16px 0; }
+      .sv-year { margin: 16px 0 0; }
+      .sv-ybar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--sv-tile); }
+      .sv-ybar .got { background: var(--sv-cheap); }
+      .sv-ybar .est { background: repeating-linear-gradient(135deg, var(--sv-cheap) 0 3px, transparent 3px 7px); opacity: .55; }
+      .sv-ylab { display: flex; justify-content: space-between; gap: 8px; margin: 8px 0 0; font-size: 0.82em; font-variant-numeric: tabular-nums; }
+      .sv-ylab span { display: flex; flex-direction: column; }
+      .sv-ylab span:last-child { text-align: right; }
+      .sv-ylab b { font-size: 1.1em; font-weight: 600; }
+      .sv-ylab i { opacity: 0.6; font-style: normal; }
       .good { color: var(--sv-cheap); }
       .bad { color: var(--sv-dear); }
       /* Starting: bars the size of the real ones grow in, then it starts over. They rest, fully
@@ -181,30 +185,6 @@
         return box;
       }
 
-      // A ring a day, filled to that day's share in the cheapest third. An empty ring: no heat; a
-      // fainter one: no record.
-      function rings(days) {
-        var row = el('div', 'sv-days'), R = 10, SW = 4, S = 2 * R + SW, m = S / 2;
-        row.style.gridTemplateColumns = 'repeat(' + days.length + ', 1fr)';
-        days.forEach(function (d, k) {
-          var col = el('div'), well = el('div', 'sv-day-ring');
-          var ring = svgEl('svg', {viewBox: '0 0 ' + S + ' ' + S, width: S, height: S, role: 'img'});
-          ring.appendChild(svgEl('circle', {cx: m, cy: m, r: R, fill: 'none', stroke: 'currentColor', 'stroke-opacity': d.share === undefined ? 0.1 : 0.2, 'stroke-width': SW}));
-          if (d.share !== undefined && d.share > 0) {
-            if (d.share >= 0.999) ring.appendChild(svgEl('circle', {cx: m, cy: m, r: R, fill: 'none', stroke: 'var(--sv-cheap)', 'stroke-width': SW}));
-            else {
-              var t = d.share * 2 * Math.PI;
-              ring.appendChild(svgEl('path', {d: 'M' + m + ' ' + (m - R) + ' A' + R + ' ' + R + ' 0 ' + (t > Math.PI ? 1 : 0) + ' 1 ' + (m + R * Math.sin(t)) + ' ' + (m - R * Math.cos(t)),
-                fill: 'none', stroke: 'var(--sv-cheap)', 'stroke-width': SW, 'stroke-linecap': 'round'}));
-            }
-          }
-          well.appendChild(ring); col.appendChild(well);
-          col.appendChild(el('div', 'sv-day-k' + (k === days.length - 1 ? ' today' : d.share === undefined ? ' none' : ''), d.label));
-          row.appendChild(col);
-        });
-        return row;
-      }
-
       // A money figure as a number, for the shower's change: '4,03 kr' → 4.03.
       function amount(s) {
         var m = String(s || '').replace(/\s/g, '').replace('−', '-').match(/-?\d+(?:[.,]\d+)?/);
@@ -224,6 +204,18 @@
         if (data.value) {
           root.appendChild(el('div', 'sv-hero ' + (data.tone || ''), data.value));
           if (data.valueNote) root.appendChild(el('div', 'sv-caption homey-text-small', data.valueNote));
+        }
+
+        // The calendar year: saved so far, solid; the rest at the pace so far, hatched.
+        if (data.year) {
+          var y = data.year, yb = el('div', 'sv-year'), bar = el('div', 'sv-ybar');
+          var got = el('span', 'got'); got.style.width = (y.share * 100) + '%';
+          var est = el('span', 'est'); est.style.width = ((1 - y.share) * 100) + '%';
+          bar.append(got, est); yb.appendChild(bar);
+          var lab = el('div', 'sv-ylab'), so = el('span'), rest = el('span');
+          so.append(el('i', '', y.savedLabel), el('b', 'good', y.saved));
+          rest.append(el('i', '', y.restLabel), el('b', '', y.rest));
+          lab.append(so, rest); yb.appendChild(lab); root.appendChild(yb);
         }
         if (data.reason) {
           var pill = el('div', 'sv-pill');
@@ -272,16 +264,6 @@
           // The struck figure says "before" on its own; the caption names the period.
           var cap = [n && n.label, n && n.note].filter(Boolean).join(' · ');
           if (cap) root.appendChild(el('div', 'sv-caption homey-text-small', cap));
-        }
-        // Hot water: the week's heat, each share on its part and the thirds' names under, then a
-        // ring a day.
-        if (data.share) {
-          var c = data.share;
-          root.appendChild(el('div', 'sv-rule'));
-          root.appendChild(el('div', 'sv-sub', c.title));
-          if (c.value) root.appendChild(el('div', 'sv-caption homey-text-small', c.value + (c.note ? ' · ' + c.note : '')));
-          root.appendChild(tierBar(c.tiers, true, names));
-          if (c.days && c.days.length) root.appendChild(rings(c.days));
         }
         layouts.forEach(function (f) { f(); });
       }

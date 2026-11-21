@@ -1663,11 +1663,22 @@ never swallow them.
     A whole Autopilot day after the first-live day saves its kWh at that ratio of its own average,
     minus what they cost. That holds the old usage pattern at today's prices, so a price change
     between the periods does not read as a saving. Days add up into the last 7 days, this month and
-    this year.
+    this year. Hot water, since 2026-11-21: the old way's kWh are the day's litres at the
+    baseline's kWh per litre (`Baseline.kwhPerLitre`), not Autopilot's own kWh. Applied to
+    Autopilot's own kWh, the ratio hid a hotter tank or the immersion heater, which cost more per
+    litre while buying in cheap hours.
+  - **The year (2026-11-21).** Both widgets lead with this calendar year's estimate: saved so far
+    plus the rest of the year at the pace so far (`yearOutlook`), drawn as one bar, solid then
+    hatched. Heating's rest is weighted by a typical year's heating degree-days per month
+    (`HEATING_SEASON`, approximate central-Swedish monthly means, not a published normal), so a
+    winter pace is not projected over the summer; hot water's days weigh the same. A week's kronor
+    were too few to say anything on their own. The Overview adds both estimates up.
   - **Views** (the maintainer's picks from ten mocks): heating shows before and with as two 100 %
-    bars of the three thirds with kWh a day; hot water shows what a 40 L shower cost before and with
-    (litres from the tank model), and the week's charges as dots on their day's price rank (a charge
-    is a run of hours over 0.4 kWh).
+    bars of the three thirds with kWh a day; hot water shows what a shower cost before and with
+    (litres from the tank model). Hot water's share of heat in the cheapest hours was dropped on
+    2026-11-21: heating the tank hotter, or with the immersion heater, in cheap hours raises it while
+    costing more. Heating keeps its share: the house sets the heat, so where it is bought is the
+    lever. The Overview's ring shows heating's share only, for the same reason.
   - It shows when the energy was used. Total kWh and comfort are what the modelled figure above adds.
 
 ---
