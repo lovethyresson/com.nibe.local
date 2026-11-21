@@ -1,11 +1,11 @@
 {
   "name": {
-    "en": "Hot water tank",
-    "sv": "Varmvattentank",
-    "de": "Brauchwasserspeicher",
-    "nl": "Warmwaterboiler",
-    "no": "Varmtvannsbereder",
-    "da": "Varmtvandsbeholder"
+    "en": "Hot water",
+    "sv": "Varmvatten",
+    "de": "Warmwasser",
+    "nl": "Warm water",
+    "no": "Varmtvann",
+    "da": "Varmt vand"
   },
   "height": 360,
   "transparent": false,

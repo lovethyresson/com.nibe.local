@@ -52,7 +52,7 @@
       <div class="tile s3 dark reveal">
         <h3>Autopilot cards</h3>
         <p>Know when Autopilot acts, check what it plans, and change how it behaves.</p>
-        <div class="flow"><span>A hot water charge started</span><span>A hot water charge is planned within … h</span><span>Autopilot heating changed</span><span>Autopilot heating is …</span><span>Set Autopilot heating comfort range</span></div>
+        <div class="flow"><span>Hot water heating started</span><span>Hot water heating is planned within … h</span><span>Autopilot heating changed</span><span>Autopilot heating is …</span><span>Set Autopilot heating comfort range</span></div>
       </div>
       <div class="tile s3 reveal">
         <h3>Day type and Away</h3>
@@ -93,10 +93,10 @@
       </div>
 
       <div class="tile s6 reveal">
-        <h3>A notification when a charge starts</h3>
-        <p>The card gives you the reason to use in the message, whether Autopilot or your heat pump started the charge.</p>
+        <h3>A notification when hot water heating starts</h3>
+        <p>The card gives you the reason to use in the message, whether Autopilot or your heat pump started it.</p>
         <div class="fl" style="max-width:560px">
-          <div class="row"><span class="k when">WHEN</span><div class="card">A hot water charge started<small>Nibe Hot water</small></div></div>
+          <div class="row"><span class="k when">WHEN</span><div class="card">Hot water heating started<small>Nibe Hot water</small></div></div>
           <div class="row"><span class="k then">THEN</span><div class="card">Send a push notification: Hot water <span class="tok">Reason</span>. <span class="tok">Detailed reason</span><small>Mobile</small></div></div>
         </div>
         <div class="note"><b>Hot water: Cheapest hours.</b><span>To 55 °C, 1 h 30 min, at 0.84 SEK/kWh.</span></div>
@@ -110,7 +110,7 @@
     <h2 class="display reveal">Planning around Autopilot</h2>
     <p class="lead reveal">The conditions work the other way, too. Ask Autopilot before you do something that uses a lot of power.</p>
     <div class="reasons">
-      <div class="pill reveal" style="--c:var(--water)"><b>A hot water charge is planned within … h</b><p>Hold off the dishwasher if the tank's about to heat. A charge that's already running counts.</p></div>
+      <div class="pill reveal" style="--c:var(--water)"><b>Hot water heating is planned within … h</b><p>Hold off the dishwasher if hot water is about to heat. Heating that's already running counts.</p></div>
       <div class="pill reveal" style="--c:var(--warm)"><b>Autopilot heating is …</b><p>Learning, holding, pre-heating, easing off or paused. Easing off is a good time to wait.</p></div>
       <div class="pill reveal" style="--c:var(--green)"><b>Hot water available is less than … L</b><p>Check there's enough before a bath.</p></div>
     </div>
@@ -124,8 +124,8 @@
       <details><summary>Why does the calendar Flow set a type every night?</summary><p>A day type you set holds until something changes it. Setting it every night, both ways, keeps it in step with your calendar. Where nothing was ever set, Saturday and Sunday count as days off on their own.</p></details>
       <details><summary>Will the nightly Flow end Away?</summary><p>No. While you're away, Set day type only remembers which day to go back to. Away ends when you turn it off.</p></details>
       <details><summary>I don't see the Autopilot cards.</summary><p>The Autopilot heating cards appear on the Heating device once Autopilot runs heating, Live or Simulated. Set day type is on Main once Autopilot runs hot water. The hot water cards are on Hot water, and need a tank picked in Hot water setup.</p></details>
-      <details><summary>Does A hot water charge started trigger for charges Autopilot didn't plan?</summary><p>Yes. It triggers for every charge, and tells you whether Autopilot started it.</p></details>
-      <details><summary>A Flow turns on More hot water on a schedule.</summary><p>With Autopilot on for hot water, that starts charges it didn't plan. Setup lists any Flows like that, so you can turn them off or keep them for notifications.</p></details>
+      <details><summary>Does Hot water heating started trigger for heating Autopilot didn't plan?</summary><p>Yes. It triggers every time, and tells you whether Autopilot started it.</p></details>
+      <details><summary>A Flow turns on More hot water on a schedule.</summary><p>With Autopilot on for hot water, that heats hot water outside its plan. Setup lists any Flows like that, so you can turn them off or keep them for notifications.</p></details>
     </div>
   </div>
 </section>

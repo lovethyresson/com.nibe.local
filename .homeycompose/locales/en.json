@@ -169,18 +169,18 @@
       },
       "use": "You'll use about __litres__ L today, up to __p80__ L on a busy day.",
       "away": "Away. Only the minimum is kept warm.",
-      "tank": "The tank has __litres__ L now. Autopilot keeps at least __reserve__ L.",
-      "tank_no_reserve": "The tank has __litres__ L now. No minimum is set.",
-      "none": "No charge needed today.",
-      "charge": "Charge __time__ to __target__ °C · __reason__",
+      "tank": "__litres__ L of hot water now. Autopilot keeps at least __reserve__ L.",
+      "tank_no_reserve": "__litres__ L of hot water now. No minimum is set.",
+      "none": "No hot water heating needed today.",
+      "charge": "Heats hot water __time__ to __target__ °C · __reason__",
       "reason": {
         "cheap": "Cheapest hours",
         "surplus": "__share__ % from solar",
         "reserve": "Below minimum",
-        "running": "Already charging",
+        "running": "Already heating",
         "before_use": "In time for use",
-        "room": "Tank full until then",
-        "loss": "Less heat lost in the tank",
+        "room": "Enough hot water until then",
+        "loss": "Less heat lost before use",
         "legionella": "Legionella"
       },
       "cost": "Expected cost __cost__. Tomorrow's prices aren't in yet.",
@@ -195,36 +195,36 @@
       "reason": {
         "cheap": "Cheapest hours",
         "before_use": "In time for use",
-        "room": "Tank full until then",
-        "loss": "Less heat lost in the tank",
+        "room": "Enough hot water until then",
+        "loss": "Less heat lost before use",
         "surplus": "Solar surplus",
         "reserve": "Below minimum",
-        "running": "Already charging",
+        "running": "Already heating",
         "pump": "Started by your heat pump",
         "legionella": "Legionella"
       },
       "detail": {
         "price": "To __target__ °C in about __duration__, at __price__/kWh. Today's average: __mean__.",
         "surplus": "To __target__ °C, about __duration__, __share__ % from solar surplus.",
-        "reserve": "The tank is down to __litres__ L, below your __reserve__ L minimum. Heating to __target__ °C, about __duration__.",
+        "reserve": "Hot water is down to __litres__ L, below your __reserve__ L minimum. Heating to __target__ °C, about __duration__.",
         "pump": "Started by your heat pump at __top__ °C. Runs to __stop__ °C.",
         "pump_more": "More hot water is on, so your heat pump runs to __stop__ °C.",
-        "immersion": "The immersion heater took over at __at__ °C. Autopilot now charges to at most __cap__ °C.",
+        "immersion": "The immersion heater took over at __at__ °C. Autopilot now heats to at most __cap__ °C.",
         "legionella": "To __target__ °C against legionella, in the cheapest 2 hours at __price__/kWh. The immersion heater heats the last degrees."
       },
       "plan": {
         "as_planned": "As planned.",
         "moved": "Moved from __time__.",
         "unplanned": "Not planned.",
-        "as_planned_pump": "A charge was planned then too."
+        "as_planned_pump": "Autopilot planned to heat then too."
       },
       "duration": "__h__ h __m__ min",
       "duration_min": "__m__ min",
-      "title": "Heating the tank · __reason__",
-      "title_would": "Simulated: would start a charge · __reason__",
+      "title": "Heating hot water · __reason__",
+      "title_would": "Simulated: would heat hot water · __reason__",
       "recap": {
         "item": "__time__ to __target__ °C: __reason__.",
-        "would": "__time__ would have charged to __target__ °C: __reason__.",
+        "would": "__time__ would have heated to __target__ °C: __reason__.",
         "as_planned": "As planned.",
         "moved": "Moved.",
         "unplanned": "Not planned.",
@@ -235,7 +235,7 @@
         "immersion": "Immersion heater from __at__ °C."
       },
       "duration_h": "__h__ h",
-      "write_failed": "Autopilot couldn't start a charge. Your heat pump said: __error__",
+      "write_failed": "Autopilot couldn't start heating hot water. Your heat pump said: __error__",
       "blocked": {
         "hot_water_off": "Autopilot is waiting. Hot water is turned off on your heat pump.",
         "spa": "Autopilot is waiting. Turn off Smart Price Adaption for hot water on your heat pump.",
@@ -243,7 +243,7 @@
       }
     },
     "hotwater_legionella": {
-      "overdue": "The tank hasn't reached __target__ °C for legionella. Your heat pump's own periodic hot water is back on until a charge gets there.",
+      "overdue": "Hot water hasn't reached __target__ °C for legionella. Your heat pump's own periodic hot water is back on until it does.",
       "fallback_failed": "Autopilot couldn't change your heat pump's periodic hot water. Your heat pump said: __error__"
     },
     "hotwater_takeover": {
@@ -257,13 +257,13 @@
         "new_prices": "Hot water plan updated with new prices.",
         "revised": "Hot water plan updated after a price change."
       },
-      "added": "New charge __time__: __target__ °C at __price__/kWh (__reason__).",
-      "added_new_hours": "New charge __time__: __target__ °C at __price__/kWh (__reason__), in newly priced hours.",
-      "moved": "Charge moved from __was__ to __time__: __target__ °C at __price__/kWh instead of __wasPrice__.",
-      "dropped": "Charge cancelled for __time__. __why__",
-      "resized": "Charge changed for __time__: __target__ °C instead of __was__ °C. __why__",
+      "added": "Added: hot water __time__ to __target__ °C at __price__/kWh (__reason__).",
+      "added_new_hours": "Added: hot water __time__ to __target__ °C at __price__/kWh (__reason__), in newly priced hours.",
+      "moved": "Hot water moved from __was__ to __time__: __target__ °C at __price__/kWh instead of __wasPrice__.",
+      "dropped": "Hot water __time__ cancelled. __why__",
+      "resized": "Hot water __time__ changed: __target__ °C instead of __was__ °C. __why__",
       "why": {
-        "takes_over": "The charge __time__ takes over the rest, at __price__/kWh.",
+        "takes_over": "Hot water __time__ covers the rest, at __price__/kWh.",
         "covered": "Not needed.",
         "store_more": "Later hours cost more.",
         "needs_less": "Less hot water needed."
@@ -274,15 +274,15 @@
       "reason": {
         "cheap": "Cheapest hours",
         "before_use": "In time for use",
-        "room": "Tank full until then",
-        "loss": "Less heat lost in the tank",
+        "room": "Enough hot water until then",
+        "loss": "Less heat lost before use",
         "surplus": "Solar surplus",
         "reserve": "Below minimum",
-        "running": "Already charging",
+        "running": "Already heating",
         "pump": "Started by your heat pump",
         "legionella": "Legionella"
       },
-      "moved_repriced": "Charge moved from __was__ to __time__: __was__ now costs __wasNow__/kWh instead of __wasPrice__. Charging to __target__ °C at __price__/kWh."
+      "moved_repriced": "Hot water moved from __was__ to __time__: __was__ now costs __wasNow__/kWh instead of __wasPrice__. Heats to __target__ °C at __price__/kWh."
     },
     "hotwater_setting": {
       "no_device": "Autopilot for hot water requires the Hot water device. Add it first.",
@@ -387,22 +387,22 @@
         "custom": "Custom range"
       },
       "hotwater": {
-        "next": "Next charge __when__",
-        "none": "No charge needed in the next 24 hours",
+        "next": "Next: hot water __when__",
+        "none": "No hot water heating needed in the next 24 hours",
         "litres": "__l__ L of 40 °C water now",
         "litres_note": "of 40 °C water",
         "day_tomorrow": "Tomorrow",
         "share": "__share__ % from solar",
         "solar_off": "Solar off",
         "solar_paused": "Solar plan paused",
-        "solar_total": "__share__ % of the planned charging runs on solar surplus.",
-        "solar_none": "No planned charging runs on solar surplus.",
-        "solar_live": "If more surplus turns up, Autopilot can still charge on it.",
+        "solar_total": "__share__ % of planned heating uses solar surplus.",
+        "solar_none": "No planned heating uses solar surplus.",
+        "solar_live": "If more surplus turns up, Autopilot can still use it.",
         "no_prices": "Waiting for electricity prices",
         "band": "__from__ to __to__",
         "about": "About __duration__",
         "no_prices_hint": "Check that Homey Energy uses dynamic electricity prices.",
-        "charging_now": "Charging now",
+        "charging_now": "Heating now",
         "until": "Until __time__"
       },
       "indoor": "Indoor",
@@ -413,8 +413,8 @@
       "axis_offset": "Outdoor shift °C",
       "learning": "Autopilot starts after at least 5 days of data, once it predicts your indoor temperature within 0.35 °C and its picture of your house holds for 3 days.",
       "surplus": "Solar surplus",
-      "charge_grid": "Grid charge",
-      "charge_solar": "Solar charge",
+      "charge_grid": "From the grid",
+      "charge_solar": "From solar",
       "axis_price": "Price per kWh",
       "axis_surplus": "Surplus kW",
       "learning_day": "Day __day__ of __of__",
@@ -429,21 +429,21 @@
       "error": "Couldn't load Autopilot. Trying again in a minute.",
       "starting_title": "Starting",
       "starting_heating": "Loading the forecast and prices. This takes about a minute.",
-      "starting_hotwater": "Loading prices and the tank level. This takes about a minute.",
+      "starting_hotwater": "Loading prices and hot water. This takes about a minute.",
       "starting_app": "Loading data from your heat pump. This takes about a minute.",
       "away_until": "Away until __until__ · __c__ °C",
-      "charge_done": "Charged",
+      "charge_done": "Heated",
       "learning_accuracy": "Refining its predictions",
       "learning_steady": "Confirming over 3 days"
     },
     "hotwater_status": {
       "learning": "Learning your hot water use",
       "no_prices": "Waiting for electricity prices",
-      "charging": "Heating the tank",
-      "charging_reason": "Heating the tank · __reason__",
-      "starting": "Starting a charge to __target__ °C · __reason__",
-      "next": "Next charge __time__ to __target__ °C · __reason__",
-      "none": "No charge needed until __until__",
+      "charging": "Heating hot water",
+      "charging_reason": "Heating hot water · __reason__",
+      "starting": "Heating hot water to __target__ °C · __reason__",
+      "next": "Next: hot water __time__, to __target__ °C · __reason__",
+      "none": "No hot water heating needed until __until__",
       "test": "Simulated: __text__"
     },
     "hotwater_use": {
@@ -462,11 +462,11 @@
       "away_until": "Until __until__",
       "today_title": "Today",
       "row_used": "Hot water used",
-      "row_charged": "Charged until __end__",
-      "row_charging": "Charging until about __end__",
-      "row_tank": "In the tank now",
-      "row_next": "Next charge",
-      "row_next_tomorrow": "Next charge, tomorrow",
+      "row_charged": "Heated until __end__",
+      "row_charging": "Heating until about __end__",
+      "row_tank": "Hot water now",
+      "row_next": "Next: hot water",
+      "row_next_tomorrow": "Next: hot water, tomorrow",
       "loading": "Loading your hot water history. This takes a few minutes."
     },
     "savings": {
@@ -507,17 +507,17 @@
     "away_until_token": "Away until",
     "tank": {
       "pick": "Pick a Hot water device.",
-      "now": "__l__ L in the tank",
+      "now": "__l__ L of hot water",
       "used": "__used__ L used of about __expected__ L",
-      "next": "next charge __time__",
-      "next_tomorrow": "next charge tomorrow __time__",
-      "charging": "charging now",
-      "panel_tank": "In the tank",
+      "next": "next: hot water __time__",
+      "next_tomorrow": "next: hot water tomorrow __time__",
+      "charging": "heating now",
+      "panel_tank": "Hot water now",
       "panel_used": "Used today",
       "usual": "usual __l__ L",
       "reserve": "Always kept",
-      "done": "Charged",
-      "planned": "Planned charge"
+      "done": "Heated",
+      "planned": "Planned"
     },
     "energy": {
       "pick": "Pick your heat pump's Main device.",
@@ -574,7 +574,7 @@
       "lane_heating": "Heating",
       "more": "Heats more",
       "less": "Eases off",
-      "no_charge": "No charge for the rest of today",
+      "no_charge": "No hot water heating for the rest of today",
       "no_shift": "Holding for the rest of today"
     },
     "overview": {

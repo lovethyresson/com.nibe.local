@@ -14,9 +14,9 @@
   <div class="wrap">
     <p class="eyebrow display reveal">Autopilot</p>
     <h1 class="display reveal">Autopilot for hot water</h1>
-    <p class="lead reveal">Autopilot learns when your household uses hot water, then heats the tank in the cheapest hours before that. <b>There's no schedule to set.</b></p>
+    <p class="lead reveal">Autopilot learns when your household uses hot water, then heats it in the cheapest hours before that. <b>There's no schedule to set.</b></p>
     <div class="chart reveal">
-      <svg class="daychart" viewBox="0 0 1000 380" role="img" aria-label="Through a day: the tank runs down in the evening, Autopilot heats it in the cheapest night hours, and it is full for the morning.">
+      <svg class="daychart" viewBox="0 0 1000 380" role="img" aria-label="Through a day: hot water runs down in the evening, Autopilot heats it in the cheapest night hours, and it is full for the morning.">
 <defs><linearGradient id="pfade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9f0a" stop-opacity=".32"/><stop offset="1" stop-color="#ff9f0a" stop-opacity="0"/></linearGradient>
 <linearGradient id="tfade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2997ff" stop-opacity=".22"/><stop offset="1" stop-color="#2997ff" stop-opacity="0"/></linearGradient></defs>
 <rect class="band" x="260" y="30" width="80" height="290" rx="10"/>
@@ -33,8 +33,8 @@
 <text class="lab muted" x="460" y="247" text-anchor="middle">Minimum, 40 L</text>
 <g class="ticks"><text x="20" y="372" text-anchor="middle">16</text><text x="180" y="372" text-anchor="middle">20</text><text x="340" y="372" text-anchor="middle">00</text><text x="500" y="372" text-anchor="middle">04</text><text x="660" y="372" text-anchor="middle">08</text><text x="820" y="372" text-anchor="middle">12</text><text x="980" y="372" text-anchor="middle">16</text></g>
 </svg>
-      <p class="phone-note">The tank runs down with the evening showers, gets heated around midnight when prices are lowest, and is full for the morning.</p>
-      <div class="legend"><span><i style="background:var(--water)"></i>Hot water in the tank</span><span><i style="background:var(--warm);opacity:.5"></i>Electricity price</span></div>
+      <p class="phone-note">Hot water runs down with the evening showers, gets heated around midnight when prices are lowest, and is ready for the morning.</p>
+      <div class="legend"><span><i style="background:var(--water)"></i>Hot water available</span><span><i style="background:var(--warm);opacity:.5"></i>Electricity price</span></div>
     </div>
   </div>
 </header>
@@ -44,8 +44,8 @@
     <h2 class="display reveal">What Autopilot checks every fifteen minutes</h2>
     <div class="how">
       <div class="reveal"><div class="n">01</div><h3>Prices</h3><p>Today's and tomorrow's, straight from Homey Energy.</p></div>
-      <div class="reveal"><div class="n">02</div><h3>Your routine</h3><p>How much hot water you use, and when, learned from your own tank.</p></div>
-      <div class="reveal"><div class="n">03</div><h3>The best time to charge</h3><p>The cheapest hours that still leave the tank full when you need it. Your heat pump does the heating with its own settings.</p></div>
+      <div class="reveal"><div class="n">02</div><h3>Your routine</h3><p>How much hot water you use, and when, learned from your own readings.</p></div>
+      <div class="reveal"><div class="n">03</div><h3>The best time to heat</h3><p>The cheapest hours that still leave enough hot water when you need it. Your heat pump does the heating with its own settings.</p></div>
     </div>
   </div>
 </section>
@@ -73,7 +73,7 @@
 
       <div class="tile s6 reveal">
         <h3>Always enough for a shower</h3>
-        <p>Pick how much hot water Autopilot never lets the tank drop below. A bigger minimum means some charges happen in more expensive hours. A smaller one waits for cheap hours more often.</p>
+        <p>Pick how much hot water Autopilot always keeps. A bigger minimum means heating in more expensive hours now and then. A smaller one waits for cheap hours more often.</p>
         <div class="tanks">
           <div class="tk"><div class="glass"><b style="height:0"></b></div><div class="v">Off</div><div class="w">Up to your heat pump</div></div>
           <div class="tk"><div class="glass"><b style="height:20%"></b></div><div class="v">20 L</div><div class="w">A rinse or the dishes</div></div>
@@ -84,15 +84,15 @@
 
       <div class="tile s3 dark reveal">
         <h3>Solar power</h3>
-        <p>When your home is selling solar power, Autopilot can heat the tank with it instead. It only uses what would go to the grid, so a battery or car charger gets the solar power first.</p>
+        <p>When your home is selling solar power, Autopilot can heat hot water with it instead. It only uses what would go to the grid, so a battery or car charger gets the solar power first.</p>
         <div class="flow"><span>Panels</span><i>›</i><span>Home</span><i>›</i><span>Battery</span><i>›</i><span class="end">Hot water</span></div>
       </div>
       <div class="tile s3 reveal">
         <h3>Solar settings</h3>
         <p>Solar needs a meter in Homey Energy that sees what you sell, like a P1 reader.</p>
         <div class="toggles">
-          <div class="tg"><span class="sw on"></span><div><b>Charge when you're selling solar</b><p>On from the start.</p></div></div>
-          <div class="tg"><span class="sw"></span><div><b>Plan around tomorrow's sun</b><p>Skips a night charge when sun is forecast. Pauses if the forecast is often wrong.</p></div></div>
+          <div class="tg"><span class="sw on"></span><div><b>Heat hot water when you're selling solar</b><p>On from the start.</p></div></div>
+          <div class="tg"><span class="sw"></span><div><b>Plan around tomorrow's sun</b><p>Skips heating at night when sun is forecast. Pauses if the forecast is often wrong.</p></div></div>
         </div>
       </div>
     </div>
@@ -101,19 +101,19 @@
 
 <section class="center" id="how-it-picks">
   <div class="wrap">
-    <h2 class="display reveal">How Autopilot picks each charge</h2>
-    <p class="lead reveal">Every day it works out which charges cost the least for the hot water you'll use, and plans again every 15 minutes when prices, sun or your use change.</p>
+    <h2 class="display reveal">How Autopilot picks when to heat</h2>
+    <p class="lead reveal">Every day it works out when heating costs the least for the hot water you'll use, and plans again every 15 minutes when prices, sun or your use change.</p>
     <div class="steps">
       <div class="tile reveal"><div class="k">It weighs</div><h3>Your use</h3><p>When your household uses hot water and how much, learned per kind of day.</p></div>
       <div class="tile reveal"><div class="k">It weighs</div><h3>Prices and sun</h3><p>Every 15-minute price for the next day and more, and solar power you would otherwise sell.</p></div>
-      <div class="tile reveal"><div class="k">It weighs</div><h3>Your tank</h3><p>A hotter tank costs more per degree and loses more heat while it waits. Above about 58 °C it needs the immersion heater.</p></div>
+      <div class="tile reveal"><div class="k">It weighs</div><h3>Temperature</h3><p>Hotter water costs more per degree and loses more heat while it waits. Above about 58 °C it needs the immersion heater.</p></div>
     </div>
     <p class="lead reveal" style="margin-top:40px">So the plan changes from day to day:</p>
     <div class="reasons" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));max-width:760px;margin-left:auto;margin-right:auto">
-      <div class="pill reveal" style="--c:var(--water)"><b>A working day, cheap night</b><p>One charge at 02:00 to 56 °C lasts the day.</p></div>
-      <div class="pill reveal" style="--c:var(--warm)"><b>A sunny Saturday</b><p>A small charge at night for the morning, the rest at noon on your own solar power.</p></div>
-      <div class="pill reveal" style="--c:var(--green)"><b>A price dip at 14:00</b><p>The night charge stays cooler. A top-up in the dip covers the evening.</p></div>
-      <div class="pill reveal" style="--c:var(--red)"><b>An unplanned bath</b><p>The tank runs lower than expected, so the next charge moves earlier.</p></div>
+      <div class="pill reveal" style="--c:var(--water)"><b>A working day, cheap night</b><p>Heating at 02:00 to 56 °C lasts the day.</p></div>
+      <div class="pill reveal" style="--c:var(--warm)"><b>A sunny Saturday</b><p>A little at night for the morning, the rest at noon on your own solar power.</p></div>
+      <div class="pill reveal" style="--c:var(--green)"><b>A price dip at 14:00</b><p>The night heating stays cooler. A top-up in the dip covers the evening.</p></div>
+      <div class="pill reveal" style="--c:var(--red)"><b>An unplanned bath</b><p>Hot water runs lower than expected, so the next heating moves earlier.</p></div>
     </div>
   </div>
 </section>
@@ -121,11 +121,11 @@
 <section id="legionella">
   <div class="wrap">
     <h2 class="display center reveal">Legionella</h2>
-    <p class="lead center reveal">Your heat pump normally heats the tank extra hot every few days to kill legionella bacteria. While Autopilot runs live, it turns that periodic hot water off and does the run itself, in the cheapest two hours before it's due.</p>
+    <p class="lead center reveal">Your heat pump normally heats hot water extra hot every few days to kill legionella bacteria. While Autopilot runs live, it turns that periodic hot water off and does the run itself, in the cheapest two hours before it's due.</p>
     <div class="faq reveal">
       <details><summary>How hot?</summary><p>You pick it in Hot water setup: your heat pump's own setting, 65 °C (recommended), or your own from 55 to 70 °C.</p></details>
-      <details><summary>How often?</summary><p>As often as your heat pump's own setting, or every 14 days if it can't be read. A charge that reaches the temperature anyway counts, and the count starts again.</p></details>
-      <details><summary>What if the tank doesn't get there?</summary><p>Autopilot runs it once each time it's due. If the tank still isn't there a day after it's due, your heat pump's own periodic hot water comes back on and you get a notice. Autopilot turns it off again once a charge reaches the temperature.</p></details>
+      <details><summary>How often?</summary><p>As often as your heat pump's own setting, or every 14 days if it can't be read. Heating that reaches the temperature anyway counts, and the count starts again.</p></details>
+      <details><summary>What if the water doesn't get that hot?</summary><p>Autopilot runs it once each time it's due. If the water still isn't that hot a day after it's due, your heat pump's own periodic hot water comes back on and you get a notice. Autopilot turns it off again once the water reaches the temperature.</p></details>
       <details><summary>What happens when I turn Autopilot off?</summary><p>Periodic hot water goes back to how you had it.</p></details>
     </div>
   </div>
@@ -133,15 +133,15 @@
 
 <section class="center">
   <div class="wrap">
-    <h2 class="display reveal">The reason for each charge</h2>
-    <p class="lead reveal">Your Hot water device shows the next charge, and the reason for it.</p>
-    <div class="status reveal">Next charge 22:00 to 56 °C · <em>Cheapest hours</em></div>
+    <h2 class="display reveal">The reason for each heating</h2>
+    <p class="lead reveal">Your Hot water device shows when it heats next, and why.</p>
+    <div class="status reveal">Next: hot water 22:00, to 56 °C · <em>Cheapest hours</em></div>
     <div class="reasons">
       <div class="pill reveal" style="--c:var(--green)"><b>Cheapest hours</b><p>The best price before you'll need the water.</p></div>
       <div class="pill reveal" style="--c:var(--water)"><b>In time for use</b><p>Cheaper hours come later, but you'll want hot water first.</p></div>
-      <div class="pill reveal" style="--c:var(--red)"><b>Below minimum</b><p>The tank dipped below your minimum, so it heats now.</p></div>
+      <div class="pill reveal" style="--c:var(--red)"><b>Below minimum</b><p>Hot water dipped below your minimum, so it heats now.</p></div>
       <div class="pill reveal" style="--c:var(--warm)"><b>Solar surplus</b><p>Heated with power you'd otherwise have sold.</p></div>
-      <div class="pill reveal" style="--c:var(--sub)"><b>Started by your heat pump</b><p>Your heat pump started the charge itself.</p></div>
+      <div class="pill reveal" style="--c:var(--sub)"><b>Started by your heat pump</b><p>Your heat pump started heating itself.</p></div>
     </div>
   </div>
 </section>
@@ -149,12 +149,12 @@
 <section class="center">
   <div class="wrap">
     <h2 class="display reveal">Trying Autopilot first</h2>
-    <p class="lead reveal">Pick Autopilot, then <b>Simulated</b>. Simulated previews every charge without making changes to your heat pump. When you agree with the plan, switch to <b>Live</b>.</p>
+    <p class="lead reveal">Pick Autopilot, then <b>Simulated</b>. Simulated previews the plan without making changes to your heat pump. When you agree with the plan, switch to <b>Live</b>.</p>
     <div class="crumbs reveal"><span>Hot water</span><i>›</i><span>Repair</span><i>›</i><span>Hot water setup</span></div>
     <div class="steps">
       <div class="tile reveal"><div class="k">Before you start</div><h3>Hourly prices</h3><p>Set up in Homey Energy. With a fixed price, there's nothing to plan around.</p></div>
       <div class="tile reveal"><div class="k">Before you start</div><h3>Your tank</h3><p>Hot water setup asks for it first, then Smart mode, so Autopilot knows how many litres you have.</p></div>
-      <div class="tile reveal"><div class="k">Before you start</div><h3>One planner</h3><p>Choosing Autopilot turns Smart Price Adaption off for hot water, so only one plans the tank.</p></div>
+      <div class="tile reveal"><div class="k">Before you start</div><h3>One planner</h3><p>Choosing Autopilot turns Smart Price Adaption off for hot water, so only one plans hot water.</p></div>
     </div>
   </div>
 </section>
@@ -163,13 +163,13 @@
   <div class="wrap">
     <h2 class="display center reveal">Good to know</h2>
     <div class="faq reveal">
-      <details><summary>Can my heat pump still heat the tank on its own?</summary><p>Yes. If the tank gets too cold, your heat pump heats it itself, exactly as it would without Autopilot.</p></details>
-      <details><summary>Can I stop a charge halfway?</summary><p>Not really. Once a charge starts, it runs to the planned temperature.</p></details>
-      <details><summary>How often does it start a charge?</summary><p>At most three times a day, so the compressor doesn't start more than it needs to.</p></details>
+      <details><summary>Can my heat pump still heat hot water on its own?</summary><p>Yes. If hot water gets too cold, your heat pump heats it itself, exactly as it would without Autopilot.</p></details>
+      <details><summary>Can I stop heating halfway?</summary><p>Not really. Once heating starts, it runs to the planned temperature.</p></details>
+      <details><summary>How often does it start heating?</summary><p>At most three times a day, so the compressor doesn't start more than it needs to.</p></details>
       <details><summary>Going on holiday?</summary><p>Away is for a week or more. Set the day type to Away before you leave. Autopilot stops planning for showers and only keeps the minimum warm until you're back.</p></details>
-      <details><summary>I have Flows that turn on More hot water.</summary><p>They'll start charges Autopilot didn't plan. Setup lists any it finds, so you can turn them off or keep them for notifications.</p></details>
+      <details><summary>I have Flows that turn on More hot water.</summary><p>They'll heat hot water outside Autopilot's plan. Setup lists any it finds, so you can turn them off or keep them for notifications.</p></details>
       <details><summary>How are savings counted?</summary><p>Hot water has no learning phase, so savings count from Autopilot's first whole day. The starting point is how your heat pump paid for hot water before Autopilot, from up to two weeks of earlier readings in Homey. If Homey has none, for example right after pairing, the day's average price stands in. Each day, the electricity Autopilot used is priced that way, and the saving is that minus what it actually cost. Whole days only. More in <a href="autopilot-heating.html#savings">How savings are counted</a>.</p></details>
-      <details><summary>Where's the plan for today?</summary><p>In your Homey Timeline each morning, and in the Autopilot widget, which shows prices and planned charges at a glance.</p></details>
+      <details><summary>Where's the plan for today?</summary><p>In your Homey Timeline each morning, and in the Autopilot widget, which shows prices and planned heating at a glance.</p></details>
     </div>
   </div>
 </section>

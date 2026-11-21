@@ -169,18 +169,18 @@
       },
       "use": "Du bruker omtrent __litres__ L i dag, opptil __p80__ L en travel dag.",
       "away": "Bortreist. Bare minimumsnivået holdes varmt.",
-      "tank": "Berederen har __litres__ L nå. Autopilot holder minst __reserve__ L.",
-      "tank_no_reserve": "Berederen har __litres__ L nå. Ingen minimumsnivå er satt.",
-      "none": "Ingen lading trengs i dag.",
-      "charge": "Lading __time__ til __target__ °C · __reason__",
+      "tank": "__litres__ L varmtvann nå. Autopilot holder minst __reserve__ L.",
+      "tank_no_reserve": "__litres__ L varmtvann nå. Ingen minimumsnivå er satt.",
+      "none": "Ingen oppvarming trengs i dag.",
+      "charge": "Oppvarming __time__ til __target__ °C · __reason__",
       "reason": {
         "cheap": "Billigste timer",
         "surplus": "__share__ % fra solstrøm",
         "reserve": "Under minimumsnivået",
         "running": "Varmer allerede",
         "before_use": "I tide til forbruket",
-        "room": "Berederen full til da",
-        "loss": "Mindre varmetap i berederen",
+        "room": "Nok varmtvann til da",
+        "loss": "Mindre varmetap",
         "legionella": "Legionella"
       },
       "cost": "Forventet kostnad __cost__. Morgendagens priser er ikke kommet ennå.",
@@ -195,8 +195,8 @@
       "reason": {
         "cheap": "Billigste timer",
         "before_use": "I tide til forbruket",
-        "room": "Berederen full til da",
-        "loss": "Mindre varmetap i berederen",
+        "room": "Nok varmtvann til da",
+        "loss": "Mindre varmetap",
         "surplus": "Soloverskudd",
         "reserve": "Under minimumsnivået",
         "running": "Varmer allerede",
@@ -206,7 +206,7 @@
       "detail": {
         "price": "Til __target__ °C på omtrent __duration__, for __price__/kWh. Snitt i dag: __mean__.",
         "surplus": "Til __target__ °C, omtrent __duration__, __share__ % fra soloverskudd.",
-        "reserve": "Berederen har bare __litres__ L, under minimumsnivået ditt på __reserve__ L. Varmer til __target__ °C, omtrent __duration__.",
+        "reserve": "Bare __litres__ L varmtvann igjen, under minimumsnivået ditt på __reserve__ L. Varmer til __target__ °C, omtrent __duration__.",
         "pump": "Startet av varmepumpen din ved __top__ °C. Går til __stop__ °C.",
         "pump_more": "Mer varmtvann er på, så varmepumpen din varmer til __stop__ °C.",
         "immersion": "Elkolben tok over ved __at__ °C. Autopilot varmer nå til høyst __cap__ °C.",
@@ -216,12 +216,12 @@
         "as_planned": "Som planlagt.",
         "moved": "Flyttet fra __time__.",
         "unplanned": "Ikke planlagt.",
-        "as_planned_pump": "En lading var planlagt da også."
+        "as_planned_pump": "En oppvarming var planlagt da også."
       },
       "duration": "__h__ t __m__ min",
       "duration_min": "__m__ min",
-      "title": "Varmer opp berederen · __reason__",
-      "title_would": "Simulert: ville startet en lading · __reason__",
+      "title": "Varmer opp varmtvann · __reason__",
+      "title_would": "Simulert: ville varmet opp varmtvann · __reason__",
       "recap": {
         "item": "__time__ til __target__ °C: __reason__.",
         "would": "__time__ ville ha varmet til __target__ °C: __reason__.",
@@ -235,7 +235,7 @@
         "immersion": "Elkolbe fra __at__ °C."
       },
       "duration_h": "__h__ t",
-      "write_failed": "Autopilot kunne ikke starte en lading. Varmepumpen din svarte: __error__",
+      "write_failed": "Autopilot kunne ikke starte oppvarming av varmtvann. Varmepumpen din svarte: __error__",
       "blocked": {
         "hot_water_off": "Autopilot venter. Varmtvann er slått av på varmepumpen din.",
         "spa": "Autopilot venter. Slå av Smart Price Adaption for varmtvann på varmepumpen din.",
@@ -243,7 +243,7 @@
       }
     },
     "hotwater_legionella": {
-      "overdue": "Berederen har ikke nådd __target__ °C mot legionella. Varmepumpens eget periodiske varmtvann er på igjen til en lading når dit.",
+      "overdue": "Varmtvannet har ikke nådd __target__ °C mot legionella. Varmepumpens eget periodiske varmtvann er på igjen til en oppvarming når dit.",
       "fallback_failed": "Autopilot kunne ikke endre varmepumpens periodiske varmtvann. Varmepumpen din svarte: __error__"
     },
     "hotwater_takeover": {
@@ -257,13 +257,13 @@
         "new_prices": "Varmtvannsplanen er oppdatert med nye priser.",
         "revised": "Varmtvannsplanen er oppdatert etter en prisendring."
       },
-      "added": "Ny lading __time__: __target__ °C for __price__/kWh (__reason__).",
-      "added_new_hours": "Ny lading __time__: __target__ °C for __price__/kWh (__reason__), i timer med nye priser.",
-      "moved": "Lading flyttet fra __was__ til __time__: __target__ °C for __price__/kWh i stedet for __wasPrice__.",
-      "dropped": "Lading __time__ avlyst. __why__",
-      "resized": "Lading __time__ endret: __target__ °C i stedet for __was__ °C. __why__",
+      "added": "Ny oppvarming __time__: __target__ °C for __price__/kWh (__reason__).",
+      "added_new_hours": "Ny oppvarming __time__: __target__ °C for __price__/kWh (__reason__), i timer med nye priser.",
+      "moved": "Oppvarming flyttet fra __was__ til __time__: __target__ °C for __price__/kWh i stedet for __wasPrice__.",
+      "dropped": "Oppvarming __time__ avlyst. __why__",
+      "resized": "Oppvarming __time__ endret: __target__ °C i stedet for __was__ °C. __why__",
       "why": {
-        "takes_over": "Ladingen __time__ tar over resten, for __price__/kWh.",
+        "takes_over": "Oppvarmingen __time__ tar over resten, for __price__/kWh.",
         "covered": "Ikke nødvendig.",
         "store_more": "Senere timer koster mer.",
         "needs_less": "Mindre varmtvann trengs."
@@ -274,15 +274,15 @@
       "reason": {
         "cheap": "Billigste timer",
         "before_use": "I tide til forbruket",
-        "room": "Berederen full til da",
-        "loss": "Mindre varmetap i berederen",
+        "room": "Nok varmtvann til da",
+        "loss": "Mindre varmetap",
         "surplus": "Soloverskudd",
         "reserve": "Under minimumsnivået",
         "running": "Varmer allerede",
         "pump": "Startet av varmepumpen din",
         "legionella": "Legionella"
       },
-      "moved_repriced": "Lading flyttet fra __was__ til __time__: __was__ koster nå __wasNow__/kWh i stedet for __wasPrice__. Lader til __target__ °C for __price__/kWh."
+      "moved_repriced": "Oppvarming flyttet fra __was__ til __time__: __was__ koster nå __wasNow__/kWh i stedet for __wasPrice__. Varmer opp til __target__ °C for __price__/kWh."
     },
     "hotwater_setting": {
       "no_device": "Autopilot for varmtvann krever enheten Varmtvann. Legg den til først.",
@@ -387,22 +387,22 @@
         "custom": "Egendefinert område"
       },
       "hotwater": {
-        "next": "Neste lading __when__",
-        "none": "Ingen lading trengs de neste 24 timene",
+        "next": "Neste oppvarming __when__",
+        "none": "Ingen oppvarming trengs de neste 24 timene",
         "litres": "__l__ L 40-graders vann nå",
         "litres_note": "40-graders vann",
         "day_tomorrow": "I morgen",
         "share": "__share__ % fra sol",
         "solar_off": "Sol av",
         "solar_paused": "Solplan pauset",
-        "solar_total": "__share__ % av den planlagte ladingen går på soloverskudd.",
-        "solar_none": "Ingen planlagt lading går på soloverskudd.",
-        "solar_live": "Dukker det opp mer overskudd, kan Autopilot likevel lade med det.",
+        "solar_total": "__share__ % av den planlagte oppvarmingen går på soloverskudd.",
+        "solar_none": "Ingen planlagt oppvarming går på soloverskudd.",
+        "solar_live": "Dukker det opp mer overskudd, kan Autopilot likevel bruke det til varmtvann.",
         "no_prices": "Venter på strømpriser",
         "band": "__from__ til __to__",
         "about": "Omtrent __duration__",
         "no_prices_hint": "Sjekk at Homey Energy bruker dynamiske strømpriser.",
-        "charging_now": "Lader nå",
+        "charging_now": "Varmer opp nå",
         "until": "Til __time__"
       },
       "indoor": "Inne",
@@ -413,8 +413,8 @@
       "axis_offset": "Uteforskyvning °C",
       "learning": "Autopilot starter etter minst 5 dager med data, når den forutsier innetemperaturen innen 0,35 °C og bildet av huset holder seg i 3 dager.",
       "surplus": "Soloverskudd",
-      "charge_grid": "Nettlading",
-      "charge_solar": "Sollading",
+      "charge_grid": "Nettstrøm",
+      "charge_solar": "Solstrøm",
       "axis_price": "Pris per kWh",
       "axis_surplus": "Overskudd kW",
       "learning_day": "Dag __day__ av __of__",
@@ -429,21 +429,21 @@
       "error": "Kunne ikke laste Autopilot. Prøver igjen om et minutt.",
       "starting_title": "Starter",
       "starting_heating": "Laster inn værvarsel og strømpriser. Dette tar omtrent ett minutt.",
-      "starting_hotwater": "Laster inn strømpriser og nivået i berederen. Dette tar omtrent ett minutt.",
+      "starting_hotwater": "Laster inn strømpriser og varmtvannsnivået. Dette tar omtrent ett minutt.",
       "starting_app": "Laster inn data fra varmepumpen din. Dette tar omtrent ett minutt.",
       "away_until": "Bortreist til __until__ · __c__ °C",
-      "charge_done": "Ladet",
+      "charge_done": "Oppvarmet",
       "learning_accuracy": "Forbedrer prognosene",
       "learning_steady": "Bekrefter over 3 dager"
     },
     "hotwater_status": {
       "learning": "Lærer varmtvannsbruken din",
       "no_prices": "Venter på strømpriser",
-      "charging": "Varmer opp berederen",
-      "charging_reason": "Varmer opp berederen · __reason__",
-      "starting": "Starter lading til __target__ °C · __reason__",
-      "next": "Neste lading __time__ til __target__ °C · __reason__",
-      "none": "Ingen lading trengs før __until__",
+      "charging": "Varmer opp varmtvann",
+      "charging_reason": "Varmer opp varmtvann · __reason__",
+      "starting": "Starter oppvarming til __target__ °C · __reason__",
+      "next": "Neste oppvarming __time__ til __target__ °C · __reason__",
+      "none": "Ingen oppvarming trengs før __until__",
       "test": "Simulert: __text__"
     },
     "hotwater_use": {
@@ -462,11 +462,11 @@
       "away_until": "Til __until__",
       "today_title": "I dag",
       "row_used": "Varmtvann brukt",
-      "row_charged": "Ladet til __end__",
-      "row_charging": "Lader til omtrent __end__",
-      "row_tank": "I berederen nå",
-      "row_next": "Neste lading",
-      "row_next_tomorrow": "Neste lading, i morgen",
+      "row_charged": "Oppvarmet til __end__",
+      "row_charging": "Varmer opp til omtrent __end__",
+      "row_tank": "Varmtvann nå",
+      "row_next": "Neste oppvarming",
+      "row_next_tomorrow": "Neste oppvarming, i morgen",
       "loading": "Laster inn varmtvannshistorikken din. Dette tar noen minutter."
     },
     "savings": {
@@ -507,17 +507,17 @@
     "away_until_token": "Bortreist til",
     "tank": {
       "pick": "Velg en varmtvannsenhet.",
-      "now": "__l__ L i berederen",
+      "now": "__l__ L varmtvann nå",
       "used": "__used__ L brukt av omtrent __expected__ L",
-      "next": "neste lading __time__",
-      "next_tomorrow": "neste lading i morgen __time__",
-      "charging": "lader nå",
-      "panel_tank": "I berederen",
+      "next": "neste oppvarming __time__",
+      "next_tomorrow": "neste oppvarming i morgen __time__",
+      "charging": "varmer opp nå",
+      "panel_tank": "Varmtvann nå",
       "panel_used": "Brukt i dag",
       "usual": "vanlig __l__ L",
       "reserve": "Alltid igjen",
-      "done": "Ladet",
-      "planned": "Planlagt lading"
+      "done": "Oppvarmet",
+      "planned": "Planlagt oppvarming"
     },
     "energy": {
       "pick": "Velg Main-enheten til varmepumpen din.",
@@ -574,7 +574,7 @@
       "lane_heating": "Oppvarming",
       "more": "Varmer mer",
       "less": "Trapper ned",
-      "no_charge": "Ingen lading resten av dagen",
+      "no_charge": "Ingen oppvarming resten av dagen",
       "no_shift": "Holder resten av dagen"
     },
     "overview": {

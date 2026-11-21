@@ -31,7 +31,7 @@ stop and parse. The maintainer chose this over a warmer and a terser rewrite (20
 | Simulated plans everything and shows what it would do, while your heat pump stays as it is | Simulated previews the plan without making changes |
 | …so room-sensor control stays off | Requires room-sensor control to be off |
 | …so it reports no sensor fault | …to prevent sensor alarms |
-| The 14:00 charge is gone | 14:00 charge cancelled |
+| The 14:00 heating is gone | Hot water 14:00 cancelled |
 | Fires when… | Triggers when… |
 | The day averages 1.62 kr | Today's average: 1.62 kr |
 
@@ -51,15 +51,15 @@ has rejected them. Each row has an example from the app and a plain version.
 | Number hook | "Three things. Every fifteen minutes." | "Every fifteen minutes Autopilot checks prices, your usage and the tank." |
 | Short closer | "Two switches. That's it." | Leave the closer out. |
 | Reassurance | "Nothing changes.", "same as always", "Nothing to tune." | Say what happens: "Your heat pump keeps its own settings." |
-| The app as a person | "Always knows why.", "It speaks your heat pump's language." | "The Hot water device shows why it charges." |
+| The app as a person | "Always knows why.", "It speaks your heat pump's language." | "The Hot water device shows why it heats." |
 | Hype words | actually, real, really, quietly, genuinely, handled, smart, seamless, simply, just | Leave them out. |
 | Verdicts | "Nothing to gain from shifting now" | Say what happens: "Holding · no change planned" |
 | "We", "please", "!" | "We've ticked what your heat pump reported.", "You're all set!" | "Ticked items have data from your heat pump", "All set" |
 | Em-dash asides and semicolons | "…the tank — if it's cold — …" | Two sentences. |
 | Developer words | register, allocator, bias, degree minutes, fed, poll, capabilities | The name of the setting or the reading. |
 
-Headings name the topic, for example "Settings", "How a charge is planned" or "When the tank gets
-cold". They don't take a full stop or a twist. `CLAUDE.md` still asks for "a short two-part headline
+Headings name the topic, for example "Settings", "How hot water heating is planned" or "When hot water runs
+low". They don't take a full stop or a twist. `CLAUDE.md` still asks for "a short two-part headline
 with full stops". That rule produced the headings in the table above, so it should be changed.
 
 Keep sensor codes and menu numbers next to the plain words: "the outdoor temperature (BT1)", "On your
@@ -76,7 +76,7 @@ heat pump, menu 7.5.9.2." Owners and installers look for them on the display.
 | Where it's switched on | Smart mode, a step in Heating setup or Hot water setup | Smart mode setup, Heating Setup |
 | Comfort ranges | Comfort, Save, Save more | I'd rather freeze |
 | The hot water floor | The setting is "Always enough for a shower" (20 L, 40 L, 60 L). Anywhere else, call it the safety net | minimum, cushion, reserve |
-| Heating the tank | charge, charging | heating the tank, charging run. Keep "boost" only for More hot water |
+| Heating hot water | heat hot water, heating (sv värmer varmvatten, uppvärmning). "Tank" only for the physical tank: picking its model or size (2026-11-21) | charge, charging, charging run, heating the tank, laddning. Keep "boost" only for More hot water |
 | What Autopilot does to BT1 | Outdoor shift (BT1) | Shift °C, nudge |
 | Room regulation | room-sensor control | room control, room sensor regulation |
 | NIBE's price feature | Smart Price Adaption (NIBE's menu 4.2.5 spelling, in every language, no ™). "Smart Price" only as a short column header | Smart price adaption, Smart Price Adaptation, a translated name |
@@ -115,7 +115,7 @@ rejected a terser "state · fact" format for every line the same day.
 
 1. **Labels end without a full stop.** That covers titles, buttons, legend items and list rows.
    Hints, status messages, empty states and timeline bodies are sentences and end with one.
-2. **A short status can carry its reason after " · "**, as the app already does: "Next charge 22:00 to
+2. **A short status can carry its reason after " · "**, as the app already does: "Next: hot water 22:00, to
    56 °C · Cheapest hours". Don't force other lines into that shape.
 3. **A hint is one sentence, two at most**, and about 90 characters in English so the German still fits
    on a phone. The first sentence says what the setting does. Reasons and edge cases go on the help page.

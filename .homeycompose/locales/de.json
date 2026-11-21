@@ -169,18 +169,18 @@
       },
       "use": "Sie verbrauchen heute etwa __litres__ L, bis zu __p80__ L an einem Tag mit viel Verbrauch.",
       "away": "Abwesend. Nur das Minimum wird warm gehalten.",
-      "tank": "Der Speicher hat jetzt __litres__ L. Autopilot hält mindestens __reserve__ L.",
-      "tank_no_reserve": "Der Speicher hat jetzt __litres__ L. Kein Minimum eingestellt.",
-      "none": "Heute ist keine Ladung nötig.",
-      "charge": "Laden __time__ auf __target__ °C · __reason__",
+      "tank": "Jetzt __litres__ L Warmwasser. Autopilot hält mindestens __reserve__ L.",
+      "tank_no_reserve": "Jetzt __litres__ L Warmwasser. Kein Minimum eingestellt.",
+      "none": "Heute ist kein Aufheizen nötig.",
+      "charge": "Aufheizen __time__ auf __target__ °C · __reason__",
       "reason": {
         "cheap": "Günstigste Stunden",
         "surplus": "__share__ % aus Solarstrom",
         "reserve": "Unter dem Minimum",
-        "running": "Lädt bereits",
+        "running": "Heizt bereits",
         "before_use": "Rechtzeitig vor dem Verbrauch",
-        "room": "Speicher bis dahin voll",
-        "loss": "Weniger Wärmeverlust im Speicher",
+        "room": "Bis dahin genug Warmwasser",
+        "loss": "Weniger Wärmeverlust",
         "legionella": "Legionellen"
       },
       "cost": "Erwartete Kosten __cost__. Die Preise für morgen sind noch nicht da.",
@@ -195,36 +195,36 @@
       "reason": {
         "cheap": "Günstigste Stunden",
         "before_use": "Rechtzeitig vor dem Verbrauch",
-        "room": "Speicher bis dahin voll",
-        "loss": "Weniger Wärmeverlust im Speicher",
+        "room": "Bis dahin genug Warmwasser",
+        "loss": "Weniger Wärmeverlust",
         "surplus": "Solarüberschuss",
         "reserve": "Unter dem Minimum",
-        "running": "Lädt bereits",
+        "running": "Heizt bereits",
         "pump": "Von Ihrer Wärmepumpe gestartet",
         "legionella": "Legionellen"
       },
       "detail": {
         "price": "Auf __target__ °C in etwa __duration__, zu __price__/kWh. Tagesdurchschnitt: __mean__.",
         "surplus": "Auf __target__ °C, etwa __duration__, __share__ % aus Solarüberschuss.",
-        "reserve": "Der Speicher hat nur noch __litres__ L, unter Ihrem Minimum von __reserve__ L. Heizt auf __target__ °C, etwa __duration__.",
+        "reserve": "Nur noch __litres__ L Warmwasser, unter Ihrem Minimum von __reserve__ L. Heizt auf __target__ °C, etwa __duration__.",
         "pump": "Von Ihrer Wärmepumpe bei __top__ °C gestartet. Läuft bis __stop__ °C.",
-        "pump_more": "Mehr Brauchwasser ist an, daher lädt Ihre Wärmepumpe auf __stop__ °C.",
-        "immersion": "Die Elektroheizpatrone hat bei __at__ °C übernommen. Autopilot lädt jetzt auf höchstens __cap__ °C.",
+        "pump_more": "Mehr Brauchwasser ist an, daher heizt Ihre Wärmepumpe auf __stop__ °C.",
+        "immersion": "Die Elektroheizpatrone hat bei __at__ °C übernommen. Autopilot heizt jetzt auf höchstens __cap__ °C.",
         "legionella": "Auf __target__ °C gegen Legionellen, in den günstigsten 2 Stunden zu __price__/kWh. Die Elektroheizpatrone heizt die letzten Grad."
       },
       "plan": {
         "as_planned": "Wie geplant.",
         "moved": "Verschoben von __time__.",
         "unplanned": "Nicht geplant.",
-        "as_planned_pump": "Auch dann war eine Ladung geplant."
+        "as_planned_pump": "Auch dann war ein Aufheizen geplant."
       },
       "duration": "__h__ Std. __m__ Min.",
       "duration_min": "__m__ Min.",
-      "title": "Speicher wird geheizt · __reason__",
-      "title_would": "Simuliert: würde eine Ladung starten · __reason__",
+      "title": "Bereitet Warmwasser · __reason__",
+      "title_would": "Simuliert: würde Warmwasser bereiten · __reason__",
       "recap": {
         "item": "__time__ auf __target__ °C: __reason__.",
-        "would": "__time__ hätte auf __target__ °C geladen, __reason__.",
+        "would": "__time__ hätte auf __target__ °C aufgeheizt, __reason__.",
         "as_planned": "Wie geplant.",
         "moved": "Verschoben.",
         "unplanned": "Nicht geplant.",
@@ -235,7 +235,7 @@
         "immersion": "Elektroheizpatrone ab __at__ °C."
       },
       "duration_h": "__h__ Std.",
-      "write_failed": "Autopilot konnte keine Ladung starten. Ihre Wärmepumpe meldete: __error__",
+      "write_failed": "Autopilot konnte die Warmwasserbereitung nicht starten. Ihre Wärmepumpe meldete: __error__",
       "blocked": {
         "hot_water_off": "Autopilot wartet. Brauchwasser ist an Ihrer Wärmepumpe ausgeschaltet.",
         "spa": "Autopilot wartet. Schalten Sie Smart Price Adaption für Brauchwasser an Ihrer Wärmepumpe aus.",
@@ -243,7 +243,7 @@
       }
     },
     "hotwater_legionella": {
-      "overdue": "Der Speicher hat __target__ °C gegen Legionellen nicht erreicht. Die periodische Erhöhung Ihrer Wärmepumpe ist wieder an, bis eine Ladung es schafft.",
+      "overdue": "Das Warmwasser hat __target__ °C gegen Legionellen nicht erreicht. Die periodische Erhöhung Ihrer Wärmepumpe ist wieder an, bis ein Aufheizen es schafft.",
       "fallback_failed": "Autopilot konnte die periodische Erhöhung Ihrer Wärmepumpe nicht ändern. Ihre Wärmepumpe meldete: __error__"
     },
     "hotwater_takeover": {
@@ -257,13 +257,13 @@
         "new_prices": "Brauchwasserplan mit neuen Preisen aktualisiert.",
         "revised": "Brauchwasserplan nach einer Preisänderung aktualisiert."
       },
-      "added": "Neue Ladung __time__: __target__ °C zu __price__/kWh (__reason__).",
-      "added_new_hours": "Neue Ladung __time__: __target__ °C zu __price__/kWh (__reason__), in Stunden mit neuen Preisen.",
-      "moved": "Ladung verschoben von __was__ auf __time__: __target__ °C zu __price__/kWh statt __wasPrice__.",
-      "dropped": "Ladung __time__ entfällt. __why__",
-      "resized": "Ladung __time__ geändert: __target__ °C statt __was__ °C. __why__",
+      "added": "Neues Aufheizen __time__: __target__ °C zu __price__/kWh (__reason__).",
+      "added_new_hours": "Neues Aufheizen __time__: __target__ °C zu __price__/kWh (__reason__), in Stunden mit neuen Preisen.",
+      "moved": "Aufheizen verschoben von __was__ auf __time__: __target__ °C zu __price__/kWh statt __wasPrice__.",
+      "dropped": "Aufheizen __time__ entfällt. __why__",
+      "resized": "Aufheizen __time__ geändert: __target__ °C statt __was__ °C. __why__",
       "why": {
-        "takes_over": "Die Ladung __time__ übernimmt den Rest, zu __price__/kWh.",
+        "takes_over": "Das Aufheizen __time__ übernimmt den Rest, zu __price__/kWh.",
         "covered": "Nicht nötig.",
         "store_more": "Spätere Stunden sind teurer.",
         "needs_less": "Weniger Brauchwasser nötig."
@@ -274,15 +274,15 @@
       "reason": {
         "cheap": "Günstigste Stunden",
         "before_use": "Rechtzeitig vor dem Verbrauch",
-        "room": "Speicher bis dahin voll",
-        "loss": "Weniger Wärmeverlust im Speicher",
+        "room": "Bis dahin genug Warmwasser",
+        "loss": "Weniger Wärmeverlust",
         "surplus": "Solarüberschuss",
         "reserve": "Unter dem Minimum",
-        "running": "Lädt bereits",
+        "running": "Heizt bereits",
         "pump": "Von Ihrer Wärmepumpe gestartet",
         "legionella": "Legionellen"
       },
-      "moved_repriced": "Ladung verschoben von __was__ auf __time__: __was__ kostet jetzt __wasNow__/kWh statt __wasPrice__. Lädt auf __target__ °C zu __price__/kWh."
+      "moved_repriced": "Aufheizen verschoben von __was__ auf __time__: __was__ kostet jetzt __wasNow__/kWh statt __wasPrice__. Heizt auf __target__ °C zu __price__/kWh."
     },
     "hotwater_setting": {
       "no_device": "Autopilot für Brauchwasser erfordert das Brauchwasser-Gerät. Fügen Sie es zuerst hinzu.",
@@ -387,22 +387,22 @@
         "custom": "Benutzerdefinierter Bereich"
       },
       "hotwater": {
-        "next": "Nächste Ladung __when__",
-        "none": "In den nächsten 24 Stunden ist keine Ladung nötig",
+        "next": "Nächstes Aufheizen __when__",
+        "none": "In den nächsten 24 Stunden ist kein Aufheizen nötig",
         "litres": "Jetzt __l__ L Wasser mit 40 °C",
         "litres_note": "Wasser mit 40 °C",
         "day_tomorrow": "Morgen",
         "share": "__share__ % aus Solarstrom",
         "solar_off": "Solar aus",
         "solar_paused": "Solarplan pausiert",
-        "solar_total": "__share__ % der geplanten Ladung laufen mit Solarüberschuss.",
-        "solar_none": "Keine geplante Ladung läuft mit Solarüberschuss.",
-        "solar_live": "Kommt mehr Überschuss, kann Autopilot trotzdem damit laden.",
+        "solar_total": "__share__ % des geplanten Aufheizens laufen mit Solarüberschuss.",
+        "solar_none": "Kein geplantes Aufheizen läuft mit Solarüberschuss.",
+        "solar_live": "Kommt mehr Überschuss, kann Autopilot trotzdem damit aufheizen.",
         "no_prices": "Wartet auf Strompreise",
         "band": "__from__ bis __to__",
         "about": "Etwa __duration__",
         "no_prices_hint": "Prüfen Sie, ob Homey Energie dynamische Strompreise nutzt.",
-        "charging_now": "Lädt jetzt",
+        "charging_now": "Heizt jetzt",
         "until": "Bis __time__"
       },
       "indoor": "Innen",
@@ -413,8 +413,8 @@
       "axis_offset": "Verschiebung Außentemp. °C",
       "learning": "Autopilot startet nach mindestens 5 Tagen Daten, sobald er Ihre Innentemperatur auf 0,35 °C genau vorhersagt und sein Bild Ihres Hauses 3 Tage lang stabil bleibt.",
       "surplus": "Solarüberschuss",
-      "charge_grid": "Netzladung",
-      "charge_solar": "Solarladung",
+      "charge_grid": "Aufheizen mit Netzstrom",
+      "charge_solar": "Aufheizen mit Solarstrom",
       "axis_price": "Preis pro kWh",
       "axis_surplus": "Überschuss kW",
       "learning_day": "Tag __day__ von __of__",
@@ -429,21 +429,21 @@
       "error": "Autopilot konnte nicht geladen werden. Neuer Versuch in einer Minute.",
       "starting_title": "Startet",
       "starting_heating": "Prognose und Strompreise werden geladen. Dies dauert etwa eine Minute.",
-      "starting_hotwater": "Strompreise und Speicherstand werden geladen. Dies dauert etwa eine Minute.",
+      "starting_hotwater": "Strompreise und Warmwasserstand werden geladen. Dies dauert etwa eine Minute.",
       "starting_app": "Daten Ihrer Wärmepumpe werden geladen. Dies dauert etwa eine Minute.",
       "away_until": "Abwesend bis __until__ · __c__ °C",
-      "charge_done": "Geladen",
+      "charge_done": "Aufgeheizt",
       "learning_accuracy": "Verfeinert die Vorhersagen",
       "learning_steady": "Bestätigt über 3 Tage"
     },
     "hotwater_status": {
       "learning": "Lernt Ihren Brauchwasserverbrauch",
       "no_prices": "Wartet auf Strompreise",
-      "charging": "Heizt den Speicher",
-      "charging_reason": "Heizt den Speicher · __reason__",
-      "starting": "Startet eine Ladung auf __target__ °C · __reason__",
-      "next": "Nächste Ladung __time__ auf __target__ °C · __reason__",
-      "none": "Keine Ladung nötig bis __until__",
+      "charging": "Bereitet Warmwasser",
+      "charging_reason": "Bereitet Warmwasser · __reason__",
+      "starting": "Startet Aufheizen auf __target__ °C · __reason__",
+      "next": "Nächstes Aufheizen __time__ auf __target__ °C · __reason__",
+      "none": "Kein Aufheizen nötig bis __until__",
       "test": "Simuliert: __text__"
     },
     "hotwater_use": {
@@ -462,11 +462,11 @@
       "away_until": "Bis __until__",
       "today_title": "Heute",
       "row_used": "Brauchwasser verbraucht",
-      "row_charged": "Geladen bis __end__",
-      "row_charging": "Lädt bis etwa __end__",
-      "row_tank": "Jetzt im Speicher",
-      "row_next": "Nächste Ladung",
-      "row_next_tomorrow": "Nächste Ladung, morgen",
+      "row_charged": "Aufgeheizt bis __end__",
+      "row_charging": "Heizt bis etwa __end__",
+      "row_tank": "Warmwasser jetzt",
+      "row_next": "Nächstes Aufheizen",
+      "row_next_tomorrow": "Nächstes Aufheizen, morgen",
       "loading": "Ihr Warmwasserverlauf wird geladen. Das dauert einige Minuten."
     },
     "savings": {
@@ -507,17 +507,17 @@
     "away_until_token": "Abwesend bis",
     "tank": {
       "pick": "Wählen Sie ein Brauchwasser-Gerät.",
-      "now": "__l__ L im Speicher",
+      "now": "__l__ L Warmwasser",
       "used": "__used__ L von etwa __expected__ L verbraucht",
-      "next": "nächste Ladung __time__",
-      "next_tomorrow": "nächste Ladung morgen __time__",
-      "charging": "lädt jetzt",
-      "panel_tank": "Im Speicher",
+      "next": "nächstes Aufheizen __time__",
+      "next_tomorrow": "nächstes Aufheizen morgen __time__",
+      "charging": "heizt jetzt",
+      "panel_tank": "Warmwasser jetzt",
       "panel_used": "Heute verbraucht",
       "usual": "üblich __l__ L",
       "reserve": "Immer vorrätig",
-      "done": "Geladen",
-      "planned": "Geplante Ladung"
+      "done": "Aufgeheizt",
+      "planned": "Geplantes Aufheizen"
     },
     "energy": {
       "pick": "Wählen Sie das Main-Gerät Ihrer Wärmepumpe.",
@@ -574,7 +574,7 @@
       "lane_heating": "Heizung",
       "more": "Heizt mehr",
       "less": "Drosselt",
-      "no_charge": "Keine Ladung mehr heute",
+      "no_charge": "Kein Aufheizen mehr heute",
       "no_shift": "Hält für den Rest des Tages"
     },
     "overview": {
