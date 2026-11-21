@@ -50,6 +50,27 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
   Wed 121, Thu 171, Fri 134 (Tue above 230 L in 4 of the last 8 weeks, Mon in 2). To confirm on
   labelled days as they accumulate.
 
+## Status (2026-11-21, after the first pass)
+
+- **Done:** 2 (a rescue may use 5 starts a day, a refused rescue warns on the device and is counted;
+  legionella already counted); 3.1 ("Best time for your use"); 3.2, with a different cause than
+  guessed (below); 1.1 (slot context in every log line, one record a day kept 400 days, the log path
+  logged at start); 1.3 tool (`dev/replay-hot-water.ts`, checked against a synthetic log: all
+  replayable slots match); 5.1 as a logged challenger.
+- **3.2 finding:** the midday runs were not a day-type cold start. On 16 Nov no working day of
+  9–13 Nov was a full day (15–21 of 22 known hours: the tank sat under 40 °C overnight, so those
+  hours are unknowable), and only full days gave hour shapes. The working-day profile had no shape
+  of its own and took the pooled one, built from weekend middays. Fixed: each hour learns from the
+  days it was known on (part days included); the 16 Nov working midday drops from 10.4 to 1.5 kWh.
+- **4:** Insights cannot say who started Sun 15's run (697 has no log; the charge events kept two
+  days are gone). The new slot context logs 697 and both stops, so a recurrence is identifiable.
+  No legionella run yet. No change made.
+- **Waiting on an install:** the replay against live needs lines with context; the challenger
+  needs mornings. 5.0 waits on the mock's approval; 5.2 on state counts (the day records carry the
+  hourly litres to score it); 6 on evidence; 7 on its mock.
+- **Not yet:** 1.2's hindsight score (kr above hindsight) needs the day records to accumulate; the
+  learner still learns from Insights only, not from the day records.
+
 ## Considered and rejected
 
 - Early-draw credit: Thu's 17:00 draw was the first of two; crediting it cancels the 19:00
