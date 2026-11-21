@@ -475,7 +475,17 @@ export interface Household {
     morningHour: number;
     /** When a free day's main use is. */
     freeDay: 'morning' | 'daytime' | 'evening';
+    /** When the household mostly showers on a working day (setup, since 2026-11-21); missing:
+     *  mornings, as before the question was asked. */
+    workShower?: WorkShower;
+    /** Working weekdays with more hot water in the evening, 1 = Monday … 5 = Friday. */
+    busyEvenings?: number[];
 }
+
+export type WorkShower = 'morning' | 'evening' | 'both' | 'varies';
+const WORK_SHOWERS: WorkShower[] = ['morning', 'evening', 'both', 'varies'];
+/** A busy weekday's evening against the working-day evening, until it has days of its own. */
+export const BUSY_EVENING_FACTOR = 1.5;
 
 /** Below this many days of history, setup asks about the household. */
 export const STARTER_DAYS = 14;
@@ -492,7 +502,10 @@ export function readHousehold(raw: any): Household | undefined {
     const people = Math.round(Number(raw?.people)), morningHour = Math.round(Number(raw?.morningHour));
     if (!(people >= 1 && people <= 12) || !(morningHour >= 0 && morningHour <= 23)) return undefined;
     const freeDay = raw?.freeDay === 'morning' || raw?.freeDay === 'daytime' ? raw.freeDay : 'evening';
-    return {people, morningHour, freeDay};
+    const workShower = WORK_SHOWERS.includes(raw?.workShower) ? raw.workShower as WorkShower : undefined;
+    const busy = Array.isArray(raw?.busyEvenings)
+        ? [...new Set((raw.busyEvenings as unknown[]).map(Number).filter((d) => Number.isInteger(d) && d >= 1 && d <= 5))].sort() : [];
+    return {people, morningHour, freeDay, ...workShower ? {workShower} : {}, ...busy.length ? {busyEvenings: busy} : {}};
 }
 
 /** A starting day profile from the household's answers: the day's heat placed at the given
@@ -513,7 +526,14 @@ export function starterProfiles(h: Household): {any: DayProfile; working: DayPro
         hours: shares.map((x) => x * daily), p80: shares.map((x) => x * daily * STARTER_P80_HOUR),
     });
     const workDaily = h.people * KWH_PER_PERSON, freeDaily = workDaily * FREE_DAY_FACTOR;
-    const working = profile(workDaily, shape([[m, 0.35], [m + 1, 0.15], [18, 0.1], [19, 0.1], [20, 0.1], [21, 0.05]]));
+    // When the working day's showers are: the morning hour, the evening, both, or spread out.
+    const workPeaks: Record<WorkShower, [number, number][]> = {
+        morning: [[m, 0.35], [m + 1, 0.15], [18, 0.1], [19, 0.1], [20, 0.1], [21, 0.05]],
+        evening: [[m, 0.1], [18, 0.15], [19, 0.25], [20, 0.25], [21, 0.1]],
+        both: [[m, 0.25], [m + 1, 0.1], [18, 0.1], [19, 0.2], [20, 0.15], [21, 0.05]],
+        varies: [[m, 0.15], [12, 0.05], [18, 0.1], [19, 0.15], [20, 0.15], [21, 0.1]],
+    };
+    const working = profile(workDaily, shape(workPeaks[h.workShower ?? 'morning']));
     const freePeaks: Record<Household['freeDay'], [number, number][]> = {
         morning: [[m + 2, 0.3], [m + 3, 0.2], [19, 0.15], [20, 0.1]],
         daytime: [[11, 0.15], [12, 0.15], [13, 0.1], [14, 0.1], [19, 0.15], [20, 0.1]],
@@ -559,7 +579,7 @@ export function learn(points: TankPoint[], clock: LocalClock, now: number, halfL
         const ownShapes = shapeDays.filter((d) => d.dayType === type);
         if (own.length || (ownShapes.length && any) || start) profiles[type] = profileOf(own, weight, start?.[type] ?? any, ownShapes);
     }
-    const evenings = weekdayEvenings(shapeDays.filter((d) => d.dayType === 'working'), weight);
+    const evenings = weekdayEvenings(shapeDays.filter((d) => d.dayType === 'working'), weight, household?.busyEvenings);
     const today = clock(now).date;
     const recent = every.filter((d) => d.date < today && d.hoursCovered > 0).slice(-RECENT_DAYS).map((d): DayDraw => ({date: d.date,
         draw: Math.round(d.draw * 100) / 100, ...(d.dayType ? {dayType: d.dayType} : {}),
@@ -572,7 +592,7 @@ export function learn(points: TankPoint[], clock: LocalClock, now: number, halfL
 export const weekdayOf = (date: string) => new Date(`${date}T12:00:00Z`).getUTCDay();
 
 /** Per weekday, the evening draw of working days whose every evening hour was read. */
-function weekdayEvenings(days: Day[], weight: (d: Day) => number): HotwaterModel['evenings'] {
+function weekdayEvenings(days: Day[], weight: (d: Day) => number, busy: number[] = []): HotwaterModel['evenings'] {
     // Each evening hour read, or cold after a draw emptied the tank earlier that evening: such an
     // evening counts with its draw at least, rather than being left out as the busy evenings were.
     // A tank cold from before the evening is unmet demand, not a light evening: left out.
@@ -596,7 +616,9 @@ function weekdayEvenings(days: Day[], weight: (d: Day) => number): HotwaterModel
         const mean = n > 0 ? own.reduce((s, [v, w]) => s + v * w, 0) / n : refMean;
         const p80 = n > 0 ? weightedQuantile(own.map(([v]) => v), own.map(([, w]) => w), 0.8) : refP80;
         const r = (v: number) => Math.round(v * 100) / 100;
-        out[wd] = {days: r(n), mean: r((mean * n + refMean * k) / (n + k)), p80: r((p80 * n + refP80 * k) / (n + k))};
+        // A weekday the household named as busy starts above the working-day evening (setup).
+        const lean = busy.includes(wd) ? BUSY_EVENING_FACTOR : 1;
+        out[wd] = {days: r(n), mean: r((mean * n + refMean * lean * k) / (n + k)), p80: r((p80 * n + refP80 * lean * k) / (n + k))};
     }
     return out;
 }

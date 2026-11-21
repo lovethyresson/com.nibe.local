@@ -336,19 +336,28 @@ test('hot water setup shows made-up days without and with Autopilot, each with i
     assert.ok(f.win.document.querySelector('.hwp-chips').hidden, 'the example days belong to Autopilot');
     assert.equal(f.win.document.querySelectorAll('.hwp-chart').length, 1);
 });
-test('Autopilot hot water setup lists the Flows that switch More hot water, and asks a young home about its household', async () => {
+test('Autopilot hot water setup lists the Flows that switch More hot water, and asks about the household', async () => {
+    const s = english.pair.setup.smart;
     const f = await hotwaterSmart({flows: [{id: 'a', name: 'Cheap hot water', advanced: true}], historyDays: 3});
     const text = f.win.document.body.textContent;
     assert.ok(text.includes('Cheap hot water'));
-    assert.ok(text.includes(english.pair.setup.smart.hw_flows_found));
-    assert.ok(text.includes('3 days'));
-    const people = f.win.document.querySelector('select[aria-label="' + english.pair.setup.smart.hw_people + '"]');
+    assert.ok(text.includes(s.hw_flows_found));
+    assert.ok(text.includes(s.hw_household_learns), 'says what the answers do');
+    const people = f.win.document.querySelector('select[aria-label="' + s.hw_people + '"]');
     people.value = '4'; people.dispatchEvent(new f.win.Event('change'));
     const daytime = f.win.document.querySelector('input[name="hw-free"][value="daytime"]');
     daytime.checked = true; daytime.dispatchEvent(new f.win.Event('change'));
+    const evening = f.win.document.querySelector('input[name="hw-work"][value="evening"]');
+    evening.checked = true; evening.dispatchEvent(new f.win.Event('change'));
+    const chips = [...f.win.document.querySelectorAll('.hwp-chip')] as any[];
+    assert.deepEqual(chips.map((c) => c.textContent), [1, 2, 3, 4, 5].map((d) => s['hw_busy_day_' + d]));
+    assert.ok(chips.every((c) => c.classList.contains('hy-nostyle')), 'Homey styles every button without it');
+    chips[3].click(); chips[1].click();
+    assert.equal(chips[1].getAttribute('aria-pressed'), 'true');
     f.click('Continue'); await tick(); await tick();
-    f.click(english.pair.setup.smart.start_test); await tick(); await tick();
-    assert.equal(JSON.stringify(f.emitted.find((e) => e.name === 'hotwater_household')?.data), JSON.stringify({people: 4, morningHour: 7, freeDay: 'daytime'}));
+    f.click(s.start_test); await tick(); await tick();
+    assert.equal(JSON.stringify(f.emitted.find((e) => e.name === 'hotwater_household')?.data),
+        JSON.stringify({people: 4, morningHour: 7, freeDay: 'daytime', workShower: 'evening', busyEvenings: [4, 2]}));
     assert.equal(f.emitted.find((e) => e.name === 'smart_choose')?.data?.value, 'test');
     f.dom.window.close();
 });
@@ -381,15 +390,17 @@ test('the hot water step sets how much to always keep; an unchanged choice is no
     f.dom.window.close();
 });
 
-test('a home with enough history is not asked about its household, and no Flows is said plainly', async () => {
-    const f = await hotwaterSmart({flows: [], historyDays: 60});
+test('a home with plenty of history is asked too, starting from the answers kept, and no Flows is said plainly', async () => {
+    const f = await hotwaterSmart({flows: [], historyDays: 60, household: {people: 3, morningHour: 6, freeDay: 'morning', workShower: 'both', busyEvenings: [2]}});
     const text = f.win.document.body.textContent;
     assert.ok(text.includes(english.pair.setup.smart.hw_flows_none));
-    assert.ok(!text.includes(english.pair.setup.smart.hw_household));
+    assert.ok(text.includes(english.pair.setup.smart.hw_household));
+    assert.equal((f.win.document.querySelector('input[name="hw-work"][value="both"]') as any).checked, true);
+    assert.ok((f.win.document.querySelectorAll('.hwp-chip')[1] as any).classList.contains('on'), 'Tuesday kept');
     f.click('Continue'); await tick(); await tick();
     f.click(english.pair.setup.smart.start_test); await tick(); await tick();
-    assert.equal(f.emitted.some((e) => e.name === 'hotwater_household'), false);
-    assert.equal(f.emitted.find((e) => e.name === 'smart_choose')?.data?.value, 'test');
+    assert.equal(JSON.stringify(f.emitted.find((e) => e.name === 'hotwater_household')?.data),
+        JSON.stringify({people: 3, morningHour: 6, freeDay: 'morning', workShower: 'both', busyEvenings: [2]}));
     f.dom.window.close();
 });
 

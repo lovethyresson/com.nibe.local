@@ -316,3 +316,21 @@ test('stored household answers are checked before use', () => {
     assert.strictEqual(readHousehold(null), undefined);
     assert.strictEqual(readHousehold({people: 2, morningHour: 7, freeDay: 'nonsense'})?.freeDay, 'evening');
 });
+
+test('setup\'s two new answers: when the working day showers, and which evenings are busy', () => {
+    assert.deepEqual(readHousehold({people: 3, morningHour: 7, freeDay: 'daytime', workShower: 'evening', busyEvenings: [4, 2, 2, 9, 'x']}),
+        {people: 3, morningHour: 7, freeDay: 'daytime', workShower: 'evening', busyEvenings: [2, 4]});
+    assert.deepEqual(readHousehold({people: 3, morningHour: 7, workShower: 'never'}), {people: 3, morningHour: 7, freeDay: 'evening'},
+        'an unknown answer is left out: mornings, as before');
+    const share = (p: {hours: number[]}, from: number, to: number) => p.hours.slice(from, to).reduce((a, b) => a + b, 0) / p.hours.reduce((a, b) => a + b, 0);
+    const morning = starterProfiles({people: 2, morningHour: 7, freeDay: 'evening', workShower: 'morning'}).working;
+    const evening = starterProfiles({people: 2, morningHour: 7, freeDay: 'evening', workShower: 'evening'}).working;
+    assert.ok(share(morning, 7, 9) > 0.4 && share(evening, 7, 9) < 0.15, 'mornings put the working day at the morning hour');
+    assert.ok(share(evening, 18, 22) > 0.6);
+    // A named busy weekday starts above the others while it has no days of its own.
+    const free = (day: number) => day % 7 >= 5;
+    const points = simulate(14, (day, hour) => free(day) ? freeDay(hour) : workingDay(hour), {dayType: (day) => (free(day) ? 'free' : 'working')});
+    const ev = learn(points, clock, points[points.length - 1].t, undefined,
+        {people: 2, morningHour: 6, freeDay: 'daytime', busyEvenings: [2]}).evenings!;
+    assert.ok(ev[2]!.mean > ev[1]!.mean * 1.1, `Tuesday ${ev[2]!.mean} against Monday ${ev[1]!.mean}`);
+});

@@ -1175,14 +1175,17 @@ function NibeSetup(options) {
         if (st.dayType) list.appendChild(checkRow(null, a('hw_daytype'),
             a(st.dayType.set ? 'hw_daytype_set' : 'hw_daytype_calendar', {type: st.dayType.name})));
         shell.appendChild(list);
+        // The household, asked every time (2026-11-21): Autopilot starts from these answers and its
+        // own measurements take over as they add up, so a relabelled or young day type never
+        // starts from the pooled day.
         var saved = st.household;
-        var ask = !!saved || st.historyDays === null || st.historyDays < st.starterDays;
-        var answers = {people: saved ? saved.people : 2, morningHour: saved ? saved.morningHour : 7, freeDay: saved ? saved.freeDay : 'evening'};
+        var ask = true;
+        var answers = {people: saved ? saved.people : 2, morningHour: saved ? saved.morningHour : 7, freeDay: saved ? saved.freeDay : 'evening',
+            workShower: saved && saved.workShower ? saved.workShower : 'both', busyEvenings: saved && saved.busyEvenings ? saved.busyEvenings.slice() : []};
         if (ask) {
             var group = el('section', undefined, 'setup-task-group');
             group.appendChild(el('h3', a('hw_household')));
-            group.appendChild(el('p', st.historyDays === null ? a('hw_household_intro_unknown')
-                : a('hw_household_intro', {days: st.historyDays}), 'register-desc'));
+            group.appendChild(el('p', a('hw_household_learns'), 'register-desc'));
             var field = function (label, values, current, onchange) {
                 var row = el('label', undefined, 'setup-field');
                 var select = document.createElement('select'); select.setAttribute('aria-label', label);
@@ -1195,6 +1198,25 @@ function NibeSetup(options) {
             var hours = [4, 5, 6, 7, 8, 9, 10].map(function (h) { return [h, (h < 10 ? '0' : '') + h + ':00']; });
             group.appendChild(field(a('hw_people'), people, answers.people, function (v) { answers.people = v; }));
             group.appendChild(field(a('hw_morning'), hours, answers.morningHour, function (v) { answers.morningHour = v; }));
+            group.appendChild(el('p', a('hw_work'), 'setup-tiles-title'));
+            group.appendChild(radios('hw-work', ['morning', 'evening', 'both', 'varies'].map(function (id) {
+                return {id: id, title: a('hw_work_' + id)};
+            }), answers.workShower, function (v) { answers.workShower = v; }));
+            group.appendChild(el('p', a('hw_busy'), 'setup-tiles-title'));
+            var busy = el('div', undefined, 'hwp-chips');
+            [1, 2, 3, 4, 5].forEach(function (d) {
+                var chip = el('button', a('hw_busy_day_' + d), 'hwp-chip hy-nostyle' + (answers.busyEvenings.indexOf(d) >= 0 ? ' on' : ''));
+                chip.type = 'button'; chip.dataset.day = String(d);
+                chip.setAttribute('aria-pressed', String(answers.busyEvenings.indexOf(d) >= 0));
+                chip.onclick = function () {
+                    var k = answers.busyEvenings.indexOf(d);
+                    if (k >= 0) answers.busyEvenings.splice(k, 1); else answers.busyEvenings.push(d);
+                    chip.classList.toggle('on', k < 0); chip.setAttribute('aria-pressed', String(k < 0));
+                };
+                busy.appendChild(chip);
+            });
+            group.appendChild(busy);
+            group.appendChild(el('p', a('hw_busy_hint'), 'register-desc'));
             group.appendChild(el('p', a('hw_free'), 'setup-tiles-title'));
             group.appendChild(radios('hw-free', ['morning', 'daytime', 'evening'].map(function (id) {
                 return {id: id, title: a('hw_free_' + id)};
