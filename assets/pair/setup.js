@@ -991,7 +991,8 @@ function NibeSetup(options) {
     /** Hot water: what Autopilot does, shown on made-up days (help: "How Autopilot picks each
      *  charge"). Without Autopilot, the pump charges when the tank cools, whatever the price; with
      *  it, four example days, each planned differently. Nothing here is read from the pump. */
-    var HOTWATER_HELP_URL = null; // the help page's address once it is published; the link is hidden until then
+    // help/autopilot-hot-water.html, served by GitHub Pages.
+    var HOTWATER_HELP_URL = 'https://lovethyresson.github.io/com.nibe.local/autopilot-hot-water.html';
     var HW_PRICES = {
         base: [.30,.28,.26,.25,.27,.35,.60,.95,1.0,.80,.55,.45,.40,.42,.50,.65,.85,1.0,.98,.85,.60,.45,.38,.33],
         sun: [.30,.28,.26,.25,.27,.33,.50,.70,.60,.35,.15,.08,.05,.08,.20,.45,.80,.95,.95,.80,.60,.45,.38,.33],
@@ -1075,7 +1076,7 @@ function NibeSetup(options) {
             b.onclick = function () { pick = d; draw(); }; chips.appendChild(b);
         });
         shell.append(seg, chips, card, legend, table);
-        if (HOTWATER_HELP_URL) shell.appendChild(smallAction(a('hw_plan_link') + ' ›', function () { Homey.openURL(HOTWATER_HELP_URL); }));
+        if (HOTWATER_HELP_URL) shell.appendChild(smallAction(a('hw_plan_link') + ' ›', function () { Homey.openURL(HOTWATER_HELP_URL + '#how-it-picks'); }));
         draw();
         shell.appendChild(button(t('next'), hotwaterLegionellaStep, true));
         back(smart);
@@ -1116,7 +1117,7 @@ function NibeSetup(options) {
         own.onfocus = own.oninput = function () { choice = 'custom'; mark(); };
         mark();
         shell.append(box, el('p', a('hw_legionella_note'), 'register-desc hwl-note'));
-        if (HOTWATER_HELP_URL) shell.appendChild(smallAction(a('hw_legionella_link') + ' ›', function () { Homey.openURL(HOTWATER_HELP_URL); }));
+        if (HOTWATER_HELP_URL) shell.appendChild(smallAction(a('hw_legionella_link') + ' ›', function () { Homey.openURL(HOTWATER_HELP_URL + '#legionella'); }));
         var next = button(t('next'), function () {
             var c = choice === 'pump' ? pumpC : choice === 'custom' ? Number(own.value) : LEGIONELLA_RECOMMENDED;
             if (choice === 'custom' && (own.value === '' || !(c >= LEGIONELLA_MIN && c <= LEGIONELLA_MAX))) {
