@@ -478,6 +478,12 @@ known limit in the docs; don't patch it with devices only some homes have.
   without `hy-nostyle` and styles every plain button. **Rule:** render pair/repair views with the
   Homey's own `/css/homey.css` + `homey.drivers.css` (fetched from the Homey, scratchpad
   `homeycss/`), opt our own controls out with `hy-nostyle`, and still ask for a phone check.
+- **It happened again (2026-11-21):** When to charge and Legionella shipped with plain buttons,
+  labels and inputs, rendered without homey.css, so the "real" renders matched the mock and the
+  phone did not (grey chips, no selected segment, no radios). **Rule, sharpened:** every new
+  control in a pair/repair view gets `hy-nostyle` in the same edit, a test asserts it, and the
+  render before "matches the mock" uses scratchpad `render-hw.js`: homey.css from the Homey, inside
+  a 375 px frame (headless Chrome will not go narrower), checked state written into the markup.
 
 ## 2026-11-15: a scripted edit replaced an empty string and corrupted a 3 000-line file
 

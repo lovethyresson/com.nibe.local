@@ -233,6 +233,31 @@ async function hotwaterSmart(status: any, scan: any = NO_SOLAR, legionella = fal
     return f;
 }
 
+test('Legionella: a heat pump already at 65 °C gives one card, not two the same; every control opts out of Homey styling', async () => {
+    const f = await hotwaterSmart({flows: [], historyDays: 60, legionellaPumpC: 65, legionellaDays: 14}, NO_SOLAR, true);
+    const cards = [...f.win.document.querySelectorAll('.hwl-card')] as any[];
+    assert.equal(cards.length, 2, 'Recommended and Your own');
+    // Homey's stylesheet restyles every label, button and input without hy-nostyle (it did, on the phone).
+    for (const node of f.win.document.querySelectorAll('.hwl-card, .hwl-card input') as any)
+        assert.ok(node.classList.contains('hy-nostyle'), node.outerHTML.slice(0, 60));
+    f.dom.window.close();
+});
+
+test('When to charge: the segment and the day chips opt out of Homey styling', async () => {
+    const f = fixture('repair', 'hotwater', 0, undefined, {context: {smart: true},
+        results: {smart_status: {role: 'hotwater', mode: 'off', spa: true, spaOn: false, autopilot: true, tank: true,
+            starterDays: 14, household: null, reserve: 40, legionella: null, legionellaPumpC: 60, legionellaDays: 14, flows: [], historyDays: 60},
+            hotwater_household: true, hotwater_reserve: true, hotwater_legionella: true, smart_choose: true, solar_scan: NO_SOLAR, solar_save: true}});
+    f.click('Continue'); f.menu('Hot water setup'); f.click('Continue'); await tick();
+    const autopilot = f.win.document.querySelector('input[name="smart-choice"][value="autopilot"]');
+    autopilot.checked = true; autopilot.dispatchEvent(new f.win.Event('change'));
+    f.click(english.pair.setup.smart.mode_simulated); f.click('Continue'); await tick();
+    const controls = [...f.win.document.querySelectorAll('.hwp-seg button, .hwp-chips button')] as any[];
+    assert.equal(controls.length, 6);
+    assert.ok(controls.every((b) => b.classList.contains('hy-nostyle')));
+    f.dom.window.close();
+});
+
 test('the Legionella step comes after When to charge: the pump\'s own, 65 °C recommended and preselected, or their own', async () => {
     const s = english.pair.setup.smart;
     const f = await hotwaterSmart({flows: [], historyDays: 60, legionellaPumpC: 60, legionellaDays: 21}, NO_SOLAR, true);

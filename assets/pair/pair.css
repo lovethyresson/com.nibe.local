@@ -997,11 +997,13 @@ body {
 
 /* Hot water setup: When to charge (made-up days, without and with Autopilot). */
 .hwp-seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface); border: 1px solid var(--surface-border); border-radius: 10px; padding: 3px; margin: 0 0 .8em; }
-.hwp-seg button { border: 0; background: transparent; color: inherit; font: inherit; font-size: .92em; padding: .5em; border-radius: 8px; cursor: pointer; }
-.hwp-seg button.on { background: #0a84ff; color: #fff; font-weight: 600; }
+.setup-shell button.hwp-seg-option { width: auto; min-height: 36px; margin: 0; border: 0; border-radius: 8px; background: transparent; box-shadow: none;
+    color: inherit; font: inherit; font-size: .95em; font-weight: 500; line-height: 1.2; padding: .5em; text-transform: none; cursor: pointer; }
+.setup-shell button.hwp-seg-option.on { background: #0a84ff; color: #fff; font-weight: 600; }
 .hwp-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 .7em; }
-.hwp-chip { border: 1px solid var(--surface-border); background: var(--surface); color: inherit; border-radius: 999px; padding: .32em .8em; font: inherit; font-size: .82em; cursor: pointer; }
-.hwp-chip.on { border-color: #34c759; background: rgba(52, 199, 89, .14); font-weight: 600; }
+.setup-shell button.hwp-chip { width: auto; min-height: 0; margin: 0; border: 1px solid var(--surface-border); border-radius: 999px; background: var(--surface);
+    box-shadow: none; color: inherit; font: inherit; font-size: .85em; font-weight: 500; line-height: 1.2; padding: .4em .85em; text-transform: none; cursor: pointer; }
+.setup-shell button.hwp-chip.on { border-color: #34c759; background: rgba(52, 199, 89, .14); font-weight: 600; }
 .hwp-card { border: 1px solid var(--surface-border); border-radius: 12px; background: var(--surface); padding: .75em .9em; }
 .hwp-chart { display: block; width: 100%; height: auto; }
 .hwp-bar { fill: currentColor; opacity: .16; }
@@ -1021,13 +1023,16 @@ body {
 .hwp-badge { display: inline-flex; align-items: center; justify-content: center; width: 1.25em; height: 1.25em; border-radius: 50%; color: #fff; font-size: .8em; font-weight: 700; margin-right: .45em; vertical-align: 1px; }
 /* Hot water setup: Legionella. Three temperatures side by side; the selected one in blue. */
 .hwl-choices { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; margin: 0 0 .8em; }
-.hwl-card { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .25em; min-width: 0; text-align: center; border: 1px solid var(--surface-border); border-radius: 12px; background: var(--surface); padding: .85em .4em; cursor: pointer; }
-.hwl-card.is-selected { border-color: #0a84ff; box-shadow: inset 0 0 0 1px #0a84ff; }
-.hwl-card input[type="radio"] { position: absolute; opacity: 0; pointer-events: none; }
-.hwl-card:focus-within { outline: 2px solid rgba(10, 132, 255, .45); outline-offset: 2px; }
-.hwl-big { font-size: 1.25em; font-weight: 600; font-variant-numeric: tabular-nums; }
-.hwl-small { font-size: .78em; opacity: .7; line-height: 1.25; }
-.hwl-custom { display: inline-flex; align-items: baseline; gap: .15em; }
-.hwl-custom input { width: 2.6em; padding: .05em .1em; border: 0; border-bottom: 1px solid var(--surface-border); border-radius: 0; background: transparent; color: inherit; font: inherit; text-align: center; -moz-appearance: textfield; }
+.setup-shell label.hwl-card { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; align-content: start; column-gap: .4em; row-gap: .3em; min-width: 0;
+    text-align: left; text-transform: none; color: inherit; font-size: 1em; font-weight: 400; border: 1px solid var(--surface-border);
+    border-radius: 12px; background: var(--surface); padding: .7em .55em; cursor: pointer; }
+.setup-shell label.hwl-card.is-selected { border-color: #0a84ff; box-shadow: inset 0 0 0 1px #0a84ff; }
+.hwl-card input[type="radio"] { width: 1.05em; height: 1.05em; margin: 0; accent-color: #0a84ff; }
+.hwl-big { font-size: 1.2em; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.hwl-small { grid-column: 1 / -1; font-size: .8em; opacity: .7; line-height: 1.25; overflow-wrap: break-word; }
+.hwl-custom { display: inline-flex; align-items: center; gap: .3em; }
+.hwl-custom input { width: 2.2em; margin: 0; padding: .05em .2em; border: 1px solid var(--surface-border); border-radius: 6px; background: transparent;
+    color: inherit; font: inherit; line-height: 1.2; text-align: center; -moz-appearance: textfield; }
 .hwl-custom input::-webkit-outer-spin-button, .hwl-custom input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.hwl-note { font-size: .85em; }
+.hwl-note { font-size: .85em; text-align: center; }
+.hw-link-line { text-align: center; margin: .2em 0 .1em; }

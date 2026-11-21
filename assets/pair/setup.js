@@ -1068,15 +1068,16 @@ function NibeSetup(options) {
             });
         }
         [['without', 'hw_plan_without'], ['with', 'hw_plan_with']].forEach(function (m) {
-            var b = el('button', a(m[1])); b.type = 'button'; b.dataset.mode = m[0];
+            // hy-nostyle: Homey's stylesheet restyles every plain button (grey box, no selected state).
+            var b = el('button', a(m[1]), 'hwp-seg-option hy-nostyle'); b.type = 'button'; b.dataset.mode = m[0];
             b.onclick = function () { mode = m[0]; draw(); }; seg.appendChild(b);
         });
         ['work', 'sun', 'dip', 'bath'].forEach(function (d) {
-            var b = el('button', a('hw_plan_day_' + d), 'hwp-chip'); b.type = 'button'; b.dataset.day = d;
+            var b = el('button', a('hw_plan_day_' + d), 'hwp-chip hy-nostyle'); b.type = 'button'; b.dataset.day = d;
             b.onclick = function () { pick = d; draw(); }; chips.appendChild(b);
         });
         shell.append(seg, chips, card, legend, table);
-        if (HOTWATER_HELP_URL) shell.appendChild(smallAction(a('hw_plan_link') + ' ›', function () { Homey.openURL(HOTWATER_HELP_URL + '#how-it-picks'); }));
+        if (HOTWATER_HELP_URL) shell.appendChild(centred(smallAction(a('hw_plan_link') + ' ›', function () { Homey.openURL(HOTWATER_HELP_URL + '#how-it-picks'); })));
         draw();
         shell.appendChild(button(t('next'), hotwaterLegionellaStep, true));
         back(smart);
@@ -1084,17 +1085,21 @@ function NibeSetup(options) {
     /** Legionella: Autopilot heats the tank for legionella every interval (the pump's own, 66) in
      *  the cheapest hours, while the pump's own periodic hot water is off. Three temperatures side
      *  by side: the pump's own (61, when it reads), 65 °C, or the owner's own. */
+    /** A text action on its own line, centred under what it explains. */
+    function centred(node) { var line = el('div', undefined, 'hw-link-line'); line.appendChild(node); return line; }
     var LEGIONELLA_MIN = 55, LEGIONELLA_MAX = 70, LEGIONELLA_RECOMMENDED = 65;
     function hotwaterLegionellaStep() {
         var st = ap.status;
         var days = typeof st.legionellaDays === 'number' ? st.legionellaDays : 14;
         clear(a('hw_legionella_title'), a('hw_legionella_intro', {days: days}));
         var pumpC = typeof st.legionellaPumpC === 'number' ? st.legionellaPumpC : null;
+        // The pump's own at 65 °C is the recommended one: one card, not two the same.
+        if (pumpC === LEGIONELLA_RECOMMENDED) pumpC = null;
         var kept = st.legionella || {choice: 'recommended', c: LEGIONELLA_RECOMMENDED};
         var choice = kept.choice === 'pump' && pumpC === null ? 'recommended' : kept.choice;
         var box = el('div', undefined, 'hwl-choices'); box.setAttribute('role', 'radiogroup');
         box.setAttribute('aria-label', a('hw_legionella_title'));
-        var own = document.createElement('input'); own.type = 'number'; own.min = String(LEGIONELLA_MIN); own.max = String(LEGIONELLA_MAX);
+        var own = document.createElement('input'); own.type = 'number'; own.className = 'hy-nostyle'; own.min = String(LEGIONELLA_MIN); own.max = String(LEGIONELLA_MAX);
         own.step = '1'; own.inputMode = 'numeric'; own.setAttribute('aria-label', a('hw_legionella_custom'));
         own.value = String(kept.choice === 'custom' ? kept.c : LEGIONELLA_RECOMMENDED);
         function mark() {
@@ -1104,9 +1109,12 @@ function NibeSetup(options) {
             });
         }
         function card(id, big, small) {
-            var c = el('label', undefined, 'hwl-card');
+            // hy-nostyle: Homey's stylesheet turns every label into small capitals.
+            var c = el('label', undefined, 'hwl-card hy-nostyle');
             var input = document.createElement('input'); input.type = 'radio'; input.name = 'hw-legionella'; input.value = id;
+            input.className = 'hy-nostyle';
             input.onchange = function () { choice = id; mark(); };
+            // The radio and the temperature on one line, the label under them at the card's full width.
             c.append(input, big, el('span', small, 'hwl-small'));
             box.appendChild(c); return c;
         }
@@ -1117,7 +1125,7 @@ function NibeSetup(options) {
         own.onfocus = own.oninput = function () { choice = 'custom'; mark(); };
         mark();
         shell.append(box, el('p', a('hw_legionella_note'), 'register-desc hwl-note'));
-        if (HOTWATER_HELP_URL) shell.appendChild(smallAction(a('hw_legionella_link') + ' ›', function () { Homey.openURL(HOTWATER_HELP_URL + '#legionella'); }));
+        if (HOTWATER_HELP_URL) shell.appendChild(centred(smallAction(a('hw_legionella_link') + ' ›', function () { Homey.openURL(HOTWATER_HELP_URL + '#legionella'); })));
         var next = button(t('next'), function () {
             var c = choice === 'pump' ? pumpC : choice === 'custom' ? Number(own.value) : LEGIONELLA_RECOMMENDED;
             if (choice === 'custom' && (own.value === '' || !(c >= LEGIONELLA_MIN && c <= LEGIONELLA_MAX))) {
