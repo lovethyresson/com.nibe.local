@@ -1043,20 +1043,20 @@
       {
         "id": "hotwater_charge_started",
         "title": {
-          "en": "A hot water charge started",
-          "sv": "En varmvattenladdning startade",
-          "de": "Eine Brauchwasserladung hat begonnen",
+          "en": "Hot water heating started",
+          "sv": "Uppvärmning av varmvatten startade",
+          "de": "Warmwasserbereitung hat begonnen",
           "nl": "Warm water opwarmen is gestart",
-          "no": "En varmtvannsoppvarming startet",
-          "da": "En opvarmning af varmt vand startede"
+          "no": "Oppvarming av varmtvann startet",
+          "da": "Opvarmning af varmt vand startede"
         },
         "hint": {
-          "en": "Triggers when a charge starts, by Autopilot or your heat pump. Works in Live and Simulated.",
-          "sv": "Utlöses när en laddning startar, av Autopilot eller din värmepump. Fungerar i Live och Simulerad.",
-          "de": "Wird ausgelöst, wenn eine Ladung beginnt, durch Autopilot oder Ihre Wärmepumpe. Funktioniert in Live und Simuliert.",
-          "nl": "Gaat af wanneer een opwarming start, door Autopilot of je warmtepomp. Werkt in Live en Gesimuleerd.",
-          "no": "Utløses når en lading starter, av Autopilot eller varmepumpen din. Virker i Live og Simulert.",
-          "da": "Udløses, når en opvarmning starter, af Autopilot eller din varmepumpe. Virker i Live og Simuleret."
+          "en": "Triggers when hot water heating starts, by Autopilot or your heat pump. Works in Live and Simulated.",
+          "sv": "Utlöses när uppvärmning av varmvatten startar, av Autopilot eller din värmepump. Fungerar i Live och Simulerad.",
+          "de": "Wird ausgelöst, wenn die Warmwasserbereitung beginnt, durch Autopilot oder Ihre Wärmepumpe. Funktioniert in Live und Simuliert.",
+          "nl": "Gaat af wanneer het opwarmen van warm water start, door Autopilot of je warmtepomp. Werkt in Live en Gesimuleerd.",
+          "no": "Utløses når oppvarming av varmtvann starter, av Autopilot eller varmepumpen din. Virker i Live og Simulert.",
+          "da": "Udløses, når opvarmning af varmt vand starter, af Autopilot eller din varmepumpe. Virker i Live og Simuleret."
         },
         "tokens": [
           {
@@ -2202,27 +2202,27 @@
       {
         "id": "hotwater_charge_planned",
         "title": {
-          "en": "A hot water charge is planned",
-          "sv": "En varmvattenladdning är planerad",
-          "de": "Eine Brauchwasserladung ist geplant",
+          "en": "Hot water heating is planned",
+          "sv": "Uppvärmning av varmvatten är planerad",
+          "de": "Warmwasserbereitung ist geplant",
           "nl": "Warm water opwarmen is gepland",
-          "no": "En varmtvannsoppvarming er planlagt",
-          "da": "En opvarmning af varmt vand er planlagt"
+          "no": "Oppvarming av varmtvann er planlagt",
+          "da": "Opvarmning af varmt vand er planlagt"
         },
         "titleFormatted": {
-          "en": "A hot water charge !{{is|is not}} planned within [[hours]] h",
-          "sv": "En varmvattenladdning !{{är|är inte}} planerad inom [[hours]] h",
-          "de": "Eine Brauchwasserladung !{{ist|ist nicht}} innerhalb von [[hours]] h geplant",
+          "en": "Hot water heating !{{is|is not}} planned within [[hours]] h",
+          "sv": "Uppvärmning av varmvatten !{{är|är inte}} planerad inom [[hours]] h",
+          "de": "Warmwasserbereitung !{{ist|ist nicht}} innerhalb von [[hours]] h geplant",
           "nl": "Warm water opwarmen !{{is|is niet}} gepland binnen [[hours]] u",
-          "no": "En varmtvannsoppvarming !{{er|er ikke}} planlagt innen [[hours]] t",
-          "da": "En opvarmning af varmt vand !{{er|er ikke}} planlagt inden for [[hours]] t"
+          "no": "Oppvarming av varmtvann !{{er|er ikke}} planlagt innen [[hours]] t",
+          "da": "Opvarmning af varmt vand !{{er|er ikke}} planlagt inden for [[hours]] t"
         },
         "hint": {
-          "en": "A running charge counts. False while Autopilot hot water is off.",
-          "sv": "En pågående laddning räknas. Falskt när Autopilot för varmvatten är av.",
-          "de": "Eine laufende Ladung zählt. Falsch, solange Autopilot Brauchwasser aus ist.",
-          "nl": "Een lopende opwarming telt mee. Onwaar zolang Autopilot voor warm water uit staat.",
-          "no": "En pågående lading teller. Usann når Autopilot for varmtvann er av.",
+          "en": "Heating that is running counts. False while Autopilot hot water is off.",
+          "sv": "Pågående uppvärmning räknas. Falskt när Autopilot för varmvatten är av.",
+          "de": "Eine laufende Bereitung zählt. Falsch, solange Autopilot Warmwasser aus ist.",
+          "nl": "Opwarmen dat nu loopt telt mee. Onwaar zolang Autopilot voor warm water uit staat.",
+          "no": "Pågående oppvarming teller. Usann når Autopilot for varmtvann er av.",
           "da": "En igangværende opvarmning tæller med. Falsk, når Autopilot for varmt vand er slået fra."
         },
         "args": [
@@ -3113,12 +3113,12 @@
           "da": "Indstil starttemperatur for varmt vand ved behov Lille til [[value]] °C"
         },
         "hint": {
-          "en": "Charging start temperature for the Small demand mode. Accepts 5 to 55 °C.",
-          "sv": "Starttemperatur för behovsläget Litet. Tillåter 5 till 55 °C.",
-          "de": "Ladestart-Temperatur für den Modus Niedrig. Bereich: 5 bis 55 °C.",
-          "nl": "Starttemperatuur voor het opwarmen bij vraag Klein. Bereik: 5 tot 55 °C.",
-          "no": "Ladestarttemperatur for behov Lite. Område: 5 til 55 °C.",
-          "da": "Starttemperatur for opvarmning ved behov Lille. Område: 5 til 55 °C."
+          "en": "Hot water start temperature for the Small demand mode. Accepts 5 to 55 °C.",
+          "sv": "Starttemperatur för varmvatten i behovsläget Litet. Tillåter 5 till 55 °C.",
+          "de": "Starttemperatur für Warmwasser im Modus Niedrig. Bereich: 5 bis 55 °C.",
+          "nl": "Starttemperatuur voor warm water bij vraag Klein. Bereik: 5 tot 55 °C.",
+          "no": "Starttemperatur for varmtvann ved behov Lite. Område: 5 til 55 °C.",
+          "da": "Starttemperatur for varmt vand ved behov Lille. Område: 5 til 55 °C."
         },
         "args": [
           {
@@ -3159,12 +3159,12 @@
           "da": "Indstil stoptemperatur for varmt vand ved behov Lille til [[value]] °C"
         },
         "hint": {
-          "en": "Charging stop temperature for the Small demand mode. Accepts 5 to 60 °C.",
-          "sv": "Stopptemperatur för behovsläget Litet. Tillåter 5 till 60 °C.",
-          "de": "Ladestopp-Temperatur für den Modus Niedrig. Bereich: 5 bis 60 °C.",
-          "nl": "Stoptemperatuur voor het opwarmen bij vraag Klein. Bereik: 5 tot 60 °C.",
-          "no": "Ladestopptemperatur for behov Lite. Område: 5 til 60 °C.",
-          "da": "Stoptemperatur for opvarmning ved behov Lille. Område: 5 til 60 °C."
+          "en": "Hot water stop temperature for the Small demand mode. Accepts 5 to 60 °C.",
+          "sv": "Stopptemperatur för varmvatten i behovsläget Litet. Tillåter 5 till 60 °C.",
+          "de": "Stopptemperatur für Warmwasser im Modus Niedrig. Bereich: 5 bis 60 °C.",
+          "nl": "Stoptemperatuur voor warm water bij vraag Klein. Bereik: 5 tot 60 °C.",
+          "no": "Stopptemperatur for varmtvann ved behov Lite. Område: 5 til 60 °C.",
+          "da": "Stoptemperatur for varmt vand ved behov Lille. Område: 5 til 60 °C."
         },
         "args": [
           {
@@ -3205,12 +3205,12 @@
           "da": "Indstil starttemperatur for varmt vand ved behov Stort til [[value]] °C"
         },
         "hint": {
-          "en": "Charging start temperature for the Large demand mode. Accepts 5 to 70 °C.",
-          "sv": "Starttemperatur för behovsläget Stort. Tillåter 5 till 70 °C.",
-          "de": "Ladestart-Temperatur für den Modus Hoch. Bereich: 5 bis 70 °C.",
-          "nl": "Starttemperatuur voor het opwarmen bij vraag Groot. Bereik: 5 tot 70 °C.",
-          "no": "Ladestarttemperatur for behov Stort. Område: 5 til 70 °C.",
-          "da": "Starttemperatur for opvarmning ved behov Stort. Område: 5 til 70 °C."
+          "en": "Hot water start temperature for the Large demand mode. Accepts 5 to 70 °C.",
+          "sv": "Starttemperatur för varmvatten i behovsläget Stort. Tillåter 5 till 70 °C.",
+          "de": "Starttemperatur für Warmwasser im Modus Hoch. Bereich: 5 bis 70 °C.",
+          "nl": "Starttemperatuur voor warm water bij vraag Groot. Bereik: 5 tot 70 °C.",
+          "no": "Starttemperatur for varmtvann ved behov Stort. Område: 5 til 70 °C.",
+          "da": "Starttemperatur for varmt vand ved behov Stort. Område: 5 til 70 °C."
         },
         "args": [
           {
@@ -3251,12 +3251,12 @@
           "da": "Indstil stoptemperatur for varmt vand ved behov Stort til [[value]] °C"
         },
         "hint": {
-          "en": "Charging stop temperature for the Large demand mode. Accepts 5 to 70 °C.",
-          "sv": "Stopptemperatur för behovsläget Stort. Tillåter 5 till 70 °C.",
-          "de": "Ladestopp-Temperatur für den Modus Hoch. Bereich: 5 bis 70 °C.",
-          "nl": "Stoptemperatuur voor het opwarmen bij vraag Groot. Bereik: 5 tot 70 °C.",
-          "no": "Ladestopptemperatur for behov Stort. Område: 5 til 70 °C.",
-          "da": "Stoptemperatur for opvarmning ved behov Stort. Område: 5 til 70 °C."
+          "en": "Hot water stop temperature for the Large demand mode. Accepts 5 to 70 °C.",
+          "sv": "Stopptemperatur för varmvatten i behovsläget Stort. Tillåter 5 till 70 °C.",
+          "de": "Stopptemperatur für Warmwasser im Modus Hoch. Bereich: 5 bis 70 °C.",
+          "nl": "Stoptemperatuur voor warm water bij vraag Groot. Bereik: 5 tot 70 °C.",
+          "no": "Stopptemperatur for varmtvann ved behov Stort. Område: 5 til 70 °C.",
+          "da": "Stoptemperatur for varmt vand ved behov Stort. Område: 5 til 70 °C."
         },
         "args": [
           {
@@ -3297,11 +3297,11 @@
           "da": "Indstil stoptemperatur for periodisk varmt vand til [[value]] °C"
         },
         "hint": {
-          "en": "Stop temperature for the periodic anti-legionella charge. It usually needs the immersion heater. Accepts 55 to 70 °C.",
+          "en": "Stop temperature for the periodic legionella heating. It usually needs the immersion heater. Accepts 55 to 70 °C.",
           "sv": "Stopptemperatur för den periodiska legionellakörningen. Den kräver oftast elpatronen. Tillåter 55 till 70 °C.",
           "de": "Stopptemperatur der periodischen Legionellenschaltung. Erfordert meist die Elektroheizpatrone. Bereich: 55 bis 70 °C.",
           "nl": "Stoptemperatuur van de periodieke legionella-opwarming. Vereist meestal het elektrische element. Bereik: 55 tot 70 °C.",
-          "no": "Stopptemperatur for den periodiske legionellaladingen. Krever som regel elkolben. Område: 55 til 70 °C.",
+          "no": "Stopptemperatur for den periodiske legionellaoppvarmingen. Krever som regel elkolben. Område: 55 til 70 °C.",
           "da": "Stoptemperatur for den periodiske legionellaopvarmning. Kræver som regel elpatronen. Område: 55 til 70 °C."
         },
         "args": [
@@ -3343,12 +3343,12 @@
           "da": "Indstil starttemperatur for varmt vand ved behov Middelstort til [[value]] °C"
         },
         "hint": {
-          "en": "Tank temperature where hot water charging starts. Accepts 5 to 60 °C.",
-          "sv": "Tanktemperatur där varmvattenladdning startar. Tillåter 5 till 60 °C.",
-          "de": "Speichertemperatur, bei der die Brauchwasserladung startet. Bereich: 5 bis 60 °C.",
-          "nl": "Boilertemperatuur waarbij het opwarmen van warm water start. Bereik: 5 tot 60 °C.",
-          "no": "Temperatur i berederen der varmtvannsladingen starter. Område: 5 til 60 °C.",
-          "da": "Beholdertemperatur, hvor opvarmningen af varmt vand starter. Område: 5 til 60 °C."
+          "en": "Hot water temperature where heating starts. Accepts 5 to 60 °C.",
+          "sv": "Varmvattentemperatur där uppvärmningen startar. Tillåter 5 till 60 °C.",
+          "de": "Warmwassertemperatur, bei der die Bereitung startet. Bereich: 5 bis 60 °C.",
+          "nl": "Warmwatertemperatuur waarbij het opwarmen start. Bereik: 5 tot 60 °C.",
+          "no": "Varmtvannstemperatur der oppvarmingen starter. Område: 5 til 60 °C.",
+          "da": "Varmtvandstemperatur, hvor opvarmningen starter. Område: 5 til 60 °C."
         },
         "args": [
           {
@@ -3389,12 +3389,12 @@
           "da": "Indstil stoptemperatur for varmt vand ved behov Middelstort til [[value]] °C"
         },
         "hint": {
-          "en": "Tank temperature where hot water charging stops. Accepts 5 to 65 °C.",
-          "sv": "Tanktemperatur där varmvattenladdning stoppar. Tillåter 5 till 65 °C.",
-          "de": "Speichertemperatur, bei der die Brauchwasserladung stoppt. Bereich: 5 bis 65 °C.",
-          "nl": "Boilertemperatuur waarbij het opwarmen van warm water stopt. Bereik: 5 tot 65 °C.",
-          "no": "Temperatur i berederen der varmtvannsladingen stopper. Område: 5 til 65 °C.",
-          "da": "Beholdertemperatur, hvor opvarmningen af varmt vand stopper. Område: 5 til 65 °C."
+          "en": "Hot water temperature where heating stops. Accepts 5 to 65 °C.",
+          "sv": "Varmvattentemperatur där uppvärmningen stoppar. Tillåter 5 till 65 °C.",
+          "de": "Warmwassertemperatur, bei der die Bereitung stoppt. Bereich: 5 bis 65 °C.",
+          "nl": "Warmwatertemperatuur waarbij het opwarmen stopt. Bereik: 5 tot 65 °C.",
+          "no": "Varmtvannstemperatur der oppvarmingen stopper. Område: 5 til 65 °C.",
+          "da": "Varmtvandstemperatur, hvor opvarmningen stopper. Område: 5 til 65 °C."
         },
         "args": [
           {
@@ -3737,11 +3737,11 @@
           "da": "Indstil prispåvirkning på varmt vand til [[mode]]"
         },
         "hint": {
-          "en": "How strongly Smart Price Adaption may shift hot water charging towards cheaper hours. Accepts 1 to 4.",
-          "sv": "Hur mycket Smart Price Adaption får flytta varmvattenladdningen mot billigare timmar. Tillåter 1 till 4.",
-          "de": "Wie stark Smart Price Adaption die Brauchwasserbereitung in günstigere Stunden verschieben darf. Bereich: 1 bis 4.",
+          "en": "How strongly Smart Price Adaption may move hot water heating towards cheaper hours. Accepts 1 to 4.",
+          "sv": "Hur mycket Smart Price Adaption får flytta uppvärmningen av varmvatten mot billigare timmar. Tillåter 1 till 4.",
+          "de": "Wie stark Smart Price Adaption die Warmwasserbereitung in günstigere Stunden verschieben darf. Bereich: 1 bis 4.",
           "nl": "Hoe sterk Smart Price Adaption het opwarmen van warm water naar goedkopere uren mag verschuiven. Bereik: 1 tot 4.",
-          "no": "Hvor mye Smart Price Adaption får flytte varmtvannsladingen mot billigere timer. Område: 1 til 4.",
+          "no": "Hvor mye Smart Price Adaption får flytte oppvarmingen av varmtvann mot billigere timer. Område: 1 til 4.",
           "da": "Hvor meget Smart Price Adaption må flytte opvarmningen af varmt vand mod billigere timer. Område: 1 til 4."
         },
         "args": [
@@ -8390,12 +8390,12 @@
     },
     "hotwater_tank": {
       "name": {
-        "en": "Hot water tank",
-        "sv": "Varmvattentank",
-        "de": "Brauchwasserspeicher",
-        "nl": "Warmwaterboiler",
-        "no": "Varmtvannsbereder",
-        "da": "Varmtvandsbeholder"
+        "en": "Hot water",
+        "sv": "Varmvatten",
+        "de": "Warmwasser",
+        "nl": "Warm water",
+        "no": "Varmtvann",
+        "da": "Varmt vand"
       },
       "height": 360,
       "transparent": false,
