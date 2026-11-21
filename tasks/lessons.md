@@ -587,3 +587,9 @@ defines manager methods as read-only, non-configurable properties, and the fake 
 objects. **Rule:** a double for a third-party object copies its property descriptors (or is built
 from the real class), and anything that wraps a library is tried once against the real library
 before an install. The after-install check fails on any device warning or a paused Autopilot.
+
+## 2026-11-21: we heat hot water, we do not charge tanks
+- The maintainer: "Sluta säg tanken. Vi värmer varmvatten, inte laddar tankar." Owner text had
+  borrowed "charge" (laddning, Ladung) and "the tank" from the register names and NIBE's manual.
+  **Rule:** owner text says what the owner gets, hot water heated, never the mechanism. "Tank"
+  only for the physical tank (its model or size). Code identifiers and docs/ may keep "charge".
