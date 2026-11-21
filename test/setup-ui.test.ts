@@ -245,7 +245,7 @@ test('the Legionella step comes after When to charge: the pump\'s own, 65 °C re
     assert.ok(cards[1].textContent.includes('65 °C') && cards[1].textContent.includes(s.hw_legionella_recommended));
     assert.ok(cards[1].classList.contains('is-selected'), '65 °C is preselected');
     assert.ok(body().includes(s.hw_legionella_note));
-    assert.ok(!body().includes(s.hw_legionella_link), 'no link until the help page is published');
+    assert.ok(body().includes(s.hw_legionella_link), 'a link to the help page\'s Legionella section');
     // Back to When to charge and forward again.
     f.click('Back'); await tick();
     assert.ok(body().includes(s.hw_plan_title));
