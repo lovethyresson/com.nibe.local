@@ -655,7 +655,8 @@ Plan: `~/.claude/plans/atomic-chasing-brooks.md`. As built: `docs/autopilot-plan
 - [x] Smart mode for pool (848) and cooling (849), Autopilot "Soon".
 - [ ] Read the sun gate on the S1155 over sunny days (daily fits log `sunOn`/`sunOff`).
 - [ ] Heating reserves its surplus once cooling uses the budget.
-- [ ] One weather fetch per home (the collector's GTI and the surplus GHI history).
+- [x] One weather fetch per home: `gateway-weather.ts` keeps one forecast an hour and the GHI
+  history once a day for the collector and the surplus (the hourly report shows one of each).
 - [ ] Heating widget: draw the surplus.
 - **Phase 2: Pool and Cooling Autopilot** (design in the plan file):
   - Pool: band 687/689 at most 4 writes a day, plus a GHI gain coefficient for an outdoor pool.
