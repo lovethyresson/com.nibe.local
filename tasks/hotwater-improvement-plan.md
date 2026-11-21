@@ -1,6 +1,6 @@
 # Hot water Autopilot: plan to pay less without colder showers
 
-Draft 5, 2026-11-21. Draft 1 from the week's analysis, draft 2 with outside research, drafts 3 and 4
+Draft 6, 2026-11-21. Draft 1 from the week's analysis, draft 2 with outside research, drafts 3 and 4
 after two independent critiques against the code and data. Evidence and scripts: scratchpad `hwa/`.
 
 ## What we know (and what draft 1 got wrong)
@@ -14,9 +14,11 @@ after two independent critiques against the code and data. Evidence and scripts:
   .mjs:59`), ignores the 3-starts-a-day cap, the Large-stop write cap, the orchestrator's reserved
   slots and the day-type labels. Until replay matches live, every back-test number is optimistic.
 - The single biggest identifiable cost is a stale midday shape: Tue 11–12 and Wed 11 runs at
-  3.3–4.3 kr (≈ 14 kr, 22 % of the week) for water used later. Cause is mechanical: hour shapes
-  are learned only from hourly data (Insights keeps 14 days; live readings 36 h), and a day type
-  with < 5 weighted days of its own leans on the pooled profile, weekends included.
+  3.3–4.3 kr (≈ 14 kr, 22 % of the week) for water used later. Likely cause (not yet confirmed
+  from the saved model): the owner's day types are logged only from 10 Nov (a Flow sets them at
+  00:05). On 16 Nov the working-day profile had about 4 days of its own (10–13 Nov, the first a
+  part day), under the 5 it needs (`SHRINK_DAYS`), so it leaned on the pooled profile, weekend
+  middays included. Hour shapes also come only from hourly data (Insights keeps 14 days).
 - Big evenings come in two blocks (Tue 104 L at 17, 164 L at 19–20; Thu 171 L at 17–18, 154 L at
   21) and exceed what a full tank holds above the floor (~230 L). A mid-evening run is unavoidable
   on those days; the question is only how cheap.
@@ -30,19 +32,23 @@ after two independent critiques against the code and data. Evidence and scripts:
 - Legionella runs to 65 °C every 14 days, above the compressor's ~58 °C, so the last degrees are
   the immersion heater. Estimated 2.5–3 kWh, ≈ 5–6 kr a run (not measured); the pump's own 61 °C
   is also above the ceiling, so 65 vs 61 is ≈ 2 kr a run, ≈ 0.15 kr a day. Small; measure first.
-- Day type matters a lot, and so does the weekday (Insights, 1 Sep–20 Nov, 6-hour blocks, ±1 h at
-  the clock change):
+- Day types are the owner's record of real days off (holidays, vacations, home days, sick days),
+  and the only thing that keeps a day-off pattern out of the working-day profile. They exist from
+  10 Nov; before that the learner falls back to weekends. Every analysis below that splits by day
+  before 10 Nov is a **weekday/weekend proxy**, an assumption, and is labelled so.
+- Weekday/weekend proxy (Insights, 1 Sep–20 Nov, 6-hour blocks on UTC boundaries, ±1 h at the clock
+  change; litres rebuilt from the estimate's fall plus produced heat, standing loss ignored):
 
-  | | Litres a day (mean / median / P80) | Electricity | 01–07 | 07–13 | 13–19 | 19–01 |
+  | Proxy | Litres a day (mean / median / P80) | Electricity | 01–07 | 07–13 | 13–19 | 19–01 |
   |---|---|---|---|---|---|---|
-  | Working days (59) | 325 / 282 / 430 | 4.0 kWh | 82 | 62 | 130 | 50 |
-  | Days off (22) | 557 / 570 / 801 | 7.3 kWh | 132 | 232 | 154 | 38 |
+  | Mon–Fri (59) | 325 / 282 / 430 | 4.0 kWh | 82 | 62 | 130 | 50 |
+  | Sat–Sun (22) | 557 / 570 / 801 | 7.3 kWh | 132 | 232 | 154 | 38 |
 
-  Days off use 1.7× the water and put it at midday; working days put it in the evening, with almost
-  nothing 07–13. So a working-day profile with midday peaks (16 Nov) is a labelling or pooling
-  fault, not the household. Evenings follow a weekly rhythm: median evening litres Mon 81, Tue 184,
-  Wed 121, Thu 171, Fri 134 (Tue above 230 L in 4 of the last 8 weeks, Mon in 2). Fixed activity
-  days, most likely.
+  Weekends use about 1.7× the water, mostly at midday; weekdays use it in the evening. Holidays and
+  home days inside "Mon–Fri" blur both rows, so the real working-day/day-off contrast is likely
+  larger. Evenings also follow a weekly rhythm in the proxy: median evening litres Mon 81, Tue 184,
+  Wed 121, Thu 171, Fri 134 (Tue above 230 L in 4 of the last 8 weeks, Mon in 2). To confirm on
+  labelled days as they accumulate.
 - Dropped from draft 2, with reasons:
   - Early-draw credit (1.2): Thu's 17:00 draw was the first of two; crediting it cancels the 19:00
     run before a 154 L draw at 21. The code withholds it for this reason (hotwater-shadow.ts:84-89).
@@ -98,11 +104,12 @@ after two independent critiques against the code and data. Evidence and scripts:
     over the whole day, so no single cost term decided it and attributing one would be a guess that
     can disagree with the plan. Use a neutral line that is always true (e.g. "Cheapest time that
     still covers your use"). Six languages, owner text.
-3.2 Day-type check, now: read the saved model and the 16 Nov log line ("own profiles for working
-    and free days") for how many days of its own the working profile had. If it was mostly pooled,
-    that explains the midday runs; then decide whether keeping shapes beyond 14 days (via 1.1)
-    helps. Weights are nearly flat across 14 days at a 21-day half-life, so older days also bring
-    older shapes: test, don't assume.
+3.2 Day-type check, now: read the saved model for how many days of its own each profile had on
+    16 Nov. The day type log (from 10 Nov) suggests about 4 working days, under the 5 needed: if the
+    model confirms it, the midday runs were a cold start, and Step 5.0's setup questions are the
+    fix (a starting point per day type instead of the pooled one). Then decide whether keeping
+    shapes beyond 14 days (via 1.1) helps; weights are nearly flat across 14 days at a 21-day
+    half-life, so older days also bring older shapes: test, don't assume.
 
 ## Step 4 — the full-tank runs, and what legionella really costs
 
@@ -115,19 +122,28 @@ after two independent critiques against the code and data. Evidence and scripts:
 
 ## Step 5 — a forecast that knows this household's week
 
-5.0 Ask in setup (Hot water setup already asks people, morning hour and the busiest time on a day
-    off when history is short). Add, always asked and editable later:
-    - "Any weekdays with more hot water in the evening?" (Mon … Fri, multi-select; e.g. sports or
-      bath nights). Seeds a per-weekday evening profile; the data above says this household has
-      two such days.
-    - "On working days, when does your household mostly shower?" (Mornings / Evenings / Both /
-      It varies). Seeds the morning→evening rule in 5.1 and its sign.
-    The answers are a prior that learning overrides as days accumulate (as the existing household
-    answers are), and each gives a one-line reason: "Tuesday is a busy evening, so more is planned."
-    Mock first; six languages.
+5.0 Setup: a better starting point, and why it matters. Today Hot water setup asks people,
+    morning hour and the busiest time on a day off, and only while history is short. Change it to:
+    - Say what the answers do, in one line each, in standard UI phrasing: Autopilot starts from
+      your answers and learns your household's real pattern from your heat pump's readings; after
+      about two weeks it relies on what it has measured, and you can change the answers any time.
+    - Explain day types where they are set up: marking holidays, home days and vacations as days
+      off (by hand or with a Flow that follows your calendar) keeps those days from shaping the
+      working-day plan. Say it once, with the reason, and offer the Flow as the easy way.
+    - Ask (always, editable later; prefilled from what was learned once there is enough):
+      - "On working days, when does your household mostly shower?" (Mornings / Evenings / Both /
+        It varies). Seeds the working-day shape, so a new or relabelled profile does not start
+        from the pooled one (the 16 Nov case).
+      - "Any weekdays with more hot water in the evening?" (Mon … Fri, multi-select, e.g. sports or
+        bath nights). Seeds the per-weekday evening in 5.1.
+      - Keep: people, morning hour, busiest time on a day off.
+    - Each answer gives a one-line reason the owner can check: "Tuesday is a busy evening, so more
+      is planned." Once learning has taken over, the reason names the learning instead.
+    Mock first (light and dark, Homey's real CSS); six languages; "heat hot water" wording.
 5.1 Per-weekday evening: learn the evening draw per weekday (mean and P80), shrunk toward the day
-    type's evening until a weekday has about 6 days of its own. Uses 6-hourly Insights back to the
-    install, so it can start now. Reason: "Tuesday evenings usually use more."
+    type's evening until a weekday has about 6 labelled days of its own, starting from the setup
+    answer. Weekdays without a label before 10 Nov count only as the proxy, weighted down.
+    Reason: "Tuesday evenings usually use more."
 5.2 One yes/no feature: did the morning (05–09) draw reach about 80 L? Forecast the evening from
     days in the same state (mean and P80), shrunk toward the unconditional profile, falling back to
     it below about 6 days per state. Hourly Insights are enough for the feature; the wait is for
@@ -161,8 +177,8 @@ after two independent critiques against the code and data. Evidence and scripts:
 ## Order
 
 1 (from the 28 days already logged) → 2 (protects every later step) → 3 (cheap) → 4 (measure first)
-→ 5.0 and 5.1 (setup questions and per-weekday evenings: data exists now, likely the largest
-forecast gain) → 5.2 when its state counts reach about 6 days each → 5.3 when 1.1 has enough
+→ 5.0 and 5.1 (setup: explain day types and ask for a starting point, then per-weekday
+evenings: likely the largest forecast gain, and the fix for a cold-start profile) → 5.2 when its state counts reach about 6 days each → 5.3 when 1.1 has enough
 15-minute history. 6 only on evidence. 7 alongside, after the mock.
 
 ## Sources
