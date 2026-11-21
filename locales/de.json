@@ -306,7 +306,7 @@
         "hw_reserve_off": "Ihrer Wärmepumpe überlassen",
         "hw_reserve_hint": "Die geringste Brauchwassermenge, die Autopilot im Speicher hält. Mehr bedeutet gelegentlich eine Ladung in einer teureren Stunde.",
         "hw_reserve_invalid": "Wählen Sie, wie viel Brauchwasser immer bleiben soll.",
-        "solar_intro": "Wenn Ihr Haus Solarstrom einspeist, kann der Speicher ihn stattdessen aufnehmen.",
+        "solar_intro": "Heizen Sie den Speicher mit Solarstrom, den Sie sonst einspeisen würden.",
         "solar_scanning": "Suche nach Energiezählern in Ihrem Zuhause…",
         "solar_meter": "Stromzähler",
         "solar_meter_none": "Keiner in Homey Energie gefunden",

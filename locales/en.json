@@ -306,7 +306,7 @@
         "hw_reserve_off": "Up to your heat pump",
         "hw_reserve_hint": "The least hot water Autopilot keeps in the tank. More means the occasional charge in a more expensive hour.",
         "hw_reserve_invalid": "Pick how much hot water to always keep.",
-        "solar_intro": "When your home is selling solar power, the tank can take it instead.",
+        "solar_intro": "Heat the tank with solar power you'd otherwise sell.",
         "solar_scanning": "Looking for energy meters in your home…",
         "solar_meter": "Electricity meter",
         "solar_meter_none": "None found in Homey Energy",

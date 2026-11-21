@@ -306,7 +306,7 @@
         "hw_reserve_off": "Låt din värmepump sköta det",
         "hw_reserve_hint": "Minsta mängden varmvatten som Autopilot håller i tanken. Mer betyder att den ibland laddar en dyrare timme.",
         "hw_reserve_invalid": "Välj hur mycket varmvatten som alltid ska finnas.",
-        "solar_intro": "När ditt hem säljer solel kan tanken ta den i stället.",
+        "solar_intro": "Värm tanken med solel som du annars skulle sälja.",
         "solar_scanning": "Letar efter energimätare i ditt hem…",
         "solar_meter": "Elmätare",
         "solar_meter_none": "Ingen hittad i Homey Energy",

@@ -306,7 +306,7 @@
         "hw_reserve_off": "Aan je warmtepomp overlaten",
         "hw_reserve_hint": "De minimale hoeveelheid warm water die Autopilot in de boiler houdt. Meer betekent af en toe een opwarming in een duurder uur.",
         "hw_reserve_invalid": "Kies hoeveel warm water er altijd moet zijn.",
-        "solar_intro": "Als je huis zonnestroom teruglevert, kan de boiler die in plaats daarvan opnemen.",
+        "solar_intro": "Verwarm de boiler met zonnestroom die je anders zou terugleveren.",
         "solar_scanning": "Zoeken naar energiemeters in je huis…",
         "solar_meter": "Elektriciteitsmeter",
         "solar_meter_none": "Geen gevonden in Homey Energie",
