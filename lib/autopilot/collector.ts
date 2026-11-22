@@ -25,6 +25,7 @@ import {LiveEntry, ShiftInput, indoorMean} from './live';
 import {gainBetween} from './curve';
 import {SHIFT_MISSING, ShiftEffect, ShiftSlot, shiftEffect} from './shift-cost';
 import {PumpCurve} from './planner';
+import {DayReading} from './settling';
 import {BackfillLogs, backfillSummary, backfillWindow, insertBackfill, slotsFromInsights, withWeather} from './heating-insights';
 
 const HOUR = 60 * 60 * 1000;
@@ -282,6 +283,18 @@ export class AutopilotCollector {
         const from = range[range.length - 1] - days * 96;
         const values = range.filter((s) => s > from).map((s) => this.history.get(s)!.ti).filter(Number.isFinite);
         return values.length >= 48 ? values.reduce((a, b) => a + b, 0) / values.length : undefined;
+    }
+
+    /** One local day's indoor mean and the setpoint's range over it, for settling.ts. Reads only. */
+    indoorDay(date: string, timeZone: string): DayReading {
+        let sum = 0, slots = 0, setMin = Infinity, setMax = -Infinity;
+        for (const slot of this.history.range()) {
+            if (localDate(slot * SLOT_MS, timeZone) !== date) continue;
+            const v = this.history.get(slot)!;
+            if (Number.isFinite(v.ti)) { sum += v.ti; slots++; }
+            if (Number.isFinite(v.tset)) { setMin = Math.min(setMin, v.tset); setMax = Math.max(setMax, v.tset); }
+        }
+        return {date, slots, ...slots ? {mean: sum / slots} : {}, ...Number.isFinite(setMax) ? {setMin, setMax} : {}};
     }
 
     /** Called after each hourly refit, for the owner-facing labels. */

@@ -34,7 +34,8 @@ import {TankWidgetData, tankChart} from './autopilot/hotwater-tank';
 import {ComfortDay, ComfortSlot, addComfortSlot, readComfortDays} from './autopilot/comfort-days';
 import {ENERGY_ROLES, EnergyWidgetData, energyChart, useToday} from './autopilot/energy';
 import {OVERVIEW_KINDS, OverviewData, OverviewRow, overviewData, priceThirds} from './autopilot/overview';
-import {SLOT_MS, localDate, slotOf} from './autopilot/prices';
+import {SLOT_MS, localDate, localMinutes, slotOf} from './autopilot/prices';
+import {SettleEvent, SettleState, change, readSettle, scoreDay, settleDone} from './autopilot/settling';
 import {CostCheckData, CostDay, PlannedCost, addDay, chargeCosts, costCheckData, costDay, fillActual} from './autopilot/cost-check';
 import {COP} from './autopilot/planner';
 import {Edge, FORECAST_SLOTS, BlockedBy, HeatingDay, analyticsSmartMode, heatingBlock, reserveBucket} from './autopilot/analytics';
@@ -102,6 +103,8 @@ const CUSTOM_RANGE_STORE = 'autopilotCustomRange';
 const RANGE_STORE = 'autopilotRange';
 /** Heating's time in range, day by day (comfort-days.ts). */
 const COMFORT_DAYS_STORE = 'autopilotComfortDays';
+/** Autopilot heating's first weeks, day by day (autopilot/settling.ts). */
+const SETTLE_STORE = 'autopilotSettling';
 /** The savings widget's complete days, its currency, and the Smart mode changes it sorts days by. */
 const SAVINGS_STORE = 'autopilotSavingsDays';
 const SAVINGS_CURRENCY_STORE = 'autopilotSavingsCurrency';
@@ -1951,7 +1954,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.homey.settings.unset(`smartHistoryFile.${this.getData().id}`);
         this.homey.settings.set(`autopilotHistoryFile.${this.getData().id}`, file);
         this.autopilot = new AutopilotCollector(this.homey, file, (...args) => this.log(...args));
-        this.autopilot.onFit = () => this.checkHeatCurve().catch((error) => this.log('Heat curve advice:', error?.message ?? error));
+        this.autopilot.onFit = () => {
+            this.checkHeatCurve().catch((error) => this.log('Heat curve advice:', error?.message ?? error));
+            this.checkSettling().catch((error) => this.log('Getting started:', error?.message ?? error));
+        };
         await this.autopilot.start();
         this.scheduleBackfill(BACKFILL_FIRST_MS, BACKFILL_TRIES);
         this.startHeatingFeed();
@@ -2322,6 +2328,77 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             simulation: this.heatingMode === 'test'});
         if (score) track('Scored Autopilot Day', score);
         this.recordComfortSlot(slot, {date, ti, comfort, lower: limits.lower, upper: limits.upper, te, sun});
+    }
+
+    // ---- Getting started: the first weeks of Autopilot heating (autopilot/settling.ts) ----
+    /** Hourly, after the house fit: from 08:00, score yesterday's indoor against the thermostat and
+     *  tell the timeline, until it holds. The first time, the days since Autopilot heating started
+     *  feeding (the curve samples, one per live day) are scored quietly, so the widget has them. */
+    private async checkSettling() {
+        const collector = this.autopilot;
+        if (this.role !== 'heating' || !collector || this.heatingMode !== 'live') return;
+        const timeZone = this.homey.clock.getTimezone();
+        const now = Date.now();
+        const today = localDate(now, timeZone);
+        const yesterday = localDate(now, timeZone, -1);
+        let state = readSettle(this.getStoreValue(SETTLE_STORE));
+        if (!state) {
+            const first = this.heatCurveStore().samples[0]?.day;
+            const start = first === undefined ? today : new Date(first * 86_400_000).toISOString().slice(0, 10);
+            // The first live day is partial: scoring starts the day after it.
+            state = {start: start < today ? start : today, days: []};
+            for (let date = localDate(Date.parse(`${state.start}T12:00:00Z`), timeZone, 1); date < yesterday;
+                date = localDate(Date.parse(`${date}T12:00:00Z`), timeZone, 1)) {
+                state = scoreDay(state, collector.indoorDay(date, timeZone)).state;
+            }
+            await this.setStoreValue(SETTLE_STORE, state);
+        }
+        if (settleDone(state) || localMinutes(now, timeZone) < 8 * 60 || (state.checked && state.checked >= yesterday)) return;
+        const scored = scoreDay(state, collector.indoorDay(yesterday, timeZone));
+        await this.setStoreValue(SETTLE_STORE, scored.state);
+        if (!scored.event) return;
+        const excerpt = this.settleMessage(scored.event);
+        this.log(`Getting started: ${excerpt}`);
+        await this.homey.notifications.createNotification({excerpt}).catch(this.error);
+    }
+
+    private celsius(v: number): string {
+        return `${numberFormat(this.homey.i18n.getLanguage(), {minimumFractionDigits: 1, maximumFractionDigits: 1}).format(v)} °C`;
+    }
+
+    private settleMessage(event: SettleEvent): string {
+        const t = (key: string, tokens: Record<string, string>) => this.homey.__(`autopilot.heating.settle.${key}`, tokens);
+        const mean = this.celsius(event.day.mean), target = this.celsius(event.day.setpoint);
+        if (event.kind !== 'progress') return t(event.kind, {mean, target});
+        const moved = change(event.day, event.previous);
+        if (!moved) return t('first', {mean, target});
+        return t(moved.dir, {mean, target, previous: this.celsius(event.previous!.mean)});
+    }
+
+    /** For widgets/getting_started: the days so far against the thermostat. */
+    settleWidget(): Record<string, unknown> {
+        const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.settle_widget.${key}`, tokens);
+        const state: SettleState | undefined = readSettle(this.getStoreValue(SETTLE_STORE));
+        const title = t('title');
+        if (this.heatingMode !== 'live' && !state?.days.length) return {title, empty: t('off')};
+        if (!state?.days.length) return {title, empty: t('waiting')};
+        const language = this.homey.i18n.getLanguage();
+        const weekday = dateFormat(language, {weekday: 'short', timeZone: 'UTC'});
+        const last = state.days[state.days.length - 1];
+        const done = state.settled !== undefined;
+        const days = state.days.map((d, k) => {
+            const moved = change(d, state.days[k - 1]);
+            const settledRow = done && k === state.days.length - 1;
+            return {label: weekday.format(new Date(`${d.date}T12:00:00Z`)), value: this.celsius(d.mean), mean: d.mean,
+                note: settledRow ? t('settled_row') : !moved ? t('first_row') : `${moved.dir === 'up' ? '↑' : moved.dir === 'down' ? '↓' : '→'} ${
+                    numberFormat(language, {minimumFractionDigits: 1, maximumFractionDigits: 1}).format(moved.delta)}`,
+                tone: settledRow ? 'done' : moved?.dir ?? 'first'};
+        });
+        return {title, done, target: last.setpoint, targetLabel: this.celsius(last.setpoint),
+            label: t(done ? 'settled' : 'settling', {day: state.days.length}),
+            big: done ? t('holds', {target: this.celsius(last.setpoint)}) : this.celsius(last.mean),
+            of: done ? undefined : t('of', {target: this.celsius(last.setpoint)}),
+            days, foot: done || state.stopped ? t(done ? 'remove' : 'stopped') : undefined};
     }
 
     // ---- Heating's comfort promise, day by day (comfort-days.ts) ----

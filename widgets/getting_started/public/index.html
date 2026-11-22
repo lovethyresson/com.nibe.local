@@ -1,0 +1,161 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <style>
+      /* Autopilot heating's first weeks: where the house is against the thermostat, each day's
+         average climbing to it, and the days as a list, oldest first like the chart. */
+      .gs { padding: var(--homey-su-2, 8px) var(--homey-su-3, 12px); }
+      .gs-title { opacity: 0.6; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .gs-label { margin-top: 8px; font-size: 0.85em; opacity: 0.6; }
+      .gs-big { font-size: 1.6em; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+      .gs-big.done { color: var(--gs-good); }
+      .gs-of { font-size: 0.55em; font-weight: 600; opacity: 0.6; margin-left: 4px; }
+      .gs-chart { display: block; width: 100%; margin-top: 8px; }
+      .gs-days { margin-top: 6px; border-top: 1px solid rgba(127, 127, 127, 0.22); font-variant-numeric: tabular-nums; }
+      .gs-row { display: grid; grid-template-columns: 3.2em 1fr auto; gap: 8px; padding: 5px 0; font-size: 0.9em; border-bottom: 1px solid rgba(127, 127, 127, 0.12); }
+      .gs-row:last-child { border-bottom: 0; }
+      .gs-day { opacity: 0.6; }
+      .gs-note { text-align: right; }
+      .gs-note.up, .gs-note.done { color: var(--gs-good); }
+      .gs-note.down { color: var(--gs-bad); }
+      .gs-note.same, .gs-note.first { opacity: 0.55; }
+      .gs-foot { margin-top: 10px; font-size: 0.82em; opacity: 0.65; }
+      .gs-empty { opacity: 0.8; margin: 12px 0; }
+      :root { --gs-good: #248a3d; --gs-bad: #d70015; --gs-line: #e8833a; --gs-target: #3d7be0; }
+      :root[data-theme="dark"] { --gs-good: #30d158; --gs-bad: #ff6961; --gs-line: #f0954f; --gs-target: #6ea0ff; }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) { --gs-good: #30d158; --gs-bad: #ff6961; --gs-line: #f0954f; --gs-target: #6ea0ff; }
+      }
+    </style>
+  </head>
+
+  <body class="homey-widget">
+    <div class="gs" id="gs"></div>
+
+    <script type="text/javascript">
+      // Used only when the app cannot be reached at all, so it cannot send a translated line.
+      var FALLBACK = {
+        en: {loading: 'Loading…', error: 'Couldn’t load this widget. Trying again in a minute.'},
+        sv: {loading: 'Laddar…', error: 'Det gick inte att läsa in widgeten. Försöker igen om en minut.'},
+        nl: {loading: 'Laden…', error: 'Kon de widget niet laden. Over een minuut probeer ik het opnieuw.'},
+        de: {loading: 'Lädt…', error: 'Das Widget konnte nicht geladen werden. Neuer Versuch in einer Minute.'},
+        no: {loading: 'Laster…', error: 'Kunne ikke laste widgeten. Prøver igjen om et minutt.'},
+        da: {loading: 'Indlæser…', error: 'Kunne ikke indlæse widgetten. Prøver igen om et minut.'}
+      };
+      function words() {
+        var lang = String((navigator.language || 'en')).slice(0, 2).toLowerCase();
+        if (lang === 'nb' || lang === 'nn') lang = 'no';
+        return FALLBACK[lang] || FALLBACK.en;
+      }
+      function el(tag, cls, text) {
+        var n = document.createElement(tag);
+        if (cls) n.className = cls;
+        if (text !== undefined) n.textContent = text;
+        return n;
+      }
+      // Light or dark, from the text colour Homey gives the page: light text means a dark card.
+      function applyTheme() {
+        var rgb = (getComputedStyle(document.body).color.match(/[\d.]+/g) || []).map(Number);
+        if (rgb.length < 3) return;
+        document.documentElement.setAttribute('data-theme', (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255 > 0.5 ? 'dark' : 'light');
+      }
+      var last = null;
+      var SVG = 'http://www.w3.org/2000/svg';
+      function svg(tag, attrs, text) {
+        var n = document.createElementNS(SVG, tag);
+        Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+        if (text !== undefined) n.textContent = text;
+        return n;
+      }
+      // Each day's average against the thermostat, with a band of ±0.2 °C (what counts as holding
+      // it, settling.ts SETTLED_K). At least a week wide, so the first days don't fill the card.
+      function chart(days, target, targetLabel) {
+        var W = 300, H = 110, n = Math.max(7, days.length);
+        var values = days.map(function (d) { return d.mean; }).concat([target - 0.3, target + 0.3]);
+        var lo = Math.min.apply(null, values) - 0.1, hi = Math.max.apply(null, values) + 0.1;
+        var x = function (k) { return 20 + k * (W - 40) / (n - 1); };
+        var y = function (v) { return H - 16 - (v - lo) / (hi - lo) * (H - 26); };
+        var s = svg('svg', {viewBox: '0 0 ' + W + ' ' + H, class: 'gs-chart', 'aria-hidden': 'true'});
+        s.appendChild(svg('rect', {x: 10, y: y(target + 0.2), width: W - 20, height: y(target - 0.2) - y(target + 0.2), rx: 4, fill: 'var(--gs-target)', opacity: 0.16}));
+        s.appendChild(svg('line', {x1: 10, x2: W - 10, y1: y(target), y2: y(target), stroke: 'var(--gs-target)', 'stroke-dasharray': '4 4'}));
+        s.appendChild(svg('text', {x: W - 12, y: y(target + 0.2) - 4, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--gs-target)'}, targetLabel));
+        s.appendChild(svg('polyline', {points: days.map(function (d, k) { return x(k) + ',' + y(d.mean); }).join(' '), fill: 'none', stroke: 'var(--gs-line)', 'stroke-width': 2.5}));
+        days.forEach(function (d, k) {
+          s.appendChild(svg('circle', {cx: x(k), cy: y(d.mean), r: 4, fill: 'var(--gs-line)'}));
+          if (n <= 7 || k % Math.ceil(n / 7) === 0) s.appendChild(svg('text', {x: x(k), y: H - 2, 'text-anchor': 'middle', 'font-size': 10, fill: 'currentColor', opacity: 0.5}, d.label));
+        });
+        return s;
+      }
+      function render(data) {
+        applyTheme();
+        var root = document.getElementById('gs');
+        root.replaceChildren();
+        root.appendChild(el('div', 'gs-title', data.title || ''));
+        if (data.empty) { root.appendChild(el('p', 'gs-empty', data.empty)); return; }
+        root.appendChild(el('div', 'gs-label', data.label));
+        var big = el('div', 'gs-big' + (data.done ? ' done' : ''), data.big);
+        if (data.of) big.appendChild(el('span', 'gs-of', data.of));
+        root.appendChild(big);
+        root.appendChild(chart(data.days, data.target, data.targetLabel || ''));
+        var list = el('div', 'gs-days');
+        data.days.forEach(function (d) {
+          var row = el('div', 'gs-row');
+          row.appendChild(el('span', 'gs-day', d.label));
+          row.appendChild(el('span', '', d.value));
+          row.appendChild(el('span', 'gs-note ' + d.tone, d.note));
+          list.appendChild(row);
+        });
+        root.appendChild(list);
+        if (data.foot) root.appendChild(el('div', 'gs-foot', data.foot));
+      }
+      function fit(Homey) {
+        if (Homey && Homey.setHeight) Homey.setHeight(Math.ceil(document.getElementById('gs').scrollHeight) + 16);
+      }
+
+      function onHomeyReady(Homey) {
+        var settings = Homey.getSettings() || {};
+        var device = settings.device && settings.device.id;
+        // Widgets share one storage: the key names this one (its path) and the device it shows.
+        var cacheKey = 'last:' + location.pathname + ':' + (device || ''), KEEP_MS = 3 * 3600000;
+        function keep(data) {
+          if (!data || data.loading || data.empty) return;
+          try { localStorage.setItem(cacheKey, JSON.stringify({at: Date.now(), data: data})); } catch (e) { /* no storage */ }
+        }
+        document.getElementById('gs').appendChild(el('p', 'gs-empty', words().loading));
+        function show(data) {
+          // Starting (just after a restart): ask again in 5 s, not at the next refresh, and keep
+          // the picture already shown meanwhile.
+          if (data && data.loading && !soon) soon = setTimeout(function () { soon = null; load(); }, 5000);
+          if (data && data.loading && last && !last.loading) return;
+          failures = 0; last = data; render(data); fit(Homey); keep(data);
+        }
+        var soon = null;
+        var failures = 0;
+        function load() {
+          return Homey.api('GET', '/' + (device ? '?device=' + encodeURIComponent(device) : ''), {})
+            .then(show)
+            .catch(function (err) {
+              if (typeof console !== 'undefined') console.error(err);
+              if (last) return; // keep the last good picture until the app answers again
+              if (++failures < 5) { setTimeout(load, 30000); return; }
+              document.getElementById('gs').replaceChildren(el('p', 'gs-empty', words().error));
+              fit(Homey);
+            });
+        }
+        // ready() without a height puts the widget back to its compose height: the fit done while
+        // loading would be lost, and a long card clipped (the Plan vs actual widget, 2026-11-21).
+        // The last picture this card showed, drawn at once while the app is asked: the dashboard
+        // opens without waiting on the app, and the answer replaces it a moment later.
+        var shown = false;
+        try {
+          var kept = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+          if (kept && Date.now() - kept.at < KEEP_MS) { last = kept.data; render(kept.data); Homey.ready({height: Math.ceil(document.getElementById('gs').scrollHeight) + 16}); shown = true; }
+        } catch (e) { /* no storage: wait for the app, as before */ }
+        load().finally(function () { if (!shown) Homey.ready({height: Math.ceil(document.getElementById('gs').scrollHeight) + 16}); });
+        // A new day comes in each morning: an hourly refresh is plenty.
+        setInterval(function () { if (!last || last.loading || last.empty) load(); }, 30000);
+        setInterval(load, 60 * 60000);
+      }
+    </script>
+  </body>
+</html>

@@ -251,9 +251,9 @@
         "cmp_note": "Smart Price Adaption är inbyggd i din värmepump och hämtar priser via myUplink.",
         "exp_title": "Vad du kan vänta dig",
         "exp_learning": "Lär sig",
-        "exp_learning_sub": "Minst 5 dagar. Inga ändringar än.",
+        "exp_learning_sub": "5+ dagar",
         "exp_acting": "Agerar",
-        "exp_acting_sub": "Värme flyttas kring pristoppar, inom ditt komfortspann.",
+        "exp_acting_sub": "Flyttar värme från pristoppar",
         "exp_control": "Du styr",
         "ctl_thermostat": "Termostat",
         "ctl_thermostat_sub": "Din komforttemperatur",
@@ -440,7 +440,11 @@
         "hw_legionella_custom": "Egen",
         "hw_legionella_note": "Värmepumpens eget periodiska varmvatten stängs av. Stäng av Autopilot så kommer det tillbaka.",
         "hw_legionella_link": "Om legionella",
-        "hw_legionella_invalid": "Ange en temperatur mellan 55 och 70 °C."
+        "hw_legionella_invalid": "Ange en temperatur mellan 55 och 70 °C.",
+        "exp_settling": "Ställer in sig",
+        "exp_settling_sub": "Upp till 1 °C fel",
+        "exp_follow": "Dagliga uppdateringar i tidslinjen tills den ställt in sig. Lägg till widgeten __widget__ på en instrumentpanel för att följa med.",
+        "exp_widget": "Kom igång"
       },
       "gets_added": "Det här läggs till",
       "gets_added_intro": "De här enheterna läggs till.",
@@ -757,6 +761,14 @@
         "warning_steeper": "Höj värmekurvan ett steg (meny 1.30.1).",
         "warning_flatter": "Sänk värmekurvan ett steg (meny 1.30.1).",
         "nothing_to_undo": "Autopilot har inte ändrat din kurvförskjutning."
+      },
+      "settle": {
+        "first": "Uppvärmning ställer in sig: __mean__ i går. Mål __target__.",
+        "up": "Uppvärmning ställer in sig: __mean__ i går, upp från __previous__. Mål __target__.",
+        "down": "Uppvärmning ställer in sig: __mean__ i går, ned från __previous__. Mål __target__.",
+        "same": "Uppvärmning ställer in sig: __mean__ i går, samma som dagen innan. Mål __target__.",
+        "settled": "Uppvärmning har ställt in sig: __mean__ i går, på ditt mål. Autopilot flyttar nu värme bort från pristopparna.",
+        "stopped": "Uppvärmning har inte ställt in sig efter 3 veckor: __mean__ i går, mål __target__. Autopilot fortsätter justera nivån."
       }
     },
     "smart": {
@@ -988,6 +1000,20 @@
       "cheap_heat": "billig värme",
       "estimated_year": "uppskattat för __year__",
       "saved_line": "__money__ sparat i år"
+    },
+    "settle_widget": {
+      "title": "Uppvärmning · Kom igång",
+      "settling": "Ställer in sig · dag __day__",
+      "settled": "Inställd · dag __day__",
+      "of": "av __target__",
+      "holds": "Håller __target__",
+      "first_row": "första dagen",
+      "settled_row": "✓ inställd",
+      "remove": "Du kan ta bort den här widgeten.",
+      "stopped": "Justerar fortfarande efter 3 veckor.",
+      "waiting": "Första uppdateringen i morgon bitti.",
+      "off": "Visar de första veckorna när Autopilot för uppvärmning är på.",
+      "pick": "Välj din Uppvärmning-enhet i widgetens inställningar."
     }
   }
 }

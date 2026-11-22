@@ -251,9 +251,9 @@
         "cmp_note": "Smart Price Adaption er indbygget i din varmepumpe og henter priser via myUplink.",
         "exp_title": "Hvad du kan forvente",
         "exp_learning": "Lærer",
-        "exp_learning_sub": "Mindst 5 dage. Ingen ændringer endnu.",
+        "exp_learning_sub": "5+ dage",
         "exp_acting": "Aktiv",
-        "exp_acting_sub": "Varme flyttes omkring pristoppe, inden for dit komfortinterval.",
+        "exp_acting_sub": "Flytter varme fra pristoppe",
         "exp_control": "Du styrer",
         "ctl_thermostat": "Termostat",
         "ctl_thermostat_sub": "Din komforttemperatur",
@@ -440,7 +440,11 @@
         "hw_legionella_custom": "Egen",
         "hw_legionella_note": "Varmepumpens eget periodiske varme vand slås fra. Slå Autopilot fra, så kommer det tilbage.",
         "hw_legionella_link": "Om legionella",
-        "hw_legionella_invalid": "Indtast en temperatur fra 55 til 70 °C."
+        "hw_legionella_invalid": "Indtast en temperatur fra 55 til 70 °C.",
+        "exp_settling": "Indstiller sig",
+        "exp_settling_sub": "Op til 1 °C ved siden af",
+        "exp_follow": "Daglige opdateringer i tidslinjen, indtil den har indstillet sig. Tilføj widgetten __widget__ til et dashboard for at følge med.",
+        "exp_widget": "Kom i gang"
       },
       "gets_added": "Dette tilføjes",
       "gets_added_intro": "Disse enheder tilføjes.",
@@ -757,6 +761,14 @@
         "warning_steeper": "Hæv varmekurven ét trin (menu 1.30.1).",
         "warning_flatter": "Sænk varmekurven ét trin (menu 1.30.1).",
         "nothing_to_undo": "Autopilot har ikke ændret din kurveforskydning."
+      },
+      "settle": {
+        "first": "Opvarmning indstiller sig: __mean__ i går. Mål __target__.",
+        "up": "Opvarmning indstiller sig: __mean__ i går, op fra __previous__. Mål __target__.",
+        "down": "Opvarmning indstiller sig: __mean__ i går, ned fra __previous__. Mål __target__.",
+        "same": "Opvarmning indstiller sig: __mean__ i går, samme som dagen før. Mål __target__.",
+        "settled": "Opvarmning har indstillet sig: __mean__ i går, på dit mål. Autopilot flytter nu varme væk fra pristoppene.",
+        "stopped": "Opvarmning har ikke indstillet sig efter 3 uger: __mean__ i går, mål __target__. Autopilot bliver ved med at justere niveauet."
       }
     },
     "smart": {
@@ -988,6 +1000,20 @@
       "cheap_heat": "billig varme",
       "estimated_year": "anslået for __year__",
       "saved_line": "__money__ sparet i år"
+    },
+    "settle_widget": {
+      "title": "Opvarmning · Kom i gang",
+      "settling": "Indstiller sig · dag __day__",
+      "settled": "Indstillet · dag __day__",
+      "of": "af __target__",
+      "holds": "Holder __target__",
+      "first_row": "første dag",
+      "settled_row": "✓ indstillet",
+      "remove": "Du kan fjerne denne widget.",
+      "stopped": "Justerer stadig efter 3 uger.",
+      "waiting": "Første opdatering i morgen tidlig.",
+      "off": "Viser de første uger, når Autopilot for opvarmning er slået til.",
+      "pick": "Vælg din Opvarmning-enhed i widgettens indstillinger."
     }
   }
 }

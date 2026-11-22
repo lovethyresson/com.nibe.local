@@ -251,9 +251,9 @@
         "cmp_note": "Smart price adaption is ingebouwd in je warmtepomp en haalt prijzen op via myUplink.",
         "exp_title": "Wat je kunt verwachten",
         "exp_learning": "Leren",
-        "exp_learning_sub": "Minstens 5 dagen. Nog geen wijzigingen.",
+        "exp_learning_sub": "5+ dagen",
         "exp_acting": "Aan de slag",
-        "exp_acting_sub": "Warmte schuift rond prijspieken, binnen je comfortbereik.",
+        "exp_acting_sub": "Verschuift warmte uit prijspieken",
         "exp_control": "Jij bepaalt",
         "ctl_thermostat": "Thermostaat",
         "ctl_thermostat_sub": "Je comforttemperatuur",
@@ -440,7 +440,11 @@
         "hw_legionella_custom": "Eigen",
         "hw_legionella_note": "Het eigen periodieke warm water van je warmtepomp gaat uit. Zet je Autopilot uit, dan komt het terug.",
         "hw_legionella_link": "Over legionella",
-        "hw_legionella_invalid": "Vul een temperatuur van 55 tot 70 °C in."
+        "hw_legionella_invalid": "Vul een temperatuur van 55 tot 70 °C in.",
+        "exp_settling": "Instellen",
+        "exp_settling_sub": "Tot 1 °C ernaast",
+        "exp_follow": "Dagelijkse updates in de tijdlijn tot het is ingesteld. Voeg de widget __widget__ toe aan een dashboard om het te volgen.",
+        "exp_widget": "Aan de slag"
       },
       "gets_added": "Dit wordt toegevoegd",
       "gets_added_intro": "Deze apparaten worden toegevoegd.",
@@ -757,6 +761,14 @@
         "warning_steeper": "Zet de stooklijn één stap hoger (menu 1.30.1).",
         "warning_flatter": "Zet de stooklijn één stap lager (menu 1.30.1).",
         "nothing_to_undo": "Autopilot heeft de verschuiving van je stooklijn niet gewijzigd."
+      },
+      "settle": {
+        "first": "Verwarming stelt zich in: gisteren __mean__. Doel __target__.",
+        "up": "Verwarming stelt zich in: gisteren __mean__, omhoog van __previous__. Doel __target__.",
+        "down": "Verwarming stelt zich in: gisteren __mean__, omlaag van __previous__. Doel __target__.",
+        "same": "Verwarming stelt zich in: gisteren __mean__, gelijk aan de dag ervoor. Doel __target__.",
+        "settled": "Verwarming is ingesteld: gisteren __mean__, op je doel. Autopilot verschuift nu warmte uit de prijspieken.",
+        "stopped": "Verwarming is na 3 weken nog niet ingesteld: gisteren __mean__, doel __target__. Autopilot blijft het niveau bijstellen."
       }
     },
     "smart": {
@@ -988,6 +1000,20 @@
       "cheap_heat": "goedkope warmte",
       "estimated_year": "geschat voor __year__",
       "saved_line": "__money__ bespaard dit jaar"
+    },
+    "settle_widget": {
+      "title": "Verwarming · Aan de slag",
+      "settling": "Stelt zich in · dag __day__",
+      "settled": "Ingesteld · dag __day__",
+      "of": "van __target__",
+      "holds": "Houdt __target__",
+      "first_row": "eerste dag",
+      "settled_row": "✓ ingesteld",
+      "remove": "Je kunt deze widget verwijderen.",
+      "stopped": "Na 3 weken nog aan het bijstellen.",
+      "waiting": "Eerste update morgenochtend.",
+      "off": "Toont de eerste weken zodra Autopilot voor verwarming aan staat.",
+      "pick": "Kies je Verwarming-apparaat in de widgetinstellingen."
     }
   }
 }

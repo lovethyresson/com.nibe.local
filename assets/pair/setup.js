@@ -489,12 +489,29 @@ function NibeSetup(options) {
         clear(a('exp_title'), '');
         view.querySelector('.pair-hero-title').hidden = false;
         var line = el('div', undefined, 'setup-timeline');
-        [['is-learning', 'exp_learning', 'exp_learning_sub'], ['is-acting', 'exp_acting', 'exp_acting_sub']].forEach(function (p) {
+        [['is-learning', 'exp_learning', 'exp_learning_sub'], ['is-settling', 'exp_settling', 'exp_settling_sub'],
+            ['is-acting', 'exp_acting', 'exp_acting_sub']].forEach(function (p) {
             var phase = el('div', undefined, 'setup-phase ' + p[0]);
             phase.append(el('span', undefined, 'setup-phase-bar'), el('strong', a(p[1])), el('small', a(p[2])));
             line.appendChild(phase);
         });
         shell.appendChild(line);
+        // The Getting started widget (widgets/getting_started), and the daily timeline updates.
+        var follow = el('div', undefined, 'setup-follow');
+        var picture = document.createElement('picture');
+        var dark = document.createElement('source');
+        dark.media = '(prefers-color-scheme: dark)';
+        dark.srcset = '../../../assets/pair/getting-started-dark.png';
+        var img = document.createElement('img');
+        img.src = '../../../assets/pair/getting-started-light.png';
+        img.alt = '';
+        img.className = 'setup-follow-preview hy-nostyle';
+        picture.append(dark, img);
+        var text = el('p', undefined, 'setup-follow-text');
+        var parts = a('exp_follow').split('__widget__');
+        text.append(document.createTextNode(parts[0]), el('strong', a('exp_widget')), document.createTextNode(parts[1] || ''));
+        follow.append(picture, text);
+        shell.appendChild(follow);
         shell.appendChild(el('h3', a('exp_control'), 'setup-tiles-title'));
         var tiles = el('div', undefined, 'setup-tiles');
         [['thermostat', 'ctl_thermostat'], ['range', 'ctl_range'], ['away', 'ctl_away'], ['off', 'ctl_off']].forEach(function (c) {

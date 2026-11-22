@@ -42,6 +42,7 @@ class NibeApp extends Homey.App {
     this.registerOverviewWidget();
     this.registerCostCheckWidget();
     this.registerDayPlanWidget();
+    this.registerGettingStartedWidget();
 
     this.log('Nibe Live app has been initialized');
   }
@@ -266,6 +267,31 @@ class NibeApp extends Homey.App {
       return device.hotwaterTankWidget();
     } catch (error) {
       this.error('Hot water tank widget:', error);
+      return line('autopilot.widget.error');
+    }
+  }
+
+  /** The Getting started widget (widgets/getting_started): Autopilot heating's first weeks, by
+   *  Heating device. */
+  private registerGettingStartedWidget() {
+    const widget = (this.homey as any).dashboards?.getWidget?.('getting_started');
+    widget?.registerSettingAutocompleteListener('device', async (query: string) => this.autopilotDevices()
+      .filter((d) => d.role === 'heating')
+      .map((d) => ({id: String(d.getData().id), name: d.getName()}))
+      .filter((d) => !query || d.name.toLowerCase().includes(query.toLowerCase())));
+  }
+
+  /** For widgets/getting_started/api.js. Answers a problem with a line, like the others. */
+  gettingStartedWidget(id: unknown) {
+    const line = (key: string) => ({title: '', empty: this.homey.__(key)});
+    const devices = this.autopilotDevices().filter((d) => d.role === 'heating');
+    const device = devices.find((d) => String(d.getData().id) === String(id)) ?? (id ? undefined : devices[0]);
+    if (!device && process.uptime() < 120) return {title: '', loading: true, empty: this.homey.__('autopilot.widget.starting_app')};
+    if (!device) return line('autopilot.settle_widget.pick');
+    try {
+      return device.settleWidget();
+    } catch (error) {
+      this.error('Getting started widget:', error);
       return line('autopilot.widget.error');
     }
   }

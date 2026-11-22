@@ -251,9 +251,9 @@
         "cmp_note": "Smart Price Adaption ist in Ihre Wärmepumpe integriert und holt Preise über myUplink.",
         "exp_title": "Was Sie erwartet",
         "exp_learning": "Lernen",
-        "exp_learning_sub": "Mindestens 5 Tage. Noch keine Änderungen.",
+        "exp_learning_sub": "5+ Tage",
         "exp_acting": "Handeln",
-        "exp_acting_sub": "Wärme wird um Preisspitzen verlagert, innerhalb Ihres Komfortbereichs.",
+        "exp_acting_sub": "Verschiebt Wärme aus Preisspitzen",
         "exp_control": "Sie steuern",
         "ctl_thermostat": "Thermostat",
         "ctl_thermostat_sub": "Ihre Komforttemperatur",
@@ -440,7 +440,11 @@
         "hw_legionella_custom": "Eigener Wert",
         "hw_legionella_note": "Die eigene periodische Erhöhung Ihrer Wärmepumpe wird ausgeschaltet. Schalten Sie Autopilot aus, kommt sie zurück.",
         "hw_legionella_link": "Über Legionellen",
-        "hw_legionella_invalid": "Geben Sie eine Temperatur von 55 bis 70 °C ein."
+        "hw_legionella_invalid": "Geben Sie eine Temperatur von 55 bis 70 °C ein.",
+        "exp_settling": "Einpendeln",
+        "exp_settling_sub": "Bis zu 1 °C daneben",
+        "exp_follow": "Tägliche Updates in der Zeitleiste, bis es sich eingependelt hat. Fügen Sie das Widget __widget__ zu einem Dashboard hinzu, um es zu verfolgen.",
+        "exp_widget": "Erste Schritte"
       },
       "gets_added": "Das wird hinzugefügt",
       "gets_added_intro": "Diese Geräte werden hinzugefügt.",
@@ -757,6 +761,14 @@
         "warning_steeper": "Erhöhen Sie die Heizkurve um eine Stufe (Menü 1.30.1).",
         "warning_flatter": "Senken Sie die Heizkurve um eine Stufe (Menü 1.30.1).",
         "nothing_to_undo": "Autopilot hat Ihre Parallelverschiebung nicht geändert."
+      },
+      "settle": {
+        "first": "Heizung pendelt sich ein: gestern __mean__. Ziel __target__.",
+        "up": "Heizung pendelt sich ein: gestern __mean__, gestiegen von __previous__. Ziel __target__.",
+        "down": "Heizung pendelt sich ein: gestern __mean__, gesunken von __previous__. Ziel __target__.",
+        "same": "Heizung pendelt sich ein: gestern __mean__, gleich wie am Vortag. Ziel __target__.",
+        "settled": "Heizung hat sich eingependelt: gestern __mean__, auf Ihrem Ziel. Autopilot verschiebt jetzt Wärme aus den Preisspitzen.",
+        "stopped": "Heizung hat sich nach 3 Wochen nicht eingependelt: gestern __mean__, Ziel __target__. Autopilot passt das Niveau weiter an."
       }
     },
     "smart": {
@@ -988,6 +1000,20 @@
       "cheap_heat": "günstige Wärme",
       "estimated_year": "geschätzt für __year__",
       "saved_line": "__money__ dieses Jahr gespart"
+    },
+    "settle_widget": {
+      "title": "Heizung · Erste Schritte",
+      "settling": "Pendelt sich ein · Tag __day__",
+      "settled": "Eingependelt · Tag __day__",
+      "of": "von __target__",
+      "holds": "Hält __target__",
+      "first_row": "erster Tag",
+      "settled_row": "✓ eingependelt",
+      "remove": "Sie können dieses Widget entfernen.",
+      "stopped": "Nach 3 Wochen noch in Anpassung.",
+      "waiting": "Erstes Update morgen früh.",
+      "off": "Zeigt die ersten Wochen, sobald Autopilot Heizung an ist.",
+      "pick": "Wählen Sie Ihr Heizung-Gerät in den Widget-Einstellungen."
     }
   }
 }

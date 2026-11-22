@@ -86,6 +86,19 @@ hours. Price shifting starts once all three hold:
 The Heating device's Autopilot status shows the day count, then which check is still open. A day
 with gaps in the readings doesn't count. Once it has started, it keeps running.
 
+### Why is my house below my temperature in the first week?
+
+When Autopilot heating starts, room-sensor control is off and your heat curve holds the house
+alone, often a little off your thermostat. Autopilot then raises or lowers the level until it holds
+your temperature. A light house gets there in a day or two. A heavy one, with concrete floors or
+thick walls, can take more than a week. Until then indoor can be up to about 1 °C off.
+
+Each morning a timeline message gives yesterday's average and the day before, and the **Getting
+started** widget shows the days on a chart. Two days in a row within 0.2 °C of your thermostat
+count as settled: you get one last message and the widget says so. Days with Away or a thermostat
+change are skipped. After 3 weeks the messages stop; if your curve is still off, the heat curve
+advice tells you.
+
 ### Will Autopilot change my heating curve?
 
 Only if you chose **Adjust it for me** in Heating setup. After the first week, Autopilot knows how far

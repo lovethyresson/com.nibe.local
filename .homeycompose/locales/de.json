@@ -361,6 +361,14 @@
         "warning_steeper": "Erhöhen Sie die Heizkurve um eine Stufe (Menü 1.30.1).",
         "warning_flatter": "Senken Sie die Heizkurve um eine Stufe (Menü 1.30.1).",
         "nothing_to_undo": "Autopilot hat Ihre Parallelverschiebung nicht geändert."
+      },
+      "settle": {
+        "first": "Heizung pendelt sich ein: gestern __mean__. Ziel __target__.",
+        "up": "Heizung pendelt sich ein: gestern __mean__, gestiegen von __previous__. Ziel __target__.",
+        "down": "Heizung pendelt sich ein: gestern __mean__, gesunken von __previous__. Ziel __target__.",
+        "same": "Heizung pendelt sich ein: gestern __mean__, gleich wie am Vortag. Ziel __target__.",
+        "settled": "Heizung hat sich eingependelt: gestern __mean__, auf Ihrem Ziel. Autopilot verschiebt jetzt Wärme aus den Preisspitzen.",
+        "stopped": "Heizung hat sich nach 3 Wochen nicht eingependelt: gestern __mean__, Ziel __target__. Autopilot passt das Niveau weiter an."
       }
     },
     "smart": {
@@ -588,6 +596,20 @@
       "cheap_heat": "günstige Wärme",
       "estimated_year": "geschätzt für __year__",
       "saved_line": "__money__ dieses Jahr gespart"
+    },
+    "settle_widget": {
+      "title": "Heizung · Erste Schritte",
+      "settling": "Pendelt sich ein · Tag __day__",
+      "settled": "Eingependelt · Tag __day__",
+      "of": "von __target__",
+      "holds": "Hält __target__",
+      "first_row": "erster Tag",
+      "settled_row": "✓ eingependelt",
+      "remove": "Sie können dieses Widget entfernen.",
+      "stopped": "Nach 3 Wochen noch in Anpassung.",
+      "waiting": "Erstes Update morgen früh.",
+      "off": "Zeigt die ersten Wochen, sobald Autopilot Heizung an ist.",
+      "pick": "Wählen Sie Ihr Heizung-Gerät in den Widget-Einstellungen."
     }
   }
 }

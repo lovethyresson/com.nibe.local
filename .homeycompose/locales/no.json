@@ -361,6 +361,14 @@
         "warning_steeper": "Øk varmekurven med ett trinn (meny 1.30.1).",
         "warning_flatter": "Senk varmekurven med ett trinn (meny 1.30.1).",
         "nothing_to_undo": "Autopilot har ikke endret kurveforskyvningen din."
+      },
+      "settle": {
+        "first": "Oppvarming stiller seg inn: __mean__ i går. Mål __target__.",
+        "up": "Oppvarming stiller seg inn: __mean__ i går, opp fra __previous__. Mål __target__.",
+        "down": "Oppvarming stiller seg inn: __mean__ i går, ned fra __previous__. Mål __target__.",
+        "same": "Oppvarming stiller seg inn: __mean__ i går, samme som dagen før. Mål __target__.",
+        "settled": "Oppvarming har stilt seg inn: __mean__ i går, på målet ditt. Autopilot flytter nå varme bort fra pristoppene.",
+        "stopped": "Oppvarming har ikke stilt seg inn etter 3 uker: __mean__ i går, mål __target__. Autopilot fortsetter å justere nivået."
       }
     },
     "smart": {
@@ -588,6 +596,20 @@
       "cheap_heat": "billig varme",
       "estimated_year": "anslått for __year__",
       "saved_line": "__money__ spart i år"
+    },
+    "settle_widget": {
+      "title": "Oppvarming · Kom i gang",
+      "settling": "Stiller seg inn · dag __day__",
+      "settled": "Innstilt · dag __day__",
+      "of": "av __target__",
+      "holds": "Holder __target__",
+      "first_row": "første dag",
+      "settled_row": "✓ innstilt",
+      "remove": "Du kan fjerne denne widgeten.",
+      "stopped": "Justerer fortsatt etter 3 uker.",
+      "waiting": "Første oppdatering i morgen tidlig.",
+      "off": "Viser de første ukene når Autopilot for oppvarming er på.",
+      "pick": "Velg Oppvarming-enheten din i widgetinnstillingene."
     }
   }
 }

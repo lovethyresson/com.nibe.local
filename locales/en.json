@@ -251,9 +251,9 @@
         "cmp_note": "Smart Price Adaption is built into your heat pump and gets prices through myUplink.",
         "exp_title": "What to expect",
         "exp_learning": "Learning",
-        "exp_learning_sub": "At least 5 days. No changes yet.",
+        "exp_learning_sub": "5+ days",
         "exp_acting": "Acting",
-        "exp_acting_sub": "Heat moves around price peaks, within your Comfort range.",
+        "exp_acting_sub": "Shifts heat from price peaks",
         "exp_control": "You control",
         "ctl_thermostat": "Thermostat",
         "ctl_thermostat_sub": "Your comfort temperature",
@@ -440,7 +440,11 @@
         "hw_legionella_custom": "Your own",
         "hw_legionella_note": "Your heat pump's own periodic hot water is turned off. Turn Autopilot off and it comes back.",
         "hw_legionella_link": "About legionella",
-        "hw_legionella_invalid": "Enter a temperature from 55 to 70 °C."
+        "hw_legionella_invalid": "Enter a temperature from 55 to 70 °C.",
+        "exp_settling": "Settling",
+        "exp_settling_sub": "Up to 1 °C off",
+        "exp_follow": "Daily updates in the timeline until it settles. To follow along, add the __widget__ widget to a dashboard.",
+        "exp_widget": "Getting started"
       },
       "gets_added": "What gets added",
       "gets_added_intro": "These devices will be added.",
@@ -757,6 +761,14 @@
         "warning_steeper": "Raise the heating curve by one step (menu 1.30.1).",
         "warning_flatter": "Lower the heating curve by one step (menu 1.30.1).",
         "nothing_to_undo": "Autopilot hasn't changed your curve offset."
+      },
+      "settle": {
+        "first": "Heating settling: __mean__ yesterday. Target __target__.",
+        "up": "Heating settling: __mean__ yesterday, up from __previous__. Target __target__.",
+        "down": "Heating settling: __mean__ yesterday, down from __previous__. Target __target__.",
+        "same": "Heating settling: __mean__ yesterday, same as the day before. Target __target__.",
+        "settled": "Heating settled: __mean__ yesterday, at your target. Autopilot now shifts heat away from price peaks.",
+        "stopped": "Heating hasn't settled after 3 weeks: __mean__ yesterday, target __target__. Autopilot keeps adjusting the level."
       }
     },
     "smart": {
@@ -988,6 +1000,20 @@
       "cheap_heat": "cheap heat",
       "estimated_year": "estimated for __year__",
       "saved_line": "__money__ saved this year"
+    },
+    "settle_widget": {
+      "title": "Heating · Getting started",
+      "settling": "Settling · day __day__",
+      "settled": "Settled · day __day__",
+      "of": "of __target__",
+      "holds": "Holds __target__",
+      "first_row": "first day",
+      "settled_row": "✓ settled",
+      "remove": "You can remove this widget.",
+      "stopped": "Still adjusting after 3 weeks.",
+      "waiting": "First update tomorrow morning.",
+      "off": "Shows the first weeks once Autopilot heating is on.",
+      "pick": "Choose your Heating device in the widget settings."
     }
   }
 }

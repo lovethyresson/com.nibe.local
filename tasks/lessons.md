@@ -606,3 +606,10 @@ the maintainer's Homey, and framed the trade-off around their autumn and their p
 "Who are we building this for?" Rule: a method choice is argued from what is right for any owner
 in the six countries (SE, NO, DK, NL, DE and Homey's other markets), checked against several price
 zones and house types in tests; the maintainer's pump is one sanity check, never the deciding data.
+
+## Read a feature's mode where that feature lives (2026-11-22)
+I told the user Hot water Autopilot was in shadow because the heating device's settings held
+`autopilotHotwater: 'shadow'`, a stale copy. The hot water device's own log showed it live, writing
+62/697 and starting a reserve charge at 12:15. Rule: before stating a feature's state, read it from
+the device that runs it and confirm in that device's recent log lines (writes, charges); never infer
+it from a setting on another device.
