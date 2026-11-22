@@ -8,8 +8,9 @@ import {Controls, AutopilotCollector, LOCATION_SETTING, OUTDOOR_SENSOR_SETTING} 
 import {BACKFILL_FIELDS, BackfillField, LogSource, anyLogRead, backfillSources, fetchHeatingInsights} from './autopilot/heating-insights';
 import {newHistoryFileName} from './autopilot/store-file';
 import {DEFAULT_BASE_C, seasonCurve} from './autopilot/season';
+import {priceHistoryFor} from './gateway-price-history';
 import {weatherFor} from './gateway-weather';
-import {BASELINE_DAYS, Baseline, LEDGER_DAYS, boostDays, kwhPerLitreOf, moneyText, partialDay, ModeMark, SavingsData, SavingsDay, baselineOf, dayHours, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay, savingsLive} from './autopilot/savings';
+import {BASELINE_DAYS, Baseline, LEDGER_DAYS, daySaving, boostDays, kwhPerLitreOf, moneyText, partialDay, ModeMark, SavingsData, SavingsDay, baselineOf, dayHours, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay, savingsLive} from './autopilot/savings';
 import {LEGIONELLA_DATES_KEY, ChargeEvent, HotwaterAutopilot, HotwaterMode, LEGIONELLA_STATE_KEY, TankView, ownDeviceId} from './autopilot/hotwater-shadow';
 import {DEFAULT_INTERVAL_DAYS, MAX_FAILURES, OwnerHotwater, RestoreKey, TakeoverRecord, TakeoverWrite, gaveUp, noteFailure, noteRestored, noteTaken,
     noteWrite, readTakeover, restoreAll, restorePlan, retryDelayMs, same, takeoverPlan} from './autopilot/hotwater-takeover';
@@ -3142,6 +3143,17 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     /** Dates a refresh could not complete (a gap in the meter, no prices), and when. They are tried
      *  again once a day, so a day that never completes costs no hourly Homey API calls. */
     private savingsTried = new Map<string, number>();
+    /** Heating days already priced again with the model's old way this run (refreshSavings). */
+    private oldTried = new Set<string>();
+
+    /** Heating's two savings for a day, logged side by side while only the baseline's is shown:
+     *  the baseline's ratio (what the widget counts) and the house model's old way (shift-cost.ts). */
+    private logBothSavings(date: string, day: SavingsDay) {
+        const base = this.getStoreValue(BASELINE_STORE) as Baseline | null;
+        const ratio = base && typeof base.ratio === 'number' ? Math.round(daySaving(day, base) * 100) / 100 : 'no baseline';
+        this.log(`Savings: ${date} saved ${ratio} by the baseline, ${Math.round((day.old! - day.cost) * 100) / 100} by the model `
+            + `(paid ${day.cost}, the model's old way ${day.old}).`);
+    }
 
     /** Keep the Smart mode changes the savings widget sorts days by: Autopilot live or not. */
     private async markMode(mode: SmartMode) {
@@ -3266,6 +3278,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const shiftsFrom = this.role === 'heating' ? this.autopilot?.curveFacts().readyAt ?? Infinity : -Infinity;
             const fedShifting = (at: number) => (at < shiftsFrom ? false : fedLive?.get(at));
             const liveHour = (at: number) => savingsLive(at, shiftsFrom, liveAt(marks, at), fedLive?.get(at));
+            // Heating's old way from the house model (shift-cost.ts), over the hours from the first
+            // of `hours` to `toMs`, with the hours Autopilot ran live as the ones it shifted.
+            const shiftOf = (hours: number[], toMs: number) => (this.role === 'heating' && hours.length
+                ? this.autopilot?.shiftEffect(hours[0], toMs, (at) => liveHour(at) === true) : undefined);
             const firstMark = marks.find((m) => m.live);
             if (firstMark && shiftsFrom !== Infinity && typeof this.getStoreValue(FIRST_LIVE_STORE) !== 'number')
                 await this.setStoreValue(FIRST_LIVE_STORE, firstLiveFrom(Math.max(firstMark.at, shiftsFrom), fedShifting));
@@ -3281,7 +3297,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             if (todayPrices?.size) {
                 const hours = todayHours;
                 const sofar = hours.filter((at) => use.has(at));
-                const day = partialDay(today, hours, use, todayPrices, liveShare(sofar, liveHour), this.role === 'hotwater');
+                const day = partialDay(today, hours, use, todayPrices, liveShare(sofar, liveHour), this.role === 'hotwater',
+                    sofar.length ? shiftOf(sofar, sofar[sofar.length - 1] + HOUR_MS) : undefined);
                 if (!this.savingsStopped) await this.setStoreValue(SAVINGS_TODAY_STORE, day ?? null);
             }
             // Plan vs actual: the hours since the morning plans, at each hour's price.
@@ -3300,9 +3317,26 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 const response = await book.day(date);
                 const hours = dayHours(date, (ms) => localDate(ms, timeZone));
                 const day = response.slots.length > 0 && savingsDay(date, hours, use, hourlyPrices(response.slots, SLOT_MS),
-                    liveShare(hours, liveHour), this.role === 'hotwater');
+                    liveShare(hours, liveHour), this.role === 'hotwater', shiftOf(hours, hours[hours.length - 1] + HOUR_MS));
                 if (day) days.push(day);
                 else this.savingsTried.set(date, now);
+                if (day && day.old !== undefined) this.logBothSavings(date, day);
+            }
+            // Heating days counted before the model's old way existed, still in the meter's reach and
+            // the model's history: priced again with it, once each.
+            if (this.role === 'heating') {
+                for (const stale of stored.filter((d) => d.old === undefined && (d.live ?? 0) > 0 && !this.oldTried.has(d.date))) {
+                    this.oldTried.add(stale.date);
+                    const hours = dayHours(stale.date, (ms) => localDate(ms, timeZone));
+                    const shift = shiftOf(hours, hours[hours.length - 1] + HOUR_MS);
+                    if (!shift) continue;
+                    const day = savingsDay(stale.date, hours, use, hourlyPrices((await book.day(stale.date)).slots, SLOT_MS),
+                        stale.live, false, shift);
+                    if (day?.old !== undefined) {
+                        days.push({...stale, old: day.old});
+                        this.logBothSavings(stale.date, {...stale, old: day.old});
+                    }
+                }
             }
             return days;
         });
@@ -3471,7 +3505,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             money: (v) => amount(v, Math.abs(v) < 10 ? 1 : 0),
             dayMonth: (date) => dayMonth.format(new Date(`${date}T12:00:00Z`)),
             season: this.role === 'heating' ? this.heatingSeason(today) : undefined,
-
+            spread: priceHistoryFor(this.homey, () => localDate(Date.now(), timeZone), (...args) => this.log(...args)).spreads(),
         });
     }
 

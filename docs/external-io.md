@@ -30,6 +30,7 @@ indoor sensor): about **205 Homey API calls**.
 | Geolocation | ~1.3 | collector, solar |
 | Open-Meteo | 1.3 | collector forecast; solar fetches the same `shortwave_radiation` again |
 | Open-Meteo archive | ~0.0014 (monthly) | heating savings: three years of daily mean temperature at the location, for the season (`season.ts`, since 2026-11-21) |
+| Past day prices | 400 once (background, one at a time), then ~0.04 (one a day) | savings projection: each past day's price spread in the owner's zone, a year back, kept in app settings (`gateway-price-history.ts`, since 2026-11-22) |
 | Full device list | 0 (0.33 on homes without a grid meter) | setup, first run, solar on homes without a meter |
 
 **Duplicates.** Prices are fetched by five consumers. Hot water's meter log is read about 28

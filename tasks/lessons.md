@@ -599,3 +599,10 @@ I told the user room-sensor control was on because 202 read 1. The S1155 on zone
 reports 202 = 1; the app treats an answering curve offset (30) as "off" (history.ts
 `roomControlOff`). Rule: before stating a pump fact from a register, grep how the app interprets
 that register, and say what the code concludes, not the raw value.
+
+## Decide owner-facing methods for every owner, not from the maintainer's pump (2026-11-22)
+I proposed choosing the heating savings method by logging both figures "for you" for a week on
+the maintainer's Homey, and framed the trade-off around their autumn and their prices. The user:
+"Who are we building this for?" Rule: a method choice is argued from what is right for any owner
+in the six countries (SE, NO, DK, NL, DE and Homey's other markets), checked against several price
+zones and house types in tests; the maintainer's pump is one sanity check, never the deciding data.

@@ -10,6 +10,7 @@
  *  inputs and the widget only draws. Strings arrive translated. */
 
 import {numberFormat} from '../intl';
+import {ShiftEffect, oldWayCost} from './shift-cost';
 
 const HOUR = 3_600_000;
 
@@ -36,6 +37,11 @@ export interface SavingsDay {
     /** Hot water: each charge's place in the day's prices, 0 the cheapest hour and 1 the most
      *  expensive (the mean over its hours). */
     charges?: number[];
+    /** Heating: what the day would have cost the old way, from the house model (shift-cost.ts):
+     *  the metered kWh less what Autopilot's shifts added, and the heat left in the house at the
+     *  end. Recorded and logged beside the baseline's figure, not yet shown (2026-11-22: both are
+     *  kept until the model's is judged over more owners' days). */
+    old?: number;
 }
 
 /** kWh per hour (hour start, ms) from Insights' hourly points of a cumulative meter. Each point is
@@ -81,7 +87,7 @@ export function hourlyPrices(slots: {slot: number; price: number}[], slotMs: num
 /** A day from its hours. Every hour needs a price; up to two hours without a meter reading count
  *  as no use, and a day with more gaps is left out, since its missing kWh would land in no third. */
 export function savingsDay(date: string, hours: number[], use: Map<number, number>, prices: Map<number, number>,
-    live?: number, withCharges = false): SavingsDay | undefined {
+    live?: number, withCharges = false, shift?: ShiftEffect): SavingsDay | undefined {
     const priced = hours.filter((at) => prices.has(at));
     if (priced.length < hours.length || hours.length < 20) return undefined;
     const metered = priced.filter((at) => use.has(at));
@@ -96,6 +102,7 @@ export function savingsDay(date: string, hours: number[], use: Map<number, numbe
     });
     const mean = priced.reduce((s, at) => s + prices.get(at)!, 0) / priced.length;
     const day: SavingsDay = {date, tiers: tiers.map(round) as [number, number, number], cost: round(cost), mean: round(mean), live};
+    if (shift) day.old = oldWayCost(shift, use, prices, hours, mean);
     if (withCharges) {
         const rank = new Map(ranked.map((at, i) => [at, ranked.length > 1 ? i / (ranked.length - 1) : 0]));
         day.charges = chargeRanks(hours, use, rank);
@@ -107,7 +114,7 @@ export function savingsDay(date: string, hours: number[], use: Map<number, numbe
  *  list, and the average over those hours only, so a morning of cheap hours is not compared with
  *  an evening it has not had. Undefined before the first reading or without today's prices. */
 export function partialDay(date: string, hours: number[], use: Map<number, number>, prices: Map<number, number>,
-    live?: number, withCharges = false): SavingsDay | undefined {
+    live?: number, withCharges = false, shift?: ShiftEffect): SavingsDay | undefined {
     const priced = hours.filter((at) => prices.has(at));
     if (priced.length < hours.length) return undefined;
     const sofar = priced.filter((at) => use.has(at));
@@ -122,6 +129,7 @@ export function partialDay(date: string, hours: number[], use: Map<number, numbe
     });
     const mean = sofar.reduce((s, at) => s + prices.get(at)!, 0) / sofar.length;
     const day: SavingsDay = {date, tiers: tiers.map(round) as [number, number, number], cost: round(cost), mean: round(mean), live};
+    if (shift) day.old = oldWayCost(shift, use, prices, hours, mean);
     if (withCharges) {
         const rank = new Map(ranked.map((at, i) => [at, ranked.length > 1 ? i / (ranked.length - 1) : 0]));
         day.charges = chargeRanks(sofar, use, rank);
@@ -224,8 +232,9 @@ export function kwhPerLitreOf(days: SavingsDay[]): number | undefined {
     return Math.round(kwh / known.reduce((s, d) => s + d.litres!, 0) * 1e5) / 1e5;
 }
 
-/** What a day saved against the baseline, in money: the old way at the day's own prices (the
- *  baseline's ratio to the day's average), minus what the day cost. Negative when it cost more.
+/** What a day saved against the baseline, in money: the old way minus what the day cost.
+ *  Negative when it cost more. The old way is the day's kWh at its own prices at the baseline's
+ *  ratio to the day's average; heating's model figure (`old`) is logged beside it, not used.
  *  The old way's kWh: hot water with its litres known, those litres at the baseline's kWh per
  *  litre; otherwise the day's own kWh (heating: the house sets the heat, Autopilot only moves it).
  *  Hot water without a kWh per litre (no tank readings before Autopilot, or the ratio-1 fallback
@@ -235,12 +244,16 @@ export function daySaving(d: SavingsDay, base: Baseline): number {
     return kwh * d.mean * base.ratio - d.cost;
 }
 
-/** A day's weight for the year's projection. Hot water's use barely follows the season: every day
- *  weighs the same. Heating's follows the heating need where the heat pump is (`season`: heating
- *  degree-days per day for each month, season.ts); without it, NaN, and no projection is made. */
-export function seasonWeight(date: string, role: 'heating' | 'hotwater', season?: number[]): number {
-    if (role !== 'heating') return 1;
-    return season?.[Number(date.slice(5, 7)) - 1] ?? NaN;
+/** A day's weight for the year's projection: how much a day of that month can save, relative to
+ *  the others. Hot water's use barely follows the season; heating's follows the heating need where
+ *  the heat pump is (`season`: heating degree-days per day for each month, season.ts), and without
+ *  it the weight is NaN and no projection is made. Both are times the month's price spread in the
+ *  owner's zone over the last year (`spread`, gateway-price-history.ts), when known: moving a kWh
+ *  saves more in a month of big price swings. */
+export function seasonWeight(date: string, role: 'heating' | 'hotwater', season?: number[], spread?: number[]): number {
+    const m = Number(date.slice(5, 7)) - 1;
+    const need = role === 'heating' ? season?.[m] ?? NaN : 1;
+    return spread ? need * spread[m] : need;
 }
 
 /** This calendar year: saved so far, the rest of the year at the pace so far (weighted by
@@ -256,17 +269,17 @@ export interface YearOutlook {
 export const PROJECT_MIN_DAYS = 7;
 
 export function yearOutlook(days: SavingsDay[], firstLiveDate: string, base: Baseline, today: string,
-    role: 'heating' | 'hotwater', season?: number[]): YearOutlook | undefined {
+    role: 'heating' | 'hotwater', season?: number[], spread?: number[]): YearOutlook | undefined {
     const year = today.slice(0, 4);
     const counted = savingDays(days, firstLiveDate).filter((d) => d.date.slice(0, 4) === year && d.date <= today);
     // The pace from whole days only: today so far has its season weight but only part of its saving.
     const whole = counted.filter((d) => d.date < today);
     if (whole.length < PROJECT_MIN_DAYS) return undefined;
     const saved = counted.reduce((s, d) => s + daySaving(d, base), 0);
-    const weight = whole.reduce((s, d) => s + seasonWeight(d.date, role, season), 0);
+    const weight = whole.reduce((s, d) => s + seasonWeight(d.date, role, season, spread), 0);
     if (!(weight > 0)) return undefined;
     let ahead = 0;
-    for (let date = shiftDate(today, 1); date.slice(0, 4) === year; date = shiftDate(date, 1)) ahead += seasonWeight(date, role, season);
+    for (let date = shiftDate(today, 1); date.slice(0, 4) === year; date = shiftDate(date, 1)) ahead += seasonWeight(date, role, season, spread);
     const rest = whole.reduce((s, d) => s + daySaving(d, base), 0) / weight * ahead;
     return {saved, rest, total: saved + rest};
 }
@@ -377,6 +390,9 @@ export interface SavingsContext {
     dayMonth: (date: string) => string;
     /** Heating: the season where the heat pump is (season.ts); without it no year is projected. */
     season?: number[];
+    /** Each month's price spread in the owner's zone (gateway-price-history.ts); without it the
+     *  projection follows the season alone. */
+    spread?: number[];
 }
 
 /** The widget's text and pictures. */
@@ -440,7 +456,7 @@ export function savingsData(title: string, stored: SavingsDay[], t: Translate, c
     if (!sums.days) return {title, ...pictures, status: t(`status_${c.role}`), reason: t('first_day')};
     // The year: saved so far and the rest at the pace so far, as one estimate. The kronor of a week
     // are too few to say much; the year is the scale an owner weighs Autopilot on.
-    const outlook = yearOutlook(days, c.firstLiveDate, base, c.today, c.role, c.season);
+    const outlook = yearOutlook(days, c.firstLiveDate, base, c.today, c.role, c.season, c.spread);
     if (outlook) {
         const year = c.today.slice(0, 4);
         return {

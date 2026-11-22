@@ -23,6 +23,8 @@ import {DP_PRESET, shadowOptimise} from './optimiser';
 import {PumpThresholds} from './actuator';
 import {LiveEntry, ShiftInput, indoorMean} from './live';
 import {gainBetween} from './curve';
+import {SHIFT_MISSING, ShiftEffect, ShiftSlot, shiftEffect} from './shift-cost';
+import {PumpCurve} from './planner';
 import {BackfillLogs, backfillSummary, backfillWindow, insertBackfill, slotsFromInsights, withWeather} from './heating-insights';
 
 const HOUR = 60 * 60 * 1000;
@@ -306,6 +308,36 @@ export class AutopilotCollector {
         if (forecast.length < 8) return undefined;
         return {house: fit.params, lever: fit.lever!, ti: last.ti, tm: fit.state.tm, mean, curve, bias: 0, forecast,
             supply: fit.pump?.supply, heatPerSupplyK: fit.pump?.heatPerSupplyK, cop: fit.pump?.cop};
+    }
+
+    /** The electricity heating's shifts added or saved from `fromMs` to `toMs`, against the same
+     *  hours with Autopilot's average feed held steady (shift-cost.ts). `fed` says, per hour start,
+     *  whether Autopilot fed BT1 to shift heat. Undefined before the model is ready, or with more
+     *  than SHIFT_MISSING slots of the span unread (a gap is held at the slot before it). */
+    shiftEffect(fromMs: number, toMs: number, fed: (hourMs: number) => boolean): ShiftEffect | undefined {
+        const fit = this.fit;
+        if (this.readyAt === undefined || !fit?.params) return undefined;
+        const pump: PumpCurve = fit.pump?.supply && fit.pump.heatPerSupplyK! > 0
+            ? {supply: fit.pump.supply, heatPerSupplyK: fit.pump.heatPerSupplyK, shiftOnly: true, ...(fit.pump.cop ? {cop: fit.pump.cop} : {})}
+            : fit.lever! > 0 ? {lever: fit.lever} : {};
+        const range = this.history.range();
+        if (!range.length) return undefined;
+        // Up to the last slot recorded: today's hour in progress is not in the history yet.
+        const end = Math.min(toMs, (range[range.length - 1] + 1) * SLOT_MS);
+        const slots: ShiftSlot[] = [];
+        let missing = 0;
+        for (let slot = slotOf(fromMs); slot * SLOT_MS < end; slot++) {
+            const v = this.history.get(slot);
+            const hour = Math.floor(slot * SLOT_MS / HOUR) * HOUR;
+            if (v && Number.isFinite(v.te) && Number.isFinite(v.bt1)) {
+                slots.push({slot, te: v.te, bt1: v.bt1, ti: v.ti, busy: v.dhw >= 0.5, fed: fed(hour)});
+            } else {
+                const before = slots[slots.length - 1];
+                if (++missing > SHIFT_MISSING || !before) return undefined;
+                slots.push({...before, slot, ti: NaN, fed: fed(hour)});
+            }
+        }
+        return shiftEffect(fit.params, pump, slots);
     }
 
     /** What heat curve advice reads (curve-advice.ts): when the model became ready, the learned
