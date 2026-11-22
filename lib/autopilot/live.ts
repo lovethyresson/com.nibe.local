@@ -456,6 +456,8 @@ export class HeatingFeed {
     /** Whether the pump holds a value we wrote, so going idle or stopping hands it back. */
     private holding = false;
     private limits: Limits = LIVE_LIMITS;
+    /** Getting started's hold at the last plan, so its change is logged once. */
+    private holding0?: boolean;
     private plan?: {slot: number; biases: number[]; forecast: ForecastSlot[]; reason?: string; indoor?: number[]; back?: number};
     private neutral = false;
     /** The setpoint trim in force (setpoint.ts), the setpoint it steers to, and the slot it last moved. */
@@ -665,6 +667,8 @@ export class HeatingFeed {
         this.warmingFor = warming;
         // Holding: the planner's own "do nothing", no room to shift (planner.ts `no_room`).
         const hold = this.hooks.holdShift?.() === true;
+        if (hold !== this.holding0) this.hooks.log(`Autopilot heating: ${hold ? 'holding the level, no price shifts (Getting started)' : 'price shifts on'}.`);
+        this.holding0 = hold;
         const plan = planLive({...input!, mean: this.setpoint ?? input!.mean, comfort, bias: this.bias - this.trim, previous: this.previous},
             hold ? {...this.limits, maxBias: 0} : this.limits, this.hooks.sunTrust());
         const reason = hold ? 'getting_started' : plan.reason;

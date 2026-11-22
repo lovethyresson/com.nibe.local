@@ -15,6 +15,7 @@ module.exports = {
       case 'cost_check': return app.costCheckWidget(query.device);
       case 'day_plan': return app.dayPlanWidget(query.device);
       case 'overview': return app.overviewWidget(query.device);
+      case 'getting_started': return app.gettingStartedWidget(query.device);
       case 'crashes': return app.crashJournal();
       default: throw new Error(`No widget ${params.id}`);
     }
