@@ -1,22 +1,23 @@
 # Working plan
 
-Three things are live. Everything else that used to be here has shipped — the history is in the
-commits and in the **Releases** table in [`README.md`](../README.md), the durable rules are in
+Open work first. What has shipped is in the commits and in the **Releases** table in
+[`docs/releases.md`](../docs/releases.md), the durable rules are in
 [`CLAUDE.md`](../CLAUDE.md), and the design write-ups are under [`docs/`](../docs).
 
 ## After the heating test ends (Thursday 2026-11-19), in this order
 
 - [x] Homey system update, held since 2026-11-17 so the test sees no firmware change. Done
   2026-11-20: Homey 13.5.5 at 10.136.1.16.
-- [ ] **Athom account rate-limited (2026-11-20).** Every account call answers 429, including
-  `homey login`; the cause was the Mac test logger (`local.nibe-logger`, two `homey api raw`
-  calls every 2 min), now unloaded (plist and `~/nibe-logs/live.csv`, 1009 rows, kept). Wait for
-  the limit to lift, then `homey login`, then install. All later checks read the Homey locally
-  with a Homey API key (scratchpad `check_after_install.py`), never through the CLI.
+- [x] **Athom account rate-limited (2026-11-20).** The cause was the Mac test logger
+  (`local.nibe-logger`, two `homey api raw` calls every 2 min), now unloaded (plist and
+  `~/nibe-logs/live.csv`, 1009 rows, kept). The limit lifted: installed 2026-11-20 12:36 (71f5f13).
+  All later checks read the Homey locally with a Homey API key, never through the CLI.
 - Main's 1.5.1 (01a2513) stays off this branch: Autopilot work is separate from it. When the
   branch is merged to main, the conflict is in driver.ts `pendingSelection`: pass `stored` to
   `cleanSelection`, as `selection_done` on main does; keep both sides' integration tests.
-- [ ] Review the heating test and the Mac logger's gaps.
+- [x] Review the heating test and the Mac logger's gaps (439027d). Both fixes built: a daily heat
+  check fits the heat loss to the meter (2a87865), and the holding trim is PI (16e3127, 6ab59ce).
+  Whether they close the miss is the next section.
   Plan vs actual ran 13–16 % low on Mon and Tue (2026-11-16/17) while indoor sat below target:
   split each day's miss into kWh (house model, COP) and price, per function, and fix the one that
   is off. Also why holding sits at 22.1 °C and doesn't climb back to 22.5 °C.
@@ -33,16 +34,15 @@ commits and in the **Releases** table in [`README.md`](../README.md), the durabl
       holding went 22.8 → 22.1 → 22.2 → 21.9 °C as outdoor fell from about 5 to 1 °C: the curve
       is too flat for the cold. The model's steady state says the curve holds 22.5 °C, so it adds
       no bias. A heat loss that is too low gives both the low plan and the missing bias.
-    - **Fix, to decide:** fit the heat loss to the heat meter (1577) as an energy balance, or a
-      closed-loop holding trim on the measured indoor error, or both.
+    - **Fix:** both, see above.
   - **Logger gaps** (35 % of the time covered): the Homey cloud API's rate limit, not the Mac
     sleeping. The logger makes 60 calls an hour, so each hour stops at about :50, and longer stretches
     go when other calls share the quota. The local shadow log is the record. A future logger reads
     once every 5 minutes, or reads local files only.
 - [x] Merge the held branches: insights-backfill → cop-optimiser → orchestrator; gifted-euler any time.
   Done 2026-11-19 (c1a92bf, 1f80ebd, dff95aa, e640bed); 684 tests and validate pass.
-- [ ] Install the app batch: savings fixes, badge removal, savings-card redesign, Plan vs actual,
-  the early-draw log (a826834).
+- [x] Install the app batch: savings fixes, badge removal, savings-card redesign, Plan vs actual,
+  the early-draw log (a826834). Installed 2026-11-20 12:36 (71f5f13) and again 2026-11-21 (3c49d8f).
 - [ ] Compare figures with where else they show (897a839, 6700246, ee7e952, 68ecd46), mid-evening
   and just after midnight: Energy today's kWh and kr against Homey Energy's Top consumers, Heating
   + Hot water + Main (to about 0.1 kWh and a few öre; Main's idle part reads about 5 min after a
@@ -59,6 +59,33 @@ commits and in the **Releases** table in [`README.md`](../README.md), the durabl
   off, room control (2978) off, curve offset unchanged, same indoor sensor. Read locally only.
 - [ ] Then Balanced: how much more it shifts and saves against Comfort, and what indoor does.
   Not before the trim is judged, or the two changes can't be told apart.
+- Since 37e1431 the feed holds the level without price shifts until Getting started reaches
+  Saving (`holdShift`, `lib/autopilot/live.ts`). On a reinstall the trim is judged during Settling
+  and Calibrating, and "no Pre-heating for a trim-only shift" and Balanced only after Saving.
+
+## Autopilot heating: Getting started (built 2026-11-22, running on the test Homey via `homey app run`)
+
+Four steps: Learning, Settling, Calibrating, Saving (`lib/autopilot/settling.ts`, widget
+`widgets/getting_started`, Heating Setup shows the steps).
+
+- [x] Settling: each morning yesterday's indoor mean against the thermostat, a timeline message,
+  two days within 0.2 °C settle it, stops after 21 days (9174e2e).
+- [x] Calibrating, then Saving; price shifts held until Saving (`holdShift`); widget stepper with
+  paused, offline and restart states; six languages (37e1431). Hold logged on change, debug
+  route (ab2dc59).
+- [x] Curve advice acts once settling is done; the settled line and a curve change in the same
+  hour go out as one timeline message (`afterFit`, `lib/device.ts`) (0624c39).
+- [x] Heating savings count from Saving (`liveAt` in the settle store) (0624c39).
+- [x] Operating state reason names Autopilot when it switched on More hot water
+  (`takeAutopilotNote`, `drivers/nibe_s/reason.ts`) (0624c39).
+- [x] Price history from Energy-Charts, one request a month, twelve monthly spreads kept
+  (e32f4e3); the year's savings estimate weights months by it (a6c4cb6).
+- [x] Running on the test Homey (0624c39, 2026-11-22): log shows "holding the level, no price
+  shifts", the savings reset ran (TEMP(savings reset), flag 2), widget endpoint read and rendered
+  (Settling, day 1).
+- [ ] Watch the morning timeline messages through Settling, Calibrating and Saving.
+- [ ] Savings: heating's model-based old way (`shift-cost.ts`) is logged beside the baseline's
+  saving (a6c4cb6); compare the two over some days and decide which the widget shows.
 
 ## Autopilot heating: "feels like" indoor temperature (idea, 2026-11-18)
 
@@ -78,16 +105,18 @@ allows somewhat longer or deeper ease-offs.
 
 ## Before the release: drop temporary test code
 
-Search `TEMP(` across `lib/` and `dev/` before packaging; each hit is listed here.
+Run `grep -rn "TEMP(" lib drivers app.ts api.ts widgets assets` before packaging; each hit is
+listed here. TEMP(mem), the memory probe, is gone (`lib/mem-probe.ts` deleted, 0624c39).
 
-- [ ] **TEMP(warning clear)**, added 2026-11-20 (`lib/device.ts`, heating `onInit`): clears the
-  Proxy error left as Heating's warning by the 12:36 build, once (store flag
+- [ ] **TEMP(warning clear)**, added 2026-11-20 (3f33d79, `lib/device.ts`, heating `onInit`):
+  clears the Proxy error left as Heating's warning by the 12:36 build, once (store flag
   `proxyWarningCleared`). Remove once it has run on the test Homey.
-- [ ] **TEMP(savings reset)**, added 2026-11-20 (`lib/device.ts`, heating `onInit`): clears
-  heating's savings start, baseline and days once (store flag `autopilotSavingsReset`), so the
-  test Homey reads them again under b870c03's rule. Remove once it has run on the test Homey.
+- [ ] **TEMP(savings reset)**, added 2026-11-20 (6549daa, `lib/device.ts`, `onInit`): clears
+  heating's savings start, baseline and days once (store flag `autopilotSavingsReset`, now 2), so
+  the test Homey reads them again under 0624c39's rule (counted from Getting started's Saving).
+  Remove once the 0624c39 build has run on the test Homey.
 
-- [ ] **TEMP(early-draw log)**, added 2026-11-17 (`lib/autopilot/hotwater-shadow.ts`):
+- [ ] **TEMP(early-draw log)**, added 2026-11-17 (a826834, `lib/autopilot/hotwater-shadow.ts`):
   the hot water log's `early` and `withEarly` fields and `withEarly()`, which plan a second time
   with early draws credited (`creditEarly`, `drawnEarly`). Logged only, never acted on. Kept
   until two weeks of Autopilot-run days are compared: how often the credit would have waited,
@@ -99,7 +128,7 @@ Search `TEMP(` across `lib/` and `dev/` before packaging; each hit is listed her
   - Days to read with care in that comparison: **2026-11-17**, one of the household home sick,
     a midday shower; not a normal working day.
 
-## Autopilot hot water: build (2026-11-08, [docs/autopilot-hot-water.md](../docs/autopilot-hot-water.md))
+## Autopilot hot water: built, live on the maintainer's Homey (2026-11-08 on, [docs/autopilot-hot-water.md](../docs/autopilot-hot-water.md))
 
 The maintainer asked for it now (2026-11-08): a generic learner of the household's hot water use
 (weekday/free day), price and solar surplus, knobs "when" (697 = 2) and "how hot" (end the boost with 697 = 0); no EEPROM writes; day type set by the owner via Flow or by hand. Measured: free
@@ -108,16 +137,26 @@ from surplus.
 
 - [x] Levers decided (2026-11-08): no EEPROM writes; day type only from Flows or by hand
 - [ ] Release scope beyond the maintainer's Homey
-- [ ] Slice 1: learner (pure) + Insights bootstrap + tank fields in the history, with tests
-- [ ] Slice 2: planner (pure) + `dev/evaluate-hot-water.mjs` back-test, draws not known ahead
-- [ ] Slice 3: shadow on the maintainer's Homey; next planned charge on the device
-- [ ] Slice 4: live levers behind the on/off, guards, rescue, reconciliation, surplus, Flow cards, settings, six languages
-- [ ] Slice 5: docs, FAQ, README row
-- [ ] H0 (no writes, in shadow): 1028 at 5-min for a week
-- [ ] H1, H3: each needs the owner's go-ahead
+- [x] Slice 1: learner (pure) + Insights bootstrap + tank fields in the history, with tests (1fffdf0)
+- [x] Slice 2: planner (pure) + `dev/evaluate-hot-water.mjs` back-test, draws not known ahead (44ed1cd)
+- [x] Slice 3: shadow on the maintainer's Homey; next planned charge on the device (22c1301)
+- [x] Slice 4: live levers behind the on/off, guards, rescue, reconciliation, surplus, Flow cards, settings, six languages (5c0fd35)
+- [x] Takes over the pump's own charging and legionella boost while Live, restores them on leaving;
+  Legionella setup screen (a5ed4c6)
+- [ ] From a5ed4c6, not verified on hardware: 697 = 6 read-back, whether 60 is clamped, and a 6 h
+  boost reaching 65 °C.
+- [ ] Slice 5: docs and FAQ are written; README has no Autopilot mention and `docs/releases.md` no
+  row yet (both at release).
+- [ ] H0 (no writes, in shadow): 1028 at 5-min for a week. No record here of it being read.
+- [x] H1 skipped (maintainer, 2026-11-08; docs/autopilot-hot-water.md §5).
+- [ ] H3: Autopilot live 7 days with the Flow off, real kr against the Flow's week.
 - [ ] Exit: back-test >= 10 % better than the Flow over 14 days, no floor violations; litres at peaks within +-50 L on >= 80 % of days
 
-## Autopilot slice 5: live BT1 test build (planned 2026-11-07, for the run after the room-off run)
+## Autopilot slice 5: live BT1 test build (5a built 2026-11-07; 5b superseded)
+
+5b as designed here was not built. The live feed came as the shift-only test (`live.ts`,
+f57b79e) and the setpoint trim (`setpoint.ts`, 09f1322, PI since 16e3127); the sections below
+track those.
 
 **Order (maintainer, 2026-11-07): nothing that writes 5217 is built until M2 is complete.** M2
 cannot complete without the comfort loop, because shadow's "doing nothing" assumes the curve holds
@@ -203,14 +242,11 @@ Not before the room-off run ends: the collector is the test instrument, a reinst
   upgrade (old shadow memory holds pre-trim biases, a few slots of transient).
 
 **Before it touches the pump.**
-- [ ] `trim.ts` + unit tests (steady state at comfort, step in outdoor, sensor bias, windup).
-- [ ] Planner baseline around the comfort bias + tests; the existing planner tests stay green.
-- [ ] Closed-loop bench: `evaluate-presets.mjs` runs the twin with a curve that does *not* hold
-      comfort (the room-off run's drift), comparing doing nothing, trim only, trim + each preset.
-- [ ] Controller + guards + tests; integration test against the fake pump (5217 write, input 1
-      readback, verify failure → stop, write expiry).
-- [ ] Typecheck, full test suite, `homey app validate`.
-- [ ] Install on the Homey with the switch off; confirm nothing is written; then switch on.
+- [x] `trim.ts` + unit tests (`test/autopilot-trim.test.ts`).
+- [x] Planner baseline around the comfort bias + tests (5a, 00cccb5).
+- Superseded: the closed-loop bench (`dev/simulate-trim*.ts` took its place for the setpoint
+  trim), the controller and guards (`live.ts`, `test/autopilot-live.test.ts` with a fake pump for
+  5217/input 1), and the install with the switch off (done for the shift-only test, 2026-11-12).
 
 **The run.** After the room-off run ends (~9 Nov evening). Room control off, SPA off, Manual mode,
 offset held where it is. Day 1 trim only (Comfortable limits, no price shifting) to prove the
@@ -252,18 +288,20 @@ FAQ claim "a few percent" "Ok".
       to it bought back a "deficit" the curve never meant to deliver. The log keeps `setpoint` too.
 - [x] The 2026-11-03 10:09 outage was this Mac's route to the pump (`EHOSTUNREACH`), not the pump:
       the Homey's slots 10:00 and 10:15 have coverage 0.99/1.0 and no reconnect flag. No app change.
-- [ ] Room-sensor control off from 2026-11-04 ~20:30, curve offset +2: collect ~5 clean days, then
-      the curve fit and preset evaluation. 2026-11-05 15:15: curve fitted, 71 slots over BT1
+- [x] Room-sensor control off from 2026-11-04 ~20:30, curve offset +2: collect ~5 clean days, then
+      the curve fit and preset evaluation (both in the daily log below). 2026-11-05 15:15: curve fitted, 71 slots over BT1
       5.3–8.3 °C, gain 0.46 per K (ladder: 0.44); indoor settled at ~21.3 °C since 08:00.
 - [x] The real room-sensor flag on zone firmware is holding 2978 (`id:12671`, u8 0..3; 2978–2985
       look like one per climate system). Sweep 2026-11-05: switched on 15:02 → 2978 0→1 next
       pass; off 15:07 → back to 0. 202 never moved. Register 30 follows too, ~6 min late
       (refused 15:08–15:13), so `roomControlOff` reads the stored slots right; the 15:02–15:08
       on-spell counts as off there (about 2 slots).
-- [ ] Record 2978 as `roomctl` instead of 202 (a register-table entry + compose capability).
-- [ ] Shadow behind a hidden setting before any test-channel build.
-- [ ] The planner's doing-nothing is the curve alone; if shadow's live error tracks sun or indoor,
-      model the room loop (or require it off, as M3 does anyway).
+- [ ] Record 2978 as `roomctl` instead of 202. History still maps `roomctl` to
+      `boolean_NIBE.h202_use_room_sensor` (`drivers/nibe_s/profile.ts`); the live feed and pairing
+      read 2978 directly (`readRoomControl`, `lib/pairing-pump.ts`).
+- Superseded: shadow behind a hidden setting (Smart mode's Test run replaced it, 3063bc6).
+- Superseded: modelling the room loop. Autopilot requires room-sensor control off and stops if
+  it is on (`live.ts`, `room_control`).
 
 ## Autopilot slice 3: planner (offline)
 
@@ -274,12 +312,15 @@ FAQ claim "a few percent" "Ok".
       comfort (plan §7.3 has the table and the three rejected objectives).
 - [x] Why *Save the most* didn't use its depth: replans started from zero bias (fixed: warm
       start), and the lever is ~0.45·H, not H (measured; `PumpCurve.lever`).
-- [ ] Rerun on the maintainer's learned house once the model is ready (`--model`).
-- [ ] Learn the lever live per pump (`estimateLever` over the history) and keep it in the model file.
+- [x] Rerun on the maintainer's learned house once the model is ready (`--model`): daily from
+      2026-11-04 (slice 2's model log).
+- [x] Learn the lever live per pump (`estimateLever` over the history) and keep it in the model
+      file (`lib/autopilot/house.ts`, `lever`).
 
 ## Autopilot slice 2: house model (branch `smart-heating/m1-data`)
 
-Offline only; nothing runs on the Homey yet. Design: `docs/autopilot-plan.md` §4.2, §6.
+Started offline; the model has run on the Homey since 2026-10-31 (8e13f97). Design:
+`docs/autopilot-plan.md` §4.2, §6.
 
 - [x] `lib/autopilot/outdoor.ts`: real outdoor source (wired while not feeding, Homey sensor, forecast
       + per-hour bias), 6 h degraded limit.
@@ -289,7 +330,7 @@ Offline only; nothing runs on the Homey yet. Design: `docs/autopilot-plan.md` §
       within 10 % heat loss / 15 % τ; a wrong answer still predicts inside 0.35 K.
 - [x] `dev/fit-house-model.mjs` runs on the real file (day 1: 77/92 usable, 6 h RMSE 0.21 K;
       too short to read the parameters).
-- [ ] Fit again after ≥ 5 valid days. Passive data has no excitation (§6.3), so expect τ low.
+- [x] Fit again after ≥ 5 valid days (2026-11-04 on, daily log below).
 - [x] Run the model online: the collector refits over the whole history every hour
       (`lib/autopilot/house.ts`; heat for a slot lands slots later, so a refit beats stepping) and
       writes `autopilot-<id>.model.json` beside the history. Answers default to "Don't know".
@@ -590,7 +631,7 @@ Offline only; nothing runs on the Homey yet. Design: `docs/autopilot-plan.md` §
     setting `autopilotOutdoorSensor`), which reads ~1 K warmer. The fit mixes both until the new
     source has 14 days. 5b stays blocked until the level-off is read.
 
-## Autopilot heating: shift-only live test (built 2026-11-11, installed switched off 2026-11-12)
+## Autopilot heating: shift-only live test (ran 2026-11-12, replaced by the owner UI the same afternoon)
 
 **Why.** The comfort bias rests on the model's steady level, which the +6 run has not confirmed
 (entry above). Price shifting does not: `lib/autopilot/live.ts` plans with `pump = {lever}` (the
@@ -611,41 +652,32 @@ prices: ease off at 22:00 (−2 K) and 07:00–08:30 (−3 K), indoor −0.05 K.
 - [x] Install with the switch off (2026-11-12 ~13:55, f57b79e): app running, all four devices
       available, no `autopilotLive.*` setting. Input 1 read 6.9 °C against Utetemperatur 5.3 °C,
       so the pump is on its wired BT1, not a feed.
-- [ ] Preconditions: SPA heating off, room-sensor control off, menu 7.5.9.2 on, outdoor sensor
-      picked (Utetemperatur since 2026-11-11 21:15).
 - [x] Turned on 2026-11-12 12:58:44 UTC: `homey api raw -X PUT --path
       /api/manager/apps/app/com.nibe.local/setting/autopilotLive.10.136.1.93%23heating --body
       '{"value":"shift"}'`. **`<id>` is the device's data id (`<ip>#heating`, `#` URL-encoded), not
       its Homey UUID**; the first try used the UUID, did nothing, and was deleted. Input 1 moved
       6.9 → 6.3 °C that second (sensor 5.3, so bias −1: easing off).
-- [ ] First hour: "started" in the log, feed verified each cycle, bias as planned, no warning.
-- [ ] Daily check adds: live bias range, indoor against its 24 h mean, add-heat starts, verify
-      failures, stops (`dev/review-shadow.mjs` prints a "Live" line).
-- [ ] Turn off: set it to `off`; the log shows "stopped (mode_off)" and the last feed is the real
-      outdoor temperature.
+- Superseded: the remaining protocol steps (preconditions, first hour, daily check, turn off).
+  The owner UI install at 15:00 (8362ed1) removed the `autopilotLive.*` switch and stopped the
+  feed; the preconditions are now the Heating Setup checklist.
 
-## Autopilot heating: setpoint trim (built 2026-11-14, 09f1322, untested on hardware)
+## Autopilot heating: setpoint trim (built 2026-11-14, 09f1322; PI since 2026-11-19, installed)
 
 **What.** Autopilot heating now holds the Heating thermostat (`lib/autopilot/setpoint.ts`, design
 in `docs/autopilot-plan.md` §7.3 "Setpoint trim"): a PI trim under the price shift, P = heat loss /
 lever (0.5–3), I = 0.02 K per K·h, learning only while live and within 1 K of the setpoint, error on
 the 24 h mean inside the comfort range and on indoor now beyond range + 0.5 K, clamped ±10 K. Away
-is just another setpoint. Unit-tested only; nothing has run on the S1155 yet. Pairing now sets up
-Smart mode too (ffd1421), and setup ends on What gets added / What changes (9d47329).
+is just another setpoint. Pairing now sets up Smart mode too (ffd1421), and setup ends on What
+gets added / What changes (9d47329). Redesigned after the heating test: the integral is paced by
+the house's time constant (16e3127), it runs from the day Autopilot is chosen (6ab59ce), holds
+still 24 h after a setpoint change (ce2f988), and ignores implausible indoor (6549daa). Chosen on
+200 simulated houses (`dev/simulate-trim*.ts`). Installed on the test Homey since 2026-11-20.
 
-**Test plan (only after the maintainer's go to install):**
-- [ ] Confounders held first: SPA heating off, room-sensor control off (2978), curve offset settled
-      (no change in the days before), outdoor sensor unchanged.
-- [ ] Simulated first on the S1155: watch `trim` and `setpoint` in each live log entry (the
-      integral stays at 0 in Simulated; only the P part shows). Check the sign (house below the
-      setpoint → positive trim, fed colder) and the size against the 24 h mean error.
-      `dev/review-shadow.mjs` does not print them yet.
-- [ ] Then live, with the same confounders held, for at least 4–5 days (the integral closes 1 K in
-      ~4 days).
-- [ ] **Success:** the indoor 24 h mean converges to the setpoint and stays within the comfort range,
-      without oscillation; the integral (store `autopilotTrim`) levels off well inside ±10 K.
-- [ ] Then Away on and off once: indoor heads to the Away temperature on indoor now, and the
-      integral does not wind up during the jump.
+**Test plan:**
+- Superseded: the confounders, the Simulated check and the 4–5 live days are the "evaluate the
+  trim" section at the top.
+- [ ] Away on and off once (now the home's switch on Main, 0a1d577): indoor heads to the Away
+  temperature, and the trim holds still through the jump (`SETTLE_H`).
 
 ## Autopilot: solar, and pool and cooling (2026-11-12)
 
@@ -663,7 +695,7 @@ Plan: `~/.claude/plans/atomic-chasing-brooks.md`. As built: `docs/autopilot-plan
   - Cooling: lever by probe (975 or 988, never BT1), pre-cool on price and surplus.
   - Both ship live, guarded; testers confirm.
 
-## Autopilot heating: owner UI (built 2026-11-12, not installed)
+## Autopilot heating: owner UI (built and installed 2026-11-12)
 
 Replaces the hidden `autopilotLive.*` switch with the Price control settings, Heating Setup →
 Autopilot (choose, checklist, outdoor sensor picker, profile + comfort, Verify, Return to NIBE),
@@ -689,8 +721,8 @@ then the maintainer turns Autopilot on in Heating → Repair → Autopilot. That
 - [ ] Repair → Smart mode on Heating: checklist shows indoor, Utetemperatur, dynamic prices, room
       control off; Verify passes; the SPA heating tiles go.
 - [ ] Hot water → Repair → Smart mode: choices save; SPA hot water tiles follow.
-- [ ] Away on: thermostat to the Away temperature; off: back. Unverified on hardware: whether 2505
-      moves the curve with room-sensor control off (Autopilot needs it off).
+- Superseded: the Away check moved to the setpoint trim section (Away is now a setpoint the trim
+  holds, on Main's switch).
 - [ ] Autopilot widget on a dashboard: indoor and offset axes read right; Comfort range Off feeds 0.
 - [ ] Heating tile: status, reason, fed outdoor, shift update each slot; Insights log them.
 
@@ -748,121 +780,16 @@ six-language strings (the slice adds no owner-facing text).
 **Open for the maintainer:**
 - 28 days of 15-min history (~230 KB) is enough for M1/M2.
 
-## 0.9.15 — pre-1.0 audit, staged and not yet published
+## Before 1.0 (0.9.13 to 0.9.15)
 
-A full audit of the codebase and architecture ahead of 1.0. Everything below is committed and
-stamped; what remains is the publish itself.
+Shipped and recorded in `docs/releases.md` (0.9.13, 0.9.14, 0.9.15 and 1.0.0 rows). Left open:
 
-**Four runtime defects fixed.** In rough order of how badly they would have read on the forum:
+- [ ] Split `PumpConnection` (`lib/connection.ts`, now 1654 lines) along `energy/diagnostics`,
+      `energy/allocator`, `modbus/transport`; deliberately after 1.0.
+- [ ] Reply to [issue #4](https://github.com/lovethyresson/com.nibe.local/issues/4) (halderex's
+      myUplink cross-check behind moving the meters to 2305), if not already done.
 
-- A pump that stopped answering while holding the TCP connection open was **invisible, forever**.
-  `readRegisterRaw()` resolves `undefined` rather than rejecting, so the poll chain never failed —
-  which made the recovery path behind its `.catch` unreachable dead code, sitting under a comment
-  claiming it handled exactly this. No reconnect, no `setUnavailable()`, no log line: the device
-  looked online with frozen values. Now two consecutive empty polls drop the socket and reconnect.
-  Covered by an integration test against a server that accepts but never answers; verified it
-  fails without the fix.
-- **Writes could be starved behind a poll.** Serializing the wire fixed collisions and introduced
-  unbounded head-of-line blocking: a poll enqueues ~100 requests and each can take the 5 s jsmodbus
-  timeout, so a flow action could wait minutes while Homey's own timeout reported failure. Writes
-  now take a priority lane; the one-at-a-time guarantee is unchanged.
-- **`readRegister()` ignored the resolved alternate address** while `writeRegister()` honoured it —
-  and every write-then-verify flow card uses the pair. Latent rather than loud today (only the
-  night-chill register both writes and has an alternate), but it was one numeric alternate away
-  from telling users a successful write had failed.
-- **A device setting was persisted on every poll** — tens of thousands of flash writes a day across
-  four devices, forever. Debounced to 0.01 kWh steps, flushed on `onUninit`.
-
-Plus: repair now reports capabilities it failed to apply instead of returning success regardless;
-three flow triggers no longer fire unhandled rejections; the enum reverse-lookup gives a real
-message instead of a bare TypeError.
-
-**Dead weight removed.** Two orphan flow cards that had shipped in 0.9.13 *and* 0.9.14 with no
-matching register; two orphan capability types; three dead enum maps (the measured 697 facts moved
-onto the register itself rather than deleted); `groupsForRole()`; the unused `crc` dependency;
-three unreferenced assets; ~11 dead locale keys. Locales are now at full six-language parity in
-both layers — de/nl/no/da had been missing the operating-mode enum and the pairing sensor prompt.
-
-**One rename, and it must be pre-1.0.** The solar EME 20 power register was literally named
-`measure_power` — the same string as the derived live-draw capability every function device
-carries. Renamed to `measure_power.i2176_solar_current`, carried by `renamedRegisters`. **Solar
-owners need to run Repair.**
-
-**A gate, at last.** `.github/workflows/ci.yml` runs typecheck (app *and* tests), tests, and
-`validate --level publish`. The test suite had never been type-checked — `tsx` strips types without
-checking — and had three real type errors. `tsconfig.json` now pins `strict` explicitly and stops
-sweeping in `dev/*.mjs`.
-
-**Tests: 94 → 101.** New guards so the deleted things cannot come back (every flow card resolves to
-a live register; every capability type has an instance; no register name collides with a derived
-capability name), the watchdog test, and the first coverage of the capability-sync decision every
-existing device runs through at init and after every repair — extracted as `capabilitySyncPlan()`
-so it could be tested at all.
-
-`CLAUDE.md`'s Architecture section was rewritten: it had been describing the layout of two
-refactors ago, including a `staticRegisters`/`updateStaticSettings()` feature that does not exist.
-
-Still open:
-
-- [ ] `homey app publish`
-- [ ] decide whether 1.0 is next. The audit's remaining recommendation — splitting the 1,341-line
-      `PumpConnection`, whose seams are clear (`energy/diagnostics`, `energy/allocator`,
-      `modbus/transport`) — is deliberately **after** 1.0: it touches the comments that encode
-      irreplaceable live measurements and buys nothing a user can see.
-
-## 0.9.14 and 0.9.13 — published, running with other users
-
-Published and live. **This is the release that ends the single-install era** — see the rename
-section in `CLAUDE.md`, which no longer permits a hard cut now that renames land on pumps that
-are not ours.
-
-**It breaks, and that is measured rather than assumed.** Against 0.9.12 the compose capability
-set goes 105 -> 102: **15 removed, 12 added**, several of them renames of the same register onto
-a new type (`boolean_NIBE.i1063_hw_circulation` -> `status_NIBE.i1063_hw_circulation`,
-`measure_enum_NIBE.h237_operating_mode` -> `operating_mode_NIBE.h237_operating_mode`,
-`measure_temperature.i26_inside` -> root `measure_temperature`). So **Repair is needed on every
-Nibe device**, not just Heating. Flows pointing at a renamed setting must have it picked again,
-and their Insights history starts fresh. Stated in the changelog in both languages.
-
-The publish-time trap in `CLAUDE.md` — deleting a capability *type* in the same release as a
-rename away from it, which breaks every capability operation in `onInit` — is checked and clear:
-two type files were added (`operating_mode_NIBE`, `status_NIBE`) and none deleted, so every
-orphaned instance still resolves.
-
-What is in it:
-
-- the Heating device becomes a real thermostat, reading the register that actually regulates
-- **energy meters move to register 2305**, the source the pump uses for its own hourly books —
-  measured to be exactly what myUplink publishes. The live tile stays on 2166, which is unfiltered
-- operating mode becomes settable, which matters because the immersion permit only applies in
-  Manual
-- six capabilities that showed one setting twice collapse to one each
-- three crash classes fixed: read-only registers offered as switches, a picker handed a value
-  outside its list, and a picker that also carried an enum decoding to the label
-- capabilities have a declared reading order per device — applied to the list the pairing picker
-  submits, which is what a device stores and renders; ordering the manifest alone did nothing
-- the Hot Water tile follows "Allow hot water" again. A tile's on/off appearance *is* its quick
-  action, so pinning "More hot water" to that slot had silently cost it the state
-- pump-side changes are logged, so a schedule or a panel edit is visible rather than silent
-- indoor setpoint (2505) writable, room sensor resolved at pairing, Pool a thermostat, Smart
-  Price Adaption exposed — mechanism and evidence from halderex's PR #5
-
-Done:
-
-- [x] push — `feature/room-control` and `main` both at `f71d36f` on origin, fast-forwarded
-      (no merge commit). Gate on that exact tree: 90/90 tests, `validate --level publish` clean
-- [x] `homey app publish`
-
-Still open, and now with an audience:
-
-- [ ] watch it. Stability on other people's pumps is what decides 1.0 vs 0.9.14
-- [ ] reply to [issue #4](https://github.com/lovethyresson/com.nibe.local/issues/4) — halderex's
-      myUplink cross-check measured the energy log against parameter 25138 on the same pump in the
-      same hour, 0.930 against 0.93, which is what justified moving the meters to 2305
-- [ ] ask Erik (S2125) for a debug log once published — the hourly attribution check will show
-      how the split behaves on a pump where 2305 is the only power source
-
-## F-series — experimental driver in progress
+## F-series: experimental driver (shipped in 1.3.x and 1.4.x; hardware validation open)
 
 The `codex/f-series-diagnostics` branch adds a shared-engine F-series driver with automatic
 feature detection, a curated register superset from seven model exports, gateway address
@@ -883,32 +810,6 @@ F-series handover checklist: [owner tests](../docs/f-series-user-test.md).
 
 - [x] Incorporate F730 gateway follow-up: LOG.SET fast baseline, one slow background parameter per poll, two detection passes, observation-only debug dumps, delayed simulator mode. Hardware cache freshness remains to verify.
 
-## Connection stability and IP changes (2026-09-24)
-
-Triggered by diagnostic 70825e9c ("Tappar ofta kommunikation"): 4 min of `EHOSTUNREACH` every 8 s
-to 192.168.1.29 — the pump was not on the LAN at that address (DHCP move or Wi-Fi drop).
-
-- [x] 7. One reconnect path: every attempt goes through `openSocket()` (fresh socket + client).
-- [x] 4. Connect timeout (10 s) on the live socket; a silently dropped SYN no longer takes ~2 min.
-- [x] 5. Backoff 5 → 10 → 30 → 60 s; log the first failure and any change of error, then one
-      summary every 10 min; log the reconnect with attempts + duration.
-- [x] 6. Fan out `onConnectionDown` only on up→down (or when the problem kind changes), not per attempt.
-- [x] 3. `setUnavailable(message)` explaining why (unreachable / refused / silent / searching), 6 languages.
-- [x] 2. Address change in settings moves every device of the pump; refuse an address another pump uses;
-      indoor-feed guard becomes pump-wide.
-- [x] 1. Auto-relocation: after 3 min of connect failures, sweep the subnet (existing discovery);
-      exclude every paired address; keep candidates whose model code (1497) matches the stored
-      `heatpump_type` when known; move the pump only if exactly one remains. Rescan every 30 min
-      while still down. Logged un-gated either way.
-- [x] Tests: backoff/timeout/dedup (integration), relocation choice (unit), pump-wide move (device harness).
-- [x] Docs: FAQ entry, releases row, CLAUDE.md connection section.
-
-**Review.** All seven items done; `Lost Connection` now fires only on real drops (it fired on every
-failed retry). Tests added for backoff/quiet logging/single down, the connect timeout, the search
-trigger and window, candidate choice, the pump-wide settings move, relocation and BT50 ownership.
-Shipped as part of 1.3.6, combined with the F-series work: one changelog entry, one releases row. Not verified against a real pump changing address; the sweep is the pairing
-discovery code, which is.
-
 ## Overview widget (F3 mock, chosen 2026-11-19)
 
 One widget per pump, picked by its Main device. Title: the Main device's name. Ring: today's use in
@@ -925,4 +826,5 @@ attention lines: offline, pump alarm, a device warning (problems first, then adv
 - [x] app.ts: register picker + endpoint; widgets/overview (compose, api, page, previews)
 - [x] locales, six languages, both layers
 - [x] npm test (719 pass), typecheck, homey app validate --level publish
-- [ ] install after the heating test ends; fetch the live endpoint and render it (not done: the install restarts the app mid-test)
+- [x] install after the heating test ends; fetch the live endpoint and render it: installed
+  2026-11-20, previews regenerated from the live debug route (4f4e3d9, 864907b)

@@ -1331,7 +1331,7 @@ export abstract class NibePumpDriver extends Driver {
         };
     }
 
-    /** Repair → Smart mode (assets/pair/setup.js `smart`), on Heating and Hot water. */
+    /** Repair → Smart mode (assets/pair/setup.js `smart`), on Heating, Hot water, Pool and Cooling. */
     private registerSmartModeHandlers(session: PairSession, device: any) {
         session.setHandler('smart_status', async () => {
             const status = await device.smartModeStatus();

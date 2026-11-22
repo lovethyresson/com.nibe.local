@@ -11,7 +11,7 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
   judged on paired replays, not before/after weeks.
 - Half the gap is not the forecast. The back-test, on the same learned forecast, reaches 0.95×;
   live paid 1.025×. The back-test spreads each hour's draw over four slots (`dev/evaluate-hot-water
-  .mjs:59`), ignores the 3-starts-a-day cap, the Large-stop write cap, the orchestrator's reserved
+  .mjs:60`), ignores the 3-starts-a-day cap, the Large-stop write cap, the orchestrator's reserved
   slots and the day-type labels. Until replay matches live, every back-test number is optimistic.
 - The single biggest identifiable cost is a stale midday shape: Tue 11–12 and Wed 11 runs at
   3.3–4.3 kr (≈ 14 kr, 22 % of the week) for water used later. Likely cause (not yet confirmed
@@ -22,13 +22,13 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
 - Big evenings come in two blocks (Tue 104 L at 17, 164 L at 19–20; Thu 171 L at 17–18, 154 L at
   21) and exceed what a full tank holds above the floor (~230 L). A mid-evening run is unavoidable
   on those days; the question is only how cheap.
-- The cap of 3 starts a day (`hotwater-lever.ts:10, 58`) covers rescues too: a rescue is an ordinary
-  start with reason 'reserve' that reaches `leverDecision`, which never sees it is a rescue. The
-  legionella run spends a start as well, and the pump's own charging is taken over. Tue used all
-  three. A refused rescue is logged once and nothing else: a silent cold-shower path, today.
+- The cap of 3 starts a day (`MAX_STARTS_PER_DAY`, `hotwater-lever.ts:10`) covered rescues too: a
+  rescue was an ordinary start with reason 'reserve' that reached `leverDecision`, which never saw it
+  was a rescue. The legionella run spends a start as well, and the pump's own charging is taken
+  over. Tue used all three. A refused rescue was logged once and nothing else. Fixed in Step 2.
 - Sun 15 13–15: ~8 kWh of compressor heating an already full tank (272 L, 56 °C → 57.5 °C, COP ≈ 1.1,
   plus 0.9 kWh immersion), ≈ 15 kr. The code that raises a running run's stop (`extendTarget`,
-  capped by `maxC`) is still in, so it may recur.
+  capped by `maxC`, `hotwater-shadow.ts:280`) is still in, so it may recur.
 - Legionella runs to 65 °C every 14 days, above the compressor's ~58 °C, so the last degrees are
   the immersion heater. Estimated 2.5–3 kWh, ≈ 5–6 kr a run (not measured); the pump's own 61 °C
   is also above the ceiling, so 65 vs 61 is ≈ 2 kr a run, ≈ 0.15 kr a day. Small; measure first.
@@ -50,17 +50,37 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
   Wed 121, Thu 171, Fri 134 (Tue above 230 L in 4 of the last 8 weeks, Mon in 2). To confirm on
   labelled days as they accumulate.
 
-## Status (2026-11-21, after the first pass)
+## Status (2026-11-22)
 
-- **Done:** 2 (a rescue may use 5 starts a day, a refused rescue warns on the device and is counted;
-  legionella already counted); 3.1 ("Best time for your use"); 3.2, with a different cause than
-  guessed (below); 1.1 (slot context in every log line, one record a day kept 400 days, the log path
-  logged at start); 1.3 tool (`dev/replay-hot-water.ts`, checked against a synthetic log: all
-  replayable slots match); 5.1 as a logged challenger.
+- **Done:**
+  - 2: a rescue may use 5 starts a day (`MAX_RESCUE_STARTS_PER_DAY`), `leverDecision` takes
+    `{belowK, rescue}`, a refused rescue is its own skip ('rescue limit'), a device warning cleared
+    at midnight and counted in the day record; legionella was already counted (17d0914, fc17256).
+  - 3.1: "Best time for your use" (17d0914).
+  - 3.2: checked, with a different cause than guessed (below); fixed in 17d0914 and 75403d2.
+  - 1.1: slot context in every log line, one record a day kept 400 days (`hotwater-days.ts`,
+    `DAYS_KEPT`), the log path logged at start (f0a9742).
+  - 1.3 tool: `dev/replay-hot-water.ts`, checked against a synthetic log: all replayable slots
+    match (f0a9742; `dueAt` passed as live does, fc17256).
+  - 5.0: the household questions are asked every time, with what they do; new questions on the
+    working-day shower time and busy weekday evenings; the day type line says why to mark days off
+    (2f551d1). Left out: prefilling from what was learned (it prefills the saved answers), and the
+    per-answer reason lines ("Tuesday is a busy evening, so more is planned"), since 5.1 is not
+    planned with yet.
+  - 5.1 as a logged challenger: per-weekday working evenings, shrunk toward all working evenings
+    until a weekday has 6 days, seeded 1.5× from the busy-evening answer; each day record holds
+    both evening forecasts (b405d3b, 2f551d1). Not planned with.
+- **Related, outside the plan:** the operating state's reason names Autopilot when it switches on
+  More hot water. Before writing 697, `startCharge` in `hotwater-shadow.ts` calls the `starting` hook, which the device passes
+  to `connection.noteReason` (`AUTOPILOT_HOTWATER_NOTE`); `reason.ts` uses the note for 10 min
+  (0624c39). Hot water savings leave legionella boost days out of both sides (2604d13).
+- **Partly:** 1.4. The day record holds starts, rescues, refused rescues and minutes under the
+  minimum; kr above hindsight and kr per kWh drawn are not computed.
 - **3.2, checked:** none of the working days 9–13 Nov was a full day (15–21 of 22 known hours:
   the tank sat under 40 °C overnight, so those hours are unknowable), and only full days gave hour
   shapes. Fixed: each hour learns from the days it was known on (part days included; a test fails
-  on the old learner and passes on the new).
+  on the old learner and passes on the new). An hour that empties the tank counts with at least
+  its draw, and cold hours complete an evening only after a draw emptied the tank that evening.
 - **3.2, not proven:** that this caused the Tue/Wed midday runs. The rebuild of the 16 Nov model
   used Insights fetched 21 Nov, whose hourly data starts 7 Nov; live on 16 Nov had hourly data from
   about 2 Nov, so 3–6 Nov may have been full working days with their own shape. With that data
@@ -69,17 +89,21 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
   either. The day records (1.1) keep this answerable next time.
 - **4:** Insights cannot say who started Sun 15's run (697 has no log; the charge events kept two
   days are gone). The new slot context logs 697 and both stops, so a recurrence is identifiable.
-  No legionella run yet. No change made.
+  No legionella run yet. No change made: `extendTarget` is still capped by `maxC` only.
+- **Open:** 1.2 (`dev/evaluate-hot-water.mjs` still spreads each hour over four slots, line 60,
+  with no caps; the replay tool runs the real planner instead); 5.2, 5.3, 6, 7.
 - **Waiting on an install:** the replay against live needs lines with context; the challenger
-  needs mornings. 5.0 waits on the mock's approval; 5.2 on state counts (the day records carry the
-  hourly litres to score it); 6 on evidence; 7 on its mock.
+  needs mornings. 5.2 waits on state counts (the day records carry the hourly litres to score it);
+  6 on evidence; 7 on its mock.
 - **Not yet:** 1.2's hindsight score (kr above hindsight) needs the day records to accumulate; the
   learner still learns from Insights only, not from the day records.
 
 ## Considered and rejected
 
 - Early-draw credit: Thu's 17:00 draw was the first of two; crediting it cancels the 19:00
-  run before a 154 L draw at 21. The code withholds it for this reason (hotwater-shadow.ts:84-89).
+  run before a 154 L draw at 21. The code computes it but does not pass it live (`early`,
+  `hotwater-shadow.ts:86-91`; it cites a busy 17 Nov Saturday read as early draws); the log keeps
+  what the plan would do with it.
 - Faster half-life: over 14 days of hourly data it barely changes the weights.
 - Quantile window (plan the evening at P85 within a few hours of it): with replanning every slot
   it moves the top-up to the window's first slot, not the cheapest, and adds starts.
@@ -100,20 +124,23 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
 
 ## Step 1 — reconcile and measure (no behaviour change; can start now)
 
-1.1 The shadow log already holds 28 days of 15-minute lines (litres, top, produced, action, next;
-    `hotwater-shadow.ts:41, 96-120`) and is trimmed after that. Stop losing it: before the trim,
+1.1 **Done (f0a9742).** The shadow log already holds 28 days of 15-minute lines (litres, top, produced, action, next;
+    `KEEP`, `ShadowEntry`: `hotwater-shadow.ts:42-43, 97-123`) and is trimmed after that. Stop losing it: before the trim,
     write a compact per-hour record (draw rebuilt from litres + produced, top, starts, day type,
     price) to the store. Day types are not in the log today and cannot be re-fetched: add them.
-1.2 Make the back-test honest: each hour's draw in its first slot, the 3-start and stop-write caps,
+1.2 **Open.** Make the back-test honest: each hour's draw in its first slot, the 3-start and stop-write caps,
     reserved slots, the real day-type labels, the live replan from the pump's real state (top, the
     Large stop in force, Large mode where 62 is never written), starting from the stored top rather
-    than litres, and the hot top that vouches against a rescue (`planner.ts:200-202`).
-1.3 Replay the logged days from the logged state and diff the action column (`action`, `next`) slot
+    than litres, and the hot top that vouches against a rescue (`hotwater-planner.ts:199-202`).
+1.3 **Tool done (f0a9742); the run against live waits on logged lines.** Replay the logged days from the logged state and diff the action column (`action`, `next`) slot
     by slot against live. Explain the 0.95 vs 1.025 gap before trusting any other number.
-1.4 Daily score in the log and a store: kr above hindsight, rescues, refused rescues, minutes under
+1.4 **Partly:** the day record has rescues, refused rescues, minutes under the minimum and
+    starts; kr above hindsight and kr per kWh drawn are open. Daily score in the log and a store: kr above hindsight, rescues, refused rescues, minutes under
     the floor, starts, kr per kWh drawn.
 
 ## Step 2 — a rescue is never refused (before anything that might add a start)
+
+All done (17d0914, fc17256): `MAX_RESCUE_STARTS_PER_DAY` = 5, about 1,800 writes a year.
 
 2.1 Give `leverDecision` a rescue flag (as `belowK` was added): a start with reason 'reserve' gets
     its own higher, bounded cap (e.g. 5 a day) instead of the shared 3. The cap is a wear guard on
@@ -125,11 +152,11 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
 
 ## Step 3 — cheap fixes
 
-3.1 Reason label: "Less heat lost in the tank" is a leftover bucket in `dearer()`; the plan is a DP
+3.1 **Done (17d0914): "Best time for your use".** Reason label: "Less heat lost in the tank" is a leftover bucket in `dearer()`; the plan is a DP
     over the whole day, so no single cost term decided it and attributing one would be a guess that
     can disagree with the plan. Use a neutral line that is always true (e.g. "Cheapest time that
     still covers your use"). Six languages, owner text.
-3.2 Day-type check, now: read the saved model for how many days of its own each profile had on
+3.2 **Checked; cause differed (Status). Fixed in 17d0914, 75403d2.** Day-type check, now: read the saved model for how many days of its own each profile had on
     16 Nov. The day type log (from 10 Nov) suggests about 4 working days, under the 5 needed: if the
     model confirms it, the midday runs were a cold start, and Step 5.0's setup questions are the
     fix (a starting point per day type instead of the pooled one). Then decide whether keeping
@@ -138,16 +165,18 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
 
 ## Step 4 — the full-tank runs, and what legionella really costs
 
-4.1 Identify Sun 15's 13:15 run from the charge events (planned top-up, stop raise, or periodic).
+4.1 **Open.** Identify Sun 15's 13:15 run from the charge events (planned top-up, stop raise, or periodic).
     Score every stop raise (`extendTarget`) since: heat gained vs electricity at that fill. If stop
     raises on a nearly full tank lose money, cap them by fill, not only by `maxC`.
-4.2 Measure the real legionella runs (immersion kWh from 1069, produced, kr) before any change.
+4.2 **Open (no run yet).** Measure the real legionella runs (immersion kWh from 1069, produced, kr) before any change.
     Only then price options with the replay: target, and timing after a big draw (which would need
-    a new trigger: today the window is chosen up to 48 h ahead by price, `legionella.ts:114-130`).
+    a new trigger: today the window is chosen up to 48 h ahead by price, `pickWindow` and
+    `legionellaStep`, `legionella.ts:105-141`).
 
 ## Step 5 — a forecast that knows this household's week
 
-5.0 Setup: a better starting point, and why it matters. Today Hot water setup asks people,
+5.0 **Done (2f551d1), except the prefill from learned values and the per-answer reason lines.**
+    Setup: a better starting point, and why it matters. Today Hot water setup asks people,
     morning hour and the busiest time on a day off, and only while history is short. Change it to:
     - Say what the answers do, in one line each, in standard UI phrasing: Autopilot starts from
       your answers and learns your household's real pattern from your heat pump's readings; after
@@ -165,18 +194,18 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
     - Each answer gives a one-line reason the owner can check: "Tuesday is a busy evening, so more
       is planned." Once learning has taken over, the reason names the learning instead.
     Mock first (light and dark, Homey's real CSS); six languages; "heat hot water" wording.
-5.1 Per-weekday evening: learn the evening draw per weekday (mean and P80), shrunk toward the day
+5.1 **Logged as a challenger, not planned with (b405d3b, 2f551d1).** Per-weekday evening: learn the evening draw per weekday (mean and P80), shrunk toward the day
     type's evening until a weekday has about 6 labelled days of its own, starting from the setup
     answer. Weekdays without a label before 10 Nov count only as the proxy, weighted down.
     Reason: "Tuesday evenings usually use more."
-5.2 One yes/no feature: did the morning (05–09) draw reach about 80 L? Forecast the evening from
+5.2 **Open.** One yes/no feature: did the morning (05–09) draw reach about 80 L? Forecast the evening from
     days in the same state (mean and P80), shrunk toward the unconditional profile, falling back to
     it below about 6 days per state. Hourly Insights are enough for the feature; the wait is for
     the state counts. One-line reason from the measured fact, not an inference: "More hot water was
     used this morning, so less is planned tonight." Gate: paired replay and safety metrics.
     A first look is mixed: in the week of 16 Nov low mornings came before big evenings and high
     ones before small; the week before showed no pattern. The state counts decide.
-5.3 "Days like today" (k nearest days on draws so far, same day type and weekday), once 1.1 holds
+5.3 **Open.** "Days like today" (k nearest days on draws so far, same day type and weekday), once 1.1 holds
     enough 15-minute days per weekday. Built as a challenger: it runs in the replay against 5.1 and
     5.2 and replaces them only if it beats both on cost and safety. Its owner reason is the plan's
     own ("Planned for a usual Tuesday evening"), never "days like today". Too little 15-minute
@@ -184,14 +213,14 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
 
 ## Step 6 — only if the replay shows it pays
 
-6.1 Ready-by-evening floor: "by 17:00, stored ≥ floor + P85 of the evening" as a time-tied soft
+6.1 **Open.** Ready-by-evening floor: "by 17:00, stored ≥ floor + P85 of the evening" as a time-tied soft
     floor in `below()`, so the planner picks the cheapest slot of the whole day with COP and holding
     included. Reason: "Ready for a busy evening by 17:00". Only if the replay shows big-evening
     misses on days when the afternoon is cheaper than the evening (this week it was not).
 
 ## Step 7 — let the owner say it ahead
 
-7.1 "Extra hot water" one-offs counted in showers (Shower, Bath, Guests), planned into the cheapest
+7.1 **Open.** "Extra hot water" one-offs counted in showers (Shower, Bath, Guests), planned into the cheapest
     hours before; Flow card "Plan extra hot water: [kind] by [time]" and a tile picker, no widget.
     No product does this ahead of time; the perfect-demand gap in Kepplinger et al. 2024 (~28 %) is
     what the information can be worth. To define: Guests vs the "free" day type; a one-off entered

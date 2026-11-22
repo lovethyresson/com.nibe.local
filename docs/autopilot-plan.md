@@ -4,9 +4,15 @@ Named **Autopilot** on 2026-11-05, the same word in all six languages and in cod
 It was "smart heating" before; the branch `smart-heating/m1-data` and the history file collected
 before the rename keep the old name.
 
-Status: **M0 done, go on BT1 (2026-10-30, §3.2); M1 not started.** Planned 2026-10-15. Companion to
+Status (2026-11-22): **M0 done, go on BT1 (2026-10-30, §3.2).** M1 data and model, M2 shadow, the
+live feed, the orchestrator, savings, Away, the COP model and the DP optimiser (shadow only) are
+built on the dev branch, not released. Autopilot heating has run live on the maintainer's S1155
+since 2026-11-14 (§11). Autopilot hot water is built ([autopilot-hot-water.md](autopilot-hot-water.md)).
+Pool and cooling have Smart mode only; their Autopilot is phase 2 (§10.0, "Solar, as built").
+Several sections below are the October design; where the build replaced them, a line says so and
+points to what replaced it. Planned 2026-10-15. Companion to
 [autopilot-research.md](autopilot-research.md), which covers the why, the evidence and
-the scored ideas. This document covers the how, against the code as it stands at 1.4.6.
+the scored ideas. This document covers the how; it was first written against 1.4.6.
 
 Platform facts marked **[live]** were checked on the maintainer's Homey Pro (Early 2023,
 firmware 13.5.2-rc.5, SE3) with read-only `homey api` calls.
@@ -105,7 +111,8 @@ things:
 
 **Out of scope for v1:**
 - multiple climate systems ([multiple-climate-systems-plan.md](multiple-climate-systems-plan.md));
-- cooling and pool;
+- cooling and pool (they have Smart mode, SPA or Off, with Autopilot shown as "Soon"; their
+  Autopilot is phase 2, §10.0);
 - power-tariff peak shaving;
 - F-series. The profile seam allows it later, but F-series BT1 emulation is untested.
 
@@ -122,6 +129,19 @@ things:
 | **MW** | Widgets: a design of their own across the app, Autopilot's among them (§19.5) | none | test → live |
 | **M4** | Autopilot Hot Water (replaces SPA hot water for that function) + solar surplus + add-heat guard (§12, §19.3); brings the orchestrator in its single-controller form (§2.1) | 697, 62 | test → live |
 | **M5** | Predictive optimiser (DP, COP model, air-source, PV): the joint orchestrator (§2.1) | same levers | test → live |
+
+**Where each stands (2026-11-22, dev branch, nothing released):**
+- **M0** done (§3).
+- **M1** built: prices, weather, outdoor, history, model, Insights backfill. Collecting on the
+  maintainer's Homey since 2026-10-30. The pump-wide `priceControl` mode was replaced by Smart
+  mode per function (§10.0).
+- **M2** shadow built and logging on the maintainer's Homey since 2026-11-01. The 3-house exit is
+  not met: only the S1155 has run it.
+- **M3** live feed, Verify, status, Flow cards, Away, savings, transparency and Getting started
+  (§7.7) built; live on the S1155 since 2026-11-14. Not released.
+- **MW** ten widgets built (§19.5).
+- **M4** Autopilot hot water and the shared solar surplus built (§10.0, hot water doc).
+- **M5** COP model and DP optimiser built, the DP in shadow only (§13). Ship gate not started.
 
 **On the order of M3 and M4.** The maintainer asked on 2026-11-08 for Autopilot Hot Water to be
 built now, ahead of heating ([autopilot-hot-water.md](autopilot-hot-water.md)), so M4 may ship
@@ -143,7 +163,7 @@ and those need one owner per pump, whether one controller is on or four.
 | **Autopilot Hot Water** | Hot water device | its on/off, next charge and why ([autopilot-hot-water.md](autopilot-hot-water.md) §4.5) | 697, 62 |
 | Autopilot Pool, Cooling | their devices | later; out of scope for v1 (§1) | – |
 | **Orchestrator** | pure functions in `lib/autopilot/orchestrator.ts`, called by a per-host registry beside `autopilotOwners` (§7.6, `PumpRound` in the same file), not by `PumpConnection` | one status line on Main: what runs next and why ("Hot water 13:15, then heating eases off 17–20") | **none** |
-| **Shared inputs** | home and pump level, below | Main shows the day type picker: working, free, away, with an optional "away until" from the Flow card (hot water doc §4.1, §19.2) | none |
+| **Shared inputs** | home and pump level, below | Main shows the day type picker (working, day off) and a separate Away switch (`boolean_NIBE.away`), with an optional end time from the Flow card (hot water doc §4.1, §19.2) | none |
 
 - **The orchestrator never writes to the pump.** It only changes what each controller plans
   against; the controllers act through their own levers, the write lane, persist-before-write
@@ -240,12 +260,13 @@ widest level it is true for:
 | **Pump** (one per host) | the 15-min history (heating *and* tank fields, one file); compressor state and priority (1028); the wired-BT1 lag model; the charge and COP model as functions of supply or tank temperature; the plan round and its grants | the per-host registry beside `autopilotOwners` |
 | **Controller** | its own model (house, tank draws), planner, lever, guards and settings | its device |
 
-- **Today this is all per Heating device.** `AutopilotCollector` (`lib/autopilot/collector.ts`)
-  fetches prices and weather and owns the history for the one Heating device that runs it. The
-  settings (location, outdoor sensor) are already app-wide. Splitting the collector into the
-  home service and the pump history is the first step of Heating's M3 work (hot water is
-  expected to ship first, standalone, with its own price fetch and tank history behind a small
-  interface); the split then moves hot water onto the shared inputs too.
+- **As built, the home level is the Gateway, not `inputs.ts`** ([external-io.md](external-io.md)):
+  `lib/gateway-prices.ts` (one price book for the collector, hot water and the savings devices),
+  `lib/gateway-weather.ts` (one forecast an hour, the irradiance history once a day, location and
+  season), `lib/gateway-price-history.ts` (a year's monthly price spread, §11) and
+  `lib/autopilot/solar-surplus.ts` (one surplus fit and budget per home). The pump history is
+  still owned by the Heating device's `AutopilotCollector` (`lib/autopilot/collector.ts`); hot
+  water keeps its own tank history.
 - **Day type is per home, not per pump.** Two pumps in one house share one day type. Every Main
   shows the same picker, and the Flow card sets the home value.
 - **Surplus is one budget.** When several functions could take it, the orchestrator grants it
@@ -654,6 +675,16 @@ lib/autopilot/
   controller.ts  state machine; timers; calls the above                              (glue, per pump)
 ```
 
+**As built (2026-11-22).** `mode.ts` became `smart-mode.ts` (a mode per function, §10.0) and
+`controller.ts` became `live.ts` (`HeatingFeed`, with `StopReason` in place of the §7.1 state
+machine); the per-device glue is in `lib/device.ts`. Added since: `curve.ts` (learned heating
+curve, §4.5), `setpoint.ts` and `trim.ts` (the trim, §7.3), `heat-check.ts`, `curve-advice.ts`,
+`settling.ts` (Getting started, §7.7), `heating-status.ts` (status and reason), `heating-flows.ts`,
+`away.ts`, `day-type.ts`, `orchestrator.ts` (§2.1), `solar-surplus.ts`, `cop.ts`, `optimiser.ts`
+(§13), `savings.ts`, `season.ts`, `shift-cost.ts` (§11), `comfort-days.ts` (time in range per day),
+`cost-check.ts` (Plan vs actual), and the widget data modules (§19.5). The hot water modules are in
+[autopilot-hot-water.md](autopilot-hot-water.md).
+
 ### 5.2 Prices: Homey Energy via `homey-api` (`homey:manager:api`, Athom-approved)
 
 **Calls [live]:**
@@ -684,7 +715,8 @@ them. So the app evaluates `mathExpression` itself:
 - DST days have 92 or 100 slots **[live: 100 on 2025-10-26]**. Key slots by UTC, never by local
   index.
 
-**Fetch schedule:**
+**Fetch schedule** (as built, one price book per home in `lib/gateway-prices.ts`: today and
+tomorrow for an hour, tomorrow every 15 min while empty, a past day for good):
 - Today and tomorrow on init, then hourly.
 - From 12:45 to 16:00 local time, every 15 min until tomorrow appears.
 - The last two days are cached in the history file, so a restart has prices immediately.
@@ -729,6 +761,9 @@ them. So the app evaluates `mathExpression` itself:
 
 **Cadence:** hourly with ±5 min jitter. **Staleness:** cached for 24 h; after that, persistence
 (no solar, outdoor equal to the current temperature).
+
+**As built:** one fetch per home, `lib/gateway-weather.ts`: the forecast at most once an hour and
+the irradiance history once a day, shared by the collector and the solar surplus.
 
 ### 5.4 History (15-minute aggregates)
 
@@ -894,7 +929,8 @@ band.
   over 3 days.
 - Before that, Autopilot heating shifts nothing for price: the status is Learning and names the
   first test still open (days, accuracy, stability). Once met, `readyAt` is kept with the model, so
-  a later day that misses a test doesn't stop live heating. (Built 2026-11-15.)
+  a later day that misses a test doesn't stop live heating. (Built 2026-11-15.) Since 2026-11-22
+  price shifting waits longer still, until Getting started reaches Saving (§7.7).
 - **The trim holds the setpoint while it learns (2026-11-19, live.ts `learn`).** Room-sensor
   control is off from the day Autopilot is chosen, and until then it had held the house on a curve
   the owner never had to set. Without the trim, that curve held the house alone for the 3–8 days
@@ -907,6 +943,9 @@ band.
   percentile 0.7–0.9 K against 0.5).
 
 ### 6.5 House insights (settings labels, written only when the rounded value changes)
+
+Not built as settings labels: the Autopilot widget replaced them (§10.0). `insights.ts` computes
+the numbers, and the collector writes them as one line in the app log.
 
 | Label | Example |
 |---|---|
@@ -956,6 +995,11 @@ predicted time to leave the band (§7.3), never from τ directly.
 ## 7. Controller (M2 shadow, M3 live)
 
 ### 7.1 State machine (pure transition function; state persisted in the store)
+
+Replaced as built: the Smart mode (off, spa, test, autopilot) plus Verify is the state, and
+`live.ts` `stopReason` (`no_model`, `immersion_only`, `cooling`, `spa_on`, `room_control`,
+`no_outdoor`, `mode_off`, `feed_failed`) is why the feed waits or stops. There is no `pending`
+state and no owner pause (§10.0). The design below is kept for its reasoning.
 
 ```
 pending ──Repair verify──▶ learning ──model ready──▶ active
@@ -1050,7 +1094,10 @@ Runs every 15 min and on new prices or weather. Horizon: 24–36 h of slots.
        curve fit's `offsetGain`, else NIBE's "+2 steps = +5 °C", 2.5, which errs towards fewer steps;
        the S1155 measured 1.53), at most ±3 steps; Autopilot changes it at most once in 30 days. An
        owner's own offset change does not start that wait (2026-11-21): advice reads the new curve
-       after a week on it (the trim's integral settles at the house's pace), then the 3 steady days. Heating setup asks once:
+       after a week on it (the trim's integral settles at the house's pace), then the 3 steady days.
+       Since 2026-11-22 the advice (`curveVerdict`) is acted on, written or asked, only once Getting
+       started's settling is done, in its step 3 (§7.7); a verdict that the offset is already right
+       ends that step. Heating setup asks once:
        **Adjust it for me** (default: Autopilot writes the offset once and says so in the Timeline,
        with Undo in Heating setup) or **I'll do it myself** (the Timeline, and the device warning
        when the Advanced setting "Show advice as a device warning" is on; problems always win the
@@ -1178,6 +1225,13 @@ The output per slot is `{bias, mode, reason}`. The reason is structured, e.g.
 
 ### 7.4 Profile (pure `presets.ts`)
 
+**As built (live, 2026-11-12):** the owner picks a Comfort range, an indoor tolerance: Comfortable
+±0.5 °C (the default), Save some ±3 °C, Save the most ±6 °C, with shifts up to 10 / 15 / 20 K
+(`live.ts` `PROFILE_LIMITS`). Custom is eight fields in Heating setup's Comfort range step
+(`CUSTOM_SETTINGS`: coldest, warmest, price ratio, coast hours, pre-heat and coast shift, comfort
+weight, pre-heat lead), not the five sliders below. `presets.ts` and the table below drive the
+shadow log (§7.5).
+
 One setting: a **preset**, or **Custom**. Presets cover most owners. Custom shows four sliders and
 the band, the same numbers each preset sets, so an owner can start from a preset and nudge one
 thing. The house's inertia is *learned* (§6.6); what the owner chooses is how much of it the app
@@ -1286,7 +1340,9 @@ reads as the feed sequence it would really have sent.
 ### 7.6 Timers and lifecycle
 
 - One `AutopilotController` per pump host, with Heating as owner, via a static
-  `autopilotOwners: Map<host, device>` mirroring `indoorOwners`.
+  `autopilotOwners: Map<host, device>` mirroring `indoorOwners`. *As built:* the feed is a
+  `HeatingFeed` (`live.ts`) on the Heating device, and the per-host registry is `PumpRound`
+  (`orchestrator.ts`, §2.1); `autopilotOwners` was not built.
 - A 30 s feed loop (self-rescheduling `setTimeout` with a mutex, as `scheduleIndoor` does) and a
   15-min planner loop aligned to slot + 20 s. Prices and weather run on separate jittered timers.
 
@@ -1298,9 +1354,45 @@ reads as the feed sequence it would really have sent.
 | Pump relocated / address edit | Ownership follows (`reconnectTo`, `lib/device.ts:1363`). Unlike the BT50 address-edit refusal, allow it: the feed resumes on the new connection. |
 | Homey reboot, power loss, uninstall | Nothing runs. Safety then rests on M0.1: the pump must return to the wired sensor after the feed stops. This is the reason 0.1 is ship/no-ship. The FAQ explains uninstall: "Switch to SPA or None in Repair first". |
 
+### 7.7 Getting started (built 2026-11-22, `lib/autopilot/settling.ts`)
+
+Autopilot heating's first weeks, shown to the owner in four steps. Room-sensor control is off from
+the start, so the owner's curve alone holds the house, often some way off the thermostat; the trim
+closes that at the house's own pace (115 h on the S1155). Without a picture of it, a house 1 °C off
+for a week reads as Autopilot getting it wrong.
+
+1. **Learning:** the house model meets its readiness test (§6.4). The trim already holds the level.
+2. **Settling:** each morning the day before is scored, its indoor mean against the thermostat.
+   Two days in a row within 0.2 K (`SETTLED_K`, `SETTLED_DAYS`) settle it. A day with under 75 %
+   of its readings, or whose setpoint moved (Away, the thermostat), is skipped; a new thermostat
+   starts it over. After `MAX_DAYS` (21) it stops: a curve that far off is step 3's to fix.
+3. **Calibrating:** the curve advice (§7.3) now acts, writing the offset or asking the owner.
+   It ends when the curve already fits, after `CHECK_DAYS` (3) in a row holding the thermostat
+   after an offset change, `ASK_WAIT_DAYS` (7) after the owner was asked, or after
+   `CALIBRATE_MAX_DAYS` (14).
+4. **Saving:** price shifting starts.
+
+- **No price shifts before Saving.** The feed holds the level only (`FeedHooks.holdShift` in
+  `live.ts`: the plan runs with no shift allowed and its reason is `getting_started`, "Getting
+  started. No price shifts yet"), so reaching the thermostat and the curve check are never mixed up
+  with a shift.
+- **Savings count from Saving.** The state keeps `liveAt`, when the feed first shifted; heating's
+  savings, baseline and first-live day are read from there (§11).
+- **Morning messages.** One timeline line a day while settling. After each hourly fit
+  (`device.ts` `afterFit`), settling and the curve advice run together, and "your house holds"
+  plus a curve change in the same hour go out as one line.
+- **Shown** in the Getting started widget (`widgets/getting_started`: a four-step stepper with each
+  step's detail, and its paused, offline and restart states) and in Heating setup, which, when
+  Autopilot is first chosen, draws what to expect as indoor temperature over time across the four
+  steps (`setup.js` `expectChart`).
+
 ---
 
 ## 8. Restart reconciliation
+
+*As built:* no SPA snapshot check at start. The feed re-checks the pump every slot (`stopReason`:
+SPA, room control, operating mode), a feed input 1 does not follow ends in `feed_failed`, and SPA
+turned on elsewhere flips the function to SPA (§10.0).
 
 The store holds:
 
@@ -1377,13 +1469,14 @@ Setup; settings hold the everyday knobs.
 4. Verify (On only): feed the real outdoor once, input 1 follows within 3 s; error beside the button.
 5. Turn off / Return to NIBE: stop, feed the real outdoor once, remind to turn off 7.5.9.2.
 
-**What the owner sees.** Status on Heating (`autopilot_mode_NIBE`: Learning · Holding ·
+**What the owner sees.** Status on Heating (`autopilot_status_NIBE` as built: Learning · Holding ·
 Pre-heating · Easing off · Paused · Off) with a one-line reason ("Easing off until 19:00: prices
 peak 17–19"). While the model learns, Autopilot is **shift-only** (`lib/autopilot/live.ts`): it
 keeps the owner's curve and only moves heat in time (since 2026-11-14 on top of the setpoint trim,
 §7.3, which holds the thermostat), and the status says "Shifting heat only
-while learning". Insights for the fed outdoor and the bias. Timeline only on a mode change. A
-savings label after 14 active days (§11). The 24 h plan as a widget (§19.5).
+while learning". *Replaced:* while learning the trim holds the level and nothing is shifted; since
+2026-11-22 no price shift happens until Getting started reaches Saving (§7.7). Insights for the
+fed outdoor and the bias. Timeline only on a mode change. A savings label after 14 active days (§11). The 24 h plan as a widget (§19.5).
 
 **What the owner can tweak.** Profile (presets, Custom sliders of §7.4), comfort temperature,
 away temperature (settings, tile picker and Flows); pause for 1–48 h and resume (Flows); away via
@@ -1404,13 +1497,15 @@ once. The rest is Repair and capabilities:
   leaving for Off or SPA).
 - **A device carries only its mode's controls**: the function's SPA tiles (844/845, 846/902) go
   while Autopilot runs it (`hiddenBySmartMode`; still polled); Heating gains status, reason,
-  Comfort range (`autopilot_range_NIBE`), Away (`boolean_NIBE.autopilot_away`), Away temperature
-  (`target_temperature.autopilot_away`), outdoor shift and fed outdoor while Autopilot runs it.
+  Comfort range (`autopilot_range_NIBE`), Away temperature (`target_temperature.autopilot_away`),
+  outdoor shift (`autopilot_shift_NIBE`) and fed outdoor while Autopilot runs it. Away itself
+  moved to Main on 2026-11-15 (`boolean_NIBE.away`, 0a1d577).
 - **Comfort is the thermostat.** Away keeps the thermostat's value, sets it to the Away
   temperature, and restores it when Away turns off; while Away the widest range applies.
-  Away is the home's one Away, the day type "away" shared with hot water (hot water doc §4.1):
-  the switch, its card and *Set day type to Away* all set it, and every Autopilot heating device
-  follows. A nightly working/free card does not end it.
+  Away is the home's one Away, shared with hot water (hot water doc §4.1): since 2026-11-15 a
+  switch of its own on Main beside the day type (working or day off), set by the switch or the
+  *Turn Away on until …* card (`set_away_until`), and every Autopilot heating device follows. A
+  nightly working/free card does not end it (`day-type.ts`).
 - **No pause; Comfort range Off instead** (maintainer, 2026-11-12): Off keeps feeding the real
   outdoor temperature with no shift (the pump stays on the sensor Autopilot uses, never back on its
   own BT1, which reads ~2 °C higher here) and plans nothing; the pump's guards still apply. Smart
@@ -1424,8 +1519,11 @@ once. The rest is Repair and capabilities:
   12 h ahead. Hot water shows the next 24 h: price (left axis) against the expected solar
   surplus (right axis, kW), with each planned charge split into its solar and grid parts. The repair choices are named "Autopilot"
   (runs in Nibe Live) and "Smart price adaption" (NIBE's own, runs in the pump).
-Profiles map to shift limits in `PROFILE_LIMITS` (`live.ts`). Not built yet: Custom sliders,
-pre-heating before Away ends, savings.
+Profiles map to shift limits in `PROFILE_LIMITS` (`live.ts`). Built since: Custom (§7.4),
+pre-heating before Away ends (§19.2), savings (§11), Getting started (§7.7).
+- **The pump's operating state names Autopilot (2026-11-22, `reason.ts`).** When Autopilot
+  switched More hot water on, the operating state's reason says Autopilot started heating hot
+  water, with Autopilot's own reason, instead of a reason read from the pump.
 
 **Experimental.** Autopilot carries an "Experimental" badge wherever an owner chooses or sees it: the Smart mode
 choice, the comparison grid and a widget pill.
@@ -1448,19 +1546,41 @@ choice, the comparison grid and a widget pill.
   - Heating prices the rest as an effective price (`surplusPrices`, `live.ts`): the share of a 2 K
     pre-heat's extra draw the surplus covers costs what an export earns.
   - Heating does not reserve yet; it is the last user until cooling exists.
-  - The collector's weather (GTI per wall) is still its own fetch. Hot water's GHI history fetch
-    moved into the service, so it now runs once per home instead of once per hot water device.
+  - Weather is one fetch per home since then (`lib/gateway-weather.ts`): the forecast with GTI
+    per wall once an hour and the GHI history once a day, shared by the collector and the surplus.
+  - Not built yet: heating reserving its own surplus (needed once cooling uses the budget), the
+    heating widget drawing the surplus, and reading the sun gate on the S1155 over sunny days.
 - Heating's feed idles while the pump cools (priority 1028 = 60, `stopReason` `cooling`).
-- **Pool and cooling** get Smart mode (SPA or Off). Cooling switches 849. The pool has no switch of
-  its own: its influence 848 = 0 is off, and the owner's value is kept to restore. Autopilot is shown
-  as "Soon". The design for their Autopilot is phase 2 in `tasks/todo.md`.
+- **Pool and cooling** get Smart mode (SPA or Off; `SmartFunction` includes them,
+  `AUTOPILOT_FUNCTIONS` does not). Cooling switches 849. The pool has no switch of its own: its
+  influence 848 = 0 is off, and the owner's value is kept to restore. Autopilot is listed but
+  disabled, marked "Soon", and the comparison grid's "What it covers" says "Pool and cooling soon"
+  (`covers_auto_soon`).
+- **Phase 2, not built: Pool and Cooling Autopilot** (design in the solar plan and `tasks/todo.md`;
+  after a tester is lined up).
+  - Pool: heat-up and loss rates learned from pool temperature (27) and priority 1028 = 40, plus a
+    sun coefficient on GHI for an outdoor pool. The planner holds the owner's band with cheap slots
+    and granted surplus, reusing hot water's planner. Lever: the 687/689 start/stop band, at most 4
+    writes a day, restored on Off. Guards: 691 off, read-back mismatch.
+  - Cooling: the house model with cooling as negative heat, the gated sun term its main driver.
+    Pre-cools in cheap and surplus hours within a cooling range. Lever by probe on a tester's
+    pump, cooling offset 975 or room setpoint 988, never BT1 (shared with heating, and it moves
+    the auto-mode average 37). Guards: 182 off, the season switch (186, 165).
 
 **Phasing.** First test-channel release: Setup steps 1–5 with the outdoor picker, status and reason, profile
-and comfort, pause/resume, Insights; learning phase = shift-only. Later: full comfort control once
+and comfort, Insights; learning phase = hold the level (pause/resume was dropped for Comfort range
+Off, above). Later: full comfort control once
 the steady level is confirmed (todo.md, 2026-11-11), away, savings, the remaining Flow cards,
 widgets.
 
 ### 10.1 The selection field and its capabilities
+
+*Replaced, not built:* Smart mode per function (store `smartMode`, `smart-mode.ts`) and
+`hiddenBySmartMode` in `roles.ts` (§10.0) took the place of `selection.priceControl` and
+`mode.ts`. The capabilities built are `autopilot_status_NIBE`, `autopilot_reason_NIBE`,
+`autopilot_range_NIBE`, `autopilot_shift_NIBE`, `measure_temperature.autopilot_fed`,
+`measure_temperature.autopilot_outdoor`, `target_temperature.autopilot_away`, and on Main
+`day_type_NIBE` and `boolean_NIBE.away`. Kept below for its reasoning.
 
 A new selection field and its per-function companion (§2.1):
 `selection.priceControl: 'spa' | 'autopilot' | 'none'`, **pump-wide** (§0.5). Inside
@@ -1516,6 +1636,10 @@ Other rules:
 
 ### 10.2 Settings (Heating; group "Autopilot", shown only meaningfully in Autopilot mode)
 
+*Replaced:* settings hold only what is set once; comfort range, Custom and the house questions
+live in Heating setup and on capabilities (§10.0, §7.4). There are no House insights or savings
+labels: widgets show them (§19.5).
+
 | Setting | Type | Default |
 |---|---|---|
 | Comfort temperature | number 15–25 | mean indoor over the last 7 days, rounded to 0.5 |
@@ -1535,16 +1659,16 @@ Add each card to the generic allowlist in `test/unit.test.ts:219`.
 
 | Card | Kind | Args / tokens |
 |---|---|---|
-| Set profile | action | dropdown, 3 presets (Custom is set in settings) |
-| Set comfort temperature | action | number |
-| Pause Autopilot for … | action | 1–48 h (guests, fireplace evening). Feeds neutral |
-| Resume Autopilot | action | – |
-| Autopilot mode changed | trigger | `mode`, `reason` |
-| Autopilot paused | trigger | `reason` |
-| Autopilot is pre-heating / coasting / paused | condition | – |
-| Profile is … | condition | dropdown |
-| Set away until … / Back home | action | **built 2026-11-15** as `autopilot_heating_away_until` (date, time); Back home is the existing `autopilot_heating_away` off (§19.2) |
-| Away mode is on | condition | – |
+| Set profile | action | **built** `autopilot_heating_set_profile` (the comfort range) |
+| Set comfort temperature | action | not built: comfort is the thermostat (§10.0) |
+| Pause Autopilot for … | action | dropped: Comfort range Off instead (§10.0) |
+| Resume Autopilot | action | dropped, as above |
+| Autopilot mode changed | trigger | **built** `autopilot_heating_status_changed` |
+| Autopilot paused | trigger | dropped |
+| Autopilot is pre-heating / coasting / paused | condition | **built** `autopilot_heating_status_is` |
+| Profile is … | condition | not built |
+| Set away until … / Back home | action | **built 2026-11-15** as `set_away_until` on Main, "Turn Away on until …" (date, time); Back home is `back_home` (§19.2) |
+| Away mode is on | condition | not built as its own card |
 | Expensive period starts in … | trigger | **built 2026-11-15** `autopilot_heating_expensive_soon`: 5–720 min ahead; tokens `start`, `end` (§19.1) |
 | Cheap period starts in … | trigger | **built** `autopilot_heating_cheap_soon`, as above |
 | Pre-heating / easing off started | trigger | **built** `autopilot_heating_preheating_started`, `autopilot_heating_easing_off_started`: token `reason` |
@@ -1553,6 +1677,10 @@ Also widen `LocalizedText` from `{en, sv}` to six languages (`lib/profile.ts:100
 `reason.ts` and the controller's reasons reach every owner in their language.
 
 ### 10.4 Pairing (`assets/pair/setup.js` hub)
+
+*Replaced:* pairing asks Smart mode per function, in Heating setup and Hot water setup, with
+Verify over a short pairing connection (§10.0). There is no pump-wide radio and no `pending`
+state. The prerequisite checks below became Heating setup's checklist.
 
 A new hub section, **"Price control"**. It is shown once per pump, on the Heating candidate, or on
 Main if Heating is not being created; in that case `autopilot` is unavailable. It is a radio group:
@@ -1587,6 +1715,10 @@ The result goes into `selection.priceControl` on every created device. Heating's
 - pair mode emits no activate.
 
 ### 10.5 Repair
+
+*Replaced:* each function's Repair has its own Smart mode section (Off, Smart price adaption,
+Autopilot with Live or Simulated); pool and cooling list Autopilot as "Soon" (§10.0). The
+transitions below still describe what each switch writes.
 
 The Repair views stay per device, but the Price control section is the same on every device of
 the pump: the mode is pump-wide.
@@ -1659,6 +1791,10 @@ never swallow them.
     recorded dates it from the hours before its first mode mark (heating: the pump showed the fed
     BT1; on the S1155 that dated 2026-11-14 21:00 for a 23:14 start). With fewer than 3 days before
     it, the day's average stands in.
+  - **Heating counts from Saving (2026-11-22).** Before Getting started reaches Saving (§7.7) the
+    feed only holds the thermostat and moves nothing to cheaper hours, so those hours are part of
+    the starting point, never a saving. The first-live day, the baseline and the counted days are
+    read from Getting started's `liveAt` (`savingsLive` in `savings.ts`).
   - **Kronor saved.** The baseline is kept as the price paid against the day's average (its ratio).
     A whole Autopilot day after the first-live day saves its kWh at that ratio of its own average,
     minus what they cost. That holds the old usage pattern at today's prices, so a price change
@@ -1673,8 +1809,12 @@ never swallow them.
     (`season.ts`: the last three full years of daily mean temperature at the Homey's location, from
     Open-Meteo's archive, below the pump's own stop-heating temperature, register 184, else 17 °C),
     so a winter pace is not projected over the summer, in any climate. Without that history heating
-    shows the month, never a guessed season. Hot water's days weigh the same. A week's kronor
-    were too few to say anything on their own. The Overview adds both estimates up.
+    shows the month, never a guessed season. Hot water's days weigh the same. Both are also weighted
+    by each month's price spread in the owner's zone over the last year (`seasonWeight`), so a winter
+    of big price swings is not projected at an autumn's pace. Since 2026-11-22 that comes from
+    Energy-Charts (`lib/gateway-price-history.ts`): one request a month for the zone set in Homey
+    Energy, twelve numbers kept; Homey Energy's past prices answered NotFound or timed out for many
+    dates. A week's kronor were too few to say anything on their own. The Overview adds both estimates up.
   - **Views** (the maintainer's picks from ten mocks): heating shows before and with as two 100 %
     bars of the three thirds with kWh a day; hot water shows what a shower cost before and with
     (litres from the tank model). Hot water's share of heat in the cheapest hours was dropped on
@@ -1682,6 +1822,12 @@ never swallow them.
     costing more. Heating keeps its share: the house sets the heat, so where it is bought is the
     lever. The Overview's ring shows heating's share only, for the same reason.
   - It shows when the energy was used. Total kWh and comfort are what the modelled figure above adds.
+  - **A modelled old way, logged only (2026-11-22, `shift-cost.ts`).** Each heating day is
+    simulated twice with the house model, as fed and with Autopilot's average feed held steady; the
+    difference counts a pre-heat's extra use and follows the season. It is recorded and logged
+    beside the baseline's saving; the widget still shows the baseline's.
+  - **Plan vs actual** (`cost-check.ts`, `widgets/cost_check`): what the morning plan expected
+    each function's electricity to cost over the rest of the day, against what it cost.
 
 ---
 
@@ -1701,7 +1847,10 @@ phase A (offline) can run alongside M2.
   Large stop 62, and never the start setpoints. The rule against charging into a heating
   pre-heat is gone: heating now plans around the charges (§2.1). **Never touch 195** (allow hot water) still holds.
 - **Legionella:** never change 65/66/92. Give advice only: "Your weekly boost runs at 03:00; this
-  week's cheapest slot is Sunday 02:15".
+  week's cheapest slot is Sunday 02:15". *Replaced:* while hot water Autopilot runs live it takes
+  over the pump's own charging and periodic boost (`hotwater-takeover.ts`, restored when it stops)
+  and runs the legionella charge itself in the cheapest two hours before it is due
+  (`legionella.ts`; hot water doc §4.3).
 - **Add heat:** plan the bias so the predicted DM never crosses `start − 0.7 × 679`.
   - On ground source, add heat may optionally be capped during optimised periods.
   - Never on air-water pumps.
@@ -1822,6 +1971,11 @@ phase A (offline) can run alongside M2.
 
 All events are edge-triggered, with enums and buckets only.
 
+*Replaced as built* (source of truth: [analytics.md](analytics.md) "Autopilot"): `Changed Smart
+Mode`, `Changed Autopilot Setting`, `Changed Autopilot State`, `Blocked Autopilot`, `Scored
+Autopilot Day`, `Started Hot Water Charge` and `Changed Day Type` (`lib/autopilot/analytics.ts`
+holds the bounded values). The table below is the October proposal.
+
 | Event | Properties | When |
 |---|---|---|
 | `Changed Price Control` | `from`, `to`: `spa\|autopilot\|none`, `via: pair\|repair` | mode change |
@@ -1898,21 +2052,28 @@ four plus the Setup hub.
 
 - [x] **M0** `dev/probe-bt1.mjs` written; 0.0–0.7 answered; results in external-sensors.md; **go on BT1** (§3.2, 2026-10-30)
 - [ ] Prerequisites: six-language `LocalizedText`; translate the BT50 feed warnings
-- [ ] **M1** `mode.ts` + capability filter + pump-wide sync + pair/repair "Price control" section
-- [ ] **M1** `prices.ts`, `weather.ts`, `outdoor.ts`, `history.ts` + `/userdata` persistence + Insights backfill
-      (collecting on the maintainer's Homey since 2026-10-30; backfill built and tested offline
-      2026-11-15, `heating-insights.ts`, not yet run on a Homey with a fresh history)
-- [ ] **M1** `model.ts` + `insights.ts` + labels; release to test (`model.ts` done offline, not yet
-      run online)
-- [ ] **M2** `presets.ts`, `planner.ts` v1, `actuator.ts`, `controller.ts` in shadow; twin integration test
-      (presets, actuator and planner done offline 2026-10-31; weather feed-forward and sun per wall
-      2026-11-01; shadow running on the maintainer's Homey since 2026-11-01; the state machine,
-      guards and its setting not started)
+- [x] **M1** mode choice: built as Smart mode per function (`smart-mode.ts`), in pairing and Repair (§10.0), not as `mode.ts` and a pump-wide "Price control" section
+- [x] **M1** `prices.ts`, `weather.ts`, `outdoor.ts`, `history.ts` + `/userdata` persistence + Insights backfill
+      (collecting on the maintainer's Homey since 2026-10-30; prices and weather through the
+      Gateway since; backfill built and tested offline 2026-11-15, `heating-insights.ts`, not yet
+      run on a Homey with a fresh history)
+- [x] **M1** `model.ts` + `insights.ts`, fitted hourly on the maintainer's Homey; the labels became
+      the Autopilot widget (§6.5); nothing released to test
+- [x] **M2** `presets.ts`, `planner.ts` v1, `actuator.ts` and the shadow (`shadow.ts`), running on the
+      maintainer's Homey since 2026-11-01; the controller became `live.ts` (§5.1); twin integration
+      test not built
 - [x] **M2** §3.3 gain ladder to ±20 K on the S1155 (pre-heat 2026-11-02: 0.44 flat, −20 K stands;
       coast 2026-11-03: 0.45/0.52/0.59/0.77, +20 K fails; coast limit cut to 15 K, the learned curve (§4.5) gives the gain per fed temperature)
 - [ ] **M2** two weeks of shadow on ≥ 3 houses (radiator, slab, air-source)
-- [ ] **M3** Verify/handover, live feed, capabilities, settings, Flow cards, write locks, reconciliation, savings, analytics
+- [ ] **M3** Verify/handover, live feed, capabilities, Flow cards, write lock on 5217, savings, analytics,
+      Away, Getting started (§7.7): built, live on the S1155 since 2026-11-14. §8's restart table
+      is covered by the feed's own checks each slot (`stopReason`, SPA seen in `setValue`); the
+      6-language `LocalizedText` is not done
 - [ ] **M3** release (test → live)
+- [x] **MW** widgets (§19.5)
+- [x] **M4** shared solar surplus, heating's surplus price and sun gate, Smart mode for pool and
+      cooling (§10.0, 2026-11-12); still open: heating reserving surplus, the sun gate read on hardware
+- [ ] Phase 2: Pool and Cooling Autopilot (§10.0), not started
 - [ ] **M4** hot-water probes and timing; DM-aware add-heat planning. Hot water's add-heat guard built
   2026-11-15 (learned compressor ceiling, target under it, [autopilot-hot-water.md](autopilot-hot-water.md) §4.8);
   the DM rule of §12 is heating's and still open
@@ -1968,18 +2129,20 @@ The competitors are black boxes. Owners switch off what they don't understand.
 
 Our own, rather than the pump's holiday setting, so the planner knows when the owner returns.
 
-- **Set:** the main device's *Day type* = away ([autopilot-hot-water.md](autopilot-hot-water.md) §4.1), shared with hot water; the Flow card takes an optional end time. **Back home** ends it early.
+- **Set:** the Away switch on the Main device (`boolean_NIBE.away`; until 2026-11-15 the day type
+  "away", [autopilot-hot-water.md](autopilot-hot-water.md) §4.1), shared with hot water; the Flow
+  card takes an optional end time. **Back home** ends it early.
 - **While away**, comfort drops to the away temperature (a setting, default 17 °C), and the
   planner coasts through expensive hours within it.
 - **Return:** the model's hours-per-degree says when to start warming, so the house is at
   comfort at the end time, on cheap hours where it can.
 - **Built 2026-11-15** (`lib/autopilot/away.ts`, `live.ts` `planComfort`, `planner.ts`
   `SetpointPath`):
-  - **Set:** the Flow card "Set Autopilot heating Away until …" (date, time, read in Homey's time
-    zone). The end time is its own app setting (`autopilotAwayUntil`), beside the day type, so hot
-    water's state is untouched. The driver checks each minute and ends Away at that time, as the
-    off card does; turning Away off, or the Main device's day type leaving away, clears it. A
-    time already past is refused with an error.
+  - **Set:** the Flow card "Turn Away on until …" (`set_away_until`, date, time, read in Homey's
+    time zone). The end time is its own app setting (`autopilotAwayUntil`), beside the day type,
+    which Away leaves as it was. The driver checks each minute and ends Away at that time, as the
+    `back_home` card does; turning Away off clears it. A time already past is refused with an
+    error.
   - **The plan's setpoint steps** from the Away temperature to the stored home one at the first
     slot that ends at the return (`setpointPath`). The band's ceiling before the step is the
     setpoint still to come, or the pre-heat would sit outside it.
@@ -2012,6 +2175,9 @@ Our own, rather than the pump's holiday setting, so the planner knows when the o
 
 ### 19.3 Solar surplus (M4)
 
+*Built 2026-11-12* as one service per home (`lib/autopilot/solar-surplus.ts`) with a budget granted
+hot water → pool → heating → cooling; see §10.0 "Solar, as built". The research note below stands.
+
 Sweden pays roughly spot for exported power but charges spot plus grid fee, tax and VAT for
 imported power. Every surplus kWh used at home is therefore worth about 1 kr more than one sold.
 
@@ -2033,7 +2199,12 @@ hours. No boosts while away.
 ### 19.5 Widgets (milestone MW, maintainer 2026-11-02)
 
 Widgets get a broader look across the whole app, not one per feature, so they are a milestone of
-their own rather than part of M3. Autopilot's candidates:
+their own rather than part of M3.
+
+**Built (dev branch):** Autopilot (`widgets/autopilot`, §10.0), Heating savings and Hot water
+savings (§11), Day plan (below), Getting started (§7.7), Plan vs actual (`widgets/cost_check`),
+Energy today (`widgets/energy`), Heat pump overview (`widgets/overview`), and hot water's two,
+Hot water and Hot water use (hot water doc). Autopilot's candidates as first planned:
 
 - **Planned heating:** the next 24 h, with planned indoor against comfort, the pre-heat and coast
   blocks, and the price beneath; redrawn when the plan changes.
