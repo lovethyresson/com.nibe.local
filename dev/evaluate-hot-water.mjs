@@ -1,22 +1,40 @@
-// Maintainer tool (not shipped — see .homeyignore). Back-test of the hot water planner on a real
-// tank: the draws and prices that happened, replayed slot by slot. The planner sees only the past
-// (its model is relearned each midnight from readings before it) and only the prices known at the
-// time (today's, and tomorrow's from 13:00). Scored against what the owner's own setup paid and
-// against the same planner with the draws known in advance.
+// Maintainer tool (not shipped: see .homeyignore). Back-test of hot water Autopilot on a real
+// tank: the draws and prices that happened, replayed slot by slot through the code live runs
+// (hotwater-shadow.ts `autopilotCharge`, `extendTarget`, `hotwaterShadowStep`; hotwater-lever.ts
+// `leverDecision` with the day's start and stop-write caps). The planner sees only the past (its
+// model is relearned each midnight from readings before it) and only the prices known at the time
+// (today's, and tomorrow's from 13:00). Scored against what the owner's own setup paid, and per
+// day as kr above hindsight: the same planner with the draws known in advance and no caps.
+// Plan: tasks/hotwater-improvement-plan.md step 1.2.
 //
-//   node --import tsx dev/evaluate-hot-water.mjs --insights <dir> --prices <dir> [--weekends-free]
-//        [--tz Europe/Stockholm] [--reserve 40] [--min 45] [--max 60] [--formula "(x+0.609)*1.25"]
+//   node --import tsx dev/evaluate-hot-water.mjs --insights <dir> --prices <dir> [--day-types <file>]
+//        [--tz Europe/Stockholm] [--reserve 40] [--max <°C>] [--large-stop 50] [--large-mode]
+//        [--litres 175] [--inlet 10]
+//        [--spread] [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--formula "(x+0.609)*1.25"]
 //
 // <dir> for --insights is what `dev/learn-hot-water.mjs --save <dir>` writes. --prices holds one
 // Homey Energy `fetch-dynamic-electricity-prices` answer per day (`YYYY-MM-DD.json`).
-// --weekends-free labels Saturday and Sunday free, as an owner's Flow would set the day type.
+// --day-types: the app's day type setting as JSON (`{"log": [{"at": <ms>, "type": "working"}, …]}`);
+// without it, or before its first entry, the calendar's weekend, as live (day-type.ts `dayTypeAt`).
+// --large-stop: the Large stop (62) in force at the start. --large-mode: the owner's demand mode is
+// Large, so 62 is never written (every charge runs to the stop that is set).
+// --spread: each hour's draw spread over its four slots (the old back-test), instead of all of it in
+// the hour's first slot. The draws are hourly, so the first slot is the honest worst case.
+//
+// Not modelled: the legionella run, heating's pre-heat slots, solar surplus, and the learned
+// ceiling (--max stands in for it; MAX_C by default). The tank top is the mixed tank's temperature (`tempOf`): a
+// stratified tank's top is hotter after a draw, so live may vouch against a rescue a little sooner.
 
 import {readFileSync, readdirSync} from 'fs';
 import {join} from 'path';
 import {intervals, learn, localClock, profileFor} from '../lib/autopilot/hotwater-learner.ts';
 import {pointsFromInsights, RESOLUTIONS} from '../lib/autopilot/hotwater-insights.ts';
 import {chargeRate, copAt} from '../lib/autopilot/hotwater-learner.ts';
-import {EARLY_DRAW_HOURS, SLOT_H, creditEarly, drawsFor, heatAt, plan, plannedHours, reserveKwh, tempOf} from '../lib/autopilot/hotwater-planner.ts';
+import {SLOT_H, drawsFor, heatAt, plan, reserveKwh, tempOf} from '../lib/autopilot/hotwater-planner.ts';
+import {KWH_PER_LITRE} from '../lib/autopilot/hotwater-learner.ts';
+import {MAX_C, autopilotCharge, extendTarget, hotwaterShadowStep} from '../lib/autopilot/hotwater-shadow.ts';
+import {DEMAND_LARGE, MAX_STOP_WRITES_PER_DAY, countFor, leverDecision} from '../lib/autopilot/hotwater-lever.ts';
+import {dayTypeAt} from '../lib/autopilot/day-type.ts';
 
 const argv = process.argv.slice(2);
 const flag = (name, fallback) => { const i = argv.indexOf(`--${name}`); return i >= 0 ? argv[i + 1] : fallback; };
@@ -24,8 +42,10 @@ const has = (name) => argv.includes(`--${name}`);
 const tz = flag('tz', 'Europe/Stockholm');
 const clock = localClock(tz);
 const formula = new Function('x', `return ${flag('formula', '(x+0.609)*1.25')};`);
-const reserve = reserveKwh(Number(flag('reserve', 40)));
-const minC = Number(flag('min', 45)), maxC = Number(flag('max', 57));
+const reserveLitres = Number(flag('reserve', 40));
+const reserve = reserveKwh(reserveLitres);
+const minC = 45, maxC = Number(flag('max', MAX_C));
+const largeStart = Number(flag('large-stop', 50)), largeMode = has('large-mode');
 const SLOT = 15 * 60_000, HOUR = 3_600_000;
 const slotOf = (ms) => Math.floor(ms / SLOT);
 
@@ -35,7 +55,8 @@ const logs = {};
 for (const field of ['litres', 'produced', 'used', 'top'])
     logs[field] = RESOLUTIONS.map((r) => { try { return JSON.parse(readFileSync(join(dir, `${field}.${r}.json`), 'utf8')); } catch { return {}; } });
 const weekday = (ms) => new Date(`${clock(ms).date}T12:00:00Z`).getUTCDay();
-const dayType = (ms) => has('weekends-free') ? (weekday(ms) === 0 || weekday(ms) === 6 ? 'free' : 'working') : undefined;
+const dayTypes = flag('day-types') ? JSON.parse(readFileSync(flag('day-types'), 'utf8')) : undefined;
+const dayType = (ms) => dayTypeAt(dayTypes, ms, clock);
 const points = pointsFromInsights(logs).map((p) => ({...p, dayType: dayType(p.t)}));
 
 // Prices per 15-min slot, all-in.
@@ -57,14 +78,31 @@ const truthModel = learn(points, clock, points[points.length - 1].t);
 const hourly = intervals(points.filter((p, k, a) => k > 0 && p.t - a[k - 1].t <= HOUR * 1.01 || (a[k + 1] && a[k + 1].t - p.t <= HOUR * 1.01)), truthModel.loss, truthModel.charge)
     .filter((i) => i.hours <= 1.01 && Number.isFinite(i.draw));
 const drawBySlot = new Map();
-for (const i of hourly) for (let q = 0; q < 4; q++) drawBySlot.set(slotOf(i.start) + q, i.draw / 4);
-const first = Math.ceil(Math.min(...drawBySlot.keys()) / 96) * 96, last = Math.floor(Math.max(...drawBySlot.keys()) / 96) * 96;
+for (const i of hourly) for (let q = 0; q < 4; q++) drawBySlot.set(slotOf(i.start) + q, has('spread') ? i.draw / 4 : q === 0 ? i.draw : 0);
+// Local days (midnight to midnight, 96 slots: a clock-change day is left out), with draws and
+// prices in every slot.
+const first = Math.min(...drawBySlot.keys()), last = Math.max(...drawBySlot.keys());
+const midnight = (k) => clock(k * SLOT).hour === 0 && clock(k * SLOT).minute === 0;
 const days = [];
-for (let s = first; s < last; s += 96) if ([...Array(96).keys()].every((q) => drawBySlot.has(s + q) && price.has(s + q))) days.push(s);
+for (let s = first; s + 96 <= last; s++)
+    if (midnight(s) && midnight(s + 96) && clock(s * SLOT).date >= flag('from', '') && clock(s * SLOT).date <= flag('to', '9999')
+        && [...Array(96).keys()].every((q) => drawBySlot.has(s + q) && price.has(s + q))) days.push(s);
 if (!days.length) { console.error('no full day with both draws and prices'); process.exit(1); }
-const tank = {litres: Number(flag('litres', 176)), inletC: 10};
+const tank = {litres: Number(flag('litres', 175)), inletC: Number(flag('inlet', 10))};
 const charge = truthModel.charge, loss = truthModel.loss;
-const startStored = (() => { const p = points.find((x) => x.t >= days[0] * SLOT && x.litres > 0); return p.litres * 0.0349; })();
+/** The heat the tank read at the start of `day`: where a simulation starts, and starts again after
+ *  a gap in the days (a day left out has no draws to carry the tank through). */
+const storedAt = (day) => points.find((x) => x.t >= day * SLOT && x.litres > 0).litres * KWH_PER_LITRE;
+/** Whether `day` follows a day left out (or is the first). */
+const afterGap = (day, k) => k === 0 || days[k - 1] + 96 !== day;
+/** One slot of a charge to `target`: the heat added and the electricity it took, at the rate and
+ *  COP the tank itself showed. */
+function chargeSlot(stored, target) {
+    const full = chargeRate(charge, stored) * SLOT_H;
+    const q = Math.max(0, Math.min(full, heatAt(tank, target) - stored));
+    const e = charge.kw !== undefined ? charge.kw * SLOT_H * q / full : q / copAt(charge, tempOf(tank, stored + q));
+    return {q, e};
+}
 
 /** One simulated pump: `decide(slot, stored)` returns a target °C to start a charge (or
  *  {target, slots} for a boost that also expires), or undefined. */
@@ -74,8 +112,10 @@ const dearHours = new Map(days.map((day) => {
     return [day, new Set(hours.sort((a, b) => b.p - a.p).slice(0, 3).map((x) => x.h))];
 }));
 function simulate(decide) {
-    let stored = startStored, target, until, cost = 0, el = 0, charges = 0, below = 0, targets = 0, runSlots = 0, dearEl = 0;
-    for (const day of days) for (let s = day; s < day + 96; s++) {
+    let stored, target, until, cost = 0, el = 0, charges = 0, below = 0, targets = 0, runSlots = 0, dearEl = 0;
+    const perDay = new Map(days.map((d) => [d, {kr: 0, kwh: 0}]));
+    for (const [k, day] of days.entries()) for (let s = day; s < day + 96; s++) {
+        if (s === day && afterGap(day, k)) { stored = storedAt(day); target = undefined; }
         if (target === undefined) {
             const d = decide(s, stored);
             const t = typeof d === 'object' ? d.target : d;
@@ -84,10 +124,9 @@ function simulate(decide) {
             }
         }
         if (target !== undefined) {
-            const full = chargeRate(charge, stored) * SLOT_H;
-            const q = Math.min(full, heatAt(tank, target) - stored);
-            const e = charge.kw !== undefined ? charge.kw * SLOT_H * q / full : q / copAt(charge, tempOf(tank, stored + q));
+            const {q, e} = chargeSlot(stored, target);
             stored += q; el += e; cost += e * price.get(s); runSlots++;
+            perDay.get(day).kr += e * price.get(s); perDay.get(day).kwh += e;
             if (dearHours.get(day).has(Math.floor((s - day) / 4))) dearEl += e;
             if (stored >= heatAt(tank, target) - 1e-6 || s + 1 >= until) target = undefined;
         }
@@ -96,13 +135,13 @@ function simulate(decide) {
     }
     const n = days.length;
     return {krDay: cost / n, elDay: el / n, chargesDay: charges / n, meanTarget: charges ? targets / charges : NaN, below,
-        runH: charges ? runSlots * SLOT_H / charges : NaN, dear: el > 0 ? dearEl / el : NaN};
+        runH: charges ? runSlots * SLOT_H / charges : NaN, dear: el > 0 ? dearEl / el : NaN, perDay};
 }
 
-// Model relearned each midnight from readings before it.
+// Model relearned each local midnight from readings before it.
 const models = new Map();
 const modelFor = (s) => {
-    const day = Math.floor(s / 96) * 96;
+    const day = days.findLast((d) => d <= s);
     if (!models.has(day)) models.set(day, learn(points.filter((p) => p.t < day * SLOT), clock, day * SLOT));
     return models.get(day);
 };
@@ -117,40 +156,82 @@ const horizon = (s) => {
     return out;
 };
 
-/** Heat drawn in the EARLY_DRAW_HOURS before slot s beyond what the profile planned for them, as
- *  the live planner works it out (hotwater-shadow.ts `drawnEarly`), from the draws that happened. */
-function drawnEarly(s, model) {
-    let drawn = 0, planned = 0;
-    for (let k = s - EARLY_DRAW_HOURS * 4; k < s; k++) {
-        drawn += drawBySlot.get(k) ?? 0;
-        const p = profileFor(model, dayType(k * SLOT));
-        if (p) planned += plannedHours(p)[clock(k * SLOT).hour] * SLOT_H;
-    }
-    return Math.max(0, drawn - planned);
-}
+/** Prices known at slot s, as live holds them (`ShadowStepInput.prices`). */
+const knownAt = (s) => new Map(horizon(s).map((k) => [k, {price: price.get(k)}]));
 
-function planner(foresight, early = false) {
+/** The planner with the draws known in advance and no caps: the hindsight bound. */
+function hindsight() {
     return (s, stored) => {
         const ks = horizon(s);
-        const model = modelFor(s);
-        const learned = () => drawsFor(ks.map((k) => profileFor(model, dayType(k * SLOT))), ks.map((k) => clock(k * SLOT).hour),
-            undefined, ks.map((k) => Math.floor((clock(k * SLOT).minute ?? 0) / 15)));
-        const draws = foresight ? ks.map((k) => drawBySlot.get(k) ?? 0)
-            : early ? creditEarly(learned(), drawnEarly(s, model)) : learned();
-        const slots = ks.map((k, j) => ({price: price.get(k), draw: draws[j]}));
-        const p = plan({slots, stored, charging: false, tank, charge: model.charge ?? charge, loss: model.loss, reserve, minC, maxC});
+        const slots = ks.map((k) => ({price: price.get(k), draw: drawBySlot.get(k) ?? 0}));
+        const p = plan({slots, stored, charging: false, tank, charge: modelFor(s).charge ?? charge, loss: modelFor(s).loss, reserve, minC, maxC});
         return p.startNow ? p.charges[0].targetC : undefined;
     };
 }
 
+/** Autopilot as live runs it, slot by slot: the start decision (`autopilotCharge`), the lever with
+ *  the day's caps (`leverDecision`: 3 starts, 5 for a rescue, 3 stop writes, never 62 in Large
+ *  mode), a running charge raised mid-charge (`extendTarget`), and the plan's next run passed on as
+ *  due (`dueAt`). Physics as `simulate`. */
+function simulateLive() {
+    let stored, target, largeStopC = largeStart, count, dueAt, extended = false;
+    let cost = 0, el = 0, charges = 0, targets = 0, below = 0, runSlots = 0, dearEl = 0, rescues = 0, refused = 0, stopWrites = 0;
+    const perDay = new Map(days.map((d) => [d, {kr: 0, kwh: 0}]));
+    for (const [k, day] of days.entries()) for (let s = day; s < day + 96; s++) {
+        if (s === day && afterGap(day, k)) { stored = storedAt(day); target = dueAt = undefined; }
+        const at = s * SLOT, date = clock(at).date;
+        count = countFor(count, date);
+        const input = {slot: s, prices: knownAt(s), model: modelFor(s), tank, clock, dayType: dayType(at), dayTypeOf: dayType,
+            reserveLitres, maxC, dueAt,
+            now: {litres: stored / KWH_PER_LITRE, top: tempOf(tank, stored), powerW: target !== undefined ? 1000 : 0,
+                more: target !== undefined, largeStopC: target ?? largeStopC}};
+        if (target === undefined) {
+            const e = autopilotCharge(input);
+            if (!('skip' in e)) {
+                const rescue = e.reason === 'reserve';
+                const d = leverDecision(e.targetC, {top: input.now.top, largeStopC, demandMode: largeMode ? DEMAND_LARGE : undefined, allowed: true},
+                    count, {rescue});
+                if ('skip' in d) { if (d.skip === 'rescue limit') refused++; }
+                else {
+                    count = {...count, starts: count.starts + 1, stops: count.stops + (d.writeStop ? 1 : 0)};
+                    if (d.writeStop) { largeStopC = d.targetC; stopWrites++; }
+                    target = d.targetC; extended = false; charges++; targets += d.targetC; if (rescue) rescues++;
+                }
+            }
+        } else if (!extended && !largeMode && count.stops < MAX_STOP_WRITES_PER_DAY) {
+            const e = extendTarget(input);
+            if (e) { target = largeStopC = e.targetC; extended = true; count = {...count, stops: count.stops + 1}; stopWrites++; }
+        }
+        const step = hotwaterShadowStep(input);
+        dueAt = 'entry' in step && step.entry.next ? Date.parse(step.entry.next.at) : undefined;
+        let e = 0;
+        if (target !== undefined) {
+            const slot = chargeSlot(stored, target);
+            e = slot.e; stored += slot.q; runSlots++;
+            if (dearHours.get(day).has(Math.floor((s - day) / 4))) dearEl += e;
+            if (stored >= heatAt(tank, target) - 1e-6) target = undefined;
+        }
+        el += e; cost += e * price.get(s);
+        perDay.get(day).kr += e * price.get(s); perDay.get(day).kwh += e;
+        stored = Math.max(0, stored - drawBySlot.get(s) - (loss.base + loss.perKwh * stored) * SLOT_H);
+        if (stored < reserve) below++;
+    }
+    const n = days.length;
+    return {krDay: cost / n, elDay: el / n, chargesDay: charges / n, meanTarget: charges ? targets / charges : NaN, below,
+        runH: charges ? runSlots * SLOT_H / charges : NaN, dear: el > 0 ? dearEl / el : NaN,
+        rescues, refused, stopWrites, perDay};
+}
+
 // The owner's setup as it ran: what it actually paid for the same days.
 let actualCost = 0, actualEl = 0;
+const actualDays = new Map(days.map((d) => [d, {kr: 0, kwh: 0}]));
 const used = new Map(points.map((p) => [slotOf(p.t - HOUR / 2), p.used]));
 for (const day of days) for (let s = day; s < day + 96; s += 4) {
     const a = used.get(s), b = used.get(s + 4);
     if (a != null && b != null && b >= a) {
         const meanPrice = [0, 1, 2, 3].reduce((x, q) => x + price.get(s + q), 0) / 4;
         actualCost += (b - a) * meanPrice; actualEl += b - a;
+        actualDays.get(day).kr += (b - a) * meanPrice; actualDays.get(day).kwh += b - a;
     }
 }
 
@@ -159,8 +240,8 @@ for (const day of days) for (let s = day; s < day + 96; s += 4) {
 const hourPrice = (s) => [0, 1, 2, 3].reduce((x, q) => x + price.get(Math.floor(s / 4) * 4 + q), 0) / 4;
 function flowAllows(s) {
     const {hour} = clock(s * SLOT);
-    const free = dayType(s * SLOT) === 'free' || (!has('weekends-free') && (weekday(s * SLOT) === 0 || weekday(s * SLOT) === 6));
-    const dayStart = s - (s - days[0]) % 96;
+    const free = dayType(s * SLOT) !== 'working';
+    const dayStart = days.findLast((d) => d <= s);
     const dayHours = [...Array(24).keys()].map((h) => ({h, p: hourPrice(dayStart + 4 * h)}));
     const nightFrom = free ? 22 : 21;
     const night = dayHours.filter((x) => x.h >= nightFrom || x.h < 6).sort((a, b) => a.p - b.p);
@@ -170,7 +251,7 @@ function flowAllows(s) {
     return hour >= 6 && hour < 22 && !byPrice.slice(-3).some((x) => x.h === hour);
 }
 const flow = (s, stored) => {
-    if (stored < 50 * 0.0349) return {target: 60, slots: 8};
+    if (stored < 50 * KWH_PER_LITRE) return {target: 60, slots: 8};
     if (s % 4 === 0 && tempOf(tank, stored) < 52 && flowAllows(s)) return {target: 60, slots: 8};
     return undefined;
 };
@@ -186,18 +267,20 @@ const realRuns = [];
     }
 }
 const realRunH = realRuns.filter((h) => h >= 0.5);
+const live = simulateLive();
+const hind = simulate(hindsight());
 const rows = [
     ['Owner\'s setup, as it ran', {krDay: actualCost / days.length, elDay: actualEl / days.length,
         runH: realRunH.reduce((a, b) => a + b, 0) / realRunH.length}],
     ['Owner\'s Flow, simulated', simulate(flow)],
     ['Pump alone (start 42 °C, stop 50 °C)', simulate((s, stored) => tempOf(tank, stored) < 42 ? 50 : undefined)],
-    ['Planner, learned profile', simulate(planner(false))],
-    ['Planner, early draws credited', simulate(planner(false, true))],
-    ['Planner, draws known ahead', simulate(planner(true))],
+    ['Autopilot, as live runs it', live],
+    ['Hindsight (draws known, no caps)', hind],
 ];
 const r = (v, d = 2) => Number.isFinite(v) ? v.toFixed(d) : '–';
 console.log(`${days.length} days, ${clock(days[0] * SLOT).date} to ${clock((days[days.length - 1] + 95) * SLOT).date};`
-    + ` reserve ${r(reserve, 1)} kWh; day types: ${has('weekends-free') ? 'weekends free' : 'none'}`);
+    + ` reserve ${reserveLitres} L; day types: ${dayTypes ? 'from the file' : 'the calendar\'s weekend'};`
+    + ` draws: ${has('spread') ? 'spread over the hour' : 'in the hour\'s first slot'}; Large stop ${largeStart} °C${largeMode ? ', Large mode' : ''}`);
 console.log('strategy'.padEnd(40) + 'kr/day  kr/month  kWh el/day  charges/day  mean target  slots below reserve  h/charge  in 3 dearest h');
 const base = rows[0][1].krDay;
 for (const [name, x] of rows)
@@ -205,3 +288,16 @@ for (const [name, x] of rows)
         + r(x.chargesDay, 1).padStart(13) + (Number.isFinite(x.meanTarget) ? r(x.meanTarget, 0) + ' °C' : '–').padStart(13)
         + String(x.below ?? '–').padStart(21) + r(x.runH, 1).padStart(10)
         + (Number.isFinite(x.dear) ? `${r(x.dear * 100, 0)} %` : '–').padStart(16) + `   ${r((x.krDay / base - 1) * 100, 0)} %`);
+console.log(`\nAutopilot: ${live.rescues} rescues, ${live.refused} refused by the day's cap, ${live.stopWrites} Large stop writes.`);
+// Per day: kr, and the price index (paid per kWh over the day's mean price), so days and
+// strategies compare on timing as well as on kWh.
+const meanOf = (day) => [...Array(96).keys()].reduce((x, q) => x + price.get(day + q), 0) / 96;
+const cell = (x, day) => `${r(x.kr).padStart(6)} kr ${r(x.kwh, 1).padStart(5)} kWh ${x.kwh > 0.1 ? r(x.kr / x.kwh / meanOf(day)).padStart(5) : '    –'}`;
+console.log('\nPer day: kr, kWh and price index (1.00 = the day\'s mean price)');
+console.log('date       type      ' + 'as it ran'.padEnd(25) + 'Autopilot (replay)'.padEnd(25) + 'hindsight'.padEnd(25) + 'replay above hindsight');
+for (const day of days) {
+    const date = clock(day * SLOT).date, l = live.perDay.get(day), h = hind.perDay.get(day);
+    console.log(`${date} ${dayType(day * SLOT + 12 * HOUR).padEnd(9)} ${cell(actualDays.get(day), day)}  ${cell(l, day)}  ${cell(h, day)}  ${r(l.kr - h.kr).padStart(6)} kr`);
+}
+const index = (map) => { let kr = 0, ref = 0; for (const day of days) { const x = map.get(day); kr += x.kr; ref += x.kwh * meanOf(day); } return kr / ref; };
+console.log(`Price index over all days: as it ran ${r(index(actualDays))}, Autopilot (replay) ${r(index(live.perDay))}, hindsight ${r(index(hind.perDay))}.`);

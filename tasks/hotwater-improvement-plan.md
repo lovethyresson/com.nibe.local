@@ -9,10 +9,9 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
   Hindsight with perfect knowledge is 0.88×. That gap is about 7–12 %, roughly 1 kr a day here.
   Daily price indices spread ±0.18, so a week cannot show a 5 % change; anything we build must be
   judged on paired replays, not before/after weeks.
-- Half the gap is not the forecast. The back-test, on the same learned forecast, reaches 0.95×;
-  live paid 1.025×. The back-test spreads each hour's draw over four slots (`dev/evaluate-hot-water
-  .mjs:60`), ignores the 3-starts-a-day cap, the Large-stop write cap, the orchestrator's reserved
-  slots and the day-type labels. Until replay matches live, every back-test number is optimistic.
+- Half the gap is not the forecast. The old back-test, on the same learned forecast, reached 0.95×;
+  live paid 1.025×. It spread each hour's draw over four slots and ignored the start and write caps
+  and the day-type labels. Reconciled 2026-11-22 (1.2): the gap is one day, not the planner (below).
 - The single biggest identifiable cost is a stale midday shape: Tue 11–12 and Wed 11 runs at
   3.3–4.3 kr (≈ 14 kr, 22 % of the week) for water used later. Likely cause (not yet confirmed
   from the saved model): the owner's day types are logged only from 10 Nov (a Flow sets them at
@@ -52,6 +51,30 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
 
 ## Status (2026-11-22)
 
+- **1.2, the back-test matches live.** `dev/evaluate-hot-water.mjs` now runs the live code slot by
+  slot: `autopilotCharge`, `leverDecision` with the day's caps, `extendTarget`, `dueAt`, day types
+  from the owner's log (`dayTypeAt`), each hour's draw in its first slot, local days, the tank
+  re-read after a gap. On 14–20 Nov (Autopilot's days, Insights fetched 21 Nov):
+
+  | | kr | kWh | Price index |
+  |---|---|---|---|
+  | As it ran | 119.7 | 47.1 | 1.06 |
+  | Replay | 96.0 | 34.9 | 0.99 |
+  | Hindsight (draws known, no caps) | 94.0 | 36.3 | 0.95 |
+  | As it ran, without 15 Nov | 89.6 | 29.8 | |
+  | Replay, without 15 Nov | 85.6 | 28.2 | |
+  | Hindsight, without 15 Nov | 83.1 | 29.9 | |
+
+  Without Sun 15 Nov, live and replay agree within 5 % on both kr and kWh. Sun 15 Nov alone is
+  17.3 kWh live against 6.7 replayed: the full-tank run and the immersion heater (step 4.1). So
+  the 0.95 → 1.025 gap was that one day, not the planner's timing, and the planner is about
+  0.5 kr a day above hindsight. Hindsight is not a strict floor: it keeps the 40 L minimum with
+  the draws known, while the replay dipped under it in 5 slots (5 rescues, none refused).
+  Run: `node --import tsx dev/evaluate-hot-water.mjs --insights <dir> --prices <dir> --day-types
+  <file> --from 2026-11-14`. Not modelled: legionella, heating's pre-heat slots, surplus, the
+  learned ceiling (`--max`), a stratified top.
+- **So step 4.1 is where the money is:** one day like 15 Nov costs as much as two weeks of the
+  planner's gap to hindsight.
 - **Done:**
   - 2: a rescue may use 5 starts a day (`MAX_RESCUE_STARTS_PER_DAY`), `leverDecision` takes
     `{belowK, rescue}`, a refused rescue is its own skip ('rescue limit'), a device warning cleared
@@ -90,8 +113,9 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
 - **4:** Insights cannot say who started Sun 15's run (697 has no log; the charge events kept two
   days are gone). The new slot context logs 697 and both stops, so a recurrence is identifiable.
   No legionella run yet. No change made: `extendTarget` is still capped by `maxC` only.
-- **Open:** 1.2 (`dev/evaluate-hot-water.mjs` still spreads each hour over four slots, line 60,
-  with no caps; the replay tool runs the real planner instead); 5.2, 5.3, 6, 7.
+- **Open:** 4.1, 5.2, 5.3, 6, 7. The slot-by-slot diff against the live log (1.3) still waits on
+  lines with context: the log restarted with the new Homey, and its 105 lines with context are
+  under one price horizon, so none is replayable yet.
 - **Waiting on an install:** the replay against live needs lines with context; the challenger
   needs mornings. 5.2 waits on state counts (the day records carry the hourly litres to score it);
   6 on evidence; 7 on its mock.
@@ -128,7 +152,7 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
     `KEEP`, `ShadowEntry`: `hotwater-shadow.ts:42-43, 97-123`) and is trimmed after that. Stop losing it: before the trim,
     write a compact per-hour record (draw rebuilt from litres + produced, top, starts, day type,
     price) to the store. Day types are not in the log today and cannot be re-fetched: add them.
-1.2 **Open.** Make the back-test honest: each hour's draw in its first slot, the 3-start and stop-write caps,
+1.2 **Done (2026-11-22, Status).** Make the back-test honest: each hour's draw in its first slot, the 3-start and stop-write caps,
     reserved slots, the real day-type labels, the live replan from the pump's real state (top, the
     Large stop in force, Large mode where 62 is never written), starting from the stored top rather
     than litres, and the hot top that vouches against a rescue (`hotwater-planner.ts:199-202`).
