@@ -22,6 +22,8 @@ export const HISTORY_DAYS = 400;
 export const MONTH_MIN_DAYS = 10;
 /** A failed fill waits this long before it is tried again. */
 export const RETRY_MS = 60 * 60_000;
+/** Failed days in a row that pause a fill. */
+export const MAX_FAILURES = 3;
 /** Days saved at a time while filling, so a restart keeps most of the work. */
 const SAVE_EVERY = 10;
 export const SETTING = 'autopilotPriceSpreads';
@@ -114,8 +116,14 @@ export class PriceHistory {
         const missing = missingDates(store, today);
         let unsaved = 0;
         try {
+            let failures = 0;
             for (const date of missing) {
-                const response = await this.deps.fetchDay(date);
+                // A slow or failed day is left for the next fill; only a run of them pauses this one.
+                const response = await this.deps.fetchDay(date).then((r) => { failures = 0; return r; }, (error) => {
+                    if (++failures >= MAX_FAILURES) throw error;
+                    return undefined;
+                });
+                if (response === undefined) continue;
                 const zone = typeof response?.zoneId === 'string' ? response.zoneId : undefined;
                 if (zone && store.zone && zone !== store.zone) {
                     // A new price zone: last zone's days say nothing about this one.
@@ -131,6 +139,7 @@ export class PriceHistory {
                 if (++unsaved >= SAVE_EVERY) { this.save(store, today); unsaved = 0; }
             }
             this.save(store, today);
+            // Days skipped as slow are asked for again tomorrow.
             this.filledFor = today;
             if (missing.length > 1) {
                 const months = monthSpreads(store.days);
@@ -165,7 +174,7 @@ export function priceHistoryFor(homey: any, today: () => string, log: (...args: 
         fetchDay: async (date) => {
             // Without dynamic prices in Homey Energy there is nothing to read; asked again hourly.
             if (!(await pricesFor(homey).info()).dynamic) throw new Error('no dynamic prices in Homey Energy');
-            return gatewayFor(homey).call((api) => api.energy.fetchDynamicElectricityPrices({date}), PRIORITY.background);
+            return gatewayFor(homey).call((api) => api.energy.fetchDynamicElectricityPrices({date, $timeout: 30_000}), PRIORITY.background);
         },
         load: () => {
             const kept = homey.settings.get(SETTING) as SpreadStore | null;

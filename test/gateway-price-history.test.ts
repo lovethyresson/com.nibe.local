@@ -90,3 +90,27 @@ test('a month of big price swings weighs more in the year\'s projection', () => 
     const swung = yearOutlook(days, '2027-11-01', base, '2027-11-21', 'hotwater', undefined, spread)!;
     assert.ok(swung.rest > flat.rest, `${swung.rest} should be above ${flat.rest}`);
 });
+
+test('a slow day is skipped, and only a run of failures pauses the fill', async () => {
+    let saved: SpreadStore | undefined;
+    let calls = 0;
+    const history = new PriceHistory({
+        fetchDay: async (date) => {
+            calls++;
+            if (date === '2026-11-20') throw new Error('Timeout after 30000ms');
+            if (date < '2026-11-01') throw new Error('Timeout after 30000ms');
+            return answer(date, (h) => (h < 12 ? 1 : 2));
+        },
+        load: () => saved && JSON.parse(JSON.stringify(saved)),
+        save: (store) => { saved = JSON.parse(JSON.stringify(store)); },
+        today: () => '2026-11-22',
+        now: () => 0,
+        log: () => {},
+    });
+    history.spreads();
+    await new Promise((r) => setTimeout(r, 50));
+    assert.equal(saved!.days['2026-11-21'], 1);
+    assert.equal(saved!.days['2026-11-20'], undefined, 'skipped, asked again next time');
+    assert.equal(saved!.days['2026-11-19'] !== undefined, true, 'the fill went on past it');
+    assert.equal(calls, 21 + 3, 'paused after three failures in a row');
+});
