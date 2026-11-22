@@ -983,7 +983,7 @@
       "cheap": "günstig",
       "saved_month": "gespart im __month__",
       "spent": "Kosten heute",
-      "spent_line": "heute __cost__",
+      "spent_line": "Kosten heute __cost__",
       "mode_spa": "Smart Price Adaption",
       "cheap_heat": "günstige Wärme",
       "estimated_year": "geschätzt für __year__",

@@ -583,7 +583,7 @@
       "cheap": "billig",
       "saved_month": "spart i __month__",
       "spent": "kostnad i dag",
-      "spent_line": "__cost__ i dag",
+      "spent_line": "__cost__ kostnad i dag",
       "mode_spa": "Smart Price Adaption",
       "cheap_heat": "billig varme",
       "estimated_year": "anslått for __year__",

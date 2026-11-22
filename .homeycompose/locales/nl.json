@@ -583,7 +583,7 @@
       "cheap": "goedkoop",
       "saved_month": "bespaard in __month__",
       "spent": "kosten vandaag",
-      "spent_line": "__cost__ vandaag",
+      "spent_line": "__cost__ kosten vandaag",
       "mode_spa": "Smart price adaption",
       "cheap_heat": "goedkope warmte",
       "estimated_year": "geschat voor __year__",

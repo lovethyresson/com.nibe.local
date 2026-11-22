@@ -583,7 +583,7 @@
       "cheap": "cheap",
       "saved_month": "saved in __month__",
       "spent": "cost today",
-      "spent_line": "__cost__ today",
+      "spent_line": "__cost__ cost today",
       "mode_spa": "Smart Price Adaption",
       "cheap_heat": "cheap heat",
       "estimated_year": "estimated for __year__",
