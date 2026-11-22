@@ -1,79 +1,100 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {HISTORY_DAYS, MONTH_MIN_DAYS, PriceHistory, SpreadStore, daySpread, missingDates, monthSpreads} from '../lib/gateway-price-history';
+import {MONTH_MIN_DAYS, MonthStore, PriceHistory, REFRESH_MS, RETRY_MS, chartsZone, hoursSpread, monthSpreads} from '../lib/gateway-price-history';
 import {seasonWeight, yearOutlook, SavingsDay} from '../lib/autopilot/savings';
 
-const HOUR = 3_600_000;
+const DAY = 86_400;
 
-/** Homey Energy's answer for a UTC day: `hourly(h)` per hour, as four quarter-hours or one hour. */
-function answer(date: string, hourly: (h: number) => number, quarters = true, zoneId = 'SE3') {
-    const t0 = Date.parse(`${date}T00:00:00Z`);
-    const step = quarters ? HOUR / 4 : HOUR;
-    const pricesPerInterval = Array.from({length: 24 * HOUR / step}, (_, k) => ({
-        periodStart: new Date(t0 + k * step).toISOString(), periodEnd: new Date(t0 + (k + 1) * step).toISOString(),
-        value: hourly(Math.floor(k * step / HOUR)),
-    }));
-    return {zoneId, pricesPerInterval};
+/** Energy-Charts' answer: quarter-hours from `from` for `days` days, priced `price(month, hour)`. */
+function series(from: string, days: number, price: (month: number, hour: number) => number | null) {
+    const t0 = Date.parse(`${from}T00:00:00Z`) / 1000;
+    const unix_seconds: number[] = [], prices: (number | null)[] = [];
+    for (let s = t0; s < t0 + days * DAY; s += 900) {
+        const at = new Date(s * 1000);
+        unix_seconds.push(s);
+        prices.push(price(at.getUTCMonth(), at.getUTCHours()));
+    }
+    return {unix_seconds, price: prices};
 }
 
-test('a day\'s spread is its expensive third\'s mean minus its cheap third\'s, hourly', async () => {
-    const {normalisePrices} = await import('../lib/autopilot/prices');
-    const steps = (h: number) => (h < 8 ? 0.5 : h < 16 ? 1 : 2);
-    assert.equal(daySpread(normalisePrices(answer('2026-01-10', steps), undefined)), 1.5);
-    assert.equal(daySpread(normalisePrices(answer('2024-01-10', steps, false), undefined)), 1.5, 'an hourly day reads alike');
-    assert.equal(daySpread({slots: [], costsApplied: false}), undefined);
+test('a day\'s spread is its expensive third\'s mean minus its cheap third\'s', () => {
+    const steps = Array.from({length: 24}, (_, h) => (h < 8 ? 50 : h < 16 ? 100 : 200));
+    assert.equal(hoursSpread(steps), 150);
+    assert.equal(hoursSpread(steps.slice(0, 19)), undefined, 'too few hours');
 });
 
-test('months are trusted only once every one has enough days', () => {
-    const days: Record<string, number> = {};
-    for (let m = 1; m <= 12; m++) for (let d = 1; d <= MONTH_MIN_DAYS; d++) days[`2026-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`] = m;
-    assert.deepEqual(monthSpreads(days), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-    delete days['2026-07-01'];
-    assert.equal(monthSpreads(days), undefined);
-    days['2026-07-01'] = NaN; // a day Homey had no prices for counts as nothing
-    assert.equal(monthSpreads(days), undefined);
+test('a year of quarter-hours gives each month\'s spread; a short year gives none', () => {
+    // Afternoons and evenings cost 10 per month number more than the morning: January 10, December 120.
+    const year = series('2025-11-22', 365, (m, h) => (h < 12 ? 0 : 10 * (m + 1)));
+    const months = monthSpreads(year.unix_seconds, year.price, 'UTC')!;
+    assert.equal(months.length, 12);
+    assert.deepEqual(months, [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]);
+    const short = series('2026-01-01', 300, () => 1);
+    assert.equal(monthSpreads(short.unix_seconds, short.price, 'UTC'), undefined);
+    // Missing prices leave a month short of days.
+    const holes = series('2025-11-22', 365, (m, h) => (m === 6 && h > 2 ? null : h));
+    assert.equal(monthSpreads(holes.unix_seconds, holes.price, 'UTC'), undefined);
+    assert.ok(MONTH_MIN_DAYS <= 28);
 });
 
-test('the history asks for the missing days newest first, a year and a month back', () => {
-    const missing = missingDates({days: {'2026-11-21': 1}}, '2026-11-22');
-    assert.equal(missing[0], '2026-11-20');
-    assert.equal(missing.length, HISTORY_DAYS - 1);
+test('Homey Energy\'s zone maps to Energy-Charts\', the owner\'s choice first', () => {
+    assert.equal(chartsZone({userConfigured: {zoneId: '10Y1001A1001A46L'}, autoConfigured: {zoneId: '10YNL----------L'}}), 'SE3');
+    assert.equal(chartsZone({autoConfigured: {zoneId: '10YNO-2--------T'}}), 'NO2');
+    assert.equal(chartsZone({userConfigured: {zoneId: 'unknown'}}), undefined);
+    assert.equal(chartsZone(undefined), undefined);
 });
 
-test('the fill reads every missing day once, saves them, and starts over when the zone changes', async () => {
-    let saved: SpreadStore | undefined;
+test('the year is read once, sends only the zone and dates, and again a month later', async () => {
+    let saved: MonthStore | undefined;
+    let now = Date.parse('2026-11-22T12:00:00Z');
     const asked: string[] = [];
-    let zone = 'SE3';
     const history = new PriceHistory({
-        fetchDay: async (date) => { asked.push(date); return answer(date, (h) => (h < 12 ? 1 : 2), true, zone); },
-        load: () => saved && JSON.parse(JSON.stringify(saved)),
-        save: (store) => { saved = JSON.parse(JSON.stringify(store)); },
-        today: () => '2026-11-22',
-        now: () => 0,
+        zone: async () => ({userConfigured: {zoneId: '10YDK-1--------W'}}),
+        fetchYear: async (zone, start, end) => {
+            asked.push(`${zone} ${start} ${end}`);
+            return series(start, 365, (m, h) => (h < 12 ? 0 : 1));
+        },
+        load: () => saved,
+        save: (store) => { saved = store; },
+        timeZone: () => 'Europe/Copenhagen',
+        now: () => now,
         log: () => {},
     });
-    assert.equal(history.spreads(), undefined, 'nothing until filled');
-    await new Promise((r) => setTimeout(r, 50));
-    assert.equal(asked.length, HISTORY_DAYS);
-    assert.equal(saved!.zone, 'SE3');
-    assert.equal(Object.keys(saved!.days).length, HISTORY_DAYS);
+    assert.equal(history.spreads(), undefined, 'nothing until read');
+    await new Promise((r) => setTimeout(r, 10));
+    assert.deepEqual(asked, ['DK1 2025-11-22 2026-11-21']);
+    assert.equal(saved!.zone, 'DK1');
     assert.equal(history.spreads()!.length, 12);
     await new Promise((r) => setTimeout(r, 10));
-    assert.equal(asked.length, HISTORY_DAYS, 'filled for today: not asked again');
-    // A moved Homey: the next day's fill finds another zone and reads the year again.
-    zone = 'NL';
-    const next = new PriceHistory({
-        fetchDay: async (date) => { asked.push(date); return answer(date, () => 1, true, zone); },
-        load: () => saved && JSON.parse(JSON.stringify(saved)),
-        save: (store) => { saved = JSON.parse(JSON.stringify(store)); },
-        today: () => '2026-11-23',
-        now: () => 0,
+    assert.equal(asked.length, 1, 'kept: not read again');
+    now += REFRESH_MS + 1;
+    history.spreads();
+    await new Promise((r) => setTimeout(r, 10));
+    assert.equal(asked.length, 2, 'a month on: read again');
+});
+
+test('a failed read keeps the last months and waits before trying again', async () => {
+    let now = 0;
+    let calls = 0;
+    const kept: MonthStore = {zone: 'NL', at: -REFRESH_MS - 1, months: new Array(12).fill(5)};
+    const history = new PriceHistory({
+        zone: async () => ({userConfigured: {zoneId: '10YNL----------L'}}),
+        fetchYear: async () => { calls++; throw new Error('HTTP 429'); },
+        load: () => kept,
+        save: () => assert.fail('nothing to save'),
+        timeZone: () => 'UTC',
+        now: () => now,
         log: () => {},
     });
-    next.spreads();
-    await new Promise((r) => setTimeout(r, 50));
-    assert.equal(saved!.zone, 'NL');
-    assert.equal(Object.keys(saved!.days).length, HISTORY_DAYS);
+    assert.equal(history.spreads()![0], 5);
+    await new Promise((r) => setTimeout(r, 10));
+    history.spreads();
+    await new Promise((r) => setTimeout(r, 10));
+    assert.equal(calls, 1, 'not again at once');
+    now += RETRY_MS + 1;
+    history.spreads();
+    await new Promise((r) => setTimeout(r, 10));
+    assert.equal(calls, 2);
 });
 
 test('a month of big price swings weighs more in the year\'s projection', () => {
@@ -89,28 +110,4 @@ test('a month of big price swings weighs more in the year\'s projection', () => 
     const flat = yearOutlook(days, '2027-11-01', base, '2027-11-21', 'hotwater')!;
     const swung = yearOutlook(days, '2027-11-01', base, '2027-11-21', 'hotwater', undefined, spread)!;
     assert.ok(swung.rest > flat.rest, `${swung.rest} should be above ${flat.rest}`);
-});
-
-test('a slow day is skipped, and only a run of failures pauses the fill', async () => {
-    let saved: SpreadStore | undefined;
-    let calls = 0;
-    const history = new PriceHistory({
-        fetchDay: async (date) => {
-            calls++;
-            if (date === '2026-11-20') throw new Error('Timeout after 30000ms');
-            if (date < '2026-11-01') throw new Error('Timeout after 30000ms');
-            return answer(date, (h) => (h < 12 ? 1 : 2));
-        },
-        load: () => saved && JSON.parse(JSON.stringify(saved)),
-        save: (store) => { saved = JSON.parse(JSON.stringify(store)); },
-        today: () => '2026-11-22',
-        now: () => 0,
-        log: () => {},
-    });
-    history.spreads();
-    await new Promise((r) => setTimeout(r, 50));
-    assert.equal(saved!.days['2026-11-21'], 1);
-    assert.equal(saved!.days['2026-11-20'], undefined, 'skipped, asked again next time');
-    assert.equal(saved!.days['2026-11-19'] !== undefined, true, 'the fill went on past it');
-    assert.equal(calls, 21 + 3, 'paused after three failures in a row');
 });

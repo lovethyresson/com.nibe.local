@@ -1,192 +1,169 @@
-/** The Gateway's price history: how far each past day's prices spread between its cheap and
- *  expensive hours, for the last year in the owner's own price zone (Homey Energy keeps past days,
- *  docs/external-io.md). The savings projection weights the rest of the year by it, so a winter of
- *  big price swings is not projected at an autumn's pace, wherever the owner is.
+/** How far spot prices swing between cheap and expensive hours in each calendar month, in the
+ *  owner's own price zone over the last year. The savings projection weights the rest of the year by
+ *  it, so a winter of big price swings is not projected at an autumn's pace, wherever the owner is.
  *
  *  A day's spread is the mean spot price of its most expensive third of hours minus its cheapest
- *  third: what moving a kWh across the day can save. Spot, not the owner's all-in price: a cost
- *  formula scales every month alike, which the projection's ratio cancels, and a changed formula
- *  then leaves the history valid.
+ *  third: what moving a kWh across the day can save. A month's is the mean of its days. Only the
+ *  months' sizes relative to each other matter (the projection's pace cancels the unit), so the
+ *  source's EUR/MWh is used as it comes.
  *
- *  Filled once, newest first, one day at a time at background priority through the Gateway (its
- *  energy lane paces the calls), and kept in the app's settings; after that, one new day a day.
- *  A change of price zone starts it again. */
+ *  The year comes from Energy-Charts (Fraunhofer ISE, api.energy-charts.info) in one request
+ *  through the Gateway's web lane, at background priority, about once a month. Only the price zone
+ *  is sent. The zone is the one the owner chose in Homey Energy. Twelve numbers are kept in the
+ *  app's settings; the prices themselves are not. docs/external-io.md. */
 
-import {DayPrices, SLOT_MS, normalisePrices} from './autopilot/prices';
 import {PRIORITY, gatewayFor} from './gateway';
-import {pricesFor} from './gateway-prices';
+import {localDate} from './autopilot/prices';
+import {getJson} from './web';
 
-/** Days back the history reaches: a year and a month, so every month has a past. */
-export const HISTORY_DAYS = 400;
 /** Days a month needs before its spread is trusted. */
 export const MONTH_MIN_DAYS = 10;
-/** A failed fill waits this long before it is tried again. */
-export const RETRY_MS = 60 * 60_000;
-/** Failed days in a row that pause a fill. */
-export const MAX_FAILURES = 3;
-/** Days saved at a time while filling, so a restart keeps most of the work. */
-const SAVE_EVERY = 10;
-export const SETTING = 'autopilotPriceSpreads';
+/** The year is read again after this long, so the months stay the last twelve. */
+export const REFRESH_MS = 30 * 24 * 3_600_000;
+/** A failed read waits this long before it is tried again. */
+export const RETRY_MS = 6 * 3_600_000;
+export const SETTING = 'autopilotPriceMonths';
+/** The 1.5.x test builds' day-by-day history, read from Homey Energy; dropped on first use. */
+const OLD_SETTING = 'autopilotPriceSpreads';
 
-export interface SpreadStore {
-    /** Homey Energy's price zone the days were read in. */
-    zone?: string;
-    /** Local date → spread, in the zone's currency per kWh. */
-    days: Record<string, number>;
+export interface MonthStore {
+    /** Energy-Charts' bidding zone the months were read for. */
+    zone: string;
+    /** When they were read (ms). */
+    at: number;
+    /** Each month's spread, January first. */
+    months: number[];
 }
 
-/** The spread of one day's prices: the mean of the hourly spot prices in its most expensive third
- *  minus its cheapest third. Hourly, so a quarter-hour day and an hourly one (Homey Energy before
- *  October 2025) read alike. Undefined with fewer than 20 hours. */
-export function daySpread(prices: DayPrices): number | undefined {
-    const hours = new Map<number, {sum: number; n: number}>();
-    for (const s of prices.slots) {
-        const hour = Math.floor(s.slot * SLOT_MS / 3_600_000);
-        const h = hours.get(hour) ?? {sum: 0, n: 0};
-        hours.set(hour, {sum: h.sum + s.spot, n: h.n + 1});
+/** Homey Energy's zones (ENTSO-E area codes) as Energy-Charts names them. */
+const ZONES: Record<string, string> = {
+    '10Y1001A1001A44P': 'SE1', '10Y1001A1001A45N': 'SE2', '10Y1001A1001A46L': 'SE3', '10Y1001A1001A47J': 'SE4',
+    '10YNO-1--------2': 'NO1', '10YNO-2--------T': 'NO2', '10YNO-3--------J': 'NO3', '10YNO-4--------9': 'NO4',
+    '10Y1001A1001A48H': 'NO5', '10YDK-1--------W': 'DK1', '10YDK-2--------M': 'DK2', '10YNL----------L': 'NL',
+    '10Y1001A1001A82H': 'DE-LU', '10YBE----------2': 'BE', '10YFI-1--------U': 'FI', '10YAT-APG------L': 'AT',
+    '10YFR-RTE------C': 'FR', '10YPL-AREA-----S': 'PL', '10YCH-SWISSGRIDZ': 'CH', '10Y1001A1001A39I': 'EE',
+    '10YLV-1001A00074': 'LV', '10YLT-1001A0008Q': 'LT',
+};
+
+/** The Energy-Charts zone for Homey Energy's zone answer, or undefined when it has none we know.
+ *  The owner's own choice first, then the one Homey picked. */
+export function chartsZone(answer: any): string | undefined {
+    for (const z of [answer?.userConfigured, answer?.autoConfigured]) {
+        const zone = ZONES[z?.zoneId];
+        if (zone) return zone;
     }
-    if (hours.size < 20) return undefined;
-    const sorted = [...hours.values()].map((h) => h.sum / h.n).sort((a, b) => a - b);
+    return undefined;
+}
+
+/** The spread of one day's hourly means: its most expensive third's mean minus its cheapest
+ *  third's. Undefined with fewer than 20 hours. */
+export function hoursSpread(hourly: number[]): number | undefined {
+    if (hourly.length < 20) return undefined;
+    const sorted = [...hourly].sort((a, b) => a - b);
     const third = Math.floor(sorted.length / 3);
     const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
-    return Math.round((mean(sorted.slice(-third)) - mean(sorted.slice(0, third))) * 10_000) / 10_000;
+    return mean(sorted.slice(-third)) - mean(sorted.slice(0, third));
 }
 
-/** The mean spread of each calendar month (index 0 = January), or undefined until every month has
- *  MONTH_MIN_DAYS days. */
-export function monthSpreads(days: Record<string, number>): number[] | undefined {
+/** Each month's mean daily spread from Energy-Charts' series (seconds, price per interval), with
+ *  days in the owner's time zone; undefined until every month has MONTH_MIN_DAYS days. */
+export function monthSpreads(seconds: number[], prices: (number | null)[], timeZone: string): number[] | undefined {
+    const days = new Map<string, Map<number, {sum: number; n: number}>>();
+    seconds.forEach((s, k) => {
+        const price = prices[k];
+        if (typeof price !== 'number' || !Number.isFinite(price)) return;
+        const date = localDate(s * 1000, timeZone);
+        const hours = days.get(date) ?? new Map();
+        const hour = Math.floor(s / 3600);
+        const h = hours.get(hour) ?? {sum: 0, n: 0};
+        hours.set(hour, {sum: h.sum + price, n: h.n + 1});
+        days.set(date, hours);
+    });
     const sum = new Array(12).fill(0), n = new Array(12).fill(0);
-    for (const [date, spread] of Object.entries(days)) {
+    for (const [date, hours] of days) {
+        const spread = hoursSpread([...hours.values()].map((h) => h.sum / h.n));
+        if (spread === undefined) continue;
         const m = Number(date.slice(5, 7)) - 1;
-        if (!(m >= 0 && m < 12) || !Number.isFinite(spread)) continue;
         sum[m] += spread;
         n[m]++;
     }
     if (n.some((c) => c < MONTH_MIN_DAYS)) return undefined;
-    return sum.map((s, m) => Math.round(s / n[m] * 10_000) / 10_000);
-}
-
-/** The dates the history should have and lacks, newest first: yesterday back HISTORY_DAYS. */
-export function missingDates(store: SpreadStore, today: string): string[] {
-    const out: string[] = [];
-    const [y, m, d] = today.split('-').map(Number);
-    for (let k = 1; k <= HISTORY_DAYS; k++) {
-        const date = new Date(Date.UTC(y, m - 1, d - k)).toISOString().slice(0, 10);
-        if (store.days[date] === undefined) out.push(date);
-    }
-    return out;
+    return sum.map((s, m) => Math.round(s / n[m] * 100) / 100);
 }
 
 export interface PriceHistoryDeps {
-    /** Homey Energy's answer for a date, through the Gateway at background priority. */
-    fetchDay(date: string): Promise<any>;
-    load(): SpreadStore | undefined;
-    save(store: SpreadStore): void;
-    today(): string;
+    /** Homey Energy's zone answer (`getDynamicPricesElectricityZone`). */
+    zone(): Promise<any>;
+    /** Energy-Charts' day-ahead prices for a zone and a date span (YYYY-MM-DD, inclusive). */
+    fetchYear(zone: string, start: string, end: string): Promise<any>;
+    load(): MonthStore | undefined;
+    save(store: MonthStore): void;
+    timeZone(): string;
     now(): number;
     log(...args: any[]): void;
 }
 
 export class PriceHistory {
-    private filling?: Promise<void>;
+    private reading?: Promise<void>;
     private failedAt = -Infinity;
-    private filledFor?: string;
     private lastError?: string;
 
     constructor(private readonly deps: PriceHistoryDeps) {}
 
-    /** Each month's spread, or undefined while the history is filling. Starts or continues the fill
-     *  in the background; never waits for it and never throws. */
+    /** Each month's spread, or undefined until known. Starts a read in the background when the
+     *  months are missing or a month old; never waits for it and never throws. */
     spreads(): number[] | undefined {
-        const store = this.store();
-        const today = this.deps.today();
-        if (!this.filling && this.filledFor !== today && this.deps.now() - this.failedAt > RETRY_MS) {
-            this.filling = this.fill(today).finally(() => { this.filling = undefined; });
-        }
-        return monthSpreads(store.days);
-    }
-
-    private store(): SpreadStore {
         const kept = this.deps.load();
-        return kept && typeof kept.days === 'object' && kept.days ? kept : {days: {}};
+        const now = this.deps.now();
+        if (!this.reading && (!kept || now - kept.at > REFRESH_MS) && now - this.failedAt > RETRY_MS) {
+            this.reading = this.read().finally(() => { this.reading = undefined; });
+        }
+        return kept?.months;
     }
 
-    private async fill(today: string): Promise<void> {
-        let store = this.store();
-        const missing = missingDates(store, today);
-        let unsaved = 0;
+    private async read(): Promise<void> {
         try {
-            let failures = 0;
-            for (const date of missing) {
-                // A slow or failed day is left for the next fill; only a run of them pauses this one.
-                const response = await this.deps.fetchDay(date).then((r) => { failures = 0; return r; }, (error) => {
-                    if (++failures >= MAX_FAILURES) throw error;
-                    return undefined;
-                });
-                if (response === undefined) continue;
-                const zone = typeof response?.zoneId === 'string' ? response.zoneId : undefined;
-                if (zone && store.zone && zone !== store.zone) {
-                    // A new price zone: last zone's days say nothing about this one.
-                    this.deps.log(`Price history: zone changed from ${store.zone} to ${zone}; read again.`);
-                    store = {zone, days: {}};
-                    this.deps.save(store);
-                    return this.fill(today);
-                }
-                if (zone) store.zone = zone;
-                const spread = daySpread(normalisePrices(response, undefined));
-                // A day Homey has no prices for is marked, so it is not asked for again every day.
-                store.days[date] = spread ?? NaN;
-                if (++unsaved >= SAVE_EVERY) { this.save(store, today); unsaved = 0; }
-            }
-            this.save(store, today);
-            // Days skipped as slow are asked for again tomorrow.
-            this.filledFor = today;
-            if (missing.length > 1) {
-                const months = monthSpreads(store.days);
-                this.deps.log(`Price history: ${Object.values(store.days).filter(Number.isFinite).length} days in ${store.zone ?? 'an unknown zone'}`
-                    + (months ? `, spread per month ${months.map((v) => v.toFixed(2)).join(' ')}.` : ', not every month yet.'));
-            }
+            const zone = chartsZone(await this.deps.zone());
+            if (!zone) throw new Error('no price zone in Homey Energy that Energy-Charts has');
+            const timeZone = this.deps.timeZone();
+            const now = this.deps.now();
+            // The last 365 whole days, so each month appears once.
+            const answer = await this.deps.fetchYear(zone, localDate(now, timeZone, -365), localDate(now, timeZone, -1));
+            const months = monthSpreads(answer?.unix_seconds ?? [], answer?.price ?? [], timeZone);
+            if (!months) throw new Error(`Energy-Charts had too few days for ${zone}`);
+            this.deps.save({zone, at: now, months});
+            this.deps.log(`Price history: ${zone}, spread per month ${months.map((v) => v.toFixed(0)).join(' ')} EUR/MWh.`);
+            this.lastError = undefined;
         } catch (error: any) {
-            this.save(store, today);
             this.failedAt = this.deps.now();
-            // Once per reason, not every hour it is tried again.
+            // Once per reason, not every time it is tried again.
             const why = String(error?.message ?? error);
-            if (why !== this.lastError) this.deps.log('Price history: fill paused:', why);
+            if (why !== this.lastError) this.deps.log('Price history: not read:', why);
             this.lastError = why;
         }
-    }
-
-    /** Save, dropping days older than the history reaches. NaN is kept as null in settings. */
-    private save(store: SpreadStore, today: string) {
-        const oldest = missingDates({days: {}}, today).pop()!;
-        const days: Record<string, number> = {};
-        for (const [date, v] of Object.entries(store.days)) if (date >= oldest) days[date] = v;
-        store.days = days;
-        this.deps.save(store);
     }
 }
 
 /** One price history per app process, through its Gateway. */
 let shared: PriceHistory | undefined;
 
-export function priceHistoryFor(homey: any, today: () => string, log: (...args: any[]) => void): PriceHistory {
-    shared ??= new PriceHistory({
-        fetchDay: async (date) => {
-            // Without dynamic prices in Homey Energy there is nothing to read; asked again hourly.
-            if (!(await pricesFor(homey).info()).dynamic) throw new Error('no dynamic prices in Homey Energy');
-            return gatewayFor(homey).call((api) => api.energy.fetchDynamicElectricityPrices({date, $timeout: 30_000}), PRIORITY.background);
-        },
-        load: () => {
-            const kept = homey.settings.get(SETTING) as SpreadStore | null;
-            if (!kept?.days) return undefined;
-            // Settings keep NaN as null: a day known to have no prices.
-            for (const date of Object.keys(kept.days)) if (kept.days[date] === null) kept.days[date] = NaN;
-            return kept;
-        },
-        save: (store) => homey.settings.set(SETTING, store),
-        today,
-        now: () => Date.now(),
-        log,
-    });
+export function priceHistoryFor(homey: any, log: (...args: any[]) => void): PriceHistory {
+    if (!shared) {
+        if (homey.settings.get(OLD_SETTING) != null) homey.settings.unset(OLD_SETTING);
+        shared = new PriceHistory({
+            zone: () => gatewayFor(homey).call((api) => api.energy.getDynamicPricesElectricityZone(), PRIORITY.background),
+            fetchYear: (zone, start, end) => gatewayFor(homey).web('energy-charts price',
+                () => getJson(`https://api.energy-charts.info/price?bzn=${encodeURIComponent(zone)}&start=${start}&end=${end}`, 60_000),
+                PRIORITY.background),
+            load: () => {
+                const kept = homey.settings.get(SETTING) as MonthStore | null;
+                return kept && Array.isArray(kept.months) && kept.months.length === 12 ? kept : undefined;
+            },
+            save: (store) => homey.settings.set(SETTING, store),
+            timeZone: () => homey.clock.getTimezone(),
+            now: () => Date.now(),
+            log,
+        });
+    }
     return shared;
 }
