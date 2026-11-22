@@ -4,7 +4,6 @@ import {HouseParams} from './model';
  *  controller in shadow every slot. Reads only; nothing here writes to the pump.
  *  Design: docs/autopilot-plan.md §5.2–5.4, §6, §7.5. */
 import {dateFormat} from '../intl';
-import {memMark} from '../mem-probe';
 import {SensorRef, selectedReadings} from '../indoor-sensors';
 import {Aggregator, FLAG, Field, History, Sample, SlotContext, encodeRecord} from './history';
 import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, slotOf} from './prices';
@@ -526,9 +525,7 @@ export class AutopilotCollector {
 
     /** Refit the house model over the whole history and keep the result beside it. Reads only:
      *  nothing here reaches the pump or the owner yet. */
-    // TEMP(mem)
-    private fitModel() { return memMark('heating fit', () => this.fitModelInner()); }
-    private async fitModelInner() {
+    private async fitModel() {
         const started = Date.now();
         const fit = fitHistory(this.history, this.answers);
         this.fit = fit;

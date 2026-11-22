@@ -153,10 +153,11 @@ test('three weeks without settling hand over to calibrating too', () => {
 });
 
 test('the four steps read back', () => {
-    const s = readSettle({start: '2026-11-22', days: [], settled: '2026-11-24', restarted: '2026-11-23', live: '2026-11-27', fits: true,
+    const s = readSettle({start: '2026-11-22', days: [], settled: '2026-11-24', restarted: '2026-11-23', live: '2026-11-27', fits: true, liveAt: 5,
         calibrating: {start: '2026-11-24', checked: '2026-11-26', days: [{date: '2026-11-26', mean: 22.4, setpoint: 22.5, ok: true}, {date: 'x'}]}})!;
     assert.deepEqual(s.calibrating, {start: '2026-11-24', checked: '2026-11-26', days: [{date: '2026-11-26', mean: 22.4, setpoint: 22.5, ok: true}]});
     assert.equal(s.live, '2026-11-27');
     assert.equal(s.fits, true);
     assert.equal(s.restarted, '2026-11-23');
+    assert.equal(s.liveAt, 5);
 });

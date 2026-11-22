@@ -645,7 +645,8 @@
         "spa": "Autopilot is waiting. Turn off Smart Price Adaption for hot water on your heat pump.",
         "smart_control": "Autopilot is waiting. Your heat pump's hot water demand is on Smart control. Set it to Small, Medium or Large.",
         "rescue_limit": "Hot water is below your minimum, and Autopilot has used today's __max__ starts. Turn on More hot water on your heat pump if you need it before midnight."
-      }
+      },
+      "started_reason": "Autopilot started heating hot water. __why__"
     },
     "hotwater_legionella": {
       "overdue": "Hot water hasn't reached __target__ °C for legionella. Your heat pump's own periodic hot water is back on until it does.",
@@ -777,7 +778,8 @@
         "settled_fits": "Your house holds __target__ and your heat curve already fits. Autopilot now moves heat away from expensive hours.",
         "restart": "Heating settling for your new temperature: __mean__ yesterday. Target __target__.",
         "live": "Autopilot is live. It now moves heat away from expensive hours.",
-        "live_fits": "Your heat curve already fits. Autopilot now moves heat away from expensive hours."
+        "live_fits": "Your heat curve already fits. Autopilot now moves heat away from expensive hours.",
+        "settled_short": "Your house holds __target__."
       }
     },
     "smart": {

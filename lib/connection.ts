@@ -875,6 +875,13 @@ export class PumpConnection {
     // already have to explain without it.
     private readonly reasonState: ReasonState = {};
 
+    /** Something the pump cannot tell, for the model's explanation of the next change
+     *  (profile.ts `AUTOPILOT_HOTWATER_NOTE`). */
+    noteReason(key: string, text: string) {
+        this.reasonState[key] = text;
+        this.reasonState[`${key}At`] = Date.now();
+    }
+
     // Read the pump's decision inputs and let the model turn them into a sentence. Done on
     // demand at a priority change rather than every poll, so a handful of transitions a day
     // cost a handful of extra reads. Inputs that don't read are left undefined for explain().

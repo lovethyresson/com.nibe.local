@@ -7,7 +7,6 @@
  *  which already hold the tank's history, and fetches prices itself. When the split lands, the
  *  price fetch moves to the home service and the tank fields to the per-pump history. */
 import {localeTime} from '../intl';
-import {memMark} from '../mem-probe';
 import {withApi} from '../indoor-sensors';
 import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, slotOf} from './prices';
 import {pricesFor} from '../gateway-prices';
@@ -739,6 +738,9 @@ export interface HotwaterHooks {
      *  (true), or off again once a charge got there (false). Throws when the write fails. */
     periodicBoost?(on: boolean): Promise<void>;
     store: {get(key: string): any; set(key: string, value: any): Promise<void>};
+    /** Autopilot is about to switch on More hot water: why, in the owner's language, for the
+     *  operating state's reason (profile.ts `AUTOPILOT_HOTWATER_NOTE`). */
+    starting?(why: string): void;
     /** A real charge started, Autopilot's or the pump's: the Flow trigger. */
     charged(e: ChargeEvent, text: {reason: string; detailedReason: string}): void;
     /** A problem the owner must see on the device, or undefined to clear it. */
@@ -1151,9 +1153,7 @@ export class HotwaterAutopilot {
     }
 
     /** True when a model was learned. */
-    // TEMP(mem)
-    private learn(): Promise<boolean> { return memMark('hot water learn', () => this.learnInner()); }
-    private async learnInner(): Promise<boolean> {
+    private async learn(): Promise<boolean> {
         const started = Date.now();
         const logs = await withApi(this.homey, async (api) => {
             this.deviceId ??= this.hooks.homeyId ? await this.hooks.homeyId(api)
@@ -1424,6 +1424,8 @@ export class HotwaterAutopilot {
         await this.hooks.store.set(WRITES_KEY, {...count, starts: count.starts + 1, stops: count.stops + (d.writeStop ? 1 : 0)});
         try {
             if (d.writeStop) await this.hooks.write('stop', d.targetC);
+            const t: Translate = (key, tokens) => this.homey.__(`autopilot.hotwater_charge.${key}`, tokens);
+            this.hooks.starting?.(t('started_reason', {why: chargeText({...e, targetC: d.targetC}, t, this.time, this.currency).detailedReason}));
             await this.hooks.write('more', true);
         } catch (error: any) {
             this.warn(this.homey.__('autopilot.hotwater_charge.write_failed', {error: error?.message ?? String(error)}));

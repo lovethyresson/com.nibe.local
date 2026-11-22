@@ -66,6 +66,8 @@ export interface SettleState {
     /** Step 4: the date it started, and whether the curve already fit. */
     live?: string;
     fits?: boolean;
+    /** When the feed started shifting (ms): heating's savings count from here. */
+    liveAt?: number;
 }
 
 export interface Calibrating {
@@ -200,7 +202,8 @@ export function readSettle(raw: unknown): SettleState | undefined {
         ...typeof cal.checked === 'string' ? {checked: cal.checked} : {}} : undefined;
     const text = (k: 'checked' | 'settled' | 'stopped' | 'restarted' | 'live') => (typeof r[k] === 'string' ? {[k]: r[k]} : {});
     return {start: r.start, days, ...text('checked'), ...text('settled'), ...text('stopped'), ...text('restarted'),
-        ...calibrating ? {calibrating} : {}, ...text('live'), ...r.fits === true ? {fits: true} : {}};
+        ...calibrating ? {calibrating} : {}, ...text('live'), ...r.fits === true ? {fits: true} : {},
+        ...Number.isFinite(r.liveAt) ? {liveAt: r.liveAt} : {}};
 }
 
 /** The change from the day before, one decimal, and its direction. */

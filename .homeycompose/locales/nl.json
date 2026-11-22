@@ -241,7 +241,8 @@
         "spa": "Autopilot wacht. Zet Smart Price Adaption voor warm water uit op je warmtepomp.",
         "smart_control": "Autopilot wacht. De warmwatervraag van je warmtepomp staat op Smart control. Zet die op Klein, Gemiddeld of Groot.",
         "rescue_limit": "Het warme water is onder je minimum en Autopilot heeft de __max__ starts van vandaag gebruikt. Zet Meer warmwater aan op je warmtepomp als je het voor middernacht nodig hebt."
-      }
+      },
+      "started_reason": "Autopilot is begonnen met warm water verwarmen. __why__"
     },
     "hotwater_legionella": {
       "overdue": "Het warme water heeft __target__ °C tegen legionella niet gehaald. Het eigen periodieke warm water van je warmtepomp staat weer aan tot een opwarming het haalt.",
@@ -373,7 +374,8 @@
         "settled_fits": "Je huis houdt __target__ vast en je stooklijn klopt al. Autopilot verschuift nu warmte uit dure uren.",
         "restart": "Verwarming stelt zich in op je nieuwe temperatuur: gisteren __mean__. Doel __target__.",
         "live": "Autopilot is actief. Hij verschuift nu warmte uit dure uren.",
-        "live_fits": "Je stooklijn klopt al. Autopilot verschuift nu warmte uit dure uren."
+        "live_fits": "Je stooklijn klopt al. Autopilot verschuift nu warmte uit dure uren.",
+        "settled_short": "Je huis houdt __target__ vast."
       }
     },
     "smart": {

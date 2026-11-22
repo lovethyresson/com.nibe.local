@@ -225,3 +225,22 @@ test('driver: when ending Away fails on a device, it is retried each minute unti
     assert.equal(offs, 3, 'tried at the end, again, and once more when the pump answered');
     assert.equal(tries.filter((on) => !on).length, 3, 'no retry once it worked');
 });
+
+test('device: settled and a curve change in the same hour are one timeline line', async () => {
+    const sent: string[] = [];
+    const run = async (settle: any, curve: any) => {
+        sent.length = 0;
+        const d = Object.create(DeviceClass.prototype);
+        Object.assign(d, {
+            checkSettling: async () => settle, checkHeatCurve: async () => curve, log: () => undefined, error: () => undefined,
+            homey: {notifications: {createNotification: async ({excerpt}: {excerpt: string}) => { sent.push(excerpt); }}},
+        });
+        await d.afterFit();
+        return [...sent];
+    };
+    assert.deepEqual(await run({excerpt: 'Holds. Next the curve.', short: 'Holds.'}, {offset: 'Changed the offset.', other: ['Slope.']}),
+        ['Holds. Changed the offset.', 'Slope.']);
+    assert.deepEqual(await run({excerpt: 'Holds. Next the curve.', short: 'Holds.'}, {other: []}), ['Holds. Next the curve.']);
+    assert.deepEqual(await run({excerpt: 'Settling: 21.8.'}, {offset: 'Changed the offset.', other: []}), ['Settling: 21.8.', 'Changed the offset.']);
+    assert.deepEqual(await run(undefined, undefined), []);
+});

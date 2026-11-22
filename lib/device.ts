@@ -1,6 +1,5 @@
 import {CaptureSummary, logCaptureSummary} from './diagnostic-capture';
 import {dateFormat, localeDate, localeTime, numberFormat} from './intl';
-import {memMark, memNow} from './mem-probe';
 import {pricesFor} from './gateway-prices';
 import {PRIORITY} from './gateway';
 import {IndoorConfig, averageSensors, cleanIndoorConfig, readOnlyIndoorConfig, selectedReadings, withApi} from './indoor-sensors';
@@ -66,6 +65,7 @@ import {
     dayNumber, learnedInletC, usableLitres
 } from './hotwater';
 import type {LocalizedText, ModelProfile} from './profile';
+import {AUTOPILOT_HOTWATER_NOTE} from './profile';
 import {ConnectionProblem, PumpConnection, PumpSubscriber, POLL_SECONDS_DEFAULT, Transport,
     clampPollSeconds, inLanguage} from './connection';
 
@@ -1353,12 +1353,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.role === 'hotwater') await this.syncHotwaterAutopilot().catch(this.error);
         if (this.role === 'heating' || this.role === 'hotwater') {
             if (!Array.isArray(this.getStoreValue(MODE_MARKS_STORE))) await this.markMode(this.smartMode()).catch(this.error);
-            // TEMP(savings reset): heating's start date and baseline were stored by the code before
-            // b870c03 (at the switch, not when the house model was ready). Read again once from
-            // Insights. Remove with the other TEMP code (tasks/todo.md).
-            if (this.role === 'heating' && this.getStoreValue('autopilotSavingsReset') !== 1) {
+            // TEMP(savings reset): heating's start date and baseline were stored by older code (at the
+            // switch, then when the house model was ready; now at Getting started's Saving). Read
+            // again once from Insights. Remove with the other TEMP code (tasks/todo.md).
+            if (this.role === 'heating' && this.getStoreValue('autopilotSavingsReset') !== 2) {
                 for (const key of [FIRST_LIVE_STORE, BASELINE_STORE, SAVINGS_STORE]) await this.unsetStoreValue(key).catch(this.error);
-                await this.setStoreValue('autopilotSavingsReset', 1);
+                await this.setStoreValue('autopilotSavingsReset', 2);
                 this.log('Savings: heating start, baseline and days reset, to be read again from Insights.');
             }
             // Heating and Hot water read Insights a few minutes apart, so their requests don't meet.
@@ -1645,6 +1645,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             legionella: () => this.legionellaRun(),
             periodicBoost: (on) => this.setPeriodicBoost(on),
             store: {get: (key) => this.getStoreValue(key), set: (key, value) => this.setStoreValue(key, value)},
+            starting: (why) => this.connection?.noteReason(AUTOPILOT_HOTWATER_NOTE, why),
             charged: (e: ChargeEvent, text) => {
                 this.homey.flow.getDeviceTriggerCard((this.profile.flowPrefix ?? '') + 'hotwater_charge_started')
                     .trigger(this, {reason: text.reason, detailed_reason: text.detailedReason, autopilot: e.by === 'autopilot'})
@@ -1955,11 +1956,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.homey.settings.unset(`smartHistoryFile.${this.getData().id}`);
         this.homey.settings.set(`autopilotHistoryFile.${this.getData().id}`, file);
         this.autopilot = new AutopilotCollector(this.homey, file, (...args) => this.log(...args));
-        // Getting started reads the curve advice's verdict, so the advice goes first.
-        this.autopilot.onFit = () => {
-            this.checkHeatCurve().catch((error) => this.log('Heat curve advice:', error?.message ?? error))
-                .then(() => this.checkSettling()).catch((error) => this.log('Getting started:', error?.message ?? error));
-        };
+        this.autopilot.onFit = () => { this.afterFit().catch(this.error); };
         await this.autopilot.start();
         this.scheduleBackfill(BACKFILL_FIRST_MS, BACKFILL_TRIES);
         this.startHeatingFeed();
@@ -1977,9 +1974,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
      *  Insights, so the house model fits on day one. Runs off init; needs the device's Homey id,
      *  which a just-paired device may not have yet, so it retries a few times and otherwise tries
      *  again at the next start. Reads only. */
-    // TEMP(mem)
-    private backfillAutopilotHistory(tries: number) { return memMark('history backfill', () => this.backfillAutopilotHistoryInner(tries)); }
-    private async backfillAutopilotHistoryInner(tries: number) {
+    private async backfillAutopilotHistory(tries: number) {
         const collector = this.autopilot;
         const spec = this.profile.autopilotHistory;
         if (!collector || !spec || this.getStoreValue(BACKFILL_STORE) != null) return;
@@ -2343,9 +2338,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
      *  started on. Settling scores the day against the thermostat and tells the timeline;
      *  calibrating checks it after a curve change. Nothing is scored while the model learns:
      *  step 1 is the status's (timeline.learned), and settling starts the day it ends. */
-    private async checkSettling() {
+    private async checkSettling(): Promise<{excerpt: string; short?: string} | undefined> {
         const collector = this.autopilot;
-        if (this.role !== 'heating' || !collector || this.heatingMode !== 'live' || collector.curveFacts().readyAt === undefined) return;
+        if (this.role !== 'heating' || !collector || this.heatingMode !== 'live' || collector.curveFacts().readyAt === undefined) return undefined;
         const timeZone = this.homey.clock.getTimezone();
         const now = Date.now();
         const yesterday = localDate(now, timeZone, -1);
@@ -2356,10 +2351,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             await this.setStoreValue(SETTLE_STORE, state);
         }
         const last = settleDone(state) ? state.calibrating?.checked : state.checked;
-        if (state.live || localMinutes(now, timeZone) < 8 * 60 || (last && last >= yesterday)) return;
+        if (state.live || localMinutes(now, timeZone) < 8 * 60 || (last && last >= yesterday)) return undefined;
         const reading = collector.indoorDay(yesterday, timeZone);
         let next: SettleState;
         let excerpt: string | undefined;
+        let short: string | undefined;
         if (!settleDone(state)) {
             const scored = scoreDay(state, reading);
             next = scored.state;
@@ -2368,16 +2364,38 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const fits = scored.event?.kind === 'settled' && view.fits && !(view.changed && view.changed > next.start);
             if (fits) next = {...next, live: yesterday, fits: true};
             if (scored.event) excerpt = this.settleMessage(scored.event, next, fits);
+            // Settled, with calibrating next: its first line, for a curve change in the same hour to follow.
+            if (scored.event?.kind === 'settled' && !fits) {
+                short = this.homey.__('autopilot.heating.settle.settled_short', {target: this.celsius(scored.event.day.setpoint)});
+            }
         } else {
             const checked = calibrateDay(state, reading, this.curveView());
             next = checked.state;
             if (checked.event) excerpt = this.liveMessage(checked.event.reason);
         }
+        if (next.live && !state.live) {
+            // Savings count from the first shifted hour: the start, the baseline (the days before
+            // it) and the days are read again from Insights, dated from here (refreshSavings).
+            next = {...next, liveAt: Date.now()};
+            for (const key of [FIRST_LIVE_STORE, BASELINE_STORE, SAVINGS_STORE]) await this.unsetStoreValue(key).catch(this.error);
+            this.log(`Getting started: Saving from ${next.live}; savings dated from now.`);
+        }
         await this.setStoreValue(SETTLE_STORE, next);
-        if (next.live && !state.live) this.log(`Getting started: Saving from ${next.live}.`);
-        if (!excerpt) return;
-        this.log(`Getting started: ${excerpt}`);
-        await this.homey.notifications.createNotification({excerpt}).catch(this.error);
+        return excerpt ? {excerpt, ...short ? {short} : {}} : undefined;
+    }
+
+    /** Hourly, after the house fit: Getting started, then the curve advice, which acts only once
+     *  settling is done (step 3). Their timeline lines go out together: settled and a curve change
+     *  in the same hour are one message. */
+    private async afterFit() {
+        const settle = await this.checkSettling().catch((error) => { this.log('Getting started:', error?.message ?? error); return undefined; });
+        const curve = await this.checkHeatCurve().catch((error) => { this.log('Heat curve advice:', error?.message ?? error); return undefined; });
+        const lines: string[] = [];
+        if (settle?.short && curve?.offset) lines.push(`${settle.short} ${curve.offset}`);
+        else lines.push(...[settle?.excerpt, curve?.offset].filter((v): v is string => !!v));
+        lines.push(...curve?.other ?? []);
+        if (settle) this.log(`Getting started: ${lines[0]}`);
+        for (const excerpt of lines) await this.homey.notifications.createNotification({excerpt}).catch(this.error);
     }
 
     /** The curve advice as Getting started reads it, in local dates. */
@@ -2724,10 +2742,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     /** Hourly, after the house fit: today's sample of the trim, and the advice once it is steady.
      *  With the owner's "auto", the offset is written once (at most every 30 days); otherwise the
      *  advice goes to the timeline once and, with the setting on, to the device warning. */
-    private async checkHeatCurve() {
+    private async checkHeatCurve(): Promise<{offset?: string; other: string[]} | undefined> {
         const name = this.profile.autopilotFeed?.curveOffset;
         const collector = this.autopilot;
-        if (this.role !== 'heating' || !name || !collector || !this.heatingFeed || this.heatingMode !== 'live') return;
+        if (this.role !== 'heating' || !name || !collector || !this.heatingFeed || this.heatingMode !== 'live') return undefined;
         // Read the pump first: the store is read after it, so an offset change a poll saved meanwhile
         // (curveOffsetRead) is not overwritten. Nibe's "not available" reads as null, not offset 0.
         const raw = await this.readNamed(name);
@@ -2739,12 +2757,18 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const verdict = curveVerdict({today, samples: store.samples, offset: Number.isFinite(offset) ? offset : undefined,
             readyDays: facts.readyAt === undefined ? undefined : (Date.now() - facts.readyAt) / 86_400_000,
             curveGain: facts.curveGain, stepK: facts.stepK, changed: store.changed, wrote: store.wrote});
-        const advice = verdict && (verdict.to !== verdict.from || verdict.slope) ? verdict : undefined;
+        // Getting started's step 3: the curve is changed, or the owner asked, once settling is done.
+        const calibrating = settleDone(readSettle(this.getStoreValue(SETTLE_STORE)));
+        const advice = calibrating && verdict && (verdict.to !== verdict.from || verdict.slope) ? verdict : undefined;
         // Getting started's "the curve already fits" (settling.ts): the offset needs no change.
         const fits = verdict === undefined ? store.fits : verdict.to === verdict.from ? today : undefined;
         const fmt = (v: number) => (v > 0 ? `+${v}` : String(v));
-        const say = (key: string, tokens?: Record<string, string>) =>
-            this.homey.notifications.createNotification({excerpt: this.homey.__(`autopilot.heating.curve.${key}`, tokens)}).catch(this.error);
+        const said: {offset?: string; other: string[]} = {other: []};
+        const say = (key: string, tokens?: Record<string, string>) => {
+            const text = this.homey.__(`autopilot.heating.curve.${key}`, tokens);
+            if (key === 'adjusted' || key === 'advise') said.offset = text;
+            else said.other.push(text);
+        };
         let warning: string | undefined;
         if (advice && advice.to !== advice.from && store.choice === 'auto') {
             // The write reads itself back through setValue → curveOffsetRead, which moves the trim
@@ -2755,10 +2779,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             await this.writeRegister(this.profile.registerByName[name], advice.to);
             this.log(`Heat curve advice: offset ${advice.from} -> ${advice.to} (learned trim ${advice.integral.toFixed(2)} K, `
                 + `${advice.supplyK.toFixed(1)} K of supply).`);
-            await say('adjusted', {from: fmt(advice.from), to: fmt(advice.to)});
+            say('adjusted', {from: fmt(advice.from), to: fmt(advice.to)});
         } else if (advice && isNews(advice, store.told, today)) {
-            if (advice.to !== advice.from) await say('advise', {from: fmt(advice.from), to: fmt(advice.to)});
-            if (advice.slope) await say(`slope_${advice.slope}`);
+            if (advice.to !== advice.from) say('advise', {from: fmt(advice.from), to: fmt(advice.to)});
+            if (advice.slope) say(`slope_${advice.slope}`);
             this.log(`Heat curve advice told: offset ${advice.from} -> ${advice.to}${advice.slope ? `, curve ${advice.slope}` : ''}.`);
         }
         let told = store.told;
@@ -2772,6 +2796,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         await this.setStoreValue(CURVE_STORE, {...this.heatCurveStore(), samples: store.samples, told, fits});
         this.adviceWarning = warning;
         await this.showAdviceWarning();
+        return said;
     }
 
     /** The offset as polled: a change from the last one seen, by anyone (Autopilot, Undo, the
@@ -3036,14 +3061,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
      *  savings, a row per function and what needs the owner. Each figure is the one another widget
      *  or tile shows, so they agree: the ring and cost from Energy today, the month from the two
      *  savings widgets, the rows from the devices' own capabilities. */
-    // TEMP(mem)
     overviewWidget(): OverviewData {
-        this.log(`TEMP(mem) start overview: ${memNow()}`);
-        const out = this.overviewWidgetInner();
-        this.log(`TEMP(mem) end overview: ${memNow()}`);
-        return out;
-    }
-    private overviewWidgetInner(): OverviewData {
         const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.overview.${key}`, tokens);
         const title = this.getName();
         const host = String(this.getData().id).split('#')[0];
@@ -3328,8 +3346,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (marks.length && marks[marks.length - 1].live === live) return;
         // A real switch to Live is the moment the savings count from. The first mark on a device
         // that already ran Autopilot is not: refreshSavings() dates that from the hours before it.
-        // Heating's starts when the house model is ready, not at the switch: refreshSavings() dates
-        // it, so its learning days are the starting point.
+        // Heating's starts at Getting started's Saving, not at the switch: refreshSavings() dates
+        // it, so its learning, settling and calibrating days are the starting point.
         if (live && this.role !== 'heating' && Array.isArray(stored) && typeof this.getStoreValue(FIRST_LIVE_STORE) !== 'number')
             await this.setStoreValue(FIRST_LIVE_STORE, Date.now());
         const keepFrom = Date.now() - (LEDGER_DAYS + 2) * 86_400_000;
@@ -3367,9 +3385,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     /** Add the complete days the ledger lacks, from Insights' hourly meter (14 days back) and the
      *  day's prices. A day once written is final, so a refresh only reads what is new. Returns when
      *  to look again: an hour, or six when this Homey has no dynamic prices or the device is not found. */
-    // TEMP(mem)
-    private refreshSavings(): Promise<number> { return memMark(`savings ${this.role}`, () => this.refreshSavingsInner()); }
-    private async refreshSavingsInner(): Promise<number> {
+    private async refreshSavings(): Promise<number> {
         const timeZone = this.homey.clock.getTimezone();
         const now = Date.now();
         const today = localDate(now, timeZone);
@@ -3437,10 +3453,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     }));
                 }
             }
-            // Heating saves from the hour it first shifts heat. While it learns, it feeds BT1 only to
-            // hold the thermostat temperature and moves nothing to cheaper hours: those days are the
-            // starting point the savings are counted against. Still learning: no hour counts yet.
-            const shiftsFrom = this.role === 'heating' ? this.autopilot?.curveFacts().readyAt ?? Infinity : -Infinity;
+            // Heating saves from the hour it first shifts heat: Getting started's Saving (settling.ts).
+            // Before it, it feeds BT1 only to hold the thermostat temperature and moves nothing to
+            // cheaper hours: those days are the starting point the savings are counted against.
+            const shiftsFrom = this.role === 'heating' ? readSettle(this.getStoreValue(SETTLE_STORE))?.liveAt ?? Infinity : -Infinity;
             const fedShifting = (at: number) => (at < shiftsFrom ? false : fedLive?.get(at));
             const liveHour = (at: number) => savingsLive(at, shiftsFrom, liveAt(marks, at), fedLive?.get(at));
             // Heating's old way from the house model (shift-cost.ts), over the hours from the first
@@ -3629,14 +3645,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private seasonTold = false;
 
     /** What the Autopilot savings widget draws. Every string translated here. */
-    // TEMP(mem)
     savingsWidget(): SavingsData {
-        this.log(`TEMP(mem) start savings widget ${this.role}: ${memNow()}`);
-        const out = this.savingsWidgetInner();
-        this.log(`TEMP(mem) end savings widget ${this.role}: ${memNow()}`);
-        return out;
-    }
-    private savingsWidgetInner(): SavingsData {
         const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.savings.${key}`, tokens);
         const title = this.getName();
         if (this.role !== 'heating' && this.role !== 'hotwater') return {title, empty: t('pick')};

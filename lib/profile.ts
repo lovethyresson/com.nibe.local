@@ -116,6 +116,10 @@ export interface ReasonInput {
 // Values only — the engine never looks inside, it just keeps the bag alive.
 export type ReasonState = Record<string, string | number | undefined>;
 
+/** A ReasonState key: Autopilot hot water's own reason for switching on More hot water, in the
+ *  owner's language, noted just before its write (`AUTOPILOT_HOTWATER_NOTE + 'At'` is when). */
+export const AUTOPILOT_HOTWATER_NOTE = 'autopilotHotwater';
+
 export interface ReasonContext {
     // Raw priority codes before and after the change, and the roles they map to.
     from?: number;

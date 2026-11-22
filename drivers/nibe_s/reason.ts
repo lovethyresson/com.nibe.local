@@ -1,4 +1,5 @@
 import {Dir} from '../../lib/registers';
+import {AUTOPILOT_HOTWATER_NOTE} from '../../lib/profile';
 import type {LocalizedText, ReasonConfig, ReasonContext, ReasonState} from '../../lib/profile';
 
 // Why the pump just changed what it is producing.
@@ -59,17 +60,25 @@ function hwTargetFor(trigger: 'boost' | 'periodic', v: ReasonContext['v']): numb
 // ...and how to name it, once it has a number to carry.
 function hwTargetPhrase(trigger: 'boost' | 'periodic', target: number): LocalizedText {
     return trigger === 'boost'
-        ? {en: `the ${e(target)} °C ${HW_LIMITS[2]!.mode.en} stop point that "More hot water" charges to`,
-           sv: `stopptemperaturen ${s(target)} °C för behovsläget ${HW_LIMITS[2]!.mode.sv.toLowerCase()}, `
-              + `som "Mer varmvatten" laddar till`}
-        : {en: `the ${e(target)} °C stop point for the periodic hot water charge`,
-           sv: `stopptemperaturen ${s(target)} °C för den periodiska varmvattenladdningen`};
+        ? {en: `the ${e(target)} °C that "More hot water" heats to`,
+           sv: `${s(target)} °C som "Mer varmvatten" värmer till`}
+        : {en: `the ${e(target)} °C stop temperature for periodic hot water`,
+           sv: `stopptemperaturen ${s(target)} °C för periodiskt varmvatten`};
+}
+
+// Autopilot's note, read once: a note older than this belongs to a start that never showed.
+const AUTOPILOT_NOTE_MS = 10 * 60_000;
+function takeAutopilotNote(state: ReasonState): string | undefined {
+    const text = state[AUTOPILOT_HOTWATER_NOTE], at = state[`${AUTOPILOT_HOTWATER_NOTE}At`];
+    delete state[AUTOPILOT_HOTWATER_NOTE];
+    delete state[`${AUTOPILOT_HOTWATER_NOTE}At`];
+    return typeof text === 'string' && typeof at === 'number' && Date.now() - at < AUTOPILOT_NOTE_MS ? text : undefined;
 }
 
 // The two as a subject, for a model that doesn't publish the setpoint they aim at.
 const HW_TRIGGER_FINISHED: Record<'boost' | 'periodic', LocalizedText> = {
-    boost:    {en: 'The "More hot water" boost', sv: 'Höjningen "Mer varmvatten"'},
-    periodic: {en: 'The periodic hot water charge', sv: 'Den periodiska varmvattenladdningen'}
+    boost:    {en: '"More hot water"', sv: '"Mer varmvatten"'},
+    periodic: {en: 'Periodic hot water', sv: 'Periodiskt varmvatten'}
 };
 
 // Reading the trigger also consumes it: the charge it describes has ended, and a trigger left
@@ -165,20 +174,22 @@ function explainRole(role: string, previousRole: string | undefined,
         const boost = v('moreHotwater') ?? 0;
         if (boost > 0) {
             state[HW_TRIGGER] = 'boost';
+            // Autopilot switched it on (state[HW_AUTOPILOT], noted just before its write, in the
+            // owner's language): say so, with its own reason, rather than suggest someone did.
+            const autopilot = takeAutopilotNote(state);
+            if (autopilot) return {en: autopilot, sv: autopilot};
             const target = hwTargetFor('boost', v);
             return target !== undefined
-                ? {en: `"More hot water" was switched on, so the pump is charging the tank to `
-                      + `${HW_LIMITS[2]!.mode.en}'s ${e(target)} °C stop point.`,
-                   sv: `"Mer varmvatten" har slagits på, så pumpen laddar tanken till ${s(target)} °C, `
-                      + `stopptemperaturen för behovsläget ${HW_LIMITS[2]!.mode.sv.toLowerCase()}.`}
-                : {en: '"More hot water" was switched on, so the pump is charging the tank now.',
-                   sv: '"Mer varmvatten" har slagits på, så pumpen laddar tanken nu.'};
+                ? {en: `"More hot water" was switched on, so your heat pump is heating hot water to ${e(target)} °C.`,
+                   sv: `"Mer varmvatten" har slagits på, så din värmepump värmer varmvatten till ${s(target)} °C.`}
+                : {en: '"More hot water" was switched on, so your heat pump is heating hot water now.',
+                   sv: '"Mer varmvatten" har slagits på, så din värmepump värmer varmvatten nu.'};
         }
         if (hw !== undefined && hwStart !== undefined && hw <= hwStart + 0.5) {
             state[HW_TRIGGER] = 'demand';
             return {
-                en: `Hot water ran down to ${e(hw)} °C, reaching the ${e(hwStart)} °C start point for ${mode.en} demand.`,
-                sv: `Varmvattnet sjönk till ${s(hw)} °C och nådde starttemperaturen ${s(hwStart)} °C för behovsläge ${mode.sv.toLowerCase()}.`
+                en: `Hot water ran down to ${e(hw)} °C, the ${e(hwStart)} °C start temperature for ${mode.en} demand.`,
+                sv: `Varmvattnet sjönk till ${s(hw)} °C, starttemperaturen ${s(hwStart)} °C för behovsläge ${mode.sv.toLowerCase()}.`
             };
         }
         // Above the start point but charging anyway — that is what a scheduled top-up looks
@@ -187,19 +198,19 @@ function explainRole(role: string, previousRole: string | undefined,
             state[HW_TRIGGER] = 'periodic';
             const periodicTarget = hwTargetFor('periodic', v);
             return periodicTarget !== undefined
-                ? {en: `Scheduled periodic hot water charge to ${e(periodicTarget)} °C — the tank is at ${e(hw)} °C, `
-                      + `above its ${e(hwStart)} °C start point.`,
-                   sv: `Schemalagd periodisk varmvattenladdning till ${s(periodicTarget)} °C — tanken håller ${s(hw)} °C, `
+                ? {en: `Periodic hot water: heating to ${e(periodicTarget)} °C. Hot water is at ${e(hw)} °C, `
+                      + `above the ${e(hwStart)} °C start temperature.`,
+                   sv: `Periodiskt varmvatten: värmer till ${s(periodicTarget)} °C. Varmvattnet håller ${s(hw)} °C, `
                       + `över starttemperaturen ${s(hwStart)} °C.`}
-                : {en: `Scheduled periodic hot water charge — the tank is at ${e(hw)} °C, above its ${e(hwStart)} °C start point.`,
-                   sv: `Schemalagd periodisk varmvattenladdning — tanken håller ${s(hw)} °C, över starttemperaturen ${s(hwStart)} °C.`};
+                : {en: `Periodic hot water. Hot water is at ${e(hw)} °C, above the ${e(hwStart)} °C start temperature.`,
+                   sv: `Periodiskt varmvatten. Varmvattnet håller ${s(hw)} °C, över starttemperaturen ${s(hwStart)} °C.`};
         }
         // Nothing here identifies what fired it, and a guess would be worse than the fallback the
         // end-of-charge rule already has. Clear rather than leave the previous charge's answer.
         delete state[HW_TRIGGER];
         return hw !== undefined
-            ? {en: `Hot water demand — the tank is at ${e(hw)} °C.`,
-               sv: `Varmvattenbehov — tanken håller ${s(hw)} °C.`}
+            ? {en: `Hot water demand. Hot water is at ${e(hw)} °C.`,
+               sv: `Varmvattenbehov. Varmvattnet håller ${s(hw)} °C.`}
             : {en: 'Hot water demand.', sv: 'Varmvattenbehov.'};
     }
 
@@ -216,16 +227,16 @@ function explainRole(role: string, previousRole: string | undefined,
         // needn't be past the start threshold — heating simply became the top priority again.
         if (degreeMinutes > dmStart && previousRole && previousRole !== 'main')
             return {
-                en: `${finished(previousRole).en}, so the pump went back to heating — degree minutes `
+                en: `${finished(previousRole).en}, so your heat pump went back to heating. Degree minutes `
                     + `are at ${dm(degreeMinutes)}, still short of the ${dm(dmStart)} start threshold.${gap.en}`,
-                sv: `${finished(previousRole).sv}, så pumpen gick tillbaka till värme — gradminuterna `
+                sv: `${finished(previousRole).sv}, så din värmepump gick tillbaka till värme. Gradminuterna `
                     + `ligger på ${dm(degreeMinutes)}, ännu inte vid startgränsen ${dm(dmStart)}.${gap.sv}`
             };
         if (degreeMinutes > dmStart)
             return {
-                en: `Heat demand — degree minutes are at ${dm(degreeMinutes)}, with the compressor `
+                en: `Heat demand. Degree minutes are at ${dm(degreeMinutes)}, with the compressor `
                     + `start threshold at ${dm(dmStart)}.${gap.en}`,
-                sv: `Värmebehov — gradminuterna ligger på ${dm(degreeMinutes)}, med kompressorns `
+                sv: `Värmebehov. Gradminuterna ligger på ${dm(degreeMinutes)}, med kompressorns `
                     + `startgräns vid ${dm(dmStart)}.${gap.sv}`
             };
         return {
@@ -264,13 +275,13 @@ function explainRole(role: string, previousRole: string | undefined,
     // on its own explains nothing.
     if (previousRole === 'hotwater') {
         if (hw === undefined)
-            return {en: 'Hot water charging finished.', sv: 'Varmvattenladdningen är klar.'};
+            return {en: 'Hot water is done.', sv: 'Varmvattnet är klart.'};
         // A boost was aiming at Large and the periodic charge at 61, neither of which is the
         // selected demand mode's stop point — so that is what each gets measured against.
         if (hwTrigger === 'boost' || hwTrigger === 'periodic')
             return endOfCharge(hw, hwTargetFor(hwTrigger, v), hwTrigger);
         if (hwStop === undefined)
-            return {en: 'Hot water charging finished.', sv: 'Varmvattenladdningen är klar.'};
+            return {en: 'Hot water is done.', sv: 'Varmvattnet är klart.'};
         // From here the charge was either the pump's own (trigger 'demand') or one nobody watched
         // start — the app was restarted mid-charge, or the run began before it connected. Both
         // get the demand mode's pair, and both keep the inference below.
@@ -285,28 +296,27 @@ function explainRole(role: string, previousRole: string | undefined,
         // what happened and stop there, rather than naming a limit that may not have been the
         // operative one.
         if (hw > hwStop + 0.5)
-            return {en: `The tank is charged: hot water reached ${e(hw)} °C — past ${mode.en}'s `
-                      + `${e(hwStop)} °C stop point, because a boost was running.`,
-                    sv: `Tanken är laddad: varmvattnet nådde ${s(hw)} °C — förbi ${mode.sv.toLowerCase()}s `
-                      + `stopptemperatur ${s(hwStop)} °C, eftersom en höjning pågick.`};
+            return {en: `Hot water reached ${e(hw)} °C, past the ${e(hwStop)} °C stop temperature for ${mode.en} `
+                      + `demand, because a hot water boost was running.`,
+                    sv: `Varmvattnet nådde ${s(hw)} °C, förbi stopptemperaturen ${s(hwStop)} °C för behovsläge `
+                      + `${mode.sv.toLowerCase()}, eftersom en varmvattenhöjning pågick.`};
         // Only call it charged if it actually got there. A charge ends short for several reasons
         // the app cannot distinguish — the user cancelling it, a schedule (menu 6) cutting in, the
         // compressor giving up — so this states what happened and stops. Measured on an S1155: a
         // boost ran 12 minutes and ended at 41.9 °C against a 68 °C setpoint, and this line called
         // that "charged". Naming a cause here would be guessing; saying it ended short is not.
         if (hw < hwStop - 1)
-            return {en: `Hot water charging ended at ${e(hw)} °C, short of its ${e(hwStop)} °C stop point.`,
-                    sv: `Varmvattenladdningen avslutades vid ${s(hw)} °C, före stopptemperaturen `
-                      + `${s(hwStop)} °C.`};
-        return {en: `The tank is charged: hot water reached ${e(hw)} °C, its ${e(hwStop)} °C stop point.`,
-                sv: `Tanken är laddad: varmvattnet nådde ${s(hw)} °C, stopptemperaturen ${s(hwStop)} °C.`};
+            return {en: `Hot water stopped at ${e(hw)} °C, short of the ${e(hwStop)} °C stop temperature.`,
+                    sv: `Varmvattnet stannade vid ${s(hw)} °C, före stopptemperaturen ${s(hwStop)} °C.`};
+        return {en: `Hot water reached ${e(hw)} °C, the ${e(hwStop)} °C stop temperature.`,
+                sv: `Varmvattnet nådde ${s(hw)} °C, stopptemperaturen ${s(hwStop)} °C.`};
     }
 
     if (previousRole === 'heating')
         return degreeMinutes !== undefined
-            ? {en: `The house has caught up on heat — degree minutes are back to ${dm(degreeMinutes)}`
+            ? {en: `The house has caught up on heat. Degree minutes are back to ${dm(degreeMinutes)}`
                   + `${dmStart !== undefined ? ` (the compressor restarts at ${dm(dmStart)})` : ''}.`,
-               sv: `Huset har kommit ikapp på värme — gradminuterna är tillbaka på ${dm(degreeMinutes)}`
+               sv: `Huset har kommit ikapp på värme. Gradminuterna är tillbaka på ${dm(degreeMinutes)}`
                   + `${dmStart !== undefined ? ` (kompressorn startar om vid ${dm(dmStart)})` : ''}.`}
             : {en: 'The heat demand has been met.', sv: 'Värmebehovet är tillgodosett.'};
 
@@ -325,12 +335,12 @@ function explainRole(role: string, previousRole: string | undefined,
     // Idle from idle, or from something unmapped.
     if (degreeMinutes !== undefined && dmStart !== undefined)
         return {
-            en: `Nothing to produce — degree minutes are at ${dm(degreeMinutes)} and the compressor `
+            en: `Nothing to do. Degree minutes are at ${dm(degreeMinutes)} and the compressor `
                 + `does not start until ${dm(dmStart)}.`,
-            sv: `Inget att producera — gradminuterna ligger på ${dm(degreeMinutes)} och kompressorn `
+            sv: `Inget att göra. Gradminuterna ligger på ${dm(degreeMinutes)} och kompressorn `
                 + `startar inte förrän vid ${dm(dmStart)}.`
         };
-    return {en: 'The pump has no demand to meet.', sv: 'Pumpen har inget behov att möta.'};
+    return {en: 'Your heat pump has nothing to do.', sv: 'Din värmepump har inget att göra.'};
 }
 
 // How a charge that ignored the selected demand mode ended, measured against the setpoint it was
@@ -343,15 +353,15 @@ function endOfCharge(hw: number, target: number | undefined,
                      trigger: 'boost' | 'periodic'): LocalizedText {
     if (target === undefined) {
         const what = HW_TRIGGER_FINISHED[trigger];
-        return {en: `${what.en} finished with the tank at ${e(hw)} °C.`,
-                sv: `${what.sv} avslutades med tanken på ${s(hw)} °C.`};
+        return {en: `${what.en} finished with hot water at ${e(hw)} °C.`,
+                sv: `${what.sv} avslutades med varmvattnet på ${s(hw)} °C.`};
     }
     const label = hwTargetPhrase(trigger, target);
     if (hw < target - 1)
-        return {en: `Hot water charging ended at ${e(hw)} °C, short of ${label.en}.`,
-                sv: `Varmvattenladdningen avslutades vid ${s(hw)} °C, före ${label.sv}.`};
-    return {en: `The tank is charged: hot water reached ${e(hw)} °C, ${label.en}.`,
-            sv: `Tanken är laddad: varmvattnet nådde ${s(hw)} °C, ${label.sv}.`};
+        return {en: `Hot water stopped at ${e(hw)} °C, short of ${label.en}.`,
+                sv: `Varmvattnet stannade vid ${s(hw)} °C, före ${label.sv}.`};
+    return {en: `Hot water reached ${e(hw)} °C, ${label.en}.`,
+            sv: `Varmvattnet nådde ${s(hw)} °C, ${label.sv}.`};
 }
 
 // What the pump just stopped doing, as a clause. Used when heating resumes on the back of
@@ -413,13 +423,13 @@ function qualifier(role: string, previousRole: string | undefined,
     const sgReady = v('sgReady');
     if (sgReady === 20)
         return {
-            en: 'SG Ready is signalling a high electricity price, which holds the pump back.',
-            sv: 'SG Ready signalerar högt elpris, vilket håller tillbaka pumpen.'
+            en: 'SG Ready is signalling a high electricity price, which holds your heat pump back.',
+            sv: 'SG Ready signalerar högt elpris, vilket håller tillbaka din värmepump.'
         };
     if (sgReady === 40)
         return {
-            en: 'SG Ready is signalling free electricity, so the pump is running harder than usual.',
-            sv: 'SG Ready signalerar gratis el, så pumpen går hårdare än vanligt.'
+            en: 'SG Ready is signalling free electricity, so your heat pump is running harder than usual.',
+            sv: 'SG Ready signalerar gratis el, så din värmepump går hårdare än vanligt.'
         };
     return undefined;
 }

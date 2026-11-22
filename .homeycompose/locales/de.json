@@ -241,7 +241,8 @@
         "spa": "Autopilot wartet. Schalten Sie Smart Price Adaption für Brauchwasser an Ihrer Wärmepumpe aus.",
         "smart_control": "Autopilot wartet. Der Brauchwasserbedarf Ihrer Wärmepumpe steht auf Smart control. Stellen Sie ihn auf Niedrig, Mittel oder Hoch.",
         "rescue_limit": "Das Warmwasser liegt unter Ihrem Minimum, und Autopilot hat die __max__ Starts von heute verbraucht. Schalten Sie Mehr Brauchwasser an Ihrer Wärmepumpe ein, wenn Sie es vor Mitternacht brauchen."
-      }
+      },
+      "started_reason": "Autopilot hat begonnen, Warmwasser zu erwärmen. __why__"
     },
     "hotwater_legionella": {
       "overdue": "Das Warmwasser hat __target__ °C gegen Legionellen nicht erreicht. Die periodische Erhöhung Ihrer Wärmepumpe ist wieder an, bis ein Aufheizen es schafft.",
@@ -373,7 +374,8 @@
         "settled_fits": "Ihr Haus hält __target__ und Ihre Heizkurve passt bereits. Autopilot verschiebt jetzt Wärme aus teuren Stunden.",
         "restart": "Heizung pendelt sich auf Ihre neue Temperatur ein: gestern __mean__. Ziel __target__.",
         "live": "Autopilot ist aktiv. Er verschiebt jetzt Wärme aus teuren Stunden.",
-        "live_fits": "Ihre Heizkurve passt bereits. Autopilot verschiebt jetzt Wärme aus teuren Stunden."
+        "live_fits": "Ihre Heizkurve passt bereits. Autopilot verschiebt jetzt Wärme aus teuren Stunden.",
+        "settled_short": "Ihr Haus hält __target__."
       }
     },
     "smart": {

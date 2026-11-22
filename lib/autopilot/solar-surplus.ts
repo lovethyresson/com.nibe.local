@@ -3,7 +3,6 @@
  *  they share one fit, one live reading and one budget, and the same kW is never spent twice.
  *  The pure parts are in hotwater-surplus.ts (named for the function that used them first).
  *  Design: docs/autopilot-plan.md §1 of the solar plan (2026-11-12), §19.3. */
-import {memMark} from '../mem-probe';
 import {withApi} from '../indoor-sensors';
 import {SLOT_MS} from './prices';
 import {ExportBucket, LIVE_WINDOW, SurplusFit, exportBuckets, fitSurplus, gridMeter, gridMeters,
@@ -300,9 +299,7 @@ export class SolarSurplus {
 
     /** What surplus needs from the home (a grid meter Homey Energy counts and the owner's yes, or
      *  no answer yet), the fit of export against the sun over the meter's history, and the sun ahead. */
-    // TEMP(mem)
-    private learn(): Promise<number> { return memMark('solar learn', () => this.learnInner()); }
-    private async learnInner(): Promise<number> {
+    private async learn(): Promise<number> {
         const answer = this.answer();
         const off = !solarOn(answer);
         const found = off ? undefined : await survey(this.homey, answer?.meter, this.meter);

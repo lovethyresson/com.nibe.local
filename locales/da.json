@@ -645,7 +645,8 @@
         "spa": "Autopilot venter. Slå Smart Price Adaption for varmt vand fra på din varmepumpe.",
         "smart_control": "Autopilot venter. Varmtvandsbehovet på din varmepumpe står på Smart control. Sæt det til Lille, Middelstort eller Stort.",
         "rescue_limit": "Det varme vand er under dit minimumsniveau, og Autopilot har brugt dagens __max__ starter. Slå Mere varmtvand til på din varmepumpe, hvis du har brug for det før midnat."
-      }
+      },
+      "started_reason": "Autopilot begyndte at varme varmt vand. __why__"
     },
     "hotwater_legionella": {
       "overdue": "Det varme vand har ikke nået __target__ °C mod legionella. Varmepumpens eget periodiske varme vand er tændt igen, til en opvarmning når dertil.",
@@ -777,7 +778,8 @@
         "settled_fits": "Dit hus holder __target__, og din varmekurve passer allerede. Autopilot flytter nu varme væk fra dyre timer.",
         "restart": "Opvarmning indstiller sig på din nye temperatur: __mean__ i går. Mål __target__.",
         "live": "Autopilot er i gang. Den flytter nu varme væk fra dyre timer.",
-        "live_fits": "Din varmekurve passer allerede. Autopilot flytter nu varme væk fra dyre timer."
+        "live_fits": "Din varmekurve passer allerede. Autopilot flytter nu varme væk fra dyre timer.",
+        "settled_short": "Dit hus holder __target__."
       }
     },
     "smart": {

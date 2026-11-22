@@ -108,11 +108,11 @@ Days with Away or a thermostat change don't count.
 
 ### Will Autopilot change my heating curve?
 
-Only if you chose **Adjust it for me** in Heating setup. After the first week, Autopilot knows how far
-your heating curve is from holding your temperature. It then changes the curve offset (menu 1.1.1)
+Only if you chose **Adjust it for me** in Heating setup. Once your house holds your temperature
+(the Settling step), Autopilot knows how far your heating curve is from holding it alone. It then changes the curve offset (menu 1.1.1)
 once, by up to 3 steps, and tells you in the Timeline. You can undo it in Heating setup. With **I'll
 do it myself**, it tells you what to change instead. It never changes the heating curve itself (menu
-1.30.1); if that is off, it tells you which way.
+1.30.1). If that is off, it tells you which way.
 
 Why it matters: when Autopilot isn't running, for example while Homey restarts, your heat pump goes
 by its heating curve alone.

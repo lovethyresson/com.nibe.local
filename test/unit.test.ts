@@ -7,7 +7,7 @@ import {
     Register, Selection, flowPredicates,
     migrateSelection, resolvedAddress, encodeRegisterValue
 } from '../lib/registers';
-import {makeProfile} from '../lib/profile';
+import {AUTOPILOT_HOTWATER_NOTE, makeProfile} from '../lib/profile';
 import type {ReasonState} from '../lib/profile';
 import {
     capabilitySyncPlan,
@@ -778,8 +778,8 @@ test('reason: heating that resumes after another function is not blamed on degre
     // Coming off hot water the compressor is already turning, so DM is nowhere near the start
     // threshold — claiming the house "fell behind on heat" would be wrong.
     const reason = why('heating', 'hotwater', {dm: -12})!;
-    assert.match(reason.en, /Hot water was finished, so the pump went back to heating/);
-    assert.match(reason.en, /degree minutes are at -12, still short of the -60 start threshold/);
+    assert.match(reason.en, /Hot water was finished, so your heat pump went back to heating/);
+    assert.match(reason.en, /Degree minutes are at -12, still short of the -60 start threshold/);
     assert.doesNotMatch(reason.en, /fell behind/);
 });
 
@@ -795,22 +795,22 @@ test('reason: the heating cut-off is not mentioned after hot water or pool', () 
 test('reason: hot water start cites the tank against its demand-mode start point', () => {
     const reason = why('hotwater', 'main', {hwCharge: 43.6});
     assert.match(reason!.en, /Hot water ran down to 43\.6 °C/);
-    assert.match(reason!.en, /44\.0 °C start point for Medium demand/);
+    assert.match(reason!.en, /44\.0 °C start temperature for Medium demand/);
 });
 
 test('reason: the demand mode selects which start/stop pair is quoted', () => {
     const large = why('hotwater', 'main', {hwMode: 2, hwCharge: 47.5});
-    assert.match(large!.en, /48\.0 °C start point for Large demand/);
+    assert.match(large!.en, /48\.0 °C start temperature for Large demand/);
     const small = why('hotwater', 'main', {hwMode: 0, hwCharge: 37.2});
-    assert.match(small!.en, /38\.0 °C start point for Small demand/);
+    assert.match(small!.en, /38\.0 °C start temperature for Small demand/);
 });
 
 test('reason: a manual boost is reported as the boost, and names the point it charges to', () => {
     // Large's stop point (55.0), not the selected mode's — the pump is in Medium here.
     const reason = why('hotwater', 'main', {moreHotwater: 2, hwCharge: 20});
     assert.match(reason!.en, /"More hot water" was switched on/);
-    assert.match(reason!.en, /charging the tank to Large's 55\.0 °C stop point/);
-    assert.doesNotMatch(reason!.en, /start point/);
+    assert.match(reason!.en, /your heat pump is heating hot water to 55\.0 °C/);
+    assert.doesNotMatch(reason!.en, /start temperature/);
 });
 
 test('reason: a finished charge is measured against what started it, not the demand mode', () => {
@@ -818,23 +818,23 @@ test('reason: a finished charge is measured against what started it, not the dem
     // — even though it sailed past Medium's 51.0 stop point, which is what the app used to quote
     // and then have to explain away.
     const boost = run('hotwater', {moreHotwater: 2, hwCharge: 42}, {hwCharge: 55.2});
-    assert.match(boost.en, /reached 55\.2 °C, the 55\.0 °C Large stop point that "More hot water" charges to/);
+    assert.match(boost.en, /reached 55\.2 °C, the 55\.0 °C that "More hot water" heats to/);
     assert.doesNotMatch(boost.en, /51\.0/);
-    assert.match(boost.sv, /nådde 55,2 °C, stopptemperaturen 55,0 °C för behovsläget stort/);
+    assert.match(boost.sv, /nådde 55,2 °C, 55,0 °C som "Mer varmvatten" värmer till/);
 
     // ...and a boost that gave up short of Large is short of it, not "charged" because it happened
     // to clear the selected mode's stop point. (Measured on an S1155: a boost ran 12 minutes and
     // ended at 41.9 °C, and the old rule called that charged.)
     const gaveUp = run('hotwater', {moreHotwater: 2, hwCharge: 30}, {hwCharge: 41.9});
-    assert.match(gaveUp.en, /ended at 41\.9 °C, short of the 55\.0 °C Large stop point/);
+    assert.match(gaveUp.en, /stopped at 41\.9 °C, short of the 55\.0 °C that "More hot water" heats to/);
 
     // The periodic anti-legionella charge aims at the same register.
     const periodic = run('hotwater', {periodicHw: 1, hwCharge: 48.9}, {hwCharge: 60.2});
-    assert.match(periodic.en, /reached 60\.2 °C, the 60\.0 °C stop point for the periodic hot water charge/);
+    assert.match(periodic.en, /reached 60\.2 °C, the 60\.0 °C stop temperature for periodic hot water/);
 
     // A charge the pump started on demand still gets its demand mode's pair.
     const demand = run('hotwater', {hwCharge: 43.6}, {hwCharge: 51.2});
-    assert.match(demand.en, /reached 51\.2 °C, its 51\.0 °C stop point/);
+    assert.match(demand.en, /reached 51\.2 °C, the 51\.0 °C stop temperature/);
 });
 
 test('reason: the trigger is consumed, so one boost cannot explain the next charge', () => {
@@ -846,7 +846,7 @@ test('reason: the trigger is consumed, so one boost cannot explain the next char
     // why the trigger has to be remembered rather than re-read at the end.)
     why('hotwater', 'main', {moreHotwater: 0, hwCharge: 43.6}, state);
     const second = why('main', 'hotwater', {moreHotwater: 0, hwCharge: 51.2}, state)!;
-    assert.match(second.en, /its 51\.0 °C stop point/);
+    assert.match(second.en, /the 51\.0 °C stop temperature/);
     assert.doesNotMatch(second.en, /boost/);
 });
 
@@ -855,9 +855,9 @@ test('reason: an untracked charge keeps the old inference, and a boost mid-charg
     // and overshooting it still says a boost was running. Same for a charge that started on
     // demand and had a boost switched on part-way through, which is recorded as 'demand'.
     assert.match(why('main', 'hotwater', {hwCharge: 57.4})!.en,
-        /past Medium's 51\.0 °C stop point, because a boost was running/);
+        /past the 51\.0 °C stop temperature for Medium demand, because a hot water boost was running/);
     assert.match(run('hotwater', {hwCharge: 43.6}, {moreHotwater: 2, hwCharge: 57.4}).en,
-        /because a boost was running/);
+        /because a hot water boost was running/);
 });
 
 test('reason: a boost is still explained when the setpoint it aims at does not read', () => {
@@ -867,26 +867,26 @@ test('reason: a boost is still explained when the setpoint it aims at does not r
     const values: Record<string, number> = {...baseline, moreHotwater: 2, hwStopLarge: undefined as any};
     const v = (id: string) => values[id];
     const start = sReason.explain({role: 'hotwater', previousRole: 'main', v, state})!;
-    assert.match(start.en, /"More hot water" was switched on, so the pump is charging the tank now\./);
+    assert.match(start.en, /"More hot water" was switched on, so your heat pump is heating hot water now\./);
     values.hwCharge = 55.0;
     const end = sReason.explain({role: 'main', previousRole: 'hotwater', v, state})!;
-    assert.match(end.en, /The "More hot water" boost finished with the tank at 55\.0 °C\./);
-    assert.doesNotMatch(end.en, /51\.0|stop point/);
+    assert.match(end.en, /"More hot water" finished with hot water at 55\.0 °C\./);
+    assert.doesNotMatch(end.en, /51\.0|stop temperature/);
 });
 
 test('reason: charging a tank that is above its start point is a scheduled top-up', () => {
     // Only claimed when periodic hot water is actually enabled...
-    assert.match(why('hotwater', 'main', {periodicHw: 1})!.en, /Scheduled periodic hot water charge/);
+    assert.match(why('hotwater', 'main', {periodicHw: 1})!.en, /Periodic hot water/);
     // ...otherwise the app says what it knows and nothing more.
     const plain = why('hotwater', 'main', {periodicHw: 0})!;
-    assert.match(plain.en, /Hot water demand — the tank is at 48\.9 °C\./);
+    assert.match(plain.en, /Hot water demand\. Hot water is at 48\.9 °C\./);
 });
 
 test('reason: going idle explains what just finished, not that nothing is happening', () => {
     assert.match(why('main', 'heating', {dm: 0})!.en,
-        /house has caught up on heat — degree minutes are back to 0 \(the compressor restarts at -60\)/);
+        /house has caught up on heat\. Degree minutes are back to 0 \(the compressor restarts at -60\)/);
     assert.match(why('main', 'hotwater', {hwCharge: 51.2})!.en,
-        /tank is charged: hot water reached 51\.2 °C, its 51\.0 °C stop point/);
+        /Hot water reached 51\.2 °C, the 51\.0 °C stop temperature/);
     assert.match(why('main', 'pool', {poolTemp: 25})!.en, /pool reached 25\.0 °C, its 25\.0 °C stop point/);
 });
 
@@ -1507,4 +1507,16 @@ test('describeSubject prints a certificate subject like openssl does', () => {
     assert.equal(describeSubject({O: 'NIBE', CN: '06544319324004'}), 'O=NIBE, CN=06544319324004');
     assert.equal(describeSubject({OU: ['a', 'b']}), 'OU=a+b');
     assert.equal(describeSubject(undefined), 'no subject');
+});
+
+test('reason: a More hot water Autopilot switched on says Autopilot did, once', () => {
+    const state: ReasonState = {
+        [AUTOPILOT_HOTWATER_NOTE]: 'Autopilot started heating hot water. Down to 29 L.', [`${AUTOPILOT_HOTWATER_NOTE}At`]: Date.now()};
+    const values: Record<string, number> = {moreHotwater: 1, hwStopLarge: 49};
+    const explain = () => sReason.explain({from: 10, to: 20, role: 'hotwater', previousRole: 'main', v: (id: string) => values[id], state});
+    assert.equal(explain()!.en, 'Autopilot started heating hot water. Down to 29 L.');
+    assert.match(explain()!.en, /^"More hot water" was switched on/, 'read once: the next boost is the owner\'s');
+    state[AUTOPILOT_HOTWATER_NOTE] = 'Old.';
+    state[`${AUTOPILOT_HOTWATER_NOTE}At`] = Date.now() - 11 * 60_000;
+    assert.match(explain()!.en, /^"More hot water" was switched on/, 'a stale note is not used');
 });

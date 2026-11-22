@@ -80,7 +80,6 @@ allows somewhat longer or deeper ease-offs.
 
 Search `TEMP(` across `lib/` and `dev/` before packaging; each hit is listed here.
 
-- [ ] TEMP(mem): `lib/mem-probe.ts`, its start in `app.ts`, and the `memMark`/`memNow` wrappers in `lib/device.ts`, `collector.ts`, `hotwater-shadow.ts`, `solar-surplus.ts` (2026-11-21, the Homey Pro (2026) memory hunt). Delete once a day runs without a crash.
 - [ ] **TEMP(warning clear)**, added 2026-11-20 (`lib/device.ts`, heating `onInit`): clears the
   Proxy error left as Heating's warning by the 12:36 build, once (store flag
   `proxyWarningCleared`). Remove once it has run on the test Homey.
