@@ -3341,6 +3341,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             return days;
         });
         if (!result) return 6 * HOUR_MS;
+        // The year's price swings fill in the background (gateway-price-history.ts), not only when
+        // a widget is drawn; one shared fill, whichever device asks first.
+        if (this.role !== 'main') priceHistoryFor(this.homey, () => localDate(Date.now(), timeZone), (...args) => this.log(...args)).spreads();
         const merged = result.length ? mergeDays(stored, result) : stored;
         const ledger = this.withBoosts(this.withLitres(merged));
         if ((result.length || ledger !== merged) && !this.savingsStopped) await this.setStoreValue(SAVINGS_STORE, ledger);
