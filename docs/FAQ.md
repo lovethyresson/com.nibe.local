@@ -93,11 +93,18 @@ alone, often a little off your thermostat. Autopilot then raises or lowers the l
 your temperature. A light house gets there in a day or two. A heavy one, with concrete floors or
 thick walls, can take more than a week. Until then indoor can be up to about 1 °C off.
 
-Each morning a timeline message gives yesterday's average and the day before, and the **Getting
-started** widget shows the days on a chart. Two days in a row within 0.2 °C of your thermostat
-count as settled: you get one last message and the widget says so. Days with Away or a thermostat
-change are skipped. After 3 weeks the messages stop; if your curve is still off, the heat curve
-advice tells you.
+Autopilot heating starts in four steps, and the **Getting started** widget shows where you are:
+
+1. **Learning** (5+ days): it learns how your house holds heat.
+2. **Settling**: it brings the house to your temperature. Each morning a timeline message gives
+   yesterday's average. Two days in a row within 0.2 °C of your thermostat end this step. Changing
+   the thermostat starts it over.
+3. **Calibrating**: it changes your curve offset, or asks you to, then checks that the house holds
+   your temperature for 3 days in a row. If your curve already fits, this step ends at once.
+4. **Saving**: it moves heat away from expensive hours.
+
+Autopilot does not shift heat for prices until Saving, so the first weeks show only the level.
+Days with Away or a thermostat change don't count.
 
 ### Will Autopilot change my heating curve?
 

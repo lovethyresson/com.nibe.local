@@ -327,7 +327,8 @@
         },
         "range_off": "Komfortbereich ist Aus. Ihre Wärmepumpe nutzt die gemessene Außentemperatur",
         "sun": "Sonne erwartet __from__–__to__",
-        "back": "Rückkehr um __at__"
+        "back": "Rückkehr um __at__",
+        "getting_started": "Erste Schritte. Noch keine Preisverschiebungen"
       },
       "status_name": {
         "learning": "Lernt",
@@ -340,7 +341,7 @@
       "timeline": {
         "paused": "Autopilot Heizung: __reason__",
         "resumed": "Autopilot Heizung läuft wieder.",
-        "learned": "Autopilot Heizung kennt Ihr Haus jetzt und verschiebt Wärme aus teuren Stunden."
+        "learned": "Autopilot Heizung kennt Ihr Haus jetzt und bringt es auf __target__."
       },
       "verify": {
         "not_heating": "Autopilot Heizung wird am Gerät Heizung eingerichtet.",
@@ -367,8 +368,12 @@
         "up": "Heizung pendelt sich ein: gestern __mean__, gestiegen von __previous__. Ziel __target__.",
         "down": "Heizung pendelt sich ein: gestern __mean__, gesunken von __previous__. Ziel __target__.",
         "same": "Heizung pendelt sich ein: gestern __mean__, gleich wie am Vortag. Ziel __target__.",
-        "settled": "Heizung hat sich eingependelt: gestern __mean__, auf Ihrem Ziel. Autopilot verschiebt jetzt Wärme aus den Preisspitzen.",
-        "stopped": "Heizung hat sich nach 3 Wochen nicht eingependelt: gestern __mean__, Ziel __target__. Autopilot passt das Niveau weiter an."
+        "settled": "Ihr Haus hält __target__. Als Nächstes prüft Autopilot Ihre Heizkurve.",
+        "stopped": "Ihr Haus hat __target__ nach 3 Wochen nicht erreicht (gestern __mean__). Als Nächstes prüft Autopilot Ihre Heizkurve.",
+        "settled_fits": "Ihr Haus hält __target__ und Ihre Heizkurve passt bereits. Autopilot verschiebt jetzt Wärme aus teuren Stunden.",
+        "restart": "Heizung pendelt sich auf Ihre neue Temperatur ein: gestern __mean__. Ziel __target__.",
+        "live": "Autopilot ist aktiv. Er verschiebt jetzt Wärme aus teuren Stunden.",
+        "live_fits": "Ihre Heizkurve passt bereits. Autopilot verschiebt jetzt Wärme aus teuren Stunden."
       }
     },
     "smart": {
@@ -599,17 +604,43 @@
     },
     "settle_widget": {
       "title": "Heizung · Erste Schritte",
-      "settling": "Pendelt sich ein · Tag __day__",
-      "settled": "Eingependelt · Tag __day__",
       "of": "von __target__",
-      "holds": "Hält __target__",
       "first_row": "erster Tag",
-      "settled_row": "✓ eingependelt",
       "remove": "Sie können dieses Widget entfernen.",
-      "stopped": "Nach 3 Wochen noch in Anpassung.",
       "waiting": "Erstes Update morgen früh.",
       "off": "Zeigt die ersten Wochen, sobald Autopilot Heizung an ist.",
-      "pick": "Wählen Sie Ihr Heizung-Gerät in den Widget-Einstellungen."
+      "pick": "Wählen Sie Ihr Heizung-Gerät in den Widget-Einstellungen.",
+      "step_learning": "Lernen",
+      "step_settling": "Einpendeln",
+      "step_calibrating": "Kalibrieren",
+      "step_saving": "Sparen",
+      "paused": "pausiert",
+      "off_big": "Autopilot ist aus",
+      "off_desc": "Schalten Sie Autopilot unter „Heizung einrichten“ ein, um fortzufahren.",
+      "offline_big": "Wärmepumpe nicht erreichbar",
+      "offline_desc": "Geht weiter, sobald Ihre Wärmepumpe wieder erreichbar ist.",
+      "day": "Tag __day__",
+      "day_of": "Tag __day__ von __of__",
+      "day_of_again": "erneut Tag __day__ von __of__",
+      "learning_big": "Lernt Ihr Haus kennen",
+      "since_day": "seit Tag __day__",
+      "saving_big": "Autopilot spart",
+      "saving_desc": "Hält __target__ und verschiebt Wärme aus teuren Stunden.",
+      "fits": "Ihre Heizkurve passt bereits.",
+      "new_target": "Neues Ziel __target__",
+      "restarted": "Sie haben den Thermostat geändert, daher beginnt das Einpendeln neu.",
+      "offset": "Parallelverschiebung __from__ → __to__",
+      "offset_row": "Verschiebung __from__ → __to__",
+      "by_autopilot": "durch Autopilot",
+      "by_you": "durch Sie",
+      "off_by": "__delta__ daneben",
+      "not_steady": "Noch nicht stabil. Prüft erneut 3 Tage.",
+      "checking": "Prüft, ob Ihr Haus __target__ hält.",
+      "waiting_for_you": "wartet auf Sie",
+      "set_offset": "Parallelverschiebung auf __to__ stellen",
+      "set_offset_desc": "Menü 1.1.1 an Ihrer Wärmepumpe. Jetzt __from__. Die Prüfung beginnt, sobald dort __to__ steht.",
+      "checking_curve": "Prüft Ihre Heizkurve",
+      "checking_again": "prüft erneut"
     }
   }
 }

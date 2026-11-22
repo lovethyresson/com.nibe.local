@@ -685,19 +685,31 @@ body {
 .setup-compare-cell .setup-compare-soon { font-style: italic; opacity: .55; margin-top: .15em; }
 .setup-compare-cell .is-partial { color: #b07d00; }
 .setup-compare-cell .is-no { opacity: .3; }
-.setup-timeline { display: grid; grid-template-columns: 2fr 3fr; gap: .4em; margin: .5em 0 1.4em; }
-.setup-phase { display: flex; flex-direction: column; gap: .25em; min-width: 0; }
-.setup-phase-bar { height: .55em; border-radius: 99px; }
-.setup-phase.is-learning .setup-phase-bar { background: repeating-linear-gradient(135deg, rgba(128,128,128,.45) 0 5px, rgba(128,128,128,.15) 5px 10px); }
-.setup-phase.is-acting .setup-phase-bar { background: linear-gradient(90deg, #e8833a, #5b8def); }
-.setup-timeline:has(.is-settling) { grid-template-columns: 2fr 2fr 3fr; }
-.setup-phase.is-settling .setup-phase-bar { background: linear-gradient(90deg, rgba(128,128,128,.35), #e8833a); }
 /* Heating Setup: the Getting started widget's preview beside the line about it. */
-.setup-follow { display: flex; gap: .8em; align-items: flex-start; margin: -.6em 0 1.4em; }
+/* Getting started's four steps as indoor temperature over them (setup.js expectChart). */
+.setup-expect { border-radius: 14px; padding: .8em .9em .7em; margin: .5em 0 1em; background: rgba(128, 128, 128, .08); }
+.setup-expect-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.setup-expect-row strong { font-size: .78em; }
+.setup-expect-row strong.is-saving { color: #3d7be0; }
+.setup-expect-row.is-sub small { font-size: .74em; opacity: .7; line-height: 1.3; }
+.setup-expect-chart { display: block; width: 100%; height: auto; margin: .2em 0 .3em; overflow: visible; }
+.setup-expect-chart .is-step { fill: rgba(128, 128, 128, .28); }
+.setup-expect-chart .is-saving { fill: #3d7be0; }
+.setup-expect-band { fill: #3d7be0; opacity: .13; }
+.setup-expect-target { stroke: #3d7be0; stroke-dasharray: 4 4; }
+.setup-expect-blue { fill: #3d7be0; }
+.setup-expect-grid { stroke: currentColor; opacity: .12; }
+.setup-expect-line { fill: none; stroke: #e8833a; stroke-width: 2.5; stroke-linecap: round; }
+.setup-expect-saving { fill: none; stroke: #3d7be0; stroke-width: 2.5; stroke-linecap: round; }
+.setup-expect-muted { fill: currentColor; opacity: .55; }
+@media (prefers-color-scheme: dark) {
+    .setup-expect-row strong.is-saving, .setup-expect-blue { color: #6ea0ff; fill: #6ea0ff; }
+    .setup-expect-chart .is-saving, .setup-expect-band { fill: #6ea0ff; }
+    .setup-expect-target, .setup-expect-saving { stroke: #6ea0ff; }
+}
+.setup-follow { display: flex; gap: .8em; align-items: flex-start; margin: 0 0 1.4em; }
 .setup-follow-preview { flex: 0 0 7.5em; width: 7.5em; height: auto; border-radius: 12px; display: block; }
 .setup-follow-text { margin: 0; font-size: .88em; line-height: 1.4; opacity: .8; }
-.setup-phase strong { font-size: .95em; }
-.setup-phase small { font-size: .8em; opacity: .7; line-height: 1.35; }
 .setup-tiles-title { font-size: .85em; font-weight: 600; opacity: .65; margin: 0 0 .6em; }
 .setup-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6em; margin-bottom: 1.25em; }
 .setup-tile { display: flex; flex-direction: column; gap: .2em; padding: .85em; border: 1px solid var(--surface-border); border-radius: 12px; min-width: 0; }

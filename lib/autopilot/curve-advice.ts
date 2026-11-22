@@ -62,8 +62,13 @@ export interface CurveStore {
     offset?: number;
     /** The day the offset last changed, by anyone: samples before it describe the old curve. */
     changed?: number;
+    /** That change, for Getting started (settling.ts) to show. */
+    moved?: {from: number; to: number};
     /** The last advice told, so the same advice is not repeated for `REPEAT_DAYS`. */
     told?: {day: number; to?: number; slope?: Slope};
+    /** The day the offset was last read as already right (`curveVerdict`), for Getting started
+     *  (settling.ts): cleared when a later reading wants a change. */
+    fits?: number;
 }
 
 export type Slope = 'steeper' | 'flatter';
@@ -88,10 +93,12 @@ export function readCurveStore(raw: unknown): CurveStore {
         samples,
         ...r.adjusted && Number.isFinite(r.adjusted.from) && Number.isFinite(r.adjusted.to) ? {adjusted: r.adjusted} : {},
         ...Number.isFinite(r.changed) ? {changed: r.changed} : {},
+        ...r.moved && Number.isFinite(r.moved.from) && Number.isFinite(r.moved.to) ? {moved: {from: r.moved.from, to: r.moved.to}} : {},
         // Before `wrote` existed, Autopilot's own change was dated by `adjusted`.
         ...Number.isFinite(r.wrote) ? {wrote: r.wrote} : Number.isFinite(r.adjusted?.day) ? {wrote: r.adjusted!.day} : {},
         ...Number.isFinite(r.offset) ? {offset: r.offset} : {},
         ...r.told && Number.isFinite(r.told.day) ? {told: r.told} : {},
+        ...Number.isFinite(r.fits) ? {fits: r.fits} : {},
     };
 }
 
@@ -122,6 +129,13 @@ export interface AdviceInput {
 
 /** The advice for today, or undefined when there is none yet (or none needed). */
 export function curveAdvice(input: AdviceInput): Advice | undefined {
+    const verdict = curveVerdict(input);
+    return verdict && (verdict.to !== verdict.from || verdict.slope) ? verdict : undefined;
+}
+
+/** What the steady trim says the offset should be, the offset it already has included (`to` equal
+ *  to `from`: the curve fits). Undefined while there is no verdict yet. */
+export function curveVerdict(input: AdviceInput): Advice | undefined {
     const {today, readyDays, offset, curveGain} = input;
     if (readyDays === undefined || readyDays < READY_DAYS_BEFORE) return undefined;
     if (input.wrote !== undefined && today - input.wrote < REPEAT_DAYS) return undefined;
@@ -140,7 +154,6 @@ export function curveAdvice(input: AdviceInput): Advice | undefined {
     const steps = Math.max(-MAX_STEPS, Math.min(MAX_STEPS, Math.round(supplyK / stepK)));
     const to = Math.max(OFFSET_RANGE[0], Math.min(OFFSET_RANGE[1], offset + steps));
     const slope = slopeOf(since);
-    if (to === offset && !slope) return undefined;
     return {from: offset, to, supplyK, integral, ...slope ? {slope} : {}};
 }
 

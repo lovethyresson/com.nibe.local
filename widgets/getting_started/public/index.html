@@ -2,29 +2,34 @@
   <head>
     <meta charset="utf-8">
     <style>
-      /* Autopilot heating's first weeks: where the house is against the thermostat, each day's
-         average climbing to it, and the days as a list, oldest first like the chart. */
+      /* Autopilot heating's first weeks in four steps (settling.ts): a stepper, then the step the
+         owner is on. Settling draws each day's average climbing to the thermostat. */
       .gs { padding: var(--homey-su-2, 8px) var(--homey-su-3, 12px); }
       .gs-title { opacity: 0.6; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .gs-label { margin-top: 8px; font-size: 0.85em; opacity: 0.6; }
-      .gs-big { font-size: 1.6em; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
-      .gs-big.done { color: var(--gs-good); }
+      .gs-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 8px; }
+      .gs-seg { height: 6px; border-radius: 99px; background: var(--gs-off); overflow: hidden; }
+      .gs-seg b { display: block; height: 100%; border-radius: 99px; }
+      .gs-seg.done b { background: var(--gs-good); width: 100%; }
+      .gs-seg.now b { background: var(--gs-line); }
+      .gs-seg.live b { background: var(--gs-target); width: 100%; }
+      .gs-label { margin-top: 10px; font-size: 0.85em; opacity: 0.7; }
+      .gs-big { font-size: 1.5em; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
       .gs-of { font-size: 0.55em; font-weight: 600; opacity: 0.6; margin-left: 4px; }
+      .gs-desc { margin-top: 2px; font-size: 0.88em; opacity: 0.8; line-height: 1.35; }
       .gs-chart { display: block; width: 100%; margin-top: 8px; }
       .gs-days { margin-top: 6px; border-top: 1px solid rgba(127, 127, 127, 0.22); font-variant-numeric: tabular-nums; }
       .gs-row { display: grid; grid-template-columns: 3.2em 1fr auto; gap: 8px; padding: 5px 0; font-size: 0.9em; border-bottom: 1px solid rgba(127, 127, 127, 0.12); }
       .gs-row:last-child { border-bottom: 0; }
       .gs-day { opacity: 0.6; }
       .gs-note { text-align: right; }
-      .gs-note.up, .gs-note.done { color: var(--gs-good); }
-      .gs-note.down { color: var(--gs-bad); }
-      .gs-note.same, .gs-note.first { opacity: 0.55; }
-      .gs-foot { margin-top: 10px; font-size: 0.82em; opacity: 0.65; }
+      .gs-note.good { color: var(--gs-good); }
+      .gs-note.neutral { opacity: 0.6; }
+      .gs-foot { margin-top: 10px; font-size: 0.82em; opacity: 0.6; }
       .gs-empty { opacity: 0.8; margin: 12px 0; }
-      :root { --gs-good: #248a3d; --gs-bad: #d70015; --gs-line: #e8833a; --gs-target: #3d7be0; }
-      :root[data-theme="dark"] { --gs-good: #30d158; --gs-bad: #ff6961; --gs-line: #f0954f; --gs-target: #6ea0ff; }
+      :root { --gs-good: #248a3d; --gs-line: #e8833a; --gs-target: #3d7be0; --gs-off: #e5e5ea; }
+      :root[data-theme="dark"] { --gs-good: #30d158; --gs-line: #f0954f; --gs-target: #6ea0ff; --gs-off: #3a3a3c; }
       @media (prefers-color-scheme: dark) {
-        :root:not([data-theme="light"]) { --gs-good: #30d158; --gs-bad: #ff6961; --gs-line: #f0954f; --gs-target: #6ea0ff; }
+        :root:not([data-theme="light"]) { --gs-good: #30d158; --gs-line: #f0954f; --gs-target: #6ea0ff; --gs-off: #3a3a3c; }
       }
     </style>
   </head>
@@ -78,7 +83,7 @@
         var s = svg('svg', {viewBox: '0 0 ' + W + ' ' + H, class: 'gs-chart', 'aria-hidden': 'true'});
         s.appendChild(svg('rect', {x: 10, y: y(target + 0.2), width: W - 20, height: y(target - 0.2) - y(target + 0.2), rx: 4, fill: 'var(--gs-target)', opacity: 0.16}));
         s.appendChild(svg('line', {x1: 10, x2: W - 10, y1: y(target), y2: y(target), stroke: 'var(--gs-target)', 'stroke-dasharray': '4 4'}));
-        s.appendChild(svg('text', {x: W - 12, y: y(target + 0.2) - 4, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--gs-target)'}, targetLabel));
+        s.appendChild(svg('text', {x: W - 12, y: Math.max(11, y(target + 0.2) - 4), 'text-anchor': 'end', 'font-size': 11, fill: 'var(--gs-target)'}, targetLabel));
         s.appendChild(svg('polyline', {points: days.map(function (d, k) { return x(k) + ',' + y(d.mean); }).join(' '), fill: 'none', stroke: 'var(--gs-line)', 'stroke-width': 2.5}));
         days.forEach(function (d, k) {
           s.appendChild(svg('circle', {cx: x(k), cy: y(d.mean), r: 4, fill: 'var(--gs-line)'}));
@@ -86,26 +91,42 @@
         });
         return s;
       }
+      // Done steps green, the current one orange as far as it has come, Saving blue: it stays on.
+      function steps(step, part) {
+        var row = el('div', 'gs-steps');
+        for (var k = 0; k < 4; k++) {
+          var seg = el('div', 'gs-seg' + (k < step ? ' done' : k === step ? (k === 3 ? ' live' : ' now') : ''));
+          var fill = el('b');
+          if (k === step && k < 3) fill.style.width = Math.max(0, Math.min(100, part || 0)) + '%';
+          seg.appendChild(fill);
+          row.appendChild(seg);
+        }
+        return row;
+      }
       function render(data) {
         applyTheme();
         var root = document.getElementById('gs');
         root.replaceChildren();
         root.appendChild(el('div', 'gs-title', data.title || ''));
         if (data.empty) { root.appendChild(el('p', 'gs-empty', data.empty)); return; }
+        root.appendChild(steps(data.step, data.part));
         root.appendChild(el('div', 'gs-label', data.label));
-        var big = el('div', 'gs-big' + (data.done ? ' done' : ''), data.big);
+        var big = el('div', 'gs-big', data.big);
         if (data.of) big.appendChild(el('span', 'gs-of', data.of));
         root.appendChild(big);
-        root.appendChild(chart(data.days, data.target, data.targetLabel || ''));
-        var list = el('div', 'gs-days');
-        data.days.forEach(function (d) {
-          var row = el('div', 'gs-row');
-          row.appendChild(el('span', 'gs-day', d.label));
-          row.appendChild(el('span', '', d.value));
-          row.appendChild(el('span', 'gs-note ' + d.tone, d.note));
-          list.appendChild(row);
-        });
-        root.appendChild(list);
+        if (data.desc) root.appendChild(el('div', 'gs-desc', data.desc));
+        if (data.chart) root.appendChild(chart(data.chart.days, data.chart.target, data.chart.targetLabel || ''));
+        if (data.rows && data.rows.length) {
+          var list = el('div', 'gs-days');
+          data.rows.forEach(function (d) {
+            var row = el('div', 'gs-row');
+            row.appendChild(el('span', 'gs-day', d.label));
+            row.appendChild(el('span', '', d.value));
+            row.appendChild(el('span', 'gs-note ' + (d.tone || 'neutral'), d.note));
+            list.appendChild(row);
+          });
+          root.appendChild(list);
+        }
         if (data.foot) root.appendChild(el('div', 'gs-foot', data.foot));
       }
       function fit(Homey) {

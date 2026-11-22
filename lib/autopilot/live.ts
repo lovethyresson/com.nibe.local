@@ -336,6 +336,9 @@ export interface FeedHooks {
     limits(): Limits;
     /** How far forecast sun counts in the plan, read each slot: 0 until it has earned it. */
     sunTrust(): number;
+    /** Getting started (settling.ts): until it reaches Saving, the plan holds the level and does
+     *  not shift for prices. */
+    holdShift?(): boolean;
     /** Comfort range Off: feed the real outdoor temperature, unshifted, and plan nothing. The
      *  pump stays on the sensor Autopilot uses rather than going back to its own BT1. */
     neutral(): boolean;
@@ -660,14 +663,17 @@ export class HeatingFeed {
         const warming = warmingUp(comfort) ? back!.at : undefined;
         if (warming !== this.warmingFor) this.hooks.saveWarming?.(warming);
         this.warmingFor = warming;
+        // Holding: the planner's own "do nothing", no room to shift (planner.ts `no_room`).
+        const hold = this.hooks.holdShift?.() === true;
         const plan = planLive({...input!, mean: this.setpoint ?? input!.mean, comfort, bias: this.bias - this.trim, previous: this.previous},
-            this.limits, this.hooks.sunTrust());
+            hold ? {...this.limits, maxBias: 0} : this.limits, this.hooks.sunTrust());
+        const reason = hold ? 'getting_started' : plan.reason;
         this.target = plan.biases[0];
         this.previous = plan.biases.slice(1);
-        this.plan = {slot, biases: plan.biases, forecast: input!.forecast, reason: plan.reason, indoor: plan.plan.ti,
+        this.plan = {slot, biases: plan.biases, forecast: input!.forecast, reason, indoor: plan.plan.ti,
             back: warmingUp(comfort) ? back!.at : undefined};
         this.hooks.record({slot, bias: this.bias, trim: this.trim, setpoint: this.setpoint, fed: this.lastFed?.fed, real: this.real?.value,
-            source: this.real?.source, clamped: this.lastFed?.clamped ?? [], planned: plan.biases.slice(0, 8), reason: plan.reason});
+            source: this.real?.source, clamped: this.lastFed?.clamped ?? [], planned: plan.biases.slice(0, 8), reason});
         this.hooks.planned?.(slot, input!.forecast, plan.plan.heat);
         this.hooks.changed();
         return undefined;

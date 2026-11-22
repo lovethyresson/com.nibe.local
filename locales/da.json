@@ -252,8 +252,6 @@
         "exp_title": "Hvad du kan forvente",
         "exp_learning": "Lærer",
         "exp_learning_sub": "5+ dage",
-        "exp_acting": "Aktiv",
-        "exp_acting_sub": "Flytter varme fra pristoppe",
         "exp_control": "Du styrer",
         "ctl_thermostat": "Termostat",
         "ctl_thermostat_sub": "Din komforttemperatur",
@@ -442,9 +440,15 @@
         "hw_legionella_link": "Om legionella",
         "hw_legionella_invalid": "Indtast en temperatur fra 55 til 70 °C.",
         "exp_settling": "Indstiller sig",
-        "exp_settling_sub": "Op til 1 °C ved siden af",
-        "exp_follow": "Daglige opdateringer i tidslinjen, indtil den har indstillet sig. Tilføj widgetten __widget__ til et dashboard for at følge med.",
-        "exp_widget": "Kom i gang"
+        "exp_settling_sub": "Op til 1 °C ved siden af et stykke tid",
+        "exp_follow": "Følg med i widgetten __widget__. Daglige opdateringer kommer i tidslinjen, indtil det er færdigt.",
+        "exp_widget": "Kom i gang",
+        "exp_calibrating": "Kalibrerer",
+        "exp_calibrating_sub": "Justerer din varmekurve",
+        "exp_saving": "Sparer",
+        "exp_saving_sub": "Løbende",
+        "exp_band": "Din temperatur",
+        "exp_peak": "Dyrt"
       },
       "gets_added": "Dette tilføjes",
       "gets_added_intro": "Disse enheder tilføjes.",
@@ -727,7 +731,8 @@
         "sun": "sol ventet __from__–__to__",
         "waiting": "Starter: venter på prognosen",
         "before": "før __why__",
-        "back": "du kommer hjem kl. __at__"
+        "back": "du kommer hjem kl. __at__",
+        "getting_started": "Kommer i gang. Ingen prisflytninger endnu"
       },
       "status_name": {
         "learning": "Lærer",
@@ -740,7 +745,7 @@
       "timeline": {
         "paused": "Autopilot for opvarmning: __reason__",
         "resumed": "Autopilot for opvarmning kører igen.",
-        "learned": "Autopilot for opvarmning har lært dit hus at kende og flytter nu varme væk fra dyre timer."
+        "learned": "Autopilot for opvarmning har lært dit hus at kende og bringer det nu til __target__."
       },
       "verify": {
         "not_heating": "Autopilot for opvarmning sættes op på enheden Opvarmning.",
@@ -767,8 +772,12 @@
         "up": "Opvarmning indstiller sig: __mean__ i går, op fra __previous__. Mål __target__.",
         "down": "Opvarmning indstiller sig: __mean__ i går, ned fra __previous__. Mål __target__.",
         "same": "Opvarmning indstiller sig: __mean__ i går, samme som dagen før. Mål __target__.",
-        "settled": "Opvarmning har indstillet sig: __mean__ i går, på dit mål. Autopilot flytter nu varme væk fra pristoppene.",
-        "stopped": "Opvarmning har ikke indstillet sig efter 3 uger: __mean__ i går, mål __target__. Autopilot bliver ved med at justere niveauet."
+        "settled": "Dit hus holder __target__. Nu tjekker Autopilot din varmekurve.",
+        "stopped": "Dit hus har ikke nået __target__ efter 3 uger (__mean__ i går). Nu tjekker Autopilot din varmekurve.",
+        "settled_fits": "Dit hus holder __target__, og din varmekurve passer allerede. Autopilot flytter nu varme væk fra dyre timer.",
+        "restart": "Opvarmning indstiller sig på din nye temperatur: __mean__ i går. Mål __target__.",
+        "live": "Autopilot er i gang. Den flytter nu varme væk fra dyre timer.",
+        "live_fits": "Din varmekurve passer allerede. Autopilot flytter nu varme væk fra dyre timer."
       }
     },
     "smart": {
@@ -1003,17 +1012,43 @@
     },
     "settle_widget": {
       "title": "Opvarmning · Kom i gang",
-      "settling": "Indstiller sig · dag __day__",
-      "settled": "Indstillet · dag __day__",
       "of": "af __target__",
-      "holds": "Holder __target__",
       "first_row": "første dag",
-      "settled_row": "✓ indstillet",
       "remove": "Du kan fjerne denne widget.",
-      "stopped": "Justerer stadig efter 3 uger.",
       "waiting": "Første opdatering i morgen tidlig.",
       "off": "Viser de første uger, når Autopilot for opvarmning er slået til.",
-      "pick": "Vælg din Opvarmning-enhed i widgettens indstillinger."
+      "pick": "Vælg din Opvarmning-enhed i widgettens indstillinger.",
+      "step_learning": "Lærer",
+      "step_settling": "Indstiller sig",
+      "step_calibrating": "Kalibrerer",
+      "step_saving": "Sparer",
+      "paused": "sat på pause",
+      "off_big": "Autopilot er slået fra",
+      "off_desc": "Slå Autopilot til i Varmeopsætning for at fortsætte.",
+      "offline_big": "Varmepumpen svarer ikke",
+      "offline_desc": "Fortsætter, når din varmepumpe er tilbage.",
+      "day": "dag __day__",
+      "day_of": "dag __day__ af __of__",
+      "day_of_again": "dag __day__ af __of__ igen",
+      "learning_big": "Lærer dit hus at kende",
+      "since_day": "siden dag __day__",
+      "saving_big": "Autopilot sparer",
+      "saving_desc": "Holder __target__ og flytter varme væk fra dyre timer.",
+      "fits": "Din varmekurve passer allerede.",
+      "new_target": "Nyt mål __target__",
+      "restarted": "Du ændrede termostaten, så indstillingen starter forfra.",
+      "offset": "Kurveforskydning __from__ → __to__",
+      "offset_row": "Forskydning __from__ → __to__",
+      "by_autopilot": "af Autopilot",
+      "by_you": "af dig",
+      "off_by": "__delta__ ved siden af",
+      "not_steady": "Ikke stabilt endnu. Tjekker 3 dage igen.",
+      "checking": "Tjekker, at dit hus holder __target__.",
+      "waiting_for_you": "venter på dig",
+      "set_offset": "Sæt kurveforskydningen til __to__",
+      "set_offset_desc": "Menu 1.1.1 på din varmepumpe. Nu __from__. Tjekket starter, når den viser __to__.",
+      "checking_curve": "Tjekker din varmekurve",
+      "checking_again": "tjekker igen"
     }
   }
 }

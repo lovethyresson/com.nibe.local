@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {DEFAULT_STEP_K, MAX_STEPS, OWNER_SETTLE_DAYS, READY_DAYS_BEFORE, REPEAT_DAYS, CurveSample, addSample, curveAdvice, isNews, readCurveStore,
+import {DEFAULT_STEP_K, MAX_STEPS, OWNER_SETTLE_DAYS, READY_DAYS_BEFORE, REPEAT_DAYS, CurveSample, addSample, curveAdvice, curveVerdict, isNews, readCurveStore,
     slopeOf, trimShiftFor} from '../lib/autopilot/curve-advice';
 
 const days = (n: number, integral: (d: number) => number, te: (d: number) => number = () => 2): CurveSample[] =>
@@ -91,4 +91,15 @@ test('the store reads back, and anything unanswered is advice only', () => {
     const kept = addSample(addSample(days(30, () => 1), {day: 129, integral: 5, te: 0}), {day: 130, integral: 2, te: 0});
     assert.equal(kept.find((s) => s.day === 129)?.integral, 5);
     assert.ok(kept.every((s) => s.day > 130 - 21));
+});
+
+test('a steady trim on a curve that already fits is a verdict, not advice', () => {
+    const fits = {...base, samples: days(10, () => 0.1)};
+    assert.equal(curveAdvice(fits), undefined);
+    const verdict = curveVerdict(fits)!;
+    assert.equal(verdict.to, verdict.from, 'to equals from: the curve fits');
+    assert.equal(verdict.slope, undefined);
+    assert.equal(curveVerdict({...fits, readyDays: undefined}), undefined, 'no verdict while it cannot tell');
+    assert.equal(readCurveStore({fits: 105, moved: {from: 6, to: 5}}).fits, 105);
+    assert.deepEqual(readCurveStore({moved: {from: 6, to: 5}}).moved, {from: 6, to: 5});
 });

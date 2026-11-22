@@ -488,14 +488,7 @@ function NibeSetup(options) {
     function expect() {
         clear(a('exp_title'), '');
         view.querySelector('.pair-hero-title').hidden = false;
-        var line = el('div', undefined, 'setup-timeline');
-        [['is-learning', 'exp_learning', 'exp_learning_sub'], ['is-settling', 'exp_settling', 'exp_settling_sub'],
-            ['is-acting', 'exp_acting', 'exp_acting_sub']].forEach(function (p) {
-            var phase = el('div', undefined, 'setup-phase ' + p[0]);
-            phase.append(el('span', undefined, 'setup-phase-bar'), el('strong', a(p[1])), el('small', a(p[2])));
-            line.appendChild(phase);
-        });
-        shell.appendChild(line);
+        shell.appendChild(expectChart());
         // The Getting started widget (widgets/getting_started), and the daily timeline updates.
         var follow = el('div', undefined, 'setup-follow');
         var picture = document.createElement('picture');
@@ -522,6 +515,32 @@ function NibeSetup(options) {
         shell.appendChild(tiles);
         shell.appendChild(button(t('next'), rangeThenCurve, true));
         back(apIndoor);
+    }
+    /** The four steps of Getting started (lib/autopilot/settling.ts) as indoor temperature over
+     *  them: flat while learning, climbing into the band around the owner's temperature while
+     *  settling, levelling off while calibrating, then dipping for an expensive hour once saving.
+     *  Illustrative: no numbers but the ±1 °C the owner may see while settling. */
+    function expectChart() {
+        var card = el('div', undefined, 'setup-expect');
+        var names = ['exp_learning', 'exp_settling', 'exp_calibrating', 'exp_saving'];
+        var subs = ['exp_learning_sub', 'exp_settling_sub', 'exp_calibrating_sub', 'exp_saving_sub'];
+        var head = el('div', undefined, 'setup-expect-row');
+        names.forEach(function (n, i) { head.appendChild(el('strong', a(n), i === 3 ? 'is-saving' : undefined)); });
+        var s = svgEl('svg', {viewBox: '0 0 300 120', class: 'setup-expect-chart', 'aria-hidden': 'true'});
+        for (var i = 0; i < 4; i++) s.appendChild(svgEl('rect', {x: i * 75 + 1, y: 4, width: 73, height: 5, rx: 2.5, class: i === 3 ? 'is-saving' : 'is-step'}));
+        s.appendChild(svgEl('rect', {x: 75, y: 34, width: 225, height: 36, rx: 4, class: 'setup-expect-band'}));
+        s.appendChild(svgEl('line', {x1: 0, x2: 300, y1: 52, y2: 52, class: 'setup-expect-target'}));
+        s.appendChild(svgEl('text', {x: 296, y: 28, 'text-anchor': 'end', 'font-size': 10, class: 'setup-expect-blue'}, a('exp_band')));
+        s.appendChild(svgEl('text', {x: 196, y: 84, 'text-anchor': 'middle', 'font-size': 9.5, class: 'setup-expect-blue'}, '± 1 °C'));
+        for (var k = 1; k < 4; k++) s.appendChild(svgEl('line', {x1: k * 75, x2: k * 75, y1: 14, y2: 112, class: 'setup-expect-grid'}));
+        s.appendChild(svgEl('path', {d: 'M2 94 C20 90 35 98 52 93 S70 92 76 92 C100 90 112 40 132 38 S150 66 168 60 S195 49 225 52',
+            class: 'setup-expect-line'}));
+        s.appendChild(svgEl('path', {d: 'M225 52 C233 52 236 44 244 44 S256 60 262 60 S274 44 282 44 S294 56 298 54', class: 'setup-expect-saving'}));
+        s.appendChild(svgEl('text', {x: 262, y: 76, 'text-anchor': 'middle', 'font-size': 9, class: 'setup-expect-muted'}, a('exp_peak')));
+        var foot = el('div', undefined, 'setup-expect-row is-sub');
+        subs.forEach(function (n) { foot.appendChild(el('small', a(n))); });
+        card.append(head, s, foot);
+        return card;
     }
     // ---- Comfort range: one explained choice per range, with an example day. The numbers come
     // from the live planner's limits (smart_status `ranges`), so the text says what it will do.

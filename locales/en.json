@@ -252,8 +252,6 @@
         "exp_title": "What to expect",
         "exp_learning": "Learning",
         "exp_learning_sub": "5+ days",
-        "exp_acting": "Acting",
-        "exp_acting_sub": "Shifts heat from price peaks",
         "exp_control": "You control",
         "ctl_thermostat": "Thermostat",
         "ctl_thermostat_sub": "Your comfort temperature",
@@ -442,9 +440,15 @@
         "hw_legionella_link": "About legionella",
         "hw_legionella_invalid": "Enter a temperature from 55 to 70 °C.",
         "exp_settling": "Settling",
-        "exp_settling_sub": "Up to 1 °C off",
-        "exp_follow": "Daily updates in the timeline until it settles. To follow along, add the __widget__ widget to a dashboard.",
-        "exp_widget": "Getting started"
+        "exp_settling_sub": "Up to 1 °C off for a while",
+        "exp_follow": "Follow along with the __widget__ widget. Daily updates come in the timeline until it's done.",
+        "exp_widget": "Getting started",
+        "exp_calibrating": "Calibrating",
+        "exp_calibrating_sub": "Tunes your heat curve",
+        "exp_saving": "Saving",
+        "exp_saving_sub": "Ongoing",
+        "exp_band": "Your temperature",
+        "exp_peak": "Expensive"
       },
       "gets_added": "What gets added",
       "gets_added_intro": "These devices will be added.",
@@ -727,7 +731,8 @@
         "sun": "sun expected __from__–__to__",
         "waiting": "Starting: waiting for the forecast",
         "before": "before __why__",
-        "back": "you're back at __at__"
+        "back": "you're back at __at__",
+        "getting_started": "Getting started. No price shifts yet"
       },
       "status_name": {
         "learning": "Learning",
@@ -740,7 +745,7 @@
       "timeline": {
         "paused": "Autopilot heating: __reason__",
         "resumed": "Autopilot heating is running again.",
-        "learned": "Autopilot heating has learned your house and now moves heat away from expensive hours."
+        "learned": "Autopilot heating has learned your house and now brings it to __target__."
       },
       "verify": {
         "not_heating": "Autopilot heating is set up on the Heating device.",
@@ -767,8 +772,12 @@
         "up": "Heating settling: __mean__ yesterday, up from __previous__. Target __target__.",
         "down": "Heating settling: __mean__ yesterday, down from __previous__. Target __target__.",
         "same": "Heating settling: __mean__ yesterday, same as the day before. Target __target__.",
-        "settled": "Heating settled: __mean__ yesterday, at your target. Autopilot now shifts heat away from price peaks.",
-        "stopped": "Heating hasn't settled after 3 weeks: __mean__ yesterday, target __target__. Autopilot keeps adjusting the level."
+        "settled": "Your house holds __target__. Next Autopilot checks your heat curve.",
+        "stopped": "Your house hasn't reached __target__ after 3 weeks (__mean__ yesterday). Next Autopilot checks your heat curve.",
+        "settled_fits": "Your house holds __target__ and your heat curve already fits. Autopilot now moves heat away from expensive hours.",
+        "restart": "Heating settling for your new temperature: __mean__ yesterday. Target __target__.",
+        "live": "Autopilot is live. It now moves heat away from expensive hours.",
+        "live_fits": "Your heat curve already fits. Autopilot now moves heat away from expensive hours."
       }
     },
     "smart": {
@@ -1003,17 +1012,43 @@
     },
     "settle_widget": {
       "title": "Heating · Getting started",
-      "settling": "Settling · day __day__",
-      "settled": "Settled · day __day__",
       "of": "of __target__",
-      "holds": "Holds __target__",
       "first_row": "first day",
-      "settled_row": "✓ settled",
       "remove": "You can remove this widget.",
-      "stopped": "Still adjusting after 3 weeks.",
       "waiting": "First update tomorrow morning.",
       "off": "Shows the first weeks once Autopilot heating is on.",
-      "pick": "Choose your Heating device in the widget settings."
+      "pick": "Choose your Heating device in the widget settings.",
+      "step_learning": "Learning",
+      "step_settling": "Settling",
+      "step_calibrating": "Calibrating",
+      "step_saving": "Saving",
+      "paused": "paused",
+      "off_big": "Autopilot is off",
+      "off_desc": "Turn on Autopilot in Heating setup to continue.",
+      "offline_big": "Heat pump unreachable",
+      "offline_desc": "Continues when your heat pump is back.",
+      "day": "day __day__",
+      "day_of": "day __day__ of __of__",
+      "day_of_again": "day __day__ of __of__ again",
+      "learning_big": "Learning your house",
+      "since_day": "since day __day__",
+      "saving_big": "Autopilot is saving",
+      "saving_desc": "Holds __target__ and moves heat away from expensive hours.",
+      "fits": "Your heat curve already fits.",
+      "new_target": "New target __target__",
+      "restarted": "You changed the thermostat, so settling starts over.",
+      "offset": "Curve offset __from__ → __to__",
+      "offset_row": "Offset __from__ → __to__",
+      "by_autopilot": "by Autopilot",
+      "by_you": "by you",
+      "off_by": "off by __delta__",
+      "not_steady": "Not steady yet. Checking 3 days again.",
+      "checking": "Checking your house holds __target__.",
+      "waiting_for_you": "waiting for you",
+      "set_offset": "Set curve offset to __to__",
+      "set_offset_desc": "Menu 1.1.1 on your heat pump. Now __from__. The check starts once it reads __to__.",
+      "checking_curve": "Checking your heat curve",
+      "checking_again": "checking again"
     }
   }
 }

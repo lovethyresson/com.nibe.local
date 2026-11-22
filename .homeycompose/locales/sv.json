@@ -327,7 +327,8 @@
         },
         "range_off": "Komfortspann är Av. Din värmepump använder den uppmätta utetemperaturen",
         "sun": "sol väntas __from__–__to__",
-        "back": "du kommer hem kl. __at__"
+        "back": "du kommer hem kl. __at__",
+        "getting_started": "Kommer igång. Inga prisförflyttningar än"
       },
       "status_name": {
         "learning": "Lär sig",
@@ -340,7 +341,7 @@
       "timeline": {
         "paused": "Autopilot för uppvärmning: __reason__",
         "resumed": "Autopilot för uppvärmning är igång igen.",
-        "learned": "Autopilot för uppvärmning har lärt sig ditt hus och flyttar nu värme bort från dyra timmar."
+        "learned": "Autopilot för uppvärmning har lärt sig ditt hus och tar det nu till __target__."
       },
       "verify": {
         "not_heating": "Autopilot för uppvärmning ställs in på enheten Värme.",
@@ -367,8 +368,12 @@
         "up": "Uppvärmning ställer in sig: __mean__ i går, upp från __previous__. Mål __target__.",
         "down": "Uppvärmning ställer in sig: __mean__ i går, ned från __previous__. Mål __target__.",
         "same": "Uppvärmning ställer in sig: __mean__ i går, samma som dagen innan. Mål __target__.",
-        "settled": "Uppvärmning har ställt in sig: __mean__ i går, på ditt mål. Autopilot flyttar nu värme bort från pristopparna.",
-        "stopped": "Uppvärmning har inte ställt in sig efter 3 veckor: __mean__ i går, mål __target__. Autopilot fortsätter justera nivån."
+        "settled": "Ditt hus håller __target__. Nu kontrollerar Autopilot din värmekurva.",
+        "stopped": "Ditt hus har inte nått __target__ efter 3 veckor (__mean__ i går). Nu kontrollerar Autopilot din värmekurva.",
+        "settled_fits": "Ditt hus håller __target__ och din värmekurva passar redan. Autopilot flyttar nu värme bort från dyra timmar.",
+        "restart": "Uppvärmning ställer in sig på din nya temperatur: __mean__ i går. Mål __target__.",
+        "live": "Autopilot är igång. Den flyttar nu värme bort från dyra timmar.",
+        "live_fits": "Din värmekurva passar redan. Autopilot flyttar nu värme bort från dyra timmar."
       }
     },
     "smart": {
@@ -599,17 +604,43 @@
     },
     "settle_widget": {
       "title": "Uppvärmning · Kom igång",
-      "settling": "Ställer in sig · dag __day__",
-      "settled": "Inställd · dag __day__",
       "of": "av __target__",
-      "holds": "Håller __target__",
       "first_row": "första dagen",
-      "settled_row": "✓ inställd",
       "remove": "Du kan ta bort den här widgeten.",
-      "stopped": "Justerar fortfarande efter 3 veckor.",
       "waiting": "Första uppdateringen i morgon bitti.",
       "off": "Visar de första veckorna när Autopilot för uppvärmning är på.",
-      "pick": "Välj din Uppvärmning-enhet i widgetens inställningar."
+      "pick": "Välj din Uppvärmning-enhet i widgetens inställningar.",
+      "step_learning": "Lär sig",
+      "step_settling": "Ställer in sig",
+      "step_calibrating": "Kalibrerar",
+      "step_saving": "Sparar",
+      "paused": "pausad",
+      "off_big": "Autopilot är av",
+      "off_desc": "Slå på Autopilot i Värmeinställningar för att fortsätta.",
+      "offline_big": "Värmepumpen svarar inte",
+      "offline_desc": "Fortsätter när din värmepump är tillbaka.",
+      "day": "dag __day__",
+      "day_of": "dag __day__ av __of__",
+      "day_of_again": "dag __day__ av __of__ igen",
+      "learning_big": "Lär sig ditt hus",
+      "since_day": "sedan dag __day__",
+      "saving_big": "Autopilot sparar",
+      "saving_desc": "Håller __target__ och flyttar värme bort från dyra timmar.",
+      "fits": "Din värmekurva passar redan.",
+      "new_target": "Nytt mål __target__",
+      "restarted": "Du ändrade termostaten, så inställningen börjar om.",
+      "offset": "Kurvförskjutning __from__ → __to__",
+      "offset_row": "Förskjutning __from__ → __to__",
+      "by_autopilot": "av Autopilot",
+      "by_you": "av dig",
+      "off_by": "__delta__ ifrån",
+      "not_steady": "Inte stabilt än. Kontrollerar 3 dagar igen.",
+      "checking": "Kontrollerar att ditt hus håller __target__.",
+      "waiting_for_you": "väntar på dig",
+      "set_offset": "Ställ kurvförskjutningen på __to__",
+      "set_offset_desc": "Meny 1.1.1 på din värmepump. Nu __from__. Kontrollen börjar när den visar __to__.",
+      "checking_curve": "Kontrollerar din värmekurva",
+      "checking_again": "kontrollerar igen"
     }
   }
 }

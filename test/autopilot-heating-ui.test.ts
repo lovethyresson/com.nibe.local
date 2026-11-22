@@ -23,6 +23,11 @@ test('price peak: the run of top prices around the most expensive slot', () => {
     assert.equal(pricePeak([]), undefined);
 });
 
+test('Getting started holds and says so, whatever the plan', () => {
+    const s = live({biases: [0, 0, 0], planReason: 'getting_started', forecast: forecast([1, 4, 1])});
+    assert.deepEqual(heatingStatus(s, now, t, time), {status: 'holding', reason: 'getting_started'});
+});
+
 test('easing off says until when and why', () => {
     const s = live({bias: -2, biases: [-2, -2, -1, 0, 0, 0], forecast: forecast([1, 1, 4, 4, 1, 1])});
     assert.deepEqual(heatingStatus(s, now, t, time), {status: 'easing_off', reason: 'easing_off(until=s3): peak(from=s2,to=s4)'});

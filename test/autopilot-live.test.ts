@@ -82,7 +82,7 @@ test('no pre-heat while the immersion heater runs; coasting is still allowed', (
 
 /** A fake pump: 5217 writes show on input 1 unless `deaf`. Timers run by hand. */
 function harness(over: {mode?: LiveMode; facts?: Partial<PumpFacts>; sensor?: number; forecast?: number; deaf?: boolean;
-    plan?: ShiftInput | undefined; setpoint?: number; mean?: number} = {}) {
+    plan?: ShiftInput | undefined; setpoint?: number; mean?: number; hold?: boolean} = {}) {
     let now = 1_800_000 * SLOT_MS + 1000;
     let input1: number | undefined;
     const state = {
@@ -96,6 +96,7 @@ function harness(over: {mode?: LiveMode; facts?: Partial<PumpFacts>; sensor?: nu
         limits: () => LIVE_LIMITS,
         neutral: () => state.neutral,
         sunTrust: () => 0,
+        holdShift: () => over.hold === true,
         plan: () => ('plan' in over ? over.plan : input({curve: 3})),
         indoorMean: () => over.mean,
         setpoint: () => state.setpoint,
@@ -131,6 +132,19 @@ test('a cycle feeds the real outdoor minus the plan\'s bias and checks the pump 
     assert.equal(feed.state.slot, 1_800_000, 'the snapshot carries the plan');
     await feed.cycle();
     assert.equal(state.records.length, 1, 'no replan within the slot');
+});
+
+test('Getting started holds the level: the plan shifts nothing for prices, and says why', async () => {
+    const shifting = harness({setpoint: 21});
+    shifting.feed.start();
+    await shifting.feed.cycle();
+    const held = harness({setpoint: 21, hold: true});
+    held.feed.start();
+    await held.feed.cycle();
+    assert.equal(held.feed.state.planReason, 'getting_started');
+    assert.equal(held.state.records[0].reason, 'getting_started');
+    assert.ok(shifting.feed.state.biases!.some((b) => Math.abs(b) > 0.5), 'the same input shifts when not held');
+    assert.ok(held.feed.state.biases!.every((b) => Math.abs(b) < 0.5), 'held: no price shift');
 });
 
 test('an owner change replans within the slot, not at the next one', async () => {

@@ -252,8 +252,6 @@
         "exp_title": "Wat je kunt verwachten",
         "exp_learning": "Leren",
         "exp_learning_sub": "5+ dagen",
-        "exp_acting": "Aan de slag",
-        "exp_acting_sub": "Verschuift warmte uit prijspieken",
         "exp_control": "Jij bepaalt",
         "ctl_thermostat": "Thermostaat",
         "ctl_thermostat_sub": "Je comforttemperatuur",
@@ -442,9 +440,15 @@
         "hw_legionella_link": "Over legionella",
         "hw_legionella_invalid": "Vul een temperatuur van 55 tot 70 °C in.",
         "exp_settling": "Instellen",
-        "exp_settling_sub": "Tot 1 °C ernaast",
-        "exp_follow": "Dagelijkse updates in de tijdlijn tot het is ingesteld. Voeg de widget __widget__ toe aan een dashboard om het te volgen.",
-        "exp_widget": "Aan de slag"
+        "exp_settling_sub": "Een tijdje tot 1 °C ernaast",
+        "exp_follow": "Volg het in de widget __widget__. Dagelijkse updates komen in de tijdlijn tot het klaar is.",
+        "exp_widget": "Aan de slag",
+        "exp_calibrating": "Kalibreren",
+        "exp_calibrating_sub": "Stemt je stooklijn af",
+        "exp_saving": "Besparen",
+        "exp_saving_sub": "Doorlopend",
+        "exp_band": "Jouw temperatuur",
+        "exp_peak": "Duur"
       },
       "gets_added": "Dit wordt toegevoegd",
       "gets_added_intro": "Deze apparaten worden toegevoegd.",
@@ -727,7 +731,8 @@
         "sun": "zon verwacht __from__–__to__",
         "waiting": "Opstarten: wacht op de weersverwachting",
         "before": "voordat __why__",
-        "back": "je om __at__ thuiskomt"
+        "back": "je om __at__ thuiskomt",
+        "getting_started": "Aan de slag. Nog geen prijsverschuivingen"
       },
       "status_name": {
         "learning": "Leert",
@@ -740,7 +745,7 @@
       "timeline": {
         "paused": "Autopilot voor verwarming: __reason__",
         "resumed": "Autopilot voor verwarming draait weer.",
-        "learned": "Autopilot voor verwarming kent je huis nu en verschuift warmte uit dure uren."
+        "learned": "Autopilot voor verwarming kent je huis nu en brengt het naar __target__."
       },
       "verify": {
         "not_heating": "Autopilot voor verwarming stel je in op het apparaat Verwarming.",
@@ -767,8 +772,12 @@
         "up": "Verwarming stelt zich in: gisteren __mean__, omhoog van __previous__. Doel __target__.",
         "down": "Verwarming stelt zich in: gisteren __mean__, omlaag van __previous__. Doel __target__.",
         "same": "Verwarming stelt zich in: gisteren __mean__, gelijk aan de dag ervoor. Doel __target__.",
-        "settled": "Verwarming is ingesteld: gisteren __mean__, op je doel. Autopilot verschuift nu warmte uit de prijspieken.",
-        "stopped": "Verwarming is na 3 weken nog niet ingesteld: gisteren __mean__, doel __target__. Autopilot blijft het niveau bijstellen."
+        "settled": "Je huis houdt __target__ vast. Nu controleert Autopilot je stooklijn.",
+        "stopped": "Je huis heeft na 3 weken __target__ nog niet bereikt (gisteren __mean__). Nu controleert Autopilot je stooklijn.",
+        "settled_fits": "Je huis houdt __target__ vast en je stooklijn klopt al. Autopilot verschuift nu warmte uit dure uren.",
+        "restart": "Verwarming stelt zich in op je nieuwe temperatuur: gisteren __mean__. Doel __target__.",
+        "live": "Autopilot is actief. Hij verschuift nu warmte uit dure uren.",
+        "live_fits": "Je stooklijn klopt al. Autopilot verschuift nu warmte uit dure uren."
       }
     },
     "smart": {
@@ -1003,17 +1012,43 @@
     },
     "settle_widget": {
       "title": "Verwarming · Aan de slag",
-      "settling": "Stelt zich in · dag __day__",
-      "settled": "Ingesteld · dag __day__",
       "of": "van __target__",
-      "holds": "Houdt __target__",
       "first_row": "eerste dag",
-      "settled_row": "✓ ingesteld",
       "remove": "Je kunt deze widget verwijderen.",
-      "stopped": "Na 3 weken nog aan het bijstellen.",
       "waiting": "Eerste update morgenochtend.",
       "off": "Toont de eerste weken zodra Autopilot voor verwarming aan staat.",
-      "pick": "Kies je Verwarming-apparaat in de widgetinstellingen."
+      "pick": "Kies je Verwarming-apparaat in de widgetinstellingen.",
+      "step_learning": "Leren",
+      "step_settling": "Instellen",
+      "step_calibrating": "Kalibreren",
+      "step_saving": "Besparen",
+      "paused": "gepauzeerd",
+      "off_big": "Autopilot staat uit",
+      "off_desc": "Zet Autopilot aan in Verwarming instellen om verder te gaan.",
+      "offline_big": "Warmtepomp niet bereikbaar",
+      "offline_desc": "Gaat verder zodra je warmtepomp terug is.",
+      "day": "dag __day__",
+      "day_of": "dag __day__ van __of__",
+      "day_of_again": "opnieuw dag __day__ van __of__",
+      "learning_big": "Leert je huis kennen",
+      "since_day": "sinds dag __day__",
+      "saving_big": "Autopilot bespaart",
+      "saving_desc": "Houdt __target__ vast en verschuift warmte uit dure uren.",
+      "fits": "Je stooklijn klopt al.",
+      "new_target": "Nieuw doel __target__",
+      "restarted": "Je hebt de thermostaat aangepast, dus het instellen begint opnieuw.",
+      "offset": "Verschuiving __from__ → __to__",
+      "offset_row": "Verschuiving __from__ → __to__",
+      "by_autopilot": "door Autopilot",
+      "by_you": "door jou",
+      "off_by": "__delta__ ernaast",
+      "not_steady": "Nog niet stabiel. Controleert opnieuw 3 dagen.",
+      "checking": "Controleert of je huis __target__ vasthoudt.",
+      "waiting_for_you": "wacht op jou",
+      "set_offset": "Zet de verschuiving op __to__",
+      "set_offset_desc": "Menu 1.1.1 op je warmtepomp. Nu __from__. De controle begint zodra hij __to__ aangeeft.",
+      "checking_curve": "Controleert je stooklijn",
+      "checking_again": "controleert opnieuw"
     }
   }
 }

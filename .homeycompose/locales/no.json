@@ -327,7 +327,8 @@
         },
         "range_off": "Komfortområde er Av. Varmepumpen din bruker den målte utetemperaturen",
         "sun": "sol ventet __from__–__to__",
-        "back": "du kommer hjem kl. __at__"
+        "back": "du kommer hjem kl. __at__",
+        "getting_started": "Kommer i gang. Ingen prisflyttinger ennå"
       },
       "status_name": {
         "learning": "Lærer",
@@ -340,7 +341,7 @@
       "timeline": {
         "paused": "Autopilot for oppvarming: __reason__",
         "resumed": "Autopilot for oppvarming kjører igjen.",
-        "learned": "Autopilot for oppvarming kjenner nå huset ditt og flytter varme bort fra dyre timer."
+        "learned": "Autopilot for oppvarming kjenner nå huset ditt og tar det til __target__."
       },
       "verify": {
         "not_heating": "Autopilot for oppvarming settes opp på enheten Oppvarming.",
@@ -367,8 +368,12 @@
         "up": "Oppvarming stiller seg inn: __mean__ i går, opp fra __previous__. Mål __target__.",
         "down": "Oppvarming stiller seg inn: __mean__ i går, ned fra __previous__. Mål __target__.",
         "same": "Oppvarming stiller seg inn: __mean__ i går, samme som dagen før. Mål __target__.",
-        "settled": "Oppvarming har stilt seg inn: __mean__ i går, på målet ditt. Autopilot flytter nå varme bort fra pristoppene.",
-        "stopped": "Oppvarming har ikke stilt seg inn etter 3 uker: __mean__ i går, mål __target__. Autopilot fortsetter å justere nivået."
+        "settled": "Huset ditt holder __target__. Nå sjekker Autopilot varmekurven din.",
+        "stopped": "Huset ditt har ikke nådd __target__ etter 3 uker (__mean__ i går). Nå sjekker Autopilot varmekurven din.",
+        "settled_fits": "Huset ditt holder __target__ og varmekurven din passer allerede. Autopilot flytter nå varme bort fra dyre timer.",
+        "restart": "Oppvarming stiller seg inn på den nye temperaturen din: __mean__ i går. Mål __target__.",
+        "live": "Autopilot er i gang. Den flytter nå varme bort fra dyre timer.",
+        "live_fits": "Varmekurven din passer allerede. Autopilot flytter nå varme bort fra dyre timer."
       }
     },
     "smart": {
@@ -599,17 +604,43 @@
     },
     "settle_widget": {
       "title": "Oppvarming · Kom i gang",
-      "settling": "Stiller seg inn · dag __day__",
-      "settled": "Innstilt · dag __day__",
       "of": "av __target__",
-      "holds": "Holder __target__",
       "first_row": "første dag",
-      "settled_row": "✓ innstilt",
       "remove": "Du kan fjerne denne widgeten.",
-      "stopped": "Justerer fortsatt etter 3 uker.",
       "waiting": "Første oppdatering i morgen tidlig.",
       "off": "Viser de første ukene når Autopilot for oppvarming er på.",
-      "pick": "Velg Oppvarming-enheten din i widgetinnstillingene."
+      "pick": "Velg Oppvarming-enheten din i widgetinnstillingene.",
+      "step_learning": "Lærer",
+      "step_settling": "Stiller seg inn",
+      "step_calibrating": "Kalibrerer",
+      "step_saving": "Sparer",
+      "paused": "pauset",
+      "off_big": "Autopilot er av",
+      "off_desc": "Slå på Autopilot i Varmeoppsett for å fortsette.",
+      "offline_big": "Varmepumpen svarer ikke",
+      "offline_desc": "Fortsetter når varmepumpen din er tilbake.",
+      "day": "dag __day__",
+      "day_of": "dag __day__ av __of__",
+      "day_of_again": "dag __day__ av __of__ igjen",
+      "learning_big": "Lærer huset ditt",
+      "since_day": "siden dag __day__",
+      "saving_big": "Autopilot sparer",
+      "saving_desc": "Holder __target__ og flytter varme bort fra dyre timer.",
+      "fits": "Varmekurven din passer allerede.",
+      "new_target": "Nytt mål __target__",
+      "restarted": "Du endret termostaten, så innstillingen starter på nytt.",
+      "offset": "Kurveforskyvning __from__ → __to__",
+      "offset_row": "Forskyvning __from__ → __to__",
+      "by_autopilot": "av Autopilot",
+      "by_you": "av deg",
+      "off_by": "__delta__ unna",
+      "not_steady": "Ikke stabilt ennå. Sjekker 3 dager på nytt.",
+      "checking": "Sjekker at huset ditt holder __target__.",
+      "waiting_for_you": "venter på deg",
+      "set_offset": "Sett kurveforskyvningen til __to__",
+      "set_offset_desc": "Meny 1.1.1 på varmepumpen din. Nå __from__. Sjekken starter når den viser __to__.",
+      "checking_curve": "Sjekker varmekurven din",
+      "checking_again": "sjekker på nytt"
     }
   }
 }
