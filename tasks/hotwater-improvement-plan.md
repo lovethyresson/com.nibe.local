@@ -26,8 +26,8 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
   was a rescue. The legionella run spends a start as well, and the pump's own charging is taken
   over. Tue used all three. A refused rescue was logged once and nothing else. Fixed in Step 2.
 - Sun 15 13–15: ~8 kWh of compressor heating an already full tank (272 L, 56 °C → 57.5 °C, COP ≈ 1.1,
-  plus 0.9 kWh immersion), ≈ 15 kr. The code that raises a running run's stop (`extendTarget`,
-  capped by `maxC`, `hotwater-shadow.ts:280`) is still in, so it may recur.
+  plus 0.9 kWh immersion), ≈ 15 kr. A planned start, not a stop raise; its causes were fixed the
+  same day and today's code does not start from that tank (step 4.1).
 - Legionella runs to 65 °C every 14 days, above the compressor's ~58 °C, so the last degrees are
   the immersion heater. Estimated 2.5–3 kWh, ≈ 5–6 kr a run (not measured); the pump's own 61 °C
   is also above the ceiling, so 65 vs 61 is ≈ 2 kr a run, ≈ 0.15 kr a day. Small; measure first.
@@ -73,9 +73,10 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
   Run: `node --import tsx dev/evaluate-hot-water.mjs --insights <dir> --prices <dir> --day-types
   <file> --from 2026-11-14`. Not modelled: legionella, heating's pre-heat slots, surplus, the
   learned ceiling (`--max`), a stratified top.
-- **So step 4.1 is where the money is:** one day like 15 Nov costs as much as two weeks of the
-  planner's gap to hindsight.
+- **So step 4.1 was where the money is:** one day like 15 Nov costs as much as two weeks of the
+  planner's gap to hindsight. Done 23 Nov: its causes were fixed on 15 Nov (Step 4).
 - **Done:**
+  - 4.1: the 15 Nov run was a planned start on a full tank; fixed on 15 Nov, checked with `--probe`.
   - 2: a rescue may use 5 starts a day (`MAX_RESCUE_STARTS_PER_DAY`), `leverDecision` takes
     `{belowK, rescue}`, a refused rescue is its own skip ('rescue limit'), a device warning cleared
     at midnight and counted in the day record; legionella was already counted (17d0914, fc17256).
@@ -113,7 +114,7 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
 - **4:** Insights cannot say who started Sun 15's run (697 has no log; the charge events kept two
   days are gone). The new slot context logs 697 and both stops, so a recurrence is identifiable.
   No legionella run yet. No change made: `extendTarget` is still capped by `maxC` only.
-- **Open:** 4.1, 5.2, 5.3, 6, 7. The slot-by-slot diff against the live log (1.3) still waits on
+- **Open:** 5.2, 5.3, 6, 7. The slot-by-slot diff against the live log (1.3) still waits on
   lines with context: the log restarted with the new Homey, and its 105 lines with context are
   under one price horizon, so none is replayable yet.
 - **Waiting on an install:** the replay against live needs lines with context; the challenger
@@ -189,9 +190,28 @@ All done (17d0914, fc17256): `MAX_RESCUE_STARTS_PER_DAY` = 5, about 1,800 writes
 
 ## Step 4 — the full-tank runs, and what legionella really costs
 
-4.1 **Open.** Identify Sun 15's 13:15 run from the charge events (planned top-up, stop raise, or periodic).
-    Score every stop raise (`extendTarget`) since: heat gained vs electricity at that fill. If stop
-    raises on a nearly full tank lose money, cap them by fill, not only by `maxC`.
+4.1 **Done (23 Nov): no code change.** Sun 15's 13:15 run was a planned start, not a stop raise
+    (`extendTarget` landed at 22:04 that evening) and not the pump's own charging. The log at 13:15:
+    265 L, top 54.9 °C, action `start`, target 58 °C, 7.2 kWh of heat for 4.9 kr. It ran 13:15–15:15;
+    the top reached 58.5 °C at 14:00 and the charge went on, with the immersion heater (0.9 kWh), for
+    7.75 kWh at about 15 kr (Insights 14–15 h; COP ≈ 1.1). Three causes, all fixed since:
+    - The learner gave the tank one charge rate at any fill (6.7 kWh/h), so topping up a full tank
+      looked as cheap as filling an empty one. Fixed by 2012f00 (15 Nov 18:32): the rate falls as the
+      tank fills; near full it now reads 2.6 kWh/h for 2.6 kW, so each kWh costs about 1 kWh.
+    - The target sat at the compressor's limit (58 °C), and the charge ran on past it. The learned
+      ceiling (`hotwater-ceiling.ts`) now keeps targets under it, and a charge ends at its own stop.
+    - The forecast expected the tank empty by 17:15; the evening's water came at 17–20 instead.
+      That is a forecast question (step 5), not this step's.
+
+    Checked with today's code from the same tank (`evaluate-hot-water.mjs --probe
+    2026-11-15T13:15,264.6,54.9,today,due`, and at 12:45 and 13:00, with and without tomorrow's
+    prices): no write to the pump. At 13:15, with the charge planned for that slot due (as live had
+    it), the plan starts a 45-minute charge to 47 °C; the lever refuses it, the top being 54.9 °C
+    ('tank hot enough'). Without `due` the plan waits. Open, small: a planned start to a target
+    under the tank's own temperature should not happen; it costs nothing today because the lever
+    skips it, but it spends a log line and looks wrong in the status. Look at it with step 1.3. Stop raises: none in the 14–20 Nov replay (`--no-extend` gives the same
+    result) and none in the app logs 21–23 Nov. No cap by fill is needed now. If a raise shows up
+    in the log ("running charge raised"), score it with the replay's raised-kWh line.
 4.2 **Open (no run yet).** Measure the real legionella runs (immersion kWh from 1069, produced, kr) before any change.
     Only then price options with the replay: target, and timing after a big draw (which would need
     a new trigger: today the window is chosen up to 48 h ahead by price, `pickWindow` and
