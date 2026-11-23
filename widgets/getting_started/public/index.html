@@ -74,9 +74,9 @@
       }
       // Each day's average against the thermostat, with a band of ±0.2 °C (what counts as holding
       // it, settling.ts SETTLED_K). At least a week wide, so the first days don't fill the card.
-      function chart(days, target, targetLabel) {
-        var W = 300, H = 110, n = Math.max(7, days.length);
-        var values = days.map(function (d) { return d.mean; }).concat([target - 0.3, target + 0.3]);
+      function chart(days, target, targetLabel, proj) {
+        var W = 300, H = 110, all = days.concat(proj ? proj.days : []), n = Math.max(7, all.length);
+        var values = all.map(function (d) { return d.mean; }).concat([target - 0.3, target + 0.3]);
         var lo = Math.min.apply(null, values) - 0.1, hi = Math.max.apply(null, values) + 0.1;
         var x = function (k) { return 20 + k * (W - 40) / (n - 1); };
         var y = function (v) { return H - 16 - (v - lo) / (hi - lo) * (H - 26); };
@@ -85,6 +85,17 @@
         s.appendChild(svg('line', {x1: 10, x2: W - 10, y1: y(target), y2: y(target), stroke: 'var(--gs-target)', 'stroke-dasharray': '4 4'}));
         s.appendChild(svg('text', {x: W - 12, y: Math.max(11, y(target + 0.2) - 4), 'text-anchor': 'end', 'font-size': 11, fill: 'var(--gs-target)'}, targetLabel));
         s.appendChild(svg('polyline', {points: days.map(function (d, k) { return x(k) + ',' + y(d.mean); }).join(' '), fill: 'none', stroke: 'var(--gs-line)', 'stroke-width': 2.5}));
+        if (proj) {
+          // The pace so far, carried on: dashed and faint, to the day it is expected at the target.
+          var last = days.length - 1, pts = [x(last) + ',' + y(days[last].mean)];
+          proj.days.forEach(function (d, j) { pts.push(x(last + 1 + j) + ',' + y(d.mean)); });
+          s.appendChild(svg('polyline', {points: pts.join(' '), fill: 'none', stroke: 'var(--gs-line)', 'stroke-width': 2, 'stroke-dasharray': '3 4', opacity: 0.7}));
+          proj.days.forEach(function (d, j) {
+            var k = last + 1 + j, end = j === proj.days.length - 1;
+            s.appendChild(svg('circle', {cx: x(k), cy: y(d.mean), r: end ? 4 : 2.5, fill: 'none', stroke: 'var(--gs-line)', 'stroke-width': 1.5, opacity: 0.8}));
+            s.appendChild(svg('text', {x: x(k), y: H - 2, 'text-anchor': 'middle', 'font-size': 10, fill: 'currentColor', opacity: 0.35}, d.label));
+          });
+        }
         days.forEach(function (d, k) {
           s.appendChild(svg('circle', {cx: x(k), cy: y(d.mean), r: 4, fill: 'var(--gs-line)'}));
           if (n <= 7 || k % Math.ceil(n / 7) === 0) s.appendChild(svg('text', {x: x(k), y: H - 2, 'text-anchor': 'middle', 'font-size': 10, fill: 'currentColor', opacity: 0.5}, d.label));
@@ -115,7 +126,7 @@
         if (data.of) big.appendChild(el('span', 'gs-of', data.of));
         root.appendChild(big);
         if (data.desc) root.appendChild(el('div', 'gs-desc', data.desc));
-        if (data.chart) root.appendChild(chart(data.chart.days, data.chart.target, data.chart.targetLabel || ''));
+        if (data.chart) root.appendChild(chart(data.chart.days, data.chart.target, data.chart.targetLabel || '', data.chart.projection));
         if (data.rows && data.rows.length) {
           var list = el('div', 'gs-days');
           data.rows.forEach(function (d) {

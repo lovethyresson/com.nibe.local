@@ -642,7 +642,9 @@
       "set_offset": "Set curve offset to __to__",
       "set_offset_desc": "Menu 1.1.1 on your heat pump. Now __from__. The check starts once it reads __to__.",
       "checking_curve": "Checking your heat curve",
-      "checking_again": "checking again"
+      "checking_again": "checking again",
+      "projected": "At this pace your target is reached about __day__.",
+      "projected_days": "At this pace your target is reached in about __n__ days."
     }
   }
 }

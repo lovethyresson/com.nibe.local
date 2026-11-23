@@ -214,3 +214,31 @@ export function change(day: SettleDay, previous?: SettleDay): {delta: number; di
 }
 
 const round1 = (v: number) => Math.round(v * 10) / 10;
+
+/** How many recent days set the pace of the projection. */
+const PACE_DAYS = 4;
+/** A pace under this (K a day) is standing still: no projection. */
+const MIN_PACE_K = 0.02;
+
+/** Settling's projection (the Getting started widget): the average daily step over the last
+ *  `PACE_DAYS` days on the current thermostat, carried on day by day until the mean is within
+ *  `SETTLED_K` of it. Undefined with fewer than two days, a pace under `MIN_PACE_K`, one moving
+ *  away from the thermostat, one already within the band, or one that would not get there before
+ *  `MAX_DAYS`. Pure. */
+export function projectSettle(days: SettleDay[]): number[] | undefined {
+    const last = days[days.length - 1];
+    if (!last) return undefined;
+    const same = days.slice(-PACE_DAYS).filter((d) => d.setpoint === last.setpoint);
+    if (same.length < 2) return undefined;
+    const pace = (last.mean - same[0].mean) / (same.length - 1);
+    const gap = last.setpoint - last.mean;
+    if (Math.abs(gap) <= SETTLED_K + 1e-9 || Math.abs(pace) < MIN_PACE_K || Math.sign(pace) !== Math.sign(gap)) return undefined;
+    const out: number[] = [];
+    let mean = last.mean;
+    while (Math.abs(last.setpoint - mean) > SETTLED_K + 1e-9) {
+        if (days.length + out.length >= MAX_DAYS) return undefined;
+        mean = Math.round((mean + pace) * 100) / 100;
+        out.push(mean);
+    }
+    return out;
+}

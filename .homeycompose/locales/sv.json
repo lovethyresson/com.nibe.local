@@ -642,7 +642,9 @@
       "set_offset": "Ställ kurvförskjutningen på __to__",
       "set_offset_desc": "Meny 1.1.1 på din värmepump. Nu __from__. Kontrollen börjar när den visar __to__.",
       "checking_curve": "Kontrollerar din värmekurva",
-      "checking_again": "kontrollerar igen"
+      "checking_again": "kontrollerar igen",
+      "projected": "I den här takten nås målet ungefär på __day__.",
+      "projected_days": "I den här takten nås målet om ungefär __n__ dagar."
     }
   }
 }

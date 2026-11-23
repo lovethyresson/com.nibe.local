@@ -37,7 +37,7 @@ import {ENERGY_ROLES, EnergyWidgetData, energyChart, useToday} from './autopilot
 import {NowKind, OVERVIEW_KINDS, OverviewData, OverviewFact, OverviewKind, OverviewNow, OverviewTile, overviewData, plannedAhead} from './autopilot/overview';
 import {SLOT_MS, localDate, localMinutes, slotOf} from './autopilot/prices';
 import {CHECK_DAYS, CurveView, LiveReason, SettleEvent, SettleState, Step, calibrateDay, change, daysBetween, readSettle, scoreDay,
-    settleDone, stepOf, streak} from './autopilot/settling';
+    projectSettle, settleDone, stepOf, streak} from './autopilot/settling';
 import {CostCheckData, CostDay, PlannedCost, addDay, chargeCosts, costCheckData, costDay, fillActual} from './autopilot/cost-check';
 import {COP} from './autopilot/planner';
 import {Edge, FORECAST_SLOTS, BlockedBy, HeatingDay, analyticsSmartMode, heatingBlock, reserveBucket} from './autopilot/analytics';
@@ -2522,11 +2522,19 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     tone: closer ? 'good' : 'neutral'};
             });
             const fresh = state?.restarted === days[0].date && days.length === 1;
+            // The pace so far carried on to the band (settling.ts projectSettle), dated from the last day.
+            const ahead = fresh ? undefined : projectSettle(days);
+            const dateAfter = (n: number) => new Date(Date.parse(`${latest.date}T12:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+            const projection = ahead && {days: ahead.map((mean, k) => ({label: dayLabel(dateAfter(k + 1)), mean}))};
+            const longDay = dateFormat(language, {weekday: 'long', timeZone: 'UTC'});
+            const projected = ahead && (ahead.length <= 6 ? t('projected', {day: longDay.format(new Date(`${dateAfter(ahead.length)}T12:00:00Z`))})
+                : t('projected_days', {n: ahead.length}));
             return {...base, part: 100, label: label(t('day', {day: days.length})),
                 big: fresh ? t('new_target', {target: this.celsius(latest.setpoint)}) : this.celsius(latest.mean),
                 of: fresh ? undefined : t('of', {target: this.celsius(latest.setpoint)}),
-                desc: fresh ? t('restarted') : undefined,
-                chart: {days: rows, target: latest.setpoint, targetLabel: this.celsius(latest.setpoint)}, rows: rows.slice(-4)};
+                desc: fresh ? t('restarted') : projected || undefined,
+                chart: {days: rows, target: latest.setpoint, targetLabel: this.celsius(latest.setpoint), ...projection ? {projection} : {}},
+                rows: rows.slice(-4)};
         }
         // Calibrating.
         const store = this.heatCurveStore();

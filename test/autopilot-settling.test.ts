@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {ASK_WAIT_DAYS, CALIBRATE_MAX_DAYS, CHECK_DAYS, MAX_DAYS, SettleState, calibrateDay, change, readSettle, scoreDay, settleDone, stepOf,
-    streak} from '../lib/autopilot/settling';
+    projectSettle, streak} from '../lib/autopilot/settling';
 
 const day = (date: string, mean: number | undefined, setpoint = 22.5, slots = 96, setMin = setpoint) =>
     ({date, mean, slots, setMin, setMax: setpoint});
@@ -160,4 +160,21 @@ test('the four steps read back', () => {
     assert.equal(s.fits, true);
     assert.equal(s.restarted, '2026-11-23');
     assert.equal(s.liveAt, 5);
+});
+
+test('the projection carries the pace so far on to the band around the thermostat', () => {
+    const day = (date: string, mean: number, setpoint = 22.5) => ({date, mean, setpoint});
+    // 2026-11-22/23 on the S1155: 21.8, then 21.9, of 22.5: in the band (22.3) on the fourth day after.
+    assert.deepEqual(projectSettle([day('2026-11-21', 21.8), day('2026-11-22', 21.9)]), [22, 22.1, 22.2, 22.3]);
+    // The pace is the last four days': an early jump fades out.
+    assert.deepEqual(projectSettle([day('a', 20.5), day('b', 21.7), day('c', 21.8), day('d', 21.9), day('e', 22.0)]), [22.1, 22.2, 22.3]);
+    assert.equal(projectSettle([day('a', 21.8)]), undefined, 'one day has no pace');
+    assert.equal(projectSettle([day('a', 21.9), day('b', 21.8)]), undefined, 'moving away: nothing to promise');
+    assert.equal(projectSettle([day('a', 21.9), day('b', 21.9)]), undefined, 'standing still');
+    assert.equal(projectSettle([day('a', 22.2), day('b', 22.4)]), undefined, 'already in the band');
+    assert.equal(projectSettle([day('a', 20.0), day('b', 20.03)]), undefined, 'would not get there before MAX_DAYS');
+    // A new thermostat: only its own days set the pace.
+    assert.deepEqual(projectSettle([day('a', 21.0, 21.5), day('b', 21.9), day('c', 22.0)]), [22.1, 22.2, 22.3]);
+    // Coming down from above works the same way.
+    assert.deepEqual(projectSettle([day('a', 23.3), day('b', 23.1)]), [22.9, 22.7]);
 });

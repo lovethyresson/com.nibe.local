@@ -642,7 +642,9 @@
       "set_offset": "Sæt kurveforskydningen til __to__",
       "set_offset_desc": "Menu 1.1.1 på din varmepumpe. Nu __from__. Tjekket starter, når den viser __to__.",
       "checking_curve": "Tjekker din varmekurve",
-      "checking_again": "tjekker igen"
+      "checking_again": "tjekker igen",
+      "projected": "I dette tempo nås målet cirka på __day__.",
+      "projected_days": "I dette tempo nås målet om cirka __n__ dage."
     }
   }
 }
