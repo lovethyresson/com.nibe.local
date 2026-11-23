@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert';
 import {
     DEFAULT_LOSS, KWH_PER_LITRE, TankPoint, chargeRate, readHousehold, starterProfiles, intervals, learn, learnCharge, learnLoss, localClock, lossAt, profileFor,
-    drawsByHour, morningEvening, similarEvening,
+    drawsByHour, morningEvening, similarEvening, learnedHousehold,
 } from '../lib/autopilot/hotwater-learner';
 import {lateEvening} from '../lib/autopilot/hotwater-shadow';
 import {fetchTankInsights, pointsFromInsights, RESOLUTIONS} from '../lib/autopilot/hotwater-insights';
@@ -273,6 +273,28 @@ test('the 16:00 evening record reads today from the tank and carries both challe
     assert.ok(late.morn?.high, 'a high morning');
     assert.ok(late.similar && late.similar.days > 0);
     near(late.base, 1, 0.4, 'the day type\'s evening');
+});
+
+test('setup\'s learned answers come from the days read, not from the household\'s own answers', () => {
+    // T0 is a Monday. Working days: a 06:00 shower and a long evening, Tuesdays twice the evening.
+    const free = (day: number) => day % 7 >= 5;
+    const tuesday = (day: number) => day % 7 === 1;
+    const draw = (day: number, hour: number) => free(day) ? freeDay(hour) : workingDay(hour) * (tuesday(day) && hour >= 18 ? 2 : 1);
+    const points = simulate(28, draw, {dayType: (day) => (free(day) ? 'free' : 'working')});
+    // Answers that say the opposite: the learned facts must not echo them.
+    const household = {people: 2, morningHour: 9, freeDay: 'evening' as const, workShower: 'morning' as const, busyEvenings: [4]};
+    const model = learn(points, clock, points[points.length - 1].t, undefined, household);
+    const l = learnedHousehold(model);
+    assert.ok(l.work && l.work.days >= 5, `working days: ${l.work?.days}`);
+    assert.strictEqual(l.work!.morningHour, 6);
+    assert.strictEqual(l.work!.workShower, 'evening', `${Math.round(l.work!.morningL)} L morning, ${Math.round(l.work!.eveningL)} L evening`);
+    assert.deepStrictEqual(l.busy?.days, [2], 'Tuesday stands out');
+    assert.ok(l.busy!.moreL > 100, `about 170 L more: ${l.busy!.moreL}`);
+    assert.strictEqual(l.free?.freeDay, 'daytime');
+    assert.deepStrictEqual([l.free!.from, l.free!.to], [10, 16]);
+    const young = simulate(3, draw, {dayType: (day) => (free(day) ? 'free' : 'working')});
+    assert.deepStrictEqual(learnedHousehold(learn(young, clock, young[young.length - 1].t)), {}, 'too few days: nothing to say');
+    assert.deepStrictEqual(learnedHousehold(undefined), {});
 });
 
 test('litres 0 with the top still hot is a bad reading, not an emptied tank', () => {

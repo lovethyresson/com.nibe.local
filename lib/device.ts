@@ -16,7 +16,8 @@ import {DEFAULT_INTERVAL_DAYS, MAX_FAILURES, OwnerHotwater, RestoreKey, Takeover
 import {LEGIONELLA_WHEN_PERIODIC_OFF, LegionellaState, readSetting as readLegionella, readState as readLegionellaState,
     validSetting as validLegionella} from './autopilot/legionella';
 import {FlowConflict, moreHotwaterFlows} from './autopilot/hotwater-flows';
-import {KWH_PER_LITRE, STARTER_DAYS, localClock, readHousehold} from './autopilot/hotwater-learner';
+import {KWH_PER_LITRE, LearnedHousehold, STARTER_DAYS, learn, learnedHousehold, localClock, readHousehold} from './autopilot/hotwater-learner';
+import {fetchTankInsights, pointsFromInsights} from './autopilot/hotwater-insights';
 import {DAY_TYPE_SETTING, DEFAULT_DAY_TYPE, DayTypeState, awayOn, dayTypeAt, homeDayTypeAt, readDayType, typeSet} from './autopilot/day-type';
 import {Sample} from './autopilot/history';
 import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, StopReason, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits, rangeLimits, rangeFacts, CUSTOM_SETTINGS, customPresets, customValues, sunTrust, surplusPrices, withHotwater} from './autopilot/live';
@@ -106,6 +107,8 @@ const RANGE_STORE = 'autopilotRange';
 const COMFORT_DAYS_STORE = 'autopilotComfortDays';
 /** Autopilot heating's first weeks, day by day (autopilot/settling.ts). */
 const SETTLE_STORE = 'autopilotSettling';
+/** Hot water setup's one-off learn from Insights is kept this long (`hotwaterLearned`). */
+const LEARNED_KEEP_MS = 10 * 60_000;
 /** Getting started and curve advice timeline lines written overnight, sent from TIMELINE_FROM_MIN. */
 const HELD_LINES_STORE = 'autopilotHeldLines';
 /** Getting started scores yesterday from 00:15, once its last quarter-hour is in, so the widget
@@ -174,6 +177,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     private backfillTimer: any;
     // Hot water Autopilot in shadow, on Hot water, while the app setting below is on. Reads only.
     private hotwaterAutopilot: HotwaterAutopilot | null = null;
+    /** Hot water setup's one-off learn from Insights, while Autopilot is not running (`hotwaterLearned`). */
+    private learnedOnce?: {at: number; value: LearnedHousehold | null};
     private heatingFeed: HeatingFeed | null = null;
     /** The expensive and cheap periods' Flow triggers (heating-flows.ts), checked each minute. */
     private periodWatch = new PeriodWatch();
@@ -1534,6 +1539,32 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const dates = new Set((log?.values ?? []).filter((v: any) => typeof v?.v === 'number').map((v: any) => String(v.t).slice(0, 10)));
             return dates.size;
         }, PRIORITY.owner).catch(() => undefined);
+    }
+
+    /** Hot water setup: what was learned, answer by answer (hotwater-learner.ts `learnedHousehold`).
+     *  From the running model, else learned once from the tank's Insights for an owner turning
+     *  Autopilot on, kept for LEARNED_KEEP_MS so the setup's screens ask Insights once. Null when
+     *  nothing can be read: setup then shows the answers alone. */
+    async hotwaterLearned(): Promise<LearnedHousehold | null> {
+        const model = this.hotwaterAutopilot?.learnedModel();
+        if (model) return learnedHousehold(model);
+        const caps = this.profile.autopilotHotwater?.tank;
+        if (!caps) return null;
+        const kept = this.learnedOnce;
+        if (kept && Date.now() - kept.at < LEARNED_KEEP_MS) return kept.value;
+        const value = await withApi(this.homey, async (api) => {
+            const id = await this.homeyDeviceId(api);
+            if (!id) return null;
+            const points = pointsFromInsights(await fetchTankInsights(api, id, caps));
+            if (points.length < 48) return null;
+            const clock = localClock(this.homey.clock.getTimezone());
+            const dayTypes = readDayType(this.homey.settings.get(DAY_TYPE_SETTING));
+            for (const point of points) point.dayType = dayTypeAt(dayTypes, point.t, clock);
+            // Without the household: the facts are the tank's, not the answers'.
+            return learnedHousehold(learn(points, clock, Date.now()));
+        }, PRIORITY.owner).catch((error: any) => { this.log('Hot water setup: nothing learned from Insights:', error?.message ?? error); return null; });
+        this.learnedOnce = {at: Date.now(), value};
+        return value;
     }
 
     /** Setup's answers for a home with a short history: stored, and learned from at once. */

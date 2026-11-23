@@ -76,7 +76,7 @@ function NibeSetup(options) {
             return Promise.resolve(true);
         }
         return new Promise(function (resolve, reject) {
-            var slow = event === 'activate_indoor' || event === 'activate_autopilot' || event === 'solar_scan';
+            var slow = event === 'activate_indoor' || event === 'activate_autopilot' || event === 'solar_scan' || event === 'hotwater_learned';
             var timeout = setTimeout(function () { reject(new Error(t('request_timeout'))); }, slow ? 45000 : 20000);
             Homey.emit(event, data || {}, function (err, result) {
                 clearTimeout(timeout); if (err) reject(err); else resolve(result);
@@ -1232,31 +1232,76 @@ function NibeSetup(options) {
             };
             var people = [1, 2, 3, 4, 5, 6, 7, 8].map(function (n) { return [n, String(n)]; });
             var hours = [4, 5, 6, 7, 8, 9, 10].map(function (h) { return [h, (h < 10 ? '0' : '') + h + ':00']; });
+            // What Autopilot learned, under each answer, once there is enough (hotwater-learner.ts
+            // `learnedHousehold`). An answer the owner never saved starts from it; a saved one wins.
+            var touched = {};
+            var note = function () { var p = el('p', '', 'register-desc hw-learned'); p.hidden = true; return p; };
+            var notes = {morning: note(), work: note(), busy: note(), free: note()};
             group.appendChild(field(a('hw_people'), people, answers.people, function (v) { answers.people = v; }));
-            group.appendChild(field(a('hw_morning'), hours, answers.morningHour, function (v) { answers.morningHour = v; }));
+            var morning = field(a('hw_morning'), hours, answers.morningHour, function (v) { answers.morningHour = v; touched.morning = true; });
+            group.append(morning, notes.morning);
             group.appendChild(el('p', a('hw_work'), 'setup-tiles-title'));
-            group.appendChild(radios('hw-work', ['morning', 'evening', 'both', 'varies'].map(function (id) {
+            var work = radios('hw-work', ['morning', 'evening', 'both', 'varies'].map(function (id) {
                 return {id: id, title: a('hw_work_' + id)};
-            }), answers.workShower, function (v) { answers.workShower = v; }));
+            }), answers.workShower, function (v) { answers.workShower = v; touched.work = true; });
+            group.append(work, notes.work);
             group.appendChild(el('p', a('hw_busy'), 'setup-tiles-title'));
             var busy = el('div', undefined, 'hwp-chips');
+            var showBusy = function () {
+                busy.querySelectorAll('.hwp-chip').forEach(function (chip) {
+                    var on = answers.busyEvenings.indexOf(Number(chip.dataset.day)) >= 0;
+                    chip.classList.toggle('on', on); chip.setAttribute('aria-pressed', String(on));
+                });
+            };
             [1, 2, 3, 4, 5].forEach(function (d) {
-                var chip = el('button', a('hw_busy_day_' + d), 'hwp-chip hy-nostyle' + (answers.busyEvenings.indexOf(d) >= 0 ? ' on' : ''));
+                var chip = el('button', a('hw_busy_day_' + d), 'hwp-chip hy-nostyle');
                 chip.type = 'button'; chip.dataset.day = String(d);
-                chip.setAttribute('aria-pressed', String(answers.busyEvenings.indexOf(d) >= 0));
                 chip.onclick = function () {
                     var k = answers.busyEvenings.indexOf(d);
                     if (k >= 0) answers.busyEvenings.splice(k, 1); else answers.busyEvenings.push(d);
-                    chip.classList.toggle('on', k < 0); chip.setAttribute('aria-pressed', String(k < 0));
+                    touched.busy = true; showBusy();
                 };
                 busy.appendChild(chip);
             });
-            group.appendChild(busy);
-            group.appendChild(el('p', a('hw_busy_hint'), 'register-desc'));
+            showBusy();
+            var busyHint = el('p', a('hw_busy_hint'), 'register-desc');
+            group.append(busy, busyHint, notes.busy);
             group.appendChild(el('p', a('hw_free'), 'setup-tiles-title'));
-            group.appendChild(radios('hw-free', ['morning', 'daytime', 'evening'].map(function (id) {
+            var free = radios('hw-free', ['morning', 'daytime', 'evening'].map(function (id) {
                 return {id: id, title: a('hw_free_' + id)};
-            }), answers.freeDay, function (v) { answers.freeDay = v; }));
+            }), answers.freeDay, function (v) { answers.freeDay = v; touched.free = true; });
+            group.append(free, notes.free);
+            if (options.mode !== 'pair') emit('hotwater_learned', {}).then(function (l) {
+                if (!l) return;
+                var hh = function (h) { return (h < 10 ? '0' : '') + h + ':00'; };
+                var tens = function (v) { return Math.max(10, Math.round(v / 10) * 10); };
+                var pick = function (box, id) {
+                    box.querySelectorAll('input').forEach(function (input) {
+                        input.checked = input.value === id;
+                        input.closest('.setup-choice').classList.toggle('is-selected', input.checked);
+                    });
+                };
+                var show = function (p, text) { p.textContent = text; p.hidden = false; };
+                var fresh = !saved;
+                if (l.work) {
+                    show(notes.morning, a('hw_learned_morning', {hour: hh(l.work.morningHour)}));
+                    show(notes.work, a('hw_learned_work', {days: l.work.days, morning: tens(l.work.morningL), evening: tens(l.work.eveningL)}));
+                    if (fresh && !touched.morning) { answers.morningHour = l.work.morningHour; morning.querySelector('select').value = String(l.work.morningHour); }
+                    if (fresh && !touched.work) { answers.workShower = l.work.workShower; pick(work, l.work.workShower); }
+                }
+                if (l.busy) {
+                    var names = l.busy.days.map(function (d) { return a('hw_busy_name_' + d); });
+                    var list = names.length < 2 ? names[0] : names.slice(0, -1).join(', ') + ' ' + a('hw_and') + ' ' + names[names.length - 1];
+                    show(notes.busy, names.length ? a('hw_learned_busy', {days: list, litres: tens(l.busy.moreL)})
+                        : a('hw_learned_busy_none'));
+                    busyHint.hidden = true;
+                    if (fresh && !touched.busy) { answers.busyEvenings = l.busy.days.slice(); showBusy(); }
+                }
+                if (l.free) {
+                    show(notes.free, a('hw_learned_free', {days: l.free.days, from: hh(l.free.from), to: hh(l.free.to)}));
+                    if (fresh && !touched.free) { answers.freeDay = l.free.freeDay; pick(free, l.free.freeDay); }
+                }
+            }).catch(function () {});
             shell.appendChild(group);
         }
         // The safety net: Autopilot never plans the tank below it. A value from the old setting

@@ -1348,6 +1348,7 @@ export abstract class NibePumpDriver extends Driver {
             session.setHandler('hotwater_household', async (data: any) => { await device.setHousehold(data ?? null); return true; });
             session.setHandler('hotwater_reserve', async (data: any) => { await device.setReserve(data?.litres); return true; });
             session.setHandler('hotwater_legionella', async (data: any) => { await device.setLegionella(data); return true; });
+            session.setHandler('hotwater_learned', async () => device.hotwaterLearned());
         }
         this.registerHomeSetupHandlers(session, device.role === 'heating');
         if (device.role === 'heating') session.setHandler('activate_autopilot', async () => device.activateAutopilotHeating());

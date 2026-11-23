@@ -223,12 +223,12 @@ test('Repair preselects the stored zone and saves a new pick; a single zone skip
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 const NO_SOLAR = {meters: [], meter: null, solar: [], followsSun: false, peakKw: null, live: null, forecast: null};
-async function hotwaterSmart(status: any, scan: any = NO_SOLAR, legionella = false) {
+async function hotwaterSmart(status: any, scan: any = NO_SOLAR, legionella = false, learned: any = null) {
     const f = fixture('repair', 'hotwater', 0, undefined, {context: {smart: true},
         results: {smart_status: {role: 'hotwater', mode: 'off', spa: true, spaOn: false, autopilot: true, tank: true,
             starterDays: 14, household: null, reserve: 40, legionella: null, legionellaPumpC: 60, legionellaDays: 14, ...status},
             hotwater_household: true, hotwater_reserve: true, hotwater_legionella: true, smart_choose: true,
-            solar_scan: scan, solar_save: true}});
+            solar_scan: scan, solar_save: true, hotwater_learned: learned}});
     // Hot water setup: the tank, then its Smart mode; Autopilot, Simulated.
     f.click('Continue'); f.menu('Hot water setup'); f.click('Continue'); await tick();
     const autopilot = f.win.document.querySelector('input[name="smart-choice"][value="autopilot"]');
@@ -401,6 +401,49 @@ test('a home with plenty of history is asked too, starting from the answers kept
     f.click(english.pair.setup.smart.start_test); await tick(); await tick();
     assert.equal(JSON.stringify(f.emitted.find((e) => e.name === 'hotwater_household')?.data),
         JSON.stringify({people: 3, morningHour: 6, freeDay: 'morning', workShower: 'both', busyEvenings: [2]}));
+    f.dom.window.close();
+});
+
+const LEARNED = {work: {days: 18, morningHour: 6, workShower: 'evening', morningL: 71, eveningL: 138},
+    busy: {days: [2, 4], moreL: 58}, free: {days: 6, freeDay: 'daytime', from: 10, to: 15}};
+
+test('what was learned fills in answers never saved, with a Learned line under each', async () => {
+    const s = english.pair.setup.smart;
+    const f = await hotwaterSmart({flows: [], historyDays: 60}, NO_SOLAR, false, LEARNED);
+    await tick(); await tick();
+    const text = f.win.document.body.textContent;
+    assert.ok(text.includes(s.hw_learned_morning.replace('__hour__', '06:00')));
+    assert.ok(text.includes(s.hw_learned_work.replace('__days__', '18').replace('__morning__', '70').replace('__evening__', '140')));
+    assert.ok(text.includes(s.hw_learned_busy.replace('__days__', `${s.hw_busy_name_2} ${s.hw_and} ${s.hw_busy_name_4}`).replace('__litres__', '60')));
+    assert.ok(text.includes(s.hw_learned_free.replace('__days__', '6').replace('__from__', '10:00').replace('__to__', '15:00')));
+    const hint = [...f.win.document.querySelectorAll('p')].find((p: any) => p.textContent === s.hw_busy_hint) as any;
+    assert.ok(hint.hidden, 'the example gives way to the fact');
+    assert.equal(f.win.document.querySelectorAll('.hw-learned:not([hidden])').length, 4);
+    assert.equal((f.win.document.querySelector('select[aria-label="' + s.hw_morning + '"]') as any).value, '6');
+    assert.equal((f.win.document.querySelector('input[name="hw-work"][value="evening"]') as any).checked, true);
+    assert.equal((f.win.document.querySelector('input[name="hw-free"][value="daytime"]') as any).checked, true);
+    // The owner's own pick still wins over what was learned.
+    const morning = f.win.document.querySelector('input[name="hw-work"][value="both"]');
+    morning.checked = true; morning.dispatchEvent(new f.win.Event('change'));
+    f.click('Continue'); await tick(); await tick();
+    f.click(s.start_test); await tick(); await tick();
+    assert.equal(JSON.stringify(f.emitted.find((e) => e.name === 'hotwater_household')?.data),
+        JSON.stringify({people: 2, morningHour: 6, freeDay: 'daytime', workShower: 'both', busyEvenings: [2, 4]}));
+    f.dom.window.close();
+});
+
+test('saved answers stay as they were; what was learned is shown beside them', async () => {
+    const s = english.pair.setup.smart;
+    const household = {people: 3, morningHour: 7, freeDay: 'morning', workShower: 'morning', busyEvenings: [1]};
+    const f = await hotwaterSmart({flows: [], historyDays: 60, household}, NO_SOLAR, false, {...LEARNED, busy: {days: [], moreL: 0}});
+    await tick(); await tick();
+    const text = f.win.document.body.textContent;
+    assert.ok(text.includes(s.hw_learned_busy_none));
+    assert.equal((f.win.document.querySelector('input[name="hw-work"][value="morning"]') as any).checked, true);
+    assert.ok((f.win.document.querySelectorAll('.hwp-chip')[0] as any).classList.contains('on'), 'Monday kept');
+    f.click('Continue'); await tick(); await tick();
+    f.click(s.start_test); await tick(); await tick();
+    assert.equal(JSON.stringify(f.emitted.find((e) => e.name === 'hotwater_household')?.data), JSON.stringify(household));
     f.dom.window.close();
 });
 

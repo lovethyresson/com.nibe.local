@@ -227,10 +227,12 @@ All done (17d0914, fc17256): `MAX_RESCUE_STARTS_PER_DAY` = 5, about 1,800 writes
 ## Step 5 — a forecast that knows this household's week
 
 5.0 **Done (2f551d1), except the prefill from learned values and the per-answer reason lines.**
-    Mock made 23 Nov, waiting on approval: each answer prefilled from what was learned, with one
-    line under it stating the measured fact ("Learned over 18 working days: about 70 L in the
-    morning and 140 L in the evening."). The lines state facts only, never "so more is planned":
-    the per-weekday evening is not planned with yet.
+    **Built 23 Nov** as mocked: in Repair, each answer the owner never saved starts from what was
+    learned, with one line under it stating the measured fact ("Learned over 18 working days:
+    about 70 L in the morning and 140 L in the evening."). Facts only, never "so more is planned".
+    From the days read in full (`learnedHousehold`, `eveDays`), not the profiles, which lean on the
+    answers; at least 5 days of the type. Without a running model, learned once from Insights.
+    Pairing has no history, so it shows the answers alone.
     Setup: a better starting point, and why it matters. Today Hot water setup asks people,
     morning hour and the busiest time on a day off, and only while history is short. Change it to:
     - Say what the answers do, in one line each, in standard UI phrasing: Autopilot starts from

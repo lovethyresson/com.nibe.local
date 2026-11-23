@@ -676,6 +676,65 @@ export function similarEvening(model: HotwaterModel, dayType: DayType | undefine
         near.map((x) => x.d.w / (1 + x.dist / scale)), ref);
 }
 
+/** A learned fact shows in Hot water setup once its day type has this many days of its own. */
+export const LEARNED_MIN_DAYS = 5;
+/** A weekday needs this many evenings of its own to be called busy, or not. */
+const LEARNED_WEEKDAY_DAYS = 2;
+/** A busy weekday's evening against the other weekdays': at least this share more, and this many litres. */
+const BUSY_SHARE = 1.25;
+const BUSY_MIN_LITRES = 20;
+/** Hot water setup's day-off periods, local hours [from, to). */
+const FREE_PERIODS: Record<'morning' | 'daytime' | 'evening', [number, number]> = {morning: [6, 10], daytime: [10, 16], evening: [16, 23]};
+
+/** What Hot water setup says was learned, answer by answer, from the days read in full (never the
+ *  profiles: they lean on the household's own answers while young, so they would echo them).
+ *  Each part is there only with LEARNED_MIN_DAYS days of its type. Pure. */
+export interface LearnedHousehold {
+    work?: {days: number; morningHour: number; workShower: Exclude<WorkShower, 'varies'>; morningL: number; eveningL: number};
+    /** Working weekdays (1 = Monday) whose evening uses clearly more, and how many litres more;
+     *  undefined until every weekday has LEARNED_WEEKDAY_DAYS evenings, unless one already stands out. */
+    busy?: {days: number[]; moreL: number};
+    free?: {days: number; freeDay: Household['freeDay']; from: number; to: number};
+}
+
+export function learnedHousehold(model: HotwaterModel | undefined): LearnedHousehold {
+    const out: LearnedHousehold = {};
+    const days = model?.eveDays ?? [];
+    const litres = (kwh: number) => kwh / KWH_PER_LITRE;
+    const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+    const hourly = (ds: EveDay[]) => Array.from({length: 24}, (_, h) => mean(ds.map((d) => d.hours[h] ?? 0)));
+    const working = days.filter((d) => d.dayType === 'working');
+    if (working.length >= LEARNED_MIN_DAYS) {
+        const h = hourly(working);
+        let morningHour = 4;
+        for (let k = 4; k <= 10; k++) if (h[k] > h[morningHour]) morningHour = k;
+        const morningL = litres(sumHours(h, 5, 10)), eveningL = litres(sumHours(h, EVENING_FROM, EVENING_TO));
+        const workShower = morningL >= 2 * eveningL ? 'morning' : eveningL >= 2 * morningL ? 'evening' : 'both';
+        out.work = {days: working.length, morningHour, workShower, morningL, eveningL};
+        const evening = (d: EveDay) => litres(sumHours(d.hours, EVENING_FROM, EVENING_TO));
+        const by = [1, 2, 3, 4, 5].map((wd) => working.filter((d) => weekdayOf(d.date) === wd).map(evening));
+        const busy: number[] = [];
+        let more = 0;
+        for (let wd = 1; wd <= 5; wd++) {
+            const own = by[wd - 1], rest = by.filter((_, k) => k !== wd - 1).flat();
+            if (own.length < LEARNED_WEEKDAY_DAYS || !rest.length) continue;
+            const a = mean(own), b = mean(rest);
+            if (a >= BUSY_SHARE * b && a - b >= BUSY_MIN_LITRES) { busy.push(wd); more += a - b; }
+        }
+        if (busy.length || by.every((x) => x.length >= LEARNED_WEEKDAY_DAYS)) out.busy = {days: busy, moreL: busy.length ? more / busy.length : 0};
+    }
+    const free = days.filter((d) => d.dayType === 'free');
+    if (free.length >= LEARNED_MIN_DAYS) {
+        const h = hourly(free);
+        const periods = Object.entries(FREE_PERIODS) as [Household['freeDay'], [number, number]][];
+        const [freeDay, [from, to]] = periods.reduce((best, p) => (sumHours(h, ...p[1]) > sumHours(h, ...best[1]) ? p : best));
+        const top = Math.max(...h.slice(from, to));
+        const busyHours = Array.from({length: to - from}, (_, k) => from + k).filter((k) => h[k] >= 0.5 * top);
+        out.free = {days: free.length, freeDay, from: busyHours[0] ?? from, to: (busyHours[busyHours.length - 1] ?? to - 1) + 1};
+    }
+    return out;
+}
+
 /** kWh heat drawn per local hour of `date` so far, from the readings: what the challengers match
  *  against. An hour not knowable reads 0. */
 export function drawsByHour(points: TankPoint[], model: HotwaterModel, date: string, clock: LocalClock): number[] {

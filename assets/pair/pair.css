@@ -1022,6 +1022,9 @@ body {
 .setup-shell button.hwp-chip { width: auto; min-height: 0; margin: 0; border: 1px solid var(--surface-border); border-radius: 999px; background: var(--surface);
     box-shadow: none; color: inherit; font: inherit; font-size: .85em; font-weight: 500; line-height: 1.2; padding: .4em .85em; text-transform: none; cursor: pointer; }
 .setup-shell button.hwp-chip.on { border-color: #34c759; background: rgba(52, 199, 89, .14); font-weight: 600; }
+/* Hot water setup: what Autopilot learned, under an answer. */
+.setup-shell .hw-learned::before { content: ""; display: inline-block; width: .5em; height: .5em; margin-right: .45em; border-radius: 50%;
+    background: var(--accent); vertical-align: .08em; }
 .hwp-card { border: 1px solid var(--surface-border); border-radius: 12px; background: var(--surface); padding: .75em .9em; }
 .hwp-chart { display: block; width: 100%; height: auto; }
 .hwp-bar { fill: currentColor; opacity: .16; }
