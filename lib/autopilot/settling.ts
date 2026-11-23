@@ -15,9 +15,9 @@
  *  (the S1155's 115 h, 2026-11-22). Until then indoor can sit up to about 1 °C off, which reads as
  *  "Autopilot is getting it wrong" unless the owner can see it moving the right way.
  *
- *  So each morning the day before is scored: its indoor mean against the thermostat. A timeline
- *  message says it, and the Getting started widget draws the days. Two days in a row within
- *  `SETTLED_K` is settled. A day whose setpoint moved (Away, the owner's thermostat) is skipped:
+ *  So just after midnight the day before is scored: its indoor mean against the thermostat. The
+ *  Getting started widget draws the days, and a timeline message says it from 07:00. Two days
+ *  in a row within `SETTLED_K` is settled. A day whose setpoint moved (Away, the owner's thermostat) is skipped:
  *  its mean is no reading of the level. A new thermostat starts it over. After `MAX_DAYS` it
  *  stops and calibrating starts: a curve that far off is what the curve advice is for. */
 

@@ -106,6 +106,12 @@ const RANGE_STORE = 'autopilotRange';
 const COMFORT_DAYS_STORE = 'autopilotComfortDays';
 /** Autopilot heating's first weeks, day by day (autopilot/settling.ts). */
 const SETTLE_STORE = 'autopilotSettling';
+/** Getting started and curve advice timeline lines written overnight, sent from TIMELINE_FROM_MIN. */
+const HELD_LINES_STORE = 'autopilotHeldLines';
+/** Getting started scores yesterday from 00:15, once its last quarter-hour is in, so the widget
+ *  shows it overnight; the timeline lines wait until 07:00 rather than arrive at night. */
+const SETTLE_FROM_MIN = 15;
+const TIMELINE_FROM_MIN = 7 * 60;
 /** The savings widget's complete days, its currency, and the Smart mode changes it sorts days by. */
 const SAVINGS_STORE = 'autopilotSavingsDays';
 const SAVINGS_CURRENCY_STORE = 'autopilotSavingsCurrency';
@@ -2334,9 +2340,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     // ---- Getting started: the first weeks of Autopilot heating (autopilot/settling.ts) ----
-    /** Hourly, after the house fit and the curve advice: from 08:00, yesterday moves Getting
-     *  started on. Settling scores the day against the thermostat and tells the timeline;
-     *  calibrating checks it after a curve change. Nothing is scored while the model learns:
+    /** Hourly, after the house fit and the curve advice: from 00:15, yesterday moves Getting
+     *  started on (its timeline line waits for 07:00, `afterFit`). Settling scores the day
+     *  against the thermostat and tells the timeline; calibrating checks it after a curve change. Nothing is scored while the model learns:
      *  step 1 is the status's (timeline.learned), and settling starts the day it ends. */
     private async checkSettling(): Promise<{excerpt: string; short?: string} | undefined> {
         const collector = this.autopilot;
@@ -2351,7 +2357,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             await this.setStoreValue(SETTLE_STORE, state);
         }
         const last = settleDone(state) ? state.calibrating?.checked : state.checked;
-        if (state.live || localMinutes(now, timeZone) < 8 * 60 || (last && last >= yesterday)) return undefined;
+        if (state.live || localMinutes(now, timeZone) < SETTLE_FROM_MIN || (last && last >= yesterday)) return undefined;
         const reading = collector.indoorDay(yesterday, timeZone);
         let next: SettleState;
         let excerpt: string | undefined;
@@ -2386,7 +2392,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     /** Hourly, after the house fit: Getting started, then the curve advice, which acts only once
      *  settling is done (step 3). Their timeline lines go out together: settled and a curve change
-     *  in the same hour are one message. */
+     *  in the same hour are one message. Lines from before 07:00 are held and sent with the first
+     *  fit after it, so the owner reads the night's news in the morning. */
     private async afterFit() {
         const settle = await this.checkSettling().catch((error) => { this.log('Getting started:', error?.message ?? error); return undefined; });
         const curve = await this.checkHeatCurve().catch((error) => { this.log('Heat curve advice:', error?.message ?? error); return undefined; });
@@ -2394,8 +2401,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (settle?.short && curve?.offset) lines.push(`${settle.short} ${curve.offset}`);
         else lines.push(...[settle?.excerpt, curve?.offset].filter((v): v is string => !!v));
         lines.push(...curve?.other ?? []);
-        if (settle) this.log(`Getting started: ${lines[0]}`);
-        for (const excerpt of lines) await this.homey.notifications.createNotification({excerpt}).catch(this.error);
+        if (settle && lines.length) this.log(`Getting started: ${lines[0]}`);
+        const held: string[] = Array.isArray(this.getStoreValue(HELD_LINES_STORE)) ? this.getStoreValue(HELD_LINES_STORE) : [];
+        if (localMinutes(Date.now(), this.homey.clock.getTimezone()) < TIMELINE_FROM_MIN) {
+            if (lines.length) await this.setStoreValue(HELD_LINES_STORE, [...held, ...lines]).catch(this.error);
+            return;
+        }
+        if (held.length) await this.unsetStoreValue(HELD_LINES_STORE).catch(this.error);
+        for (const excerpt of [...held, ...lines]) await this.homey.notifications.createNotification({excerpt}).catch(this.error);
     }
 
     /** The curve advice as Getting started reads it, in local dates. */

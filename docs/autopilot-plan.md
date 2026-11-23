@@ -1362,7 +1362,8 @@ closes that at the house's own pace (115 h on the S1155). Without a picture of i
 for a week reads as Autopilot getting it wrong.
 
 1. **Learning:** the house model meets its readiness test (§6.4). The trim already holds the level.
-2. **Settling:** each morning the day before is scored, its indoor mean against the thermostat.
+2. **Settling:** just after midnight the day before is scored, its indoor mean against the
+   thermostat (the widget shows it then; the timeline line waits for 07:00).
    Two days in a row within 0.2 K (`SETTLED_K`, `SETTLED_DAYS`) settle it. A day with under 75 %
    of its readings, or whose setpoint moved (Away, the thermostat), is skipped; a new thermostat
    starts it over. After `MAX_DAYS` (21) it stops: a curve that far off is step 3's to fix.

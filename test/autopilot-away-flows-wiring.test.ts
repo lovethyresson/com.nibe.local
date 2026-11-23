@@ -226,14 +226,23 @@ test('driver: when ending Away fails on a device, it is retried each minute unti
     assert.equal(tries.filter((on) => !on).length, 3, 'no retry once it worked');
 });
 
-test('device: settled and a curve change in the same hour are one timeline line', async () => {
+test('device: settled and a curve change in the same hour are one timeline line', async (t) => {
     const sent: string[] = [];
+    const store = new Map<string, unknown>();
+    let now = Date.parse('2026-11-23T12:00:00Z');
+    const at = (hhmm: string) => { now = Date.parse(`2026-11-23T${hhmm}:00Z`); };
+    const realNow = Date.now;
+    Date.now = () => now;
+    t.after(() => { Date.now = realNow; });
     const run = async (settle: any, curve: any) => {
         sent.length = 0;
         const d = Object.create(DeviceClass.prototype);
         Object.assign(d, {
             checkSettling: async () => settle, checkHeatCurve: async () => curve, log: () => undefined, error: () => undefined,
-            homey: {notifications: {createNotification: async ({excerpt}: {excerpt: string}) => { sent.push(excerpt); }}},
+            getStoreValue: (k: string) => store.get(k), setStoreValue: async (k: string, v: unknown) => { store.set(k, v); },
+            unsetStoreValue: async (k: string) => { store.delete(k); },
+            homey: {clock: {getTimezone: () => 'UTC'},
+                notifications: {createNotification: async ({excerpt}: {excerpt: string}) => { sent.push(excerpt); }}},
         });
         await d.afterFit();
         return [...sent];
@@ -243,4 +252,12 @@ test('device: settled and a curve change in the same hour are one timeline line'
     assert.deepEqual(await run({excerpt: 'Holds. Next the curve.', short: 'Holds.'}, {other: []}), ['Holds. Next the curve.']);
     assert.deepEqual(await run({excerpt: 'Settling: 21.8.'}, {offset: 'Changed the offset.', other: []}), ['Settling: 21.8.', 'Changed the offset.']);
     assert.deepEqual(await run(undefined, undefined), []);
+    // Scored just after midnight: the widget has it, the timeline waits for 07:00.
+    at('00:43');
+    assert.deepEqual(await run({excerpt: 'Settling: 21.9.'}, {other: []}), [], 'held overnight');
+    at('06:43');
+    assert.deepEqual(await run(undefined, {offset: 'Changed the offset.', other: []}), [], 'still held');
+    at('07:43');
+    assert.deepEqual(await run(undefined, undefined), ['Settling: 21.9.', 'Changed the offset.'], 'sent in the morning, in order');
+    assert.deepEqual(await run(undefined, undefined), [], 'sent once');
 });
