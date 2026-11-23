@@ -15,6 +15,8 @@ export interface OverviewTile {
     label: string;
     value?: string;
     sub?: string;
+    /** Autopilot runs this function: the tile carries Autopilot's mark. */
+    autopilot?: boolean;
 }
 
 /** A quiet line in the facts list; `good` marks a saving (the one coloured value). */

@@ -3163,7 +3163,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const v = cap ? Number(d.getCapabilityValue(cap)) : NaN;
             return {kind, label: this.homey.__(`groups.${kind}`), ...Number.isFinite(v) ? {value: `${one(v)} °C`} : {}, ...spa ? {sub: spa} : {}};
         };
-        const tiles: OverviewTile[] = kinds.map((kind) => tileOf(kind, byRole.get(kind)));
+        // Autopilot runs it: the tile carries Autopilot's mark.
+        const tiles: OverviewTile[] = kinds.map((kind): OverviewTile => {
+            const d = byRole.get(kind);
+            const tile = tileOf(kind, d);
+            return autopilotRuns(d.smartMode() as SmartMode) ? {...tile, autopilot: true} : tile;
+        });
 
 
         // Level 1: what the pump does now, from its operating priority.
