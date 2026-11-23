@@ -114,7 +114,7 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
 - **4:** Insights cannot say who started Sun 15's run (697 has no log; the charge events kept two
   days are gone). The new slot context logs 697 and both stops, so a recurrence is identifiable.
   No legionella run yet. No change made: `extendTarget` is still capped by `maxC` only.
-- **Open:** 5.2, 5.3, 6, 7. The slot-by-slot diff against the live log (1.3) still waits on
+- **Open:** 5.2, 5.3, 6, 7. Dropped: 4.2 (the owner's to set; see Step 4). The slot-by-slot diff against the live log (1.3) still waits on
   lines with context: the log restarted with the new Homey, and its 105 lines with context are
   under one price horizon, so none is replayable yet.
 - **Waiting on an install:** the replay against live needs lines with context; the challenger
@@ -214,10 +214,12 @@ All done (17d0914, fc17256): `MAX_RESCUE_STARTS_PER_DAY` = 5, about 1,800 writes
     (13.72 kr/day), as the lever dropped these starts anyway.
     Stop raises: none in the 14–20 Nov replay (`--no-extend` gives the same result) and none in the app logs 21–23 Nov. No cap by fill is needed now. If a raise shows up
     in the log ("running charge raised"), score it with the replay's raised-kWh line.
-4.2 **Open (no run yet).** Measure the real legionella runs (immersion kWh from 1069, produced, kr) before any change.
-    Only then price options with the replay: target, and timing after a big draw (which would need
-    a new trigger: today the window is chosen up to 48 h ahead by price, `pickWindow` and
-    `legionellaStep`, `legionella.ts:105-141`).
+4.2 **Dropped (23 Nov).** The temperature is the owner's (Hot water setup: the heat pump's own,
+    65 °C or their own, 55–70), and whether it runs is settled: Autopilot runs it for everyone
+    (`LEGIONELLA_WHEN_PERIODIC_OFF`, decided 20 Nov, kept 23 Nov). That leaves timing, and the costly
+    part (the immersion heater above about 58 °C) costs the same whenever it runs; at one run every
+    14 days a better window is worth a few öre a day. What stays: watch the next real run reaches
+    its temperature (todo: the a5ed4c6 checks, 697 = 6 read-back, 60 clamped or not, 6 h boost to 65 °C).
 
 ## Step 5 — a forecast that knows this household's week
 
@@ -277,7 +279,7 @@ All done (17d0914, fc17256): `MAX_RESCUE_STARTS_PER_DAY` = 5, about 1,800 writes
 
 ## Order
 
-1 (from the 28 days already logged) → 2 (protects every later step) → 3 (cheap) → 4 (measure first)
+1 (from the 28 days already logged) → 2 (protects every later step) → 3 (cheap) → 4.1
 → 5.0 and 5.1 (setup: explain day types and ask for a starting point, then per-weekday
 evenings: likely the largest forecast gain, and the fix for a cold-start profile) → 5.2 when its state counts reach about 6 days each → 5.3 when 1.1 has enough
 15-minute history. 6 only on evidence. 7 alongside, after the mock.
