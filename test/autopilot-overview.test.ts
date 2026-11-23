@@ -1,60 +1,47 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {MAX_LINES, OverviewInput, overviewData, priceThirds} from '../lib/autopilot/overview';
+import {OverviewInput, overviewData, splitWarning} from '../lib/autopilot/overview';
 
 const t = (key: string, tokens?: Record<string, string | number>) => key + (tokens ? JSON.stringify(tokens) : '');
-const base: OverviewInput = {title: 'Heat pump', autopilot: true, warnings: [], rows: [{kind: 'heating', name: 'Heating'}]};
+const base: OverviewInput = {title: 'Nibe Live', warnings: [],
+    now: {kind: 'hotwater', title: 'Heating hot water', sub: 'Until about 13:45'},
+    tiles: [{kind: 'heating', label: 'Indoor', value: '21.7 °C', sub: 'Target 22.5 °C'}, {kind: 'hotwater', label: 'Hot water', value: '201 L'}],
+    facts: [{label: 'Power now', value: '2.4 kW'}, {label: 'November', value: '14 kr saved', good: true}]};
 
-test('the ring is the share of today\'s use in the cheapest third', () => {
-    const d = overviewData({...base, tiers: [6.9, 2.5, 0.6]}, t);
-    assert.deepEqual(d.ring, {tiers: [6.9, 2.5, 0.6], centre: '69 %', label: 'cheap'});
-    assert.equal(overviewData({...base, tiers: [0, 0, 0]}, t).ring, undefined, 'nothing used yet: no ring');
-    // Energy today's share wins, so the two never differ by a rounding step (0.6849 → 68 %, not 69 %).
-    assert.equal(overviewData({...base, tiers: [6.849, 2.5, 0.651], cheapShare: 0.68}, t).ring?.centre, '68 %');
+test('nothing to report: no band, the activity line leads, tiles and facts as given', () => {
+    const d = overviewData(base, t);
+    assert.equal(d.alert, undefined);
+    assert.deepEqual(d.now, base.now, 'full size: nothing competes with it');
+    assert.deepEqual(d.tiles, base.tiles);
+    assert.deepEqual(d.facts, base.facts);
+    assert.equal(d.stale, undefined);
+    assert.equal(d.chip, undefined, 'a working day shows no chip');
+    assert.equal(overviewData({...base, dayType: 'Day off'}, t).chip, 'Day off');
 });
 
-test('the month\'s savings lead, with today\'s cost under them; without savings, today\'s cost leads', () => {
-    const d = overviewData({...base, spent: '14 kr', saved: {value: '214 kr', month: 'November'}}, t);
-    assert.deepEqual(d.hero, {value: '214 kr', label: 'saved_month{"month":"November"}', good: true});
-    assert.equal(d.line, 'spent_line{"cost":"14 kr"}');
-    const e = overviewData({...base, spent: '14 kr'}, t);
-    assert.deepEqual(e.hero, {value: '14 kr', label: 'spent'});
-    assert.equal(e.line, undefined, 'the cost is not said twice');
-    const loss = overviewData({...base, saved: {value: '-12 kr', month: 'November', good: false}}, t);
-    assert.equal(loss.hero?.good, false, 'a month that cost more is not shown as a saving');
+test('one band, the most serious first: offline, then an alarm, then a problem, then advice', () => {
+    const all = {...base, offline: 'No answer', alarm: 'Alarm 153',
+        warnings: [{text: 'Curve offset 0 → +2.', advice: true}, {text: 'Autopilot is waiting. Turn off Smart Price Adaption.', advice: false}]};
+    assert.deepEqual(overviewData(all, t).alert, {tone: 'bad', title: 'offline_title', text: 'No answer'});
+    assert.deepEqual(overviewData({...all, offline: undefined}, t).alert, {tone: 'bad', title: 'alarm_title', text: 'Alarm 153'});
+    assert.deepEqual(overviewData({...all, offline: undefined, alarm: undefined}, t).alert,
+        {tone: 'warn', title: 'Autopilot is waiting', text: 'Turn off Smart Price Adaption.'}, 'a problem before advice');
+    assert.deepEqual(overviewData({...base, warnings: [{text: 'Curve offset 0 → +2.', advice: true}]}, t).alert,
+        {tone: 'warn', title: 'Curve offset 0 → +2'});
 });
 
-test('problems come before advice, a pump-wide line shows once, and two at most', () => {
-    const d = overviewData({...base, offline: 'No answer', alarm: 'Alarm 153',
-        warnings: [{text: 'Curve offset 0 → +2', advice: true}, {text: 'Sensor lost'}, {text: 'Sensor lost'}]}, t);
-    assert.deepEqual(d.attention.map((l) => l.text), ['No answer', 'Alarm 153']);
-    assert.equal(d.attention.length, MAX_LINES);
-    const e = overviewData({...base, warnings: [{text: 'Advice', advice: true}, {text: 'Sensor lost'}, {text: 'Sensor lost'}]}, t);
-    assert.deepEqual(e.attention, [{tone: 'bad', text: 'Sensor lost'}, {tone: 'warn', text: 'Advice'}]);
+test('with a band the activity line steps back; offline it goes, and the rest is drawn faded', () => {
+    const waiting = overviewData({...base, warnings: [{text: 'Autopilot is waiting. Do this.', advice: false}]}, t);
+    assert.equal(waiting.now?.quiet, true, 'only the band dominates');
+    const off = overviewData({...base, offline: 'No answer'}, t);
+    assert.equal(off.now, undefined, 'the band already says it');
+    assert.equal(off.stale, true);
+    assert.deepEqual(off.tiles, base.tiles, 'the last readings stay');
 });
 
-test('the chip: Offline over Autopilot, none when nothing runs', () => {
-    assert.deepEqual([overviewData({...base, offline: 'x'}, t).chip, overviewData({...base, offline: 'x'}, t).chipQuiet], ['offline', true]);
-    assert.equal(overviewData(base, t).chip, 'Autopilot');
-    assert.equal(overviewData({...base, autopilot: false}, t).chip, undefined);
-});
-
-test('thirds rank the day\'s hours by price, as the savings widgets do', () => {
-    const hours = Array.from({length: 24}, (_, k) => k);
-    const prices = new Map(hours.map((h) => [h, h < 8 ? 1 : h < 16 ? 2 : 3]));
-    assert.deepEqual(priceThirds(hours, () => 1, prices), [8, 8, 8]);
-    // A 23-hour day (spring forward): 8 cheap, as Energy today's cheap share counts them.
-    const short = hours.slice(0, 23);
-    assert.equal(priceThirds(short, () => 1, prices)![0], 8);
-    assert.equal(priceThirds(hours, () => 1, new Map()), undefined);
-});
-
-test('with savings for the year, the headline is the year and the ring says it is heating\'s', () => {
-    const d = overviewData({title: 'Nibe', autopilot: true, warnings: [], tiers: [3, 1, 1], heatingOnly: true,
-        saved: {value: '9 kr', month: 'November'}, spent: '120 kr',
-        year: {value: '~267 kr', saved: '31 kr', year: '2026'}, rows: []}, (key, tokens) => `${key}${tokens ? JSON.stringify(tokens) : ''}`);
-    assert.deepEqual(d.hero, {value: '~267 kr', label: 'estimated_year{"year":"2026"}', good: true});
-    assert.equal(d.line, 'saved_line{"money":"31 kr"}');
-    assert.equal(d.ring!.label, 'cheap_heat');
-    assert.equal(d.ring!.centre, '60 %');
+test('a warning splits at its first sentence', () => {
+    assert.deepEqual(splitWarning('Autopilot is waiting. Turn off Smart Price Adaption for hot water on your heat pump.'),
+        {title: 'Autopilot is waiting', text: 'Turn off Smart Price Adaption for hot water on your heat pump.'});
+    assert.deepEqual(splitWarning('Sensor lost.'), {title: 'Sensor lost'});
+    assert.deepEqual(splitWarning('Sensor lost'), {title: 'Sensor lost'});
 });

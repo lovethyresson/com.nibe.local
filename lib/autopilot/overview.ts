@@ -1,112 +1,88 @@
-/** The Overview widget's data (widgets/overview): one heat pump at a glance. A ring of today's use
- *  by the day's price thirds (as Energy today and the savings widgets rank them), the month's
- *  savings beside it (the savings widgets' own figures, added up), one row per function device, and
- *  at most two lines that need the owner. Pure: the device gathers the figures, already worded. */
+/** The Overview widget's data (widgets/overview): one heat pump at a glance, in three levels
+ *  (2026-11-23, after the owner found the ring-and-savings card unclear about what mattered):
+ *  1. what needs the owner (a band: offline, an alarm, a warning) and what the pump does now;
+ *  2. a tile per function: indoor temperature against target, hot water litres and the next run;
+ *  3. quiet facts: power now, today so far and by midnight, the month's savings, the price paid
+ *     against the market's.
+ *  Pure: the device gathers the figures, already worded. */
 
 export type OverviewKind = 'heating' | 'hotwater' | 'pool' | 'cooling';
 export const OVERVIEW_KINDS: OverviewKind[] = ['heating', 'hotwater', 'pool', 'cooling'];
+export type NowKind = OverviewKind | 'idle';
 
-/** A small bar under a row: a temperature on its range, or the tank's fill. */
-export type OverviewBar =
-    | {type: 'range'; min: number; max: number; value: number; set?: number; lo?: number; hi?: number}
-    | {type: 'fill'; value: number; max: number};
-
-export interface OverviewRow {
+export interface OverviewTile {
     kind: OverviewKind;
-    name: string;
-    state?: string;
+    label: string;
     value?: string;
-    /** Not running: the value is a dash, drawn quieter. */
-    muted?: boolean;
-    bar?: OverviewBar;
+    sub?: string;
 }
 
-export interface OverviewLine {
+/** A quiet line in the facts list; `good` marks a saving (the one coloured value). */
+export interface OverviewFact {
+    label: string;
+    value: string;
+    good?: boolean;
+}
+
+export interface OverviewAlert {
     tone: 'bad' | 'warn';
-    text: string;
+    title: string;
+    text?: string;
+}
+
+export interface OverviewNow {
+    kind: NowKind;
+    title: string;
+    sub?: string;
 }
 
 export interface OverviewData {
     title: string;
+    /** The day type, only when it is not a working day. */
     chip?: string;
-    /** The chip as an outline: the heat pump is not answering. */
-    chipQuiet?: boolean;
     empty?: string;
     loading?: boolean;
-    /** Today's kWh in the cheapest, middle and most expensive third of the day's hours, and the
-     *  cheap share in the middle ("69 %") with its word under it. */
-    ring?: {tiers: [number, number, number]; centre: string; label: string};
-    /** The headline beside the ring: savings this month, or what today cost before there are any. */
-    hero?: {value: string; label: string; good?: boolean};
-    /** One quieter line under the headline. */
-    line?: string;
-    rows: OverviewRow[];
-    attention: OverviewLine[];
+    alert?: OverviewAlert;
+    now?: OverviewNow & {quiet?: boolean};
+    tiles: OverviewTile[];
+    facts: OverviewFact[];
+    /** The pump is not answering: tiles and facts are the last readings, drawn faded. */
+    stale?: boolean;
 }
-
-/** At most this many attention lines. */
-export const MAX_LINES = 2;
 
 export interface OverviewInput {
     title: string;
-    /** Autopilot runs on at least one function. */
-    autopilot: boolean;
+    dayType?: string;
     /** The heat pump is not answering: the reason, worded. */
     offline?: string;
     /** The pump's alarm, worded; undefined with none standing. */
     alarm?: string;
-    /** The function devices' warnings, in row order: problems before advice. */
-    warnings: {text: string; advice?: boolean}[];
-    /** Today's kWh per price third; undefined before the meters and prices are read. */
-    tiers?: [number, number, number];
-    /** Energy today's cheap share (0–1), so both show the same percentage; the tiers' own when absent. */
-    cheapShare?: number;
-    /** What today cost so far, worded as Energy today shows it. */
-    spent?: string;
-    /** This month's savings, worded, the month's name, and whether it is a saving (not a loss);
-     *  undefined while there are none to show. */
-    saved?: {value: string; month: string; good?: boolean};
-    /** The year's estimate (both functions' savings widgets, added up), what of it is saved so far,
-     *  and the year; when present it is the headline instead of the month. */
-    year?: {value: string; saved: string; year: string; good?: boolean};
-    /** The ring is heating's own use, so it says so (hot water's share in cheap hours is not a
-     *  saving: see savings.ts). */
-    heatingOnly?: boolean;
-    rows: OverviewRow[];
+    /** The function devices' warnings: problems before advice. */
+    warnings: {text: string; advice: boolean}[];
+    now?: OverviewNow;
+    tiles: OverviewTile[];
+    facts: OverviewFact[];
 }
 
 export type Translate = (key: string, tokens?: Record<string, string | number>) => string;
 
-export function overviewData(i: OverviewInput, t: Translate): OverviewData {
-    const attention: OverviewLine[] = [
-        ...i.offline ? [{tone: 'bad' as const, text: i.offline}] : [],
-        ...i.alarm ? [{tone: 'bad' as const, text: i.alarm}] : [],
-        ...i.warnings.filter((w) => !w.advice).map((w) => ({tone: 'bad' as const, text: w.text})),
-        ...i.warnings.filter((w) => w.advice).map((w) => ({tone: 'warn' as const, text: w.text})),
-    ];
-    // The same text from two devices (a pump-wide problem) is one line.
-    const lines = attention.filter((l, k) => attention.findIndex((m) => m.text === l.text) === k).slice(0, MAX_LINES);
-    const chip = i.offline ? {chip: t('offline'), chipQuiet: true} : i.autopilot ? {chip: 'Autopilot'} : {};
-    const total = i.tiers ? i.tiers[0] + i.tiers[1] + i.tiers[2] : 0;
-    const ring = i.tiers && total > 0
-        ? {tiers: i.tiers, centre: `${Math.round((i.cheapShare ?? i.tiers[0] / total) * 100)} %`, label: t(i.heatingOnly ? 'cheap_heat' : 'cheap')} : undefined;
-    const hero = i.year
-        ? {value: i.year.value, label: t('estimated_year', {year: i.year.year}), good: i.year.good !== false}
-        : i.saved
-        ? {value: i.saved.value, label: t('saved_month', {month: i.saved.month}), good: i.saved.good !== false}
-        : i.spent ? {value: i.spent, label: t('spent')} : undefined;
-    const line = i.year ? t('saved_line', {money: i.year.saved}) : i.saved && i.spent ? t('spent_line', {cost: i.spent}) : undefined;
-    return {title: i.title, ...chip, ...ring ? {ring} : {}, ...hero ? {hero} : {}, ...line ? {line} : {},
-        rows: i.rows, attention: lines};
+/** A warning's first sentence as the band's title, the rest under it. */
+export function splitWarning(text: string): {title: string; text?: string} {
+    const at = text.search(/[.!?]\s/);
+    if (at < 0) return {title: text.replace(/[.]$/, '')};
+    return {title: text.slice(0, at), text: text.slice(at + 2).trim() || undefined};
 }
 
-/** The kWh in each third of the day's hours, ranked by price as the savings widgets rank them
- *  (savings.ts savingsDay): the cheapest third first. `use` and `prices` by hour start. */
-export function priceThirds(hours: number[], use: (at: number) => number, prices: Map<number, number>): [number, number, number] | undefined {
-    const priced = hours.filter((at) => prices.has(at));
-    if (!priced.length) return undefined;
-    const ranked = [...priced].sort((a, b) => prices.get(a)! - prices.get(b)! || a - b);
-    const tiers: [number, number, number] = [0, 0, 0];
-    ranked.forEach((at, k) => { tiers[Math.min(2, Math.floor(k * 3 / ranked.length))] += use(at); });
-    return tiers;
+export function overviewData(i: OverviewInput, t: Translate): OverviewData {
+    const chip = i.dayType ? {chip: i.dayType} : {};
+    // One band, the most serious first: no answer, then an alarm, then a problem, then advice.
+    const warning = i.warnings.find((w) => !w.advice) ?? i.warnings[0];
+    const alert: OverviewAlert | undefined = i.offline ? {tone: 'bad', title: t('offline_title'), text: i.offline}
+        : i.alarm ? {tone: 'bad', title: t('alarm_title'), text: i.alarm}
+            // A device warning is something to do, not a fault: amber, as the design has it.
+            : warning ? {tone: 'warn', ...splitWarning(warning.text)} : undefined;
+    // Offline, the band says it all: no activity line, and the rest is the last readings.
+    const now = i.offline || !i.now ? undefined : {...i.now, ...alert ? {quiet: true} : {}};
+    return {title: i.title, ...chip, ...alert ? {alert} : {}, ...now ? {now} : {}, tiles: i.tiles, facts: i.facts,
+        ...i.offline ? {stale: true} : {}};
 }

@@ -33,7 +33,7 @@ import {HotwaterUseData, TodayRow, hotwaterWeek, useRuns} from './autopilot/hotw
 import {TankWidgetData, tankChart} from './autopilot/hotwater-tank';
 import {ComfortDay, ComfortSlot, addComfortSlot, readComfortDays} from './autopilot/comfort-days';
 import {ENERGY_ROLES, EnergyWidgetData, energyChart, useToday} from './autopilot/energy';
-import {OVERVIEW_KINDS, OverviewData, OverviewRow, overviewData, priceThirds} from './autopilot/overview';
+import {NowKind, OVERVIEW_KINDS, OverviewData, OverviewFact, OverviewKind, OverviewNow, OverviewTile, overviewData} from './autopilot/overview';
 import {SLOT_MS, localDate, localMinutes, slotOf} from './autopilot/prices';
 import {CHECK_DAYS, CurveView, LiveReason, SettleEvent, SettleState, Step, calibrateDay, change, daysBetween, readSettle, scoreDay,
     settleDone, stepOf, streak} from './autopilot/settling';
@@ -3107,95 +3107,87 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
      *  savings widgets, the rows from the devices' own capabilities. */
     overviewWidget(): OverviewData {
         const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.overview.${key}`, tokens);
-        const title = this.getName();
+        // The app's name, not a device's (2026-11-23, the owner's choice).
+        const title = 'Nibe Live';
         const host = String(this.getData().id).split('#')[0];
         const siblings = (this.driver.getDevices() as any[]).filter((d) => String(d.getData().id).split('#')[0] === host);
         const byRole = new Map<string, any>(siblings.map((d) => [d.role, d]));
         const offline = this.getAvailable() ? undefined : this.unavailableText ?? t('offline');
-        const local = localClock(this.homey.clock.getTimezone());
-        const rows: OverviewRow[] = OVERVIEW_KINDS.filter((k) => byRole.has(k)).map((kind) => {
+        const timeZone = this.homey.clock.getTimezone();
+        const local = localClock(timeZone);
+        const language = this.homey.i18n.getLanguage();
+        const one = (v: number) => numberFormat(language, {minimumFractionDigits: 1, maximumFractionDigits: 1}).format(v);
+        const kinds = OVERVIEW_KINDS.filter((k) => byRole.has(k));
+        if (!kinds.length) return {title, empty: this.homey.__('autopilot.energy.no_functions'), tiles: [], facts: []};
+        const energy = this.energyWidget();
+        if (energy.loading && !offline) return {title, loading: true, tiles: [], facts: []};
+
+        // Hot water's plan: the run in progress (its end and reason) and the next one.
+        const water = byRole.get('hotwater');
+        const waterRuns = water ? autopilotRuns(water.smartMode() as SmartMode) : false;
+        const day = todaySlots(slotOf(Date.now()), (ms) => local(ms).date);
+        const next = waterRuns ? water.hotwaterAutopilot?.tank(day.from, day.n)?.next : undefined;
+        const when = (ms: number) => (local(ms).date === local(Date.now()).date ? this.clock(ms) : t('tomorrow', {time: this.clock(ms)}));
+
+        // Level 2: a tile per function.
+        const tiles: OverviewTile[] = kinds.map((kind) => {
             const d = byRole.get(kind);
-            const row: OverviewRow = {kind, name: this.homey.__(`groups.${kind}`)};
-            if (offline) return {...row, muted: true};
             const mode = d.smartMode() as SmartMode;
-            // Only what is known: Off in the app may still be SPA on the pump itself (Repair reads that).
-            const modeName = mode === 'spa' ? t('mode_spa') : undefined;
+            const spa = mode === 'spa' ? t('mode_spa') : undefined;
             if (kind === 'heating') {
                 const indoor = Number(d.getCapabilityValue('measure_temperature'));
                 const set = Number(d.getCapabilityValue('target_temperature'));
-                const runs = autopilotRuns(mode);
-                const limits = runs ? d.heatingLimits() : undefined;
-                row.state = runs ? d.autopilotWidget().status : modeName;
-                if (Number.isFinite(indoor)) {
-                    row.value = `${indoor.toFixed(1)} °C`;
-                    const mid = Number.isFinite(set) ? set : indoor;
-                    row.bar = {type: 'range', min: mid - 3, max: mid + 3, value: indoor,
-                        ...Number.isFinite(set) ? {set} : {},
-                        ...limits && Number.isFinite(set) && limits.lower + limits.upper > 0 ? {lo: set - limits.lower, hi: set + limits.upper} : {}};
-                }
-            } else if (kind === 'hotwater') {
-                const litres = d.tankLitresNow();
-                const size = d.tankConfig().litres;
-                const runs = autopilotRuns(mode);
-                const day = todaySlots(slotOf(Date.now()), (ms) => local(ms).date);
-                const view = runs ? d.hotwaterAutopilot?.tank(day.from, day.n) : undefined;
-                const next: string | undefined = runs ? d.nextChargeText(view?.next, local) : undefined;
-                row.state = runs ? next && next.charAt(0).toLocaleUpperCase() + next.slice(1) : modeName;
-                if (typeof litres === 'number') {
-                    row.value = `${Math.round(litres)} L`;
-                    if (size) row.bar = {type: 'fill', value: litres, max: size};
-                }
-            } else {
-                row.state = modeName;
-                const cap = (d.getCapabilities() as string[]).find((c) => c.startsWith('measure_temperature'));
-                const v = cap ? Number(d.getCapabilityValue(cap)) : NaN;
-                if (Number.isFinite(v)) row.value = `${v.toFixed(1)} °C`;
+                return {kind, label: t('indoor'), ...Number.isFinite(indoor) ? {value: `${one(indoor)} °C`} : {},
+                    ...Number.isFinite(set) ? {sub: t('target', {target: `${one(set)} °C`})} : spa ? {sub: spa} : {}};
             }
-            if (!row.value) row.muted = true;
-            return row;
+            if (kind === 'hotwater') {
+                const litres = d.tankLitresNow();
+                const sub = next && !next.running ? t('next', {time: when(next.at)}) : spa;
+                return {kind, label: t('hotwater'), ...typeof litres === 'number' ? {value: `${Math.round(litres)} L`} : {},
+                    ...sub ? {sub} : {}};
+            }
+            const cap = (d.getCapabilities() as string[]).find((c) => c.startsWith('measure_temperature'));
+            const v = cap ? Number(d.getCapabilityValue(cap)) : NaN;
+            return {kind, label: this.homey.__(`groups.${kind}`), ...Number.isFinite(v) ? {value: `${one(v)} °C`} : {}, ...spa ? {sub: spa} : {}};
         });
-        // The ring and today's cost, as Energy today has them.
-        const energy = this.energyWidget();
-        let tiers: [number, number, number] | undefined;
-        if (energy.chart) {
-            const timeZone = this.homey.clock.getTimezone();
-            const hours = dayHours(localDate(Date.now(), timeZone), (ms) => localDate(ms, timeZone));
-            const prices = new Map<number, number>();
-            hours.forEach((at, k) => { const p = energy.chart!.hours[k]?.price; if (p !== undefined) prices.set(at, p); });
-            // Heating's own use when there is a Heating device: its share of cheap hours is what Autopilot
-            // moves; hot water's is not a saving (savings.ts). Without one, the whole use, as before.
-            const heatingOnly = byRole.has('heating');
-            tiers = priceThirds(hours, (at) => {
-                const h = energy.chart!.hours[hours.indexOf(at)];
-                if (!h) return 0;
-                return heatingOnly ? Number((h.use as Record<string, number | undefined>).heating ?? 0)
-                    : Object.values(h.use).reduce((a: number, b) => a + (b ?? 0), 0);
-            }, prices);
+
+        // Level 1: what the pump does now, from its operating priority.
+        const raw = offline ? undefined : this.connection?.priorityNow();
+        const role: string | undefined = raw === undefined ? undefined : this.profile.role.priorityToRole[raw];
+        const nowKind: NowKind | undefined = role === 'main' ? 'idle' : role && (OVERVIEW_KINDS as string[]).includes(role) ? role as OverviewKind : undefined;
+        let now: OverviewNow | undefined;
+        if (nowKind === 'hotwater') {
+            const sub = next?.running ? [t('until', {time: this.clock(next.at + next.minutes * 60_000)}),
+                this.homey.__(`autopilot.hotwater_charge.reason.${next.reason}`).toLocaleLowerCase(language)].join(' · ') : undefined;
+            now = {kind: nowKind, title: t('now_hotwater'), ...sub ? {sub} : {}};
+        } else if (nowKind === 'heating') {
+            const heating = byRole.get('heating');
+            const runs = heating && autopilotRuns(heating.smartMode() as SmartMode);
+            const status = runs ? heating.autopilotWidget().status : undefined;
+            now = {kind: nowKind, title: t('now_heating'), sub: status || t('own_settings')};
+        } else if (nowKind === 'idle') {
+            now = {kind: nowKind, title: t('now_idle'), ...next && !next.running ? {sub: t('idle_next', {time: when(next.at)})} : {}};
+        } else if (nowKind) {
+            now = {kind: nowKind, title: t(`now_${nowKind}`)};
         }
-        // The savings widgets' own figures, each worked out once: the year's estimates when every
-        // function with a figure has one, else this month's, as before.
-        const figures = (['heating', 'hotwater'] as const).flatMap((role) => {
-            const d = byRole.get(role);
-            // As the savings widget shows it: a month with counted days stays, whatever the mode now.
-            if (!d) return [];
-            const data = d.savingsWidget() as SavingsData;
-            const currency = String(d.getStoreValue(SAVINGS_CURRENCY_STORE) ?? '');
-            return data.yearValue === undefined && data.monthValue === undefined ? [] : [{data, currency}];
-        });
-        const language = this.homey.i18n.getLanguage();
-        const allYears = figures.length > 0 && figures.every((f) => f.data.yearValue !== undefined);
-        const months = allYears ? [] : figures.filter((f) => f.data.monthValue !== undefined)
-            .map((f) => ({value: f.data.monthValue!, month: f.data.valueNote ?? '', currency: f.currency}));
-        // Each part as its widget shows it (one decimal under 10, whole above), so 11 + 2.4 reads 13, not 14.
-        const shown = (v: number) => (Math.abs(v) < 10 ? Math.round(v * 10) / 10 : Math.round(v));
-        const sum = months.reduce((a, m) => a + shown(m.value), 0);
-        const saved = months.length ? {value: moneyText(sum, Math.abs(sum) < 10 ? 1 : 0, language, months[0].currency),
-            month: months[0].month, good: sum >= 0} : undefined;
-        const yearMoney = (v: number) => moneyText(v, Math.abs(v) < 10 ? 1 : 0, language, figures[0]?.currency ?? '');
-        const yearTotal = figures.reduce((a, f) => a + (f.data.yearValue ?? 0), 0);
-        const yearSaved = figures.reduce((a, f) => a + (f.data.yearSaved ?? 0), 0);
-        const year = allYears ? {value: `~${yearMoney(yearTotal)}`, saved: yearMoney(yearSaved),
-            year: localDate(Date.now(), this.homey.clock.getTimezone()).slice(0, 4), good: yearTotal >= 0} : undefined;
+
+        // Level 3: quiet facts.
+        const facts: OverviewFact[] = [];
+        const watts = siblings.reduce((a, d) => {
+            const v = d.hasCapability(ACTIVE_POWER_CAPABILITY) ? Number(d.getCapabilityValue(ACTIVE_POWER_CAPABILITY)) : NaN;
+            return Number.isFinite(v) ? a + v : a;
+        }, 0);
+        if (!offline) facts.push({label: t('power_now'), value: `${one(watts / 1000)} kW`});
+        // Today as Energy today has it, so the two cards agree.
+        const used = energy.numbers?.[0]?.value, spent = energy.numbers?.[1]?.value;
+        if (used && spent) facts.push({label: t('today'), value: `${used} · ${spent}`});
+        const currency = String(siblings.map((d) => d.energyToday?.()?.currency).find(Boolean) ?? '');
+        const ahead = this.restOfToday(energy, currency);
+        if (ahead) facts.push({label: t('by_midnight'), value: t('by_midnight_value', {kwh: one(ahead.kwh), cost: moneyText(ahead.cost, 0, language, currency)})});
+        const month = this.monthFigures(byRole, language);
+        if (month.saved) facts.push({label: month.saved.label, value: month.saved.value, good: month.saved.good});
+        if (month.price) facts.push({label: t('your_price'), value: month.price});
+
         const alarm = this.hasCapability(ALARM_ACTIVE_CAPABILITY) && this.getCapabilityValue(ALARM_ACTIVE_CAPABILITY) === true
             ? String(this.getCapabilityValue(ALARM_TEXT_CAPABILITY) ?? '') || undefined : undefined;
         const warnings = OVERVIEW_KINDS.flatMap((k) => {
@@ -3203,11 +3195,70 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             return d?.warningText ? [{text: d.warningText as string, advice: !!d.adviceShown}] : [];
         });
         if (this.warningText) warnings.unshift({text: this.warningText, advice: false});
-        if (!rows.length) return {title, empty: this.homey.__('autopilot.energy.no_functions'), rows: [], attention: []};
-        if (energy.loading && !offline) return {title, loading: true, rows, attention: []};
-        return overviewData({title, autopilot: siblings.some((d) => autopilotRuns(d.smartMode?.())), offline, alarm, warnings,
-            tiers, cheapShare: byRole.has('heating') ? undefined : energy.chart?.cheapShare, spent: energy.numbers?.[1]?.value, saved, year,
-            heatingOnly: byRole.has('heating'), rows}, t);
+        const type = dayTypeAt(readDayType(this.homey.settings.get(DAY_TYPE_SETTING)), Date.now(), local);
+        return overviewData({title, ...type !== 'working' ? {dayType: this.homey.__(`autopilot.hotwater_use.${type}`)} : {},
+            offline, alarm, warnings, ...now ? {now} : {}, tiles, facts}, t);
+    }
+
+    /** Today by midnight: what today cost so far (Energy today's figure) plus what the day's first
+     *  plan (Plan vs actual) expects for the hours still ahead, priced at each hour's price for the
+     *  kWh. Undefined without both. */
+    private restOfToday(energy: EnergyWidgetData, currency: string): {kwh: number; cost: number} | undefined {
+        const timeZone = this.homey.clock.getTimezone();
+        const date = localDate(Date.now(), timeZone);
+        const plan = this.costLedger().find((d) => d.date === date);
+        const hours = energy.chart?.hours;
+        if (!plan || !hours || energy.chart?.kwh === undefined || energy.chart?.cost === undefined) return undefined;
+        const at = dayHours(date, (ms) => localDate(ms, timeZone));
+        const nowHour = Math.floor(Date.now() / HOUR_MS) * HOUR_MS;
+        let kwh = 0, cost = 0;
+        at.forEach((ms, k) => {
+            const expected = plan.expected[k] ?? 0, price = hours[k]?.price;
+            if (ms <= nowHour || !(expected > 0)) return;
+            cost += expected;
+            if (price && price > 0) kwh += expected / price;
+        });
+        return {kwh: energy.chart.kwh + kwh, cost: energy.chart.cost + cost};
+    }
+
+    /** The month's savings (the savings widgets' own figures, added up as before) and the price
+     *  paid per kWh against the market's mean over the same days (the savings records). */
+    private monthFigures(byRole: Map<string, any>, language: string): {saved?: {label: string; value: string; good: boolean}; price?: string} {
+        const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.overview.${key}`, tokens);
+        const devices = (['heating', 'hotwater'] as const).map((role) => byRole.get(role)).filter(Boolean);
+        const figures = devices.flatMap((d) => {
+            const data = d.savingsWidget() as SavingsData;
+            const currency = String(d.getStoreValue(SAVINGS_CURRENCY_STORE) ?? '');
+            return data.yearValue === undefined && data.monthValue === undefined ? [] : [{data, currency}];
+        });
+        // The savings widgets' own figures: the year's estimates once every function has one (a
+        // widget then shows no month), else this month's. Each part as its widget shows it (one
+        // decimal under 10, whole above), so 11 + 2.4 reads 13, not 14.
+        const years = figures.length > 0 && figures.every((f) => f.data.yearValue !== undefined);
+        const parts = figures.filter((f) => (years ? f.data.yearValue : f.data.monthValue) !== undefined);
+        const shown = (v: number) => (Math.abs(v) < 10 ? Math.round(v * 10) / 10 : Math.round(v));
+        const sum = parts.reduce((a, f) => a + shown((years ? f.data.yearValue : f.data.monthValue)!), 0);
+        const currency = parts[0]?.currency ?? '';
+        const money = moneyText(Math.abs(sum), Math.abs(sum) < 10 ? 1 : 0, language, currency);
+        const saved = parts.length ? {label: parts[0].data.valueNote ?? '',
+            value: years ? `~${moneyText(sum, Math.abs(sum) < 10 ? 1 : 0, language, currency)}` : t(sum >= 0 ? 'saved' : 'lost', {money}),
+            good: sum >= 0} : undefined;
+        const month = localDate(Date.now(), this.homey.clock.getTimezone()).slice(0, 7);
+        let kwh = 0, cost = 0;
+        const means = new Map<string, number>();
+        for (const d of devices) {
+            const days: SavingsDay[] = Array.isArray(d.getStoreValue(SAVINGS_STORE)) ? d.getStoreValue(SAVINGS_STORE) : [];
+            for (const day of days.filter((x) => x.date.startsWith(month))) {
+                kwh += day.tiers[0] + day.tiers[1] + day.tiers[2];
+                cost += day.cost;
+                if (Number.isFinite(day.mean)) means.set(day.date, day.mean);
+            }
+        }
+        const priceCurrency = String(devices[0]?.getStoreValue(SAVINGS_CURRENCY_STORE) ?? currency);
+        const market = means.size ? [...means.values()].reduce((a, b) => a + b, 0) / means.size : NaN;
+        const price = kwh > 1 && Number.isFinite(market) ? t('price_value', {paid: moneyText(cost / kwh, 2, language, priceCurrency),
+            market: moneyText(market, 2, language, priceCurrency)}) : undefined;
+        return {...saved ? {saved} : {}, ...price ? {price} : {}};
     }
 
     /** The tank now, as its tile shows it (read every poll). The planner's own figure is from the

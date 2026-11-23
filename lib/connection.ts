@@ -331,6 +331,8 @@ export class PumpConnection {
     // Previous raw priority, to detect transitions for the profile's reset rules (e.g. clear
     // "More hot water" once the pump leaves hot water for idle). Cleared on (re)connect.
     private lastPriority: number | undefined = undefined;
+    /** The operating priority (1028) last read, raw: what the pump is doing now. */
+    priorityNow(): number | undefined { return this.lastPriority; }
 
     // Last successfully read raw value per register, so a device that attaches after the
     // connection is already up gets current values without waiting for a poll.

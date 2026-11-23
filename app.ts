@@ -133,10 +133,10 @@ class NibeApp extends Homey.App {
 
   /** For widgets/overview/api.js. Answers a problem with a line, like the others. */
   overviewWidget(id: unknown) {
-    const line = (key: string) => ({title: '', rows: [], attention: [], empty: this.homey.__(key)});
+    const line = (key: string) => ({title: '', tiles: [], facts: [], empty: this.homey.__(key)});
     const devices = this.mainDevices();
     const device = devices.find((d) => String(d.getData().id) === String(id)) ?? (id ? undefined : devices[0]);
-    if (!device && process.uptime() < 120) return {title: '', rows: [], attention: [], loading: true};
+    if (!device && process.uptime() < 120) return {title: '', tiles: [], facts: [], loading: true};
     if (!device) return line('autopilot.energy.pick');
     try {
       return device.overviewWidget();
