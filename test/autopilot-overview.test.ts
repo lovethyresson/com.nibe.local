@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {OverviewInput, overviewData, splitWarning} from '../lib/autopilot/overview';
+import {OverviewInput, overviewData, plannedAhead, splitWarning} from '../lib/autopilot/overview';
 
 const t = (key: string, tokens?: Record<string, string | number>) => key + (tokens ? JSON.stringify(tokens) : '');
 const base: OverviewInput = {title: 'Nibe Live', warnings: [],
@@ -44,4 +44,16 @@ test('a warning splits at its first sentence', () => {
         {title: 'Autopilot is waiting', text: 'Turn off Smart Price Adaption for hot water on your heat pump.'});
     assert.deepEqual(splitWarning('Sensor lost.'), {title: 'Sensor lost'});
     assert.deepEqual(splitWarning('Sensor lost'), {title: 'Sensor lost'});
+});
+
+test('by midnight counts each plan from its own start, only the hours after this one', () => {
+    const H = 3_600_000, midnight = 0;
+    // Heating planned from midnight, hot water from 07:00 (its plan's index 0 is 07:00).
+    const heating = {from: midnight, expected: Array.from({length: 24}, () => 2)};
+    const water = {from: midnight + 7 * H, expected: [0, 0, 0, 0, 0, 0, 4, 0]}; // 13:00
+    const now = midnight + 12 * H; // 12:xx: hours from 13:00 count
+    const out = plannedAhead([heating, water], now, () => 2);
+    assert.equal(out.cost, 11 * 2 + 4, 'heating 13–23 and the 13:00 hot water run');
+    assert.equal(out.kwh, out.cost / 2);
+    assert.equal(plannedAhead([water], midnight + 13 * H, () => 2).cost, 0, 'a run in this hour is already in today so far');
 });

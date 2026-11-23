@@ -86,3 +86,20 @@ export function overviewData(i: OverviewInput, t: Translate): OverviewData {
     return {title: i.title, ...chip, ...alert ? {alert} : {}, ...now ? {now} : {}, tiles: i.tiles, facts: i.facts,
         ...i.offline ? {stale: true} : {}};
 }
+
+const HOUR_MS = 3_600_000;
+
+/** What the day plans still expect after the current hour: their cost, and the kWh at each hour's
+ *  price. A plan's `expected` counts hours from its own `from` (cost-check.ts), not from midnight. */
+export function plannedAhead(plans: {from: number; expected: number[]}[], nowHour: number,
+                             priceAt: (hourStart: number) => number | undefined): {kwh: number; cost: number} {
+    let kwh = 0, cost = 0;
+    for (const p of plans) p.expected.forEach((expected, h) => {
+        const ms = p.from + h * HOUR_MS;
+        if (ms <= nowHour || !(expected > 0)) return;
+        cost += expected;
+        const price = priceAt(ms);
+        if (price !== undefined && price > 0) kwh += expected / price;
+    });
+    return {kwh, cost};
+}

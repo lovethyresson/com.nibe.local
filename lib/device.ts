@@ -33,7 +33,7 @@ import {HotwaterUseData, TodayRow, hotwaterWeek, useRuns} from './autopilot/hotw
 import {TankWidgetData, tankChart} from './autopilot/hotwater-tank';
 import {ComfortDay, ComfortSlot, addComfortSlot, readComfortDays} from './autopilot/comfort-days';
 import {ENERGY_ROLES, EnergyWidgetData, energyChart, useToday} from './autopilot/energy';
-import {NowKind, OVERVIEW_KINDS, OverviewData, OverviewFact, OverviewKind, OverviewNow, OverviewTile, overviewData} from './autopilot/overview';
+import {NowKind, OVERVIEW_KINDS, OverviewData, OverviewFact, OverviewKind, OverviewNow, OverviewTile, overviewData, plannedAhead} from './autopilot/overview';
 import {SLOT_MS, localDate, localMinutes, slotOf} from './autopilot/prices';
 import {CHECK_DAYS, CurveView, LiveReason, SettleEvent, SettleState, Step, calibrateDay, change, daysBetween, readSettle, scoreDay,
     settleDone, stepOf, streak} from './autopilot/settling';
@@ -3182,7 +3182,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const used = energy.numbers?.[0]?.value, spent = energy.numbers?.[1]?.value;
         if (used && spent) facts.push({label: t('today'), value: `${used} · ${spent}`});
         const currency = String(siblings.map((d) => d.energyToday?.()?.currency).find(Boolean) ?? '');
-        const ahead = this.restOfToday(energy, currency);
+        const ahead = this.restOfToday(energy, siblings);
         if (ahead) facts.push({label: t('by_midnight'), value: t('by_midnight_value', {kwh: one(ahead.kwh), cost: moneyText(ahead.cost, 0, language, currency)})});
         const month = this.monthFigures(byRole, language);
         if (month.saved) facts.push({label: month.saved.label, value: month.saved.value, good: month.saved.good});
@@ -3200,24 +3200,18 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             offline, alarm, warnings, ...now ? {now} : {}, tiles, facts}, t);
     }
 
-    /** Today by midnight: what today cost so far (Energy today's figure) plus what the day's first
-     *  plan (Plan vs actual) expects for the hours still ahead, priced at each hour's price for the
-     *  kWh. Undefined without both. */
-    private restOfToday(energy: EnergyWidgetData, currency: string): {kwh: number; cost: number} | undefined {
+    /** Today by midnight: what today cost so far (Energy today's figure) plus what each function's
+     *  first plan of the day (Plan vs actual, kept on the Heating and Hot water devices) expects for
+     *  the hours still ahead, priced at each hour's price for the kWh. Undefined without a plan. */
+    private restOfToday(energy: EnergyWidgetData, siblings: any[]): {kwh: number; cost: number} | undefined {
         const timeZone = this.homey.clock.getTimezone();
         const date = localDate(Date.now(), timeZone);
-        const plan = this.costLedger().find((d) => d.date === date);
+        const plans = siblings.map((d) => (d.costLedger() as CostDay[]).find((x) => x.date === date)).filter((x): x is CostDay => !!x);
         const hours = energy.chart?.hours;
-        if (!plan || !hours || energy.chart?.kwh === undefined || energy.chart?.cost === undefined) return undefined;
+        if (!plans.length || !hours || energy.chart?.kwh === undefined || energy.chart?.cost === undefined) return undefined;
         const at = dayHours(date, (ms) => localDate(ms, timeZone));
         const nowHour = Math.floor(Date.now() / HOUR_MS) * HOUR_MS;
-        let kwh = 0, cost = 0;
-        at.forEach((ms, k) => {
-            const expected = plan.expected[k] ?? 0, price = hours[k]?.price;
-            if (ms <= nowHour || !(expected > 0)) return;
-            cost += expected;
-            if (price && price > 0) kwh += expected / price;
-        });
+        const {kwh, cost} = plannedAhead(plans, nowHour, (ms) => hours[at.indexOf(ms)]?.price);
         return {kwh: energy.chart.kwh + kwh, cost: energy.chart.cost + cost};
     }
 
