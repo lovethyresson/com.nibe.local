@@ -697,7 +697,8 @@ Plan: `~/.claude/plans/atomic-chasing-brooks.md`. As built: `docs/autopilot-plan
 - [ ] Heating reserves its surplus once cooling uses the budget.
 - [x] One weather fetch per home: `gateway-weather.ts` keeps one forecast an hour and the GHI
   history once a day for the collector and the surplus (the hourly report shows one of each).
-- [ ] Heating widget: draw the surplus.
+- [x] ~~Heating widget: draw the surplus.~~ Skipped 2026-11-23: a strip under the time axis and an area
+  behind the bars were mocked; the owner found neither worked and isn't sure the chart needs it.
 - **Phase 2: Pool and Cooling Autopilot** (design in the plan file):
   - Pool: band 687/689 at most 4 writes a day, plus a GHI gain coefficient for an outdoor pool.
   - Cooling: lever by probe (975 or 988, never BT1), pre-cool on price and surplus.
