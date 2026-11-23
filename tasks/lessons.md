@@ -613,3 +613,12 @@ I told the user Hot water Autopilot was in shadow because the heating device's s
 62/697 and starting a reserve charge at 12:15. Rule: before stating a feature's state, read it from
 the device that runs it and confirm in that device's recent log lines (writes, charges); never infer
 it from a setting on another device.
+
+## 2026-11-23: a filtered stage must be compiled as staged
+
+I staged my hunks with `git apply --cached --unidiff-zero` from a `git diff -U0` of a file another
+session was also editing. With no context lines the hunk landed at the old line number, inside
+`usage()`, and b55d94c did not compile; the working tree did, so my checks passed. Rule: when
+staging part of a shared file, keep context (`git diff -U3`, no `--unidiff-zero`), then check the
+staged tree itself before committing: `git stash`-free, e.g. `git diff --cached` read in full, or
+`git worktree add` / `git archive` of the index and run `npm run typecheck` there.
