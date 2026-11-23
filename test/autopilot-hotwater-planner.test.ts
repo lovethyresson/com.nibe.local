@@ -209,6 +209,18 @@ test('a due charge starts now instead of sliding behind late draws', () => {
     assert.strictEqual(p.startNow, false, 'a charge the plan no longer wants soon is not forced');
 });
 
+test('a due charge does not start early when the tank is already above its target', () => {
+    // 2026-11-15 13:15: a full tank, a big draw expected in an hour, the charge after it due. Its
+    // target is for the tank after the draw, under the tank now: starting now would heat nothing.
+    const slots: PlanSlot[] = Array.from({length: 32}, (_, k) => ({price: 2, draw: k === 1 ? 6 : k === 5 ? 4 : 0}));
+    const full = {stored: heatAt(tank, 55), reserve: reserveKwh(40), maxC: 56};
+    const p = plan(input(slots, {...full, due: true}));
+    const first = p.charges[0];
+    assert.ok(first && first.start > 0 && first.start <= DUE_SLOTS, `planned at slot ${first?.start}`);
+    assert.ok(heatAt(tank, first.targetC) <= full.stored, `target ${first.targetC} °C under the tank now`);
+    assert.strictEqual(p.startNow, false, 'waits for the draw');
+});
+
 test('a charge is planned at the tank\'s own rate, so it runs as long as a real one and a warm top-up is slow', () => {
     // The S1155 learned 2026-11-14: the tank gains 6.5 kWh/h half empty, under 2 near full, at 2.3 kW.
     const tankRate = {heatPerHour: 6.1, perKwh: -1.4, atStored: 7, producedPerHour: 6.5, kw: 2.3, cop: 2, copPerK: 0, atTop: 50, samples: 20};

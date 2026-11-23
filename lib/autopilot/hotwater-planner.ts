@@ -312,11 +312,17 @@ export function plan(input: PlanInput): Plan {
     }
     stored.push(kwh);
     for (const ch of charges) ch.targetC = Math.min(input.maxC, Math.max(input.minC, Math.round(ch.targetC)));
+    const first = charges[0];
+    // A due charge started early still has to heat the tank as it is now: its target was set for
+    // the tank after the draws before it, and a tank already above that target would get a start
+    // the lever drops as "tank hot enough" (2026-11-15 13:15: due at 14:15 to 47 °C after a
+    // forecast draw, started at 13:15 with the tank at 55 °C).
+    const dueNow = input.due === true && first !== undefined && first.start <= DUE_SLOTS
+        && heatAt(tank, first.targetC) > input.stored + STEP_KWH;
     // A top-up smaller than this waits for the next round, which plans a proper charge: replanning
     // every slot otherwise turns forecast error into many short, mostly expensive, charges.
-    const first = charges[0];
     const startNow = !input.charging && first !== undefined
-        && (first.start === 0 || (input.due === true && first.start <= DUE_SLOTS))
+        && (first.start === 0 || dueNow)
         && (first.heat >= (input.minChargeKwh ?? MIN_CHARGE_KWH) || (rescue && first.start === 0)
             || (first.start === 0 && first.heat >= MIN_CHEAP_CHARGE_KWH && cheapestBeforeNeed()));
     return {charges, stored, cost, shortfall, startNow, rescue};

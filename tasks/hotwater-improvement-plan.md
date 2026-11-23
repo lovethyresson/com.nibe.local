@@ -207,10 +207,12 @@ All done (17d0914, fc17256): `MAX_RESCUE_STARTS_PER_DAY` = 5, about 1,800 writes
     2026-11-15T13:15,264.6,54.9,today,due`, and at 12:45 and 13:00, with and without tomorrow's
     prices): no write to the pump. At 13:15, with the charge planned for that slot due (as live had
     it), the plan starts a 45-minute charge to 47 °C; the lever refuses it, the top being 54.9 °C
-    ('tank hot enough'). Without `due` the plan waits. Open, small: a planned start to a target
-    under the tank's own temperature should not happen; it costs nothing today because the lever
-    skips it, but it spends a log line and looks wrong in the status. Look at it with step 1.3. Stop raises: none in the 14–20 Nov replay (`--no-extend` gives the same
-    result) and none in the app logs 21–23 Nov. No cap by fill is needed now. If a raise shows up
+    ('tank hot enough'). Without `due` the plan waits. The cause: the due rule started early a
+    charge planned for 14:15, whose target was for the tank after a 14:00 draw. Fixed 23 Nov: a due
+    charge starts early only if the tank now is under its target (`hotwater-planner.ts` `dueNow`,
+    test "a due charge does not start early…"). The probe now waits; the replay is unchanged
+    (13.72 kr/day), as the lever dropped these starts anyway.
+    Stop raises: none in the 14–20 Nov replay (`--no-extend` gives the same result) and none in the app logs 21–23 Nov. No cap by fill is needed now. If a raise shows up
     in the log ("running charge raised"), score it with the replay's raised-kWh line.
 4.2 **Open (no run yet).** Measure the real legionella runs (immersion kWh from 1069, produced, kr) before any change.
     Only then price options with the replay: target, and timing after a big draw (which would need
