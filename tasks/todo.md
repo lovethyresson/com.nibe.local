@@ -147,6 +147,9 @@ from surplus.
   boost reaching 65 °C.
 - [ ] Slice 5: docs and FAQ are written; README has no Autopilot mention and `docs/releases.md` no
   row yet (both at release).
+- [ ] At release: the store tagline (`.homeycompose/app.json` `description`, six languages) to name
+  Autopilot, e.g. "Your heat pump on Autopilot" (owner's idea, 2026-11-23; "home" overclaims: it runs
+  the heat pump). Together with README and store screenshots showing the ring mark beside the word.
 - [ ] H0 (no writes, in shadow): 1028 at 5-min for a week. No record here of it being read.
 - [x] H1 skipped (maintainer, 2026-11-08; docs/autopilot-hot-water.md §5).
 - [ ] H3: Autopilot live 7 days with the Flow off, real kr against the Flow's week.
