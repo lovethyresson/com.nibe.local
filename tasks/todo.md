@@ -151,6 +151,11 @@ from surplus.
 - [x] H1 skipped (maintainer, 2026-11-08; docs/autopilot-hot-water.md §5).
 - [ ] H3: Autopilot live 7 days with the Flow off, real kr against the Flow's week.
 - [ ] Exit: back-test >= 10 % better than the Flow over 14 days, no floor violations; litres at peaks within +-50 L on >= 80 % of days
+  - 23 Nov, 8 days (8–20 Nov), `dev/evaluate-hot-water.mjs`: 14.15 kr/day against the Flow's 23.84 (41 %
+    better); 6 replay slots under the minimum, each caught by a top-up, against 3 for hindsight (the
+    hourly draws land in each hour's first slot, so hindsight dips too); litres at the peak hour
+    within ±50 L on 5 of 6 scorable days (83 %). Needs 14 days (about 28 Nov) and a reading of
+    "no floor violations" that allows what hindsight itself does.
 
 ## Autopilot slice 5: live BT1 test build (5a built 2026-11-07; 5b superseded)
 

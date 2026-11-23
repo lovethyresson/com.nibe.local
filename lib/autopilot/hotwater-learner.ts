@@ -113,7 +113,38 @@ export interface HotwaterModel {
     /** Working-day evenings per weekday (1 = Monday … 5 = Friday): a challenger to the day type's
      *  evening, logged but not planned with until a replay shows it pays (plan step 5.1). */
     evenings?: Partial<Record<number, WeekdayEvening>>;
+    /** Days whose morning and evening were both read, newest last: what the morning-state
+     *  (plan step 5.2) and days-like-today (5.3) challengers forecast the evening from. */
+    eveDays?: EveDay[];
 }
+
+/** One day's hourly draws for the evening challengers. */
+export interface EveDay {
+    date: string;
+    dayType?: DayType;
+    /** Age weight at learning. */
+    w: number;
+    /** kWh heat drawn per local hour. */
+    hours: number[];
+}
+
+/** An evening forecast with what it rests on: weighted days of its own, mean and P80, kWh. */
+export interface EveningGuess {
+    days: number;
+    mean: number;
+    p80: number;
+}
+
+/** Local hours of "the morning" for the morning-state challenger, [from, to). */
+export const MORNING_FROM = 5;
+export const MORNING_TO = 9;
+/** A morning that drew at least this many litres of 40 °C water is a "high" morning (5.2). */
+export const HIGH_MORNING_LITRES = 80;
+/** A state, or a set of like days, leans on the day type's evening until it has this many
+ *  (weighted) days of its own. */
+const STATE_SHRINK = 6;
+/** Days-like-today: how many of the nearest days. */
+export const SIMILAR_K = 5;
 
 /** Local hours of "the evening", [from, to). */
 export const EVENING_FROM = 16;
@@ -585,23 +616,97 @@ export function learn(points: TankPoint[], clock: LocalClock, now: number, halfL
         draw: Math.round(d.draw * 100) / 100, ...(d.dayType ? {dayType: d.dayType} : {}),
         ...(away.includes(d) ? {away: true} : {}),
         ...(d.hoursCovered < FULL_DAY_HOURS ? {partial: Math.round(d.hoursCovered * 10) / 10} : {})}));
-    return {loss, charge, profiles, away: away.map((d) => d.date), days: all.length, recent, ...evenings ? {evenings} : {}};
+    const r2 = (v: number) => Math.round(v * 100) / 100;
+    const eveDays = shapeDays.filter((d) => d.date < today && dayKnown(d))
+        .map((d): EveDay => ({date: d.date, ...d.dayType ? {dayType: d.dayType} : {}, w: r2(weight(d)), hours: d.byHour!.map(r2)}));
+    return {loss, charge, profiles, away: away.map((d) => d.date), days: all.length, recent, ...evenings ? {evenings} : {},
+        ...eveDays.length ? {eveDays} : {}};
+}
+
+const sumHours = (h: number[], from: number, to: number) => h.slice(from, to).reduce((a, b) => a + b, 0);
+
+/** Weighted mean and P80 of `values`, shrunk toward `ref` until the weights reach STATE_SHRINK. */
+function shrunk(values: number[], weights: number[], ref: {mean: number; p80: number}): EveningGuess {
+    const n = weights.reduce((a, b) => a + b, 0), k = Math.max(0, STATE_SHRINK - n);
+    const mean = n > 0 ? values.reduce((s, v, j) => s + v * weights[j], 0) / n : ref.mean;
+    const p80 = n > 0 ? weightedQuantile(values, weights, 0.8) : ref.p80;
+    const r = (v: number) => Math.round(v * 100) / 100;
+    return {days: r(n), mean: r((mean * n + ref.mean * k) / (n + k)), p80: r((p80 * n + ref.p80 * k) / (n + k))};
+}
+
+/** The evening of the days of `dayType` with every evening hour read, as the reference both
+ *  challengers lean on. */
+function eveningRef(days: EveDay[]): {mean: number; p80: number} | undefined {
+    if (!days.length) return undefined;
+    const v = days.map((d) => sumHours(d.hours, EVENING_FROM, EVENING_TO)), w = days.map((d) => d.w);
+    const n = w.reduce((a, b) => a + b, 0);
+    return {mean: v.reduce((s, x, j) => s + x * w[j], 0) / n, p80: weightedQuantile(v, w, 0.8)};
+}
+
+const sameType = (model: HotwaterModel, dayType: DayType | undefined) =>
+    (model.eveDays ?? []).filter((d) => (d.dayType ?? 'working') === (dayType ?? 'working'));
+
+/** Whether a morning (kWh drawn MORNING_FROM–MORNING_TO) counts as high. */
+export const highMorning = (kwh: number) => kwh >= HIGH_MORNING_LITRES * KWH_PER_LITRE;
+
+/** Plan step 5.2, a challenger: the evening of days of the same type whose morning was in the
+ *  same state (high or not), shrunk toward all of that type's evenings. Undefined without days. */
+export function morningEvening(model: HotwaterModel, dayType: DayType | undefined, morningKwh: number):
+    (EveningGuess & {high: boolean}) | undefined {
+    const all = sameType(model, dayType), ref = eveningRef(all);
+    if (!ref) return undefined;
+    const high = highMorning(morningKwh);
+    const own = all.filter((d) => highMorning(sumHours(d.hours, MORNING_FROM, MORNING_TO)) === high);
+    return {high, ...shrunk(own.map((d) => sumHours(d.hours, EVENING_FROM, EVENING_TO)), own.map((d) => d.w), ref)};
+}
+
+/** Plan step 5.3, a challenger: the evening of the SIMILAR_K days of the same type whose hours
+ *  before `hour` drew most like today's (`soFar`, kWh per local hour), nearer days weighing more,
+ *  shrunk toward all of that type's evenings. Undefined without days. */
+export function similarEvening(model: HotwaterModel, dayType: DayType | undefined, soFar: number[], hour: number):
+    EveningGuess | undefined {
+    const all = sameType(model, dayType), ref = eveningRef(all);
+    if (!ref) return undefined;
+    const to = Math.min(hour, EVENING_FROM);
+    const dist = (d: EveDay) => d.hours.slice(0, to).reduce((s, v, h) => s + Math.abs(v - (soFar[h] ?? 0)), 0);
+    const near = all.map((d) => ({d, dist: dist(d)})).sort((a, b) => a.dist - b.dist).slice(0, SIMILAR_K);
+    // Each a full day at distance 0, half a day at the distance of one typical evening.
+    const scale = Math.max(0.5, ref.mean);
+    return shrunk(near.map((x) => sumHours(x.d.hours, EVENING_FROM, EVENING_TO)),
+        near.map((x) => x.d.w / (1 + x.dist / scale)), ref);
+}
+
+/** kWh heat drawn per local hour of `date` so far, from the readings: what the challengers match
+ *  against. An hour not knowable reads 0. */
+export function drawsByHour(points: TankPoint[], model: HotwaterModel, date: string, clock: LocalClock): number[] {
+    const out = new Array(24).fill(0);
+    for (const i of intervals(points, model.loss, model.charge)) {
+        if (!(i.hours <= 1.01) || !Number.isFinite(i.draw)) continue;
+        const c = clock(i.start + i.hours * HOUR / 2);
+        if (c.date === date) out[c.hour] += i.draw;
+    }
+    return out;
 }
 
 /** The weekday of a local date, 0 = Sunday. */
 export const weekdayOf = (date: string) => new Date(`${date}T12:00:00Z`).getUTCDay();
 
+/** Each evening hour read, or cold after a draw emptied the tank earlier that evening: such an
+ *  evening counts with its draw at least, rather than being left out as the busy evenings were.
+ *  A tank cold from before the evening is unmet demand, not a light evening: left out. */
+function eveningKnown(d: Day): boolean {
+    if (!d.byHour || !d.known) return false;
+    const first = Math.min(...(d.emptied ?? []).filter((h) => h >= EVENING_FROM && h < EVENING_TO));
+    return d.known.slice(EVENING_FROM, EVENING_TO).every((k, j) =>
+        k >= KNOWN_HOUR || (EVENING_FROM + j > first && (d.cold?.[EVENING_FROM + j] ?? 0) + k >= KNOWN_HOUR));
+}
+
+/** Every hour before the evening read: what the challengers match today against. */
+const dayKnown = (d: Day) => eveningKnown(d) && d.known!.slice(0, EVENING_FROM).every((k) => k >= KNOWN_HOUR);
+
 /** Per weekday, the evening draw of working days whose every evening hour was read. */
 function weekdayEvenings(days: Day[], weight: (d: Day) => number, busy: number[] = []): HotwaterModel['evenings'] {
-    // Each evening hour read, or cold after a draw emptied the tank earlier that evening: such an
-    // evening counts with its draw at least, rather than being left out as the busy evenings were.
-    // A tank cold from before the evening is unmet demand, not a light evening: left out.
-    const known = days.filter((d) => {
-        if (!d.byHour || !d.known) return false;
-        const first = Math.min(...(d.emptied ?? []).filter((h) => h >= EVENING_FROM && h < EVENING_TO));
-        return d.known.slice(EVENING_FROM, EVENING_TO).every((k, j) =>
-            k >= KNOWN_HOUR || (EVENING_FROM + j > first && (d.cold?.[EVENING_FROM + j] ?? 0) + k >= KNOWN_HOUR));
-    });
+    const known = days.filter(eveningKnown);
     if (!known.length) return undefined;
     const evening = (d: Day) => d.byHour!.slice(EVENING_FROM, EVENING_TO).reduce((a, b) => a + b, 0);
     const all = known.map((d) => [evening(d), weight(d)] as const);

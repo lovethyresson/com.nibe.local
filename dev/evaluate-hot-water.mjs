@@ -10,7 +10,7 @@
 //   node --import tsx dev/evaluate-hot-water.mjs --insights <dir> --prices <dir> [--day-types <file>]
 //        [--tz Europe/Stockholm] [--reserve 40] [--max <°C>] [--large-stop 50] [--large-mode]
 //        [--litres 175] [--inlet 10]
-//        [--spread] [--no-extend] [--probe <local time>,<litres>,<top>[,today][,due]] [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--formula "(x+0.609)*1.25"]
+//        [--spread] [--no-extend] [--evening base|weekday|morning|similar] [--probe <local time>,<litres>,<top>[,today][,due]] [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--formula "(x+0.609)*1.25"]
 //
 // <dir> for --insights is what `dev/learn-hot-water.mjs --save <dir>` writes. --prices holds one
 // Homey Energy `fetch-dynamic-electricity-prices` answer per day (`YYYY-MM-DD.json`).
@@ -27,7 +27,7 @@
 
 import {readFileSync, readdirSync} from 'fs';
 import {join} from 'path';
-import {intervals, learn, localClock, profileFor} from '../lib/autopilot/hotwater-learner.ts';
+import {EVENING_FROM, EVENING_TO, MORNING_FROM, MORNING_TO, intervals, learn, localClock, morningEvening, profileFor, similarEvening, weekdayOf} from '../lib/autopilot/hotwater-learner.ts';
 import {pointsFromInsights, RESOLUTIONS} from '../lib/autopilot/hotwater-insights.ts';
 import {chargeRate, copAt} from '../lib/autopilot/hotwater-learner.ts';
 import {SLOT_H, drawsFor, heatAt, plan, reserveKwh, tempOf} from '../lib/autopilot/hotwater-planner.ts';
@@ -169,6 +169,47 @@ function hindsight() {
     };
 }
 
+// Evening challengers (plan steps 5.1–5.3): --evening weekday|morning|similar plans today's
+// evening (16–23) with the challenger's forecast instead of the day type's; the rest of the day
+// and tomorrow keep the day type's. Morning and similar need the day so far: from 09:00, with
+// today's real draws up to the hour. A synthetic day type 'today' carries the changed profile.
+const eveningMethod = flag('evening', 'base');
+/** kWh drawn per local hour of `day` (its first slot), from the truth. */
+const dayHours = (day) => Array.from({length: 24}, (_, h) => [0, 1, 2, 3].reduce((x, q) => x + (drawBySlot.get(day + 4 * h + q) ?? 0), 0));
+const sumH = (a, from, to) => a.slice(from, to).reduce((x, y) => x + y, 0);
+/** A challenger's evening at `hour` of `day`, or undefined (then the day type's). */
+function challenger(method, model, day, hour, dt) {
+    if (method === 'weekday') {
+        const w = dt === 'working' ? model.evenings?.[weekdayOf(clock(day * SLOT).date)] : undefined;
+        return w && {mean: w.mean, p80: w.p80, days: w.days};
+    }
+    if (hour < MORNING_TO) return undefined;
+    const soFar = dayHours(day).map((v, h) => (h < hour ? v : 0));
+    if (method === 'morning') return morningEvening(model, dt, sumH(soFar, MORNING_FROM, MORNING_TO));
+    if (method === 'similar') return similarEvening(model, dt, soFar, hour);
+    return undefined;
+}
+const challenged = new Map();
+/** The model and day-type function slot `s` plans with under --evening. */
+function eveningInput(s) {
+    const model = modelFor(s);
+    if (eveningMethod === 'base') return {model, dayTypeOf: dayType};
+    const day = days.findLast((d) => d <= s), hour = Math.floor((s - day) / 4), key = `${day}:${hour}`;
+    if (!challenged.has(key)) {
+        const dt = dayType(day * SLOT), p = profileFor(model, dt), c = p && challenger(eveningMethod, model, day, hour, dt);
+        let out = {model, dayTypeOf: dayType};
+        if (c) {
+            const base = sumH(p.hours, EVENING_FROM, EVENING_TO), baseP80 = sumH(p.p80, EVENING_FROM, EVENING_TO);
+            const scale = (a, to, from) => a.map((v, h) => (h >= EVENING_FROM && h < EVENING_TO ? (from > 0 ? v * to / from : to / (EVENING_TO - EVENING_FROM)) : v));
+            const today = {...p, hours: scale(p.hours, c.mean, base), p80: scale(p.p80, c.p80, baseP80)};
+            out = {model: {...model, profiles: {...model.profiles, today}},
+                dayTypeOf: (ms) => (ms >= day * SLOT && ms < (day + 96) * SLOT ? 'today' : dayType(ms))};
+        }
+        challenged.set(key, out);
+    }
+    return challenged.get(key);
+}
+
 /** Autopilot as live runs it, slot by slot: the start decision (`autopilotCharge`), the lever with
  *  the day's caps (`leverDecision`: 3 starts, 5 for a rescue, 3 stop writes, never 62 in Large
  *  mode), a running charge raised mid-charge (`extendTarget`), and the plan's next run passed on as
@@ -176,12 +217,13 @@ function hindsight() {
 function simulateLive() {
     let stored, target, base, largeStopC = largeStart, count, dueAt, extended = false;
     let cost = 0, el = 0, charges = 0, targets = 0, below = 0, runSlots = 0, dearEl = 0, rescues = 0, refused = 0, stopWrites = 0, raises = 0, raisedE = 0, raisedKr = 0;
+    const belowSlots = [], peaks = new Map();
     const perDay = new Map(days.map((d) => [d, {kr: 0, kwh: 0}]));
     for (const [k, day] of days.entries()) for (let s = day; s < day + 96; s++) {
         if (s === day && afterGap(day, k)) { stored = storedAt(day); target = dueAt = undefined; }
         const at = s * SLOT, date = clock(at).date;
         count = countFor(count, date);
-        const input = {slot: s, prices: knownAt(s), model: modelFor(s), tank, clock, dayType: dayType(at), dayTypeOf: dayType,
+        const input = {slot: s, prices: knownAt(s), ...eveningInput(s), tank, clock, dayType: dayType(at),
             reserveLitres, maxC, dueAt,
             now: {litres: stored / KWH_PER_LITRE, top: tempOf(tank, stored), powerW: target !== undefined ? 1000 : 0,
                 more: target !== undefined, largeStopC: target ?? largeStopC}};
@@ -204,6 +246,14 @@ function simulateLive() {
         }
         const step = hotwaterShadowStep(input);
         dueAt = 'entry' in step && step.entry.next ? Date.parse(step.entry.next.at) : undefined;
+        // The release gate's "litres at peaks": the 07:00 plan's tank at the start of the day's
+        // biggest draw hour, against the tank then.
+        if (s === day + 28 && 'entry' in step) {
+            const hours = dayHours(day), peak = hours.indexOf(Math.max(...hours));
+            if (peak > 7 && step.stored[(day + 4 * peak) - s] !== undefined)
+                peaks.set(day, {slot: day + 4 * peak, planned: step.stored[(day + 4 * peak) - s] / KWH_PER_LITRE});
+        }
+        if (peaks.get(day)?.slot === s) peaks.get(day).actual = stored / KWH_PER_LITRE;
         let e = 0;
         if (target !== undefined) {
             const slot = chargeSlot(stored, target);
@@ -219,11 +269,11 @@ function simulateLive() {
         el += e; cost += e * price.get(s);
         perDay.get(day).kr += e * price.get(s); perDay.get(day).kwh += e;
         stored = Math.max(0, stored - drawBySlot.get(s) - (loss.base + loss.perKwh * stored) * SLOT_H);
-        if (stored < reserve) below++;
+        if (stored < reserve) { below++; belowSlots.push(s); }
     }
     const n = days.length;
     return {krDay: cost / n, elDay: el / n, chargesDay: charges / n, meanTarget: charges ? targets / charges : NaN, below,
-        runH: charges ? runSlots * SLOT_H / charges : NaN, dear: el > 0 ? dearEl / el : NaN,
+        runH: charges ? runSlots * SLOT_H / charges : NaN, dear: el > 0 ? dearEl / el : NaN, belowSlots, peaks,
         rescues, refused, stopWrites, raises, raisedE, raisedKr, perDay};
 }
 
@@ -335,3 +385,47 @@ for (const day of days) {
 }
 const index = (map) => { let kr = 0, ref = 0; for (const day of days) { const x = map.get(day); kr += x.kr; ref += x.kwh * meanOf(day); } return kr / ref; };
 console.log(`Price index over all days: as it ran ${r(index(actualDays))}, Autopilot (replay) ${r(index(live.perDay))}, hindsight ${r(index(hind.perDay))}.`);
+
+// The 16:00 evening forecast against the evening drawn, per method (plan steps 5.1–5.3): mean
+// absolute error and how often the evening stayed under the P80 the floor plans for, kWh.
+console.log('\nEvening at 16:00 (kWh, 16–23): forecast against drawn');
+console.log('method'.padEnd(12) + 'days  mean abs error  mean bias  under P80  own days (mean)');
+for (const method of ['base', 'weekday', 'morning', 'similar']) {
+    let n = 0, err = 0, bias = 0, under = 0, own = 0;
+    for (const day of days) {
+        const model = modelFor(day), dt = dayType(day * SLOT), p = profileFor(model, dt);
+        if (!p || dt === 'away') continue;
+        const c = method === 'base' ? {mean: sumH(p.hours, EVENING_FROM, EVENING_TO), p80: sumH(p.p80, EVENING_FROM, EVENING_TO), days: p.days}
+            : challenger(method, model, day, EVENING_FROM, dt);
+        if (!c) continue;
+        const drawn = sumH(dayHours(day), EVENING_FROM, EVENING_TO);
+        n++; err += Math.abs(c.mean - drawn); bias += c.mean - drawn; under += drawn <= c.p80 ? 1 : 0; own += c.days ?? NaN;
+    }
+    console.log(method.padEnd(12) + String(n).padStart(4) + r(n ? err / n : NaN).padStart(16) + r(n ? bias / n : NaN).padStart(11)
+        + (n ? `${r(under / n * 100, 0)} %` : '–').padStart(11) + r(n ? own / n : NaN, 1).padStart(17));
+}
+
+// Plan step 6: the ready-by-evening floor pays only if big evenings run under the minimum on days
+// the afternoon (12–16) was cheaper than the evening (16–23). Each replayed slot under it, by day.
+console.log('\nUnder the minimum in the replay (step 6): slots, and afternoon against evening price');
+const byDay = new Map();
+for (const s of live.belowSlots) { const d = days.findLast((x) => x <= s); byDay.set(d, [...byDay.get(d) ?? [], s]); }
+const meanPrice = (day, from, to) => { let x = 0; for (let k = day + 4 * from; k < day + 4 * to; k++) x += price.get(k); return x / (4 * (to - from)); };
+if (!byDay.size) console.log('none');
+for (const [day, slots] of byDay) {
+    const hours = slots.map((s) => { const c = clock(s * SLOT); return `${String(c.hour).padStart(2, '0')}:${String(c.minute).padStart(2, '0')}`; });
+    const pm = meanPrice(day, 12, 16), eve = meanPrice(day, 16, 23);
+    console.log(`${clock(day * SLOT).date}  ${hours.join(' ')}  afternoon ${r(pm)} evening ${r(eve)}${pm < eve ? '  afternoon cheaper' : ''}`);
+}
+
+// Release gate (tasks/todo.md, hot water Exit): the tank at each day's biggest draw hour, as the
+// 07:00 plan had it against the replay, within ±50 L on at least 80 % of days.
+console.log('\nTank at the day\'s peak hour (07:00 plan against replay, L):');
+let within = 0, scored = 0;
+for (const [day, x] of live.peaks) {
+    if (x.actual === undefined) continue;
+    scored++; if (Math.abs(x.planned - x.actual) <= 50) within++;
+    const c = clock(x.slot * SLOT);
+    console.log(`${clock(day * SLOT).date} ${String(c.hour).padStart(2, '0')}:00  planned ${r(x.planned, 0).padStart(4)}  replay ${r(x.actual, 0).padStart(4)}  ${Math.abs(x.planned - x.actual) <= 50 ? 'within' : 'off'}`);
+}
+console.log(`Within ±50 L on ${within} of ${scored} days${scored ? ` (${r(within / scored * 100, 0)} %, gate 80 %)` : ''}.`);

@@ -76,6 +76,9 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
 - **So step 4.1 was where the money is:** one day like 15 Nov costs as much as two weeks of the
   planner's gap to hindsight. Done 23 Nov: its causes were fixed on 15 Nov (Step 4).
 - **Done:**
+  - Every forecast under-reads the evening: the day type's evening at 16:00 was 1.5 kWh (about 43 L) under
+    what was drawn on average, and the evening stayed under its P80 on 63 % of days, not 80 %
+    (replay, 8–20 Nov). Worth a look once more days are in: the P80 is what the floor plans for.
   - 4.1: the 15 Nov run was a planned start on a full tank; fixed on 15 Nov, checked with `--probe`.
   - 2: a rescue may use 5 starts a day (`MAX_RESCUE_STARTS_PER_DAY`), `leverDecision` takes
     `{belowK, rescue}`, a refused rescue is its own skip ('rescue limit'), a device warning cleared
@@ -114,7 +117,7 @@ code and data. Evidence and scripts: scratchpad `hwa/`.
 - **4:** Insights cannot say who started Sun 15's run (697 has no log; the charge events kept two
   days are gone). The new slot context logs 697 and both stops, so a recurrence is identifiable.
   No legionella run yet. No change made: `extendTarget` is still capped by `maxC` only.
-- **Open:** 5.2, 5.3, 6, 7. Dropped: 4.2 (the owner's to set; see Step 4). The slot-by-slot diff against the live log (1.3) still waits on
+- **Open:** 7. Waiting on days: 5.1, 5.2, 5.3 (challengers, logged), 6 (replay check). 5.0's prefill waits on the mock. Dropped: 4.2 (the owner's to set; see Step 4). The slot-by-slot diff against the live log (1.3) still waits on
   lines with context: the log restarted with the new Homey, and its 105 lines with context are
   under one price horizon, so none is replayable yet.
 - **Waiting on an install:** the replay against live needs lines with context; the challenger
@@ -224,6 +227,10 @@ All done (17d0914, fc17256): `MAX_RESCUE_STARTS_PER_DAY` = 5, about 1,800 writes
 ## Step 5 — a forecast that knows this household's week
 
 5.0 **Done (2f551d1), except the prefill from learned values and the per-answer reason lines.**
+    Mock made 23 Nov, waiting on approval: each answer prefilled from what was learned, with one
+    line under it stating the measured fact ("Learned over 18 working days: about 70 L in the
+    morning and 140 L in the evening."). The lines state facts only, never "so more is planned":
+    the per-weekday evening is not planned with yet.
     Setup: a better starting point, and why it matters. Today Hot water setup asks people,
     morning hour and the busiest time on a day off, and only while history is short. Change it to:
     - Say what the answers do, in one line each, in standard UI phrasing: Autopilot starts from
@@ -242,18 +249,32 @@ All done (17d0914, fc17256): `MAX_RESCUE_STARTS_PER_DAY` = 5, about 1,800 writes
     - Each answer gives a one-line reason the owner can check: "Tuesday is a busy evening, so more
       is planned." Once learning has taken over, the reason names the learning instead.
     Mock first (light and dark, Homey's real CSS); six languages; "heat hot water" wording.
-5.1 **Logged as a challenger, not planned with (b405d3b, 2f551d1).** Per-weekday evening: learn the evening draw per weekday (mean and P80), shrunk toward the day
+5.1 **Logged as a challenger, not planned with (b405d3b, 2f551d1).** Replay `--evening weekday`
+    (23 Nov, 8 days, under a day of its own per weekday): 14.26 kr/day against 14.15, 16:00 error
+    5.22 kWh on its 4 working days. No case yet. Per-weekday evening: learn the evening draw per weekday (mean and P80), shrunk toward the day
     type's evening until a weekday has about 6 labelled days of its own, starting from the setup
     answer. Weekdays without a label before 10 Nov count only as the proxy, weighted down.
     Reason: "Tuesday evenings usually use more."
-5.2 **Open.** One yes/no feature: did the morning (05–09) draw reach about 80 L? Forecast the evening from
+5.2 **Built as a challenger, logged, not planned with (23 Nov).** `morningEvening` in
+    `hotwater-learner.ts`; live writes it at 16:00 into the day record (`late.morn`), beside the day
+    type's evening (`late.base`). Replay: `evaluate-hot-water.mjs --evening morning`. First read,
+    8 days (8–20 Nov) with about 2 days per state of its own: 14.13 kr/day against 14.15 for the
+    day type's evening, 7 slots under the minimum against 6; its 16:00 forecast is off by 4.22 kWh
+    against 3.92 for the day type's (mean absolute error), and the evening stayed under its P80 on 71 % of days against
+    63 %. Too few days to tell; it waits for about 6 days per state, as planned.
+    Original text: One yes/no feature: did the morning (05–09) draw reach about 80 L? Forecast the evening from
     days in the same state (mean and P80), shrunk toward the unconditional profile, falling back to
     it below about 6 days per state. Hourly Insights are enough for the feature; the wait is for
     the state counts. One-line reason from the measured fact, not an inference: "More hot water was
     used this morning, so less is planned tonight." Gate: paired replay and safety metrics.
     A first look is mixed: in the week of 16 Nov low mornings came before big evenings and high
     ones before small; the week before showed no pattern. The state counts decide.
-5.3 **Open.** "Days like today" (k nearest days on draws so far, same day type and weekday), once 1.1 holds
+5.3 **Built as a challenger, logged, not planned with (23 Nov).** `similarEvening` (5 nearest
+    days of the same type on the hours so far, nearer days weighing more, shrunk toward the type's
+    evening); live writes it at 16:00 (`late.similar`). Replay `--evening similar`: 14.14 kr/day,
+    7 slots under the minimum, 16:00 error 4.38 kWh, 57 % under P80. Same verdict as 5.2: too
+    little history.
+    Original text: "Days like today" (k nearest days on draws so far, same day type and weekday), once 1.1 holds
     enough 15-minute days per weekday. Built as a challenger: it runs in the replay against 5.1 and
     5.2 and replaces them only if it beats both on cost and safety. Its owner reason is the plan's
     own ("Planned for a usual Tuesday evening"), never "days like today". Too little 15-minute
@@ -261,7 +282,11 @@ All done (17d0914, fc17256): `MAX_RESCUE_STARTS_PER_DAY` = 5, about 1,800 writes
 
 ## Step 6 — only if the replay shows it pays
 
-6.1 **Open.** Ready-by-evening floor: "by 17:00, stored ≥ floor + P85 of the evening" as a time-tied soft
+6.1 **Not now (23 Nov): the replay shows no case for it.** Replay 8–20 Nov, slots under the
+    minimum in the evening: 15 Nov 18:30 (afternoon cheaper), 17 Nov 18:30 and 19 Nov 17:30
+    (afternoon dearer both). One slot each, each caught by a top-up, and one of three on a day the
+    afternoon was cheaper. Rerun the replay's "Under the minimum" table when more days are in.
+    Original text: Ready-by-evening floor: "by 17:00, stored ≥ floor + P85 of the evening" as a time-tied soft
     floor in `below()`, so the planner picks the cheapest slot of the whole day with COP and holding
     included. Reason: "Ready for a busy evening by 17:00". Only if the replay shows big-evening
     misses on days when the afternoon is cheaper than the evening (this week it was not).

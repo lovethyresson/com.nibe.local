@@ -11,12 +11,12 @@ import {withApi} from '../indoor-sensors';
 import {DayPrices, PriceSlot, SLOT_MS, localDate, nextPriceFetchMs, slotOf} from './prices';
 import {pricesFor} from '../gateway-prices';
 import {PRIORITY} from '../gateway';
-import {DayDraw, DayProfile, DayType, EVENING_FROM, EVENING_TO, HotwaterModel, Household, KWH_PER_LITRE, LocalClock, TankPoint, chargeRate, intervals, learn, localClock, lossAt, profileFor, weekdayOf} from './hotwater-learner';
+import {DayDraw, DayProfile, DayType, EVENING_FROM, EVENING_TO, HotwaterModel, Household, KWH_PER_LITRE, LocalClock, MORNING_FROM, MORNING_TO, TankPoint, chargeRate, drawsByHour, intervals, learn, localClock, lossAt, morningEvening, profileFor, similarEvening, weekdayOf} from './hotwater-learner';
 import {TankCapabilities, fetchTankInsights, pointsFromInsights} from './hotwater-insights';
 import {DEFAULT_RESERVE_LITRES, EARLY_DRAW_HOURS, MIN_CHARGE_KWH, Plan, SLOT_H, TankSpec, creditEarly, drawsFor, heatAt, plan, plannedHours, reserveKwh} from './hotwater-planner';
 import {preheatAdders} from './orchestrator';
 import {appendLine, daysLogName, deleteHistory, loadJson, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
-import {DAYS_KEPT, DayAcc, EveningForecast, daySample} from './hotwater-days';
+import {DAYS_KEPT, DayAcc, EveningForecast, LateEvening, daySample} from './hotwater-days';
 import {DayTypeState, dayTypeAt} from './day-type';
 import {DEMAND_LARGE, MAX_RESCUE_STARTS_PER_DAY, MAX_STOP_WRITES_PER_DAY, PumpFacts, countFor, leverDecision} from './hotwater-lever';
 import {BOOST_HOURS, LegionellaState, NOTE_EVERY_MS, REACHED_K, legionellaStep, noteTop, readState} from './legionella';
@@ -811,6 +811,18 @@ const BLOCKED: Partial<Record<string, string>> = {'hot water off': 'hot_water_of
     // water until midnight: the owner hears it.
     'rescue limit': 'rescue_limit'};
 
+/** The evening at 16:00: the day type's, and the challengers that need the day so far (plan steps
+ *  5.2 and 5.3), from today's draws per local hour. Undefined without a profile. Pure. */
+export function lateEvening(model: HotwaterModel, dayType: DayType | undefined, today: number[]): LateEvening | undefined {
+    const p = profileFor(model, dayType);
+    if (!p) return undefined;
+    const sum = (a: number[], from: number, to: number) => round(a.slice(from, to).reduce((x, y) => x + y, 0));
+    const morning = sum(today, MORNING_FROM, MORNING_TO);
+    const morn = morningEvening(model, dayType, morning), similar = similarEvening(model, dayType, today, EVENING_FROM);
+    return {morning, base: sum(p.hours, EVENING_FROM, EVENING_TO), baseP80: sum(p.p80, EVENING_FROM, EVENING_TO),
+        ...morn ? {morn} : {}, ...similar ? {similar} : {}};
+}
+
 /** The working-day evening the plan uses, and the per-weekday challenger's (plan step 5.1). */
 export function eveningForecast(model: HotwaterModel, weekday: number): EveningForecast | undefined {
     const p = model.profiles.working ?? model.profiles.any, w = model.evenings?.[weekday];
@@ -1298,6 +1310,10 @@ export class HotwaterAutopilot {
         if (!acc.eve && hour >= DAILY_HOUR && input.dayType === 'working' && this.model) {
             const eve = eveningForecast(this.model, weekdayOf(date));
             if (eve) acc.eve = eve;
+        }
+        if (!acc.late && hour >= EVENING_FROM && input.dayType !== 'away' && this.model) {
+            const late = lateEvening(this.model, input.dayType, drawsByHour(this.history, this.model, date, input.clock));
+            if (late) acc.late = late;
         }
         if (!done) return;
         const name = daysLogName(this.fileName);

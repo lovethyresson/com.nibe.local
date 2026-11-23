@@ -2,7 +2,9 @@ import {test} from 'node:test';
 import assert from 'node:assert';
 import {
     DEFAULT_LOSS, KWH_PER_LITRE, TankPoint, chargeRate, readHousehold, starterProfiles, intervals, learn, learnCharge, learnLoss, localClock, lossAt, profileFor,
+    drawsByHour, morningEvening, similarEvening,
 } from '../lib/autopilot/hotwater-learner';
+import {lateEvening} from '../lib/autopilot/hotwater-shadow';
 import {fetchTankInsights, pointsFromInsights, RESOLUTIONS} from '../lib/autopilot/hotwater-insights';
 
 const near = (actual: number, expected: number, tolerance: number, what: string) =>
@@ -223,6 +225,54 @@ test('a tank cold from before the evening is unmet demand: that evening is left 
     const ev = learn(points, clock, points[points.length - 1].t).evenings!;
     assert.strictEqual(ev[4]!.days, 0, 'no Thursday evening of its own');
     assert.ok(Math.abs(ev[4]!.mean - ev[1]!.mean) < 0.5, `leans on the working evening: ${ev[4]!.mean} vs ${ev[1]!.mean}`);
+});
+
+test('morning state (5.2): a big morning foretells a small evening once each state has days', () => {
+    // Every day a working day; odd days shower big in the morning (about 92 L) and light at night.
+    const big = (day: number) => day % 2 === 1;
+    const draw = (day: number, hour: number) => hour === 6 ? (big(day) ? 3.2 : 1)
+        : hour === 19 || hour === 20 ? (big(day) ? 0.5 : 2) : 0;
+    const kind = {dayType: () => 'working' as const};
+    const long = simulate(40, draw, kind);
+    const model = learn(long, clock, long[long.length - 1].t);
+    const high = morningEvening(model, 'working', 3.2)!, low = morningEvening(model, 'working', 1)!;
+    assert.ok(high.high && !low.high);
+    assert.ok(high.days >= 6 && low.days >= 6, `days ${high.days}, ${low.days}`);
+    near(high.mean, 1, 0.4, 'after a big morning');
+    near(low.mean, 4, 0.6, 'after a light morning');
+    const short = simulate(5, draw, kind);
+    const young = learn(short, clock, short[short.length - 1].t);
+    const yh = morningEvening(young, 'working', 3.2)!, yl = morningEvening(young, 'working', 1)!;
+    assert.ok(yl.mean - yh.mean < low.mean - high.mean, 'with few days each state leans on the day type');
+    assert.strictEqual(morningEvening(young, 'free', 1), undefined, 'no free days: nothing to say');
+});
+
+test('days like today (5.3): the evening of days that drew like today so far', () => {
+    // Two kinds of working day: a morning shower and a light evening, or a midday bath and a big evening.
+    const midday = (day: number) => day % 3 === 0;
+    const draw = (day: number, hour: number) => midday(day)
+        ? (hour === 12 ? 2.5 : hour >= 18 && hour <= 20 ? 1.5 : 0)
+        : (hour === 6 ? 1.6 : hour === 19 ? 0.8 : 0);
+    const points = simulate(30, draw, {dayType: () => 'working'});
+    const model = learn(points, clock, points[points.length - 1].t);
+    const today = (d: number) => Array.from({length: 24}, (_, h) => draw(d, h));
+    const likeMidday = similarEvening(model, 'working', today(0), 16)!, likeMorning = similarEvening(model, 'working', today(1), 16)!;
+    // Five days at most, shrunk toward all working evenings: apart, not all the way to 4.5 and 0.8.
+    assert.ok(likeMidday.mean - likeMorning.mean > 1, `midday-like ${likeMidday.mean} vs morning-like ${likeMorning.mean}`);
+    assert.ok(likeMidday.days < 6, `at most ${likeMidday.days} days of its own`);
+});
+
+test('the 16:00 evening record reads today from the tank and carries both challengers', () => {
+    const draw = (day: number, hour: number) => hour === 6 ? 3.2 : hour === 19 ? 1 : 0;
+    const points = simulate(12, draw, {dayType: () => 'working'});
+    const model = learn(points, clock, points[points.length - 1].t);
+    const date = clock(points[points.length - 1].t - 8 * HOUR).date;
+    const today = drawsByHour(points, model, date, clock);
+    near(today[6], 3.2, 0.4, 'the morning shower read back');
+    const late = lateEvening(model, 'working', today)!;
+    assert.ok(late.morn?.high, 'a high morning');
+    assert.ok(late.similar && late.similar.days > 0);
+    near(late.base, 1, 0.4, 'the day type\'s evening');
 });
 
 test('litres 0 with the top still hot is a bad reading, not an emptied tank', () => {
