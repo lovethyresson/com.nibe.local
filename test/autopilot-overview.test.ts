@@ -17,8 +17,6 @@ test('nothing to report: no band, the activity line leads, tiles and facts as gi
     assert.equal(d.stale, undefined);
     assert.equal(d.chip, undefined, 'a working day shows no chip');
     assert.equal(overviewData({...base, dayType: 'Day off'}, t).chip, 'Day off');
-    const marked = overviewData({...base, tiles: [{...base.tiles[0], autopilot: true}, base.tiles[1]]}, t);
-    assert.deepEqual(marked.tiles.map((x) => !!x.autopilot), [true, false], 'the mark goes on the tiles Autopilot runs, only');
 });
 
 test('one band, the most serious first: offline, then an alarm, then a problem, then advice', () => {

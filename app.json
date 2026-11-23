@@ -8707,7 +8707,7 @@
         "da": ""
       },
       "insights": false,
-      "icon": "/assets/images/time.svg"
+      "icon": "/assets/images/autopilot.svg"
     },
     "autopilot_shift_NIBE": {
       "type": "number",
@@ -8817,7 +8817,7 @@
       "setable": false,
       "uiComponent": null,
       "insights": true,
-      "icon": "/assets/images/time.svg"
+      "icon": "/assets/images/autopilot.svg"
     },
     "boolean_NIBE": {
       "type": "boolean",

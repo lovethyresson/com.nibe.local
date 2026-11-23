@@ -32,35 +32,6 @@
         :root:not([data-theme="light"]) { --gs-good: #30d158; --gs-line: #f0954f; --gs-target: #6ea0ff; --gs-off: #3a3a3c; }
       }
     </style>
-      <!-- autopilot-mark:start (identical in every widget; test/widget-autopilot-mark.test.ts) -->
-    <style>
-      /* Autopilot's mark: a gradient ring turning around a small sparkle (still under reduced motion). */
-      .ap-mark { position: relative; display: inline-block; flex: none; width: var(--s, 18px); height: var(--s, 18px); vertical-align: -0.2em; }
-      .ap-mark.lead { margin-right: 0.35em; }
-      .ap-mark .ring { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(#4f8cff, #8b5cf6, #ec4899, #f59e0b, #4f8cff);
-        -webkit-mask: radial-gradient(circle, transparent calc(var(--s, 18px) * 0.37), #000 calc(var(--s, 18px) * 0.39));
-        mask: radial-gradient(circle, transparent calc(var(--s, 18px) * 0.37), #000 calc(var(--s, 18px) * 0.39));
-        animation: ap-mark-spin 4s linear infinite; }
-      .ap-mark svg { position: absolute; left: 27%; top: 27%; width: 46%; height: 46%; }
-      @keyframes ap-mark-spin { to { transform: rotate(360deg); } }
-      @media (prefers-reduced-motion: reduce) { .ap-mark .ring { animation: none; } }
-    </style>
-    <script type="text/javascript">
-      var AP_MARK_N = 0;
-      /** Autopilot's mark, `size` px; `lead` puts space after it, before a heading's words. */
-      function apMark(size, lead) {
-        var id = 'ap-mark-g' + (AP_MARK_N++);
-        var s = document.createElement('span');
-        s.className = 'ap-mark' + (lead ? ' lead' : '');
-        s.style.setProperty('--s', size + 'px');
-        s.setAttribute('aria-hidden', 'true');
-        s.innerHTML = '<span class="ring"></span><svg viewBox="0 0 24 24"><defs><linearGradient id="' + id + '" x1="0" y1="0" x2="1" y2="1">'
-          + '<stop offset="0" stop-color="#4f8cff"/><stop offset=".55" stop-color="#8b5cf6"/><stop offset="1" stop-color="#ec4899"/></linearGradient></defs>'
-          + '<path d="M12 1Q13.4 10.6 23 12Q13.4 13.4 12 23Q10.6 13.4 1 12Q10.6 10.6 12 1Z" fill="url(#' + id + ')"/></svg>';
-        return s;
-      }
-    </script>
-    <!-- autopilot-mark:end -->
   </head>
 
   <body class="homey-widget">
@@ -147,7 +118,7 @@
         applyTheme();
         var root = document.getElementById('gs');
         root.replaceChildren();
-        var title = el('div', 'gs-title'); title.append(apMark(16, true), data.title || ''); root.appendChild(title);
+        root.appendChild(el('div', 'gs-title', data.title || ''));
         if (data.empty) { root.appendChild(el('p', 'gs-empty', data.empty)); return; }
         root.appendChild(steps(data.step, data.part));
         root.appendChild(el('div', 'gs-label', data.label));
