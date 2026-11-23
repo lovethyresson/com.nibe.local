@@ -1109,14 +1109,14 @@ export class HotwaterAutopilot {
     usage(): {recent: DayDraw[]; today: string; dayType?: DayType; expected?: number} | undefined {
         if (!this.model?.recent) return undefined;
         const dayType = dayTypeAt(this.hooks.dayType(), Date.now(), this.clock());
-    /** The model in force, for Hot water setup's learned answers. */
-    learnedModel(): HotwaterModel | undefined {
-        return this.model;
-    }
-
         const expected = profileFor(this.model, dayType)?.daily;
         return {recent: this.model.recent, today: this.clock()(Date.now()).date, dayType,
             expected: Number.isFinite(expected) ? expected : undefined};
+    }
+
+    /** The model in force, for Hot water setup's learned answers. */
+    learnedModel(): HotwaterModel | undefined {
+        return this.model;
     }
 
     /** Full days of tank history behind the model, once it has learned. */
