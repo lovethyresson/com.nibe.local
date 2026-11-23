@@ -576,35 +576,16 @@
   "Overcapacity": "Överkapacitet",
   "autopilot": {
     "hotwater_daily": {
-      "title": {
-        "any": "Varmvatten",
-        "working": "Varmvatten, en arbetsdag",
-        "free": "Varmvatten, en ledig dag",
-        "away": "Varmvatten, bortrest"
-      },
-      "use": "Du använder cirka __litres__ L i dag, upp till __p80__ L en dag med hög förbrukning.",
-      "away": "Bortrest. Bara miniminivån hålls varm.",
-      "tank": "Det finns __litres__ L varmvatten nu. Autopilot håller minst __reserve__ L.",
-      "tank_no_reserve": "Det finns __litres__ L varmvatten nu. Ingen miniminivå är inställd.",
-      "none": "Ingen uppvärmning behövs i dag.",
-      "charge": "Värmer __time__ till __target__ °C · __reason__",
-      "reason": {
-        "cheap": "Billigaste timmarna",
-        "surplus": "__share__ % från solel",
-        "reserve": "Under miniminivån",
-        "running": "Värmer redan",
-        "before_use": "I tid till förbrukningen",
-        "room": "Varmvattnet räcker till dess",
-        "loss": "Bästa tiden för ditt behov",
-        "legionella": "Legionella"
-      },
-      "cost": "Förväntad kostnad __cost__. Morgondagens priser har inte kommit än.",
       "shadow": "Simulerad. Inga ändringar görs i din värmepump.",
       "tomorrow": "i morgon kl. __time__",
-      "cost_tomorrow": "Förväntad kostnad __cost__.",
       "today": "kl. __time__",
-      "today_heading": "I dag:",
-      "tomorrow_bare": "i morgon __time__"
+      "tomorrow_bare": "i morgon __time__",
+      "brief": "Varmvatten i dag: värms __times__, cirka __cost__. __litres__ L nu.",
+      "brief_none": "Varmvatten i dag: ingen uppvärmning behövs. __litres__ L nu.",
+      "brief_away": "Varmvatten i dag: borta, bara minimimängden hålls varm. __litres__ L nu.",
+      "and": "och",
+      "off_plan_one": "Sedan i går morse värmdes det också en gång utanför planen.",
+      "off_plan_many": "Sedan i går morse värmdes det också __count__ gånger utanför planen."
     },
     "hotwater_charge": {
       "reason": {

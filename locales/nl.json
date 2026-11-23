@@ -576,35 +576,16 @@
   "Overcapacity": "Overcapaciteit",
   "autopilot": {
     "hotwater_daily": {
-      "title": {
-        "any": "Warm water",
-        "working": "Warm water, een werkdag",
-        "free": "Warm water, een vrije dag",
-        "away": "Warm water, afwezig"
-      },
-      "use": "Je gebruikt vandaag ongeveer __litres__ L, tot __p80__ L op een drukke dag.",
-      "away": "Afwezig. Alleen het minimum blijft warm.",
-      "tank": "Nu __litres__ L warm water. Autopilot houdt minstens __reserve__ L.",
-      "tank_no_reserve": "Nu __litres__ L warm water. Er is geen minimum ingesteld.",
-      "none": "Vandaag geen opwarming nodig.",
-      "charge": "Opwarmen __time__ tot __target__ °C · __reason__",
-      "reason": {
-        "cheap": "Goedkoopste uren",
-        "surplus": "__share__ % uit zonnestroom",
-        "reserve": "Onder het minimum",
-        "running": "Warmt al op",
-        "before_use": "Op tijd voor gebruik",
-        "room": "Genoeg warm water tot dan",
-        "loss": "Beste moment voor je gebruik",
-        "legionella": "Legionella"
-      },
-      "cost": "Verwachte kosten __cost__. De prijzen van morgen zijn er nog niet.",
       "shadow": "Gesimuleerd. Er is niets gewijzigd aan je warmtepomp.",
       "tomorrow": "morgen om __time__",
-      "cost_tomorrow": "Verwachte kosten __cost__.",
       "today": "om __time__",
-      "today_heading": "Vandaag:",
-      "tomorrow_bare": "morgen __time__"
+      "tomorrow_bare": "morgen __time__",
+      "brief": "Warm water vandaag: verwarmt om __times__, ongeveer __cost__. Nu __litres__ L.",
+      "brief_none": "Warm water vandaag: niet verwarmen nodig. Nu __litres__ L.",
+      "brief_away": "Warm water vandaag: afwezig, alleen het minimum blijft warm. Nu __litres__ L.",
+      "and": "en",
+      "off_plan_one": "Sinds gisterochtend is er ook één keer buiten het plan verwarmd.",
+      "off_plan_many": "Sinds gisterochtend is er ook __count__ keer buiten het plan verwarmd."
     },
     "hotwater_charge": {
       "reason": {

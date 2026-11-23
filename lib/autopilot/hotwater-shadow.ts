@@ -15,6 +15,7 @@ import {DayDraw, DayProfile, DayType, EVENING_FROM, EVENING_TO, HotwaterModel, H
 import {TankCapabilities, fetchTankInsights, pointsFromInsights} from './hotwater-insights';
 import {DEFAULT_RESERVE_LITRES, EARLY_DRAW_HOURS, MIN_CHARGE_KWH, Plan, SLOT_H, TankSpec, creditEarly, drawsFor, heatAt, plan, plannedHours, reserveKwh} from './hotwater-planner';
 import {preheatAdders} from './orchestrator';
+import {moneyText} from './savings';
 import {appendLine, daysLogName, deleteHistory, loadJson, modelFileName, saveJson, shadowLogName, trimLines} from './store-file';
 import {DAYS_KEPT, DayAcc, EveningForecast, LateEvening, daySample} from './hotwater-days';
 import {DayTypeState, dayTypeAt} from './day-type';
@@ -471,28 +472,23 @@ export function dailyPlan(input: ShadowStepInput): DailyPlan | {skip: string} {
 export type Translate = (key: string, tokens?: Record<string, string | number>) => string;
 
 /** The morning message, worded through `t`. `time` gives a local HH:MM. */
-export function dailyPlanText(d: DailyPlan, t: Translate, time: (ms: number) => string, currency: string,
-                              shadow: boolean, recap: string[] = []): string {
-    const money = (v: number) => `${v.toFixed(2)} ${currency}`.trim();
-    // Yesterday, last night, then today: the plan gets its own heading once a recap comes first.
-    // The decision first (what charges, when and why), then the use and the tank behind it. Prices
-    // per kWh are in each charge's own message, not here.
-    const lines = [t(`title.${d.dayType ?? 'any'}`), ...recap, ...recap.length ? [t('today_heading')] : []];
-    if (d.dayType === 'away') lines.push(t('away'));
-    if (d.charges.length === 0) lines.push(t('none'));
-    const when = (ms: number, date: string) => t(date === d.date ? 'today' : 'tomorrow', {time: time(ms)});
-    for (const [i, c] of d.charges.entries()) {
-        const reason = c.reason === 'surplus' ? t('reason.surplus', {share: Math.round(c.surplusShare * 100)})
-            : t(`reason.${c.reason}`);
-        lines.push(t('charge', {target: c.targetC, time: when(c.at, d.chargeDates[i]), reason}));
-    }
-    if (d.dayType !== 'away' && d.useLitres !== undefined) lines.push(t('use', {litres: d.useLitres, p80: d.useLitresP80 ?? d.useLitres}));
-    lines.push(d.reserveLitres > 0 ? t('tank', {litres: d.nowLitres, reserve: d.reserveLitres})
-        : t('tank_no_reserve', {litres: d.nowLitres}));
-    lines.push(t(d.untilDate === d.date ? 'cost' : 'cost_tomorrow', {cost: money(d.cost)}));
-    if (shadow) lines.push(t('shadow'));
-    return lines.join('\n');
+export function dailyPlanText(d: DailyPlan, t: Translate, time: (ms: number) => string, money: Money,
+                              shadow: boolean, offPlan = 0): string {
+    // One short paragraph (2026-11-23: ten lines were too long for the timeline): when it heats
+    // and what it costs, the tank now, and only what went off plan since the last message. The
+    // full recap and plan go to the app log.
+    const litres = d.nowLitres;
+    const times = d.charges.map((c, i) => (d.chargeDates[i] === d.date ? time(c.at) : t('tomorrow_bare', {time: time(c.at)})));
+    const list = times.length > 1 ? `${times.slice(0, -1).join(', ')} ${t('and')} ${times[times.length - 1]}` : times[0];
+    const parts = [d.dayType === 'away' ? t('brief_away', {litres})
+        : times.length ? t('brief', {times: list, cost: money(d.cost), litres}) : t('brief_none', {litres})];
+    if (offPlan > 0) parts.push(offPlan === 1 ? t('off_plan_one') : t('off_plan_many', {count: offPlan}));
+    if (shadow) parts.push(t('shadow'));
+    return parts.join(' ');
 }
+
+/** Money as the widgets write it (savings.ts `moneyText`). */
+export type Money = (v: number) => string;
 
 /** A charge starting: one Autopilot starts (or, in shadow, would start), or one the pump starts
  *  itself. What the charge message and the morning recap are worded from. */
@@ -573,12 +569,11 @@ export function immersionInCharge(e: ChargeEvent, onset: {at: number; c: number}
 
 /** The charge message: a short reason and a detailed one (the Flow trigger's two tokens), worded
  *  through `t` (keys under `autopilot.hotwater_charge`). Pure. */
-export function chargeText(e: ChargeEvent, t: Translate, time: (ms: number) => string, currency: string):
+export function chargeText(e: ChargeEvent, t: Translate, time: (ms: number) => string, money: Money):
     {reason: string; detailedReason: string} {
-    const money = (v?: number) => `${(v ?? 0).toFixed(2)} ${currency}`.trim();
     const m = Math.round(e.minutes ?? 0), duration = m < 60 ? t('duration_min', {m})
         : m % 60 ? t('duration', {h: Math.floor(m / 60), m: m % 60}) : t('duration_h', {h: m / 60});
-    const run = {target: e.targetC ?? '?', duration, price: money(e.price), mean: money(e.meanPrice),
+    const run = {target: e.targetC ?? '?', duration, price: money(e.price ?? 0), mean: money(e.meanPrice ?? 0),
         share: Math.round((e.surplusShare ?? 0) * 100), litres: e.litres ?? '?', reserve: e.reserveLitres,
         top: e.top ?? '?', stop: e.targetC ?? '?'};
     const detail = e.reason === 'pump' ? t(e.more ? 'detail.pump_more' : 'detail.pump', run)
@@ -590,9 +585,9 @@ export function chargeText(e: ChargeEvent, t: Translate, time: (ms: number) => s
 }
 
 /** The timeline line for a charge event. */
-export function chargeLine(e: ChargeEvent, t: Translate, time: (ms: number) => string, currency: string,
+export function chargeLine(e: ChargeEvent, t: Translate, time: (ms: number) => string, money: Money,
                            shadow: boolean): string {
-    const {reason, detailedReason} = chargeText(e, t, time, currency);
+    const {reason, detailedReason} = chargeText(e, t, time, money);
     return `${t((e.shadow ?? shadow) && e.by === 'autopilot' ? 'title_would' : 'title', {reason})}\n${detailedReason}`;
 }
 
@@ -659,11 +654,10 @@ export function planChanges(before: DailyPlan, after: DailyPlan, from: number): 
  *  Undefined when nothing ahead changed except charges in hours that had no price before:
  *  those are news for the next morning's recap and the charge message, not for a push. */
 export function planUpdateText(before: DailyPlan, after: DailyPlan, from: number, t: Translate,
-                               when: (ms: number, at?: boolean) => string, currency: string, shadow: boolean,
+                               when: (ms: number, at?: boolean) => string, money: Money, shadow: boolean,
                                priceNow?: (at: number, minutes: number) => number | undefined): string | undefined {
     const changes = planChanges(before, after, from);
     if (!changes.some((c) => c.kind !== 'added' || c.now!.at < before.until)) return undefined;
-    const money = (v: number) => `${v.toFixed(2)} ${currency}`.trim();
     const reason = (c: ChargeFacts) => t(`reason.${c.reason}`);
     /** The first charge the update added or moved after `at`: what takes over. Not always cheaper
      *  per kWh; nearer the use it loses less heat on the way. */
@@ -879,6 +873,7 @@ export class HotwaterAutopilot {
     private history: TankPoint[] = [];
     private deviceId?: string;
     private currency = '';
+    private money: Money = (v) => moneyText(v, 2, this.homey.i18n?.getLanguage?.() ?? 'en', this.currency);
     /** Local date of the last morning plan sent, and the plan in force: the morning's, or the
      *  replan after prices changed. Charges are compared with it. */
     private dailySent?: string;
@@ -1080,11 +1075,11 @@ export class HotwaterAutopilot {
             this.lastStart = out.event;
             this.savePlan();
             const t: Translate = (key, tokens) => this.homey.__(`autopilot.hotwater_charge.${key}`, tokens);
-            const text = chargeText(out.event, t, this.time, this.currency);
+            const text = chargeText(out.event, t, this.time, this.money);
             this.log(`Autopilot hot water: the immersion heater came on at ${observation.c} °C in the ${charge.by}'s charge. `
                 + `${text.detailedReason} ${JSON.stringify(out.event.immersion)}`);
             if (charge.by === 'autopilot' && !charge.shadow)
-                this.homey.notifications.createNotification({excerpt: chargeLine(out.event, t, this.time, this.currency, this.shadow)})
+                this.homey.notifications.createNotification({excerpt: chargeLine(out.event, t, this.time, this.money, this.shadow)})
                     .catch((error: any) => this.log('Autopilot hot water: timeline failed:', error?.message ?? error));
         } else this.ceilingObs = mergeObservations(this.ceilingObs, [observation], r.at);
         this.saveCeiling();
@@ -1446,7 +1441,7 @@ export class HotwaterAutopilot {
         try {
             if (d.writeStop) await this.hooks.write('stop', d.targetC);
             const t: Translate = (key, tokens) => this.homey.__(`autopilot.hotwater_charge.${key}`, tokens);
-            this.hooks.starting?.(t('started_reason', {why: chargeText({...e, targetC: d.targetC}, t, this.time, this.currency).detailedReason}));
+            this.hooks.starting?.(t('started_reason', {why: chargeText({...e, targetC: d.targetC}, t, this.time, this.money).detailedReason}));
             await this.hooks.write('more', true);
         } catch (error: any) {
             this.warn(this.homey.__('autopilot.hotwater_charge.write_failed', {error: error?.message ?? String(error)}));
@@ -1616,7 +1611,7 @@ export class HotwaterAutopilot {
         if (!e.shadow) this.lastStart = e;
         this.savePlan();
         const t: Translate = (key, tokens) => this.homey.__(`autopilot.hotwater_charge.${key}`, tokens);
-        const text = chargeText(e, t, this.time, this.currency);
+        const text = chargeText(e, t, this.time, this.money);
         this.log(`Autopilot hot water charge (${e.by}${e.shadow ? ', test run' : ''}): ${text.reason}. ${text.detailedReason} ${JSON.stringify(e)}`);
         if (!e.shadow) this.hooks.charged(e, text);
         this.hooks.track('Started Hot Water Charge', {started_by: e.by === 'pump' ? 'device' : 'autopilot',
@@ -1625,7 +1620,7 @@ export class HotwaterAutopilot {
         // The timeline hears only what the morning plan did not say: a safety-net start, a moved
         // or unplanned one. Charges as planned, and the pump's own, are for Flows and the recap.
         if (e.by !== 'autopilot' || (e.reason !== 'reserve' && e.plan === 'as_planned')) return;
-        this.homey.notifications.createNotification({excerpt: chargeLine(e, t, this.time, this.currency, this.shadow)})
+        this.homey.notifications.createNotification({excerpt: chargeLine(e, t, this.time, this.money, this.shadow)})
             .catch((error: any) => this.log('Autopilot hot water: timeline failed:', error?.message ?? error));
     }
 
@@ -1660,7 +1655,7 @@ export class HotwaterAutopilot {
             return run.every((v) => v !== undefined) ? run.reduce((x, y) => x! + y!, 0)! / run.length : undefined;
         };
         const text = planUpdateText(before, after, at, (key, tokens) => this.homey.__(`autopilot.hotwater_update.${key}`, tokens),
-            when, this.currency, this.shadow, priceNow);
+            when, this.money, this.shadow, priceNow);
         if (!text) return;
         this.homey.notifications.createNotification({excerpt: text})
             .catch((error: any) => this.log('Autopilot hot water: timeline failed:', error?.message ?? error));
@@ -1694,14 +1689,18 @@ export class HotwaterAutopilot {
         if ('skip' in d) return this.log(`Autopilot hot water: no morning plan (${d.skip}).`);
         this.dailySent = date;
         this.scoreDay(input);
-        const recap = recapLines(this.events, (key, tokens) => this.homey.__(`autopilot.hotwater_charge.${key}`, tokens),
+        const recapEvents = this.events;
+        const recap = recapLines(recapEvents, (key, tokens) => this.homey.__(`autopilot.hotwater_charge.${key}`, tokens),
             this.time, this.shadow, (ms) => input.clock(ms).date, date);
         this.events = [];
         this.morningPlan = d;
         this.reserveFor(d);
         this.savePlan();
+        // Off plan: a run the morning plan did not have, the pump's own or a rescue.
+        const offPlan = recapEvents.filter((e) => e.plan === 'unplanned').length;
         const text = dailyPlanText(d, (key, tokens) => this.homey.__(`autopilot.hotwater_daily.${key}`, tokens),
-            this.time, this.currency, this.shadow, recap);
+            this.time, this.money, this.shadow, offPlan);
+        if (recap.length) this.log(`Autopilot hot water since yesterday's message: ${recap.join(' ')}`);
         this.log(`Autopilot hot water morning plan: ${JSON.stringify(d)}`);
         this.hooks.planned?.(input.slot * SLOT_MS, d.charges);
         this.homey.notifications.createNotification({excerpt: text})

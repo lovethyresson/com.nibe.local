@@ -104,7 +104,7 @@ test('an immersion heater in an Autopilot charge is recorded on it, lowers the c
     assert.deepStrictEqual(out.event.immersion, {at: NOW, c: 57.6, capC: 56});
     assert.strictEqual(out.observations.length, 1);
     assert.strictEqual(charge.immersion, undefined, 'the stored event is not changed in place');
-    const text = chargeText(out.event, t, () => '12:00', 'kr');
+    const text = chargeText(out.event, t, () => '12:00', (v: number) => `${v.toFixed(2)} kr`);
     assert.ok(text.detailedReason.endsWith('plan.as_planned detail.immersion{"at":58,"cap":56}'), text.detailedReason);
     const recap = recapLines([out.event], t, () => '11:00', false, () => '2026-11-15', '2026-11-15');
     assert.ok(recap[1].endsWith('recap.immersion{"at":58}'), recap[1]);
@@ -114,7 +114,7 @@ test('an immersion heater in an Autopilot charge is recorded on it, lowers the c
 });
 
 test('a charge without the immersion heater reads as before', () => {
-    assert.ok(!chargeText(charge, t, () => '12:00', 'kr').detailedReason.includes('immersion'));
+    assert.ok(!chargeText(charge, t, () => '12:00', (v: number) => `${v.toFixed(2)} kr`).detailedReason.includes('immersion'));
 });
 
 // The S1155's tank, learned 2026-11-14: 6.5 kWh/h half empty, under 2 near full, 2.3 kW.

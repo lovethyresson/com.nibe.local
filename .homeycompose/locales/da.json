@@ -161,35 +161,16 @@
   },
   "autopilot": {
     "hotwater_daily": {
-      "title": {
-        "any": "Varmt vand",
-        "working": "Varmt vand, en arbejdsdag",
-        "free": "Varmt vand, en fridag",
-        "away": "Varmt vand, bortrejst"
-      },
-      "use": "Du bruger omkring __litres__ L i dag, op til __p80__ L på en travl dag.",
-      "away": "Bortrejst. Kun minimumsniveauet holdes varmt.",
-      "tank": "Der er __litres__ L varmt vand nu. Autopilot holder mindst __reserve__ L.",
-      "tank_no_reserve": "Der er __litres__ L varmt vand nu. Intet minimumsniveau er sat.",
-      "none": "Ingen opvarmning nødvendig i dag.",
-      "charge": "Opvarmning __time__ til __target__ °C · __reason__",
-      "reason": {
-        "cheap": "Billigste timer",
-        "surplus": "__share__ % fra soloverskud",
-        "reserve": "Under minimumsniveauet",
-        "running": "Opvarmer allerede",
-        "before_use": "I tide til forbruget",
-        "room": "Nok varmt vand indtil da",
-        "loss": "Bedste tidspunkt til dit forbrug",
-        "legionella": "Legionella"
-      },
-      "cost": "Forventet pris __cost__. Morgendagens priser er ikke kommet endnu.",
       "shadow": "Simuleret. Ingen ændringer på din varmepumpe.",
       "tomorrow": "i morgen kl. __time__",
-      "cost_tomorrow": "Forventet pris __cost__.",
       "today": "kl. __time__",
-      "today_heading": "I dag:",
-      "tomorrow_bare": "i morgen __time__"
+      "tomorrow_bare": "i morgen __time__",
+      "brief": "Varmt vand i dag: opvarmes kl. __times__, cirka __cost__. __litres__ L nu.",
+      "brief_none": "Varmt vand i dag: ingen opvarmning nødvendig. __litres__ L nu.",
+      "brief_away": "Varmt vand i dag: væk, kun minimum holdes varmt. __litres__ L nu.",
+      "and": "og",
+      "off_plan_one": "Siden i går morges blev der også varmet én gang uden for planen.",
+      "off_plan_many": "Siden i går morges blev der også varmet __count__ gange uden for planen."
     },
     "hotwater_charge": {
       "reason": {

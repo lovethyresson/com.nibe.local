@@ -576,35 +576,16 @@
   "Overcapacity": "Overcapacity",
   "autopilot": {
     "hotwater_daily": {
-      "title": {
-        "any": "Hot water",
-        "working": "Hot water, a working day",
-        "free": "Hot water, a day off",
-        "away": "Hot water, away"
-      },
-      "use": "You'll use about __litres__ L today, up to __p80__ L on a busy day.",
-      "away": "Away. Only the minimum is kept warm.",
-      "tank": "__litres__ L of hot water now. Autopilot keeps at least __reserve__ L.",
-      "tank_no_reserve": "__litres__ L of hot water now. No minimum is set.",
-      "none": "No hot water heating needed today.",
-      "charge": "Heats hot water __time__ to __target__ °C · __reason__",
-      "reason": {
-        "cheap": "Cheapest hours",
-        "surplus": "__share__ % from solar",
-        "reserve": "Below minimum",
-        "running": "Already heating",
-        "before_use": "In time for use",
-        "room": "Enough hot water until then",
-        "loss": "Best time for your use",
-        "legionella": "Legionella"
-      },
-      "cost": "Expected cost __cost__. Tomorrow's prices aren't in yet.",
       "shadow": "Simulated. No changes made to your heat pump.",
       "tomorrow": "tomorrow at __time__",
-      "cost_tomorrow": "Expected cost __cost__.",
       "today": "at __time__",
-      "today_heading": "Today:",
-      "tomorrow_bare": "tomorrow __time__"
+      "tomorrow_bare": "tomorrow __time__",
+      "brief": "Hot water today: heats at __times__, about __cost__. __litres__ L now.",
+      "brief_none": "Hot water today: no heating needed. __litres__ L now.",
+      "brief_away": "Hot water today: away, only the minimum is kept warm. __litres__ L now.",
+      "and": "and",
+      "off_plan_one": "Since yesterday morning it also heated once outside the plan.",
+      "off_plan_many": "Since yesterday morning it also heated __count__ times outside the plan."
     },
     "hotwater_charge": {
       "reason": {

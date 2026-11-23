@@ -161,35 +161,16 @@
   },
   "autopilot": {
     "hotwater_daily": {
-      "title": {
-        "any": "Brauchwasser",
-        "working": "Brauchwasser, ein Arbeitstag",
-        "free": "Brauchwasser, ein freier Tag",
-        "away": "Brauchwasser, abwesend"
-      },
-      "use": "Sie verbrauchen heute etwa __litres__ L, bis zu __p80__ L an einem Tag mit viel Verbrauch.",
-      "away": "Abwesend. Nur das Minimum wird warm gehalten.",
-      "tank": "Jetzt __litres__ L Warmwasser. Autopilot hält mindestens __reserve__ L.",
-      "tank_no_reserve": "Jetzt __litres__ L Warmwasser. Kein Minimum eingestellt.",
-      "none": "Heute ist kein Aufheizen nötig.",
-      "charge": "Aufheizen __time__ auf __target__ °C · __reason__",
-      "reason": {
-        "cheap": "Günstigste Stunden",
-        "surplus": "__share__ % aus Solarstrom",
-        "reserve": "Unter dem Minimum",
-        "running": "Heizt bereits",
-        "before_use": "Rechtzeitig vor dem Verbrauch",
-        "room": "Bis dahin genug Warmwasser",
-        "loss": "Beste Zeit für Ihren Bedarf",
-        "legionella": "Legionellen"
-      },
-      "cost": "Erwartete Kosten __cost__. Die Preise für morgen sind noch nicht da.",
       "shadow": "Simuliert. Keine Änderungen an Ihrer Wärmepumpe.",
       "tomorrow": "morgen um __time__",
-      "cost_tomorrow": "Erwartete Kosten __cost__.",
       "today": "um __time__",
-      "today_heading": "Heute:",
-      "tomorrow_bare": "morgen __time__"
+      "tomorrow_bare": "morgen __time__",
+      "brief": "Warmwasser heute: heizt um __times__, etwa __cost__. Jetzt __litres__ L.",
+      "brief_none": "Warmwasser heute: kein Heizen nötig. Jetzt __litres__ L.",
+      "brief_away": "Warmwasser heute: abwesend, nur das Minimum bleibt warm. Jetzt __litres__ L.",
+      "and": "und",
+      "off_plan_one": "Seit gestern früh wurde außerdem einmal außerhalb des Plans geheizt.",
+      "off_plan_many": "Seit gestern früh wurde außerdem __count__ Mal außerhalb des Plans geheizt."
     },
     "hotwater_charge": {
       "reason": {
