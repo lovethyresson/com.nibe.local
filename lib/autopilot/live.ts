@@ -336,8 +336,8 @@ export interface FeedHooks {
     limits(): Limits;
     /** How far forecast sun counts in the plan, read each slot: 0 until it has earned it. */
     sunTrust(): number;
-    /** Getting started (settling.ts): until it reaches Saving, the plan holds the level and does
-     *  not shift for prices. */
+    /** Getting started (settling.ts `liveAt`): until the house is within the comfort range, the
+     *  plan holds the level and does not shift for prices. */
     holdShift?(): boolean;
     /** Comfort range Off: feed the real outdoor temperature, unshifted, and plan nothing. The
      *  pump stays on the sensor Autopilot uses rather than going back to its own BT1. */

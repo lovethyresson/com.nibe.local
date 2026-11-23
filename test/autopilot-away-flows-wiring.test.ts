@@ -252,6 +252,9 @@ test('device: settled and a curve change in the same hour are one timeline line'
     assert.deepEqual(await run({excerpt: 'Holds. Next the curve.', short: 'Holds.'}, {other: []}), ['Holds. Next the curve.']);
     assert.deepEqual(await run({excerpt: 'Settling: 21.8.'}, {offset: 'Changed the offset.', other: []}), ['Settling: 21.8.', 'Changed the offset.']);
     assert.deepEqual(await run(undefined, undefined), []);
+    assert.deepEqual(await run({first: 'Within your comfort range.', excerpt: 'Settling: 22.1.'}, {other: []}),
+        ['Within your comfort range.', 'Settling: 22.1.'], 'price shifts starting comes first');
+    assert.deepEqual(await run({first: 'Within your comfort range.'}, undefined), ['Within your comfort range.']);
     // Scored just after midnight: the widget has it, the timeline waits for 07:00.
     at('00:43');
     assert.deepEqual(await run({excerpt: 'Settling: 21.9.'}, {other: []}), [], 'held overnight');

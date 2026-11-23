@@ -103,10 +103,11 @@ Autopilot heating starts in four steps, and the **Getting started** widget shows
    your temperature for 2 days in a row. When Autopilot changes the offset itself, that can happen
    while the house is still settling, and then those days count. If your curve already fits, this
    step ends at once. Without a verdict it ends after 10 days.
-4. **Saving**: it moves heat away from expensive hours.
+4. **Done**: your house holds your temperature and your curve is checked.
 
-Autopilot does not shift heat for prices until Saving, so the first weeks show only the level.
-Days with Away or a thermostat change don't count.
+Autopilot starts moving heat away from expensive hours the first day your house is within your
+comfort range, usually partway through Settling, and keeps doing so through the rest. The widget
+shows "Saving since" once it has started. Days with Away or a thermostat change don't count.
 
 ### Will Autopilot change my heating curve?
 

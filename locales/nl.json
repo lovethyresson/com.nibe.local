@@ -446,9 +446,9 @@
         "exp_calibrating": "Kalibreren",
         "exp_calibrating_sub": "Stemt je stooklijn af",
         "exp_saving": "Besparen",
-        "exp_saving_sub": "Doorlopend",
-        "exp_band": "Jouw temperatuur",
-        "exp_peak": "Duur",
+        "exp_done": "Klaar",
+        "exp_done_sub": "Daarna vanzelf",
+        "exp_saving_note": "Besparen begint zodra je huis binnen je comfortbereik zit.",
         "hw_learned_morning": "Geleerd: er wordt meestal vanaf __hour__ gedoucht.",
         "hw_learned_work": "Geleerd uit __days__ werkdagen: ongeveer __morning__ L in de ochtend en __evening__ L in de avond.",
         "hw_learned_busy": "Geleerd: op __days__ gaat er 's avonds ongeveer __litres__ L meer warm water doorheen dan op andere werkdagen.",
@@ -725,7 +725,7 @@
         "waiting": "Opstarten: wacht op de weersverwachting",
         "before": "voordat __why__",
         "back": "je om __at__ thuiskomt",
-        "getting_started": "Aan de slag. Nog geen prijsverschuivingen"
+        "getting_started": "Aan de slag. Prijsverschuivingen beginnen binnen je comfortbereik"
       },
       "status_name": {
         "learning": "Leert",
@@ -762,15 +762,18 @@
       },
       "settle": {
         "first": "Verwarming stelt zich in: gisteren __mean__. Doel __target__.",
+        "shifting": "Je huis zit binnen je comfortbereik. Autopilot verschuift nu warmte uit dure uren.",
         "up": "Verwarming stelt zich in: gisteren __mean__, omhoog van __previous__. Doel __target__.",
         "down": "Verwarming stelt zich in: gisteren __mean__, omlaag van __previous__. Doel __target__.",
         "same": "Verwarming stelt zich in: gisteren __mean__, gelijk aan de dag ervoor. Doel __target__.",
         "settled": "Je huis houdt __target__ vast. Nu controleert Autopilot je stooklijn.",
         "stopped": "Je huis heeft na 3 weken __target__ nog niet bereikt (gisteren __mean__). Nu controleert Autopilot je stooklijn.",
         "settled_fits": "Je huis houdt __target__ vast en je stooklijn klopt al. Autopilot verschuift nu warmte uit dure uren.",
+        "settled_fits_done": "Je huis houdt __target__ vast en je stooklijn klopt al. Aan de slag is klaar.",
         "restart": "Verwarming stelt zich in op je nieuwe temperatuur: gisteren __mean__. Doel __target__.",
         "live": "Autopilot is actief. Hij verschuift nu warmte uit dure uren.",
         "live_fits": "Je stooklijn klopt al. Autopilot verschuift nu warmte uit dure uren.",
+        "done": "Aan de slag is klaar.",
         "settled_short": "Je huis houdt __target__ vast."
       }
     },
@@ -1033,7 +1036,7 @@
       "step_learning": "Leren",
       "step_settling": "Instellen",
       "step_calibrating": "Kalibreren",
-      "step_saving": "Besparen",
+      "step_done": "Klaar",
       "paused": "gepauzeerd",
       "off_big": "Autopilot staat uit",
       "off_desc": "Zet Autopilot aan in Verwarming instellen om verder te gaan.",
@@ -1046,6 +1049,8 @@
       "since_day": "sinds dag __day__",
       "saving_big": "Autopilot bespaart",
       "saving_desc": "Houdt __target__ vast en verschuift warmte uit dure uren.",
+      "saving_since": "Bespaart sinds __day__",
+      "saving_today": "Bespaart sinds vandaag",
       "fits": "Je stooklijn klopt al.",
       "new_target": "Nieuw doel __target__",
       "restarted": "Je hebt de thermostaat aangepast, dus het instellen begint opnieuw.",
@@ -1062,7 +1067,8 @@
       "checking_curve": "Controleert je stooklijn",
       "checking_again": "controleert opnieuw",
       "projected": "In dit tempo is je doel ongeveer __day__ bereikt.",
-      "projected_days": "In dit tempo is je doel over ongeveer __n__ dagen bereikt."
+      "projected_days": "In dit tempo is je doel over ongeveer __n__ dagen bereikt.",
+      "shift_when": "Prijsverschuivingen beginnen zodra je huis binnen je comfortbereik zit."
     }
   }
 }

@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {ASK_WAIT_DAYS, CALIBRATE_MAX_DAYS, CHECK_DAYS, MAX_DAYS, SettleState, calibrateDay, change, checkedWhileSettling, readSettle, scoreDay, settleDone, stepOf,
+import {ASK_WAIT_DAYS, CALIBRATE_MAX_DAYS, CHECK_DAYS, MAX_DAYS, SettleState, calibrateDay, change, checkedWhileSettling, readSettle, withinRange, scoreDay, settleDone, stepOf,
     projectSettle, streak} from '../lib/autopilot/settling';
 
 const day = (date: string, mean: number | undefined, setpoint = 22.5, slots = 96, setMin = setpoint) =>
@@ -80,7 +80,7 @@ test('settling hands over to calibrating, and the step follows', () => {
     s = scoreDay(s, day('2026-11-24', 22.5)).state;
     assert.deepEqual(s.calibrating, {start: '2026-11-24', days: []});
     assert.equal(stepOf(s, true), 'calibrating');
-    assert.equal(stepOf({...s, live: '2026-11-26'}, true), 'saving');
+    assert.equal(stepOf({...s, live: '2026-11-26'}, true), 'done');
 });
 
 test('a new thermostat starts settling over', () => {
@@ -214,4 +214,15 @@ test('the projection carries the pace so far on to the band around the thermosta
     assert.deepEqual(projectSettle([day('a', 21.0, 21.5), day('b', 21.9), day('c', 22.0)]), [22.1, 22.2, 22.3]);
     // Coming down from above works the same way.
     assert.deepEqual(projectSettle([day('a', 23.3), day('b', 23.1)]), [22.9, 22.7]);
+});
+
+test('price shifts start on a day within the comfort range, either side, and not on a day that says nothing', () => {
+    assert.equal(withinRange(day('2026-11-23', 22.04), 0.5, 0.5), true, '0.5 below, rounded to a tenth: inside');
+    assert.equal(withinRange(day('2026-11-23', 21.94), 0.5, 0.5), false, '0.6 below');
+    assert.equal(withinRange(day('2026-11-23', 23.0), 0.5, 0.5), true, '0.5 above');
+    assert.equal(withinRange(day('2026-11-23', 23.0), 0.5, 0.3), false, 'the upper side has its own limit');
+    assert.equal(withinRange(day('2026-11-23', 20.5), 3, 3), true, 'a wider range');
+    assert.equal(withinRange(day('2026-11-23', 22.5, 22.5, 50), 0.5, 0.5), false, 'too few readings');
+    assert.equal(withinRange(day('2026-11-23', 22.5, 22.5, 96, 20), 0.5, 0.5), false, 'a setpoint that moved (Away)');
+    assert.equal(withinRange(day('2026-11-23', undefined), 0.5, 0.5), false, 'no mean');
 });

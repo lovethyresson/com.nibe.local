@@ -59,8 +59,8 @@ Open work first. What has shipped is in the commits and in the **Releases** tabl
   off, room control (2978) off, curve offset unchanged, same indoor sensor. Read locally only.
 - [ ] Then Balanced: how much more it shifts and saves against Comfort, and what indoor does.
   Not before the trim is judged, or the two changes can't be told apart.
-- Since 37e1431 the feed holds the level without price shifts until Getting started reaches
-  Saving (`holdShift`, `lib/autopilot/live.ts`). On a reinstall the trim is judged during Settling
+- Since 37e1431 the feed held the level without price shifts until Getting started's fourth step;
+  since 2026-11-23 only until the first day within the comfort range (`liveAt`, `holdShift`). On a reinstall the trim is judged during Settling
   and Calibrating, and "no Pre-heating for a trim-only shift" and Balanced only after Saving.
 
 ## Autopilot heating: Getting started (built 2026-11-22, running on the test Homey via `homey app run`)

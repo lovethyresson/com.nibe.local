@@ -7,9 +7,16 @@
  *     at once. The advice reads the trim, not the house, and the trim steadies days before the
  *     house reaches the thermostat, so a change can come while settling: the settled days after
  *     it are the check (`checkedWhileSettling`), and calibrating can end the day settling does.
- *  4. Saving: price shifting. Until then the feed holds the level without shifting
- *     (live.ts `holdShift`), so the house reaching the thermostat and the curve's check are
- *     never mixed up with a shift, and what the owner is told each morning is the level alone.
+ *  4. Done: the house holds the thermostat and the curve is checked.
+ *
+ *  Price shifting is not a step: it starts the first scored day whose mean is within the owner's
+ *  comfort range (`withinRange`), or at Done if that comes first, and runs alongside settling and
+ *  calibrating (`liveAt`). Until then the feed holds the level without shifting (live.ts
+ *  `holdShift`). Ngenic Tune runs price control from the start and leaves the curve to a seasonal
+ *  check; on 200 simulated houses with the planner on (dev/simulate-getting-started-shift.ts),
+ *  shifting from the first day in range was 1.8–3.3 % cheaper over the first five weeks than
+ *  holding until Done, held the house closer to the thermostat (the planner heads for it), and
+ *  reached Done no later (2026-11-23).
  *
  *  Settling. When Autopilot heating starts, room-sensor control is off and the owner's heat curve holds the
  *  house alone, often some way from the thermostat. The setpoint trim (setpoint.ts) closes that gap
@@ -42,11 +49,11 @@ export const CHECK_DAYS = SETTLED_DAYS;
 export const ASK_WAIT_DAYS = 3;
 /** Days calibrating waits for a verdict, or after a curve change for its check, before it ends on
  *  its own. On 200 simulated houses (dev/simulate-getting-started.ts, 2026-11-23) 7 ended it
- *  unchecked on about twice as many as 10, for Saving 0–3 days sooner at the median; 14 cost up to
+ *  unchecked on about twice as many as 10, for Done 0–3 days sooner at the median; 14 cost up to
  *  a week on houses whose weather kept the trim from steadying. */
 export const CALIBRATE_MAX_DAYS = 10;
 
-export type Step = 'learning' | 'settling' | 'calibrating' | 'saving';
+export type Step = 'learning' | 'settling' | 'calibrating' | 'done';
 
 export interface SettleDay {
     /** Local date. */
@@ -70,10 +77,11 @@ export interface SettleState {
     restarted?: string;
     /** Step 3, from the date settling ended. `days` are the days scored since a curve change. */
     calibrating?: Calibrating;
-    /** Step 4: the date it started, and whether the curve already fit. */
+    /** Step 4, Done: the date it came, and whether the curve already fit. */
     live?: string;
     fits?: boolean;
-    /** When the feed started shifting (ms): heating's savings count from here. */
+    /** When the feed started shifting (ms): the first day in the comfort range, or Done.
+     *  Heating's savings count from here. */
     liveAt?: number;
 }
 
@@ -147,7 +155,7 @@ export function scoreDay(state: SettleState, reading: DayReading): {state: Settl
 
 /** Where the owner is. `ready`: the house model has met its readiness test. */
 export function stepOf(state: SettleState | undefined, ready: boolean): Step {
-    if (state?.live) return 'saving';
+    if (state?.live) return 'done';
     if (!ready) return 'learning';
     return settleDone(state) ? 'calibrating' : 'settling';
 }
@@ -191,6 +199,16 @@ export function calibrateDay(state: SettleState, reading: DayReading, curve: Cur
     if (curve.asked && daysBetween(curve.asked, reading.date) >= ASK_WAIT_DAYS) return live('asked');
     if (daysBetween(cal.start, reading.date) >= CALIBRATE_MAX_DAYS) return live('timeout');
     return {state: {...state, calibrating: next}};
+}
+
+/** A finished day whose mean was within the comfort range around its thermostat: `lower` below
+ *  it, `upper` above (live.ts `Limits`). A day without enough readings, or whose setpoint moved,
+ *  says nothing. */
+export function withinRange(reading: DayReading, lower: number, upper: number): boolean {
+    const moved = reading.setMin === undefined || reading.setMax === undefined || reading.setMax - reading.setMin > SETPOINT_MOVED_K;
+    if (moved || reading.mean === undefined || !Number.isFinite(reading.mean) || reading.slots < 96 * MIN_COVERAGE) return false;
+    const off = round1(reading.mean) - round1(reading.setMax!);
+    return off >= -lower - 1e-9 && off <= upper + 1e-9;
 }
 
 /** Settled, with a curve change made while settling that the settled days since have already

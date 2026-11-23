@@ -3,7 +3,8 @@
     <meta charset="utf-8">
     <style>
       /* Autopilot heating's first weeks in four steps (settling.ts): a stepper, then the step the
-         owner is on. Settling draws each day's average climbing to the thermostat. */
+         owner is on. Settling draws each day's average climbing to the thermostat. Price shifting
+         is not a step: once on, a blue line under the step says since when. */
       .gs { padding: var(--homey-su-2, 8px) var(--homey-su-3, 12px); }
       .gs-title { opacity: 0.6; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .gs-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 8px; }
@@ -13,6 +14,8 @@
       .gs-seg.now b { background: var(--gs-line); }
       .gs-seg.live b { background: var(--gs-target); width: 100%; }
       .gs-label { margin-top: 10px; font-size: 0.85em; opacity: 0.7; }
+      .gs-saving { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 0.85em; font-weight: 600; color: var(--gs-target); }
+      .gs-saving i { width: 7px; height: 7px; border-radius: 50%; background: var(--gs-target); flex: none; }
       .gs-big { font-size: 1.5em; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
       .gs-of { font-size: 0.55em; font-weight: 600; opacity: 0.6; margin-left: 4px; }
       .gs-desc { margin-top: 2px; font-size: 0.88em; opacity: 0.8; line-height: 1.35; }
@@ -102,7 +105,7 @@
         });
         return s;
       }
-      // Done steps green, the current one orange as far as it has come, Saving blue: it stays on.
+      // Done steps green, the current one orange as far as it has come, Done blue: Autopilot carries on.
       function steps(step, part) {
         var row = el('div', 'gs-steps');
         for (var k = 0; k < 4; k++) {
@@ -122,6 +125,11 @@
         if (data.empty) { root.appendChild(el('p', 'gs-empty', data.empty)); return; }
         root.appendChild(steps(data.step, data.part));
         root.appendChild(el('div', 'gs-label', data.label));
+        if (data.saving) {
+          var saving = el('div', 'gs-saving');
+          saving.append(el('i'), document.createTextNode(data.saving));
+          root.appendChild(saving);
+        }
         var big = el('div', 'gs-big', data.big);
         if (data.of) big.appendChild(el('span', 'gs-of', data.of));
         root.appendChild(big);

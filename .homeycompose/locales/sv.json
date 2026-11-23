@@ -288,11 +288,9 @@
         "learning_accuracy": "Lär sig ditt hus · förfinar sina prognoser",
         "learning_steady": "Lär sig ditt hus · bekräftar under 3 dagar",
         "starting": "Startar",
-        "waiting": "Startar: väntar på prognosen",
         "peak": "priserna toppar __from__–__to__",
         "easing_off": "Drar ner till __until__",
         "preheating": "Förvärmer till __until__",
-        "before": "innan __why__",
         "holding": "Avvaktar. Inga ändringar planerade",
         "holding_even": "Avvaktar. Priserna är för jämna för att flytta",
         "next_easing_off": "Avvaktar · drar ner kl. __at__",
@@ -309,8 +307,10 @@
         },
         "range_off": "Komfortspann är Av. Din värmepump använder den uppmätta utetemperaturen",
         "sun": "sol väntas __from__–__to__",
+        "waiting": "Startar: väntar på prognosen",
+        "before": "innan __why__",
         "back": "du kommer hem kl. __at__",
-        "getting_started": "Kommer igång. Inga prisförflyttningar än"
+        "getting_started": "Kommer igång. Prisförflyttningar börjar inom ditt komfortspann"
       },
       "status_name": {
         "learning": "Lär sig",
@@ -347,15 +347,18 @@
       },
       "settle": {
         "first": "Uppvärmning ställer in sig: __mean__ i går. Mål __target__.",
+        "shifting": "Ditt hus är inom ditt komfortspann. Autopilot flyttar nu värme bort från dyra timmar.",
         "up": "Uppvärmning ställer in sig: __mean__ i går, upp från __previous__. Mål __target__.",
         "down": "Uppvärmning ställer in sig: __mean__ i går, ned från __previous__. Mål __target__.",
         "same": "Uppvärmning ställer in sig: __mean__ i går, samma som dagen innan. Mål __target__.",
         "settled": "Ditt hus håller __target__. Nu kontrollerar Autopilot din värmekurva.",
         "stopped": "Ditt hus har inte nått __target__ efter 3 veckor (__mean__ i går). Nu kontrollerar Autopilot din värmekurva.",
         "settled_fits": "Ditt hus håller __target__ och din värmekurva passar redan. Autopilot flyttar nu värme bort från dyra timmar.",
+        "settled_fits_done": "Ditt hus håller __target__ och din värmekurva passar redan. Kom igång är klart.",
         "restart": "Uppvärmning ställer in sig på din nya temperatur: __mean__ i går. Mål __target__.",
         "live": "Autopilot är igång. Den flyttar nu värme bort från dyra timmar.",
         "live_fits": "Din värmekurva passar redan. Autopilot flyttar nu värme bort från dyra timmar.",
+        "done": "Kom igång är klart.",
         "settled_short": "Ditt hus håller __target__."
       }
     },
@@ -614,7 +617,7 @@
       "step_learning": "Lär sig",
       "step_settling": "Ställer in sig",
       "step_calibrating": "Kalibrerar",
-      "step_saving": "Sparar",
+      "step_done": "Klart",
       "paused": "pausad",
       "off_big": "Autopilot är av",
       "off_desc": "Slå på Autopilot i Värmeinställningar för att fortsätta.",
@@ -627,6 +630,8 @@
       "since_day": "sedan dag __day__",
       "saving_big": "Autopilot sparar",
       "saving_desc": "Håller __target__ och flyttar värme bort från dyra timmar.",
+      "saving_since": "Sparar sedan __day__",
+      "saving_today": "Sparar sedan i dag",
       "fits": "Din värmekurva passar redan.",
       "new_target": "Nytt mål __target__",
       "restarted": "Du ändrade termostaten, så inställningen börjar om.",
@@ -643,7 +648,8 @@
       "checking_curve": "Kontrollerar din värmekurva",
       "checking_again": "kontrollerar igen",
       "projected": "I den här takten nås målet ungefär på __day__.",
-      "projected_days": "I den här takten nås målet om ungefär __n__ dagar."
+      "projected_days": "I den här takten nås målet om ungefär __n__ dagar.",
+      "shift_when": "Prisförflyttningar börjar när ditt hus är inom ditt komfortspann."
     }
   }
 }

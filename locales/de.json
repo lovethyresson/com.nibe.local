@@ -446,9 +446,9 @@
         "exp_calibrating": "Kalibrieren",
         "exp_calibrating_sub": "Stimmt Ihre Heizkurve ab",
         "exp_saving": "Sparen",
-        "exp_saving_sub": "Laufend",
-        "exp_band": "Ihre Temperatur",
-        "exp_peak": "Teuer",
+        "exp_done": "Fertig",
+        "exp_done_sub": "Danach von selbst",
+        "exp_saving_note": "Das Sparen beginnt, sobald Ihr Haus in Ihrem Komfortbereich ist.",
         "hw_learned_morning": "Gelernt: Geduscht wird meist ab __hour__ Uhr.",
         "hw_learned_work": "Gelernt aus __days__ Arbeitstagen: etwa __morning__ L am Morgen und __evening__ L am Abend.",
         "hw_learned_busy": "Gelernt: Abends wird __days__ etwa __litres__ L mehr Warmwasser verbraucht als an anderen Werktagen.",
@@ -725,7 +725,7 @@
         "waiting": "Startet: wartet auf die Prognose",
         "before": "vor der __why__",
         "back": "Rückkehr um __at__",
-        "getting_started": "Erste Schritte. Noch keine Preisverschiebungen"
+        "getting_started": "Erste Schritte. Preisverschiebungen beginnen in Ihrem Komfortbereich"
       },
       "status_name": {
         "learning": "Lernt",
@@ -762,15 +762,18 @@
       },
       "settle": {
         "first": "Heizung pendelt sich ein: gestern __mean__. Ziel __target__.",
+        "shifting": "Ihr Haus ist in Ihrem Komfortbereich. Autopilot verschiebt jetzt Wärme aus teuren Stunden.",
         "up": "Heizung pendelt sich ein: gestern __mean__, gestiegen von __previous__. Ziel __target__.",
         "down": "Heizung pendelt sich ein: gestern __mean__, gesunken von __previous__. Ziel __target__.",
         "same": "Heizung pendelt sich ein: gestern __mean__, gleich wie am Vortag. Ziel __target__.",
         "settled": "Ihr Haus hält __target__. Als Nächstes prüft Autopilot Ihre Heizkurve.",
         "stopped": "Ihr Haus hat __target__ nach 3 Wochen nicht erreicht (gestern __mean__). Als Nächstes prüft Autopilot Ihre Heizkurve.",
         "settled_fits": "Ihr Haus hält __target__ und Ihre Heizkurve passt bereits. Autopilot verschiebt jetzt Wärme aus teuren Stunden.",
+        "settled_fits_done": "Ihr Haus hält __target__ und Ihre Heizkurve passt bereits. Erste Schritte sind abgeschlossen.",
         "restart": "Heizung pendelt sich auf Ihre neue Temperatur ein: gestern __mean__. Ziel __target__.",
         "live": "Autopilot ist aktiv. Er verschiebt jetzt Wärme aus teuren Stunden.",
         "live_fits": "Ihre Heizkurve passt bereits. Autopilot verschiebt jetzt Wärme aus teuren Stunden.",
+        "done": "Erste Schritte sind abgeschlossen.",
         "settled_short": "Ihr Haus hält __target__."
       }
     },
@@ -1033,7 +1036,7 @@
       "step_learning": "Lernen",
       "step_settling": "Einpendeln",
       "step_calibrating": "Kalibrieren",
-      "step_saving": "Sparen",
+      "step_done": "Fertig",
       "paused": "pausiert",
       "off_big": "Autopilot ist aus",
       "off_desc": "Schalten Sie Autopilot unter „Heizung einrichten“ ein, um fortzufahren.",
@@ -1046,6 +1049,8 @@
       "since_day": "seit Tag __day__",
       "saving_big": "Autopilot spart",
       "saving_desc": "Hält __target__ und verschiebt Wärme aus teuren Stunden.",
+      "saving_since": "Spart seit __day__",
+      "saving_today": "Spart seit heute",
       "fits": "Ihre Heizkurve passt bereits.",
       "new_target": "Neues Ziel __target__",
       "restarted": "Sie haben den Thermostat geändert, daher beginnt das Einpendeln neu.",
@@ -1062,7 +1067,8 @@
       "checking_curve": "Prüft Ihre Heizkurve",
       "checking_again": "prüft erneut",
       "projected": "In diesem Tempo ist Ihr Ziel etwa am __day__ erreicht.",
-      "projected_days": "In diesem Tempo ist Ihr Ziel in etwa __n__ Tagen erreicht."
+      "projected_days": "In diesem Tempo ist Ihr Ziel in etwa __n__ Tagen erreicht.",
+      "shift_when": "Preisverschiebungen beginnen, sobald Ihr Haus in Ihrem Komfortbereich ist."
     }
   }
 }

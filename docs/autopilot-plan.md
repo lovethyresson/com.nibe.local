@@ -1382,14 +1382,27 @@ for a week reads as Autopilot getting it wrong.
    waits for Calibrating. Starting the advice
    sooner than a week after the model is ready (`READY_DAYS_BEFORE`) was tried and rejected: Saving
    at day 12–13 instead of 18, but twice the days over 0.3 K off in the week after.
-4. **Saving:** price shifting starts.
+4. **Done:** the house holds the thermostat and the curve is checked. (Was Saving, when price
+   shifting waited for it.)
 
-- **No price shifts before Saving.** The feed holds the level only (`FeedHooks.holdShift` in
-  `live.ts`: the plan runs with no shift allowed and its reason is `getting_started`, "Getting
-  started. No price shifts yet"), so reaching the thermostat and the curve check are never mixed up
-  with a shift.
-- **Savings count from Saving.** The state keeps `liveAt`, when the feed first shifted; heating's
-  savings, baseline and first-live day are read from there (§11).
+- **Price shifts from the first day in the comfort range** (since 2026-11-23; before, none until
+  the fourth step). Each morning, once the model is ready, yesterday is checked against the
+  owner's comfort range (`withinRange`: its mean within the range's lower and upper limits, with
+  enough readings and an unmoved setpoint; the owner's range, not Away's). The first such day, or
+  Done if that comes first, sets `liveAt` and the feed stops holding (`FeedHooks.holdShift` in
+  `live.ts`; until then the plan runs with no shift and its reason is `getting_started`, "Getting
+  started. Price shifts start within your comfort range"). Settling and calibrating carry on
+  scoring days that now include shifts. Ngenic Tune does the same: price control from the start,
+  the curve a seasonal check. On 200 simulated houses with the planner
+  (`dev/simulate-getting-started-shift.ts`) it was 1.8 % (Comfort) to 3.3 % (Save some) cheaper
+  over the first five weeks, held the daily mean closer to the thermostat (the planner heads for
+  it, and heat below it is owed), and reached Done no later. Limits: perfect weather forecast, one
+  price shape, daily means only.
+- **Savings count from the first shift.** The state keeps `liveAt`; heating's savings, baseline and
+  first-live day are read from there (§11).
+- **Messages.** The first shift gets its own timeline line ("Your house is within your comfort
+  range. Autopilot now moves heat away from expensive hours."). Done then says "Getting started
+  is done" rather than announcing shifting again.
 - **Morning messages.** One timeline line a day while settling. After each hourly fit
   (`device.ts` `afterFit`), settling and the curve advice run together, and "your house holds"
   plus a curve change in the same hour go out as one line.

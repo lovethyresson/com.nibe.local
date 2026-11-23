@@ -446,9 +446,9 @@
         "exp_calibrating": "Kalibrerer",
         "exp_calibrating_sub": "Justerer varmekurven din",
         "exp_saving": "Sparer",
-        "exp_saving_sub": "Hele tiden",
-        "exp_band": "Din temperatur",
-        "exp_peak": "Dyrt",
+        "exp_done": "Ferdig",
+        "exp_done_sub": "Deretter på egen hånd",
+        "exp_saving_note": "Sparingen starter når huset ditt er innenfor komfortområdet ditt.",
         "hw_learned_morning": "Lært: dusjingen starter som regel kl. __hour__.",
         "hw_learned_work": "Lært fra __days__ arbeidsdager: omtrent __morning__ L om morgenen og __evening__ L om kvelden.",
         "hw_learned_busy": "Lært: på __days__ går det med omtrent __litres__ L mer om kvelden enn på andre hverdager.",
@@ -725,7 +725,7 @@
         "waiting": "Starter: venter på prognosen",
         "before": "før __why__",
         "back": "du kommer hjem kl. __at__",
-        "getting_started": "Kommer i gang. Ingen prisflyttinger ennå"
+        "getting_started": "Kommer i gang. Prisflyttinger starter innenfor komfortområdet ditt"
       },
       "status_name": {
         "learning": "Lærer",
@@ -762,15 +762,18 @@
       },
       "settle": {
         "first": "Oppvarming stiller seg inn: __mean__ i går. Mål __target__.",
+        "shifting": "Huset ditt er innenfor komfortområdet ditt. Autopilot flytter nå varme bort fra dyre timer.",
         "up": "Oppvarming stiller seg inn: __mean__ i går, opp fra __previous__. Mål __target__.",
         "down": "Oppvarming stiller seg inn: __mean__ i går, ned fra __previous__. Mål __target__.",
         "same": "Oppvarming stiller seg inn: __mean__ i går, samme som dagen før. Mål __target__.",
         "settled": "Huset ditt holder __target__. Nå sjekker Autopilot varmekurven din.",
         "stopped": "Huset ditt har ikke nådd __target__ etter 3 uker (__mean__ i går). Nå sjekker Autopilot varmekurven din.",
         "settled_fits": "Huset ditt holder __target__ og varmekurven din passer allerede. Autopilot flytter nå varme bort fra dyre timer.",
+        "settled_fits_done": "Huset ditt holder __target__ og varmekurven din passer allerede. Kom i gang er ferdig.",
         "restart": "Oppvarming stiller seg inn på den nye temperaturen din: __mean__ i går. Mål __target__.",
         "live": "Autopilot er i gang. Den flytter nå varme bort fra dyre timer.",
         "live_fits": "Varmekurven din passer allerede. Autopilot flytter nå varme bort fra dyre timer.",
+        "done": "Kom i gang er ferdig.",
         "settled_short": "Huset ditt holder __target__."
       }
     },
@@ -1033,7 +1036,7 @@
       "step_learning": "Lærer",
       "step_settling": "Stiller seg inn",
       "step_calibrating": "Kalibrerer",
-      "step_saving": "Sparer",
+      "step_done": "Ferdig",
       "paused": "pauset",
       "off_big": "Autopilot er av",
       "off_desc": "Slå på Autopilot i Varmeoppsett for å fortsette.",
@@ -1046,6 +1049,8 @@
       "since_day": "siden dag __day__",
       "saving_big": "Autopilot sparer",
       "saving_desc": "Holder __target__ og flytter varme bort fra dyre timer.",
+      "saving_since": "Sparer siden __day__",
+      "saving_today": "Sparer siden i dag",
       "fits": "Varmekurven din passer allerede.",
       "new_target": "Nytt mål __target__",
       "restarted": "Du endret termostaten, så innstillingen starter på nytt.",
@@ -1062,7 +1067,8 @@
       "checking_curve": "Sjekker varmekurven din",
       "checking_again": "sjekker på nytt",
       "projected": "I dette tempoet nås målet omtrent på __day__.",
-      "projected_days": "I dette tempoet nås målet om omtrent __n__ dager."
+      "projected_days": "I dette tempoet nås målet om omtrent __n__ dager.",
+      "shift_when": "Prisflyttinger starter når huset ditt er innenfor komfortområdet ditt."
     }
   }
 }

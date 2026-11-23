@@ -288,11 +288,9 @@
         "learning_accuracy": "Learning your house · refining its predictions",
         "learning_steady": "Learning your house · confirming over 3 days",
         "starting": "Starting",
-        "waiting": "Starting: waiting for the forecast",
         "peak": "prices peak __from__–__to__",
         "easing_off": "Easing off until __until__",
         "preheating": "Pre-heating until __until__",
-        "before": "before __why__",
         "holding": "Holding. No changes planned",
         "holding_even": "Holding. Prices are too even to shift",
         "next_easing_off": "Holding · easing off at __at__",
@@ -309,8 +307,10 @@
         },
         "range_off": "Comfort range is Off. Your heat pump uses the measured outdoor temperature",
         "sun": "sun expected __from__–__to__",
+        "waiting": "Starting: waiting for the forecast",
+        "before": "before __why__",
         "back": "you're back at __at__",
-        "getting_started": "Getting started. No price shifts yet"
+        "getting_started": "Getting started. Price shifts start within your comfort range"
       },
       "status_name": {
         "learning": "Learning",
@@ -347,15 +347,18 @@
       },
       "settle": {
         "first": "Heating settling: __mean__ yesterday. Target __target__.",
+        "shifting": "Your house is within your comfort range. Autopilot now moves heat away from expensive hours.",
         "up": "Heating settling: __mean__ yesterday, up from __previous__. Target __target__.",
         "down": "Heating settling: __mean__ yesterday, down from __previous__. Target __target__.",
         "same": "Heating settling: __mean__ yesterday, same as the day before. Target __target__.",
         "settled": "Your house holds __target__. Next Autopilot checks your heat curve.",
         "stopped": "Your house hasn't reached __target__ after 3 weeks (__mean__ yesterday). Next Autopilot checks your heat curve.",
         "settled_fits": "Your house holds __target__ and your heat curve already fits. Autopilot now moves heat away from expensive hours.",
+        "settled_fits_done": "Your house holds __target__ and your heat curve already fits. Getting started is done.",
         "restart": "Heating settling for your new temperature: __mean__ yesterday. Target __target__.",
         "live": "Autopilot is live. It now moves heat away from expensive hours.",
         "live_fits": "Your heat curve already fits. Autopilot now moves heat away from expensive hours.",
+        "done": "Getting started is done.",
         "settled_short": "Your house holds __target__."
       }
     },
@@ -614,7 +617,7 @@
       "step_learning": "Learning",
       "step_settling": "Settling",
       "step_calibrating": "Calibrating",
-      "step_saving": "Saving",
+      "step_done": "Done",
       "paused": "paused",
       "off_big": "Autopilot is off",
       "off_desc": "Turn on Autopilot in Heating setup to continue.",
@@ -627,6 +630,8 @@
       "since_day": "since day __day__",
       "saving_big": "Autopilot is saving",
       "saving_desc": "Holds __target__ and moves heat away from expensive hours.",
+      "saving_since": "Saving since __day__",
+      "saving_today": "Saving since today",
       "fits": "Your heat curve already fits.",
       "new_target": "New target __target__",
       "restarted": "You changed the thermostat, so settling starts over.",
@@ -643,7 +648,8 @@
       "checking_curve": "Checking your heat curve",
       "checking_again": "checking again",
       "projected": "At this pace your target is reached about __day__.",
-      "projected_days": "At this pace your target is reached in about __n__ days."
+      "projected_days": "At this pace your target is reached in about __n__ days.",
+      "shift_when": "Price shifts start when your house is within your comfort range."
     }
   }
 }

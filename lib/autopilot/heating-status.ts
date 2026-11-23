@@ -104,7 +104,8 @@ export function heatingStatus(s: FeedSnapshot, now: number, t: Translate, time: 
     if (s.startingUp) return {status: 'holding', reason: say(t('starting'))};
     if (s.stopped) return {status: 'paused', reason: say(t(`paused.${s.stopped}`))};
     if (s.neutral) return {status: 'holding', reason: say(t('range_off'))};
-    // Getting started (settling.ts): the level is held, nothing shifts for prices until Saving.
+    // Getting started (settling.ts): the level is held, nothing shifts for prices until the house
+    // is within the comfort range.
     if (s.planReason === 'getting_started') return {status: 'holding', reason: say(t('getting_started'))};
     const biases = s.biases ?? [];
     const slot0 = s.slot ?? Math.floor(now / SLOT_MS);
