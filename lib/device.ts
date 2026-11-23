@@ -3205,7 +3205,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.warningText) warnings.unshift({text: this.warningText, advice: false});
         const type = dayTypeAt(readDayType(this.homey.settings.get(DAY_TYPE_SETTING)), Date.now(), local);
         return overviewData({title, ...type !== 'working' ? {dayType: this.homey.__(`autopilot.hotwater_use.${type}`)} : {},
-            offline, alarm, warnings, ...now ? {now} : {}, tiles, facts}, t);
+            autopilot: siblings.some((d) => autopilotRuns(d.smartMode?.())), offline, alarm, warnings, ...now ? {now} : {}, tiles, facts}, t);
     }
 
     /** Today by midnight: what today cost so far (Energy today's figure) plus what each function's

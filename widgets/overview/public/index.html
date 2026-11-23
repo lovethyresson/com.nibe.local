@@ -18,6 +18,8 @@
       .ov-alert .tx b { display: block; font-size: 17px; line-height: 1.25; color: var(--ac); margin-bottom: 2px; }
       .ov-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
       .ov-title { font-size: 13px; font-weight: 600; color: var(--ov-sub); }
+      .ov-chips { display: flex; gap: 6px; }
+      .ov-chip.ov-badge { color: inherit; }
       .ov-chip { font-size: 12px; font-weight: 600; color: var(--ov-sub); padding: 2px 9px; border-radius: 10px; background: var(--ov-tile); }
       .ov-ic { flex: none; display: grid; place-items: center; color: var(--c); }
       .ov-ic svg { stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -121,7 +123,10 @@
         }
         var head = el('div', 'ov-head');
         head.appendChild(el('span', 'ov-title', data.title));
-        if (data.chip) head.appendChild(el('span', 'ov-chip', data.chip));
+        var chips = el('span', 'ov-chips');
+        if (data.chip) chips.appendChild(el('span', 'ov-chip', data.chip));
+        if (data.badge) chips.appendChild(el('span', 'ov-chip ov-badge', data.badge));
+        head.appendChild(chips);
         root.appendChild(head);
         if (data.loading) {
           var sk = el('div', 'skel'); sk.style.height = '160px'; root.appendChild(sk);

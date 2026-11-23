@@ -42,6 +42,8 @@ export interface OverviewData {
     title: string;
     /** The day type, only when it is not a working day. */
     chip?: string;
+    /** "Autopilot" while it runs any function of this pump. */
+    badge?: string;
     empty?: string;
     loading?: boolean;
     alert?: OverviewAlert;
@@ -54,6 +56,8 @@ export interface OverviewData {
 
 export interface OverviewInput {
     title: string;
+    /** Autopilot runs at least one function. */
+    autopilot?: boolean;
     dayType?: string;
     /** The heat pump is not answering: the reason, worded. */
     offline?: string;
@@ -76,7 +80,7 @@ export function splitWarning(text: string): {title: string; text?: string} {
 }
 
 export function overviewData(i: OverviewInput, t: Translate): OverviewData {
-    const chip = i.dayType ? {chip: i.dayType} : {};
+    const chip = {...i.dayType ? {chip: i.dayType} : {}, ...i.autopilot ? {badge: 'Autopilot'} : {}};
     // One band, the most serious first: no answer, then an alarm, then a problem, then advice.
     const warning = i.warnings.find((w) => !w.advice) ?? i.warnings[0];
     const alert: OverviewAlert | undefined = i.offline ? {tone: 'bad', title: t('offline_title'), text: i.offline}
