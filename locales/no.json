@@ -1066,7 +1066,7 @@
       "set_offset_desc": "Meny 1.1.1 på varmepumpen din. Nå __from__. Sjekken starter når den viser __to__.",
       "checking_curve": "Sjekker varmekurven din",
       "checking_again": "sjekker på nytt",
-      "projected": "I dette tempoet nås målet omtrent på __day__.",
+      "projected": "I dette tempoet nås målet på __day__.",
       "projected_days": "I dette tempoet nås målet om omtrent __n__ dager.",
       "shift_when": "Prisflyttinger starter når huset ditt er innenfor komfortområdet ditt."
     }

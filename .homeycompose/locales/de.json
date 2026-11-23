@@ -647,7 +647,7 @@
       "set_offset_desc": "Menü 1.1.1 an Ihrer Wärmepumpe. Jetzt __from__. Die Prüfung beginnt, sobald dort __to__ steht.",
       "checking_curve": "Prüft Ihre Heizkurve",
       "checking_again": "prüft erneut",
-      "projected": "In diesem Tempo ist Ihr Ziel etwa am __day__ erreicht.",
+      "projected": "In diesem Tempo ist Ihr Ziel am __day__ erreicht.",
       "projected_days": "In diesem Tempo ist Ihr Ziel in etwa __n__ Tagen erreicht.",
       "shift_when": "Preisverschiebungen beginnen, sobald Ihr Haus in Ihrem Komfortbereich ist."
     }

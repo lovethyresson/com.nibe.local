@@ -1066,7 +1066,7 @@
       "set_offset_desc": "Menu 1.1.1 op je warmtepomp. Nu __from__. De controle begint zodra hij __to__ aangeeft.",
       "checking_curve": "Controleert je stooklijn",
       "checking_again": "controleert opnieuw",
-      "projected": "In dit tempo is je doel ongeveer __day__ bereikt.",
+      "projected": "In dit tempo is je doel op __day__ bereikt.",
       "projected_days": "In dit tempo is je doel over ongeveer __n__ dagen bereikt.",
       "shift_when": "Prijsverschuivingen beginnen zodra je huis binnen je comfortbereik zit."
     }
