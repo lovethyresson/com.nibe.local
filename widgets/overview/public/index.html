@@ -29,16 +29,17 @@
       .ov-now.quiet .ov-ic { width: 36px; height: 36px; border-radius: 11px; }
       .ov-now.quiet .ov-ic svg { width: 20px; height: 20px; }
       .ov-now.quiet b { font-size: 17px; }
-      .ov-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .ov-tiles { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
       .ov-tile { background: var(--ov-tile); border-radius: 14px; padding: 10px 12px; min-width: 0; }
       .ov-tile .lab { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--ov-sub); }
       .ov-tile .lab svg { width: 14px; height: 14px; }
       .ov-tile .fig { font-size: 22px; font-weight: 700; margin: 4px 0 1px; white-space: nowrap; }
-      .ov-tile .sm { font-size: 13px; color: var(--ov-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .ov-facts { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--ov-line); display: grid; grid-template-columns: auto 1fr;
-        column-gap: 14px; row-gap: 5px; font-size: 13px; color: var(--ov-sub); }
+      .ov-tile .sm { font-size: 13px; line-height: 1.3; color: var(--ov-sub); }
+      .ov-facts { margin: 16px 0 0; padding-top: 12px; border-top: 1px solid var(--ov-line); display: grid; grid-template-columns: auto minmax(0, 1fr);
+        column-gap: 14px; row-gap: 9px; font-size: 13px; color: var(--ov-sub); }
+      .ov-facts .split { margin-top: 10px; }
       .ov-facts dt { opacity: 0.85; }
-      .ov-facts dd { margin: 0; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .ov-facts dd { margin: 0; text-align: right; }
       .ov-facts .save { color: var(--ov-save); }
       .ov.stale .ov-tiles, .ov.stale .ov-facts { opacity: 0.5; }
       .skel { border-radius: 14px; background: var(--ov-tile); }
@@ -153,8 +154,8 @@
         if ((data.facts || []).length) {
           var dl = el('dl', 'ov-facts');
           data.facts.forEach(function (f) {
-            dl.appendChild(el('dt', '', f.label));
-            var dd = el('dd');
+            dl.appendChild(el('dt', f.split ? 'split' : '', f.label));
+            var dd = el('dd', f.split ? 'split' : '');
             dd.appendChild(el('span', f.good ? 'save' : '', f.value));
             dl.appendChild(dd);
           });

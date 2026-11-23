@@ -975,7 +975,7 @@ export class HotwaterAutopilot {
      *  surplus (kW, only with solar on), and the plan's charges with the share each takes from the
      *  surplus; the tank now and the next charge. Reads only. */
     outlook(from: number, n: number): {slots: {price?: number; surplus?: number; charge?: number; ran?: true}[]; litres?: number;
-        next?: {at: number; minutes: number; reason: ChargeReason; solar: number; running: boolean}} {
+        next?: {at: number; minutes: number; reason: ChargeReason; solar: number; running: boolean; targetC?: number}} {
         const charges = this.morningPlan?.charges ?? [];
         const covering = (slot: number) => charges.find((c) => slot * SLOT_MS < c.at + c.minutes * 60_000
             && (slot + 1) * SLOT_MS > c.at);
@@ -996,7 +996,7 @@ export class HotwaterAutopilot {
                     charge: c ? c.surplusShare : undefined, ...(this.ran.has(slot) || this.ranBefore.has(slot)) && slot <= nowSlot ? {ran: true as const} : {}};
             }),
             litres: this.last?.litres,
-            next: next && {at: next.at, minutes: next.minutes, reason: next.reason, solar: next.surplusShare,
+            next: next && {at: next.at, minutes: next.minutes, reason: next.reason, solar: next.surplusShare, targetC: next.targetC,
                 running: next.at <= now || (charging && next.at <= now + SLOT_MS)},
         };
     }

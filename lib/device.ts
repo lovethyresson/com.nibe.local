@@ -16,6 +16,7 @@ import {DEFAULT_INTERVAL_DAYS, MAX_FAILURES, OwnerHotwater, RestoreKey, Takeover
 import {LEGIONELLA_WHEN_PERIODIC_OFF, LegionellaState, readSetting as readLegionella, readState as readLegionellaState,
     validSetting as validLegionella} from './autopilot/legionella';
 import {FlowConflict, moreHotwaterFlows} from './autopilot/hotwater-flows';
+import {heatAt} from './autopilot/hotwater-planner';
 import {KWH_PER_LITRE, LearnedHousehold, STARTER_DAYS, learn, learnedHousehold, localClock, readHousehold} from './autopilot/hotwater-learner';
 import {fetchTankInsights, pointsFromInsights} from './autopilot/hotwater-insights';
 import {DAY_TYPE_SETTING, DEFAULT_DAY_TYPE, DayTypeState, awayOn, dayTypeAt, homeDayTypeAt, readDayType, typeSet} from './autopilot/day-type';
@@ -3142,7 +3143,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             }
             if (kind === 'hotwater') {
                 const litres = d.tankLitresNow();
-                const sub = next && !next.running ? t('next', {time: when(next.at)}) : spa;
+                // The litres the next run heats the tank to, as the tank's own estimate counts them (40 °C water).
+                const tank = d.tankConfig();
+                const to = next?.targetC !== undefined && tank.litres ? Math.round(heatAt({litres: tank.litres, inletC: tank.inletC}, next.targetC) / KWH_PER_LITRE / 5) * 5 : undefined;
+                const later = next && local(next.at).date !== local(Date.now()).date;
+                const sub = next && !next.running ? (to ? t(later ? 'next_to_tomorrow' : 'next_to', {litres: to, time: this.clock(next.at)})
+                    : t('next', {time: when(next.at)})) : spa;
                 return {kind, label: t('hotwater'), ...typeof litres === 'number' ? {value: `${Math.round(litres)} L`} : {},
                     ...sub ? {sub} : {}};
             }
@@ -3185,8 +3191,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const ahead = this.restOfToday(energy, siblings);
         if (ahead) facts.push({label: t('by_midnight'), value: t('by_midnight_value', {kwh: one(ahead.kwh), cost: moneyText(ahead.cost, 0, language, currency)})});
         const month = this.monthFigures(byRole, language);
-        if (month.saved) facts.push({label: month.saved.label, value: month.saved.value, good: month.saved.good});
-        if (month.price) facts.push({label: t('your_price'), value: month.price});
+        // The month's figures as a group of their own, a little apart from today's.
+        const split = facts.length > 0 ? {split: true} : {};
+        if (month.saved) facts.push({label: month.saved.label, value: month.saved.value, good: month.saved.good, ...split});
+        if (month.price) facts.push({label: t('your_price'), value: month.price, ...month.saved ? {} : split});
 
         const alarm = this.hasCapability(ALARM_ACTIVE_CAPABILITY) && this.getCapabilityValue(ALARM_ACTIVE_CAPABILITY) === true
             ? String(this.getCapabilityValue(ALARM_TEXT_CAPABILITY) ?? '') || undefined : undefined;

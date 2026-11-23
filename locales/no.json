@@ -1018,7 +1018,9 @@
       "saved": "__money__ spart",
       "lost": "__money__ mer",
       "your_price": "Din pris",
-      "price_value": "__paid__/kWh · markedssnitt __market__"
+      "price_value": "__paid__/kWh · marked __market__",
+      "next_to": "Varmes til __litres__ L kl. __time__",
+      "next_to_tomorrow": "Varmes til __litres__ L i morgen kl. __time__"
     },
     "settle_widget": {
       "title": "Oppvarming · Kom i gang",

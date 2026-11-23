@@ -599,7 +599,9 @@
       "saved": "__money__ bespaard",
       "lost": "__money__ meer",
       "your_price": "Jouw prijs",
-      "price_value": "__paid__/kWh · marktgemiddelde __market__"
+      "price_value": "__paid__/kWh · markt __market__",
+      "next_to": "Verwarmt tot __litres__ L om __time__",
+      "next_to_tomorrow": "Verwarmt tot __litres__ L morgen om __time__"
     },
     "settle_widget": {
       "title": "Verwarming · Aan de slag",

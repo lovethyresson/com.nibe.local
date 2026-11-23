@@ -22,6 +22,8 @@ export interface OverviewFact {
     label: string;
     value: string;
     good?: boolean;
+    /** The first of a new group (the month's after today's): a little space above it. */
+    split?: boolean;
 }
 
 export interface OverviewAlert {

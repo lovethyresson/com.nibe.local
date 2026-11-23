@@ -1018,7 +1018,9 @@
       "saved": "__money__ saved",
       "lost": "__money__ more",
       "your_price": "Your price",
-      "price_value": "__paid__/kWh · market average __market__"
+      "price_value": "__paid__/kWh · market __market__",
+      "next_to": "Heats to __litres__ L at __time__",
+      "next_to_tomorrow": "Heats to __litres__ L tomorrow __time__"
     },
     "settle_widget": {
       "title": "Heating · Getting started",

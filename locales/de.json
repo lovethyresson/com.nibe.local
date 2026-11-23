@@ -1018,7 +1018,9 @@
       "saved": "__money__ gespart",
       "lost": "__money__ mehr",
       "your_price": "Ihr Preis",
-      "price_value": "__paid__/kWh · Marktdurchschnitt __market__"
+      "price_value": "__paid__/kWh · Markt __market__",
+      "next_to": "Heizt auf __litres__ L um __time__",
+      "next_to_tomorrow": "Heizt morgen um __time__ auf __litres__ L"
     },
     "settle_widget": {
       "title": "Heizung · Erste Schritte",
