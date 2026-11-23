@@ -18,8 +18,7 @@
       .ov-alert .tx b { display: block; font-size: 17px; line-height: 1.25; color: var(--ac); margin-bottom: 2px; }
       .ov-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
       .ov-title { font-size: 13px; font-weight: 600; color: var(--ov-sub); }
-      .ov-chips { display: flex; gap: 6px; }
-      .ov-chip.ov-badge { color: inherit; }
+      .ov-tile .ov-ap { position: absolute; top: 9px; right: 10px; }
       .ov-chip { font-size: 12px; font-weight: 600; color: var(--ov-sub); padding: 2px 9px; border-radius: 10px; background: var(--ov-tile); }
       .ov-ic { flex: none; display: grid; place-items: center; color: var(--c); }
       .ov-ic svg { stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -32,7 +31,7 @@
       .ov-now.quiet .ov-ic svg { width: 20px; height: 20px; }
       .ov-now.quiet b { font-size: 17px; }
       .ov-tiles { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
-      .ov-tile { background: var(--ov-tile); border-radius: 14px; padding: 10px 12px; min-width: 0; }
+      .ov-tile { position: relative; background: var(--ov-tile); border-radius: 14px; padding: 10px 12px; min-width: 0; }
       .ov-tile .lab { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--ov-sub); }
       .ov-tile .lab svg { width: 14px; height: 14px; }
       .ov-tile .fig { font-size: 22px; font-weight: 700; margin: 4px 0 1px; white-space: nowrap; }
@@ -46,6 +45,35 @@
       .ov.stale .ov-tiles, .ov.stale .ov-facts { opacity: 0.5; }
       .skel { border-radius: 14px; background: var(--ov-tile); }
     </style>
+      <!-- autopilot-mark:start (identical in every widget; test/widget-autopilot-mark.test.ts) -->
+    <style>
+      /* Autopilot's mark: a gradient ring turning around a small sparkle (still under reduced motion). */
+      .ap-mark { position: relative; display: inline-block; flex: none; width: var(--s, 18px); height: var(--s, 18px); vertical-align: -0.2em; }
+      .ap-mark.lead { margin-right: 0.35em; }
+      .ap-mark .ring { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(#4f8cff, #8b5cf6, #ec4899, #f59e0b, #4f8cff);
+        -webkit-mask: radial-gradient(circle, transparent calc(var(--s, 18px) * 0.37), #000 calc(var(--s, 18px) * 0.39));
+        mask: radial-gradient(circle, transparent calc(var(--s, 18px) * 0.37), #000 calc(var(--s, 18px) * 0.39));
+        animation: ap-mark-spin 4s linear infinite; }
+      .ap-mark svg { position: absolute; left: 27%; top: 27%; width: 46%; height: 46%; }
+      @keyframes ap-mark-spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) { .ap-mark .ring { animation: none; } }
+    </style>
+    <script type="text/javascript">
+      var AP_MARK_N = 0;
+      /** Autopilot's mark, `size` px; `lead` puts space after it, before a heading's words. */
+      function apMark(size, lead) {
+        var id = 'ap-mark-g' + (AP_MARK_N++);
+        var s = document.createElement('span');
+        s.className = 'ap-mark' + (lead ? ' lead' : '');
+        s.style.setProperty('--s', size + 'px');
+        s.setAttribute('aria-hidden', 'true');
+        s.innerHTML = '<span class="ring"></span><svg viewBox="0 0 24 24"><defs><linearGradient id="' + id + '" x1="0" y1="0" x2="1" y2="1">'
+          + '<stop offset="0" stop-color="#4f8cff"/><stop offset=".55" stop-color="#8b5cf6"/><stop offset="1" stop-color="#ec4899"/></linearGradient></defs>'
+          + '<path d="M12 1Q13.4 10.6 23 12Q13.4 13.4 12 23Q10.6 13.4 1 12Q10.6 10.6 12 1Z" fill="url(#' + id + ')"/></svg>';
+        return s;
+      }
+    </script>
+    <!-- autopilot-mark:end -->
   </head>
 
   <body class="homey-widget">
@@ -123,10 +151,7 @@
         }
         var head = el('div', 'ov-head');
         head.appendChild(el('span', 'ov-title', data.title));
-        var chips = el('span', 'ov-chips');
-        if (data.chip) chips.appendChild(el('span', 'ov-chip', data.chip));
-        if (data.badge) chips.appendChild(el('span', 'ov-chip ov-badge', data.badge));
-        head.appendChild(chips);
+        if (data.chip) head.appendChild(el('span', 'ov-chip', data.chip));
         root.appendChild(head);
         if (data.loading) {
           var sk = el('div', 'skel'); sk.style.height = '160px'; root.appendChild(sk);
@@ -150,6 +175,8 @@
           lab.appendChild(icon(t.kind));
           lab.appendChild(document.createTextNode(t.label));
           tile.appendChild(lab);
+          // Autopilot runs this function: its mark in the tile's corner.
+          if (t.autopilot) { var m = apMark(22); m.classList.add('ov-ap'); tile.appendChild(m); }
           tile.appendChild(el('div', 'fig', t.value || '—'));
           tile.appendChild(el('div', 'sm', t.sub || '\u00a0'));
           tiles.appendChild(tile);

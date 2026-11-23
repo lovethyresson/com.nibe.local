@@ -81,6 +81,35 @@
           --sv-tile: rgba(255, 255, 255, 0.07); --sv-rule: rgba(255, 255, 255, 0.14); }
       }
     </style>
+      <!-- autopilot-mark:start (identical in every widget; test/widget-autopilot-mark.test.ts) -->
+    <style>
+      /* Autopilot's mark: a gradient ring turning around a small sparkle (still under reduced motion). */
+      .ap-mark { position: relative; display: inline-block; flex: none; width: var(--s, 18px); height: var(--s, 18px); vertical-align: -0.2em; }
+      .ap-mark.lead { margin-right: 0.35em; }
+      .ap-mark .ring { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(#4f8cff, #8b5cf6, #ec4899, #f59e0b, #4f8cff);
+        -webkit-mask: radial-gradient(circle, transparent calc(var(--s, 18px) * 0.37), #000 calc(var(--s, 18px) * 0.39));
+        mask: radial-gradient(circle, transparent calc(var(--s, 18px) * 0.37), #000 calc(var(--s, 18px) * 0.39));
+        animation: ap-mark-spin 4s linear infinite; }
+      .ap-mark svg { position: absolute; left: 27%; top: 27%; width: 46%; height: 46%; }
+      @keyframes ap-mark-spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) { .ap-mark .ring { animation: none; } }
+    </style>
+    <script type="text/javascript">
+      var AP_MARK_N = 0;
+      /** Autopilot's mark, `size` px; `lead` puts space after it, before a heading's words. */
+      function apMark(size, lead) {
+        var id = 'ap-mark-g' + (AP_MARK_N++);
+        var s = document.createElement('span');
+        s.className = 'ap-mark' + (lead ? ' lead' : '');
+        s.style.setProperty('--s', size + 'px');
+        s.setAttribute('aria-hidden', 'true');
+        s.innerHTML = '<span class="ring"></span><svg viewBox="0 0 24 24"><defs><linearGradient id="' + id + '" x1="0" y1="0" x2="1" y2="1">'
+          + '<stop offset="0" stop-color="#4f8cff"/><stop offset=".55" stop-color="#8b5cf6"/><stop offset="1" stop-color="#ec4899"/></linearGradient></defs>'
+          + '<path d="M12 1Q13.4 10.6 23 12Q13.4 13.4 12 23Q10.6 13.4 1 12Q10.6 10.6 12 1Z" fill="url(#' + id + ')"/></svg>';
+        return s;
+      }
+    </script>
+    <!-- autopilot-mark:end -->
   </head>
 
   <body class="homey-widget">
@@ -200,7 +229,7 @@
         root.replaceChildren();
         // The card's own title names it; the device name is not repeated.
         if (data.empty) { root.appendChild(el('p', 'sv-note', data.empty)); return; }
-        if (data.status) root.appendChild(el('div', 'sv-label', data.status));
+        if (data.status) { var label = el('div', 'sv-label'); label.append(apMark(16, true), data.status); root.appendChild(label); }
         if (data.value) {
           root.appendChild(el('div', 'sv-hero ' + (data.tone || ''), data.value));
           if (data.valueNote) root.appendChild(el('div', 'sv-caption homey-text-small', data.valueNote));

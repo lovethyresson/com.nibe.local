@@ -2471,12 +2471,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         return this.homey.__(`autopilot.heating.settle.${reason === 'fits' ? 'live_fits' : 'live'}`);
     }
 
-    /** Heating's Autopilot runs live and Getting started has not reached Saving. */
-    inGettingStarted(): boolean {
-        if (this.role !== 'heating' || this.heatingMode !== 'live') return false;
-        return stepOf(readSettle(this.getStoreValue(SETTLE_STORE)), !!this.autopilot?.houseSummary()?.ready) !== 'saving';
-    }
-
     /** For widgets/getting_started: the four steps, and the one the owner is on. */
     settleWidget(): Record<string, unknown> {
         const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.settle_widget.${key}`, tokens);
@@ -3145,8 +3139,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const when = (ms: number) => (local(ms).date === local(Date.now()).date ? this.clock(ms) : t('tomorrow', {time: this.clock(ms)}));
 
         // Level 2: a tile per function.
-        const tiles: OverviewTile[] = kinds.map((kind) => {
-            const d = byRole.get(kind);
+        const tileOf = (kind: OverviewKind, d: any): OverviewTile => {
             const mode = d.smartMode() as SmartMode;
             const spa = mode === 'spa' ? t('mode_spa') : undefined;
             if (kind === 'heating') {
@@ -3169,7 +3162,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const cap = (d.getCapabilities() as string[]).find((c) => c.startsWith('measure_temperature'));
             const v = cap ? Number(d.getCapabilityValue(cap)) : NaN;
             return {kind, label: this.homey.__(`groups.${kind}`), ...Number.isFinite(v) ? {value: `${one(v)} °C`} : {}, ...spa ? {sub: spa} : {}};
+        };
+        // Autopilot runs it: the tile carries Autopilot's mark.
+        const tiles: OverviewTile[] = kinds.map((kind): OverviewTile => {
+            const d = byRole.get(kind);
+            const tile = tileOf(kind, d);
+            return autopilotRuns(d.smartMode() as SmartMode) ? {...tile, autopilot: true} : tile;
         });
+
 
         // Level 1: what the pump does now, from its operating priority.
         const raw = offline ? undefined : this.connection?.priorityNow();
@@ -3219,7 +3219,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.warningText) warnings.unshift({text: this.warningText, advice: false});
         const type = dayTypeAt(readDayType(this.homey.settings.get(DAY_TYPE_SETTING)), Date.now(), local);
         return overviewData({title, ...type !== 'working' ? {dayType: this.homey.__(`autopilot.hotwater_use.${type}`)} : {},
-            autopilot: siblings.some((d) => autopilotRuns(d.smartMode?.())), gettingStarted: !!byRole.get('heating')?.inGettingStarted(), offline, alarm, warnings, ...now ? {now} : {}, tiles, facts}, t);
+            offline, alarm, warnings, ...now ? {now} : {}, tiles, facts}, t);
     }
 
     /** Today by midnight: what today cost so far (Energy today's figure) plus what each function's

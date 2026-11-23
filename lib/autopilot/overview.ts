@@ -15,6 +15,8 @@ export interface OverviewTile {
     label: string;
     value?: string;
     sub?: string;
+    /** Autopilot runs this function: the tile carries Autopilot's mark. */
+    autopilot?: boolean;
 }
 
 /** A quiet line in the facts list; `good` marks a saving (the one coloured value). */
@@ -42,8 +44,6 @@ export interface OverviewData {
     title: string;
     /** The day type, only when it is not a working day. */
     chip?: string;
-    /** "Autopilot" while it runs any function of this pump. */
-    badge?: string;
     empty?: string;
     loading?: boolean;
     alert?: OverviewAlert;
@@ -56,10 +56,6 @@ export interface OverviewData {
 
 export interface OverviewInput {
     title: string;
-    /** Autopilot runs at least one function. */
-    autopilot?: boolean;
-    /** Heating's Autopilot has not reached Saving yet (settling.ts): the pill says so. */
-    gettingStarted?: boolean;
     dayType?: string;
     /** The heat pump is not answering: the reason, worded. */
     offline?: string;
@@ -82,8 +78,7 @@ export function splitWarning(text: string): {title: string; text?: string} {
 }
 
 export function overviewData(i: OverviewInput, t: Translate): OverviewData {
-    const badge = i.autopilot ? (i.gettingStarted ? `Autopilot · ${t('getting_started')}` : 'Autopilot') : undefined;
-    const chip = {...i.dayType ? {chip: i.dayType} : {}, ...badge ? {badge} : {}};
+    const chip = i.dayType ? {chip: i.dayType} : {};
     // One band, the most serious first: no answer, then an alarm, then a problem, then advice.
     const warning = i.warnings.find((w) => !w.advice) ?? i.warnings[0];
     const alert: OverviewAlert | undefined = i.offline ? {tone: 'bad', title: t('offline_title'), text: i.offline}

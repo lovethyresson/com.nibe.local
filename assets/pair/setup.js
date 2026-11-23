@@ -460,7 +460,10 @@ function NibeSetup(options) {
         grid.appendChild(el('span'));
         cols.forEach(function (c) {
             var head = el('strong', a(c[1]), 'setup-compare-head');
-            if (c[0] === 'auto') head.appendChild(el('span', a('experimental'), 'setup-soon setup-compare-badge'));
+            if (c[0] === 'auto') {
+                head.insertBefore(apMark(16, true), head.firstChild);
+                head.appendChild(el('span', a('experimental'), 'setup-soon setup-compare-badge'));
+            }
             grid.appendChild(head);
         });
         rows.forEach(function (r) {
@@ -971,6 +974,21 @@ function NibeSetup(options) {
         if (status.mode === 'test') return a('choose_on') + ' · ' + a('mode_simulated');
         return a(status.mode === 'spa' ? 'badge_spa' : 'badge_off');
     }
+    // autopilot-mark:start (as in every widget page)
+    var AP_MARK_N = 0;
+    /** Autopilot's mark, `size` px; `lead` puts space after it, before a heading's words. */
+    function apMark(size, lead) {
+      var id = 'ap-mark-g' + (AP_MARK_N++);
+      var s = document.createElement('span');
+      s.className = 'ap-mark' + (lead ? ' lead' : '');
+      s.style.setProperty('--s', size + 'px');
+      s.setAttribute('aria-hidden', 'true');
+      s.innerHTML = '<span class="ring"></span><svg viewBox="0 0 24 24"><defs><linearGradient id="' + id + '" x1="0" y1="0" x2="1" y2="1">'
+        + '<stop offset="0" stop-color="#4f8cff"/><stop offset=".55" stop-color="#8b5cf6"/><stop offset="1" stop-color="#ec4899"/></linearGradient></defs>'
+        + '<path d="M12 1Q13.4 10.6 23 12Q13.4 13.4 12 23Q10.6 13.4 1 12Q10.6 10.6 12 1Z" fill="url(#' + id + ')"/></svg>';
+      return s;
+    }
+    // autopilot-mark:end
     function radios(name, values, current, onchange) {
         var box = el('div', undefined, 'setup-choices');
         values.forEach(function (v) {
@@ -984,6 +1002,8 @@ function NibeSetup(options) {
             };
             var copy = el('span', undefined, 'setup-source-copy');
             var title = el('span', v.title, 'setup-source-title');
+            // Autopilot meets the owner here first: its mark beside its name.
+            if (v.id === 'autopilot') title.insertBefore(apMark(22, true), title.firstChild);
             if (v.badge) title.appendChild(el('span', v.badge, 'setup-soon'));
             copy.appendChild(title);
             if (v.description) copy.appendChild(el('span', v.description, 'setup-source-description'));
