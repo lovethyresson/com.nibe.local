@@ -601,7 +601,8 @@
       "your_price": "Ditt pris",
       "price_value": "__paid__/kWh · marknad __market__",
       "next_to": "Värms till __litres__ L kl. __time__",
-      "next_to_tomorrow": "Värms till __litres__ L i morgon __time__"
+      "next_to_tomorrow": "Värms till __litres__ L i morgon __time__",
+      "getting_started": "Kom igång"
     },
     "settle_widget": {
       "title": "Uppvärmning · Kom igång",

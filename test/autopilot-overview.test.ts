@@ -19,6 +19,8 @@ test('nothing to report: no band, the activity line leads, tiles and facts as gi
     assert.equal(overviewData({...base, dayType: 'Day off'}, t).chip, 'Day off');
     assert.equal(d.badge, undefined, 'no Autopilot pill while it runs nothing');
     assert.equal(overviewData({...base, autopilot: true}, t).badge, 'Autopilot');
+    assert.equal(overviewData({...base, autopilot: true, gettingStarted: true}, t).badge, 'Autopilot · getting_started');
+    assert.equal(overviewData({...base, gettingStarted: true}, t).badge, undefined, 'nothing runs: no pill at all');
 });
 
 test('one band, the most serious first: offline, then an alarm, then a problem, then advice', () => {

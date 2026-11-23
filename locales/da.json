@@ -1020,7 +1020,8 @@
       "your_price": "Din pris",
       "price_value": "__paid__/kWh · marked __market__",
       "next_to": "Opvarmes til __litres__ L kl. __time__",
-      "next_to_tomorrow": "Opvarmes til __litres__ L i morgen kl. __time__"
+      "next_to_tomorrow": "Opvarmes til __litres__ L i morgen kl. __time__",
+      "getting_started": "Kom i gang"
     },
     "settle_widget": {
       "title": "Opvarmning · Kom i gang",

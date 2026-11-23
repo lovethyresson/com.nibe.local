@@ -58,6 +58,8 @@ export interface OverviewInput {
     title: string;
     /** Autopilot runs at least one function. */
     autopilot?: boolean;
+    /** Heating's Autopilot has not reached Saving yet (settling.ts): the pill says so. */
+    gettingStarted?: boolean;
     dayType?: string;
     /** The heat pump is not answering: the reason, worded. */
     offline?: string;
@@ -80,7 +82,8 @@ export function splitWarning(text: string): {title: string; text?: string} {
 }
 
 export function overviewData(i: OverviewInput, t: Translate): OverviewData {
-    const chip = {...i.dayType ? {chip: i.dayType} : {}, ...i.autopilot ? {badge: 'Autopilot'} : {}};
+    const badge = i.autopilot ? (i.gettingStarted ? `Autopilot · ${t('getting_started')}` : 'Autopilot') : undefined;
+    const chip = {...i.dayType ? {chip: i.dayType} : {}, ...badge ? {badge} : {}};
     // One band, the most serious first: no answer, then an alarm, then a problem, then advice.
     const warning = i.warnings.find((w) => !w.advice) ?? i.warnings[0];
     const alert: OverviewAlert | undefined = i.offline ? {tone: 'bad', title: t('offline_title'), text: i.offline}

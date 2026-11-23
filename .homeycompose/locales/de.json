@@ -601,7 +601,8 @@
       "your_price": "Ihr Preis",
       "price_value": "__paid__/kWh · Markt __market__",
       "next_to": "Heizt auf __litres__ L um __time__",
-      "next_to_tomorrow": "Heizt morgen um __time__ auf __litres__ L"
+      "next_to_tomorrow": "Heizt morgen um __time__ auf __litres__ L",
+      "getting_started": "Erste Schritte"
     },
     "settle_widget": {
       "title": "Heizung · Erste Schritte",

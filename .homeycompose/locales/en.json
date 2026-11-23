@@ -601,7 +601,8 @@
       "your_price": "Your price",
       "price_value": "__paid__/kWh · market __market__",
       "next_to": "Heats to __litres__ L at __time__",
-      "next_to_tomorrow": "Heats to __litres__ L tomorrow __time__"
+      "next_to_tomorrow": "Heats to __litres__ L tomorrow __time__",
+      "getting_started": "Getting started"
     },
     "settle_widget": {
       "title": "Heating · Getting started",
