@@ -1367,10 +1367,21 @@ for a week reads as Autopilot getting it wrong.
    Two days in a row within 0.2 K (`SETTLED_K`, `SETTLED_DAYS`) settle it. A day with under 75 %
    of its readings, or whose setpoint moved (Away, the thermostat), is skipped; a new thermostat
    starts it over. After `MAX_DAYS` (21) it stops: a curve that far off is step 3's to fix.
-3. **Calibrating:** the curve advice (§7.3) now acts, writing the offset or asking the owner.
-   It ends when the curve already fits, after `CHECK_DAYS` (3) in a row holding the thermostat
-   after an offset change, `ASK_WAIT_DAYS` (7) after the owner was asked, or after
-   `CALIBRATE_MAX_DAYS` (14).
+3. **Calibrating:** the curve advice (§7.3) writes the offset or asks the owner. It reads the
+   trim, which steadies days before the house reaches the thermostat, so it may act while
+   settling (since 2026-11-23); the settled days after such a change are the check
+   (`checkedWhileSettling`), and Saving can start the day settling ends. It ends when the curve
+   already fits, after `CHECK_DAYS` (2, as settling) in a row holding the thermostat after an
+   offset change, `ASK_WAIT_DAYS` (3) after the owner was asked, or after `CALIBRATE_MAX_DAYS`
+   (10). Was 3/7/14 with the advice held until settling ended: on 200 simulated houses
+   (`dev/simulate-getting-started.ts`) Saving came a median 1–7 days sooner (cold spell / ±7 K
+   swings), p90 3–15. The week after Saving read a little further off in the cold spell (median
+   worst day 0.15 K against 0.08, days over 0.3 K 177 against 156 of 1400), mostly because Saving
+   came nearer the spell's end: the sim has no planner, so the level there is the trim's either
+   way. Only Autopilot's own offset change comes while settling; advice for the owner to act on
+   waits for Calibrating. Starting the advice
+   sooner than a week after the model is ready (`READY_DAYS_BEFORE`) was tried and rejected: Saving
+   at day 12–13 instead of 18, but twice the days over 0.3 K off in the week after.
 4. **Saving:** price shifting starts.
 
 - **No price shifts before Saving.** The feed holds the level only (`FeedHooks.holdShift` in

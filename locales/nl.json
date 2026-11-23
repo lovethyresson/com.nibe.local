@@ -1054,7 +1054,7 @@
       "by_autopilot": "door Autopilot",
       "by_you": "door jou",
       "off_by": "__delta__ ernaast",
-      "not_steady": "Nog niet stabiel. Controleert opnieuw 3 dagen.",
+      "not_steady": "Nog niet stabiel. Controleert opnieuw __days__ dagen.",
       "checking": "Controleert of je huis __target__ vasthoudt.",
       "waiting_for_you": "wacht op jou",
       "set_offset": "Zet de verschuiving op __to__",

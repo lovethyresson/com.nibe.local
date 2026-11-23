@@ -4,7 +4,9 @@
  *  2. Settling: the trim brings the house to the thermostat (below).
  *  3. Calibrating: the heat curve advice (curve-advice.ts) changes the offset or asks the owner to,
  *     then `CHECK_DAYS` in a row holding the thermostat end it. A curve that already fits ends it
- *     at once.
+ *     at once. The advice reads the trim, not the house, and the trim steadies days before the
+ *     house reaches the thermostat, so a change can come while settling: the settled days after
+ *     it are the check (`checkedWhileSettling`), and calibrating can end the day settling does.
  *  4. Saving: price shifting. Until then the feed holds the level without shifting
  *     (live.ts `holdShift`), so the house reaching the thermostat and the curve's check are
  *     never mixed up with a shift, and what the owner is told each morning is the level alone.
@@ -31,13 +33,18 @@ export const MAX_DAYS = 21;
 export const MIN_COVERAGE = 0.75;
 /** A setpoint that moved more than this within the day skips the day, K. */
 export const SETPOINT_MOVED_K = 0.2;
-/** Days in a row holding the thermostat after a curve change that end calibrating. */
-export const CHECK_DAYS = 3;
+/** Days in a row holding the thermostat after a curve change that end calibrating: the same as
+ *  settling's, since the trim gives back what the offset adds (curve-advice.ts `trimShiftFor`)
+ *  and the house barely moves (dev/simulate-getting-started.ts). */
+export const CHECK_DAYS = SETTLED_DAYS;
 /** Days the owner has to change the curve offset they were asked to before Autopilot goes on
  *  without it: the trim covers the difference meanwhile. */
-export const ASK_WAIT_DAYS = 7;
-/** Days calibrating waits for a verdict, or for its check, before it ends on its own. */
-export const CALIBRATE_MAX_DAYS = 14;
+export const ASK_WAIT_DAYS = 3;
+/** Days calibrating waits for a verdict, or after a curve change for its check, before it ends on
+ *  its own. On 200 simulated houses (dev/simulate-getting-started.ts, 2026-11-23) 7 ended it
+ *  unchecked on about twice as many as 10, for Saving 0–3 days sooner at the median; 14 cost up to
+ *  a week on houses whose weather kept the trim from steadying. */
+export const CALIBRATE_MAX_DAYS = 10;
 
 export type Step = 'learning' | 'settling' | 'calibrating' | 'saving';
 
@@ -165,15 +172,17 @@ export function calibrateDay(state: SettleState, reading: DayReading, curve: Cur
     const live = (reason: LiveReason, c = next) =>
         ({state: {...state, calibrating: c, live: reading.date, ...reason === 'fits' ? {fits: true} : {}}, event: {kind: 'live' as const, reason}});
     // Only a change since Autopilot heating started is calibrating's: an older one is the curve it learned on.
-    const changed = curve.changed !== undefined && curve.changed > state.start ? curve.changed : undefined;
+    const changed = changedSince(state, curve);
     if (!changed && curve.fits) return live('fits');
     if (changed) {
+        // A change made while settling: the settled days after it are the check's first days.
+        if (!cal.checked && !cal.days.length) next.days = daysAfter(state.days, changed);
         const keep = {state: {...state, calibrating: next}};
         if (reading.date <= changed) return keep;
         const moved = reading.setMin === undefined || reading.setMax === undefined || reading.setMax - reading.setMin > SETPOINT_MOVED_K;
         if (reading.mean !== undefined && Number.isFinite(reading.mean) && reading.slots >= 96 * MIN_COVERAGE && !moved) {
             const day = {date: reading.date, mean: round1(reading.mean), setpoint: round1(reading.setMax!)};
-            const days = [...cal.days, {...day, ok: Math.abs(day.mean - day.setpoint) <= SETTLED_K + 1e-9}];
+            const days = [...next.days, {...day, ok: Math.abs(day.mean - day.setpoint) <= SETTLED_K + 1e-9}];
             next.days = days;
             if (streak(days) >= CHECK_DAYS) return live('steady', next);
         }
@@ -182,6 +191,24 @@ export function calibrateDay(state: SettleState, reading: DayReading, curve: Cur
     if (curve.asked && daysBetween(curve.asked, reading.date) >= ASK_WAIT_DAYS) return live('asked');
     if (daysBetween(cal.start, reading.date) >= CALIBRATE_MAX_DAYS) return live('timeout');
     return {state: {...state, calibrating: next}};
+}
+
+/** Settled, with a curve change made while settling that the settled days since have already
+ *  checked: calibrating has nothing left to wait for. */
+export function checkedWhileSettling(state: SettleState, curve: CurveView): boolean {
+    const changed = changedSince(state, curve);
+    return state.settled !== undefined && changed !== undefined && streak(daysAfter(state.days, changed)) >= CHECK_DAYS;
+}
+
+/** The curve change that is calibrating's: one since Autopilot heating started. An older one is
+ *  the curve it learned on. */
+function changedSince(state: SettleState, curve: CurveView): string | undefined {
+    return curve.changed !== undefined && curve.changed > state.start ? curve.changed : undefined;
+}
+
+/** Settle days after a curve change, as check days. */
+function daysAfter(days: SettleDay[], changed: string): CheckDay[] {
+    return days.filter((d) => d.date > changed).map((d) => ({...d, ok: Math.abs(d.mean - d.setpoint) <= SETTLED_K + 1e-9}));
 }
 
 /** Whole days from one local date to another. */

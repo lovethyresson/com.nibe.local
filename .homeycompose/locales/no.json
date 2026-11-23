@@ -635,7 +635,7 @@
       "by_autopilot": "av Autopilot",
       "by_you": "av deg",
       "off_by": "__delta__ unna",
-      "not_steady": "Ikke stabilt ennå. Sjekker 3 dager på nytt.",
+      "not_steady": "Ikke stabilt ennå. Sjekker __days__ dager på nytt.",
       "checking": "Sjekker at huset ditt holder __target__.",
       "waiting_for_you": "venter på deg",
       "set_offset": "Sett kurveforskyvningen til __to__",

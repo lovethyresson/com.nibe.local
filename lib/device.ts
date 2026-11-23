@@ -36,7 +36,7 @@ import {ComfortDay, ComfortSlot, addComfortSlot, readComfortDays} from './autopi
 import {ENERGY_ROLES, EnergyWidgetData, energyChart, useToday} from './autopilot/energy';
 import {NowKind, OVERVIEW_KINDS, OverviewData, OverviewFact, OverviewKind, OverviewNow, OverviewTile, overviewData, plannedAhead} from './autopilot/overview';
 import {SLOT_MS, localDate, localMinutes, slotOf} from './autopilot/prices';
-import {CHECK_DAYS, CurveView, LiveReason, SettleEvent, SettleState, Step, calibrateDay, change, daysBetween, readSettle, scoreDay,
+import {CHECK_DAYS, CurveView, LiveReason, SettleEvent, SettleState, Step, calibrateDay, change, checkedWhileSettling, daysBetween, readSettle, scoreDay,
     projectSettle, settleDone, stepOf, streak} from './autopilot/settling';
 import {CostCheckData, CostDay, PlannedCost, addDay, chargeCosts, costCheckData, costDay, fillActual} from './autopilot/cost-check';
 import {COP} from './autopilot/planner';
@@ -2401,10 +2401,16 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const view = this.curveView();
             const fits = scored.event?.kind === 'settled' && view.fits && !(view.changed && view.changed > next.start);
             if (fits) next = {...next, live: yesterday, fits: true};
+            // Settled on a curve changed while settling, and the days since held the thermostat: checked already.
+            const checked = !fits && scored.event?.kind === 'settled' && checkedWhileSettling(next, view);
+            if (checked) next = {...next, live: yesterday};
             if (scored.event) excerpt = this.settleMessage(scored.event, next, fits);
-            // Settled, with calibrating next: its first line, for a curve change in the same hour to follow.
             if (scored.event?.kind === 'settled' && !fits) {
-                short = this.homey.__('autopilot.heating.settle.settled_short', {target: this.celsius(scored.event.day.setpoint)});
+                const held = this.homey.__('autopilot.heating.settle.settled_short', {target: this.celsius(scored.event.day.setpoint)});
+                // Checked already: settled and live in one line. Otherwise the short line is calibrating's
+                // first, for a curve change in the same hour to follow.
+                if (checked) excerpt = `${held} ${this.liveMessage('steady')}`;
+                else short = held;
             }
         } else {
             const checked = calibrateDay(state, reading, this.curveView());
@@ -2546,7 +2552,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     note: d.ok ? '✓' : t('off_by', {delta: one(Math.abs(d.mean - d.setpoint))}), tone: d.ok ? 'good' : 'neutral'}))];
             return {...base, part: Math.max(10, Math.round(run / CHECK_DAYS * 100)),
                 label: label(again && run === 0 ? t('checking_again') : t(again ? 'day_of_again' : 'day_of', {day: run, of: CHECK_DAYS})), big: offset,
-                desc: again ? t('not_steady') : t('checking', {target}), rows: rows.slice(-4)};
+                desc: again ? t('not_steady', {days: CHECK_DAYS}) : t('checking', {target}), rows: rows.slice(-4)};
         }
         const asked = store.told?.to;
         if (asked !== undefined && store.offset !== undefined) {
@@ -2810,9 +2816,14 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const verdict = curveVerdict({today, samples: store.samples, offset: Number.isFinite(offset) ? offset : undefined,
             readyDays: facts.readyAt === undefined ? undefined : (Date.now() - facts.readyAt) / 86_400_000,
             curveGain: facts.curveGain, stepK: facts.stepK, changed: store.changed, wrote: store.wrote});
-        // Getting started's step 3: the curve is changed, or the owner asked, once settling is done.
-        const calibrating = settleDone(readSettle(this.getStoreValue(SETTLE_STORE)));
-        const advice = calibrating && verdict && (verdict.to !== verdict.from || verdict.slope) ? verdict : undefined;
+        // Getting started's step 3. Autopilot's own offset change can come while settling: the advice
+        // reads the trim, which steadies days before the house reaches the thermostat (settling.ts).
+        // What the owner is told (an offset to set, a slope) waits for Calibrating, the step that asks.
+        const settled = settleDone(readSettle(this.getStoreValue(SETTLE_STORE)));
+        const advice = !verdict ? undefined
+            : settled ? (verdict.to !== verdict.from || verdict.slope ? verdict : undefined)
+                : store.choice === 'auto' && verdict.to !== verdict.from
+                    ? {from: verdict.from, to: verdict.to, supplyK: verdict.supplyK, integral: verdict.integral} : undefined;
         // Getting started's "the curve already fits" (settling.ts): the offset needs no change.
         const fits = verdict === undefined ? store.fits : verdict.to === verdict.from ? today : undefined;
         const fmt = (v: number) => (v > 0 ? `+${v}` : String(v));

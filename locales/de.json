@@ -1054,7 +1054,7 @@
       "by_autopilot": "durch Autopilot",
       "by_you": "durch Sie",
       "off_by": "__delta__ daneben",
-      "not_steady": "Noch nicht stabil. Prüft erneut 3 Tage.",
+      "not_steady": "Noch nicht stabil. Prüft erneut __days__ Tage.",
       "checking": "Prüft, ob Ihr Haus __target__ hält.",
       "waiting_for_you": "wartet auf Sie",
       "set_offset": "Parallelverschiebung auf __to__ stellen",

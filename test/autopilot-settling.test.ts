@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {ASK_WAIT_DAYS, CALIBRATE_MAX_DAYS, CHECK_DAYS, MAX_DAYS, SettleState, calibrateDay, change, readSettle, scoreDay, settleDone, stepOf,
+import {ASK_WAIT_DAYS, CALIBRATE_MAX_DAYS, CHECK_DAYS, MAX_DAYS, SettleState, calibrateDay, change, checkedWhileSettling, readSettle, scoreDay, settleDone, stepOf,
     projectSettle, streak} from '../lib/autopilot/settling';
 
 const day = (date: string, mean: number | undefined, setpoint = 22.5, slots = 96, setMin = setpoint) =>
@@ -100,7 +100,7 @@ test('a curve that already fits ends calibrating at once', () => {
     assert.equal(r.state.fits, true);
 });
 
-test('after a curve change, three days in a row holding the thermostat end it; a miss starts the count over', () => {
+test('after a curve change, CHECK_DAYS in a row holding the thermostat end it; a miss starts the count over', () => {
     let s = settledOn('2026-11-24');
     const curve = {fits: false, changed: '2026-11-25'};
     s = calibrateDay(s, day('2026-11-25', 22.5), curve).state;
@@ -117,12 +117,49 @@ test('after a curve change, three days in a row holding the thermostat end it; a
     assert.equal(s.fits, undefined);
 });
 
+test('the check is as long as settling\'s', () => {
+    assert.equal(CHECK_DAYS, 2, 'the tests below are written for a two-day check');
+});
+
+test('a curve changed while settling: the settled days after it are the check', () => {
+    let s: SettleState = {start: '2026-11-20', days: []};
+    s = scoreDay(s, day('2026-11-21', 21.8)).state;
+    s = scoreDay(s, day('2026-11-22', 22.0)).state;
+    const changed = {fits: false, changed: '2026-11-22'};
+    s = scoreDay(s, day('2026-11-23', 22.4)).state;
+    assert.equal(checkedWhileSettling(s, changed), false, 'not settled yet');
+    s = scoreDay(s, day('2026-11-24', 22.5)).state;
+    assert.equal(s.settled, '2026-11-24');
+    assert.equal(checkedWhileSettling(s, changed), true, `${CHECK_DAYS} settled days after the change`);
+    assert.equal(checkedWhileSettling(s, {fits: false, changed: '2026-11-23'}), false, 'one day after a later change');
+    assert.equal(checkedWhileSettling(s, {fits: false}), false, 'no change: calibrating waits for the advice');
+    assert.equal(checkedWhileSettling(s, {fits: false, changed: '2026-11-19'}), false, 'a change before the start is not checked');
+});
+
+test('a change late in settling: calibrating counts its settled days and needs only the rest', () => {
+    let s: SettleState = {start: '2026-11-20', days: []};
+    s = scoreDay(s, day('2026-11-21', 22.0)).state;
+    s = scoreDay(s, day('2026-11-22', 22.4)).state;
+    const curve = {fits: false, changed: '2026-11-22'};
+    s = scoreDay(s, day('2026-11-23', 22.5)).state;
+    assert.equal(s.settled, '2026-11-23');
+    assert.equal(checkedWhileSettling(s, curve), false, 'one settled day after the change');
+    let r = calibrateDay(s, day('2026-11-24', 21.9), curve);
+    assert.deepEqual(r.state.calibrating!.days.map((d) => d.date), ['2026-11-23', '2026-11-24'], 'the settled day, then today');
+    assert.equal(r.event, undefined, 'today missed');
+    r = calibrateDay(r.state, day('2026-11-25', 22.5), curve);
+    assert.equal(r.state.calibrating!.days.length, 3, 'seeded once, not again');
+    assert.equal(r.event, undefined);
+    r = calibrateDay(r.state, day('2026-11-26', 22.5), curve);
+    assert.deepEqual(r.event, {kind: 'live', reason: 'steady'});
+});
+
 test('a change from before Autopilot started is not calibrating\'s', () => {
     const r = calibrateDay(settledOn('2026-11-24'), day('2026-11-25', 22.5), {fits: true, changed: '2026-10-30'});
     assert.equal(r.event?.reason, 'fits');
 });
 
-test('an owner who was asked and changed nothing: on without it after a week', () => {
+test('an owner who was asked and changed nothing: on without it after ASK_WAIT_DAYS', () => {
     let s = settledOn('2026-11-24');
     const curve = {fits: false, asked: '2026-11-25'};
     for (let k = 1; k < ASK_WAIT_DAYS; k++) {

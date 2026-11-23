@@ -1054,7 +1054,7 @@
       "by_autopilot": "by Autopilot",
       "by_you": "by you",
       "off_by": "off by __delta__",
-      "not_steady": "Not steady yet. Checking 3 days again.",
+      "not_steady": "Not steady yet. Checking __days__ days again.",
       "checking": "Checking your house holds __target__.",
       "waiting_for_you": "waiting for you",
       "set_offset": "Set curve offset to __to__",

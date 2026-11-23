@@ -100,7 +100,9 @@ Autopilot heating starts in four steps, and the **Getting started** widget shows
    yesterday's average. Two days in a row within 0.2 °C of your thermostat end this step. Changing
    the thermostat starts it over.
 3. **Calibrating**: it changes your curve offset, or asks you to, then checks that the house holds
-   your temperature for 3 days in a row. If your curve already fits, this step ends at once.
+   your temperature for 2 days in a row. When Autopilot changes the offset itself, that can happen
+   while the house is still settling, and then those days count. If your curve already fits, this
+   step ends at once. Without a verdict it ends after 10 days.
 4. **Saving**: it moves heat away from expensive hours.
 
 Autopilot does not shift heat for prices until Saving, so the first weeks show only the level.
