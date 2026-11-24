@@ -932,7 +932,7 @@
       "panel_tank": "Hot water now",
       "panel_used": "Used today",
       "usual": "usual __l__ L",
-      "reserve": "Always kept",
+      "reserve": "Min level",
       "done": "Heated",
       "planned": "Planned"
     },

@@ -513,7 +513,7 @@
       "panel_tank": "Varmtvann nå",
       "panel_used": "Brukt i dag",
       "usual": "vanlig __l__ L",
-      "reserve": "Alltid igjen",
+      "reserve": "Minimumsnivå",
       "done": "Oppvarmet",
       "planned": "Planlagt oppvarming"
     },

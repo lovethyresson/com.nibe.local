@@ -932,7 +932,7 @@
       "panel_tank": "Warmwasser jetzt",
       "panel_used": "Heute verbraucht",
       "usual": "üblich __l__ L",
-      "reserve": "Immer vorrätig",
+      "reserve": "Minimum",
       "done": "Aufgeheizt",
       "planned": "Geplantes Aufheizen"
     },

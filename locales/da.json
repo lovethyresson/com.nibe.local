@@ -932,7 +932,7 @@
       "panel_tank": "Varmt vand nu",
       "panel_used": "Brugt i dag",
       "usual": "normalt __l__ L",
-      "reserve": "Altid tilbage",
+      "reserve": "Minimumsniveau",
       "done": "Opvarmet",
       "planned": "Planlagt opvarmning"
     },

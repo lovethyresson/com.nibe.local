@@ -932,7 +932,7 @@
       "panel_tank": "Nu beschikbaar",
       "panel_used": "Vandaag gebruikt",
       "usual": "meestal __l__ L",
-      "reserve": "Altijd over",
+      "reserve": "Minimum",
       "done": "Opgewarmd",
       "planned": "Geplande opwarming"
     },

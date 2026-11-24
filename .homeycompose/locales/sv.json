@@ -513,7 +513,7 @@
       "panel_tank": "Kvar nu",
       "panel_used": "Använt i dag",
       "usual": "vanligt __l__ L",
-      "reserve": "Alltid kvar",
+      "reserve": "Miniminivå",
       "done": "Uppvärmt",
       "planned": "Planerad uppvärmning"
     },
