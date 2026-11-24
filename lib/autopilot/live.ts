@@ -478,6 +478,8 @@ export class HeatingFeed {
     /** The 24 h indoor mean the trim last steered on, and the hour slot last logged (`logHour`). */
     private trimMean?: number;
     private loggedSlot?: number;
+    /** The held plan's shift per slot over the last day, 0 outside the hold (`levelPush`). In memory. */
+    private heldShifts: {slot: number; shift: number}[] = [];
     private trimState?: TrimState;
     /** Feeding the trim alone while the model learns (`replan`). */
     private learning = false;
@@ -631,11 +633,20 @@ export class HeatingFeed {
             this.failures = 0;
             this.hooks.feeding(true);
             this.settle(out);
+            this.noteHeld(slot);
             this.logHour(slot);
         } else if (++this.failures >= MAX_FAILED_CYCLES) {
             return this.halt('feed_failed');
         }
         if (was.bias !== this.bias || was.stopped !== this.stopState) this.hooks.changed();
+    }
+
+    /** Keep this slot's held shift for `levelPush`: while Getting started holds, the plan's shift is
+     *  level, not price (flat prices), so it is part of what the curve is short of. */
+    private noteHeld(slot: number) {
+        if (this.heldShifts.at(-1)?.slot === slot) return;
+        const shift = this.holding0 && !this.neutral && !this.learning ? this.bias - this.trim : 0;
+        this.heldShifts = [...this.heldShifts.filter((h) => h.slot > slot - 96), {slot, shift}];
     }
 
     /** One debug line an hour with what the feed is made of, so a drift can be read from the log
@@ -735,6 +746,17 @@ export class HeatingFeed {
     /** The trim's learned part, K of fed outdoor (positive warms). */
     get learnedTrim(): number {
         return (this.trimState ?? this.hooks.loadTrim?.() ?? {integral: 0}).integral;
+    }
+
+    /** What the curve is short of, K of fed outdoor: the trim's learned part plus the last day's mean
+     *  held shift. While Getting started holds, the plan warms a cold house back (flat prices), and
+     *  what it adds then is level the trim did not learn; the curve advice (curve-advice.ts) reading
+     *  the trim alone would judge the curve better than it is (2026-11-24). Slots outside the hold
+     *  count 0: a price shift is not level. The day is in memory, so after a restart it fills again. */
+    get levelPush(): number {
+        const now = this.heldShifts.at(-1)?.slot;
+        const day = now === undefined ? [] : this.heldShifts.filter((h) => h.slot > now - 96);
+        return this.learnedTrim + (day.length ? day.reduce((a, h) => a + h.shift, 0) / day.length : 0);
     }
 
     /** No plan yet: the model is learning. Room-sensor control is off from the day Autopilot is

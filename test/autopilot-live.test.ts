@@ -165,6 +165,19 @@ test('Getting started still warms a house below the setpoint back, at no particu
     assert.deepEqual(flat.feed.state.biases, cold.feed.state.biases);
 });
 
+test('the curve check counts the warming the hold adds, not price shifts (2026-11-24)', async () => {
+    // A cold house under the hold: the plan warms it, and that is level the curve is short of.
+    // Past the start-up ramp (2 K a slot from neutral), so the plan's shift shows.
+    const held = await heldPlan(22.5);
+    for (let k = 0; k < 6; k++) { held.advance(SLOT_MS); await held.feed.cycle(); }
+    assert.ok(held.feed.levelPush > held.feed.learnedTrim + 0.5, `${held.feed.levelPush} vs ${held.feed.learnedTrim}`);
+    // The same plan shifting for prices adds nothing to it.
+    const shifting = harness({setpoint: 22.5, plan: input()});
+    shifting.feed.start();
+    for (let k = 0; k < 6; k++) { await shifting.feed.cycle(); shifting.advance(SLOT_MS); }
+    assert.equal(shifting.feed.levelPush, shifting.feed.learnedTrim);
+});
+
 test('flatPrices sets every slot to the forecast\'s mean price and drops spot', () => {
     const out = flatPrices([{te: 1, sun: 0, price: 1, spot: 0.5}, {te: 2, sun: 0, price: 3}]);
     assert.deepEqual(out.map((s) => s.price), [2, 2]);

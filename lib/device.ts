@@ -2843,7 +2843,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const store = this.heatCurveStore();
         const facts = collector.curveFacts();
         const today = dayNumber(Date.now());
-        if (facts.te !== undefined) store.samples = addSample(store.samples, {day: today, integral: this.heatingFeed.learnedTrim, te: facts.te});
+        if (facts.te !== undefined) store.samples = addSample(store.samples, {day: today, integral: this.heatingFeed.levelPush, te: facts.te});
         const verdict = curveVerdict({today, samples: store.samples, offset: Number.isFinite(offset) ? offset : undefined,
             readyDays: facts.readyAt === undefined ? undefined : (Date.now() - facts.readyAt) / 86_400_000,
             curveGain: facts.curveGain, stepK: facts.stepK, changed: store.changed, wrote: store.wrote});
