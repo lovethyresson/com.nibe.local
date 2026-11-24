@@ -1,0 +1,78 @@
+# Indoor drift 21–24 Nov: analysis
+
+Question: why did the heating device's indoor reading fall from 22.0–22.4 °C (Wed–Fri 18–20 Nov) to
+21.6–21.9 °C (Sat–Tue 21–24 Nov) against a 22.5 °C setpoint, and why didn't Autopilot pull it back?
+
+## Data
+All measured; nothing assumed.
+- **Autopilot 15-min history:** read over the LAN from the app's userdata (`dev/read-autopilot-history.mjs`),
+  30 Oct → 24 Nov 08:00. Fields: ti, te, wind, cloud, GHI, supply, compressor Hz, electric power, the heating heat
+  meter (qheat_kwh), hot water share, BT1 fed.
+- **Insights, 14 days hourly:** the heating device, and all 25 room and outdoor sensors (tado valves, frient smoke
+  alarms, Netatmo, Airthings).
+- **Change timeline:** git, 34 run logs, tasks/todo.md, kept at
+  `scratchpad/timeline.md`. Setpoint 22.5, curve 5, offset 6 and room control off throughout. No pump-side
+  change to a heating register in any log.
+
+## Daily view (history)
+| day | indoor | outdoor | wind m/s | push K | heat kWh | hot water share |
+|---|---|---|---|---|---|---|
+| Wed 18 | 22.38 | 0.73 | 3.8 | 4.0 | 122.3 | 0.03 |
+| Thu 19 | 22.03 | 0.06 | 3.3 | 3.5 | 121.8 | 0.07 |
+| Fri 20 | 22.04 | 0.47 | 3.7 | 4.2 | 118.5 | 0.08 |
+| Sat 21 | 21.83 | 0.70 | 6.9 | 9.4 | 126.6 | 0.11 |
+| Sun 22 | 21.90 | 0.77 | 8.3 | 7.6 | 117.5 | 0.20 |
+| Mon 23 | 21.68 | 1.17 | 6.9 | 3.3 | 120.7 | 0.05 |
+| Tue 24 (to 08) | 21.57 | 0.29 | 4.5 | 4.0 | 111.1* | 0.20 |
+
+*Tuesday is a partial day scaled to 24 h.
+
+## Hypotheses and verdicts
+1. **The Getting started hold cut heat** (my first answer). *Rejected.*
+   - Monday got the same heat as Wed–Fri (120.7 vs 118.5–122.3 kWh), and the same daily mean push (3.3 vs 3.5–4.2).
+   - The house was colder on the weekend's doubled push too.
+2. **The indoor reading changed source or froze** (gateway and sensor-read changes 20 Nov 12:34 and 13:17).
+   *Rejected.*
+   - The reading is the average of the four frient smoke alarms in the halls (basement, ground, upper, attic).
+     That set reproduces it to 0.018 K RMS before the change and 0.043 K after; no other set comes close.
+   - The value changes as often per day after 20 Nov as before.
+3. **Hot water took compressor time.** *Not the cause.*
+   - Hot water share rose on Sun (0.20) and Tue (0.20), but Monday was 0.05 and still cold.
+   - The heat meter counts heating only, and it held up.
+4. **The house lost more heat: wind.** *Supported.*
+   - Wind rose from about 3 to 5.7 m/s at 21:00 on Fri 20 Nov and stayed at 6–9.5 m/s until Tue morning.
+   - From that night the pre-heat stopped warming the reading. Indoor was flat at 21.8–21.9 with a push of
+     11.6–11.8 K and 5.8–6.6 kW delivered. The night before, a push of 10.4 K had lifted it 21.6 → 22.5.
+   - The drop is in the exposed upper floors. Attic hall 21.2 → 20.5 and upper hall 21.8 → 21.3 within six hours
+     that night, then stayed there. The basement and ground-floor halls did not move (−0.08 / −0.11 K
+     Wed–Fri → Sat–Mon).
+   - The unheated storage room fell to 10–11 °C on Sun 22, the windiest day (9.5 m/s), at an unchanged outdoor
+     temperature.
+   - Heat delivered rose on Saturday (126.6 kWh) while indoor fell, so losses went up.
+   - Every room sensor except Matsal, Huvudentré and Spelrum (Airthings) cooled. The average change was about
+     −0.25 K, largest upstairs (Felix −0.84, attic hall −0.64, upper hall −0.51, Kontor −0.49).
+   - A daily fit of heat against the indoor–outdoor gap with a wind term gives about 4 % more loss at 7.5 m/s
+     than at 3.5 m/s. At fixed heat that is worth about 0.8 K at steady state. The daily fit is noisy; the
+     hourly timing is the stronger evidence.
+5. **Someone opened a window or changed a radiator valve.** *Possible for Felix's room, not for the drop.*
+   - Felix's room fell faster than the others (daytime peak 22.5 → 20.9).
+   - The four halls that make up the reading stepped down together on the night the wind rose. A window would
+     not do that.
+   - The tado setpoint history was not fetched, so a valve change is not ruled out.
+
+## Why Autopilot didn't correct it
+- **The model has no wind term.** Neither the planner nor the house model sees wind, so a windy spell reads as
+  an unexplained loss.
+- **The trim is slow by design.** It is a PI trim on the 24 h mean (setpoint.ts): P 2 K per K of error plus
+  about 0.7 K per day of integral at a 0.8 K error (house τ 109 h). Each K of push is about 111 W, against
+  roughly 250–300 W of extra loss here. It takes days to close a wind-driven gap.
+- **Price pushes move heat in time; they add little.** The weekend's push went from 4 to 9.4 K but heat
+  delivered rose only about 6 %. The planner piled it into night pre-heats, at a lower COP: 2.9 / 2.5 against
+  3.2–3.5.
+
+## Open
+- The tado setpoint history (valves) for 18–24 Nov, to close hypothesis 5.
+- The reading averages four halls, including the attic hall, which is the most wind-sensitive. Whether that is
+  the right set to regulate on is the owner's call.
+- A wind term in the house model (the history already has wind per slot) would let the planner and the trim
+  anticipate a windy spell instead of chasing it.
