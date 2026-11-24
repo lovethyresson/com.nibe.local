@@ -43,7 +43,7 @@ for (let day = first; day <= last; day++) {
     const train = all.filter((s) => s.slot < (day + 1) * DAY);
     const fit = fitHouse(all.filter((s) => s.slot < day * DAY), {system: 'unknown', era: 'unknown'}, pump.lever, pump);
     if (!fit.params) continue;
-    const p = {...fit.params, heatLoss: fit.fittedHeatLoss ?? fit.params.heatLoss};
+    const p = fit.params;
     const states = fitSeries(train, 'unknown', 'unknown', {warmupSlots: Math.min(3 * DAY, train.length)}).states;
     const sums = (d) => daySums(p, d, train.filter((s) => Math.floor(s.slot / DAY) === d), states);
     const today = sums(day);

@@ -1117,8 +1117,12 @@ Runs every 15 min and on new prices or weather. Horizon: 24–36 h of slots.
        expected less heat than the meter delivered (Plan vs actual 13–16 % low). The model's two
        equations added give a daily balance (heat in + gains + sun − H × degree-hours = heat
        stored in air and mass); over the last 3 complete days, when the model's heat is more than
-       5 % off the meter's, the plan uses the heat loss the meter supports. Recomputed at every
-       fit; drift and readiness still judge the filter's own heat loss.
+       5 % off the meter's, the plan used the heat loss the meter supports. **Dropped
+       2026-11-24, logged only since** ("Autopilot model: … heat loss N W/°C (meter ×r)"). Over
+       29 rolling fits the swap flipped on and off and moved the plan's heat loss about 7 % each
+       way. It worsened the 5-day open-loop prediction (1.42 against 0.98 K rms,
+       `dev/fit-stability.mjs`) and did not predict a day's metered heat any better (9.7 against
+       9.6 % miss, `dev/energy-window.mjs`). See `tasks/drift-analysis-2026-11-24.md`.
      - **First version (09f1322), replaced:** a proportional trim on top of a planner that still
        aimed at the 24 h mean. It steered, but the planner's band and Expected curve ignored the
        setpoint, so the owner saw the house expected to stay where it was while it was being

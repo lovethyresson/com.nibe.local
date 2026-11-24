@@ -83,7 +83,10 @@ export function insightsLine(fit: HouseFit, insights: HouseInsights | undefined,
         + (fit.lever !== undefined ? `, lever ${Math.round(fit.lever * 1000)} W/K` : '')
         + `, ${curveLine(fit.curve)}, ${copLine(fit.cop)}`;
     if (!insights) return `${head}; still learning`;
-    return `${head}; heat loss ${Math.round(insights.heatLoss)} W/°C, τ ${Math.round(insights.tau)} h, `
+    // The meter's view of the fit (heat-check.ts), logged only: metered over modelled heat, last days.
+    const check = fit.heatCheck;
+    const meter = check?.ratio !== undefined ? ` (meter ×${check.ratio.toFixed(2)}${check.skip ? `, ${check.skip}` : ''})` : '';
+    return `${head}; heat loss ${Math.round(insights.heatLoss)} W/°C${meter}, τ ${Math.round(insights.tau)} h, `
         + `stored ${insights.stored.toFixed(1)} kWh/°C, −${insights.coolingIn6h.toFixed(1)} °C in 6 h at 0 °C off, `
         + `sun E/S/W ${[insights.sunAt500.east, insights.sunAt500.south, insights.sunAt500.west].map((v) => v.toFixed(1)).join('/')} kW`
         + `${insights.sunMostly ? ` (mostly ${insights.sunMostly})` : ''}, ${insights.speed}`;

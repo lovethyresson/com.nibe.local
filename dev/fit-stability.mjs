@@ -34,8 +34,8 @@ const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN);
 const f = (v, d = 2, w = 6) => (Number.isFinite(v) ? v.toFixed(d) : '-').padStart(w);
 
 // Variants of the heat loss the plan uses, scored on the same open-loop gaps:
-//   app:    as shipped (the fitted heat loss, replaced by the meter's when 3 days disagree by over 5 %)
-//   fitted: the fitted heat loss, never replaced
+//   app:    as shipped until 2026-11-24 (the fitted heat loss, replaced by the meter's when 3 days disagree by over 5 %)
+//   fitted: as shipped since (the fitted heat loss, never replaced)
 //   ratio6: the fitted heat loss scaled by metered/modelled heat over the last 6 days, always, within 0.8–1.25
 const score = {app: [], fitted: [], ratio6: []};
 const gapsFor = (p, state) => {
@@ -57,7 +57,8 @@ for (let cut = slotAt(option('from', '2026-11-12 00:00')); cut <= all.at(-1).slo
     const train = all.filter((s) => s.slot < cut);
     const fit = fitHouse(train, {system: 'unknown', era: 'unknown'}, pump.lever, pump);
     if (!fit.params || !fit.state) { console.log(local(cut), 'no fit'); continue; }
-    const p = fit.params;
+    // `params` is the fitted house; the swap shipped until 2026-11-24 replaced its heat loss with the meter's.
+    const p = fit.heatCheck?.heatLoss !== undefined ? {...fit.params, heatLoss: fit.heatCheck.heatLoss} : fit.params;
     let ti = fit.state.ti, tm = fit.state.tm;
     const gaps = {24: [], 48: []};
     for (const s of all) {
@@ -69,11 +70,11 @@ for (let cut = slotAt(option('from', '2026-11-12 00:00')); cut <= all.at(-1).slo
         gaps[48].push(s.ti - ti);
     }
     const check = fit.heatCheck;
-    console.log(local(cut), f((fit.fittedHeatLoss ?? p.heatLoss) * 1000, 0, 7), f(p.heatLoss * 1000, 0, 7),
+    console.log(local(cut), f(fit.params.heatLoss * 1000, 0, 7), f(p.heatLoss * 1000, 0, 7),
         (check?.heatLoss !== undefined ? 'meter' : check?.skip ?? '-').padStart(6), f(check?.ratio, 2),
         f(p.ci, 2), f(p.cm, 1), f(p.rim, 2), f(p.f, 2, 5), f(p.gains, 2), f((p.sun + p.sunE + p.sunW) * 500, 2, 5),
         f((p.ci + p.cm) / p.heatLoss, 0, 5), f(fit.rmse, 2, 7), f(mean(gaps[24]), 2, 8), f(mean(gaps[48]), 2, 8));
-    const fitted = {...p, heatLoss: fit.fittedHeatLoss ?? p.heatLoss};
+    const fitted = fit.params;
     const states = fitSeries(train, 'unknown', 'unknown', {warmupSlots: Math.min(3 * 96, train.length)}).states;
     const days = [...heatCheck(fitted, train, states).days, ...heatCheck(fitted, train.filter((s) => s.slot < cut - 3 * 96), states).days];
     const met = days.reduce((a, d) => a + d.metered, 0), mod = days.reduce((a, d) => a + d.modelled, 0);

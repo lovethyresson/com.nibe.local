@@ -1,4 +1,4 @@
-/** The daily heat check: the house model's heat loss against the heat meter. Pure.
+/** The daily heat check: the house model's heat loss against the heat meter. Pure. Logged only.
  *
  *  The model is fitted on how indoor temperature moves (house.ts `fitHouse`). Indoor alone cannot
  *  tell more heat loss with more free gains from less of both, and on the S1155 (2026-11-16…18)
@@ -12,11 +12,17 @@
  *  with heat stored = Ci × change of air temperature + Cm × change of mass temperature. Over a day
  *  the heat in is the meter's (1577, hot water taken out), so the balance gives the heat loss the
  *  meter supports, with the model's own gains, sun and capacities. When the last `CHECK_DAYS`
- *  complete days disagree with the model by more than `CHECK_TOLERANCE` together, the plan uses
- *  the meter's heat loss. It is worked out again at every fit, so nothing is stored and a model
- *  that has caught up stops being corrected.
+ *  complete days disagree with the model by more than `CHECK_TOLERANCE` together, it gives the
+ *  meter's heat loss.
  *
- *  Owner text: "Calibrated on your heat meter: your house needs about X kW at 0 °C." */
+ *  From 2026-11-08 to 11-24 the plan used that heat loss in place of the fitted one. It was
+ *  dropped on 2026-11-24 (tasks/drift-analysis-2026-11-24.md):
+ *  - it flipped on and off between hourly fits, moving the plan's heat loss about 7 % each way;
+ *  - with it, a 5-day open-loop prediction erred by 1.42 K rms, against 0.98 K without
+ *    (dev/fit-stability.mjs);
+ *  - predicting a day's metered heat from the days before, it missed by 9.7 % against 9.6 % for
+ *    the fitted heat loss (dev/energy-window.mjs). The day's own weather and use dominate.
+ *  It stays for the "Autopilot model:" log line, as the meter's view of the fit. */
 import {HouseParams, ModelSlot, solarGain} from './model';
 
 const DAY_SLOTS = 96;
@@ -79,11 +85,6 @@ export function heatCheck(p: HouseParams, slots: ModelSlot[], states: Map<number
     const heatLoss = (metered + free - stored) / degreeHours;
     if (!(heatLoss >= PLAUSIBLE[0] * p.heatLoss && heatLoss <= PLAUSIBLE[1] * p.heatLoss)) return {days, ratio, skip: 'implausible'};
     return {days, ratio, heatLoss};
-}
-
-/** The fitted parameters with the check's heat loss, when it has one. */
-export function checkedParams(p: HouseParams, check: HeatCheck | undefined): HouseParams {
-    return check?.heatLoss !== undefined ? {...p, heatLoss: check.heatLoss} : p;
 }
 
 export function daySums(p: HouseParams, day: number, slots: ModelSlot[], states: Map<number, [number, number]>): DaySums | undefined {

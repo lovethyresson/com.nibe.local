@@ -17,6 +17,9 @@ Open work first. What has shipped is in the commits and in the **Releases** tabl
   `cleanSelection`, as `selection_done` on main does; keep both sides' integration tests.
 - [x] Review the heating test and the Mac logger's gaps (439027d). Both fixes built: a daily heat
   check fits the heat loss to the meter (2a87865), and the holding trim is PI (16e3127, 6ab59ce).
+  **2026-11-24: the heat check's swap is dropped (logged only).** Back-tests showed it flipping between fits and
+  not predicting metered heat better (tasks/drift-analysis-2026-11-24.md). Plan vs actual is watched again: the
+  target stays a miss under 5 %, and every heat-loss rule tested ran 4–6 % low on 8–23 Nov.
   Whether they close the miss is the next section.
   Plan vs actual ran 13–16 % low on Mon and Tue (2026-11-16/17) while indoor sat below target:
   split each day's miss into kWh (house model, COP) and price, per function, and fix the one that
