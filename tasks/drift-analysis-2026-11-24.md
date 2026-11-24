@@ -93,3 +93,37 @@ All measured; nothing assumed.
 - Monday's basement drop (hypothesis 4) is not explained.
 - A wind term in the house model (the history already has wind per slot) would let the planner and the trim
   anticipate a windy spell instead of chasing it.
+
+## Step 0: back-test with the app's own house model (24 Nov)
+`dev/backtest-drift.mjs` fits the house model on the history up to a cut-off, exactly as the app does (thermal
+mass included, no wind). It then runs the model open-loop on the heat the pump actually delivered and the real
+outdoor temperature. "Residual" is measured minus predicted, daily mean of the reading.
+
+| day | wind m/s | residual (fit to 16 Nov) | residual (fit to 20 Nov 21:00) |
+|---|---|---|---|
+| Mon 16 | 3.0 | +0.02 | |
+| Tue 17 | 3.7 | −0.07 | |
+| Wed 18 | 3.8 | +0.08 | |
+| Thu 19 | 3.3 | −0.45 | |
+| Fri 20 | 3.7 | −0.46 | |
+| Sat 21 | 6.9 | −1.09 | −0.45 |
+| Sun 22 | 8.3 | −1.09 | −0.50 |
+| Mon 23 | 6.9 | −1.29 | −0.72 |
+| Tue 24 | 4.3 | −1.35 | −0.79 |
+
+The fit cut at 18 Nov 00:00 is unstable (it predicts a run-away to 24.8 °C) and is left out.
+
+- **Not thermal-mass lag.** The model carries the house's mass, and fed the heat actually delivered it predicts
+  the house holding at 22.3–23.0 °C, not cooling. The house lost more heat than the model allows.
+- **The gap opens in two steps.**
+  - About −0.45 K from Thu 19 Nov, on calm days (3.3–3.7 m/s), the first full days after outdoor fell from 3–5 °C
+    to about 0 °C.
+  - A further −0.6 K from Sat 21 Nov, when the wind rose to 7–8 m/s.
+- **Two candidates for the losses.**
+  - Losses that rise faster than linearly as it gets colder, for example air leakage growing with the
+    indoor–outdoor gap. The model learned its heat loss on milder days.
+  - Wind.
+- **The fit's own heat loss moves with what it is fitted on.** It is 238 W/K to 16 Nov, 212 to 18 Nov and 245 to
+  20 Nov 21:00.
+
+Next test: refit with (a) a wind term and (b) a gap-dependent loss, and see which one closes the residual.
