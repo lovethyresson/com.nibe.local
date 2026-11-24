@@ -237,3 +237,26 @@ training days).
 the wind has cooled is warmed back by the planner instead of by the trim alone. Revisit with a slow estimator
 outside the filter (a multi-day open-loop fit of `windLoss` on rolling weeks) once more windy weeks exist to
 judge its stability.
+
+## Slow wind estimator (24 Nov): not reliable yet
+`dev/slow-wind.mjs` works outside the filter. At each cut-off (every 12 h from 12 Nov, 26 in all) it fits the
+house as the app does on the history before it. It then picks one wind coefficient kw (0–20 W/K per m/s,
+centred on the last 14 days' mean wind) by the 48 h open-loop error of windows started every 6 h over those 14
+days, and tests after the cut-off.
+
+| | 48 h gap rms, with kw / without | day 5 gap rms, with / without |
+|---|---|---|
+| all 26 cut-offs | 0.44 / 0.38 | 0.94 / 1.06 |
+| 8 before a windy day | 0.40 / 0.33 | 0.11 / 0.20 |
+
+- **kw jumps around:** 0 to 13 W/K per m/s within a day (14–15 Nov), back to 0 on 20–22 Nov, then 2.5–4.
+  Median 2.0.
+- **The training error barely improves** (0.80 against 0.82 at best). The windows can hardly tell wind apart
+  from the rest.
+- **The 48 h predictions get worse with it,** including before windy days. Day 5 improves a little, but day 5
+  is where every prediction is already about 1 K off.
+
+**Conclusion:** with three and a half weeks of history and two windy spells, this house's wind effect can't be
+estimated reliably from the data, by the filter or slowly. Wind is parked. The recovery change (8264f23)
+handles a wind-cooled house after the fact. Revisit after the winter has more windy weeks:
+`dev/slow-wind.mjs` and `tasks/wind-term-ekf.patch` are the starting points.
