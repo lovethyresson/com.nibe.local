@@ -49,16 +49,34 @@ All measured; nothing assumed.
    - The unheated storage room fell to 10–11 °C on Sun 22, the windiest day (9.5 m/s), at an unchanged outdoor
      temperature.
    - Heat delivered rose on Saturday (126.6 kWh) while indoor fell, so losses went up.
-   - Every room sensor except Matsal, Huvudentré and Spelrum (Airthings) cooled. The average change was about
-     −0.25 K, largest upstairs (Felix −0.84, attic hall −0.64, upper hall −0.51, Kontor −0.49).
+   - Floor by floor, using only the four hall sensors the app averages (bedrooms have night setbacks and are
+     left out):
+
+     | day | basement | ground | upper | attic | reading | wind |
+     |---|---|---|---|---|---|---|
+     | Wed 18 | 21.66 | 24.24 | 22.07 | 21.52 | 22.37 | 3.8 |
+     | Thu 19 | 21.45 | 23.79 | 21.67 | 21.15 | 22.02 | 3.3 |
+     | Fri 20 | 21.54 | 23.79 | 21.70 | 21.10 | 22.03 | 3.7 |
+     | Sat 21 | 21.67 | 23.89 | 21.34 | 20.52 | 21.86 | 6.9 |
+     | Sun 22 | 21.63 | 23.92 | 21.32 | 20.72 | 21.90 | 8.3 |
+     | Mon 23 | 21.11 | 23.70 | 21.25 | 20.61 | 21.67 | 6.9 |
+
+   - The same pattern holds over all 14 days, not only this weekend. Upstairs (upper and attic halls) minus
+     downstairs (basement and ground) correlates with the day's wind at −0.81. That is −0.85 to −1.2 K on calm
+     days and −1.5 to −1.85 K on windy ones (13–15 Nov too), about −0.15 K per m/s. Hourly the correlation is
+     −0.64, flat from 0 to 6 h of lag.
+   - This gap is between floors, so it does not depend on what Autopilot fed: the same heat reaches both. The
+     upstairs halls are two of the four sensors, so an upstairs drop of 0.6–0.7 K moves the reading by about
+     0.3 K. That is the size of the drop.
+   - Monday the basement hall also fell 0.4 K while the ground hall held. The wind does not explain that on its
+     own; it may be the lag of a cold weekend upstairs reaching the stairwell.
    - A daily fit of heat against the indoor–outdoor gap with a wind term gives about 4 % more loss at 7.5 m/s
      than at 3.5 m/s. At fixed heat that is worth about 0.8 K at steady state. The daily fit is noisy; the
      hourly timing is the stronger evidence.
-5. **Someone opened a window or changed a radiator valve.** *Possible for Felix's room, not for the drop.*
-   - Felix's room fell faster than the others (daytime peak 22.5 → 20.9).
-   - The four halls that make up the reading stepped down together on the night the wind rose. A window would
-     not do that.
-   - The tado setpoint history was not fetched, so a valve change is not ruled out.
+5. **Someone opened a window or changed a radiator valve.** *Unlikely.* The upstairs halls stepped down
+   together on the night the wind rose, and the same floor gap shows on the windy days a week earlier. The
+   bedrooms run night setbacks on their tado valves and are left out of this analysis. The tado setpoint history
+   was not fetched.
 
 ## Why Autopilot didn't correct it
 - **The model has no wind term.** Neither the planner nor the house model sees wind, so a windy spell reads as
@@ -72,7 +90,6 @@ All measured; nothing assumed.
 
 ## Open
 - The tado setpoint history (valves) for 18–24 Nov, to close hypothesis 5.
-- The reading averages four halls, including the attic hall, which is the most wind-sensitive. Whether that is
-  the right set to regulate on is the owner's call.
+- Monday's basement drop (hypothesis 4) is not explained.
 - A wind term in the house model (the history already has wind per slot) would let the planner and the trim
   anticipate a windy spell instead of chasing it.
