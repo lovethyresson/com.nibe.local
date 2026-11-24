@@ -304,6 +304,27 @@ export function nextCharge<C extends {at: number; minutes: number}>(charges: C[]
     return charges.find((c) => c.at > now - SLOT_MS);
 }
 
+/** The charge running now that the plan did not have (`againstPlan` 'moved' or 'unplanned'), from
+ *  the last start, or undefined. The widgets draw the plan, so without it a moved charge would run
+ *  unseen while the card still named its planned time. `solar`: Autopilot started it for solar
+ *  excess the plan did not expect, which the chart marks. Pure. */
+export function offPlanCharge(last: ChargeEvent | undefined, charging: boolean, now: number):
+    {at: number; minutes: number; reason: ChargeReason; surplusShare: number; targetC?: number; solar: boolean} | undefined {
+    if (!charging || !last || last.shadow || (last.plan !== 'moved' && last.plan !== 'unplanned')) return undefined;
+    // A charge outlasts its planned minutes when it is extended or the pump stops later: it holds
+    // while it still runs, up to a day, so a stale event never stands in for a later charge.
+    if (now < last.at || now - last.at > DAY_MS) return undefined;
+    const minutes = Math.max(last.minutes ?? 0, Math.floor((now - last.at) / 60_000 / 15) * 15 + 15);
+    return {at: last.at, minutes, reason: last.reason, surplusShare: last.surplusShare ?? 0, targetC: last.targetC,
+        solar: last.by === 'autopilot' && last.plan === 'unplanned' && last.reason === 'surplus'};
+}
+
+/** The planned start a moved charge took the place of (`againstPlan` 'moved'), within the day, so
+ *  the widgets stop naming it once the charge it moved to has started. Pure. */
+export function movedFrom(last: ChargeEvent | undefined, now: number): number | undefined {
+    return last && !last.shadow && last.plan === 'moved' && now - last.at < DAY_MS ? last.plannedAt : undefined;
+}
+
 /** One slot's plan. Pure. */
 export function hotwaterShadowStep(input: ShadowStepInput): ShadowStep {
     const out = planFrom(input);
@@ -717,6 +738,8 @@ export interface HotwaterHooks {
     /** Solar surplus left for hot water from `slot`, kW per slot (solar-surplus.ts), or undefined
      *  without a generator. */
     surplus(slot: number): Map<number, number> | undefined;
+    /** The same from the forecast alone, for the widget's expected area (no live reading). */
+    expectedSurplus?(slot: number): Map<number, number> | undefined;
     /** What the plan's charges take from the surplus, kW per slot, so later users see the rest. */
     reserveSurplus(kw: Map<number, number>): void;
     dayType(): DayTypeState | undefined;
@@ -974,30 +997,37 @@ export class HotwaterAutopilot {
     /** What the Autopilot widget shows for `n` slots from `from`: the price, the expected solar
      *  surplus (kW, only with solar on), and the plan's charges with the share each takes from the
      *  surplus; the tank now and the next charge. Reads only. */
-    outlook(from: number, n: number): {slots: {price?: number; surplus?: number; charge?: number; ran?: true}[]; litres?: number;
-        next?: {at: number; minutes: number; reason: ChargeReason; solar: number; running: boolean; targetC?: number}} {
-        const charges = this.morningPlan?.charges ?? [];
+    outlook(from: number, n: number): {slots: {price?: number; surplus?: number; charge?: number; ran?: true; extra?: true}[]; litres?: number;
+        next?: {at: number; minutes: number; reason: ChargeReason; solar: number; running: boolean; targetC?: number; extra?: true}} {
+        const now = Date.now();
+        // A planned charge that was moved earlier has run, or is running: the plan's slot for it is empty.
+        const moved = movedFrom(this.lastStart, now);
+        const charges = (this.morningPlan?.charges ?? []).filter((c) => c.at !== moved);
         const covering = (slot: number) => charges.find((c) => slot * SLOT_MS < c.at + c.minutes * 60_000
             && (slot + 1) * SLOT_MS > c.at);
-        const surplus = this.surplus(from);
-        const now = Date.now();
+        const surplus = this.hooks.solar() ? this.hooks.expectedSurplus?.(from) ?? this.hooks.surplus(from) : undefined;
         // A planned charge whose start has passed is the next one only while the tank is charging.
         // One that did not start (a safety-net charge filled the tank first) is behind us.
         const charging = (this.chargingNow ?? this.last?.charging) === true;
-        const next = nextCharge(charges, now, charging);
         const nowSlot = Math.floor(now / SLOT_MS);
+        // A charge running now that the plan did not have (moved, or started for solar excess): it is
+        // the one drawn and named, since the plan alone never shows it.
+        const off = offPlanCharge(this.lastStart, charging, now);
+        const inOff = (slot: number) => !!off && slot >= nowSlot && slot * SLOT_MS < off.at + off.minutes * 60_000;
+        const next = off ?? nextCharge(charges, now, charging);
         return {
             // Behind now, the charges that ran; from now on, the plan.
             slots: Array.from({length: n}, (_, k) => {
                 const slot = from + k;
-                const c = slot >= nowSlot ? covering(slot) : undefined;
+                const c = slot >= nowSlot ? inOff(slot) ? off : covering(slot) : undefined;
                 const kw = surplus?.get(slot);
                 return {price: this.prices.get(slot)?.price, surplus: kw === undefined ? undefined : Math.max(0, round(kw, 2)),
-                    charge: c ? c.surplusShare : undefined, ...(this.ran.has(slot) || this.ranBefore.has(slot)) && slot <= nowSlot ? {ran: true as const} : {}};
+                    charge: c ? c.surplusShare : undefined, ...(this.ran.has(slot) || this.ranBefore.has(slot)) && slot <= nowSlot ? {ran: true as const} : {},
+                    ...inOff(slot) && off!.solar ? {extra: true as const} : {}};
             }),
             litres: this.last?.litres,
             next: next && {at: next.at, minutes: next.minutes, reason: next.reason, solar: next.surplusShare, targetC: next.targetC,
-                running: next.at <= now || (charging && next.at <= now + SLOT_MS)},
+                running: next === off || next.at <= now || (charging && next.at <= now + SLOT_MS), ...off?.solar ? {extra: true as const} : {}},
         };
     }
 

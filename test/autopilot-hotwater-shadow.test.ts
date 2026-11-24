@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import {HotwaterModel, KWH_PER_LITRE, localClock} from '../lib/autopilot/hotwater-learner';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {COAST_HOURS, DAILY_HOUR, EXTEND_MIN_K, extendTarget, chargedSlots, nextCharge, trackedReason, DailyPlan, MIN_HORIZON, ShadowEntry, coastLitres, againstPlan, planChanges, planUpdateText, autopilotCharge, chargeLine, chargeText, dailyPlan, dailyPlanText, hotwaterShadowStep, hotwaterStatusText, ownDeviceId, resumePlan, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
+import {COAST_HOURS, DAILY_HOUR, EXTEND_MIN_K, extendTarget, chargedSlots, nextCharge, trackedReason, DailyPlan, MIN_HORIZON, ShadowEntry, coastLitres, againstPlan, movedFrom, offPlanCharge, planChanges, planUpdateText, autopilotCharge, chargeLine, chargeText, dailyPlan, dailyPlanText, hotwaterShadowStep, hotwaterStatusText, ownDeviceId, resumePlan, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
 import {SLOT_MS, slotOf} from '../lib/autopilot/prices';
 
 const clock = localClock('UTC');
@@ -527,4 +527,25 @@ test('a draw that came early is not expected again at its usual hour', async () 
     assert.strictEqual(entry(step({...base, early})).action, 'wait');
     // Nothing drawn early: nothing credited.
     assert.strictEqual(drawnEarly(points.map((p) => ({...p, litres: 214})), model, at, clock, () => model.profiles.any), 0);
+});
+
+test('the widgets take the running charge the plan did not have, and mark only a solar one', () => {
+    const at = Date.parse('2026-11-24T12:00:00Z');
+    const e = {by: 'autopilot', at, reason: 'surplus', minutes: 60, surplusShare: 0.9, plan: 'unplanned', reserveLitres: 40} as any;
+    assert.deepEqual(offPlanCharge(e, true, at + 10 * 60_000), {at, minutes: 60, reason: 'surplus', surplusShare: 0.9, targetC: undefined, solar: true});
+    assert.equal(offPlanCharge(e, false, at + 10 * 60_000), undefined, 'not charging: nothing runs');
+    assert.equal(offPlanCharge(e, true, at + 70 * 60_000)?.minutes, 75, 'still running past its plan: it holds to the next slot');
+    assert.equal(offPlanCharge(e, true, at + 25 * 3_600_000), undefined, 'a day-old start stands in for nothing');
+    assert.equal(offPlanCharge({...e, plan: 'as_planned'}, true, at), undefined, 'the plan has it');
+    assert.equal(offPlanCharge({...e, shadow: true}, true, at), undefined, 'a test run writes nothing');
+    assert.equal(offPlanCharge({...e, reason: 'before_use', plan: 'moved'}, true, at)?.solar, false, 'moved for use: shown, not marked');
+    assert.equal(offPlanCharge({...e, by: 'pump'}, true, at)?.solar, false, 'the pump started it: shown, not marked');
+});
+
+test('a moved charge takes its planned start off the widgets for the day', () => {
+    const at = Date.parse('2026-11-24T19:00:00Z'), plannedAt = Date.parse('2026-11-24T22:00:00Z');
+    const e = {by: 'autopilot', at, reason: 'before_use', minutes: 90, plan: 'moved', plannedAt, reserveLitres: 40} as any;
+    assert.equal(movedFrom(e, at + 3 * 3_600_000), plannedAt);
+    assert.equal(movedFrom({...e, plan: 'unplanned'}, at), undefined);
+    assert.equal(movedFrom(e, at + 25 * 3_600_000), undefined, 'tomorrow the plan is new');
 });

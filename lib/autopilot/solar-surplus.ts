@@ -270,6 +270,15 @@ export class SolarSurplus {
         return this.budget.available(user, this.forecast(slot));
     }
 
+    /** The same from the forecast alone, without the live reading: what the widget draws as
+     *  expected. 0 everywhere while the forecast is off. Live excess shows on the charge it starts. */
+    expectedForUser(user: SurplusUser, slot: number): Map<number, number> | undefined {
+        if (!this.ready) return undefined;
+        const starts = Array.from({length: AHEAD_SLOTS}, (_, j) => (slot + j) * SLOT_MS);
+        const ahead = this.forecastOn() ? surplusForecast(this.fit, this.ghi, starts) : undefined;
+        return this.budget.available(user, new Map(starts.map((_, j) => [slot + j, ahead?.[j] ?? 0])));
+    }
+
     private answer(): SolarAnswer | undefined {
         return readSolarAnswer(this.homey.settings.get(SOLAR_SETTING));
     }

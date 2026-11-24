@@ -19,6 +19,8 @@ export interface WidgetSlot {
     charge?: number;
     /** Hot water: the tank was charging in this slot (one already behind now). */
     ran?: true;
+    /** Hot water: a charge the plan did not have, running on live solar excess. */
+    extra?: true;
 }
 
 /** A chart axis: round gridlines from `lo` to `hi`, and how many decimals their labels need. */
@@ -38,6 +40,8 @@ export interface ChargeBand {
     label: string;
     /** Slots `from` up to this one already ran: drawn muted. Missing when none did. */
     doneTo?: number;
+    /** A charge the plan did not have, running on live solar excess: marked with a sun. */
+    extra?: true;
 }
 
 /** An hour of the outdoor shift as one bar: slots `at` up to `to`, the shift (K) averaged over them. */
@@ -83,6 +87,8 @@ export interface WidgetData {
     nowValue?: string;
     nowNote?: string;
     footnote?: string;
+    /** Hot water: what the sun over a charge outside the plan means, for its tooltip. */
+    extraTitle?: string;
     empty?: string;
 }
 
@@ -185,13 +191,13 @@ export function formatDuration(minutes: number, say: (key: 'duration' | 'duratio
 export function chargeBands(slots: WidgetSlot[], from: number, clock: (ms: number) => string,
     label: (start: string, end: string) => string, slotMs = 15 * 60_000): ChargeBand[] {
     const bands: ChargeBand[] = [];
-    let open: {from: number; solar: number[]; doneTo?: number} | undefined;
+    let open: {from: number; solar: number[]; doneTo?: number; extra?: boolean} | undefined;
     const close = (to: number) => {
         if (!open) return;
         const share = open.solar.length ? open.solar.reduce((a, b) => a + b, 0) / open.solar.length : 0;
         bands.push({from: open.from, to, solar: Math.round(share * 100) / 100,
             label: label(clock(from + open.from * slotMs), clock(from + to * slotMs)),
-            ...open.doneTo !== undefined ? {doneTo: open.doneTo} : {}});
+            ...open.doneTo !== undefined ? {doneTo: open.doneTo} : {}, ...open.extra ? {extra: true as const} : {}});
         open = undefined;
     };
     slots.forEach((s, k) => {
@@ -202,6 +208,7 @@ export function chargeBands(slots: WidgetSlot[], from: number, clock: (ms: numbe
         open ??= {from: k, solar: []};
         if (s.ran && !planned) open.doneTo = k + 1;
         else open.solar.push(s.charge ?? 0);
+        if (s.extra) open.extra = true;
     });
     close(slots.length);
     return bands;

@@ -1662,6 +1662,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             reserveLitres: () => this.reserveLitres(),
             solar: () => this.solarAllowed(),
             surplus: (slot) => this.solarSurplus().forUser('hotwater', slot),
+            expectedSurplus: (slot) => this.solarSurplus().expectedForUser('hotwater', slot),
             reserveSurplus: (kw) => this.solarSurplus().budget.reserve('hotwater', kw),
             dayType: () => readDayType(this.homey.settings.get(DAY_TYPE_SETTING)),
             pumpFacts: async () => {
@@ -3009,8 +3010,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const reason = o.next ? this.homey.__(`autopilot.hotwater_charge.reason.${o.next.reason}`) : undefined;
             const solar = o.slots.some((s) => s.surplus !== undefined);
             const share = o.next ? Math.round(o.next.solar * 100) : 0;
-            const charges = o.slots.filter((s, k) => k >= now && s.charge !== undefined);
-            const fromSolar = charges.length ? charges.reduce((a, s) => a + s.charge!, 0) / charges.length : 0;
             if (!this.solarAllowed()) chips.push(t('hotwater.solar_off'));
             else if (this.solarSurplus().forecastPaused) chips.push(t('hotwater.solar_paused'));
             // The tank now, as the figure beside the status (heating shows indoor there).
@@ -3042,14 +3041,13 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     ? t('hotwater.until', {time: this.clock(o.next.at + o.next.minutes * 60_000)})
                     : [later ? t('hotwater.day_tomorrow') : undefined, later ? lowerFirst(t('hotwater.about', {duration})) : t('hotwater.about', {duration})]
                         .filter(Boolean).join(' · '),
-                detail: o.next ? [reason, share > 0 ? t('hotwater.share', {share}) : undefined].filter(Boolean).join(' · ') || undefined : undefined,
+                // A charge outside the plan on live solar excess is named as that, without a share.
+                detail: o.next?.extra ? t('hotwater.solar_now')
+                    : o.next ? [reason, share > 0 ? t('hotwater.share', {share}) : undefined].filter(Boolean).join(' · ') || undefined : undefined,
                 legend: {price: t('price'), surplus: solar ? t('surplus') : '', grid: t('charge_grid'), solar: solar ? t('charge_solar') : '',
                     done: bands.some((b) => b.doneTo !== undefined) ? t('charge_done') : ''},
                 axes: {left: t('axis_price'), right: solar ? t('axis_surplus') : ''},
-                // The plan counts the surplus it expects; a live surplus the forecast missed still starts or
-                // tops up a charge (solar-surplus.ts: the live reading replaces the forecast for the next slots), so the owner is told it is not a cap.
-                footnote: solar && this.solarAllowed() ? [bands.length > 1 ? Math.round(fromSolar * 100) > 0 ? t('hotwater.solar_total', {share: Math.round(fromSolar * 100)}) : t('hotwater.solar_none') : '',
-                    t('hotwater.solar_live')].filter(Boolean).join(' ') : undefined};
+                extraTitle: o.next?.extra ? t('hotwater.solar_now') : undefined};
         }
         const status = this.getCapabilityValue(AUTOPILOT_STATUS_CAPABILITY) as HeatingStatus | null;
         const range = this.heatingRange();

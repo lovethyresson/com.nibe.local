@@ -145,6 +145,15 @@ test('a planned charge is one labelled band, with the share the sun covers', () 
     assert.equal(hour, 3_600_000);
 });
 
+test('a charge outside the plan on live solar excess is marked on its band, and only that one', () => {
+    const from = Date.parse('2026-11-14T10:00:00Z');
+    const clock = (ms: number) => new Date(ms).toISOString().slice(11, 16);
+    const bands = chargeBands([{ran: true}, {charge: 1, extra: true}, {charge: 1, extra: true}, {}, {charge: 0}], from, clock, (a, b) => `${a}-${b}`);
+    assert.equal(bands.length, 2);
+    assert.equal(bands[0].extra, true, 'the running extra charge, its done part included');
+    assert.equal(bands[1].extra, undefined, 'a planned charge carries no mark');
+});
+
 test('charges already done are bands too; a running charge is one band, its done part first', () => {
     const from = Date.parse('2026-11-15T00:00:00Z');
     const clock = (ms: number) => new Date(ms).toISOString().slice(11, 16);

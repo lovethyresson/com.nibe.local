@@ -289,11 +289,24 @@
           if (bx + bw > dx) g.appendChild(svgEl('rect', {x: dx, y: by, width: bx + bw - dx, height: bh, fill: 'var(--ap-grid)'}));
           if (sw > 0) g.appendChild(svgEl('rect', {x: dx, y: by, width: sw, height: bh, fill: 'var(--ap-solar)'}));
           svg.appendChild(g);
+          // A charge the plan did not have, running on live solar excess: a sun above it.
+          if (b.extra) svg.appendChild(sun(bx + bw / 2, B - 9, data.extraTitle));
           // No time label: the status names the next charge, and the hours sit right under the lane.
         });
         header(svg, data, x, W, L, R, B);
         hours(svg, data.ticks.map(function (t) { return {x: x(t.at), label: t.label}; }), tickY);
         return svg;
+      }
+
+      function sun(cx, cy, title) {
+        var g = svgEl('g', {fill: 'var(--ap-solar)', stroke: 'var(--ap-solar)', 'stroke-width': 1.6, 'stroke-linecap': 'round'});
+        if (title) g.appendChild(svgEl('title', {}, title));
+        g.appendChild(svgEl('circle', {cx: cx, cy: cy, r: 3.4, stroke: 'none'}));
+        for (var a = 0; a < 8; a++) {
+          var r = a * Math.PI / 4;
+          g.appendChild(svgEl('line', {x1: cx + 5.6 * Math.cos(r), y1: cy + 5.6 * Math.sin(r), x2: cx + 7.6 * Math.cos(r), y2: cy + 7.6 * Math.sin(r)}));
+        }
+        return g;
       }
 
       function legend(items) {
