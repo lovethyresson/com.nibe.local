@@ -126,4 +126,36 @@ The fit cut at 18 Nov 00:00 is unstable (it predicts a run-away to 24.8 °C) and
 - **The fit's own heat loss moves with what it is fitted on.** It is 238 W/K to 16 Nov, 212 to 18 Nov and 245 to
   20 Nov 21:00.
 
-Next test: refit with (a) a wind term and (b) a gap-dependent loss, and see which one closes the residual.
+## Refit: wind against a cold-dependent loss (24 Nov)
+`dev/backtest-drift-terms.mjs` adds terms to the fitted heat loss, centred on the training period's means:
+- wind: kw × (wind − mean);
+- cold: kc × (indoor–outdoor gap − mean).
+
+The coefficients are fitted on the 6 h windows before the cut-off only. They are then tested out of sample:
+open-loop from the cut-off on the heat actually delivered.
+
+**Cut at 16 Nov** (the training data includes the windy 13–15 Nov). Fitted kw = 9 W/K per m/s; kc came out
+negative, the wrong sign. Out-of-sample gap, measured minus predicted, K:
+
+| day | wind | none | wind | cold | both |
+|---|---|---|---|---|---|
+| Thu 19 | 3.3 | −0.45 | −0.31 | −1.11 | −0.83 |
+| Fri 20 | 3.7 | −0.46 | −0.39 | −1.45 | −1.14 |
+| Sat 21 | 6.9 | −1.09 | −0.61 | −2.35 | −1.58 |
+| Sun 22 | 8.3 | −1.09 | −0.05 | −2.61 | −1.17 |
+| Mon 23 | 6.9 | −1.29 | +0.19 | −3.05 | −1.02 |
+| Tue 24 | 4.3 | −1.35 | +0.20 | −3.26 | −1.04 |
+
+**Cut at 19 Nov.** Fitted kw = 3 W/K per m/s. The base fit is poor: its open loop drifts −0.7 to −2.8 K
+whatever the terms. The wind term still narrows the gap by 0.4–0.8 K from Saturday.
+
+- **Wind is supported.** Fitted on earlier days and tested on unseen ones, it closes the weekend and Monday
+  gap.
+- **A cold-dependent loss is rejected.** Its fitted sign is wrong and it widens the gap.
+- **About −0.3 to −0.4 K on calm Thu–Fri is still unexplained.**
+- **The size is uncertain.** 9 W/K per m/s (cut 16) against 3 (cut 19). The 6 h error barely improves
+  (0.256 → 0.250), so short windows hardly identify it; the multi-day open loop does. At 9 W/K per m/s, 7.5 m/s
+  against 3.3 adds about 0.8 kW of loss at a 21 K gap.
+- **A separate finding: the base fit is unstable.** Its heat loss is 238 / 212 / 216 W/K for cuts at
+  16 / 18 / 19 Nov. The open-loop predictions from the 18 and 19 Nov fits run 2–3 K too warm within days. The
+  planner relies on this fit; the trim hides the level error.
