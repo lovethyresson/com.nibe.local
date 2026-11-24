@@ -38,8 +38,10 @@ const miss = {fitted: [], swap3: [], meter3: [], meter7: []};
 const pct = (v) => (Number.isFinite(v) ? `${v >= 0 ? '+' : ''}${(v * 100).toFixed(1)} %` : '-').padStart(8);
 console.log('day (UTC)    metered  fitted W/K   fitted   swap3   meter3   meter7');
 for (let day = first; day <= last; day++) {
+    // The fit sees only the days before: it predicts the day the way a morning plan does. The filter's
+    // states run through the day, for the heat it stored.
     const train = all.filter((s) => s.slot < (day + 1) * DAY);
-    const fit = fitHouse(train, {system: 'unknown', era: 'unknown'}, pump.lever, pump);
+    const fit = fitHouse(all.filter((s) => s.slot < day * DAY), {system: 'unknown', era: 'unknown'}, pump.lever, pump);
     if (!fit.params) continue;
     const p = {...fit.params, heatLoss: fit.fittedHeatLoss ?? fit.params.heatLoss};
     const states = fitSeries(train, 'unknown', 'unknown', {warmupSlots: Math.min(3 * DAY, train.length)}).states;

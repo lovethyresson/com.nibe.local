@@ -191,23 +191,25 @@ predicts open-loop from each cut-off on the heat actually delivered.
 corrects how much heat the plan expects, not the temperatures. Dropping it trades better temperatures for worse
 energy figures.
 
-## Which heat loss predicts tomorrow's heat (24 Nov)
-`dev/energy-window.mjs`: for each complete day from 8 Nov, fit as the app does on the history to that day's end.
-Then predict the day's metered heat from its own heat balance with a heat loss chosen from the days before it.
-The figure is the miss, the % Plan vs actual would be off by.
+## Which heat loss predicts tomorrow's heat (24 Nov, corrected)
+`dev/energy-window.mjs`: for each complete day from 8 Nov, fit as the app does on the history **before the day
+starts**, then predict that day's metered heat from its own heat balance with a heat loss chosen from the days
+before it. The figure is the miss, the % Plan vs actual would be off by.
 
-| heat loss | mean |miss| | mean miss | 17 Nov | 18 Nov |
-|---|---|---|---|---|
-| fitted, never swapped | **7.7 %** | −4.2 % | −7.1 % | −8.7 % |
-| swapped for the meter's at > 5 % over 3 days (today) | 9.8 % | −4.5 % | −14.0 % | −15.7 % |
-| the meter's over 3 days, always | 10.0 % | −4.1 % | −14.0 % | −15.7 % |
-| the meter's over 7 days, always | 10.4 % | −6.4 % | −6.2 % | −10.1 % |
+The first run fitted through the end of the predicted day. That let the fitted heat loss see the day it
+predicted and made it look best (7.7 % against 9.8 %). Without that it is a tie:
 
-- **The fitted heat loss predicts the next day's heat best.** It also does best on 17–18 Nov, the days the check
-  was added for: there the swap doubled the miss.
-- **A past meter balance doesn't predict the next day.** Over three days it mostly carries those days' noise, so
-  no meter window beats the fit.
-- **All four still run about 4 % low on average.** Losses rose faster than any of them followed (the season and
-  the wind).
-- **So both the temperature test (day-5 rms 0.98 against 1.42 K) and the energy test favour dropping the swap.**
-  There is no need for a separate metered heat loss.
+| heat loss | mean |miss| | mean miss |
+|---|---|---|
+| fitted, never swapped | 9.6 % | −5.4 % |
+| swapped for the meter's at > 5 % over 3 days (today) | 9.7 % | −4.4 % |
+| the meter's over 3 days, always | 10.1 % | −4.2 % |
+| the meter's over 7 days, always | 10.5 % | −6.5 % |
+
+- **For energy the swap neither helps nor hurts.** The day-to-day miss (about 10 %) comes from the day itself,
+  not from which heat loss is used.
+- **Every rule runs 4–6 % low.** Losses rose faster than any of them followed.
+- **The temperature result stands.** `dev/fit-stability.mjs` fits only before each cut-off: day-5 rms 0.98 K
+  without the swap against 1.42 K with it, and no difference within 24 h. The app re-anchors every slot and plans
+  24 h ahead, so in use the swap's cost is mainly the 7 % jumps in the plan's heat and cost from fit to fit, not
+  worse temperatures.

@@ -628,3 +628,9 @@ I blamed the indoor drift on the Getting started hold (push 9 K → 3 K) from fo
 owner said "make your changes". Fourteen days of daily means showed the house did not warm on the two 9 K days
 either, and sat at 22.0–22.4 on 4 K the week before. Before naming a cause, pull the daily means for at least a
 week before the change and check the effect was there when the cause was.
+
+## A back-test fits only on what came before (2026-11-24)
+The first heat-loss back-test fitted through the end of each day it then predicted, so the fitted value had
+seen the answer and won (7.7 % against 9.8 %). Fitted only on earlier days, it was a tie (9.6 % against
+9.7 %). Every back-test cuts the training data strictly before the first predicted slot, and that includes
+fits made "for convenience" to get states or parameters.
