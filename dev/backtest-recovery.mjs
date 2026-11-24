@@ -78,3 +78,6 @@ for (const [day, d] of days) {
     console.log(day, (d.meas.length ? mean(d.meas).toFixed(2) : '-').padStart(8), mean(d.held).toFixed(2).padStart(12),
         mean(d.flat).toFixed(2).padStart(12), (mean(d.flat) - mean(d.held)).toFixed(2).padStart(6), d.extra.toFixed(1).padStart(14));
 }
+const lastMeasured = [...after].reverse().find((s) => Number.isFinite(s.ti));
+console.log(`now (${new Date(after.at(-1).slot * SLOT_MS).toLocaleString('sv-SE').slice(0, 16)}): measured ${lastMeasured?.ti.toFixed(2)}, `
+    + `model held ${held[0].toFixed(2)}, model flat ${flat[0].toFixed(2)}, added ${(flat[0] - held[0]).toFixed(2)} K`);
