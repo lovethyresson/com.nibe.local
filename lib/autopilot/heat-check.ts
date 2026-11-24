@@ -51,7 +51,7 @@ export interface HeatCheck {
     skip?: 'days' | 'mild' | 'agrees' | 'implausible';
 }
 
-interface DaySums {day: number; metered: number; degreeHours: number; free: number; stored: number}
+export interface DaySums {day: number; metered: number; degreeHours: number; free: number; stored: number}
 
 /** The check over the newest complete days of `slots`, with `states` the filter's [air, mass] per
  *  slot. The current (unfinished) day is left out. */
@@ -86,7 +86,7 @@ export function checkedParams(p: HouseParams, check: HeatCheck | undefined): Hou
     return check?.heatLoss !== undefined ? {...p, heatLoss: check.heatLoss} : p;
 }
 
-function daySums(p: HouseParams, day: number, slots: ModelSlot[], states: Map<number, [number, number]>): DaySums | undefined {
+export function daySums(p: HouseParams, day: number, slots: ModelSlot[], states: Map<number, [number, number]>): DaySums | undefined {
     const known = slots.filter((s) => Number.isFinite(s.ti) && Number.isFinite(s.inputs.te) && Number.isFinite(s.inputs.q));
     const first = DAY_SLOTS * day, last = first + DAY_SLOTS - 1;
     const start = states.get(first - 1) ?? states.get(first), end = states.get(last);

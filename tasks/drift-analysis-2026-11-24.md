@@ -190,3 +190,24 @@ predicts open-loop from each cut-off on the heat actually delivered.
 **Caveat:** the heat check was added because Plan vs actual ran 13–16 % low on 16–18 Nov (heat-check.ts). It
 corrects how much heat the plan expects, not the temperatures. Dropping it trades better temperatures for worse
 energy figures.
+
+## Which heat loss predicts tomorrow's heat (24 Nov)
+`dev/energy-window.mjs`: for each complete day from 8 Nov, fit as the app does on the history to that day's end.
+Then predict the day's metered heat from its own heat balance with a heat loss chosen from the days before it.
+The figure is the miss, the % Plan vs actual would be off by.
+
+| heat loss | mean |miss| | mean miss | 17 Nov | 18 Nov |
+|---|---|---|---|---|
+| fitted, never swapped | **7.7 %** | −4.2 % | −7.1 % | −8.7 % |
+| swapped for the meter's at > 5 % over 3 days (today) | 9.8 % | −4.5 % | −14.0 % | −15.7 % |
+| the meter's over 3 days, always | 10.0 % | −4.1 % | −14.0 % | −15.7 % |
+| the meter's over 7 days, always | 10.4 % | −6.4 % | −6.2 % | −10.1 % |
+
+- **The fitted heat loss predicts the next day's heat best.** It also does best on 17–18 Nov, the days the check
+  was added for: there the swap doubled the miss.
+- **A past meter balance doesn't predict the next day.** Over three days it mostly carries those days' noise, so
+  no meter window beats the fit.
+- **All four still run about 4 % low on average.** Losses rose faster than any of them followed (the season and
+  the wind).
+- **So both the temperature test (day-5 rms 0.98 against 1.42 K) and the energy test favour dropping the swap.**
+  There is no need for a separate metered heat loss.
