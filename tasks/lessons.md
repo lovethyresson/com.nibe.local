@@ -622,3 +622,9 @@ session was also editing. With no context lines the hunk landed at the old line 
 staging part of a shared file, keep context (`git diff -U3`, no `--unidiff-zero`), then check the
 staged tree itself before committing: `git stash`-free, e.g. `git diff --cached` read in full, or
 `git worktree add` / `git archive` of the index and run `npm run typecheck` there.
+
+## Check a cause against the days before it (2026-11-24)
+I blamed the indoor drift on the Getting started hold (push 9 K → 3 K) from four days of 6 h blocks, and the
+owner said "make your changes". Fourteen days of daily means showed the house did not warm on the two 9 K days
+either, and sat at 22.0–22.4 on 4 K the week before. Before naming a cause, pull the daily means for at least a
+week before the change and check the effect was there when the cause was.
