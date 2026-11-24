@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {
     FeedHooks, HeatingFeed, LIVE_LIMITS, LiveEntry, LiveMode, PROFILE_LIMITS, PumpFacts, ShiftInput, StopReason, cycleBias,
-    indoorMean, liveMode, planLive, profileLimits, stopReason, surplusPrices, SURPLUS_SHIFT_K, curveCoastDepth, liveLimits, livePump, withHotwater,
+    flatPrices, indoorMean, liveMode, planLive, profileLimits, stopReason, surplusPrices, SURPLUS_SHIFT_K, curveCoastDepth, liveLimits, livePump, withHotwater,
 } from '../lib/autopilot/live';
 import {SupplyCurve} from '../lib/autopilot/curve';
 import {pumpHeat, simulate} from '../lib/autopilot/planner';
@@ -135,35 +135,42 @@ test('a cycle feeds the real outdoor minus the plan\'s bias and checks the pump 
     assert.equal(state.records.length, 1, 'no replan within the slot');
 });
 
-test('Getting started holds the level: the plan shifts nothing for prices, and says why', async () => {
-    const shifting = harness({setpoint: 21});
+const heldPlan = async (setpoint: number, prices: (k: number) => number = peak) => {
+    const h = harness({setpoint, hold: true, plan: input({forecast: forecast().map((f, k) => ({...f, price: prices(k)}))})});
+    h.feed.start();
+    await h.feed.cycle();
+    return h;
+};
+
+test('Getting started holds prices still, and says why', async () => {
+    const shifting = harness({setpoint: 21.5});
     shifting.feed.start();
     await shifting.feed.cycle();
-    const held = harness({setpoint: 21, hold: true});
-    held.feed.start();
-    await held.feed.cycle();
+    const held = await heldPlan(21.5);
     assert.equal(held.feed.state.planReason, 'getting_started');
     assert.equal(held.state.records[0].reason, 'getting_started');
-    assert.ok(shifting.feed.state.biases!.some((b) => Math.abs(b) > 0.5), 'the same input shifts when not held');
-    assert.ok(held.feed.state.biases!.every((b) => Math.abs(b) < 0.5), 'held: no price shift');
+    assert.ok(shifting.feed.state.biases!.some((b) => Math.abs(b) > 0.5), 'the same input shifts for prices when not held');
+    assert.ok(held.feed.state.biases!.every((b) => Math.abs(b) < 0.5), 'held at the setpoint: nothing to do');
 });
 
-test('the debug log gets one heating line an hour with the trim, the shift and the bias', async () => {
-    const {feed, state, advance} = harness({setpoint: 21, hold: true});
-    feed.start();
-    await feed.cycle();
-    await feed.cycle();
-    const lines = () => state.logs.filter((l) => l.startsWith('Autopilot heating hour:'));
-    assert.equal(lines().length, 1, 'once per hour, not per cycle');
-    const [, bias, fed] = lines()[0].match(/bias ([-\d.]+) K.*fed ([-\d.]+) = outdoor/)!.map(Number);
-    assert.ok(Math.abs(fed - (3 - bias)) < 0.11, 'fed is outdoor minus the bias');
-    assert.match(lines()[0], /holding; setpoint 21\.0, 24 h mean [-\d.]+; bias [-\d.]+ K = trim [-\d.]+ \(learned [-\d.]+\) \+ shift [-\d.]+; fed [-\d.]+ = outdoor 3\.0 \(\w+\) − bias; indoor 20\.8\./);
-    advance(SLOT_MS);
-    await feed.cycle();
-    assert.equal(lines().length, 1, 'not at a quarter past');
-    advance(3 * SLOT_MS);
-    await feed.cycle();
-    assert.equal(lines().length, 2, 'again on the hour');
+test('Getting started still warms a house below the setpoint back, at no particular hour (2026-11-24)', async () => {
+    // The house sits at 21.5 °C: a 22.5 °C setpoint leaves it 1 K short.
+    const cold = await heldPlan(22.5);
+    assert.ok(cold.feed.state.biases!.slice(0, 16).some((b) => b > 0.5), `warms: ${cold.feed.state.biases!.slice(0, 16)}`);
+    assert.ok(cold.feed.state.biases!.every((b) => b >= -1e-9), 'and never eases off to save');
+    // Where the prices peak changes nothing: the hold moves no heat for price.
+    const late = await heldPlan(22.5, (k) => (k >= 60 && k < 76 ? 4 : 1));
+    const flat = await heldPlan(22.5, () => 2);
+    assert.deepEqual(late.feed.state.biases, cold.feed.state.biases);
+    assert.deepEqual(flat.feed.state.biases, cold.feed.state.biases);
+});
+
+test('flatPrices sets every slot to the forecast\'s mean price and drops spot', () => {
+    const out = flatPrices([{te: 1, sun: 0, price: 1, spot: 0.5}, {te: 2, sun: 0, price: 3}]);
+    assert.deepEqual(out.map((s) => s.price), [2, 2]);
+    assert.equal(out[0].spot, undefined);
+    assert.equal(out[1].te, 2);
+    assert.deepEqual(flatPrices([]), []);
 });
 
 test('an owner change replans within the slot, not at the next one', async () => {

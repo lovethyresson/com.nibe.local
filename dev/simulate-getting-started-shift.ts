@@ -1,6 +1,7 @@
-// Getting started with the price planner on: hold every price shift until Saving (as shipped), or
-// shift as soon as the house is within the comfort range, the way Ngenic Tune runs price control
-// from the start and leaves the curve to be checked over the season. Offline, no pump.
+// Getting started with the price planner on: hold every price shift until Saving, shift as soon as
+// the house is within the comfort range (as shipped since 2026-11-23, the way Ngenic Tune runs price
+// control from the start), or the same with the hold planning on flat prices ("flat": warmth owed
+// below the setpoint is bought back, nothing moves for price). Offline, no pump.
 //
 // Houses, curves, trim and curve advice as dev/simulate-getting-started.ts; the planner as
 // dev/simulate-trim-planner.ts (planner.ts `planShift` every --every hours, perfect weather, a
@@ -42,7 +43,7 @@ function rng(seed: number) {
     return () => (s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296;
 }
 
-type Mode = 'hold' | 'range';
+type Mode = 'hold' | 'range' | 'flat';
 interface Result { live?: number; firstShift?: number; cost: number; errors: number[] }
 
 function run(house: HouseParams, model: HouseParams, flat: number, offset: number, lagH: number, lever: number,
@@ -68,12 +69,17 @@ function run(house: HouseParams, model: HouseParams, flat: number, offset: numbe
             tauHours: day >= READY ? envelopeTau(model) : 72});
         trim = next.state;
         applied = Math.round(next.trim * 10) / 10;
-        if (shifting && k % (EVERY * 4) === 0) {
-            const forecast: ForecastSlot[] = Array.from({length: 96}, (_, j) => ({te: outdoor(k + j), sun: 0, price: price(k + j)}));
+        // "flat": until shifting starts, plan with the prices flattened to their mean, so the planner
+        // only buys back warmth owed below the setpoint and moves nothing for price.
+        const planning = shifting || mode === 'flat';
+        if (planning && k % (EVERY * 4) === 0) {
+            const raw: ForecastSlot[] = Array.from({length: 96}, (_, j) => ({te: outdoor(k + j), sun: 0, price: price(k + j)}));
+            const level = raw.reduce((a, s) => a + s.price, 0) / raw.length;
+            const forecast = shifting ? raw : raw.map((s) => ({...s, price: level}));
             shift = planShift(model, SP, {ti, tm, curve, bias: bias - applied}, forecast, limits, {lever}, undefined, 400).shift;
             shiftAt = k;
         }
-        const planned = shifting ? shift[k - shiftAt] ?? 0 : 0;
+        const planned = planning ? shift[k - shiftAt] ?? 0 : 0;
         bias = applied + planned;
         curve = curveInput(curve, te - bias);
         delivered += follow * (demand(curve) - delivered);
@@ -84,7 +90,7 @@ function run(house: HouseParams, model: HouseParams, flat: number, offset: numbe
         if (d >= READY) out.errors.push(SP - dayMean);
         if (d < READY) continue;
         // "range": shifting from the morning the house's day was within the comfort range.
-        if (mode === 'range' && !shifting && Math.abs(SP - dayMean) <= limits.lower) {
+        if (mode !== 'hold' && !shifting && Math.abs(SP - dayMean) <= limits.lower) {
             shifting = true;
             out.firstShift = today;
         }
@@ -119,7 +125,7 @@ function run(house: HouseParams, model: HouseParams, flat: number, offset: numbe
 
 const draw = rng(SEED), noiseDraw = rng(SEED + 1000);
 const noise = () => (noiseDraw() - 0.5) * 2 * NOISE;
-const modes: Mode[] = ['hold', 'range'];
+const modes: Mode[] = ['hold', 'range', 'flat'];
 const res = new Map(modes.map((m) => [m, [] as Result[]]));
 for (let n = 0; n < HOUSES; n++) {
     const heatLoss = 0.08 + 0.27 * draw(), ci = 0.8 + 1.5 * draw(), cm = 4 + 14 * draw(), f = 0.2 + 0.7 * draw();
@@ -146,5 +152,5 @@ for (const m of modes) {
     const cost = mean(r.map((x, i) => x.cost / holdR[i].cost - 1)) * 100;
     console.log(m.padEnd(6), `shifts from day ${fmt(firsts)}`.padEnd(24), `Saving day ${fmt(lives)} (never ${r.length - lives.length})`.padEnd(28),
         `cost ${cost.toFixed(1)} % vs hold`.padEnd(22), `daily rms ${pct(rms, .5).toFixed(2)}/${pct(rms, .9).toFixed(2)}`.padEnd(22),
-        `days >0.3 K ${off} of ${days}`);
+        `days >0.3 K ${off} of ${days}`.padEnd(22), `days >0.5 K warm ${r.reduce((s, x) => s + x.errors.filter((e) => e < -0.5).length, 0)}`);
 }

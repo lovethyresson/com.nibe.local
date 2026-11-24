@@ -269,6 +269,15 @@ export function planLive(input: ShiftInput, limits: Limits = LIVE_LIMITS, trust 
         forecast, limits, livePump(input), input.previous);
 }
 
+/** The forecast at one price, the mean of its own: the planner then gains nothing by moving heat
+ *  between hours and only buys back warmth owed below the setpoint (planner.ts `fairCost`). Spot
+ *  goes too, so solar surplus moves nothing either. */
+export function flatPrices(forecast: ForecastSlot[]): ForecastSlot[] {
+    if (!forecast.length) return forecast;
+    const level = forecast.reduce((a, s) => a + s.price, 0) / forecast.length;
+    return forecast.map(({spot: _spot, ...s}) => ({...s, price: level}));
+}
+
 /** The forecast with the slots hot water has the compressor marked busy. */
 export function withHotwater(forecast: ForecastSlot[], busy: boolean[] | undefined): ForecastSlot[] {
     return busy?.some(Boolean) ? forecast.map((s, k) => (busy[k] ? {...s, busy: true} : s)) : forecast;
@@ -688,12 +697,17 @@ export class HeatingFeed {
         const warming = warmingUp(comfort) ? back!.at : undefined;
         if (warming !== this.warmingFor) this.hooks.saveWarming?.(warming);
         this.warmingFor = warming;
-        // Holding: the planner's own "do nothing", no room to shift (planner.ts `no_room`).
+        // Holding (Getting started): no price shifts, but a house below the setpoint is still warmed
+        // back. The plan sees one flat price, so moving heat in time gains nothing and only warmth
+        // owed is bought (`flatPrices`). Until 2026-11-24 it planned nothing at all, which left a
+        // house that a windy spell had cooled to the slow trim alone
+        // (tasks/drift-analysis-2026-11-24.md).
         const hold = this.hooks.holdShift?.() === true;
         if (hold !== this.holding0) this.hooks.log(`Autopilot heating: ${hold ? 'holding the level, no price shifts (Getting started)' : 'price shifts on'}.`);
         this.holding0 = hold;
-        const plan = planLive({...input!, mean: this.setpoint ?? input!.mean, comfort, bias: this.bias - this.trim, previous: this.previous},
-            hold ? {...this.limits, maxBias: 0} : this.limits, this.hooks.sunTrust());
+        const forecast = hold ? flatPrices(input!.forecast) : input!.forecast;
+        const plan = planLive({...input!, forecast, mean: this.setpoint ?? input!.mean, comfort, bias: this.bias - this.trim, previous: this.previous},
+            this.limits, this.hooks.sunTrust());
         const reason = hold ? 'getting_started' : plan.reason;
         this.target = plan.biases[0];
         this.previous = plan.biases.slice(1);

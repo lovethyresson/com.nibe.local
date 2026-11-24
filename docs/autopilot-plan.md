@@ -1394,8 +1394,15 @@ for a week reads as Autopilot getting it wrong.
   owner's comfort range (`withinRange`: its mean within the range's lower and upper limits, with
   enough readings and an unmoved setpoint; the owner's range, not Away's). The first such day, or
   Done if that comes first, sets `liveAt` and the feed stops holding (`FeedHooks.holdShift` in
-  `live.ts`; until then the plan runs with no shift and its reason is `getting_started`, "Getting
-  started. Price shifts start within your comfort range"). Settling and calibrating carry on
+  `live.ts`; until then its reason is `getting_started`, "Getting started. Price shifts start
+  within your comfort range"). While holding, the plan sees one flat price (`flatPrices`): it moves
+  no heat between hours, but a house below the setpoint is still warmed back and one above eased
+  towards it. Until 2026-11-24 it planned nothing at all. After the windy 21–23 Nov that left the
+  S1155 0.8 K short with only the trim to close it, about 0.75 K of push a day
+  (`tasks/drift-analysis-2026-11-24.md`). On 40 simulated houses (Comfort, curves ±2–4 K off) the
+  flat-price hold reached the range sooner (90th percentile day 9 against 11). It also had fewer days more than
+  0.3 K off (97–111 against 149–153 of 1360) and fewer more than 0.5 K warm (11–14 against 20–21), at 0.2–0.3 %
+  less cost (`dev/simulate-getting-started-shift.ts`). Settling and calibrating carry on
   scoring days that now include shifts. Ngenic Tune does the same: price control from the start,
   the curve a seasonal check. On 200 simulated houses with the planner
   (`dev/simulate-getting-started-shift.ts`) it was 1.8 % (Comfort) to 3.3 % (Save some) cheaper
