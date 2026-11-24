@@ -1020,6 +1020,7 @@
       "lost": "__money__ mer",
       "your_price": "Din pris",
       "price_value": "__paid__/kWh · marked __market__",
+      "now_to": "Varmes til __litres__ L",
       "next_to": "Varmes til __litres__ L kl. __time__",
       "next_to_tomorrow": "Varmes til __litres__ L i morgen kl. __time__"
     },

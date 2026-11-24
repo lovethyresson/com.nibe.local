@@ -3194,8 +3194,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 const tank = d.tankConfig();
                 const to = next?.targetC !== undefined && tank.litres ? Math.round(heatAt({litres: tank.litres, inletC: tank.inletC}, next.targetC) / KWH_PER_LITRE / 5) * 5 : undefined;
                 const later = next && local(next.at).date !== local(Date.now()).date;
-                const sub = next && !next.running ? (to ? t(later ? 'next_to_tomorrow' : 'next_to', {litres: to, time: this.clock(next.at)})
-                    : t('next', {time: when(next.at)})) : spa;
+                // Running: what it heats to. The headline already says hot water is heating.
+                const sub = next?.running ? to ? t('now_to', {litres: to}) : spa
+                    : next ? (to ? t(later ? 'next_to_tomorrow' : 'next_to', {litres: to, time: this.clock(next.at)})
+                        : t('next', {time: when(next.at)})) : spa;
                 return {kind, label: t('hotwater'), ...typeof litres === 'number' ? {value: `${Math.round(litres)} L`} : {},
                     ...sub ? {sub} : {}};
             }

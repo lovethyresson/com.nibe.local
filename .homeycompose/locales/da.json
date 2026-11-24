@@ -601,6 +601,7 @@
       "lost": "__money__ mere",
       "your_price": "Din pris",
       "price_value": "__paid__/kWh · marked __market__",
+      "now_to": "Opvarmes til __litres__ L",
       "next_to": "Opvarmes til __litres__ L kl. __time__",
       "next_to_tomorrow": "Opvarmes til __litres__ L i morgen kl. __time__"
     },

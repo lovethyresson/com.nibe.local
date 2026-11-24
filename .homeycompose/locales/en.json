@@ -601,6 +601,7 @@
       "lost": "__money__ more",
       "your_price": "Your price",
       "price_value": "__paid__/kWh · market __market__",
+      "now_to": "Heating to __litres__ L",
       "next_to": "Heats to __litres__ L at __time__",
       "next_to_tomorrow": "Heats to __litres__ L tomorrow __time__"
     },
