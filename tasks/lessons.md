@@ -634,3 +634,8 @@ The first heat-loss back-test fitted through the end of each day it then predict
 seen the answer and won (7.7 % against 9.8 %). Fitted only on earlier days, it was a tie (9.6 % against
 9.7 %). Every back-test cuts the training data strictly before the first predicted slot, and that includes
 fits made "for convenience" to get states or parameters.
+
+## Explain to the owner in plain words (2026-11-24)
+A reply full of internal names (trim integral, curve advice, liveAt, flat-price hold) and tables read as
+jibberish to the owner. When explaining results or risks: short sentences, everyday words, what happens to the
+house. Code names only when asked.
