@@ -170,7 +170,9 @@ test('the curve check counts the warming the hold adds, not price shifts (2026-1
     // Past the start-up ramp (2 K a slot from neutral), so the plan's shift shows.
     const held = await heldPlan(22.5);
     for (let k = 0; k < 6; k++) { held.advance(SLOT_MS); await held.feed.cycle(); }
-    assert.ok(held.feed.levelPush > held.feed.learnedTrim + 0.5, `${held.feed.levelPush} vs ${held.feed.learnedTrim}`);
+    // Seven slots of it count as seven of a day's 96, not a whole day.
+    const extra = held.feed.levelPush - held.feed.learnedTrim;
+    assert.ok(extra > 0 && extra < 1, `${held.feed.levelPush} vs ${held.feed.learnedTrim}`);
     // The same plan shifting for prices adds nothing to it.
     const shifting = harness({setpoint: 22.5, plan: input()});
     shifting.feed.start();

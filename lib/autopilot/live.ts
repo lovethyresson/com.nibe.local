@@ -752,11 +752,13 @@ export class HeatingFeed {
      *  held shift. While Getting started holds, the plan warms a cold house back (flat prices), and
      *  what it adds then is level the trim did not learn; the curve advice (curve-advice.ts) reading
      *  the trim alone would judge the curve better than it is (2026-11-24). Slots outside the hold
-     *  count 0: a price shift is not level. The day is in memory, so after a restart it fills again. */
+     *  count 0: a price shift is not level. The day is in memory, so after a restart it fills again;
+     *  it is averaged over a whole day, the slots not yet seen as 0, so the first hour after a start
+     *  (a 10 K recovery push) does not read as a day of it. */
     get levelPush(): number {
         const now = this.heldShifts.at(-1)?.slot;
         const day = now === undefined ? [] : this.heldShifts.filter((h) => h.slot > now - 96);
-        return this.learnedTrim + (day.length ? day.reduce((a, h) => a + h.shift, 0) / day.length : 0);
+        return this.learnedTrim + day.reduce((a, h) => a + h.shift, 0) / 96;
     }
 
     /** No plan yet: the model is learning. Room-sensor control is off from the day Autopilot is
