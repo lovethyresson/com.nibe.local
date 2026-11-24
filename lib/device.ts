@@ -2117,6 +2117,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             },
             tick: () => this.checkPricePeriods(),
             log: (...args) => this.log(...args),
+            debug: () => {
+                const v = (cap: string) => { const n = Number(this.getCapabilityValue(cap)); return this.hasCapability(cap) && Number.isFinite(n) ? n.toFixed(1) : '-'; };
+                return `indoor ${v('measure_temperature')}, supply ${v('measure_temperature.i5_heating_supply')} `
+                    + `(calculated ${v('measure_temperature.i1017_calculated_supply')}), degree minutes ${v('measure_degree_minutes_NIBE.h11_degree_minutes')}`;
+            },
             record: (entry) => collector.recordLive(entry),
             planned: (slot, forecast, heat) => {
                 const cop = Number(this.getCapabilityValue('measure_cop_NIBE.rolling'));

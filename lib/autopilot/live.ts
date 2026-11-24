@@ -375,6 +375,8 @@ export interface FeedHooks {
     /** After each cycle (every 30 s while it runs): the plan's Flow triggers look at it here. */
     tick?(): void;
     log(...args: any[]): void;
+    /** Pump-side readings for the hourly debug line (`logHour`): indoor now, supply, degree minutes. */
+    debug?(): string;
     /** One record per slot for the shadow log. */
     record(entry: LiveEntry): void;
     /** Each new plan: its first slot, the forecast it used (prices) and the heat it plans per slot,
@@ -464,6 +466,9 @@ export class HeatingFeed {
     private trim = 0;
     private setpoint?: number;
     private trimSlot?: number;
+    /** The 24 h indoor mean the trim last steered on, and the hour slot last logged (`logHour`). */
+    private trimMean?: number;
+    private loggedSlot?: number;
     private trimState?: TrimState;
     /** Feeding the trim alone while the model learns (`replan`). */
     private learning = false;
@@ -611,15 +616,33 @@ export class HeatingFeed {
         if (mode === 'test') {
             if (this.holding) await this.handBack();
             this.settle(out);
+            this.logHour(slot);
         } else if (await this.feed(out.fed)) {
             this.holding = true;
             this.failures = 0;
             this.hooks.feeding(true);
             this.settle(out);
+            this.logHour(slot);
         } else if (++this.failures >= MAX_FAILED_CYCLES) {
             return this.halt('feed_failed');
         }
         if (was.bias !== this.bias || was.stopped !== this.stopState) this.hooks.changed();
+    }
+
+    /** One debug line an hour with what the feed is made of, so a drift can be read from the log
+     *  alone: the trim (and its learned part), the price shift, the total bias (positive warms),
+     *  the outdoor it starts from and what it fed. */
+    private logHour(slot: number) {
+        if (slot % 4 !== 0 || this.loggedSlot === slot) return;
+        this.loggedSlot = slot;
+        const k = (v: number | undefined) => v === undefined || !Number.isFinite(v) ? '-' : v.toFixed(1);
+        const trim = this.neutral ? 0 : this.trim;
+        const state = this.neutral ? 'neutral' : this.learning ? 'learning' : this.holding0 ? 'holding' : this.plan?.reason ?? 'shifting';
+        const extra = this.hooks.debug?.();
+        // Fed = outdoor − bias, so a positive bias warms (the Insights shift is fed − outdoor, its negative).
+        this.hooks.log(`Autopilot heating hour: ${state}; setpoint ${k(this.setpoint)}, 24 h mean ${k(this.trimMean)}; `
+            + `bias ${k(this.bias)} K = trim ${k(trim)} (learned ${k(this.learnedTrim)}) + shift ${k(this.bias - trim)}; `
+            + `fed ${k(this.lastFed?.fed)} = outdoor ${k(this.real?.value)} (${this.real?.source ?? '-'}) − bias${extra ? `; ${extra}` : ''}.`);
     }
 
     private settle(out: ActuatorOutput) {
@@ -730,6 +753,7 @@ export class HeatingFeed {
     private steer(slot: number, mean: number, house: HouseParams | undefined) {
         const setpoint = this.hooks.setpoint?.();
         this.setpoint = setpoint !== undefined && Number.isFinite(setpoint) ? setpoint : undefined;
+        this.trimMean = mean;
         if (this.setpoint === undefined) { this.trim = 0; return; }
         this.trimState ??= this.hooks.loadTrim?.() ?? {integral: 0};
         const hours = this.trimSlot === undefined ? 0 : Math.min(1, Math.max(0, (slot - this.trimSlot) * 0.25));

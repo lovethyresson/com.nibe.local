@@ -87,7 +87,7 @@ function harness(over: {mode?: LiveMode; facts?: Partial<PumpFacts>; sensor?: nu
     let input1: number | undefined;
     const state = {
         mode: over.mode ?? 'live' as LiveMode, writes: [] as number[], records: [] as LiveEntry[], warnings: [] as (StopReason | undefined)[],
-        changes: 0, neutral: false, setpoint: over.setpoint, trim: {integral: 0}, saves: 0,
+        changes: 0, neutral: false, logs: [] as string[], setpoint: over.setpoint, trim: {integral: 0}, saves: 0,
         feeding: [] as boolean[], sensor: ('sensor' in over ? over.sensor : 3) as number | undefined, deaf: over.deaf ?? false,
         facts: {mode: 1, thresholds: {}, spaHeating: false, roomControl: 0, ...over.facts} as PumpFacts,
     };
@@ -109,7 +109,8 @@ function harness(over: {mode?: LiveMode; facts?: Partial<PumpFacts>; sensor?: nu
         feeding: (on) => state.feeding.push(on),
         warn: (m) => state.warnings.push(m),
         changed: () => { state.changes++; },
-        log: () => undefined,
+        log: (...args) => { state.logs.push(args.join(' ')); },
+        debug: () => 'indoor 20.8',
         record: (e) => state.records.push(e),
         setTimeout: () => 1,
         clearTimeout: () => undefined,
@@ -145,6 +146,24 @@ test('Getting started holds the level: the plan shifts nothing for prices, and s
     assert.equal(held.state.records[0].reason, 'getting_started');
     assert.ok(shifting.feed.state.biases!.some((b) => Math.abs(b) > 0.5), 'the same input shifts when not held');
     assert.ok(held.feed.state.biases!.every((b) => Math.abs(b) < 0.5), 'held: no price shift');
+});
+
+test('the debug log gets one heating line an hour with the trim, the shift and the bias', async () => {
+    const {feed, state, advance} = harness({setpoint: 21, hold: true});
+    feed.start();
+    await feed.cycle();
+    await feed.cycle();
+    const lines = () => state.logs.filter((l) => l.startsWith('Autopilot heating hour:'));
+    assert.equal(lines().length, 1, 'once per hour, not per cycle');
+    const [, bias, fed] = lines()[0].match(/bias ([-\d.]+) K.*fed ([-\d.]+) = outdoor/)!.map(Number);
+    assert.ok(Math.abs(fed - (3 - bias)) < 0.11, 'fed is outdoor minus the bias');
+    assert.match(lines()[0], /holding; setpoint 21\.0, 24 h mean [-\d.]+; bias [-\d.]+ K = trim [-\d.]+ \(learned [-\d.]+\) \+ shift [-\d.]+; fed [-\d.]+ = outdoor 3\.0 \(\w+\) − bias; indoor 20\.8\./);
+    advance(SLOT_MS);
+    await feed.cycle();
+    assert.equal(lines().length, 1, 'not at a quarter past');
+    advance(3 * SLOT_MS);
+    await feed.cycle();
+    assert.equal(lines().length, 2, 'again on the hour');
 });
 
 test('an owner change replans within the slot, not at the next one', async () => {
