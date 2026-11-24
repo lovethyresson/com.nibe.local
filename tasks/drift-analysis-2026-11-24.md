@@ -159,3 +159,34 @@ whatever the terms. The wind term still narrows the gap by 0.4–0.8 K from Satu
 - **A separate finding: the base fit is unstable.** Its heat loss is 238 / 212 / 216 W/K for cuts at
   16 / 18 / 19 Nov. The open-loop predictions from the 18 and 19 Nov fits run 2–3 K too warm within days. The
   planner relies on this fit; the trim hides the level error.
+
+## The unstable fit (24 Nov)
+`dev/fit-stability.mjs` fits the house exactly as the app does every 12 h from 10 to 24 Nov (29 fits). It then
+predicts open-loop from each cut-off on the heat actually delivered.
+
+**What moves**
+- The fitted heat loss creeps from 221 to 254 W/K over the two weeks, about 15 %. The other parameters hold:
+  Ci 19–22, Cm 6.5–7.3, gains 0.37–0.42 kW, τ 107–135 h.
+- The daily heat check flips between "agrees" and "use the meter's heat loss" from one fit to the next. 14 of
+  29 fits use the meter's. Each flip moves the plan's heat loss by 15–20 W/K, about 7 %, in either direction:
+  212–217 on 17–19 Nov (ratio 0.90–0.94), 253–268 on 20–24 Nov (ratio 1.06–1.07). The run-away fits found earlier
+  (cuts at 18 and 19 Nov) are the ones the meter pulled down to 212–216.
+
+**What it costs** (measured minus predicted, K, over the 29 fits)
+
+| heat loss the plan uses | 24 h mean / rms | 48 h mean / rms | day 5 mean / rms |
+|---|---|---|---|
+| as shipped (fit, swapped for the meter's at > 5 % over 3 days) | −0.07 / 0.29 | −0.15 / 0.40 | −0.82 / 1.42 |
+| the fitted one, never swapped | −0.08 / 0.29 | −0.15 / 0.37 | −0.66 / **0.98** |
+| fitted × metered/modelled over 6 days, always | −0.12 / 0.32 | −0.23 / 0.44 | −0.88 / 1.15 |
+
+- **Within a day the three are the same.** The planner plans 24 h ahead and re-anchors on the measured indoor
+  every slot, so day to day the swap barely matters.
+- **Over days the swap is what makes the fit unstable.** Without it the day-5 error falls from 1.42 to 0.98 K.
+  A smoothed meter ratio does not help.
+- **Every variant predicts the house warmer than it is**, and more so the further out: −0.15 K at 48 h, −0.7 to
+  −0.9 K at day 5. Losses rose faster than the fit followed. This is the season and the wind (see above).
+
+**Caveat:** the heat check was added because Plan vs actual ran 13–16 % low on 16–18 Nov (heat-check.ts). It
+corrects how much heat the plan expects, not the temperatures. Dropping it trades better temperatures for worse
+energy figures.
