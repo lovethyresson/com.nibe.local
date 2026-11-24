@@ -1,0 +1,345 @@
+diff --git a/lib/autopilot/house.ts b/lib/autopilot/house.ts
+index 2aab243..43647c8 100644
+--- a/lib/autopilot/house.ts
++++ b/lib/autopilot/house.ts
+@@ -90,7 +90,7 @@ export function currentSourceSlots(history: History): number[] {
+ export function modelSlotsFromHistory(history: History): ModelSlot[] {
+     const rows = currentSourceSlots(history).map((slot) => ({slot, ...history.get(slot)!}));
+     const heat = heatPerSlot(rows.map((r) => ({slot: r.slot, qmeter: r.qmeter, hz: r.hz, dhw: r.dhw})));
+-    return toModelSlots(rows.map((r) => ({slot: r.slot, ti: r.ti, te: r.te, gtiS: r.gtiS, gtiE: r.gtiE, gtiW: r.gtiW, dhw: r.dhw,
++    return toModelSlots(rows.map((r) => ({slot: r.slot, ti: r.ti, te: r.te, gtiS: r.gtiS, gtiE: r.gtiE, gtiW: r.gtiW, wind: r.wind, dhw: r.dhw,
+         partial: (r.flags & FLAG.partial) !== 0, q: heat.get(r.slot), interpolated: (r.flags & FLAG.hourly) !== 0})));
+ }
+ 
+diff --git a/lib/autopilot/model.ts b/lib/autopilot/model.ts
+index f0f0086..5eac7a1 100644
+--- a/lib/autopilot/model.ts
++++ b/lib/autopilot/model.ts
+@@ -102,7 +102,7 @@ export function rlsHouse(rls: Rls): FirstOrderHouse | undefined {
+  *  with every change in Ci, and report sun the house never had; and the gains' prior has to pin
+  *  the gains themselves (see `GAINS_SD`).
+  */
+-export const PARAMS = ['ie', 'im', 'mi', 'invCi', 'sun', 'f', 'gains', 'sunE', 'sunW'] as const;
++export const PARAMS = ['ie', 'im', 'mi', 'invCi', 'sun', 'f', 'gains', 'sunE', 'sunW', 'wind'] as const;
+ const NS = 2;
+ const NP = PARAMS.length;
+ const NZ = NS + NP;
+@@ -124,6 +124,20 @@ export interface HouseParams {
+     sunW: number;
+     /** Internal gains, kW. */
+     gains: number;
++    /** Extra heat loss per m/s of wind above `windRef`, kW/K per m/s (air leaking with the wind).
++     *  Without it, or without a `windRef`, wind is not in the model. 2026-11-24: wind of 7–9 m/s
++     *  cost the S1155's house heat the model never saw (tasks/drift-analysis-2026-11-24.md). */
++    windLoss?: number;
++    /** The mean wind of the slots the fit was made on, m/s: the fitted heat loss already carries
++     *  the house's ordinary wind, so only the departure from it adds or takes heat loss. Not learned. */
++    windRef?: number;
++}
++
++/** Heat loss for a slot: the fitted one, plus the wind's departure from the fit's mean. Never
++ *  below a fifth of the fitted one, so a calm night cannot make the house look sealed. */
++export function slotHeatLoss(p: HouseParams, wind: number | undefined): number {
++    if (!p.windLoss || p.windRef === undefined || wind === undefined || !Number.isFinite(wind)) return p.heatLoss;
++    return Math.max(0.2 * p.heatLoss, p.heatLoss + p.windLoss * (wind - p.windRef));
+ }
+ 
+ export function envelopeTau(p: HouseParams): number {
+@@ -133,17 +147,22 @@ export function envelopeTau(p: HouseParams): number {
+ const logit = (x: number) => Math.log(x / (1 - x));
+ const sigmoid = (x: number) => 1 / (1 + Math.exp(-x));
+ 
++/** The wind coefficient a house starts from, kW/K per m/s: about 1 % of a typical heat loss per
++ *  m/s. Learned in log space, so it stays positive; the data moves it. */
++export const WIND_LOSS_PRIOR = 0.002;
++
+ function toVector(p: HouseParams): number[] {
+     const rates = [1 / (p.ci / p.heatLoss), 1 / (p.ci * p.rim), 1 / (p.cm * p.rim), 1 / p.ci, p.sun];
+-    return [...rates.map(Math.log), logit(p.f), Math.log(p.gains), Math.log(p.sunE), Math.log(p.sunW)];
++    return [...rates.map(Math.log), logit(p.f), Math.log(p.gains), Math.log(p.sunE), Math.log(p.sunW),
++        Math.log(p.windLoss && p.windLoss > 0 ? p.windLoss : WIND_LOSS_PRIOR)];
+ }
+ 
+-function fromVector(v: number[]): HouseParams {
++function fromVector(v: number[], windRef?: number): HouseParams {
+     const [ie, im, mi, invCi, sun] = v.slice(0, 5).map(Math.exp);
+     const ci = 1 / invCi;
+     const rim = 1 / (ci * im);
+     return {heatLoss: ie * ci, ci, cm: 1 / (mi * rim), rim, f: sigmoid(v[5]), sun, gains: Math.exp(v[6]),
+-        sunE: Math.exp(v[7]), sunW: Math.exp(v[8])};
++        sunE: Math.exp(v[7]), sunW: Math.exp(v[8]), windLoss: Math.exp(v[9]), ...(windRef !== undefined ? {windRef} : {})};
+ }
+ 
+ export interface Inputs {
+@@ -154,6 +173,8 @@ export interface Inputs {
+     sun: number;
+     sunE?: number;
+     sunW?: number;
++    /** Wind, m/s (Open-Meteo `wind_speed_10m`); missing leaves wind out of the step. */
++    wind?: number;
+ }
+ 
+ /** kW of sun through the windows. */
+@@ -164,9 +185,10 @@ export function solarGain(p: HouseParams, u: Inputs): number {
+ /** One exact zero-order-hold step of the 2R2C model over `dt` hours. */
+ export function stepHouse(p: HouseParams, ti: number, tm: number, u: Inputs, dt = SLOT_H): [number, number] {
+     const P = u.q / SLOT_H;
+-    const a11 = -(1 / p.rim + p.heatLoss) / p.ci, a12 = 1 / (p.rim * p.ci);
++    const H = slotHeatLoss(p, u.wind);
++    const a11 = -(1 / p.rim + H) / p.ci, a12 = 1 / (p.rim * p.ci);
+     const a21 = 1 / (p.rim * p.cm), a22 = -1 / (p.rim * p.cm);
+-    const b1 = (p.heatLoss * u.te + (1 - p.f) * P + solarGain(p, u) + p.gains) / p.ci;
++    const b1 = (H * u.te + (1 - p.f) * P + solarGain(p, u) + p.gains) / p.ci;
+     const b2 = p.f * P / p.cm;
+     // expm(A·dt) for a 2×2 with real eigenvalues: e^{s·dt}[cosh(d·dt)·I + sinh(d·dt)/d·(A − s·I)].
+     const s = (a11 + a22) / 2;
+@@ -227,11 +249,12 @@ export function priorFor(system: HeatingSystem, era: BuildEra, heatLoss?: number
+     const params: HouseParams = {
+         heatLoss: h, ci, cm: total * s.massShare, rim: s.couplingH / ci, f: s.f, gains: GAINS_KW,
+         // ~3 m² of effective glass per wall: a guess the sun corrects within a few clear days.
+-        sun: 0.003, sunE: 0.003, sunW: 0.003,
++        sun: 0.003, sunE: 0.003, sunW: 0.003, windLoss: WIND_LOSS_PRIOR,
+     };
+     const wide = system === 'unknown' || era === 'unknown' ? 1.4 : 1;
+     const hSd = heatLoss ? 0.3 : 0.7;
+-    const sd = [hSd, 0.8, 0.8, 0.6, 1, 1, 1, 1, 1].map((v) => v * wide);
++    // The wind's prior is wide (×e^1.5 each way): no answer sizes it, and a calm spell leaves it be.
++    const sd = [hSd, 0.8, 0.8, 0.6, 1, 1, 1, 1, 1, 1.5].map((v) => v * wide);
+     sd[PARAMS.indexOf('gains')] = GAINS_SD;
+     return {params, sd};
+ }
+@@ -245,6 +268,8 @@ export interface Ekf {
+     /** Slot the state refers to; undefined before the first reading. */
+     slot?: number;
+     updates: number;
++    /** The fit's mean wind (`HouseParams.windRef`), fixed for the run. */
++    windRef?: number;
+ }
+ 
+ export interface EkfTuning {
+@@ -258,30 +283,30 @@ export interface EkfTuning {
+ 
+ export const TUNING: EkfTuning = {measurementSd: 0.05, stateSd: [0.03, 0.01], paramSd: 0.001};
+ 
+-export function newEkf(prior: Prior): Ekf {
++export function newEkf(prior: Prior, windRef?: number): Ekf {
+     const P = zeros(NZ, NZ);
+     P[0][0] = 1;
+     P[1][1] = 4;
+     prior.sd.forEach((sd, i) => { P[NS + i][NS + i] = sd * sd; });
+-    return {z: [NaN, NaN, ...toVector(prior.params)], P, updates: 0};
++    return {z: [NaN, NaN, ...toVector(prior.params)], P, updates: 0, ...(windRef !== undefined ? {windRef} : {})};
+ }
+ 
+ export function ekfParams(ekf: Ekf): HouseParams {
+-    return fromVector(ekf.z.slice(NS));
++    return fromVector(ekf.z.slice(NS), ekf.windRef);
+ }
+ 
+-function transition(z: number[], u: Inputs): number[] {
+-    const [ti, tm] = stepHouse(fromVector(z.slice(NS)), z[0], z[1], u);
++function transition(z: number[], u: Inputs, windRef?: number): number[] {
++    const [ti, tm] = stepHouse(fromVector(z.slice(NS), windRef), z[0], z[1], u);
+     return [ti, tm, ...z.slice(NS)];
+ }
+ 
+-function jacobian(z: number[], u: Inputs): Mat {
++function jacobian(z: number[], u: Inputs, windRef?: number): Mat {
+     const F = zeros(NZ, NZ);
+     for (let j = 0; j < NZ; j++) {
+         const h = j < NS ? 1e-3 : 1e-5;
+         const up = [...z]; up[j] += h;
+         const down = [...z]; down[j] -= h;
+-        const fu = transition(up, u), fd = transition(down, u);
++        const fu = transition(up, u, windRef), fd = transition(down, u, windRef);
+         for (let i = 0; i < NZ; i++) F[i][j] = (fu[i] - fd[i]) / (2 * h);
+     }
+     return F;
+@@ -320,13 +345,13 @@ export function ekfStep(ekf: Ekf, slot: ModelSlot, tuning = TUNING): Ekf {
+         for (let i = 0; i < NZ; i++) { P[0][i] = P[i][0] = 0; P[1][i] = P[i][1] = 0; }
+         P[0][0] = tuning.measurementSd ** 2;
+         P[1][1] = 1;
+-        return {z, P, slot: slot.slot, updates: ekf.updates};
++        return {z, P, slot: slot.slot, updates: ekf.updates, ...(ekf.windRef !== undefined ? {windRef: ekf.windRef} : {})};
+     }
+     let z = ekf.z;
+     let P = ekf.P;
+     for (let k = ekf.slot + 1; k <= slot.slot; k++) {
+-        const F = jacobian(z, slot.inputs);
+-        z = transition(z, slot.inputs);
++        const F = jacobian(z, slot.inputs, ekf.windRef);
++        z = transition(z, slot.inputs, ekf.windRef);
+         P = mul(mul(F, P), transpose(F));
+         P[0][0] += tuning.stateSd[0] ** 2;
+         P[1][1] += tuning.stateSd[1] ** 2;
+@@ -340,7 +365,8 @@ export function ekfStep(ekf: Ekf, slot: ModelSlot, tuning = TUNING): Ekf {
+         // P − K·H·P with H = e₀ᵀ.
+         P = P.map((row, i) => row.map((v, j) => v - K[i] * P[0][j]));
+     }
+-    return {z, P: symmetrise(P), slot: slot.slot, updates: ekf.updates + (slot.usable && reading !== undefined ? 1 : 0)};
++    return {z, P: symmetrise(P), slot: slot.slot, updates: ekf.updates + (slot.usable && reading !== undefined ? 1 : 0),
++        ...(ekf.windRef !== undefined ? {windRef: ekf.windRef} : {})};
+ }
+ 
+ // ---- gating (§6.2) ----
+@@ -369,7 +395,7 @@ const orZero = (v?: number) => v !== undefined && Number.isFinite(v) ? v : 0;
+ /** History rows (heat already spread, see heat.ts) → what the model reads. Slots from before the
+  *  east and west walls were recorded read as no sun there, which the south wall then absorbs. */
+ export function toModelSlots(rows: {slot: number; ti: number; te: number; gtiS: number; gtiE?: number; gtiW?: number;
+-    dhw: number; partial: boolean; q?: number; interpolated?: boolean}[]): ModelSlot[] {
++    wind?: number; dhw: number; partial: boolean; q?: number; interpolated?: boolean}[]): ModelSlot[] {
+     const sorted = [...rows].sort((a, b) => a.slot - b.slot);
+     return sorted.map((r, i) => {
+         const previous = sorted[i - 1]?.slot === r.slot - 1 ? sorted[i - 1].ti : undefined;
+@@ -377,7 +403,8 @@ export function toModelSlots(rows: {slot: number; ti: number; te: number; gtiS:
+         return {
+             slot: r.slot,
+             ti: r.ti,
+-            inputs: {te: r.te, q, sun: orZero(r.gtiS), sunE: orZero(r.gtiE), sunW: orZero(r.gtiW)},
++            inputs: {te: r.te, q, sun: orZero(r.gtiS), sunE: orZero(r.gtiE), sunW: orZero(r.gtiW),
++                ...(r.wind !== undefined && Number.isFinite(r.wind) ? {wind: r.wind} : {})},
+             // An unknown heat amount (the slot before the first counter step) is not a zero.
+             usable: r.q !== undefined && Number.isFinite(r.te) && usableSlot({ti: r.ti, previousTi: previous,
+                 partial: r.partial, dhw: r.dhw}),
+@@ -437,6 +464,37 @@ export function sunScore(params: HouseParams, slots: ModelSlot[], states: Map<nu
+     return {windows: n, rmseOn: n ? Math.sqrt(on / n) : NaN, rmseOff: n ? Math.sqrt(off / n) : NaN};
+ }
+ 
++/** A window counts as windy at this much above the fit's mean wind, m/s. */
++export const WINDY_ABOVE = 2;
++/** Windy windows are scored over a day: wind's few percent of heat loss hardly shows in 6 h
++ *  (dev/backtest-drift-terms.mjs, 2026-11-24). */
++export const WIND_HORIZON_SLOTS = 96;
++
++/** The day-ahead prediction error over windy windows only, with the wind term as fitted and with
++ *  it removed: like the sun, it earns a place in a plan only when it predicts windy days better. */
++export function windScore(params: HouseParams, slots: ModelSlot[], states: Map<number, [number, number]>,
++                          horizon = WIND_HORIZON_SLOTS): {windows: number; rmseOn: number; rmseOff: number} {
++    if (params.windRef === undefined) return {windows: 0, rmseOn: NaN, rmseOff: NaN};
++    const still = {...params, windLoss: 0};
++    let on = 0, off = 0, n = 0;
++    for (let start = 0; start + horizon < slots.length; start += 4) {
++        const state = states.get(slots[start].slot);
++        if (!state) continue;
++        const window = slots.slice(start + 1, start + 1 + horizon);
++        if (window.some((s, i) => s.slot !== slots[start].slot + i + 1 || !s.usable || s.interpolated || s.inputs.wind === undefined)) continue;
++        if (window.reduce((sum, s) => sum + s.inputs.wind!, 0) / window.length < params.windRef + WINDY_ABOVE) continue;
++        let [a, am] = state, [b, bm] = state;
++        for (const s of window) {
++            [a, am] = stepHouse(params, a, am, s.inputs);
++            [b, bm] = stepHouse(still, b, bm, s.inputs);
++        }
++        on += (a - window.at(-1)!.ti) ** 2;
++        off += (b - window.at(-1)!.ti) ** 2;
++        n += 1;
++    }
++    return {windows: n, rmseOn: n ? Math.sqrt(on / n) : NaN, rmseOff: n ? Math.sqrt(off / n) : NaN};
++}
++
+ /** Heat loss from the energy balance: heat delivered over degree-hours indoor above outdoor.
+  *  It ignores sun, internal gains and what the house stored meanwhile, so it reads low by their
+  *  share (10–25 % on the simulated houses), but it never strays far. Stage 1's ARX over the same
+@@ -459,6 +517,9 @@ export function fitSeries(slots: ModelSlot[], system: HeatingSystem, era: BuildE
+     const warmup = options.warmupSlots ?? 3 * 96;
+     let rls = newRls();
+     let ekf: Ekf | undefined;
++    // The wind the heat loss is fitted at: the series' mean, fixed for the run (`HouseParams.windRef`).
++    const winds = slots.map((s) => s.inputs.wind).filter((w): w is number => w !== undefined && Number.isFinite(w));
++    const windRef = winds.length >= slots.length / 2 && winds.length ? winds.reduce((a, b) => a + b, 0) / winds.length : undefined;
+     const states = new Map<number, [number, number]>();
+     const buffered: ModelSlot[] = [];
+     let previous: ModelSlot | undefined;
+@@ -470,7 +531,7 @@ export function fitSeries(slots: ModelSlot[], system: HeatingSystem, era: BuildE
+             buffered.push(slot);
+             if (buffered.length < warmup) continue;
+             // Seed stage 2 with the warm-up's energy balance and replay from the start.
+-            ekf = newEkf(priorFor(system, era, balanceHeatLoss(buffered)));
++            ekf = newEkf(priorFor(system, era, balanceHeatLoss(buffered)), windRef);
+             for (const b of buffered) {
+                 ekf = ekfStep(ekf, b, options.tuning);
+                 if (ekf.slot === b.slot) states.set(b.slot, [ekf.z[0], ekf.z[1]]);
+diff --git a/dev/fit-wind.mjs b/dev/fit-wind.mjs
+new file mode 100644
+index 0000000..7c8acda
+--- /dev/null
++++ b/dev/fit-wind.mjs
+@@ -0,0 +1,79 @@
++// Does the wind term earn its place (lib/autopilot/model.ts `windLoss`)? Fits the house exactly as the app
++// does (lib/autopilot/house.ts) at rolling cut-offs, twice: with the wind in the slots and with it taken
++// out. Each fit sees only the history before its cut-off; it then predicts open-loop on the heat actually
++// delivered. Prints what each learned, the gaps (measured minus predicted) at 24 h, 48 h and day 5, and
++// the windy-window scores at 6 h and 24 h that the gate would use. Reads only.
++//
++//   node --import tsx dev/fit-wind.mjs <url or file> [--from "2026-11-12 00:00"] [--step 12]
++import fs from 'node:fs';
++import {History, applyJournal} from '../lib/autopilot/history.ts';
++import {fitHouse, modelSlotsFromHistory, pumpFromHistory} from '../lib/autopilot/house.ts';
++import {fitSeries, stepHouse, windScore, WINDY_ABOVE} from '../lib/autopilot/model.ts';
++
++const source = process.argv[2];
++const option = (name, fallback) => {
++    const at = process.argv.indexOf(`--${name}`);
++    return at > 0 ? process.argv[at + 1] : fallback;
++};
++const read = async (path) => (/^https?:/.test(path)
++    ? fetch(path).then(async (r) => (r.ok ? Buffer.from(await r.arrayBuffer()) : undefined))
++    : fs.promises.readFile(path).catch(() => undefined));
++const file = await read(source) ?? Buffer.alloc(0);
++const history = History.deserialize(file);
++if (!history) { console.error('Not a history file this version can read.'); process.exit(1); }
++const journal = await read(`${source}.journal`);
++if (journal?.length) applyJournal(history, journal, History.fieldCount(file));
++
++const SLOT_MS = 15 * 60_000;
++const slotAt = (local) => Math.floor(new Date(local.replace(' ', 'T')).getTime() / SLOT_MS);
++const local = (slot) => new Date(slot * SLOT_MS).toLocaleString('sv-SE').slice(5, 16);
++const withWind = modelSlotsFromHistory(history);
++const noWind = withWind.map((s) => { const {wind: _w, ...inputs} = s.inputs; return {...s, inputs}; });
++const pump = pumpFromHistory(history);
++const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN);
++const rms = (a) => Math.sqrt(mean(a.map((x) => x * x)));
++const f = (v, d = 2, w = 6) => (Number.isFinite(v) ? v.toFixed(d) : '-').padStart(w);
++
++// Open-loop from the fit's state on what was delivered: the mean gap over each horizon.
++const gaps = (p, state, slots) => {
++    let ti = state.ti, tm = state.tm;
++    const out = {24: [], 48: [], 120: []};
++    for (const s of slots) {
++        if (s.slot <= state.slot) continue;
++        if (s.slot > state.slot + 120 * 4) break;
++        [ti, tm] = stepHouse(p, ti, tm, s.inputs);
++        if (!Number.isFinite(s.ti)) continue;
++        const h = (s.slot - state.slot) / 4;
++        if (h <= 24) out[24].push(s.ti - ti);
++        if (h <= 48) out[48].push(s.ti - ti);
++        if (h > 96) out[120].push(s.ti - ti);
++    }
++    return {g24: mean(out[24]), g48: mean(out[48]), g120: out[120].length > 48 ? mean(out[120]) : NaN};
++};
++const windOver = (slot, hours) => mean(withWind.filter((s) => s.slot > slot && s.slot <= slot + hours * 4)
++    .map((s) => s.inputs.wind).filter((w) => w !== undefined));
++
++const score = {wind: [], none: []};
++console.log('cut          windLoss W/K/(m/s)  ref m/s  next 24h wind   24h gap wind/none   48h gap wind/none   day-5 gap wind/none   windy 6h on/off   windy 24h on/off');
++for (let cut = slotAt(option('from', '2026-11-12 00:00')); cut <= withWind.at(-1).slot; cut += Number(option('step', '12')) * 4) {
++    const a = fitHouse(withWind.filter((s) => s.slot < cut), {system: 'unknown', era: 'unknown'}, pump.lever, pump);
++    const b = fitHouse(noWind.filter((s) => s.slot < cut), {system: 'unknown', era: 'unknown'}, pump.lever, pump);
++    if (!a.params || !a.state || !b.params || !b.state) continue;
++    const ga = gaps(a.params, a.state, withWind), gb = gaps(b.params, b.state, noWind);
++    const next = windOver(a.state.slot, 24);
++    score.wind.push({...ga, next, ref: a.params.windRef}); score.none.push({...gb, next, ref: a.params.windRef});
++    const train = withWind.filter((s) => s.slot < cut);
++    const states = fitSeries(train, 'unknown', 'unknown', {warmupSlots: Math.min(3 * 96, train.length)}).states;
++    const w6 = windScore(a.params, train.slice(-7 * 96), states, 24), w24 = windScore(a.params, train.slice(-7 * 96), states, 96);
++    console.log(local(cut), f(a.params.windLoss * 1000, 1, 12), f(a.params.windRef, 1, 15), f(next, 1, 13),
++        f(ga.g24, 2, 12), f(gb.g24, 2, 7), f(ga.g48, 2, 13), f(gb.g48, 2, 7), f(ga.g120, 2, 15), f(gb.g120, 2, 7),
++        `${f(w6.rmseOn, 2, 9)}/${f(w6.rmseOff, 2, 4)} (${w6.windows})`, `${f(w24.rmseOn, 2, 8)}/${f(w24.rmseOff, 2, 4)} (${w24.windows})`);
++}
++const summary = (rows, pick) => rows.map(pick).filter(Number.isFinite);
++console.log('\nrms of the gap over all cut-offs, and over cut-offs whose next 24 h was windy (≥ ref + ' + WINDY_ABOVE + ' m/s)');
++console.log('model      24 h    48 h   day 5   | windy 24 h  48 h');
++for (const [name, rows] of Object.entries(score)) {
++    const windy = rows.filter((r) => r.next >= r.ref + WINDY_ABOVE);
++    console.log(name.padEnd(8), f(rms(summary(rows, (r) => r.g24))), f(rms(summary(rows, (r) => r.g48)), 2, 7), f(rms(summary(rows, (r) => r.g120)), 2, 7),
++        '  |', f(rms(summary(windy, (r) => r.g24)), 2, 9), f(rms(summary(windy, (r) => r.g48)), 2, 6), `  (${windy.length} windy cut-offs)`);
++}

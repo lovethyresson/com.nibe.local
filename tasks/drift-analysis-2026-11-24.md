@@ -213,3 +213,27 @@ predicted and made it look best (7.7 % against 9.8 %). Without that it is a tie:
   without the swap against 1.42 K with it, and no difference within 24 h. The app re-anchors every slot and plans
   24 h ahead, so in use the swap's cost is mainly the 7 % jumps in the plan's heat and cost from fit to fit, not
   worse temperatures.
+
+## Wind in the house model, step 0 (24 Nov): stopped
+The wind term was built into the model as a learned parameter, `heatLoss + windLoss × (wind − windRef)`, with
+`windRef` the fit's mean wind and the EKF learning `windLoss` beside the sun terms. It was then back-tested with
+`dev/fit-wind.mjs`: 30 rolling fits every 12 h from 10 Nov, with and without wind, each predicting only after
+its cut-off. The code is kept in `tasks/wind-term-ekf.patch` and not committed to `lib/`.
+
+- **The filter learns almost no wind.** `windLoss` falls from its 2 W/K per m/s prior to 0.0–0.5 W/K per m/s,
+  against 3–9 from the multi-day refit (`dev/backtest-drift-terms.mjs`). It rises a little through the windy
+  21–24 Nov.
+- **Predictions are the same with and without it:** rms gap 0.28 / 0.36 / 0.98 K at 24 h / 48 h / day 5 for
+  both, and 0.33 / 0.37 K over the 10 cut-offs whose next day was windy.
+- **The gate has nothing to judge.** No 24 h windy window passes the usable-slot rule (hot water slots break
+  every day), and over 6 h windows the term changes nothing.
+
+**Why:** the EKF learns from 15-minute innovations, where wind's few percent of heat loss hides in the noise. The
+slowly random-walking heat loss absorbs the windy days instead: it rose 221 → 258 W/K from 10 to 24 Nov. The
+effect shows only in multi-day open-loop runs, and there it is unstable (3 against 9 W/K per m/s depending on the
+training days).
+
+**Decision:** per the plan's stop rule, not built. The recovery change (8264f23) covers the consequence: a house
+the wind has cooled is warmed back by the planner instead of by the trim alone. Revisit with a slow estimator
+outside the filter (a multi-day open-loop fit of `windLoss` on rolling weeks) once more windy weeks exist to
+judge its stability.
