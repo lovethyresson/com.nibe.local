@@ -105,3 +105,17 @@ test('in shadow it plans the default preset from the preset\'s own state and log
     const own = planShift(house, 21, {...start, bias: 0}, peaked, limitsFor(PRESETS[DP_PRESET]));
     assert.ok(Math.abs(entry.planner - own.fairCost) < 1e-3);
 });
+
+test('with the learned curve and emission, as the shadow runs it, heat follows indoor and the DP still finishes', async () => {
+    // The shadow passes the fit's pump as it is (heat = heatPerSupplyK × (supply − indoor)), so each
+    // air point has its own heat: the path that timed out on the Homey before one pump run per air point.
+    const knots = Array.from({length: 16}, (_, i) => -12 + 4 * i);
+    const pump = {supply: {knots, supply: knots.map((x) => 48 - 0.6 * (x + 12)), points: 1700}, heatPerSupplyK: 0.35};
+    const house = SLAB_HOUSE;
+    const start = steadyState(house, 21, 2);
+    const r = await optimise({house, comfort: 21, state: start, forecast: peaked, limits: limitsFor(PRESETS.save_some), pump},
+        {defer: () => new Promise((resolve) => setImmediate(resolve))});
+    assert.equal(r.fallback, undefined);
+    assert.ok(r.fairCost <= r.plannerFairCost * 1.02, `${r.fairCost} vs ${r.plannerFairCost}`);
+    assert.ok(r.ms < BUDGET_MS);
+});

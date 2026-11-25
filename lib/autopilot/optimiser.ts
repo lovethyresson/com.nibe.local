@@ -284,10 +284,11 @@ async function solve(input: OptimiserInput, pump: PumpCurve, planner: Plan,
                 const z = Math.min(D_POINTS - 1.000001, Math.max(0, (end.d - dGrid[0]) / dStep));
                 const cz = Math.floor(z), w = z - cz;
                 const l0 = cz * plane, l1 = l0 + plane;
-                for (let j = 0; j < TM_POINTS; j++) {
-                    for (let i = 0; i < TI_POINTS; i++) {
+                for (let i = 0; i < TI_POINTS; i++) {
+                    // Heat depends on the air only, never the mass: one pump run per air point.
+                    const run = shared ?? pumpRun(t, dGrid[c], a, tiGrid[i]);
+                    for (let j = 0; j < TM_POINTS; j++) {
                         let ti = tiGrid[i], tm = tmGrid[j];
-                        const run = shared ?? pumpRun(t, dGrid[c], a, ti);
                         let total = run.ramp;
                         for (const u of run.slots) {
                             const ti2 = e11 * ti + e12 * tm + g11 * u.b1 + g12 * u.b2;
