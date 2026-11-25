@@ -383,7 +383,6 @@
           root.appendChild(hotwaterChart(data));
           root.appendChild(legend([
             {text: data.legend.price, style: 'border-top: 2px solid var(--ap-price-line); background: linear-gradient(to bottom, var(--ap-price-top), transparent);'},
-            {text: data.legend.surplus, style: 'background: var(--ap-surplus);'},
             {text: data.legend.solar, style: 'background: var(--ap-solar);'}, {text: data.legend.grid, style: 'background: var(--ap-grid);'},
             {text: data.legend.done, style: 'background: var(--ap-done);'}]));
         }

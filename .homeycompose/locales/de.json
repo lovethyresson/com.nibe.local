@@ -412,7 +412,6 @@
       "axis_indoor": "Innen °C",
       "axis_offset": "Verschiebung Außentemp. °C",
       "learning": "Autopilot startet nach mindestens 5 Tagen Daten, sobald er Ihre Innentemperatur auf 0,35 °C genau vorhersagt und sein Bild Ihres Hauses 3 Tage lang stabil bleibt.",
-      "surplus": "Solarüberschuss",
       "charge_grid": "Aufheizen mit Netzstrom",
       "charge_solar": "Aufheizen mit Solarstrom",
       "axis_price": "Preis pro kWh",

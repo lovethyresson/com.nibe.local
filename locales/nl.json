@@ -828,7 +828,6 @@
       "axis_indoor": "Binnen °C",
       "axis_offset": "Verschuiving buiten °C",
       "learning": "Autopilot start na minstens 5 dagen gegevens, zodra hij je binnentemperatuur tot op 0,35 °C voorspelt en zijn beeld van je huis 3 dagen gelijk blijft.",
-      "surplus": "Zonne-overschot",
       "charge_grid": "Opwarmen met netstroom",
       "charge_solar": "Opwarmen met zonnestroom",
       "axis_price": "Prijs per kWh",

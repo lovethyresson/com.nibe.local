@@ -3041,7 +3041,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 // A charge outside the plan on live solar excess is named as that, without a share.
                 detail: o.next?.extra ? t('hotwater.solar_now')
                     : o.next ? [reason, share > 0 ? t('hotwater.share', {share}) : undefined].filter(Boolean).join(' · ') || undefined : undefined,
-                legend: {price: t('price'), surplus: solar ? t('surplus') : '', grid: t('charge_grid'), solar: solar ? t('charge_solar') : '',
+                // One solar key: the excess area and the charges it powers are both "From solar".
+                legend: {price: t('price'), grid: t('charge_grid'), solar: solar ? t('charge_solar') : '',
                     done: bands.some((b) => b.doneTo !== undefined) ? t('charge_done') : ''},
                 axes: {left: t('axis_price'), right: solar ? t('axis_surplus') : ''},
                 extraTitle: o.next?.extra ? t('hotwater.solar_now') : undefined};

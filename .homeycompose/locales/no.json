@@ -412,7 +412,6 @@
       "axis_indoor": "Inne °C",
       "axis_offset": "Uteforskyvning °C",
       "learning": "Autopilot starter etter minst 5 dager med data, når den forutsier innetemperaturen innen 0,35 °C og bildet av huset holder seg i 3 dager.",
-      "surplus": "Soloverskudd",
       "charge_grid": "Nettstrøm",
       "charge_solar": "Solstrøm",
       "axis_price": "Pris per kWh",

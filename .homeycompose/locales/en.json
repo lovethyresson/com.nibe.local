@@ -412,7 +412,6 @@
       "axis_indoor": "Indoor °C",
       "axis_offset": "Outdoor shift °C",
       "learning": "Autopilot starts after at least 5 days of data, once it predicts your indoor temperature within 0.35 °C and its picture of your house holds for 3 days.",
-      "surplus": "Solar excess",
       "charge_grid": "From the grid",
       "charge_solar": "From solar",
       "axis_price": "Price per kWh",
