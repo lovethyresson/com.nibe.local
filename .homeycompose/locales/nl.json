@@ -197,6 +197,7 @@
         "as_planned": "Zoals gepland.",
         "moved": "Verschoven van __time__.",
         "unplanned": "Niet gepland.",
+        "more_used": "Meer warm water gebruikt dan verwacht.",
         "as_planned_pump": "Toen was ook een opwarming gepland."
       },
       "duration": "__h__ u __m__ min",
@@ -209,6 +210,7 @@
         "as_planned": "Zoals gepland.",
         "moved": "Verschoven.",
         "unplanned": "Niet gepland.",
+        "more_used": "Meer gebruikt dan verwacht.",
         "as_planned_pump": "Toen ook gepland.",
         "yesterday": "Gisteren:",
         "on": "__date__:",

@@ -203,17 +203,33 @@ test('a safety-net start says why, and nothing is reported while the planner wai
     assert.deepStrictEqual(waits, {skip: 'no start'});
 });
 
-test('a start is as planned within 45 min, moved within 6 h, else unplanned', () => {
+test('a start is as planned within 45 min, moved within 3 h, else unplanned', () => {
     const morning = dailyOf();
     const planned = morning.charges[0].at;
     assert.deepStrictEqual(againstPlan(planned + 30 * 60_000, morning), {plan: 'as_planned'});
     assert.deepStrictEqual(againstPlan(planned + 2 * 3_600_000, morning), {plan: 'moved', plannedAt: planned});
-    assert.deepStrictEqual(againstPlan(planned + 2 * 3_600_000, morning, false), {plan: 'unplanned'}, 'a safety net or the pump is never the plan moved');
+    assert.deepStrictEqual(againstPlan(planned + 2 * 3_600_000, morning, false), {plan: 'unplanned', early: true}, 'a safety net or the pump is never the plan moved');
     assert.deepStrictEqual(againstPlan(planned + 12 * 3_600_000, {...morning, charges: [morning.charges[0]]}), {plan: 'unplanned'});
     assert.deepStrictEqual(againstPlan(planned), {});
+    assert.deepStrictEqual(againstPlan(planned - 5 * 3_600_000, {...morning, charges: [morning.charges[0]]}), {plan: 'unplanned', early: true},
+        'ahead of every planned charge: the tank ran low sooner');
+    assert.deepStrictEqual(againstPlan(planned + 3.5 * 3_600_000, {...morning, charges: [{...morning.charges[0], at: planned - 3_600_000},
+        {...morning.charges[0], at: planned + 7 * 3_600_000}]}), {plan: 'unplanned', early: true}, 'a nearer past charge does not hide the one to come');
+    assert.deepStrictEqual(againstPlan(planned, {...morning, charges: []}), {plan: 'unplanned', early: true});
     const text = chargeText({...charge({now: {litres: 20, top: 40}}), plan: 'moved', plannedAt: planned},
         translator('en', 'hotwater_charge'), hhmm, kr).detailedReason;
     assert.match(text, new RegExp(`Moved from ${hhmm(planned)}\\.$`));
+});
+
+test('an early off-plan start for use says more was used than expected; the rest keep "Not planned"', () => {
+    const t = translator('en', 'hotwater_charge');
+    const early = {...charge({now: {litres: 20, top: 40}}), reason: 'before_use' as const, plan: 'unplanned' as const, early: true as const};
+    assert.match(chargeText(early, t, hhmm, kr).detailedReason, /More hot water used than expected\.$/);
+    assert.deepStrictEqual(recapLines([early], t, hhmm, false, () => '2026-11-25', '2026-11-25').at(-1)!.endsWith('More used than expected.'), true);
+    for (const e of [{...early, early: undefined}, {...early, reason: 'reserve' as const}, {...early, reason: 'surplus' as const},
+        {...pumpCharge(T0, {litres: 50, top: 41, stopC: 48}, 40), plan: 'unplanned' as const, early: true as const}]) {
+        assert.match(chargeText(e, t, hhmm, kr).detailedReason, /Not planned\.$/, `${e.by} ${e.reason} ${e.early}`);
+    }
 });
 
 test('the pump\'s own charge is reported as the pump\'s, with the stop it runs to', () => {

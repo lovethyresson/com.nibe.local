@@ -197,6 +197,7 @@
         "as_planned": "Wie geplant.",
         "moved": "Verschoben von __time__.",
         "unplanned": "Nicht geplant.",
+        "more_used": "Mehr Warmwasser verbraucht als erwartet.",
         "as_planned_pump": "Auch dann war ein Aufheizen geplant."
       },
       "duration": "__h__ Std. __m__ Min.",
@@ -209,6 +210,7 @@
         "as_planned": "Wie geplant.",
         "moved": "Verschoben.",
         "unplanned": "Nicht geplant.",
+        "more_used": "Mehr verbraucht als erwartet.",
         "as_planned_pump": "War auch geplant.",
         "yesterday": "Gestern:",
         "on": "__date__:",

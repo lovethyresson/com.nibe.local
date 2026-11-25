@@ -197,6 +197,7 @@
         "as_planned": "Som planlagt.",
         "moved": "Flyttet fra kl. __time__.",
         "unplanned": "Ikke planlagt.",
+        "more_used": "Mere varmt vand brugt end ventet.",
         "as_planned_pump": "Der var også planlagt en opvarmning da."
       },
       "duration": "__h__ t __m__ min",
@@ -209,6 +210,7 @@
         "as_planned": "Som planlagt.",
         "moved": "Flyttet.",
         "unplanned": "Ikke planlagt.",
+        "more_used": "Mere brugt end ventet.",
         "as_planned_pump": "Også planlagt.",
         "yesterday": "I går:",
         "on": "__date__:",

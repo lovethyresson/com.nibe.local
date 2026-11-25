@@ -528,10 +528,13 @@ export interface ChargeEvent {
     reserveLitres: number;
     /** More hot water (697) is on. */
     more?: boolean;
-    /** Against the morning plan: a planned charge within 45 min, one elsewhere within 6 h, or
+    /** Against the morning plan: a planned charge within 45 min, one the prices moved within 3 h, or
      *  none. Missing when there was no morning plan to compare with. */
     plan?: 'as_planned' | 'moved' | 'unplanned';
     plannedAt?: number;
+    /** Off plan with a planned charge still to come (or none due yet): the tank ran low sooner
+     *  than the plan expected. */
+    early?: true;
     /** A test run's would-be start: nothing was written. */
     shadow?: boolean;
     /** The immersion heater came on during this charge: when, the charge sensor then (°C), and
@@ -546,13 +549,28 @@ const MOVED_MS = 3 * 3_600_000;
 
 /** This start against the morning plan. Pure. Only a start the prices moved can be the planned
  *  one moved: a safety-net start comes on top of the plan, and the pump's own is not the plan's. */
-export function againstPlan(at: number, morning?: DailyPlan, canMove = true): Pick<ChargeEvent, 'plan' | 'plannedAt'> {
+export function againstPlan(at: number, morning?: DailyPlan, canMove = true): Pick<ChargeEvent, 'plan' | 'plannedAt' | 'early'> {
     if (!morning) return {};
-    const nearest = morning.charges.filter((c) => c.reason !== 'running')
+    const planned = morning.charges.filter((c) => c.reason !== 'running');
+    const nearest = planned
         .reduce<ChargeFacts | undefined>((best, c) => !best || Math.abs(c.at - at) < Math.abs(best.at - at) ? c : best, undefined);
     const off = nearest ? Math.abs(nearest.at - at) : Infinity;
     if (off <= AS_PLANNED_MS) return {plan: 'as_planned'};
-    return canMove && off <= MOVED_MS ? {plan: 'moved', plannedAt: nearest!.at} : {plan: 'unplanned'};
+    if (canMove && off <= MOVED_MS) return {plan: 'moved', plannedAt: nearest!.at};
+    // Early: a planned charge was still to come, or none had been due. A start after a planned
+    // one that did not run, with nothing planned later, is not the tank running low sooner.
+    const early = planned.some((c) => c.at > at) || !planned.some((c) => c.at < at);
+    return early ? {plan: 'unplanned', early: true} : {plan: 'unplanned'};
+}
+
+/** The wording key for a start against the plan (under `plan.` and `recap.`), or undefined.
+ *  Autopilot heating for use ahead of every charge its plan had: more was used than it
+ *  expected. The pump's own start, the minimum, excess and legionella say why themselves. Pure. */
+export function planKey(e: ChargeEvent): string | undefined {
+    if (!e.plan) return undefined;
+    if (e.plan === 'unplanned' && e.early && e.by === 'autopilot'
+        && !['reserve', 'surplus', 'legionella'].includes(e.reason)) return 'more_used';
+    return e.by === 'pump' && e.plan === 'as_planned' ? 'as_planned_pump' : e.plan;
 }
 
 /** The charge Autopilot starts in `input.slot`, or why there is none. Pure. */
@@ -599,8 +617,8 @@ export function chargeText(e: ChargeEvent, t: Translate, time: (ms: number) => s
         top: e.top ?? '?', stop: e.targetC ?? '?'};
     const detail = e.reason === 'pump' ? t(e.more ? 'detail.pump_more' : 'detail.pump', run)
         : t(e.reason === 'reserve' || e.reason === 'surplus' || e.reason === 'legionella' ? `detail.${e.reason}` : 'detail.price', run);
-    const plan = e.plan === 'moved' ? t('plan.moved', {time: time(e.plannedAt!)})
-        : e.plan ? t(`plan.${e.plan}${e.by === 'pump' && e.plan === 'as_planned' ? '_pump' : ''}`) : '';
+    const key = planKey(e);
+    const plan = key === 'moved' ? t('plan.moved', {time: time(e.plannedAt!)}) : key ? t(`plan.${key}`) : '';
     const immersion = e.immersion ? t('detail.immersion', {at: Math.round(e.immersion.c), cap: e.immersion.capC}) : '';
     return {reason: t(`reason.${e.reason}`), detailedReason: [detail, plan, immersion].filter((x) => x).join(' ')};
 }
@@ -626,7 +644,8 @@ export function recapLines(events: ChargeEvent[], t: Translate, time: (ms: numbe
             day = date;
             lines.push(date === today ? t('recap.last_night') : date === yesterday ? t('recap.yesterday') : t('recap.on', {date}));
         }
-        const plan = e.plan ? ` ${t(`recap.${e.plan}${e.by === 'pump' && e.plan === 'as_planned' ? '_pump' : ''}`)}` : '';
+        const key = planKey(e);
+        const plan = key ? ` ${t(`recap.${key}`)}` : '';
         lines.push(t((e.shadow ?? shadow) && e.by === 'autopilot' ? 'recap.would' : 'recap.item',
             {time: time(e.at), target: e.targetC ?? '?', reason: t(`reason.${e.reason}`)}) + plan
             + (e.immersion ? ` ${t('recap.immersion', {at: Math.round(e.immersion.c)})}` : ''));
