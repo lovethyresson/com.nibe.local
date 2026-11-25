@@ -200,6 +200,9 @@ test('it stays out of the pump\'s way, and skips a charge that buys nothing', ()
     assert.deepStrictEqual(leverDecision(55, {...facts, demandMode: DEMAND_SMART}, fresh), {skip: 'smart control'});
     assert.deepStrictEqual(leverDecision(55, {...facts, top: undefined}, fresh), {skip: 'no tank reading'});
     assert.deepStrictEqual(leverDecision(55, {...facts, top: 55 - BELOW_TARGET_K + 0.5}, fresh), {skip: 'tank hot enough'});
+    assert.deepStrictEqual(leverDecision(47, {...facts, top: 47.6, charge: 38, largeStopC: 47}, fresh), {targetC: 47, writeStop: false},
+        'after a large draw the top stays hot over cold water: the charge sensor still has a charge to make');
+    assert.deepStrictEqual(leverDecision(47, {...facts, top: 47.6, charge: 46, largeStopC: 47}, fresh), {skip: 'tank hot enough'});
 });
 
 // ---- The day type ----

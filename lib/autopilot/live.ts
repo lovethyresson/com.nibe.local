@@ -645,8 +645,14 @@ export class HeatingFeed {
      *  level, not price (flat prices), so it is part of what the curve is short of. */
     private noteHeld(slot: number) {
         if (this.heldShifts.at(-1)?.slot === slot) return;
-        const shift = this.holding0 && !this.neutral && !this.learning ? this.bias - this.trim : 0;
+        const shift = this.heldNow() && !this.neutral && !this.learning ? this.bias - this.trim : 0;
         this.heldShifts = [...this.heldShifts.filter((h) => h.slot > slot - 96), {slot, shift}];
+    }
+
+    /** Getting started holds: as last planned, or before the first plan of a run (the first
+     *  hour's line comes before it) as the hook says now. */
+    private heldNow(): boolean {
+        return this.holding0 ?? this.hooks.holdShift?.() === true;
     }
 
     /** One debug line an hour with what the feed is made of, so a drift can be read from the log
@@ -657,7 +663,7 @@ export class HeatingFeed {
         this.loggedSlot = slot;
         const k = (v: number | undefined) => v === undefined || !Number.isFinite(v) ? '-' : v.toFixed(1);
         const trim = this.neutral ? 0 : this.trim;
-        const state = this.neutral ? 'neutral' : this.learning ? 'learning' : this.holding0 ? 'holding' : this.plan?.reason ?? 'shifting';
+        const state = this.neutral ? 'neutral' : this.learning ? 'learning' : this.heldNow() ? 'holding' : this.plan?.reason ?? 'shifting';
         const extra = this.hooks.debug?.();
         // Fed = outdoor − bias, so a positive bias warms (the Insights shift is fed − outdoor, its negative).
         this.hooks.log(`Autopilot heating hour: ${state}; setpoint ${k(this.setpoint)}, 24 h mean ${k(this.trimMean)}; `

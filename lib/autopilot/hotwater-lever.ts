@@ -14,7 +14,7 @@ export const MAX_STARTS_PER_DAY = 3;
  *  (docs/autopilot-hot-water.md §4.3 has the only figure found, a quoted 1 million). */
 export const MAX_RESCUE_STARTS_PER_DAY = 5;
 export const MAX_STOP_WRITES_PER_DAY = 3;
-/** A charge starts only when the tank top is this far under its target: a charge of a degree or
+/** A charge starts only when the tank is this far under its target: a charge of a degree or
  *  two buys nothing and costs a write. */
 export const BELOW_TARGET_K = 3;
 /** Demand modes (56). */
@@ -25,6 +25,8 @@ export const DEMAND_SMART = 4;
 export interface PumpFacts {
     /** Tank top, BT7 (°C). */
     top?: number;
+    /** The charge sensor, BT6 (°C): what the pump stops a charge on. */
+    charge?: number;
     /** The Large stop (62) now, °C. */
     largeStopC?: number;
     /** Demand mode (56). */
@@ -78,6 +80,9 @@ export function leverDecision(plannedC: number, facts: PumpFacts, count: WriteCo
     const mayWrite = facts.demandMode !== DEMAND_LARGE && count.stops < MAX_STOP_WRITES_PER_DAY;
     if (!mayWrite && set === undefined) return {skip: 'no stop reading'};
     const targetC = mayWrite ? plannedC : set!;
-    if (facts.top > targetC - belowK) return {skip: 'tank hot enough'};
+    // The colder of the top and the charge sensor: after a large draw the top stays hot over cold
+    // water, and the pump, which stops on the charge sensor, still has a charge to make
+    // (2026-11-24 19:15: 96 L left, top 47.6 °C against 47, skipped).
+    if (Math.min(facts.top, facts.charge ?? facts.top) > targetC - belowK) return {skip: 'tank hot enough'};
     return {targetC, writeStop: mayWrite && (set === undefined || Math.abs(set - plannedC) >= 0.5)};
 }

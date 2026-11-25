@@ -1671,7 +1671,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     return Number.isFinite(v) ? v : undefined;
                 };
                 const spa = await Promise.all(spec.spa.map((name) => readPump(name)));
-                return {top: await num(spec.tank.top), largeStopC: await num(spec.largeStop), demandMode: await num(spec.demandMode),
+                return {top: await num(spec.tank.top), charge: spec.tank.charge ? await num(spec.tank.charge) : undefined, largeStopC: await num(spec.largeStop), demandMode: await num(spec.demandMode),
                     allowed: (await readPump(spec.allowed)) as boolean | undefined, spaHotwater: spa.every((on) => on === true)};
             },
             write: async (what, value) => {
