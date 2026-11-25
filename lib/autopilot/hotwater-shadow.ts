@@ -532,8 +532,8 @@ export interface ChargeEvent {
      *  none. Missing when there was no morning plan to compare with. */
     plan?: 'as_planned' | 'moved' | 'unplanned';
     plannedAt?: number;
-    /** Off plan with a planned charge still to come (or none due yet): the tank ran low sooner
-     *  than the plan expected. */
+    /** Off plan with a planned charge still to come, or every one due already run: the tank ran
+     *  low sooner than the plan expected. */
     early?: true;
     /** A test run's would-be start: nothing was written. */
     shadow?: boolean;
@@ -548,8 +548,10 @@ const AS_PLANNED_MS = 45 * 60_000;
 const MOVED_MS = 3 * 3_600_000;
 
 /** This start against the morning plan. Pure. Only a start the prices moved can be the planned
- *  one moved: a safety-net start comes on top of the plan, and the pump's own is not the plan's. */
-export function againstPlan(at: number, morning?: DailyPlan, canMove = true): Pick<ChargeEvent, 'plan' | 'plannedAt' | 'early'> {
+ *  one moved: a safety-net start comes on top of the plan, and the pump's own is not the plan's.
+ *  `ran` is the starts since the plan's morning, which tell a planned charge that ran from one
+ *  that did not. */
+export function againstPlan(at: number, morning?: DailyPlan, canMove = true, ran: ChargeEvent[] = []): Pick<ChargeEvent, 'plan' | 'plannedAt' | 'early'> {
     if (!morning) return {};
     const planned = morning.charges.filter((c) => c.reason !== 'running');
     const nearest = planned
@@ -557,9 +559,10 @@ export function againstPlan(at: number, morning?: DailyPlan, canMove = true): Pi
     const off = nearest ? Math.abs(nearest.at - at) : Infinity;
     if (off <= AS_PLANNED_MS) return {plan: 'as_planned'};
     if (canMove && off <= MOVED_MS) return {plan: 'moved', plannedAt: nearest!.at};
-    // Early: a planned charge was still to come, or none had been due. A start after a planned
-    // one that did not run, with nothing planned later, is not the tank running low sooner.
-    const early = planned.some((c) => c.at > at) || !planned.some((c) => c.at < at);
+    // Early: a planned charge was still to come, or every one due has run. A start after a
+    // planned one that did not run, with nothing planned later, is not the tank running low sooner.
+    const didRun = (c: ChargeFacts) => ran.some((e) => e.plannedAt === c.at || Math.abs(e.at - c.at) <= AS_PLANNED_MS);
+    const early = planned.some((c) => c.at > at) || planned.every((c) => c.at > at || didRun(c));
     return early ? {plan: 'unplanned', early: true} : {plan: 'unplanned'};
 }
 
@@ -574,7 +577,7 @@ export function planKey(e: ChargeEvent): string | undefined {
 }
 
 /** The charge Autopilot starts in `input.slot`, or why there is none. Pure. */
-export function autopilotCharge(input: ShadowStepInput, morning?: DailyPlan): ChargeEvent | {skip: string} {
+export function autopilotCharge(input: ShadowStepInput, morning?: DailyPlan, ran: ChargeEvent[] = []): ChargeEvent | {skip: string} {
     const out = planFrom(input);
     if ('skip' in out) return out;
     if (out.charging || !out.plan.startNow) return {skip: 'no start'};
@@ -583,14 +586,14 @@ export function autopilotCharge(input: ShadowStepInput, morning?: DailyPlan): Ch
     const c = charges[0];
     return {at, by: 'autopilot', reason: c.reason, targetC: c.targetC, minutes: c.minutes, price: c.price, meanPrice,
         surplusShare: c.surplusShare, litres: round(input.now.litres!, 0), top: input.now.top,
-        reserveLitres: input.reserveLitres ?? DEFAULT_RESERVE_LITRES, ...againstPlan(at, morning, c.reason !== 'reserve')};
+        reserveLitres: input.reserveLitres ?? DEFAULT_RESERVE_LITRES, ...againstPlan(at, morning, c.reason !== 'reserve', ran)};
 }
 
 /** A charge the pump started itself. Pure. */
-export function pumpCharge(at: number, now: TankNow, reserveLitres: number, morning?: DailyPlan): ChargeEvent {
+export function pumpCharge(at: number, now: TankNow, reserveLitres: number, morning?: DailyPlan, ran: ChargeEvent[] = []): ChargeEvent {
     return {at, by: 'pump', reason: 'pump', targetC: now.more ? now.largeStopC : now.stopC, more: now.more,
         litres: now.litres === undefined ? undefined : round(now.litres, 0), top: now.top, reserveLitres,
-        ...againstPlan(at, morning, false)};
+        ...againstPlan(at, morning, false, ran)};
 }
 
 /** The immersion heater came on at `onset.c` °C during the charge `e`: the event with it recorded,
@@ -1402,10 +1405,10 @@ export class HotwaterAutopilot {
     private async watchStarts(input: ShadowStepInput, at: number) {
         const charging = (input.now.powerW ?? 0) > 0;
         if (charging && this.wasCharging === false && at - this.autopilotStartedAt > 2 * SLOT_MS)
-            this.chargeStarted(pumpCharge(at, input.now, input.reserveLitres ?? DEFAULT_RESERVE_LITRES, this.morningPlan));
+            this.chargeStarted(pumpCharge(at, input.now, input.reserveLitres ?? DEFAULT_RESERVE_LITRES, this.morningPlan, this.events));
         if (input.now.powerW !== undefined) this.wasCharging = charging;
         if (at < this.wouldRunUntil || this.starting) return;
-        const e = autopilotCharge(input, this.morningPlan);
+        const e = autopilotCharge(input, this.morningPlan, this.events);
         if ('skip' in e) {
             this.leverSkip = undefined;
             return;

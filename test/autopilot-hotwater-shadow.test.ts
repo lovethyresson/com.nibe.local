@@ -215,6 +215,12 @@ test('a start is as planned within 45 min, moved within 3 h, else unplanned', ()
         'ahead of every planned charge: the tank ran low sooner');
     assert.deepStrictEqual(againstPlan(planned + 3.5 * 3_600_000, {...morning, charges: [{...morning.charges[0], at: planned - 3_600_000},
         {...morning.charges[0], at: planned + 7 * 3_600_000}]}), {plan: 'unplanned', early: true}, 'a nearer past charge does not hide the one to come');
+    const past = {...morning, charges: [{...morning.charges[0], at: planned - 7 * 3_600_000}]};
+    assert.deepStrictEqual(againstPlan(planned, past), {plan: 'unplanned'}, 'after a planned charge that did not run');
+    const ranThen = {at: planned - 7 * 3_600_000 + 10 * 60_000, by: 'autopilot', reason: 'cheap', reserveLitres: 40} as const;
+    assert.deepStrictEqual(againstPlan(planned, past, true, [ranThen]), {plan: 'unplanned', early: true}, 'it ran, so the tank ran low sooner');
+    assert.deepStrictEqual(againstPlan(planned, past, true, [{...ranThen, at: planned - 9 * 3_600_000, plannedAt: planned - 7 * 3_600_000}]),
+        {plan: 'unplanned', early: true}, 'a start moved from it counts as it');
     assert.deepStrictEqual(againstPlan(planned, {...morning, charges: []}), {plan: 'unplanned', early: true});
     const text = chargeText({...charge({now: {litres: 20, top: 40}}), plan: 'moved', plannedAt: planned},
         translator('en', 'hotwater_charge'), hhmm, kr).detailedReason;
