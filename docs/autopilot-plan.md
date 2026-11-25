@@ -1862,8 +1862,10 @@ never swallow them.
     simulated twice with the house model, as fed and with Autopilot's average feed held steady; the
     difference counts a pre-heat's extra use and follows the season. It is recorded and logged
     beside the baseline's saving; the widget still shows the baseline's.
-  - **Plan vs actual** (`cost-check.ts`, `widgets/cost_check`): what the morning plan expected
-    each function's electricity to cost over the rest of the day, against what it cost.
+  - **Plan vs actual** (`cost-check.ts`, `widgets/cost_check`): what the plan at local midnight
+    expected each function's electricity to cost over the day, against what it cost. Hot water
+    was held to its 07:00 morning plan until 2026-11-25, so a night or 06:00 run fell outside
+    its day and the day did not match Homey Energy. It now takes the first plan of the date.
 
 ---
 

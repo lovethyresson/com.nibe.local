@@ -1707,9 +1707,6 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.solarSurplus().draw(this, () => number(spec.power));
         this.log(`Autopilot hot water started (${live() === 'live' ? 'live' : 'test run'}).`);
         await this.hotwaterAutopilot.start();
-        // After a restart with no plan for today yet: the plan in force stands in for it.
-        const kept = this.hotwaterAutopilot.dayPlan();
-        if (kept?.charges.length) this.noteCostPlan(Date.now(), chargeCosts(kept.charges, SLOT_MS));
     }
 
     /** More hot water for `hours` (697's hours picker, as text, as a Flow card sends it). Its

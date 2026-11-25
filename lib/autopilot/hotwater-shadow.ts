@@ -794,7 +794,8 @@ export interface HotwaterHooks {
     household(): Household | undefined;
     /** An analytics event (lib/analytics.ts `track`): a no-op without the owner's consent. */
     track(event: string, properties: Record<string, string | number | boolean>): void;
-    /** The morning plan's charges, for Plan vs actual (cost-check.ts). */
+    /** The plan's charges after each replan, for Plan vs actual (cost-check.ts), which keeps a
+     *  date's first: the plan at local midnight. */
     planned?(from: number, charges: ChargeFacts[]): void;
 }
 
@@ -923,6 +924,8 @@ export class HotwaterAutopilot {
      *  replan after prices changed. Charges are compared with it. */
     private dailySent?: string;
     private morningPlan?: DailyPlan;
+    /** The date whose first plan went to Plan vs actual. */
+    private costPlanDate?: string;
     /** Charges started since the last morning plan, for its recap. */
     private events: ChargeEvent[] = [];
     private wasCharging?: boolean;
@@ -1338,6 +1341,15 @@ export class HotwaterAutopilot {
                 litres: now.litres, top: now.top, produced: now.produced, ctx} satisfies ShadowSkip);
         }
         this.hooks.replanned?.(out.charges);
+        // Plan vs actual holds a day to its first plan from local midnight, as heating's: the night's
+        // charges count, and the day matches Homey Energy. Up to 2026-11-25 it was the 07:00 morning
+        // plan, so a 06:00 run fell outside. Offered once a date: a midnight plan with no charge stays
+        // no plan, rather than a later replan (a rescue's) standing in for it.
+        const date = input.clock(at).date;
+        if (this.costPlanDate !== date) {
+            this.costPlanDate = date;
+            this.hooks.planned?.(at, out.charges);
+        }
         this.last = out.entry;
         this.planned = {from: out.entry.slot, stored: out.stored};
         if (Number.isFinite(now.litres)) this.history = mergeHistory([], [...this.history,
@@ -1713,11 +1725,6 @@ export class HotwaterAutopilot {
             .catch((error: any) => this.log('Autopilot hot water: timeline failed:', error?.message ?? error));
     }
 
-    /** The plan in force, for Plan vs actual after a restart (cost-check.ts). */
-    dayPlan(): DailyPlan | undefined {
-        return this.morningPlan;
-    }
-
     private time = (ms: number) => localeTime(ms, 'sv-SE', {timeZone: this.homey.clock.getTimezone(), hour: '2-digit', minute: '2-digit'});
 
     /** With no plan in force (a first start, or a restart with none saved that is still current),
@@ -1754,7 +1761,6 @@ export class HotwaterAutopilot {
             this.time, this.money, this.shadow, offPlan);
         if (recap.length) this.log(`Autopilot hot water since yesterday's message: ${recap.join(' ')}`);
         this.log(`Autopilot hot water morning plan: ${JSON.stringify(d)}`);
-        this.hooks.planned?.(input.slot * SLOT_MS, d.charges);
         this.homey.notifications.createNotification({excerpt: text})
             .catch((error: any) => this.log('Autopilot hot water: timeline failed:', error?.message ?? error));
     }
