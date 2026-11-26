@@ -1,0 +1,372 @@
+<title>Comfort range trial</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+/* Layout: one column of report sections; summary first, then day by day, an average day, and each week in detail. */
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --fg: #17202b; --muted: #5d6877; --faint: #e3e7ec; --grid: #edf0f3;
+  --comfort: #2f6fd0; --balanced: #c27c12; --savings: #1f9470;
+  --band: rgba(47, 111, 208, 0.10); --preheat: #d8642a; --ease: #5b7ea6; --settle: rgba(93, 104, 119, 0.10);
+  --warn: #b4442c;
+  --display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f141a; --panel: #171d25; --fg: #e8edf3; --muted: #97a3b2; --faint: #2a333e; --grid: #222a34;
+  --comfort: #6ea2ef; --balanced: #e3a646; --savings: #4cc69d;
+  --band: rgba(110, 162, 239, 0.14); --preheat: #ef8a55; --ease: #8eaed3; --settle: rgba(151, 163, 178, 0.10);
+  --warn: #ef7e64; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f141a; --panel: #171d25; --fg: #e8edf3; --muted: #97a3b2; --faint: #2a333e; --grid: #222a34;
+  --comfort: #6ea2ef; --balanced: #e3a646; --savings: #4cc69d;
+  --band: rgba(110, 162, 239, 0.14); --preheat: #ef8a55; --ease: #8eaed3; --settle: rgba(151, 163, 178, 0.10);
+  --warn: #ef7e64; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap: balance; }
+h1 { font-size: 30px; letter-spacing: -0.01em; }
+h2 { font-size: 20px; }
+h3 { font-size: 16px; }
+p { margin: 0; max-width: 68ch; }
+.muted { color: var(--muted); }
+.head { display: grid; gap: 10px; }
+.pill { display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--warn); border: 1px solid currentColor; border-radius: 999px; padding: 1px 9px; width: max-content; }
+section { display: grid; gap: 14px; }
+.panel { background: var(--panel); border: 1px solid var(--faint); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.sw.line { height: 3px; border-radius: 2px; }
+.weeks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.weekcard { display: grid; gap: 4px; }
+.weekcard b { font-family: var(--display); font-size: 16px; }
+.weekcard .dates { font-size: 13px; color: var(--muted); }
+.score { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.metric { display: grid; gap: 8px; }
+.metric .name { font-size: 13px; font-weight: 600; }
+.metric .hint { font-size: 12px; color: var(--muted); }
+.bars { display: grid; gap: 5px; }
+.bar { display: grid; grid-template-columns: 76px minmax(0, 1fr) 96px; align-items: center; gap: 8px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.bar .track { height: 12px; background: var(--grid); border-radius: 3px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 3px; }
+.bar .val { text-align: right; white-space: nowrap; }
+.chart { width: 100%; min-width: 0; position: relative; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { fill: var(--muted); font-family: var(--body); font-size: 11px; font-variant-numeric: tabular-nums; }
+.readout { font-size: 13px; color: var(--muted); min-height: 1.5em; font-variant-numeric: tabular-nums; }
+.readout b { color: var(--fg); font-weight: 600; }
+.weekhead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
+.facts { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.facts b { color: var(--fg); font-weight: 600; }
+.notes { display: grid; gap: 6px; font-size: 14px; }
+.notes li { max-width: 72ch; }
+ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+@media (max-width: 720px) { .weeks, .score { grid-template-columns: minmax(0, 1fr); } h1 { font-size: 25px; } .bar { grid-template-columns: 66px minmax(0, 1fr) 92px; } }
+</style>
+
+<div class="wrap">
+  <header class="head">
+    <span class="pill" id="pill">Mock data · proposal</span>
+    <h1>Comfort range trial</h1>
+    <p class="muted">Three weeks after calibrating, one comfort range each. Every figure compares a day with what holding a flat temperature would have cost that same day. The first two days of each week are left out of the scores while the house adjusts to the new range.</p>
+  </header>
+
+  <section>
+    <div class="weeks" id="weeks"></div>
+  </section>
+
+  <section>
+    <h2>Scores</h2>
+    <p class="muted">Days 3 to 7 of each week.</p>
+    <div class="score" id="score"></div>
+  </section>
+
+  <section>
+    <h2>Day by day</h2>
+    <div class="panel">
+      <h3>Saved against flat heating</h3>
+      <div class="chart" id="daySaved"></div>
+    </div>
+    <div class="panel">
+      <h3>BT1 offset pushed</h3>
+      <p class="muted">Degree-hours per day. Below zero your heat pump was told it is colder outside and pre-heated. Above zero it was told it is warmer and eased off.</p>
+      <div class="legend"><span><i class="sw" style="background:var(--preheat)"></i>Pre-heating</span><span><i class="sw" style="background:var(--ease)"></i>Easing off</span><span><i class="sw" style="background:var(--settle);border:1px solid var(--faint)"></i>Settling in, not scored</span></div>
+      <div class="chart" id="dayOffset"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>An average day</h2>
+    <p class="muted">Each range's scored days averaged by hour, on one chart.</p>
+    <div class="panel">
+      <div class="legend" id="avgLegend"></div>
+      <h3>Indoor against the thermostat</h3>
+      <div class="chart" id="avgIndoor"></div>
+      <h3>BT1 offset</h3>
+      <div class="chart" id="avgOffset"></div>
+      <h3>Price</h3>
+      <div class="chart" id="avgPrice"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Week by week</h2>
+    <p class="muted">Same scales on all three weeks. Hover or tap a chart to read an hour.</p>
+    <div class="legend"><span><i class="sw line" style="background:var(--fg)"></i>Indoor</span><span><i class="sw" style="background:var(--band)"></i>Approved range</span><span><i class="sw" style="background:var(--preheat)"></i>Pre-heating</span><span><i class="sw" style="background:var(--ease)"></i>Easing off</span></div>
+    <div id="weekPanels" style="display:grid;gap:14px"></div>
+  </section>
+
+  <section>
+    <h2>Where the figures come from</h2>
+    <ul class="notes">
+      <li>The weeks come from the 15-minute Autopilot log the Homey keeps: indoor, thermostat, BT1 offset, price and power.</li>
+      <li>Flat heating is the house model run over the same day twice, once with the offsets Autopilot fed and once with their average held steady (the app's "old way", shift-cost.ts). Weather and prices are the same on both sides.</li>
+      <li>The heating cost counts the slots without hot water.</li>
+      <li>Saved per 1 kr of spread divides a week's savings by its average daily price spread, so a week of flat prices doesn't make its range look bad.</li>
+      <li>You switch the range each Monday with the "Set Autopilot heating comfort range" card, or in Heating setup.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(function () {
+  // ---------- Data ----------
+  // dev/comfort-trial.mjs replaces the null below with the real weeks. Left as it is, the page
+  // shows mock weeks shaped like a real house.
+  var DATA = /*TRIAL*/null;
+  var SLOTS = 96, DAYS = 7, SETTLE = 2;
+  var META = {
+    comfortable: {name: 'Prioritize comfort', short: 'Comfort', color: 'var(--comfort)'},
+    save_some: {name: 'Balanced', short: 'Balanced', color: 'var(--balanced)'},
+    save_most: {name: 'Prioritize savings', short: 'Savings', color: 'var(--savings)'}
+  };
+  var WEEKS = DATA ? DATA.weeks : mockWeeks();
+  WEEKS.forEach(function (w) { var m = META[w.key]; w.name = m.name; w.short = m.short; w.color = m.color; });
+  var SET = DATA ? DATA.setpoint : 22.5;
+  var DAYNAME = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function dmy(ms) { var d = new Date(ms); return d.getUTCDate() + ' ' + MON[d.getUTCMonth()]; }
+  if (DATA) {
+    document.getElementById('pill').textContent = 'Generated ' + DATA.generated;
+    document.getElementById('pill').style.color = 'var(--muted)';
+  }
+
+  function mockWeeks() {
+    function rng(seed) { return function () { seed = (seed + 0x6D2B79F5) | 0; var t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+    var R = rng(20261130), SP = 22.5;
+    return [
+      {key: 'comfortable', band: 0.5, maxOff: 10, ag: 0.55, start: Date.UTC(2026, 10, 30), peak: 1.6, outdoor: -2},
+      {key: 'save_some', band: 3, maxOff: 15, ag: 0.8, start: Date.UTC(2026, 11, 7), peak: 1.1, outdoor: -5},
+      {key: 'save_most', band: 6, maxOff: 20, ag: 0.85, start: Date.UTC(2026, 11, 14), peak: 1.9, outdoor: 0}
+    ].map(function (w) {
+      var n = DAYS * SLOTS, price = [], outdoor = [], offset = [], indoor = [], flat = [], ap = [];
+      for (var d = 0; d < DAYS; d++) {
+        var amp = w.peak * (0.6 + 0.8 * R()), lvl = 0.9 + 0.6 * R(), cold = w.outdoor + (R() - 0.5) * 4;
+        for (var s = 0; s < SLOTS; s++) {
+          var h = s / 4;
+          var morning = Math.exp(-Math.pow((h - 8) / 1.3, 2)), evening = Math.exp(-Math.pow((h - 18.5) / 1.8, 2)), night = Math.exp(-Math.pow((h - 3) / 2.5, 2));
+          price.push(Math.max(0.2, lvl + amp * (0.7 * morning + evening) - 0.35 * night + (R() - 0.5) * 0.12));
+          outdoor.push(cold + 2.5 * Math.sin((h - 9) / 24 * 2 * Math.PI));
+        }
+      }
+      // Ease off when a slot is expensive against its day, pre-heat in the hours before a peak.
+      for (var d2 = 0; d2 < DAYS; d2++) {
+        var day = price.slice(d2 * SLOTS, (d2 + 1) * SLOTS), mean = day.reduce(function (a, b) { return a + b; }, 0) / SLOTS;
+        var half = (Math.max.apply(null, day) - Math.min.apply(null, day)) / 2 || 1, raw = [];
+        for (var s2 = 0; s2 < SLOTS; s2++) {
+          var i = d2 * SLOTS + s2, ahead = Math.max.apply(null, price.slice(i + 1, i + 13).concat([price[i]]));
+          raw.push(w.maxOff * w.ag * (0.9 * (price[i] - mean) / half - 0.8 * Math.max(0, ahead - price[i]) / half));
+        }
+        var rm = raw.reduce(function (a, b) { return a + b; }, 0) / SLOTS;
+        raw.forEach(function (v) { offset.push(Math.max(-w.maxOff, Math.min(w.maxOff, v - 0.8 * rm))); });
+      }
+      var dev = 0;
+      for (var k = 0; k < n; k++) {
+        dev = dev * 0.975 - 0.00235 * offset[k] + (R() - 0.5) * 0.02;
+        indoor.push(SP + dev);
+        var demand = Math.max(0.3, (SP - outdoor[k]) * 0.085);
+        flat.push(demand); ap.push(Math.max(0.15, demand - 0.06 * offset[k] - 0.05 * dev));
+      }
+      var days = [];
+      for (var d3 = 0; d3 < DAYS; d3++) {
+        var a = d3 * SLOTS, saved = 0, cost = 0, pmin = Infinity, pmax = -Infinity;
+        for (var j = a; j < a + SLOTS; j++) {
+          saved += price[j] * (flat[j] - ap[j]) * 0.25; cost += price[j] * ap[j] * 0.25;
+          pmin = Math.min(pmin, price[j]); pmax = Math.max(pmax, price[j]);
+        }
+        days.push({at: w.start + d3 * 864e5, saved: saved, cost: cost, spread: pmax - pmin, data: true});
+      }
+      return {key: w.key, band: w.band, maxOff: w.maxOff, start: w.start, price: price, offset: offset, indoor: indoor, days: days};
+    });
+  }
+
+  // ---------- Scores, from the slots and days (the same for mock and real weeks) ----------
+  var fin = function (v) { return typeof v === 'number' && isFinite(v); };
+  WEEKS.forEach(function (w) {
+    var n = DAYS * SLOTS;
+    w.days.forEach(function (d, k) {
+      var pre = 0, ease = 0;
+      for (var j = k * SLOTS; j < (k + 1) * SLOTS; j++) { var o = w.offset[j]; if (fin(o)) { if (o < 0) pre -= o * 0.25; else ease += o * 0.25; } }
+      d.pre = pre; d.ease = ease; d.scored = k >= SETTLE && d.data;
+    });
+    var sc = w.days.filter(function (x) { return x.scored; });
+    var sIdx = []; w.days.forEach(function (d, k) { if (d.scored) for (var q = k * SLOTS; q < (k + 1) * SLOTS; q++) sIdx.push(q); });
+    var inIdx = sIdx.filter(function (q) { return fin(w.indoor[q]); });
+    var ins = inIdx.map(function (q) { return w.indoor[q]; }).sort(function (x, y) { return x - y; });
+    var pct = function (p) { return ins.length ? ins[Math.min(ins.length - 1, Math.floor(p * ins.length))] : NaN; };
+    var sum = function (f) { return sc.reduce(function (acc, x) { return acc + f(x); }, 0); };
+    var offs = sIdx.map(function (q) { return w.offset[q]; }).filter(fin);
+    var saved = sum(function (x) { return x.saved; }), cost = sum(function (x) { return x.cost; }), spread = sum(function (x) { return x.spread; });
+    w.stats = {
+      days: sc.length, saved: saved,
+      pct: cost + saved > 0 ? saved / (cost + saved) * 100 : 0,
+      perSpread: spread > 0 ? saved / spread : 0,
+      swing: pct(0.95) - pct(0.05), lo: ins.length ? ins[0] : NaN, hi: ins.length ? ins[ins.length - 1] : NaN,
+      outRange: inIdx.filter(function (q) { return Math.abs(w.indoor[q] - SET) > w.band; }).length * 15,
+      offHalf: inIdx.filter(function (q) { return Math.abs(w.indoor[q] - SET) > 0.5; }).length * 15,
+      avgOff: offs.length ? offs.reduce(function (acc, v) { return acc + Math.abs(v); }, 0) / offs.length : 0,
+      maxPre: offs.length ? Math.max(0, -Math.min.apply(null, offs)) : 0,
+      maxEase: offs.length ? Math.max(0, Math.max.apply(null, offs)) : 0
+    };
+  });
+
+  // ---------- Helpers ----------
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, parent) { var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+  function txt(parent, x, y, s, anchor) { var t = el('text', {x: x, y: y, 'text-anchor': anchor || 'start'}, parent); t.textContent = s; return t; }
+  function fmt(v, dp) { return v.toLocaleString('en-GB', {minimumFractionDigits: dp, maximumFractionDigits: dp}); }
+  function kr(v) { return fmt(v, v < 10 ? 2 : 1) + ' kr'; }
+  function mins(m) { return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60 ? (m % 60) + ' min' : ''); }
+  function svgFor(id, h) { var box = document.getElementById(id); box.innerHTML = ''; var w = Math.max(280, box.clientWidth); var s = el('svg', {viewBox: '0 0 ' + w + ' ' + h, width: w, height: h, role: 'img'}, box); return {svg: s, w: w, h: h, box: box}; }
+  function niceTicks(lo, hi, n) { var step = (hi - lo) / n, mag = Math.pow(10, Math.floor(Math.log10(step))), f = step / mag; step = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag; var t = []; for (var v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) t.push(+v.toFixed(6)); return t; }
+
+  // ---------- Week cards ----------
+  document.getElementById('weeks').innerHTML = WEEKS.map(function (w) {
+    return '<div class="panel weekcard" style="border-top:3px solid ' + w.color + '"><b>' + w.name + ' ±' + w.band + ' °C</b><span class="dates">' + dmy(w.start) + ' – ' + dmy(w.start + 6 * 864e5) + '</span><span class="dates">BT1 offset up to ±' + w.maxOff + ' K</span></div>';
+  }).join('');
+
+  // ---------- Scores ----------
+  var METRICS = [
+    {name: 'Saved', hint: 'Against flat heating, over the scored days.', get: function (s) { return s.saved; }, show: function (s) { return kr(s.saved); }},
+    {name: 'Saved, share of the heating cost', hint: 'Saved divided by what flat heating cost.', get: function (s) { return s.pct; }, show: function (s) { return fmt(s.pct, 1) + ' %'; }},
+    {name: 'Saved per 1 kr of price spread', hint: 'Kr a day for each 1 kr/kWh between the day\'s cheapest and most expensive hour. Evens out weeks with flat or spiky prices.', get: function (s) { return s.perSpread; }, show: function (s) { return kr(s.perSpread); }},
+    {name: 'Indoor swing', hint: 'Spread of the middle 90 % of readings.', get: function (s) { return s.swing; }, show: function (s) { return fmt(s.swing, 1) + ' °C'; }},
+    {name: 'Time more than 0.5 °C off', hint: 'The same yardstick for every range.', get: function (s) { return s.offHalf; }, show: function (s) { return mins(s.offHalf); }},
+    {name: 'Time outside the approved range', hint: 'Should be zero for every range.', get: function (s) { return s.outRange; }, show: function (s) { return mins(s.outRange); }},
+    {name: 'Average BT1 offset', hint: 'Mean distance from zero, either way.', get: function (s) { return s.avgOff; }, show: function (s) { return fmt(s.avgOff, 1) + ' K'; }},
+    {name: 'Largest BT1 offset', hint: 'Pre-heating / easing off.', get: function (s) { return Math.max(s.maxPre, s.maxEase); }, show: function (s) { return '−' + fmt(s.maxPre, 0) + ' / +' + fmt(s.maxEase, 0) + ' K'; }}
+  ];
+  document.getElementById('score').innerHTML = METRICS.map(function (m) {
+    var max = Math.max.apply(null, WEEKS.map(function (w) { return m.get(w.stats); })) || 1;
+    return '<div class="panel metric"><div><div class="name">' + m.name + '</div><div class="hint">' + m.hint + '</div></div><div class="bars">' + WEEKS.map(function (w) {
+      var v = m.get(w.stats);
+      return '<div class="bar"><span>' + w.short + '</span><span class="track"><span class="fill" style="display:block;width:' + Math.max(v > 0 ? 1.5 : 0, v / max * 100) + '%;background:' + w.color + '"></span></span><span class="val">' + m.show(w.stats) + '</span></div>';
+    }).join('') + '</div></div>';
+  }).join('');
+
+  // ---------- Day by day ----------
+  var ALLDAYS = []; WEEKS.forEach(function (w) { w.days.forEach(function (d) { ALLDAYS.push({w: w, d: d}); }); });
+  function dayBars(id, mode) {
+    var g = svgFor(id, mode === 'offset' ? 230 : 190), L = 44, Rm = 8, T = 14, B = 34, iw = g.w - L - Rm, ih = g.h - T - B, n = ALLDAYS.length, bw = iw / n;
+    var lo, hi;
+    if (mode === 'offset') { hi = Math.max.apply(null, ALLDAYS.map(function (x) { return x.d.ease; })); lo = -Math.max.apply(null, ALLDAYS.map(function (x) { return x.d.pre; })); }
+    else { hi = Math.max.apply(null, ALLDAYS.map(function (x) { return x.d.saved; })); lo = Math.min(0, Math.min.apply(null, ALLDAYS.map(function (x) { return x.d.saved; }))); }
+    var ticks = niceTicks(lo, hi, 4); lo = Math.min(lo, ticks[0]); hi = Math.max(hi, ticks[ticks.length - 1]);
+    var y = function (v) { return T + (hi - v) / (hi - lo) * ih; };
+    ALLDAYS.forEach(function (x, i) { if (!x.d.scored && x.d.data) el('rect', {x: L + i * bw, y: T, width: bw, height: ih, fill: 'var(--settle)'}, g.svg); });
+    ticks.forEach(function (t) { el('line', {x1: L, x2: g.w - Rm, y1: y(t), y2: y(t), stroke: t === 0 ? 'var(--muted)' : 'var(--grid)', 'stroke-width': 1}, g.svg); txt(g.svg, L - 6, y(t) + 4, fmt(t, 0) + (mode === 'offset' ? '' : ''), 'end'); });
+    txt(g.svg, 4, T - 3, mode === 'offset' ? 'K·h' : 'kr');
+    ALLDAYS.forEach(function (x, i) {
+      var cx = L + i * bw + bw * 0.15, w2 = bw * 0.7;
+      if (mode === 'offset') {
+        var r1 = el('rect', {x: cx, y: y(x.d.ease), width: w2, height: y(0) - y(x.d.ease), fill: 'var(--ease)', rx: 1.5}, g.svg);
+        var r2 = el('rect', {x: cx, y: y(0), width: w2, height: y(-x.d.pre) - y(0), fill: 'var(--preheat)', rx: 1.5}, g.svg);
+        el('title', {}, r1).textContent = dmy(x.d.at) + ': eased off ' + fmt(x.d.ease, 0) + ' K·h';
+        el('title', {}, r2).textContent = dmy(x.d.at) + ': pre-heated ' + fmt(x.d.pre, 0) + ' K·h';
+      } else {
+        var v = x.d.saved, r = el('rect', {x: cx, y: y(Math.max(0, v)), width: w2, height: Math.abs(y(v) - y(0)), fill: x.w.color, 'fill-opacity': x.d.scored ? 1 : 0.4, rx: 1.5}, g.svg);
+        el('title', {}, r).textContent = dmy(x.d.at) + ' (' + x.w.short + '): ' + kr(v) + ', price spread ' + fmt(x.d.spread, 2) + ' kr/kWh';
+      }
+      var d = new Date(x.d.at); if (bw > 22 || i % 2 === 0) txt(g.svg, L + i * bw + bw / 2, g.h - B + 15, DAYNAME[d.getUTCDay()].slice(0, bw > 30 ? 3 : 1), 'middle');
+    });
+    WEEKS.forEach(function (w, k) { var x0 = L + k * DAYS * bw; el('rect', {x: x0 + 2, y: g.h - 12, width: DAYS * bw - 4, height: 4, rx: 2, fill: w.color}, g.svg); if (k) el('line', {x1: x0, x2: x0, y1: T, y2: g.h - B, stroke: 'var(--faint)'}, g.svg); });
+  }
+
+  // ---------- An average day ----------
+  document.getElementById('avgLegend').innerHTML = WEEKS.map(function (w) { return '<span><i class="sw line" style="background:' + w.color + '"></i>' + w.name + '</span>'; }).join('');
+  function hourly(w, arr) { var out = []; for (var h = 0; h < 24; h++) { var s = 0, c = 0; for (var d = SETTLE; d < DAYS; d++) { if (!w.days[d] || !w.days[d].scored) continue; for (var q = 0; q < 4; q++) { var v = arr[d * SLOTS + h * 4 + q]; if (fin(v)) { s += v; c++; } } } out.push(c ? s / c : NaN); } return out; }
+  function avgChart(id, pick, unit, center, dp) {
+    var g = svgFor(id, 170), L = 44, Rm = 8, T = 10, B = 24, iw = g.w - L - Rm, ih = g.h - T - B;
+    var series = WEEKS.map(function (w) { return hourly(w, pick(w)); });
+    var all = [].concat.apply([], series).filter(fin); if (!all.length) all = [center || 0]; var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
+    if (center !== undefined) { var m = Math.max(Math.abs(lo - center), Math.abs(hi - center)); lo = center - m; hi = center + m; }
+    var ticks = niceTicks(lo, hi, 4); lo = Math.min(lo, ticks[0]); hi = Math.max(hi, ticks[ticks.length - 1]);
+    var x = function (h) { return L + h / 23 * iw; }, y = function (v) { return T + (hi - v) / (hi - lo) * ih; };
+    ticks.forEach(function (t) { el('line', {x1: L, x2: g.w - Rm, y1: y(t), y2: y(t), stroke: t === center ? 'var(--muted)' : 'var(--grid)', 'stroke-dasharray': t === center ? '4 3' : ''}, g.svg); txt(g.svg, L - 6, y(t) + 4, fmt(t, dp), 'end'); });
+    txt(g.svg, 4, T + 4, unit);
+    [0, 6, 12, 18, 23].forEach(function (h) { txt(g.svg, x(h), g.h - 6, (h < 10 ? '0' : '') + h + ':00', h === 0 ? 'start' : h === 23 ? 'end' : 'middle'); });
+    series.forEach(function (sr, k) { el('path', {d: linePath(sr, x, y), fill: 'none', stroke: WEEKS[k].color, 'stroke-width': 2.2, 'stroke-linejoin': 'round'}, g.svg); });
+  }
+
+  // ---------- Week panels ----------
+  var panels = document.getElementById('weekPanels');
+  panels.innerHTML = WEEKS.map(function (w, k) {
+    var s = w.stats;
+    return '<div class="panel"><div class="weekhead"><h3 style="color:' + w.color + '">' + w.name + ' ±' + w.band + ' °C · ' + dmy(w.start) + ' – ' + dmy(w.start + 6 * 864e5) + '</h3><div class="facts"><span>Saved <b>' + kr(s.saved) + '</b> in ' + s.days + ' days</span><span>Indoor <b>' + (fin(s.lo) ? fmt(s.lo, 1) + '–' + fmt(s.hi, 1) + ' °C' : '–') + '</b></span><span>Offset <b>−' + fmt(s.maxPre, 0) + ' / +' + fmt(s.maxEase, 0) + ' K</b></span></div></div><div class="chart" id="wk' + k + '"></div><div class="readout" id="rd' + k + '">&nbsp;</div></div>';
+  }).join('');
+  var tLo = SET - 6.3, tHi = SET + 6.3;
+  var ALLIN = [].concat.apply([], WEEKS.map(function (w) { return w.indoor.filter(fin); }));
+  var WLO = ALLIN.length ? Math.min.apply(null, ALLIN) : SET - 0.5, WHI = ALLIN.length ? Math.max.apply(null, ALLIN) : SET + 0.5;
+  function linePath(arr, x, y) { var d = '', pen = false; arr.forEach(function (v, i) { if (!fin(v)) { pen = false; return; } d += (pen ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); pen = true; }); return d; }
+  function weekChart(w, k) {
+    var g = svgFor('wk' + k, 300), L = 44, Rm = 8, T = 10, gap = 18, B = 22, iw = g.w - L - Rm;
+    var hTemp = 150, hOff = g.h - T - hTemp - gap - B, n = DAYS * SLOTS;
+    // Temperature axis covers the readings on all weeks plus this week's band edge when it is near.
+    var lo = Math.min(WLO, SET - 0.5) - 0.2, hi = Math.max(WHI, SET + 0.5) + 0.2;
+    var ticks = niceTicks(lo, hi, 4); lo = Math.min(lo, ticks[0]); hi = Math.max(hi, ticks[ticks.length - 1]);
+    var x = function (i) { return L + i / (n - 1) * iw; }, y = function (v) { return T + (hi - v) / (hi - lo) * hTemp; };
+    var oT = T + hTemp + gap, oMax = 20, yo = function (v) { return oT + (oMax - v) / (2 * oMax) * hOff; };
+    el('rect', {x: L, y: T, width: x(SETTLE * SLOTS) - L, height: hTemp + gap + hOff, fill: 'var(--settle)'}, g.svg);
+    txt(g.svg, L + 4, T + 12, 'Settling in');
+    var bTop = Math.min(hi, SET + w.band), bBot = Math.max(lo, SET - w.band);
+    el('rect', {x: L, y: y(bTop), width: iw, height: y(bBot) - y(bTop), fill: 'var(--band)'}, g.svg);
+    if (w.band > hi - SET) txt(g.svg, g.w - Rm - 4, T + 12, 'Range ' + fmt(SET - w.band, 1) + '–' + fmt(SET + w.band, 1) + ' °C, beyond the axis', 'end');
+    ticks.forEach(function (t) { el('line', {x1: L, x2: g.w - Rm, y1: y(t), y2: y(t), stroke: 'var(--grid)'}, g.svg); txt(g.svg, L - 6, y(t) + 4, fmt(t, 1), 'end'); });
+    el('line', {x1: L, x2: g.w - Rm, y1: y(SET), y2: y(SET), stroke: 'var(--muted)', 'stroke-dasharray': '4 3'}, g.svg);
+    txt(g.svg, 4, T + 4, '°C');
+    for (var d = 1; d < DAYS; d++) el('line', {x1: x(d * SLOTS), x2: x(d * SLOTS), y1: T, y2: oT + hOff, stroke: 'var(--faint)'}, g.svg);
+    el('path', {d: linePath(w.indoor, x, y), fill: 'none', stroke: 'var(--fg)', 'stroke-width': 1.6, 'stroke-linejoin': 'round'}, g.svg);
+    [-20, -10, 0, 10, 20].forEach(function (t) { el('line', {x1: L, x2: g.w - Rm, y1: yo(t), y2: yo(t), stroke: t === 0 ? 'var(--muted)' : 'var(--grid)'}, g.svg); txt(g.svg, L - 6, yo(t) + 4, (t > 0 ? '+' : '') + t, 'end'); });
+    txt(g.svg, 4, oT + 4, 'K');
+    var bw = iw / (DAYS * 24);
+    for (var h = 0; h < DAYS * 24; h++) {
+      var v = 0; for (var q = 0; q < 4; q++) v += (fin(w.offset[h * 4 + q]) ? w.offset[h * 4 + q] : 0) / 4;
+      el('rect', {x: L + h * bw, y: Math.min(yo(v), yo(0)), width: Math.max(0.6, bw - 0.4), height: Math.abs(yo(v) - yo(0)), fill: v < 0 ? 'var(--preheat)' : 'var(--ease)'}, g.svg);
+    }
+    for (var d2 = 0; d2 < DAYS; d2++) txt(g.svg, x(d2 * SLOTS + SLOTS / 2), g.h - 5, DAYNAME[new Date(w.start + d2 * 864e5).getUTCDay()], 'middle');
+    var cursor = el('line', {x1: 0, x2: 0, y1: T, y2: oT + hOff, stroke: 'var(--muted)', 'stroke-width': 1, opacity: 0}, g.svg);
+    var rd = document.getElementById('rd' + k);
+    function show(ev) {
+      var r = g.svg.getBoundingClientRect(), px = (ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left, sx = px * g.w / r.width;
+      var i = Math.round((sx - L) / iw * (n - 1)); if (i < 0 || i >= n) return;
+      cursor.setAttribute('x1', x(i)); cursor.setAttribute('x2', x(i)); cursor.setAttribute('opacity', 1);
+      var at = new Date(w.start + i * 15 * 60000), hh = at.getUTCHours(), mm = at.getUTCMinutes();
+      if (!fin(w.indoor[i]) && !fin(w.price[i])) { rd.innerHTML = '&nbsp;'; return; }
+      rd.innerHTML = DAYNAME[at.getUTCDay()] + ' ' + (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm + ' · Indoor <b>' + (fin(w.indoor[i]) ? fmt(w.indoor[i], 1) + ' °C' : '–') + '</b> · Offset <b>' + (fin(w.offset[i]) ? (w.offset[i] > 0 ? '+' : '') + fmt(w.offset[i], 1) + ' K' : '–') + '</b> · Price <b>' + (fin(w.price[i]) ? fmt(w.price[i], 2) + ' kr/kWh' : '–') + '</b>';
+    }
+    g.svg.addEventListener('pointermove', show); g.svg.addEventListener('touchstart', show, {passive: true});
+    g.svg.addEventListener('pointerleave', function () { cursor.setAttribute('opacity', 0); });
+  }
+
+  function drawAll() {
+    dayBars('daySaved', 'saved'); dayBars('dayOffset', 'offset');
+    avgChart('avgIndoor', function (w) { return w.indoor; }, '°C', SET, 1);
+    avgChart('avgOffset', function (w) { return w.offset; }, 'K', 0, 0);
+    avgChart('avgPrice', function (w) { return w.price; }, 'kr/kWh', undefined, 1);
+    WEEKS.forEach(weekChart);
+  }
+  drawAll();
+  var t; window.addEventListener('resize', function () { clearTimeout(t); t = setTimeout(drawAll, 120); });
+})();
+</script>
