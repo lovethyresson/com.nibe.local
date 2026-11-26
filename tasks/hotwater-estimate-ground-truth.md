@@ -39,6 +39,33 @@ cold-band run).
 So the error is not a factor to calibrate. It is information the two sensors do not have: the
 water drawn since the tank was last full, until the cold reaches BT6.
 
+## Prior work (research 2026-11-26, sources not all read in full)
+
+No published method sees the water below the lower sensor from two temperatures alone. What
+exists:
+
+- **The blind spot is known.** Rheem's two-sensor patent (US 10,684,023) states about 6 gal can
+  be drawn before a sensor reacts. An OpenEnergyMonitor user got 347 L from the top sensor and
+  0 L from the coil sensor on one 300 L tank.
+- **Layered plug-flow model.** UK Home Energy Model TP11 (EN 15316-5 method A): draws take from
+  the top, layers shift down, cold enters at the bottom. A ready forward model.
+- **Draws from energy, no flow meter.** Stanford (arXiv 2408.02868) inverts a 1–3 node energy
+  balance with tank sensors and heater power: hourly draw RMSE 0.19 kW with 2 sensors. Purdue
+  (arXiv 2510.12955) gets −2 % monthly volume from a mass balance with an inlet sensor.
+- **Unknown-input observer.** Battelle (US 10,302,312): 9-disk model, 2 wall sensors plus heater
+  power, draw flow estimated as a disturbance. The closest match to this pump.
+- **Lab-fitted curves per product.** Rheem US 11,293,667: two sensors, regression fitted to draw
+  tests per tank model, not per owner. The test evening is that, for the VPB 200.
+- **Reset on a full tank.** Reclaim Tank Insights (HA) and OEM users count energy since the last
+  full heat. Conservative draw forecasts (0.8–0.9 quantile) kept cold showers near zero (Stanford).
+- NIBE's own volume (firmware 4.4.7) is for integrated-tank models only, method undisclosed.
+  Mixergy measures with 8–12 sensors.
+
+So step 3's candidates are the published ones, combined: a plug-flow layer model with tank
+geometry from the picker, reset to full when a heating stops, anchored when the cold front
+reaches BT6 (and BT7), moved in between by draws inferred from energy and the learned use
+profile, shown at a conservative quantile while the front is out of sight.
+
 ## Plan
 
 1. **Collect** (app, TEMP-tagged, this house only): a per-minute tank trace to a jsonl file:
@@ -53,8 +80,10 @@ water drawn since the tank was last full, until the cold reaches BT6.
    only at heating starts:
    - (a) today's interpolation;
    - (b) a hidden-use count (learned use per hour) until the cold reaches BT6, then the sensors;
-   - (c) a tank model with memory: the cold layer's height as state, moved by draws, corrected
-     only when a sensor changes.
+   - (c) a plug-flow layer model (HEM TP11 style) reset when a heating stops, anchored when the
+     front reaches BT6 or BT7, moved in between by the learned use profile;
+   - (d) (c) with draws inferred from energy (Stanford / Battelle), heat counter below 45 °C only;
+   - (e) (c) or (d) shown at the 0.8 quantile while the front is out of sight.
    Pass: (b) or (c) beats (a) on mean absolute error over the day, and in the 6 h before each
    heating, by at least 30 L, with no worse error at heating starts.
 4. **Owners with a water meter** could feed it in directly. That is a separate decision, after 3.
