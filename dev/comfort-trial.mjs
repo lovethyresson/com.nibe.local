@@ -8,7 +8,9 @@
 //     and prices are the same on both sides, so weeks with different weather can be compared.
 //   - cost: heating electricity at each slot's price, the hot water share of a slot left out.
 //   - spread: the day's most expensive hour minus its cheapest, to even out flat and spiky weeks.
-//   - indoor, thermostat and BT1 offset (fed − real outdoor; 0 in slots nobody fed) per slot.
+//   - indoor, thermostat and BT1 offset (fed − real outdoor; 0 in slots nobody fed) per slot, and
+//     which slots Autopilot fed: the page splits the offset into the day's steady part (its mean
+//     over the fed slots, what before Autopilot holds) and the part that moved heat between hours.
 // The first two days of each week are drawn but not scored, while the house adjusts.
 //
 //   node --import tsx dev/comfort-trial.mjs <history .bin url or file>
@@ -87,7 +89,7 @@ function scoreDay(first) {
         const fed = !!v && (v.flags & FLAG.fedOutdoor) !== 0;
         slots.push({
             indoor: v && fin(v.ti) ? v.ti : NaN, setpoint: v && fin(v.tset) ? v.tset : NaN, price: v && fin(v.price) ? v.price : NaN,
-            offset: v && fed && fin(v.bt1) && fin(v.te) ? v.bt1 - v.te : v ? 0 : NaN,
+            offset: v && fed && fin(v.bt1) && fin(v.te) ? v.bt1 - v.te : v ? 0 : NaN, fed: v ? (fed ? 1 : 0) : null,
         });
         if (v) read++;
         if (v && fin(v.price)) {
@@ -120,13 +122,13 @@ function scoreDay(first) {
 const out = weeks.map(({key, date}) => {
     const limits = PROFILE_LIMITS[key];
     const week = {key, band: limits.lower, maxOff: Math.max(limits.maxBias, limits.maxCoastBias), start: Date.parse(`${date}T00:00:00Z`),
-        indoor: [], offset: [], price: [], setpoint: [], days: []};
+        indoor: [], offset: [], fed: [], price: [], setpoint: [], days: []};
     for (let d = 0; d < DAYS; d++) {
         const day = new Date(Date.parse(`${date}T12:00:00Z`) + d * 86_400_000).toISOString().slice(0, 10);
         const first = Math.round(midnight(day) / SLOT_MS);
         const s = scoreDay(first);
         for (const x of s.slots) {
-            week.indoor.push(round(x.indoor, 2)); week.offset.push(round(x.offset, 2));
+            week.indoor.push(round(x.indoor, 2)); week.offset.push(round(x.offset, 2)); week.fed.push(x.fed);
             week.price.push(round(x.price, 3)); week.setpoint.push(round(x.setpoint, 1));
         }
         week.days.push({at: Date.parse(`${day}T00:00:00Z`), date: day, saved: round(s.saved, 3), cost: round(s.cost, 3),

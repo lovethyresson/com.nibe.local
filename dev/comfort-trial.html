@@ -54,6 +54,12 @@ section { display: grid; gap: 14px; }
 .chart { width: 100%; min-width: 0; position: relative; }
 .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
 .chart text { fill: var(--muted); font-family: var(--body); font-size: 11px; font-variant-numeric: tabular-nums; }
+.seg { display: inline-flex; border: 1px solid var(--faint); border-radius: 8px; overflow: hidden; width: max-content; max-width: 100%; flex-wrap: wrap; }
+.seg button { font: inherit; font-size: 13px; color: var(--muted); background: transparent; border: 0; padding: 5px 12px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--faint); }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--panel); font-weight: 600; }
+.seg button:focus-visible { outline: 2px solid var(--comfort); outline-offset: -2px; }
+.segrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 13px; color: var(--muted); }
 .readout { font-size: 13px; color: var(--muted); min-height: 1.5em; font-variant-numeric: tabular-nums; }
 .readout b { color: var(--fg); font-weight: 600; }
 .weekhead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
@@ -91,6 +97,7 @@ ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
     <div class="panel">
       <h3>BT1 offset pushed</h3>
       <p class="muted">Degree-hours per day. Below zero your heat pump was told it is colder outside and pre-heated. Above zero it was told it is warmer and eased off.</p>
+      <div class="segrow"><span data-seg></span><span class="seghint"></span></div>
       <div class="legend"><span><i class="sw" style="background:var(--preheat)"></i>Pre-heating</span><span><i class="sw" style="background:var(--ease)"></i>Easing off</span><span><i class="sw" style="background:var(--settle);border:1px solid var(--faint)"></i>Settling in, not scored</span></div>
       <div class="chart" id="dayOffset"></div>
     </div>
@@ -103,7 +110,7 @@ ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
       <div class="legend" id="avgLegend"></div>
       <h3>Indoor against the thermostat</h3>
       <div class="chart" id="avgIndoor"></div>
-      <h3>BT1 offset</h3>
+      <div class="segrow"><h3 style="margin-right:4px">BT1 offset</h3><span data-seg></span></div>
       <div class="chart" id="avgOffset"></div>
       <h3>Price</h3>
       <div class="chart" id="avgPrice"></div>
@@ -113,6 +120,7 @@ ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   <section>
     <h2>Week by week</h2>
     <p class="muted">Same scales on all three weeks. Hover or tap a chart to read an hour.</p>
+    <div class="segrow"><span>BT1 offset</span><span data-seg></span><span class="seghint"></span></div>
     <div class="legend"><span><i class="sw line" style="background:var(--fg)"></i>Indoor</span><span><i class="sw" style="background:var(--band)"></i>Approved range</span><span><i class="sw" style="background:var(--preheat)"></i>Pre-heating</span><span><i class="sw" style="background:var(--ease)"></i>Easing off</span></div>
     <div id="weekPanels" style="display:grid;gap:14px"></div>
   </section>
@@ -144,6 +152,30 @@ ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   var WEEKS = DATA ? DATA.weeks : mockWeeks();
   WEEKS.forEach(function (w) { var m = META[w.key]; w.name = m.name; w.short = m.short; w.color = m.color; });
   var SET = DATA ? DATA.setpoint : 22.5;
+  var fin = function (v) { return typeof v === 'number' && isFinite(v); };
+  // The offset in two parts. Steady: each day's mean over the slots Autopilot fed, the level that
+  // holds the thermostat, and what before Autopilot keeps (shift-cost.ts). Moving: the rest, the heat
+  // moved between hours. Slots nobody fed are 0 in both.
+  WEEKS.forEach(function (w) {
+    var total = w.offset, fed = w.fed || total.map(function (v) { return fin(v) ? 1 : null; }), steady = [], moving = [];
+    for (var d = 0; d < DAYS; d++) {
+      var sum = 0, c = 0, j;
+      for (j = d * SLOTS; j < (d + 1) * SLOTS; j++) if (fed[j] && fin(total[j])) { sum += total[j]; c++; }
+      var mean = c ? sum / c : 0;
+      for (j = d * SLOTS; j < (d + 1) * SLOTS; j++) {
+        var on = fed[j] && fin(total[j]);
+        steady.push(fin(total[j]) ? (on ? mean : 0) : NaN);
+        moving.push(fin(total[j]) ? (on ? total[j] - mean : 0) : NaN);
+      }
+    }
+    w.off = {moving: moving, steady: steady, total: total};
+  });
+  var MODES = [{id: 'moving', label: 'Moving heat', hint: 'What moved heat between cheap and expensive hours.'},
+    {id: 'steady', label: 'Holding temperature', hint: 'The day\'s average offset, which keeps your thermostat temperature.'},
+    {id: 'total', label: 'Total', hint: 'Both together, as your heat pump saw it.'}];
+  var MODE = 'moving';
+  function OFF(w) { return w.off[MODE]; }
+  function modeOf(id) { return MODES.filter(function (m) { return m.id === id; })[0]; }
   var DAYNAME = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   function dmy(ms) { var d = new Date(ms); return d.getUTCDate() + ' ' + MON[d.getUTCMonth()]; }
@@ -202,12 +234,10 @@ ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   }
 
   // ---------- Scores, from the slots and days (the same for mock and real weeks) ----------
-  var fin = function (v) { return typeof v === 'number' && isFinite(v); };
-  WEEKS.forEach(function (w) {
-    var n = DAYS * SLOTS;
+  function computeStats() { WEEKS.forEach(function (w) {
     w.days.forEach(function (d, k) {
       var pre = 0, ease = 0;
-      for (var j = k * SLOTS; j < (k + 1) * SLOTS; j++) { var o = w.offset[j]; if (fin(o)) { if (o < 0) pre -= o * 0.25; else ease += o * 0.25; } }
+      for (var j = k * SLOTS; j < (k + 1) * SLOTS; j++) { var o = OFF(w)[j]; if (fin(o)) { if (o < 0) pre -= o * 0.25; else ease += o * 0.25; } }
       d.pre = pre; d.ease = ease; d.scored = k >= SETTLE && d.data;
     });
     var sc = w.days.filter(function (x) { return x.scored; });
@@ -216,7 +246,7 @@ ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
     var ins = inIdx.map(function (q) { return w.indoor[q]; }).sort(function (x, y) { return x - y; });
     var pct = function (p) { return ins.length ? ins[Math.min(ins.length - 1, Math.floor(p * ins.length))] : NaN; };
     var sum = function (f) { return sc.reduce(function (acc, x) { return acc + f(x); }, 0); };
-    var offs = sIdx.map(function (q) { return w.offset[q]; }).filter(fin);
+    var offs = sIdx.map(function (q) { return OFF(w)[q]; }).filter(fin);
     var saved = sum(function (x) { return x.saved; }), cost = sum(function (x) { return x.cost; }), spread = sum(function (x) { return x.spread; });
     w.stats = {
       days: sc.length, saved: saved,
@@ -229,14 +259,15 @@ ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
       maxPre: offs.length ? Math.max(0, -Math.min.apply(null, offs)) : 0,
       maxEase: offs.length ? Math.max(0, Math.max.apply(null, offs)) : 0
     };
-  });
+  }); }
+  computeStats();
 
   // ---------- Helpers ----------
   var NS = 'http://www.w3.org/2000/svg';
   function el(tag, attrs, parent) { var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
   function txt(parent, x, y, s, anchor) { var t = el('text', {x: x, y: y, 'text-anchor': anchor || 'start'}, parent); t.textContent = s; return t; }
   function fmt(v, dp) { return v.toLocaleString('en-GB', {minimumFractionDigits: dp, maximumFractionDigits: dp}); }
-  function kr(v) { return fmt(v, v < 10 ? 2 : 1) + ' kr'; }
+  function kr(v) { if (Math.abs(v) < 0.005) v = 0; return fmt(v, Math.abs(v) < 10 ? 2 : 1) + ' kr'; }
   function mins(m) { return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60 ? (m % 60) + ' min' : ''); }
   function svgFor(id, h) { var box = document.getElementById(id); box.innerHTML = ''; var w = Math.max(280, box.clientWidth); var s = el('svg', {viewBox: '0 0 ' + w + ' ' + h, width: w, height: h, role: 'img'}, box); return {svg: s, w: w, h: h, box: box}; }
   function niceTicks(lo, hi, n) { var step = (hi - lo) / n, mag = Math.pow(10, Math.floor(Math.log10(step))), f = step / mag; step = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag; var t = []; for (var v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) t.push(+v.toFixed(6)); return t; }
@@ -254,16 +285,17 @@ ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
     {name: 'Indoor swing', hint: 'Spread of the middle 90 % of readings.', get: function (s) { return s.swing; }, show: function (s) { return fmt(s.swing, 1) + ' °C'; }},
     {name: 'Time more than 0.5 °C off', hint: 'The same yardstick for every range.', get: function (s) { return s.offHalf; }, show: function (s) { return mins(s.offHalf); }},
     {name: 'Time outside the approved range', hint: 'Should be zero for every range.', get: function (s) { return s.outRange; }, show: function (s) { return mins(s.outRange); }},
-    {name: 'Average BT1 offset', hint: 'Mean distance from zero, either way.', get: function (s) { return s.avgOff; }, show: function (s) { return fmt(s.avgOff, 1) + ' K'; }},
-    {name: 'Largest BT1 offset', hint: 'Pre-heating / easing off.', get: function (s) { return Math.max(s.maxPre, s.maxEase); }, show: function (s) { return '−' + fmt(s.maxPre, 0) + ' / +' + fmt(s.maxEase, 0) + ' K'; }}
+    {name: 'Average BT1 offset', hint: 'Mean distance from zero, either way.', off: true, get: function (s) { return s.avgOff; }, show: function (s) { return fmt(s.avgOff, 1) + ' K'; }},
+    {name: 'Largest BT1 offset', hint: 'Pre-heating / easing off.', off: true, get: function (s) { return Math.max(s.maxPre, s.maxEase); }, show: function (s) { return '−' + fmt(s.maxPre, 0) + ' / +' + fmt(s.maxEase, 0) + ' K'; }}
   ];
-  document.getElementById('score').innerHTML = METRICS.map(function (m) {
+  function renderScores() { document.getElementById('score').innerHTML = METRICS.map(function (m) {
     var max = Math.max.apply(null, WEEKS.map(function (w) { return m.get(w.stats); })) || 1;
-    return '<div class="panel metric"><div><div class="name">' + m.name + '</div><div class="hint">' + m.hint + '</div></div><div class="bars">' + WEEKS.map(function (w) {
+    return '<div class="panel metric"><div><div class="name">' + m.name + (m.off ? ' · ' + modeOf(MODE).label : '') + '</div><div class="hint">' + m.hint + '</div></div><div class="bars">' + WEEKS.map(function (w) {
       var v = m.get(w.stats);
       return '<div class="bar"><span>' + w.short + '</span><span class="track"><span class="fill" style="display:block;width:' + Math.max(v > 0 ? 1.5 : 0, v / max * 100) + '%;background:' + w.color + '"></span></span><span class="val">' + m.show(w.stats) + '</span></div>';
     }).join('') + '</div></div>';
-  }).join('');
+  }).join(''); }
+  renderScores();
 
   // ---------- Day by day ----------
   var ALLDAYS = []; WEEKS.forEach(function (w) { w.days.forEach(function (d) { ALLDAYS.push({w: w, d: d}); }); });
@@ -311,10 +343,10 @@ ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
 
   // ---------- Week panels ----------
   var panels = document.getElementById('weekPanels');
-  panels.innerHTML = WEEKS.map(function (w, k) {
+  function renderPanels() { panels.innerHTML = WEEKS.map(function (w, k) {
     var s = w.stats;
     return '<div class="panel"><div class="weekhead"><h3 style="color:' + w.color + '">' + w.name + ' ±' + w.band + ' °C · ' + dmy(w.start) + ' – ' + dmy(w.start + 6 * 864e5) + '</h3><div class="facts"><span>Saved <b>' + kr(s.saved) + '</b> in ' + s.days + ' days</span><span>Indoor <b>' + (fin(s.lo) ? fmt(s.lo, 1) + '–' + fmt(s.hi, 1) + ' °C' : '–') + '</b></span><span>Offset <b>−' + fmt(s.maxPre, 0) + ' / +' + fmt(s.maxEase, 0) + ' K</b></span></div></div><div class="chart" id="wk' + k + '"></div><div class="readout" id="rd' + k + '">&nbsp;</div></div>';
-  }).join('');
+  }).join(''); }
   var tLo = SET - 6.3, tHi = SET + 6.3;
   var ALLIN = [].concat.apply([], WEEKS.map(function (w) { return w.indoor.filter(fin); }));
   var WLO = ALLIN.length ? Math.min.apply(null, ALLIN) : SET - 0.5, WHI = ALLIN.length ? Math.max.apply(null, ALLIN) : SET + 0.5;
@@ -341,7 +373,7 @@ ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
     txt(g.svg, 4, oT + 4, 'K');
     var bw = iw / (DAYS * 24);
     for (var h = 0; h < DAYS * 24; h++) {
-      var v = 0; for (var q = 0; q < 4; q++) v += (fin(w.offset[h * 4 + q]) ? w.offset[h * 4 + q] : 0) / 4;
+      var v = 0; for (var q = 0; q < 4; q++) v += (fin(OFF(w)[h * 4 + q]) ? OFF(w)[h * 4 + q] : 0) / 4;
       el('rect', {x: L + h * bw, y: Math.min(yo(v), yo(0)), width: Math.max(0.6, bw - 0.4), height: Math.abs(yo(v) - yo(0)), fill: v < 0 ? 'var(--preheat)' : 'var(--ease)'}, g.svg);
     }
     for (var d2 = 0; d2 < DAYS; d2++) txt(g.svg, x(d2 * SLOTS + SLOTS / 2), g.h - 5, DAYNAME[new Date(w.start + d2 * 864e5).getUTCDay()], 'middle');
@@ -353,19 +385,35 @@ ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
       cursor.setAttribute('x1', x(i)); cursor.setAttribute('x2', x(i)); cursor.setAttribute('opacity', 1);
       var at = new Date(w.start + i * 15 * 60000), hh = at.getUTCHours(), mm = at.getUTCMinutes();
       if (!fin(w.indoor[i]) && !fin(w.price[i])) { rd.innerHTML = '&nbsp;'; return; }
-      rd.innerHTML = DAYNAME[at.getUTCDay()] + ' ' + (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm + ' · Indoor <b>' + (fin(w.indoor[i]) ? fmt(w.indoor[i], 1) + ' °C' : '–') + '</b> · Offset <b>' + (fin(w.offset[i]) ? (w.offset[i] > 0 ? '+' : '') + fmt(w.offset[i], 1) + ' K' : '–') + '</b> · Price <b>' + (fin(w.price[i]) ? fmt(w.price[i], 2) + ' kr/kWh' : '–') + '</b>';
+      rd.innerHTML = DAYNAME[at.getUTCDay()] + ' ' + (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm + ' · Indoor <b>' + (fin(w.indoor[i]) ? fmt(w.indoor[i], 1) + ' °C' : '–') + '</b> · ' + modeOf(MODE).label + ' <b>' + (fin(OFF(w)[i]) ? (OFF(w)[i] > 0 ? '+' : '') + fmt(OFF(w)[i], 1) + ' K' : '–') + '</b> · Price <b>' + (fin(w.price[i]) ? fmt(w.price[i], 2) + ' kr/kWh' : '–') + '</b>';
     }
     g.svg.addEventListener('pointermove', show); g.svg.addEventListener('touchstart', show, {passive: true});
     g.svg.addEventListener('pointerleave', function () { cursor.setAttribute('opacity', 0); });
   }
 
   function drawAll() {
+    renderPanels();
     dayBars('daySaved', 'saved'); dayBars('dayOffset', 'offset');
     avgChart('avgIndoor', function (w) { return w.indoor; }, '°C', SET, 1);
-    avgChart('avgOffset', function (w) { return w.offset; }, 'K', 0, 0);
+    avgChart('avgOffset', function (w) { return OFF(w); }, 'K', 0, 0);
     avgChart('avgPrice', function (w) { return w.price; }, 'kr/kWh', undefined, 1);
     WEEKS.forEach(weekChart);
   }
+  // The offset selectors: every one shows the same choice, and a change redraws scores and charts.
+  function renderSegs() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-seg]'), function (box) {
+      box.className = 'seg'; box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'BT1 offset shown');
+      box.innerHTML = MODES.map(function (m) { return '<button type="button" data-mode="' + m.id + '" aria-pressed="' + (m.id === MODE) + '">' + m.label + '</button>'; }).join('');
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.seghint'), function (h) { h.textContent = modeOf(MODE).hint; });
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-mode]');
+    if (!b || b.getAttribute('data-mode') === MODE) return;
+    MODE = b.getAttribute('data-mode');
+    computeStats(); renderScores(); renderSegs(); drawAll();
+  });
+  renderSegs();
   drawAll();
   var t; window.addEventListener('resize', function () { clearTimeout(t); t = setTimeout(drawAll, 120); });
 })();
