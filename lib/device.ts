@@ -2,6 +2,7 @@ import {CaptureSummary, logCaptureSummary} from './diagnostic-capture';
 import {dateFormat, localeDate, localeTime, numberFormat} from './intl';
 import {pricesFor} from './gateway-prices';
 import {PRIORITY} from './gateway';
+import {TankTrace} from './autopilot/tank-trace';
 import {IndoorConfig, averageSensors, cleanIndoorConfig, readOnlyIndoorConfig, selectedReadings, withApi} from './indoor-sensors';
 import {Controls, AutopilotCollector, LOCATION_SETTING, OUTDOOR_SENSOR_SETTING} from './autopilot/collector';
 import {BACKFILL_FIELDS, BackfillField, LogSource, anyLogRead, backfillSources, fetchHeatingInsights} from './autopilot/heating-insights';
@@ -1363,6 +1364,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 await this.setWarning('Finish your Homey sensor setup in Heating → Repair.');
         }
         if (this.role === 'hotwater') await this.syncHotwaterAutopilot().catch(this.error);
+        if (this.role === 'hotwater') this.startTankTrace(); // TEMP(tank trace)
         if (this.role === 'heating' || this.role === 'hotwater') {
             if (!Array.isArray(this.getStoreValue(MODE_MARKS_STORE))) await this.markMode(this.smartMode()).catch(this.error);
             // TEMP(savings reset): heating's start date and baseline were stored by older code (at the
@@ -1765,6 +1767,55 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     private takeoverQueue: Promise<void> = Promise.resolve();
     private takeoverTimer?: any;
+    // TEMP(tank trace): the per-minute tank and water meter log (lib/autopilot/tank-trace.ts).
+    private tankTrace?: TankTrace;
+    private waterMeterId?: string | null;
+
+    // TEMP(tank trace)
+    private startTankTrace() {
+        if (this.tankTrace) return;
+        const pick: Record<string, string> = {bt6: 'measure_temperature.i9_hot_water', bt7: 'measure_temperature.i8_warmwater_top',
+            heat: 'meter_kwh_NIBE.i1575_hotwater_produced', prio: 'measure_priority_NIBE.i1028_priority_value',
+            hz: 'measure_frequency.i1046_compressor', stop62: 'target_temperature.h62_hotwater_stop_large',
+            more: 'boolean_NIBE.h697_more_hotwater'};
+        const host = String(this.getSettings().address ?? 'pump').replace(/[^\w.-]/g, '_');
+        this.tankTrace = new TankTrace(`tank-trace-${host}.jsonl`, {
+            pump: () => {
+                const out: Record<string, number | undefined> = {};
+                for (const [key, name] of Object.entries(pick)) {
+                    const register = this.profile.registerByName[name];
+                    const raw = register ? this.connection?.lastRawFor(name) : undefined;
+                    const value = raw === undefined ? undefined : this.fromRegisterValue(register!, raw);
+                    out[key] = typeof value === 'boolean' ? Number(value) : typeof value === 'number' ? value : undefined;
+                }
+                const litres = this.getCapabilityValue('measure_volume_NIBE.hotwater_estimate');
+                out.litres = typeof litres === 'number' ? litres : undefined;
+                return out;
+            },
+            water: () => this.readWaterMeter(),
+            log: (...args) => this.log(...args),
+            now: () => Date.now(),
+            setInterval: (fn, ms) => this.homey.setInterval(fn, ms),
+            clearInterval: (timer) => this.homey.clearInterval(timer),
+        });
+        this.tankTrace.start();
+    }
+
+    // TEMP(tank trace): the first device with a water meter counter, found once.
+    private async readWaterMeter(): Promise<{litres?: number; flow?: number} | undefined> {
+        if (this.waterMeterId === null) return undefined;
+        if (this.waterMeterId === undefined) {
+            const devices = await withApi(this.homey, (api) => api.devices.getDevices({$timeout: 10000}));
+            const found = Object.values(devices as Record<string, any>).find((d) => d.capabilities?.includes('meter_water'));
+            this.waterMeterId = found ? String(found.id) : null;
+            this.log(`Tank trace: water meter ${found ? `"${found.name}"` : 'not found'}.`);
+            if (!found) return undefined;
+        }
+        const d: any = await withApi(this.homey, (api) => api.devices.getDevice({id: this.waterMeterId, $cache: false, $timeout: 10000}));
+        const counter = d?.capabilitiesObj?.meter_water?.value;
+        const flow = d?.capabilitiesObj?.measure_water_flow?.value;
+        return {litres: typeof counter === 'number' ? counter * 1000 : undefined, flow: typeof flow === 'number' ? flow : undefined};
+    }
     private takeoverWaiting?: string;
     /** Tries in a row that left something undone, for the back-off. */
     private takeoverAttempts = 0;
@@ -4670,6 +4721,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.hotwaterAutopilot) this.round().setHotwater(undefined);
         this.hotwaterAutopilot = null;
         if (this.takeoverTimer) this.homey.clearTimeout(this.takeoverTimer);
+        this.tankTrace?.stop(); // TEMP(tank trace)
         this.roundOff?.();
         if (this.dayTypeTimer) this.homey.clearTimeout(this.dayTypeTimer);
         this.savingsStopped = true;
@@ -4703,6 +4755,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.removing = true;
         if (this.role === 'hotwater') await this.syncHotwaterTakeover().catch(this.error);
         if (this.takeoverTimer) this.homey.clearTimeout(this.takeoverTimer);
+        this.tankTrace?.stop(); // TEMP(tank trace)
         this.roundOff?.();
         this.homey.settings.unset(`autopilotHotwaterFile.${this.getData().id}`);
         this.homey.settings.unset(`autopilotHistoryFile.${this.getData().id}`);

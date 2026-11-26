@@ -119,6 +119,13 @@ listed here. TEMP(mem), the memory probe, is gone (`lib/mem-probe.ts` deleted, 0
   the test Homey reads them again under 0624c39's rule (counted from Getting started's Saving).
   Remove once the 0624c39 build has run on the test Homey.
 
+- [ ] **TEMP(tank trace)**, added 2026-11-26 (`lib/autopilot/tank-trace.ts`, `lib/device.ts`
+  `startTankTrace`/`readWaterMeter`, `test/tank-trace.test.ts`): a line a minute of BT6, BT7, 1575,
+  priority, compressor Hz, 62, 697, the litres estimate and the house water meter, to
+  `/userdata/tank-trace-<pump>.jsonl`, a month kept. The ground truth for
+  [hotwater-estimate-ground-truth.md](hotwater-estimate-ground-truth.md). Remove once step 3 of
+  that plan is decided; the file goes with the app.
+
 - [ ] **TEMP(early-draw log)**, added 2026-11-17 (a826834, `lib/autopilot/hotwater-shadow.ts`):
   the hot water log's `early` and `withEarly` fields and `withEarly()`, which plan a second time
   with early draws credited (`creditEarly`, `drawnEarly`). Logged only, never acted on. Kept
