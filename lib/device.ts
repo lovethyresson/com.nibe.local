@@ -10,7 +10,7 @@ import {DEFAULT_BASE_C, seasonCurve} from './autopilot/season';
 import {priceHistoryFor} from './gateway-price-history';
 import {weatherFor} from './gateway-weather';
 import {BASELINE_DAYS, Baseline, LEDGER_DAYS, daySaving, boostDays, kwhPerLitreOf, moneyText, partialDay, ModeMark, SavingsData, SavingsDay, baselineOf, dayHours, firstLiveFrom, hourlyPrices, hourlyUse, liveAt, liveShare, mergeDays, savingsData, savingsDay, savingsLive} from './autopilot/savings';
-import {LEGIONELLA_DATES_KEY, ChargeEvent, HotwaterAutopilot, HotwaterMode, LEGIONELLA_STATE_KEY, TankView, ownDeviceId} from './autopilot/hotwater-shadow';
+import {LEGIONELLA_DATES_KEY, HotwaterAutopilot, HotwaterMode, LEGIONELLA_STATE_KEY, TankView, ownDeviceId} from './autopilot/hotwater-shadow';
 import {DEFAULT_INTERVAL_DAYS, MAX_FAILURES, OwnerHotwater, RestoreKey, TakeoverRecord, TakeoverWrite, gaveUp, noteFailure, noteRestored, noteTaken,
     noteWrite, readTakeover, restoreAll, restorePlan, retryDelayMs, same, takeoverPlan} from './autopilot/hotwater-takeover';
 import {LEGIONELLA_WHEN_PERIODIC_OFF, LegionellaState, readSetting as readLegionella, readState as readLegionellaState,
@@ -1685,10 +1685,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             periodicBoost: (on) => this.setPeriodicBoost(on),
             store: {get: (key) => this.getStoreValue(key), set: (key, value) => this.setStoreValue(key, value)},
             starting: (why) => this.connection?.noteReason(AUTOPILOT_HOTWATER_NOTE, why),
-            charged: (e: ChargeEvent, text) => {
+            charged: (tokens) => {
                 this.homey.flow.getDeviceTriggerCard((this.profile.flowPrefix ?? '') + 'hotwater_charge_started')
-                    .trigger(this, {reason: text.reason, detailed_reason: text.detailedReason, autopilot: e.by === 'autopilot'})
-                    .catch(this.error);
+                    .trigger(this, tokens).catch(this.error);
             },
             warn: (text) => {
                 (text ? this.setWarning(text) : this.unsetWarning()).catch(this.error);

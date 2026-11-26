@@ -612,6 +612,32 @@
             "da": "Startet af Autopilot"
           },
           "example": true
+        },
+        {
+          "type": "number",
+          "name": "target_temperature",
+          "title": {
+            "en": "Target temperature",
+            "sv": "Måltemperatur",
+            "de": "Zieltemperatur",
+            "nl": "Doeltemperatuur",
+            "no": "Måltemperatur",
+            "da": "Måltemperatur"
+          },
+          "example": 55
+        },
+        {
+          "type": "number",
+          "name": "price",
+          "title": {
+            "en": "Price per kWh",
+            "sv": "Pris per kWh",
+            "de": "Preis pro kWh",
+            "nl": "Prijs per kWh",
+            "no": "Pris per kWh",
+            "da": "Pris pr. kWh"
+          },
+          "example": 0.84
         }
       ]
     },

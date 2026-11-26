@@ -627,6 +627,16 @@ export function chargeText(e: ChargeEvent, t: Translate, time: (ms: number) => s
     return {reason: t(`reason.${e.reason}`), detailedReason: [detail, plan, immersion].filter((x) => x).join(' ')};
 }
 
+/** The "Hot water heating started" trigger's tokens. A charge the pump started has no price of
+ *  its own: it gets `slotPrice`, the price of the quarter it started in. An unknown target or
+ *  price is null. Pure. */
+export function chargeTokens(e: ChargeEvent, text: {reason: string; detailedReason: string}, slotPrice?: number) {
+    const price = Number.isFinite(e.price) ? e.price! : slotPrice;
+    return {reason: text.reason, detailed_reason: text.detailedReason, autopilot: e.by === 'autopilot',
+        target_temperature: Number.isFinite(e.targetC) ? round(e.targetC!, 1) : null,
+        price: price !== undefined && Number.isFinite(price) ? round(price, 3) : null};
+}
+
 /** The timeline line for a charge event. */
 export function chargeLine(e: ChargeEvent, t: Translate, time: (ms: number) => string, money: Money,
                            shadow: boolean): string {
@@ -782,7 +792,7 @@ export interface HotwaterHooks {
      *  operating state's reason (profile.ts `AUTOPILOT_HOTWATER_NOTE`). */
     starting?(why: string): void;
     /** A real charge started, Autopilot's or the pump's: the Flow trigger. */
-    charged(e: ChargeEvent, text: {reason: string; detailedReason: string}): void;
+    charged(tokens: ReturnType<typeof chargeTokens>): void;
     /** A problem the owner must see on the device, or undefined to clear it. */
     warn(text: string | undefined): void;
     /** The device's "Autopilot now" line: the next planned charge and why, or what it waits for. */
@@ -1678,7 +1688,7 @@ export class HotwaterAutopilot {
         const t: Translate = (key, tokens) => this.homey.__(`autopilot.hotwater_charge.${key}`, tokens);
         const text = chargeText(e, t, this.time, this.money);
         this.log(`Autopilot hot water charge (${e.by}${e.shadow ? ', test run' : ''}): ${text.reason}. ${text.detailedReason} ${JSON.stringify(e)}`);
-        if (!e.shadow) this.hooks.charged(e, text);
+        if (!e.shadow) this.hooks.charged(chargeTokens(e, text, this.prices.get(slotOf(e.at))?.price));
         this.hooks.track('Started Hot Water Charge', {started_by: e.by === 'pump' ? 'device' : 'autopilot',
             ...e.reason !== 'pump' && e.reason !== 'running' && e.reason !== 'legionella' ? {charge_reason: trackedReason(e.reason)} : {},
             simulation: this.shadow});

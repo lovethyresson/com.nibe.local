@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import {HotwaterModel, KWH_PER_LITRE, localClock} from '../lib/autopilot/hotwater-learner';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {COAST_HOURS, DAILY_HOUR, EXTEND_MIN_K, extendTarget, chargedSlots, nextCharge, trackedReason, DailyPlan, MIN_HORIZON, ShadowEntry, coastLitres, againstPlan, movedFrom, offPlanCharge, planChanges, planUpdateText, autopilotCharge, chargeLine, chargeText, dailyPlan, dailyPlanText, hotwaterShadowStep, hotwaterStatusText, ownDeviceId, resumePlan, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
+import {COAST_HOURS, DAILY_HOUR, EXTEND_MIN_K, extendTarget, chargedSlots, nextCharge, trackedReason, DailyPlan, MIN_HORIZON, ShadowEntry, coastLitres, againstPlan, movedFrom, offPlanCharge, planChanges, planUpdateText, autopilotCharge, chargeLine, chargeText, chargeTokens, dailyPlan, dailyPlanText, hotwaterShadowStep, hotwaterStatusText, ownDeviceId, resumePlan, pumpCharge, recapLines, summary} from '../lib/autopilot/hotwater-shadow';
 import {SLOT_MS, slotOf} from '../lib/autopilot/prices';
 
 const clock = localClock('UTC');
@@ -572,4 +572,14 @@ test('a moved charge takes its planned start off the widgets for the day', () =>
     assert.equal(movedFrom(e, at + 3 * 3_600_000), plannedAt);
     assert.equal(movedFrom({...e, plan: 'unplanned'}, at), undefined);
     assert.equal(movedFrom(e, at + 25 * 3_600_000), undefined, 'tomorrow the plan is new');
+});
+
+test('chargeTokens gives the trigger its target and price, the slot price for a pump charge', () => {
+    const text = {reason: 'R', detailedReason: 'D'};
+    const auto = chargeTokens({at: 0, by: 'autopilot', reason: 'cheap', targetC: 55, price: 0.84321, reserveLitres: 60}, text, 2);
+    assert.deepStrictEqual(auto, {reason: 'R', detailed_reason: 'D', autopilot: true, target_temperature: 55, price: 0.843});
+    const pump = chargeTokens({at: 0, by: 'pump', reason: 'pump', targetC: 50.04, reserveLitres: 60}, text, 1.2);
+    assert.deepStrictEqual([pump.autopilot, pump.target_temperature, pump.price], [false, 50, 1.2]);
+    const unknown = chargeTokens({at: 0, by: 'pump', reason: 'pump', reserveLitres: 60}, text);
+    assert.deepStrictEqual([unknown.target_temperature, unknown.price], [null, null]);
 });
