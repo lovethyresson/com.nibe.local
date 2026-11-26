@@ -650,3 +650,10 @@ not by an id pattern.
 I flip-flopped on wind: "doesn't matter" one day, "cost 0.8 °C, must account for it" the next.
 Rule: an effect that is unproven and parked stays out of explanations and test designs. State it
 once as unproven, and change that only with a back-test result.
+
+## 2026-11-26: check a "too high" reading against the meter, at minute resolution
+I called the 220 L after a hot water run inflated, from a guessed power limit (2.4 kW) and
+per-run meter figures taken from hourly Insights, which are hourly means, not counter readings.
+The minute meter showed the run made 2.4 kWh in 19 min (7.6 kW): the 220 L was right, and the
+87 L before the run was the wrong one. Rule: before calling a sensor-derived figure impossible,
+read the pump's own meter at minute resolution for that window, and test both ends of the jump.
