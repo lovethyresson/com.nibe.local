@@ -37,7 +37,7 @@ import {ENERGY_ROLES, EnergyWidgetData, energyChart, useToday} from './autopilot
 import {NowKind, OVERVIEW_KINDS, OverviewData, OverviewFact, OverviewKind, OverviewNow, OverviewTile, overviewData, plannedAhead} from './autopilot/overview';
 import {SLOT_MS, localDate, localMinutes, slotOf} from './autopilot/prices';
 import {CHECK_DAYS, CurveView, LiveReason, SettleEvent, SettleState, Step, calibrateDay, change, checkedWhileSettling, daysBetween, readSettle, scoreDay, withinRange,
-    projectSettle, settleDone, stepOf, streak} from './autopilot/settling';
+    projectSettle, settleDone, settleRun, stepOf, streak, SETTLED_DAYS} from './autopilot/settling';
 import {CostCheckData, CostDay, PlannedCost, addDay, chargeCosts, costCheckData, costDay, fillActual} from './autopilot/cost-check';
 import {COP} from './autopilot/planner';
 import {Edge, FORECAST_SLOTS, BlockedBy, HeatingDay, analyticsSmartMode, heatingBlock, reserveBucket} from './autopilot/analytics';
@@ -2558,7 +2558,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const longDay = dateFormat(language, {weekday: 'long', timeZone: 'UTC'});
             const projected = ahead && (ahead.length <= 6 ? t('projected', {day: longDay.format(new Date(`${dateAfter(ahead.length)}T12:00:00Z`))})
                 : t('projected_days', {n: ahead.length}));
-            return {...going, part: 100, label: label(t('day', {day: days.length})),
+            // A day on target already: count towards the days that settle it, not the days so far.
+            const run = fresh ? 0 : settleRun(days);
+            return {...going, part: 100, label: label(run ? t('on_target', {n: run, of: SETTLED_DAYS}) : t('day', {day: days.length})),
                 big: fresh ? t('new_target', {target: this.celsius(latest.setpoint)}) : this.celsius(latest.mean),
                 of: fresh ? undefined : t('of', {target: this.celsius(latest.setpoint)}),
                 desc: fresh ? t('restarted') : since === undefined ? t('shift_when') : projected || undefined,

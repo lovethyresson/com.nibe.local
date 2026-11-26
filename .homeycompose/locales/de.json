@@ -625,6 +625,7 @@
       "offline_desc": "Geht weiter, sobald Ihre Wärmepumpe wieder erreichbar ist.",
       "day": "Tag __day__",
       "day_of": "Tag __day__ von __of__",
+      "on_target": "__n__ von __of__ Tagen auf Zieltemperatur",
       "day_of_again": "erneut Tag __day__ von __of__",
       "learning_big": "Lernt Ihr Haus kennen",
       "since_day": "seit Tag __day__",

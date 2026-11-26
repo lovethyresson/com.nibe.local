@@ -625,6 +625,7 @@
       "offline_desc": "Fortsätter när din värmepump är tillbaka.",
       "day": "dag __day__",
       "day_of": "dag __day__ av __of__",
+      "on_target": "__n__ av __of__ dagar på målet",
       "day_of_again": "dag __day__ av __of__ igen",
       "learning_big": "Lär sig ditt hus",
       "since_day": "sedan dag __day__",

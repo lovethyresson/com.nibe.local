@@ -1044,6 +1044,7 @@
       "offline_desc": "Continues when your heat pump is back.",
       "day": "day __day__",
       "day_of": "day __day__ of __of__",
+      "on_target": "__n__ of __of__ days on target",
       "day_of_again": "day __day__ of __of__ again",
       "learning_big": "Learning your house",
       "since_day": "since day __day__",

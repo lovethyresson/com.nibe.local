@@ -1044,6 +1044,7 @@
       "offline_desc": "Fortsetter når varmepumpen din er tilbake.",
       "day": "dag __day__",
       "day_of": "dag __day__ av __of__",
+      "on_target": "__n__ av __of__ dager på målet",
       "day_of_again": "dag __day__ av __of__ igjen",
       "learning_big": "Lærer huset ditt",
       "since_day": "siden dag __day__",

@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {ASK_WAIT_DAYS, CALIBRATE_MAX_DAYS, CHECK_DAYS, MAX_DAYS, SettleState, calibrateDay, change, checkedWhileSettling, readSettle, withinRange, scoreDay, settleDone, stepOf,
+import {ASK_WAIT_DAYS, CALIBRATE_MAX_DAYS, CHECK_DAYS, MAX_DAYS, SettleState, calibrateDay, change, checkedWhileSettling, readSettle, withinRange, scoreDay, settleDone, settleRun, stepOf,
     projectSettle, streak} from '../lib/autopilot/settling';
 
 const day = (date: string, mean: number | undefined, setpoint = 22.5, slots = 96, setMin = setpoint) =>
@@ -225,4 +225,12 @@ test('price shifts start on a day within the comfort range, either side, and not
     assert.equal(withinRange(day('2026-11-23', 22.5, 22.5, 50), 0.5, 0.5), false, 'too few readings');
     assert.equal(withinRange(day('2026-11-23', 22.5, 22.5, 96, 20), 0.5, 0.5), false, 'a setpoint that moved (Away)');
     assert.equal(withinRange(day('2026-11-23', undefined), 0.5, 0.5), false, 'no mean');
+});
+
+test('the run on target counts the last days within the band, for "1 of 2 days on target"', () => {
+    const d = (mean: number) => ({date: '2026-11-25', mean, setpoint: 22.5});
+    assert.equal(settleRun([]), 0);
+    assert.equal(settleRun([d(21.8), d(22.4)]), 1);
+    assert.equal(settleRun([d(22.4), d(22.2)]), 0, 'a miss ends the run');
+    assert.equal(settleRun([d(22.3), d(22.7)]), 2, 'the band is ±0.2 K, both sides');
 });

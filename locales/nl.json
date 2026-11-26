@@ -1044,6 +1044,7 @@
       "offline_desc": "Gaat verder zodra je warmtepomp terug is.",
       "day": "dag __day__",
       "day_of": "dag __day__ van __of__",
+      "on_target": "__n__ van __of__ dagen op temperatuur",
       "day_of_again": "opnieuw dag __day__ van __of__",
       "learning_big": "Leert je huis kennen",
       "since_day": "sinds dag __day__",

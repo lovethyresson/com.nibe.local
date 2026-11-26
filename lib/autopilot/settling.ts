@@ -122,6 +122,12 @@ export type SettleEvent =
 
 export type LiveReason = 'fits' | 'steady' | 'asked' | 'timeout';
 
+/** A day's mean within `SETTLED_K` of its thermostat. */
+export const onTarget = (d: SettleDay) => Math.abs(d.mean - d.setpoint) <= SETTLED_K + 1e-9;
+
+/** Days in a row on target at the end of settling's days: how far to `SETTLED_DAYS`. */
+export const settleRun = (days: SettleDay[]) => streak(days.map((d) => ({...d, ok: onTarget(d)})));
+
 export function settleDone(state: SettleState | undefined): boolean {
     return !!state && (state.settled !== undefined || state.stopped !== undefined);
 }
@@ -144,7 +150,7 @@ export function scoreDay(state: SettleState, reading: DayReading): {state: Settl
     }
     const days = [...state.days, day];
     const recent = days.slice(-SETTLED_DAYS);
-    if (recent.length === SETTLED_DAYS && recent.every((d) => Math.abs(d.mean - d.setpoint) <= SETTLED_K + 1e-9))
+    if (recent.length === SETTLED_DAYS && recent.every(onTarget))
         return {state: {...checked, days, settled: day.date, calibrating: {start: day.date, days: []}}, event: {kind: 'settled', day}};
     // The trim could not close it: a curve far off is calibrating's to fix.
     if (days.length >= MAX_DAYS) {
@@ -190,7 +196,7 @@ export function calibrateDay(state: SettleState, reading: DayReading, curve: Cur
         const moved = reading.setMin === undefined || reading.setMax === undefined || reading.setMax - reading.setMin > SETPOINT_MOVED_K;
         if (reading.mean !== undefined && Number.isFinite(reading.mean) && reading.slots >= 96 * MIN_COVERAGE && !moved) {
             const day = {date: reading.date, mean: round1(reading.mean), setpoint: round1(reading.setMax!)};
-            const days = [...next.days, {...day, ok: Math.abs(day.mean - day.setpoint) <= SETTLED_K + 1e-9}];
+            const days = [...next.days, {...day, ok: onTarget(day)}];
             next.days = days;
             if (streak(days) >= CHECK_DAYS) return live('steady', next);
         }
@@ -226,7 +232,7 @@ function changedSince(state: SettleState, curve: CurveView): string | undefined 
 
 /** Settle days after a curve change, as check days. */
 function daysAfter(days: SettleDay[], changed: string): CheckDay[] {
-    return days.filter((d) => d.date > changed).map((d) => ({...d, ok: Math.abs(d.mean - d.setpoint) <= SETTLED_K + 1e-9}));
+    return days.filter((d) => d.date > changed).map((d) => ({...d, ok: onTarget(d)}));
 }
 
 /** Whole days from one local date to another. */
