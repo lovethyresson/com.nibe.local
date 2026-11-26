@@ -639,3 +639,9 @@ fits made "for convenience" to get states or parameters.
 A reply full of internal names (trim integral, curve advice, liveAt, flat-price hold) and tables read as
 jibberish to the owner. When explaining results or risks: short sentences, everyday words, what happens to the
 house. Code names only when asked.
+
+## 2026-11-26: list every card before saying one is missing
+I said hot water had no Autopilot trigger after filtering card ids by "autopilot". The trigger
+`hotwater_charge_started` ("Hot water heating started", reason + detailed reason + autopilot) exists.
+Rule: when asked whether a Flow card exists, list all cards for that device/feature by title,
+not by an id pattern.
