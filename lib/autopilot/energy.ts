@@ -24,6 +24,9 @@ export interface EnergyChart {
     cost: number;
     /** Share of the kWh used in the cheapest third of the day's hours, 0–1; undefined with no use. */
     cheapShare?: number;
+    /** The same three for heating alone: what Heating performance counts. Hot water and idle are
+     *  drawn but not counted there (owner's choice, 2026-11-26). The totals above stay, for Overview. */
+    heatingUse: {kwh: number; cost: number; cheapShare?: number};
     kwhAxis: {max: number; gridlines: number[]};
     priceAxis: {max: number; gridlines: number[]; decimals: number};
 }
@@ -35,7 +38,7 @@ export function energyChart(hours: number[], use: Partial<Record<EnergyRole, Map
     // The day's prices in thirds, as the savings widgets rank them.
     const ranked = hours.filter((at) => prices.has(at)).sort((a, b) => prices.get(a)! - prices.get(b)!);
     const cheap = new Set(ranked.slice(0, Math.ceil(ranked.length / 3)));
-    let kwh = 0, cost = 0, inCheap = 0;
+    let kwh = 0, cost = 0, inCheap = 0, heatKwh = 0, heatCost = 0, heatCheap = 0;
     const out = hours.map((at): EnergyHour => {
         const hour: EnergyHour = {use: {}, ...prices.has(at) ? {price: prices.get(at)} : {}};
         for (const role of ENERGY_ROLES) {
@@ -45,14 +48,16 @@ export function energyChart(hours: number[], use: Partial<Record<EnergyRole, Map
             kwh += v;
             // Each 15-minute slot at its own price, as Homey Energy counts it; the rest of the
             // hour (read from Insights) at the hour's mean.
-            let rest = v;
+            let rest = v, paid = 0;
             const slots = bySlot.slots?.[role];
             if (slots && bySlot.prices) for (let s = at; s < at + 3_600_000; s += 900_000) {
                 const kwh = slots.get(s), price = bySlot.prices.get(s);
-                if (kwh !== undefined && price !== undefined) { cost += kwh * price; rest -= kwh; }
+                if (kwh !== undefined && price !== undefined) { paid += kwh * price; rest -= kwh; }
             }
-            if (hour.price !== undefined) cost += Math.max(0, rest) * hour.price;
+            if (hour.price !== undefined) paid += Math.max(0, rest) * hour.price;
+            cost += paid;
             if (cheap.has(at)) inCheap += v;
+            if (role === 'heating') { heatKwh += v; heatCost += paid; if (cheap.has(at)) heatCheap += v; }
         }
         return hour;
     });
@@ -60,6 +65,7 @@ export function energyChart(hours: number[], use: Partial<Record<EnergyRole, Map
     const kwhAxis = niceAxis(0, Math.max(1, peak), {steps: [0.5, 1, 2, 5]});
     const priceAxis = niceAxis(0, Math.max(0.5, ...[...prices.values()]), {maxIntervals: 3});
     return {hours: out, kwh: round(kwh, 1), cost: round(cost, 2), ...kwh > 0 ? {cheapShare: round(inCheap / kwh, 3)} : {},
+        heatingUse: {kwh: round(heatKwh, 1), cost: round(heatCost, 2), ...heatKwh > 0 ? {cheapShare: round(heatCheap / heatKwh, 3)} : {}},
         kwhAxis: {max: kwhAxis.hi, gridlines: kwhAxis.ticks}, priceAxis: {max: priceAxis.hi, gridlines: priceAxis.ticks, decimals: priceAxis.decimals}};
 }
 
@@ -193,7 +199,7 @@ export interface EnergyWidgetData {
     /** Now in hours from midnight, at its 15-minute slot (14.75 is 14:45), the hours to label, and the legend. */
     now?: number;
     ticks?: {at: number; label: string}[];
-    legend?: {heating: string; hotwater: string; main: string; price: string; offset?: string; indoor?: string; expected?: string};
+    legend?: {heating: string; hotwater: string; main: string; price: string; more?: string; less?: string; indoor?: string; expected?: string};
     axes?: {kwh: string; price: string; offset?: string; indoor?: string};
     /** The heating graph's series; absent without a Heating device. */
     heating?: HeatingGraph;

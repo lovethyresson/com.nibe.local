@@ -940,7 +940,6 @@
     },
     "energy": {
       "pick": "Pick your heat pump's Main device.",
-      "used": "used today",
       "cost": "cost today",
       "cheap": "in cheap hours",
       "heating": "Heating",
@@ -950,7 +949,9 @@
       "price_axis": "Price per kWh",
       "no_prices": "Requires dynamic electricity prices in Homey Energy.",
       "no_functions": "This heat pump has no Heating or Hot water device.",
-      "heading": "Heating performance"
+      "heading": "Heating performance",
+      "used_heating": "heating today",
+      "no_heating": "This heat pump has no Heating device."
     },
     "cost_check": {
       "title": "Plan vs actual",

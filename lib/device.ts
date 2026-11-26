@@ -3129,6 +3129,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // Main only where it carries an idle meter (a model with no power source has none).
         const byRole = new Map(siblings.filter((d) => d.role !== 'main' || d.hasCapability(METER_CAPABILITY)).map((d) => [d.role, d]));
         if (!byRole.has('heating') && !byRole.has('hotwater')) return {title, empty: t('no_functions')};
+        // The card counts heating alone, so a pump without a Heating device has nothing to show there.
+        // Overview (withHeating false) still reads the whole pump's totals.
+        if (withHeating && !byRole.has('heating')) return {title, empty: t('no_heating')};
         const reads = ENERGY_ROLES.filter((role) => byRole.has(role)).map((role) => [role, byRole.get(role).energyToday?.()] as const);
         const known = reads.filter(([, r]) => r);
         // A function not read yet (they read minutes apart after a start) would look like one that
@@ -3149,7 +3152,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             {slots: Object.fromEntries(known.map(([role, r]) => [role, r!.slots])), prices: slotPrices});
         const currency = known.find(([, r]) => r!.currency)?.[1]!.currency ?? '';
         const language = this.homey.i18n.getLanguage();
-        const kwh = numberFormat(language, {maximumFractionDigits: 1}).format(chart.kwh);
+        const kwh = numberFormat(language, {maximumFractionDigits: 1}).format(chart.heatingUse.kwh);
         // Now in hours from midnight, at the start of its 15-minute slot, where the other day charts
         // draw it: the line falls inside the hour's bar, which holds the use so far.
         const hour = Math.max(0, hours.findIndex((at) => at > Date.now()) - 1);
@@ -3158,14 +3161,17 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const heating = withHeating ? byRole.get('heating')?.heatingGraphToday?.() as HeatingGraph | undefined : undefined;
         return {title, heading: t('heading'), chart, now,
             numbers: [
-                {value: `${kwh} kWh`, label: t('used')},
+                // Heating alone: hot water and idle are drawn pale but not counted (owner's choice, 2026-11-26).
+                {value: `${kwh} kWh`, label: t('used_heating')},
                 // Whole kronor, euro to 10 cents (owner's choice, 2026-11-26): a day's cost, not a meter reading.
-                {value: dayCostText(chart.cost, language, currency), label: t('cost')},
-                ...chart.cheapShare === undefined ? [] : [{value: `${Math.round(chart.cheapShare * 100)} %`, label: t('cheap'), good: true}],
+                {value: dayCostText(chart.heatingUse.cost, language, currency), label: t('cost')},
+                ...chart.heatingUse.cheapShare === undefined ? [] : [{value: `${Math.round(chart.heatingUse.cheapShare * 100)} %`, label: t('cheap'), good: true}],
             ],
             ticks: [0, 6, 12, 18].map((k) => ({at: k, label: this.clock(hours[0] + k * HOUR_MS)})),
             legend: {heating: t('heating'), hotwater: t('hotwater'), main: t('idle'), price: t('price'),
-                offset: w('offset'), indoor: w('indoor'), expected: w('expected')},
+                // The shift's two colours, named as Day plan names them.
+                more: this.homey.__('autopilot.day_plan.more'), less: this.homey.__('autopilot.day_plan.less'),
+                indoor: w('indoor'), expected: w('expected')},
             axes: {kwh: 'kWh', price: t('price_axis'), offset: w('axis_offset'), indoor: w('axis_indoor')},
             ...heating ? {heating} : {}};
     }
@@ -3263,10 +3269,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             return Number.isFinite(v) ? a + v : a;
         }, 0);
         if (!offline) facts.push({label: t('power_now'), value: `${one(watts / 1000)} kW`});
-        // Today as Energy today has it, so the two cards agree.
-        const used = energy.numbers?.[0]?.value, spent = energy.numbers?.[1]?.value;
-        if (used && spent) facts.push({label: t('today'), value: `${used} · ${spent}`});
+        // Today for the whole heat pump, as Homey Energy has it (Heating performance counts heating alone).
         const currency = String(siblings.map((d) => d.energyToday?.()?.currency).find(Boolean) ?? '');
+        if (energy.chart) facts.push({label: t('today'),
+            value: `${numberFormat(language, {maximumFractionDigits: 1}).format(energy.chart.kwh)} kWh · ${dayCostText(energy.chart.cost, language, currency)}`});
         const ahead = this.restOfToday(energy, siblings);
         if (ahead) facts.push({label: t('by_midnight'), value: t('by_midnight_value', {kwh: one(ahead.kwh), cost: dayCostText(ahead.cost, language, currency)})});
         const month = this.monthFigures(byRole, language);

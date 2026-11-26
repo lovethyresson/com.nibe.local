@@ -2245,7 +2245,8 @@ their own rather than part of M3.
 **Built (dev branch):** Autopilot (`widgets/autopilot`, §10.0), Heating savings and Hot water
 savings (§11), Day plan (below), Getting started (§7.7), Plan vs actual (`widgets/cost_check`),
 Heating performance (`widgets/energy`, Energy today until 2026-11: today's electricity against the
-price, then the outdoor shift (BT1) and indoor), Heat pump overview (`widgets/overview`), and hot water's two,
+price, then the outdoor shift (BT1) and indoor; its three numbers count heating alone, hot water and
+idle drawn pale, while Overview's Today counts the whole heat pump, as Homey Energy does), Heat pump overview (`widgets/overview`), and hot water's two,
 Hot water and Hot water use (hot water doc). Autopilot's candidates as first planned:
 
 - **Planned heating:** the next 24 h, with planned indoor against comfort, the pre-heat and coast

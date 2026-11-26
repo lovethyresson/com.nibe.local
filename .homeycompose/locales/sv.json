@@ -521,7 +521,6 @@
     },
     "energy": {
       "pick": "Välj värmepumpens Main-enhet.",
-      "used": "använt i dag",
       "cost": "kostnad i dag",
       "cheap": "under billiga timmar",
       "heating": "Uppvärmning",
@@ -531,7 +530,9 @@
       "price_axis": "Pris per kWh",
       "no_prices": "Kräver dynamiska elpriser i Homey Energy.",
       "no_functions": "Värmepumpen har ingen enhet för uppvärmning eller varmvatten.",
-      "heading": "Värmeprestanda"
+      "heading": "Värmeprestanda",
+      "used_heating": "värme i dag",
+      "no_heating": "Den här värmepumpen har ingen enhet för Värme."
     },
     "cost_check": {
       "title": "Plan mot utfall",

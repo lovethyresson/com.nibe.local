@@ -31,12 +31,12 @@
       .en-num span { opacity: 0.7; }
       /* Heating in blue, hot water in violet (the hot water cards' use colour), the price in orange (the
          owner's choice, 2026-11-26, so it stands out from the bars), and the cheap share in the savings
-         cards' cheap colour. Indoor is near the text colour and the outdoor shift grey, so neither competes
-         with the electricity and the price. */
-      :root { --en-heat: #2d6bd6; --en-water: #7652d6; --en-idle: #a7adb6; --en-price: #d46a00; --en-cheap: #0f8374; --en-shift: #7a8594; --en-indoor: #1d1d1f; }
-      :root[data-theme="dark"] { --en-heat: #4da3ff; --en-water: #a48cff; --en-idle: #6c737d; --en-price: #ff9f0a; --en-cheap: #2bb3a3; --en-shift: #8e99a8; --en-indoor: #f2f2f5; }
+         cards' cheap colour. Indoor is near the text colour; the outdoor shift is red where it heats more
+         and teal where it eases off, Day plan's colours. */
+      :root { --en-heat: #2d6bd6; --en-water: #7652d6; --en-idle: #a7adb6; --en-price: #d46a00; --en-cheap: #0f8374; --en-more: #c43a3a; --en-less: #13857a; --en-indoor: #1d1d1f; }
+      :root[data-theme="dark"] { --en-heat: #4da3ff; --en-water: #a48cff; --en-idle: #6c737d; --en-price: #ff9f0a; --en-cheap: #2bb3a3; --en-more: #ff6b6b; --en-less: #3cc4b4; --en-indoor: #f2f2f5; }
       @media (prefers-color-scheme: dark) {
-        :root:not([data-theme="light"]) { --en-heat: #4da3ff; --en-water: #a48cff; --en-idle: #6c737d; --en-price: #ff9f0a; --en-cheap: #2bb3a3; --en-shift: #8e99a8; --en-indoor: #f2f2f5; }
+        :root:not([data-theme="light"]) { --en-heat: #4da3ff; --en-water: #a48cff; --en-idle: #6c737d; --en-price: #ff9f0a; --en-cheap: #2bb3a3; --en-more: #ff6b6b; --en-less: #3cc4b4; --en-indoor: #f2f2f5; }
       }
     </style>
   </head>
@@ -175,7 +175,11 @@
             var v = h.use[r[0]];
             if (!(v > 0)) return;
             var top = yk(v + (B - y0) * c.kwhAxis.max / PH);
-            svg.appendChild(svgEl('rect', {x: x(k) - bw / 2, y: top, width: bw, height: Math.max(1, y0 - top), rx: 1.5, fill: r[1]}));
+            // Heating solid; hot water and idle pale and dashed: drawn, so the bar is the heat pump's
+            // whole use, but not what this card counts.
+            svg.appendChild(svgEl('rect', r[0] === 'heating' ? {x: x(k) - bw / 2, y: top, width: bw, height: Math.max(1, y0 - top), rx: 1.5, fill: r[1]}
+              : {x: x(k) - bw / 2 + 0.5, y: top + 0.5, width: bw - 1, height: Math.max(1, y0 - top - 1), rx: 1.5,
+                fill: r[1], 'fill-opacity': 0.18, stroke: r[1], 'stroke-opacity': 0.6, 'stroke-dasharray': '2 2'}));
             y0 = top;
           });
         });
@@ -219,7 +223,7 @@
             if (Math.abs(m) < 0.05) continue;
             var y0 = yo(0), y1 = yo(m), bw = Math.max(2, step * 0.7);
             svg.appendChild(svgEl('rect', {x: x(h) - bw / 2, y: Math.min(y0, y1), width: bw, height: Math.max(1, Math.abs(y1 - y0)), rx: 1.5,
-              fill: 'var(--en-shift)', 'fill-opacity': h * 4 < st.planFrom ? 0.85 : 0.35}));
+              fill: m < 0 ? 'var(--en-more)' : 'var(--en-less)', 'fill-opacity': h * 4 < st.planFrom ? 0.85 : 0.35}));
           }
         }
         if (a) {
@@ -298,12 +302,13 @@
         var lg = data.legend, st = data.heating || {};
         root.appendChild(legend([
           {text: lg.heating, style: 'background: var(--en-heat);'},
-          {text: lg.hotwater, style: 'background: var(--en-water);'},
-          {text: lg.main, style: 'background: var(--en-idle);'},
+          {text: lg.hotwater, style: 'background: transparent; border: 1px dashed var(--en-water);'},
+          {text: lg.main, style: 'background: transparent; border: 1px dashed var(--en-idle);'},
           {text: lg.price, line: true, style: 'background: var(--en-price);'},
           {text: st.indoor ? lg.indoor : '', line: true, style: 'background: var(--en-indoor);'},
           {text: st.expected ? lg.expected : '', line: true, style: 'background: repeating-linear-gradient(90deg, var(--en-indoor) 0 4px, transparent 4px 7px);'},
-          {text: st.offset ? lg.offset : '', style: 'background: var(--en-shift);'}]));
+          {text: st.offset ? lg.more : '', style: 'background: var(--en-more);'},
+          {text: st.offset ? lg.less : '', style: 'background: var(--en-less);'}]));
       }
 
       function onHomeyReady(Homey) {

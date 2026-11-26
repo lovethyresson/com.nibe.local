@@ -521,7 +521,6 @@
     },
     "energy": {
       "pick": "Wählen Sie das Main-Gerät Ihrer Wärmepumpe.",
-      "used": "heute verbraucht",
       "cost": "Kosten heute",
       "cheap": "in günstigen Stunden",
       "heating": "Heizung",
@@ -531,7 +530,9 @@
       "price_axis": "Preis pro kWh",
       "no_prices": "Erfordert dynamische Strompreise in Homey Energie.",
       "no_functions": "Diese Wärmepumpe hat kein Heizungs- oder Brauchwasser-Gerät.",
-      "heading": "Heizbilanz"
+      "heading": "Heizbilanz",
+      "used_heating": "Heizung heute",
+      "no_heating": "Diese Wärmepumpe hat kein Heizungsgerät."
     },
     "cost_check": {
       "title": "Plan und Ist",

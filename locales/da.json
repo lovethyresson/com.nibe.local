@@ -940,7 +940,6 @@
     },
     "energy": {
       "pick": "Vælg din varmepumpes Main-enhed.",
-      "used": "brugt i dag",
       "cost": "pris i dag",
       "cheap": "i billige timer",
       "heating": "Opvarmning",
@@ -950,7 +949,9 @@
       "price_axis": "Pris pr. kWh",
       "no_prices": "Kræver dynamiske elpriser i Homey Energy.",
       "no_functions": "Varmepumpen har ingen enhed til opvarmning eller varmt vand.",
-      "heading": "Varmeydelse"
+      "heading": "Varmeydelse",
+      "used_heating": "opvarmning i dag",
+      "no_heating": "Denne varmepumpe har ingen enhed til Opvarmning."
     },
     "cost_check": {
       "title": "Plan mod faktisk",

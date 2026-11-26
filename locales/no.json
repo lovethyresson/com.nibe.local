@@ -940,7 +940,6 @@
     },
     "energy": {
       "pick": "Velg Main-enheten til varmepumpen din.",
-      "used": "brukt i dag",
       "cost": "kostnad i dag",
       "cheap": "i billige timer",
       "heating": "Oppvarming",
@@ -950,7 +949,9 @@
       "price_axis": "Pris per kWh",
       "no_prices": "Krever dynamiske strømpriser i Homey Energy.",
       "no_functions": "Varmepumpen har ingen enhet for oppvarming eller varmtvann.",
-      "heading": "Varmeytelse"
+      "heading": "Varmeytelse",
+      "used_heating": "oppvarming i dag",
+      "no_heating": "Denne varmepumpen har ingen Oppvarmingsenhet."
     },
     "cost_check": {
       "title": "Plan mot faktisk",

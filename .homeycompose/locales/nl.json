@@ -521,7 +521,6 @@
     },
     "energy": {
       "pick": "Kies het apparaat Main van je warmtepomp.",
-      "used": "vandaag gebruikt",
       "cost": "kosten vandaag",
       "cheap": "in goedkope uren",
       "heating": "Verwarming",
@@ -531,7 +530,9 @@
       "price_axis": "Prijs per kWh",
       "no_prices": "Vereist dynamische stroomprijzen in Homey Energy.",
       "no_functions": "Deze warmtepomp heeft geen apparaat Verwarming of Warm water.",
-      "heading": "Verwarmingsprestaties"
+      "heading": "Verwarmingsprestaties",
+      "used_heating": "verwarming vandaag",
+      "no_heating": "Deze warmtepomp heeft geen apparaat Verwarming."
     },
     "cost_check": {
       "title": "Plan en werkelijk",

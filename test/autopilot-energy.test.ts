@@ -106,3 +106,14 @@ test('heating graph: the shift only when it moved, indoor only up to now', () =>
     // No plan: nothing expected.
     assert.equal(off.expected, undefined);
 });
+
+test('heating alone: hot water and idle drawn but not counted', () => {
+    const c = energyChart(hours, {heating, hotwater, main: new Map([[0, 0.1]])}, prices);
+    assert.equal(c.kwh, 7.1, 'the total keeps everything, for Overview');
+    assert.equal(c.heatingUse.kwh, 3);
+    // Heating 1, 1, 0.5, 0.5 kWh at 1, 2, 3, 4 kr.
+    assert.equal(c.heatingUse.cost, 6.5);
+    // Cheapest third of six hours: the first two, which hold 2 of heating's 3 kWh.
+    assert.equal(c.heatingUse.cheapShare, 0.667);
+    assert.equal(energyChart(hours, {hotwater}, prices).heatingUse.cheapShare, undefined);
+});
