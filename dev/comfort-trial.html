@@ -69,7 +69,7 @@ ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   <header class="head">
     <span class="pill" id="pill">Mock data · proposal</span>
     <h1>Comfort range trial</h1>
-    <p class="muted">Three weeks after calibrating, one comfort range each. Every figure compares a day with what holding a flat temperature would have cost that same day. The first two days of each week are left out of the scores while the house adjusts to the new range.</p>
+    <p class="muted">Three weeks after calibrating, one comfort range each. Every saving compares a day with what it would have cost before Autopilot, in the same weather and at the same prices. The first two days of each week are left out of the scores while the house adjusts to the new range.</p>
   </header>
 
   <section>
@@ -85,7 +85,7 @@ ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   <section>
     <h2>Day by day</h2>
     <div class="panel">
-      <h3>Saved against flat heating</h3>
+      <h3>Saved compared with before Autopilot</h3>
       <div class="chart" id="daySaved"></div>
     </div>
     <div class="panel">
@@ -121,7 +121,7 @@ ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
     <h2>Where the figures come from</h2>
     <ul class="notes">
       <li>The weeks come from the 15-minute Autopilot log the Homey keeps: indoor, thermostat, BT1 offset, price and power.</li>
-      <li>Flat heating is the house model run over the same day twice, once with the offsets Autopilot fed and once with their average held steady (the app's "old way", shift-cost.ts). Weather and prices are the same on both sides.</li>
+      <li>Before Autopilot is the house model run over the same day twice, once with the offsets Autopilot fed and once with their average held steady (shift-cost.ts). Weather and prices are the same on both sides.</li>
       <li>The heating cost counts the slots without hot water.</li>
       <li>Saved per 1 kr of spread divides a week's savings by its average daily price spread, so a week of flat prices doesn't make its range look bad.</li>
       <li>You switch the range each Monday with the "Set Autopilot heating comfort range" card, or in Heating setup.</li>
@@ -248,8 +248,8 @@ ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
 
   // ---------- Scores ----------
   var METRICS = [
-    {name: 'Saved', hint: 'Against flat heating, over the scored days.', get: function (s) { return s.saved; }, show: function (s) { return kr(s.saved); }},
-    {name: 'Saved, share of the heating cost', hint: 'Saved divided by what flat heating cost.', get: function (s) { return s.pct; }, show: function (s) { return fmt(s.pct, 1) + ' %'; }},
+    {name: 'Saved', hint: 'Compared with before Autopilot, over the scored days.', get: function (s) { return s.saved; }, show: function (s) { return kr(s.saved); }},
+    {name: 'Saved, share of the heating cost', hint: 'Saved divided by what the days would have cost before Autopilot.', get: function (s) { return s.pct; }, show: function (s) { return fmt(s.pct, 1) + ' %'; }},
     {name: 'Saved per 1 kr of price spread', hint: 'Kr a day for each 1 kr/kWh between the day\'s cheapest and most expensive hour. Evens out weeks with flat or spiky prices.', get: function (s) { return s.perSpread; }, show: function (s) { return kr(s.perSpread); }},
     {name: 'Indoor swing', hint: 'Spread of the middle 90 % of readings.', get: function (s) { return s.swing; }, show: function (s) { return fmt(s.swing, 1) + ' °C'; }},
     {name: 'Time more than 0.5 °C off', hint: 'The same yardstick for every range.', get: function (s) { return s.offHalf; }, show: function (s) { return mins(s.offHalf); }},

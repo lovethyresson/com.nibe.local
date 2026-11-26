@@ -10,7 +10,7 @@
  *  inputs and the widget only draws. Strings arrive translated. */
 
 import {numberFormat} from '../intl';
-import {ShiftEffect, oldWayCost} from './shift-cost';
+import {ShiftEffect, beforeAutopilotCost} from './shift-cost';
 
 const HOUR = 3_600_000;
 
@@ -37,7 +37,7 @@ export interface SavingsDay {
     /** Hot water: each charge's place in the day's prices, 0 the cheapest hour and 1 the most
      *  expensive (the mean over its hours). */
     charges?: number[];
-    /** Heating: what the day would have cost the old way, from the house model (shift-cost.ts):
+    /** Heating: what the day would have cost before Autopilot, from the house model (shift-cost.ts):
      *  the metered kWh less what Autopilot's shifts added, and the heat left in the house at the
      *  end. Recorded and logged beside the baseline's figure, not yet shown (2026-11-22: both are
      *  kept until the model's is judged over more owners' days). */
@@ -102,7 +102,7 @@ export function savingsDay(date: string, hours: number[], use: Map<number, numbe
     });
     const mean = priced.reduce((s, at) => s + prices.get(at)!, 0) / priced.length;
     const day: SavingsDay = {date, tiers: tiers.map(round) as [number, number, number], cost: round(cost), mean: round(mean), live};
-    if (shift) day.old = oldWayCost(shift, use, prices, hours, mean);
+    if (shift) day.old = beforeAutopilotCost(shift, use, prices, hours, mean);
     if (withCharges) {
         const rank = new Map(ranked.map((at, i) => [at, ranked.length > 1 ? i / (ranked.length - 1) : 0]));
         day.charges = chargeRanks(hours, use, rank);
@@ -129,7 +129,7 @@ export function partialDay(date: string, hours: number[], use: Map<number, numbe
     });
     const mean = sofar.reduce((s, at) => s + prices.get(at)!, 0) / sofar.length;
     const day: SavingsDay = {date, tiers: tiers.map(round) as [number, number, number], cost: round(cost), mean: round(mean), live};
-    if (shift) day.old = oldWayCost(shift, use, prices, hours, mean);
+    if (shift) day.old = beforeAutopilotCost(shift, use, prices, hours, mean);
     if (withCharges) {
         const rank = new Map(ranked.map((at, i) => [at, ranked.length > 1 ? i / (ranked.length - 1) : 0]));
         day.charges = chargeRanks(sofar, use, rank);
@@ -232,10 +232,10 @@ export function kwhPerLitreOf(days: SavingsDay[]): number | undefined {
     return Math.round(kwh / known.reduce((s, d) => s + d.litres!, 0) * 1e5) / 1e5;
 }
 
-/** What a day saved against the baseline, in money: the old way minus what the day cost.
- *  Negative when it cost more. The old way is the day's kWh at its own prices at the baseline's
+/** What a day saved against the baseline, in money: before Autopilot minus what the day cost.
+ *  Negative when it cost more. Before Autopilot is the day's kWh at its own prices at the baseline's
  *  ratio to the day's average; heating's model figure (`old`) is logged beside it, not used.
- *  The old way's kWh: hot water with its litres known, those litres at the baseline's kWh per
+ *  The before-Autopilot kWh: hot water with its litres known, those litres at the baseline's kWh per
  *  litre; otherwise the day's own kWh (heating: the house sets the heat, Autopilot only moves it).
  *  Hot water without a kWh per litre (no tank readings before Autopilot, or the ratio-1 fallback
  *  baseline) is priced from its own kWh too, which does not see a hotter tank: a known gap. */
@@ -421,7 +421,7 @@ export function savingsData(title: string, stored: SavingsDay[], t: Translate, c
     } else {
         // The share of heat in the cheapest hours is not shown for hot water (2026-11-21): heating
         // the tank hotter, or with the immersion heater, in cheap hours raises it while costing more.
-        // The shower below prices the same water the old way at the same prices instead.
+        // The shower below prices the same water before Autopilot at the same prices instead.
         const whole = counted.filter((d) => d !== c.sofar);
         const shower = (list: SavingsDay[], extra: (d: SavingsDay) => number) => {
             const known = list.filter((d) => (d.litres ?? 0) > 0);

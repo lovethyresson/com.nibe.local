@@ -1835,7 +1835,7 @@ never swallow them.
     A whole Autopilot day after the first-live day saves its kWh at that ratio of its own average,
     minus what they cost. That holds the old usage pattern at today's prices, so a price change
     between the periods does not read as a saving. Days add up into the last 7 days, this month and
-    this year. Hot water, since 2026-11-21: the old way's kWh are the day's litres at the
+    this year. Hot water, since 2026-11-21: the before-Autopilot kWh are the day's litres at the
     baseline's kWh per litre (`Baseline.kwhPerLitre`), not Autopilot's own kWh. Applied to
     Autopilot's own kWh, the ratio hid a hotter tank or the immersion heater, which cost more per
     litre while buying in cheap hours.
@@ -1858,7 +1858,7 @@ never swallow them.
     costing more. Heating keeps its share: the house sets the heat, so where it is bought is the
     lever. The Overview's ring shows heating's share only, for the same reason.
   - It shows when the energy was used. Total kWh and comfort are what the modelled figure above adds.
-  - **A modelled old way, logged only (2026-11-22, `shift-cost.ts`).** Each heating day is
+  - **A modelled before-Autopilot cost, logged only (2026-11-22, `shift-cost.ts`).** Each heating day is
     simulated twice with the house model, as fed and with Autopilot's average feed held steady; the
     difference counts a pre-heat's extra use and follows the season. It is recorded and logged
     beside the baseline's saving; the widget still shows the baseline's.

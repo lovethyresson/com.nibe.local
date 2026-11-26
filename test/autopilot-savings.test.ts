@@ -238,7 +238,7 @@ test('hot water: charges are runs of charging hours, placed at their hours\' pri
     assert.ok(d.charges![1] > 2 / 3, `the 17:00 charge in the most expensive third, at ${d.charges![1]}`);
 });
 
-test('hot water: a shower now and the old way at the same prices, priced from litres', () => {
+test('hot water: a shower now and before Autopilot at the same prices, priced from litres', () => {
     const b = baselineOf(before, '2026-11-14')!;
     const withWater = after.map((d) => ({...d, litres: 200}));
     const d = savingsData('Hot water', [...before, ...withWater], translator('en'),
@@ -266,7 +266,7 @@ test('hot water heated in cheap hours but less efficiently is not counted as a s
     const b = baselineOf(withLitres, '2026-11-14')!;
     assert.ok(Math.abs(b.kwhPerLitre! - 0.05) < 1e-9);
     const hot = {...day('2026-11-15', [12, 2, 1], 1.5, 13.5, 1), litres: 200};
-    // The old way: 200 L × 0.05 × 1.5 × 16/15 = 16 kr, against 13.5 paid: 2.5 kr, not the 10.5 kr
+    // Before Autopilot: 200 L × 0.05 × 1.5 × 16/15 = 16 kr, against 13.5 paid: 2.5 kr, not the 10.5 kr
     // its own 15 kWh at the old ratio would claim.
     assert.ok(Math.abs(daySaving(hot, b) - 2.5) < 0.01);
     assert.ok(Math.abs(daySaving({...hot, litres: undefined}, b) - 10.5) < 0.01, 'without litres, its own kWh');

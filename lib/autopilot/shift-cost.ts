@@ -1,5 +1,5 @@
 /** What heating's shifts cost in electricity, from the house model: the same day twice, once with
- *  the BT1 Autopilot fed and once with its average feed held steady (the old way: the same comfort,
+ *  the BT1 Autopilot fed and once with its average feed held steady (before Autopilot: the same comfort,
  *  nothing moved between hours). The meter gives the day's real use; the model gives only the
  *  difference, so its error in the level of use does not enter the saving.
  *
@@ -7,8 +7,8 @@
  *  - per hour, the electricity the shift added or took away, including the lower COP of a warmer
  *    supply (planner.ts `slotCop`);
  *  - at the end, the heat the shifted day left in the house beyond the steady one (air and mass),
- *    as electricity: a pre-heat that leaks away shows up here as heat the old way still has, and a
- *    house heated ahead of tomorrow's expensive morning as heat the old way would have to buy.
+ *    as electricity: a pre-heat that leaks away shows up here as heat the before-Autopilot day still has, and a
+ *    house heated ahead of tomorrow's expensive morning as heat the before-Autopilot day would have to buy.
  *
  *  Pure; the collector gathers the slots (collector.ts `shiftEffect`). Design: savings.ts. */
 
@@ -49,7 +49,7 @@ export function shiftEffect(house: HouseParams, pump: PumpCurve, slots: ShiftSlo
     if (!indoor.length) return undefined;
     const comfort = indoor.reduce((a, b) => a + b, 0) / indoor.length;
     const ti = Number.isFinite(slots[0].ti) ? slots[0].ti : comfort;
-    // What the pump fed against the real outdoor: the old way keeps the unfed slots as they were and
+    // What the pump fed against the real outdoor: before Autopilot keeps the unfed slots as they were and
     // holds the fed ones at their average, so the comfort Autopilot kept stays and only the moving goes.
     const real = slots.map((s) => s.te - s.bt1);
     const fed = slots.filter((s) => s.fed).map((s) => s.te - s.bt1);
@@ -72,10 +72,10 @@ export function shiftEffect(house: HouseParams, pump: PumpCurve, slots: ShiftSlo
     return {hours, carry: stored / (Number.isFinite(cop) && cop > 0 ? cop : shifted.cop[n])};
 }
 
-/** What the day would have cost the old way: each hour's metered kWh less what the shift added, at
+/** What the day would have cost before Autopilot: each hour's metered kWh less what the shift added, at
  *  that hour's price, and the heat left over at the day's average price. Undefined without an
  *  effect for every metered hour. */
-export function oldWayCost(effect: ShiftEffect, use: Map<number, number>, prices: Map<number, number>, hours: number[],
+export function beforeAutopilotCost(effect: ShiftEffect, use: Map<number, number>, prices: Map<number, number>, hours: number[],
     mean: number): number | undefined {
     let cost = 0;
     for (const at of hours) {

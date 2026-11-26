@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {HouseParams} from '../lib/autopilot/model';
-import {ShiftSlot, oldWayCost, shiftEffect} from '../lib/autopilot/shift-cost';
+import {ShiftSlot, beforeAutopilotCost, shiftEffect} from '../lib/autopilot/shift-cost';
 import {daySaving, savingsDay} from '../lib/autopilot/savings';
 
 const HOUR = 3_600_000;
@@ -34,7 +34,7 @@ test('a pre-heat at a flat price costs something: the warmer house loses more he
     // What the pump drew: a steady 1 kWh an hour plus what the shift moved.
     const use = new Map(hours.map((at) => [at, 1 + (effect.hours.get(at) ?? 0)]));
     const flat = new Map(hours.map((at) => [at, 1]));
-    const old = oldWayCost(effect, use, flat, hours, 1)!;
+    const old = beforeAutopilotCost(effect, use, flat, hours, 1)!;
     const cost = hours.reduce((s, at) => s + use.get(at)!, 0);
     assert.ok(old - cost < 0, `saving ${old - cost} should be a loss`);
     assert.ok(effect.carry < 0, 'the shifted day ends with less heat in the house');
@@ -44,12 +44,12 @@ test('the same pre-heat into cheap night hours before expensive ones saves', () 
     const effect = shiftEffect(house, pump, day(preheat))!;
     const use = new Map(hours.map((at) => [at, 1 + (effect.hours.get(at) ?? 0)]));
     const prices = new Map(hours.map((at, h) => [at, h < 6 ? 0.5 : h < 12 ? 2 : 1]));
-    const old = oldWayCost(effect, use, prices, hours, 1.125)!;
+    const old = beforeAutopilotCost(effect, use, prices, hours, 1.125)!;
     const cost = hours.reduce((s, at) => s + use.get(at)! * prices.get(at)!, 0);
     assert.ok(old - cost > 0, `saving ${old - cost} should be positive`);
 });
 
-test('a heating day records the model\'s old way beside the baseline\'s, which stays the saving', () => {
+test('a heating day records the model\'s before-Autopilot cost beside the baseline\'s, which stays the saving', () => {
     const effect = shiftEffect(house, pump, day(preheat))!;
     const use = new Map(hours.map((at) => [at, 1 + (effect.hours.get(at) ?? 0)]));
     const prices = new Map(hours.map((at, h) => [at, h < 6 ? 0.5 : h < 12 ? 2 : 1]));

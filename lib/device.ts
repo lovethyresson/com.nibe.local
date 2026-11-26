@@ -3479,16 +3479,16 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     /** Dates a refresh could not complete (a gap in the meter, no prices), and when. They are tried
      *  again once a day, so a day that never completes costs no hourly Homey API calls. */
     private savingsTried = new Map<string, number>();
-    /** Heating days already priced again with the model's old way this run (refreshSavings). */
+    /** Heating days already priced again with the model's before-Autopilot cost this run (refreshSavings). */
     private oldTried = new Set<string>();
 
     /** Heating's two savings for a day, logged side by side while only the baseline's is shown:
-     *  the baseline's ratio (what the widget counts) and the house model's old way (shift-cost.ts). */
+     *  the baseline's ratio (what the widget counts) and the house model's before-Autopilot cost (shift-cost.ts). */
     private logBothSavings(date: string, day: SavingsDay) {
         const base = this.getStoreValue(BASELINE_STORE) as Baseline | null;
         const ratio = base && typeof base.ratio === 'number' ? Math.round(daySaving(day, base) * 100) / 100 : 'no baseline';
         this.log(`Savings: ${date} saved ${ratio} by the baseline, ${Math.round((day.old! - day.cost) * 100) / 100} by the model `
-            + `(paid ${day.cost}, the model's old way ${day.old}).`);
+            + `(paid ${day.cost}, the model's before Autopilot ${day.old}).`);
     }
 
     /** Keep the Smart mode changes the savings widget sorts days by: Autopilot live or not. */
@@ -3612,7 +3612,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             const shiftsFrom = this.role === 'heating' ? readSettle(this.getStoreValue(SETTLE_STORE))?.liveAt ?? Infinity : -Infinity;
             const fedShifting = (at: number) => (at < shiftsFrom ? false : fedLive?.get(at));
             const liveHour = (at: number) => savingsLive(at, shiftsFrom, liveAt(marks, at), fedLive?.get(at));
-            // Heating's old way from the house model (shift-cost.ts), over the hours from the first
+            // Heating's before-Autopilot cost from the house model (shift-cost.ts), over the hours from the first
             // of `hours` to `toMs`, with the hours Autopilot ran live as the ones it shifted.
             const shiftOf = (hours: number[], toMs: number) => (this.role === 'heating' && hours.length
                 ? this.autopilot?.shiftEffect(hours[0], toMs, (at) => liveHour(at) === true) : undefined);
@@ -3656,7 +3656,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 else this.savingsTried.set(date, now);
                 if (day && day.old !== undefined) this.logBothSavings(date, day);
             }
-            // Heating days counted before the model's old way existed, still in the meter's reach and
+            // Heating days counted before the model's before-Autopilot cost existed, still in the meter's reach and
             // the model's history: priced again with it, once each.
             if (this.role === 'heating') {
                 for (const stale of stored.filter((d) => d.old === undefined && (d.live ?? 0) > 0 && !this.oldTried.has(d.date))) {

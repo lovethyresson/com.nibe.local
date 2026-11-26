@@ -4,7 +4,7 @@
 // Per local day, from the Autopilot history file (lib/autopilot/history.ts) and the house model
 // saved beside it:
 //   - saved: what the day would have cost with the BT1 offsets Autopilot fed held at their average
-//     (the app's "old way", lib/autopilot/shift-cost.ts `shiftEffect`), minus what it cost. Weather
+//     (the app's "before Autopilot" cost, lib/autopilot/shift-cost.ts `shiftEffect`), minus what it cost. Weather
 //     and prices are the same on both sides, so weeks with different weather can be compared.
 //   - cost: heating electricity at each slot's price, the hot water share of a slot left out.
 //   - spread: the day's most expensive hour minus its cheapest, to even out flat and spiky weeks.
@@ -106,7 +106,7 @@ function scoreDay(first) {
     let saved = 0;
     const effect = fit?.params && !broken && shift.length === SLOTS ? shiftEffect(fit.params, pump, shift) : undefined;
     if (effect) {
-        // Old way minus paid: the electricity the shift added, at its hour's price, given back, and
+        // Before Autopilot minus paid: the electricity the shift added, at its hour's price, given back, and
         // the heat the day left in the house beyond the steady one, at the day's average price.
         for (const [hour, extra] of effect.hours) saved -= extra * (prices.get(hour) ?? mean(hourly));
         saved += effect.carry * mean(hourly);
