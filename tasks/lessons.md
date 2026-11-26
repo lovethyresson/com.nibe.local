@@ -657,3 +657,10 @@ per-run meter figures taken from hourly Insights, which are hourly means, not co
 The minute meter showed the run made 2.4 kWh in 19 min (7.6 kW): the 220 L was right, and the
 87 L before the run was the wrong one. Rule: before calling a sensor-derived figure impossible,
 read the pump's own meter at minute resolution for that window, and test both ends of the jump.
+
+## 2026-11-26: research prior work before planning a model
+I planned a hot water litres investigation (logging, a draw test, three candidate models) from
+this repo's own docs alone. Estimating the hot water left in a stratified tank from a few sensors
+is a well-studied problem (manufacturers, theses, hobbyists). Rule: before planning any model or
+estimator, search the literature, manufacturers and the HA community first, and build the plan
+on what they found (memory: research-ha-community-first).
