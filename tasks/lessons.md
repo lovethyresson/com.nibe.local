@@ -645,3 +645,8 @@ I said hot water had no Autopilot trigger after filtering card ids by "autopilot
 `hotwater_charge_started` ("Hot water heating started", reason + detailed reason + autopilot) exists.
 Rule: when asked whether a Flow card exists, list all cards for that device/feature by title,
 not by an id pattern.
+
+## 2026-11-26: one position on an unproven effect
+I flip-flopped on wind: "doesn't matter" one day, "cost 0.8 °C, must account for it" the next.
+Rule: an effect that is unproven and parked stays out of explanations and test designs. State it
+once as unproven, and change that only with a back-test result.
