@@ -1,8 +1,10 @@
-/** The Energy today widget's data (widgets/energy): the heat pump's electricity per hour today,
- *  split by function (and Main's idle use), against the hour's price, and three numbers: kWh so far, what it cost, and
- *  the share used in the day's cheapest hours. Pure; the device gathers the inputs. */
-import {niceAxis} from './widget';
-import {RESET_SHARE} from './savings';
+/** The Heating performance widget's data (widgets/energy, named Energy today until 2026-11): the heat
+ *  pump's electricity per hour today, split by function (and Main's idle use), against the hour's price,
+ *  and three numbers: kWh so far, what it cost, and the share used in the day's cheapest hours. Under it,
+ *  what Autopilot sent as the outdoor temperature (BT1) and what the house did indoors, so an owner sees
+ *  the shift and the electricity follow the price. Pure; the device gathers the inputs. */
+import {Axis, niceAxis, WidgetSlot} from './widget';
+import {RESET_SHARE, moneyText} from './savings';
 
 /** The devices whose use is shown, in stacking order (bottom first): the functions, then Main's
  *  idle use, so the total matches the pump's devices in Homey Energy. */
@@ -123,9 +125,59 @@ export function useToday(m: MeterReads, hours: number[], now = Date.now()): {use
     return {use, slots};
 }
 
+/** The two strips under the electricity chart, per 15-minute slot of today (index = slot from local
+ *  midnight; a clock-change day has 92 or 100). `offset` is BT1 as sent minus the real outdoor
+ *  temperature (positive = sent warmer, so it heats less), recorded before `planFrom` and Autopilot's
+ *  plan from it; `indoor` the recorded reading, before `planFrom` only. */
+export interface HeatingStrips {
+    offset?: (number | null)[];
+    indoor?: (number | null)[];
+    /** The thermostat, drawn as a dashed line on the indoor strip. */
+    setpoint?: number;
+    /** The first slot that is plan, not record. */
+    planFrom: number;
+    shiftAxis?: Axis;
+    indoorAxis?: Axis;
+}
+
+/** The strips from heating's slots (widget.ts `heatingSlots`: the past, then the plan from `now`).
+ *  The shift is left out where nothing was ever sent today and nothing is planned, so an owner
+ *  without Autopilot heating sees no flat line; indoor where there is no reading. */
+export function heatingStrips(slots: WidgetSlot[], now: number, setpoint?: number): HeatingStrips {
+    const offset = slots.map((s) => (s.offset === undefined ? null : s.offset));
+    const indoor = slots.map((s, k) => (k < now && s.indoor !== undefined ? s.indoor : null));
+    const shifts = offset.filter((v): v is number => v !== null);
+    const readings = indoor.filter((v): v is number => v !== null);
+    const out: HeatingStrips = {planFrom: now, ...Number.isFinite(setpoint) ? {setpoint} : {}};
+    if (shifts.some((v) => v !== 0)) {
+        const m = Math.max(...shifts.map(Math.abs));
+        out.offset = offset;
+        out.shiftAxis = niceAxis(-m, m, {include: [0], steps: [1, 2, 5, 10], maxIntervals: 2});
+    }
+    if (readings.length) {
+        const span = out.setpoint === undefined ? readings : [...readings, out.setpoint];
+        out.indoor = indoor;
+        out.indoorAxis = niceAxis(Math.min(...span) - 0.2, Math.max(...span) + 0.2, {minSpan: 0.6, steps: [0.5, 1, 2, 5], maxIntervals: 3});
+    }
+    return out;
+}
+
+/** Currencies whose unit is worth about a quarter of a euro or less: a day's cost is written in whole
+ *  units ("149 kr"). The rest round to 10 cents ("€5.30"), about the same step in money. */
+const SMALL_UNIT = new Set(['SEK', 'NOK', 'DKK', 'ISK', 'CZK', 'PLN', 'HUF', 'RON', 'JPY', 'ZAR']);
+
+/** A day's cost as an owner reads a bill, not to the öre. */
+export function dayCostText(v: number, language: string, currency: string): string {
+    const code = currency.toUpperCase();
+    if (SMALL_UNIT.has(code) || !/^[A-Z]{3}$/.test(code)) return moneyText(Math.round(v), 0, language, currency);
+    return moneyText(Math.round(v * 10) / 10, 2, language, currency);
+}
+
 /** Everything the widget draws, translated. Without `chart` it shows `empty`, or the loading state. */
 export interface EnergyWidgetData {
     title: string;
+    /** The card's heading. */
+    heading?: string;
     badge?: string;
     empty?: string;
     loading?: boolean;
@@ -135,6 +187,8 @@ export interface EnergyWidgetData {
     /** Now in hours from midnight, at its 15-minute slot (14.75 is 14:45), the hours to label, and the legend. */
     now?: number;
     ticks?: {at: number; label: string}[];
-    legend?: {heating: string; hotwater: string; main: string; price: string};
-    axes?: {kwh: string; price: string};
+    legend?: {heating: string; hotwater: string; main: string; price: string; offset?: string; indoor?: string};
+    axes?: {kwh: string; price: string; offset?: string; indoor?: string; more?: string; less?: string};
+    /** The outdoor shift and indoor strips; absent without a Heating device. */
+    strips?: HeatingStrips;
 }

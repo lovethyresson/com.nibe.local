@@ -33,7 +33,7 @@ import {WidgetData, aimingFor, chargeBands, symmetricAxis, formatDuration, heati
 import {HotwaterUseData, TodayRow, hotwaterWeek, useRuns} from './autopilot/hotwater-use';
 import {TankWidgetData, tankChart} from './autopilot/hotwater-tank';
 import {ComfortDay, ComfortSlot, addComfortSlot, readComfortDays} from './autopilot/comfort-days';
-import {ENERGY_ROLES, EnergyWidgetData, energyChart, useToday} from './autopilot/energy';
+import {ENERGY_ROLES, EnergyWidgetData, HeatingStrips, dayCostText, energyChart, heatingStrips, useToday} from './autopilot/energy';
 import {NowKind, OVERVIEW_KINDS, OverviewData, OverviewFact, OverviewKind, OverviewNow, OverviewTile, overviewData, plannedAhead} from './autopilot/overview';
 import {SLOT_MS, localDate, localMinutes, slotOf} from './autopilot/prices';
 import {CHECK_DAYS, CurveView, LiveReason, SettleEvent, SettleState, Step, calibrateDay, change, checkedWhileSettling, daysBetween, readSettle, scoreDay, withinRange,
@@ -3098,11 +3098,29 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         };
     }
 
-    // ---- The Energy today widget (widgets/energy) ----
+    // ---- The Heating performance widget (widgets/energy, Energy today until 2026-11) ----
 
-    /** What the Energy today widget draws for this pump (picked by its Main device): the hourly
-     *  use of its Heating and Hot water, and Main's idle use, against today's price. Every string translated here. */
-    energyWidget(): EnergyWidgetData {
+    /** Heating's part of Heating performance: today's outdoor shift and indoor, per slot from local
+     *  midnight, the same slots the Autopilot widget draws (recorded, then the plan from now). */
+    heatingStripsToday(): HeatingStrips | undefined {
+        if (this.role !== 'heating') return undefined;
+        const slot = slotOf(Date.now());
+        const local = localClock(this.homey.clock.getTimezone());
+        const day = todaySlots(slot, (ms) => local(ms).date);
+        const now = slot - day.from;
+        // One entry per slot since midnight, whatever the history holds, so the plan lands at now.
+        const recorded = this.autopilot?.recent(day.from, now) ?? [];
+        const past = Array.from({length: now}, (_, k) => recorded[k] ?? {});
+        const plan = autopilotRuns(this.smartMode() as SmartMode) ? this.heatingFeed?.state : undefined;
+        const slots = heatingSlots(past, plan, slot, day.n - now);
+        const setpoint = Number(this.getCapabilityValue('target_temperature'));
+        return heatingStrips(slots, now, Number.isFinite(setpoint) ? setpoint : undefined);
+    }
+
+    /** What the Heating performance widget draws for this pump (picked by its Main device): the hourly
+     *  use of its Heating and Hot water, and Main's idle use, against today's price, then heating's
+     *  outdoor shift and indoor. Every string translated here. */
+    energyWidget(withStrips = true): EnergyWidgetData {
         const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.energy.${key}`, tokens);
         const title = this.getName();
         const host = String(this.getData().id).split('#')[0];
@@ -3135,16 +3153,20 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // draw it: the line falls inside the hour's bar, which holds the use so far.
         const hour = Math.max(0, hours.findIndex((at) => at > Date.now()) - 1);
         const now = hour + Math.floor((Date.now() - hours[hour]) / (15 * 60_000)) / 4;
-        return {title, chart, now,
+        const w = (key: string) => this.homey.__(`autopilot.widget.${key}`);
+        const strips = withStrips ? byRole.get('heating')?.heatingStripsToday?.() as HeatingStrips | undefined : undefined;
+        return {title, heading: t('heading'), chart, now,
             numbers: [
                 {value: `${kwh} kWh`, label: t('used')},
-                // Two decimals, as Homey Energy shows the same cost.
-                {value: moneyText(chart.cost, 2, language, currency), label: t('cost')},
+                // Whole kronor, euro to 10 cents (owner's choice, 2026-11-26): a day's cost, not a meter reading.
+                {value: dayCostText(chart.cost, language, currency), label: t('cost')},
                 ...chart.cheapShare === undefined ? [] : [{value: `${Math.round(chart.cheapShare * 100)} %`, label: t('cheap'), good: true}],
             ],
             ticks: [0, 6, 12, 18].map((k) => ({at: k, label: this.clock(hours[0] + k * HOUR_MS)})),
-            legend: {heating: t('heating'), hotwater: t('hotwater'), main: t('idle'), price: t('price')},
-            axes: {kwh: 'kWh', price: t('price_axis')}};
+            legend: {heating: t('heating'), hotwater: t('hotwater'), main: t('idle'), price: t('price'),
+                offset: w('offset'), indoor: w('indoor')},
+            axes: {kwh: 'kWh', price: t('price_axis'), offset: `${w('offset')} °C`, indoor: w('axis_indoor'), more: t('more'), less: t('less')},
+            ...strips ? {strips} : {}};
     }
 
     // ---- The Overview widget (widgets/overview) ----
@@ -3167,7 +3189,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const one = (v: number) => numberFormat(language, {minimumFractionDigits: 1, maximumFractionDigits: 1}).format(v);
         const kinds = OVERVIEW_KINDS.filter((k) => byRole.has(k));
         if (!kinds.length) return {title, empty: this.homey.__('autopilot.energy.no_functions'), tiles: [], facts: []};
-        const energy = this.energyWidget();
+        // Its numbers only: the strips are not drawn here.
+        const energy = this.energyWidget(false);
         if (energy.loading && !offline) return {title, loading: true, tiles: [], facts: []};
 
         // Hot water's plan: the run in progress (its end and reason) and the next one.
@@ -3244,7 +3267,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (used && spent) facts.push({label: t('today'), value: `${used} · ${spent}`});
         const currency = String(siblings.map((d) => d.energyToday?.()?.currency).find(Boolean) ?? '');
         const ahead = this.restOfToday(energy, siblings);
-        if (ahead) facts.push({label: t('by_midnight'), value: t('by_midnight_value', {kwh: one(ahead.kwh), cost: moneyText(ahead.cost, 0, language, currency)})});
+        if (ahead) facts.push({label: t('by_midnight'), value: t('by_midnight_value', {kwh: one(ahead.kwh), cost: dayCostText(ahead.cost, language, currency)})});
         const month = this.monthFigures(byRole, language);
         // The month's figures as a group of their own, a little apart from today's.
         const split = facts.length > 0 ? {split: true} : {};

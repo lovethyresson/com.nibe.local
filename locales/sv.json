@@ -948,7 +948,10 @@
       "price": "Pris",
       "price_axis": "Pris per kWh",
       "no_prices": "Kräver dynamiska elpriser i Homey Energy.",
-      "no_functions": "Värmepumpen har ingen enhet för uppvärmning eller varmvatten."
+      "no_functions": "Värmepumpen har ingen enhet för uppvärmning eller varmvatten.",
+      "heading": "Värmeprestanda",
+      "more": "mer",
+      "less": "mindre"
     },
     "cost_check": {
       "title": "Plan mot utfall",

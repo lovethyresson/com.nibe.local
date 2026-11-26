@@ -8383,14 +8383,14 @@
     },
     "energy": {
       "name": {
-        "en": "Energy today",
-        "sv": "Energi i dag",
-        "de": "Energie heute",
-        "nl": "Energie vandaag",
-        "no": "Energi i dag",
-        "da": "Energi i dag"
+        "en": "Heating performance",
+        "sv": "Värmeprestanda",
+        "de": "Heizbilanz",
+        "nl": "Verwarmingsprestaties",
+        "no": "Varmeytelse",
+        "da": "Varmeydelse"
       },
-      "height": 360,
+      "height": 520,
       "transparent": false,
       "settings": [
         {

@@ -1,16 +1,19 @@
 <html>
   <head>
+    <meta charset="utf-8">
     <style>
       .en { padding: var(--homey-su-2, 8px) var(--homey-su-3, 12px); }
       .en-title { opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .en-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
       .en-chip { font-size: 0.8em; padding: 2px 8px; border-radius: 999px; background: transparent; border: 1px solid rgba(127, 127, 127, 0.4); opacity: 0.75; }
-      .en-status { text-wrap: balance; margin: 12px 0 0; font-size: 1.35em; font-weight: 600; }
+      .en-status { text-wrap: balance; margin: 4px 0 0; font-size: 1.35em; font-weight: 600; }
       .en-reason { margin: 4px 0 0; opacity: 0.85; }
       .en-chart { display: block; margin-top: 14px; overflow: visible; }
       .en-chart text { font-size: 11px; fill: currentColor; opacity: 0.75; }
       .en-chart text.axis-title { font-size: 11px; font-weight: 600; opacity: 0.85; }
       .en-chart text.grid { font-size: 10px; opacity: 0.55; }
+      .en-chart text.lane { font-size: 10.5px; opacity: 0.6; }
+      .en-chart text.side { opacity: 0.5; }
       .en-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.8em; opacity: 0.9; margin-top: 10px; }
       .en-key { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; box-sizing: border-box; }
       .en-key.line { height: 3px; border-radius: 2px; vertical-align: 3px; }
@@ -28,12 +31,13 @@
       .en-num b { display: block; font-size: 1.35em; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
       .en-num b.good { color: var(--en-cheap); }
       .en-num span { opacity: 0.7; }
-      /* Heating in blue, hot water in violet (the hot water cards' use colour), the price in grey,
-         and the cheap share in the savings cards' cheap colour. */
-      :root { --en-heat: #2d6bd6; --en-water: #7652d6; --en-idle: #a7adb6; --en-price: rgba(127, 127, 127, 0.95); --en-cheap: #0f8374; }
-      :root[data-theme="dark"] { --en-heat: #4da3ff; --en-water: #a48cff; --en-idle: #6c737d; --en-cheap: #2bb3a3; }
+      /* Heating in blue, hot water in violet (the hot water cards' use colour), the price in orange (the
+         owner's choice, 2026-11-26, so it stands out from the bars), and the cheap share in the savings
+         cards' cheap colour. The outdoor shift and indoor are the text colour: they are read, not keyed. */
+      :root { --en-heat: #2d6bd6; --en-water: #7652d6; --en-idle: #a7adb6; --en-price: #d46a00; --en-cheap: #0f8374; }
+      :root[data-theme="dark"] { --en-heat: #4da3ff; --en-water: #a48cff; --en-idle: #6c737d; --en-price: #ff9f0a; --en-cheap: #2bb3a3; }
       @media (prefers-color-scheme: dark) {
-        :root:not([data-theme="light"]) { --en-heat: #4da3ff; --en-water: #a48cff; --en-idle: #6c737d; --en-cheap: #2bb3a3; }
+        :root:not([data-theme="light"]) { --en-heat: #4da3ff; --en-water: #a48cff; --en-idle: #6c737d; --en-price: #ff9f0a; --en-cheap: #2bb3a3; }
       }
     </style>
   </head>
@@ -143,10 +147,13 @@
       }
 
       // kWh per hour as bars, heating at the bottom, then hot water, Main's idle use on top, on the left scale; the
-      // hour's price as a line on the right scale; a thin line at now.
+      // hour's price as a line on the right scale. Under it, on the same hours, the outdoor shift Autopilot
+      // sent (the plan after now lighter) and indoor against the thermostat. A thin line at now through all.
+      var STRIP = 52, STRIP_GAP = 32;
       function energyChart(data) {
         var c = data.chart, W = chartWidth(), L = GUTTER, R = W - GUTTER, n = c.hours.length, step = (R - L) / n, bw = Math.max(2, step * 0.7);
-        var PH = Math.max(110, Math.min(170, Math.round(W * 0.38))) + EXTRA, T = 20, B = T + PH, H = B + 24;
+        var st = data.strips || {}, lanes = (st.offset ? 1 : 0) + (st.indoor ? 1 : 0);
+        var PH = Math.max(110, Math.min(170, Math.round(W * 0.38))) + EXTRA, T = 20, B = T + PH, H = B + lanes * (STRIP + STRIP_GAP) + 24;
         var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'en-chart', role: 'img'});
         var yk = function (v) { return B - PH * v / c.kwhAxis.max; }, yp = function (v) { return B - PH * v / c.priceAxis.max; };
         var x = function (k) { return L + step * (k + 0.5); };
@@ -174,11 +181,63 @@
         });
         var p = [];
         c.hours.forEach(function (h, k) { if (typeof h.price === 'number') p.push([x(k), yp(h.price)]); });
-        if (p.length) svg.appendChild(svgEl('path', {d: monotone(p), fill: 'none', stroke: 'var(--en-price)', 'stroke-width': 2, 'stroke-linecap': 'round'}));
+        if (p.length) svg.appendChild(svgEl('path', {d: monotone(p), fill: 'none', stroke: 'var(--en-price)', 'stroke-width': 2.4, 'stroke-linecap': 'round'}));
+        var bottom = B, sx = function (k) { return L + step * k / 4; };
+        if (st.offset && st.shiftAxis) bottom = shiftStrip(svg, st, data.axes, bottom + STRIP_GAP, L, R, sx);
+        if (st.indoor && st.indoorAxis) bottom = indoorStrip(svg, st, data.axes, bottom + STRIP_GAP, L, R, sx);
         if (typeof data.now === 'number')
-          svg.appendChild(svgEl('line', {x1: L + step * data.now, x2: L + step * data.now, y1: T - 4, y2: B, stroke: 'currentColor', 'stroke-opacity': 0.4}));
+          svg.appendChild(svgEl('line', {x1: L + step * data.now, x2: L + step * data.now, y1: T - 4, y2: bottom, stroke: 'currentColor', 'stroke-opacity': 0.4}));
         hours(svg, data.ticks.map(function (t) { return {x: L + step * t.at, label: t.label}; }), H - 6);
         return svg;
+      }
+
+      function signed(v) { return v > 0 ? '+' + v : v < 0 ? '−' + Math.abs(v) : '0'; }
+
+      // BT1 as sent minus the real outdoor temperature, in steps from 0: below 0 it was sent colder, so the
+      // heat pump heats more. Recorded up to now, the plan after it lighter.
+      function shiftStrip(svg, st, axes, top, L, R, sx) {
+        var a = st.shiftAxis, y = function (v) { return top + STRIP * (a.hi - v) / (a.hi - a.lo); };
+        svg.appendChild(svgEl('text', {x: 0, y: top - 8, class: 'lane'}, axes.offset));
+        svg.appendChild(svgEl('line', {x1: L, x2: R, y1: y(0), y2: y(0), stroke: 'currentColor', 'stroke-opacity': 0.3}));
+        [a.lo, 0, a.hi].forEach(function (v) { svg.appendChild(svgEl('text', {x: L - 4, y: y(v) + 4, 'text-anchor': 'end'}, signed(v))); });
+        if (axes.less) svg.appendChild(svgEl('text', {x: R + 4, y: y(a.hi / 2) + 4, class: 'side'}, axes.less));
+        if (axes.more) svg.appendChild(svgEl('text', {x: R + 4, y: y(a.lo / 2) + 4, class: 'side'}, axes.more));
+        [[0, st.planFrom, 0.75], [st.planFrom, st.offset.length, 0.3]].forEach(function (part) {
+          var d = '', pen = false;
+          for (var k = part[0]; k < part[1]; k++) {
+            var v = st.offset[k];
+            if (typeof v !== 'number') { pen = false; continue; }
+            if (v) svg.appendChild(svgEl('rect', {x: sx(k), y: Math.min(y(0), y(v)), width: sx(k + 1) - sx(k) + 0.2, height: Math.abs(y(v) - y(0)),
+              fill: 'currentColor', 'fill-opacity': part[2] * 0.16}));
+            d += (pen ? 'L' : 'M') + sx(k).toFixed(1) + ' ' + y(v).toFixed(1) + 'H' + sx(k + 1).toFixed(1);
+            pen = true;
+          }
+          if (d) svg.appendChild(svgEl('path', {d: d, fill: 'none', stroke: 'currentColor', 'stroke-opacity': part[2], 'stroke-width': 1.8, 'stroke-linejoin': 'round'}));
+        });
+        return top + STRIP;
+      }
+
+      // Indoor as recorded, a smooth line, and the thermostat dashed.
+      function indoorStrip(svg, st, axes, top, L, R, sx) {
+        var a = st.indoorAxis, y = function (v) { return top + STRIP * (a.hi - v) / (a.hi - a.lo); };
+        svg.appendChild(svgEl('text', {x: 0, y: top - 8, class: 'lane'}, axes.indoor));
+        var hasSet = typeof st.setpoint === 'number';
+        if (hasSet) {
+          svg.appendChild(svgEl('line', {x1: L, x2: R, y1: y(st.setpoint), y2: y(st.setpoint), stroke: 'currentColor', 'stroke-opacity': 0.45, 'stroke-dasharray': '5 4'}));
+          svg.appendChild(svgEl('text', {x: L - 4, y: y(st.setpoint) + 4, 'text-anchor': 'end'}, fmt(st.setpoint, 1)));
+        }
+        // The scale's ends, where they do not crowd the thermostat's label.
+        [a.lo, a.hi].forEach(function (v) {
+          if (hasSet && Math.abs(y(v) - y(st.setpoint)) < 12) return;
+          svg.appendChild(svgEl('text', {x: L - 4, y: y(v) + 4, 'text-anchor': 'end'}, fmt(v, a.decimals)));
+        });
+        runs(st.indoor, function (v) { return v; }).forEach(function (r) {
+          var p = [];
+          for (var k = r[0]; k <= r[1]; k++) p.push([sx(k + 0.5), y(st.indoor[k])]);
+          svg.appendChild(svgEl('path', {d: monotone(p), fill: 'none', stroke: 'currentColor', 'stroke-opacity': 0.8, 'stroke-width': 2, 'stroke-linecap': 'round'}));
+        });
+        svg.appendChild(svgEl('line', {x1: L, x2: R, y1: top + STRIP, y2: top + STRIP, stroke: 'currentColor', 'stroke-opacity': 0.2}));
+        return top + STRIP;
       }
 
       function legend(items) {
@@ -217,9 +276,11 @@
         // The card's own title names it; the device name and an Experimental tag are not repeated.
         if (data.empty) { root.appendChild(el('p', 'en-empty', data.empty)); return; }
         if (data.loading && !data.chart) {
-          root.appendChild(placeholder(Math.max(110, Math.min(170, Math.round(chartWidth() * 0.38))) + 60 + EXTRA));
+          // Room for the two strips too, so the card does not grow when the data comes.
+          root.appendChild(placeholder(Math.max(110, Math.min(170, Math.round(chartWidth() * 0.38))) + 60 + 2 * (STRIP + STRIP_GAP) + EXTRA));
           return;
         }
+        if (data.heading) root.appendChild(el('div', 'en-status', data.heading));
         var nums = el('div', 'en-nums');
         (data.numbers || []).forEach(function (n) {
           var cell = el('div', 'en-num');
@@ -234,7 +295,9 @@
           {text: lg.heating, style: 'background: var(--en-heat);'},
           {text: lg.hotwater, style: 'background: var(--en-water);'},
           {text: lg.main, style: 'background: var(--en-idle);'},
-          {text: lg.price, line: true, style: 'background: var(--en-price);'}]));
+          {text: lg.price, line: true, style: 'background: var(--en-price);'},
+          {text: data.strips && data.strips.offset ? lg.offset : '', line: true, style: 'background: currentColor; opacity: 0.75;'},
+          {text: data.strips && data.strips.indoor ? lg.indoor : '', line: true, style: 'background: currentColor; opacity: 0.8;'}]));
       }
 
       function onHomeyReady(Homey) {

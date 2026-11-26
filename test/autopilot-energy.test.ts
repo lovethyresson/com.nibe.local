@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert';
-import {energyChart, useToday} from '../lib/autopilot/energy';
+import {dayCostText, energyChart, heatingStrips, useToday} from '../lib/autopilot/energy';
 
 const H = 3_600_000;
 // Six hours; prices 1–6 kr; heating every hour so far (four), hot water in two.
@@ -78,4 +78,28 @@ test('a meter restored older than it was, then caught up, puts no use in the cat
     const {use} = useToday({points: v.map((x, k) => ({at: T0 + k * H, v: x})), slots: new Map(), meterNow: 487.4}, hours, T0 + 8 * H);
     assert.equal(use.get(T0 + 6 * H) ?? 0, 0, 'the catch-up is no use');
     assert.ok(Math.abs((use.get(T0 + 7 * H) ?? 0) - 0.8) < 1e-9);
+});
+
+test('a day cost reads as a bill: whole kronor, euro to 10 cents', () => {
+    assert.equal(dayCostText(149.45, 'en', 'SEK'), '149 kr');
+    assert.equal(dayCostText(149.55, 'sv', 'SEK'), '150 kr');
+    assert.equal(dayCostText(5.27, 'en', 'EUR'), '€5.30');
+    assert.equal(dayCostText(5.27, 'nl', 'EUR').replace(/\s/g, ' '), '€ 5,30');
+    assert.equal(dayCostText(12.4, 'en', ''), '12', 'no currency: whole units');
+});
+
+test('heating strips: the shift only when it moved, indoor only up to now', () => {
+    const slots = [{indoor: 22.4, offset: 0}, {indoor: 22.5, offset: -3}, {indoor: 22.6, offset: 2}, {indoor: 22.7, offset: 2}, {}];
+    const s = heatingStrips(slots, 2, 22.5);
+    assert.deepEqual(s.offset, [0, -3, 2, 2, null]);
+    assert.deepEqual(s.indoor, [22.4, 22.5, null, null, null], 'the plan\'s expected indoor is not drawn as a reading');
+    assert.equal(s.planFrom, 2);
+    assert.equal(s.setpoint, 22.5);
+    assert.ok(s.shiftAxis!.lo <= -3 && s.shiftAxis!.hi >= 3 && s.shiftAxis!.lo === -s.shiftAxis!.hi, 'symmetric about 0');
+    assert.ok(s.indoorAxis!.lo <= 22.4 && s.indoorAxis!.hi >= 22.5);
+    // Nothing sent today and nothing planned (Autopilot off): no flat line.
+    const off = heatingStrips([{indoor: 21, offset: 0}, {indoor: 21.1, offset: 0}], 2);
+    assert.equal(off.offset, undefined);
+    assert.ok(off.indoor && off.setpoint === undefined);
+    assert.equal(heatingStrips([{}, {}], 1).indoor, undefined);
 });

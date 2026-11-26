@@ -948,7 +948,10 @@
       "price": "Prijs",
       "price_axis": "Prijs per kWh",
       "no_prices": "Vereist dynamische stroomprijzen in Homey Energy.",
-      "no_functions": "Deze warmtepomp heeft geen apparaat Verwarming of Warm water."
+      "no_functions": "Deze warmtepomp heeft geen apparaat Verwarming of Warm water.",
+      "heading": "Verwarmingsprestaties",
+      "more": "meer",
+      "less": "minder"
     },
     "cost_check": {
       "title": "Plan en werkelijk",

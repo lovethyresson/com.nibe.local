@@ -948,7 +948,10 @@
       "price": "Price",
       "price_axis": "Price per kWh",
       "no_prices": "Requires dynamic electricity prices in Homey Energy.",
-      "no_functions": "This heat pump has no Heating or Hot water device."
+      "no_functions": "This heat pump has no Heating or Hot water device.",
+      "heading": "Heating performance",
+      "more": "more",
+      "less": "less"
     },
     "cost_check": {
       "title": "Plan vs actual",

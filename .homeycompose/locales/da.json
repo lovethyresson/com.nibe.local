@@ -529,7 +529,10 @@
       "price": "Pris",
       "price_axis": "Pris pr. kWh",
       "no_prices": "Kræver dynamiske elpriser i Homey Energy.",
-      "no_functions": "Varmepumpen har ingen enhed til opvarmning eller varmt vand."
+      "no_functions": "Varmepumpen har ingen enhed til opvarmning eller varmt vand.",
+      "heading": "Varmeydelse",
+      "more": "mere",
+      "less": "mindre"
     },
     "cost_check": {
       "title": "Plan mod faktisk",

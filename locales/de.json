@@ -948,7 +948,10 @@
       "price": "Preis",
       "price_axis": "Preis pro kWh",
       "no_prices": "Erfordert dynamische Strompreise in Homey Energie.",
-      "no_functions": "Diese Wärmepumpe hat kein Heizungs- oder Brauchwasser-Gerät."
+      "no_functions": "Diese Wärmepumpe hat kein Heizungs- oder Brauchwasser-Gerät.",
+      "heading": "Heizbilanz",
+      "more": "mehr",
+      "less": "weniger"
     },
     "cost_check": {
       "title": "Plan und Ist",
