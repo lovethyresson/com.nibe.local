@@ -849,7 +849,8 @@
       "away_until": "Borta till __until__ · __c__ °C",
       "charge_done": "Uppvärmt",
       "learning_accuracy": "Förfinar sina prognoser",
-      "learning_steady": "Bekräftar under 3 dagar"
+      "learning_steady": "Bekräftar under 3 dagar",
+      "heating_moved": "Värmens uteförskjutning och inomhustemperatur finns nu på kortet Värmeprestanda. Välj en enhet för Varmvatten här."
     },
     "hotwater_status": {
       "learning": "Lär sig din varmvattenanvändning",
@@ -949,9 +950,7 @@
       "price_axis": "Pris per kWh",
       "no_prices": "Kräver dynamiska elpriser i Homey Energy.",
       "no_functions": "Värmepumpen har ingen enhet för uppvärmning eller varmvatten.",
-      "heading": "Värmeprestanda",
-      "more": "mer",
-      "less": "mindre"
+      "heading": "Värmeprestanda"
     },
     "cost_check": {
       "title": "Plan mot utfall",

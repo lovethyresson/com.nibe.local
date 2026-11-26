@@ -52,10 +52,12 @@ class NibeApp extends Homey.App {
         - Number(a.smartMode?.() === 'autopilot' || a.smartMode?.() === 'test'));
   }
 
-  /** The Autopilot widget (widgets/autopilot): its device picker, and its data by device. */
+  /** The Autopilot widget (widgets/autopilot): its device picker, and its data by device. Hot water
+   *  only since 2026-11-26: heating's shift and indoor are on Heating performance (widgets/energy). */
   private registerAutopilotWidget() {
     const widget = (this.homey as any).dashboards?.getWidget?.('autopilot');
     widget?.registerSettingAutocompleteListener('device', async (query: string) => this.autopilotDevices()
+      .filter((d) => d.role === 'hotwater')
       .map((d) => ({id: String(d.getData().id), name: d.getName()}))
       .filter((d) => !query || d.name.toLowerCase().includes(query.toLowerCase())));
   }
@@ -65,11 +67,13 @@ class NibeApp extends Homey.App {
   autopilotWidget(id: unknown) {
     const line = (key: string) => ({kind: 'none', title: '', chips: [], slots: [], ticks: [], legend: {}, empty: this.homey.__(key)});
     const devices = this.autopilotDevices();
-    const device = devices.find((d) => String(d.getData().id) === String(id)) ?? (id ? undefined : devices[0]);
+    const device = devices.find((d) => String(d.getData().id) === String(id)) ?? (id ? undefined : devices.find((d) => d.role === 'hotwater'));
     // Right after a start the devices are not up yet: "starting", not "pick a device".
     if (!device && process.uptime() < 120) return {kind: 'none', title: '', chips: [], slots: [], ticks: [], legend: {}, loading: true,
       status: this.homey.__('autopilot.widget.starting_title'), reason: this.homey.__('autopilot.widget.starting_app')};
-    if (!device) return line('autopilot.widget.not_function');
+    if (!device) return line('autopilot.savings.pick_hotwater');
+    // A card set to Heating before heating moved to Heating performance says where it went.
+    if (device.role === 'heating') return line('autopilot.widget.heating_moved');
     try {
       return device.autopilotWidget();
     } catch (error) {

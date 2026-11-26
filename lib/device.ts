@@ -33,7 +33,7 @@ import {WidgetData, aimingFor, chargeBands, symmetricAxis, formatDuration, heati
 import {HotwaterUseData, TodayRow, hotwaterWeek, useRuns} from './autopilot/hotwater-use';
 import {TankWidgetData, tankChart} from './autopilot/hotwater-tank';
 import {ComfortDay, ComfortSlot, addComfortSlot, readComfortDays} from './autopilot/comfort-days';
-import {ENERGY_ROLES, EnergyWidgetData, HeatingStrips, dayCostText, energyChart, heatingStrips, useToday} from './autopilot/energy';
+import {ENERGY_ROLES, EnergyWidgetData, HeatingGraph, dayCostText, energyChart, heatingSeries, useToday} from './autopilot/energy';
 import {NowKind, OVERVIEW_KINDS, OverviewData, OverviewFact, OverviewKind, OverviewNow, OverviewTile, overviewData, plannedAhead} from './autopilot/overview';
 import {SLOT_MS, localDate, localMinutes, slotOf} from './autopilot/prices';
 import {CHECK_DAYS, CurveView, LiveReason, SettleEvent, SettleState, Step, calibrateDay, change, checkedWhileSettling, daysBetween, readSettle, scoreDay, withinRange,
@@ -3102,7 +3102,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
 
     /** Heating's part of Heating performance: today's outdoor shift and indoor, per slot from local
      *  midnight, the same slots the Autopilot widget draws (recorded, then the plan from now). */
-    heatingStripsToday(): HeatingStrips | undefined {
+    heatingGraphToday(): HeatingGraph | undefined {
         if (this.role !== 'heating') return undefined;
         const slot = slotOf(Date.now());
         const local = localClock(this.homey.clock.getTimezone());
@@ -3111,16 +3111,17 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // One entry per slot since midnight, whatever the history holds, so the plan lands at now.
         const recorded = this.autopilot?.recent(day.from, now) ?? [];
         const past = Array.from({length: now}, (_, k) => recorded[k] ?? {});
-        const plan = autopilotRuns(this.smartMode() as SmartMode) ? this.heatingFeed?.state : undefined;
+        // The plan only where Autopilot sends it: in Simulation nothing reaches the heat pump.
+        const plan = this.smartMode() === 'autopilot' ? this.heatingFeed?.state : undefined;
         const slots = heatingSlots(past, plan, slot, day.n - now);
         const setpoint = Number(this.getCapabilityValue('target_temperature'));
-        return heatingStrips(slots, now, Number.isFinite(setpoint) ? setpoint : undefined);
+        return heatingSeries(slots, now, Number.isFinite(setpoint) ? setpoint : undefined);
     }
 
     /** What the Heating performance widget draws for this pump (picked by its Main device): the hourly
      *  use of its Heating and Hot water, and Main's idle use, against today's price, then heating's
      *  outdoor shift and indoor. Every string translated here. */
-    energyWidget(withStrips = true): EnergyWidgetData {
+    energyWidget(withHeating = true): EnergyWidgetData {
         const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.energy.${key}`, tokens);
         const title = this.getName();
         const host = String(this.getData().id).split('#')[0];
@@ -3154,7 +3155,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const hour = Math.max(0, hours.findIndex((at) => at > Date.now()) - 1);
         const now = hour + Math.floor((Date.now() - hours[hour]) / (15 * 60_000)) / 4;
         const w = (key: string) => this.homey.__(`autopilot.widget.${key}`);
-        const strips = withStrips ? byRole.get('heating')?.heatingStripsToday?.() as HeatingStrips | undefined : undefined;
+        const heating = withHeating ? byRole.get('heating')?.heatingGraphToday?.() as HeatingGraph | undefined : undefined;
         return {title, heading: t('heading'), chart, now,
             numbers: [
                 {value: `${kwh} kWh`, label: t('used')},
@@ -3164,9 +3165,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             ],
             ticks: [0, 6, 12, 18].map((k) => ({at: k, label: this.clock(hours[0] + k * HOUR_MS)})),
             legend: {heating: t('heating'), hotwater: t('hotwater'), main: t('idle'), price: t('price'),
-                offset: w('offset'), indoor: w('indoor')},
-            axes: {kwh: 'kWh', price: t('price_axis'), offset: `${w('offset')} °C`, indoor: w('axis_indoor'), more: t('more'), less: t('less')},
-            ...strips ? {strips} : {}};
+                offset: w('offset'), indoor: w('indoor'), expected: w('expected')},
+            axes: {kwh: 'kWh', price: t('price_axis'), offset: w('axis_offset'), indoor: w('axis_indoor')},
+            ...heating ? {heating} : {}};
     }
 
     // ---- The Overview widget (widgets/overview) ----
@@ -3189,7 +3190,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         const one = (v: number) => numberFormat(language, {minimumFractionDigits: 1, maximumFractionDigits: 1}).format(v);
         const kinds = OVERVIEW_KINDS.filter((k) => byRole.has(k));
         if (!kinds.length) return {title, empty: this.homey.__('autopilot.energy.no_functions'), tiles: [], facts: []};
-        // Its numbers only: the strips are not drawn here.
+        // Its numbers only: the heating graph is not drawn here.
         const energy = this.energyWidget(false);
         if (energy.loading && !offline) return {title, loading: true, tiles: [], facts: []};
 

@@ -849,7 +849,8 @@
       "away_until": "Afwezig tot __until__ · __c__ °C",
       "charge_done": "Opgewarmd",
       "learning_accuracy": "Verfijnt de voorspellingen",
-      "learning_steady": "Bevestigt over 3 dagen"
+      "learning_steady": "Bevestigt over 3 dagen",
+      "heating_moved": "De verschuiving buitentemperatuur en binnentemperatuur van de verwarming staan nu op de kaart Verwarmingsprestaties. Kies hier een apparaat Warm water."
     },
     "hotwater_status": {
       "learning": "Leert je warmwatergebruik kennen",
@@ -949,9 +950,7 @@
       "price_axis": "Prijs per kWh",
       "no_prices": "Vereist dynamische stroomprijzen in Homey Energy.",
       "no_functions": "Deze warmtepomp heeft geen apparaat Verwarming of Warm water.",
-      "heading": "Verwarmingsprestaties",
-      "more": "meer",
-      "less": "minder"
+      "heading": "Verwarmingsprestaties"
     },
     "cost_check": {
       "title": "Plan en werkelijk",

@@ -1553,7 +1553,10 @@ once. The rest is Repair and capabilities:
   House insights labels: status and reason, then indoor temperature (left axis; measured, then the
   plan's expectation, thermostat dotted) against the BT1 offset (right axis) from 12 h back to
   12 h ahead. Hot water shows the next 24 h: price (left axis) against the expected solar
-  surplus (right axis, kW), with each planned charge split into its solar and grid parts. The repair choices are named "Autopilot"
+  surplus (right axis, kW), with each planned charge split into its solar and grid parts. Since
+  2026-11-26 the widget is hot water only: heating's shift and indoor moved to Heating performance
+  (`widgets/energy`), on the same hours as the electricity and price, and a card still set to
+  Heating says so. The device still builds the heating view, for Overview's status line. The repair choices are named "Autopilot"
   (runs in Nibe Live) and "Smart price adaption" (NIBE's own, runs in the pump).
 Profiles map to shift limits in `PROFILE_LIMITS` (`live.ts`). Built since: Custom (§7.4),
 pre-heating before Away ends (§19.2), savings (§11), Getting started (§7.7).

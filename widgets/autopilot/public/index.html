@@ -9,10 +9,9 @@
       .ap-status { text-wrap: balance; margin: 0; font-size: 1.3em; font-weight: 600; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
       .ap-status-name { display: flex; flex-direction: column; gap: 10px; min-width: 0; line-height: 1.2; }
       .ap-status-name .ap-chips { margin: 0; font-size: 0.74em; font-weight: 400; }
-      .ap-now { line-height: 1.2; color: var(--ap-indoor); font-variant-numeric: tabular-nums; white-space: nowrap; }
+      .ap-now { line-height: 1.2; color: var(--ap-grid); font-variant-numeric: tabular-nums; white-space: nowrap; }
       .ap-reason { margin: 0; font-size: 14px; font-weight: 400; opacity: 0.85; font-variant-numeric: proportional-nums; }
       .ap-now-box { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-      .ap-now.water { color: var(--ap-grid); }
       .ap-aim { font-weight: 400; opacity: 0.85; white-space: nowrap; }
       .ap-detail { margin-top: 2px; opacity: 0.65; }
       .ap-chart { display: block; margin-top: 22px; overflow: visible; }
@@ -29,25 +28,22 @@
       .ghost-line { fill: none; stroke: currentColor; stroke-opacity: 0.28; stroke-width: 2.2; stroke-linecap: round; }
       .ghost-fill { fill: currentColor; fill-opacity: 0.05; }
       .ghost-pill { fill: var(--ghost-accent, currentColor); fill-opacity: 0.55; }
-      .ghost-bar { fill: currentColor; fill-opacity: 0.1; }
       @media (prefers-reduced-motion: no-preference) {
         .ghost-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: ghost-draw 4.2s cubic-bezier(.45, 0, .25, 1) infinite; }
         .ghost-fill { animation: ghost-fade 4.2s ease-in-out infinite; }
-        .ghost-pill, .ghost-bar { transform-box: fill-box; transform-origin: left center; animation: ghost-grow 4.2s cubic-bezier(.3, 0, .2, 1) infinite both; }
-        .ghost-bar.up { transform-origin: center bottom; animation-name: ghost-rise; }
+        .ghost-pill { transform-box: fill-box; transform-origin: left center; animation: ghost-grow 4.2s cubic-bezier(.3, 0, .2, 1) infinite both; }
       }
       @keyframes ghost-draw { 0% { stroke-dashoffset: 1; opacity: 0; } 8% { opacity: 1; } 55% { stroke-dashoffset: 0; } 85% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
       @keyframes ghost-fade { 0%, 20% { opacity: 0; } 60%, 85% { opacity: 1; } 100% { opacity: 0; } }
       @keyframes ghost-grow { 0%, 45% { transform: scaleX(0); opacity: 0; } 60%, 85% { transform: scaleX(1); opacity: 1; } 100% { opacity: 0; } }
-      @keyframes ghost-rise { 0%, 35% { transform: scaleY(0); opacity: 0; } 55%, 85% { transform: scaleY(1); opacity: 1; } 100% { opacity: 0; } }
 
       /* Light values meet 3:1 or better on white; dark values are the brighter originals. The theme is
          read from the text colour Homey gives the page (see applyTheme), with the media query as the start. */
-      :root { --ghost-accent: #2d6bd6; --ap-indoor: #c4580d; --ap-offset: #2d6bd6; --ap-solar: #d46a00; --ap-surplus: rgba(212, 106, 0, 0.18); --ap-grid: #2d6bd6; --ap-done: rgba(45, 107, 214, 0.35);
+      :root { --ghost-accent: #2d6bd6; --ap-solar: #d46a00; --ap-surplus: rgba(212, 106, 0, 0.18); --ap-grid: #2d6bd6; --ap-done: rgba(45, 107, 214, 0.35);
         --ap-price-line: rgba(127, 127, 127, 0.9); --ap-price-top: rgba(127, 127, 127, 0.3); }
-      :root[data-theme="dark"] { --ap-indoor: #e8833a; --ap-offset: #4da3ff; --ap-solar: #ff9f0a; --ap-surplus: rgba(255, 159, 10, 0.22); --ap-grid: #4da3ff; --ap-done: rgba(77, 163, 255, 0.35); }
+      :root[data-theme="dark"] { --ap-solar: #ff9f0a; --ap-surplus: rgba(255, 159, 10, 0.22); --ap-grid: #4da3ff; --ap-done: rgba(77, 163, 255, 0.35); }
       @media (prefers-color-scheme: dark) {
-        :root:not([data-theme="light"]) { --ap-indoor: #e8833a; --ap-offset: #4da3ff; --ap-solar: #ff9f0a; --ap-surplus: rgba(255, 159, 10, 0.22); --ap-grid: #4da3ff; --ap-done: rgba(77, 163, 255, 0.35); }
+        :root:not([data-theme="light"]) { --ap-solar: #ff9f0a; --ap-surplus: rgba(255, 159, 10, 0.22); --ap-grid: #4da3ff; --ap-done: rgba(77, 163, 255, 0.35); }
       }
     </style>
   </head>
@@ -177,65 +173,6 @@
         });
         return svg;
       }
-      // Heating: in the hours still to plan, the expected indoor line draws itself and shift bars rise.
-      function planning(svg, x0, x1, top, bottom) {
-        svg.appendChild(svgEl('path', {d: ghostPath(x0 + 6, x1, top + 10, bottom - 10, function (t) { return 0.55 + 0.12 * Math.sin(t * 5.5); }), class: 'ghost-line', pathLength: 1}));
-        var n = Math.max(3, Math.floor((x1 - x0) / 22)), step = (x1 - x0) / n, mid = (top + bottom) / 2;
-        for (var i = 0; i < n; i++) {
-          var h = (bottom - top) * (0.12 + 0.22 * Math.abs(Math.sin(i * 1.7))), up = i % 3 !== 1;
-          var bar = svgEl('rect', {x: x0 + i * step + step * 0.3, y: up ? mid - h : mid, width: step * 0.4, height: h, rx: 2, class: 'ghost-bar up'});
-          bar.style.animationDelay = (i * 0.08) + 's';
-          svg.appendChild(bar);
-        }
-      }
-
-      // Heating: indoor °C on the left axis (measured solid, expected dashed), the
-      // BT1 shift on the right axis as one solid bar an hour from 0, and a line at now.
-      function heatingChart(data) {
-        var W = chartWidth(), L = GUTTER, R = W - GUTTER, PH = Math.max(110, Math.min(170, Math.round(W * 0.36))) + EXTRA, B = TOP + PH, H = B + 30;
-        var n = data.slots.length, step = (R - L) / n;
-        var svg = svgEl('svg', {viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, class: 'ap-chart', role: 'img'});
-        var left = data.scale.left, right = data.scale.right;
-        var yi = function (v) { return B - PH * (v - left.lo) / (left.hi - left.lo); };
-        var yo = function (v) { return B - PH * (v - right.lo) / (right.hi - right.lo); };
-        var x = function (k) { return L + k * step; };
-
-        left.ticks.forEach(function (v) {
-          svg.appendChild(svgEl('line', {x1: L, x2: R, y1: yi(v), y2: yi(v), stroke: 'currentColor', 'stroke-opacity': 0.1}));
-          svg.appendChild(svgEl('text', {x: L - 5, y: yi(v) + 4, 'text-anchor': 'end'}, fmt(v, left.decimals)));
-        });
-        right.ticks.forEach(function (v) {
-          svg.appendChild(svgEl('text', {x: R + 5, y: yo(v) + 4}, (v > 0 ? '+' : '') + fmt(v, right.decimals)));
-        });
-        svg.appendChild(svgEl('line', {x1: L, x2: R, y1: yo(0), y2: yo(0), stroke: 'currentColor', 'stroke-opacity': 0.25, 'stroke-width': 0.8}));
-
-        // Shift: one solid, slightly rounded bar an hour with a gap between them; the plan is lighter.
-        (data.bars || []).forEach(function (b) {
-          var y0 = yo(0), y1 = yo(b.value), h = Math.max(Math.abs(y1 - y0), 2);
-          svg.appendChild(svgEl('rect', {x: x(b.at) + 1.5, width: Math.max((b.to - b.at) * step - 3, 2), y: b.value > 0 ? y0 - h : y0, height: h, rx: 2.5,
-            fill: 'var(--ap-offset)', 'fill-opacity': b.at >= data.now ? 0.4 : 0.9}));
-        });
-
-        // Indoor: measured up to now, expected after, both smooth.
-        function curve(from, to) {
-          var pts = [];
-          for (var k = from; k < to; k++) {
-            var v = data.slots[k] && data.slots[k].indoor;
-            if (typeof v === 'number') pts.push([x(k) + step / 2, yi(v)]);
-          }
-          return monotone(pts);
-        }
-        var past = curve(0, data.now), ahead = curve(data.now - 1, n);
-        if (past) svg.appendChild(svgEl('path', {d: past, fill: 'none', stroke: 'var(--ap-indoor)', 'stroke-width': 2.2, 'stroke-linecap': 'round'}));
-        // Starting: the hours still to plan hold a placeholder instead of an empty half.
-        if (data.loading) planning(svg, x(data.now), R, TOP, B);
-        if (ahead) svg.appendChild(svgEl('path', {d: ahead, fill: 'none', stroke: 'var(--ap-indoor)', 'stroke-width': 2, 'stroke-dasharray': '4 4', 'stroke-linecap': 'round'}));
-
-        svg.appendChild(svgEl('line', {x1: x(data.now), x2: x(data.now), y1: TOP - 8, y2: B, stroke: 'currentColor', 'stroke-opacity': 0.4}));
-        header(svg, data, x, W, L, R, B);
-        hours(svg, data.ticks.map(function (t) { return {x: x(t.at), label: t.label}; }), H - 6);
-        return svg;
-      }
 
       var clips = 0;
       // Hot water: the price as a smooth curve over a soft fade (left axis), the expected solar surplus
@@ -357,10 +294,10 @@
           name.appendChild(el('span', '', data.status));
           if (row) name.appendChild(row);
           status.appendChild(name);
-          var big = data.nowValue || (typeof data.indoorNow === 'number' ? data.indoorNow.toFixed(1) + ' °C' : '');
+          var big = data.nowValue || '';
           if (big) {
             var now = el('span', 'ap-now-box');
-            now.appendChild(el('span', 'ap-now' + (data.kind === 'hotwater' ? ' water' : ''), big));
+            now.appendChild(el('span', 'ap-now', big));
             if (data.aim || data.nowNote) now.appendChild(el('span', 'ap-aim homey-text-small', data.aim || data.nowNote));
             status.appendChild(now);
           }
@@ -370,14 +307,8 @@
         var col = data.status ? root.querySelector('.ap-status-name') : root;
         if (data.reason) col.appendChild(el('p', 'ap-reason homey-text-small', data.reason));
         if (data.detail) col.appendChild(el('p', 'ap-reason homey-text-small ap-detail', data.detail));
-        if (data.kind === 'heating' && data.slots.length) {
-          root.appendChild(heatingChart(data));
-          root.appendChild(legend([
-            {text: data.legend.indoor, line: true, style: 'background: var(--ap-indoor);'},
-            {text: data.legend.planned, line: true, style: 'background: repeating-linear-gradient(90deg, var(--ap-indoor) 0 4px, transparent 4px 7px);'},
-            {text: data.legend.offset, style: 'background: var(--ap-offset);'},
-          ]));
-        } else if (data.loading && !data.slots.length) {
+        // Hot water only: heating's chart moved to Heating performance (widgets/energy) on 2026-11-26.
+        if (data.loading && !data.slots.length) {
           root.appendChild(placeholder(Math.max(100, Math.min(150, Math.round(chartWidth() * 0.33))) + 50 + EXTRA));
         } else if (data.kind === 'hotwater' && data.slots.length) {
           root.appendChild(hotwaterChart(data));
@@ -431,7 +362,7 @@
         var shown = false;
         try {
           var kept = JSON.parse(localStorage.getItem(cacheKey) || 'null');
-          if (kept && Date.now() - kept.at < KEEP_MS) { last = kept.data; renderFitted(kept.data); Homey.ready({height: Math.ceil(document.getElementById('ap').scrollHeight) + 16}); shown = true; }
+          if (kept && kept.data && kept.data.kind !== 'heating' && Date.now() - kept.at < KEEP_MS) { last = kept.data; renderFitted(kept.data); Homey.ready({height: Math.ceil(document.getElementById('ap').scrollHeight) + 16}); shown = true; }
         } catch (e) { /* no storage: wait for the app, as before */ }
         load().finally(function () { if (!shown) Homey.ready({height: Math.ceil(document.getElementById('ap').scrollHeight) + 16}); });
         setInterval(load, 60000);

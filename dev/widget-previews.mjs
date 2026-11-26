@@ -25,7 +25,7 @@ const THEMES = {
     dark: {bg: '#1c1c1e', fg: '#ffffff'},
 };
 const WIDGETS = {
-    autopilot: 'Heating',
+    autopilot: 'Hot water',
     savings: 'Heating',
     savings_hotwater: 'Hot water',
     hotwater_use: 'Hot water',

@@ -433,7 +433,8 @@
       "away_until": "Abwesend bis __until__ · __c__ °C",
       "charge_done": "Aufgeheizt",
       "learning_accuracy": "Verfeinert die Vorhersagen",
-      "learning_steady": "Bestätigt über 3 Tage"
+      "learning_steady": "Bestätigt über 3 Tage",
+      "heating_moved": "Die Verschiebung der Außentemperatur und die Innentemperatur der Heizung finden Sie jetzt auf der Karte Heizbilanz. Wählen Sie hier ein Gerät für Brauchwasser."
     },
     "hotwater_status": {
       "learning": "Lernt Ihren Brauchwasserverbrauch",
@@ -530,9 +531,7 @@
       "price_axis": "Preis pro kWh",
       "no_prices": "Erfordert dynamische Strompreise in Homey Energie.",
       "no_functions": "Diese Wärmepumpe hat kein Heizungs- oder Brauchwasser-Gerät.",
-      "heading": "Heizbilanz",
-      "more": "mehr",
-      "less": "weniger"
+      "heading": "Heizbilanz"
     },
     "cost_check": {
       "title": "Plan und Ist",

@@ -125,13 +125,15 @@ export function useToday(m: MeterReads, hours: number[], now = Date.now()): {use
     return {use, slots};
 }
 
-/** The two strips under the electricity chart, per 15-minute slot of today (index = slot from local
+/** The heating graph under the electricity chart, per 15-minute slot of today (index = slot from local
  *  midnight; a clock-change day has 92 or 100). `offset` is BT1 as sent minus the real outdoor
  *  temperature (positive = sent warmer, so it heats less), recorded before `planFrom` and Autopilot's
- *  plan from it; `indoor` the recorded reading, before `planFrom` only. */
-export interface HeatingStrips {
+ *  plan from it; `indoor` the recorded reading, before `planFrom` only; `expected` the plan's indoor
+ *  from `planFrom` on. */
+export interface HeatingGraph {
     offset?: (number | null)[];
     indoor?: (number | null)[];
+    expected?: (number | null)[];
     /** The thermostat, drawn as a dashed line on the indoor strip. */
     setpoint?: number;
     /** The first slot that is plan, not record. */
@@ -140,23 +142,27 @@ export interface HeatingStrips {
     indoorAxis?: Axis;
 }
 
-/** The strips from heating's slots (widget.ts `heatingSlots`: the past, then the plan from `now`).
- *  The shift is left out where nothing was ever sent today and nothing is planned, so an owner
- *  without Autopilot heating sees no flat line; indoor where there is no reading. */
-export function heatingStrips(slots: WidgetSlot[], now: number, setpoint?: number): HeatingStrips {
+/** The graph's series from heating's slots (widget.ts `heatingSlots`: the past, then the plan from
+ *  `now`). The shift is left out where nothing was ever sent today and nothing is planned, so an owner
+ *  without Autopilot heating sees no flat line; indoor where there is no reading; expected without a plan. */
+export function heatingSeries(slots: WidgetSlot[], now: number, setpoint?: number): HeatingGraph {
     const offset = slots.map((s) => (s.offset === undefined ? null : s.offset));
     const indoor = slots.map((s, k) => (k < now && s.indoor !== undefined ? s.indoor : null));
     const shifts = offset.filter((v): v is number => v !== null);
+    const expected = slots.map((s, k) => (k >= now && s.indoor !== undefined ? s.indoor : null));
     const readings = indoor.filter((v): v is number => v !== null);
-    const out: HeatingStrips = {planFrom: now, ...Number.isFinite(setpoint) ? {setpoint} : {}};
+    const planned = expected.filter((v): v is number => v !== null);
+    const out: HeatingGraph = {planFrom: now, ...Number.isFinite(setpoint) ? {setpoint} : {}};
     if (shifts.some((v) => v !== 0)) {
         const m = Math.max(...shifts.map(Math.abs));
         out.offset = offset;
-        out.shiftAxis = niceAxis(-m, m, {include: [0], steps: [1, 2, 5, 10], maxIntervals: 2});
+        // Labelled at its ends and 0 only, so a finer step fits the bars to the card.
+        out.shiftAxis = niceAxis(-m, m, {include: [0], steps: [1, 2, 5, 10], maxIntervals: 6});
     }
-    if (readings.length) {
-        const span = out.setpoint === undefined ? readings : [...readings, out.setpoint];
-        out.indoor = indoor;
+    if (planned.length) out.expected = expected;
+    if (readings.length || planned.length) {
+        const span = [...readings, ...planned, ...out.setpoint === undefined ? [] : [out.setpoint]];
+        if (readings.length) out.indoor = indoor;
         out.indoorAxis = niceAxis(Math.min(...span) - 0.2, Math.max(...span) + 0.2, {minSpan: 0.6, steps: [0.5, 1, 2, 5], maxIntervals: 3});
     }
     return out;
@@ -187,8 +193,8 @@ export interface EnergyWidgetData {
     /** Now in hours from midnight, at its 15-minute slot (14.75 is 14:45), the hours to label, and the legend. */
     now?: number;
     ticks?: {at: number; label: string}[];
-    legend?: {heating: string; hotwater: string; main: string; price: string; offset?: string; indoor?: string};
-    axes?: {kwh: string; price: string; offset?: string; indoor?: string; more?: string; less?: string};
-    /** The outdoor shift and indoor strips; absent without a Heating device. */
-    strips?: HeatingStrips;
+    legend?: {heating: string; hotwater: string; main: string; price: string; offset?: string; indoor?: string; expected?: string};
+    axes?: {kwh: string; price: string; offset?: string; indoor?: string};
+    /** The heating graph's series; absent without a Heating device. */
+    heating?: HeatingGraph;
 }

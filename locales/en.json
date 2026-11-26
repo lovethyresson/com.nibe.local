@@ -849,7 +849,8 @@
       "away_until": "Away until __until__ · __c__ °C",
       "charge_done": "Heated",
       "learning_accuracy": "Refining its predictions",
-      "learning_steady": "Confirming over 3 days"
+      "learning_steady": "Confirming over 3 days",
+      "heating_moved": "Heating's outdoor shift and indoor are now on the Heating performance card. Pick a Hot water device here."
     },
     "hotwater_status": {
       "learning": "Learning your hot water use",
@@ -949,9 +950,7 @@
       "price_axis": "Price per kWh",
       "no_prices": "Requires dynamic electricity prices in Homey Energy.",
       "no_functions": "This heat pump has no Heating or Hot water device.",
-      "heading": "Heating performance",
-      "more": "more",
-      "less": "less"
+      "heading": "Heating performance"
     },
     "cost_check": {
       "title": "Plan vs actual",

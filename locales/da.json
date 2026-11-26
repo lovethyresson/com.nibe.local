@@ -849,7 +849,8 @@
       "away_until": "Bortrejst indtil __until__ · __c__ °C",
       "charge_done": "Opvarmet",
       "learning_accuracy": "Forbedrer prognoserne",
-      "learning_steady": "Bekræfter over 3 dage"
+      "learning_steady": "Bekræfter over 3 dage",
+      "heating_moved": "Udeforskydning og indetemperatur for opvarmning findes nu på kortet Varmeydelse. Vælg enheden Varmt vand her."
     },
     "hotwater_status": {
       "learning": "Lærer dit forbrug af varmt vand",
@@ -949,9 +950,7 @@
       "price_axis": "Pris pr. kWh",
       "no_prices": "Kræver dynamiske elpriser i Homey Energy.",
       "no_functions": "Varmepumpen har ingen enhed til opvarmning eller varmt vand.",
-      "heading": "Varmeydelse",
-      "more": "mere",
-      "less": "mindre"
+      "heading": "Varmeydelse"
     },
     "cost_check": {
       "title": "Plan mod faktisk",
