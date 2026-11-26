@@ -1290,7 +1290,13 @@ export class HotwaterAutopilot {
             if (this.prices.get(slot.slot)?.price !== slot.price) changed = true;
             this.prices.set(slot.slot, slot);
         }
-        if (changed) this.pricesChanged(old);
+        // The first prices after a start are not a change unless they reach past the plan resumed
+        // from the store (tomorrow's came while the app was down): that plan stays the one charges
+        // are compared with. Replanning here made a restart's plan swallow the morning's, so a
+        // start the morning plan never had read "As planned".
+        const until = this.morningPlan?.until;
+        const reachesPast = until === undefined || [...this.prices.keys()].some((slot) => slot * SLOT_MS >= until);
+        if (changed && (old.size > 0 || reachesPast)) this.pricesChanged(old);
         return nextPriceFetchMs(now, timeZone, (days[1]?.slots.length ?? 0) > 0);
     }
 
