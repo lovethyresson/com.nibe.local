@@ -129,6 +129,9 @@ export const OUTDOOR_GRACE_MS = 5 * 60_000;
  *  trim alone (learning). Within this long of the start it tries to plan every cycle, not at the
  *  next slot, so a restart costs a minute of pre-heating, not up to 15 (2026-11-21). */
 export const STARTUP_REPLAN_MS = 15 * 60_000;
+/** Smallest shift the pump can be seen to still hold after a restart, K: below it, input 1 is the
+ *  wired sensor again and the difference is only the sensors disagreeing. */
+export const HELD_MIN_K = 1;
 
 /** Indoor readings outside this range are not a room's air temperature (a sensor fault). */
 export const INDOOR_PLAUSIBLE: [number, number] = [5, 35];
@@ -487,6 +490,8 @@ export class HeatingFeed {
      *  across a restart, where the warmer house would otherwise get a shorter lead and coast. */
     private warmingFor?: number;
     private warmingLoaded = false;
+    /** Just started: the first plan begins from the shift the pump still holds, if any. */
+    private adoptHeld = false;
     private warming(): number | undefined {
         if (!this.warmingLoaded) {
             this.warmingLoaded = true;
@@ -512,6 +517,7 @@ export class HeatingFeed {
         this.stopState = undefined;
         this.failures = 0;
         this.startedAt = this.hooks.now();
+        this.adoptHeld = true;
         // Replan (and so re-check every guard) before the first write, even within a slot.
         this.plannedSlot = undefined;
         this.warn(undefined);
@@ -602,7 +608,8 @@ export class HeatingFeed {
                 return;
             }
         } else if (slot !== this.plannedSlot || this.stopState === 'no_model'
-            || (this.learning && now - (this.startedAt ?? -Infinity) < STARTUP_REPLAN_MS)) {
+            || (this.learning && now - (this.startedAt ?? -Infinity) < STARTUP_REPLAN_MS)
+            || (this.adoptHeld && this.stopState === 'no_outdoor')) {
             // Without a model, retry each cycle: the first fit and the weather land minutes after a
             // start. The same while learning just after a start, when the model is only loading.
             this.plannedSlot = slot;
@@ -702,6 +709,7 @@ export class HeatingFeed {
         this.learning = false;
         const wait = stopReason(this.facts, true);
         if (wait) return wait;
+        if (this.adoptHeld) await this.adoptHeldBias();
         this.slotBias = this.bias;
         // `input.curve` is the curve's view of what the pump saw (history `bt1`), our feed included.
         this.steer(slot, input.mean, input.house);
@@ -735,6 +743,26 @@ export class HeatingFeed {
         this.hooks.planned?.(slot, input!.forecast, plan.plan.heat);
         this.hooks.changed();
         return undefined;
+    }
+
+    /** Right after a start: a write lasts about 5 min on the pump, so after a quick restart it
+     *  still holds the shift from before. Planning from 0 instead dropped it and ramped back at
+     *  2 K a slot (2026-11-26: +10 K before a restart, 0 after). Input 1 shows the value held; once
+     *  the write has run out it shows the wired sensor, and the small difference left is ignored.
+     *  Needs the outdoor temperature, so it waits for it while starting up. */
+    private async adoptHeldBias() {
+        if (this.hooks.now() - (this.startedAt ?? -Infinity) > OUTDOOR_GRACE_MS) { this.adoptHeld = false; return; }
+        const o = this.hooks.outdoor();
+        const real = realOutdoor({now: this.hooks.now(), feeding: true, sensor: o.sensor, forecast: o.forecast,
+            localHour: o.localHour, bias: o.bias, degradedSince: this.degradedSince}).value;
+        if (real === undefined) return;
+        const seen = await this.hooks.readBack().catch(() => undefined);
+        this.adoptHeld = false;
+        if (seen === undefined) return;
+        const held = Math.max(-this.limits.maxCoastBias, Math.min(this.limits.maxBias, real - seen));
+        if (Math.abs(held) < HELD_MIN_K) return;
+        this.bias = held;
+        this.hooks.log(`Autopilot heating: the pump still holds a ${held.toFixed(1)} K shift from before the start; planning on from it.`);
     }
 
     /** The heat curve offset moved (curve-advice.ts `trimShiftFor`): the curve now gives part of

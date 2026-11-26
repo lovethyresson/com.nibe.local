@@ -82,9 +82,9 @@ test('no pre-heat while the immersion heater runs; coasting is still allowed', (
 
 /** A fake pump: 5217 writes show on input 1 unless `deaf`. Timers run by hand. */
 function harness(over: {mode?: LiveMode; facts?: Partial<PumpFacts>; sensor?: number; forecast?: number; deaf?: boolean;
-    plan?: ShiftInput | undefined; setpoint?: number; mean?: number; hold?: boolean} = {}) {
+    plan?: ShiftInput | undefined; setpoint?: number; mean?: number; hold?: boolean; input1?: number} = {}) {
     let now = 1_800_000 * SLOT_MS + 1000;
-    let input1: number | undefined;
+    let input1: number | undefined = over.input1;
     const state = {
         mode: over.mode ?? 'live' as LiveMode, writes: [] as number[], records: [] as LiveEntry[], warnings: [] as (StopReason | undefined)[],
         changes: 0, neutral: false, logs: [] as string[], setpoint: over.setpoint, trim: {integral: 0}, saves: 0,
@@ -550,4 +550,47 @@ test('the wait for the first outdoor reading after a start counts as starting up
     assert.equal(feed.startingUp, false, 'still none after the start-up minutes: a real pause');
     assert.equal(feed.state.startingUp, undefined);
     assert.ok(state.changes > told, 'the status is told, so it turns from Starting to Paused');
+});
+
+test('after a quick restart the plan carries on from the shift the pump still holds (2026-11-26)', async () => {
+    // Real outdoor 3 °C; input 1 still shows the feed from before the restart, 2.5 K warmer.
+    const {feed, state} = harness({input1: 0.5});
+    feed.start();
+    await feed.cycle();
+    assert.ok(state.logs.some((l) => l.includes('still holds a 2.5 K shift')), state.logs.join('\n'));
+    const fresh = harness();
+    fresh.feed.start();
+    await fresh.feed.cycle();
+    assert.notDeepEqual(feed.state.biases, fresh.feed.state.biases, 'planned from the held shift, not from 0');
+});
+
+test('once the write has run out, input 1 is the wired sensor and nothing is carried on', async () => {
+    const {feed, state} = harness({input1: 3.6});
+    feed.start();
+    await feed.cycle();
+    const fresh = harness();
+    fresh.feed.start();
+    await fresh.feed.cycle();
+    assert.ok(!state.logs.some((l) => l.includes('still holds')));
+    assert.deepEqual(feed.state.biases, fresh.feed.state.biases);
+});
+
+test('the held shift is read once the first outdoor temperature is in, and only right after a start', async () => {
+    const {feed, state, advance} = harness({input1: 0.5, sensor: undefined});
+    feed.start();
+    await feed.cycle();
+    assert.equal(feed.state.stopped, 'no_outdoor');
+    state.sensor = 3;
+    advance(30_000);
+    await feed.cycle();
+    assert.equal(feed.state.stopped, undefined);
+    assert.ok(state.logs.some((l) => l.includes('still holds a 2.5 K shift')), state.logs.join('\n'));
+    // Past the write's 5 min the pump is on the wired sensor whatever input 1 shows.
+    const late = harness({input1: 0.5, sensor: undefined});
+    late.feed.start();
+    await late.feed.cycle();
+    late.state.sensor = 3;
+    late.advance(SLOT_MS);
+    await late.feed.cycle();
+    assert.ok(!late.state.logs.some((l) => l.includes('still holds')));
 });
