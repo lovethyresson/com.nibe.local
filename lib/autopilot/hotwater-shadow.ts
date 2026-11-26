@@ -567,12 +567,13 @@ export function againstPlan(at: number, morning?: DailyPlan, canMove = true, ran
 }
 
 /** The wording key for a start against the plan (under `plan.` and `recap.`), or undefined.
- *  Autopilot heating for use ahead of every charge its plan had: more was used than it
- *  expected. The pump's own start, the minimum, excess and legionella say why themselves. Pure. */
+ *  Autopilot heating for use, or under the owner's minimum, ahead of every charge its plan had:
+ *  more was used than it expected, since the plan keeps the tank above the minimum. The pump's
+ *  own start, excess and legionella say why themselves. Pure. */
 export function planKey(e: ChargeEvent): string | undefined {
     if (!e.plan) return undefined;
     if (e.plan === 'unplanned' && e.early && e.by === 'autopilot'
-        && !['reserve', 'surplus', 'legionella'].includes(e.reason)) return 'more_used';
+        && !['surplus', 'legionella'].includes(e.reason)) return 'more_used';
     return e.by === 'pump' && e.plan === 'as_planned' ? 'as_planned_pump' : e.plan;
 }
 

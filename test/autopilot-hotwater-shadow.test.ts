@@ -227,12 +227,14 @@ test('a start is as planned within 45 min, moved within 3 h, else unplanned', ()
     assert.match(text, new RegExp(`Moved from ${hhmm(planned)}\\.$`));
 });
 
-test('an early off-plan start for use says more was used than expected; the rest keep "Not planned"', () => {
+test('an early off-plan start for use or under the minimum says more was used than expected; the rest keep "Not planned"', () => {
     const t = translator('en', 'hotwater_charge');
     const early = {...charge({now: {litres: 20, top: 40}}), reason: 'before_use' as const, plan: 'unplanned' as const, early: true as const};
     assert.match(chargeText(early, t, hhmm, kr).detailedReason, /More hot water used than expected\.$/);
+    assert.match(chargeText({...early, reason: 'reserve' as const}, t, hhmm, kr).detailedReason,
+        /below your 40 L minimum\..* More hot water used than expected\.$/);
     assert.deepStrictEqual(recapLines([early], t, hhmm, false, () => '2026-11-25', '2026-11-25').at(-1)!.endsWith('More used than expected.'), true);
-    for (const e of [{...early, early: undefined}, {...early, reason: 'reserve' as const}, {...early, reason: 'surplus' as const},
+    for (const e of [{...early, early: undefined}, {...early, reason: 'surplus' as const},
         {...pumpCharge(T0, {litres: 50, top: 41, stopC: 48}, 40), plan: 'unplanned' as const, early: true as const}]) {
         assert.match(chargeText(e, t, hhmm, kr).detailedReason, /Not planned\.$/, `${e.by} ${e.reason} ${e.early}`);
     }
