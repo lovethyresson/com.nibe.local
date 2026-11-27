@@ -8416,14 +8416,14 @@
     },
     "getting_started": {
       "name": {
-        "en": "Getting started",
-        "sv": "Kom igång",
-        "de": "Erste Schritte",
-        "nl": "Aan de slag",
-        "no": "Kom i gang",
-        "da": "Kom i gang"
+        "en": "Autopilot Setup",
+        "sv": "Autopilot-inställning",
+        "de": "Autopilot einrichten",
+        "nl": "Autopilot instellen",
+        "no": "Autopilot-oppsett",
+        "da": "Autopilot-opsætning"
       },
-      "height": 420,
+      "height": 340,
       "transparent": false,
       "settings": [
         {
