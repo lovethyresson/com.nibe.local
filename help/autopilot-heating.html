@@ -123,15 +123,26 @@
   </div>
 </section>
 
-<section class="center" id="first-weeks">
+<section class="center" id="autopilot-setup">
   <div class="wrap">
-    <h2 class="display reveal">Autopilot's first weeks</h2>
-    <p class="lead reveal">The <b>Getting started</b> widget follows them in four steps. It shows what each step waits for and about when it ends. Each estimate is the pace so far carried on, so it moves when the weather does.</p>
+    <h2 class="display reveal">Autopilot Setup</h2>
+    <p class="lead reveal">Autopilot's first weeks with your house, in three steps. The <b>Autopilot Setup</b> widget says what is happening now, whether it is going as expected, and about when it is done. The graph shows each day's average indoor temperature against your thermostat, and the dashed line the pace so far carried on to Done, so the day moves when the weather does.</p>
+    <p class="lead reveal">A grey dot means Autopilot is working on it. Green means on track. Orange means Autopilot needs you, and the widget says what to do.</p>
     <div class="how first-weeks">
-      <div class="reveal" id="learning"><div class="n">01</div><h3>Learning</h3><p>Autopilot learns how quickly your house cools and how much your heat pump warms it, from the indoor, outdoor and heating readings. It needs five days of readings, or three when Homey already has readings from before, and its predictions have to hold for three days in a row. Meanwhile it holds your thermostat temperature and shifts no heat.</p></div>
-      <div class="reveal" id="settling"><div class="n">02</div><h3>Settling</h3><p>Your house can be up to a degree off your thermostat at first, while Autopilot takes over from your heat pump's own control. Each morning it scores yesterday's average indoor temperature. Two days in a row within 0.2 °C of your thermostat means settled: one good day can be luck. A day with too few readings, or one where you changed the thermostat, is skipped. A new thermostat temperature starts the count over. After 21 days without settling, Autopilot moves on anyway. Price shifts start the first day your house is within your comfort range, and the widget shows <b>Saving since</b> that day.</p></div>
-      <div class="reveal" id="curve-check"><div class="n">03</div><h3>Curve check</h3><p>The curve offset (menu 1.1.1 on your heat pump) moves the whole heat curve up or down. If your house keeps ending up too warm or too cold for the outdoor temperature, Autopilot advises a new offset. With the offset set to automatic in Heating setup, Autopilot changes it itself, at most once a month, and you can undo the change there. That can happen during Settling too. Then the settled days after the change also check it, and you go straight to Done. Otherwise the widget asks you to change it on your heat pump, then checks two days in a row on target. If the offset is unchanged after three days, or the check takes more than ten days, it moves on to Done.</p></div>
-      <div class="reveal" id="done"><div class="n">04</div><h3>Done</h3><p>Autopilot keeps holding your thermostat temperature and moving heat away from the most expensive hours, as it already did since price shifts started. It keeps learning your house the whole time. You can remove the widget.</p></div>
+      <div class="reveal" id="learning"><div class="n">01</div><h3>Learning how your home heats</h3><p>Autopilot learns how quickly your house cools and how much your heat pump warms it, from the indoor, outdoor and heating readings. It needs five days of readings, or three when Homey already has readings from before, and its predictions have to hold for three days in a row. Meanwhile it holds your thermostat temperature and shifts no heat.</p></div>
+      <div class="reveal" id="settling"><div class="n">02</div><h3>Bringing your home to your temperature</h3><p>Your house can be up to a degree off your thermostat at first, while Autopilot takes over from your heat pump's own control. Each morning it scores yesterday's average indoor temperature. Two days in a row within 0.2 °C of your thermostat means settled: one good day can be luck. A day with too few readings, or one where you changed the thermostat, is skipped. A new thermostat temperature starts the count over. After 21 days without settling, Autopilot moves on anyway. Price shifts start the first day your house is within your comfort range.</p></div>
+      <div class="reveal" id="curve-check"><div class="n">03</div><h3>Checking your home holds it</h3><p>The curve offset (menu 1.1.1 on your heat pump) moves the whole heat curve up or down. If your house keeps ending up too warm or too cold for the outdoor temperature, Autopilot advises a new offset. With the offset set to automatic in Heating setup, Autopilot changes it itself, at most once a month, and you can undo the change there. That can happen during Settling too. Then the settled days after the change also check it, and you go straight to Done. Otherwise the widget asks you to change it on your heat pump, then checks two days in a row on target. If the offset is unchanged after three days, or the check takes more than ten days, it moves on to Done.</p></div>
+      <div class="reveal" id="done"><div class="n">✓</div><h3>Done</h3><p>Autopilot keeps holding your thermostat temperature and moving heat away from the most expensive hours, as it already did since price shifts started. It keeps learning your house the whole time. You can remove the widget.</p></div>
+    </div>
+    <div class="reveal" id="setup-check" style="margin-top:32px">
+      <h3>Still not at your temperature after two weeks?</h3>
+      <p>Autopilot usually reaches your thermostat temperature in one to two weeks. If it hasn't after two, something is likely holding it back. Check these, in this order:</p>
+      <ul>
+        <li><b>The thermostat temperature.</b> Make sure it is one your heat pump can reach. A setting far above how your home has been heated may need more than your heat pump gives.</li>
+        <li><b>The indoor sensor.</b> It should be in a room you live in, away from windows, radiators, sun and other heat sources. A sensor in a cold hall or next to a stove gives Autopilot the wrong picture.</li>
+        <li><b>Other heating or cooling.</b> A fireplace, an air-to-air heat pump or an open window in the same room moves the reading without Autopilot.</li>
+        <li><b>The heat curve.</b> A curve set far too low or too high can be more than Autopilot corrects on its own. Heating setup shows Autopilot's advice for menu 1.1.1.</li>
+      </ul>
     </div>
   </div>
 </section>

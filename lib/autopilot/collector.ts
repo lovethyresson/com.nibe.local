@@ -284,6 +284,28 @@ export class AutopilotCollector {
         return values.length >= 48 ? values.reduce((a, b) => a + b, 0) / values.length : undefined;
     }
 
+    /** The indoor mean of each local day over the last `days` days before `today`, in one pass:
+     *  Autopilot Setup's graph. Days with under `minShare` of their quarter-hours read are left
+     *  out, as settling.ts scores them. Reads only. */
+    indoorDays(today: string, days: number, timeZone: string, minShare: number): {date: string; mean: number}[] {
+        const range = this.history.range();
+        if (!range.length) return [];
+        const from = range[range.length - 1] - (days + 2) * 96;
+        const byDay = new Map<string, {sum: number; n: number}>();
+        for (const slot of range) {
+            if (slot < from) continue;
+            const ti = this.history.get(slot)!.ti;
+            if (!Number.isFinite(ti)) continue;
+            const date = localDate(slot * SLOT_MS, timeZone);
+            if (date >= today) continue;
+            const d = byDay.get(date) ?? {sum: 0, n: 0};
+            d.sum += ti; d.n++;
+            byDay.set(date, d);
+        }
+        return [...byDay].filter(([, d]) => d.n >= 96 * minShare).sort(([a], [b]) => a.localeCompare(b))
+            .slice(-days).map(([date, d]) => ({date, mean: d.sum / d.n}));
+    }
+
     /** One local day's indoor mean and the setpoint's range over it, for settling.ts. Reads only. */
     indoorDay(date: string, timeZone: string): DayReading {
         let sum = 0, slots = 0, setMin = Infinity, setMax = -Infinity;
