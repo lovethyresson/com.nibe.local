@@ -113,9 +113,11 @@ test('heating pre-heats around a charge the round hands it, and plans no heat du
     const blind = planLive(input(forecast), PROFILE_LIMITS.comfortable);
     const aware = planLive(input(withHotwater(forecast, busy)), PROFILE_LIMITS.comfortable);
     for (let k = 24; k < 32; k++) assert.equal(aware.plan.heat[k], 0, `no heat planned in slot ${k}`);
-    const preheat = (biases: number[]) => biases.slice(20, 28).reduce((sum, b) => sum + Math.max(0, b), 0);
+    // The pump makes nothing up after a charge (planner.ts simulate), so the plan covers it: a
+    // pre-heat in the hours before it.
+    const preheat = (biases: number[]) => biases.slice(8, 24).reduce((sum, b) => sum + Math.max(0, b), 0);
     assert.ok(preheat(aware.biases) > preheat(blind.biases),
-        `pre-heats into the charge: ${aware.biases.slice(20, 28)} against ${blind.biases.slice(20, 28)} blind`);
+        `pre-heats ahead of the charge: ${aware.biases.slice(8, 24)} against ${blind.biases.slice(8, 24)} blind`);
     // Heating's plan goes back into the round: hot water then sees that pre-heat, less its own charge.
     round.setHeating({slot: S0, biases: aware.biases});
     const set = round.preheat(S0)!;

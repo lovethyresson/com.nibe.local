@@ -153,23 +153,19 @@ export function simulate(house: HouseParams, comfort: Comfort, state: PlanState,
                          biases: number[], pump: PumpCurve = {}): Simulation {
     let {ti, tm, curve} = state;
     const out: Simulation = {ti: [], tm: [], heat: [], cop: [], supply: [], cost: 0, curveEnd: curve};
-    // Heat the pump owes after hot water had the compressor: its degree minutes keep counting while
-    // it charges the tank, and it catches up afterwards, as fast as it can.
-    let owed = 0;
+    // While hot water has the compressor the house gets nothing, and the pump does not make it up
+    // afterwards: it delivers what its curve asks for, no more. On the S1155 its degree minutes
+    // held still through all 44 hot water runs since 2026-10-31, and the 2 h after each brought
+    // back 2 % of the heat missed (with Autopilot's shift steady). Until 2026-11-27 the plan
+    // assumed it all came back, so it expected the house warmer than it got and planned nothing
+    // to cover a run. Making it up is the plan's job, through the same lever as any shift: a
+    // pre-heat before the run, or warmth owed bought back after, whatever the pump does itself.
+    // Measured indoor starts every replan, so a pump that does catch up shows it, and the plan
+    // buys less.
     forecast.forEach((slot, k) => {
         const c = comfortAt(comfort, k);
-        const max = house.heatLoss * (c - DESIGN_OUTDOOR) * SLOT_H;
         curve = curveInput(curve, slot.te - biases[k], SLOT_H, CURVE_TAU_H);
-        const wanted = pumpHeat(house, c, slot.te, curve, pump, ti);
-        let heat = wanted;
-        if (slot.busy) {
-            owed += wanted;
-            heat = 0;
-        } else if (owed > 0) {
-            const back = Math.min(owed, Math.max(0, max - wanted));
-            heat += back;
-            owed -= back;
-        }
+        const heat = slot.busy ? 0 : pumpHeat(house, c, slot.te, curve, pump, ti);
         [ti, tm] = stepHouse(house, ti, tm, {te: slot.te, q: heat, sun: slot.sun, sunE: slot.sunE, sunW: slot.sunW});
         out.ti.push(ti);
         out.tm.push(tm);
@@ -317,21 +313,39 @@ export function planShift(house: HouseParams, comfort: Comfort, state: PlanState
         fairCost: baselineFair, baselineFairCost: baselineFair, reason: reason === 'no_gain' && thin ? 'spread_below_margin' : reason});
     if (limits.maxBias === 0) return nothing('no_room');
 
-    // Unit-bias responses at slot 0: indoor, mass and heat m slots later.
+    // Unit-bias responses: indoor, mass and heat m slots after a step at j. Hot water's hours are
+    // absolute, so a step whose response reaches one gets its own response with those slots busy:
+    // a pre-heat into a charge delivers nothing there (simulate), and a linear picture that
+    // credited it overshot the real plan out of its band (2026-11-27). Steps clear of every
+    // charge share the plain one.
     const unit = [1, ...new Array(n - 1).fill(0)];
-    const flat = forecast.map((f) => ({...f, te: forecast[0].te}));
     const flatHeld = new Array(n).fill(held[0]);
-    const r0 = simulate(house, c[0], state, flat, flatHeld, pump);
-    const r1 = simulate(house, c[0], state, flat, unit.map((u) => u + held[0]), pump);
-    const rti = r1.ti.map((v, m) => v - r0.ti[m]);
-    const rtm = r1.tm.map((v, m) => v - r0.tm[m]);
-    const rq = r1.heat.map((v, m) => v - r0.heat[m]);
+    const responseWith = (busyAt: (m: number) => boolean) => {
+        const flat = forecast.map((f, m) => ({...f, te: forecast[0].te, busy: busyAt(m)}));
+        const r0 = simulate(house, c[0], state, flat, flatHeld, pump);
+        const r1 = simulate(house, c[0], state, flat, unit.map((u) => u + held[0]), pump);
+        return {ti: r1.ti.map((v, m) => v - r0.ti[m]), tm: r1.tm.map((v, m) => v - r0.tm[m]), q: r1.heat.map((v, m) => v - r0.heat[m])};
+    };
+    const plain = responseWith(() => false);
+    const rq = plain.q;
+    // A bias moves heat for a few hours (the curve's lag, then the house's pull on emission):
+    // past that the response is noise, and pricing it would only cost time.
+    const peak = Math.max(...rq.map(Math.abs));
+    let reach = n;
+    while (reach > 1 && Math.abs(rq[reach - 1]) < 1e-3 * peak) reach--;
+    const responses = new Map<number, typeof plain>();
+    const R = (j: number) => {
+        let r = responses.get(j);
+        if (!r) responses.set(j, r = forecast.slice(j, j + reach).some((f) => f.busy) ? responseWith((m) => forecast[j + m]?.busy === true) : plain);
+        return r;
+    };
     const moved = rq.reduce((a, b) => a + Math.abs(b), 0);
     // Per unit bias at j: electricity cost, and heat owed (H·Δt per degree-hour, plus stored heat
     // at the end). The objective is cost + mean price × max(0, owed) (`fairCost`).
     const costGrad = prices.map((_, j) => {
         let g = 0;
-        for (let k = j; k < n; k++) g += prices[k] * marginal[k] * rq[k - j];
+        const q = R(j).q;
+        for (let k = j; k < n; k++) g += prices[k] * marginal[k] * q[k - j];
         return g;
     });
     // With a learned COP a slot's electricity is convex in its heat: each K of supply a pre-heat
@@ -347,17 +361,13 @@ export function planShift(house: HouseParams, comfort: Comfort, state: PlanState
         const supply = baseline.supply[k] + (q - baseline.heat[k]) / (pump.heatPerSupplyK! * SLOT_H);
         return q / copAt(pump.cop!, supply, forecast[k].te);
     };
-    // A bias moves heat for a few hours (the curve's lag, then the house's pull on emission):
-    // past that the response is noise, and pricing it would only cost time.
-    const peak = Math.max(...rq.map(Math.abs));
-    let reach = n;
-    while (reach > 1 && Math.abs(rq[reach - 1]) < 1e-3 * peak) reach--;
     const electricityChange = (j: number, step: number) => {
         if (!convex) return step * costGrad[j];
         let d = 0;
+        const q = R(j).q;
         for (let k = j; k < Math.min(n, j + reach); k++) {
-            if (rq[k - j] === 0) continue;
-            d += prices[k] * (electricityAt(k, heatNow[k] + step * rq[k - j]) - electricityAt(k, heatNow[k]));
+            if (q[k - j] === 0) continue;
+            d += prices[k] * (electricityAt(k, heatNow[k] + step * q[k - j]) - electricityAt(k, heatNow[k]));
         }
         return d;
     };
@@ -380,12 +390,14 @@ export function planShift(house: HouseParams, comfort: Comfort, state: PlanState
     const tm = [...baseline.tm];
     biases.forEach((b, j) => {
         if (!b) return;
-        for (let k = j; k < n; k++) { ti[k] += b * rti[k - j]; tm[k] += b * rtm[k - j]; }
+        const r = R(j);
+        for (let k = j; k < n; k++) { ti[k] += b * r.ti[k - j]; tm[k] += b * r.tm[k - j]; }
     });
     const endShort = (dti: number, dtm: number) =>
         Math.max(0, house.ci * (reference.ti[n - 1] - ti[n - 1] - dti) + house.cm * (reference.tm[n - 1] - tm[n - 1] - dtm));
     /** Change in weighted heat owed if the bias at j moves by `step`. */
     const owedChange = (j: number, step: number) => {
+        const {ti: rti, tm: rtm} = R(j);
         let d = weight[n - 1] * (endShort(step * rti[n - 1 - j], step * rtm[n - 1 - j]) - endShort(0, 0));
         for (let k = j; k < n; k++) {
             const gap = reference.ti[k] - ti[k];
@@ -415,6 +427,7 @@ export function planShift(house: HouseParams, comfort: Comfort, state: PlanState
         return true;
     };
     const bandOk = (j: number, step: number) => {
+        const rti = R(j).ti;
         for (let k = j; k < n; k++) {
             const t = ti[k] + step * rti[k - j];
             if (t < floor[k] - 1e-6 || t > ceiling[k] + 1e-6) return false;
@@ -437,8 +450,9 @@ export function planShift(house: HouseParams, comfort: Comfort, state: PlanState
         }
         if (!best) break;
         biases[best.j] += best.step;
-        for (let k = best.j; k < n; k++) heatNow[k] += best.step * rq[k - best.j];
-        for (let k = best.j; k < n; k++) { ti[k] += best.step * rti[k - best.j]; tm[k] += best.step * rtm[k - best.j]; }
+        const r = R(best.j);
+        for (let k = best.j; k < n; k++) heatNow[k] += best.step * r.q[k - best.j];
+        for (let k = best.j; k < n; k++) { ti[k] += best.step * r.ti[k - best.j]; tm[k] += best.step * r.tm[k - best.j]; }
     }
 
     if (biases.every((b) => b === 0)) return nothing('no_gain');

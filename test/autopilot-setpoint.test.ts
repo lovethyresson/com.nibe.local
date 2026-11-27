@@ -110,3 +110,23 @@ test('a mean no heated house shows holds the trim, and impossible readings never
     const day = Array.from({length: 96}, () => 21);
     assert.equal(indoorMean([...day.slice(0, 90), 0, 0, 85, 85, 85, 85]), 21);
 });
+
+test('readTrim brings the whole state back within a day of saving, the learned part alone after (2026-11-27)', () => {
+    const at = 1_000_000_000_000;
+    const saved = {integral: 1.5, recent: [{error: 0.4, age: 2}], last: 2.3, setpoint: 22.5, settling: 10, at};
+    assert.deepEqual(readTrim(saved, at + 3_600_000), {integral: 1.5, recent: [{error: 0.4, age: 2}], last: 2.3, setpoint: 22.5, settling: 10, at});
+    assert.deepEqual(readTrim(saved, at + 25 * 3_600_000), {integral: 1.5});
+    assert.deepEqual(readTrim(saved), {integral: 1.5}, 'without now: the learned part, as before');
+    assert.deepEqual(readTrim({integral: 1.5}, at), {integral: 1.5}, 'an old store without a time');
+});
+
+test('a setpoint settle survives a restart: the trim still holds still after it', () => {
+    const at = 1_000_000_000_000;
+    let state: TrimState = {integral: 0};
+    state = nextTrim(state, {setpoint: 21, mean: 21, hours: 0.25, integrate: true}).state;
+    state = nextTrim(state, {setpoint: 22.5, mean: 21, hours: 0.25, integrate: true}).state;
+    assert.ok(state.settling! > 20, 'settling after the setpoint change');
+    const back = readTrim(JSON.parse(JSON.stringify({...state, at})), at + 600_000);
+    const next = nextTrim(back, {setpoint: 22.5, mean: 21, hours: 0.25, integrate: true});
+    assert.equal(next.state.integral, 0, 'no learning while it settles, restart or not');
+});

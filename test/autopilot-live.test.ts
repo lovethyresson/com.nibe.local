@@ -2,13 +2,14 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {
     FeedHooks, HeatingFeed, LIVE_LIMITS, LiveEntry, LiveMode, PROFILE_LIMITS, PumpFacts, ShiftInput, StopReason, cycleBias,
-    flatPrices, indoorMean, liveMode, planLive, profileLimits, stopReason, surplusPrices, SURPLUS_SHIFT_K, curveCoastDepth, liveLimits, livePump, withHotwater,
+    flatPrices, indoorMean, liveMode, planLive, profileLimits, stopReason, surplusPrices, SURPLUS_SHIFT_K, curveCoastDepth, liveLimits, livePump, withHotwater, FeedResume,
 } from '../lib/autopilot/live';
 import {SupplyCurve} from '../lib/autopilot/curve';
 import {pumpHeat, simulate} from '../lib/autopilot/planner';
 import {newForecastBias} from '../lib/autopilot/outdoor';
 import {ForecastSlot, steadyState} from '../lib/autopilot/planner';
 import {SLOT_MS} from '../lib/autopilot/prices';
+import {TrimState} from '../lib/autopilot/setpoint';
 import {RADIATOR_HOUSE} from './autopilot-house-sim';
 
 const house = RADIATOR_HOUSE;
@@ -82,12 +83,14 @@ test('no pre-heat while the immersion heater runs; coasting is still allowed', (
 
 /** A fake pump: 5217 writes show on input 1 unless `deaf`. Timers run by hand. */
 function harness(over: {mode?: LiveMode; facts?: Partial<PumpFacts>; sensor?: number; forecast?: number; deaf?: boolean;
-    plan?: ShiftInput | undefined; setpoint?: number; mean?: number; hold?: boolean; input1?: number} = {}) {
-    let now = 1_800_000 * SLOT_MS + 1000;
+    plan?: ShiftInput | undefined; setpoint?: number; mean?: number; hold?: boolean; input1?: number;
+    now?: number; trim?: TrimState; resume?: FeedResume} = {}) {
+    let now = over.now ?? 1_800_000 * SLOT_MS + 1000;
     let input1: number | undefined = over.input1;
     const state = {
         mode: over.mode ?? 'live' as LiveMode, writes: [] as number[], records: [] as LiveEntry[], warnings: [] as (StopReason | undefined)[],
-        changes: 0, neutral: false, logs: [] as string[], setpoint: over.setpoint, trim: {integral: 0}, saves: 0,
+        changes: 0, neutral: false, logs: [] as string[], setpoint: over.setpoint, trim: over.trim ?? {integral: 0} as TrimState, saves: 0,
+        resume: over.resume as FeedResume | undefined,
         feeding: [] as boolean[], sensor: ('sensor' in over ? over.sensor : 3) as number | undefined, deaf: over.deaf ?? false,
         facts: {mode: 1, thresholds: {}, spaHeating: false, roomControl: 0, ...over.facts} as PumpFacts,
     };
@@ -102,6 +105,8 @@ function harness(over: {mode?: LiveMode; facts?: Partial<PumpFacts>; sensor?: nu
         setpoint: () => state.setpoint,
         loadTrim: () => state.trim,
         saveTrim: (t) => { state.trim = t; state.saves++; },
+        loadResume: () => state.resume,
+        saveResume: (r) => { state.resume = JSON.parse(JSON.stringify(r)); },
         pump: async () => state.facts,
         outdoor: () => ({sensor: state.sensor, forecast: over.forecast, localHour: 12, bias: newForecastBias()}),
         write: async (c) => { state.writes.push(c); if (!state.deaf) input1 = c; },
@@ -118,7 +123,7 @@ function harness(over: {mode?: LiveMode; facts?: Partial<PumpFacts>; sensor?: nu
         now: () => now,
     };
     const feed = new HeatingFeed(hooks);
-    return {feed, state, advance: (ms: number) => { now += ms; }};
+    return {feed, state, advance: (ms: number) => { now += ms; }, now: () => now, input1: () => input1};
 }
 
 test('a cycle feeds the real outdoor minus the plan\'s bias and checks the pump took it', async () => {
@@ -356,7 +361,8 @@ test('a curve offset change moves the trim\'s learned part once, and it is saved
     assert.equal(feed.learnedTrim, 2);
     feed.shiftTrim(-1.5);
     assert.equal(feed.learnedTrim, 0.5);
-    assert.deepEqual(state.trim, {integral: 0.5});
+    assert.equal(state.trim.integral, 0.5);
+    assert.ok(Number.isFinite(state.trim.at), 'saved with its time, so a restart resumes it');
     feed.shiftTrim(-50);
     assert.equal(feed.learnedTrim, -10, 'within the trim\'s range');
 });
@@ -468,18 +474,28 @@ test('live plans along the learned curve when it exists, and the curve still hol
     assert.ok(deep < lever, `${deep} < ${lever}`);
 });
 
-test('while hot water has the compressor the house gets nothing, and the pump catches up after', () => {
+test('while hot water has the compressor the house gets nothing, and the pump does not make it up (2026-11-27)', () => {
     const fc = forecast().map((s, k) => ({...s, price: 1, busy: k >= 8 && k < 16}));
     const free = simulate(house, 21.5, {ti: start.ti, tm: start.tm, curve: 3, bias: 0}, forecast().map((s) => ({...s, price: 1})),
         new Array(96).fill(0));
     const run = simulate(house, 21.5, {ti: start.ti, tm: start.tm, curve: 3, bias: 0}, fc, new Array(96).fill(0));
     for (let k = 8; k < 16; k++) assert.equal(run.heat[k], 0, `no heat in slot ${k}`);
     assert.ok(run.ti[15] < free.ti[15] - 0.05, 'the house cools during the charge');
-    // Degree minutes: the heat missed is delivered afterwards, so the day's heat is the same.
+    // Degree minutes hold still on the S1155: the heat missed is not delivered afterwards. The
+    // curve asks for a little more of a cooler house, nothing like the 2 h it missed.
     const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
-    assert.ok(Math.abs(sum(run.heat) - sum(free.heat)) < 0.05 * sum(free.heat), `${sum(run.heat)} vs ${sum(free.heat)}`);
-    assert.ok(run.heat[16] > free.heat[16], 'it catches up straight after');
+    const missed = sum(free.heat.slice(8, 16));
+    const back = sum(run.heat.slice(16)) - sum(free.heat.slice(16));
+    assert.ok(back < 0.2 * missed, `made up ${back.toFixed(2)} of ${missed.toFixed(2)} kWh`);
+    assert.ok(run.ti[40] < free.ti[40], 'the house is still cooler hours later');
     assert.deepEqual(withHotwater(forecast().slice(0, 2), [false, true]).map((s) => !!s.busy), [false, true]);
+});
+
+test('the plan covers a hot water run itself: owed warmth after it, or a pre-heat before (2026-11-27)', () => {
+    const fc = forecast().map((s, k) => ({...s, price: 1, busy: k >= 8 && k < 16}));
+    const plan = planLive(input({curve: 3, forecast: fc}), PROFILE_LIMITS.comfortable);
+    const after = plan.biases.slice(0, 24).reduce((a, b) => a + Math.max(0, b), 0);
+    assert.ok(after > 0, `warms the house around the run: ${plan.biases.slice(0, 24).map((b) => b.toFixed(1)).join(' ')}`);
 });
 
 // A flat price, so the plan is about the thermostat, not the price. The house sits at 21.5 °C.
@@ -564,6 +580,26 @@ test('after a quick restart the plan carries on from the shift the pump still ho
     assert.notDeepEqual(feed.state.biases, fresh.feed.state.biases, 'planned from the held shift, not from 0');
 });
 
+test('a restart resumes: the first plan after it is the plan the running feed makes (2026-11-27)', async () => {
+    // A pre-heat ahead of the peak, a thermostat the house is under: plan, trim and the pump's
+    // held feed all carry state a restart used to drop.
+    const over = {setpoint: 22, mean: 21.4};
+    const a = harness(over);
+    a.feed.start();
+    for (let k = 0; k < 6; k++) { await a.feed.cycle(); a.advance(SLOT_MS); }
+    // Stored state as a restart finds it, before the running feed's next cycle.
+    const stored = {trim: JSON.parse(JSON.stringify(a.state.trim)), resume: JSON.parse(JSON.stringify(a.state.resume))};
+    const b = harness({...over, ...stored, now: a.now(), input1: a.input1()});
+    await a.feed.cycle();
+    b.feed.start();
+    await b.feed.cycle();
+    assert.ok(a.feed.state.biases && b.feed.state.biases);
+    const gap = Math.max(...a.feed.state.biases!.map((v, k) => Math.abs(v - b.feed.state.biases![k])));
+    assert.ok(gap < 0.05, `restarted plan within 0.05 K of the running one (off by ${gap.toFixed(3)} K)`);
+    assert.equal(b.feed.state.trim, a.feed.state.trim, 'the trim carries on');
+    assert.ok(Math.abs(b.feed.state.bias - a.feed.state.bias) < 0.05, 'and so does the fed shift');
+});
+
 test('once the write has run out, input 1 is the wired sensor and nothing is carried on', async () => {
     const {feed, state} = harness({input1: 3.6});
     feed.start();
@@ -593,4 +629,30 @@ test('the held shift is read once the first outdoor temperature is in, and only 
     late.advance(SLOT_MS);
     await late.feed.cycle();
     assert.ok(!late.state.logs.some((l) => l.includes('still holds')));
+});
+
+test('the hour line says what the plan expects indoors and the hot water hours it plans around', async () => {
+    const fc = forecast().map((s, k) => ({...s, busy: k >= 8 && k < 12}));
+    const {feed, state} = harness({setpoint: 21.5, mean: 21.5, plan: input({curve: 3, forecast: fc})});
+    feed.start();
+    await feed.cycle();
+    const line = state.logs.find((l) => l.startsWith('Autopilot heating hour:'));
+    assert.ok(line?.includes('plan expects indoor 3 h '), line);
+    assert.ok(line?.includes('hot water in the next 12 h from +2.00 h for 1.00 h'), line);
+});
+
+test('an app stop leaves the shift in force for the next start; an owner\'s stop hands it back', async () => {
+    const app = harness({setpoint: 22, mean: 21.4});
+    app.feed.start();
+    await app.feed.cycle();
+    const writes = app.state.writes.length;
+    await app.feed.stop('mode_off', false);
+    assert.equal(app.state.writes.length, writes, 'no write when the app stops');
+    assert.ok(app.state.resume!.biases.length > 0, 'the plan in force is kept to resume');
+    const owner = harness({setpoint: 22, mean: 21.4});
+    owner.feed.start();
+    await owner.feed.cycle();
+    await owner.feed.stop('mode_off');
+    assert.equal(owner.state.writes.at(-1), 3, 'the real outdoor temperature, once');
+    assert.deepEqual(owner.state.resume!.biases, [], 'and nothing to carry on from');
 });

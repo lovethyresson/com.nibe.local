@@ -67,13 +67,16 @@ export const RECOVERING_K = 0.02;
 export interface TrimState {
     /** The learned part of the trim, K (positive pre-heats: fed colder). Kept across restarts. */
     integral: number;
-    /** Recent errors with their age, hours, for the recovery test. In memory only. */
+    /** Recent errors with their age, hours, for the recovery test. Stored with `at` (`readTrim`). */
     recent?: {error: number; age: number}[];
-    /** The trim last given, held while settling or without a mean. In memory only. */
+    /** The trim last given, held while settling or without a mean. */
     last?: number;
-    /** The setpoint last seen, and hours left holding still after it changed. In memory only. */
+    /** The setpoint last seen, and hours left holding still after it changed. */
     setpoint?: number;
     settling?: number;
+    /** When it was saved, ms: after a restart the feed counts the time since as a pause (at most
+     *  an hour), as it does without one (live.ts `steer`). */
+    at?: number;
 }
 
 export interface TrimInput {
@@ -117,9 +120,21 @@ function tau(hours: number | undefined): number {
     return Math.min(TAU_RANGE_H[1], Math.max(TAU_RANGE_H[0], hours));
 }
 
-export function readTrim(raw: unknown): TrimState {
+/** A stored trim. With `now`, within a day of being saved, the whole state comes back with the
+ *  time it was saved, and the feed's next step counts the time since as it counts a pause (at
+ *  most an hour), so a restart neither ends a setpoint's settle early nor forgets that the house
+ *  was already recovering (2026-11-27: restarts must resume, not restart). Past a day only the
+ *  learned part is kept: the rest describes a house that has moved on. */
+export function readTrim(raw: unknown, now?: number): TrimState {
     const v = Number((raw as any)?.integral);
-    return {integral: Number.isFinite(v) ? clamp(v) : 0};
+    const integral = Number.isFinite(v) ? clamp(v) : 0;
+    const at = Number((raw as any)?.at);
+    const hours = now !== undefined && Number.isFinite(at) ? (now - at) / 3_600_000 : NaN;
+    if (!(hours >= 0 && hours < 24)) return {integral};
+    const r = raw as TrimState;
+    const recent = Array.isArray(r.recent) ? r.recent.filter((e) => Number.isFinite(e?.error) && Number.isFinite(e?.age)) : undefined;
+    return {integral, ...recent ? {recent} : {}, ...Number.isFinite(r.last) ? {last: r.last} : {},
+        ...Number.isFinite(r.setpoint) ? {setpoint: r.setpoint} : {}, ...Number.isFinite(r.settling) ? {settling: r.settling} : {}, at};
 }
 
 function clamp(v: number): number {

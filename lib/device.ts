@@ -22,7 +22,7 @@ import {KWH_PER_LITRE, LearnedHousehold, STARTER_DAYS, learn, learnedHousehold, 
 import {fetchTankInsights, pointsFromInsights} from './autopilot/hotwater-insights';
 import {DAY_TYPE_SETTING, DEFAULT_DAY_TYPE, DayTypeState, awayOn, dayTypeAt, homeDayTypeAt, readDayType, typeSet} from './autopilot/day-type';
 import {Sample} from './autopilot/history';
-import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, StopReason, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits, rangeLimits, rangeFacts, CUSTOM_SETTINGS, customPresets, customValues, sunTrust, surplusPrices, withHotwater} from './autopilot/live';
+import {DEFAULT_PROFILE, HeatingFeed, LiveMode, PumpFacts, StopReason, VERIFY_GAP_MS, VERIFY_TRIES, liveMode, profileLimits, rangeLimits, rangeFacts, CUSTOM_SETTINGS, customPresets, customValues, readResume, sunTrust, surplusPrices, withHotwater} from './autopilot/live';
 import {AUTOPILOT_FUNCTIONS, SMART_MODE_STORE, SmartFunction, SmartMode, autopilotRuns, shownSmartMode, smartMode, smartModeWrites, spaOn} from './autopilot/smart-mode';
 import {HeatingStatus, heatingStatus, learningText} from './autopilot/heating-status';
 import {PeriodWatch, pricePeriods, startedTrigger} from './autopilot/heating-flows';
@@ -43,7 +43,7 @@ import {CostCheckData, CostDay, PlannedCost, addDay, chargeCosts, costCheckData,
 import {COP} from './autopilot/planner';
 import {Edge, FORECAST_SLOTS, BlockedBy, HeatingDay, analyticsSmartMode, heatingBlock, reserveBucket} from './autopilot/analytics';
 import {SOLAR_SETTING, SolarSurplus, readSolarAnswer, solarOn} from './autopilot/solar-surplus';
-import {PumpRound, mainStatusText, spanText} from './autopilot/orchestrator';
+import {PlannedCharge, PumpRound, deliveryFree, mainStatusText, spanText} from './autopilot/orchestrator';
 import {DayPlanData, dayPlanData} from './autopilot/day-plan';
 import {Device} from 'homey';
 import net from 'net';
@@ -81,6 +81,8 @@ const BACKFILL_RETRY_MS = 10 * 60_000;
 const BACKFILL_TRIES = 6;
 /** The setpoint trim's integral (autopilot/setpoint.ts), kept across restarts. */
 const TRIM_STORE = 'autopilotTrim';
+/** The heating feed's plan in force and held shifts, so a start resumes them (live.ts `resume`). */
+const RESUME_STORE = 'autopilotHeatingResume';
 // The Away return whose warm-up has started (live.ts `warmingFor`).
 const WARMING_STORE = 'autopilotWarmingFor';
 // The Away temperature until the owner sets one.
@@ -141,6 +143,9 @@ const INDOOR_WARNING_STORE = 'indoorWarning';
 const SAVINGS_TODAY_STORE = 'autopilotSavingsToday';
 /** Plan vs actual (cost-check.ts): each day's first plan from local midnight on, hour by hour, and what it cost. */
 export const COST_CHECK_STORE = 'autopilotCostCheck';
+/** Hot water's charges as last published to the plan round (orchestrator.ts), so a restart hands
+ *  heating the hours hot water holds the compressor before hot water's first plan is in. */
+export const HOTWATER_ROUND_STORE = 'autopilotRoundCharges';
 /** Days back the ledger is filled from: what Insights keeps hourly. */
 const SAVINGS_BACK_DAYS = 13;
 /** Seconds after the app starts during which missing prices or plans are still on their way. */
@@ -1629,6 +1634,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
             if (this.hotwaterAutopilot) this.log('Autopilot hot water stopped.');
             this.hotwaterAutopilot = null;
             this.round().setHotwater(undefined);
+            await this.setStoreValue(HOTWATER_ROUND_STORE, null).catch(this.error);
             await this.unsetWarning().catch(this.error);
             await this.syncHotwaterTakeover();
             return;
@@ -1704,12 +1710,31 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     this.setCapabilityValue(AUTOPILOT_REASON_CAPABILITY, text).catch(this.error);
             },
             preheat: (slot) => this.round().preheat(slot),
-            replanned: (charges) => this.round().setHotwater(charges, live() !== 'live'),
+            replanned: (charges) => this.publishCharges(charges, live() !== 'live'),
         });
         // A charge's own draw is what the meter would otherwise export: added back to the live reading.
         this.solarSurplus().draw(this, () => number(spec.power));
         this.log(`Autopilot hot water started (${live() === 'live' ? 'live' : 'test run'}).`);
+        // Until its first plan after this start, the charges it published last, a running one
+        // included: heating plans around them from its first slot (a restart resumes, 2026-11-27).
+        const saved = this.savedCharges();
+        if (saved) this.round().setHotwater(saved.charges, saved.simulated);
         await this.hotwaterAutopilot.start();
+    }
+
+    /** Publish hot water's charges to the plan round and keep them for the next start. */
+    private publishCharges(charges: PlannedCharge[], simulated: boolean) {
+        this.round().setHotwater(charges, simulated);
+        const kept = {charges: charges.map((c) => ({at: c.at, minutes: c.minutes})), simulated};
+        if (JSON.stringify(kept) !== JSON.stringify(this.getStoreValue(HOTWATER_ROUND_STORE)))
+            this.setStoreValue(HOTWATER_ROUND_STORE, kept).catch(this.error);
+    }
+
+    /** The charges hot water last published, while its Autopilot is on; undefined otherwise. */
+    savedCharges(): {charges: PlannedCharge[]; simulated: boolean} | undefined {
+        if (this.autopilotMode() === 'off') return undefined;
+        const v = this.getStoreValue(HOTWATER_ROUND_STORE) as {charges?: PlannedCharge[]; simulated?: boolean} | null;
+        return Array.isArray(v?.charges) ? {charges: v!.charges!, simulated: v!.simulated === true} : undefined;
     }
 
     /** More hot water for `hours` (697's hours picker, as text, as a Flow card sends it). Its
@@ -2123,7 +2148,10 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 this.scoreHeatingSlot(slot, planned.ti, planned.forecast[0]?.te, planned.forecast[0]?.sun);
                 // Hot water goes first (the plan round, orchestrator.ts): while it has the compressor,
                 // the house gets nothing from it.
-                const busy = this.round().deliveryFree(slot, planned.forecast.length);
+                // Right after a start hot water may not have planned yet: its charges as last
+                // published stand in, so a running charge is not taken for heat (2026-11-27).
+                const busy = this.round().deliveryFree(slot, planned.forecast.length)
+                    ?? this.savedHotwaterBusy(slot, planned.forecast.length);
                 const input = {...planned, forecast: withHotwater(planned.forecast, busy)};
                 // Solar surplus left for heating after hot water took its share makes those slots cheap.
                 if (!this.solarAllowed()) return input;
@@ -2146,7 +2174,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                 return Number.isFinite(v) && v > 0 ? v : undefined;
             },
             saveWarming: (at) => { (at === undefined ? this.unsetStoreValue(WARMING_STORE) : this.setStoreValue(WARMING_STORE, at)).catch(this.error); },
-            loadTrim: () => readTrim(this.getStoreValue(TRIM_STORE)),
+            loadTrim: () => readTrim(this.getStoreValue(TRIM_STORE), Date.now()),
+            loadResume: () => readResume(this.getStoreValue(RESUME_STORE)),
+            saveResume: (resume) => { this.setStoreValue(RESUME_STORE, resume).catch(this.error); },
             saveTrim: (state) => { this.setStoreValue(TRIM_STORE, state).catch(this.error); },
             pump: () => this.heatingPumpFacts(),
             outdoor: () => collector.outdoorNow(),
@@ -2197,6 +2227,12 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     /** This pump's plan round (orchestrator.ts). */
     private round(): PumpRound {
         return PumpRound.for(this.host());
+    }
+
+    /** Hot water's saved charges as busy slots, for heating before hot water has started. */
+    private savedHotwaterBusy(from: number, n: number): boolean[] | undefined {
+        const saved = this.pumpDevices().find((d) => d.role === 'hotwater')?.savedCharges();
+        return saved ? deliveryFree(saved.charges, from, n) : undefined;
     }
 
     private roundOff?: () => void;
@@ -2315,8 +2351,11 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         this.showHeatingStatus().catch(this.error);
     }
 
-    private async stopHeatingFeed() {
-        await this.heatingFeed?.stop('mode_off').catch(this.error);
+    /** `handBack` false for an app stop or restart: the pump keeps the value fed for about 5 min
+     *  and then goes back to its own sensor, so a quick restart finds the shift still held and
+     *  carries on (`adoptHeld`), and a longer stop needs no write to end it. */
+    private async stopHeatingFeed(handBack = true) {
+        await this.heatingFeed?.stop('mode_off', handBack).catch(this.error);
         this.heatingFeed = null;
         this.roundOff?.();
         this.roundOff = undefined;
@@ -3003,7 +3042,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.heatingFeed) this.heatingFeed.shiftTrim(shift);
         else if (shift) {
             const trim = readTrim(this.getStoreValue(TRIM_STORE));
-            this.setStoreValue(TRIM_STORE, {integral: readTrim({integral: trim.integral + shift}).integral}).catch(this.error);
+            const raw = this.getStoreValue(TRIM_STORE);
+            this.setStoreValue(TRIM_STORE, {...raw && typeof raw === 'object' ? raw : {}, integral: readTrim({integral: trim.integral + shift}).integral})
+                .catch(this.error);
         }
         store.offset = to;
         store.changed = dayNumber(Date.now());
@@ -4735,8 +4776,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     }
 
     async onUninit() {
-        // BT1 back to the real outdoor temperature first, while the connection is still up.
-        await this.stopHeatingFeed();
+        // No write of the real outdoor temperature: a restart must not end the shift in force
+        // (2026-11-27). The pump's own guard ends it within minutes if the app does not return.
+        await this.stopHeatingFeed(false);
         // History first: an app update may not wait for the rest. If it doesn't wait at all, the
         // hourly save bounds the loss to an hour, and the model re-anchors across the gap.
         if (this.backfillTimer) this.homey.clearTimeout(this.backfillTimer);

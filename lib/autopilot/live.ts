@@ -132,6 +132,25 @@ export const STARTUP_REPLAN_MS = 15 * 60_000;
 /** Smallest shift the pump can be seen to still hold after a restart, K: below it, input 1 is the
  *  wired sensor again and the difference is only the sensors disagreeing. */
 export const HELD_MIN_K = 1;
+/** A start within this many slots of the last plan carries on from it (`resume`): past that the
+ *  plan's start has gone stale and a fresh search is as good. */
+export const RESUME_SLOTS = 8;
+
+/** What a start resumes from: the plan in force (its first slot and biases) and the last day's
+ *  held shifts (`levelPush`). */
+export interface FeedResume {
+    slot: number;
+    biases: number[];
+    held: {slot: number; shift: number}[];
+}
+
+/** A stored `FeedResume`, or undefined when it isn't one. */
+export function readResume(raw: unknown): FeedResume | undefined {
+    const r = raw as FeedResume | null | undefined;
+    if (!r || !Number.isFinite(r.slot) || !Array.isArray(r.biases) || !r.biases.every(Number.isFinite)) return undefined;
+    const held = Array.isArray(r.held) ? r.held.filter((h) => Number.isFinite(h?.slot) && Number.isFinite(h?.shift)) : [];
+    return {slot: r.slot, biases: r.biases, held};
+}
 
 /** Indoor readings outside this range are not a room's air temperature (a sensor fault). */
 export const INDOOR_PLAUSIBLE: [number, number] = [5, 35];
@@ -367,9 +386,13 @@ export interface FeedHooks {
     /** The return whose warm-up has started, kept across restarts (`warmingFor`). */
     loadWarming?(): number | undefined;
     saveWarming?(at: number | undefined): void;
-    /** The setpoint trim's integral, kept across restarts. */
+    /** The setpoint trim's state, kept across restarts (setpoint.ts `readTrim`). */
     loadTrim?(): TrimState;
     saveTrim?(state: TrimState): void;
+    /** The plan in force and the last day's held shifts, kept across restarts so a start carries
+     *  on from them (`FeedResume`). */
+    loadResume?(): FeedResume | undefined;
+    saveResume?(resume: FeedResume): void;
     pump(): Promise<PumpFacts>;
     /** The outdoor sensor's live reading (already checked for freshness) and the corrected
      *  forecast for now; the feed never uses input 1, which shows its own value. */
@@ -519,6 +542,7 @@ export class HeatingFeed {
         this.failures = 0;
         this.startedAt = this.hooks.now();
         this.adoptHeld = true;
+        this.resume();
         // Replan (and so re-check every guard) before the first write, even within a slot.
         this.plannedSlot = undefined;
         this.warn(undefined);
@@ -539,7 +563,10 @@ export class HeatingFeed {
 
     /** Stop and hand BT1 back: one last feed of the real outdoor temperature, so the pump does
      *  not hold a shifted value for the ~5 min a write lasts. */
-    async stop(reason: StopReason = 'mode_off') {
+    /** End the feed. `handBack` (an owner's stop): one last feed of the real outdoor temperature,
+     *  and no plan to resume. Without it (the app stopping) the pump keeps the shift in force until
+     *  its write runs out, and a start soon after carries on from it. */
+    async stop(reason: StopReason = 'mode_off', handBack = true) {
         if (this.stopped && this.stopState) return;
         this.stopped = true;
         this.stopState = reason;
@@ -547,7 +574,11 @@ export class HeatingFeed {
         if (this.timer) this.hooks.clearTimeout(this.timer);
         this.timer = undefined;
         if (this.work) await this.work.catch(() => undefined);
-        await this.handBack();
+        if (handBack) {
+            await this.handBack();
+            // An owner's stop is not a plan to carry on from.
+            this.hooks.saveResume?.({slot: slotOf(this.hooks.now()), biases: [], held: this.heldShifts});
+        } else this.hooks.feeding(false);
         this.bias = 0;
         this.target = 0;
         this.plan = undefined;
@@ -657,6 +688,24 @@ export class HeatingFeed {
         this.heldShifts = [...this.heldShifts.filter((h) => h.slot > slot - 96), {slot, shift}];
     }
 
+    /** A start carries on: the plan in force as the warm start, shifted to now, and the last day's
+     *  held shifts for `levelPush`. Without them a restart searched from zero, which the ramp
+     *  makes shallower, and the curve check judged the curve on the hours since the start. */
+    private resume() {
+        const r = this.hooks.loadResume?.();
+        if (!r) return;
+        const slot = slotOf(this.hooks.now());
+        this.heldShifts = r.held.filter((h) => h.slot > slot - 96 && h.slot <= slot);
+        const gap = slot - r.slot;
+        if (gap >= 0 && gap <= RESUME_SLOTS && r.biases.length > gap) this.previous ??= r.biases.slice(gap);
+    }
+
+    private saveResume() {
+        if (!this.hooks.saveResume) return;
+        const plan = this.plan;
+        this.hooks.saveResume({slot: plan?.slot ?? slotOf(this.hooks.now()), biases: plan?.biases ?? [], held: this.heldShifts});
+    }
+
     /** Getting started holds: as last planned, or before the first plan of a run (the first
      *  hour's line comes before it) as the hook says now. */
     private heldNow(): boolean {
@@ -676,7 +725,22 @@ export class HeatingFeed {
         // Fed = outdoor − bias, so a positive bias warms (the Insights shift is fed − outdoor, its negative).
         this.hooks.log(`Autopilot heating hour: ${state}; setpoint ${k(this.setpoint)}, 24 h mean ${k(this.trimMean)}; `
             + `bias ${k(this.bias)} K = trim ${k(trim)} (learned ${k(this.learnedTrim)}) + shift ${k(this.bias - trim)}; `
-            + `fed ${k(this.lastFed?.fed)} = outdoor ${k(this.real?.value)} (${this.real?.source ?? '-'}) − bias${extra ? `; ${extra}` : ''}.`);
+            + `fed ${k(this.lastFed?.fed)} = outdoor ${k(this.real?.value)} (${this.real?.source ?? '-'}) − bias${extra ? `; ${extra}` : ''}`
+            + `${this.planLine(slot)}.`);
+    }
+
+    /** What the plan in force expects, for the hour's line: indoor 3, 6 and 12 h on, and the hot
+     *  water hours it plans around. Without it a plan could not be checked against what happened
+     *  (2026-11-27: the afternoon pre-heat a rebuild made and the live plan did not). */
+    private planLine(slot: number): string {
+        const plan = this.plan;
+        if (!plan?.indoor) return '';
+        const at = (h: number) => plan.indoor![slot - plan.slot + h * 4 - 1];
+        const indoor = [3, 6, 12].map((h) => `${h} h ${at(h)?.toFixed(1) ?? '-'}`).join(', ');
+        const busy = plan.forecast.slice(slot - plan.slot, slot - plan.slot + 48).map((f) => f.busy === true);
+        const first = busy.indexOf(true);
+        const water = first < 0 ? 'none' : `from +${(first / 4).toFixed(2)} h for ${(busy.filter(Boolean).length / 4).toFixed(2)} h`;
+        return `; plan expects indoor ${indoor}; hot water in the next 12 h ${water}`;
     }
 
     private settle(out: ActuatorOutput) {
@@ -739,6 +803,7 @@ export class HeatingFeed {
         this.previous = plan.biases.slice(1);
         this.plan = {slot, biases: plan.biases, forecast: input!.forecast, reason, indoor: plan.plan.ti,
             back: warmingUp(comfort) ? back!.at : undefined};
+        this.saveResume();
         this.hooks.record({slot, bias: this.bias, trim: this.trim, setpoint: this.setpoint, fed: this.lastFed?.fed, real: this.real?.value,
             source: this.real?.source, clamped: this.lastFed?.clamped ?? [], planned: plan.biases.slice(0, 8), reason});
         this.hooks.planned?.(slot, input!.forecast, plan.plan.heat, pricesByCop(livePump(input!)) ? plan.plan.cop : undefined);
@@ -774,7 +839,7 @@ export class HeatingFeed {
         this.trimState ??= this.hooks.loadTrim?.() ?? {integral: 0};
         const integral = Math.max(-TRIM_RANGE, Math.min(TRIM_RANGE, this.trimState.integral + deltaK));
         this.trimState = {...this.trimState, integral};
-        this.hooks.saveTrim?.({integral});
+        this.hooks.saveTrim?.({...this.trimState, at: this.hooks.now()});
         this.hooks.log(`Autopilot heating: the heat curve offset moved, the trim's learned part by ${deltaK.toFixed(2)} K.`);
     }
 
@@ -787,9 +852,9 @@ export class HeatingFeed {
      *  held shift. While Getting started holds, the plan warms a cold house back (flat prices), and
      *  what it adds then is level the trim did not learn; the curve advice (curve-advice.ts) reading
      *  the trim alone would judge the curve better than it is (2026-11-24). Slots outside the hold
-     *  count 0: a price shift is not level. The day is in memory, so after a restart it fills again;
-     *  it is averaged over a whole day, the slots not yet seen as 0, so the first hour after a start
-     *  (a 10 K recovery push) does not read as a day of it. */
+     *  count 0: a price shift is not level. The day is stored, so a restart carries it on (`resume`);
+     *  it is averaged over a whole day, the slots not yet seen as 0, so the first hour of a fresh
+     *  start (a 10 K recovery push) does not read as a day of it. */
     get levelPush(): number {
         const now = this.heldShifts.at(-1)?.slot;
         const day = now === undefined ? [] : this.heldShifts.filter((h) => h.slot > now - 96);
@@ -829,6 +894,8 @@ export class HeatingFeed {
         this.trimMean = mean;
         if (this.setpoint === undefined) { this.trim = 0; return; }
         this.trimState ??= this.hooks.loadTrim?.() ?? {integral: 0};
+        // After a start the time since the stored state counts, as a pause does (`readTrim`).
+        if (this.trimSlot === undefined && this.trimState.at !== undefined) this.trimSlot = slotOf(this.trimState.at);
         const hours = this.trimSlot === undefined ? 0 : Math.min(1, Math.max(0, (slot - this.trimSlot) * 0.25));
         // While learning the house's time constant is not known yet: the default's (setpoint.ts).
         const next = nextTrim(this.trimState, {setpoint: this.setpoint, mean, hours,
@@ -837,7 +904,9 @@ export class HeatingFeed {
         this.trim = Math.round(next.trim * 10) / 10;
         const moved = next.state.integral !== this.trimState.integral;
         this.trimState = next.state;
-        if (moved) this.hooks.saveTrim?.({integral: next.state.integral});
+        // The whole state, the recovery history and the settle too, so a restart resumes it: when
+        // the learned part moves, and on the hour (a restart then loses under an hour of history).
+        if (moved || (hours > 0 && slot % 4 === 0)) this.hooks.saveTrim?.({...next.state, at: this.hooks.now()});
     }
 
     private warn(reason?: StopReason) {

@@ -225,7 +225,22 @@ this only decides rescue against a pre-heat, and rescue wins.
   one-way.
 - **Delivery-free slots** (`deliveryFree`): every slot a planned charge touches, from its start
   to the end of its predicted run. They reach heating as `ForecastSlot.busy` (planner.ts: no heat
-  that slot, caught up afterwards).
+  that slot, and **none made up afterwards**). Until 2026-11-27 the planner assumed the pump paid
+  the missed heat back as soon as the charge ended. On the S1155 it doesn't: over all 44 runs
+  from 2026-10-31 the degree minutes held still during the run, and the 2 h after brought back
+  2 % of the heat missed (with Autopilot's shift steady). So the plan expected the house warmer
+  than it got and covered nothing: on 2026-11-27 two runs cost about 18 kWh and indoor fell to
+  21.3 °C against 22.5. Now covering a run is the plan's job, through the bias like any shift,
+  which works whatever a pump does itself; a pump that does catch up shows it in the measured
+  indoor of the next replan. Each step's response in the search is simulated with the busy slots
+  it reaches, or a pre-heat into a charge looked like heat, and the re-simulated plan fell out of
+  its band and was dropped whole.
+- **Restarts resume** (2026-11-27). Hot water keeps the charges it last published
+  (`autopilotRoundCharges`) and hands them to the round at its start; heating falls back to them
+  until then. Heating keeps the plan in force and the last day's held shifts
+  (`autopilotHeatingResume`, live.ts `resume`) and the trim's whole state (setpoint.ts
+  `readTrim`). Without them a restart searched from zero (3 K off the running plan in the test),
+  ended a setpoint settle early, and took a running charge for heat.
 - **Pre-heat as a price adder** (`preheatSlots`, `preheatAdders`). A pre-heat
   slot is one where heating's planned bias is above 0. Hot water sees each one with the horizon's
   price spread (highest minus lowest price, at least 0.01) added to every kWh charged there
