@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {ASK_WAIT_DAYS, CALIBRATE_MAX_DAYS, CHECK_DAYS, MAX_DAYS, SettleState, calibrateDay, change, checkedWhileSettling, readSettle, withinRange, scoreDay, settleDone, settleRun, stepOf,
-    projectSettle, streak} from '../lib/autopilot/settling';
+    projectSettle, settleProgress, shiftEta, streak} from '../lib/autopilot/settling';
 
 const day = (date: string, mean: number | undefined, setpoint = 22.5, slots = 96, setMin = setpoint) =>
     ({date, mean, slots, setMin, setMax: setpoint});
@@ -233,4 +233,33 @@ test('the run on target counts the last days within the band, for "1 of 2 days o
     assert.equal(settleRun([d(21.8), d(22.4)]), 1);
     assert.equal(settleRun([d(22.4), d(22.2)]), 0, 'a miss ends the run');
     assert.equal(settleRun([d(22.3), d(22.7)]), 2, 'the band is ±0.2 K, both sides');
+});
+
+test('the widget estimates when settling ends and when price shifts start', () => {
+    const s = (date: string, mean: number) => ({date, mean, setpoint: 22.5});
+    // Climbing 0.2 a day from 21.6: in the band (22.3) on the 4th projected day, the 2nd day there one later.
+    const days = [s('2026-11-25', 21.4), s('2026-11-26', 21.6)];
+    const ahead = projectSettle(days);
+    assert.deepEqual(ahead, [21.8, 22, 22.2, 22.4]);
+    assert.deepEqual(settleProgress(days, ahead), {have: 0, eta: 5});
+    // One day already in the band: one more to go, whatever the projection says.
+    assert.deepEqual(settleProgress([s('2026-11-25', 21.9), s('2026-11-26', 22.4)]), {have: 1, eta: 1});
+    assert.deepEqual(settleProgress([s('2026-11-26', 21.9)]), {have: 0});
+    // Comfort range 0.5 below: 22.0 is the first day within it, the 2nd projected.
+    assert.equal(shiftEta(days, ahead, 0.5, 1), 2);
+    assert.equal(shiftEta(days, undefined, 0.5, 1), undefined);
+    assert.equal(shiftEta(days, [21.8, 21.9], 0.5, 1), undefined);
+    // Too warm: within the range only once under its high edge.
+    assert.equal(shiftEta([s('2026-11-26', 23.4)], [23.2, 23.0, 22.8], 0.5, 0.5), 2);
+});
+
+test('after a curve change while settling, only the days after it count', () => {
+    const s = (date: string, mean: number) => ({date, mean, setpoint: 22.5});
+    // Changed Fri: Thu doesn't count, Fri is the change day, so Sat and Sun are the two (3 days after Thu).
+    const days = [s('2026-11-25', 22.4), s('2026-11-26', 22.2)];
+    assert.deepEqual(settleProgress(days, [22.35], '2026-11-27'), {have: 0, eta: 3});
+    // A held day before the change is not part of the run that checks it.
+    const held = [s('2026-11-25', 22.4), s('2026-11-26', 22.5)];
+    assert.deepEqual(settleProgress(held, undefined, '2026-11-26'), {have: 0});
+    assert.deepEqual(settleProgress([...held, s('2026-11-27', 22.5)], undefined, '2026-11-26'), {have: 1, eta: 1});
 });

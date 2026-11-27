@@ -37,8 +37,8 @@ import {ComfortDay, ComfortSlot, addComfortSlot, readComfortDays} from './autopi
 import {ENERGY_ROLES, EnergyWidgetData, HeatingGraph, dayCostText, energyChart, heatingSeries, useToday} from './autopilot/energy';
 import {NowKind, OVERVIEW_KINDS, OverviewData, OverviewFact, OverviewKind, OverviewNow, OverviewTile, overviewData, plannedAhead} from './autopilot/overview';
 import {SLOT_MS, localDate, localMinutes, slotOf} from './autopilot/prices';
-import {CHECK_DAYS, CurveView, LiveReason, SettleEvent, SettleState, Step, calibrateDay, change, checkedWhileSettling, daysBetween, readSettle, scoreDay, withinRange,
-    projectSettle, settleDone, settleRun, stepOf, streak, SETTLED_DAYS} from './autopilot/settling';
+import {ASK_WAIT_DAYS, CALIBRATE_MAX_DAYS, CHECK_DAYS, CurveView, LiveReason, SettleEvent, SettleState, Step, calibrateDay, change, checkedWhileSettling, daysBetween, readSettle,
+    scoreDay, withinRange, projectSettle, settleDone, settleProgress, shiftEta, stepOf, streak, SETTLED_DAYS, SETTLED_K} from './autopilot/settling';
 import {CostCheckData, CostDay, PlannedCost, addDay, chargeCosts, costCheckData, costDay, fillActual} from './autopilot/cost-check';
 import {COP} from './autopilot/planner';
 import {Edge, FORECAST_SLOTS, BlockedBy, HeatingDay, analyticsSmartMode, heatingBlock, reserveBucket} from './autopilot/analytics';
@@ -109,6 +109,8 @@ const RANGE_STORE = 'autopilotRange';
 const COMFORT_DAYS_STORE = 'autopilotComfortDays';
 /** Autopilot heating's first weeks, day by day (autopilot/settling.ts). */
 const SETTLE_STORE = 'autopilotSettling';
+/** The Autopilot heating help page (help/autopilot-heating.html, published from the repo). */
+const HEATING_HELP_URL = 'https://lovethyresson.github.io/com.nibe.local/autopilot-heating.html';
 /** Hot water setup's one-off learn from Insights is kept this long (`hotwaterLearned`). */
 const LEARNED_KEEP_MS = 10 * 60_000;
 /** Getting started and curve advice timeline lines written overnight, sent from TIMELINE_FROM_MIN. */
@@ -2550,7 +2552,8 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         return this.homey.__(`autopilot.heating.settle.${reason === 'fits' ? 'live_fits' : 'live'}`);
     }
 
-    /** For widgets/getting_started: the four steps, and the one the owner is on. */
+    /** For widgets/getting_started: the four steps, what the step waits for and about when, and
+     *  links to the help page section that explains it. */
     settleWidget(): Record<string, unknown> {
         const t = (key: string, tokens?: Record<string, string | number>) => this.homey.__(`autopilot.settle_widget.${key}`, tokens);
         const state: SettleState | undefined = readSettle(this.getStoreValue(SETTLE_STORE));
@@ -2558,89 +2561,106 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         if (this.heatingMode !== 'live' && !state) return {title, empty: t('off')};
         const summary = this.autopilot?.houseSummary();
         const step: Step = stepOf(state, !!summary?.ready);
-        const steps: Step[] = ['learning', 'settling', 'calibrating', 'done'];
-        const label = (...parts: string[]) => [t(`step_${step}`), ...parts].join(' · ');
-        const base = {title, step: steps.indexOf(step)};
-        if (this.heatingMode !== 'live') return {...base, part: 100, label: label(t('paused')), big: t('off_big'), desc: t('off_desc')};
-        if (!this.getAvailable()) return {...base, part: 100, label: label(t('paused')), big: t('offline_big'), desc: t('offline_desc')};
-        // Shifting already (settling.ts `liveAt`): settling and calibrating say since when.
+        const order: Step[] = ['learning', 'settling', 'calibrating', 'done'];
+        const at = order.indexOf(step);
+        // Autopilot's own curve change while settling is step 3's work done early: shown started.
+        const view = this.curveView();
+        const changed = view.changed !== undefined && state && view.changed > state.start ? view.changed : undefined;
+        const steps = order.map((s, k) => ({name: t(`step_${s}`),
+            state: k < at ? 'done' : k === at ? (s === 'done' ? 'live' : 'now') : s === 'calibrating' && step === 'settling' && changed ? 'early' : ''}));
+        const help = (key: string, anchor: string, tokens?: Record<string, string | number>) => ({text: t(`help_${key}`, tokens), url: `${HEATING_HELP_URL}#${anchor}`});
+        const base = {title, steps, ...step === 'done' ? {} : {help: help('all', 'first-weeks')}};
+        if (this.heatingMode !== 'live') return {...base, big: t('off_big'), desc: t('off_desc')};
+        if (!this.getAvailable()) return {...base, big: t('offline_big'), desc: t('offline_desc')};
         const timeZone = this.homey.clock.getTimezone();
+        const today = localDate(Date.now(), timeZone);
+        const language = this.homey.i18n.getLanguage();
+        const weekday = dateFormat(language, {weekday: 'short', timeZone: 'UTC'});
+        const dayLabel = (date: string) => weekday.format(new Date(`${date}T12:00:00Z`));
+        const after = (date: string, n: number) => new Date(Date.parse(`${date}T12:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+        // About when: a weekday within the week, else a count of days.
+        const eta = (date: string) => {
+            const n = daysBetween(today, date);
+            return n <= 0 ? t('eta_today') : n <= 6 ? t('eta_day', {day: dayLabel(date)}) : t('eta_days', {n});
+        };
+        // Shifting already (settling.ts `liveAt`): settling and calibrating say since when.
         const since = state?.liveAt !== undefined ? localDate(state.liveAt, timeZone) : undefined;
-        const sinceText = since === undefined ? undefined : since === localDate(Date.now(), timeZone) ? t('saving_today')
-            : t('saving_since', {day: dateFormat(this.homey.i18n.getLanguage(), {weekday: 'short', timeZone: 'UTC'}).format(new Date(`${since}T12:00:00Z`))});
-        const going = {...base, ...sinceText ? {saving: sinceText} : {}};
+        const going = {...base, ...since === undefined ? {} : {saving: since === today ? t('saving_today') : t('saving_since', {day: dayLabel(since)})}};
         const setpoint = Number(this.getCapabilityValue('target_temperature'));
-        const target = this.celsius(Number.isFinite(setpoint) ? setpoint : state?.days[state.days.length - 1]?.setpoint ?? 0);
+        const goal = Number.isFinite(setpoint) ? setpoint : state?.days[state.days.length - 1]?.setpoint ?? 0;
+        const target = this.celsius(goal);
+        const one = (v: number) => numberFormat(language, {minimumFractionDigits: 1, maximumFractionDigits: 1}).format(v);
+        const band = (at: number) => t('band', {low: one(at - SETTLED_K), high: this.celsius(at + SETTLED_K)});
+        const fmt = (v: number) => (v > 0 ? `+${v}` : String(v));
         if (step === 'learning') {
             if (!summary) return {title, empty: t('waiting')};
             const counting = summary.missing.includes('days');
             const day = Math.min(summary.days, summary.needed);
-            return {...base, part: counting ? Math.max(4, Math.round(day / summary.needed * 100)) : 100,
-                label: label(t('day_of', {day, of: summary.needed})), big: t('learning_big'),
-                desc: counting ? (day === 0 ? t('waiting') : undefined)
-                    : this.homey.__(`autopilot.widget.${summary.missing.includes('accuracy') ? 'learning_accuracy' : 'learning_steady'}`)};
+            const wait = counting
+                ? {head: t('wait_for'), text: t('learn_days', {n: summary.needed}), part: Math.max(4, Math.round(day / summary.needed * 100)),
+                    count: t('day_of', {day, of: summary.needed}), eta: eta(after(today, summary.needed - day))}
+                : {head: t('wait_for'), text: this.homey.__(`autopilot.widget.${summary.missing.includes('accuracy') ? 'learning_accuracy' : 'learning_steady'}`)};
+            return {...base, big: t('learning_big'), wait: {...wait, help: help('learning', 'learning')},
+                lines: [{label: t('next'), text: t('next_learning', {target})}]};
         }
         if (step === 'done') {
-            const day = state?.live ? daysBetween(state.start, state.live) + 1 : undefined;
-            return {...base, part: 100, label: day ? label(t('since_day', {day})) : label(), big: t('saving_big'),
-                desc: [state?.fits ? t('fits') : '', t('saving_desc', {target})].filter(Boolean).join(' '), foot: t('remove')};
+            return {...base, big: t('saving_big'), desc: [state?.fits ? t('fits') : '', t('saving_desc', {target})].filter(Boolean).join(' '), foot: t('remove')};
         }
-        const language = this.homey.i18n.getLanguage();
-        const weekday = dateFormat(language, {weekday: 'short', timeZone: 'UTC'});
-        const dayLabel = (date: string) => weekday.format(new Date(`${date}T12:00:00Z`));
-        const one = (v: number) => numberFormat(language, {minimumFractionDigits: 1, maximumFractionDigits: 1}).format(v);
+        const store = this.heatCurveStore();
+        // The latest change, by anyone (offsetMoved): Autopilot's when its own write is dated that day.
+        const move = store.moved ?? store.adjusted;
+        const byAutopilot = !!store.adjusted && store.adjusted.day === store.changed;
+        const changedLine = changed && move
+            ? [{label: dayLabel(changed), text: t(byAutopilot ? 'changed_autopilot' : 'changed_you', {from: fmt(move.from), to: fmt(move.to)}),
+                help: help('offset', 'curve-check')}] : [];
         if (step === 'settling') {
             const days = state?.days ?? [];
-            if (!days.length) return {...going, part: 100, label: label(), big: target, desc: t('waiting')};
+            if (!days.length) return {...going, big: target, desc: t('waiting')};
             const latest = days[days.length - 1];
-            const rows = days.map((d, k) => {
-                const moved = change(d, days[k - 1]);
-                const closer = !!moved && Math.abs(d.mean - d.setpoint) < Math.abs(days[k - 1].mean - d.setpoint);
-                return {label: dayLabel(d.date), value: this.celsius(d.mean), mean: d.mean,
-                    note: !moved ? t('first_row') : `${moved.dir === 'up' ? '↑' : moved.dir === 'down' ? '↓' : '→'} ${one(moved.delta)}`,
-                    tone: closer ? 'good' : 'neutral'};
-            });
             const fresh = state?.restarted === days[0].date && days.length === 1;
-            // The pace so far carried on to the band (settling.ts projectSettle), dated from the last day.
-            const ahead = fresh ? undefined : projectSettle(days);
-            const dateAfter = (n: number) => new Date(Date.parse(`${latest.date}T12:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
-            const projection = ahead && {days: ahead.map((mean, k) => ({label: dayLabel(dateAfter(k + 1)), mean}))};
-            const longDay = dateFormat(language, {weekday: 'long', timeZone: 'UTC'});
-            const projected = ahead && (ahead.length <= 6 ? t('projected', {day: longDay.format(new Date(`${dateAfter(ahead.length)}T12:00:00Z`))})
-                : t('projected_days', {n: ahead.length}));
-            // A day on target already: count towards the days that settle it, not the days so far.
-            const run = fresh ? 0 : settleRun(days);
-            return {...going, part: 100, label: label(run ? t('on_target', {n: run, of: SETTLED_DAYS}) : t('day', {day: days.length})),
-                big: fresh ? t('new_target', {target: this.celsius(latest.setpoint)}) : this.celsius(latest.mean),
-                of: fresh ? undefined : t('of', {target: this.celsius(latest.setpoint)}),
-                desc: fresh ? t('restarted') : since === undefined ? t('shift_when') : projected || undefined,
-                chart: {days: rows, target: latest.setpoint, targetLabel: this.celsius(latest.setpoint), ...projection ? {projection} : {}},
-                rows: rows.slice(-4)};
+            if (fresh) return {...going, big: t('new_target', {target: this.celsius(latest.setpoint)}), desc: t('restarted')};
+            const ahead = projectSettle(days);
+            const {have: run, eta: ends} = settleProgress(days, ahead, changed);
+            const chart = {days: days.map((d) => ({label: dayLabel(d.date), mean: d.mean})), target: latest.setpoint, targetLabel: this.celsius(latest.setpoint),
+                ...ahead ? {projection: {days: ahead.map((mean, k) => ({label: dayLabel(after(latest.date, k + 1)), mean}))}} : {}};
+            // Before price shifts: from what temperature, and about when at this pace.
+            const range = rangeLimits(this.heatingRange(), this.getStoreValue(CUSTOM_RANGE_STORE) ?? {});
+            const shifts = shiftEta(days, ahead, range.lower, range.upper);
+            // From the side the house comes from: the range's low edge, or its high one when too warm.
+            const startsAt = this.celsius(latest.mean > latest.setpoint ? latest.setpoint + range.upper : latest.setpoint - range.lower);
+            const lines = [...changedLine,
+                ...since === undefined ? [{label: t('saving'), text: shifts === undefined ? t('saving_at', {temp: startsAt})
+                    : t('saving_at_day', {temp: startsAt, day: dayLabel(after(latest.date, shifts))})}] : [],
+                {label: t('next'), text: t(changed ? 'next_settling_checked' : 'next_settling')}];
+            return {...going, big: this.celsius(latest.mean), of: t('of', {target: this.celsius(latest.setpoint)}),
+                ...days.length > 1 ? {from: days[days.length - 2].mean} : {},
+                wait: {head: t('wait_for'), text: t('in_band', {n: SETTLED_DAYS, band: band(latest.setpoint)}), need: SETTLED_DAYS, have: run, count: t('n_of', {n: run, of: SETTLED_DAYS}),
+                    ...ends === undefined ? {} : {eta: eta(after(latest.date, ends))}, help: help('settling', 'settling', {n: SETTLED_DAYS})},
+                chart, lines};
         }
-        // Calibrating.
-        const store = this.heatCurveStore();
-        const view = this.curveView();
-        const fmt = (v: number) => (v > 0 ? `+${v}` : String(v));
-        const changed = view.changed !== undefined && state && view.changed > state.start ? view.changed : undefined;
-        const move = store.adjusted ?? store.moved;
+        // Curve check.
         if (changed && move) {
             const checks = state?.calibrating?.days ?? [];
             const run = streak(checks);
-            const again = checks.some((d) => !d.ok) && run < CHECK_DAYS;
-            const offset = t('offset', {from: fmt(move.from), to: fmt(move.to)});
-            const rows = [{label: dayLabel(changed), value: t('offset_row', {from: fmt(move.from), to: fmt(move.to)}), note: t(store.adjusted ? 'by_autopilot' : 'by_you'), tone: 'neutral'},
-                ...checks.map((d) => ({label: dayLabel(d.date), value: this.celsius(d.mean),
-                    note: d.ok ? '✓' : t('off_by', {delta: one(Math.abs(d.mean - d.setpoint))}), tone: d.ok ? 'good' : 'neutral'}))];
-            return {...going, part: Math.max(10, Math.round(run / CHECK_DAYS * 100)),
-                label: label(again && run === 0 ? t('checking_again') : t(again ? 'day_of_again' : 'day_of', {day: run, of: CHECK_DAYS})), big: offset,
-                desc: again ? t('not_steady', {days: CHECK_DAYS}) : t('checking', {target}), rows: rows.slice(-4)};
+            const again = checks.some((d) => !d.ok);
+            const last = checks[checks.length - 1]?.date ?? [changed, state?.settled ?? state?.stopped ?? changed].sort().pop()!;
+            return {...going, big: t('offset_now', {to: fmt(move.to)}),
+                wait: {head: t(again ? 'wait_checking_again' : 'wait_checking'), text: t('in_band', {n: CHECK_DAYS, band: band(goal)}), need: CHECK_DAYS, have: run,
+                    count: t('n_of', {n: run, of: CHECK_DAYS}), eta: eta(after(last, CHECK_DAYS - run)), help: help('check', 'curve-check')},
+                lines: [{label: dayLabel(changed), text: `${t('offset_row', {from: fmt(move.from), to: fmt(move.to)})} ${t(byAutopilot ? 'by_autopilot' : 'by_you')}`},
+                    {label: t('next'), text: t('next_check')}]};
         }
         const asked = store.told?.to;
-        if (asked !== undefined && store.offset !== undefined) {
-            return {...going, part: 50, label: label(t('waiting_for_you')), big: t('set_offset', {to: fmt(asked)}),
-                desc: t('set_offset_desc', {from: fmt(store.offset), to: fmt(asked)})};
+        if (asked !== undefined && store.offset !== undefined && view.asked) {
+            const until = dayLabel(after(view.asked, ASK_WAIT_DAYS));
+            return {...going, big: t('set_offset', {to: fmt(asked)}),
+                wait: {head: t('wait_you'), you: true, text: t('ask_text', {from: fmt(store.offset)}), eta: t('eta_until', {day: until}), help: help('ask', 'curve-check')},
+                lines: [{label: t('then'), text: t('in_band', {n: CHECK_DAYS, band: band(goal)})}, {label: t('next'), text: t('next_ask', {day: until})}]};
         }
-        return {...going, part: 30, label: label(), big: t('checking_curve'), desc: t('checking', {target})};
+        const start = state?.calibrating?.start ?? state?.settled ?? state?.stopped ?? today;
+        return {...going, big: t('checking_curve'),
+            wait: {head: t('wait_checking'), text: t('check_text', {target}), eta: t('eta_by', {day: dayLabel(after(start, CALIBRATE_MAX_DAYS))}), help: help('check', 'curve-check')},
+            lines: [{label: t('next'), text: t('next_check')}]};
     }
 
     // ---- Heating's comfort promise, day by day (comfort-days.ts) ----

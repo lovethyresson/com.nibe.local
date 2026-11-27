@@ -123,6 +123,19 @@
   </div>
 </section>
 
+<section class="center" id="first-weeks">
+  <div class="wrap">
+    <h2 class="display reveal">Autopilot's first weeks</h2>
+    <p class="lead reveal">The <b>Getting started</b> widget follows them in four steps. It shows what each step waits for and about when it ends. Each estimate is the pace so far carried on, so it moves when the weather does.</p>
+    <div class="how first-weeks">
+      <div class="reveal" id="learning"><div class="n">01</div><h3>Learning</h3><p>Autopilot learns how quickly your house cools and how much your heat pump warms it, from the indoor, outdoor and heating readings. It needs five days of readings, or three when Homey already has readings from before, and its predictions have to hold for three days in a row. Meanwhile it holds your thermostat temperature and shifts no heat.</p></div>
+      <div class="reveal" id="settling"><div class="n">02</div><h3>Settling</h3><p>Your house can be up to a degree off your thermostat at first, while Autopilot takes over from your heat pump's own control. Each morning it scores yesterday's average indoor temperature. Two days in a row within 0.2 °C of your thermostat means settled: one good day can be luck. A day with too few readings, or one where you changed the thermostat, is skipped. A new thermostat temperature starts the count over. After 21 days without settling, Autopilot moves on anyway. Price shifts start the first day your house is within your comfort range, and the widget shows <b>Saving since</b> that day.</p></div>
+      <div class="reveal" id="curve-check"><div class="n">03</div><h3>Curve check</h3><p>The curve offset (menu 1.1.1 on your heat pump) moves the whole heat curve up or down. If your house keeps ending up too warm or too cold for the outdoor temperature, Autopilot advises a new offset. With the offset set to automatic in Heating setup, Autopilot changes it itself, at most once a month, and you can undo the change there. That can happen during Settling too. Then the settled days after the change also check it, and you go straight to Done. Otherwise the widget asks you to change it on your heat pump, then checks two days in a row on target. If the offset is unchanged after three days, or the check takes more than ten days, it moves on to Done.</p></div>
+      <div class="reveal" id="done"><div class="n">04</div><h3>Done</h3><p>Autopilot keeps holding your thermostat temperature and moving heat away from the most expensive hours, as it already did since price shifts started. It keeps learning your house the whole time. You can remove the widget.</p></div>
+    </div>
+  </div>
+</section>
+
 <section class="center" id="savings">
   <div class="wrap">
     <h2 class="display reveal">How savings are counted</h2>

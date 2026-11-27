@@ -2,38 +2,89 @@
   <head>
     <meta charset="utf-8">
     <style>
-      /* Autopilot heating's first weeks in four steps (settling.ts): a stepper, then the step the
-         owner is on. Settling draws each day's average climbing to the thermostat. Price shifting
-         is not a step: once on, a blue line under the step says since when. */
+      /* Autopilot heating's first weeks in four steps (settling.ts): a labelled stepper, the step's
+         headline, what it is waiting for and about when, then a line or two on what comes next.
+         Blue links open the help page section that explains the step. Animations play only when
+         the card first shows or its content changes, never on an unchanged refresh. */
       .gs { padding: var(--homey-su-2, 8px) var(--homey-su-3, 12px); }
       .gs-title { opacity: 0.6; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .gs-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 8px; }
-      .gs-seg { height: 6px; border-radius: 99px; background: var(--gs-off); overflow: hidden; }
-      .gs-seg b { display: block; height: 100%; border-radius: 99px; }
-      .gs-seg.done b { background: var(--gs-good); width: 100%; }
-      .gs-seg.now b { background: var(--gs-line); }
-      .gs-seg.live b { background: var(--gs-target); width: 100%; }
-      .gs-label { margin-top: 10px; font-size: 0.85em; opacity: 0.7; }
-      .gs-saving { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 0.85em; font-weight: 600; color: var(--gs-target); }
-      .gs-saving i { width: 7px; height: 7px; border-radius: 50%; background: var(--gs-target); flex: none; }
-      .gs-big { font-size: 1.5em; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+      .gs-stepper { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 8px; }
+      .gs-st { display: grid; gap: 4px; font-size: 0.72em; min-width: 0; }
+      .gs-track { height: 6px; border-radius: 99px; background: var(--gs-off); overflow: hidden; }
+      .gs-fill { height: 100%; border-radius: 99px; transform-origin: left; transform: scaleX(var(--to, 0)); }
+      .gs-st.done .gs-fill { background: var(--gs-good); }
+      .gs-st.now .gs-fill, .gs-st.early .gs-fill { background: var(--gs-line); }
+      .gs-st.live .gs-fill { background: var(--gs-target); }
+      .gs-st span { opacity: 0.45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 3px; }
+      .gs-st.done span { opacity: 0.7; }
+      .gs-st.now span { opacity: 1; font-weight: 700; }
+      .gs-st.early span { opacity: 0.8; }
+      .gs-st.live span { opacity: 1; font-weight: 700; color: var(--gs-target); }
+      .gs-tick { width: 10px; height: 10px; flex: none; }
+      .gs-tick path { fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 14; stroke-dashoffset: 0; }
+      .gs-saving { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 0.85em; font-weight: 600; color: var(--gs-target); }
+      .gs-saving i { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--gs-target); flex: none; }
+      .gs-saving i::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--gs-target); opacity: 0; }
+      .gs-big { margin-top: 12px; font-size: 1.5em; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; line-height: 1.15; }
+      .gs-saving + .gs-big { margin-top: 2px; }
       .gs-of { font-size: 0.55em; font-weight: 600; opacity: 0.6; margin-left: 4px; }
       .gs-desc { margin-top: 2px; font-size: 0.88em; opacity: 0.8; line-height: 1.35; }
-      .gs-chart { display: block; width: 100%; margin-top: 8px; }
-      .gs-days { margin-top: 6px; border-top: 1px solid rgba(127, 127, 127, 0.22); font-variant-numeric: tabular-nums; }
-      .gs-row { display: grid; grid-template-columns: 3.2em 1fr auto; gap: 8px; padding: 5px 0; font-size: 0.9em; border-bottom: 1px solid rgba(127, 127, 127, 0.12); }
-      .gs-row:last-child { border-bottom: 0; }
-      .gs-day { opacity: 0.6; }
-      .gs-note { text-align: right; }
-      .gs-note.good { color: var(--gs-good); }
-      .gs-note.neutral { opacity: 0.6; }
+      .gs-wait { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--gs-box); display: grid; gap: 6px; }
+      .gs-wait-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+      .gs-wait-h { font-size: 0.75em; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.55; }
+      .gs-wait-t { font-size: 0.95em; font-weight: 600; line-height: 1.3; }
+      .gs-wait-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.85em; }
+      .gs-pips { display: flex; gap: 6px; align-items: center; font-variant-numeric: tabular-nums; }
+      .gs-pip { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--gs-line); box-sizing: border-box; }
+      .gs-pip.on { background: var(--gs-good); border-color: var(--gs-good); }
+      .gs-pips em { font-style: normal; opacity: 0.7; margin-left: 2px; }
+      .gs-eta { opacity: 0.7; white-space: nowrap; }
+      .gs-bar { height: 6px; border-radius: 99px; background: var(--gs-off); overflow: hidden; flex: 1; }
+      .gs-bar b { display: block; height: 100%; background: var(--gs-line); border-radius: 99px; transform-origin: left; transform: scaleX(var(--to, 0)); }
+      .gs-line { margin-top: 8px; font-size: 0.85em; line-height: 1.35; display: grid; grid-template-columns: 3.6em 1fr; gap: 6px; }
+      .gs-line > span:first-child { opacity: 0.55; }
       .gs-foot { margin-top: 10px; font-size: 0.82em; opacity: 0.6; }
+      .gs-help { margin-top: 10px; font-size: 0.82em; }
+      a.gs-link { color: var(--gs-target); font-weight: 600; text-decoration: none; white-space: nowrap; cursor: pointer; }
+      .gs-wait-top a.gs-link { font-size: 0.8em; }
+      .gs-chart { display: block; width: 100%; margin-top: 8px; overflow: visible; }
       .gs-empty { opacity: 0.8; margin: 12px 0; }
-      :root { --gs-good: #248a3d; --gs-line: #e8833a; --gs-target: #3d7be0; --gs-off: #e5e5ea; }
-      :root[data-theme="dark"] { --gs-good: #30d158; --gs-line: #f0954f; --gs-target: #6ea0ff; --gs-off: #3a3a3c; }
+      :root { --gs-good: #248a3d; --gs-line: #e8833a; --gs-target: #3d7be0; --gs-off: #e5e5ea; --gs-box: rgba(127, 127, 127, 0.10); --gs-glow: rgba(232, 131, 58, 0.45); --gs-glow-0: rgba(232, 131, 58, 0); }
+      :root[data-theme="dark"] { --gs-good: #30d158; --gs-line: #f0954f; --gs-target: #6ea0ff; --gs-off: #3a3a3c; --gs-box: rgba(127, 127, 127, 0.16); --gs-glow: rgba(240, 149, 79, 0.5); --gs-glow-0: rgba(240, 149, 79, 0); }
       @media (prefers-color-scheme: dark) {
-        :root:not([data-theme="light"]) { --gs-good: #30d158; --gs-line: #f0954f; --gs-target: #6ea0ff; --gs-off: #3a3a3c; }
+        :root:not([data-theme="light"]) { --gs-good: #30d158; --gs-line: #f0954f; --gs-target: #6ea0ff; --gs-off: #3a3a3c; --gs-box: rgba(127, 127, 127, 0.16); --gs-glow: rgba(240, 149, 79, 0.5); --gs-glow-0: rgba(240, 149, 79, 0); }
       }
+      @media (prefers-reduced-motion: no-preference) {
+        /* Ongoing cues: the next day to earn breathes, the saving dot ripples. */
+        .gs-pip.next { animation: gs-breathe 2600ms ease-in-out 1200ms infinite; }
+        .gs-saving i::after { animation: gs-ripple 2400ms ease-out 900ms infinite; }
+        /* Once, when the content changed. */
+        .gs.play .gs-st .gs-fill { animation: gs-grow 520ms cubic-bezier(.2, .7, .2, 1) both; animation-delay: calc(var(--i) * 140ms + 100ms); }
+        .gs.play .gs-st.live .gs-fill { animation: gs-grow 700ms cubic-bezier(.2, .7, .2, 1) both, gs-glow 1200ms ease-out 1 both; animation-delay: calc(var(--i) * 140ms + 100ms), calc(var(--i) * 140ms + 700ms); }
+        .gs.play .gs-tick path { animation: gs-draw 360ms ease-out both; animation-delay: calc(var(--i) * 140ms + 420ms); }
+        .gs.play .gs-big, .gs.play .gs-desc, .gs.play .gs-wait, .gs.play .gs-line, .gs.play .gs-foot, .gs.play .gs-help { animation: gs-rise 420ms cubic-bezier(.2, .7, .2, 1) both; animation-delay: calc(var(--d, 0) * 1ms); }
+        .gs.play .gs-pip { animation: gs-in 260ms ease-out both; animation-delay: calc(var(--d) * 1ms); }
+        .gs.play .gs-pip.on { animation: gs-in 420ms cubic-bezier(.3, 1.6, .5, 1) both; animation-delay: calc(var(--d) * 1ms); }
+        .gs.play .gs-pip.next { animation: gs-in 260ms ease-out both, gs-breathe 2600ms ease-in-out infinite; animation-delay: calc(var(--d) * 1ms), calc(var(--d) * 1ms + 400ms); }
+        .gs.play .gs-bar b { animation: gs-grow 900ms cubic-bezier(.2, .7, .2, 1) 700ms both; }
+        .gs.play .gs-wait.you { animation: gs-rise 420ms cubic-bezier(.2, .7, .2, 1) both, gs-ring 1400ms ease-out 1; animation-delay: calc(var(--d) * 1ms), calc(var(--d) * 1ms + 500ms); }
+        .gs.play .gs-chart .ln { animation: gs-draw-line 1100ms cubic-bezier(.4, 0, .2, 1) 650ms both; }
+        .gs.play .gs-chart .dt { animation: gs-in 220ms ease-out both; animation-delay: calc(650ms + var(--k) * 1100ms / var(--n)); }
+        .gs.play .gs-chart .proj { animation: gs-fade 500ms ease-out 1800ms both; }
+        .gs.play .gs-chart .end { animation: gs-fade 500ms ease-out 1800ms both, gs-end 1200ms ease-out 2300ms 1; transform-box: fill-box; transform-origin: center; }
+        .gs.play .gs-chart .band { animation: gs-fade 500ms ease-out 450ms both; }
+      }
+      @keyframes gs-grow { from { transform: scaleX(0); } to { transform: scaleX(var(--to, 1)); } }
+      @keyframes gs-draw { from { stroke-dashoffset: 14; } to { stroke-dashoffset: 0; } }
+      @keyframes gs-draw-line { from { stroke-dashoffset: var(--len); } to { stroke-dashoffset: 0; } }
+      @keyframes gs-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+      @keyframes gs-in { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
+      @keyframes gs-fade { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes gs-breathe { 0%, 100% { box-shadow: 0 0 0 0 var(--gs-glow); } 50% { box-shadow: 0 0 0 5px var(--gs-glow-0); } }
+      @keyframes gs-ripple { 0% { opacity: .5; transform: scale(1); } 80%, 100% { opacity: 0; transform: scale(3.2); } }
+      @keyframes gs-ring { 0% { box-shadow: 0 0 0 0 var(--gs-glow); } 100% { box-shadow: 0 0 0 10px var(--gs-glow-0); } }
+      @keyframes gs-glow { 0% { filter: brightness(1.5); } 100% { filter: none; } }
+      @keyframes gs-end { 0% { transform: scale(1); } 40% { transform: scale(1.7); } 100% { transform: scale(1); } }
     </style>
   </head>
 
@@ -68,91 +119,180 @@
         document.documentElement.setAttribute('data-theme', (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255 > 0.5 ? 'dark' : 'light');
       }
       var last = null;
+      var homey = null;
       var SVG = 'http://www.w3.org/2000/svg';
+      var reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
       function svg(tag, attrs, text) {
         var n = document.createElementNS(SVG, tag);
         Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
         if (text !== undefined) n.textContent = text;
         return n;
       }
+      function tick() {
+        var s = svg('svg', {viewBox: '0 0 10 10', class: 'gs-tick', 'aria-hidden': 'true'});
+        s.appendChild(svg('path', {d: 'M1.5 5.2 L4 7.6 L8.6 2.4'}));
+        return s;
+      }
+      // A help link: the help page section, in Homey's in-app browser.
+      function link(help) {
+        var a = el('a', 'gs-link', help.text + ' ›');
+        a.href = help.url;
+        a.addEventListener('click', function (e) {
+          e.preventDefault();
+          if (homey && homey.popup) homey.popup(help.url);
+        });
+        return a;
+      }
       // Each day's average against the thermostat, with a band of ±0.2 °C (what counts as holding
       // it, settling.ts SETTLED_K). At least a week wide, so the first days don't fill the card.
-      function chart(days, target, targetLabel, proj) {
-        var W = 300, H = 110, all = days.concat(proj ? proj.days : []), n = Math.max(7, all.length);
+      // The pace so far, carried on, is dashed and faint to the day it is expected in the band.
+      function chart(c) {
+        var days = c.days, proj = c.projection ? c.projection.days : [], all = days.concat(proj), target = c.target;
+        var W = 300, H = 110, n = Math.max(7, all.length);
         var values = all.map(function (d) { return d.mean; }).concat([target - 0.3, target + 0.3]);
         var lo = Math.min.apply(null, values) - 0.1, hi = Math.max.apply(null, values) + 0.1;
         var x = function (k) { return 20 + k * (W - 40) / (n - 1); };
         var y = function (v) { return H - 16 - (v - lo) / (hi - lo) * (H - 26); };
         var s = svg('svg', {viewBox: '0 0 ' + W + ' ' + H, class: 'gs-chart', 'aria-hidden': 'true'});
-        s.appendChild(svg('rect', {x: 10, y: y(target + 0.2), width: W - 20, height: y(target - 0.2) - y(target + 0.2), rx: 4, fill: 'var(--gs-target)', opacity: 0.16}));
-        s.appendChild(svg('line', {x1: 10, x2: W - 10, y1: y(target), y2: y(target), stroke: 'var(--gs-target)', 'stroke-dasharray': '4 4'}));
-        s.appendChild(svg('text', {x: W - 12, y: Math.max(11, y(target + 0.2) - 4), 'text-anchor': 'end', 'font-size': 11, fill: 'var(--gs-target)'}, targetLabel));
-        s.appendChild(svg('polyline', {points: days.map(function (d, k) { return x(k) + ',' + y(d.mean); }).join(' '), fill: 'none', stroke: 'var(--gs-line)', 'stroke-width': 2.5}));
-        if (proj) {
-          // The pace so far, carried on: dashed and faint, to the day it is expected at the target.
-          var last = days.length - 1, pts = [x(last) + ',' + y(days[last].mean)];
-          proj.days.forEach(function (d, j) { pts.push(x(last + 1 + j) + ',' + y(d.mean)); });
-          s.appendChild(svg('polyline', {points: pts.join(' '), fill: 'none', stroke: 'var(--gs-line)', 'stroke-width': 2, 'stroke-dasharray': '3 4', opacity: 0.7}));
-          proj.days.forEach(function (d, j) {
-            var k = last + 1 + j, end = j === proj.days.length - 1;
-            s.appendChild(svg('circle', {cx: x(k), cy: y(d.mean), r: end ? 4 : 2.5, fill: 'none', stroke: 'var(--gs-line)', 'stroke-width': 1.5, opacity: 0.8}));
-            s.appendChild(svg('text', {x: x(k), y: H - 2, 'text-anchor': 'middle', 'font-size': 10, fill: 'currentColor', opacity: 0.35}, d.label));
+        var band = svg('g', {class: 'band'});
+        band.appendChild(svg('rect', {x: 10, y: y(target + 0.2), width: W - 20, height: y(target - 0.2) - y(target + 0.2), rx: 4, fill: 'var(--gs-target)', opacity: 0.16}));
+        band.appendChild(svg('line', {x1: 10, x2: W - 10, y1: y(target), y2: y(target), stroke: 'var(--gs-target)', 'stroke-dasharray': '4 4'}));
+        band.appendChild(svg('text', {x: W - 12, y: Math.max(11, y(target + 0.2) - 4), 'text-anchor': 'end', 'font-size': 11, fill: 'var(--gs-target)'}, c.targetLabel || ''));
+        s.appendChild(band);
+        var line = svg('polyline', {class: 'ln', points: days.map(function (d, k) { return x(k) + ',' + y(d.mean); }).join(' '), fill: 'none', stroke: 'var(--gs-line)', 'stroke-width': 2.5, 'stroke-linejoin': 'round'});
+        s.appendChild(line);
+        var end = days.length - 1, every = Math.ceil(n / 7);
+        if (proj.length) {
+          var pts = [x(end) + ',' + y(days[end].mean)], g = svg('g', {class: 'proj'});
+          proj.forEach(function (d, j) { pts.push(x(end + 1 + j) + ',' + y(d.mean)); });
+          g.appendChild(svg('polyline', {points: pts.join(' '), fill: 'none', stroke: 'var(--gs-line)', 'stroke-width': 2, 'stroke-dasharray': '3 4', opacity: 0.7}));
+          proj.forEach(function (d, j) {
+            var k = end + 1 + j, final = j === proj.length - 1;
+            var dot = svg('circle', {cx: x(k), cy: y(d.mean), r: final ? 4 : 2.5, fill: 'none', stroke: 'var(--gs-line)', 'stroke-width': 1.5, opacity: 0.8});
+            if (final) { dot.setAttribute('class', 'end'); s.appendChild(dot); } else g.appendChild(dot);
+            if (n <= 7 || k % every === 0 || final) g.appendChild(svg('text', {x: x(k), y: H - 2, 'text-anchor': 'middle', 'font-size': 10, fill: 'currentColor', opacity: 0.35}, d.label));
           });
+          s.insertBefore(g, line);
         }
         days.forEach(function (d, k) {
-          s.appendChild(svg('circle', {cx: x(k), cy: y(d.mean), r: 4, fill: 'var(--gs-line)'}));
-          if (n <= 7 || k % Math.ceil(n / 7) === 0) s.appendChild(svg('text', {x: x(k), y: H - 2, 'text-anchor': 'middle', 'font-size': 10, fill: 'currentColor', opacity: 0.5}, d.label));
+          s.appendChild(svg('circle', {class: 'dt', style: '--k:' + k + ';--n:' + Math.max(1, end), cx: x(k), cy: y(d.mean), r: 4, fill: 'var(--gs-line)'}));
+          if (n <= 7 || k % every === 0) s.appendChild(svg('text', {x: x(k), y: H - 2, 'text-anchor': 'middle', 'font-size': 10, fill: 'currentColor', opacity: 0.5}, d.label));
         });
         return s;
       }
-      // Done steps green, the current one orange as far as it has come, Done blue: Autopilot carries on.
-      function steps(step, part) {
-        var row = el('div', 'gs-steps');
-        for (var k = 0; k < 4; k++) {
-          var seg = el('div', 'gs-seg' + (k < step ? ' done' : k === step ? (k === 3 ? ' live' : ' now') : ''));
-          var fill = el('b');
-          if (k === step && k < 3) fill.style.width = Math.max(0, Math.min(100, part || 0)) + '%';
-          seg.appendChild(fill);
-          row.appendChild(seg);
+      // The headline temperature counts up from the day before, keeping the app's number format.
+      function countUp(node, from) {
+        var text = node.firstChild && node.firstChild.nodeValue, m = text && /-?\d+([.,])\d/.exec(text);
+        if (!m || typeof from !== 'number' || !isFinite(from)) return;
+        var to = parseFloat(m[0].replace(',', '.')), sep = m[1], head = text.slice(0, m.index), tail = text.slice(m.index + m[0].length);
+        if (Math.abs(to - from) < 0.05) return;
+        var put = function (v) { node.firstChild.nodeValue = head + v.toFixed(1).replace('.', sep) + tail; };
+        var start = null;
+        function frame(t) {
+          if (!node.isConnected) return;
+          if (start === null) start = t;
+          var p = Math.min(1, (t - start) / 900);
+          put(from + (to - from) * (1 - Math.pow(1 - p, 3)));
+          if (p < 1) requestAnimationFrame(frame);
         }
-        return row;
+        put(from);
+        setTimeout(function () { requestAnimationFrame(frame); }, 350);
+        // Frames can stall (a hidden or throttled view): never leave yesterday's value standing.
+        setTimeout(function () { if (node.isConnected) node.firstChild.nodeValue = text; }, 1500);
       }
-      function render(data) {
+      function render(data, play) {
+        play = play && !reduce;
         applyTheme();
         var root = document.getElementById('gs');
+        root.className = 'gs';
         root.replaceChildren();
         root.appendChild(el('div', 'gs-title', data.title || ''));
-        if (data.empty) { root.appendChild(el('p', 'gs-empty', data.empty)); return; }
-        root.appendChild(steps(data.step, data.part));
-        root.appendChild(el('div', 'gs-label', data.label));
+        if (data.empty || !data.steps) { root.appendChild(el('p', 'gs-empty', data.empty || '')); return; }
+        var delay = 300, next = function (step) { var v = delay; delay += step || 90; return v; };
+        var stepper = el('div', 'gs-stepper');
+        data.steps.forEach(function (s, i) {
+          var cell = el('div', 'gs-st ' + (s.state || '')), track = el('div', 'gs-track'), fill = el('div', 'gs-fill');
+          cell.style.setProperty('--i', i);
+          fill.style.setProperty('--to', s.state === 'early' ? 0.3 : s.state ? 1 : 0);
+          track.appendChild(fill);
+          cell.appendChild(track);
+          var name = el('span');
+          if (s.state === 'done') name.appendChild(tick());
+          name.appendChild(document.createTextNode(s.name));
+          cell.appendChild(name);
+          stepper.appendChild(cell);
+        });
+        root.appendChild(stepper);
         if (data.saving) {
           var saving = el('div', 'gs-saving');
           saving.append(el('i'), document.createTextNode(data.saving));
           root.appendChild(saving);
         }
         var big = el('div', 'gs-big', data.big);
+        big.style.setProperty('--d', next(120));
         if (data.of) big.appendChild(el('span', 'gs-of', data.of));
         root.appendChild(big);
-        if (data.desc) root.appendChild(el('div', 'gs-desc', data.desc));
-        if (data.chart) root.appendChild(chart(data.chart.days, data.chart.target, data.chart.targetLabel || '', data.chart.projection));
-        if (data.rows && data.rows.length) {
-          var list = el('div', 'gs-days');
-          data.rows.forEach(function (d) {
-            var row = el('div', 'gs-row');
-            row.appendChild(el('span', 'gs-day', d.label));
-            row.appendChild(el('span', '', d.value));
-            row.appendChild(el('span', 'gs-note ' + (d.tone || 'neutral'), d.note));
-            list.appendChild(row);
-          });
-          root.appendChild(list);
+        if (play) countUp(big, data.from);
+        if (data.desc) { var desc = el('div', 'gs-desc', data.desc); desc.style.setProperty('--d', next()); root.appendChild(desc); }
+        var w = data.wait;
+        if (w) {
+          var box = el('div', 'gs-wait' + (w.you ? ' you' : ''));
+          box.style.setProperty('--d', next(160));
+          var top = el('div', 'gs-wait-top');
+          top.appendChild(el('div', 'gs-wait-h', w.head));
+          if (w.help) top.appendChild(link(w.help));
+          box.appendChild(top);
+          box.appendChild(el('div', 'gs-wait-t', w.text));
+          var row = el('div', 'gs-wait-row');
+          if (w.need) {
+            var pips = el('div', 'gs-pips');
+            for (var k = 0; k < w.need; k++) {
+              var pip = el('i', 'gs-pip' + (k < w.have ? ' on' : k === w.have ? ' next' : ''));
+              pip.style.setProperty('--d', 700 + k * 160);
+              pips.appendChild(pip);
+            }
+            pips.appendChild(el('em', '', w.count));
+            row.appendChild(pips);
+          } else if (w.part !== undefined) {
+            var bar = el('div', 'gs-bar'), b = el('b');
+            b.style.setProperty('--to', Math.max(0, Math.min(100, w.part)) / 100);
+            bar.appendChild(b);
+            row.appendChild(bar);
+            row.appendChild(el('span', '', w.count));
+          }
+          if (w.eta) row.appendChild(el('span', 'gs-eta', w.eta));
+          if (row.childNodes.length) box.appendChild(row);
+          root.appendChild(box);
         }
-        if (data.foot) root.appendChild(el('div', 'gs-foot', data.foot));
+        if (data.chart) {
+          var c = chart(data.chart);
+          root.appendChild(c);
+          var ln = c.querySelector('.ln');
+          if (play && ln && ln.getTotalLength) {
+            var L = Math.ceil(ln.getTotalLength());
+            ln.style.setProperty('--len', L);
+            ln.setAttribute('stroke-dasharray', L);
+          }
+        }
+        var after = data.chart ? 1500 : 0;
+        (data.lines || []).forEach(function (l) {
+          var r = el('div', 'gs-line'), body = el('span', '', l.text);
+          r.style.setProperty('--d', next(110) + after);
+          if (l.help) { body.appendChild(el('br')); body.appendChild(link(l.help)); }
+          r.appendChild(el('span', '', l.label));
+          r.appendChild(body);
+          root.appendChild(r);
+        });
+        if (data.foot) { var foot = el('div', 'gs-foot', data.foot); foot.style.setProperty('--d', next() + after); root.appendChild(foot); }
+        if (data.help) { var h = el('div', 'gs-help'); h.style.setProperty('--d', next() + after); h.appendChild(link(data.help)); root.appendChild(h); }
+        if (play) { void root.offsetWidth; root.classList.add('play'); }
       }
       function fit(Homey) {
         if (Homey && Homey.setHeight) Homey.setHeight(Math.ceil(document.getElementById('gs').scrollHeight) + 16);
       }
 
       function onHomeyReady(Homey) {
+        homey = Homey;
         var settings = Homey.getSettings() || {};
         var device = settings.device && settings.device.id;
         // Widgets share one storage: the key names this one (its path) and the device it shows.
@@ -167,9 +307,12 @@
           // the picture already shown meanwhile.
           if (data && data.loading && !soon) soon = setTimeout(function () { soon = null; load(); }, 5000);
           if (data && data.loading && last && !last.loading) return;
-          failures = 0; last = data; render(data); fit(Homey); keep(data);
+          // Animate only what is new: the first picture, or content that changed since the last.
+          var sig = JSON.stringify(data), play = sig !== shownSig;
+          failures = 0; last = data; shownSig = sig; render(data, play); fit(Homey); keep(data);
         }
         var soon = null;
+        var shownSig = null;
         var failures = 0;
         function load() {
           return Homey.api('GET', '/' + (device ? '?device=' + encodeURIComponent(device) : ''), {})
@@ -189,7 +332,7 @@
         var shown = false;
         try {
           var kept = JSON.parse(localStorage.getItem(cacheKey) || 'null');
-          if (kept && Date.now() - kept.at < KEEP_MS) { last = kept.data; render(kept.data); Homey.ready({height: Math.ceil(document.getElementById('gs').scrollHeight) + 16}); shown = true; }
+          if (kept && kept.data && kept.data.steps && Date.now() - kept.at < KEEP_MS) { last = kept.data; shownSig = JSON.stringify(kept.data); render(kept.data, false); Homey.ready({height: Math.ceil(document.getElementById('gs').scrollHeight) + 16}); shown = true; }
         } catch (e) { /* no storage: wait for the app, as before */ }
         load().finally(function () { if (!shown) Homey.ready({height: Math.ceil(document.getElementById('gs').scrollHeight) + 16}); });
         // A new day comes in each morning: an hourly refresh is plenty.

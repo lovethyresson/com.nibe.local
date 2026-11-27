@@ -293,3 +293,32 @@ export function projectSettle(days: SettleDay[]): number[] | undefined {
     }
     return out;
 }
+
+/** Settling's progress (the Getting started widget): the days in a row within the band that
+ *  count, and how many days after the last scored one the `SETTLED_DAYS`th is expected. After a
+ *  curve change while settling, only days after the change count, since those also check it
+ *  (`checkedWhileSettling`). The estimate is the run so far when the last days hold, else the
+ *  projection's first day in the band. Pure. */
+export function settleProgress(days: SettleDay[], ahead?: number[], changed?: string): {have: number; eta?: number} {
+    const last = days[days.length - 1];
+    if (!last) return {have: 0};
+    const run = settleRun(days);
+    const have = changed === undefined ? run : Math.min(run, days.filter((d) => d.date > changed).length);
+    if (have > 0) return {have, eta: SETTLED_DAYS - have};
+    const reach = ahead?.length ? ahead.length + SETTLED_DAYS - 1 : undefined;
+    // The first day that can count after a change is the day after it.
+    const first = changed === undefined ? 0 : daysBetween(last.date, changed) + SETTLED_DAYS;
+    return {have, ...reach === undefined ? {} : {eta: Math.max(reach, first)}};
+}
+
+/** The projection's first day within the comfort range (`lower` below the thermostat, `upper`
+ *  above), as days after the last scored one: when price shifts are expected to start. Pure. */
+export function shiftEta(days: SettleDay[], ahead: number[] | undefined, lower: number, upper: number): number | undefined {
+    const last = days[days.length - 1];
+    if (!last || !ahead) return undefined;
+    const k = ahead.findIndex((mean) => {
+        const off = round1(mean) - last.setpoint;
+        return off >= -lower - 1e-9 && off <= upper + 1e-9;
+    });
+    return k < 0 ? undefined : k + 1;
+}
