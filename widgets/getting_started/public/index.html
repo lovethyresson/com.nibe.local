@@ -6,25 +6,25 @@
          what is happening, one says whether it is going as expected and when it is done, and the
          graph walks the days to the target and on to Done. One link to the help section. The
          line draws when the card first shows or its content changes, never on a plain refresh. */
-      .gs { padding: var(--homey-su-3, 12px) var(--homey-su-4, 16px); }
-      /* Type: four sizes. Header 0.85/0.75 em, headline 1.125 em, status 0.9 em, body and
-         links 0.8 em. Space on a 4 px step: 2 inside a pair, 8 inside the story, 12-16 between
-         blocks. Headline, status and why read as one group; the graph and help link stand apart. */
-      .gs-title { font-size: 0.85em; opacity: 0.6; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .gs-step { font-size: 0.75em; opacity: 0.5; margin-top: 2px; }
-      .gs-big { margin-top: 12px; font-size: 1.125em; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
-      .gs-status { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 0.9em; font-weight: 600; line-height: 1.3; }
+      .gs { padding: var(--homey-su-2, 8px) var(--homey-su-3, 12px); }
+      /* Type as the other Autopilot cards (hotwater_tank, energy, autopilot): the title at body
+         size, faded; the headline 1.35 em semibold, balanced over its lines; the reason at body
+         size. The step and the why sit a step below, as each card's secondary line does. */
+      .gs-title { opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .gs-step { font-size: 0.8em; opacity: 0.6; margin-top: 1px; }
+      .gs-big { text-wrap: balance; margin-top: 18px; font-size: 1.35em; font-weight: 600; line-height: 1.2; }
+      .gs-status { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-weight: 600; line-height: 1.3; }
       .gs-status i { position: relative; width: 8px; height: 8px; border-radius: 50%; flex: none; background: currentColor; opacity: 0.4; }
       /* Muted by colour, not opacity: the rise animation ends at opacity 1 and would undo it, and
          an inline link keeps its full colour. */
-      .gs-why { margin: 2px 0 0 16px; font-size: 0.8em; color: color-mix(in srgb, currentColor 70%, transparent); line-height: 1.4; }
+      .gs-why { margin: 4px 0 0 16px; font-size: 0.9em; color: color-mix(in srgb, currentColor 80%, transparent); line-height: 1.5; max-width: 32em; }
       /* Older web views (before iOS 16.2): muted by opacity instead. */
-      @supports not (color: color-mix(in srgb, red 50%, transparent)) { .gs-why { opacity: 0.75; } }
+      @supports not (color: color-mix(in srgb, red 50%, transparent)) { .gs-why { opacity: 0.85; } }
       .gs-status.good i { background: var(--gs-good); opacity: 1; }
       .gs-status.warn i { background: var(--gs-warn); opacity: 1; }
-      .gs-help { margin-top: 12px; font-size: 0.8em; }
+      .gs-help { margin-top: 18px; font-size: 0.9em; }
       a.gs-link { color: var(--gs-target); font-weight: 600; text-decoration: none; cursor: pointer; }
-      .gs-chart { display: block; width: 100%; margin-top: 16px; overflow: visible; }
+      .gs-chart { display: block; width: 100%; margin-top: 24px; overflow: visible; }
       .gs-empty { opacity: 0.8; margin: 12px 0; }
       :root { --gs-good: #248a3d; --gs-warn: #b4500c; --gs-line: #e8833a; --gs-target: #3d7be0; }
       :root[data-theme="dark"] { --gs-good: #30d158; --gs-warn: #ff9f0a; --gs-line: #f0954f; --gs-target: #6ea0ff; }
@@ -111,7 +111,7 @@
       // in the band, marked Done. At least a week wide, so the first days don't fill the card.
       function chart(c) {
         var days = c.days, proj = c.projection ? c.projection.days : [], all = days.concat(proj), target = c.target;
-        var W = 300, H = 92, n = Math.max(7, all.length);
+        var W = 300, H = 120, n = Math.max(7, all.length);
         var values = all.map(function (d) { return d.mean; }).concat([target - 0.3, target + 0.3]);
         var lo = Math.min.apply(null, values) - 0.1, hi = Math.max.apply(null, values) + 0.1;
         var x = function (k) { return 20 + k * (W - 40) / (n - 1); };
