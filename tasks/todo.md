@@ -4,6 +4,23 @@ Open work first. What has shipped is in the commits and in the **Releases** tabl
 [`docs/releases.md`](../docs/releases.md), the durable rules are in
 [`CLAUDE.md`](../CLAUDE.md), and the design write-ups are under [`docs/`](../docs).
 
+## Comfort trial from Monday 2026-11-30: ready by Sunday evening
+
+A week on each comfort range (Comfortable 30 Nov, Save some 7 Dec, Save most 14 Dec), scored by
+`dev/comfort-trial.mjs` (smoke-tested on 20–26 Nov: runs, model found).
+
+- [x] Restarts resume (bbacf7c, d1e2c5c): a deploy no longer changes what heating does.
+- [x] No make-up after hot water: the plan covers a run itself (bbacf7c).
+- [ ] Hold every input but the range (confounders first):
+  - [ ] Curve check must not move the offset during the trial: Heating Setup → curve, "tell me".
+  - [ ] No deploy of heating code from Monday until the trial ends; fixes land by Sunday evening.
+  - [ ] Thermostat 22.5 °C, Away off, no SPA, room control off, all three weeks.
+- [ ] Afternoon model miss (0.7 K warm given the heat delivered, 27 Nov 10–19 h): find the cause by
+  Sunday; ship only with a back-test that beats today's model, else leave it and note it.
+- [ ] Weekend checks: hourly line shows the plan's indoor and hot water hours; a hot water run gets
+  a pre-heat; indoor stays within 22.0–23.0; Plan vs actual's first day at the plan's COP.
+- [ ] Hot water "This week: +40 %" on Plan vs actual: look before Monday (doesn't touch heating).
+
 ## After the heating test ends (Thursday 2026-11-19), in this order
 
 - [x] Homey system update, held since 2026-11-17 so the test sees no firmware change. Done
