@@ -12,14 +12,24 @@ A week on each comfort range (Comfortable 30 Nov, Save some 7 Dec, Save most 14 
 - [x] Restarts resume (bbacf7c, d1e2c5c): a deploy no longer changes what heating does.
 - [x] No make-up after hot water: the plan covers a run itself (bbacf7c).
 - [ ] Hold every input but the range (confounders first):
-  - [ ] Curve check must not move the offset during the trial: Heating Setup → curve, "tell me".
+  - [x] The curve offset holds at +7: Autopilot wrote it on 27 Nov, and Curve check waits 30 days
+    after its own change (`REPEAT_DAYS`), so not before 27 Dec. Only the owner (a change or Undo)
+    can move it during the trial.
   - [ ] No deploy of heating code from Monday until the trial ends; fixes land by Sunday evening.
   - [ ] Thermostat 22.5 °C, Away off, no SPA, room control off, all three weeks.
-- [ ] Afternoon model miss (0.7 K warm given the heat delivered, 27 Nov 10–19 h): find the cause by
-  Sunday; ship only with a back-test that beats today's model, else leave it and note it.
+- [x] Afternoon model miss (0.7 K warm given the heat delivered, 27 Nov 10–19 h): **left as is.**
+  Not systematic: over 103 12 h open-loop windows since mid-Nov the error barely follows the
+  outdoor change (correlation 0.23, 0.04 K per K; Δte > 3 K: mean +0.12 K, n 8). 27 Nov 03Z is the
+  single largest miss on record (0.96 K). No model change before the trial: same model all weeks.
 - [ ] Weekend checks: hourly line shows the plan's indoor and hot water hours; a hot water run gets
   a pre-heat; indoor stays within 22.0–23.0; Plan vs actual's first day at the plan's COP.
-- [ ] Hot water "This week: +40 %" on Plan vs actual: look before Monday (doesn't touch heating).
+- [x] Hot water "This week: +40 %" on Plan vs actual: real, not a reporting bug. 23–26 Nov had 3
+  rescue heatings (under the 40 L minimum) and 2 more "more hot water used than expected": use
+  above the learned forecast. Found on the way: "Today's average" in the heating message is the
+  next 24 h's mean (`chargesOf` meanPrice), so it read 3.38 kr on a 4.9 kr day. Owner text: fix
+  after the trial, with a mock.
+- [x] Restart gaps: heating plans on hot water's stored charges only in the first 30 min after a
+  start (`savedBusy`), with a test. Main's status line may still miss hot water for one slot.
 
 ## After the heating test ends (Thursday 2026-11-19), in this order
 

@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {
     PumpRound, deliveryFree, heatingWindows, mainStatusText, preheatAdders, preheatSlots, spanText, statusEvents,
+    SAVED_CHARGES_MS, savedBusy,
 } from '../lib/autopilot/orchestrator';
 import {PlanSlot, plan, reserveKwh} from '../lib/autopilot/hotwater-planner';
 import {PROFILE_LIMITS, ShiftInput, planLive, withHotwater} from '../lib/autopilot/live';
@@ -193,4 +194,12 @@ test('a round with only test runs reads as a simulation, a live one does not', (
     assert.equal(round.status(at(0))!.simulated, true);
     round.setHeating({slot: S0, biases: [0]}, false);
     assert.equal(round.status(at(0))!.simulated, undefined);
+});
+
+test('right after a start heating plans on hot water\'s stored charges, and only then (2026-11-27)', () => {
+    const saved = [{at: at(4), minutes: 60}];
+    const busy = savedBusy(saved, S0, 12, 60_000)!;
+    assert.deepEqual(busy.map((b, k) => b ? k : -1).filter((k) => k >= 0), [4, 5, 6, 7], 'a running or coming charge holds the compressor');
+    assert.equal(savedBusy(saved, S0, 12, SAVED_CHARGES_MS), undefined, 'past the start-up window: hot water is not planning');
+    assert.equal(savedBusy(undefined, S0, 12, 0), undefined, 'nothing stored, or hot water off');
 });

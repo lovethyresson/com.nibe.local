@@ -41,6 +41,17 @@ export function deliveryFree(charges: PlannedCharge[], from: number, n: number):
         && (from + k + 1) * SLOT_MS > c.at));
 }
 
+/** How long after a start heating may plan on hot water's stored charges, ms: hot water's
+ *  first plan lands within a slot, so past this a missing plan is hot water not planning, and
+ *  old charges would only mislead. */
+export const SAVED_CHARGES_MS = 30 * 60_000;
+
+/** The busy slots heating plans on while the round has no hot water plan: hot water's charges as
+ *  it last published them, right after a start only (`SAVED_CHARGES_MS`); else none. Pure. */
+export function savedBusy(saved: PlannedCharge[] | undefined, from: number, n: number, sinceStartMs: number): boolean[] | undefined {
+    return saved && sinceStartMs < SAVED_CHARGES_MS ? deliveryFree(saved, from, n) : undefined;
+}
+
 /** Heating's pre-heat and ease-off stretches from slot `from` on, in time order. */
 export function heatingWindows(plan: HeatingPlan, from: number): HeatingWindow[] {
     const out: HeatingWindow[] = [];

@@ -43,7 +43,7 @@ import {CostCheckData, CostDay, PlannedCost, addDay, chargeCosts, costCheckData,
 import {COP} from './autopilot/planner';
 import {Edge, FORECAST_SLOTS, BlockedBy, HeatingDay, analyticsSmartMode, heatingBlock, reserveBucket} from './autopilot/analytics';
 import {SOLAR_SETTING, SolarSurplus, readSolarAnswer, solarOn} from './autopilot/solar-surplus';
-import {PlannedCharge, PumpRound, deliveryFree, mainStatusText, spanText} from './autopilot/orchestrator';
+import {PlannedCharge, PumpRound, mainStatusText, savedBusy, spanText} from './autopilot/orchestrator';
 import {DayPlanData, dayPlanData} from './autopilot/day-plan';
 import {Device} from 'homey';
 import net from 'net';
@@ -2225,10 +2225,9 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         return PumpRound.for(this.host());
     }
 
-    /** Hot water's saved charges as busy slots, for heating before hot water has started. */
+    /** Hot water's saved charges as busy slots, for heating before hot water's first plan. */
     private savedHotwaterBusy(from: number, n: number): boolean[] | undefined {
-        const saved = this.pumpDevices().find((d) => d.role === 'hotwater')?.savedCharges();
-        return saved ? deliveryFree(saved, from, n) : undefined;
+        return savedBusy(this.pumpDevices().find((d) => d.role === 'hotwater')?.savedCharges(), from, n, process.uptime() * 1000);
     }
 
     private roundOff?: () => void;
