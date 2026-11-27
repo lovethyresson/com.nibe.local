@@ -6,18 +6,18 @@
          what is happening, one says whether it is going as expected and when it is done, and the
          graph walks the days to the target and on to Done. One link to the help section. The
          line draws when the card first shows or its content changes, never on a plain refresh. */
-      .gs { padding: var(--homey-su-2, 8px) var(--homey-su-3, 12px); }
+      .gs { padding: var(--homey-su-3, 12px) var(--homey-su-4, 16px); }
       .gs-title { opacity: 0.6; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .gs-step { font-size: 0.75em; opacity: 0.5; margin-top: 1px; }
-      .gs-big { margin-top: 8px; font-size: 1.45em; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
-      .gs-status { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 0.95em; font-weight: 600; }
+      .gs-step { font-size: 0.75em; opacity: 0.5; margin-top: 2px; }
+      .gs-big { margin-top: 14px; font-size: 1.45em; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
+      .gs-status { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 0.95em; font-weight: 600; }
       .gs-status i { position: relative; width: 8px; height: 8px; border-radius: 50%; flex: none; background: currentColor; opacity: 0.4; }
-      .gs-why { margin: 2px 0 0 16px; font-size: 0.88em; opacity: 0.75; line-height: 1.35; }
+      .gs-why { margin: 4px 0 0 16px; font-size: 0.88em; opacity: 0.75; line-height: 1.45; }
       .gs-status.good i { background: var(--gs-good); opacity: 1; }
       .gs-status.warn i { background: var(--gs-warn); opacity: 1; }
-      .gs-help { margin-top: 8px; font-size: 0.85em; }
+      .gs-help { margin-top: 14px; font-size: 0.85em; }
       a.gs-link { color: var(--gs-target); font-weight: 600; text-decoration: none; cursor: pointer; }
-      .gs-chart { display: block; width: 100%; margin-top: 10px; overflow: visible; }
+      .gs-chart { display: block; width: 100%; margin-top: 18px; overflow: visible; }
       .gs-empty { opacity: 0.8; margin: 12px 0; }
       :root { --gs-good: #248a3d; --gs-warn: #b4500c; --gs-line: #e8833a; --gs-target: #3d7be0; }
       :root[data-theme="dark"] { --gs-good: #30d158; --gs-warn: #ff9f0a; --gs-line: #f0954f; --gs-target: #6ea0ff; }
