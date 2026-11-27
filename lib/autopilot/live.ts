@@ -136,20 +136,17 @@ export const HELD_MIN_K = 1;
  *  plan's start has gone stale and a fresh search is as good. */
 export const RESUME_SLOTS = 8;
 
-/** What a start resumes from: the plan in force (its first slot and biases) and the last day's
- *  held shifts (`levelPush`). */
+/** What a start resumes from: the plan in force, its first slot and biases. */
 export interface FeedResume {
     slot: number;
     biases: number[];
-    held: {slot: number; shift: number}[];
 }
 
 /** A stored `FeedResume`, or undefined when it isn't one. */
 export function readResume(raw: unknown): FeedResume | undefined {
     const r = raw as FeedResume | null | undefined;
     if (!r || !Number.isFinite(r.slot) || !Array.isArray(r.biases) || !r.biases.every(Number.isFinite)) return undefined;
-    const held = Array.isArray(r.held) ? r.held.filter((h) => Number.isFinite(h?.slot) && Number.isFinite(h?.shift)) : [];
-    return {slot: r.slot, biases: r.biases, held};
+    return {slot: r.slot, biases: r.biases};
 }
 
 /** Indoor readings outside this range are not a room's air temperature (a sensor fault). */
@@ -389,8 +386,7 @@ export interface FeedHooks {
     /** The setpoint trim's state, kept across restarts (setpoint.ts `readTrim`). */
     loadTrim?(): TrimState;
     saveTrim?(state: TrimState): void;
-    /** The plan in force and the last day's held shifts, kept across restarts so a start carries
-     *  on from them (`FeedResume`). */
+    /** The plan in force, kept across restarts so a start carries on from it (`FeedResume`). */
     loadResume?(): FeedResume | undefined;
     saveResume?(resume: FeedResume): void;
     pump(): Promise<PumpFacts>;
@@ -577,7 +573,7 @@ export class HeatingFeed {
         if (handBack) {
             await this.handBack();
             // An owner's stop is not a plan to carry on from.
-            this.hooks.saveResume?.({slot: slotOf(this.hooks.now()), biases: [], held: this.heldShifts});
+            this.hooks.saveResume?.({slot: slotOf(this.hooks.now()), biases: []});
         } else this.hooks.feeding(false);
         this.bias = 0;
         this.target = 0;
@@ -688,14 +684,12 @@ export class HeatingFeed {
         this.heldShifts = [...this.heldShifts.filter((h) => h.slot > slot - 96), {slot, shift}];
     }
 
-    /** A start carries on: the plan in force as the warm start, shifted to now, and the last day's
-     *  held shifts for `levelPush`. Without them a restart searched from zero, which the ramp
-     *  makes shallower, and the curve check judged the curve on the hours since the start. */
+    /** A start carries on from the plan in force, shifted to now, as its warm start. Without it a
+     *  restart searched from zero, which the ramp makes shallower (3 K off in the test). */
     private resume() {
         const r = this.hooks.loadResume?.();
         if (!r) return;
         const slot = slotOf(this.hooks.now());
-        this.heldShifts = r.held.filter((h) => h.slot > slot - 96 && h.slot <= slot);
         const gap = slot - r.slot;
         if (gap >= 0 && gap <= RESUME_SLOTS && r.biases.length > gap) this.previous ??= r.biases.slice(gap);
     }
@@ -703,7 +697,7 @@ export class HeatingFeed {
     private saveResume() {
         if (!this.hooks.saveResume) return;
         const plan = this.plan;
-        this.hooks.saveResume({slot: plan?.slot ?? slotOf(this.hooks.now()), biases: plan?.biases ?? [], held: this.heldShifts});
+        this.hooks.saveResume({slot: plan?.slot ?? slotOf(this.hooks.now()), biases: plan?.biases ?? []});
     }
 
     /** Getting started holds: as last planned, or before the first plan of a run (the first
@@ -852,9 +846,10 @@ export class HeatingFeed {
      *  held shift. While Getting started holds, the plan warms a cold house back (flat prices), and
      *  what it adds then is level the trim did not learn; the curve advice (curve-advice.ts) reading
      *  the trim alone would judge the curve better than it is (2026-11-24). Slots outside the hold
-     *  count 0: a price shift is not level. The day is stored, so a restart carries it on (`resume`);
-     *  it is averaged over a whole day, the slots not yet seen as 0, so the first hour of a fresh
-     *  start (a 10 K recovery push) does not read as a day of it. */
+     *  count 0: a price shift is not level. The day is in memory, so after a restart it fills again;
+     *  it is averaged over a whole day, the slots not yet seen as 0, so the first hour after a start
+     *  (a 10 K recovery push) does not read as a day of it. A restart only drops hours from it, so
+     *  it reads closer to the trim alone; not stored, as it matters only to the curve advice. */
     get levelPush(): number {
         const now = this.heldShifts.at(-1)?.slot;
         const day = now === undefined ? [] : this.heldShifts.filter((h) => h.slot > now - 96);

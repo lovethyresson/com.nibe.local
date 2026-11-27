@@ -236,11 +236,13 @@ this only decides rescue against a pre-heat, and rescue wins.
   it reaches, or a pre-heat into a charge looked like heat, and the re-simulated plan fell out of
   its band and was dropped whole.
 - **Restarts resume** (2026-11-27). Hot water keeps the charges it last published
-  (`autopilotRoundCharges`) and hands them to the round at its start; heating falls back to them
-  until then. Heating keeps the plan in force and the last day's held shifts
-  (`autopilotHeatingResume`, live.ts `resume`) and the trim's whole state (setpoint.ts
-  `readTrim`). Without them a restart searched from zero (3 K off the running plan in the test),
-  ended a setpoint settle early, and took a running charge for heat.
+  (`autopilotRoundCharges`); heating falls back to them until hot water's first
+  plan after a start. Heating keeps the plan in force (`autopilotHeatingResume`, live.ts `resume`) and the
+  trim's whole state (setpoint.ts `readTrim`), and an app stop writes nothing to BT1: the pump
+  keeps the shift in force for the few minutes a restart takes, or its own guard ends it. Without
+  them a restart searched from zero (3 K off the running plan in the test), ended a setpoint
+  settle early, and took a running charge for heat. The curve advice's day of held shifts
+  (`levelPush`) is not kept: a restart only shortens it.
 - **Pre-heat as a price adder** (`preheatSlots`, `preheatAdders`). A pre-heat
   slot is one where heating's planned bias is above 0. Hot water sees each one with the horizon's
   price spread (highest minus lowest price, at least 0.01) added to every kWh charged there

@@ -1715,26 +1715,22 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
         // A charge's own draw is what the meter would otherwise export: added back to the live reading.
         this.solarSurplus().draw(this, () => number(spec.power));
         this.log(`Autopilot hot water started (${live() === 'live' ? 'live' : 'test run'}).`);
-        // Until its first plan after this start, the charges it published last, a running one
-        // included: heating plans around them from its first slot (a restart resumes, 2026-11-27).
-        const saved = this.savedCharges();
-        if (saved) this.round().setHotwater(saved.charges, saved.simulated);
         await this.hotwaterAutopilot.start();
     }
 
     /** Publish hot water's charges to the plan round and keep them for the next start. */
     private publishCharges(charges: PlannedCharge[], simulated: boolean) {
         this.round().setHotwater(charges, simulated);
-        const kept = {charges: charges.map((c) => ({at: c.at, minutes: c.minutes})), simulated};
+        const kept = {charges: charges.map((c) => ({at: c.at, minutes: c.minutes}))};
         if (JSON.stringify(kept) !== JSON.stringify(this.getStoreValue(HOTWATER_ROUND_STORE)))
             this.setStoreValue(HOTWATER_ROUND_STORE, kept).catch(this.error);
     }
 
     /** The charges hot water last published, while its Autopilot is on; undefined otherwise. */
-    savedCharges(): {charges: PlannedCharge[]; simulated: boolean} | undefined {
+    savedCharges(): PlannedCharge[] | undefined {
         if (this.autopilotMode() === 'off') return undefined;
-        const v = this.getStoreValue(HOTWATER_ROUND_STORE) as {charges?: PlannedCharge[]; simulated?: boolean} | null;
-        return Array.isArray(v?.charges) ? {charges: v!.charges!, simulated: v!.simulated === true} : undefined;
+        const v = this.getStoreValue(HOTWATER_ROUND_STORE) as {charges?: PlannedCharge[]} | null;
+        return Array.isArray(v?.charges) ? v!.charges : undefined;
     }
 
     /** More hot water for `hours` (697's hours picker, as text, as a Flow card sends it). Its
@@ -2232,7 +2228,7 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
     /** Hot water's saved charges as busy slots, for heating before hot water has started. */
     private savedHotwaterBusy(from: number, n: number): boolean[] | undefined {
         const saved = this.pumpDevices().find((d) => d.role === 'hotwater')?.savedCharges();
-        return saved ? deliveryFree(saved.charges, from, n) : undefined;
+        return saved ? deliveryFree(saved, from, n) : undefined;
     }
 
     private roundOff?: () => void;
