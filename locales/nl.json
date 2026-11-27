@@ -964,7 +964,7 @@
       "empty": "Begint met het plan om middernacht. Vereist dynamische stroomprijzen in Homey Energy.",
       "pick": "Kies je warmtepomp in de widgetinstellingen.",
       "first_day": "eerste volledige dag morgen",
-      "week": "7 dagen: __share__",
+      "week": "Deze week: __share__",
       "no_plan_today": "Vandaag geen plan",
       "pace_ahead": "Boven plan",
       "pace_behind": "Onder plan",

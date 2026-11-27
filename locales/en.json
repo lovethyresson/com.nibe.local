@@ -964,7 +964,7 @@
       "empty": "Starts with the plan at midnight. Requires dynamic electricity prices in Homey Energy.",
       "pick": "Choose your heat pump in the widget settings.",
       "first_day": "first full day tomorrow",
-      "week": "7 days: __share__",
+      "week": "This week: __share__",
       "no_plan_today": "No plan today",
       "pace_ahead": "Above plan",
       "pace_behind": "Below plan",

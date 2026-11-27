@@ -1869,6 +1869,12 @@ never swallow them.
     expected each function's electricity to cost over the day, against what it cost. Hot water
     was held to its 07:00 morning plan until 2026-11-25, so a night or 06:00 run fell outside
     its day and the day did not match Homey Energy. It now takes the first plan of the date.
+    Heating's plan was costed at the 30-day COP until 2026-11-27. In a cold week that ran
+    4–11 % above the real COP (3.51 on Monday falling to 3.22 on Friday, against 3.66–3.58), so
+    every day showed above plan. It is now costed at the COP the plan priced each slot at (the
+    learned COP, which follows supply and brine), and at the 30-day COP only while that model is
+    not trusted. The table shows the current week, Monday to Sunday, and the note under each bar
+    covers the same days.
 
 ---
 

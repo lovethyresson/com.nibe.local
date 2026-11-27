@@ -2173,10 +2173,15 @@ export abstract class NibePumpDevice extends Device implements PumpSubscriber {
                     + `(calculated ${v('measure_temperature.i1017_calculated_supply')}), degree minutes ${v('measure_degree_minutes_NIBE.h11_degree_minutes')}`;
             },
             record: (entry) => collector.recordLive(entry),
-            planned: (slot, forecast, heat) => {
-                const cop = Number(this.getCapabilityValue('measure_cop_NIBE.rolling'));
-                const use = Number.isFinite(cop) && cop > 1 ? cop : COP;
-                this.noteCostPlan(slot * SLOT_MS, forecast.map((f, k) => ({at: (slot + k) * SLOT_MS, cost: (heat[k] ?? 0) / use * f.price})));
+            // Each slot's heat at the COP the plan priced it at (the learned COP, which follows the
+            // supply and the brine), so the check holds the plan to its own figures. Without a
+            // trusted COP the plan used a constant: the 30-day COP is closer than that. The 30-day
+            // COP alone ran 4–11 % under a cold week's real one (2026-11-23…27).
+            planned: (slot, forecast, heat, cop) => {
+                const rolling = Number(this.getCapabilityValue('measure_cop_NIBE.rolling'));
+                const fallback = Number.isFinite(rolling) && rolling > 1 ? rolling : COP;
+                const at = (k: number) => (cop && cop[k] > 1 ? cop[k] : fallback);
+                this.noteCostPlan(slot * SLOT_MS, forecast.map((f, k) => ({at: (slot + k) * SLOT_MS, cost: (heat[k] ?? 0) / at(k) * f.price})));
             },
             setTimeout: (fn, ms) => this.homey.setTimeout(fn, ms),
             clearTimeout: (timer) => this.homey.clearTimeout(timer),

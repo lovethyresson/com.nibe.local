@@ -29,6 +29,7 @@
       .cc-days .x { text-align: right; font-size: 0.85em; min-width: 3.6em; opacity: 0.65; }
       .cc-days .x.over { color: var(--cc-over); opacity: 1; }
       .cc-days .x.under { color: var(--cc-good); opacity: 1; }
+      .cc-days span.later { opacity: 0.4; }
       .cc-foot { margin-top: 12px; font-size: 0.78em; opacity: 0.6; }
       .cc-empty { opacity: 0.8; margin: 12px 0; }
       :root { --cc-good: #0f8374; --cc-over: #b4500c; }
@@ -99,7 +100,7 @@
             bar.appendChild(mark);
           }
           row.appendChild(bar);
-          row.appendChild(el('div', 'cc-note', r.note));
+          if (r.note) row.appendChild(el('div', 'cc-note', r.note));
           root.appendChild(row);
         });
         if (data.total) {
@@ -119,9 +120,11 @@
           grid.appendChild(el('span', 'h', data.days.head[1]));
           grid.appendChild(el('span'));
           data.days.rows.forEach(function (d) {
-            grid.appendChild(el('span', 'd', d.label));
-            grid.appendChild(el('span', 'p', d.expected));
-            grid.appendChild(el('span', 'a', d.actual));
+            // A day still to come is dimmed, the whole row.
+            var later = d.tone === 'later' ? ' later' : '';
+            grid.appendChild(el('span', 'd' + later, d.label));
+            grid.appendChild(el('span', 'p' + later, d.expected));
+            grid.appendChild(el('span', 'a' + later, d.actual));
             grid.appendChild(el('span', 'x ' + d.tone, d.diff));
           });
           root.appendChild(grid);

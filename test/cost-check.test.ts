@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {addDay, chargeCosts, costCheckData, costDay, dayTotals, fillActual, overShare, COST_CHECK_DAYS} from '../lib/autopilot/cost-check';
+import {addDay, chargeCosts, costCheckData, costDay, dayTotals, fillActual, overShare, weekDates, COST_CHECK_DAYS} from '../lib/autopilot/cost-check';
 
 const H = 3_600_000;
 const from = Date.UTC(2026, 10, 16, 6); // 07:00 Stockholm
@@ -72,20 +72,43 @@ test('pace compares only the hours that have a reading', () => {
     assert.equal(data.total, undefined, 'no "both" line with one function');
 });
 
-test('the day list sums both functions and shows a past day only when complete', () => {
+test('the day list is this week, Monday to Sunday, and shows a past day only when complete', () => {
     const day = (date: string, exp: number, act: number | null) => ({date, from, until: from + H, expected: [exp], actual: [act], done: true});
-    const heating = [day('2026-11-14', 10, 11), day('2026-11-15', 10, 9), {...day('2026-11-16', 10, null), done: undefined}];
-    const hotwater = [day('2026-11-14', 2, 2.2), day('2026-11-15', 2, null)];
-    const data = costCheckData('T', [{label: 'Heating', days: heating}, {label: 'Hot water', days: hotwater}], '2026-11-16', from, t, money, (x) => x);
+    // 2026-11-18 is a Wednesday: Sunday the 15th is last week and stays out.
+    const heating = [day('2026-11-15', 50, 80), day('2026-11-16', 10, 11), day('2026-11-17', 10, 9), {...day('2026-11-18', 10, null), done: undefined}];
+    const hotwater = [day('2026-11-16', 2, 2.2), day('2026-11-17', 2, null)];
+    const data = costCheckData('T', [{label: 'Heating', days: heating}, {label: 'Hot water', days: hotwater}], '2026-11-18', from, t, money, (x) => x);
     assert.deepEqual(data.days!.rows.map((r) => [r.label, r.expected, r.actual, r.diff, r.tone]), [
-        ['2026-11-16', '10.00', '0.00', 'today', 'today'],
-        ['2026-11-15', '12.00', '–', '', 'even'],
-        ['2026-11-14', '12.00', '13.20', '+10 %', 'over'],
+        ['2026-11-16', '12.00', '13.20', '+10 %', 'over'],
+        ['2026-11-17', '12.00', '–', '', 'even'],
+        ['2026-11-18', '10.00', '0.00', 'today', 'today'],
+        ['2026-11-19', '–', '–', '', 'later'],
+        ['2026-11-20', '–', '–', '', 'later'],
+        ['2026-11-21', '–', '–', '', 'later'],
+        ['2026-11-22', '–', '–', '', 'later'],
     ]);
     assert.equal(data.total!.expected, '10.00');
     assert.equal(data.rows![1].note, 'no_plan_today');
     assert.equal(data.rows![0].mark, undefined, 'no mark before the first reading');
+    // Heating's week: Monday and Tuesday (20 planned, 20 spent); last Sunday's +60 % left out.
     assert.equal(data.rows![0].note, 'week(±0 %)');
+});
+
+test('a Monday has no finished day this week: the bar says only how today goes', () => {
+    const last = {date: '2026-11-15', from, until: from + H, expected: [10], actual: [20], done: true};
+    const today = {...costDay('2026-11-16', from, from + 2 * H, [{at: from, cost: 1}, {at: from + H, cost: 1}]), actual: [1, null]};
+    const data = costCheckData('T', [{label: 'Heating', days: [last, today]}], '2026-11-16', from + 2 * H, t, money, (x) => x);
+    assert.equal(data.rows![0].note, 'pace_even');
+    assert.equal(costCheckData('T', [{label: 'Heating', days: [{...today, actual: [null, null]}]}], '2026-11-16', from, t, money, (x) => x).rows![0].note,
+        'first_day', 'nothing before today at all: the first full day is still to come');
+    const open = {...last, actual: [null], done: undefined};
+    assert.equal(costCheckData('T', [{label: 'Heating', days: [open, {...today, actual: [null, null]}]}], '2026-11-16', from, t, money, (x) => x).rows![0].note,
+        'first_day', 'yesterday still waiting for its last hours: still no finished day');
+});
+
+test('weekDates runs Monday to Sunday, across a month', () => {
+    assert.deepEqual(weekDates('2026-11-30'), ['2026-11-30', '2026-12-01', '2026-12-02', '2026-12-03', '2026-12-04', '2026-12-05', '2026-12-06']);
+    assert.equal(weekDates('2026-11-29')[0], '2026-11-23');
 });
 
 test('no plans yet: one line', () => {

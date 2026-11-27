@@ -14,7 +14,7 @@
 import {ActuatorOutput, PumpThresholds, RAMP_K_PER_SLOT, fedValue} from './actuator';
 import {HouseParams, envelopeTau} from './model';
 import {ForecastBias, OutdoorReading, realOutdoor} from './outdoor';
-import {COP, Comfort, ForecastSlot, Plan, PumpCurve, planShift, simulate} from './planner';
+import {COP, Comfort, ForecastSlot, Plan, PumpCurve, planShift, pricesByCop, simulate} from './planner';
 import {CopModel} from './cop';
 import {SupplyCurve, curveInputFor} from './curve';
 import {effectivePrice} from './solar-surplus';
@@ -391,9 +391,10 @@ export interface FeedHooks {
     debug?(): string;
     /** One record per slot for the shadow log. */
     record(entry: LiveEntry): void;
-    /** Each new plan: its first slot, the forecast it used (prices) and the heat it plans per slot,
-     *  kWh. Plan vs actual (cost-check.ts) keeps the day's first. */
-    planned?(slot: number, forecast: ForecastSlot[], heat: number[]): void;
+    /** Each new plan: its first slot, the forecast it used (prices), the heat it plans per slot
+     *  (kWh) and, when the plan priced that heat by the learned COP, the COP of each slot.
+     *  Plan vs actual (cost-check.ts) keeps the day's first. */
+    planned?(slot: number, forecast: ForecastSlot[], heat: number[], cop?: number[]): void;
     setTimeout(fn: () => void, ms: number): any;
     clearTimeout(timer: any): void;
     sleep(ms: number): Promise<void>;
@@ -740,7 +741,7 @@ export class HeatingFeed {
             back: warmingUp(comfort) ? back!.at : undefined};
         this.hooks.record({slot, bias: this.bias, trim: this.trim, setpoint: this.setpoint, fed: this.lastFed?.fed, real: this.real?.value,
             source: this.real?.source, clamped: this.lastFed?.clamped ?? [], planned: plan.biases.slice(0, 8), reason});
-        this.hooks.planned?.(slot, input!.forecast, plan.plan.heat);
+        this.hooks.planned?.(slot, input!.forecast, plan.plan.heat, pricesByCop(livePump(input!)) ? plan.plan.cop : undefined);
         this.hooks.changed();
         return undefined;
     }

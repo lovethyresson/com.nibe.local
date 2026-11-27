@@ -97,7 +97,7 @@ export interface CostCheckData {
     empty?: string;
     rows?: {label: string; sofar: string; expected: string; fill: number; mark?: number; tone: 'ahead' | 'behind' | 'even'; note: string}[];
     total?: {label: string; sofar: string; expected: string};
-    days?: {head: string[]; rows: {label: string; expected: string; actual: string; diff: string; tone: 'under' | 'over' | 'even' | 'today'}[]};
+    days?: {head: string[]; rows: {label: string; expected: string; actual: string; diff: string; tone: 'under' | 'over' | 'even' | 'today' | 'later'}[]};
     footnote?: string;
 }
 
@@ -117,12 +117,17 @@ export function costCheckData(title: string, ledgers: CostLedger[], today: strin
     dayLabel: (date: string) => string): CostCheckData {
     const withDays = ledgers.filter((l) => l.days.length);
     if (!withDays.length) return {title, empty: t('empty')};
+    const week = weekDates(today);
     const pct = (v: number | undefined) => v === undefined ? '' : `${v > 0 ? '+' : v < 0 ? '−' : '±'}${Math.abs(v)} %`;
     const rows = withDays.map((l) => {
         const day = l.days.find((d) => d.date === today);
-        const past = l.days.filter((d) => d.date < today && d.done).map((d) => dayTotals(d)).filter((s) => s.complete);
-        const week = past.length ? overShare(past.reduce((s, d) => s + d.expected, 0), past.reduce((s, d) => s + d.actual, 0)) : undefined;
-        const weekNote = week === undefined ? t('first_day') : t('week', {share: pct(week)});
+        // This week's finished days, Monday on, as the table below shows them. A Monday has none
+        // yet: the bar then says only how today goes.
+        const past = l.days.filter((d) => d.date >= week[0] && d.date < today && d.done).map((d) => dayTotals(d)).filter((s) => s.complete);
+        const share = past.length ? overShare(past.reduce((s, d) => s + d.expected, 0), past.reduce((s, d) => s + d.actual, 0)) : undefined;
+        // No finished day at all yet: the first one is still to come.
+        const finished = l.days.some((d) => d.date < today && d.done && dayTotals(d).complete);
+        const weekNote = share !== undefined ? t('week', {share: pct(share)}) : finished ? undefined : t('first_day');
         if (!day) return {label: l.label, sofar: '–', expected: money(0), fill: 0, tone: 'even' as const, note: t('no_plan_today')};
         const s = dayTotals(day);
         const scale = Math.max(s.expected, s.actual, 1e-9);
@@ -131,16 +136,18 @@ export function costCheckData(title: string, ledgers: CostLedger[], today: strin
         return {label: l.label, sofar: money(s.actual), expected: money(s.expected), fill: round(s.actual / scale),
             // No reading yet: nothing to say about pace.
             ...s.known && !s.complete ? {mark: round(s.expectedKnown / scale)} : {}, tone,
-            note: s.known ? `${t(`pace_${tone}`)} · ${weekNote}` : weekNote};
+            note: [s.known ? t(`pace_${tone}`) : undefined, weekNote].filter(Boolean).join(' · ')};
     });
     const todays = withDays.map((l) => l.days.find((d) => d.date === today)).filter((d): d is CostDay => !!d).map((d) => dayTotals(d));
     const total = withDays.length > 1 && todays.length ? {label: t('both'),
         sofar: money(todays.reduce((s, d) => s + d.actual, 0)), expected: money(todays.reduce((s, d) => s + d.expected, 0))} : undefined;
-    // The day list: each date with a plan, both functions summed, newest first. A past day shows
-    // its result only once every function's hours are in.
-    const dates = [...new Set(withDays.flatMap((l) => l.days.map((d) => d.date)))].sort().reverse().slice(0, 7);
-    const dayRows = dates.map((date) => {
+    // The day list: this week, Monday to Sunday, both functions summed. A day to come, or one
+    // without a plan, shows dashes; a past day shows its result only once every function's hours
+    // are in.
+    const dayRows = week.map((date) => {
         const sums = withDays.map((l) => l.days.find((d) => d.date === date)).filter((d): d is CostDay => !!d).map((d) => dayTotals(d));
+        if (date > today) return {label: dayLabel(date), expected: '–', actual: '–', diff: '', tone: 'later' as const};
+        if (!sums.length) return {label: dayLabel(date), expected: '–', actual: '–', diff: '', tone: 'even' as const};
         const expected = sums.reduce((s, d) => s + d.expected, 0), actual = sums.reduce((s, d) => s + d.actual, 0);
         if (date === today) return {label: dayLabel(date), expected: money(expected), actual: money(actual), diff: t('today'), tone: 'today' as const};
         if (!sums.every((d) => d.complete)) return {label: dayLabel(date), expected: money(expected), actual: '–', diff: '', tone: 'even' as const};
@@ -149,6 +156,13 @@ export function costCheckData(title: string, ledgers: CostLedger[], today: strin
             tone: share === undefined || Math.abs(share) < 3 ? 'even' as const : share > 0 ? 'over' as const : 'under' as const};
     });
     return {title, rows, total, days: {head: [t('plan'), t('actual')], rows: dayRows}, footnote: t('footnote')};
+}
+
+/** The seven dates, Monday to Sunday, of the week `date` ('YYYY-MM-DD') falls in. */
+export function weekDates(date: string): string[] {
+    const noon = Date.parse(`${date}T12:00:00Z`);
+    const back = (new Date(noon).getUTCDay() + 6) % 7;
+    return Array.from({length: 7}, (_, k) => new Date(noon + (k - back) * 24 * HOUR).toISOString().slice(0, 10));
 }
 
 function round(v: number) {

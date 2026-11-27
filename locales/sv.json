@@ -964,7 +964,7 @@
       "empty": "Börjar med planen vid midnatt. Kräver dynamiska elpriser i Homey Energy.",
       "pick": "Välj din värmepump i widgetens inställningar.",
       "first_day": "första hela dagen i morgon",
-      "week": "7 dagar: __share__",
+      "week": "Denna vecka: __share__",
       "no_plan_today": "Ingen plan idag",
       "pace_ahead": "Över plan",
       "pace_behind": "Under plan",
